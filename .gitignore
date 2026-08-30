@@ -1,0 +1,103 @@
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+secrets/
+credentials/
+
+# IDE / editor
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+*~
+
+# Operating systems
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Build output / caches
+build/
+dist/
+out/
+target/
+.cache/
+.tmp/
+tmp/
+*.log
+
+# Java / Kotlin / Gradle
+.gradle/
+**/build/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+*.class
+
+# Android signing / packages
+*.apk
+*.aab
+*.apks
+*.idsig
+
+# Node / web tooling used by supporting components
+node_modules/
+.npm/
+.pnpm-store/
+.yarn/
+.next/
+.nuxt/
+.svelte-kit/
+coverage/
+
+# Python tooling / scripts
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# Native / CMake
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+
+# Local ROM / firmware / device artifacts
+*.img
+*.bin
+*.zip
+*.7z
+*.tar
+*.tar.gz
+*.tgz
+*.lz4
+*.zst
+payload.bin
+super.img
+vendor_boot.img
+boot.img
+init_boot.img
+recovery.img
+rom-workspace/
+firmware/
+workspaces/
+backups/
+dumps/
+extracted/
+
+# Local databases / runtime state
+*.db
+*.sqlite
+*.sqlite3
+runtime/
+state/

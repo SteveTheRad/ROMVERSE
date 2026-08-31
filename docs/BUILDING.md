@@ -69,9 +69,15 @@ python3 -m venv .venv
 .venv/bin/romverse
 ```
 
-If the Qt application cannot start on a minimal Linux installation, install the distribution
-packages required by the bundled Qt platform plugin. This exact clean-OS package list is
-environment-dependent and was not independently verified by this migration.
+Minimal Ubuntu installations and GitHub's Ubuntu runner require EGL for PySide6 imports:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y libegl1
+```
+
+Other Qt platform packages may still be desktop/distribution-dependent. The committed CI workflow
+sets `QT_QPA_PLATFORM=offscreen` for headless tests.
 
 ### Windows setup
 

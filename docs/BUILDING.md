@@ -22,9 +22,11 @@ The following gates passed:
 - Companion JVM tests
 - Companion debug APK assembly
 
-Windows is represented by a native host abstraction, PowerShell bootstrap, and an Ubuntu/Windows
-CI matrix. Windows runtime verification was not performed during this migration and remains
-unverified until the CI run or a Windows development machine confirms it.
+Windows is represented by a native host abstraction, PowerShell bootstrap, and a targeted
+Python 3.12/3.14 CI portability smoke. The initial full Windows Python 3.14 run passed 886 tests and
+failed 70 tests, primarily around POSIX permission bits, directory fsync, symlink representation,
+executable bits, and path separators. Full Windows runtime behavior remains In Progress and
+Unverified.
 
 ## Repository clone
 
@@ -90,8 +92,8 @@ From PowerShell:
 romverse
 ```
 
-Windows development is implemented in the host abstraction and CI configuration but was not
-runtime-verified during this migration.
+Windows development is implemented in the host abstraction and targeted CI smoke. The complete
+suite is not Windows-clean; do not treat the smoke as full runtime or safety-contract verification.
 
 ## Workspace and local configuration
 

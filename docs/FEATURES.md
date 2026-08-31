@@ -28,7 +28,7 @@ On 2026-08-31, an isolated Ubuntu clone passed:
 | PySide6 desktop shell and feature navigation | Implemented and Verified | Python UI tests and installed-wheel offscreen smoke |
 | Workspace/settings initialization | Implemented and Verified | automated tests and fresh smoke workspace |
 | Linux host paths and tool discovery | Implemented and Verified | current Ubuntu run plus automated tests |
-| Windows host paths and bootstrap | Implemented | source and CI matrix present; current migration did not run Windows |
+| Windows host paths and bootstrap | Implemented | targeted CI smoke is required; the initial full run exposed 70 POSIX-assumption failures, so full runtime remains Unverified |
 | Optional ROM tool inventory/provisioning receipts | Implemented and Verified | automated tool/provisioning tests; not every external binary was installed in the isolated clone |
 
 ## Device, diagnostics, and APK

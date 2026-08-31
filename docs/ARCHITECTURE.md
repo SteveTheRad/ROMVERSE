@@ -133,8 +133,8 @@ replace connected Activity tests or physical-device pairing validation.
 
 - `pyproject.toml`: Python package metadata, runtime dependencies, console entry point, pytest,
   and Ruff configuration
-- `.github/workflows/test.yml`: Ubuntu/Windows Python matrices, Companion build, and installed
-  desktop package smoke
+- `.github/workflows/test.yml`: full Ubuntu Python matrix, targeted Windows portability smoke,
+  Companion build, and installed desktop package smoke
 - `companion/gradlew`: pinned Gradle 8.11.1 portability entry point
 - `scripts/verify_wheel.py`: source-to-wheel and Device Pack integrity gate
 - `scripts/smoke_installed_desktop.py`: installed package/workspace startup gate

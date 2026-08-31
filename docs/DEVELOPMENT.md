@@ -53,6 +53,10 @@ ruff check .
 ruff format --check .
 ```
 
+GitHub Actions runs the full suite on Ubuntu with Python 3.12 and 3.14. Windows currently runs a
+targeted portability smoke plus Ruff. The full Windows suite is known to require platform-aware
+permission, fsync, symlink, executable, and path handling before it can become a required gate.
+
 For package-impacting changes:
 
 ```bash

@@ -73,10 +73,11 @@ Minimal Ubuntu installations and GitHub's Ubuntu runner require EGL for PySide6 
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y libegl1
+sudo apt-get install -y libegl1 libpulse0
 ```
 
-Other Qt platform packages may still be desktop/distribution-dependent. The committed CI workflow
+These packages provide the EGL and PulseAudio shared libraries required by the current PySide6
+bundle on minimal Ubuntu. Other Qt platform packages may still be desktop/distribution-dependent. The committed CI workflow
 sets `QT_QPA_PLATFORM=offscreen` for headless tests.
 
 ### Windows setup

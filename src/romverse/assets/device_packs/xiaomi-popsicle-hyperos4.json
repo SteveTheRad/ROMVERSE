@@ -1,0 +1,254 @@
+{
+  "schema_version": 2,
+  "pack_id": "xiaomi.popsicle.hyperos4.os4.0.0.23",
+  "version": "0.1.1",
+  "display_name": "Xiaomi 17 Pro Max / HyperOS 4.0.0.23",
+  "priority": 300,
+  "build_compatible_pack_sha256": [
+    "f6506fb44281dc62c79008fd7e80cf79c8286bccd57aba3df740fc8eff5981a3"
+  ],
+  "match": {
+    "manufacturers": ["xiaomi"],
+    "model_patterns": ["2509fpn0bc"],
+    "product_patterns": ["popsicle", "popsicle_*" ]
+  },
+  "capabilities": [
+    {
+      "capability_id": "identity.properties",
+      "label": "Exact popsicle identity",
+      "status": "supported",
+      "scope": "model_specific",
+      "detail": "Matches Xiaomi 2509FPN0BC and the popsicle product family only."
+    },
+    {
+      "capability_id": "health.baseline",
+      "label": "Battery and storage baseline",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Uses Guardian-approved Android health probes."
+    },
+    {
+      "capability_id": "security.boot_signals",
+      "label": "Xiaomi boot-state signals",
+      "status": "limited",
+      "scope": "read_only",
+      "detail": "Reports bootloader and Verified Boot evidence without changing either state."
+    },
+    {
+      "capability_id": "firmware.operations",
+      "label": "HyperOS 4 product rebuild",
+      "status": "supported",
+      "scope": "model_specific",
+      "detail": "Local product/AVB/super candidate generation is constrained to the exact OS4.0.0.23.XPBCNXM source digest and preserved partition layout."
+    },
+    {
+      "capability_id": "firmware.partition-layout",
+      "label": "Validated dynamic partition layout",
+      "status": "supported",
+      "scope": "model_specific",
+      "detail": "Super size, metadata slots, virtual A/B groups, logical partition sizes, and protected passthrough digests are machine-readable and exact."
+    },
+    {
+      "capability_id": "xiaomi.recovery",
+      "label": "Xiaomi stock recovery evidence",
+      "status": "limited",
+      "scope": "evidence_only",
+      "detail": "A known-good stock source and successful physical workflow are recorded, but no automatic recovery, flashing, unlock, or EDL action is enabled."
+    }
+  ],
+  "build_contract": {
+    "schema_version": 1,
+    "contract_id": "popsicle-os4.0.0.23-product-super",
+    "source": {
+      "build_id": "OS4.0.0.23.XPBCNXM",
+      "archive_sha256": "a58f2f3b876283d88031acbb18859b6b8a19212d9c214d4dc06c6ceb01d45c55",
+      "payload_sha256": "b614dabafabff794177e24f5ae3f3ef251043527122f2b6e4da535d6473155c4"
+    },
+    "dynamic_partitions": {
+      "super_size_bytes": 13421772800,
+      "metadata_size_bytes": 65536,
+      "metadata_slots": 3,
+      "virtual_ab": true,
+      "groups": [
+        {
+          "name": "qti_dynamic_partitions_a",
+          "maximum_size_bytes": 13411287040
+        },
+        {
+          "name": "qti_dynamic_partitions_b",
+          "maximum_size_bytes": 13411287040
+        }
+      ],
+      "partitions": [
+        {
+          "name": "odm",
+          "size_bytes": 3893583872,
+          "group": "qti_dynamic_partitions_a",
+          "filesystem": "opaque",
+          "mode": "passthrough",
+          "source_sha256": "e2989e69abdac8384406421575ca9bda5679343ada21255f1e6786e14ac7912f"
+        },
+        {
+          "name": "product",
+          "source_size_bytes": 4650856448,
+          "size_bytes": 6291456000,
+          "group": "qti_dynamic_partitions_a",
+          "filesystem": "erofs",
+          "mode": "rebuild",
+          "source_sha256": "1a29d557d0b291fd14f8e05303821f5c725ec69c725a843dff7ba8ef456a49c8",
+          "erofs": {
+            "compression": "lz4hc",
+            "compression_level": 12,
+            "legacy_compress": true,
+            "timestamp": 1230768000,
+            "filesystem_uuid": "f404d989-620e-542a-bf51-02c97b5a42a9",
+            "mount_point": "/product",
+            "require_fakeroot_state": true,
+            "require_file_contexts": true
+          },
+          "avb_hashtree": {
+            "hash_algorithm": "sha256",
+            "salt": "eb24388af95fbffb9bb89cf620165e6128a693d7f7ae508c08d00be693544768",
+            "generate_fec": false
+          }
+        },
+        {
+          "name": "system",
+          "size_bytes": 975355904,
+          "group": "qti_dynamic_partitions_a",
+          "filesystem": "opaque",
+          "mode": "passthrough",
+          "source_sha256": "2dfe174511878c70b2193dd9aec9f26c3d64b7656840ee1b5ca957531c85b368"
+        },
+        {
+          "name": "system_dlkm",
+          "size_bytes": 17326080,
+          "group": "qti_dynamic_partitions_a",
+          "filesystem": "opaque",
+          "mode": "passthrough",
+          "source_sha256": "98f8bdb1e9e7a15380f9c39c445b4c3fd5ea1155137c10c6911d50f239c6c3a2"
+        },
+        {
+          "name": "system_ext",
+          "size_bytes": 821497856,
+          "group": "qti_dynamic_partitions_a",
+          "filesystem": "opaque",
+          "mode": "passthrough",
+          "source_sha256": "9e714e7b4cb79779be4e7b43a1073a4a07e9a94b3ea45264640c9a9bab601573"
+        },
+        {
+          "name": "vendor",
+          "size_bytes": 590323712,
+          "group": "qti_dynamic_partitions_a",
+          "filesystem": "opaque",
+          "mode": "passthrough",
+          "source_sha256": "a9c0a935df7f942a1900c044673ebc50913651d7bc139925ccc74b1baf8d182d"
+        },
+        {
+          "name": "vendor_dlkm",
+          "size_bytes": 59031552,
+          "group": "qti_dynamic_partitions_a",
+          "filesystem": "opaque",
+          "mode": "passthrough",
+          "source_sha256": "05481ce7506a3c70ab134a7f80c633bf57be1924098549e7b0b6d6a7d71873c3"
+        },
+        {
+          "name": "mi_product",
+          "size_bytes": 348160,
+          "group": "qti_dynamic_partitions_a",
+          "filesystem": "opaque",
+          "mode": "passthrough",
+          "source_sha256": "87b89925ba06e6a763c54aecbf4bc829e7c37d3c9a705c07ec786a9dee55bc04"
+        },
+        {
+          "name": "mi_ext",
+          "size_bytes": 171429888,
+          "group": "qti_dynamic_partitions_a",
+          "filesystem": "opaque",
+          "mode": "passthrough",
+          "source_sha256": "77dfa3853d49c1b12171bca5c0231eeb7ab0a8fb32b908ab5a3c596cec8ae1b5"
+        }
+      ]
+    },
+    "vbmeta_descriptor_partitions": ["product", "system", "system_ext"],
+    "vbmeta_system_sha256": "cd8861f503863432520f57c6691a1acd676e1d4a495d224ad2f1d7c34fe92890",
+    "top_level_vbmeta_sha256": "69c245f4a82a610125bb4563a1476aa299ac9bf4e8197f6bf88e21de54c271d4",
+    "avb_execution_policy": {
+      "schema_version": 1,
+      "mode": "unlocked_unsigned_child",
+      "authority": "reference_only",
+      "evidence_build_id": "OS4.0.0.20.XPBCNXM",
+      "top_level_strategy": "preserve_exact_source",
+      "chain_partition": "vbmeta_system",
+      "candidate_algorithm": "NONE",
+      "candidate_rollback_index": 0,
+      "candidate_rollback_index_location": 0,
+      "candidate_flags": 0,
+      "require_unlocked_bootloader": true,
+      "require_critical_unlocked": true,
+      "require_verity_mode": true,
+      "target_slot": "a",
+      "recovery_bootloader_slot": "b"
+    },
+    "required_tools": [
+      "Python",
+      "ADB",
+      "Fastboot",
+      "7-Zip",
+      "Unzip",
+      "simg2img",
+      "Payload Dumper",
+      "EROFS Builder",
+      "EROFS Verifier",
+      "LP Make",
+      "LP Unpack",
+      "LP Dump",
+      "Fakeroot",
+      "AVBTool"
+    ],
+    "file_context_sources": [
+      {
+        "partition": "system",
+        "candidate_paths": [
+          "system/etc/selinux/plat_file_contexts",
+          "etc/selinux/plat_file_contexts"
+        ]
+      },
+      {
+        "partition": "system_ext",
+        "candidate_paths": [
+          "system_ext/etc/selinux/system_ext_file_contexts",
+          "etc/selinux/system_ext_file_contexts"
+        ]
+      },
+      {
+        "partition": "product",
+        "candidate_paths": [
+          "product/etc/selinux/product_file_contexts",
+          "etc/selinux/product_file_contexts"
+        ]
+      },
+      {
+        "partition": "vendor",
+        "candidate_paths": [
+          "vendor/etc/selinux/vendor_file_contexts",
+          "etc/selinux/vendor_file_contexts"
+        ]
+      },
+      {
+        "partition": "odm",
+        "candidate_paths": [
+          "odm/etc/selinux/odm_file_contexts",
+          "etc/selinux/odm_file_contexts"
+        ]
+      }
+    ],
+    "allowed_outputs": ["product.img", "vbmeta_system.img", "super.img"]
+  },
+  "notes": [
+    "Derived from the successful OS4.0.0.23.XPBCNXM popsicle product rebuild and physical first-boot verification.",
+    "The earlier OS4.0.0.20.XPBCNXM physical workflow preserved Xiaomi's signed top-level vbmeta, used a descriptor-correct unsigned vbmeta_system, and required explicit unlocked and critical-unlocked bootloader evidence. It is retained as reference evidence only and cannot authorize OS4.0.0.23 flashing.",
+    "The contract enables local candidate planning only; signing authority and every phone-changing action remain separate Guardian gates.",
+    "No compatibility may be inferred for another firmware digest, region, model, or partition layout."
+  ]
+}

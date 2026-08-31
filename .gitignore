@@ -30,8 +30,12 @@ dist/
 out/
 target/
 .cache/
+.build-tools/
+.gradle-local/
+.kotlin/
 .tmp/
 tmp/
+work/
 *.log
 
 # Java / Kotlin / Gradle
@@ -62,10 +66,14 @@ coverage/
 # Python tooling / scripts
 __pycache__/
 *.py[cod]
+*.egg-info/
 .venv/
 venv/
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
 # Native / CMake
 cmake-build-*/

@@ -1,104 +1,171 @@
 # ROMVERSE Architecture
 
-## Architectural goal
+## Current implementation
 
-ROMVERSE should separate detection, evidence, planning, safety authorization, execution, verification, and presentation so that no UI surface or subsystem independently guesses device facts or bypasses safety gates.
+ROMVERSE is a Python/PySide6 desktop application plus a native Kotlin Android Companion. The
+desktop package uses a `src/` layout and launches through `romverse.app:main`. The Companion is
+an independent Android application under `companion/`.
 
-## Core architecture
+The implemented architecture separates presentation, evidence collection, domain planning,
+Guardian authorization, execution gateways, persistence, and verification. UI code does not grant
+itself device-changing authority.
 
-### Firmware and device pipeline
+## Desktop startup and host boundary
 
-Current M1 direction:
+`src/romverse/app.py` performs:
 
-Firmware Import → Automatic Detection → Device Identification → Device DNA → Capability Map → Tool Resolution → Workspace Creation
+1. Qt application and single-instance setup.
+2. Linux/Windows host selection.
+3. settings and workspace resolution.
+4. read-only host-tool verification.
+5. receipt-verified managed-tool activation.
+6. Guardian audit, policy, and execution-gateway construction.
+7. Device Pack registry and attestation setup.
+8. ADB device engine creation only when ADB is available.
+9. main-window launch under runtime crash/thread guards.
 
-The broader functional chain then continues through extraction, modification/debloat, build validation, Guardian Readiness, local backup, and controlled Guardian Flash.
+`src/romverse/platform/host.py` owns operating-system paths and executable discovery.
 
-### Device DNA
+- Linux data: `~/.local/share/ROMVERSE`
+- Linux config: `$XDG_CONFIG_HOME/ROMVERSE` or `~/.config/ROMVERSE`
+- Windows data: `%LOCALAPPDATA%\ROMVERSE`
+- optional data/workspace override: `ROMVERSE_HOME`
 
-Device DNA is the authoritative evidence-backed device/firmware profile. It should hold trusted findings such as retail identity, model, codename, SoC/platform, Android/ROM/build/region data, firmware format, partition architecture, A/B state, filesystems, bootloader/slot information where obtainable, root/encryption/Verified Boot state where safely identifiable, partition sizes, fastboot/recovery capabilities, compatibility warnings, evidence sources, and confidence.
+Repository paths are never the default runtime workspace.
 
-Consumers must read the authoritative profile instead of independently inferring the same facts.
+## Desktop layers
 
-Capability Map states are exactly:
+### Presentation
 
-- SUPPORTED
-- CAUTION
-- UNSUPPORTED
-- UNCONFIRMED
+`src/romverse/ui/` contains the PySide6 shell and feature centers, including Device Center,
+Diagnostics, ROM Studio, Guardian, Nexus, Companion, backup, repair, terminal, history, tooling,
+APK, Galaxy, Members, Ascension, and guided workflows.
 
-Unknown information must remain explicitly UNCONFIRMED.
+Long work is routed through bounded background helpers so UI surfaces can display genuine progress
+without acquiring independent execution authority.
 
-### ROMVERSE Nexus
+### Core and platform
 
-Nexus is the central goal-to-plan orchestration layer.
+- `core/`: settings, workspace initialization, activity/history, privacy, and runtime stability
+- `platform/`: Linux/Windows host abstraction
+- `infrastructure/`: subprocess isolation, local persistence, tool verification/provisioning, and
+  payload-dumper integration
 
-Mission flow:
+### Device evidence
 
-Nexus Mission → Understand → Research → Nexus Plan → Guardian Review → Execute/Adapt → Nexus Verification
+- `device/`: ADB inventory, parsing, identity, Device DNA, APK installation, root evidence, and
+  device engine
+- `device_packs/`: pack registry, validation, attestations, publisher trust, drafts, source audit,
+  and Companion export
+- `diagnostics/`: findings, analyzers, history, and bounded cache optimization
 
-Nexus coordinates evidence and route selection rather than replacing the specialized systems beneath it.
+Device facts retain evidence and confidence. Unknown capability remains explicitly
+`UNCONFIRMED`.
 
-### Pathfinder
+### ROM workspace and build domains
 
-Pathfinder finds the best evidence-backed route for a requested goal and powers the visual Route Map.
+`rom/` contains project registration, source identity/intelligence, payload and fastboot
+inspection, partition/filesystem evidence, ROM DNA, packages, debloat planning, recipes,
+recovery evidence, build input preparation, exact-contract build candidates, build/readiness
+evidence, signing ceremony policy, and rollback-aware execution records.
 
-### Foresight
-
-Foresight predicts dependencies, risks, and likely change impact before execution.
+These modules operate on contained workspaces and evidence-bound receipts. Their automated tests do
+not by themselves certify arbitrary firmware or physical-device compatibility.
 
 ### Guardian
 
-Guardian is the safety, authorization, readiness, and evidence gate. Guardian consumes Device DNA and other evidence but remains the subsystem responsible for deciding whether an operation may proceed.
+`guardian/` owns policy, approval, audit integrity, evidence bindings, manifest review, backup
+handoffs, Ascension handoffs, and flash handoff preparation.
 
-### Insight
+The execution flow is:
 
-Insight provides lightweight explainability and decision trace information, including Why explanations, evidence, confidence, and history.
+```text
+UI intent
+  -> domain plan and evidence
+  -> Guardian policy/readiness
+  -> explicit authorization where required
+  -> ExecutionGateway
+  -> bounded subprocess/device action
+  -> receipt and audit evidence
+  -> post-action verification
+```
 
-### Synapse
+The current honest boundary leaves real device flashing locked/unverified until exact write
+contracts, compatibility evidence, recovery evidence, and independent physical-device validation
+exist.
 
-Synapse is the shared server-side verified-solution knowledge system.
+### Intelligence and orchestration
 
-Unknown issue flow:
+- `nexus/`: deterministic mission planning, events, and compatibility decisions
+- `intelligence/`: provider-independent AI gateway, usage governor, local action evidence, online
+  remediation, and local Synapse models
+- `repair/`: host repair knowledge, templates, and sessions
 
-sanitized fingerprint → Synapse Query → Nexus/Pathfinder investigation → Guardian-approved fix → execution → Nexus Verification → sanitized Synapse Contribution
+Local/deterministic components are implemented. Production Nexus/Synapse services, public
+synchronization, membership infrastructure, and commercial backend operation remain Planned or In
+Progress outside the local repository boundary.
 
-Evidence maturity:
+### Backup and continuity
 
-Candidate → Verified Success → Corroborated/Strong → Trusted
+`backup/` contains local media backup plans/receipts and controlled handoff records. Full
+app-private phone backup/restore is not claimed as verified.
 
-Evidence may be downgraded or retired when failures or firmware changes invalidate it.
+## Android Companion
 
-### AI Gateway
+The Companion uses:
 
-ROMVERSE uses a provider-independent AI Gateway. The initial preferred primary reasoning provider is OpenAI, while the architecture should allow alternate providers for capability, cost, redundancy, outages, or independent corroboration.
+- application id `com.radforge.romverse.companion`
+- Kotlin 2.0.21
+- Android Gradle Plugin 8.7.3
+- Java/Kotlin target 17
+- minimum SDK 26
+- compile/target SDK 35
 
-The AI Usage Governor should prioritize deterministic/local code, cached knowledge, Synapse, and the Compatibility Matrix before paid AI.
+Its application source lives under `companion/app/src/`. It implements the Android UI and local
+domains for Link, Device DNA, Vitalis, Lifeline, Live Console, Ascension status, Galaxy, Members,
+privacy controls, and local history.
 
-### Companion
+The Link boundary is read-only. Pairing, pinning, bounded telemetry, privacy filtering, and
+fail-closed parsing are implemented and covered by automated tests. A JVM/debug build does not
+replace connected Activity tests or physical-device pairing validation.
 
-The Android Companion is a first-class half of ROMVERSE.
+## Packaging and build architecture
 
-Primary mobile direction:
+- `pyproject.toml`: Python package metadata, runtime dependencies, console entry point, pytest,
+  and Ruff configuration
+- `.github/workflows/test.yml`: Ubuntu/Windows Python matrices, Companion build, and installed
+  desktop package smoke
+- `companion/gradlew`: pinned Gradle 8.11.1 portability entry point
+- `scripts/verify_wheel.py`: source-to-wheel and Device Pack integrity gate
+- `scripts/smoke_installed_desktop.py`: installed package/workspace startup gate
 
-Home → Device → Nexus → Guardian → Tools → Community/Account
+Generated environments, SDKs, caches, APKs, media, firmware, and workspaces remain outside version
+control.
 
-Key Companion systems:
+## Implementation status boundary
 
-- ROMVERSE Link — secure persistent PC/Companion connection.
-- Pulse — telemetry, history, pre/post-change comparison, Nexus Verification evidence.
-- Vitalis — interactive diagnostics and health.
-- Lifeline — Companion recovery/rescue interface with PC handoff when Android cannot operate.
-- Live Console — real execution progress, route, events, Guardian/Pathfinder/Foresight states, warnings, technical output, graphs, gauges, and terminal data carried from real PC execution.
+### Implemented and Verified
 
-## Infrastructure direction
+The isolated Ubuntu migration verified desktop bootstrap, 956 Python tests, lint/format, wheel
+integrity, installed-wheel startup, Companion JVM tests, and debug APK assembly.
 
-Initial infrastructure direction is one primary rented server/VPS containing separate services/containers for website, community/forum, accounts/subscriptions, ROMVERSE API/backend, Synapse, database/cache, and monitoring/admin. Large installers, Companion APKs, updates, and assets should use object storage/CDN. Backups should be automated and stored off-server.
+### Implemented
 
-## Performance rules
+The source contains Linux and Windows host paths, device/ROM/Guardian domains, Companion Link and UI
+domains, build/recovery/signing evidence models, and optional online-remediation integration.
+Verification scope varies by feature and is recorded in `FEATURES.md`.
 
-Performance is architectural, not cosmetic. Prefer progressive/event-driven analysis, caching, responsive UI, bounded background work, and measurable startup/RAM/network/processing targets.
+### In Progress
 
-## Portability rule
+Independent physical-device compatibility, connected Android instrumentation, signed release
+production, and end-to-end ROM write/recovery validation.
 
-Architecture-relevant assumptions, dependencies, service boundaries, configuration requirements, and setup steps must be documented in-repository so the project can move between development machines safely.
+### Planned
+
+Production membership/accounts, public Galaxy synchronization, hosted Synapse/Nexus services, and
+commercial release infrastructure.
+
+### Unverified
+
+Windows runtime behavior in this migration, Legion Go 2 setup, physical-device destructive
+operations, public release signing, and production backend operation.

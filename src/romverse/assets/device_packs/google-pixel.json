@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "pack_id": "google.pixel",
+  "version": "0.1.0",
+  "display_name": "Google Pixel",
+  "priority": 120,
+  "match": {
+    "manufacturers": ["google"]
+  },
+  "knowledge_sources": [
+    {
+      "source_id": "google.pixel.factory-images",
+      "label": "Google Pixel factory images",
+      "url": "https://developers.google.com/android/images",
+      "authority": "Google for Developers",
+      "scope": "Factory-image provenance, build identifiers, recovery warnings, and rollback notices",
+      "verified_on": "2026-08-29"
+    },
+    {
+      "source_id": "aosp.pixel.kernel-matrix",
+      "label": "AOSP Pixel kernel compatibility matrix",
+      "url": "https://source.android.com/docs/setup/build/building-pixel-kernels",
+      "authority": "Android Open Source Project",
+      "scope": "Pixel codenames, supported kernel branches, GKI boundaries, and vendor-ramdisk cautions",
+      "verified_on": "2026-08-29"
+    }
+  ],
+  "capabilities": [
+    {
+      "capability_id": "identity.properties",
+      "label": "Pixel identity and build evidence",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Maps standard Google product, device, build ID, security patch, slot, and boot-state properties without changing the device."
+    },
+    {
+      "capability_id": "health.baseline",
+      "label": "Battery and storage baseline",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Uses Guardian-approved Android health probes and records unavailable measurements honestly."
+    },
+    {
+      "capability_id": "google.factory_provenance",
+      "label": "Official factory-image provenance",
+      "status": "limited",
+      "scope": "knowledge_only",
+      "detail": "Links official Google build and recovery references; no image is trusted until its exact device, build, and downloaded digest are independently recorded."
+    },
+    {
+      "capability_id": "google.firmware.operations",
+      "label": "Pixel firmware operations",
+      "status": "planned",
+      "scope": "locked",
+      "detail": "No generic Pixel build, unlock, flash, slot-change, or recovery behavior is enabled; each model/build requires an exact signed contract."
+    }
+  ],
+  "notes": [
+    "Official source links improve diagnosis and provenance but grant no build or flash authority.",
+    "Factory-image installation can erase data and rollback rules vary by exact release; Guardian keeps all device-changing actions locked."
+  ]
+}

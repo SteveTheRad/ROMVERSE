@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "pack_id": "samsung.oneui",
+  "version": "0.1.0",
+  "display_name": "Samsung / One UI",
+  "priority": 100,
+  "match": {
+    "manufacturers": ["samsung"]
+  },
+  "knowledge_sources": [
+    {
+      "source_id": "samsung.knox.hardware-security",
+      "label": "Samsung Knox hardware-backed security",
+      "url": "https://docs.samsungknox.com/admin/fundamentals/whitepaper/samsung-knox-mobile-security/system-security/hw-backed-security/",
+      "authority": "Samsung Knox Documentation",
+      "scope": "Knox Warranty Bit, rollback protection, trusted boot, and hardware-backed attestation boundaries",
+      "verified_on": "2026-08-29"
+    },
+    {
+      "source_id": "aosp.verified-boot",
+      "label": "AOSP Verified Boot behavior",
+      "url": "https://source.android.com/docs/security/features/verifiedboot/boot-flow",
+      "authority": "Android Open Source Project",
+      "scope": "Standards-based interpretation of Android Verified Boot state",
+      "verified_on": "2026-08-29"
+    }
+  ],
+  "capabilities": [
+    {
+      "capability_id": "identity.properties",
+      "label": "Samsung identity properties",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Maps standard Android product, build, codename, and One UI-adjacent signals."
+    },
+    {
+      "capability_id": "health.baseline",
+      "label": "Battery and storage baseline",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Uses Guardian-approved generic Android health probes."
+    },
+    {
+      "capability_id": "security.boot_signals",
+      "label": "Samsung boot-state signals",
+      "status": "limited",
+      "scope": "read_only",
+      "detail": "Generic properties do not fully represent Knox, download mode, or regional policy."
+    },
+    {
+      "capability_id": "samsung.firmware_layout",
+      "label": "Samsung firmware and partition knowledge",
+      "status": "planned",
+      "scope": "locked",
+      "detail": "Requires physical Samsung validation and exact model/region compatibility data."
+    },
+    {
+      "capability_id": "samsung.download_mode",
+      "label": "Samsung download-mode workflows",
+      "status": "planned",
+      "scope": "locked",
+      "detail": "No Odin, Heimdall, download-mode, Knox, or flashing action is enabled."
+    }
+  ],
+  "notes": [
+    "Prepared as the second physical reference family; not yet hardware-validated.",
+    "Samsung model, region, bootloader revision, and Knox state require explicit future checks."
+  ]
+}

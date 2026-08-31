@@ -16,6 +16,30 @@ A planned, approved, or designed feature is not automatically implemented. Work 
 
 ROMVERSE is under active private development. Product internals, implementation details, security-sensitive design information, private roadmaps, credentials, signing material, and unpublished technical documentation must not be committed to public repositories or shared outside authorized project channels.
 
+## Current source baseline
+
+The repository now contains the Python/PySide6 desktop application, native Kotlin Android
+Companion, tests, build scripts, Device Packs, Guardian safety domains, ROM workspace domains, and
+the maintained private documentation.
+
+The isolated Ubuntu migration baseline passed 956 Python tests, Ruff lint/format checks, wheel
+build and installed-package smoke, Companion JVM tests, and debug APK assembly. This does not prove
+Windows, physical-device, production-service, release-signing, or flashing behavior. See
+[`docs/FEATURES.md`](docs/FEATURES.md) for status and verification scope.
+
+## Quick start
+
+```bash
+git clone git@github.com:SteveTheRad/ROMVERSE.git
+cd ROMVERSE
+./scripts/bootstrap.sh
+source .venv/bin/activate
+romverse
+```
+
+See [`docs/BUILDING.md`](docs/BUILDING.md) for Linux, Windows, packaging, Companion, optional ROM
+tools, local configuration, and clean-machine migration.
+
 ## Repository policy
 
 - `main` contains the stable project baseline.

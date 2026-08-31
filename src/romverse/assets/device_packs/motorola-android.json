@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "pack_id": "motorola.android",
+  "version": "0.1.0",
+  "display_name": "Motorola Android",
+  "priority": 110,
+  "match": {
+    "manufacturers": ["motorola", "lenovo"]
+  },
+  "knowledge_sources": [
+    {
+      "source_id": "motorola.bootloader.warning",
+      "label": "Motorola bootloader legal agreement and warning",
+      "url": "https://en-us.support.motorola.com/euf/assets/docs/Bootloader-Legal_Agreement_and_Warning.pdf",
+      "authority": "Motorola Support",
+      "scope": "Official consequences and limitations associated with bootloader unlock-code issuance",
+      "verified_on": "2026-08-29"
+    },
+    {
+      "source_id": "aosp.bootloader-locking",
+      "label": "AOSP bootloader locking and unlock evidence",
+      "url": "https://source.android.com/docs/core/architecture/bootloader/locking_unlocking",
+      "authority": "Android Open Source Project",
+      "scope": "Standards-based lock-state properties, wipe requirements, and critical-section protections",
+      "verified_on": "2026-08-29"
+    }
+  ],
+  "capabilities": [
+    {
+      "capability_id": "identity.properties",
+      "label": "Motorola identity properties",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Maps standard model, product, build, slot, boot-state, and security-patch evidence."
+    },
+    {
+      "capability_id": "health.baseline",
+      "label": "Battery and storage baseline",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Uses Guardian-approved generic Android health probes."
+    },
+    {
+      "capability_id": "motorola.unlock_consequences",
+      "label": "Unlock consequence knowledge",
+      "status": "limited",
+      "scope": "knowledge_only",
+      "detail": "Reports official policy boundaries; ROMVERSE never requests an unlock code or treats code issuance as modification approval."
+    },
+    {
+      "capability_id": "motorola.firmware.operations",
+      "label": "Motorola firmware operations",
+      "status": "planned",
+      "scope": "locked",
+      "detail": "No Rescue, unlock, flash, partition, or recovery automation is enabled without an exact signed model/build contract."
+    }
+  ],
+  "notes": [
+    "Carrier and regional variants can have different unlock and recovery rules.",
+    "Read-only detection does not establish eligibility for any bootloader or firmware operation."
+  ]
+}

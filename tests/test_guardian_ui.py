@@ -1,0 +1,146 @@
+import os
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+import json
+import zipfile
+from time import monotonic
+
+from PySide6.QtCore import QThreadPool
+from PySide6.QtWidgets import QApplication
+
+from romverse.applications.receipts import ApkReceiptStore
+from romverse.backup.plans import GuardianBackupPlanStore
+from romverse.device.apk_install import ApkInstallRequest, create_install_plan
+from romverse.device.models import AndroidDevice, DeviceState
+from romverse.guardian.approval import ApprovalStore
+from romverse.guardian.audit import GuardianAuditStore
+from romverse.infrastructure.process import CommandResult
+from romverse.ui.guardian_center import GuardianCenter
+
+
+def _device() -> AndroidDevice:
+    return AndroidDevice(
+        "private-serial",
+        DeviceState.DEVICE,
+        manufacturer="Google",
+        model="Test Phone",
+        verified_boot="green",
+    )
+
+
+def _wait_for_guardian(center: GuardianCenter, app: QApplication) -> None:
+    deadline = monotonic() + 5
+    while center.worker is not None and monotonic() < deadline:
+        QThreadPool.globalInstance().waitForDone(20)
+        app.processEvents()
+    assert center.worker is None
+
+
+def test_guardian_displays_verified_plan_digest_and_rejects_later_tampering(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    store = GuardianBackupPlanStore(tmp_path)
+    record = store.create(_device())
+    center = GuardianCenter(GuardianAuditStore(tmp_path))
+    _wait_for_guardian(center, app)
+
+    assert record.plan_digest[:16] in center.integrity_detail.text()
+
+    data = json.loads(store.latest_path.read_text(encoding="utf-8"))
+    data["phone_data_copied"] = True
+    store.latest_path.write_text(json.dumps(data), encoding="utf-8")
+    center.refresh()
+    _wait_for_guardian(center, app)
+
+    assert "plan rejected" in center.integrity_detail.text().casefold()
+    assert "integrity mismatch" in center.integrity_detail.text().casefold()
+    center.close()
+
+
+def test_guardian_verifies_apk_preflight_and_install_receipts(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    apk = tmp_path / "guardian-review.apk"
+    with zipfile.ZipFile(apk, "w") as archive:
+        archive.writestr("AndroidManifest.xml", b"manifest")
+        archive.writestr("classes.dex", b"dex\n035\0")
+    plan = create_install_plan(
+        ApkInstallRequest(
+            str(apk),
+            "PRIVATE-SERIAL",
+            battery_percent=90,
+            device_free_bytes=1024**3,
+        ),
+        "private-device-key",
+    )
+    receipts = ApkReceiptStore(tmp_path)
+    preflight = receipts.write_preflight(plan)
+    install = receipts.write_install(
+        plan,
+        CommandResult(("adb",), 0, "Success\nPRIVATE OUTPUT", ""),
+        True,
+    )
+
+    center = GuardianCenter(GuardianAuditStore(tmp_path))
+    _wait_for_guardian(center, app)
+    detail = center.integrity_detail.text()
+    assert preflight.receipt_digest[:16] in detail
+    assert install.receipt_digest[:16] in detail
+    assert "latest apk install result: success" in detail.casefold()
+    assert "PRIVATE" not in detail
+
+    data = json.loads(receipts.latest_install_path.read_text(encoding="utf-8"))
+    data["success"] = False
+    receipts.latest_install_path.write_text(json.dumps(data), encoding="utf-8")
+    center.refresh()
+    _wait_for_guardian(center, app)
+    assert "apk install receipt rejected" in center.integrity_detail.text().casefold()
+    assert "integrity mismatch" in center.integrity_detail.text().casefold()
+    center.close()
+
+
+def test_guardian_displays_active_approval_chain_and_rejects_tampering(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    approvals = ApprovalStore(tmp_path)
+    approvals.issue("exact-plan", "private-device-key")
+    center = GuardianCenter(GuardianAuditStore(tmp_path))
+    _wait_for_guardian(center, app)
+
+    assert "1 active / 1 recorded" in center.integrity_detail.text()
+    assert center.integrity_badge.text() == "INTEGRITY VERIFIED"
+
+    data = json.loads(approvals.path.read_text(encoding="utf-8"))
+    data["target"] = "another-device"
+    approvals.path.write_text(json.dumps(data) + "\n", encoding="utf-8")
+    center.refresh()
+    _wait_for_guardian(center, app)
+
+    assert center.integrity_badge.text() == "APPROVAL INTEGRITY FAILURE"
+    assert "No stored approval can authorize" in center.integrity_detail.text()
+    center.close()
+
+
+def test_guardian_verification_is_backgrounded_and_duplicate_locked(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    started: list[object] = []
+    monkeypatch.setattr("romverse.ui.guardian_center.start_background", started.append)
+
+    center = GuardianCenter(GuardianAuditStore(tmp_path))
+
+    assert len(started) == 1
+    assert center.worker is started[0]
+    assert not center.refresh_button.isEnabled()
+    assert center.progress.minimum() == 0
+    assert center.progress.maximum() == 0
+    assert "background" in center.integrity_detail.text().casefold()
+    center.refresh()
+    assert len(started) == 1
+
+    started[0].execute()
+    app.processEvents()
+    assert center.worker is None
+    assert center.refresh_button.isEnabled()
+    assert center.integrity_badge.text() == "INTEGRITY VERIFIED"
+    center.close()

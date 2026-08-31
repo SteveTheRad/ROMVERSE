@@ -1,93 +1,118 @@
-# ROMVERSE Features
+# ROMVERSE Features and Status
 
-## Status discipline
+## Status rules
 
-A feature may be Planned, Confirmed Commitment, In Progress, Implemented, or Implemented and Verified.
+- **Planned**: approved direction without an implementation claim.
+- **In Progress**: implementation or validation is actively incomplete.
+- **Implemented**: source exists, but proportionate verification is incomplete.
+- **Implemented and Verified**: source exists and the stated automated/build/runtime evidence passed.
+- **Unverified**: the stated environment or real-world integration has not been demonstrated.
 
-**Implemented and Verified** requires repository inspection plus proportionate build, test, fixture, or runtime evidence. Documentation must never imply implementation merely because a feature has been approved or designed.
+Verification scope is part of the status. Automated fixtures do not prove physical-device safety or
+commercial release readiness.
 
-## Core workflows
+## Verified repository baseline
 
-### ROM Studio
-Primary firmware inspection, modification, build, and validation workspace.
+On 2026-08-31, an isolated Ubuntu clone passed:
 
-### Genesis Sequence
-Beginner-friendly end-to-end guided ROM workflow.
+- 956 Python tests
+- Ruff lint and formatting checks
+- desktop wheel build, integrity verification, clean install, and offscreen startup smoke
+- packaged validation of 21 Device Packs
+- Companion JVM tests and debug APK assembly through Gradle Wrapper 8.11.1
 
-### Recipe Forger
-Reusable guided modification recipes.
+## Desktop and host
 
-### Ascension Protocol
-Optional root path selected during Genesis Sequence and skipped when root is declined.
+| Capability | Status | Verification scope |
+| --- | --- | --- |
+| PySide6 desktop shell and feature navigation | Implemented and Verified | Python UI tests and installed-wheel offscreen smoke |
+| Workspace/settings initialization | Implemented and Verified | automated tests and fresh smoke workspace |
+| Linux host paths and tool discovery | Implemented and Verified | current Ubuntu run plus automated tests |
+| Windows host paths and bootstrap | Implemented | source and CI matrix present; current migration did not run Windows |
+| Optional ROM tool inventory/provisioning receipts | Implemented and Verified | automated tool/provisioning tests; not every external binary was installed in the isolated clone |
 
-### Guardian Readiness and Guardian Flash
-Evidence-backed readiness validation followed by controlled flashing with explicit user authority.
+## Device, diagnostics, and APK
 
-## Firmware pipeline capabilities
+| Capability | Status | Verification scope |
+| --- | --- | --- |
+| ADB parsing, inventory, and Device Engine | Implemented and Verified | automated tests and fixtures |
+| Device identity, Device DNA, and Capability Map | Implemented and Verified | automated evidence/identity tests |
+| Diagnostics, history, comparison, and safe cache optimization | Implemented and Verified | automated tests |
+| Guarded APK inspection/install receipts | Implemented | automated tests pass; physical-device installation was not run during migration |
+| Live physical-device coverage across supported OEMs | Unverified | requires representative authorized hardware |
 
-- Detect supported `payload.bin` packages.
-- Detect fastboot archives.
-- Detect extracted firmware folders.
-- Detect partitions/filesystems.
-- Select the appropriate tools and extraction/build path automatically.
-- Show genuine progress, current stage, explanations, warnings, and recovery options during long operations.
-- Offer a local-drive backup before flashing.
-- Present explicit dirty-flash/preserve-data and clean-flash/wipe-data choices after readiness is all-green.
-- Scan real firmware apps for debloat and classify them as Safe, Caution, or Protected using OEM/device-specific evidence.
+Capability Map states are exactly `SUPPORTED`, `CAUTION`, `UNSUPPORTED`, and
+`UNCONFIRMED`.
 
-## Intelligence systems
+## ROM workspace
 
-### Device DNA
-Authoritative evidence-backed device and firmware profile.
+| Capability | Status | Verification scope |
+| --- | --- | --- |
+| ROM project/workspace registration | Implemented and Verified | automated workspace/project tests |
+| Source identity and firmware inspection | Implemented and Verified | automated archive/folder/fixture tests |
+| Payload, fastboot, partition, AVB, filesystem, and recovery evidence models | Implemented and Verified | automated fixture tests |
+| Debloat discovery/planning with protected/caution boundaries | Implemented and Verified | automated tests |
+| Recipe preview, approval, execution receipts, snapshots, and rollback | Implemented and Verified | contained-workspace automated tests |
+| Exact-contract local build candidates and readiness evidence | Implemented and Verified | automated build/readiness tests |
+| Arbitrary-device production ROM build compatibility | Unverified | requires independent firmware/device matrix evidence |
+| Genesis Sequence end-to-end production workflow | In Progress | component code exists; full real-device route is not release-verified |
 
-### Capability Map
-Uses exactly these states:
-- SUPPORTED
-- CAUTION
-- UNSUPPORTED
-- UNCONFIRMED
+## Guardian, backup, signing, and flashing
 
-### Compatibility Matrix
-Tracks evidence about what works on a specific device/firmware combination.
+| Capability | Status | Verification scope |
+| --- | --- | --- |
+| Guardian policy, approval, audit chain, manifests, and evidence bindings | Implemented and Verified | automated safety and hostile-input tests |
+| Local media backup plans/receipts and recovery snapshots | Implemented and Verified | automated tests |
+| Offline signing ceremony policy | Implemented | limited to explicitly flash-validated Device Pack policy; no Pack is production-certified by this fact |
+| Full app-private phone backup/restore | Planned | locked pending an exact tested contract |
+| Controlled physical-device flashing | Unverified | handoff/readiness code exists; real write and recovery contracts remain locked |
+| Bootloader relock | Planned: never | permanent safety boundary; ROMVERSE must never relock |
 
-### Foresight
-Predicts dependencies and impact before execution.
+## Android Companion
 
-### ROMVERSE Nexus
-Coordinates goal understanding, research, planning, Guardian review, execution/adaptation, and verification.
+| Capability | Status | Verification scope |
+| --- | --- | --- |
+| Native Android application and responsive UI | Implemented and Verified | JVM tests and debug APK assembly |
+| Local Device DNA, Vitalis, Lifeline, Live Console, Ascension, Galaxy, Members, and privacy domains | Implemented and Verified | JVM/domain tests |
+| ROMVERSE Link parsing, TLS pinning model, pairing state, and bounded read-only telemetry | Implemented and Verified | automated desktop/Companion protocol tests |
+| Connected Activity instrumentation | Unverified | `connectedDebugAndroidTest` not run during migration |
+| Physical-device Link recovery and OEM behavior | Unverified | requires authorized representative devices |
+| Companion device-changing authority | Planned: none | current Link remains read-only |
 
-### Pathfinder
-Finds the best evidence-backed route and powers the visual Route Map.
+## Intelligence and online systems
 
-### Guardian
-Safety, authorization, readiness, and evidence gate.
+| Capability | Status | Verification scope |
+| --- | --- | --- |
+| Nexus planning/events and Compatibility Matrix | Implemented and Verified | automated deterministic tests |
+| Provider-independent AI Gateway and usage governor | Implemented and Verified | automated provider/privacy/fallback tests |
+| Optional Google programmable search remediation | Implemented | requires local API configuration and live service validation |
+| Local Synapse evidence models | Implemented and Verified | automated tests |
+| Hosted Synapse/Nexus services | Planned | production infrastructure is outside this source baseline |
+| Public Galaxy synchronization | Planned | local/offline Galaxy is implemented; public service is not |
+| Membership, accounts, billing, and commercial backend | Planned | product direction only, not a local implementation claim |
 
-### Insight
-Why explanations, evidence, confidence, and decision history.
+## Release status
 
-### Synapse
-Shared server-side verified-solution knowledge system with evidence maturation and retirement.
+The codebase is an active private development baseline, not a production-certified ROM flashing
+release.
 
-## Companion features
+### In Progress
 
-- ROMVERSE Link
-- Pulse
-- Vitalis
-- Lifeline
-- Live Console
-- Community/Account surfaces
-- Device/Nexus/Guardian/Tools navigation
+- connected Android Activity validation
+- representative physical-device compatibility and recovery evidence
+- signed release artifact process
+- Windows and Legion Go 2 clean-machine validation
+- end-to-end build/write/recovery certification
 
-## Recovery and continuity
+### Unverified
 
-ROMVERSE should preserve projects, source firmware, backups, configuration, and user data by default. Recovery preparation and PC handoff are first-class requirements rather than afterthoughts.
+- physical-device flashing or rooting
+- full private-app backup/restore
+- production signing keys and public update continuity
+- hosted service operation and commercial scale
+- second-machine portability beyond the verified isolated Ubuntu clone
 
-## Product/platform notes
+## Documentation rule
 
-The normal application startup should prioritize responsiveness and should not block on decorative branding sequences. Approved brand/cinematic assets may be used in non-blocking contexts such as installers, About/credits, website, promotional materials, trailers, and end cards.
-
-The official Facebook Page should be surfaced in appropriate About/Community surfaces when those areas exist.
-
-## Feature documentation rule
-
-When a feature is added, removed, renamed, superseded, or materially changed, this file and any affected architecture/UX/Guardian/roadmap documentation should be updated in the same development cycle.
+Update this file whenever implementation or verification scope changes. A roadmap, test name,
+design document, or UI label is not sufficient evidence by itself.

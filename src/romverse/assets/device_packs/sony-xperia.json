@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "pack_id": "sony.xperia",
+  "version": "0.1.0",
+  "display_name": "Sony Xperia",
+  "priority": 110,
+  "match": {
+    "manufacturers": ["sony"]
+  },
+  "knowledge_sources": [
+    {
+      "source_id": "sony.open-devices.unlock",
+      "label": "Sony Open Devices bootloader guidance",
+      "url": "https://developerworld.wpp.developer.sony.com/open-source/aosp-on-xperia-open-devices/get-started/unlock-bootloader/how-to-unlock-bootloader",
+      "authority": "Sony Developer World",
+      "scope": "Official device eligibility checks, platform-tool requirements, warnings, and support limitations",
+      "verified_on": "2026-08-29"
+    },
+    {
+      "source_id": "aosp.boot-image-header",
+      "label": "AOSP boot image header reference",
+      "url": "https://source.android.com/docs/core/architecture/bootloader/boot-image-header",
+      "authority": "Android Open Source Project",
+      "scope": "Boot image version, GKI, vendor_boot, and recovery-layout semantics",
+      "verified_on": "2026-08-29"
+    }
+  ],
+  "capabilities": [
+    {
+      "capability_id": "identity.properties",
+      "label": "Xperia identity properties",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Maps standard Xperia model, product, build, slot, and boot-state evidence."
+    },
+    {
+      "capability_id": "health.baseline",
+      "label": "Battery and storage baseline",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Uses Guardian-approved generic Android health probes."
+    },
+    {
+      "capability_id": "sony.open_devices_knowledge",
+      "label": "Open Devices eligibility knowledge",
+      "status": "limited",
+      "scope": "knowledge_only",
+      "detail": "Surfaces official eligibility and warning information without assuming the connected release permits unlocking."
+    },
+    {
+      "capability_id": "sony.firmware.operations",
+      "label": "Xperia firmware operations",
+      "status": "planned",
+      "scope": "locked",
+      "detail": "No unlock-key request, flash, recovery, partition, or AOSP deployment action is enabled."
+    }
+  ],
+  "notes": [
+    "Sony states that only certain releases are unlock-eligible and official support may not apply after unlocking.",
+    "A manufacturer match cannot replace exact release, codename, firmware, and recovery evidence."
+  ]
+}

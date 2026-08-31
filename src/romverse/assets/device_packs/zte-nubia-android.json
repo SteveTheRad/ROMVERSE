@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "pack_id": "zte.nubia-android",
+  "version": "0.1.0",
+  "display_name": "ZTE / nubia / REDMAGIC Android",
+  "priority": 110,
+  "match": {
+    "manufacturers": ["zte", "nubia", "redmagic"]
+  },
+  "knowledge_sources": [
+    {
+      "source_id": "zte.product-support",
+      "label": "ZTE official model-selected update support",
+      "url": "https://support.ztedevices.com/en-gl/select-product/",
+      "authority": "ZTE Devices Support",
+      "scope": "Official model-selection entry point for ZTEOS updates and device guides",
+      "verified_on": "2026-08-30"
+    },
+    {
+      "source_id": "nubia.product-support",
+      "label": "nubia official download and update support",
+      "url": "https://www.nubia.com/en/support.html",
+      "authority": "nubia",
+      "scope": "Official nubia model download, ZTEOS update, and user-guide support entry point",
+      "verified_on": "2026-08-30"
+    }
+  ],
+  "capabilities": [
+    {
+      "capability_id": "identity.properties",
+      "label": "ZTE, nubia, and REDMAGIC identity properties",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Maps standard manufacturer, model, product, build, security-patch, slot, and boot-state evidence."
+    },
+    {
+      "capability_id": "health.baseline",
+      "label": "Battery and storage baseline",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Uses Guardian-approved generic Android health probes."
+    },
+    {
+      "capability_id": "zte.update_knowledge",
+      "label": "Official ZTE and nubia update context",
+      "status": "limited",
+      "scope": "knowledge_only",
+      "detail": "Routes the exact model to official ZTE or nubia support without treating the shared manufacturer family as package compatibility."
+    },
+    {
+      "capability_id": "zte.firmware.operations",
+      "label": "ZTE, nubia, and REDMAGIC firmware operations",
+      "status": "planned",
+      "scope": "locked",
+      "detail": "No update-package install, bootloader, root, partition, flash, rollback, or recovery action is enabled."
+    }
+  ],
+  "notes": [
+    "ZTE, nubia, and REDMAGIC firmware and update availability vary by exact model, market, carrier, and installed build.",
+    "A manufacturer match improves read-only context only; ROMVERSE requires exact source and device evidence for every later capability."
+  ]
+}

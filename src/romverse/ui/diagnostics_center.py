@@ -1,0 +1,563 @@
+from __future__ import annotations
+
+import json
+import os
+from contextlib import suppress
+from datetime import datetime
+
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import (
+    QComboBox,
+    QFrame,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QScrollArea,
+    QVBoxLayout,
+    QWidget,
+)
+
+from romverse.core.activity import ActivityStoreError
+from romverse.device.models import AndroidDevice
+from romverse.diagnostics.analyzer import DiagnosticAnalyzer
+from romverse.diagnostics.history import DiagnosticHistoryError, DiagnosticHistoryStore
+from romverse.diagnostics.models import DiagnosticReport, Finding, Severity
+from romverse.diagnostics.optimizer import OptimizerSafetyError, RomverseCacheOptimizer
+from romverse.ui.mini_chart import MiniChart
+from romverse.ui.process_progress import ProcessProgressBar
+
+SEVERITY_UI = {
+    Severity.HEALTHY: ("BASELINE CLEAR", "Good"),
+    Severity.INFORMATION: ("INFORMATION", "Eyebrow"),
+    Severity.ADVISORY: ("ADVISORY", "Warning"),
+    Severity.WARNING: ("WARNING", "Warning"),
+    Severity.CRITICAL: ("CRITICAL", "Danger"),
+}
+
+
+class FindingCard(QFrame):
+    def __init__(self, finding: Finding, evidence: dict[str, str]) -> None:
+        super().__init__()
+        self.setObjectName("Card")
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 17, 20, 17)
+        layout.setSpacing(8)
+        heading = QHBoxLayout()
+        title = QLabel(finding.title)
+        title.setObjectName("SectionTitle")
+        label, style = SEVERITY_UI[finding.severity]
+        badge = QLabel(label)
+        badge.setObjectName(style)
+        heading.addWidget(title, 1)
+        heading.addWidget(badge)
+        layout.addLayout(heading)
+        explanation = QLabel(finding.explanation)
+        explanation.setWordWrap(True)
+        layout.addWidget(explanation)
+        observed = [f"{key}: {evidence[key]}" for key in finding.evidence_ids if key in evidence]
+        if observed:
+            proof = QLabel("Evidence  •  " + "   |   ".join(observed))
+            proof.setObjectName("Muted")
+            proof.setWordWrap(True)
+            layout.addWidget(proof)
+        if finding.guidance:
+            guidance = QLabel("Guidance  •  " + finding.guidance)
+            guidance.setObjectName("Muted")
+            guidance.setWordWrap(True)
+            layout.addWidget(guidance)
+
+
+class DiagnosticsCenter(QWidget):
+    refresh_requested = Signal()
+    report_saved = Signal()
+    repair_requested = Signal()
+
+    def __init__(
+        self,
+        analyzer: DiagnosticAnalyzer,
+        history: DiagnosticHistoryStore,
+        cache_optimizer: RomverseCacheOptimizer | None = None,
+    ) -> None:
+        super().__init__()
+        self.analyzer = analyzer
+        self.history = history
+        self.cache_optimizer = cache_optimizer or RomverseCacheOptimizer(history.workspace)
+        self.score_history_path = self.history.root / "_health-score-history.json"
+        self.devices: list[AndroidDevice] = []
+        self.current_device: AndroidDevice | None = None
+        self.current_report: DiagnosticReport | None = None
+
+        page = QVBoxLayout(self)
+        page.setContentsMargins(30, 26, 30, 30)
+        page.setSpacing(18)
+        header = QHBoxLayout()
+        text = QVBoxLayout()
+        eyebrow = QLabel("QUANTUM OPTIMIZER  •  SYSTEM SCAN  •  GUARDIAN SAFE")
+        eyebrow.setObjectName("Eyebrow")
+        title = QLabel("Quantum Optimizer")
+        title.setObjectName("Title")
+        subtitle = QLabel(
+            "Live health graphs, evidence-backed recommendations, and Guardian-safe optimization guidance."
+        )
+        subtitle.setObjectName("Muted")
+        subtitle.setWordWrap(True)
+        text.addWidget(eyebrow)
+        text.addWidget(title)
+        text.addWidget(subtitle)
+        header.addLayout(text, 1)
+        self.selector = QComboBox()
+        self.selector.setMinimumWidth(220)
+        self.selector.setVisible(False)
+        self.selector.currentIndexChanged.connect(self._select)
+        header.addWidget(self.selector)
+        self.refresh = QPushButton("Refresh health data")
+        self.refresh.clicked.connect(self.refresh_requested)
+        header.addWidget(self.refresh)
+        self.optimize = QPushButton("Analyze & recommend")
+        self.optimize.setToolTip(
+            "Re-run read-only evidence checks and recommendations. No device changes are made."
+        )
+        self.optimize.clicked.connect(self._safe_optimization_review)
+        header.addWidget(self.optimize)
+        self.clean_cache = QPushButton("Preview safe cleanup")
+        self.clean_cache.setToolTip(
+            "Preview stale ROMVERSE cache/temp files older than 24 hours. Projects, firmware, "
+            "backups, tools, personal files, and the phone are always excluded."
+        )
+        self.clean_cache.clicked.connect(self._clean_romverse_cache)
+        header.addWidget(self.clean_cache)
+        self.save_button = QPushButton("Save report")
+        self.save_button.setObjectName("Primary")
+        self.save_button.setEnabled(False)
+        self.save_button.clicked.connect(self._save)
+        header.addWidget(self.save_button)
+        page.addLayout(header)
+        self.scan_progress = ProcessProgressBar()
+        self.scan_progress.setToolTip(
+            "ROMVERSE is collecting read-only health evidence from the connected phone."
+        )
+        page.addWidget(self.scan_progress)
+
+        self.overview = QFrame()
+        self.overview.setObjectName("HeroCard")
+        overview_layout = QHBoxLayout(self.overview)
+        overview_layout.setContentsMargins(24, 20, 24, 20)
+        summary = QVBoxLayout()
+        self.device_name = QLabel("Waiting for Device Engine…")
+        self.device_name.setObjectName("HeroTitle")
+        self.summary = QLabel("Connect and authorize a device to begin read-only analysis.")
+        self.summary.setObjectName("Muted")
+        summary.addWidget(self.device_name)
+        summary.addWidget(self.summary)
+        overview_layout.addLayout(summary, 1)
+        score_box = QVBoxLayout()
+        self.score = QLabel("—")
+        self.score.setObjectName("HeroTitle")
+        self.score.setAlignment(Qt.AlignmentFlag.AlignRight)
+        score_label = QLabel("HEALTH SIGNAL SCORE")
+        score_label.setObjectName("Eyebrow")
+        score_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        score_box.addWidget(self.score)
+        score_box.addWidget(score_label)
+        overview_layout.addLayout(score_box)
+        page.addWidget(self.overview)
+
+        resource_card = QFrame()
+        resource_card.setObjectName("Card")
+        resources = QGridLayout(resource_card)
+        resources.setContentsMargins(20, 16, 20, 16)
+        resources.setHorizontalSpacing(18)
+        resource_title = QLabel("LIVE RESOURCE GRAPH")
+        resource_title.setObjectName("Eyebrow")
+        resources.addWidget(resource_title, 0, 0, 1, 3)
+        self.battery_graph = self._resource_graph("Battery", resources, 1, 0)
+        self.storage_graph = self._resource_graph("Storage used", resources, 1, 1)
+        self.health_graph = self._resource_graph("Health score", resources, 1, 2)
+        page.addWidget(resource_card)
+
+        self.score_bar = QProgressBar()
+        self.score_bar.setRange(0, 100)
+        self.score_bar.setValue(0)
+        self.score_bar.setTextVisible(False)
+        page.addWidget(self.score_bar)
+        self.score_history: list[float] = self._load_score_history()
+        page.addWidget(QLabel("Health score trend (recent analyses)"))
+        self.score_chart = MiniChart("#7dffb2")
+        self.score_chart.set_values(self.score_history)
+        page.addWidget(self.score_chart)
+        self.last_analysis_label = QLabel("Last analysis: not yet completed")
+        self.last_analysis_label.setObjectName("Muted")
+        page.addWidget(self.last_analysis_label)
+
+        self.body = QScrollArea()
+        self.body.setWidgetResizable(True)
+        self.body_content = QWidget()
+        self.body_content.setObjectName("ScrollContent")
+        self.body_layout = QVBoxLayout(self.body_content)
+        self.body_layout.setContentsMargins(0, 0, 6, 0)
+        self.body_layout.setSpacing(12)
+        self.body.setWidget(self.body_content)
+        page.addWidget(self.body, 1)
+
+        footer = QHBoxLayout()
+        self.history_label = QLabel()
+        self.history_label.setObjectName("Muted")
+        self.saved_label = QLabel("")
+        self.saved_label.setObjectName("Good")
+        footer.addWidget(self.history_label)
+        footer.addStretch()
+        footer.addWidget(self.saved_label)
+        page.addLayout(footer)
+        self._update_history_label()
+        self._empty("Diagnostics will appear after the next Device Engine scan.")
+
+    def set_scanning(self, scanning: bool) -> None:
+        self.refresh.setEnabled(not scanning)
+        self.optimize.setEnabled(not scanning)
+        self.clean_cache.setEnabled(not scanning)
+        self.refresh.setText("Reading health data…" if scanning else "Refresh health data")
+        if scanning:
+            self.scan_progress.begin()
+        else:
+            self.scan_progress.finish()
+
+    def _safe_optimization_review(self) -> None:
+        """Request a fresh read-only snapshot for optimizer recommendations."""
+        self.saved_label.setText("Analyzing device health and recommendations…")
+        self.refresh_requested.emit()
+
+    def _clean_romverse_cache(self) -> None:
+        try:
+            preview = self.cache_optimizer.preview()
+        except (OptimizerSafetyError, OSError) as exc:
+            QMessageBox.warning(
+                self,
+                "Safe cleanup unavailable",
+                f"ROMVERSE stopped before changing any files.\n\n{exc}",
+            )
+            return
+        if preview.file_count == 0:
+            details = ["No stale ROMVERSE temporary files are ready for cleanup."]
+            if preview.skipped_recent:
+                details.append(
+                    f"{preview.skipped_recent} recent file(s) were preserved by the 24-hour safety window."
+                )
+            if preview.skipped_unsafe:
+                details.append(
+                    f"{preview.skipped_unsafe} link or special-file item(s) were safely ignored."
+                )
+            details.append(
+                "Projects, firmware, backups, tools, personal files, and phone data were not scanned."
+            )
+            QMessageBox.information(self, "ROMVERSE cache is already clean", "\n\n".join(details))
+            self.saved_label.setText("Safe cleanup preview complete  •  nothing eligible")
+            return
+        answer = QMessageBox.question(
+            self,
+            "Confirm bounded ROMVERSE cleanup",
+            f"The verified preview found {preview.file_count} stale temporary file(s), "
+            f"recovering up to {self._format_bytes(preview.total_bytes)}.\n\n"
+            "Fixed scope: ROMVERSE workspace/cache and workspace/temp only.\n"
+            "Minimum age: 24 hours. Symlinks and changed files are rejected.\n\n"
+            "Projects, original firmware, working ROMs, builds, reports, backups, tools, "
+            "personal files, and the connected phone are excluded.\n\n"
+            f"Plan fingerprint: {preview.plan_digest[:20]}…\n\nProceed?",
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            self.saved_label.setText("Safe cleanup cancelled  •  no files changed")
+            return
+        try:
+            receipt = self.cache_optimizer.clean(preview)
+        except (OptimizerSafetyError, OSError) as exc:
+            QMessageBox.warning(
+                self,
+                "Safe cleanup stopped",
+                f"ROMVERSE rejected the cleanup because its verified boundary changed.\n\n{exc}",
+            )
+            self.saved_label.setText("Safe cleanup stopped  •  review required")
+            return
+        self.saved_label.setText(
+            f"Safe cleanup complete  •  {receipt.files_removed} file(s)  •  "
+            f"{self._format_bytes(receipt.bytes_recovered)} recovered  •  receipt {receipt.receipt_id[:12]}…"
+        )
+        if receipt.files_changed_or_missing:
+            QMessageBox.information(
+                self,
+                "Cleanup completed with preserved changes",
+                f"ROMVERSE removed {receipt.files_removed} verified stale file(s).\n\n"
+                f"{receipt.files_changed_or_missing} file(s) changed after preview and were preserved.\n"
+                f"Receipt: {receipt.receipt_path}",
+            )
+        if self.history.activity_store is not None:
+            with suppress(ActivityStoreError):
+                self.history.activity_store.record(
+                    "optimizer",
+                    "ROMVERSE temporary cache cleaned",
+                    f"{receipt.files_removed} stale file(s) removed • "
+                    f"{self._format_bytes(receipt.bytes_recovered)} recovered • "
+                    f"receipt {receipt.receipt_id[:12]}… • phone untouched",
+                    outcome="success",
+                    source="Quantum Optimizer",
+                )
+
+    @staticmethod
+    def _format_bytes(size: int) -> str:
+        value = float(size)
+        units = ("B", "KB", "MB", "GB")
+        unit = units[0]
+        for unit in units:
+            if value < 1024 or unit == units[-1]:
+                break
+            value /= 1024
+        return f"{value:.1f} {unit}"
+
+    def set_devices(self, devices: list[AndroidDevice]) -> None:
+        self.devices = devices
+        self.selector.blockSignals(True)
+        self.selector.clear()
+        for device in devices:
+            self.selector.addItem(f"{device.display_name}  •  {device.masked_serial()}")
+        self.selector.setVisible(len(devices) > 1)
+        self.selector.blockSignals(False)
+        self.saved_label.clear()
+        if devices:
+            self._render(devices[0])
+        else:
+            self.current_device = None
+            self.current_report = None
+            self.save_button.setEnabled(False)
+            self.device_name.setText("No device available")
+            self.summary.setText("Connect a phone with USB debugging enabled and refresh evidence.")
+            self.score.setText("—")
+            self.score_bar.setValue(0)
+            self._set_resource_graph(self.battery_graph, None)
+            self._set_resource_graph(self.storage_graph, None)
+            self._set_resource_graph(self.health_graph, None)
+            self._empty("No diagnostic claims are made without device evidence.")
+
+    def show_error(self, message: str) -> None:
+        self.current_device = None
+        self.current_report = None
+        self.save_button.setEnabled(False)
+        self.device_name.setText("Diagnostics unavailable")
+        self.summary.setText(message)
+        self.score.setText("—")
+        self.score_bar.setValue(0)
+        self._set_resource_graph(self.battery_graph, None)
+        self._set_resource_graph(self.storage_graph, None)
+        self._set_resource_graph(self.health_graph, None)
+        self._empty(
+            "Device Engine must complete successfully before ROMVERSE can analyze evidence."
+        )
+
+    def _render(self, device: AndroidDevice) -> None:
+        report = self.analyzer.analyze(device)
+        self.current_device = device
+        self.current_report = report
+        self.device_name.setText(report.device_name)
+        self.summary.setText(report.summary)
+        self.score.setText(str(report.health_score))
+        self.score_bar.setValue(report.health_score)
+        self._set_resource_graph(self.battery_graph, device.battery_percent)
+        self._set_resource_graph(self.storage_graph, device.storage.percent_used)
+        self._set_resource_graph(self.health_graph, report.health_score)
+        self.last_analysis_label.setText(
+            f"Last analysis: {datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')}"
+        )
+        self.score_history.append(float(report.health_score))
+        self.score_history = self.score_history[-30:]
+        self._save_score_history()
+        self.score_chart.set_values(self.score_history)
+        self.save_button.setEnabled(True)
+        self._clear_body()
+        evidence = {item.evidence_id: item.value for item in report.evidence}
+        self.body_layout.addWidget(self._action_plan(report))
+        for finding in report.findings:
+            self.body_layout.addWidget(FindingCard(finding, evidence))
+
+        limitations = QFrame()
+        limitations.setObjectName("Card")
+        layout = QGridLayout(limitations)
+        layout.setContentsMargins(20, 17, 20, 17)
+        title = QLabel("Analysis boundaries")
+        title.setObjectName("SectionTitle")
+        layout.addWidget(title, 0, 0)
+        copy = QLabel("\n".join(f"• {item}" for item in report.limitations))
+        copy.setObjectName("Muted")
+        copy.setWordWrap(True)
+        layout.addWidget(copy, 1, 0)
+        self.body_layout.addWidget(limitations)
+        self.body_layout.addStretch()
+
+    def _action_plan(self, report: DiagnosticReport) -> QFrame:
+        ranking = {
+            Severity.HEALTHY: 0,
+            Severity.INFORMATION: 1,
+            Severity.ADVISORY: 2,
+            Severity.WARNING: 3,
+            Severity.CRITICAL: 4,
+        }
+        actionable = tuple(
+            finding
+            for finding in report.findings
+            if finding.severity in {Severity.ADVISORY, Severity.WARNING, Severity.CRITICAL}
+        )
+        priority = max(report.findings, key=lambda item: ranking[item.severity], default=None)
+        card = QFrame()
+        card.setObjectName("HeroCard")
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(20, 17, 20, 17)
+        heading = QHBoxLayout()
+        title = QLabel("RECOMMENDED ACTION PLAN")
+        title.setObjectName("Eyebrow")
+        status = QLabel(
+            "ALL CLEAR" if not actionable else f"{len(actionable)} ITEM(S) NEED ATTENTION"
+        )
+        status.setObjectName("Good" if not actionable else "Warning")
+        heading.addWidget(title)
+        heading.addStretch()
+        heading.addWidget(status)
+        layout.addLayout(heading)
+        next_step = QLabel(
+            priority.title if actionable and priority is not None else "Continue normal monitoring"
+        )
+        next_step.setObjectName("HeroTitle")
+        layout.addWidget(next_step)
+        guidance = QLabel(
+            priority.guidance
+            if actionable and priority is not None and priority.guidance
+            else "No immediate optimization is required. Refresh health data periodically to watch for changes."
+        )
+        guidance.setObjectName("Muted")
+        guidance.setWordWrap(True)
+        layout.addWidget(guidance)
+        boundary = QLabel(
+            "Guardian boundary  •  recommendation only; no device change runs automatically"
+        )
+        boundary.setObjectName("Good")
+        boundary.setWordWrap(True)
+        layout.addWidget(boundary)
+        if actionable:
+            open_repair = QPushButton("Open guided fix in Recovery Bay")
+            open_repair.setObjectName("Primary")
+            open_repair.setToolTip(
+                "Open the model-aware guided repair workflow for the highest-priority finding. "
+                "No device change starts automatically."
+            )
+            open_repair.clicked.connect(self.repair_requested.emit)
+            layout.addWidget(open_repair)
+        return card
+
+    def _save(self) -> None:
+        if self.current_report is None or self.current_device is None:
+            return
+        try:
+            path = self.history.save(self.current_report, self.current_device)
+        except (DiagnosticHistoryError, OSError) as exc:
+            self.saved_label.setText(f"Snapshot save stopped safely  •  {exc}")
+            return
+        self.saved_label.setText(f"Saved integrity-verified report  •  {path.name}")
+        self._update_history_label()
+        self.report_saved.emit()
+
+    @staticmethod
+    def _resource_graph(
+        label: str, layout: QGridLayout, row: int, column: int
+    ) -> tuple[QLabel, QProgressBar]:
+        container = QFrame()
+        container.setObjectName("DashboardCard")
+        box = QVBoxLayout(container)
+        box.setContentsMargins(14, 12, 14, 12)
+        value = QLabel(f"{label}  •  —")
+        value.setObjectName("Value")
+        graph = QProgressBar()
+        graph.setRange(0, 100)
+        graph.setValue(0)
+        graph.setTextVisible(False)
+        box.addWidget(value)
+        box.addWidget(graph)
+        layout.addWidget(container, row, column)
+        return value, graph
+
+    @staticmethod
+    def _set_resource_graph(graph: tuple[QLabel, QProgressBar], value: int | None) -> None:
+        label, bar = graph
+        name = label.text().split("  •  ", maxsplit=1)[0]
+        if value is None:
+            label.setText(f"{name}  •  —")
+            bar.setValue(0)
+            bar.setStyleSheet("")
+            return
+        normalized = max(0, min(100, int(value)))
+        label.setText(f"{name}  •  {normalized}%")
+        bar.setValue(normalized)
+        if name == "Battery":
+            color = "#FF6685" if normalized < 20 else "#FFB454" if normalized < 40 else "#28E7F5"
+            message = "Low battery" if normalized < 20 else "Battery level"
+        elif name == "Storage used":
+            color = "#FF6685" if normalized >= 90 else "#FFB454" if normalized >= 75 else "#A855F7"
+            message = "Storage pressure" if normalized >= 75 else "Storage usage"
+        else:
+            color = "#44E39A" if normalized >= 80 else "#28E7F5" if normalized >= 60 else "#FFB454"
+            message = "Overall evidence-based health score"
+        bar.setStyleSheet(f"QProgressBar::chunk {{ background: {color}; }}")
+        bar.setToolTip(f"{message}: {normalized}%")
+
+    def _select(self, index: int) -> None:
+        if 0 <= index < len(self.devices):
+            self.saved_label.clear()
+            self._render(self.devices[index])
+
+    def _update_history_label(self) -> None:
+        scan = self.history.scan_reports()
+        count = len(scan.reports)
+        self.history_label.setText(
+            f"Local diagnostic history: {count} accepted report"
+            f"{'s' if count != 1 else ''}  •  {len(scan.rejected)} rejected  •  identifiers redacted"
+        )
+
+    def _empty(self, message: str) -> None:
+        self._clear_body()
+        card = QFrame()
+        card.setObjectName("Card")
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(26, 26, 26, 26)
+        label = QLabel(message)
+        label.setObjectName("Muted")
+        label.setWordWrap(True)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(label)
+        self.body_layout.addWidget(card)
+        self.body_layout.addStretch()
+
+    def _clear_body(self) -> None:
+        while self.body_layout.count():
+            item = self.body_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
+                widget.deleteLater()
+
+    def _load_score_history(self) -> list[float]:
+        try:
+            payload = json.loads(self.score_history_path.read_text(encoding="utf-8"))
+            values = payload.get("scores", []) if isinstance(payload, dict) else []
+            return [max(0.0, min(100.0, float(value))) for value in values][-30:]
+        except (OSError, ValueError, TypeError, AttributeError):
+            return []
+
+    def _save_score_history(self) -> None:
+        try:
+            self.score_history_path.parent.mkdir(parents=True, exist_ok=True)
+            temporary = self.score_history_path.with_suffix(".tmp")
+            temporary.write_text(
+                json.dumps({"schema_version": 1, "scores": self.score_history}, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            os.replace(temporary, self.score_history_path)
+        except OSError:
+            # A chart should never make diagnostics unusable if persistence is unavailable.
+            return

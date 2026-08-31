@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "pack_id": "hmd.nokia-android",
+  "version": "0.1.0",
+  "display_name": "HMD / Nokia Android",
+  "priority": 110,
+  "match": {
+    "manufacturers": ["hmd", "hmd global", "nokia"]
+  },
+  "knowledge_sources": [
+    {
+      "source_id": "hmd.security-updates",
+      "label": "HMD official security-patch guidance",
+      "url": "https://www.hmd.com/en_gb/support/topics/software-and-updates/when-will-my-phone-get-the-latest-security-patch-update",
+      "authority": "HMD Global Support",
+      "scope": "Official model, region, location, operator, and staged-release limits for HMD and Nokia Android security updates",
+      "verified_on": "2026-08-30"
+    },
+    {
+      "source_id": "hmd.update-delivery",
+      "label": "HMD official Android update-delivery guidance",
+      "url": "https://www.hmd.com/en_ke/support/topics/software-and-updates/how-are-software-updates-delivered-to-my-nokia-smartphone",
+      "authority": "HMD Global Support",
+      "scope": "Official hardware, model, operator, and location dependencies for HMD and Nokia Android update delivery",
+      "verified_on": "2026-08-30"
+    }
+  ],
+  "capabilities": [
+    {
+      "capability_id": "identity.properties",
+      "label": "HMD and Nokia identity properties",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Maps standard manufacturer, model, product, build, security-patch, slot, and boot-state evidence."
+    },
+    {
+      "capability_id": "health.baseline",
+      "label": "Battery and storage baseline",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Uses Guardian-approved generic Android health probes."
+    },
+    {
+      "capability_id": "hmd.update_knowledge",
+      "label": "Official HMD update context",
+      "status": "limited",
+      "scope": "knowledge_only",
+      "detail": "Explains official model, region, operator, and staged-rollout dependencies without treating a manufacturer match as package compatibility."
+    },
+    {
+      "capability_id": "hmd.firmware.operations",
+      "label": "HMD and Nokia firmware operations",
+      "status": "planned",
+      "scope": "locked",
+      "detail": "No update-package install, bootloader, root, partition, flash, rollback, or recovery action is enabled."
+    }
+  ],
+  "notes": [
+    "HMD and Nokia update timing depends on the exact model, hardware, region, operator, location, and approved rollout.",
+    "A manufacturer match improves read-only context only; ROMVERSE requires exact source and device evidence for every later capability."
+  ]
+}

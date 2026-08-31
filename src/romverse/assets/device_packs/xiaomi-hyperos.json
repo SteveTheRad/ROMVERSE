@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "pack_id": "xiaomi.hyperos",
+  "version": "0.1.0",
+  "display_name": "Xiaomi / HyperOS",
+  "priority": 100,
+  "match": {
+    "manufacturers": ["xiaomi", "redmi", "poco"]
+  },
+  "knowledge_sources": [
+    {
+      "source_id": "aosp.verified-boot",
+      "label": "AOSP Verified Boot behavior",
+      "url": "https://source.android.com/docs/security/features/verifiedboot/boot-flow",
+      "authority": "Android Open Source Project",
+      "scope": "Standards-based interpretation of Xiaomi-reported boot and verity properties",
+      "verified_on": "2026-08-29"
+    },
+    {
+      "source_id": "aosp.virtual-ab",
+      "label": "AOSP Virtual A/B overview",
+      "url": "https://source.android.com/docs/core/ota/virtual_ab",
+      "authority": "Android Open Source Project",
+      "scope": "Snapshot, slot, merge, rollback, and dynamic-partition update semantics",
+      "verified_on": "2026-08-29"
+    }
+  ],
+  "capabilities": [
+    {
+      "capability_id": "identity.properties",
+      "label": "Xiaomi identity properties",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Maps standard product, build, codename, and HyperOS display signals."
+    },
+    {
+      "capability_id": "health.baseline",
+      "label": "Battery and storage baseline",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Uses Guardian-approved generic Android health probes."
+    },
+    {
+      "capability_id": "security.boot_signals",
+      "label": "Xiaomi boot-state signals",
+      "status": "limited",
+      "scope": "read_only",
+      "detail": "Reports bootloader and Verified Boot properties without assuming modification intent."
+    },
+    {
+      "capability_id": "xiaomi.firmware_layout",
+      "label": "Xiaomi firmware and partition knowledge",
+      "status": "planned",
+      "scope": "locked",
+      "detail": "Requires model-specific validation, signed pack updates, and physical recovery testing."
+    },
+    {
+      "capability_id": "xiaomi.recovery",
+      "label": "Xiaomi recovery workflows",
+      "status": "planned",
+      "scope": "locked",
+      "detail": "No recovery, flashing, unlock, or EDL behavior is enabled."
+    }
+  ],
+  "notes": [
+    "Initial reference pack for the primary Xiaomi/HyperOS development device.",
+    "Matching an OEM pack does not establish model-level flash compatibility."
+  ]
+}

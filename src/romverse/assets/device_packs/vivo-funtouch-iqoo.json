@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "pack_id": "vivo.funtouch-iqoo",
+  "version": "0.1.0",
+  "display_name": "vivo / iQOO / Funtouch OS",
+  "priority": 110,
+  "match": {
+    "manufacturers": ["vivo", "iqoo"]
+  },
+  "knowledge_sources": [
+    {
+      "source_id": "vivo.system-update",
+      "label": "vivo official smartphone system updates",
+      "url": "https://www.vivo.com/en/support/system-update",
+      "authority": "vivo Global Support",
+      "scope": "Official model-selected system-update and firmware support entry point",
+      "verified_on": "2026-08-30"
+    },
+    {
+      "source_id": "vivo.security-updates",
+      "label": "vivo Android security update policy",
+      "url": "https://www.vivo.com/en/security",
+      "authority": "vivo",
+      "scope": "Official vivo and iQOO model-level security and Android version support information",
+      "verified_on": "2026-08-30"
+    }
+  ],
+  "capabilities": [
+    {
+      "capability_id": "identity.properties",
+      "label": "vivo and iQOO identity properties",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Maps standard manufacturer, model, product, build, security-patch, slot, and boot-state evidence."
+    },
+    {
+      "capability_id": "health.baseline",
+      "label": "Battery and storage baseline",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Uses Guardian-approved generic Android health probes."
+    },
+    {
+      "capability_id": "vivo.update_knowledge",
+      "label": "Official vivo update context",
+      "status": "limited",
+      "scope": "knowledge_only",
+      "detail": "Routes the user to official model-selected update and security information without treating a brand match as package compatibility."
+    },
+    {
+      "capability_id": "vivo.firmware.operations",
+      "label": "vivo and iQOO firmware operations",
+      "status": "planned",
+      "scope": "locked",
+      "detail": "No update-package install, bootloader, root, partition, flash, rollback, or recovery action is enabled."
+    }
+  ],
+  "notes": [
+    "vivo and iQOO update availability and package identity vary by exact model, region, carrier, and installed build.",
+    "A manufacturer match improves read-only context only; ROMVERSE requires exact source and device evidence for every later capability."
+  ]
+}

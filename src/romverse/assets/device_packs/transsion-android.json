@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "pack_id": "transsion.android",
+  "version": "0.1.0",
+  "display_name": "TECNO / Infinix / itel Android",
+  "priority": 110,
+  "match": {
+    "manufacturers": ["tecno", "infinix", "itel"]
+  },
+  "knowledge_sources": [
+    {
+      "source_id": "tecno.security-updates",
+      "label": "TECNO official security-update center",
+      "url": "https://security.tecno.com/SRC/securityUpdates",
+      "authority": "TECNO Security Response Center",
+      "scope": "Official TECNO model-level security-update entry point",
+      "verified_on": "2026-08-30"
+    },
+    {
+      "source_id": "infinix.update-policy-example",
+      "label": "Infinix official model update commitment",
+      "url": "https://www.infinixmobility.com/zero-flip",
+      "authority": "Infinix Global",
+      "scope": "Official example showing that Android-version and security-patch commitments are model-specific",
+      "verified_on": "2026-08-30"
+    },
+    {
+      "source_id": "itel.update-support",
+      "label": "itel official OTA and security support guidance",
+      "url": "https://www.itel-life.com/support/faqs",
+      "authority": "itel Support",
+      "scope": "Official OTA, backup, and model-specific security-patch support guidance",
+      "verified_on": "2026-08-30"
+    }
+  ],
+  "capabilities": [
+    {
+      "capability_id": "identity.properties",
+      "label": "TECNO, Infinix, and itel identity properties",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Maps standard manufacturer, model, product, build, security-patch, slot, and boot-state evidence."
+    },
+    {
+      "capability_id": "health.baseline",
+      "label": "Battery and storage baseline",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Uses Guardian-approved generic Android health probes."
+    },
+    {
+      "capability_id": "transsion.update_knowledge",
+      "label": "Official Transsion-brand update context",
+      "status": "limited",
+      "scope": "knowledge_only",
+      "detail": "Keeps TECNO, Infinix, and itel update commitments tied to their exact brand, model, market, and published support page."
+    },
+    {
+      "capability_id": "transsion.firmware.operations",
+      "label": "TECNO, Infinix, and itel firmware operations",
+      "status": "planned",
+      "scope": "locked",
+      "detail": "No update-package install, bootloader, root, partition, flash, rollback, or recovery action is enabled."
+    }
+  ],
+  "notes": [
+    "TECNO, Infinix, and itel publish different model and market support promises; ROMVERSE does not transfer one brand's statement to another.",
+    "A manufacturer match improves read-only context only; ROMVERSE requires exact source and device evidence for every later capability."
+  ]
+}

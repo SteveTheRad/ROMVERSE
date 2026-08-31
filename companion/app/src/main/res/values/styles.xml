@@ -1,0 +1,10 @@
+<resources>
+    <style name="Theme.ROMVERSE" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#B45CFF</item>
+        <item name="android:navigationBarColor">#060914</item>
+        <item name="android:statusBarColor">#060914</item>
+        <item name="android:windowBackground">#010307</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

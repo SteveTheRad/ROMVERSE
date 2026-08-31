@@ -1,0 +1,1 @@
+"""Packaged ROMVERSE brand assets."""

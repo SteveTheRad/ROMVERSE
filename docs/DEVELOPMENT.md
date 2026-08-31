@@ -2,99 +2,148 @@
 
 ## Repository role
 
-This private repository is the authoritative technical source of truth for ROMVERSE development. Important decisions, setup knowledge, architecture, implementation status, and release context must not live only in chat history or on one computer.
+This private repository is the authoritative source for ROMVERSE code, tests, build instructions,
+architecture, implementation status, and release evidence. Important decisions must not exist only
+in chat history or on one development computer.
 
-## Branching model
+## Branches
 
-- `main` — stable project baseline.
-- `develop` — integration branch for ongoing work.
-- `feature/<name>` — short-lived feature branches from `develop`.
-- `fix/<name>` — bug-fix branches from `develop`.
-- `release/<version>` — release preparation when needed.
-- `hotfix/<name>` — urgent production fixes from `main`.
+The remote repository currently contains `main` and `develop`.
 
-Merge through pull requests where practical. Avoid doing normal feature development directly on `main`.
+- `main`: stable project baseline and migration/release commits
+- `develop`: normal integration branch
+- `feature/<name>`: short-lived feature work from `develop`
+- `fix/<name>`: bug fixes from `develop`
+- `release/<version>`: optional release preparation
+- `hotfix/<name>`: urgent stable corrections from `main`
 
-## Commit discipline
+Use pull requests where practical. The initial local-source import is a baseline migration; normal
+feature development should resume through `develop`.
 
-Commits should be small enough to understand and review, with messages that explain intent. Prefer conventional prefixes where useful, for example:
+## Status language
 
-- `feat:` new capability
-- `fix:` bug correction
-- `docs:` documentation
-- `refactor:` structural change without intended behavior change
-- `test:` tests/fixtures
-- `build:` build/tooling changes
-- `chore:` maintenance
+Use these labels exactly:
 
-## Status discipline
+- **Planned**: approved or described direction with no implementation claim.
+- **In Progress**: active implementation that is incomplete.
+- **Implemented**: production code exists, but proportionate verification is incomplete.
+- **Implemented and Verified**: source exists and the stated automated, fixture, build, or runtime
+  evidence passed.
+- **Unverified**: a claim or integration path has not been demonstrated in the stated environment.
 
-Never report a planned, approved, or designed feature as implemented.
-
-Use these concepts consistently:
-
-- Planned / proposed
-- Confirmed Commitment
-- In Progress
-- Implemented
-- Implemented and Verified
-
-`Implemented and Verified` requires repository evidence plus proportionate build, test, fixture, or runtime evidence.
+Always state verification scope. Passing fixtures does not prove a physical-device operation,
+Windows behavior, production service, signed release, or commercial readiness.
 
 ## Development cycle
 
-For material changes:
+1. Search existing models and vocabulary before introducing a duplicate concept.
+2. Identify Guardian, privacy, data-loss, device, and rollback implications.
+3. Implement on the appropriate branch.
+4. Add focused tests and failure-path coverage.
+5. Run proportionate quality/build/runtime gates.
+6. Update affected docs and feature status in the same change.
+7. Record limitations and unverified environments.
+8. Review the complete staged change for secrets and generated files.
 
-1. Inspect existing code and overlapping concepts before creating new types or systems.
-2. Confirm the intended behavior and safety implications.
-3. Implement on an appropriate branch.
-4. Add or update tests/fixtures.
-5. Run proportionate verification.
-6. Update affected documentation in the same cycle.
-7. Record limitations, known risks, and unverified assumptions.
-8. Merge only after the change meets the intended quality/safety bar.
+## Required desktop gates
 
-## Device DNA rule
+```bash
+pytest
+ruff check .
+ruff format --check .
+```
 
-Search existing repository concepts such as Device DNA, DeviceDNA, capability map, device profile, and detection logic before introducing new names or duplicate models. Consumers should use the authoritative profile rather than independently guessing the same facts.
+For package-impacting changes:
 
-## Guardian rule
+```bash
+python -m build --wheel
+python scripts/verify_wheel.py dist/romverse-0.1.0-py3-none-any.whl
+```
 
-Any feature capable of modifying firmware, devices, partitions, boot state, security-sensitive configuration, recovery state, or user data must define the Guardian authorization/readiness path.
+Run the installed-wheel smoke test when startup, packaging, assets, Device Packs, or workspace
+initialization changes.
 
-## Documentation rule
+## Required Companion gates
 
-Update the appropriate docs when changing:
+For Kotlin/Android changes:
 
-- product purpose or scope
-- architecture/subsystem boundaries
-- feature commitments/status
-- UI/navigation/terminology
-- Guardian behavior
-- roadmap order
-- prerequisites/build steps
-- branching/development process
-- versioning/release process
+```bash
+./companion/gradlew --no-daemon -p companion testDebugUnitTest :app:assembleDebug
+```
 
-## Secrets and local configuration
+Run `:app:lintDebug` for Android packaging/UI changes. Run
+`:app:connectedDebugAndroidTest` when an authorized emulator or device is available and the
+change affects Activity behavior, lifecycle, pairing, permissions, or device integration.
 
-Never commit real credentials, tokens, API keys, signing/private keys, certificates, production secrets, sensitive device/user data, or populated `.env` files.
+Never describe JVM-only evidence as connected-device verification.
 
-Document required configuration names and setup procedures, not secret values.
+## Guardian and device rules
 
-## Cross-machine continuity
+- Never relock a bootloader.
+- Keep destructive operations behind explicit informed authorization.
+- Preserve source firmware, projects, backups, configuration, and user data by default.
+- Treat unknown device evidence as `UNCONFIRMED`.
+- Keep Companion telemetry read-only unless a separately reviewed contract explicitly changes it.
+- Require exact evidence bindings and fail closed when evidence is stale, malformed, mismatched, or
+  incomplete.
+- Validate real-device write, signing, backup/restore, and flash contracts independently before
+  advertising them.
 
-Avoid undocumented absolute paths, machine-only assumptions, hidden local dependencies, or tooling that cannot be reconstructed from repository documentation. When a local-only dependency is unavoidable, document exactly how to obtain or recreate it safely.
+## Secrets and personal data
 
-## Handoffs
+Never commit:
 
-A development handoff should separate:
+- passwords, API keys, tokens, credentials, or populated `.env` files
+- private/signing keys, certificates, keystores, or release signing material
+- real device serials, private logs, account identifiers, or customer/user data
+- machine-specific paths or local tool receipts that identify one development PC
 
-- confirmed decisions
-- implemented/verified work
-- in-progress work
-- blockers/unproven claims
-- tests performed
-- superseded decisions
+Documentation may name required variables but must not contain their values. If a credential is
+ever committed, rotate it immediately; deleting Git history is not sufficient.
 
-This helps ROMVERSE development continue accurately across PCs, sessions, and tools.
+## Generated-file boundary
+
+Do not stage virtual environments, SDKs, Gradle caches, build trees, APKs, Python distributions,
+coverage, logs, firmware images, extracted workspaces, backups, dumps, or `work/` media. Use
+`git status --short` and inspect every staged path before committing.
+
+The committed Gradle wrapper is an intentional exception: `gradlew`, `gradlew.bat`,
+`gradle-wrapper.properties`, and `gradle-wrapper.jar` are source-controlled portability files.
+
+## Commit and review discipline
+
+Prefer focused commits with conventional prefixes:
+
+- `feat:`
+- `fix:`
+- `docs:`
+- `refactor:`
+- `test:`
+- `build:`
+- `chore:`
+
+Before push, review the staged file list, diff summary, credential scan, and build/test evidence.
+Never force-push shared stable branches unless a separately approved recovery requires it.
+
+## Documentation ownership
+
+- `BUILDING.md`: prerequisites, setup, build, test, and migration
+- `ARCHITECTURE.md`: actual subsystem boundaries and data flow
+- `FEATURES.md`: current status and verification scope
+- `GUARDIAN.md`: safety invariants and authorization
+- `ROADMAP.md`: future ordering, never implementation evidence
+- `RELEASE_READINESS.md`: detailed gates and honest release boundary
+- `RELEASES.md`: actual releases only
+
+## Handoff record
+
+A development handoff should state:
+
+- branch and commit
+- Implemented and Verified work
+- Implemented but not fully verified work
+- In Progress and Planned work
+- Unverified hosts, devices, services, and workflows
+- exact gates run and their results
+- secrets/configuration names required, never values
+- known blockers and safe next action

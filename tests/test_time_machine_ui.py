@@ -41,10 +41,13 @@ def test_time_machine_explains_device_atlas_stock_gate_without_inventing_project
     app = QApplication.instance() or QApplication([])
     app.setStyleSheet(STYLESHEET)
     center = BackupCenter(tmp_path)
-    requested = []
-    center.rom_studio_requested.connect(lambda: requested.append(True))
+    report = _xiaomi_readiness_report()
+    requested: list[tuple[str, str]] = []
+    center.rom_studio_requested.connect(
+        lambda report_id, digest: requested.append((report_id, digest))
+    )
 
-    assert center.open_device_atlas_readiness(_xiaomi_readiness_report())
+    assert center.open_device_atlas_readiness(report)
     app.processEvents()
 
     assert center.device_atlas_handoff.isVisibleTo(center)
@@ -54,7 +57,7 @@ def test_time_machine_explains_device_atlas_stock_gate_without_inventing_project
     assert center.device_atlas_project_button.isVisibleTo(center)
     assert center.snapshot_list.palette().color(QPalette.ColorRole.Base).lightness() < 64
     center.device_atlas_project_button.click()
-    assert requested == [True]
+    assert requested == [(report.report_id, report.report_digest)]
     center.close()
 
 

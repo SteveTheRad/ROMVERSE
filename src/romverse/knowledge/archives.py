@@ -1995,6 +1995,48 @@ KNOWN_FIXES = (
         automation="LOCAL REVALIDATION AND EXACT NAVIGATION ONLY • NO APPROVAL, RESTORE, BUILD, INSTALL, FLASH, PUBLISH, OR DEVICE ACTION",
         source=ROMVERSE_SOURCE,
     ),
+    _fix(
+        "cross-feature-return-loses-evidence",
+        "Return button opens the right page but loses the exact evidence",
+        "ROMVERSE WORKFLOWS",
+        "A return control is not safe merely because it opens the expected page. Guardian Core, "
+        "Time Machine, and Forge Arsenal must carry the exact plan, project, Pack, and report "
+        "identity they originally received, then ask the owning feature to revalidate that "
+        "identity immediately before navigation. A generic route can silently expose an unrelated "
+        "current selection and is therefore treated as a failed handoff.",
+        checks=(
+            "Compare the source card's plan/report digest and project or Pack id with the destination's selected evidence.",
+            "Confirm the return control was enabled by a retained exact context rather than by page availability alone.",
+            "Re-read the owning store or current Device Atlas report; do not trust a digest retained only in a widget.",
+            "Confirm the return does not create approval, execution authority, a worker, or a phone command.",
+        ),
+        fix_steps=(
+            "Reopen the context from its owning feature so ROMVERSE can retain a fresh exact identity.",
+            "For Guardian, regenerate or reopen the exact current Nexus or recovery-readiness plan when its digest changed.",
+            "For Time Machine, reopen the current Device Atlas stock-recovery lane before creating or selecting its protected-source project.",
+            "For Forge Arsenal, reopen the exact Requirements Blueprint compile lane after any phone, Pack, or report change.",
+        ),
+        verification=(
+            "Guardian returns to the exact Nexus project/plan or Time Machine plan id and refuses superseded evidence in-page.",
+            "Time Machine carries the same current Device Atlas report into ROM Studio and refuses a changed phone, Pack, or stock-recovery gate.",
+            "Forge Arsenal returns to Device Atlas with the same Pack hash and report digest visibly restored.",
+            "Every stale case leaves the source page visible with an explicit safe-stop reason and starts no worker or device action.",
+        ),
+        tags=(
+            "return button loses context",
+            "right page wrong evidence",
+            "guardian return stale plan",
+            "time machine device atlas report",
+            "forge arsenal return device atlas",
+            "generic navigation unsafe",
+            "stale report refused",
+            "exact reverse handoff",
+        ),
+        route="guardian_core",
+        evidence="ROMVERSE tests both successful reverse routing and deliberate plan/report supersession while asserting exact destination identity and idle execution boundaries.",
+        automation="EXACT IDENTITY REVALIDATION AND NAVIGATION ONLY • NO PLAN GENERATION, APPROVAL, WORKER, BUILD, RESTORE, FLASH, OR PHONE ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
 )
 
 

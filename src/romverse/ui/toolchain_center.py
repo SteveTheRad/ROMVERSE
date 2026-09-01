@@ -670,7 +670,7 @@ class ToolchainCenter(QWidget):
     statuses_changed = Signal(object)
     device_pack_setup_requested = Signal(str, str, str)
     device_pack_continue_requested = Signal(str, str, str)
-    device_atlas_requested = Signal()
+    device_atlas_requested = Signal(str, str, str)
     knowledge_article_requested = Signal(str)
 
     def __init__(
@@ -744,7 +744,7 @@ class ToolchainCenter(QWidget):
             lambda: self.knowledge_article_requested.emit("device-pack-build-toolchain")
         )
         self.context_return_button = QPushButton("Return to Device Atlas")
-        self.context_return_button.clicked.connect(self.device_atlas_requested.emit)
+        self.context_return_button.clicked.connect(self._request_device_atlas_return)
         handoff_actions.addWidget(self.context_refresh_button)
         handoff_actions.addWidget(self.context_setup_button)
         handoff_actions.addWidget(self.context_continue_button)
@@ -929,6 +929,15 @@ class ToolchainCenter(QWidget):
         context = self._device_pack_context
         if context is not None:
             self.device_pack_continue_requested.emit(
+                context.pack_id,
+                context.pack_sha256,
+                context.report_digest,
+            )
+
+    def _request_device_atlas_return(self) -> None:
+        context = self._device_pack_context
+        if context is not None and not self._device_pack_context_stale:
+            self.device_atlas_requested.emit(
                 context.pack_id,
                 context.pack_sha256,
                 context.report_digest,

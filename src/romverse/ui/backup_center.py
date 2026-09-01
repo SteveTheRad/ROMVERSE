@@ -146,7 +146,7 @@ class BackupCenter(QWidget):
     live_console_changed = Signal()
     runtime_tools_requested = Signal()
     guardian_requested = Signal(str, str)
-    rom_studio_requested = Signal()
+    rom_studio_requested = Signal(str, str)
 
     def __init__(
         self,
@@ -167,6 +167,7 @@ class BackupCenter(QWidget):
         self.recovery_evidence = RecoveryEvidenceService(self.rom_store)
         self.plan_store = GuardianBackupPlanStore(workspace)
         self._selected_plan_id = ""
+        self._device_atlas_report_identity: tuple[str, str] | None = None
         self.device: AndroidDevice | None = None
         self.projects = ()
         self.snapshots: tuple[TimeMachineSnapshot, ...] = ()
@@ -269,7 +270,7 @@ class BackupCenter(QWidget):
             "Create or select the exact protected-firmware project required to bind stock "
             "recovery evidence. This starts no build or phone action."
         )
-        self.device_atlas_project_button.clicked.connect(self.rom_studio_requested.emit)
+        self.device_atlas_project_button.clicked.connect(self._request_rom_studio_project)
         handoff_layout.addWidget(self.device_atlas_project_button)
         self.device_atlas_handoff.setVisible(False)
         layout.addWidget(self.device_atlas_handoff)
@@ -458,6 +459,7 @@ class BackupCenter(QWidget):
             or stock.state is ValidationState.PASS
         ):
             return False
+        self._device_atlas_report_identity = (report.report_id, report.report_digest)
         current_project = str(self.project_selector.currentData() or "")
         self.refresh_local_snapshots(current_project)
         self.device_atlas_handoff_title.setText(
@@ -482,6 +484,26 @@ class BackupCenter(QWidget):
             self.device_atlas_project_button.setVisible(True)
         self.device_atlas_handoff.setVisible(True)
         return True
+
+    @property
+    def device_atlas_report_identity(self) -> tuple[str, str] | None:
+        return self._device_atlas_report_identity
+
+    def _request_rom_studio_project(self) -> None:
+        if self._device_atlas_report_identity is not None:
+            self.rom_studio_requested.emit(*self._device_atlas_report_identity)
+
+    def rom_studio_handoff_stopped(self, reason: str) -> None:
+        """Expire a Device Atlas prerequisite without opening a generic Studio page."""
+
+        self._device_atlas_report_identity = None
+        self.device_atlas_handoff_title.setText("ROM Studio prerequisite context expired safely")
+        self.device_atlas_handoff_detail.setText(
+            f"{reason}. Return to Device Atlas and reopen the current stock-recovery lane. "
+            "No project worker, build, approval, or phone action started."
+        )
+        self.device_atlas_project_button.setVisible(False)
+        self.device_atlas_handoff.setVisible(True)
 
     def open_backup_plan(self, plan_id: str) -> bool:
         """Reverify and present one exact historical recovery-readiness plan."""

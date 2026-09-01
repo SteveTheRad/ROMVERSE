@@ -190,7 +190,7 @@ def test_about_recalculates_real_workspace_evidence_and_returns_from_its_exact_g
             f"{len(registry.packs)} DEVICE PACKS  •  1 OFFICIAL IDS"
         )
         assert window.about_page.evidence_values["knowledge"].text() == (
-            "122 VERIFIED GUIDES  •  72 KNOWN FIXES"
+            "123 VERIFIED GUIDES  •  73 KNOWN FIXES"
         )
         ready_tools = sum(status.available for status in window.toolchain_center.statuses)
         tool_count = len(window.toolchain_center.statuses)
@@ -791,10 +791,10 @@ def test_guardian_expires_retained_nexus_context_when_plan_changes(tmp_path: Pat
         )
 
         NexusPlanner(store).plan(profile, matrix, NexusObjective.ROOT_ROM)
-        window._navigate_route("nexus")
-        window._navigate_route("guardian_core")
+        window.guardian_center.nexus_return_button.click()
         app.processEvents()
 
+        assert window.stack.currentWidget() is window.guardian_center
         assert window.guardian_center.nexus_review_identity is None
         assert window.guardian_center.nexus_review_badge.text() == "CONTEXT REFUSED"
         assert "no longer matches" in window.guardian_center.nexus_review_detail.text()
@@ -845,11 +845,18 @@ def test_time_machine_opens_exact_guardian_context_and_expires_superseded_plan(
         window.guardian_center.backup_return_button.click()
         app.processEvents()
         assert window.stack.currentWidget() is window.backup_center
+        assert window.backup_center._selected_plan_id == loaded.data["plan_id"]
 
+        replacement = window.backup_center.plan_store.create(device)
+        window._open_backup_guardian_review(
+            replacement.plan_id,
+            replacement.plan_digest,
+        )
         window.backup_center.plan_store.create(device)
-        window._navigate_route("guardian_core")
+        window.guardian_center.backup_return_button.click()
         app.processEvents()
 
+        assert window.stack.currentWidget() is window.guardian_center
         assert window.guardian_center.backup_review_identity is None
         assert window.guardian_center.backup_review_badge.text() == "CONTEXT REFUSED"
         assert "no longer matches" in window.guardian_center.backup_review_detail.text()
@@ -1596,6 +1603,31 @@ def test_device_atlas_stock_gate_opens_time_machine_with_exact_context(tmp_path:
             window.backup_center.device_atlas_handoff_detail.text()
         )
         assert window.backup_center.device_atlas_project_button.isVisibleTo(window.backup_center)
+
+        report = window.device_packs_center.active_report
+        assert report is not None
+        window.backup_center.device_atlas_project_button.click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.rom_studio
+        assert window.rom_studio.dashboard_handoff_eyebrow.text().startswith(
+            "TIME MACHINE HANDOFF"
+        )
+        assert report.report_digest[:16] in window.rom_studio.dashboard_handoff_detail.text()
+        assert window.rom_studio.worker is None
+
+        window._navigate_route("device_atlas")
+        window.device_packs_center.requirement_buttons["flash"].click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.backup_center
+        window._scan_complete([])
+        app.processEvents()
+        window.backup_center.device_atlas_project_button.click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.backup_center
+        assert "expired safely" in window.backup_center.device_atlas_handoff_title.text()
+        assert "No project worker, build, approval, or phone action started" in (
+            window.backup_center.device_atlas_handoff_detail.text()
+        )
     finally:
         window.companion_center.transport.close()
         window.close()
@@ -1679,6 +1711,24 @@ def test_device_atlas_carries_exact_pack_tools_into_forge_and_verified_archives(
             for name in pack.build_contract.required_tools
         )
 
+        window.toolchain_center.context_return_button.click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.device_packs_center
+        assert window.device_packs_center.dashboard_handoff_eyebrow.text().startswith(
+            "FORGE ARSENAL HANDOFF"
+        )
+        assert "Forge Arsenal" in window.device_packs_center.dashboard_handoff_title.text()
+        assert report.report_digest[:16] in (
+            window.device_packs_center.dashboard_handoff_detail.text()
+        )
+        assert "AUTHORITY NONE" in (
+            window.device_packs_center.dashboard_handoff_detail.text()
+        )
+        assert "NO ACTION STARTED" in window.device_packs_center.dashboard_handoff_detail.text()
+        window.device_packs_center.requirement_buttons["compile"].click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.toolchain_center
+
         window.toolchain_center.statuses = tuple(
             ToolStatus(
                 name,
@@ -1707,8 +1757,6 @@ def test_device_atlas_carries_exact_pack_tools_into_forge_and_verified_archives(
         assert window.knowledge_center.source_return.text() == "Return to Forge Arsenal"
         window.knowledge_center.source_return.click()
         assert window.stack.currentWidget() is window.toolchain_center
-        window.toolchain_center.context_return_button.click()
-        assert window.stack.currentWidget() is window.device_packs_center
     finally:
         window.companion_center.transport.close()
         window.close()
@@ -1793,6 +1841,8 @@ def test_exact_forge_context_refuses_stale_device_and_separates_build_from_flash
         assert window.toolchain_center.context_setup_button.isEnabled()
         window._scan_complete([])
         app.processEvents()
+        window.toolchain_center.context_return_button.click()
+        assert window.stack.currentWidget() is window.toolchain_center
         window.toolchain_center.context_setup_button.click()
 
         assert dialogs == []

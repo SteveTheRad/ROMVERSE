@@ -183,6 +183,10 @@ def test_guardian_presents_nexus_plan_as_zero_authority_review_context(tmp_path)
     store, profile, matrix = _evidence(tmp_path)
     plan = NexusPlanner(store).plan(profile, matrix, NexusObjective.BUILD_ROM)
     center = GuardianCenter(GuardianAuditStore(tmp_path), auto_start=False)
+    returned: list[tuple[str, str]] = []
+    center.nexus_requested.connect(
+        lambda project_id, digest: returned.append((project_id, digest))
+    )
 
     assert center.open_nexus_review(plan, "Device DNA")
     assert not center.nexus_review.isHidden()
@@ -195,6 +199,8 @@ def test_guardian_presents_nexus_plan_as_zero_authority_review_context(tmp_path)
     assert "Bootloader relock: never" in detail
     assert all(requirement in detail for requirement in plan.guardian_requirements)
     assert center.nexus_review_badge.text() == "ZERO AUTHORITY"
+    center.nexus_return_button.click()
+    assert returned == [(plan.project_id, plan.plan_digest)]
     center.close()
 
 
@@ -204,6 +210,10 @@ def test_guardian_presents_recovery_plan_as_zero_authority_evidence(tmp_path) ->
     record = store.create(_device())
     loaded = store.load_latest()
     center = GuardianCenter(GuardianAuditStore(tmp_path), auto_start=False)
+    returned: list[tuple[str, str]] = []
+    center.time_machine_requested.connect(
+        lambda plan_id, digest: returned.append((plan_id, digest))
+    )
 
     assert center.open_backup_review(loaded)
     assert not center.backup_review.isHidden()
@@ -219,6 +229,8 @@ def test_guardian_presents_recovery_plan_as_zero_authority_evidence(tmp_path) ->
     assert "Phone data copied: no" in detail
     assert "Approval: none" in detail
     assert "Execution: none" in detail
+    center.backup_return_button.click()
+    assert returned == [(record.plan_id, record.plan_digest)]
     center.close()
 
 

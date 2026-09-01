@@ -93,7 +93,7 @@ from romverse.device.identity import DeviceIdentityResolver
 from romverse.device.models import AndroidDevice
 from romverse.device_packs.attestations import DevicePackAttestationStore
 from romverse.device_packs.registry import DevicePackRegistry
-from romverse.device_packs.validation import DevicePackValidationReport
+from romverse.device_packs.validation import DevicePackValidationReport, ValidationState
 from romverse.diagnostics.analyzer import DiagnosticAnalyzer
 from romverse.diagnostics.history import DiagnosticHistoryStore
 from romverse.diagnostics.models import DiagnosticReport
@@ -2958,9 +2958,11 @@ class MainWindow(QMainWindow):
         )
         self.backup_center.runtime_tools_requested.connect(self._resolve_backup_runtime)
         self.backup_center.guardian_requested.connect(self._open_backup_guardian_review)
-        self.backup_center.rom_studio_requested.connect(lambda: self._navigate_route("rom_studio"))
+        self.backup_center.rom_studio_requested.connect(
+            self._return_time_machine_rom_studio
+        )
         self.guardian_center.time_machine_requested.connect(
-            lambda: self._navigate_route("time_machine")
+            self._return_guardian_time_machine
         )
         self.guardian_center.rom_studio_requested.connect(
             self._return_guardian_rom_studio
@@ -2990,7 +2992,7 @@ class MainWindow(QMainWindow):
         self.nexus_center.knowledge_article_requested.connect(self._open_knowledge_article)
         self.nexus_center.rom_studio_requested.connect(self._open_nexus_rom_studio)
         self.nexus_center.plan_updated.connect(self._record_nexus_plan)
-        self.guardian_center.nexus_requested.connect(lambda: self._navigate_route("nexus"))
+        self.guardian_center.nexus_requested.connect(self._return_guardian_nexus)
         resolved_host = host or current_host()
         resolved_runner = self._runtime_runner
         self.toolchain_center = ToolchainCenter(
@@ -3004,7 +3006,7 @@ class MainWindow(QMainWindow):
             self._continue_device_pack_toolchain
         )
         self.toolchain_center.device_atlas_requested.connect(
-            lambda: self._navigate_route("device_atlas")
+            self._return_forge_device_atlas
         )
         self.toolchain_center.knowledge_article_requested.connect(self._open_knowledge_article)
         self.rom_studio.tool_statuses_resolved.connect(self._tool_statuses_changed)
@@ -4001,6 +4003,60 @@ class MainWindow(QMainWindow):
                 "ROM Studio rejected a changed or incomplete exact build contract"
             )
 
+    @Slot(str, str)
+    def _return_time_machine_rom_studio(
+        self,
+        report_id: str,
+        report_digest: str,
+    ) -> None:
+        """Return an unmet stock-recovery lane to Studio with its exact current report."""
+
+        report = self.device_packs_center.active_report
+        pack = self.device_packs_center.active_pack
+        device = self.device_packs_center.active_device
+        stock = (
+            next(
+                (check for check in report.checks if check.check_id == "stock-recovery-route"),
+                None,
+            )
+            if report is not None
+            else None
+        )
+        if (
+            report is None
+            or pack is None
+            or device is None
+            or self.backup_center.device_atlas_report_identity
+            != (report_id, report_digest)
+            or report.report_id != report_id
+            or report.report_digest != report_digest
+            or report.pack_id != pack.pack_id
+            or report.pack_version != pack.version
+            or report.pack_sha256 != pack.sha256
+            or report.manufacturer != device.manufacturer
+            or report.model != device.model
+            or report.product != device.product
+            or report.codename != device.codename
+            or not report.build_contract_ready
+            or report.flash_contract_ready
+            or stock is None
+            or stock.state is ValidationState.PASS
+        ):
+            self.backup_center.rom_studio_handoff_stopped(
+                "The retained report no longer matches the current phone, exact Pack, or stock-recovery gate"
+            )
+            return
+        if not self.rom_studio.open_device_atlas_handoff(
+            report,
+            "genesis",
+            source="Time Machine",
+        ):
+            self.backup_center.rom_studio_handoff_stopped(
+                "ROM Studio rejected the changed or incomplete exact build contract"
+            )
+            return
+        self._navigate_route("rom_studio")
+
     @Slot()
     def _open_nexus_rom_studio(self) -> None:
         """Carry the selected Nexus project back to its exact ROM Studio evidence."""
@@ -4211,6 +4267,35 @@ class MainWindow(QMainWindow):
         return True
 
     @Slot(str, str, str)
+    def _return_forge_device_atlas(
+        self,
+        pack_id: str,
+        pack_sha256: str,
+        report_digest: str,
+    ) -> None:
+        """Return Forge to the exact current Device Atlas Pack/report relationship."""
+
+        context = self._current_device_pack_toolchain_context(
+            pack_id,
+            pack_sha256,
+            report_digest,
+        )
+        if (
+            context is None
+            or not self.toolchain_center.device_pack_context_matches(context)
+            or not self.device_packs_center.open_forge_return(
+                pack_id,
+                pack_sha256,
+                report_digest,
+            )
+        ):
+            self.toolchain_center.device_pack_context_changed(
+                "The return request no longer matches the current phone, exact Pack, or readiness report"
+            )
+            return
+        self._navigate_route("device_atlas")
+
+    @Slot(str, str, str)
     def _setup_device_pack_toolchain(
         self,
         pack_id: str,
@@ -4313,6 +4398,54 @@ class MainWindow(QMainWindow):
             )
             return
         self._navigate_route("guardian_core")
+
+    @Slot(str, str)
+    def _return_guardian_nexus(self, project_id: str, plan_digest: str) -> None:
+        """Restore Guardian's retained plan to the exact current Nexus project."""
+
+        trusted = self.nexus_center.planner.plans.load(project_id)
+        try:
+            self.rom_studio.store.get(project_id)
+        except (OSError, ProjectError, TypeError, ValueError):
+            trusted = None
+        if (
+            trusted is None
+            or trusted.plan_digest != plan_digest
+            or not trusted.ready_for_guardian_review
+            or trusted.execution_authorized
+            or trusted.bootloader_relock_permitted
+            or not self.nexus_center.open_project(project_id)
+            or self.nexus_center.current_plan is None
+            or self.nexus_center.current_plan.plan_digest != plan_digest
+        ):
+            self.guardian_center.nexus_review_stopped(
+                "The saved plan no longer matches the current source-bound Nexus evidence."
+            )
+            return
+        self._navigate_route("nexus")
+
+    @Slot(str, str)
+    def _return_guardian_time_machine(self, plan_id: str, plan_digest: str) -> None:
+        """Restore Guardian's retained recovery plan to the exact verified record."""
+
+        trusted = self.backup_center.plan_store.load_latest()
+        data = trusted.data
+        if (
+            not trusted.valid
+            or not trusted.integrity_verified
+            or not isinstance(data, dict)
+            or data.get("plan_id") != plan_id
+            or data.get("plan_digest") != plan_digest
+            or data.get("execution_locked") is not True
+            or data.get("execution_authority") != "none"
+            or data.get("phone_data_copied") is not False
+            or not self.backup_center.open_backup_plan(plan_id)
+        ):
+            self.guardian_center.backup_review_stopped(
+                "The saved recovery plan no longer matches the latest integrity-verified evidence."
+            )
+            return
+        self._navigate_route("time_machine")
 
     def _current_studio_guardian_manifest(
         self,

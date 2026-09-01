@@ -133,6 +133,7 @@ class DevicePacksCenter(QWidget):
 
         self.dashboard_handoff = QFrame()
         self.dashboard_handoff.setObjectName("DiagnosticHandoffBar")
+        self.dashboard_handoff.setMinimumHeight(118)
         dashboard_handoff_layout = QHBoxLayout(self.dashboard_handoff)
         dashboard_handoff_layout.setContentsMargins(18, 13, 18, 13)
         dashboard_handoff_layout.setSpacing(14)
@@ -580,6 +581,42 @@ class DevicePacksCenter(QWidget):
             eyebrow="ROM STUDIO HANDOFF  •  EXACT PROJECT / DEVICE PACK CONTRACT",
         )
         if ready and hasattr(self, "requirements_blueprint_frame"):
+            self.body.ensureWidgetVisible(self.requirements_blueprint_frame, 0, 24)
+        return True
+
+    def open_forge_return(
+        self,
+        pack_id: str,
+        pack_sha256: str,
+        report_digest: str,
+    ) -> bool:
+        """Restore one freshly verified Forge context to its exact Device Atlas report."""
+
+        pack = self.active_pack
+        report = self.active_report
+        if (
+            pack is None
+            or report is None
+            or pack.pack_id != pack_id
+            or pack.sha256 != pack_sha256
+            or report.pack_id != pack.pack_id
+            or report.pack_version != pack.version
+            or report.pack_sha256 != pack.sha256
+            or report.report_digest != report_digest
+        ):
+            return False
+        build = "READY" if report.build_contract_ready else "LOCKED"
+        flash = "READY" if report.flash_contract_ready else "LOCKED"
+        self._show_dashboard_handoff(
+            f"Forge Arsenal → {pack.display_name}",
+            f"Pack {pack.pack_id} v{pack.version}  •  SHA-256 {pack.sha256[:16]}…  •  report "
+            f"{report.report_digest[:16]}…  •  build {build}  •  flash {flash}  •  "
+            "AUTHORITY NONE  •  NO ACTION STARTED.",
+            "EXACT REPORT RESTORED",
+            ready=report.build_contract_ready,
+            eyebrow="FORGE ARSENAL HANDOFF  •  EXACT DEVICE PACK REPORT",
+        )
+        if hasattr(self, "requirements_blueprint_frame"):
             self.body.ensureWidgetVisible(self.requirements_blueprint_frame, 0, 24)
         return True
 

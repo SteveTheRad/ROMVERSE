@@ -87,8 +87,8 @@ class GuardianCenterWorker(ManagedRunnable):
 
 
 class GuardianCenter(QWidget):
-    nexus_requested = Signal()
-    time_machine_requested = Signal()
+    nexus_requested = Signal(str, str)
+    time_machine_requested = Signal(str, str)
     rom_studio_requested = Signal(str, str)
     REFRESH_DEBOUNCE_MS = 250
 
@@ -141,7 +141,7 @@ class GuardianCenter(QWidget):
         self.nexus_review_badge.setObjectName("Warning")
         review_header.addWidget(self.nexus_review_badge)
         self.nexus_return_button = QPushButton("Return to Nexus Plan")
-        self.nexus_return_button.clicked.connect(self.nexus_requested)
+        self.nexus_return_button.clicked.connect(self._return_to_nexus)
         review_header.addWidget(self.nexus_return_button)
         review_layout.addLayout(review_header)
         self.nexus_review_title = QLabel()
@@ -170,7 +170,7 @@ class GuardianCenter(QWidget):
         self.backup_review_badge.setObjectName("Warning")
         backup_header.addWidget(self.backup_review_badge)
         self.backup_return_button = QPushButton("Return to Time Machine")
-        self.backup_return_button.clicked.connect(self.time_machine_requested)
+        self.backup_return_button.clicked.connect(self._return_to_time_machine)
         backup_header.addWidget(self.backup_return_button)
         backup_layout.addLayout(backup_header)
         self.backup_review_title = QLabel()
@@ -492,6 +492,14 @@ class GuardianCenter(QWidget):
     def _return_to_rom_studio(self) -> None:
         if self._studio_review_identity is not None:
             self.rom_studio_requested.emit(*self._studio_review_identity)
+
+    def _return_to_nexus(self) -> None:
+        if self._nexus_review_identity is not None:
+            self.nexus_requested.emit(*self._nexus_review_identity)
+
+    def _return_to_time_machine(self) -> None:
+        if self._backup_review_identity is not None:
+            self.time_machine_requested.emit(*self._backup_review_identity)
 
     @staticmethod
     def _metric(label: str) -> tuple[QFrame, QLabel]:

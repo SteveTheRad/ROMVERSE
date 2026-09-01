@@ -60,8 +60,11 @@ REPAIR_CONCERN_FINDING_IDS = {
 }
 
 _ARTICLE_BY_KEY = {article.key: article for article in KNOWN_FIXES}
-_REQUIRED_KEYS = frozenset(DIAGNOSTIC_ARTICLE_KEYS.values()) | frozenset(
-    REPAIR_CONCERN_ARTICLE_KEYS.values()
+_DYNAMIC_DIAGNOSTIC_KEYS = frozenset({"adb-no-device", "adb-unauthorized", "adb-device-offline"})
+_REQUIRED_KEYS = (
+    frozenset(DIAGNOSTIC_ARTICLE_KEYS.values())
+    | frozenset(REPAIR_CONCERN_ARTICLE_KEYS.values())
+    | _DYNAMIC_DIAGNOSTIC_KEYS
 )
 if missing := _REQUIRED_KEYS.difference(_ARTICLE_BY_KEY):
     raise RuntimeError(f"Archives Advisor references missing guides: {', '.join(sorted(missing))}")
@@ -81,13 +84,20 @@ def article_for_key(key: str) -> ArchiveArticle | None:
     return _ARTICLE_BY_KEY.get(key)
 
 
-def _connection_key(finding: Finding) -> str:
-    context = " ".join((finding.title, finding.explanation, finding.guidance)).casefold()
+def article_key_for_diagnostic_finding(finding_id: str, context: str = "") -> str:
+    """Resolve one typed finding to an exact guide, or return empty when context is ambiguous."""
+
+    normalized = finding_id.replace("\x00", "").strip()[:120]
+    if normalized != "connection.unavailable":
+        return DIAGNOSTIC_ARTICLE_KEYS.get(normalized, "")
+    context = context.replace("\x00", " ").casefold()[:2_000]
     if "unauthor" in context or "rsa" in context:
         return "adb-unauthorized"
     if "offline" in context:
         return "adb-device-offline"
-    return "adb-no-device"
+    if any(token in context for token in ("no device", "not found", "disconnected")):
+        return "adb-no-device"
+    return ""
 
 
 def recommend_for_findings(
@@ -107,10 +117,9 @@ def recommend_for_findings(
     recommendations: list[ArchiveRecommendation] = []
     seen: set[str] = set()
     for _index, finding in ordered:
-        key = (
-            _connection_key(finding)
-            if finding.finding_id == "connection.unavailable"
-            else DIAGNOSTIC_ARTICLE_KEYS.get(finding.finding_id, "")
+        key = article_key_for_diagnostic_finding(
+            finding.finding_id,
+            " ".join((finding.title, finding.explanation, finding.guidance)),
         )
         article = _ARTICLE_BY_KEY.get(key)
         if article is None or article.key in seen:

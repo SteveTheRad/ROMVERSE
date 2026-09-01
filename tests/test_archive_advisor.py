@@ -9,6 +9,7 @@ from romverse.knowledge.advisor import (
     DIAGNOSTIC_ARTICLE_KEYS,
     REPAIR_CONCERN_ARTICLE_KEYS,
     article_for_key,
+    article_key_for_diagnostic_finding,
     recommend_for_findings,
     recommend_for_repair,
 )
@@ -63,6 +64,15 @@ def test_connection_finding_uses_exact_adb_state_language() -> None:
 
     assert recommend_for_findings((unauthorized,), limit=1)[0].article.key == "adb-unauthorized"
     assert recommend_for_findings((offline,), limit=1)[0].article.key == "adb-device-offline"
+
+
+def test_historical_finding_identity_never_guesses_an_ambiguous_adb_state() -> None:
+    assert article_key_for_diagnostic_finding("storage.capacity") == "device-storage-nearly-full"
+    assert (
+        article_key_for_diagnostic_finding("connection.unavailable", "ADB is offline")
+        == "adb-device-offline"
+    )
+    assert article_key_for_diagnostic_finding("connection.unavailable") == ""
 
 
 def test_exact_error_code_overrides_generic_repair_concern() -> None:

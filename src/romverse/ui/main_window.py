@@ -2495,6 +2495,11 @@ class MainWindow(QMainWindow):
         self.diagnostics_center.report_changed.connect(self._diagnostic_report_changed)
         self.stack.addWidget(self.diagnostics_center)
         self.history_center = HistoryCenter(history_store)
+        self.history_center.current_scan_requested.connect(
+            lambda: self._navigate_route("quantum_optimizer")
+        )
+        self.history_center.knowledge_article_requested.connect(self._open_knowledge_article)
+        self.history_center.knowledge_requested.connect(self._open_knowledge_query)
         self.stack.addWidget(self.history_center)
         self.guardian_center = GuardianCenter(self._audit_store, auto_start=False)
         self.stack.addWidget(self.guardian_center)

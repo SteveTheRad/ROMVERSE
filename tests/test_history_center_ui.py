@@ -2,14 +2,18 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
 
+from romverse.device.models import StorageInfo
 from romverse.diagnostics.analyzer import DiagnosticAnalyzer
 from romverse.diagnostics.history import DiagnosticHistoryStore
 from romverse.ui.history_center import HistoryCenter
+from romverse.ui.main_window import MainWindow
 
 from .test_diagnostics import device
 
@@ -56,3 +60,59 @@ def test_health_timeline_labels_legacy_snapshot_unverified(tmp_path) -> None:
     assert "legacy evidence" in center.evidence_status.text().casefold()
     assert "legacy" in center.report_list.item(0).text().casefold()
     center.close()
+
+
+def test_health_timeline_routes_typed_history_to_exact_archives_guide(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    store = DiagnosticHistoryStore(tmp_path)
+    source = device(storage=StorageInfo(percent_used=98))
+    store.save(DiagnosticAnalyzer().analyze(source), source)
+    center = HistoryCenter(store)
+    articles: list[str] = []
+    scans: list[bool] = []
+    center.knowledge_article_requested.connect(articles.append)
+    center.current_scan_requested.connect(lambda: scans.append(True))
+    app.processEvents()
+
+    assert "storage.capacity" in center.finding_guide_buttons
+    assert center.report_list.horizontalScrollBarPolicy() == Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+    center.finding_guide_buttons["storage.capacity"].click()
+    center.current_scan_button.click()
+
+    assert articles == ["device-storage-nearly-full"]
+    assert scans == [True]
+    assert "HISTORICAL SNAPSHOT" in next(
+        label.text()
+        for label in center.detail_content.findChildren(type(center.evidence_status))
+        if "HISTORICAL SNAPSHOT" in label.text()
+    )
+    center.close()
+
+
+def test_health_timeline_handoffs_reach_archives_and_current_optimizer(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
+    snapshot = device(storage=StorageInfo(percent_used=98))
+    try:
+        window.diagnostics_center.set_devices([snapshot])
+        window.diagnostics_center.save_button.click()
+        window._navigate_route("health_timeline")
+        app.processEvents()
+
+        window.history_center.finding_guide_buttons["storage.capacity"].click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.knowledge_center
+        assert window.knowledge_center.list.count() == 1
+        assert window.knowledge_center.search.text() == "Android device storage is nearly full"
+        assert "Very low free user-data space" in window.knowledge_center.detail.toPlainText()
+
+        window._navigate_route("health_timeline")
+        window.history_center.current_scan_button.click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.diagnostics_center
+        assert window.diagnostics_center.current_report is not None
+    finally:
+        window.companion_center.transport.close()
+        window.close()

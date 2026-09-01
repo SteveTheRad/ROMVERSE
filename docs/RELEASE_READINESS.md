@@ -28,7 +28,7 @@ has current evidence.
    Repository tests also prove a changed packaged runtime module is rejected. This does not replace
    the required Windows installed-wheel pass or signed release-artifact validation.
 
-   Current Fedora development evidence recorded on 2026-09-01: 1,106 Desktop tests and the complete
+   Current Fedora development evidence recorded on 2026-09-01: 1,109 Desktop tests and the complete
    Ruff check/format gate pass after the Ctrl+K navigation-only palette, canonical Activity Center,
    connected About ROMVERSE V3, collapsible/focus workspace shell, and structured ROMVERSE Archives
    and deterministic Archives Advisor increments. Tests cover bounded ranked retrieval, weak-match
@@ -39,14 +39,16 @@ has current evidence.
    exact/general/mismatch repair routing; exact source-bound Nexus-plan review context in Guardian
    Core, bidirectional navigation, zero approval/execution authority, and source/destination stale
    identity refusal; shared canonical producer routing and exact project-aware Live Console returns
-   with stale-project in-page refusal; Recovery Bay report boundaries, adaptive research
+   with stale-project in-page refusal; integrity-verified Health Timeline history routed to exact
+   typed Archives guides or an explicitly current Quantum Optimizer view without reclassifying saved
+   evidence as live state; Recovery Bay report boundaries, adaptive research
    disclosure, strict guided-session evidence, exact-article local Resolution Memory, hostile and
    semantically false re-digested
    outcome rejection, Live Console table contrast, Activity Center filtering and export, adaptive
    rendering, accessibility, hostile ledger boundaries, and the strict private Origin-discovery
    record. A fresh
    isolated build produced a 219-member wheel with SHA-256
-   `b8622665faa92cb86d4db2080561337d9d73b53f40ff160e2f8ad78baa78da75`; the verifier
+   `d834e400a4dc6a77e68f87357a7b10f9f512b0da404a07696a71714408336aea`; the verifier
    byte-compared all runtime modules with source and revalidated all 21 indexed Device Packs. A
    separate wheel-target environment imported the packaged 110-guide catalog, Advisor, strict guided
    sessions, Resolution Memory, and the deterministic Diagnostics-to-Recovery concern map from
@@ -58,7 +60,8 @@ has current evidence.
    in the installed Guardian Core review card with its project/objective/digest/requirements and
    zero authority; returned a genuine installed Live Console event to its exact current Nexus
    project and refused its missing-project counterpart in-page without navigation; opened the
-   packaged Desktop
+   installed Health Timeline's typed storage finding in the exact verified Archives guide and
+   returned separately to current diagnostics; opened the packaged Desktop
    offscreen; initialized a fresh workspace; and reloaded all 21 Packs. This remains development
    evidence, not the required signed Windows/Fedora public-release certification.
 4. Launch the installed wheel on Ubuntu, Fedora, and Windows, initialize a fresh workspace, and verify

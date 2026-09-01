@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QFileDialog,
     QFrame,
@@ -23,11 +23,17 @@ from romverse.diagnostics.history import (
     RejectedDiagnosticSnapshot,
     ReportComparison,
     StoredDiagnosticReport,
+    StoredFinding,
 )
+from romverse.knowledge.advisor import article_key_for_diagnostic_finding
 from romverse.ui.mini_chart import MiniChart
 
 
 class HistoryCenter(QWidget):
+    current_scan_requested = Signal()
+    knowledge_article_requested = Signal(str)
+    knowledge_requested = Signal(str)
+
     def __init__(
         self,
         store: DiagnosticHistoryStore,
@@ -36,6 +42,7 @@ class HistoryCenter(QWidget):
         self.store = store
         self.reports: tuple[StoredDiagnosticReport, ...] = ()
         self.rejected: tuple[RejectedDiagnosticSnapshot, ...] = ()
+        self.finding_guide_buttons: dict[str, QPushButton] = {}
 
         page = QVBoxLayout(self)
         page.setContentsMargins(30, 26, 30, 30)
@@ -58,6 +65,12 @@ class HistoryCenter(QWidget):
         refresh = QPushButton("Refresh history")
         refresh.clicked.connect(self.refresh)
         header.addWidget(refresh)
+        self.current_scan_button = QPushButton("Open current Quantum Optimizer")
+        self.current_scan_button.setToolTip(
+            "Open current read-only device evidence. Historical snapshots remain unchanged."
+        )
+        self.current_scan_button.clicked.connect(self.current_scan_requested)
+        header.addWidget(self.current_scan_button)
         self.export_button = QPushButton("Export selected")
         self.export_button.setToolTip("Save a copy of the selected redacted diagnostic snapshot.")
         self.export_button.setEnabled(False)
@@ -99,6 +112,9 @@ class HistoryCenter(QWidget):
         content.setSpacing(16)
         self.report_list = QListWidget()
         self.report_list.setObjectName("HistoryList")
+        self.report_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.report_list.setTextElideMode(Qt.TextElideMode.ElideRight)
+        self.report_list.setAccessibleName("Verified diagnostic history snapshots")
         self.report_list.setMinimumWidth(290)
         self.report_list.setMaximumWidth(350)
         self.report_list.currentRowChanged.connect(self._select)
@@ -221,6 +237,7 @@ class HistoryCenter(QWidget):
         comparison: ReportComparison | None,
     ) -> None:
         self._clear()
+        self.finding_guide_buttons.clear()
         hero = QFrame()
         hero.setObjectName("HeroCard")
         layout = QHBoxLayout(hero)
@@ -275,6 +292,14 @@ class HistoryCenter(QWidget):
             change_layout.addWidget(resolved)
         self.detail_layout.addWidget(change)
 
+        historical_boundary = QLabel(
+            "HISTORICAL SNAPSHOT  •  These findings describe saved evidence, not the phone's "
+            "current state. Archives guidance is read-only and starts no repair."
+        )
+        historical_boundary.setObjectName("Warning")
+        historical_boundary.setWordWrap(True)
+        self.detail_layout.addWidget(historical_boundary)
+
         for finding in report.findings:
             card = QFrame()
             card.setObjectName("Card")
@@ -286,6 +311,32 @@ class HistoryCenter(QWidget):
             badge.setObjectName(_severity_style(finding.severity))
             card_layout.addWidget(title, 1)
             card_layout.addWidget(badge)
+            article_key = article_key_for_diagnostic_finding(finding.finding_id, finding.title)
+            if article_key:
+                guide = QPushButton("Open verified Archives guide")
+                guide.setToolTip(
+                    "Open the exact local guide mapped from this typed historical finding. "
+                    "No current-state claim or device action is created."
+                )
+                guide.clicked.connect(
+                    lambda _checked=False, key=article_key: self.knowledge_article_requested.emit(
+                        key
+                    )
+                )
+                card_layout.addWidget(guide)
+                self.finding_guide_buttons[finding.finding_id] = guide
+            elif finding.severity in {"advisory", "warning", "critical"}:
+                guide = QPushButton("Search Archives")
+                guide.setToolTip(
+                    "Search local verified knowledge using this historical finding title. "
+                    "ROMVERSE will not substitute an unrelated exact guide."
+                )
+                query = self._finding_query(finding)
+                guide.clicked.connect(
+                    lambda _checked=False, value=query: self.knowledge_requested.emit(value)
+                )
+                card_layout.addWidget(guide)
+                self.finding_guide_buttons[finding.finding_id] = guide
             self.detail_layout.addWidget(card)
 
         metadata = QLabel(
@@ -303,6 +354,12 @@ class HistoryCenter(QWidget):
         metadata.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self.detail_layout.addWidget(metadata)
         self.detail_layout.addStretch()
+
+    @staticmethod
+    def _finding_query(finding: StoredFinding) -> str:
+        if finding.finding_id == "connection.unavailable":
+            return "ADB device connection unavailable"
+        return finding.title
 
     def _set_evidence_status(self, text: str, object_name: str) -> None:
         self.evidence_status.setText(text)

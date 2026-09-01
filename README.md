@@ -760,11 +760,17 @@ opens only the selected page. Guided Mode keeps folded specialist destinations o
 Expert Mode reveals them. The palette cannot run a tool, start a device operation, grant approval,
 or bypass Guardian.
 
-The **ROMVERSE activity ledger** replaces decorative dashboard history with durable local
-events from completed device scans, saved diagnostics, ROM Studio work, Time Machine,
-Recovery Bay planning, Quantum Optimizer cleanup, App Launchpad, and the offline Galaxy lab.
-The bounded, atomic ledger stores privacy-safe summaries only and is visible/exportable from
-Health Timeline. Corrupt ledger data is reported and preserved rather than overwritten.
+The **ROMVERSE Activity Center** replaces decorative dashboard history with a connected, searchable
+view of durable local events from completed device scans, saved diagnostics, ROM Studio work, Time
+Machine, Recovery Bay planning, Quantum Optimizer cleanup, App Launchpad, and the offline Galaxy
+lab. Outcome/category filters, truthful counts, evidence details, and canonical source-page handoffs
+make each summary useful without duplicating the source feature. Health Timeline now stays focused
+on saved diagnostic snapshots and health change.
+
+The underlying ledger is byte-bounded, strict-schema, atomic, private, and exportable as redacted
+JSON. Raw serials, console output, build fingerprints, and Galaxy message text remain excluded.
+Linked, oversized, malformed, or extra-field data fails closed and is preserved rather than
+overwritten; an Activity Center handoff navigates only and grants no operation authority.
 
 Desktop **Command Deck Settings** now exposes only controls with current runtime consumers: device
 scan cadence, verified online/community research, Synapse contribution policy, Forge Arsenal tool

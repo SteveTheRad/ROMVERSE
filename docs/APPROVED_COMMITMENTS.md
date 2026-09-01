@@ -577,7 +577,10 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   keeps Live Console and Guardian visible, and never changes approval policy; accessible Desktop
   Ctrl+K navigation-only command palette populated from the canonical sidebar routes and shared
   feature vocabulary, with legacy-name search, stable relevance ranking, Guided/Expert disclosure,
-  and no operation or device authority; Companion persisted
+  and no operation or device authority; canonical Desktop Activity Center with cross-feature search,
+  outcome/category filters, truthful counts, evidence detail, redacted export, source-page handoffs,
+  and private byte-bounded strict-schema atomic ledger storage while Health Timeline remains focused
+  on diagnostic history; Companion persisted
   experience selection with Guided Device DNA overflow disclosure and Expert full-map presentation,
   runtime-verified across Android process restart; Guided Vitalis, Live Console Raw Terminal, and
   Ascension technical-evidence disclosure that never folds warnings, blockers, next safe actions, or

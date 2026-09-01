@@ -107,6 +107,7 @@ from romverse.repair.host import AdbHostRepairReceiptStore, AdbHostRepairService
 from romverse.repair.templates import RepairAssessmentTemplates
 from romverse.rom.models import ProjectError
 from romverse.rom.projects import RomProjectStore
+from romverse.ui.activity_center import ActivityCenter
 from romverse.ui.apk_center import ApkCenter
 from romverse.ui.background import ManagedRunnable, shutdown_background_tasks, start_background
 from romverse.ui.backup_center import BackupCenter
@@ -2424,7 +2425,7 @@ class MainWindow(QMainWindow):
             lambda: self._navigate_route("recovery_bay")
         )
         self.stack.addWidget(self.diagnostics_center)
-        self.history_center = HistoryCenter(history_store, self.activity_store)
+        self.history_center = HistoryCenter(history_store)
         self.stack.addWidget(self.history_center)
         self.guardian_center = GuardianCenter(self._audit_store, auto_start=False)
         self.stack.addWidget(self.guardian_center)
@@ -2592,10 +2593,14 @@ class MainWindow(QMainWindow):
         )
         self.members_center.settings_requested.connect(self._open_settings)
         members_index = self.stack.addWidget(self.members_center)
+        self.activity_center = ActivityCenter(self.activity_store)
+        self.activity_center.route_requested.connect(self._navigate_route)
+        activity_index = self.stack.addWidget(self.activity_center)
         self.page_routes = {
             "command_deck": self.stack.indexOf(self.device_center),
             "quantum_optimizer": self.stack.indexOf(self.diagnostics_center),
             "health_timeline": self.stack.indexOf(self.history_center),
+            "activity_center": activity_index,
             "guardian_core": self.stack.indexOf(self.guardian_center),
             "recovery_bay": self.stack.indexOf(self.repair_center),
             "device_atlas": self.stack.indexOf(self.device_packs_center),
@@ -2633,6 +2638,7 @@ class MainWindow(QMainWindow):
                 self.page_routes["health_timeline"],
                 False,
             ),
+            (feature("activity_center").title, self.page_routes["activity_center"], False),
             (feature("archives").title, self.page_routes["archives"], False),
             (feature("command_console").title, self.page_routes["command_console"], False),
             (feature("live_console").title, self.page_routes["live_console"], False),
@@ -2665,6 +2671,7 @@ class MainWindow(QMainWindow):
             feature("app_launchpad").title: ("apk", "#7B64FF", "#2BE5F4"),
             feature("time_machine").title: ("backup", "#B54EFF", "#5B88FF"),
             feature("health_timeline").title: ("logs", "#548BFF", "#35DBF0"),
+            feature("activity_center").title: ("logs", "#35DBF0", "#B45CFF"),
             feature("archives").title: ("knowledge", "#C95BFF", "#6B80FF"),
             feature("command_console").title: ("terminal", "#4C82FF", "#59A7FF"),
             feature("live_console").title: ("logs", "#38DFF2", "#9A64FF"),
@@ -2687,6 +2694,7 @@ class MainWindow(QMainWindow):
             feature("app_launchpad").title: "GUARDIAN & RECOVERY",
             feature("time_machine").title: "GUARDIAN & RECOVERY",
             feature("health_timeline").title: "ACTIVITY & KNOWLEDGE",
+            feature("activity_center").title: "ACTIVITY & KNOWLEDGE",
             feature("archives").title: "ACTIVITY & KNOWLEDGE",
             feature("command_console").title: "LIVE OPERATIONS",
             feature("live_console").title: "LIVE OPERATIONS",
@@ -3136,19 +3144,26 @@ class MainWindow(QMainWindow):
             self.device_center.refresh_activity()
         elif self.stack.currentWidget() is self.history_center:
             self.history_center.refresh()
+        elif self.stack.currentWidget() is self.activity_center:
+            self.activity_center.refresh()
         elif self.stack.currentWidget() is self.guardian_center:
             self.guardian_center.request_refresh()
         elif self.stack.currentWidget() is self.live_console:
             self.live_console.refresh()
         elif self.stack.currentWidget() is self.nexus_center:
             self.nexus_center.refresh()
+        active_button: QPushButton | None = None
         for button in self.nav_buttons:
             active = button.property("page_index") == index
             button.setProperty("active", active)
+            if active:
+                active_button = button
             icon_name, icon_start, icon_end = self._nav_icon_specs[button]
             button.setIcon(sidebar_icon(icon_name, 26, icon_start, icon_end, active=active))
             button.style().unpolish(button)
             button.style().polish(button)
+        if active_button is not None:
+            self.nav_scroll.ensureWidgetVisible(active_button, 0, 24)
 
     def _navigate_route(self, route: str) -> bool:
         """Open one stable Desktop route or report the broken integration visibly."""
@@ -3867,7 +3882,8 @@ class MainWindow(QMainWindow):
             "Install APK": "app_launchpad",
             "Time Snapshot": "time_machine",
             "Time Restore": "time_machine",
-            "View Full Log": "health_timeline",
+            "View Full Log": "activity_center",
+            "View Activity Center": "activity_center",
         }
         target = targets.get(action)
         self._navigate_route(target or f"dashboard:{action}")

@@ -37,6 +37,7 @@ def test_every_desktop_navigation_label_opens_and_highlights_its_own_page(
             "App Launchpad",
             "Time Machine",
             "Health Timeline",
+            "Activity Center",
             "ROMVERSE Archives",
             "Command Console",
             "Live Console",
@@ -63,6 +64,7 @@ def test_every_desktop_navigation_label_opens_and_highlights_its_own_page(
             "command_deck": window.stack.indexOf(window.device_center),
             "quantum_optimizer": window.stack.indexOf(window.diagnostics_center),
             "health_timeline": window.stack.indexOf(window.history_center),
+            "activity_center": window.stack.indexOf(window.activity_center),
             "guardian_core": window.stack.indexOf(window.guardian_center),
             "recovery_bay": window.stack.indexOf(window.repair_center),
             "device_atlas": window.stack.indexOf(window.device_packs_center),
@@ -176,6 +178,11 @@ def test_command_deck_cards_are_context_aware_and_route_to_canonical_pages(
         window.device_center.quick_action_buttons["Wireless Transfer"].click()
         app.processEvents()
         assert window.stack.currentIndex() == window.companion_index
+
+        window._navigate(0)
+        window._handle_dashboard_action("View Activity Center")
+        app.processEvents()
+        assert window.stack.currentWidget() is window.activity_center
 
         window._navigate(0)
         lab = window.device_center.quick_action_buttons["ROMVERSE Lab"]

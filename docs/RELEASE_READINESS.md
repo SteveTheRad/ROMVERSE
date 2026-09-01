@@ -28,13 +28,16 @@ has current evidence.
    Repository tests also prove a changed packaged runtime module is rejected. This does not replace
    the required Windows installed-wheel pass or signed release-artifact validation.
 
-   Current Fedora development evidence recorded on 2026-09-01: 1,031 Desktop tests and the complete
-   Ruff check/format gate pass after the Ctrl+K navigation-only palette increment. A fresh isolated
-   build produced a 212-member wheel; the verifier byte-compared the new palette module with source
-   and revalidated all 21 indexed Device Packs. A clean temporary environment installed the wheel
-   with declared dependencies, imported the palette from site-packages, opened the packaged Desktop
-   offscreen, and initialized a fresh workspace. This remains development evidence, not the required
-   signed Windows/Fedora public-release certification.
+   Current Fedora development evidence recorded on 2026-09-01: 1,034 Desktop tests and the complete
+   Ruff check/format gate pass after the Ctrl+K navigation-only palette and canonical Activity Center
+   increments. Tests cover Activity Center filtering, truthful counts, source-page handoffs,
+   accessibility metadata, redacted export, adaptive two-pane rendering, and linked/oversized/
+   extra-field/private-mode ledger boundaries. A fresh isolated build produced a 213-member wheel;
+   the verifier byte-compared both new runtime modules with source and revalidated all 21 indexed
+   Device Packs. A clean temporary environment installed the wheel with declared dependencies,
+   imported Activity Center from site-packages, opened the packaged Desktop offscreen, and
+   initialized a fresh workspace. This remains development evidence, not the required signed
+   Windows/Fedora public-release certification.
 4. Launch the installed wheel on Ubuntu, Fedora, and Windows, initialize a fresh workspace, and verify
    that an existing workspace opens without migration loss.
    For Desktop Device DNA, tamper and correctly re-digest nested facts and bootloader-relock state;

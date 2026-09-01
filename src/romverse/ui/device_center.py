@@ -689,7 +689,7 @@ class DeviceCenter(QWidget):
                 "#35DBF0",
                 "Timeline",
                 "VIEW HISTORY",
-                "Open Health Timeline for real scans, repairs, builds, and verification outcomes.",
+                "Open Health Timeline for saved diagnostic snapshots and health changes over time.",
             ),
             (
                 "terminal",
@@ -1373,8 +1373,11 @@ class DeviceCenter(QWidget):
             empty.setObjectName("Danger" if ledger_error else "Muted")
             empty.setWordWrap(True)
             activity_layout.addWidget(empty)
-        full_log = QPushButton("☷  View Full Log")
-        full_log.clicked.connect(lambda _checked=False: self.action_requested.emit("View Full Log"))
+        full_log = QPushButton("☷  View Activity Center")
+        full_log.setAccessibleName("Open Activity Center for all recorded ROMVERSE outcomes")
+        full_log.clicked.connect(
+            lambda _checked=False: self.action_requested.emit("View Activity Center")
+        )
         activity_layout.addWidget(full_log)
         lower.addWidget(activity, 1)
 

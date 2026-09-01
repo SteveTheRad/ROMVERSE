@@ -17,7 +17,6 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from romverse.core.activity import ActivityStore, ActivityStoreError
 from romverse.diagnostics.history import (
     DiagnosticHistoryError,
     DiagnosticHistoryStore,
@@ -32,11 +31,9 @@ class HistoryCenter(QWidget):
     def __init__(
         self,
         store: DiagnosticHistoryStore,
-        activity_store: ActivityStore | None = None,
     ) -> None:
         super().__init__()
         self.store = store
-        self.activity_store = activity_store
         self.reports: tuple[StoredDiagnosticReport, ...] = ()
         self.rejected: tuple[RejectedDiagnosticSnapshot, ...] = ()
 
@@ -89,27 +86,6 @@ class HistoryCenter(QWidget):
         self.evidence_status.setWordWrap(True)
         page.addWidget(self.evidence_status)
 
-        activity_header = QHBoxLayout()
-        activity_title = QLabel("ROMVERSE activity ledger")
-        activity_title.setObjectName("SectionTitle")
-        activity_header.addWidget(activity_title)
-        activity_header.addStretch()
-        self.export_activity_button = QPushButton("Export activity")
-        self.export_activity_button.setToolTip(
-            "Export the privacy-safe local activity ledger as JSON."
-        )
-        self.export_activity_button.clicked.connect(self._export_activity)
-        activity_header.addWidget(self.export_activity_button)
-        page.addLayout(activity_header)
-        self.activity_summary = QLabel("No completed ROMVERSE activity has been recorded yet.")
-        self.activity_summary.setObjectName("Muted")
-        self.activity_summary.setWordWrap(True)
-        page.addWidget(self.activity_summary)
-        self.activity_list = QListWidget()
-        self.activity_list.setMinimumHeight(145)
-        self.activity_list.setMaximumHeight(190)
-        page.addWidget(self.activity_list)
-
         trend_header = QLabel("Saved health score trend")
         trend_header.setObjectName("SectionTitle")
         page.addWidget(trend_header)
@@ -145,7 +121,6 @@ class HistoryCenter(QWidget):
         self.refresh()
 
     def refresh(self) -> None:
-        self._refresh_activity()
         selected_path = None
         row = self.report_list.currentRow()
         if 0 <= row < len(self.reports):
@@ -207,64 +182,6 @@ class HistoryCenter(QWidget):
                 "No accepted snapshots are available. Open System Scan, review the live evidence, "
                 "then select Save report. Rejected files remain preserved in the history folder."
             )
-
-    def _refresh_activity(self) -> None:
-        self.activity_list.clear()
-        if self.activity_store is None:
-            self.activity_summary.setText("Activity ledger is not configured for this workspace.")
-            self.activity_list.addItem("Activity ledger is not configured for this workspace.")
-            self.export_activity_button.setEnabled(False)
-            return
-        try:
-            events = self.activity_store.list_recent(100)
-        except ActivityStoreError as exc:
-            self.activity_summary.setObjectName("Danger")
-            self.activity_summary.setText(f"Activity ledger needs attention: {exc}")
-            self._repolish(self.activity_summary)
-            self.activity_list.addItem(f"Activity ledger needs attention\n{exc}")
-            self.export_activity_button.setEnabled(False)
-            return
-        self.export_activity_button.setEnabled(bool(events))
-        if not events:
-            self.activity_summary.setObjectName("Muted")
-            self.activity_summary.setText("No completed ROMVERSE activity has been recorded yet.")
-            self._repolish(self.activity_summary)
-            self.activity_list.addItem("No completed ROMVERSE activity has been recorded yet.")
-            return
-        success_count = sum(event.outcome == "success" for event in events)
-        attention_count = sum(event.outcome == "attention" for event in events)
-        information_count = sum(event.outcome == "information" for event in events)
-        self.activity_summary.setObjectName("Warning" if attention_count else "Good")
-        self.activity_summary.setText(
-            f"{success_count} completed safely  •  {attention_count} need attention  •  "
-            f"{information_count} informational  •  latest: {events[0].title}"
-        )
-        self._repolish(self.activity_summary)
-        for event in events:
-            marker = {"success": "✓", "attention": "!", "information": "i"}[event.outcome]
-            item = QListWidgetItem(
-                f"{marker}  {event.title}  •  {_display_time(event.recorded_at)}\n"
-                f"{event.detail}  •  {event.source}"
-            )
-            item.setToolTip(f"{event.category} / {event.outcome}")
-            self.activity_list.addItem(item)
-
-    def _export_activity(self) -> None:
-        if self.activity_store is None:
-            return
-        destination, _ = QFileDialog.getSaveFileName(
-            self,
-            "Export ROMVERSE activity",
-            "romverse-activity.json",
-            "JSON (*.json)",
-        )
-        if not destination:
-            return
-        try:
-            path = self.activity_store.export(Path(destination))
-            self.footer.setText(f"Exported privacy-safe activity ledger: {path.name}")
-        except ActivityStoreError as exc:
-            self.footer.setText(f"Activity export failed safely: {exc}")
 
     def _select(self, row: int) -> None:
         if not 0 <= row < len(self.reports):
@@ -392,11 +309,6 @@ class HistoryCenter(QWidget):
         self.evidence_status.setObjectName(object_name)
         self.evidence_status.style().unpolish(self.evidence_status)
         self.evidence_status.style().polish(self.evidence_status)
-
-    @staticmethod
-    def _repolish(widget: QWidget) -> None:
-        widget.style().unpolish(widget)
-        widget.style().polish(widget)
 
     def _empty(self, message: str) -> None:
         self._clear()

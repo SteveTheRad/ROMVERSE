@@ -24,6 +24,9 @@ FEATURES: dict[str, FeatureName] = {
     ),
     "system_scan": FeatureName("System Scan", "Diagnostics and analysis", ("Diagnostics",)),
     "health_timeline": FeatureName("Health Timeline", "Device history", ("Health History", "Logs")),
+    "activity_center": FeatureName(
+        "Activity Center", "Workspace and mission outcomes", ("Activity Ledger", "Full Log")
+    ),
     "guardian_core": FeatureName("Guardian Core", "Safety and protection", ("Guardian Center",)),
     "recovery_bay": FeatureName("Recovery Bay", "Diagnose and repair", ("Repair My Phone",)),
     "device_atlas": FeatureName(

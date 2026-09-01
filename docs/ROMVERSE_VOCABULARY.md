@@ -9,6 +9,7 @@ documentation, buttons, tooltips, and support instructions.
 | Device Portal | Connected Android device identity and live evidence | Device Center, Device Nexus |
 | System Scan | Read-only diagnostics and analysis | Diagnostics |
 | Health Timeline | Saved, privacy-safe device history | Health History / Logs |
+| Activity Center | Cross-feature workspace and mission outcomes | Activity Ledger / Full Log |
 | Guardian Core | Safety policy, approval, and audit boundary | Guardian Center |
 | Recovery Bay | Diagnose faults and prepare repair plans | Repair My Phone |
 | Device Atlas | OEM compatibility profiles and Device Packs | Device Packs / Mod Manager |
@@ -45,6 +46,7 @@ their canonical name so older help text and future migrations remain understanda
 - Command Deck → ROM Studio → Forge Control
 - Command Deck → Device Atlas → compatible Device Pack evidence
 - Command Deck → Quantum Optimizer → System Scan → Health Timeline
+- Command Deck → Activity Center → canonical source page and authoritative evidence
 - Command Deck → Recovery Bay → Guardian Core review
 - Command Deck → App Launchpad → Guardian Core approval
 - Command Deck → Time Machine → snapshot or recovery plan

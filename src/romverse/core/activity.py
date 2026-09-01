@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import stat
 from contextlib import contextmanager, suppress
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
@@ -31,12 +32,26 @@ class ActivityStore:
 
     SCHEMA_VERSION = 1
     MAX_EVENTS = 500
+    MAX_FILE_BYTES = 1_048_576
     OUTCOMES = {"success", "attention", "information"}
+    _ROOT_FIELDS = {"format", "schema_version", "privacy", "events"}
+    _EVENT_FIELDS = {
+        "event_id",
+        "recorded_at",
+        "category",
+        "title",
+        "detail",
+        "outcome",
+        "source",
+        "dedupe_key",
+    }
     _process_lock = Lock()
 
     def __init__(self, workspace: Path) -> None:
-        self.path = workspace / "logs" / "activity-v1.json"
-        self.lock_path = workspace / "logs" / "activity-v1.lock"
+        self.workspace = workspace.expanduser().resolve()
+        self.directory = self.workspace / "logs"
+        self.path = self.directory / "activity-v1.json"
+        self.lock_path = self.directory / "activity-v1.lock"
 
     def record(
         self,
@@ -97,14 +112,17 @@ class ActivityStore:
             "events": [asdict(event) for event in events],
         }
         destination.parent.mkdir(parents=True, exist_ok=True)
-        temporary = destination.with_suffix(destination.suffix + ".tmp")
+        self._require_regular_or_missing(destination, "activity export")
+        temporary = destination.with_name(f".{destination.name}.{uuid4().hex}.tmp")
         try:
-            with temporary.open("w", encoding="utf-8") as stream:
+            descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
                 json.dump(payload, stream, indent=2)
                 stream.write("\n")
                 stream.flush()
                 os.fsync(stream.fileno())
             os.replace(temporary, destination)
+            os.chmod(destination, 0o600)
         except OSError as exc:
             with suppress(OSError):
                 temporary.unlink(missing_ok=True)
@@ -112,12 +130,27 @@ class ActivityStore:
         return destination
 
     def _load(self) -> tuple[ActivityEvent, ...]:
-        if not self.path.exists():
+        if not self.path.exists() and not self.path.is_symlink():
             return ()
         try:
-            payload = json.loads(self.path.read_text(encoding="utf-8"))
+            metadata = self.path.lstat()
+            if not stat.S_ISREG(metadata.st_mode):
+                raise ValueError("activity ledger must be a regular file")
+            if metadata.st_size > self.MAX_FILE_BYTES:
+                raise ValueError("activity ledger exceeds the size limit")
+            flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+            descriptor = os.open(self.path, flags)
+            with os.fdopen(descriptor, "r", encoding="utf-8") as stream:
+                opened = os.fstat(stream.fileno())
+                if not stat.S_ISREG(opened.st_mode):
+                    raise ValueError("activity ledger must be a regular file")
+                raw = stream.read(self.MAX_FILE_BYTES + 1)
+            if len(raw.encode("utf-8")) > self.MAX_FILE_BYTES:
+                raise ValueError("activity ledger exceeds the size limit")
+            payload = json.loads(raw)
             if (
                 not isinstance(payload, dict)
+                or set(payload) != self._ROOT_FIELDS
                 or payload.get("format") != "romverse.activity-ledger"
                 or payload.get("schema_version") != self.SCHEMA_VERSION
                 or payload.get("privacy") != "redacted"
@@ -130,25 +163,38 @@ class ActivityStore:
             if len({event.event_id for event in events}) != len(events):
                 raise ValueError("duplicate activity identifiers")
             return events
-        except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+        except (
+            ActivityStoreError,
+            OSError,
+            UnicodeDecodeError,
+            json.JSONDecodeError,
+            KeyError,
+            TypeError,
+            ValueError,
+        ) as exc:
             raise ActivityStoreError(f"Activity ledger is unreadable: {exc}") from exc
 
     def _save(self, events: tuple[ActivityEvent, ...]) -> None:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._prepare_directory()
+        self._require_regular_or_missing(self.path, "activity ledger")
         payload = {
             "format": "romverse.activity-ledger",
             "schema_version": self.SCHEMA_VERSION,
             "privacy": "redacted",
             "events": [asdict(event) for event in events],
         }
-        temporary = self.path.with_suffix(".tmp")
+        encoded = json.dumps(payload, indent=2) + "\n"
+        if len(encoded.encode("utf-8")) > self.MAX_FILE_BYTES:
+            raise ActivityStoreError("Activity ledger exceeds the size limit")
+        temporary = self.path.with_name(f".{self.path.name}.{uuid4().hex}.tmp")
         try:
-            with temporary.open("w", encoding="utf-8") as stream:
-                json.dump(payload, stream, indent=2)
-                stream.write("\n")
+            descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+                stream.write(encoded)
                 stream.flush()
                 os.fsync(stream.fileno())
             os.replace(temporary, self.path)
+            os.chmod(self.path, 0o600)
         except OSError as exc:
             with suppress(OSError):
                 temporary.unlink(missing_ok=True)
@@ -157,6 +203,8 @@ class ActivityStore:
     def _parse(self, payload: object) -> ActivityEvent:
         if not isinstance(payload, dict):
             raise TypeError("activity event must be an object")
+        if set(payload) != self._EVENT_FIELDS:
+            raise ValueError("activity event fields are invalid")
         event_id = self._text(payload["event_id"], "event id", 80)
         recorded_at = self._text(payload["recorded_at"], "timestamp", 80)
         parsed_time = datetime.fromisoformat(recorded_at)
@@ -194,8 +242,14 @@ class ActivityStore:
     @contextmanager
     def _locked(self):
         with self._process_lock:
-            self.lock_path.parent.mkdir(parents=True, exist_ok=True)
-            with self.lock_path.open("a+") as stream:
+            self._prepare_directory()
+            self._require_regular_or_missing(self.lock_path, "activity lock")
+            flags = os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0)
+            descriptor = os.open(self.lock_path, flags, 0o600)
+            os.chmod(self.lock_path, 0o600)
+            with os.fdopen(descriptor, "a+") as stream:
+                if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+                    raise ActivityStoreError("Activity lock must be a regular file")
                 try:
                     import fcntl
 
@@ -211,3 +265,25 @@ class ActivityStore:
                         fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
                     except ImportError:
                         pass
+
+    def _prepare_directory(self) -> None:
+        if self.directory.is_symlink():
+            raise ActivityStoreError("Activity directory cannot be a symbolic link")
+        try:
+            self.directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+            if not self.directory.is_dir():
+                raise ActivityStoreError("Activity directory must be a directory")
+            os.chmod(self.directory, 0o700)
+        except OSError as exc:
+            raise ActivityStoreError(f"Could not prepare activity directory: {exc}") from exc
+
+    @staticmethod
+    def _require_regular_or_missing(path: Path, label: str) -> None:
+        try:
+            metadata = path.lstat()
+        except FileNotFoundError:
+            return
+        except OSError as exc:
+            raise ActivityStoreError(f"Could not inspect {label}: {exc}") from exc
+        if not stat.S_ISREG(metadata.st_mode):
+            raise ActivityStoreError(f"{label.title()} must be a regular file")

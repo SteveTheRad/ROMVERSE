@@ -532,12 +532,20 @@ the serial in displayed output. Host platform and Python version details are rea
 
 ### Truthful local activity ledger
 
-Command Deck recent activity and Health Timeline use an atomic, schema-validated local
-ledger rather than illustrative sample entries. Only operations that reached their real
-completion or safe-failure boundary may append an event. Entries contain bounded summaries,
-outcomes, and source modules; raw device serials, console output, build fingerprints, and
-user-authored Galaxy content are excluded. The ledger is exportable as redacted JSON and
-unreadable data is never silently replaced.
+Command Deck recent activity and the canonical Activity Center use an atomic, byte-bounded,
+strict-schema local ledger rather than illustrative sample entries. Health Timeline remains the
+single surface for saved diagnostic snapshots and health change, rather than duplicating general
+activity ownership. Only operations that reached their real completion or safe-failure boundary may
+append an event. Entries contain bounded summaries, outcomes, and source modules; raw device serials,
+console output, build fingerprints, and user-authored Galaxy content are excluded. Ledger and lock
+files are regular-file checked and private, unique staging prevents predictable temporary-path
+replacement, oversized/extra-field/linked records fail closed, and unreadable data is never silently
+replaced.
+
+Activity Center provides full-ledger search plus category and outcome filters, truthful summary
+counts, a readable evidence inspector, privacy-safe JSON export, and canonical source-page handoffs.
+Those handoffs navigate only; authoritative receipts, project evidence, Guardian state, and any
+operation authority remain owned by the source feature.
 
 ROM Studio owns the terminal boundary for Genesis operations. Each active operation accepts only
 its expected typed result, binds it to the exact project that launched the worker, and independently

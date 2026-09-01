@@ -57,7 +57,11 @@ from romverse.repair.host import (
 )
 from romverse.repair.knowledge import knowledge_for
 from romverse.repair.sessions import RepairSession, RepairSessionError, RepairSessionStore
-from romverse.repair.templates import RepairAssessmentTemplates, RepairConcern
+from romverse.repair.templates import (
+    RepairAssessmentTemplates,
+    RepairConcern,
+    concern_for_finding,
+)
 from romverse.ui.background import ManagedRunnable, start_background
 from romverse.ui.process_progress import ProcessProgressBar
 
@@ -140,6 +144,8 @@ class RepairCenter(QWidget):
         self.current_device: AndroidDevice | None = None
         self.current_report: DiagnosticReport | None = None
         self.current_concern: RepairConcern | None = None
+        self._diagnostic_context_id = ""
+        self._applying_diagnostic_context = False
         self.active_session: RepairSession | None = None
         self.session_checks: list[QCheckBox] = []
         self._pending_verification_session = ""
@@ -184,7 +190,7 @@ class RepairCenter(QWidget):
             # canonical value explicitly and normalize it again in build_plan.
             self.concern_selector.addItem(concern.value, concern.value)
         self.concern_selector.setMinimumWidth(260)
-        self.concern_selector.currentIndexChanged.connect(self.build_plan)
+        self.concern_selector.currentIndexChanged.connect(self._concern_changed)
         header.addWidget(self.concern_selector)
         self.build_button = QPushButton("Build safety plan")
         self.build_button.setObjectName("Primary")
@@ -221,6 +227,16 @@ class RepairCenter(QWidget):
         self.archives_button.clicked.connect(self._search_archives)
         symptom_row.addWidget(self.archives_button)
         page.addLayout(symptom_row)
+        self.diagnostic_context = QLabel("")
+        self.diagnostic_context.setObjectName("Eyebrow")
+        self.diagnostic_context.setAccessibleName("Quantum Optimizer diagnostic handoff")
+        self.diagnostic_context.setWordWrap(True)
+        self.diagnostic_context.setVisible(False)
+        self.diagnostic_context.setToolTip(
+            "This exact finding selected the repair category. It starts no repair and can be "
+            "cleared by choosing another category."
+        )
+        page.addWidget(self.diagnostic_context)
 
         self.hero = QFrame()
         self.hero.setObjectName("HeroCard")
@@ -390,6 +406,7 @@ class RepairCenter(QWidget):
                 self._complete_pending_verification(devices)
             self.build_plan()
         else:
+            self._clear_diagnostic_context()
             self.host_action_card.setVisible(False)
             self.host_repair_plan = None
             self.host_repair_button = None
@@ -440,6 +457,7 @@ class RepairCenter(QWidget):
             )
 
     def show_error(self, message: str) -> None:
+        self._clear_diagnostic_context()
         safe_message = message.replace("\x00", " ").strip()[:300] or "ADB discovery failed"
         self.host_action_card.setVisible(False)
         self.host_repair_plan = None
@@ -487,7 +505,7 @@ class RepairCenter(QWidget):
         self._render_host_repair(self.host_repair_plan)
         self.body_layout.addStretch()
 
-    def build_plan(self, _index: int = -1) -> None:
+    def build_plan(self, _index: int = -1, *, start_research: bool = True) -> None:
         index = self.device_selector.currentIndex()
         if not 0 <= index < len(self.devices):
             index = 0
@@ -513,9 +531,60 @@ class RepairCenter(QWidget):
         self._render(manifest, assessment, report, concern)
         fingerprint = self._repair_fingerprint(device, report, concern)
         if fingerprint is not None:
-            self._maybe_research(fingerprint)
+            if start_research:
+                self._maybe_research(fingerprint)
+            else:
+                self._online_current = fingerprint
+                if self.online_service is None:
+                    self._maybe_research(fingerprint)
+                elif self.online_worker is None:
+                    self.intelligence_card.setVisible(False)
         elif self.online_worker is None:
             self.intelligence_card.setVisible(False)
+
+    def open_diagnostic_finding(self, finding_id: str) -> bool:
+        """Select an exact repair concern from current typed diagnostic evidence."""
+
+        normalized = finding_id.strip()[:120]
+        concern = concern_for_finding(normalized)
+        report = self.current_report
+        finding = (
+            next((item for item in report.findings if item.finding_id == normalized), None)
+            if report is not None
+            else None
+        )
+        if concern is None or finding is None:
+            self._clear_diagnostic_context()
+            return False
+        index = self.concern_selector.findData(concern.value)
+        if index < 0:
+            self._clear_diagnostic_context()
+            return False
+        self._diagnostic_context_id = normalized
+        self.diagnostic_context.setText(
+            f"FROM QUANTUM OPTIMIZER  •  {normalized.upper()}  •  {finding.title.upper()}  "
+            "•  CONTEXT ONLY — NO ACTION STARTED"
+        )
+        self.diagnostic_context.setVisible(True)
+        self._applying_diagnostic_context = True
+        try:
+            if self.concern_selector.currentIndex() == index:
+                self.build_plan(index, start_research=False)
+            else:
+                self.concern_selector.setCurrentIndex(index)
+        finally:
+            self._applying_diagnostic_context = False
+        return True
+
+    def _concern_changed(self, index: int) -> None:
+        if not self._applying_diagnostic_context:
+            self._clear_diagnostic_context()
+        self.build_plan(index, start_research=not self._applying_diagnostic_context)
+
+    def _clear_diagnostic_context(self) -> None:
+        self._diagnostic_context_id = ""
+        self.diagnostic_context.clear()
+        self.diagnostic_context.setVisible(False)
 
     def _render(
         self,

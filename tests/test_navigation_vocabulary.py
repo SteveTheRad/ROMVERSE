@@ -5,11 +5,12 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QPushButton
 
 from romverse.core.settings import AppSettings, ExperienceMode
-from romverse.device.models import AndroidDevice, DeviceState
+from romverse.device.models import AndroidDevice, DeviceState, StorageInfo
 from romverse.infrastructure.tools import ToolStatus
+from romverse.repair.templates import RepairConcern
 from romverse.ui.main_window import (
     MainWindow,
     _device_scan_failure_copy,
@@ -260,6 +261,80 @@ def test_typed_advisor_handoff_opens_the_exact_archives_identity(tmp_path: Path)
         active = [item for item in window.nav_buttons if item.property("active")]
         assert len(active) == 1
         assert active[0].text().replace("&&", "&") == "ROMVERSE Archives"
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_optimizer_exact_finding_opens_matching_recovery_plan(tmp_path: Path) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    snapshot = AndroidDevice(
+        "private-storage-device",
+        DeviceState.DEVICE,
+        manufacturer="RadForge",
+        model="Reference Phone",
+        battery_percent=75,
+        battery_temperature_c=31.0,
+        storage=StorageInfo(percent_used=98),
+        security_patch="2026-07-01",
+        bootloader_locked=True,
+        verified_boot="green",
+        root_detected=False,
+        connection_note="Connected",
+    )
+    try:
+        window.diagnostics_center.set_devices([snapshot])
+        window.repair_center.set_devices([snapshot])
+        window._navigate_route("quantum_optimizer")
+        app.processEvents()
+        button = next(
+            item
+            for item in window.diagnostics_center.findChildren(QPushButton)
+            if item.text() == "Open guided fix in Recovery Bay"
+        )
+
+        button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.repair_center
+        assert window.repair_center.current_concern is RepairConcern.STORAGE
+        assert "STORAGE.CAPACITY" in window.repair_center.diagnostic_context.text()
+        assert "NO ACTION STARTED" in window.repair_center.diagnostic_context.text()
+        assert window.repair_center.active_session is None
+        assert window.repair_center.host_repair_worker is None
+        assert window.repair_center.online_worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_optimizer_recovery_handoff_fails_closed_on_stale_evidence(tmp_path: Path) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
+    try:
+        window._navigate_route("quantum_optimizer")
+        previous_page = window.stack.currentWidget()
+
+        window.diagnostics_center.repair_requested.emit("storage.capacity")
+        app.processEvents()
+
+        assert window.stack.currentWidget() is previous_page
+        assert window.notification_center.last_notification is not None
+        assert window.notification_center.last_notification.key == (
+            "repair.handoff.storage.capacity"
+        )
+        assert "fresh evidence" in window.notification_center.last_notification.title.casefold()
+        assert window.repair_center.active_session is None
+        assert window.repair_center.host_repair_worker is None
     finally:
         window.companion_center.transport.close()
         window.close()

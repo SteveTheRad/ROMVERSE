@@ -28,23 +28,25 @@ has current evidence.
    Repository tests also prove a changed packaged runtime module is rejected. This does not replace
    the required Windows installed-wheel pass or signed release-artifact validation.
 
-   Current Fedora development evidence recorded on 2026-09-01: 1,082 Desktop tests and the complete
+   Current Fedora development evidence recorded on 2026-09-01: 1,088 Desktop tests and the complete
    Ruff check/format gate pass after the Ctrl+K navigation-only palette, canonical Activity Center,
    connected About ROMVERSE V3, collapsible/focus workspace shell, and structured ROMVERSE Archives
    and deterministic Archives Advisor increments. Tests cover bounded ranked retrieval, weak-match
    rejection, catalog/schema/source validation, every typed Advisor rule, exact ADB-state and
-   error-code priority, direct article and canonical-page handoffs, Recovery Bay report boundaries,
-   adaptive research disclosure, strict guided-session evidence, exact-article local Resolution
+   error-code priority, direct article and canonical-page handoffs, exact Diagnostics-to-Recovery
+   finding identity with stale-evidence refusal and no-worker navigation, Recovery Bay report
+   boundaries, adaptive research disclosure, strict guided-session evidence, exact-article local Resolution
    Memory, hostile and semantically false re-digested outcome rejection, Live Console table contrast,
    Activity Center filtering and export, adaptive rendering, accessibility, hostile ledger
    boundaries, and the strict private Origin-discovery record. A fresh
    isolated build produced a 219-member wheel with SHA-256
-   `a749a4858725afc00f066a9f89598d3b071304a37b4c4791afe57922e079f9e3`; the verifier
+   `c00687507400a90235a48e669b92ea95f024e96ce90059873726ccb574290ef1`; the verifier
    byte-compared all runtime modules with source and revalidated all 21 indexed Device Packs. A
    separate wheel-target environment imported the packaged 110-guide catalog, Advisor, strict guided
-   sessions, and Resolution Memory from outside the source checkout; verified one installed local
-   improvement comparison; opened the packaged Desktop offscreen; initialized a fresh workspace; and
-   reloaded all 21 Packs. This remains development evidence, not the required signed
+   sessions, Resolution Memory, and the deterministic Diagnostics-to-Recovery concern map from
+   outside the source checkout; verified one installed local improvement comparison and an exact
+   storage-finding handoff with no session/worker start; opened the packaged Desktop offscreen;
+   initialized a fresh workspace; and reloaded all 21 Packs. This remains development evidence, not the required signed
    Windows/Fedora public-release certification.
 4. Launch the installed wheel on Ubuntu, Fedora, and Windows, initialize a fresh workspace, and verify
    that an existing workspace opens without migration loss.

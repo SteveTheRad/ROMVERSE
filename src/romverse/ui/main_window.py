@@ -2488,9 +2488,7 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.device_center)
         history_store = DiagnosticHistoryStore(workspace, self.activity_store)
         self.diagnostics_center = DiagnosticsCenter(DiagnosticAnalyzer(), history_store)
-        self.diagnostics_center.repair_requested.connect(
-            lambda: self._navigate_route("recovery_bay")
-        )
+        self.diagnostics_center.repair_requested.connect(self._open_repair_finding)
         self.diagnostics_center.knowledge_requested.connect(self._open_knowledge_query)
         self.diagnostics_center.knowledge_article_requested.connect(self._open_knowledge_article)
         self.stack.addWidget(self.diagnostics_center)
@@ -4052,6 +4050,19 @@ class MainWindow(QMainWindow):
     def _open_knowledge_article(self, key: str) -> None:
         self._navigate_route("archives")
         self.knowledge_center.open_article(key)
+
+    @Slot(str)
+    def _open_repair_finding(self, finding_id: str) -> None:
+        if self.repair_center.open_diagnostic_finding(finding_id):
+            self._navigate_route("recovery_bay")
+            return
+        self.notification_center.notify(
+            f"repair.handoff.{finding_id[:60] or 'missing'}",
+            "Repair handoff needs fresh evidence",
+            "Recovery Bay could not match that finding to its current device report. "
+            "Refresh Device Engine before opening a guided repair plan.",
+            NotificationKind.ATTENTION,
+        )
 
     @Slot(str)
     def _handle_dashboard_action(self, action: str) -> None:

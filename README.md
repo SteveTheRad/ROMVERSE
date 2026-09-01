@@ -72,9 +72,12 @@ Recovery Bay now also offers **Search local Archives** beside the exact symptom 
 Archives Advisor prioritizes an exact error-code match, then the selected typed repair concern and
 current diagnostic finding IDs. The assessment displays the primary source authority and automation
 boundary, records every recommendation in the privacy-safe exported report, and opens the selected
-stable article identity directly. Quantum Optimizer uses the same exact-ID handoff for its
-highest-priority actionable finding. These handoffs do not start research, approval, or repair, while
-ROM Studio, Genesis, Ascension, and Recipe Forge retain their stage-specific guides and drafts.
+stable article identity directly. Quantum Optimizer also carries its highest-priority actionable
+finding ID into Recovery Bay, which selects the deterministic matching concern only when that same
+finding is present in Recovery Bay's current report. A visible source-context strip names the finding
+and states that no action started; stale or unknown handoffs fail closed instead of opening a generic
+plan. These handoffs do not start research, approval, or repair, while ROM Studio, Genesis, Ascension,
+and Recipe Forge retain their stage-specific guides and drafts.
 When online research is off, its secondary panel folds into a compact, accessible status row so local
 preconditions and the Advisor stay prominent. Active, returned, or failed research expands its full
 evidence automatically, and the user can fold only those details without changing assessment state.

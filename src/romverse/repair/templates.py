@@ -27,6 +27,28 @@ class RepairConcern(StrEnum):
     PERFORMANCE = "Slow performance or freezing"
 
 
+DIAGNOSTIC_REPAIR_CONCERNS = {
+    "battery.low": RepairConcern.BATTERY_HEAT,
+    "battery.temperature": RepairConcern.BATTERY_HEAT,
+    "storage.capacity": RepairConcern.STORAGE,
+    "connection.unavailable": RepairConcern.USB_ADB,
+    "scan.partial": RepairConcern.USB_ADB,
+    "boot.incomplete": RepairConcern.BOOT_UPDATE,
+    "boot.recent": RepairConcern.BOOT_UPDATE,
+    "security.patch_age": RepairConcern.BOOT_UPDATE,
+    "security.bootloader": RepairConcern.BOOT_UPDATE,
+    "security.verified_boot": RepairConcern.BOOT_UPDATE,
+    "security.root": RepairConcern.BOOT_UPDATE,
+    "security.root_manager_candidate": RepairConcern.BOOT_UPDATE,
+}
+
+
+def concern_for_finding(finding_id: str) -> RepairConcern | None:
+    """Return the exact guided-repair category for one typed diagnostic finding."""
+
+    return DIAGNOSTIC_REPAIR_CONCERNS.get(finding_id.strip()[:120])
+
+
 class RepairAssessmentTemplates:
     def build(
         self,

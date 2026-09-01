@@ -8,7 +8,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtWidgets import QApplication, QLabel, QMessageBox, QPushButton
 
 from romverse.core.activity import ActivityStore
-from romverse.device.models import DeviceState
+from romverse.device.models import DeviceState, StorageInfo
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.diagnostics.analyzer import DiagnosticAnalyzer
 from romverse.guardian.approval import ApprovalStore
@@ -128,6 +128,63 @@ def test_recovery_bay_prefers_authorized_device_in_multi_device_state(tmp_path) 
     assert center.session_button.isEnabled()
     assert center.execute_button.isEnabled()
     assert "read-only diagnostics" in center.execute_button.text().casefold()
+    center.close()
+
+
+def test_recovery_bay_opens_exact_diagnostic_context_without_starting_action(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = RepairCenter(
+        DiagnosticAnalyzer(),
+        RepairAssessmentTemplates(),
+        GuardianPreflight(),
+        tmp_path,
+        ActivityStore(tmp_path),
+    )
+    center.set_devices([device(storage=StorageInfo(percent_used=98))])
+    center.online_service = object()
+
+    opened = center.open_diagnostic_finding("storage.capacity")
+    app.processEvents()
+
+    assert opened
+    assert center.current_concern is RepairConcern.STORAGE
+    assert center.concern_selector.currentData() == RepairConcern.STORAGE.value
+    assert not center.diagnostic_context.isHidden()
+    assert "STORAGE.CAPACITY" in center.diagnostic_context.text()
+    assert "NO ACTION STARTED" in center.diagnostic_context.text()
+    assert "Storage or update-space problem" in center.plan_title.text()
+    assert center.active_session is None
+    assert center.host_repair_worker is None
+    assert center.online_worker is None
+    assert center.intelligence_card.isHidden()
+
+    center.concern_selector.setCurrentIndex(
+        center.concern_selector.findData(RepairConcern.NETWORK.value)
+    )
+    app.processEvents()
+    assert center.diagnostic_context.isHidden()
+    assert center.current_concern is RepairConcern.NETWORK
+    center.close()
+
+
+def test_recovery_bay_rejects_unknown_or_stale_diagnostic_handoff(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    center = RepairCenter(
+        DiagnosticAnalyzer(),
+        RepairAssessmentTemplates(),
+        GuardianPreflight(),
+        tmp_path,
+        ActivityStore(tmp_path),
+    )
+    center.set_devices([device()])
+    original_concern = center.current_concern
+
+    assert not center.open_diagnostic_finding("storage.capacity")
+    assert not center.open_diagnostic_finding("unknown.future.rule")
+    assert center.current_concern is original_concern
+    assert center.diagnostic_context.isHidden()
+    assert center.active_session is None
+    assert center.host_repair_worker is None
     center.close()
 
 

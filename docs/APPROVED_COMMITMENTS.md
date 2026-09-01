@@ -401,6 +401,10 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   Studio/Genesis/Ascension/Recipe handoffs preserve their stages and drafts; Recovery Bay keeps
   disabled online research in an accessible compact drawer, automatically expands real evidence,
   and keeps the exact local Advisor action visible without changing workflow state;
+  Quantum Optimizer's exact actionable finding identity now selects the deterministic matching
+  Recovery Bay concern only when the finding remains present in Recovery Bay's current report,
+  displays a source-context/no-action-started boundary, clears that context on manual category
+  change, and fails closed on stale or unknown evidence without starting a session or worker;
   guided repair sessions now use a strict private schema-two integrity envelope, bind the primary
   evidence-matched Archives article, re-derive comparison direction and finding deltas, reject
   hostile/altered/re-digested evidence, and feed only integrity-verified fresh comparisons into an

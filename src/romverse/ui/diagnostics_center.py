@@ -74,7 +74,7 @@ class FindingCard(QFrame):
 class DiagnosticsCenter(QWidget):
     refresh_requested = Signal()
     report_saved = Signal()
-    repair_requested = Signal()
+    repair_requested = Signal(str)
     knowledge_requested = Signal(str)
     knowledge_article_requested = Signal(str)
 
@@ -502,7 +502,11 @@ class DiagnosticsCenter(QWidget):
                 "Open the model-aware guided repair workflow for the highest-priority finding. "
                 "No device change starts automatically."
             )
-            open_repair.clicked.connect(self.repair_requested.emit)
+            open_repair.clicked.connect(
+                lambda _checked=False, finding_id=priority.finding_id: self.repair_requested.emit(
+                    finding_id
+                )
+            )
             actions.addWidget(open_repair)
             layout.addLayout(actions)
         return card

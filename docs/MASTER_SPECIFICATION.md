@@ -128,6 +128,13 @@ and the current Device Engine/Diagnostics evidence. Manifests contain required
 preconditions, categorized steps, purposes, expected effects and reversibility statements.
 A canonical SHA-256 digest detects any change between review and later approval.
 
+Quantum Optimizer may route its exact highest-priority actionable finding ID to Recovery Bay.
+The handoff must use a deterministic finding-to-concern map and must be accepted only when the
+same finding exists in Recovery Bay's current independently derived report. The selected plan must
+show the diagnostic source identity and an explicit no-action-started boundary. Unknown or stale
+findings fail closed without navigating to a fallback concern, starting a session, launching a
+worker, researching remotely, or requesting approval.
+
 Guardian Preflight returns Ready, Review or Blocked plus the maximum risk, reasons and
 approval requirement. Failed required evidence or destructive steps block a plan; unknown
 evidence and future state-changing/privileged steps require review. All v0.1 preflight

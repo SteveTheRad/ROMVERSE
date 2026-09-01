@@ -10,7 +10,12 @@ from romverse.guardian.planning import (
     Precondition,
     PreflightStatus,
 )
-from romverse.repair.templates import RepairAssessmentTemplates, RepairConcern
+from romverse.repair.templates import (
+    DIAGNOSTIC_REPAIR_CONCERNS,
+    RepairAssessmentTemplates,
+    RepairConcern,
+    concern_for_finding,
+)
 
 from .test_diagnostics import device
 
@@ -103,3 +108,25 @@ def test_boot_assessment_escalates_to_high_risk_review():
     assessment = GuardianPreflight().assess(operation)
     assert assessment.risk is RiskLevel.HIGH
     assert assessment.status is PreflightStatus.REVIEW
+
+
+def test_every_typed_diagnostic_handoff_has_a_deterministic_repair_concern():
+    expected = {
+        "battery.low": RepairConcern.BATTERY_HEAT,
+        "battery.temperature": RepairConcern.BATTERY_HEAT,
+        "storage.capacity": RepairConcern.STORAGE,
+        "connection.unavailable": RepairConcern.USB_ADB,
+        "scan.partial": RepairConcern.USB_ADB,
+        "boot.incomplete": RepairConcern.BOOT_UPDATE,
+        "boot.recent": RepairConcern.BOOT_UPDATE,
+        "security.patch_age": RepairConcern.BOOT_UPDATE,
+        "security.bootloader": RepairConcern.BOOT_UPDATE,
+        "security.verified_boot": RepairConcern.BOOT_UPDATE,
+        "security.root": RepairConcern.BOOT_UPDATE,
+        "security.root_manager_candidate": RepairConcern.BOOT_UPDATE,
+    }
+
+    assert expected == DIAGNOSTIC_REPAIR_CONCERNS
+    assert all(concern_for_finding(key) is value for key, value in expected.items())
+    assert concern_for_finding("baseline.clear") is None
+    assert concern_for_finding("unknown.future.rule") is None

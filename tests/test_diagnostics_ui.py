@@ -6,6 +6,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication, QPushButton
 
+from romverse.device.models import StorageInfo
 from romverse.diagnostics.analyzer import DiagnosticAnalyzer
 from romverse.diagnostics.history import DiagnosticHistoryStore
 from romverse.ui.diagnostics_center import DiagnosticsCenter
@@ -19,8 +20,8 @@ def test_optimizer_routes_actionable_finding_to_guided_recovery(tmp_path) -> Non
         DiagnosticAnalyzer(),
         DiagnosticHistoryStore(tmp_path),
     )
-    requested: list[bool] = []
-    center.repair_requested.connect(lambda: requested.append(True))
+    requested: list[str] = []
+    center.repair_requested.connect(requested.append)
 
     center.set_devices([device(battery_percent=5)])
     app.processEvents()
@@ -32,7 +33,30 @@ def test_optimizer_routes_actionable_finding_to_guided_recovery(tmp_path) -> Non
     button.click()
     app.processEvents()
 
-    assert requested == [True]
+    assert requested == ["battery.low"]
+    center.close()
+
+
+def test_optimizer_handoff_preserves_storage_finding_identity(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = DiagnosticsCenter(
+        DiagnosticAnalyzer(),
+        DiagnosticHistoryStore(tmp_path),
+    )
+    requested: list[str] = []
+    center.repair_requested.connect(requested.append)
+
+    center.set_devices([device(storage=StorageInfo(percent_used=98))])
+    app.processEvents()
+    button = next(
+        item
+        for item in center.findChildren(QPushButton)
+        if item.text() == "Open guided fix in Recovery Bay"
+    )
+    button.click()
+    app.processEvents()
+
+    assert requested == ["storage.capacity"]
     center.close()
 
 

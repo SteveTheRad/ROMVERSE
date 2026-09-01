@@ -1829,6 +1829,39 @@ KNOWN_FIXES = (
         source=ROMVERSE_SOURCE,
     ),
     _fix(
+        "live-console-light-table-contrast",
+        "Live Console table is white or unreadable on a dark desktop",
+        "ROMVERSE WORKFLOWS",
+        "The host desktop's native item-view theme painted the event cells or header with a "
+        "light background while ROMVERSE retained light text. This is a display-layer fault; "
+        "it does not prove that the privacy-redacted event ledger is damaged or untrusted.",
+        checks=(
+            "Confirm the white or grey area is limited to the Live Console table while its surrounding cards remain dark.",
+            "Confirm Live Console reports genuine event counts rather than a ledger-integrity warning, and preserve a screenshot of the affected desktop theme.",
+        ),
+        fix_steps=(
+            "Install the current ROMVERSE Desktop build, which paints evidence cells, alternating rows, selection, state text, grid lines, and headers with its own bounded dark renderer.",
+            "Restart ROMVERSE so the running window loads the renderer; do not rewrite the event ledger or reset the whole desktop theme to repair presentation.",
+        ),
+        verification=(
+            "Normal and alternating rows remain dark navy, header labels remain readable, and the selected row uses a distinct purple-blue highlight.",
+            "Refresh events and navigate away and back; the table remains readable without changing event counts, evidence, or device state.",
+            "The rendered-pixel regression check rejects a light alternate row or header before a Desktop build can pass verification.",
+        ),
+        tags=(
+            "live console white table",
+            "unreadable event grid",
+            "white text white background",
+            "wayland table contrast",
+            "fedora desktop theme",
+            "live console header white",
+        ),
+        route="live_console",
+        evidence="ROMVERSE reproduced the presentation fault and verifies the painted header and alternate-row pixels in the Desktop UI test suite.",
+        automation="DISPLAY REPAIR AND NAVIGATION ONLY • NO LEDGER REWRITE, EVENT CHANGE, PHONE ACTION, OR EVIDENCE INFERENCE",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
         "archives-local-learning-boundary",
         "Local learned fix is missing or retired in Archives",
         "ROMVERSE WORKFLOWS",

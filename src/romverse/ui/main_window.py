@@ -3023,6 +3023,12 @@ class MainWindow(QMainWindow):
         self.history_center.knowledge_requested.connect(self._open_knowledge_query)
         self.stack.addWidget(self.history_center)
         self.guardian_center = GuardianCenter(self._audit_store, auto_start=False)
+        self.guardian_center.dashboard_state_changed.connect(
+            self.device_center.set_guardian_state
+        )
+        self.device_center.set_guardian_state(
+            *self.guardian_center.current_dashboard_state()
+        )
         self.stack.addWidget(self.guardian_center)
         resolved_registry = pack_registry or DevicePackRegistry(())
         self.device_catalog = GooglePlayDeviceCatalog(workspace)
@@ -4966,6 +4972,7 @@ class MainWindow(QMainWindow):
     def _sync_command_deck_context(self) -> None:
         """Project real ROM Studio state into the status-aware home Command Deck."""
 
+        self.guardian_center.invalidate_dashboard_if_evidence_changed()
         project = self.rom_studio.current_project
         self.device_center.set_workspace_context(
             project.name if project is not None else "",
@@ -5851,6 +5858,7 @@ class MainWindow(QMainWindow):
             "Device DNA": ("device_atlas", self.device_packs_center),
             "Health Review": ("quantum_optimizer", self.diagnostics_center),
             "Rescue & Backup": ("time_machine", self.backup_center),
+            "Guardian": ("guardian_core", self.guardian_center),
         }
         if action in owner_handoffs:
             route, owner = owner_handoffs[action]
@@ -5880,7 +5888,6 @@ class MainWindow(QMainWindow):
             self._navigate_route("recovery_bay")
             return
         targets = {
-            "Guardian": "guardian_core",
             "Timeline": "health_timeline",
             "Live Operations": "live_console",
             "Wireless Transfer": "companion_link",

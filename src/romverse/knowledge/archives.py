@@ -2030,6 +2030,46 @@ KNOWN_FIXES = (
         source=ROMVERSE_SOURCE,
     ),
     _fix(
+        "command-deck-guardian-status-unverified",
+        "Command Deck says Guardian is active before integrity is verified",
+        "ROMVERSE WORKFLOWS",
+        "A static green Guardian label can overstate safety when the audit or approval chain has "
+        "not been checked in the current session, is being checked, changed after verification, "
+        "or failed integrity. Command Deck must display the state owned by Guardian Core rather "
+        "than infer safety from the page or gateway merely existing.",
+        checks=(
+            "Read the Guardian mission card: a new session must say VERIFY REQUIRED, not SAFETY ACTIVE or INTEGRITY VERIFIED.",
+            "Open the card and confirm Guardian Core shows a COMMAND DECK HANDOFF with the same unverified, verifying, verified, review-due, locked, failed, or unavailable state.",
+            "After verification, compare the card's operation-record and active-approval summary with Guardian Core's current bounded result.",
+            "Change the audit or approval evidence and return to Command Deck; a prior green claim must retire to REVERIFY REQUIRED before another full verification.",
+        ),
+        fix_steps=(
+            "Install the current Desktop build, which makes Guardian Core the single owner of Command Deck's Guardian lifecycle.",
+            "Open Guardian from Command Deck and let its bounded background verification finish; navigation itself grants no approval or execution authority.",
+            "If integrity is rejected, preserve the evidence, inspect Guardian Core's reason, and do not issue or reuse an approval until the chain verifies.",
+            "Reverify after any new operation, approval, rollover, archive change, or external evidence revision instead of trusting a retained green label.",
+        ),
+        verification=(
+            "The card starts at VERIFY REQUIRED, changes to VERIFYING only while the genuine worker runs, and reaches INTEGRITY VERIFIED only from a valid audit plus approval snapshot.",
+            "The destination handoff mirrors every lifecycle change and states that no approval, command, build, flash, or phone action started.",
+            "A lightweight active-ledger, verified-archive, or approval-file revision immediately retires the cached green state; the full worker remains the only path back to verified.",
+            "Invalid audit or approval evidence produces EXECUTION LOCKED and cannot be converted into success by navigation, card rendering, or a stale cache.",
+        ),
+        tags=(
+            "command deck guardian safety active",
+            "guardian status unverified",
+            "guardian card stale green",
+            "audit integrity dashboard",
+            "guardian reverify required",
+            "approval chain dashboard",
+            "guardian execution locked",
+        ),
+        route="guardian_core",
+        evidence="Guardian Core publishes a bounded lifecycle into Command Deck, owns the matching destination handoff, and retires verified presentation when active audit, verified archive, or approval metadata changes.",
+        automation="READ-ONLY STATUS PROPAGATION, REVISION DETECTION, AND EXACT NAVIGATION ONLY • NO APPROVAL, COMMAND, BUILD, FLASH, OR PHONE ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
         "rom-studio-cross-feature-context",
         "Open ROM Studio loses the originating Pack, toolchain, or Nexus project",
         "ROMVERSE WORKFLOWS",

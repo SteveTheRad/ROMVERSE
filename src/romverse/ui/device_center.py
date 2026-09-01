@@ -223,6 +223,15 @@ class DeviceCenter(QWidget):
     action_requested = Signal(str)
     runtime_tools_requested = Signal()
     rom_studio_requested = Signal(str, str, str)
+    GUARDIAN_CARD_STATES = {
+        "unverified": "VERIFY REQUIRED",
+        "review_due": "REVERIFY REQUIRED",
+        "verifying": "VERIFYING",
+        "verified": "INTEGRITY VERIFIED",
+        "locked": "EXECUTION LOCKED",
+        "failed": "VERIFY FAILED",
+        "unavailable": "AUDIT UNAVAILABLE",
+    }
 
     def __init__(
         self,
@@ -240,6 +249,11 @@ class DeviceCenter(QWidget):
         self._flight_plan: GenesisFlightPlan | None = None
         self._repair_finding_id = ""
         self._repair_finding_title = ""
+        self._guardian_state = "unverified"
+        self._guardian_detail = (
+            "Guardian's current audit and approval evidence has not yet been verified in this session."
+        )
+        self._guardian_verified = False
         self._studio_device_context: RomStudioDeviceContext | None = None
         self.quick_action_buttons: dict[str, QToolButton] = {}
         self.metrics_history_path = (
@@ -491,6 +505,34 @@ class DeviceCenter(QWidget):
         self._repair_finding_title = normalized_title
         if self.devices:
             self.render_device(self.devices[self._selected_index])
+
+    def set_guardian_state(self, state: str, detail: str, verified: bool) -> None:
+        """Update Guardian's Command Deck claim from its owning verified lifecycle."""
+
+        normalized_state = str(state).strip().casefold()
+        if normalized_state not in self.GUARDIAN_CARD_STATES:
+            normalized_state = "unverified"
+        normalized_detail = " ".join(str(detail).replace("\x00", " ").split())[:360]
+        if not normalized_detail:
+            normalized_detail = "Guardian evidence needs a current bounded verification."
+        evidence_ready = normalized_state == "verified" and bool(verified)
+        self._guardian_state = normalized_state
+        self._guardian_detail = normalized_detail
+        self._guardian_verified = evidence_ready
+        button = self.quick_action_buttons.get("Guardian")
+        if button is None:
+            return
+        status = self.GUARDIAN_CARD_STATES[normalized_state]
+        button.setText(f"Guardian\n{status}")
+        button.setToolTip(
+            f"{normalized_detail} Open Guardian Core for the current bounded evidence and "
+            "verification controls."
+        )
+        button.setAccessibleName(f"Guardian: {status.title()}")
+        button.setAccessibleDescription(normalized_detail)
+        button.setProperty("guardianState", normalized_state)
+        button.setProperty("evidenceReady", evidence_ready)
+        self._repolish(button)
 
     def _apply_quick_action_visibility(self) -> None:
         expert = self._experience_mode is ExperienceMode.EXPERT
@@ -869,8 +911,8 @@ class DeviceCenter(QWidget):
                 "#A54BFF",
                 "#5D87FF",
                 "Guardian",
-                "SAFETY ACTIVE",
-                "Open Guardian Core to review audit integrity and safety gates.",
+                self.GUARDIAN_CARD_STATES[self._guardian_state],
+                f"{self._guardian_detail} Open Guardian Core for the current bounded evidence and verification controls.",
             ),
             (
                 "cloud_upload",
@@ -928,6 +970,10 @@ class DeviceCenter(QWidget):
                 button.setProperty("diagnosticFinding", self._repair_finding_id)
                 button.setProperty("evidenceReady", True)
                 button.setAccessibleDescription(self._repair_finding_title)
+            if label == "Guardian":
+                button.setProperty("guardianState", self._guardian_state)
+                button.setProperty("evidenceReady", self._guardian_verified)
+                button.setAccessibleDescription(self._guardian_detail)
             button.setMinimumHeight(102)
             button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             button.clicked.connect(

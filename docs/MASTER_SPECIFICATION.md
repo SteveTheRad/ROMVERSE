@@ -515,7 +515,10 @@ project, or grant Guardian authority.
 
 Command Deck is the contextual home surface, not a second implementation of those features. It
 reads the actual active ROM Studio project and connected-device state, then labels its launch cards
-honestly as create/import/continue, needs firmware, connect device, ready, or safety active. Build
+honestly as create/import/continue, needs firmware, connect device, ready, verify required,
+verifying, integrity verified, reverify required, or execution locked. Guardian Core exclusively
+owns the Guardian card state and its matching in-page handoff; an audit, verified-archive, or
+approval-file revision retires a cached green claim before the full background verifier runs. Build
 ROM, Pre-Build Simulation, Device DNA, Recipes, Health Review, Repair Phone, Guardian,
 Rescue & Backup, Timeline, Live Operations, Wireless Transfer, and ROMVERSE Lab route to their
 canonical pages. A missing phone or firmware remains a usable beginner state and never fabricates

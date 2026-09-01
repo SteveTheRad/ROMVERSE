@@ -111,7 +111,24 @@ def test_connected_dashboard_builds_all_approved_contextual_mission_cards(tmp_pa
     assert status_by_label["Health Review"] == "DEVICE READY"
     assert status_by_label["Repair Phone"] == "DEVICE READY"
     assert status_by_label["Pre-Build Simulation"] == "READY"
-    assert status_by_label["Guardian"] == "SAFETY ACTIVE"
+    assert status_by_label["Guardian"] == "VERIFY REQUIRED"
+    guardian = center.quick_action_buttons["Guardian"]
+    assert guardian.property("guardianState") == "unverified"
+    assert guardian.property("evidenceReady") is False
+    assert "has not yet been verified" in guardian.toolTip()
+
+    center.set_guardian_state(
+        "verified",
+        "SHA-256 audit chain verified across 12 operation records.",
+        True,
+    )
+
+    assert guardian.text().splitlines()[1] == "INTEGRITY VERIFIED"
+    assert guardian.property("guardianState") == "verified"
+    assert guardian.property("evidenceReady") is True
+    assert guardian.accessibleDescription() == (
+        "SHA-256 audit chain verified across 12 operation records."
+    )
     assert all(not button.icon().isNull() for button in actions)
     labels = [label.text() for label in center.findChildren(QLabel)]
     assert "SYSTEM HEALTH" not in labels

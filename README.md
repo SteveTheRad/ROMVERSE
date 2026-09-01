@@ -86,9 +86,9 @@ When online research is off, its secondary panel folds into a compact, accessibl
 preconditions and the Advisor stay prominent. Active, returned, or failed research expands its full
 evidence automatically, and the user can fold only those details without changing assessment state.
 
-The Desktop **ROMVERSE Archives** catalog now contains 110 validated local guides across ten
-categories, including 60 structured known-fix records and 34 guide records backed by official-source
-links. The added official-source-labelled device triage covers battery/heat, storage, Android updates,
+The Desktop **ROMVERSE Archives** catalog now contains 137 validated local guides across ten
+categories, including 87 structured known-fix records and 37 distinct official sources. The added
+official-source-labelled device triage covers battery/heat, storage, Android updates,
 app crashes, screen/touch, network, and performance, while camera/audio guidance remains explicitly
 ROMVERSE-scoped until exact OEM evidence is available. Ranked punctuation-tolerant retrieval covers
 ADB/USB, host tools, firmware intake, dynamic
@@ -842,6 +842,13 @@ topic-specific plan (for example, **STORAGE PLAN READY**); opening it preserves 
 Recovery Bay. A healthy report opens an explicit general intake instead, while mismatched/stale
 Recovery evidence shows a refresh boundary. None of these navigation paths starts a session, worker,
 research lookup, approval, or phone operation.
+
+Command Deck's **Guardian** mission is now owned by Guardian Core rather than a static “safety
+active” label. It begins at **VERIFY REQUIRED**, mirrors the genuine background verification,
+shows **INTEGRITY VERIFIED** only after both audit and approval chains pass, and changes to
+**REVERIFY REQUIRED** when the active ledger, a verified archive, or approval evidence changes.
+The destination displays the same lifecycle in a visible handoff and navigation starts no approval,
+command, build, flash, or phone action.
 
 Desktop navigation also has a keyboard-first **Ctrl+K command palette**. It searches the same
 canonical destinations as the permanent sidebar—including familiar earlier feature names—and

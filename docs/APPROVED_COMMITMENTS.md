@@ -289,6 +289,10 @@ Companion health/UX → account/progression/community → production backend.
   Build ROM, Pre-Build Simulation, Device DNA, Recipes, Health, Repair, Guardian, Rescue/Backup,
   Timeline, Live Operations, Wireless Transfer, and ROMVERSE Lab; cards remain navigable when a
   prerequisite is absent so the destination can explain the next safe step.
+- The Command Deck Guardian card consumes only Guardian Core's current lifecycle. It begins
+  unverified, mirrors genuine background verification and failure/lock states, opens a matching
+  owner-controlled evidence handoff, and retires verified presentation when audit, archive, or
+  approval evidence changes. A page existing is never evidence that Guardian integrity is current.
 - Replace duplicate upper health gauges with a Genesis Flight Plan backed by the exact guided
   mission assessment. It must display the real resume stage and progress, root choice, recovery and
   Guardian readiness, explain current blockers, and route directly into Genesis. Device-health

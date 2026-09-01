@@ -196,7 +196,7 @@ def test_about_recalculates_real_workspace_evidence_and_returns_from_its_exact_g
             f"{len(registry.packs)} DEVICE PACKS  •  1 OFFICIAL IDS"
         )
         assert window.about_page.evidence_values["knowledge"].text() == (
-            "136 VERIFIED GUIDES  •  86 KNOWN FIXES"
+            "137 VERIFIED GUIDES  •  87 KNOWN FIXES"
         )
         ready_tools = sum(status.available for status in window.toolchain_center.statuses)
         tool_count = len(window.toolchain_center.statuses)
@@ -426,6 +426,21 @@ def test_command_deck_cards_are_context_aware_and_route_to_canonical_pages(
         actions["Guardian"].click()
         app.processEvents()
         assert window.stack.currentIndex() == 3
+        assert not window.guardian_center.dashboard_handoff.isHidden()
+        assert window.guardian_center.dashboard_handoff_badge.text() == "VERIFY REQUIRED"
+        guardian_action = window.device_center.quick_action_buttons["Guardian"]
+        assert guardian_action.text().splitlines()[1] == "VERIFY REQUIRED"
+        assert guardian_action.property("evidenceReady") is False
+        window.guardian_center._publish_dashboard_state(
+            "verified",
+            "SHA-256 audit chain verified across current operation evidence.",
+            True,
+        )
+        assert guardian_action.text().splitlines()[1] == "INTEGRITY VERIFIED"
+        assert guardian_action.property("evidenceReady") is True
+        assert window.guardian_center.dashboard_handoff_badge.text() == (
+            "INTEGRITY VERIFIED"
+        )
         window._navigate(0)
         window.device_center.quick_action_buttons["Wireless Transfer"].click()
         app.processEvents()

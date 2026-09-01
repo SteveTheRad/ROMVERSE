@@ -90,6 +90,7 @@ class GuardianCenter(QWidget):
     nexus_requested = Signal(str, str)
     time_machine_requested = Signal(str, str)
     rom_studio_requested = Signal(str, str)
+    dashboard_state_changed = Signal(str, str, bool)
     REFRESH_DEBOUNCE_MS = 250
 
     def __init__(self, audit: GuardianAuditStore | None, *, auto_start: bool = True) -> None:
@@ -99,6 +100,12 @@ class GuardianCenter(QWidget):
         self._nexus_review_identity: tuple[str, str] | None = None
         self._backup_review_identity: tuple[str, str] | None = None
         self._studio_review_identity: tuple[str, str] | None = None
+        self._dashboard_state = (
+            "unverified",
+            "Guardian's current audit and approval evidence has not yet been verified in this session.",
+            False,
+        )
+        self._verified_dashboard_revision: object | None = None
         self._refresh_pending = False
         self._refresh_timer = QTimer(self)
         self._refresh_timer.setSingleShot(True)
@@ -127,6 +134,33 @@ class GuardianCenter(QWidget):
         self.refresh_button.clicked.connect(self.refresh)
         header.addWidget(self.refresh_button)
         page.addLayout(header)
+
+        self.dashboard_handoff = QFrame()
+        self.dashboard_handoff.setObjectName("DiagnosticHandoffBar")
+        dashboard_layout = QHBoxLayout(self.dashboard_handoff)
+        dashboard_layout.setContentsMargins(18, 13, 18, 13)
+        dashboard_layout.setSpacing(14)
+        dashboard_copy = QVBoxLayout()
+        self.dashboard_handoff_eyebrow = QLabel(
+            "COMMAND DECK HANDOFF  •  CURRENT GUARDIAN EVIDENCE"
+        )
+        self.dashboard_handoff_eyebrow.setObjectName("Eyebrow")
+        self.dashboard_handoff_title = QLabel()
+        self.dashboard_handoff_title.setObjectName("SectionTitle")
+        self.dashboard_handoff_detail = QLabel()
+        self.dashboard_handoff_detail.setObjectName("Muted")
+        self.dashboard_handoff_detail.setWordWrap(True)
+        self.dashboard_handoff_detail.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        dashboard_copy.addWidget(self.dashboard_handoff_eyebrow)
+        dashboard_copy.addWidget(self.dashboard_handoff_title)
+        dashboard_copy.addWidget(self.dashboard_handoff_detail)
+        dashboard_layout.addLayout(dashboard_copy, 1)
+        self.dashboard_handoff_badge = QLabel()
+        dashboard_layout.addWidget(self.dashboard_handoff_badge)
+        self.dashboard_handoff.setVisible(False)
+        page.addWidget(self.dashboard_handoff)
 
         self.nexus_review = QFrame()
         self.nexus_review.setObjectName("NexusReviewCard")
@@ -274,6 +308,97 @@ class GuardianCenter(QWidget):
             self.refresh()
         else:
             self._refresh_pending = True
+
+    def current_dashboard_state(self) -> tuple[str, str, bool]:
+        """Return the latest bounded Guardian summary owned by this page."""
+
+        return self._dashboard_state
+
+    def open_dashboard_intent(self, action: str) -> bool:
+        """Present the exact Guardian state claimed by Command Deck without authorizing work."""
+
+        if str(action).strip() != "Guardian":
+            return False
+        self.dashboard_handoff.setVisible(True)
+        self._render_dashboard_handoff()
+        return True
+
+    def invalidate_dashboard_if_evidence_changed(self) -> bool:
+        """Retire a verified Command Deck claim after any audit/approval file revision."""
+
+        if self._dashboard_state[0] != "verified" or self.audit is None:
+            return False
+        if self._verified_dashboard_revision == self._dashboard_evidence_revision():
+            return False
+        self._publish_dashboard_state(
+            "review_due",
+            "Guardian audit or approval evidence changed after the last verification and must be checked again.",
+            False,
+        )
+        return True
+
+    def _dashboard_evidence_revision(self) -> object:
+        if self.audit is None:
+            return None
+        workspace = self.audit.path.parent.parent
+        approval_path = ApprovalStore(workspace).path
+        try:
+            approval_stat = approval_path.lstat()
+            approval_revision: object = (
+                approval_stat.st_mode,
+                approval_stat.st_dev,
+                approval_stat.st_ino,
+                approval_stat.st_size,
+                approval_stat.st_mtime_ns,
+                approval_stat.st_ctime_ns,
+            )
+        except FileNotFoundError:
+            approval_revision = None
+        except OSError:
+            approval_revision = "unreadable"
+        return self.audit.evidence_revision(), approval_revision
+
+    def _publish_dashboard_state(self, state: str, detail: str, verified: bool) -> None:
+        bounded_detail = " ".join(str(detail).replace("\x00", " ").split())[:360]
+        value = (state, bounded_detail, bool(verified))
+        if value == self._dashboard_state:
+            return
+        self._dashboard_state = value
+        if not verified:
+            self._verified_dashboard_revision = None
+        if not self.dashboard_handoff.isHidden():
+            self._render_dashboard_handoff()
+        self.dashboard_state_changed.emit(*value)
+
+    def _render_dashboard_handoff(self) -> None:
+        state, detail, verified = self._dashboard_state
+        titles = {
+            "unverified": "Guardian evidence has not been verified yet",
+            "review_due": "Guardian evidence needs re-verification",
+            "verifying": "Guardian is verifying current evidence",
+            "verified": "Guardian integrity is current",
+            "locked": "Guardian execution is locked",
+            "failed": "Guardian verification stopped safely",
+            "unavailable": "Guardian audit is unavailable",
+        }
+        badges = {
+            "unverified": "VERIFY REQUIRED",
+            "review_due": "REVERIFY REQUIRED",
+            "verifying": "VERIFYING",
+            "verified": "INTEGRITY VERIFIED",
+            "locked": "EXECUTION LOCKED",
+            "failed": "VERIFY FAILED",
+            "unavailable": "AUDIT UNAVAILABLE",
+        }
+        self.dashboard_handoff_title.setText(titles.get(state, titles["unverified"]))
+        self.dashboard_handoff_detail.setText(
+            f"{detail}  •  This view starts no approval, command, build, flash, or phone action."
+        )
+        self.dashboard_handoff_badge.setText(badges.get(state, badges["unverified"]))
+        self.dashboard_handoff_badge.setObjectName(
+            "Good" if verified else "Danger" if state in {"locked", "failed"} else "Warning"
+        )
+        self._repolish(self.dashboard_handoff_badge)
 
     def open_nexus_review(self, plan: NexusPlan, project_name: str) -> bool:
         """Present a validated Nexus plan without approving or executing it."""
@@ -523,6 +648,11 @@ class GuardianCenter(QWidget):
             self.integrity_badge.setObjectName("Warning")
             self.integrity_detail.setText("No audit store is attached to this application session.")
             self._repolish(self.integrity_badge)
+            self._publish_dashboard_state(
+                "unavailable",
+                "No Guardian audit store is attached to this application session.",
+                False,
+            )
             self._empty(
                 "Guardian decisions will appear when the application execution gateway is active."
             )
@@ -543,12 +673,23 @@ class GuardianCenter(QWidget):
             "Checking the tamper-evident operation trail, approvals, APK receipts, and recovery-readiness evidence in the background."
         )
         self._repolish(self.integrity_badge)
+        self._publish_dashboard_state(
+            "verifying",
+            "Guardian is checking the current audit chain, approvals, and safety receipts in the background.",
+            False,
+        )
         start_background(worker)
 
     def request_refresh(self) -> None:
         """Refresh only when the Guardian page is actually being viewed."""
 
         self._refresh_pending = True
+        if self.worker is None and self._dashboard_state[0] == "verified":
+            self._publish_dashboard_state(
+                "review_due",
+                "Guardian evidence changed or was reopened and must be verified again before Command Deck can call it current.",
+                False,
+            )
         if self.isVisible() and self.worker is None:
             self._refresh_timer.start()
 
@@ -585,6 +726,11 @@ class GuardianCenter(QWidget):
             f"Guardian could not verify its local evidence: {message}\nNo stored approval can authorize an operation until verification succeeds."
         )
         self._repolish(self.integrity_badge)
+        self._publish_dashboard_state(
+            "failed",
+            "Guardian could not complete its bounded verification; stored approvals cannot authorize an operation.",
+            False,
+        )
         self._empty(
             "Retry the bounded verification after reviewing the reported local evidence error."
         )
@@ -681,6 +827,22 @@ class GuardianCenter(QWidget):
             self.integrity_detail.setText(
                 "Guardian operation audit is intact, but approval history was rejected.\n"
                 f"{approval_verification.reason}\nNo stored approval can authorize an operation."
+            )
+        if verification.valid and approval_verification.valid:
+            self._verified_dashboard_revision = self._dashboard_evidence_revision()
+            self._publish_dashboard_state(
+                "verified",
+                f"SHA-256 audit chain verified across {verification.total_entries} operation record"
+                f"{'s' if verification.total_entries != 1 else ''}; "
+                f"{approval_verification.active_entries} active approval"
+                f"{'s' if approval_verification.active_entries != 1 else ''} revalidated.",
+                True,
+            )
+        else:
+            self._publish_dashboard_state(
+                "locked",
+                "Guardian rejected current audit or approval integrity; no stored approval can authorize an operation.",
+                False,
             )
         self._repolish(self.integrity_badge)
         self._clear()

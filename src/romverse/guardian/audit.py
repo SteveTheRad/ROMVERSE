@@ -362,6 +362,28 @@ class GuardianAuditStore:
             for path, identity in self._cached_archive_identities
         )
 
+    def evidence_revision(self) -> object:
+        """Return an opaque, lightweight revision for a previously verified audit chain.
+
+        This does not replace ``verify``. UI consumers use it only to retire a cached green
+        claim as soon as the active ledger or any verified archive changes.
+        """
+
+        with self._lock:
+            return (
+                self.path.is_symlink(),
+                self._path_identity(self.path),
+                self.archive_dir.is_symlink(),
+                tuple(
+                    (
+                        path.name,
+                        path.is_symlink(),
+                        self._path_identity(path),
+                    )
+                    for path, _identity in self._cached_archive_identities
+                ),
+            )
+
     def _file_identity(self) -> tuple[int, int, int, int, int] | None | object:
         return self._path_identity(self.path)
 

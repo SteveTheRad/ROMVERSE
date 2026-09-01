@@ -151,6 +151,54 @@ def test_guardian_verification_is_backgrounded_and_duplicate_locked(
     center.close()
 
 
+def test_guardian_dashboard_state_never_claims_verified_before_or_after_stale_evidence(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    started: list[object] = []
+    states: list[tuple[str, str, bool]] = []
+    monkeypatch.setattr("romverse.ui.guardian_center.start_background", started.append)
+    audit = GuardianAuditStore(tmp_path)
+    center = GuardianCenter(audit, auto_start=False)
+    center.dashboard_state_changed.connect(
+        lambda state, detail, verified: states.append((state, detail, verified))
+    )
+
+    assert center.current_dashboard_state()[0] == "unverified"
+    assert center.open_dashboard_intent("Guardian")
+    assert not center.dashboard_handoff.isHidden()
+    assert center.dashboard_handoff_badge.text() == "VERIFY REQUIRED"
+    assert not center.open_dashboard_intent("Unknown workflow")
+
+    center.refresh()
+    assert center.current_dashboard_state()[0] == "verifying"
+    assert center.dashboard_handoff_badge.text() == "VERIFYING"
+    assert len(started) == 1
+
+    started[0].execute()
+    app.processEvents()
+
+    assert center.current_dashboard_state()[0] == "verified"
+    assert center.current_dashboard_state()[2] is True
+    assert center.dashboard_handoff_badge.text() == "INTEGRITY VERIFIED"
+    assert "0 operation records" in center.dashboard_handoff_detail.text()
+
+    audit.path.parent.mkdir(parents=True, exist_ok=True)
+    audit.path.write_text("tampered after verification\n", encoding="utf-8")
+    assert center.invalidate_dashboard_if_evidence_changed()
+
+    assert center.current_dashboard_state()[0] == "review_due"
+    assert center.current_dashboard_state()[2] is False
+    assert center.dashboard_handoff_badge.text() == "REVERIFY REQUIRED"
+    assert [state for state, _detail, _verified in states] == [
+        "verifying",
+        "verified",
+        "review_due",
+    ]
+    center.close()
+
+
 def test_hidden_guardian_defers_automatic_refresh_until_it_is_viewed(
     tmp_path,
     monkeypatch,

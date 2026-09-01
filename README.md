@@ -769,6 +769,13 @@ opens only the selected page. Guided Mode keeps folded specialist destinations o
 Expert Mode reveals them. The palette cannot run a tool, start a device operation, grant approval,
 or bypass Guardian.
 
+The Desktop shell can collapse that same authoritative navigation into a permanent icon rail with
+**Ctrl+B**, preserving the current page, active highlight, tooltips, and accessible names. A
+reversible **Focus workspace** (`Ctrl+Shift+F`, `Esc` to leave) hides the rail and connection footer
+without recreating the page or disturbing its evidence, workers, project, or Guardian state. The
+top workspace bar keeps the canonical group/page breadcrumb, connectivity state, and a visible
+navigation-only search action available in every layout.
+
 The **ROMVERSE Activity Center** replaces decorative dashboard history with a connected, searchable
 view of durable local events from completed device scans, saved diagnostics, ROM Studio work, Time
 Machine, Recovery Bay planning, Quantum Optimizer cleanup, App Launchpad, and the offline Galaxy

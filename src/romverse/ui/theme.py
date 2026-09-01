@@ -30,6 +30,28 @@ QFrame#Sidebar {
     border-right: 1px solid rgba(78, 221, 245, 150);
     border-radius: 0px;
 }
+QFrame#WorkspaceBar {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 rgba(4,8,17,244),stop:0.58 rgba(6,12,27,238),stop:1 rgba(10,12,31,232));
+    border: 0;
+    border-bottom: 1px solid rgba(67, 102, 157, 155);
+}
+QFrame#WorkspaceBar[focusMode="true"] {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 rgba(16,8,34,246),stop:0.52 rgba(6,18,35,242),stop:1 rgba(4,30,37,236));
+    border-bottom: 1px solid rgba(64, 224, 234, 185);
+}
+QLabel#WorkspaceSection { color: #6FCFE3; font-size: 9px; font-weight: 850; letter-spacing: 1.25px; }
+QLabel#WorkspaceRouteTitle { color: #F1F5FF; font-size: 14px; font-weight: 780; }
+QToolButton#WorkspaceControl, QToolButton#FocusWorkspaceControl {
+    color: #BCD0EC; background: rgba(8,16,31,190); border: 1px solid rgba(58,86,132,180);
+    border-radius: 8px; min-width: 34px; min-height: 32px; padding: 2px 7px; font-weight: 800;
+}
+QToolButton#WorkspaceControl:hover, QToolButton#FocusWorkspaceControl:hover {
+    color: #FFFFFF; background: rgba(22,36,65,225); border-color: #35E7F5;
+}
+QToolButton#FocusWorkspaceControl { color: #C9B4FF; min-width: 68px; font-size: 10px; letter-spacing: 1px; }
+QToolButton#FocusWorkspaceControl[active="true"] {
+    color: #FFFFFF; background: rgba(59,31,94,230); border-color: #B45CFF; min-width: 116px;
+}
 QFrame#TopBar { background: #05080E; border-bottom: 1px solid #1A2539; }
 QFrame#ConnectionBar { background: rgba(3, 7, 13, 250); border: 1px solid #22324E; border-radius: 11px; }
 QFrame#Card { background: rgba(5, 9, 16, 250); border: 1px solid #202C43; border-radius: 13px; }
@@ -80,6 +102,8 @@ QPushButton#Primary:hover { background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop
 QPushButton#Nav { text-align: left; border: 0; border-radius: 8px; background: transparent; color: #AEB8CD; padding: 8px 12px; min-height: 30px; font-weight: 600; }
 QPushButton#Nav:hover { background: rgba(20, 31, 55, 185); color: #F4F7FF; border: 1px solid rgba(77, 142, 210, 90); }
 QPushButton#Nav[active="true"] { background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 rgba(103,35,151,210),stop:0.55 rgba(46,22,87,190),stop:1 rgba(18,53,76,175)); color: #FFFFFF; border: 1px solid rgba(183,92,255,145); border-left: 3px solid #B45CFF; padding-left: 9px; }
+QPushButton#Nav[collapsed="true"] { text-align: center; padding: 8px; min-height: 34px; }
+QPushButton#Nav[collapsed="true"][active="true"] { padding: 8px 6px; border-left: 3px solid #B45CFF; }
 QPushButton#CommandPaletteButton { text-align: left; color: #C8D5EE; background: rgba(8,16,31,180); border: 1px solid #2B416B; padding: 8px 11px; font-size: 11px; letter-spacing: 0.4px; }
 QPushButton#CommandPaletteButton:hover { color: #FFFFFF; border-color: #35E7F5; background: rgba(17,31,55,210); }
 QLabel#NavSection { color: #647594; background: transparent; border: 0; padding: 10px 10px 3px 10px; font-size: 9px; font-weight: 800; letter-spacing: 1.4px; }

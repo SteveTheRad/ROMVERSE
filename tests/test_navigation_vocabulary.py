@@ -404,6 +404,88 @@ def test_sidebar_reserves_navigation_space_and_folds_optional_connection_fields(
         window.close()
 
 
+def test_workspace_chrome_collapses_focuses_and_restores_without_changing_page_state(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
+    try:
+        window.resize(1200, 760)
+        window.show()
+        window._navigate_route("about")
+        app.processEvents()
+        page_index = window.stack.currentIndex()
+        page = window.stack.currentWidget()
+
+        assert window.workspace_section.text() == "SYSTEM"
+        assert window.workspace_route_title.text() == "About ROMVERSE"
+        assert window.workspace_route_title.accessibleName() == (
+            "Current Desktop page: About ROMVERSE"
+        )
+        assert window.workspace_search_button.toolTip().startswith("Find any ROMVERSE page")
+
+        window.navigation_toggle.click()
+        app.processEvents()
+
+        assert window._workspace_shell_state.navigation_collapsed
+        assert window.sidebar.width() == 78
+        assert window._brand_card.height() == 68
+        assert window._brand_logo.width() == window._brand_logo.height() == 58
+        assert all(label.isHidden() for label in window.nav_section_labels)
+        assert window.sidebar_device_card.isHidden()
+        assert window.sidebar_version.isHidden()
+        assert all(not button.text() for button in window.nav_buttons)
+        assert all(button.accessibleName().startswith("Open ") for button in window.nav_buttons)
+        assert window.stack.currentIndex() == page_index
+        assert window.stack.currentWidget() is page
+        assert window.sidebar.isVisible()
+        assert window.connection_bar.isVisible()
+
+        window.focus_button.click()
+        app.processEvents()
+
+        assert window._workspace_shell_state.focus_mode
+        assert window.sidebar.isHidden()
+        assert window.connection_bar.isHidden()
+        assert window.workspace_bar.isVisible()
+        assert not window.navigation_toggle.isEnabled()
+        assert window.navigation_toggle.isHidden()
+        assert window.focus_exit_shortcut.isEnabled()
+        assert window.focus_button.text().startswith("EXIT FOCUS")
+        assert window.workspace_section.text() == "FOCUS WORKSPACE  •  SYSTEM"
+        assert window.stack.currentIndex() == page_index
+        assert window.stack.currentWidget() is page
+
+        window.workspace_search_button.click()
+        app.processEvents()
+        assert window._command_palette is not None and window._command_palette.isVisible()
+        window._command_palette.reject()
+        app.processEvents()
+        assert window._command_palette is None
+
+        window._leave_focus_mode()
+        app.processEvents()
+
+        assert not window._workspace_shell_state.focus_mode
+        assert window._workspace_shell_state.navigation_collapsed
+        assert window.sidebar.isVisible() and window.sidebar.width() == 78
+        assert window.connection_bar.isVisible()
+        assert window.workspace_section.text() == "SYSTEM"
+
+        window.navigation_toggle.click()
+        app.processEvents()
+        assert window.sidebar.width() == 263
+        assert [button.text().replace("&&", "&") for button in window.nav_buttons][0] == (
+            "Command Deck"
+        )
+        assert not any(label.isHidden() for label in window.nav_section_labels)
+        assert window.sidebar_device_card.isVisible()
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
 def test_sidebar_product_art_never_mislabels_another_android_device(tmp_path: Path) -> None:
     QApplication.instance() or QApplication([])
     logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"

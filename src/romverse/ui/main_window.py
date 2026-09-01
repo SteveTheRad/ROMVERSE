@@ -63,6 +63,7 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QSpinBox,
     QStackedWidget,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -132,6 +133,12 @@ from romverse.ui.terminal_center import TerminalCenter
 from romverse.ui.theme import STYLESHEET
 from romverse.ui.toolchain_center import ToolchainCenter
 from romverse.ui.vocabulary import FEATURES, feature
+from romverse.ui.workspace_shell import (
+    EXPERT_ONLY_ROUTES,
+    NAVIGATION_GROUPS,
+    WorkspaceShellState,
+    navigation_section,
+)
 
 ROMVERSE_WEBSITE_URL = "https://romverse.app/"
 RADFORGE_LABS_URL = "https://radforgelabs.com/"
@@ -2391,6 +2398,7 @@ class MainWindow(QMainWindow):
         self._device_runtime_generation = 0
         self._reconnect_retry_ms = 1_500
         self._scan_failure_count = 0
+        self._workspace_shell_state = WorkspaceShellState()
         self.setWindowTitle("ROMVERSE Studio v0.1")
         self.setWindowIcon(QIcon(str(app_icon_path or logo_path)))
         self.resize(1440, 900)
@@ -2412,9 +2420,11 @@ class MainWindow(QMainWindow):
         )
 
         sidebar = QFrame()
+        self.sidebar = sidebar
         sidebar.setObjectName("Sidebar")
         sidebar.setFixedWidth(263)
         side = QVBoxLayout(sidebar)
+        self.sidebar_layout = side
         side.setContentsMargins(14, 16, 14, 14)
         side.setSpacing(3)
         brand_card = QFrame()
@@ -2676,35 +2686,6 @@ class MainWindow(QMainWindow):
         self._route_by_page_index = {
             page_index: route for route, page_index in self.page_routes.items()
         }
-        pages = [
-            (feature("command_deck").title, self.page_routes["command_deck"], True),
-            (feature("rom_studio").title, self.page_routes["rom_studio"], False),
-            (
-                feature("quantum_optimizer").title,
-                self.page_routes["quantum_optimizer"],
-                False,
-            ),
-            (feature("device_atlas").title, self.page_routes["device_atlas"], False),
-            (feature("recovery_bay").title, self.page_routes["recovery_bay"], False),
-            (feature("guardian_core").title, self.page_routes["guardian_core"], False),
-            (feature("app_launchpad").title, self.page_routes["app_launchpad"], False),
-            (feature("time_machine").title, self.page_routes["time_machine"], False),
-            (
-                feature("health_timeline").title,
-                self.page_routes["health_timeline"],
-                False,
-            ),
-            (feature("activity_center").title, self.page_routes["activity_center"], False),
-            (feature("archives").title, self.page_routes["archives"], False),
-            (feature("command_console").title, self.page_routes["command_console"], False),
-            (feature("live_console").title, self.page_routes["live_console"], False),
-            (feature("nexus").title, self.page_routes["nexus"], False),
-            (feature("forge_arsenal").title, self.page_routes["forge_arsenal"], False),
-            (feature("companion_link").title, self.page_routes["companion_link"], False),
-            (feature("members").title, self.page_routes["members"], False),
-            (feature("galaxy").title, self.page_routes["galaxy"], False),
-            (feature("about").title, self.page_routes["about"], False),
-        ]
         self.nav_buttons: list[QPushButton] = []
         nav_scroll = QScrollArea()
         self.nav_scroll = nav_scroll
@@ -2714,86 +2695,64 @@ class MainWindow(QMainWindow):
         nav_scroll.setFrameShape(QFrame.Shape.NoFrame)
         nav_scroll.viewport().setStyleSheet("background:#02050A;")
         nav_host = QWidget()
+        self.nav_host = nav_host
         nav_layout = QVBoxLayout(nav_host)
         nav_layout.setContentsMargins(0, 0, 0, 0)
         nav_layout.setSpacing(3)
         section_icons = {
-            feature("command_deck").title: ("dashboard", "#B75CFF", "#587FFF"),
-            feature("rom_studio").title: ("build", "#A44BFF", "#557EFF"),
-            feature("quantum_optimizer").title: ("optimizer", "#25C9E8", "#4BEAF4"),
-            feature("device_atlas").title: ("mods", "#F13ACB", "#B64DFF"),
-            feature("recovery_bay").title: ("repair", "#31D7F2", "#6885FF"),
-            feature("guardian_core").title: ("guardian", "#B65BFF", "#3F8FFF"),
-            feature("app_launchpad").title: ("apk", "#7B64FF", "#2BE5F4"),
-            feature("time_machine").title: ("backup", "#B54EFF", "#5B88FF"),
-            feature("health_timeline").title: ("logs", "#548BFF", "#35DBF0"),
-            feature("activity_center").title: ("logs", "#35DBF0", "#B45CFF"),
-            feature("archives").title: ("knowledge", "#C95BFF", "#6B80FF"),
-            feature("command_console").title: ("terminal", "#4C82FF", "#59A7FF"),
-            feature("live_console").title: ("logs", "#38DFF2", "#9A64FF"),
-            feature("nexus").title: ("galaxy", "#C35CFF", "#35E7F5"),
-            feature("forge_arsenal").title: ("toolchain", "#21D2E9", "#7A75FF"),
-            feature("companion_link").title: ("companion", "#E34BD8", "#397FFF"),
-            feature("members").title: ("members", "#7C73FF", "#33E7D0"),
-            feature("galaxy").title: ("galaxy", "#A54BFF", "#22DFF3"),
-            feature("about").title: ("about", "#C35BFF", "#4A91FF"),
+            "command_deck": ("dashboard", "#B75CFF", "#587FFF"),
+            "rom_studio": ("build", "#A44BFF", "#557EFF"),
+            "quantum_optimizer": ("optimizer", "#25C9E8", "#4BEAF4"),
+            "device_atlas": ("mods", "#F13ACB", "#B64DFF"),
+            "recovery_bay": ("repair", "#31D7F2", "#6885FF"),
+            "guardian_core": ("guardian", "#B65BFF", "#3F8FFF"),
+            "app_launchpad": ("apk", "#7B64FF", "#2BE5F4"),
+            "time_machine": ("backup", "#B54EFF", "#5B88FF"),
+            "health_timeline": ("logs", "#548BFF", "#35DBF0"),
+            "activity_center": ("logs", "#35DBF0", "#B45CFF"),
+            "archives": ("knowledge", "#C95BFF", "#6B80FF"),
+            "command_console": ("terminal", "#4C82FF", "#59A7FF"),
+            "live_console": ("logs", "#38DFF2", "#9A64FF"),
+            "nexus": ("galaxy", "#C35CFF", "#35E7F5"),
+            "forge_arsenal": ("toolchain", "#21D2E9", "#7A75FF"),
+            "companion_link": ("companion", "#E34BD8", "#397FFF"),
+            "members": ("members", "#7C73FF", "#33E7D0"),
+            "galaxy": ("galaxy", "#A54BFF", "#22DFF3"),
+            "about": ("about", "#C35BFF", "#4A91FF"),
         }
         self._nav_icon_specs: dict[QPushButton, tuple[str, str, str]] = {}
         self.nav_section_labels: list[QLabel] = []
-        page_sections = {
-            feature("command_deck").title: "HOME",
-            feature("rom_studio").title: "ROM WORKSHOP",
-            feature("quantum_optimizer").title: "DEVICE",
-            feature("device_atlas").title: "DEVICE",
-            feature("recovery_bay").title: "GUARDIAN & RECOVERY",
-            feature("guardian_core").title: "GUARDIAN & RECOVERY",
-            feature("app_launchpad").title: "GUARDIAN & RECOVERY",
-            feature("time_machine").title: "GUARDIAN & RECOVERY",
-            feature("health_timeline").title: "ACTIVITY & KNOWLEDGE",
-            feature("activity_center").title: "ACTIVITY & KNOWLEDGE",
-            feature("archives").title: "ACTIVITY & KNOWLEDGE",
-            feature("command_console").title: "LIVE OPERATIONS",
-            feature("live_console").title: "LIVE OPERATIONS",
-            feature("nexus").title: "LIVE OPERATIONS",
-            feature("forge_arsenal").title: "LIVE OPERATIONS",
-            feature("companion_link").title: "CONNECTED ROMVERSE",
-            feature("members").title: "CONNECTED ROMVERSE",
-            feature("galaxy").title: "CONNECTED ROMVERSE",
-            feature("about").title: "SYSTEM",
-        }
-        expert_only_labels = {
-            feature("command_console").title,
-            feature("nexus").title,
-            feature("forge_arsenal").title,
-        }
-        current_section = ""
-        for label, index, active in pages:
-            section = page_sections[label]
-            if section != current_section:
-                heading = QLabel(section)
-                heading.setObjectName("NavSection")
-                heading.setAccessibleName(f"{section.title()} navigation group")
-                nav_layout.addWidget(heading)
-                self.nav_section_labels.append(heading)
-                current_section = section
-            # Escape ampersands so Qt displays them instead of treating them as
-            # keyboard-mnemonic markers (for example, Backup & Restore).
-            button = QPushButton(label.replace("&", "&&"))
-            icon_name, icon_start, icon_end = section_icons[label]
-            button.setIcon(sidebar_icon(icon_name, 26, icon_start, icon_end, active=active))
-            button.setIconSize(QSize(26, 26))
-            subtitle = next(item.subtitle for item in FEATURES.values() if item.title == label)
-            button.setToolTip(_sidebar_nav_tooltip(label, subtitle))
-            button.setToolTipDuration(4_000)
-            button.setObjectName("Nav")
-            button.setProperty("active", active)
-            button.setProperty("page_index", index)
-            button.setProperty("route_key", self._route_by_page_index[index])
-            button.setProperty("expert_only", label in expert_only_labels)
-            button.clicked.connect(lambda _checked=False, i=index: self._navigate(i))
-            nav_layout.addWidget(button)
-            self.nav_buttons.append(button)
-            self._nav_icon_specs[button] = (icon_name, icon_start, icon_end)
+        for group in NAVIGATION_GROUPS:
+            heading = QLabel(group.title)
+            heading.setObjectName("NavSection")
+            heading.setAccessibleName(f"{group.title.title()} navigation group")
+            nav_layout.addWidget(heading)
+            self.nav_section_labels.append(heading)
+            for route in group.routes:
+                name = feature(route)
+                index = self.page_routes[route]
+                active = route == "command_deck"
+                # Escape ampersands so Qt displays them instead of treating them as
+                # keyboard-mnemonic markers (for example, Backup & Restore).
+                expanded_text = name.title.replace("&", "&&")
+                button = QPushButton(expanded_text)
+                icon_name, icon_start, icon_end = section_icons[route]
+                button.setIcon(sidebar_icon(icon_name, 26, icon_start, icon_end, active=active))
+                button.setIconSize(QSize(26, 26))
+                button.setAccessibleName(f"Open {name.title}")
+                button.setToolTip(_sidebar_nav_tooltip(name.title, name.subtitle))
+                button.setToolTipDuration(4_000)
+                button.setObjectName("Nav")
+                button.setProperty("active", active)
+                button.setProperty("collapsed", False)
+                button.setProperty("expanded_text", expanded_text)
+                button.setProperty("page_index", index)
+                button.setProperty("route_key", route)
+                button.setProperty("expert_only", route in EXPERT_ONLY_ROUTES)
+                button.clicked.connect(lambda _checked=False, i=index: self._navigate(i))
+                nav_layout.addWidget(button)
+                self.nav_buttons.append(button)
+                self._nav_icon_specs[button] = (icon_name, icon_start, icon_end)
         nav_layout.addStretch()
         nav_scroll.setWidget(nav_host)
         side.addWidget(nav_scroll, 1)
@@ -2841,22 +2800,72 @@ class MainWindow(QMainWindow):
         device_row.addLayout(device_text, 1)
         mini_layout.addLayout(device_row)
         side.addWidget(self.sidebar_device_card)
-        version = QLabel("ROMVERSE  v0.1.0")
-        version.setStyleSheet("color:#B45CFF; font-weight:800; padding:8px 4px 2px 4px;")
-        side.addWidget(version)
+        self.sidebar_version = QLabel("ROMVERSE  v0.1.0")
+        self.sidebar_version.setStyleSheet(
+            "color:#B45CFF; font-weight:800; padding:8px 4px 2px 4px;"
+        )
+        side.addWidget(self.sidebar_version)
         root_layout.addWidget(sidebar)
         content = QWidget()
         content_layout = QVBoxLayout(content)
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(0)
-        online_row = QWidget()
-        online_row.setFixedHeight(38)
-        online_layout = QHBoxLayout(online_row)
-        online_layout.setContentsMargins(0, 5, 18, 3)
-        online_layout.addStretch(1)
+
+        self.workspace_bar = QFrame()
+        self.workspace_bar.setObjectName("WorkspaceBar")
+        self.workspace_bar.setFixedHeight(54)
+        workspace_bar_layout = QHBoxLayout(self.workspace_bar)
+        workspace_bar_layout.setContentsMargins(13, 5, 18, 5)
+        workspace_bar_layout.setSpacing(9)
+        self.navigation_toggle = QToolButton()
+        self.navigation_toggle.setObjectName("WorkspaceControl")
+        self.navigation_toggle.setText("«")
+        self.navigation_toggle.setCheckable(True)
+        self.navigation_toggle.setAccessibleName("Collapse the Desktop navigation to an icon rail")
+        self.navigation_toggle.setToolTip(
+            "Collapse navigation to a permanent icon rail (Ctrl+B). Presentation only; page and operation state stay unchanged."
+        )
+        self.navigation_toggle.clicked.connect(self._toggle_navigation_rail)
+        workspace_bar_layout.addWidget(self.navigation_toggle)
+        self.workspace_search_button = QToolButton()
+        self.workspace_search_button.setObjectName("WorkspaceControl")
+        self.workspace_search_button.setText("⌕")
+        self.workspace_search_button.setAccessibleName(
+            "Find a canonical ROMVERSE page with the command palette"
+        )
+        self.workspace_search_button.setToolTip(
+            "Find any ROMVERSE page (Ctrl+K). Navigation only; no operation is started."
+        )
+        self.workspace_search_button.clicked.connect(self._open_command_palette)
+        workspace_bar_layout.addWidget(self.workspace_search_button)
+        breadcrumb = QWidget()
+        breadcrumb_layout = QVBoxLayout(breadcrumb)
+        breadcrumb_layout.setContentsMargins(2, 0, 0, 0)
+        breadcrumb_layout.setSpacing(0)
+        self.workspace_section = QLabel("HOME")
+        self.workspace_section.setObjectName("WorkspaceSection")
+        self.workspace_route_title = QLabel(feature("command_deck").title)
+        self.workspace_route_title.setObjectName("WorkspaceRouteTitle")
+        self.workspace_route_title.setAccessibleName(
+            f"Current Desktop page: {feature('command_deck').title}"
+        )
+        breadcrumb_layout.addWidget(self.workspace_section)
+        breadcrumb_layout.addWidget(self.workspace_route_title)
+        workspace_bar_layout.addWidget(breadcrumb)
+        workspace_bar_layout.addStretch(1)
         self.online_status = OnlineStatusBadge()
-        online_layout.addWidget(self.online_status)
-        content_layout.addWidget(online_row)
+        workspace_bar_layout.addWidget(self.online_status)
+        self.focus_button = QToolButton()
+        self.focus_button.setObjectName("FocusWorkspaceControl")
+        self.focus_button.setText("FOCUS")
+        self.focus_button.setCheckable(True)
+        self.focus_button.setAccessibleName("Enter the Focus workspace")
+        self.focus_button.setToolTip(
+            "Temporarily hide navigation and connection chrome (Ctrl+Shift+F). The active page, evidence, and operations stay unchanged."
+        )
+        self.focus_button.clicked.connect(self._toggle_focus_mode)
+        workspace_bar_layout.addWidget(self.focus_button)
+        content_layout.addWidget(self.workspace_bar)
         content_layout.addWidget(self.stack, 1)
         self.connection_bar = QFrame()
         self.connection_bar.setObjectName("ConnectionBar")
@@ -2895,6 +2904,16 @@ class MainWindow(QMainWindow):
         self.command_palette_shortcut = QShortcut(QKeySequence("Ctrl+K"), self)
         self.command_palette_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
         self.command_palette_shortcut.activated.connect(self._open_command_palette)
+        self.navigation_rail_shortcut = QShortcut(QKeySequence("Ctrl+B"), self)
+        self.navigation_rail_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        self.navigation_rail_shortcut.activated.connect(self._toggle_navigation_rail)
+        self.focus_mode_shortcut = QShortcut(QKeySequence("Ctrl+Shift+F"), self)
+        self.focus_mode_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        self.focus_mode_shortcut.activated.connect(self._toggle_focus_mode)
+        self.focus_exit_shortcut = QShortcut(QKeySequence("Esc"), self)
+        self.focus_exit_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        self.focus_exit_shortcut.activated.connect(self._leave_focus_mode)
+        self.focus_exit_shortcut.setEnabled(False)
 
         self.device_center.refresh_requested.connect(self.scan)
         self.device_center.runtime_tools_requested.connect(self._resolve_device_runtime)
@@ -2931,6 +2950,8 @@ class MainWindow(QMainWindow):
             )
 
         self._apply_experience_mode(self.app_settings.experience_mode)
+        self._apply_workspace_shell()
+        self._update_workspace_breadcrumb("command_deck")
         self._sync_command_deck_context()
         self._resize_branding()
 
@@ -2941,15 +2962,116 @@ class MainWindow(QMainWindow):
     def _resize_branding(self) -> None:
         if not hasattr(self, "_brand_logo"):
             return
+        compact = self.width() < 1_340
+        self.connection_uptime.setVisible(not compact)
+        self.connection_clock.setVisible(self.width() >= 1_180)
+        if self._workspace_shell_state.navigation_collapsed:
+            self._brand_logo.setFixedSize(58, 58)
+            self._brand_card.setFixedHeight(68)
+            return
         # Keep the production crest prominent without starving navigation at
         # the supported minimum window height.
         brand_height = max(180, min(250, int(self.height() * 0.27)))
         crest_side = max(166, min(220, brand_height - 12))
         self._brand_logo.setFixedSize(crest_side, crest_side)
         self._brand_card.setFixedHeight(brand_height)
-        compact = self.width() < 1_340
-        self.connection_uptime.setVisible(not compact)
-        self.connection_clock.setVisible(self.width() >= 1_180)
+
+    @Slot()
+    def _toggle_navigation_rail(self) -> None:
+        """Toggle presentation width without changing the active route or its state."""
+
+        if self._workspace_shell_state.focus_mode:
+            return
+        self._workspace_shell_state = self._workspace_shell_state.toggle_navigation()
+        self._apply_workspace_shell()
+
+    @Slot()
+    def _toggle_focus_mode(self) -> None:
+        """Enter or leave a reversible, presentation-only page workspace."""
+
+        self._workspace_shell_state = self._workspace_shell_state.toggle_focus()
+        self._apply_workspace_shell()
+
+    @Slot()
+    def _leave_focus_mode(self) -> None:
+        if not self._workspace_shell_state.focus_mode:
+            return
+        self._workspace_shell_state = self._workspace_shell_state.toggle_focus()
+        self._apply_workspace_shell()
+
+    def _apply_workspace_shell(self) -> None:
+        state = self._workspace_shell_state
+        collapsed = state.navigation_collapsed
+        focus = state.focus_mode
+        self.sidebar.setVisible(not focus)
+        self.connection_bar.setVisible(not focus)
+        self.sidebar.setFixedWidth(78 if collapsed else 263)
+        self.sidebar_layout.setContentsMargins(
+            8 if collapsed else 14,
+            11 if collapsed else 16,
+            8 if collapsed else 14,
+            11 if collapsed else 14,
+        )
+        self.navigation_toggle.setChecked(collapsed)
+        self.navigation_toggle.setEnabled(not focus)
+        self.navigation_toggle.setVisible(not focus)
+        self.navigation_toggle.setText("»" if collapsed else "«")
+        self.navigation_toggle.setAccessibleName(
+            "Expand the Desktop navigation"
+            if collapsed
+            else "Collapse the Desktop navigation to an icon rail"
+        )
+        self.navigation_toggle.setToolTip(
+            "Expand the permanent navigation (Ctrl+B)."
+            if collapsed
+            else "Collapse navigation to a permanent icon rail (Ctrl+B). Presentation only; page and operation state stay unchanged."
+        )
+        self.navigation_rail_shortcut.setEnabled(not focus)
+        self.focus_exit_shortcut.setEnabled(focus)
+        self.focus_button.setChecked(focus)
+        self.focus_button.setProperty("active", focus)
+        self.focus_button.setText("EXIT FOCUS  Esc" if focus else "FOCUS")
+        self.focus_button.setAccessibleName(
+            "Exit the Focus workspace" if focus else "Enter the Focus workspace"
+        )
+        self.focus_button.setToolTip(
+            "Exit Focus and restore the same navigation and connection chrome (Esc)."
+            if focus
+            else "Temporarily hide navigation and connection chrome (Ctrl+Shift+F). The active page, evidence, and operations stay unchanged."
+        )
+        self.workspace_bar.setProperty("focusMode", focus)
+        self.sidebar_device_card.setVisible(not collapsed)
+        self.sidebar_version.setVisible(not collapsed)
+        for heading in self.nav_section_labels:
+            heading.setVisible(not collapsed)
+        for button in self.nav_buttons:
+            expanded_text = button.property("expanded_text")
+            button.setText("" if collapsed else str(expanded_text))
+            button.setProperty("collapsed", collapsed)
+            button.style().unpolish(button)
+            button.style().polish(button)
+        self.command_palette_button.setText("⌕" if collapsed else "⌕  FIND ANYTHING     Ctrl K")
+        mode_text = self.experience_badge.property("expanded_text")
+        if isinstance(mode_text, str):
+            self.experience_badge.setText(mode_text[:1] if collapsed else mode_text)
+        for widget in (self.workspace_bar, self.focus_button, self.navigation_toggle):
+            widget.style().unpolish(widget)
+            widget.style().polish(widget)
+        self._resize_branding()
+        current_route = self._route_by_page_index.get(self.stack.currentIndex())
+        if current_route is not None:
+            self._update_workspace_breadcrumb(current_route)
+
+    def _update_workspace_breadcrumb(self, route: str) -> None:
+        if route not in FEATURES:
+            return
+        section = navigation_section(route)
+        name = feature(route)
+        prefix = "FOCUS WORKSPACE  •  " if self._workspace_shell_state.focus_mode else ""
+        self.workspace_section.setText(f"{prefix}{section}")
+        self.workspace_route_title.setText(name.title)
+        self.workspace_route_title.setAccessibleName(f"Current Desktop page: {name.title}")
+        self.workspace_route_title.setToolTip(name.subtitle)
 
     def _update_connection_bar(self) -> None:
         if self._device_uptime_seconds is None:
@@ -3220,6 +3342,9 @@ class MainWindow(QMainWindow):
             button.style().polish(button)
         if active_button is not None:
             self.nav_scroll.ensureWidgetVisible(active_button, 0, 24)
+        route = self._route_by_page_index.get(index)
+        if route is not None:
+            self._update_workspace_breadcrumb(route)
 
     def _navigate_route(self, route: str) -> bool:
         """Open one stable Desktop route or report the broken integration visibly."""
@@ -3279,7 +3404,14 @@ class MainWindow(QMainWindow):
         """Reveal specialist surfaces without mutating the active workspace or route."""
 
         expert = mode is ExperienceMode.EXPERT
-        self.experience_badge.setText("EXPERT  •  ARCHITECT" if expert else "GUIDED  •  ARCANA")
+        mode_text = "EXPERT  •  ARCHITECT" if expert else "GUIDED  •  ARCANA"
+        self.experience_badge.setProperty("expanded_text", mode_text)
+        self.experience_badge.setAccessibleName(
+            "Experience mode: Expert Architect" if expert else "Experience mode: Guided Arcana"
+        )
+        self.experience_badge.setText(
+            mode_text[:1] if self._workspace_shell_state.navigation_collapsed else mode_text
+        )
         self.experience_badge.setToolTip(
             "Expert Mode reveals specialist tools. Guardian and all approvals remain active."
             if expert

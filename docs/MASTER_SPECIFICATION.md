@@ -440,6 +440,15 @@ Guided mode excludes its folded specialist destinations and Expert mode exposes 
 result emits only its stable page route: the palette has no operation callback, execution authority,
 device selector, or approval surface.
 
+The group/route structure has one authoritative registry shared by sidebar construction, active
+selection, command search, and live breadcrumbs. Ctrl+B may collapse the full sidebar into a
+permanent icon rail; text remains available through accessible names and bounded tooltips. The
+Focus workspace temporarily hides that rail and the connection footer while retaining the exact
+page widget and session state. Ctrl+Shift+F toggles Focus, Escape restores the prior expanded or
+collapsed choice, and the slim workspace bar keeps page context, connectivity, and visible Ctrl+K
+access. These are presentation-only transitions and cannot start work, clear evidence, change a
+project, or grant Guardian authority.
+
 Command Deck is the contextual home surface, not a second implementation of those features. It
 reads the actual active ROM Studio project and connected-device state, then labels its launch cards
 honestly as create/import/continue, needs firmware, connect device, ready, or safety active. Build

@@ -585,7 +585,11 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   keeps Live Console and Guardian visible, and never changes approval policy; accessible Desktop
   Ctrl+K navigation-only command palette populated from the canonical sidebar routes and shared
   feature vocabulary, with legacy-name search, stable relevance ranking, Guided/Expert disclosure,
-  and no operation or device authority; canonical Desktop Activity Center with cross-feature search,
+  and no operation or device authority; one authoritative grouped navigation registry with live
+  canonical breadcrumbs, Ctrl+B compact icon rail, and reversible Ctrl+Shift+F/Escape Focus
+  workspace that preserves the exact active page, prior rail choice, workers, evidence, projects,
+  and Guardian state while keeping visible search and connectivity context; canonical Desktop
+  Activity Center with cross-feature search,
   outcome/category filters, truthful counts, evidence detail, redacted export, source-page handoffs,
   and private byte-bounded strict-schema atomic ledger storage while Health Timeline remains focused
   on diagnostic history; Companion persisted

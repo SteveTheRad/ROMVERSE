@@ -32,6 +32,22 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from romverse.infrastructure.android_apk_tools import (
+    AAPT2_ARCHIVE_SHA256,
+    AAPT2_PACKAGE_DIRECTORY,
+    AAPT2_SOURCE,
+    AAPT2_VERSION,
+    APK_VERIFIER_LAUNCHER_FILE,
+    APK_VERIFIER_PACKAGE_DIRECTORY,
+    APK_VERIFIER_SOURCE_FILE,
+    APKSIG_ARCHIVE_SHA256,
+    APKSIG_JAR,
+    APKSIG_SOURCE,
+    APKSIG_VERSION,
+    MAX_GOOGLE_MAVEN_ARTIFACT_BYTES,
+    install_pinned_aapt2,
+    install_pinned_apk_verifier,
+)
 from romverse.infrastructure.local_store import (
     LocalStoreError,
     atomic_write_json,
@@ -567,6 +583,52 @@ def _validate_managed_package_receipt(
             and isinstance(commit, str)
             and re.fullmatch(r"[0-9a-f]{40}", commit) is not None
         )
+    elif package == AAPT2_PACKAGE_DIRECTORY:
+        expected_keys = {
+            "format",
+            "schema_version",
+            "name",
+            "version",
+            "source",
+            "license",
+            "archive_sha256",
+            "archive_bytes",
+            "files",
+        }
+        expected_name = "Android AAPT2"
+        archive_bytes = receipt.get("archive_bytes")
+        shape_valid = (
+            receipt.get("version") == AAPT2_VERSION
+            and receipt.get("source") == AAPT2_SOURCE
+            and receipt.get("license") == "Apache-2.0"
+            and receipt.get("archive_sha256") == AAPT2_ARCHIVE_SHA256
+            and type(archive_bytes) is int
+            and 0 < archive_bytes <= MAX_GOOGLE_MAVEN_ARTIFACT_BYTES
+        )
+    elif package == APK_VERIFIER_PACKAGE_DIRECTORY:
+        expected_keys = {
+            "format",
+            "schema_version",
+            "name",
+            "version",
+            "source",
+            "capability",
+            "license",
+            "artifact_sha256",
+            "artifact_bytes",
+            "files",
+        }
+        expected_name = "Android APK Signature Verifier"
+        artifact_bytes = receipt.get("artifact_bytes")
+        shape_valid = (
+            receipt.get("version") == APKSIG_VERSION
+            and receipt.get("source") == APKSIG_SOURCE
+            and receipt.get("capability") == "verification-only"
+            and receipt.get("license") == "Apache-2.0"
+            and receipt.get("artifact_sha256") == APKSIG_ARCHIVE_SHA256
+            and type(artifact_bytes) is int
+            and 0 < artifact_bytes <= MAX_GOOGLE_MAVEN_ARTIFACT_BYTES
+        )
     else:
         raise ValueError("managed package identity is not approved")
     files = receipt.get("files")
@@ -596,6 +658,16 @@ def _validate_managed_package_receipt(
         "aosp-partition-tools": (
             {"lpmake", "lpunpack", "lpdumps", "simg2img"},
             {"lpmake.exe", "lpunpack.exe", "lpdumps.exe", "simg2img.exe"},
+        ),
+        AAPT2_PACKAGE_DIRECTORY: ({"aapt2", "NOTICE", "aapt2.romverse"},),
+        APK_VERIFIER_PACKAGE_DIRECTORY: (
+            {
+                APKSIG_JAR,
+                "LICENSE.apksig",
+                APK_VERIFIER_SOURCE_FILE,
+                APK_VERIFIER_LAUNCHER_FILE,
+                "apksigner.romverse",
+            },
         ),
     }[package]
     if basenames not in allowed_basenames:
@@ -784,15 +856,13 @@ class ToolchainCenter(QWidget):
             "Choose the default ROM Studio requirements when no exact Device Pack context is active."
         )
         guided.clicked.connect(self._guided_setup)
-        self.android_sdk_guide_button = QPushButton("Resolve Android SDK Build Tools")
+        self.android_sdk_guide_button = QPushButton("AAPT2 and APK tools guide")
         self.android_sdk_guide_button.setToolTip(
-            "Open the verified Archives guide for AAPT2 and APK Signer discovery. Scanning an "
-            "installed SDK never downloads tools or accepts a license."
+            "Open the verified Archives guide for ROMVERSE-managed AAPT2, official apksig "
+            "verification, and complete Android SDK Build Tools discovery."
         )
         self.android_sdk_guide_button.clicked.connect(
-            lambda: self.knowledge_article_requested.emit(
-                "android-sdk-build-tools-not-discovered"
-            )
+            lambda: self.knowledge_article_requested.emit("android-sdk-build-tools-not-discovered")
         )
         general_actions = QHBoxLayout()
         general_actions.addWidget(refresh)
@@ -878,9 +948,8 @@ class ToolchainCenter(QWidget):
     def open_studio_project_setup(self, context: StudioProjectToolchainContext) -> bool:
         """Open setup only after MainWindow re-derives the same exact project context."""
 
-        if (
-            context != self._studio_project_context
-            or not self._valid_studio_project_context(context)
+        if context != self._studio_project_context or not self._valid_studio_project_context(
+            context
         ):
             self.studio_project_context_changed(
                 "The setup request no longer matches the current exact ROM Studio project"
@@ -1094,7 +1163,10 @@ class ToolchainCenter(QWidget):
             and context.required_tools
             and len(context.required_tools) == len(set(context.required_tools))
             and all(name in ROM_STUDIO_TOOL_CATALOG for name in context.required_tools)
-            and (not context.build_contract_bound or bool(context.device_pack_id and context.pack_sha256))
+            and (
+                not context.build_contract_bound
+                or bool(context.device_pack_id and context.pack_sha256)
+            )
         )
 
     def _render_studio_project_context(self) -> None:
@@ -1105,9 +1177,7 @@ class ToolchainCenter(QWidget):
         self.device_pack_handoff_eyebrow.setText(
             "ROM STUDIO HANDOFF  •  EXACT PROJECT / SOURCE-BOUND TOOL EVIDENCE"
         )
-        self.device_pack_handoff_title.setText(
-            f"{context.project_name} • exact host toolchain"
-        )
+        self.device_pack_handoff_title.setText(f"{context.project_name} • exact host toolchain")
         statuses = {status.name: status for status in self.statuses}
         missing = tuple(
             name
@@ -1145,7 +1215,9 @@ class ToolchainCenter(QWidget):
         self.context_continue_button.setToolTip(
             "Return the freshly verified host-tool evidence to this exact project. No build starts."
         )
-        self.context_setup_button.setEnabled(bool(missing) and not self._studio_project_context_stale)
+        self.context_setup_button.setEnabled(
+            bool(missing) and not self._studio_project_context_stale
+        )
         self.context_setup_button.setText(
             "Set up missing requirements" if missing else "Exact requirements verified"
         )
@@ -1170,9 +1242,7 @@ class ToolchainCenter(QWidget):
                 self.device_pack_handoff.setVisible(False)
             return
         self.device_pack_handoff.setVisible(True)
-        self.device_pack_handoff_eyebrow.setText(
-            "DEVICE ATLAS HANDOFF  •  EXACT BUILD CONTRACT"
-        )
+        self.device_pack_handoff_eyebrow.setText("DEVICE ATLAS HANDOFF  •  EXACT BUILD CONTRACT")
         self.context_return_button.setVisible(True)
         self.context_return_button.setText("Return to Device Atlas")
         self.context_continue_button.setText("Continue to ROM Studio")
@@ -1418,6 +1488,34 @@ class ToolchainDownloadWorker(ManagedRunnable):
             except (OSError, ValueError) as exc:
                 self.signals.failed.emit(f"AVBTool download failed: {exc}")
                 return
+        if "AAPT2" in self.selected:
+            try:
+                label = f"Downloading and verifying official AAPT2 {AAPT2_VERSION}…"
+                self.signals.phase.emit(label, False)
+                _path, digest = install_pinned_aapt2(
+                    self.destination,
+                    boundary=self.boundary,
+                    progress=measured_progress(label),
+                )
+                managed.append(f"AAPT2 {AAPT2_VERSION} ({digest[:12]}…)")
+            except (OSError, ValueError, zipfile.BadZipFile) as exc:
+                self.signals.failed.emit(f"AAPT2 download failed: {exc}")
+                return
+        if "APK Signer" in self.selected:
+            try:
+                label = f"Downloading and verifying official apksig {APKSIG_VERSION}…"
+                self.signals.phase.emit(label, False)
+                _path, digest = install_pinned_apk_verifier(
+                    self.destination,
+                    boundary=self.boundary,
+                    progress=measured_progress(label),
+                )
+                managed.append(
+                    f"APK signature verifier {APKSIG_VERSION} ({digest[:12]}…; verification-only)"
+                )
+            except (OSError, ValueError, zipfile.BadZipFile) as exc:
+                self.signals.failed.emit(f"APK signature verifier download failed: {exc}")
+                return
         system_items = tuple(
             item
             for item in self.plan_items
@@ -1491,7 +1589,7 @@ class ToolchainSetupDialog(QDialog):
         title.setObjectName("Title")
         layout.addWidget(title)
         intro = QLabel(
-            "ROMVERSE selected only the missing dependencies required by the active ROM Studio build profile. Ubuntu or Fedora will show its normal administrator authorization prompt for approved system packages."
+            "ROMVERSE selected only the missing dependencies required by the active Desktop workflow. Managed downloads are bounded and receipt-verified; Ubuntu or Fedora shows its normal administrator prompt only for approved system packages. Full Android SDK license acceptance remains user-controlled."
         )
         intro.setObjectName("Muted")
         intro.setWordWrap(True)
@@ -1515,15 +1613,36 @@ class ToolchainSetupDialog(QDialog):
                 ProvisionStrategy.SYSTEM: "operating-system authorized install",
                 ProvisionStrategy.MANUAL: "manual action required",
             }[item.strategy]
-            check = QCheckBox(f"{status.name}  —  {method}  —  {status.detail}")
+            card = QFrame()
+            card.setObjectName("Card")
+            card_layout = QVBoxLayout(card)
+            card_layout.setContentsMargins(14, 11, 14, 11)
+            heading = QHBoxLayout()
+            check = QCheckBox(f"{status.name}  —  {status.detail}")
             check.setChecked(item.strategy is not ProvisionStrategy.MANUAL)
             check.setEnabled(item.strategy is not ProvisionStrategy.MANUAL)
+            check.setAccessibleDescription(item.explanation)
             check.setToolTip(
                 f"{item.explanation}\n\nOfficial source:\n"
                 f"{item.source or 'Official vendor documentation'}"
             )
+            heading.addWidget(check, 1)
+            method_badge = QLabel(method.upper())
+            method_badge.setObjectName(
+                "Good"
+                if item.strategy is ProvisionStrategy.MANAGED
+                else "Warning"
+                if item.strategy is ProvisionStrategy.SYSTEM
+                else "Muted"
+            )
+            heading.addWidget(method_badge)
+            card_layout.addLayout(heading)
+            explanation = QLabel(item.explanation)
+            explanation.setObjectName("Muted")
+            explanation.setWordWrap(True)
+            card_layout.addWidget(explanation)
             self.checks[status.name] = check
-            content_layout.addWidget(check)
+            content_layout.addWidget(card)
         if not self.checks:
             ready = QLabel("All currently supported tools are verified.")
             ready.setObjectName("Good")

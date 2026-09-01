@@ -274,3 +274,42 @@ def test_extended_verifier_uses_hash_bound_managed_version(monkeypatch, tmp_path
     statuses = ToolVerifier(ManagedHost(), ManagedRunner()).verify_extended()
     payload = next(status for status in statuses if status.name == "Payload Dumper")
     assert payload.version == "Usage of payload-dumper-go"
+
+
+def test_extended_verifier_labels_managed_apksig_launcher_as_verification_only(
+    monkeypatch,
+    tmp_path,
+):
+    executable = tmp_path / "apksigner"
+    executable.write_bytes(b"verified launcher")
+    receipt = {
+        "format": "romverse.managed-tool",
+        "schema_version": 1,
+        "name": "APK Signer",
+        "version": "9.4.0 verification-only",
+        "executable": executable.name,
+        "sha256": hashlib.sha256(executable.read_bytes()).hexdigest(),
+    }
+    executable.with_name(executable.name + ".romverse").write_text(
+        json.dumps(receipt), encoding="utf-8"
+    )
+    monkeypatch.setenv("PATH", str(tmp_path))
+
+    class ManagedHost:
+        name = "Linux"
+
+        def find_tool(self, name):
+            return executable if name == "apksigner" else None
+
+    class ManagedRunner:
+        def run(self, args, timeout=10):
+            if Path(args[0]) == executable:
+                return CommandResult(tuple(args), 0, "ROMVERSE APK Signature Verifier", "")
+            return CommandResult(tuple(args), 127, "", "unavailable")
+
+    statuses = ToolVerifier(ManagedHost(), ManagedRunner()).verify_extended()
+    signer = next(status for status in statuses if status.name == "APK Signer")
+
+    assert signer.available
+    assert signer.version == "9.4.0 verification-only"
+    assert "full SDK Build Tools remain required for signing" in signer.detail

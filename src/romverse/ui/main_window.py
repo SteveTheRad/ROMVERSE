@@ -5400,11 +5400,12 @@ class MainWindow(QMainWindow):
         self.rom_studio._resolve_required_tools(
             ("AAPT2", "APK Signer"),
             purpose=(
-                "App Launchpad needs Android package identity and signing tools to decode the "
-                "selected APK and cryptographically verify its signer before review."
+                "App Launchpad needs AAPT2 and cryptographic APK signature verification to "
+                "decode the selected APK and verify its signer before review. The managed "
+                "apksig route verifies only; it never creates or stores a signing key."
             ),
             title="ROMVERSE • Complete APK identity verification",
-            success_message="AAPT2 and APK Signer freshly verified for App Launchpad.",
+            success_message="AAPT2 and APK signature verification freshly verified for App Launchpad.",
             parent=self,
         )
 

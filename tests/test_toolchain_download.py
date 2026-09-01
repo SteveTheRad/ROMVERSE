@@ -6,6 +6,14 @@ import zipfile
 
 import pytest
 
+import romverse.infrastructure.android_apk_tools as android_apk_tools
+import romverse.ui.toolchain_center as toolchain_center
+from romverse.infrastructure.android_apk_tools import (
+    AAPT2_PACKAGE_DIRECTORY,
+    APK_VERIFIER_PACKAGE_DIRECTORY,
+    install_pinned_aapt2,
+    install_pinned_apk_verifier,
+)
 from romverse.ui.toolchain_center import (
     activate_verified_managed_tools,
     install_official_archive,
@@ -127,6 +135,100 @@ def _platform_tools_zip() -> bytes:
         package.writestr("platform-tools/adb", b"verified adb")
         package.writestr("platform-tools/fastboot", b"verified fastboot")
     return stream.getvalue()
+
+
+def _aapt2_jar() -> bytes:
+    stream = io.BytesIO()
+    with zipfile.ZipFile(stream, "w") as package:
+        package.writestr("META-INF/", b"")
+        package.writestr("META-INF/MANIFEST.MF", b"Manifest-Version: 1.0\n")
+        package.writestr("aapt2", b"\x7fELF verified AAPT2 fixture")
+        package.writestr("NOTICE", b"Apache License 2.0 fixture")
+    return stream.getvalue()
+
+
+def _apksig_jar() -> bytes:
+    stream = io.BytesIO()
+    with zipfile.ZipFile(stream, "w") as package:
+        package.writestr("LICENSE", b"Apache License 2.0 fixture")
+        package.writestr("com/android/apksig/ApkVerifier.class", b"verifier")
+        package.writestr("com/android/apksig/ApkVerifier$Builder.class", b"builder")
+        package.writestr("com/android/apksig/ApkVerifier$Result.class", b"result")
+    return stream.getvalue()
+
+
+def test_pinned_google_maven_aapt2_install_is_receipted_and_tamper_closes(
+    tmp_path,
+    monkeypatch,
+):
+    payload = _aapt2_jar()
+    digest = hashlib.sha256(payload).hexdigest()
+    monkeypatch.setattr(android_apk_tools, "AAPT2_ARCHIVE_SHA256", digest)
+    monkeypatch.setattr(toolchain_center, "AAPT2_ARCHIVE_SHA256", digest)
+
+    executable, archive_digest = install_pinned_aapt2(
+        tmp_path,
+        lambda _url, timeout: _StreamingResponse(payload),
+    )
+
+    installed = tmp_path / AAPT2_PACKAGE_DIRECTORY
+    receipt = json.loads((installed / "managed-package.romverse").read_text())
+    assert archive_digest == digest
+    assert executable.read_bytes().startswith(b"\x7fELF")
+    assert executable.stat().st_mode & 0o111
+    assert receipt["archive_sha256"] == digest
+    assert receipt["license"] == "Apache-2.0"
+    assert set(receipt["files"]) == {"aapt2", "NOTICE", "aapt2.romverse"}
+    assert verified_managed_directories(tmp_path) == (installed,)
+
+    executable.write_bytes(b"tampered")
+    assert verified_managed_directories(tmp_path) == ()
+
+
+def test_pinned_official_apksig_verifier_is_bounded_and_verification_only(
+    tmp_path,
+    monkeypatch,
+):
+    payload = _apksig_jar()
+    digest = hashlib.sha256(payload).hexdigest()
+    monkeypatch.setattr(android_apk_tools, "APKSIG_ARCHIVE_SHA256", digest)
+    monkeypatch.setattr(toolchain_center, "APKSIG_ARCHIVE_SHA256", digest)
+
+    launcher, artifact_digest = install_pinned_apk_verifier(
+        tmp_path,
+        lambda _url, timeout: _StreamingResponse(payload),
+    )
+
+    installed = tmp_path / APK_VERIFIER_PACKAGE_DIRECTORY
+    receipt = json.loads((installed / "managed-package.romverse").read_text())
+    assert artifact_digest == digest
+    assert launcher.stat().st_mode & 0o111
+    assert b"os.execvp" in launcher.read_bytes()
+    assert receipt["artifact_sha256"] == digest
+    assert receipt["capability"] == "verification-only"
+    assert receipt["license"] == "Apache-2.0"
+    assert verified_managed_directories(tmp_path) == (installed,)
+
+    (installed / "RomverseApkVerifier.java").write_text("tampered", encoding="utf-8")
+    assert verified_managed_directories(tmp_path) == ()
+
+
+def test_pinned_google_maven_digest_failure_preserves_previous_install(
+    tmp_path,
+    monkeypatch,
+):
+    installed = tmp_path / AAPT2_PACKAGE_DIRECTORY
+    installed.mkdir()
+    (installed / "keep.txt").write_text("known good", encoding="utf-8")
+    monkeypatch.setattr(android_apk_tools, "AAPT2_ARCHIVE_SHA256", "0" * 64)
+
+    with pytest.raises(ValueError, match="pinned SHA-256"):
+        install_pinned_aapt2(
+            tmp_path,
+            lambda _url, timeout: _StreamingResponse(_aapt2_jar()),
+        )
+
+    assert (installed / "keep.txt").read_text(encoding="utf-8") == "known good"
 
 
 def test_official_archive_is_content_addressed_and_only_activates_while_unchanged(tmp_path):

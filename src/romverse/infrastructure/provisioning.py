@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import platform
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -166,6 +167,8 @@ _MANAGED = frozenset(
         "LP Make",
         "LP Unpack",
         "LP Dump",
+        "AAPT2",
+        "APK Signer",
     }
 )
 _UBUNTU_PACKAGES = {
@@ -231,12 +234,20 @@ def create_provision_plan(
     for status in selected_statuses:
         if status.available:
             continue
-        if status.name in _MANAGED:
+        managed_apk_tool = status.name in {"AAPT2", "APK Signer"}
+        managed_supported = not managed_apk_tool or (
+            host.name.casefold() == "linux" and platform.machine().casefold() in {"amd64", "x86_64"}
+        )
+        if status.name in _MANAGED and managed_supported:
             strategy = ProvisionStrategy.MANAGED
             packages: tuple[str, ...] = ()
             explanation = (
                 "Downloaded from the pinned, hash-verified Android 15 reference toolchain used by the proven popsicle build."
                 if status.name in {"simg2img", "LP Make", "LP Unpack", "LP Dump"}
+                else "Downloaded as an exact SHA-256-pinned, Apache-licensed stable AAPT2 artifact from official Google Maven."
+                if status.name == "AAPT2"
+                else "Downloaded as the exact SHA-256-pinned, Apache-licensed official apksig library with a ROMVERSE verification-only launcher; full SDK Build Tools remain required for APK signing."
+                if status.name == "APK Signer"
                 else "Downloaded from the official upstream source into ROMVERSE's managed tool directory."
             )
         elif status.name in system_packages:

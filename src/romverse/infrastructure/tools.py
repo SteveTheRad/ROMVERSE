@@ -135,14 +135,14 @@ class ToolVerifier:
                 "aapt2",
                 ("version",),
                 frozenset({0}),
-                "Install Android SDK Build Tools 26.0.2+; ROMVERSE checks Android Studio SDK folders automatically",
+                "Use Forge Arsenal's pinned official AAPT2 or install Android SDK Build Tools 26.0.2+; ROMVERSE checks Android Studio SDK folders automatically",
             ),
             (
                 "APK Signer",
                 "apksigner",
                 ("version",),
                 frozenset({0}),
-                "Install Android SDK Build Tools 24.0.3+; ROMVERSE checks Android Studio SDK folders automatically",
+                "Use Forge Arsenal's official apksig verification capability, or install Android SDK Build Tools 24.0.3+ when APK signing is required",
             ),
         )
         if self.host.name.lower() == "windows":
@@ -185,7 +185,11 @@ class ToolVerifier:
                     True,
                     str(path),
                     managed_version or (lines[0][:80] if lines else "available"),
-                    "Ready",
+                    (
+                        "Ready for cryptographic APK verification; full SDK Build Tools remain required for signing"
+                        if name == "APK Signer" and "verification-only" in managed_version
+                        else "Ready"
+                    ),
                 )
             failed_path = str(path)
             failed_detail = lines[-1][:120] if lines else f"exit code {result.returncode}"

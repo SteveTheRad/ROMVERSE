@@ -92,6 +92,7 @@ def test_fedora_plan_uses_only_available_distro_packages() -> None:
         ToolStatus("Fakeroot", False),
         ToolStatus("Java", False),
         ToolStatus("AAPT2", False),
+        ToolStatus("APK Signer", False),
     )
 
     plan = create_provision_plan(FedoraHost(), statuses)
@@ -101,11 +102,27 @@ def test_fedora_plan_uses_only_available_distro_packages() -> None:
         ("EROFS Builder", ("erofs-utils",)),
         ("Fakeroot", ("fakeroot",)),
     ]
-    assert [item.name for item in plan.manual] == ["Java", "AAPT2"]
+    assert [item.name for item in plan.managed] == ["AAPT2", "APK Signer"]
+    assert [item.name for item in plan.manual] == ["Java"]
     assert all("Fedora" in item.explanation for item in plan.system)
-    aapt = next(item for item in plan.manual if item.name == "AAPT2")
-    assert "ANDROID_SDK_ROOT" in aapt.explanation
-    assert "licenses remain user-controlled" in aapt.explanation
+    aapt = next(item for item in plan.managed if item.name == "AAPT2")
+    signer = next(item for item in plan.managed if item.name == "APK Signer")
+    assert "Google Maven" in aapt.explanation
+    assert "verification-only" in signer.explanation
+    assert "full SDK Build Tools" in signer.explanation
+
+
+def test_non_x86_linux_keeps_android_apk_tools_in_user_controlled_sdk_flow(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr("romverse.infrastructure.provisioning.platform.machine", lambda: "aarch64")
+    statuses = (ToolStatus("AAPT2", False), ToolStatus("APK Signer", False))
+
+    plan = create_provision_plan(FedoraHost(), statuses)
+
+    assert [item.name for item in plan.manual] == ["AAPT2", "APK Signer"]
+    assert plan.managed == ()
+    assert all("ANDROID_SDK_ROOT" in item.explanation for item in plan.manual)
 
 
 def test_contract_scoped_plan_excludes_unrelated_missing_tools() -> None:

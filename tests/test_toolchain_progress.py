@@ -4,10 +4,11 @@ import os
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QLabel
 
 from romverse.infrastructure.payload_dumper import PayloadDumperRelease
 from romverse.infrastructure.provisioning import ProvisionStrategy, ToolProvisionItem
+from romverse.infrastructure.tools import ToolStatus
 from romverse.platform.host import LinuxHost
 from romverse.ui.toolchain_center import ToolchainDownloadWorker, ToolchainSetupDialog
 
@@ -88,6 +89,66 @@ def test_forge_arsenal_progress_widget_switches_modes_without_inventing_progress
     assert dialog.progress.maximum() == 0
     assert not dialog.progress.isTextVisible()
     dialog.close()
+
+
+def test_forge_arsenal_shows_managed_apk_tool_capability_boundaries(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    dialog = ToolchainSetupDialog(
+        LinuxHost(distribution_id="fedora"),
+        (
+            ToolStatus("AAPT2", False, detail="Not ready"),
+            ToolStatus("APK Signer", False, detail="Not ready"),
+        ),
+        tmp_path,
+        required_names=("AAPT2", "APK Signer"),
+    )
+    dialog.show()
+    app.processEvents()
+    try:
+        visible_copy = " ".join(label.text() for label in dialog.findChildren(QLabel))
+        assert dialog.checks["AAPT2"].isChecked()
+        assert dialog.checks["APK Signer"].isChecked()
+        assert "PINNED" in visible_copy.upper()
+        assert "verification-only" in visible_copy
+        assert "full SDK Build Tools" in visible_copy
+        assert visible_copy.count("ROMVERSE MANAGED DOWNLOAD") == 2
+    finally:
+        dialog.close()
+
+
+def test_forge_worker_connects_both_managed_apk_artifacts(tmp_path, monkeypatch) -> None:
+    QApplication.instance() or QApplication([])
+    calls = []
+
+    def install_aapt(destination, *, boundary, progress):
+        calls.append(("aapt2", destination, boundary))
+        progress(1, 1)
+        progress(0, 0)
+        return destination / "android-aapt2" / "aapt2", "a" * 64
+
+    def install_signer(destination, *, boundary, progress):
+        calls.append(("apksig", destination, boundary))
+        progress(1, 1)
+        progress(0, 0)
+        return destination / "android-apk-verifier" / "apksigner", "b" * 64
+
+    monkeypatch.setattr("romverse.ui.toolchain_center.install_pinned_aapt2", install_aapt)
+    monkeypatch.setattr("romverse.ui.toolchain_center.install_pinned_apk_verifier", install_signer)
+    worker = ToolchainDownloadWorker(
+        LinuxHost(distribution_id="fedora"),
+        ["AAPT2", "APK Signer"],
+        tmp_path / "tools" / "downloads",
+        boundary=tmp_path,
+    )
+    completed = []
+    worker.signals.complete.connect(completed.append)
+
+    worker.run()
+
+    assert [call[0] for call in calls] == ["aapt2", "apksig"]
+    assert completed
+    assert "AAPT2" in completed[0]
+    assert "verification-only" in completed[0]
 
 
 def test_forge_arsenal_worker_routes_fedora_system_plan_through_authorized_installer(

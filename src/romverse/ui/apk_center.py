@@ -220,7 +220,7 @@ class ApkCenter(QWidget):
 
         self.improve_inspection = QPushButton("Improve APK identity verification")
         self.improve_inspection.setToolTip(
-            "Verify AAPT2 and APK Signer, then automatically repeat the local inspection of this exact APK."
+            "Verify AAPT2 and the official apksig verification capability, then automatically repeat the local inspection of this exact APK."
         )
         self.improve_inspection.clicked.connect(self._resolve_inspection_tools)
         self.improve_inspection.setVisible(False)
@@ -494,7 +494,7 @@ class ApkCenter(QWidget):
         if path is None or self.active_worker is not None:
             return
         self._set_result(
-            "ROMVERSE is verifying AAPT2 and APK Signer for complete package identity and cryptographic signature evidence…",
+            "ROMVERSE is verifying AAPT2 and the official apksig capability for complete package identity and cryptographic signature evidence…",
             "Warning",
         )
         self.inspection_tools_requested.emit()

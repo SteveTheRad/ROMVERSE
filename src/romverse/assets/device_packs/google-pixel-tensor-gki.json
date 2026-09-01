@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "pack_id": "google.pixel.tensor-gki",
+  "version": "0.1.0",
+  "display_name": "Google Pixel Tensor / GKI family",
+  "priority": 240,
+  "match": {
+    "manufacturers": ["google"],
+    "model_patterns": [
+      "pixel 6", "pixel 6 pro", "pixel 6a",
+      "pixel 7", "pixel 7 pro", "pixel 7a",
+      "pixel fold", "pixel 8", "pixel 8 pro", "pixel 8a",
+      "pixel 9", "pixel 9 pro", "pixel 9 pro xl", "pixel 9 pro fold", "pixel 9a"
+    ],
+    "product_patterns": [
+      "oriole", "raven", "bluejay", "panther", "cheetah", "lynx", "felix",
+      "shiba", "husky", "akita", "tokay", "caiman", "komodo", "comet", "tegu"
+    ]
+  },
+  "knowledge_sources": [
+    {
+      "source_id": "aosp.pixel.kernel-matrix",
+      "label": "AOSP Pixel kernel compatibility matrix",
+      "url": "https://source.android.com/docs/setup/build/building-pixel-kernels",
+      "authority": "Android Open Source Project",
+      "scope": "Official Pixel 6 through Pixel 9a model/codename mapping, GKI branches, vendor_boot boundaries, and compatibility warnings",
+      "verified_on": "2026-08-29"
+    },
+    {
+      "source_id": "google.pixel.factory-images",
+      "label": "Google Pixel factory images",
+      "url": "https://developers.google.com/android/images",
+      "authority": "Google for Developers",
+      "scope": "Factory build identifiers, release-specific notices, restore images, and data-loss warnings",
+      "verified_on": "2026-08-29"
+    },
+    {
+      "source_id": "aosp.build-numbers",
+      "label": "AOSP codenames, tags, and build numbers",
+      "url": "https://source.android.com/docs/setup/reference/build-numbers",
+      "authority": "Android Open Source Project",
+      "scope": "Build-ID, platform tag, Android version, supported-device, and security-patch relationships",
+      "verified_on": "2026-08-29"
+    }
+  ],
+  "capabilities": [
+    {
+      "capability_id": "identity.properties",
+      "label": "Exact published Pixel model/codename identity",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Matches only the published Pixel Tensor model names or codenames listed by AOSP and records the running build and slot evidence."
+    },
+    {
+      "capability_id": "health.baseline",
+      "label": "Battery and storage baseline",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Uses Guardian-approved Android health probes."
+    },
+    {
+      "capability_id": "google.kernel_compatibility",
+      "label": "Published Pixel kernel compatibility context",
+      "status": "limited",
+      "scope": "knowledge_only",
+      "detail": "Explains published GKI branch and vendor-ramdisk boundaries; ROMVERSE does not infer the currently installed firmware/kernel pairing from a model name alone."
+    },
+    {
+      "capability_id": "google.firmware.operations",
+      "label": "Pixel firmware operations",
+      "status": "planned",
+      "scope": "locked",
+      "detail": "No build, unlock, flash, rollback, slot change, or recovery operation is enabled without a separate exact firmware hash and physical recovery contract."
+    }
+  ],
+  "notes": [
+    "The exact model/codename match improves offline diagnosis but does not identify region, carrier, current build, bootloader revision, or rollback index.",
+    "Google warns that factory-image installation erases data and that release-specific anti-rollback notices can apply; Guardian keeps device-changing execution locked."
+  ]
+}

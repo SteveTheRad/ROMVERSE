@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "pack_id": "realme.ui",
+  "version": "0.1.0",
+  "display_name": "realme / realme UI",
+  "priority": 110,
+  "match": {
+    "manufacturers": ["realme"]
+  },
+  "knowledge_sources": [
+    {
+      "source_id": "realme.global-support",
+      "label": "realme official global support",
+      "url": "https://www.realme.com/global/support",
+      "authority": "realme",
+      "scope": "Official support, manuals, software-update, service, and regional assistance entry points",
+      "verified_on": "2026-08-30"
+    },
+    {
+      "source_id": "realme.support-faq",
+      "label": "realme official support FAQ",
+      "url": "https://www.realme.com/global/support/faq",
+      "authority": "realme",
+      "scope": "Official realme UI update, health, recovery-to-support, backup, and root-risk guidance",
+      "verified_on": "2026-08-30"
+    },
+    {
+      "source_id": "aosp.verified-boot",
+      "label": "AOSP Verified Boot behavior",
+      "url": "https://source.android.com/docs/security/features/verifiedboot/boot-flow",
+      "authority": "Android Open Source Project",
+      "scope": "Standards-based interpretation of boot and verity evidence without OEM-specific inference",
+      "verified_on": "2026-08-30"
+    }
+  ],
+  "capabilities": [
+    {
+      "capability_id": "identity.properties",
+      "label": "realme identity properties",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Maps standard product, model, build, realme UI display, security-patch, slot, and boot-state evidence."
+    },
+    {
+      "capability_id": "health.baseline",
+      "label": "Battery and storage baseline",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Uses Guardian-approved generic Android health probes."
+    },
+    {
+      "capability_id": "realme.support_knowledge",
+      "label": "Official realme UI support context",
+      "status": "limited",
+      "scope": "knowledge_only",
+      "detail": "Surfaces official support and software-update guidance while requiring exact regional model, build, and package evidence for every compatibility conclusion."
+    },
+    {
+      "capability_id": "realme.firmware.operations",
+      "label": "realme firmware operations",
+      "status": "planned",
+      "scope": "locked",
+      "detail": "No bootloader, root, update-package install, partition, flash, rollback, recovery, or service-tool action is enabled."
+    }
+  ],
+  "notes": [
+    "A realme manufacturer match improves read-only diagnosis and official support routing only.",
+    "Regional variants, carrier policy, slot topology, rollback state, firmware provenance, and modification eligibility remain explicitly unconfirmed."
+  ]
+}

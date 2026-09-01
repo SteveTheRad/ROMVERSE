@@ -1,0 +1,449 @@
+from __future__ import annotations
+
+import fnmatch
+import hashlib
+import json
+import os
+from dataclasses import asdict, dataclass
+from datetime import UTC, datetime
+from enum import StrEnum
+from pathlib import Path
+from uuid import uuid4
+
+from romverse.device.models import AndroidDevice
+from romverse.device_packs.attestations import (
+    DevicePackAttestationVerifier,
+    PhysicalRecoveryAttestationReport,
+)
+from romverse.device_packs.models import AvbPolicyAuthority, CapabilityStatus, DevicePack
+
+
+class ValidationState(StrEnum):
+    PASS = "pass"
+    ATTENTION = "attention"
+    BLOCKED = "blocked"
+
+
+@dataclass(frozen=True, slots=True)
+class ValidationCheck:
+    check_id: str
+    label: str
+    state: ValidationState
+    evidence: str
+    resolution: str
+    required_for: str
+
+
+@dataclass(frozen=True, slots=True)
+class DevicePackValidationReport:
+    schema_version: int
+    report_id: str
+    created_at: str
+    pack_id: str
+    pack_version: str
+    pack_sha256: str
+    manufacturer: str
+    model: str
+    product: str
+    codename: str
+    checks: tuple[ValidationCheck, ...]
+    build_contract_ready: bool
+    flash_contract_ready: bool
+    report_digest: str
+
+    @property
+    def passed_count(self) -> int:
+        return sum(check.state is ValidationState.PASS for check in self.checks)
+
+
+@dataclass(frozen=True, slots=True)
+class ValidationRequestExport:
+    output_path: str
+    sha256: str
+    size_bytes: int
+
+
+class DevicePackValidationService:
+    """Evidence-only Device Pack validation; it cannot enable capabilities."""
+
+    FORMAT = "romverse.device-pack-validation-request"
+    PHYSICAL_REQUEST_FORMAT = "romverse.device-pack-physical-attestation-request"
+    REPORT_SCHEMA_VERSION = 2
+
+    def assess(
+        self,
+        pack: DevicePack,
+        device: AndroidDevice,
+        attestation: PhysicalRecoveryAttestationReport | None = None,
+    ) -> DevicePackValidationReport:
+        manufacturer = _bounded(device.manufacturer or "Unknown OEM")
+        model = _bounded(device.model or "Unknown model")
+        product = _bounded(device.product or "Unknown product")
+        codename = _bounded(device.codename or device.product or "Unknown codename")
+        exact_patterns = tuple(
+            pattern
+            for pattern in (*pack.model_patterns, *pack.product_patterns)
+            if pattern not in {"", "*"}
+        )
+        exact_match = bool(
+            exact_patterns
+            and (
+                _matches(model, pack.model_patterns)
+                or _matches(product, pack.product_patterns)
+                or _matches(codename, pack.product_patterns)
+            )
+        )
+        firmware = next(
+            (
+                capability
+                for capability in pack.capabilities
+                if "firmware" in capability.capability_id
+            ),
+            None,
+        )
+        firmware_ready = bool(
+            firmware
+            and firmware.status is CapabilityStatus.SUPPORTED
+            and firmware.scope != "locked"
+        )
+        partition = next(
+            (
+                capability
+                for capability in pack.capabilities
+                if "partition" in capability.capability_id
+                or "firmware_layout" in capability.capability_id
+            ),
+            None,
+        )
+        partition_ready = bool(
+            partition
+            and partition.status is CapabilityStatus.SUPPORTED
+            and partition.scope != "locked"
+        )
+        recovery = next(
+            (
+                capability
+                for capability in pack.capabilities
+                if "recovery" in capability.capability_id
+            ),
+            None,
+        )
+        recovery_ready = bool(
+            recovery
+            and recovery.status is CapabilityStatus.SUPPORTED
+            and recovery.scope != "locked"
+        )
+        avb_policy = pack.build_contract.avb_execution_policy if pack.build_contract else None
+        write_contract = (
+            pack.build_contract.partition_write_contract if pack.build_contract else None
+        )
+        attestation_ready = bool(
+            attestation
+            and attestation.verified
+            and attestation.pack_id == pack.pack_id
+            and attestation.pack_sha256 == pack.sha256
+            and pack.build_contract is not None
+            and attestation.source_build_id == pack.build_contract.source.build_id
+            and attestation.model.casefold() == model.casefold()
+            and attestation.product.casefold() in {product.casefold(), codename.casefold()}
+            and set(attestation.scenarios) == DevicePackAttestationVerifier.REQUIRED_SCENARIOS
+        )
+        avb_policy_ready = bool(
+            avb_policy
+            and avb_policy.authority is AvbPolicyAuthority.FLASH_VALIDATED
+            and attestation_ready
+            and attestation is not None
+            and avb_policy.attestation_sha256 == attestation.envelope_sha256
+        )
+        write_contract_ready = bool(
+            write_contract
+            and avb_policy_ready
+            and attestation is not None
+            and pack.build_contract is not None
+            and write_contract.source_build_id == pack.build_contract.source.build_id
+            and write_contract.attestation_sha256 == attestation.envelope_sha256
+            and write_contract.require_unlocked_bootloader
+            and not write_contract.bootloader_relock_allowed
+            and write_contract.writes
+        )
+        checks = (
+            ValidationCheck(
+                "integrity",
+                "Pack integrity index",
+                ValidationState.PASS,
+                f"Bundled SHA-256 verified: {pack.sha256[:16]}…",
+                "Reload the signed or bundled pack if its digest changes.",
+                "build",
+            ),
+            ValidationCheck(
+                "exact-model",
+                "Exact model and codename scope",
+                ValidationState.PASS if exact_match else ValidationState.BLOCKED,
+                (
+                    f"Pack patterns match {model} / {codename}"
+                    if exact_match
+                    else "Pack is OEM-wide and does not declare this exact model/codename"
+                ),
+                "Publish explicit model/product patterns for this hardware; a manufacturer-only match is insufficient.",
+                "build",
+            ),
+            ValidationCheck(
+                "firmware-contract",
+                "Firmware build capability",
+                ValidationState.PASS if firmware_ready else ValidationState.BLOCKED,
+                firmware.detail if firmware else "No firmware capability is declared",
+                "A reviewed pack update must mark the model-specific firmware capability supported and non-locked.",
+                "build",
+            ),
+            ValidationCheck(
+                "partition-layout",
+                "Partition and payload descriptors",
+                ValidationState.PASS if partition_ready else ValidationState.BLOCKED,
+                partition.detail
+                if partition
+                else "No validated partition-layout capability is declared",
+                "Add versioned partition names, slot behavior, image formats, size constraints, and payload rules validated against this exact model.",
+                "build",
+            ),
+            ValidationCheck(
+                "declarative-build-contract",
+                "Machine-readable build contract",
+                ValidationState.PASS
+                if pack.build_contract is not None
+                else ValidationState.BLOCKED,
+                (
+                    f"Contract {pack.build_contract.contract_id} v{pack.build_contract.version}; editable: {', '.join(pack.build_contract.editable_partitions)}"
+                    if pack.build_contract is not None
+                    else "The pack has no bounded, declarative build contract"
+                ),
+                "Publish exact source hashes, partition sizes/groups, passthrough hashes, editable partitions, and allowed outputs in pack schema 2.",
+                "build",
+            ),
+            ValidationCheck(
+                "partition-write-contract",
+                "Exact partition-to-artifact write contract",
+                ValidationState.PASS if write_contract_ready else ValidationState.BLOCKED,
+                (
+                    f"Contract {write_contract.contract_id} v{write_contract.version} binds "
+                    f"{len(write_contract.writes)} ordered image write(s) to signed exact-build "
+                    "evidence; bootloader relocking is prohibited"
+                    if write_contract_ready and write_contract is not None
+                    else (
+                        "A partition-write contract is declared, but its exact physical "
+                        "attestation is not verified for this Pack, build, and phone"
+                        if write_contract is not None
+                        else "No explicit signed partition-to-artifact write contract is declared"
+                    )
+                ),
+                "Publish a schema-two build contract with bounded image writes, explicit transport and slots, supported data modes, permanent relock prohibition, and the same exact signed physical-attestation digest as the AVB policy.",
+                "flash",
+            ),
+            ValidationCheck(
+                "avb-execution-policy",
+                "Exact AVB execution policy",
+                ValidationState.PASS if avb_policy_ready else ValidationState.BLOCKED,
+                (
+                    f"Flash-validated {avb_policy.mode.value} policy bound to signed evidence for {avb_policy.evidence_build_id}"
+                    if avb_policy_ready and avb_policy is not None
+                    else (
+                        f"Historical {avb_policy.mode.value} evidence from {avb_policy.evidence_build_id} is reference-only"
+                        if avb_policy is not None
+                        and avb_policy.authority is AvbPolicyAuthority.REFERENCE_ONLY
+                        else (
+                            "Declared flash policy is not bound to the verified physical-attestation envelope"
+                            if avb_policy is not None
+                            else "No machine-readable AVB execution policy is declared"
+                        )
+                    )
+                ),
+                "Validate the exact firmware's AVB chain, required boot state, target slots, recovery path, and physical result; bind the signed attestation to this Device Pack.",
+                "flash",
+            ),
+            ValidationCheck(
+                "publisher-signature",
+                "Publisher signature attestation",
+                ValidationState.PASS if attestation_ready else ValidationState.ATTENTION,
+                (
+                    f"Ed25519 signer {attestation.signer_id} binds exact Pack {pack.sha256[:16]}…"
+                    if attestation_ready and attestation is not None
+                    else "Built-in SHA-256 integrity is present; no verified external publisher attestation is active"
+                ),
+                "Import an unexpired Ed25519 attestation from a trusted, non-revoked publisher key that binds this exact Pack digest.",
+                "public-release",
+            ),
+            ValidationCheck(
+                "stock-recovery-route",
+                "Exact stock recovery route",
+                ValidationState.PASS if recovery_ready else ValidationState.BLOCKED,
+                recovery.detail
+                if recovery
+                else "No supported stock-recovery capability is declared",
+                "Document exact stock firmware, verified hashes, required host tools, and a model-specific restore path.",
+                "flash",
+            ),
+            ValidationCheck(
+                "physical-recovery-test",
+                "Independent physical recovery test",
+                ValidationState.PASS if attestation_ready else ValidationState.BLOCKED,
+                (
+                    f"Signed report {attestation.report_sha256[:16]}… covers {', '.join(attestation.scenarios)}"
+                    if attestation_ready and attestation is not None
+                    else "No trusted signature proves recovery and first-boot tests on this exact hardware and Pack"
+                ),
+                "A pack maintainer must recover matching physical hardware from stock-restore, failed-flash, slot-recovery, and first-boot scenarios and publish a signed report.",
+                "flash",
+            ),
+        )
+        build_ready = all(
+            check.state is ValidationState.PASS for check in checks if check.required_for == "build"
+        )
+        flash_ready = build_ready and all(
+            check.state is ValidationState.PASS for check in checks if check.required_for == "flash"
+        )
+        digest_payload = {
+            "schema_version": self.REPORT_SCHEMA_VERSION,
+            "pack_id": pack.pack_id,
+            "pack_version": pack.version,
+            "pack_sha256": pack.sha256,
+            "manufacturer": manufacturer,
+            "model": model,
+            "product": product,
+            "codename": codename,
+            "checks": [asdict(check) for check in checks],
+            "build_contract_ready": build_ready,
+            "flash_contract_ready": flash_ready,
+        }
+        digest = _digest(digest_payload)
+        return DevicePackValidationReport(
+            schema_version=self.REPORT_SCHEMA_VERSION,
+            report_id=digest[:24],
+            created_at=datetime.now(UTC).isoformat(),
+            pack_id=pack.pack_id,
+            pack_version=pack.version,
+            pack_sha256=pack.sha256,
+            manufacturer=manufacturer,
+            model=model,
+            product=product,
+            codename=codename,
+            checks=checks,
+            build_contract_ready=build_ready,
+            flash_contract_ready=flash_ready,
+            report_digest=digest,
+        )
+
+    def export_request(
+        self, report: DevicePackValidationReport, workspace: Path
+    ) -> ValidationRequestExport:
+        root = workspace.resolve() / "device_pack_requests"
+        root.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "format": self.FORMAT,
+            **asdict(report),
+            "privacy": {
+                "serial_included": False,
+                "imei_included": False,
+                "accounts_included": False,
+                "user_files_included": False,
+            },
+            "authority": "evidence-request-only",
+            "capabilities_enabled": [],
+        }
+        encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        digest = hashlib.sha256(encoded).hexdigest()
+        safe_pack = (
+            "".join(
+                character if character.isalnum() or character in ".-_" else "-"
+                for character in report.pack_id
+            ).strip(".-")
+            or "device-pack"
+        )
+        destination = root / f"{safe_pack}-{digest[:16]}.romverse.json"
+        temporary = root / f".{destination.name}.tmp-{uuid4().hex}"
+        try:
+            temporary.write_bytes(encoded)
+            os.replace(temporary, destination)
+        finally:
+            temporary.unlink(missing_ok=True)
+        relative = destination.relative_to(workspace.resolve()).as_posix()
+        return ValidationRequestExport(relative, digest, len(encoded))
+
+    def export_physical_attestation_request(
+        self,
+        pack: DevicePack,
+        report: DevicePackValidationReport,
+        workspace: Path,
+    ) -> ValidationRequestExport:
+        """Export an exact, privacy-safe challenge for an independent physical test lab."""
+        if (
+            pack.build_contract is None
+            or report.pack_id != pack.pack_id
+            or report.pack_version != pack.version
+            or report.pack_sha256 != pack.sha256
+        ):
+            raise ValueError("Validation report does not bind the exact Device Pack contract")
+        root = workspace.resolve() / "device_pack_requests"
+        root.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "format": self.PHYSICAL_REQUEST_FORMAT,
+            "schema_version": 1,
+            "created_at": datetime.now(UTC).isoformat(),
+            "pack_id": pack.pack_id,
+            "pack_version": pack.version,
+            "pack_sha256": pack.sha256,
+            "source_build_id": pack.build_contract.source.build_id,
+            "model": report.model,
+            "product": report.product,
+            "codename": report.codename,
+            "required_signature_algorithm": "ed25519",
+            "required_scenarios": sorted(DevicePackAttestationVerifier.REQUIRED_SCENARIOS),
+            "expected_result": "pass",
+            "privacy": {
+                "serial_included": False,
+                "imei_included": False,
+                "accounts_included": False,
+                "user_files_included": False,
+            },
+            "authority": "physical-test-request-only",
+            "capabilities_enabled": [],
+            "instructions": (
+                "Test every required scenario on matching physical hardware, publish the "
+                "content-addressed report, and return a detached Ed25519-signed ROMVERSE "
+                "physical-attestation envelope. This request grants no device authority."
+            ),
+        }
+        encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        digest = hashlib.sha256(encoded).hexdigest()
+        safe_pack = (
+            "".join(
+                character if character.isalnum() or character in ".-_" else "-"
+                for character in pack.pack_id
+            ).strip(".-")
+            or "device-pack"
+        )
+        destination = root / f"{safe_pack}-physical-test-{digest[:16]}.romverse.json"
+        temporary = root / f".{destination.name}.tmp-{uuid4().hex}"
+        try:
+            temporary.write_bytes(encoded)
+            os.replace(temporary, destination)
+        finally:
+            temporary.unlink(missing_ok=True)
+        relative = destination.relative_to(workspace.resolve()).as_posix()
+        return ValidationRequestExport(relative, digest, len(encoded))
+
+
+def _matches(value: str, patterns: tuple[str, ...]) -> bool:
+    normalized = value.casefold().strip()
+    return any(
+        pattern not in {"", "*"} and fnmatch.fnmatchcase(normalized, pattern.casefold())
+        for pattern in patterns
+    )
+
+
+def _bounded(value: str) -> str:
+    clean = "".join(character for character in value.strip() if ord(character) >= 32)
+    return clean[:120] or "Unknown"
+
+
+def _digest(payload: dict[str, object]) -> str:
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()

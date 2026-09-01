@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "pack_id": "oneplus.oxygenos",
+  "version": "0.1.0",
+  "display_name": "OnePlus / OxygenOS",
+  "priority": 110,
+  "match": {
+    "manufacturers": ["oneplus"]
+  },
+  "knowledge_sources": [
+    {
+      "source_id": "oneplus.global.support",
+      "label": "OnePlus global support",
+      "url": "https://service.oneplus.com/global",
+      "authority": "OnePlus",
+      "scope": "Official support entry point, software-upgrade guidance, manuals, and service routes",
+      "verified_on": "2026-08-29"
+    },
+    {
+      "source_id": "aosp.verified-boot",
+      "label": "AOSP Verified Boot behavior",
+      "url": "https://source.android.com/docs/security/features/verifiedboot/boot-flow",
+      "authority": "Android Open Source Project",
+      "scope": "Standards-based interpretation of locked, unlocked, and Verified Boot state evidence",
+      "verified_on": "2026-08-29"
+    }
+  ],
+  "capabilities": [
+    {
+      "capability_id": "identity.properties",
+      "label": "OnePlus identity properties",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Maps standard product, device, build, OxygenOS display, slot, and boot-state properties."
+    },
+    {
+      "capability_id": "health.baseline",
+      "label": "Battery and storage baseline",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Uses Guardian-approved generic Android health probes."
+    },
+    {
+      "capability_id": "oneplus.support_knowledge",
+      "label": "Official support knowledge",
+      "status": "limited",
+      "scope": "knowledge_only",
+      "detail": "Surfaces official support boundaries while requiring exact regional model and build evidence for every firmware conclusion."
+    },
+    {
+      "capability_id": "oneplus.firmware.operations",
+      "label": "OnePlus firmware operations",
+      "status": "planned",
+      "scope": "locked",
+      "detail": "No unlock, payload rebuild, slot change, flash, or recovery action is supplied by this OEM-wide Pack."
+    }
+  ],
+  "notes": [
+    "OnePlus model, region, carrier, slot topology, and rollback behavior must be validated per exact firmware.",
+    "An OEM match is read-only knowledge, never model-level compatibility."
+  ]
+}

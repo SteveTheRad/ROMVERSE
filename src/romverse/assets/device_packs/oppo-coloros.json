@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "pack_id": "oppo.coloros",
+  "version": "0.1.0",
+  "display_name": "OPPO / ColorOS",
+  "priority": 110,
+  "match": {
+    "manufacturers": ["oppo"]
+  },
+  "knowledge_sources": [
+    {
+      "source_id": "oppo.software-update",
+      "label": "OPPO official software-update support",
+      "url": "https://support.oppo.com/ph/software-update/",
+      "authority": "OPPO Support",
+      "scope": "Official on-device and ColorOS Assistant update routes, model selection, and update-stability guidance",
+      "verified_on": "2026-08-30"
+    },
+    {
+      "source_id": "oppo.security-advisories",
+      "label": "OPPO Security Center advisories",
+      "url": "https://security.oppo.com/en/mend",
+      "authority": "OPPO Security Response Center",
+      "scope": "Official Android security-patch advisories and maintained-product context",
+      "verified_on": "2026-08-30"
+    },
+    {
+      "source_id": "aosp.verified-boot",
+      "label": "AOSP Verified Boot behavior",
+      "url": "https://source.android.com/docs/security/features/verifiedboot/boot-flow",
+      "authority": "Android Open Source Project",
+      "scope": "Standards-based interpretation of boot and verity evidence without OEM-specific inference",
+      "verified_on": "2026-08-30"
+    }
+  ],
+  "capabilities": [
+    {
+      "capability_id": "identity.properties",
+      "label": "OPPO identity properties",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Maps standard product, model, build, ColorOS display, security-patch, slot, and boot-state evidence."
+    },
+    {
+      "capability_id": "health.baseline",
+      "label": "Battery and storage baseline",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Uses Guardian-approved generic Android health probes."
+    },
+    {
+      "capability_id": "oppo.update_knowledge",
+      "label": "Official ColorOS update context",
+      "status": "limited",
+      "scope": "knowledge_only",
+      "detail": "Surfaces official update and security-advisory routes while keeping model, region, carrier, build, and downloaded-package compatibility unconfirmed."
+    },
+    {
+      "capability_id": "oppo.firmware.operations",
+      "label": "OPPO firmware operations",
+      "status": "planned",
+      "scope": "locked",
+      "detail": "No bootloader, root, update-package install, partition, flash, rollback, recovery, or service-tool action is enabled."
+    }
+  ],
+  "notes": [
+    "An OPPO manufacturer match improves read-only identity and support routing only; it is not model-level firmware compatibility.",
+    "ColorOS version, region, carrier policy, partition topology, rollback rules, and exact package provenance require separate current evidence."
+  ]
+}

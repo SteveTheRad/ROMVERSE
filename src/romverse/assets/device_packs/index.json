@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "packs": [
+    {
+      "file": "xiaomi-popsicle-hyperos4.json",
+      "sha256": "1dd9535dda8cf8597c7243d3be1ef48c4e6c1fde0233ca6b4d292cc6acbe2950"
+    },
+    {
+      "file": "android-generic.json",
+      "sha256": "91796c526891043c7b6aa1008c1ddc50d55a702ab1fc8f2b47d135686f13ecd3"
+    },
+    {
+      "file": "xiaomi-hyperos.json",
+      "sha256": "1d316b0d317ddbc38264f8954d0d0583947c8e50397fd6419a6cc1805386222b"
+    },
+    {
+      "file": "samsung-oneui.json",
+      "sha256": "948cf3b0ae8f23ce722174a15f0861ef3ce09799f989620aa646811f8bb04a4c"
+    },
+    {
+      "file": "google-pixel.json",
+      "sha256": "8aaafe6f077f462d6251dbf0bdec14c2b50a5e7a12020c6577ce0bd319eff753"
+    },
+    {
+      "file": "google-pixel-tensor-gki.json",
+      "sha256": "f7191db1866a9b4dc1ce2b089ffaa563846af2a75c85fdbf4276243e69931321"
+    },
+    {
+      "file": "oneplus-oxygenos.json",
+      "sha256": "b8667abee0004c03adf46f6d15a13a75eb911b9419760f11b79f8bbcdf0a49c2"
+    },
+    {
+      "file": "oppo-coloros.json",
+      "sha256": "16b182854f8bb8c4e16e345cad505684c03902fa85c7c35a29edc7ddc45710bb"
+    },
+    {
+      "file": "realme-ui.json",
+      "sha256": "d08d68f26b5dbdecd7b37a268b6d790b14a23e89bcb9e88cb29850c268ba0f30"
+    },
+    {
+      "file": "nothing-os.json",
+      "sha256": "78000c5c6b62bbc3f412acbde4598997a06152194da51b1224d761ed0a6ace9a"
+    },
+    {
+      "file": "motorola-android.json",
+      "sha256": "b365bcb00c42f02038a4ce33ef25ac87153a391097190a17e1402bac9534d1d1"
+    },
+    {
+      "file": "sony-xperia.json",
+      "sha256": "71cc978779e01767a9dd897452443bc4ca092c8e277a0c2259402858e30772bb"
+    },
+    {
+      "file": "sony-xperia-open-devices.json",
+      "sha256": "0aba3b7dd81acf385c2a3b68b144741fec09a5f26635dee119157e2f54c17e75"
+    },
+    {
+      "file": "vivo-funtouch-iqoo.json",
+      "sha256": "7320b2fa44c4887ff14b1ef6b2e6e86ccb9c304151122ca3d717b39aedd1a64b"
+    },
+    {
+      "file": "asus-rog-android.json",
+      "sha256": "74bf9b12e955349abc4bb43f9722fe2cc329404c2fa75dcaaa28150802717f77"
+    },
+    {
+      "file": "huawei-emui-harmonyos.json",
+      "sha256": "3dd445a544e1b3c7bf7ff9746cad3007c82acb24fceca2dc1c2114ce80895b5c"
+    },
+    {
+      "file": "honor-magicos.json",
+      "sha256": "2bde0ebd3d18bbac2882cf80b7e321586958554b7473464f32a081eb80b2ef2c"
+    },
+    {
+      "file": "hmd-nokia-android.json",
+      "sha256": "ed14040b4b3a3b5b2ec1a105376c86e99011f0c9509e2e2df3259f1a63d6a648"
+    },
+    {
+      "file": "transsion-android.json",
+      "sha256": "6e0fe71846a18aae93d2e9a61fc404fbd13f0dc30b89afb8b1f565dde92b5cd7"
+    },
+    {
+      "file": "zte-nubia-android.json",
+      "sha256": "1090aad0ec98814a80079daf0cd137b2428df11d67eb9337167298b6d00d1221"
+    },
+    {
+      "file": "fairphone-android.json",
+      "sha256": "8088e0a205edfa09a89a75c9dd70a7eeeff9e1d415a99bc4a444d1e394c360e2"
+    }
+  ]
+}

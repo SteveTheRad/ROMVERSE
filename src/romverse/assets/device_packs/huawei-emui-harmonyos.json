@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "pack_id": "huawei.emui-harmonyos",
+  "version": "0.1.0",
+  "display_name": "HUAWEI / EMUI / HarmonyOS",
+  "priority": 110,
+  "match": {
+    "manufacturers": ["huawei"]
+  },
+  "knowledge_sources": [
+    {
+      "source_id": "huawei.system-update",
+      "label": "HUAWEI online system update guidance",
+      "url": "https://consumer.huawei.com/en/support/content/en-us00979725/",
+      "authority": "HUAWEI Support",
+      "scope": "Official system-version, backup, battery, connectivity, and online-update prerequisites",
+      "verified_on": "2026-08-30"
+    },
+    {
+      "source_id": "huawei.phone-update",
+      "label": "HUAWEI official phone update routes",
+      "url": "https://consumer.huawei.com/en/support/update/",
+      "authority": "HUAWEI Support",
+      "scope": "Official online and HiSuite update entry points and connection precautions",
+      "verified_on": "2026-08-30"
+    }
+  ],
+  "capabilities": [
+    {
+      "capability_id": "identity.properties",
+      "label": "HUAWEI identity properties",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Maps standard manufacturer, model, product, build, security-patch, slot, and boot-state evidence when Android exposes it."
+    },
+    {
+      "capability_id": "health.baseline",
+      "label": "Battery and storage baseline",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Uses Guardian-approved generic Android health probes where standard Android access is available."
+    },
+    {
+      "capability_id": "huawei.update_knowledge",
+      "label": "Official HUAWEI update context",
+      "status": "limited",
+      "scope": "knowledge_only",
+      "detail": "Surfaces official update and backup precautions without assuming an EMUI or HarmonyOS package, service, or partition contract."
+    },
+    {
+      "capability_id": "huawei.firmware.operations",
+      "label": "HUAWEI firmware operations",
+      "status": "planned",
+      "scope": "locked",
+      "detail": "No HiSuite control, update install, bootloader, root, partition, flash, rollback, or recovery action is enabled."
+    }
+  ],
+  "notes": [
+    "HUAWEI software families, regional services, and update methods vary by exact model and installed release.",
+    "Read-only Android evidence may be incomplete on some HarmonyOS releases; unknown findings remain explicitly unconfirmed."
+  ]
+}

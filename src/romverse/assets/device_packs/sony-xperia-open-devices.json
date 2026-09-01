@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "publication_status": "published",
+  "pack_id": "sony.xperia.open-devices.identity",
+  "version": "0.1.0",
+  "display_name": "Sony Xperia Open Devices / Exact Identity",
+  "priority": 235,
+  "match": {
+    "manufacturers": ["sony"],
+    "product_patterns": [
+      "pdx256", "pdx257", "pdx245", "pdx246",
+      "pdx234", "pdx237", "pdx235",
+      "pdx223", "pdx224", "pdx225",
+      "pdx215", "pdx214", "pdx213",
+      "pdx203", "pdx206", "pdx201",
+      "griffin", "bahamut", "kirin", "mermaid",
+      "akari", "apollo", "akatsuki",
+      "pioneer", "discovery", "voyager",
+      "maple", "poplar", "lilac",
+      "dora", "kagura", "keyaki", "suzu", "kugo", "blanc"
+    ]
+  },
+  "knowledge_sources": [
+    {
+      "source_id": "sony.open-devices.supported-device-matrix.commit-bac9862",
+      "label": "Sony Open Devices supported-device matrix (immutable revision)",
+      "url": "https://github.com/sonyxperiadev/bug_tracker/blob/bac98627678038292ccdf6a5c0903b6693a95c65/README.md#supported-devices",
+      "authority": "Sony Developer World for Xperia",
+      "scope": "Official Xperia model-to-product-codename mapping, platform family, chipset context, and announced/WIP/deprecated status at the pinned revision",
+      "verified_on": "2026-08-29"
+    },
+    {
+      "source_id": "sony.open-devices.drivers",
+      "label": "Sony Open Devices driver catalog",
+      "url": "https://opendevices.sony.net/aosp-on-xperia-open-devices/downloads/drivers",
+      "authority": "Sony Open Devices",
+      "scope": "Official Xperia family names and published USB driver availability; not firmware or flash authority",
+      "verified_on": "2026-08-29"
+    }
+  ],
+  "capabilities": [
+    {
+      "capability_id": "identity.properties",
+      "label": "Exact published Xperia product identity",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Matches only product codenames published by Sony's Open Devices project and records local identity and boot evidence without modifying the phone."
+    },
+    {
+      "capability_id": "health.baseline",
+      "label": "Battery and storage baseline",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Uses Guardian-approved generic Android health probes."
+    },
+    {
+      "capability_id": "sony.platform_context",
+      "label": "Published Open Devices platform context",
+      "status": "limited",
+      "scope": "knowledge_only",
+      "detail": "Explains Sony's published product/platform relationship and lifecycle label; it does not infer installed firmware, regional variant, unlock eligibility, or binary compatibility."
+    },
+    {
+      "capability_id": "sony.firmware.operations",
+      "label": "Xperia firmware operations",
+      "status": "planned",
+      "scope": "locked",
+      "detail": "No build, unlock-key request, wipe, flash, slot change, recovery, root, or AOSP deployment operation is enabled."
+    }
+  ],
+  "notes": [
+    "Product-codename identity is authoritative only for the pinned Sony table; announced, WIP, and deprecated lifecycle labels remain informational.",
+    "No exact stock archive hash, partition contract, AVB policy, signing identity, or physical recovery attestation is present, so execution authority is NONE."
+  ]
+}

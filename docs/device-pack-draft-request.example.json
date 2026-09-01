@@ -1,0 +1,26 @@
+{
+  "format": "romverse.device-pack-draft-request",
+  "schema_version": 1,
+  "pack_id": "example.model.identity",
+  "version": "0.1.0",
+  "display_name": "Example Model / Read-only Identity",
+  "priority": 200,
+  "match": {
+    "manufacturers": ["Example OEM"],
+    "model_patterns": ["Example Model 1"],
+    "product_patterns": ["example_codename"]
+  },
+  "knowledge_sources": [
+    {
+      "source_id": "example.official-model-reference",
+      "label": "Official model reference",
+      "url": "https://example.com/official-device-reference",
+      "authority": "Example OEM",
+      "scope": "Published model and product identity only",
+      "verified_on": "2026-08-29"
+    }
+  ],
+  "notes": [
+    "Replace every example value with independently reviewed official-source evidence."
+  ]
+}

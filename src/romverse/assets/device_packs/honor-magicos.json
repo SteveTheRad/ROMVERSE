@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "pack_id": "honor.magicos",
+  "version": "0.1.0",
+  "display_name": "HONOR / MagicOS",
+  "priority": 110,
+  "match": {
+    "manufacturers": ["honor"]
+  },
+  "knowledge_sources": [
+    {
+      "source_id": "honor.system-update",
+      "label": "HONOR system update troubleshooting",
+      "url": "https://www.honor.com/global/support/content/en-us00434519/",
+      "authority": "HONOR Support",
+      "scope": "Official connectivity, SIM, staged-rollout, update-service, and modified-system boundaries",
+      "verified_on": "2026-08-30"
+    },
+    {
+      "source_id": "aosp.verified-boot",
+      "label": "AOSP Verified Boot behavior",
+      "url": "https://source.android.com/docs/security/features/verifiedboot/boot-flow",
+      "authority": "Android Open Source Project",
+      "scope": "Standards-based interpretation of boot and verity evidence without model-level inference",
+      "verified_on": "2026-08-30"
+    }
+  ],
+  "capabilities": [
+    {
+      "capability_id": "identity.properties",
+      "label": "HONOR identity properties",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Maps standard manufacturer, model, product, build, MagicOS display, security-patch, slot, and boot-state evidence."
+    },
+    {
+      "capability_id": "health.baseline",
+      "label": "Battery and storage baseline",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Uses Guardian-approved generic Android health probes."
+    },
+    {
+      "capability_id": "honor.update_knowledge",
+      "label": "Official HONOR update context",
+      "status": "limited",
+      "scope": "knowledge_only",
+      "detail": "Surfaces official update troubleshooting and staged-rollout context without claiming package or modification compatibility."
+    },
+    {
+      "capability_id": "honor.firmware.operations",
+      "label": "HONOR firmware operations",
+      "status": "planned",
+      "scope": "locked",
+      "detail": "No update-service reset, update install, bootloader, root, partition, flash, rollback, or recovery action is enabled."
+    }
+  ],
+  "notes": [
+    "HONOR update timing and availability vary by exact device, region, carrier, SIM state, and installed build.",
+    "A brand match provides read-only support context only; it never establishes bootloader, root, or firmware-operation eligibility."
+  ]
+}

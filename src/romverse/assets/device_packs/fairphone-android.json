@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "pack_id": "fairphone.android",
+  "version": "0.1.0",
+  "display_name": "Fairphone Android",
+  "priority": 110,
+  "match": {
+    "manufacturers": ["fairphone"]
+  },
+  "knowledge_sources": [
+    {
+      "source_id": "fairphone.software-support",
+      "label": "Fairphone official model software-support matrix",
+      "url": "https://support.fairphone.com/hc/en-us/articles/9979180437393-How-long-will-my-Fairphone-receive-software-and-security-updates",
+      "authority": "Fairphone Support",
+      "scope": "Official model-specific Android version, security cadence, support lifetime, and end-of-support information",
+      "verified_on": "2026-08-30"
+    },
+    {
+      "source_id": "fairphone.software-longevity",
+      "label": "Fairphone official release and software-longevity record",
+      "url": "https://www.fairphone.com/software-longevity",
+      "authority": "Fairphone",
+      "scope": "Official model release history, security-level updates, and software validation context",
+      "verified_on": "2026-08-30"
+    }
+  ],
+  "capabilities": [
+    {
+      "capability_id": "identity.properties",
+      "label": "Fairphone identity properties",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Maps standard manufacturer, model, product, build, security-patch, slot, and boot-state evidence."
+    },
+    {
+      "capability_id": "health.baseline",
+      "label": "Battery and storage baseline",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Uses Guardian-approved generic Android health probes."
+    },
+    {
+      "capability_id": "fairphone.update_knowledge",
+      "label": "Official Fairphone update context",
+      "status": "limited",
+      "scope": "knowledge_only",
+      "detail": "Preserves exact model support and end-of-support status without treating alternative-OS availability as verified ROM compatibility."
+    },
+    {
+      "capability_id": "fairphone.firmware.operations",
+      "label": "Fairphone firmware operations",
+      "status": "planned",
+      "scope": "locked",
+      "detail": "No update-package install, bootloader, root, partition, flash, rollback, or recovery action is enabled."
+    }
+  ],
+  "notes": [
+    "Fairphone support lifetime and security cadence are exact-model facts; end-of-support and alternative-OS guidance remain explicit rather than inferred.",
+    "A manufacturer match improves read-only context only; ROMVERSE requires exact source and device evidence for every later capability."
+  ]
+}

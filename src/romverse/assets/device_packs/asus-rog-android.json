@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "pack_id": "asus.rog-android",
+  "version": "0.1.0",
+  "display_name": "ASUS / ROG Phone Android",
+  "priority": 110,
+  "match": {
+    "manufacturers": ["asus"]
+  },
+  "knowledge_sources": [
+    {
+      "source_id": "asus.phone-firmware-update",
+      "label": "ASUS phone firmware update guidance",
+      "url": "https://www.asus.com/support/faq/1009748/",
+      "authority": "ASUS Support",
+      "scope": "Official automatic and manual phone update paths, exact model and firmware-SKU warnings, and battery prerequisites",
+      "verified_on": "2026-08-30"
+    },
+    {
+      "source_id": "asus.download-center",
+      "label": "ASUS official Download Center",
+      "url": "https://www.asus.com/support/download-center/",
+      "authority": "ASUS",
+      "scope": "Official model-selected firmware, software, manual, and support downloads",
+      "verified_on": "2026-08-30"
+    }
+  ],
+  "capabilities": [
+    {
+      "capability_id": "identity.properties",
+      "label": "ASUS and ROG Phone identity properties",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Maps standard manufacturer, model, product, build, security-patch, slot, and boot-state evidence."
+    },
+    {
+      "capability_id": "health.baseline",
+      "label": "Battery and storage baseline",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Uses Guardian-approved generic Android health probes."
+    },
+    {
+      "capability_id": "asus.update_knowledge",
+      "label": "ASUS firmware-SKU update context",
+      "status": "limited",
+      "scope": "knowledge_only",
+      "detail": "Surfaces official model and firmware-SKU boundaries; ROMVERSE does not infer that a downloaded ZIP matches the connected phone."
+    },
+    {
+      "capability_id": "asus.firmware.operations",
+      "label": "ASUS and ROG Phone firmware operations",
+      "status": "planned",
+      "scope": "locked",
+      "detail": "No manual update install, bootloader, root, partition, flash, downgrade, or recovery action is enabled."
+    }
+  ],
+  "notes": [
+    "ASUS documents region and firmware-SKU boundaries; a model-name match is never enough to select an update package.",
+    "ROG Phone and Zenfone releases require exact model, region, build, package, partition, and boot-state evidence."
+  ]
+}

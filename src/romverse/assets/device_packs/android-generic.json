@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "pack_id": "android.generic",
+  "version": "0.1.0",
+  "display_name": "Generic Android",
+  "priority": 0,
+  "match": {
+    "manufacturers": ["*"]
+  },
+  "knowledge_sources": [
+    {
+      "source_id": "aosp.verified-boot",
+      "label": "AOSP Verified Boot behavior",
+      "url": "https://source.android.com/docs/security/features/verifiedboot/boot-flow",
+      "authority": "Android Open Source Project",
+      "scope": "Standards-based interpretation of locked, unlocked, and Verified Boot state evidence",
+      "verified_on": "2026-08-29"
+    },
+    {
+      "source_id": "aosp.partitions",
+      "label": "AOSP partitions overview",
+      "url": "https://source.android.com/docs/core/architecture/partitions",
+      "authority": "Android Open Source Project",
+      "scope": "Generic Android partition roles and dynamic-partition boundaries",
+      "verified_on": "2026-08-29"
+    }
+  ],
+  "capabilities": [
+    {
+      "capability_id": "identity.properties",
+      "label": "Android identity properties",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Uses standard Android build and product properties."
+    },
+    {
+      "capability_id": "health.baseline",
+      "label": "Battery and storage baseline",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Uses generic dumpsys battery and /data filesystem evidence."
+    },
+    {
+      "capability_id": "security.boot_signals",
+      "label": "Boot security signals",
+      "status": "limited",
+      "scope": "read_only",
+      "detail": "Availability and meaning vary by Android build and OEM."
+    },
+    {
+      "capability_id": "firmware.operations",
+      "label": "Firmware operations",
+      "status": "planned",
+      "scope": "locked",
+      "detail": "No flashing, partition, recovery, or unlock behavior is supplied."
+    }
+  ],
+  "notes": [
+    "Fallback pack for standards-based read-only Android inspection.",
+    "OEM-specific compatibility must not be inferred from this generic profile."
+  ]
+}

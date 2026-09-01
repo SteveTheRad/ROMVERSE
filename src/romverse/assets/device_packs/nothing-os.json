@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "pack_id": "nothing.os",
+  "version": "0.1.0",
+  "display_name": "Nothing / Nothing OS",
+  "priority": 110,
+  "match": {
+    "manufacturers": ["nothing"]
+  },
+  "knowledge_sources": [
+    {
+      "source_id": "nothing.software-updates",
+      "label": "Nothing official software-update guidance",
+      "url": "https://support.nothing.tech/hc/en-us/articles/38494756438033-How-do-I-check-for-and-install-software-updates",
+      "authority": "Nothing Support",
+      "scope": "Official Nothing OS update path plus connectivity and battery prerequisites",
+      "verified_on": "2026-08-30"
+    },
+    {
+      "source_id": "nothing.support",
+      "label": "Nothing official support centre",
+      "url": "https://support.nothing.tech/",
+      "authority": "Nothing",
+      "scope": "Official product, troubleshooting, software-download, service, and update support entry point",
+      "verified_on": "2026-08-30"
+    },
+    {
+      "source_id": "aosp.verified-boot",
+      "label": "AOSP Verified Boot behavior",
+      "url": "https://source.android.com/docs/security/features/verifiedboot/boot-flow",
+      "authority": "Android Open Source Project",
+      "scope": "Standards-based interpretation of boot and verity evidence without model-level inference",
+      "verified_on": "2026-08-30"
+    }
+  ],
+  "capabilities": [
+    {
+      "capability_id": "identity.properties",
+      "label": "Nothing identity properties",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Maps standard product, model, build, Nothing OS display, security-patch, slot, and boot-state evidence."
+    },
+    {
+      "capability_id": "health.baseline",
+      "label": "Battery and storage baseline",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Uses Guardian-approved generic Android health probes."
+    },
+    {
+      "capability_id": "nothing.update_knowledge",
+      "label": "Official Nothing OS update context",
+      "status": "limited",
+      "scope": "knowledge_only",
+      "detail": "Surfaces official update and support routes; ROMVERSE does not infer the connected phone's exact build, package, partition layout, or modification eligibility from its brand."
+    },
+    {
+      "capability_id": "nothing.firmware.operations",
+      "label": "Nothing firmware operations",
+      "status": "planned",
+      "scope": "locked",
+      "detail": "No bootloader, root, update-package install, partition, flash, rollback, or recovery action is enabled."
+    }
+  ],
+  "notes": [
+    "A Nothing manufacturer match improves read-only identity and official support routing only.",
+    "Nothing and CMF retail families must each provide exact manufacturer/product evidence; ROMVERSE does not assume CMF identity from branding alone."
+  ]
+}

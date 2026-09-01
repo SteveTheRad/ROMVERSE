@@ -1,0 +1,315 @@
+import json
+from dataclasses import replace
+from importlib.resources import files
+
+from romverse.device.models import AndroidDevice, DeviceState
+from romverse.device_packs.attestations import PhysicalRecoveryAttestationReport
+from romverse.device_packs.models import (
+    AvbPolicyAuthority,
+    CapabilityStatus,
+    DevicePack,
+    DeviceWriteContract,
+    DeviceWriteTransport,
+    PackCapability,
+    PartitionWriteRule,
+)
+from romverse.device_packs.registry import DevicePackRegistry
+from romverse.device_packs.validation import DevicePackValidationService, ValidationState
+
+
+def _xiaomi() -> AndroidDevice:
+    return AndroidDevice(
+        serial="private-serial-never-exported",
+        state=DeviceState.DEVICE,
+        manufacturer="Xiaomi",
+        model="2509FPN0BC",
+        product="popsicle_global",
+        codename="popsicle",
+    )
+
+
+def test_builtin_xiaomi_pack_fails_closed_without_exact_contract() -> None:
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    pack = next(item for item in registry.packs if item.pack_id == "xiaomi.hyperos")
+
+    report = DevicePackValidationService().assess(pack, _xiaomi())
+
+    checks = {check.check_id: check for check in report.checks}
+    assert checks["integrity"].state is ValidationState.PASS
+    assert checks["exact-model"].state is ValidationState.BLOCKED
+    assert checks["partition-layout"].state is ValidationState.BLOCKED
+    assert checks["declarative-build-contract"].state is ValidationState.BLOCKED
+    assert not report.build_contract_ready
+    assert not report.flash_contract_ready
+
+
+def test_capability_labels_without_declarative_contract_cannot_reach_build_readiness() -> None:
+    pack = DevicePack(
+        "xiaomi.popsicle",
+        "1.0.0",
+        "Xiaomi popsicle",
+        200,
+        ("xiaomi",),
+        ("2509fpn0bc",),
+        ("popsicle*",),
+        (
+            PackCapability(
+                "firmware.operations",
+                "Firmware operations",
+                CapabilityStatus.SUPPORTED,
+                "model_specific",
+                "Reviewed build contract",
+            ),
+            PackCapability(
+                "firmware.partition-layout",
+                "Partition layout",
+                CapabilityStatus.SUPPORTED,
+                "model_specific",
+                "Versioned A/B descriptors",
+            ),
+            PackCapability(
+                "stock.recovery",
+                "Stock recovery",
+                CapabilityStatus.SUPPORTED,
+                "model_specific",
+                "Verified stock restore inputs",
+            ),
+        ),
+        (),
+        "a" * 64,
+    )
+
+    report = DevicePackValidationService().assess(pack, _xiaomi())
+
+    assert not report.build_contract_ready
+    assert not report.flash_contract_ready
+    contract = next(
+        check for check in report.checks if check.check_id == "declarative-build-contract"
+    )
+    assert contract.state is ValidationState.BLOCKED
+
+
+def test_builtin_exact_contract_reaches_local_build_but_not_flash_readiness() -> None:
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    pack = registry.resolve(_xiaomi()).pack
+    assert pack is not None
+
+    report = DevicePackValidationService().assess(pack, _xiaomi())
+
+    assert report.build_contract_ready
+    assert not report.flash_contract_ready
+    avb = next(check for check in report.checks if check.check_id == "avb-execution-policy")
+    assert avb.state is ValidationState.BLOCKED
+    assert "reference-only" in avb.evidence
+    physical = next(check for check in report.checks if check.check_id == "physical-recovery-test")
+    assert physical.state is ValidationState.BLOCKED
+
+
+def _verified_attestation(pack: DevicePack) -> PhysicalRecoveryAttestationReport:
+    assert pack.build_contract is not None
+    return PhysicalRecoveryAttestationReport(
+        verified=True,
+        signer_id="radforge-release-2026",
+        pack_id=pack.pack_id,
+        pack_sha256=pack.sha256,
+        source_build_id=pack.build_contract.source.build_id,
+        model="2509FPN0BC",
+        product="popsicle_global",
+        scenarios=(
+            "stock_restore",
+            "failed_flash_recovery",
+            "slot_recovery",
+            "first_boot_validation",
+        ),
+        report_sha256="b" * 64,
+        issued_at="2026-08-29T00:00:00+00:00",
+        expires_at="2027-08-29T00:00:00+00:00",
+        envelope_sha256="c" * 64,
+        reason="Test fixture already verified by the cryptographic verifier",
+    )
+
+
+def test_exact_physical_attestation_clears_only_its_evidence_checks() -> None:
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    pack = registry.resolve(_xiaomi()).pack
+    assert pack is not None
+
+    report = DevicePackValidationService().assess(
+        pack,
+        _xiaomi(),
+        _verified_attestation(pack),
+    )
+
+    checks = {check.check_id: check for check in report.checks}
+    assert checks["publisher-signature"].state is ValidationState.PASS
+    assert checks["physical-recovery-test"].state is ValidationState.PASS
+    assert checks["avb-execution-policy"].state is ValidationState.BLOCKED
+    assert checks["stock-recovery-route"].state is ValidationState.BLOCKED
+    assert not report.flash_contract_ready
+
+
+def test_exact_write_contract_passes_only_with_matching_physical_attestation() -> None:
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    base = registry.resolve(_xiaomi()).pack
+    assert base is not None and base.build_contract is not None
+    assert base.build_contract.avb_execution_policy is not None
+    envelope_sha256 = "c" * 64
+    avb = replace(
+        base.build_contract.avb_execution_policy,
+        authority=AvbPolicyAuthority.FLASH_VALIDATED,
+        evidence_build_id=base.build_contract.source.build_id,
+        attestation_sha256=envelope_sha256,
+    )
+    writes = DeviceWriteContract(
+        "validated-writes",
+        1,
+        base.build_contract.source.build_id,
+        envelope_sha256,
+        True,
+        avb.require_critical_unlocked,
+        True,
+        True,
+        (
+            PartitionWriteRule(
+                "super",
+                "super.img",
+                DeviceWriteTransport.FASTBOOTD,
+                "none",
+                True,
+            ),
+        ),
+    )
+    pack = replace(
+        base,
+        build_contract=replace(
+            base.build_contract,
+            version=2,
+            avb_execution_policy=avb,
+            partition_write_contract=writes,
+        ),
+    )
+
+    without_attestation = DevicePackValidationService().assess(pack, _xiaomi())
+    with_attestation = DevicePackValidationService().assess(
+        pack, _xiaomi(), _verified_attestation(pack)
+    )
+    with_wrong_attestation = DevicePackValidationService().assess(
+        pack,
+        _xiaomi(),
+        replace(_verified_attestation(pack), envelope_sha256="d" * 64),
+    )
+
+    missing_check = next(
+        check
+        for check in without_attestation.checks
+        if check.check_id == "partition-write-contract"
+    )
+    verified_check = next(
+        check for check in with_attestation.checks if check.check_id == "partition-write-contract"
+    )
+    wrong_check = next(
+        check
+        for check in with_wrong_attestation.checks
+        if check.check_id == "partition-write-contract"
+    )
+    assert missing_check.state is ValidationState.BLOCKED
+    assert wrong_check.state is ValidationState.BLOCKED
+    assert verified_check.state is ValidationState.PASS
+    assert "relocking is prohibited" in verified_check.evidence
+
+
+def test_attestation_for_different_hardware_cannot_clear_recovery_gate() -> None:
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    pack = registry.resolve(_xiaomi()).pack
+    assert pack is not None
+    attestation = _verified_attestation(pack)
+    wrong_hardware = replace(
+        attestation,
+        model="Different model",
+        product="different_product",
+    )
+
+    report = DevicePackValidationService().assess(pack, _xiaomi(), wrong_hardware)
+
+    checks = {check.check_id: check for check in report.checks}
+    assert checks["publisher-signature"].state is ValidationState.ATTENTION
+    assert checks["physical-recovery-test"].state is ValidationState.BLOCKED
+    assert not report.flash_contract_ready
+
+
+def test_attestation_for_different_source_build_cannot_clear_recovery_gate() -> None:
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    pack = registry.resolve(_xiaomi()).pack
+    assert pack is not None
+    wrong_source = replace(
+        _verified_attestation(pack),
+        source_build_id="different-build",
+    )
+
+    report = DevicePackValidationService().assess(pack, _xiaomi(), wrong_source)
+
+    checks = {check.check_id: check for check in report.checks}
+    assert checks["publisher-signature"].state is ValidationState.ATTENTION
+    assert checks["physical-recovery-test"].state is ValidationState.BLOCKED
+
+
+def test_validation_request_is_privacy_safe_and_enables_nothing(tmp_path) -> None:
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    device = AndroidDevice(
+        serial="PRIVATE-SERIAL",
+        state=DeviceState.DEVICE,
+        manufacturer="Xiaomi\x00",
+        model="2509FPN0BC\n",
+        product="popsicle_global",
+        codename="popsicle",
+    )
+    pack = registry.resolve(device).pack
+    assert pack is not None
+    service = DevicePackValidationService()
+
+    exported = service.export_request(service.assess(pack, device), tmp_path)
+    payload = json.loads((tmp_path / exported.output_path).read_text())
+    encoded = json.dumps(payload)
+
+    assert payload["format"] == service.FORMAT
+    assert payload["authority"] == "evidence-request-only"
+    assert payload["capabilities_enabled"] == []
+    assert payload["privacy"] == {
+        "serial_included": False,
+        "imei_included": False,
+        "accounts_included": False,
+        "user_files_included": False,
+    }
+    assert "PRIVATE-SERIAL" not in encoded
+    assert "\x00" not in encoded
+    assert exported.size_bytes > 0
+
+
+def test_physical_test_request_is_exact_privacy_safe_and_enables_nothing(tmp_path) -> None:
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    device = _xiaomi()
+    pack = registry.resolve(device).pack
+    assert pack is not None and pack.build_contract is not None
+    service = DevicePackValidationService()
+
+    exported = service.export_physical_attestation_request(
+        pack,
+        service.assess(pack, device),
+        tmp_path,
+    )
+    payload = json.loads((tmp_path / exported.output_path).read_text())
+    encoded = json.dumps(payload)
+
+    assert payload["format"] == service.PHYSICAL_REQUEST_FORMAT
+    assert payload["pack_sha256"] == pack.sha256
+    assert payload["source_build_id"] == pack.build_contract.source.build_id
+    assert set(payload["required_scenarios"]) == {
+        "stock_restore",
+        "failed_flash_recovery",
+        "slot_recovery",
+        "first_boot_validation",
+    }
+    assert payload["authority"] == "physical-test-request-only"
+    assert payload["capabilities_enabled"] == []
+    assert "private-serial-never-exported" not in encoded
+    assert exported.size_bytes > 0

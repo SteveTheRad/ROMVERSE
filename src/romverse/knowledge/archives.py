@@ -1603,6 +1603,46 @@ KNOWN_FIXES = (
         source=GOOGLE_DEVICE_CATALOG_SOURCE,
     ),
     _fix(
+        "official-device-id-without-pack",
+        "Official Android ID search finds a phone but no Device Pack",
+        "ROMVERSE WORKFLOWS",
+        "Google Play's supported-device catalog can prove a retail identity row for a brand, "
+        "Build.DEVICE codename, and model. It does not describe partition layout, source "
+        "firmware, build tools, AVB policy, recovery, or safe writes. Device Atlas therefore "
+        "keeps an official search match useful and visible while reporting zero exact local "
+        "Pack candidates instead of inventing build support.",
+        checks=(
+            "Confirm the search result came from the current integrity-checked local Google Play mirror and not an arbitrary web result.",
+            "Review retail brand, marketing name, Build.DEVICE, and model; shared names or codenames must not be treated as unique without the complete row.",
+            "Open the identity review and read the exact local Pack candidate count separately from the official-ID result.",
+            "If a phone is connected, compare the independently scanned Build.BRAND, Build.DEVICE, and model rather than selecting a manual search result as the target.",
+        ),
+        fix_steps=(
+            "Use Device Atlas search to inspect the verified official row and any exact literal model/codename patterns declared by local integrity-checked Packs.",
+            "If no exact Pack is shown, keep safe diagnostics available and prepare a review-only model Pack draft from connected-device evidence and authoritative sources.",
+            "Add build, compile, recovery, and flash contracts only through reviewed versioned Pack evidence; never promote the retail catalog row itself.",
+            "Reconnect and run a fresh read-only scan after a Pack update so ROMVERSE re-derives identity and every Requirements Blueprint lane from current evidence.",
+        ),
+        verification=(
+            "Manual official-ID review leaves the active device and Device Pack report unchanged and starts no network request or phone action.",
+            "An exact local Pack candidate opens its declared sources, capabilities, hash, and boundaries for read-only review.",
+            "A missing candidate remains explicit while build, compile, flash, approval, and execution authority stay locked.",
+            "A displayed row is revalidated against the current mirror before review; altered or replaced catalog evidence stops visibly.",
+        ),
+        tags=(
+            "official android id no device pack",
+            "device atlas search no build support",
+            "google play device found pack missing",
+            "retail identity only",
+            "android codename found but unsupported",
+            "official device search",
+        ),
+        route="device_atlas",
+        evidence="ROMVERSE searches only its receipt-verified local Google Play mirror, revalidates a selected row, and connects it only to exact literal model/codename patterns in integrity-checked local Packs.",
+        automation="VERIFIED LOCAL ID SEARCH AND EXACT PACK EVIDENCE ROUTING ONLY • NO NETWORK REQUEST, TARGET SELECTION, BUILD, FLASH, APPROVAL, OR PHONE ACTION",
+        source=GOOGLE_DEVICE_CATALOG_SOURCE,
+    ),
+    _fix(
         "device-build-requirements-blueprint",
         "Determine what a recognized Android device needs to build, compile, and flash",
         "ROMVERSE WORKFLOWS",

@@ -140,6 +140,35 @@ def test_catalog_uses_exact_model_to_narrow_variants_and_never_guesses_ambiguity
     assert "will not guess" in ambiguous.reason
 
 
+def test_catalog_searches_only_the_verified_local_mirror_with_bounded_ranked_results(
+    tmp_path, monkeypatch
+) -> None:
+    monkeypatch.setattr(GooglePlayDeviceCatalog, "MINIMUM_ENTRIES", 1)
+    catalog = GooglePlayDeviceCatalog(tmp_path)
+    _sync(
+        catalog,
+        _payload(
+            ("Example", "Nebula Ultra", "nebula", "EX-200"),
+            ("Example", "Nebula", "nebula-lite", "EX-100"),
+            ("Other", "Nebula One", "one", "NEBULA"),
+        ),
+    )
+
+    exact = catalog.search_entries("example ex-200")
+    ranked = catalog.search_entries("nebula", limit=2)
+
+    assert [entry.marketing_name for entry in exact] == ["Nebula Ultra"]
+    assert [entry.marketing_name for entry in ranked] == ["Nebula", "Nebula One"]
+    assert not catalog.search_entries("")
+    assert not catalog.search_entries("n")
+    assert not catalog.search_entries("nebula", limit=0)
+    assert catalog.contains(exact[0])
+
+    catalog.catalog_path.write_bytes(catalog.catalog_path.read_bytes() + b"tampered")
+    assert not catalog.search_entries("nebula")
+    assert not catalog.contains(exact[0])
+
+
 def test_catalog_rejects_redirect_encoding_size_and_tampering_without_replacing_cache(
     tmp_path, monkeypatch
 ) -> None:

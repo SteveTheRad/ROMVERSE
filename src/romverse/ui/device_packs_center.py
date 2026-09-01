@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 )
 
 from romverse.device.catalog import (
+    DeviceCatalogEntry,
     DeviceCatalogMatch,
     DeviceCatalogStatus,
     GooglePlayDeviceCatalog,
@@ -75,6 +76,7 @@ class DevicePacksCenter(QWidget):
         self.validation_rows: dict[str, QFrame] = {}
         self.requirement_buttons: dict[str, QPushButton] = {}
         self.requirement_badges: dict[str, QLabel] = {}
+        self.official_result_buttons: list[QPushButton] = []
         self.devices: list[AndroidDevice] = []
         self.source_summary = summarize_sources(registry)
 
@@ -115,11 +117,12 @@ class DevicePacksCenter(QWidget):
         self.catalog_search = QLineEdit()
         self.catalog_search.setClearButtonEnabled(True)
         self.catalog_search.setPlaceholderText(
-            "Search Device Atlas by brand, model, codename, capability, or source…"
+            "Search Packs and official Android IDs by brand, retail name, model, or codename…"
         )
         self.catalog_search.setToolTip(
-            "Searches only ROMVERSE's integrity-checked local Pack catalog. It performs no "
-            "network request and grants no device authority."
+            "Searches ROMVERSE's integrity-checked Pack catalog and its verified local mirror "
+            "of Google's public Android device IDs. It performs no network request and grants "
+            "no build, flash, or device authority."
         )
         self.catalog_search.textChanged.connect(self._catalog_query_changed)
         catalog_row.addWidget(self.catalog_search, 1)
@@ -1284,10 +1287,215 @@ class DevicePacksCenter(QWidget):
                 matches.append(pack)
         return tuple(matches)
 
+    def _official_catalog_matches(self, query: str) -> tuple[DeviceCatalogEntry, ...]:
+        if self.device_catalog is None:
+            return ()
+        return self.device_catalog.search_entries(query, limit=12)
+
+    def _exact_packs_for_official_entry(
+        self,
+        entry: DeviceCatalogEntry,
+    ) -> tuple[DevicePack, ...]:
+        """Connect a retail identity only to exact declared local Pack patterns."""
+
+        brand = " ".join(entry.retail_branding.casefold().split())
+        identity_values = {
+            " ".join(entry.device.casefold().split()),
+            " ".join(entry.model.casefold().split()),
+        } - {""}
+        matches: list[DevicePack] = []
+        for pack in self.registry.packs:
+            manufacturers = {
+                " ".join(value.casefold().split())
+                for value in pack.manufacturers
+                if value != "*"
+            }
+            if not manufacturers or (brand and brand not in manufacturers):
+                continue
+            patterns = (*pack.model_patterns, *pack.product_patterns)
+            declared = {
+                " ".join(pattern.casefold().split())
+                for pattern in patterns
+                if not any(token in pattern for token in "*?[")
+            }
+            if identity_values & declared:
+                matches.append(pack)
+        return tuple(matches)
+
+    def _show_official_identity(self, entry: DeviceCatalogEntry) -> None:
+        """Review one still-current official retail identity and its exact local Packs."""
+
+        if self.device_catalog is None or not self.device_catalog.contains(entry):
+            self.identity_catalog_title.setText("Official identity review stopped safely")
+            self.identity_catalog_detail.setText(
+                "The selected row is no longer present in the current integrity-checked mirror. "
+                "Refresh official IDs before reviewing it again. No Device Pack, project, build, "
+                "flash, approval, or phone state changed."
+            )
+            self.identity_catalog_badge.setText("STALE RESULT • ZERO AUTHORITY")
+            self.identity_catalog_badge.setObjectName("Danger")
+            self._repolish(self.identity_catalog_badge)
+            self._show_installed()
+            return
+
+        self._clear()
+        name = entry.marketing_name or entry.device or entry.model or "Unnamed Android identity"
+        header = QFrame()
+        header.setObjectName("HeroCard")
+        header_layout = QHBoxLayout(header)
+        header_copy = QVBoxLayout()
+        eyebrow = QLabel("GOOGLE PLAY DEVICE ID  •  VERIFIED LOCAL MIRROR")
+        eyebrow.setObjectName("Eyebrow")
+        title = QLabel(name)
+        title.setObjectName("HeroTitle")
+        detail = QLabel(
+            f"Retail brand: {entry.retail_branding or 'not listed'}  •  "
+            f"Build.DEVICE: {entry.device or 'not listed'}  •  "
+            f"Model: {entry.model or 'not listed'}"
+        )
+        detail.setObjectName("Muted")
+        detail.setWordWrap(True)
+        detail.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        boundary = QLabel("RETAIL IDENTITY ONLY  •  BUILD / FLASH / EXECUTION AUTHORITY: NONE")
+        boundary.setObjectName("Good")
+        boundary.setWordWrap(True)
+        header_copy.addWidget(eyebrow)
+        header_copy.addWidget(title)
+        header_copy.addWidget(detail)
+        header_copy.addWidget(boundary)
+        header_layout.addLayout(header_copy, 1)
+        back = QPushButton("Back to Device Atlas search")
+        back.clicked.connect(self._show_installed)
+        header_layout.addWidget(back)
+        self.body_layout.addWidget(header)
+
+        explanation = QFrame()
+        explanation.setObjectName("Card")
+        explanation_layout = QVBoxLayout(explanation)
+        explanation_title = QLabel("How ROMVERSE uses this identity")
+        explanation_title.setObjectName("SectionTitle")
+        explanation_copy = QLabel(
+            "A connected-device scan independently reads Build.BRAND, Build.DEVICE, and the "
+            "reported model, then requires an exact catalog match before using the retail name. "
+            "This manual review does not select a phone and cannot promote an official name into "
+            "partition knowledge, compile requirements, a build contract, or a flash contract."
+        )
+        explanation_copy.setObjectName("Muted")
+        explanation_copy.setWordWrap(True)
+        explanation_layout.addWidget(explanation_title)
+        explanation_layout.addWidget(explanation_copy)
+        self.body_layout.addWidget(explanation)
+
+        packs = self._exact_packs_for_official_entry(entry)
+        packs_title = QLabel(
+            f"Exact local Pack evidence  •  {len(packs)} candidate(s)"
+        )
+        packs_title.setObjectName("SectionTitle")
+        self.body_layout.addWidget(packs_title)
+        if not packs:
+            missing = QFrame()
+            missing.setObjectName("Card")
+            missing_layout = QVBoxLayout(missing)
+            missing_title = QLabel("No exact Device Pack is declared for this official identity")
+            missing_title.setObjectName("Warning")
+            missing_copy = QLabel(
+                "ROMVERSE can still recognize and diagnose a connected phone, but model-specific "
+                "build, compile, recovery, and flash planning stays locked until an "
+                "integrity-checked exact Pack supplies those contracts."
+            )
+            missing_copy.setObjectName("Muted")
+            missing_copy.setWordWrap(True)
+            missing_layout.addWidget(missing_title)
+            missing_layout.addWidget(missing_copy)
+            self.body_layout.addWidget(missing)
+        for pack in packs:
+            card = QFrame()
+            card.setObjectName("Card")
+            layout = QHBoxLayout(card)
+            copy = QVBoxLayout()
+            pack_name = QLabel(pack.display_name)
+            pack_name.setObjectName("SectionTitle")
+            pack_detail = QLabel(
+                f"{pack.pack_id}  •  v{pack.version}  •  exact declared model/codename pattern"
+            )
+            pack_detail.setObjectName("Muted")
+            copy.addWidget(pack_name)
+            copy.addWidget(pack_detail)
+            review = QPushButton("Review exact Pack evidence")
+            review.clicked.connect(
+                lambda _checked=False, item=pack: self._show_pack_knowledge(item)
+            )
+            layout.addLayout(copy, 1)
+            layout.addWidget(review)
+            self.body_layout.addWidget(card)
+        self.body_layout.addStretch()
+
     def _show_installed(self) -> None:
         self._clear()
+        self.official_result_buttons.clear()
         query = self.catalog_search.text().strip()
         packs = self._matching_packs(query)
+        official_matches = self._official_catalog_matches(query) if query else ()
+        if query and self.device_catalog is not None:
+            status = self.device_catalog.status()
+            official_title = QLabel(
+                f"Official Android identities  •  {len(official_matches)} verified result(s) shown"
+            )
+            official_title.setObjectName("SectionTitle")
+            self.body_layout.addWidget(official_title)
+            if status.valid and len(query.casefold().strip()) < 2:
+                official_note = QLabel(
+                    "Type at least two characters to search the verified official ID mirror."
+                )
+                official_note.setObjectName("Muted")
+                self.body_layout.addWidget(official_note)
+            elif status.valid and not official_matches:
+                official_note = QLabel(
+                    "No official retail identity row matches this search. ROMVERSE will not "
+                    "infer a device name from a partial or unrelated result."
+                )
+                official_note.setObjectName("Warning")
+                official_note.setWordWrap(True)
+                self.body_layout.addWidget(official_note)
+            elif not status.valid:
+                official_note = QLabel(
+                    "Official ID search needs an integrity-checked local mirror. Use Sync "
+                    "official IDs above; the search itself never starts a network request."
+                )
+                official_note.setObjectName("Warning")
+                official_note.setWordWrap(True)
+                self.body_layout.addWidget(official_note)
+            for entry in official_matches:
+                card = QFrame()
+                card.setObjectName("OfficialIdentityCard")
+                layout = QHBoxLayout(card)
+                copy = QVBoxLayout()
+                name = QLabel(entry.marketing_name or entry.device or entry.model)
+                name.setObjectName("SectionTitle")
+                detail = QLabel(
+                    f"{entry.retail_branding or 'Brand not listed'}  •  "
+                    f"Build.DEVICE {entry.device or 'not listed'}  •  "
+                    f"Model {entry.model or 'not listed'}"
+                )
+                detail.setObjectName("Muted")
+                detail.setWordWrap(True)
+                copy.addWidget(name)
+                copy.addWidget(detail)
+                badge = QLabel("OFFICIAL ID • BUILD LOCKED")
+                badge.setObjectName("Good")
+                review = QPushButton("Review identity")
+                review.setToolTip(
+                    "Revalidates this row against the current mirror, then shows any exact local "
+                    "Pack evidence. No device, project, build, flash, or approval is selected."
+                )
+                review.clicked.connect(
+                    lambda _checked=False, item=entry: self._show_official_identity(item)
+                )
+                layout.addLayout(copy, 1)
+                layout.addWidget(badge)
+                layout.addWidget(review)
+                self.body_layout.addWidget(card)
+                self.official_result_buttons.append(review)
         title = QLabel(
             f"Device Atlas catalog  •  {len(packs)} of {len(self.registry.packs)} Pack(s)"
         )

@@ -172,6 +172,72 @@ def test_device_atlas_search_matches_model_codename_and_capability(tmp_path) -> 
     center.close()
 
 
+def test_device_atlas_search_connects_official_identity_to_exact_local_pack_evidence(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    monkeypatch.setattr(GooglePlayDeviceCatalog, "MINIMUM_ENTRIES", 1)
+    catalog = GooglePlayDeviceCatalog(tmp_path)
+    _sync(
+        catalog,
+        _payload(("Xiaomi", "Xiaomi 17 Pro Max", "popsicle", "2509FPN0BC")),
+    )
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    center = DevicePacksCenter(registry, tmp_path, device_catalog=catalog)
+
+    center.catalog_search.setText("2509FPN0BC")
+    app.processEvents()
+
+    labels = [label.text() for label in center.findChildren(QLabel)]
+    assert "Official Android identities  •  1 verified result(s) shown" in labels
+    assert "Xiaomi 17 Pro Max" in labels
+    assert "OFFICIAL ID • BUILD LOCKED" in labels
+    assert len(center.official_result_buttons) == 1
+    assert center.active_device is None
+    assert center.active_report is None
+
+    center.official_result_buttons[0].click()
+    app.processEvents()
+
+    labels = [label.text() for label in center.findChildren(QLabel)]
+    assert "GOOGLE PLAY DEVICE ID  •  VERIFIED LOCAL MIRROR" in labels
+    assert "RETAIL IDENTITY ONLY  •  BUILD / FLASH / EXECUTION AUTHORITY: NONE" in labels
+    assert "Exact local Pack evidence  •  1 candidate(s)" in labels
+    assert "Xiaomi 17 Pro Max / HyperOS 4.0.0.23" in labels
+    assert center.active_device is None
+    assert center.active_report is None
+    center.close()
+
+
+def test_device_atlas_refuses_a_search_result_after_catalog_evidence_changes(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    monkeypatch.setattr(GooglePlayDeviceCatalog, "MINIMUM_ENTRIES", 1)
+    catalog = GooglePlayDeviceCatalog(tmp_path)
+    _sync(catalog, _payload(("Example", "Example Nebula", "nebula", "EX-100")))
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    center = DevicePacksCenter(registry, tmp_path, device_catalog=catalog)
+    center.catalog_search.setText("Example Nebula")
+    app.processEvents()
+    review = center.official_result_buttons[0]
+
+    catalog.catalog_path.write_bytes(catalog.catalog_path.read_bytes() + b"changed")
+    review.click()
+    app.processEvents()
+
+    assert center.identity_catalog_title.text() == "Official identity review stopped safely"
+    assert center.identity_catalog_badge.text() == "STALE RESULT • ZERO AUTHORITY"
+    assert "No Device Pack, project, build, flash, approval, or phone state changed" in (
+        center.identity_catalog_detail.text()
+    )
+    assert center.active_device is None
+    assert center.active_report is None
+    center.close()
+
+
 def test_device_atlas_shows_exact_official_identity_without_inventing_build_support(
     tmp_path, monkeypatch
 ) -> None:

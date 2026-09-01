@@ -86,6 +86,7 @@ class GooglePlayDeviceCatalog:
     MAXIMUM_ENTRIES = 100_000
     MINIMUM_ENTRIES = 1_000
     MAXIMUM_AGE = timedelta(days=7)
+    MAXIMUM_SEARCH_RESULTS = 25
     CHUNK_BYTES = 128 * 1024
     HEADER = ("Retail Branding", "Marketing Name", "Device", "Model")
     RECEIPT_FIELDS = frozenset(
@@ -250,6 +251,66 @@ class GooglePlayDeviceCatalog:
                 100,
             ),
         )
+
+    def search_entries(
+        self,
+        query: str,
+        *,
+        limit: int = 12,
+    ) -> tuple[DeviceCatalogEntry, ...]:
+        """Search the verified local mirror without making a network request.
+
+        Results are retail-identity evidence only. Searching cannot create a
+        Device Pack, build contract, flash contract, approval, or device action.
+        """
+
+        normalized = _key(str(query).replace("\x00", " "))[:120]
+        if len(normalized) < 2 or type(limit) is not int or limit <= 0:
+            return ()
+        bounded_limit = min(limit, self.MAXIMUM_SEARCH_RESULTS)
+        try:
+            _receipt, entries = self._load_verified()
+        except (DeviceCatalogError, LocalStoreError, OSError, ValueError, TypeError):
+            return ()
+
+        terms = tuple(term for term in normalized.split() if term)
+        ranked: list[tuple[int, str, str, str, int, DeviceCatalogEntry]] = []
+        for position, entry in enumerate(entries):
+            fields = tuple(
+                _key(value)
+                for value in (
+                    entry.retail_branding,
+                    entry.marketing_name,
+                    entry.device,
+                    entry.model,
+                )
+            )
+            searchable = " ".join(fields)
+            if not all(term in searchable for term in terms):
+                continue
+            if normalized in fields:
+                rank = 0
+            elif fields[1].startswith(normalized):
+                rank = 1
+            elif any(field.startswith(normalized) for field in fields):
+                rank = 2
+            else:
+                rank = 3
+            ranked.append((rank, fields[1], fields[2], fields[3], position, entry))
+
+        ranked.sort(key=lambda item: item[:-1])
+        return tuple(item[-1] for item in ranked[:bounded_limit])
+
+    def contains(self, entry: DeviceCatalogEntry) -> bool:
+        """Revalidate one displayed identity against the current verified mirror."""
+
+        if not isinstance(entry, DeviceCatalogEntry):
+            return False
+        try:
+            _receipt, entries = self._load_verified()
+        except (DeviceCatalogError, LocalStoreError, OSError, ValueError, TypeError):
+            return False
+        return entry in entries
 
     def match(self, device: AndroidDevice) -> DeviceCatalogMatch:
         brand = _key(device.brand)

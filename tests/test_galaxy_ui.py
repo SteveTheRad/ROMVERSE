@@ -7,6 +7,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication
 
+from romverse.core.activity import ActivityStore
 from romverse.galaxy.store import GalaxySort
 from romverse.ui.galaxy_center import GalaxyCenter, NewTopicDialog
 from romverse.ui.theme import STYLESHEET
@@ -41,6 +42,35 @@ def test_galaxy_center_renders_and_updates_real_local_conversations(tmp_path) ->
     center.search.setText("not present")
     app.processEvents()
     assert center.topic_list.count() == 0
+    center.close()
+
+
+def test_galaxy_activity_records_and_reopens_the_exact_local_topic(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    activity = ActivityStore(tmp_path)
+    center = GalaxyCenter(tmp_path, activity)
+    post = center.store.create_post("Exact activity topic", "Keep this local evidence bound.")
+    center.refresh(select_id=post.post_id)
+    center.comment_input.setPlainText("Verified reply context.")
+    center._add_comment()
+    app.processEvents()
+
+    event = activity.list_recent()[0]
+    assert (event.source_route, event.context_type, event.context_id) == (
+        "galaxy",
+        "galaxy-topic",
+        post.post_id,
+    )
+
+    other = center.store.create_post("Other topic", "Do not restore this one.")
+    center.refresh(select_id=other.post_id)
+    assert center.open_topic(event.context_id)
+    assert center.current_post_id == post.post_id
+    assert center.topic_title.text() == "Exact activity topic"
+    assert "Nothing was published" in center.status.text()
+
+    center.store.delete_post(post.post_id)
+    assert not center.open_topic(post.post_id)
     center.close()
 
 

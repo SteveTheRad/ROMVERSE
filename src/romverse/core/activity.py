@@ -38,6 +38,7 @@ ACTIVITY_CONTEXT_ROUTES = {
     "time-machine-snapshot": "time_machine",
     "repair-session": "recovery_bay",
     "apk-install-receipt": "app_launchpad",
+    "galaxy-topic": "galaxy",
 }
 _CONTEXT_IDENTIFIERS = {
     "rom-project": re.compile(r"[a-z0-9][a-z0-9-]{0,39}-[0-9a-f]{8}"),
@@ -48,6 +49,7 @@ _CONTEXT_IDENTIFIERS = {
     ),
     "repair-session": re.compile(r"[0-9a-f]{32}"),
     "apk-install-receipt": re.compile(r"[0-9a-f]{24}"),
+    "galaxy-topic": re.compile(r"[0-9a-f]{32}"),
 }
 
 

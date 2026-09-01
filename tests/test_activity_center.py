@@ -331,3 +331,47 @@ def test_activity_handoffs_connect_exact_backup_repair_and_apk_evidence(tmp_path
     finally:
         window.companion_center.transport.close()
         window.close()
+
+
+def test_activity_handoff_restores_exact_galaxy_topic_and_stops_when_missing(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
+    topic = window.galaxy_center.store.create_post(
+        "Galaxy activity source",
+        "This private topic must reopen exactly.",
+    )
+    window.activity_store.record(
+        "community",
+        "Local Galaxy topic created",
+        "Private offline evidence",
+        outcome="success",
+        source="ROMVERSE Galaxy",
+        source_route="galaxy",
+        context_type="galaxy-topic",
+        context_id=topic.post_id,
+    )
+    try:
+        window._navigate_route("activity_center")
+        window.activity_center.refresh()
+        app.processEvents()
+        assert window.activity_center.open_source_button.text() == (
+            "Open exact ROMVERSE Galaxy evidence"
+        )
+        window.activity_center.open_source_button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.galaxy_center
+        assert window.galaxy_center.current_post_id == topic.post_id
+        assert window.galaxy_center.topic_title.text() == "Galaxy activity source"
+        assert "Nothing was published" in window.galaxy_center.status.text()
+
+        window.galaxy_center.store.delete_post(topic.post_id)
+        window._navigate_route("activity_center")
+        window._open_activity_source("galaxy", "galaxy-topic", topic.post_id)
+        assert window.stack.currentWidget() is window.activity_center
+        assert "missing or failed integrity" in window.activity_center.footer.text()
+        assert "No workspace or device state changed" in window.activity_center.footer.text()
+    finally:
+        window.companion_center.transport.close()
+        window.close()

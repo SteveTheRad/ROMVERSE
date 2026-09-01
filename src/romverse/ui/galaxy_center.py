@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import html
+import re
 from contextlib import suppress
 from datetime import datetime
 from pathlib import Path
@@ -405,6 +406,7 @@ class GalaxyCenter(QWidget):
         self._record_activity(
             "Local Galaxy topic created",
             "A private offline topic was saved; nothing was published or synchronized.",
+            post.post_id,
         )
 
     def _add_comment(self) -> None:
@@ -420,6 +422,7 @@ class GalaxyCenter(QWidget):
         self._record_activity(
             "Local Galaxy reply added",
             "A private offline reply was saved; nothing was published or synchronized.",
+            post.post_id,
         )
 
     def _vote(self, value: int) -> None:
@@ -496,6 +499,27 @@ class GalaxyCenter(QWidget):
         ):
             widget.setEnabled(enabled)
 
+    def open_topic(self, post_id: str) -> bool:
+        """Reload and select one exact integrity-checked local Galaxy topic."""
+
+        normalized = str(post_id).strip()[:80]
+        try:
+            post = self.store.get(normalized)
+        except GalaxyStoreError:
+            return False
+        self.search.blockSignals(True)
+        self.search.clear()
+        self.search.blockSignals(False)
+        self.refresh(select_id=post.post_id)
+        if self.current_post_id != post.post_id:
+            return False
+        self._set_status(
+            "Exact Activity Center topic restored from the integrity-checked local Galaxy store. "
+            "Nothing was published or synchronized.",
+            "Good",
+        )
+        return True
+
     def _show_error(self, message: str, modal: bool = False) -> None:
         self._set_status(message, "Danger")
         if modal:
@@ -507,9 +531,10 @@ class GalaxyCenter(QWidget):
         self.status.style().unpolish(self.status)
         self.status.style().polish(self.status)
 
-    def _record_activity(self, title: str, detail: str) -> None:
+    def _record_activity(self, title: str, detail: str, post_id: str = "") -> None:
         if self.activity_store is None:
             return
+        exact_id = post_id if re.fullmatch(r"[0-9a-f]{32}", post_id) else ""
         with suppress(ActivityStoreError):
             self.activity_store.record(
                 "community",
@@ -517,6 +542,9 @@ class GalaxyCenter(QWidget):
                 detail,
                 outcome="success",
                 source="ROMVERSE Galaxy",
+                source_route="galaxy" if exact_id else "",
+                context_type="galaxy-topic" if exact_id else "",
+                context_id=exact_id,
             )
 
     @staticmethod

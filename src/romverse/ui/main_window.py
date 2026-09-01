@@ -3074,8 +3074,8 @@ class MainWindow(QMainWindow):
         self.about_page.route_requested.connect(self._navigate_route)
         self.about_page.knowledge_article_requested.connect(self._open_knowledge_article)
         about_index = self.stack.addWidget(self.about_page)
-        galaxy_page = GalaxyCenter(workspace, self.activity_store)
-        galaxy_index = self.stack.addWidget(galaxy_page)
+        self.galaxy_center = GalaxyCenter(workspace, self.activity_store)
+        galaxy_index = self.stack.addWidget(self.galaxy_center)
         self.members_center = MembersCenter(
             self.app_settings.members_issuer,
             self.app_settings.members_client_id,
@@ -3104,7 +3104,7 @@ class MainWindow(QMainWindow):
             "forge_arsenal": self.stack.indexOf(self.toolchain_center),
             "companion_link": self.stack.indexOf(self.companion_center),
             "members": members_index,
-            "galaxy": galaxy_index,
+            "galaxy": self.stack.indexOf(self.galaxy_center),
             "about": about_index,
         }
         self._route_by_page_index = {
@@ -3810,6 +3810,8 @@ class MainWindow(QMainWindow):
             self.live_console.refresh()
         elif self.stack.currentWidget() is self.nexus_center:
             self.nexus_center.refresh()
+        elif self.stack.currentWidget() is self.galaxy_center:
+            self.galaxy_center.refresh()
         elif self.stack.currentWidget() is self.about_page:
             self._refresh_about_evidence()
         active_button: QPushButton | None = None
@@ -3969,6 +3971,12 @@ class MainWindow(QMainWindow):
                     "The event's exact APK install receipt is missing, legacy, or failed integrity verification"
                 )
                 return
+        elif clean_type == "galaxy-topic":
+            if not self.galaxy_center.open_topic(clean_id):
+                self.activity_center.source_handoff_stopped(
+                    "The event's exact local Galaxy topic is missing or failed integrity verification"
+                )
+                return
         else:
             self.activity_center.source_handoff_stopped(
                 "The event's source context is not supported by this ROMVERSE build"
@@ -3978,6 +3986,15 @@ class MainWindow(QMainWindow):
         if not self._navigate_route(source_route):
             self.activity_center.source_handoff_stopped(
                 "The producing Desktop feature is not registered"
+            )
+            return
+        if clean_type == "galaxy-topic" and not self.galaxy_center.open_topic(clean_id):
+            # Galaxy is refreshed when its page opens. Revalidate once more after that
+            # refresh so an external edit cannot swap or remove the selected local topic
+            # between the source check and the visible destination.
+            self._navigate_route("activity_center")
+            self.activity_center.source_handoff_stopped(
+                "The event's exact local Galaxy topic changed while the handoff was opening"
             )
 
     @Slot()

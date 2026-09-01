@@ -103,7 +103,7 @@ def test_every_desktop_navigation_label_opens_and_highlights_its_own_page(
             "forge_arsenal": window.stack.indexOf(window.toolchain_center),
             "companion_link": window.stack.indexOf(window.companion_center),
             "members": window.stack.indexOf(window.members_center),
-            "galaxy": routes[-2],
+            "galaxy": window.stack.indexOf(window.galaxy_center),
             "about": window.stack.indexOf(window.about_page),
         }
 
@@ -190,7 +190,7 @@ def test_about_recalculates_real_workspace_evidence_and_returns_from_its_exact_g
             f"{len(registry.packs)} DEVICE PACKS  •  1 OFFICIAL IDS"
         )
         assert window.about_page.evidence_values["knowledge"].text() == (
-            "127 VERIFIED GUIDES  •  77 KNOWN FIXES"
+            "128 VERIFIED GUIDES  •  78 KNOWN FIXES"
         )
         ready_tools = sum(status.available for status in window.toolchain_center.statuses)
         tool_count = len(window.toolchain_center.statuses)

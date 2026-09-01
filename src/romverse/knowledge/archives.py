@@ -2078,12 +2078,14 @@ KNOWN_FIXES = (
         "Supported events can also carry a privacy-safe typed identifier that ROMVERSE "
         "revalidates before restoring the exact ROM project, Health Timeline snapshot, "
         "recovery-readiness plan, Time Machine snapshot, guided repair session, or APK install "
-        "receipt. Older and unsupported events honestly open only their canonical source page.",
+        "receipt, or private local Galaxy topic. Older and unsupported events honestly open "
+        "only their canonical source page.",
         checks=(
             "Confirm the event shows EXACT CONTEXT READY before expecting an exact project or snapshot handoff.",
             "For ROM Studio, confirm the referenced project manifest still exists and passes the project store's validation.",
             "For Health Timeline, confirm the snapshot is integrity-enveloped and still passes its SHA-256 verification.",
             "For Time Machine, Recovery Bay, and App Launchpad, confirm the exact plan, snapshot, session, or receipt still passes its owning store's integrity checks.",
+            "For Galaxy, confirm the private topic still exists in the integrity-checked local Community Lab store.",
             "Treat a page-level handoff as navigation only; it does not claim that a previous selection was restored.",
         ),
         fix_steps=(
@@ -2096,6 +2098,7 @@ KNOWN_FIXES = (
             "A valid ROM project handoff opens ROM Studio with that exact project selected.",
             "A valid diagnostic handoff opens Health Timeline with that exact verified snapshot selected.",
             "Valid Time Machine, Recovery Bay, and App Launchpad handoffs display their exact verified record without recreating approval or execution state.",
+            "A valid Galaxy handoff opens the exact private local topic and never publishes or synchronizes it.",
             "Missing, legacy, tampered, incomplete, or unsupported context leaves Activity Center visible with a safe-stop reason and changes no workspace or phone state.",
         ),
         tags=(
@@ -2110,10 +2113,52 @@ KNOWN_FIXES = (
             "repair session activity",
             "apk receipt activity",
             "time machine snapshot activity",
+            "galaxy topic activity",
         ),
         route="activity_center",
         evidence="ROMVERSE accepts only registered type-to-route pairs and path-free identifiers, then asks the owning validated store to reload the exact current record.",
         automation="LOCAL REVALIDATION AND EXACT NAVIGATION ONLY • NO APPROVAL, RESTORE, BUILD, INSTALL, FLASH, PUBLISH, OR DEVICE ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "activity-galaxy-topic-context",
+        "Activity Center opens Galaxy but not the exact local topic",
+        "ROMVERSE WORKFLOWS",
+        "A Galaxy outcome is not fully connected when Activity Center can open only the general "
+        "Community Lab. Topic creation and replies now carry a path-free local topic id. "
+        "Activity Center validates that typed id, asks Galaxy's integrity-checking store to "
+        "reload it, refreshes the destination, and verifies the same topic again before showing "
+        "the handoff as complete.",
+        checks=(
+            "Confirm the Activity event says EXACT CONTEXT READY and identifies GALAXY TOPIC rather than offering a generic Galaxy route.",
+            "Confirm the topic id is a 32-character lowercase hexadecimal local identifier, not a title, path, author, account, or device id.",
+            "Check the Galaxy community record is a regular bounded local file and its SHA-256 integrity envelope still verifies.",
+            "Confirm the topic still exists; a deletion outcome intentionally retains only page-level Galaxy navigation.",
+        ),
+        fix_steps=(
+            "Refresh Activity Center so the private ledger and its registered type-to-route contract are reread.",
+            "Use Open exact ROMVERSE Galaxy evidence; ROMVERSE clears any search filter and selects only the reloaded matching topic id.",
+            "If the exact handoff stops, leave the activity record intact and inspect the current local Galaxy store; do not substitute a similarly named topic.",
+            "For legacy or nonconforming topic ids, retain generic Galaxy navigation rather than dropping the entire activity outcome.",
+        ),
+        verification=(
+            "A reply event recorded for one topic reopens that exact topic even when another topic was selected most recently.",
+            "The destination reports integrity-checked local evidence and keeps online publishing locked.",
+            "Deleting the referenced topic makes the same handoff stay in Activity Center with a visible safe-stop reason.",
+            "The round trip starts no publish, synchronization, account, worker, build, approval, install, flash, or phone action.",
+        ),
+        tags=(
+            "galaxy activity exact topic",
+            "activity opens wrong galaxy topic",
+            "community lab source context",
+            "galaxy topic missing",
+            "private topic activity handoff",
+            "right page wrong local topic",
+            "nothing published synchronized",
+        ),
+        route="activity_center",
+        evidence="ROMVERSE regression tests record a typed Galaxy topic event, deliberately select another topic, restore the exact original id, and then prove a deleted source stops safely.",
+        automation="LOCAL INTEGRITY REVALIDATION AND EXACT NAVIGATION ONLY • NO PUBLISH, SYNC, ACCOUNT, WORKER, BUILD, APPROVAL, INSTALL, FLASH, OR PHONE ACTION",
         source=ROMVERSE_SOURCE,
     ),
     _fix(

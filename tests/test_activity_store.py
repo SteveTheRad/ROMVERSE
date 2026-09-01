@@ -106,6 +106,7 @@ def test_activity_store_rejects_incomplete_unsupported_or_path_context(
         ),
         ("recovery_bay", "repair-session", "1" * 32),
         ("app_launchpad", "apk-install-receipt", "2" * 24),
+        ("galaxy", "galaxy-topic", "3" * 32),
     ),
 )
 def test_activity_store_accepts_registered_exact_evidence_identifiers(

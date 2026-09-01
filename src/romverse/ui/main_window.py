@@ -88,6 +88,7 @@ from romverse.device.identity import DeviceIdentityResolver
 from romverse.device.models import AndroidDevice
 from romverse.device_packs.attestations import DevicePackAttestationStore
 from romverse.device_packs.registry import DevicePackRegistry
+from romverse.device_packs.validation import DevicePackValidationReport
 from romverse.diagnostics.analyzer import DiagnosticAnalyzer
 from romverse.diagnostics.history import DiagnosticHistoryStore
 from romverse.diagnostics.models import DiagnosticReport
@@ -2579,6 +2580,8 @@ class MainWindow(QMainWindow):
             self.app_settings.online_intelligence_enabled,
         )
         self.device_packs_center.catalog_refresh_requested.connect(self._refresh_device_catalog)
+        self.device_packs_center.next_action_requested.connect(self._open_device_pack_next_action)
+        self.device_packs_center.readiness_changed.connect(self._record_device_pack_readiness)
         self.stack.addWidget(self.device_packs_center)
         self.rom_studio = RomStudio(
             RomProjectStore(workspace),
@@ -2627,6 +2630,7 @@ class MainWindow(QMainWindow):
         )
         self.backup_center.runtime_tools_requested.connect(self._resolve_backup_runtime)
         self.backup_center.guardian_requested.connect(self._open_backup_guardian_review)
+        self.backup_center.rom_studio_requested.connect(lambda: self._navigate_route("rom_studio"))
         self.guardian_center.time_machine_requested.connect(
             lambda: self._navigate_route("time_machine")
         )
@@ -3498,6 +3502,53 @@ class MainWindow(QMainWindow):
                 "The producing Desktop feature is not registered"
             )
 
+    @Slot(str, str, str, str)
+    def _open_device_pack_next_action(
+        self,
+        route: str,
+        article_key: str,
+        check_id: str,
+        report_digest: str,
+    ) -> None:
+        """Revalidate the current readiness advice before opening its zero-authority route."""
+
+        report = self.device_packs_center.active_report
+        action = self.device_packs_center.active_next_action
+        if (
+            report is None
+            or action is None
+            or report.report_digest != report_digest
+            or action.route != route
+            or action.article_key != article_key
+            or action.check_id != check_id
+        ):
+            self.device_packs_center.next_action_handoff_stopped(
+                "The requested readiness action no longer matches the current Device Pack report"
+            )
+            return
+        if route == "archives":
+            if not article_key or not self.knowledge_center.open_article(article_key):
+                self.device_packs_center.next_action_handoff_stopped(
+                    "The exact verified Archives guide is unavailable"
+                )
+                return
+            self._navigate_route("archives")
+            return
+        if route == "time_machine":
+            if not self.backup_center.open_device_atlas_readiness(report):
+                self.device_packs_center.next_action_handoff_stopped(
+                    "Time Machine rejected readiness context that is not a current stock-recovery gate"
+                )
+                return
+            self._navigate_route("time_machine")
+            return
+        if route == "rom_studio":
+            self._navigate_route("rom_studio")
+            return
+        self.device_packs_center.next_action_handoff_stopped(
+            "The advised Desktop destination is not an approved readiness route"
+        )
+
     @Slot(str, str)
     def _open_nexus_guardian_review(self, project_id: str, plan_digest: str) -> None:
         """Revalidate a zero-authority Nexus plan before showing Guardian context."""
@@ -3812,6 +3863,41 @@ class MainWindow(QMainWindow):
                 ),
                 next_action="Review the explanation, let ROMVERSE resolve safe prerequisites, then retry.",
                 confidence=MissionConfidence.VERIFIED,
+            )
+        except LiveConsoleStoreError:
+            return
+        self.live_console.refresh()
+
+    @Slot(object)
+    def _record_device_pack_readiness(self, report: object) -> None:
+        if not isinstance(report, DevicePackValidationReport):
+            return
+        action = self.device_packs_center.validation_service.next_safe_action(report)
+        build = "ready" if report.build_contract_ready else "locked"
+        flash = "ready" if report.flash_contract_ready else "locked"
+        try:
+            self.nexus_events.note(
+                source="Device Atlas",
+                stage="device-pack-readiness",
+                title="Device Pack readiness updated",
+                summary=(
+                    f"Device Atlas verified {report.passed_count} of {len(report.checks)} gates "
+                    f"for {report.model} / {report.codename}; build is {build} and flash is {flash}."
+                ),
+                explanation=(
+                    f"The report binds Device Pack {report.pack_id} v{report.pack_version} at "
+                    f"SHA-256 {report.pack_sha256[:16]}…. Readiness remains separate from "
+                    "Guardian approval and execution authority."
+                ),
+                next_action=action.title,
+                state=(
+                    MissionState.INFORMATION
+                    if report.build_contract_ready
+                    else MissionState.ATTENTION
+                ),
+                confidence=MissionConfidence.VERIFIED,
+                guardian_protected=True,
+                dedupe_key=f"device-pack-readiness-{report.report_digest}",
             )
         except LiveConsoleStoreError:
             return

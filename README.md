@@ -165,6 +165,15 @@ be exported without serials, IMEI, accounts, files, keys, or capability-enabling
 Exporting a request never clears a gate; only a reviewed Device Pack with the required
 evidence can do that.
 
+That roadmap now derives one prominent **Next Safe Action** from the exact current report. A build
+gate opens the exact verified Archives guide; a build-ready Pack with missing stock recovery opens
+Time Machine with the report/Pack identity still visible; a fully ready Pack continues to ROM
+Studio. Every handoff is revalidated against the report digest before navigation and starts no
+worker, approval, build, or phone action. If Time Machine has no protected-firmware project, it
+refuses to invent one and connects back to ROM Studio. The genuine readiness result is also recorded
+in Live Console, whose source action returns to Device Atlas. Shared dark item-view styling keeps
+empty lists, trees, tables, and combo popups readable instead of inheriting a native white viewport.
+
 The bundled exact-identity Packs map published Pixel 6 through Pixel 9a names/codenames from
 Google's AOSP kernel matrix and Sony Xperia product codenames from an immutable revision of Sony's
 Open Devices support table. They complement the online retail-identity catalog while deliberately

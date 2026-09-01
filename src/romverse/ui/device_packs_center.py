@@ -29,6 +29,7 @@ from romverse.device_packs.models import CapabilityStatus, DevicePack
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.device_packs.source_audit import export_source_audit, summarize_sources
 from romverse.device_packs.validation import (
+    DevicePackNextAction,
     DevicePackValidationReport,
     DevicePackValidationService,
     ValidationState,
@@ -38,6 +39,8 @@ from romverse.device_packs.validation import (
 class DevicePacksCenter(QWidget):
     rom_studio_requested = Signal()
     catalog_refresh_requested = Signal()
+    next_action_requested = Signal(str, str, str, str)
+    readiness_changed = Signal(object)
 
     def __init__(
         self,
@@ -56,6 +59,7 @@ class DevicePacksCenter(QWidget):
         self.validation_service = DevicePackValidationService()
         self.draft_service = DevicePackDraftService()
         self.active_report: DevicePackValidationReport | None = None
+        self.active_next_action: DevicePackNextAction | None = None
         self.active_pack: DevicePack | None = None
         self.active_device: AndroidDevice | None = None
         self.validation_rows: dict[str, QFrame] = {}
@@ -368,6 +372,7 @@ class DevicePacksCenter(QWidget):
             self.pack_badge.setObjectName("Warning")
             self.version_value.setText("—")
             self.active_report = None
+            self.active_next_action = None
             self.active_pack = None
             self.active_device = None
             self._repolish(self.pack_badge)
@@ -396,6 +401,7 @@ class DevicePacksCenter(QWidget):
             self.pack_badge.setObjectName("Danger")
             self.version_value.setText("—")
             self.active_report = None
+            self.active_next_action = None
             self.active_pack = None
             self.active_device = device
             self._repolish(self.pack_badge)
@@ -466,6 +472,7 @@ class DevicePacksCenter(QWidget):
                 False,
             )
         self._render_pack(pack, self.active_report)
+        self.readiness_changed.emit(self.active_report)
 
     def _set_guidance(
         self,
@@ -484,6 +491,7 @@ class DevicePacksCenter(QWidget):
     def _render_pack(self, pack: DevicePack, report: DevicePackValidationReport) -> None:
         self._clear()
         self.validation_rows.clear()
+        self.active_next_action = self.validation_service.next_safe_action(report)
         roadmap = QFrame()
         roadmap.setObjectName("Card")
         roadmap_layout = QVBoxLayout(roadmap)
@@ -517,6 +525,46 @@ class DevicePacksCenter(QWidget):
         )
         roadmap_header.addWidget(build_state)
         roadmap_layout.addLayout(roadmap_header)
+
+        next_action = QFrame()
+        next_action.setObjectName("DiagnosticHandoffBar")
+        next_layout = QHBoxLayout(next_action)
+        next_layout.setContentsMargins(16, 13, 16, 13)
+        next_copy = QVBoxLayout()
+        next_eyebrow = QLabel("NEXT SAFE ACTION  •  DETERMINISTIC FROM CURRENT EVIDENCE")
+        next_eyebrow.setObjectName("Eyebrow")
+        self.next_action_title = QLabel(self.active_next_action.title)
+        self.next_action_title.setObjectName("SectionTitle")
+        self.next_action_detail = QLabel(self.active_next_action.detail)
+        self.next_action_detail.setObjectName("Muted")
+        self.next_action_detail.setWordWrap(True)
+        next_copy.addWidget(next_eyebrow)
+        next_copy.addWidget(self.next_action_title)
+        next_copy.addWidget(self.next_action_detail)
+        next_layout.addLayout(next_copy, 1)
+        scope = self.active_next_action.scope
+        self.next_action_badge = QLabel(
+            "READY • GUARDIAN ACTIVE"
+            if scope == "ready"
+            else f"{scope.upper()} GATE • ZERO AUTHORITY"
+        )
+        self.next_action_badge.setObjectName(
+            "Good" if scope == "ready" else "Danger" if scope == "build" else "Warning"
+        )
+        next_layout.addWidget(self.next_action_badge)
+        self.next_action_button = QPushButton(self.active_next_action.button_label)
+        self.next_action_button.setObjectName("Primary")
+        self.next_action_button.setToolTip(
+            "Opens the exact ROMVERSE page or verified guide selected from this current "
+            "readiness report. It starts no worker, approval, build, or phone action."
+        )
+        self.next_action_button.clicked.connect(self._request_next_action)
+        next_layout.addWidget(self.next_action_button)
+        roadmap_layout.addWidget(next_action)
+        self.next_action_feedback = QLabel("")
+        self.next_action_feedback.setObjectName("Muted")
+        self.next_action_feedback.setWordWrap(True)
+        roadmap_layout.addWidget(self.next_action_feedback)
 
         for check in report.checks:
             row = QFrame()
@@ -716,6 +764,29 @@ class DevicePacksCenter(QWidget):
             layout.addWidget(copy)
             self.body_layout.addWidget(notes)
         self.body_layout.addStretch()
+
+    def _request_next_action(self) -> None:
+        action = self.active_next_action
+        report = self.active_report
+        if action is None or report is None:
+            return
+        self.next_action_requested.emit(
+            action.route,
+            action.article_key,
+            action.check_id,
+            report.report_digest,
+        )
+
+    def next_action_handoff_stopped(self, reason: str) -> None:
+        """Keep a refused readiness handoff visible without relying on a toast."""
+
+        if not hasattr(self, "next_action_feedback"):
+            return
+        self.next_action_feedback.setText(
+            f"NEXT ACTION STOPPED  •  {reason}  •  NO WORKER OR PHONE ACTION STARTED"
+        )
+        self.next_action_feedback.setObjectName("Danger")
+        self._repolish(self.next_action_feedback)
 
     def _export_validation_request(self) -> None:
         if self.active_report is None or self.workspace is None:

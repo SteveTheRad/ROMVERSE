@@ -19,6 +19,7 @@ from romverse.device.identity import IdentityAuthority
 from romverse.device.models import AndroidDevice, DeviceState, StorageInfo
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.infrastructure.tools import ToolStatus
+from romverse.nexus.events import MissionConfidence
 from romverse.nexus.planning import NexusObjective, NexusPlanner
 from romverse.repair.templates import RepairConcern
 from romverse.ui.main_window import (
@@ -874,6 +875,44 @@ def test_fresh_scan_connects_exact_official_device_identity_to_every_desktop_con
         assert receipt is not None
         assert receipt.authority is IdentityAuthority.GOOGLE_PLAY_CATALOG
         assert window.device_catalog_worker is None
+
+        readiness = next(
+            event for event in window.nexus_events.list_recent() if event.source == "Device Atlas"
+        )
+        assert readiness.stage == "device-pack-readiness"
+        assert "build is locked and flash is locked" in readiness.summary
+        assert readiness.next_action == "Confirm the exact model contract"
+        assert readiness.confidence is MissionConfidence.VERIFIED
+
+        window._navigate_route("live_console")
+        app.processEvents()
+        readiness_row = next(
+            row
+            for row in range(window.live_console.table.rowCount())
+            if window.live_console.table.item(row, 1).text() == "Device Atlas"
+        )
+        window.live_console.table.selectRow(readiness_row)
+        app.processEvents()
+        assert window.live_console.open_source_button.text() == "Open Device Atlas"
+        window.live_console.open_source_button.click()
+        assert window.stack.currentWidget() is window.device_packs_center
+
+        action = window.device_packs_center.active_next_action
+        report = window.device_packs_center.active_report
+        assert action is not None and report is not None
+        window._open_device_pack_next_action(
+            action.route,
+            action.article_key,
+            action.check_id,
+            "0" * 64,
+        )
+        assert window.stack.currentWidget() is window.device_packs_center
+        assert "NEXT ACTION STOPPED" in window.device_packs_center.next_action_feedback.text()
+
+        window.device_packs_center.next_action_button.click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.knowledge_center
+        assert "Recognize an Android model" in window.knowledge_center.list.currentItem().text()
     finally:
         window.companion_center.transport.close()
         window.close()
@@ -926,6 +965,51 @@ def test_device_atlas_runs_official_id_sync_in_managed_worker_and_keeps_failure_
         assert "No build, flash, approval, or phone action" in (
             window.device_packs_center.identity_catalog_detail.text()
         )
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_device_atlas_stock_gate_opens_time_machine_with_exact_context(tmp_path: Path) -> None:
+    app = QApplication.instance() or QApplication([])
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        pack_registry=registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    try:
+        window._scan_complete(
+            [
+                AndroidDevice(
+                    "private-xiaomi",
+                    DeviceState.DEVICE,
+                    brand="Xiaomi",
+                    manufacturer="Xiaomi",
+                    model="2509FPN0BC",
+                    product="popsicle_global",
+                    codename="popsicle",
+                )
+            ]
+        )
+        app.processEvents()
+
+        assert window.device_packs_center.active_next_action is not None
+        assert window.device_packs_center.active_next_action.route == "time_machine"
+        window.device_packs_center.next_action_button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.backup_center
+        assert window.backup_center.device_atlas_handoff.isVisibleTo(window.backup_center)
+        assert "2509FPN0BC / popsicle" in (window.backup_center.device_atlas_handoff_title.text())
+        assert "No worker or phone action started" in (
+            window.backup_center.device_atlas_handoff_detail.text()
+        )
+        assert window.backup_center.device_atlas_project_button.isVisibleTo(window.backup_center)
     finally:
         window.companion_center.transport.close()
         window.close()

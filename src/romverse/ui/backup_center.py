@@ -23,6 +23,7 @@ from romverse.backup.media import PhoneMediaBackupReceipt, PhoneMediaBackupServi
 from romverse.backup.plans import GuardianBackupPlanStore
 from romverse.core.activity import ActivityStore, ActivityStoreError
 from romverse.device.models import AndroidDevice, DeviceState
+from romverse.device_packs.validation import DevicePackValidationReport, ValidationState
 from romverse.nexus.events import (
     LiveConsoleEventStore,
     LiveConsoleStoreError,
@@ -144,6 +145,7 @@ class BackupCenter(QWidget):
     live_console_changed = Signal()
     runtime_tools_requested = Signal()
     guardian_requested = Signal(str, str)
+    rom_studio_requested = Signal()
 
     def __init__(
         self,
@@ -191,6 +193,35 @@ class BackupCenter(QWidget):
         self.status.setObjectName("Muted")
         self.status.setWordWrap(True)
         layout.addWidget(self.status)
+        self.device_atlas_handoff = QFrame()
+        self.device_atlas_handoff.setObjectName("DiagnosticHandoffBar")
+        handoff_layout = QHBoxLayout(self.device_atlas_handoff)
+        handoff_layout.setContentsMargins(18, 13, 18, 13)
+        handoff_copy = QVBoxLayout()
+        handoff_eyebrow = QLabel("DEVICE ATLAS HANDOFF  •  EXACT CURRENT READINESS REPORT")
+        handoff_eyebrow.setObjectName("Eyebrow")
+        self.device_atlas_handoff_title = QLabel()
+        self.device_atlas_handoff_title.setObjectName("SectionTitle")
+        self.device_atlas_handoff_detail = QLabel()
+        self.device_atlas_handoff_detail.setObjectName("Muted")
+        self.device_atlas_handoff_detail.setWordWrap(True)
+        handoff_copy.addWidget(handoff_eyebrow)
+        handoff_copy.addWidget(self.device_atlas_handoff_title)
+        handoff_copy.addWidget(self.device_atlas_handoff_detail)
+        handoff_layout.addLayout(handoff_copy, 1)
+        handoff_badge = QLabel("FLASH GATE • ZERO AUTHORITY")
+        handoff_badge.setObjectName("Warning")
+        handoff_layout.addWidget(handoff_badge)
+        self.device_atlas_project_button = QPushButton("Open ROM Studio")
+        self.device_atlas_project_button.setObjectName("Primary")
+        self.device_atlas_project_button.setToolTip(
+            "Create or select the exact protected-firmware project required to bind stock "
+            "recovery evidence. This starts no build or phone action."
+        )
+        self.device_atlas_project_button.clicked.connect(self.rom_studio_requested.emit)
+        handoff_layout.addWidget(self.device_atlas_project_button)
+        self.device_atlas_handoff.setVisible(False)
+        layout.addWidget(self.device_atlas_handoff)
         columns = QHBoxLayout()
         columns.setSpacing(14)
         readiness = QFrame()
@@ -361,6 +392,45 @@ class BackupCenter(QWidget):
         layout.addWidget(boundary)
         self._load_latest_plan()
         self.refresh_local_snapshots()
+
+    def open_device_atlas_readiness(self, report: DevicePackValidationReport) -> bool:
+        """Show exact zero-authority Device Atlas context without enabling evidence gates."""
+
+        stock = next(
+            (check for check in report.checks if check.check_id == "stock-recovery-route"),
+            None,
+        )
+        if (
+            not report.build_contract_ready
+            or report.flash_contract_ready
+            or stock is None
+            or stock.state is ValidationState.PASS
+        ):
+            return False
+        current_project = str(self.project_selector.currentData() or "")
+        self.refresh_local_snapshots(current_project)
+        self.device_atlas_handoff_title.setText(
+            f"Stock recovery evidence needed for {report.model} / {report.codename}"
+        )
+        if self.projects:
+            selected = self.projects[self.project_selector.currentIndex()]
+            self.device_atlas_handoff_detail.setText(
+                f"Device Atlas report {report.report_id} binds Pack {report.pack_id} at SHA-256 "
+                f"{report.pack_sha256[:16]}…. Project {selected.name} is selected below; register "
+                "its byte-identical protected stock firmware and reverify both safety records. "
+                "This handoff grants no approval or execution authority."
+            )
+            self.device_atlas_project_button.setVisible(False)
+        else:
+            self.device_atlas_handoff_detail.setText(
+                f"Device Atlas report {report.report_id} binds Pack {report.pack_id} at SHA-256 "
+                f"{report.pack_sha256[:16]}…. Create or import the exact protected-firmware "
+                "project in ROM Studio first; Time Machine will not attach stock evidence to an "
+                "unidentified project. No worker or phone action started."
+            )
+            self.device_atlas_project_button.setVisible(True)
+        self.device_atlas_handoff.setVisible(True)
+        return True
 
     def set_media_backup_service(self, service: PhoneMediaBackupService | None) -> None:
         self.media_backup_service = service

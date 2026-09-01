@@ -1552,6 +1552,44 @@ KNOWN_FIXES = (
         automation="BOUNDED OFFICIAL CATALOG SYNC • READ-ONLY IDENTITY • BUILD/FLASH AUTHORITY NONE",
         source=GOOGLE_DEVICE_CATALOG_SOURCE,
     ),
+    _fix(
+        "device-pack-readiness-roadmap",
+        "Device Pack roadmap is build-locked or flash-locked",
+        "ROMVERSE WORKFLOWS",
+        "Device Atlas separates identity, local build planning, and phone-writing readiness. A "
+        "build lock means the exact model, firmware capability, partition descriptors, or bounded "
+        "build contract is incomplete. A flash lock means the independent recovery, AVB, signed "
+        "physical-test, or partition-write evidence is incomplete even when local building is ready.",
+        checks=(
+            "Read the first unresolved validation row and confirm whether it is labelled for build, flash, or public release.",
+            "Confirm the roadmap still binds the connected model/codename and the integrity-checked active Device Pack digest.",
+            "Keep official retail identity, Device Pack scope, protected firmware, host tools, and Guardian approval as separate evidence.",
+        ),
+        fix_steps=(
+            "For an identity or build gate, open the exact guide selected by Next Safe Action and update only a reviewed Device Pack contract.",
+            "For a missing stock route, use Time Machine to register and reverify exact local backup and stock-recovery evidence.",
+            "For physical, AVB, publisher, or write-contract gates, export the privacy-safe challenge and import only a valid signed exact-build attestation.",
+            "Continue to ROM Studio only after every build-labelled row passes; flash remains unavailable until every flash-labelled row independently passes.",
+        ),
+        verification=(
+            "The same deterministic report reloads with the expected Pack/model binding and a valid report digest.",
+            "Live Console records the genuine readiness result and returns to Device Atlas without starting a worker or phone action.",
+            "No route, export, catalog match, or locally edited receipt changes readiness unless its originating verifier accepts the exact evidence.",
+        ),
+        tags=(
+            "device pack build locked",
+            "device pack flash locked",
+            "validation roadmap",
+            "build contract missing",
+            "partition write contract",
+            "physical recovery attestation",
+            "next safe action",
+        ),
+        route="device_atlas",
+        evidence="ROMVERSE derives every readiness row from the exact active Device Pack, connected hardware identity, and independently verified attestations.",
+        automation="DETERMINISTIC GUIDANCE AND ROUTING ONLY • NO APPROVAL OR EXECUTION AUTHORITY",
+        source=ROMVERSE_SOURCE,
+    ),
 )
 
 

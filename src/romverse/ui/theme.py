@@ -196,6 +196,28 @@ QPushButton#StudioAction:disabled {
 }
 QComboBox, QLineEdit { background: #0B1022; border: 1px solid #2B3C70; border-radius: 8px; padding: 8px; }
 QComboBox::drop-down { border: 0; }
+QAbstractItemView {
+    color: #DCE8F8;
+    background: #060B16;
+    alternate-background-color: #0B1322;
+    border: 1px solid #29466F;
+    border-radius: 9px;
+    outline: 0;
+    selection-color: #FFFFFF;
+    selection-background-color: #28589C;
+}
+QAbstractItemView:disabled { color: #65708C; background: #080D18; border-color: #25334E; }
+QAbstractItemView::item { color: #DCE8F8; padding: 6px; }
+QAbstractItemView::item:hover { color: #FFFFFF; background: #142440; }
+QAbstractItemView::item:selected {
+    color: #FFFFFF;
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #523B9B,stop:1 #236996);
+}
+QHeaderView::section {
+    color: #CFE1F7; background: #0D1729; border: 0; border-right: 1px solid #29466F;
+    border-bottom: 1px solid #3B5E8E; padding: 7px;
+}
+QTableCornerButton::section { background: #0D1729; border: 1px solid #29466F; }
 QProgressBar { background: #070B18; border: 1px solid #273867; border-radius: 5px; height: 9px; text-align: center; }
 QProgressBar::chunk { background: #4F7CFF; border-radius: 4px; }
 QProgressBar#FlightPlanProgress { min-height: 18px; color: #F5F8FF; font-size: 10px; font-weight: 750; }

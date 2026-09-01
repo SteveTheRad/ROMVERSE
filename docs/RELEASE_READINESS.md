@@ -28,7 +28,7 @@ has current evidence.
    Repository tests also prove a changed packaged runtime module is rejected. This does not replace
    the required Windows installed-wheel pass or signed release-artifact validation.
 
-   Current Fedora development evidence recorded on 2026-09-01: 1,123 Desktop tests and the complete
+   Current Fedora development evidence recorded on 2026-09-01: 1,128 Desktop tests and the complete
    Ruff check/format gate pass after the Ctrl+K navigation-only palette, canonical Activity Center,
    connected About ROMVERSE V3, collapsible/focus workspace shell, and structured ROMVERSE Archives
    and deterministic Archives Advisor increments. Tests cover bounded ranked retrieval, weak-match
@@ -48,16 +48,20 @@ has current evidence.
    model properties, bounded background refresh from the fixed official endpoint, strict private
    content/receipt validation, ambiguous/stale/offline/redirect/encoding/size/tamper/link refusal,
    Desktop-wide identity propagation, retail-brand Pack resolution, and permanent zero build/flash/
-   execution authority from online identity data; 111 structured Archives guides including the
-   verified device-identification boundary; Recovery Bay report boundaries, adaptive research
+   execution authority from online identity data; exact report-bound Device Atlas Next Safe Action
+   routing to verified Archives guidance, Time Machine, or ROM Studio, stale-handoff refusal,
+   genuine deduplicated Live Console readiness evidence and canonical source return, exact Time
+   Machine Pack/report context with missing-project return to ROM Studio, and shared dark native
+   item-view contrast; 112 structured Archives guides including the verified device-identification
+   and build/flash roadmap boundaries; Recovery Bay report boundaries, adaptive research
    disclosure, strict guided-session evidence, exact-article local Resolution Memory, hostile and
    semantically false re-digested outcome rejection, Live Console table contrast, Activity Center
    filtering and export, adaptive
    rendering, accessibility, hostile ledger boundaries, and the strict private Origin-discovery
    record. A fresh isolated build produced a 220-member wheel with SHA-256
-   `91afc4dbf556eb73042eefc1bf2bb0445d30cf0bc58e163681570cd37680547c`; the verifier
+   `19b18896d124eabdc760d8a65ee9620543997105c9e5e679607bcafe0f78f2fd`; the verifier
    byte-compared all runtime modules with source and revalidated all 21 indexed Device Packs. A
-   separate wheel-target environment imported the packaged 111-guide catalog, Advisor, strict guided
+   separate wheel-target environment imported the packaged 112-guide catalog, Advisor, strict guided
    sessions, Resolution Memory, and the deterministic Diagnostics-to-Recovery concern map from
    outside the source checkout; verified one installed local improvement comparison and an exact
    storage-finding handoff with no session/worker start, its exact highlighted return to Quantum
@@ -73,7 +77,11 @@ has current evidence.
    worker or action; downloaded and validated 53,575 current official Google Play device rows from
    the installed package, resolved the exact Xiaomi/popsicle/2509FPN0BC retail identity, selected the
    exact packaged HyperOS build Pack, kept its independent flash contract locked, and loaded the new
-   Archives identity guide; opened the packaged Desktop
+   Archives identity guide; derived the installed Pack's stock-recovery Next Safe Action, recorded
+   its verified genuine Device Atlas Live Console event, opened exact report/Pack context in Time
+   Machine with no worker or phone action, exposed the missing-project ROM Studio return, followed
+   that return, and verified the installed shared item-view base as dark `#060b16`; loaded the
+   packaged 112-guide/62-known-fix Archives; opened the packaged Desktop
    offscreen; initialized a fresh workspace; and reloaded all 21 Packs. This remains development
    evidence, not the required signed Windows/Fedora public-release certification.
 4. Launch the installed wheel on Ubuntu, Fedora, and Windows, initialize a fresh workspace, and verify

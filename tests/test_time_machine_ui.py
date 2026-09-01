@@ -2,15 +2,76 @@ from __future__ import annotations
 
 import json
 import os
+from importlib.resources import files
 from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtGui import QPalette
 from PySide6.QtWidgets import QApplication, QLabel
 
 from romverse.device.models import AndroidDevice, DeviceState, StorageInfo
+from romverse.device_packs.registry import DevicePackRegistry
+from romverse.device_packs.validation import DevicePackValidationService
 from romverse.rom.projects import RomProjectStore
 from romverse.ui.backup_center import BackupCenter, TimeMachineWorker
+from romverse.ui.theme import STYLESHEET
+
+
+def _xiaomi_readiness_report():
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    device = AndroidDevice(
+        "private-readiness",
+        DeviceState.DEVICE,
+        manufacturer="Xiaomi",
+        model="2509FPN0BC",
+        product="popsicle_global",
+        codename="popsicle",
+    )
+    pack = registry.resolve(device).pack
+    assert pack is not None
+    return DevicePackValidationService().assess(pack, device)
+
+
+def test_time_machine_explains_device_atlas_stock_gate_without_inventing_project(
+    tmp_path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    app.setStyleSheet(STYLESHEET)
+    center = BackupCenter(tmp_path)
+    requested = []
+    center.rom_studio_requested.connect(lambda: requested.append(True))
+
+    assert center.open_device_atlas_readiness(_xiaomi_readiness_report())
+    app.processEvents()
+
+    assert center.device_atlas_handoff.isVisibleTo(center)
+    assert "Stock recovery evidence needed" in center.device_atlas_handoff_title.text()
+    assert "Create or import" in center.device_atlas_handoff_detail.text()
+    assert "No worker or phone action started" in center.device_atlas_handoff_detail.text()
+    assert center.device_atlas_project_button.isVisibleTo(center)
+    assert center.snapshot_list.palette().color(QPalette.ColorRole.Base).lightness() < 64
+    center.device_atlas_project_button.click()
+    assert requested == [True]
+    center.close()
+
+
+def test_time_machine_binds_device_atlas_handoff_to_existing_project(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    source = tmp_path / "protected-stock.zip"
+    source.write_bytes(b"protected stock fixture")
+    store = RomProjectStore(tmp_path)
+    project = store.import_original(store.create("Exact stock project").project_id, source)
+    center = BackupCenter(tmp_path)
+
+    assert center.open_device_atlas_readiness(_xiaomi_readiness_report())
+    app.processEvents()
+
+    assert center.project_selector.currentData() == project.project_id
+    assert "Exact stock project is selected" in center.device_atlas_handoff_detail.text()
+    assert not center.device_atlas_project_button.isVisible()
+    assert center.stock_evidence_button.isEnabled()
+    center.close()
 
 
 def test_time_machine_console_lists_and_verifies_local_baseline_snapshots(tmp_path) -> None:

@@ -105,6 +105,44 @@ def test_builtin_exact_contract_reaches_local_build_but_not_flash_readiness() ->
     assert physical.state is ValidationState.BLOCKED
 
 
+def test_next_safe_action_routes_exact_build_ready_pack_to_stock_recovery() -> None:
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    pack = registry.resolve(_xiaomi()).pack
+    assert pack is not None
+    service = DevicePackValidationService()
+
+    action = service.next_safe_action(service.assess(pack, _xiaomi()))
+
+    assert action.action_id == "prepare-stock-recovery"
+    assert action.check_id == "stock-recovery-route"
+    assert action.scope == "flash"
+    assert action.route == "time_machine"
+    assert action.article_key == ""
+    assert "cannot certify" in action.detail
+
+
+def test_next_safe_action_routes_unknown_model_to_exact_identity_guide() -> None:
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    pack = next(item for item in registry.packs if item.pack_id == "android.generic")
+    service = DevicePackValidationService()
+    device = AndroidDevice(
+        "private-unknown",
+        DeviceState.DEVICE,
+        manufacturer="Example",
+        model="EX-100",
+        product="nebula",
+        codename="nebula",
+    )
+
+    action = service.next_safe_action(service.assess(pack, device))
+
+    assert action.action_id == "confirm-exact-identity"
+    assert action.check_id == "exact-model"
+    assert action.scope == "build"
+    assert action.route == "archives"
+    assert action.article_key == "android-device-identity-catalog"
+
+
 def _verified_attestation(pack: DevicePack) -> PhysicalRecoveryAttestationReport:
     assert pack.build_contract is not None
     return PhysicalRecoveryAttestationReport(

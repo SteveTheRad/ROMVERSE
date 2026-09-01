@@ -31,6 +31,21 @@ def test_device_atlas_distinguishes_local_build_readiness_from_flash_lock(tmp_pa
     assert center.active_report is not None
     assert center.active_report.build_contract_ready
     assert not center.active_report.flash_contract_ready
+    assert center.active_next_action is not None
+    assert center.active_next_action.route == "time_machine"
+    assert center.next_action_title.text() == "Prepare the exact stock recovery route"
+    assert center.next_action_badge.text() == "FLASH GATE • ZERO AUTHORITY"
+    requested: list[tuple[str, str, str, str]] = []
+    center.next_action_requested.connect(lambda *values: requested.append(values))
+    center.next_action_button.click()
+    assert requested == [
+        (
+            "time_machine",
+            "",
+            "stock-recovery-route",
+            center.active_report.report_digest,
+        )
+    ]
     assert "rom build planning is ready" in center.guidance_title.text().casefold()
     assert center.continue_button.isVisibleTo(center)
     exact_model = center.validation_rows["exact-model"]
@@ -166,6 +181,9 @@ def test_device_atlas_shows_exact_official_identity_without_inventing_build_supp
     assert "exact build support is still locked" in center.guidance_title.text().casefold()
     assert center.active_pack is not None and center.active_pack.pack_id == "android.generic"
     assert not center.continue_button.isVisible()
+    assert center.active_next_action is not None
+    assert center.active_next_action.article_key == "android-device-identity-catalog"
+    assert center.next_action_badge.text() == "BUILD GATE • ZERO AUTHORITY"
 
     center.identity_catalog_button.click()
     app.processEvents()

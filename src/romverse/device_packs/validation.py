@@ -57,6 +57,20 @@ class DevicePackValidationReport:
 
 
 @dataclass(frozen=True, slots=True)
+class DevicePackNextAction:
+    """One deterministic, zero-authority handoff from a current readiness report."""
+
+    action_id: str
+    check_id: str
+    scope: str
+    title: str
+    detail: str
+    route: str
+    article_key: str
+    button_label: str
+
+
+@dataclass(frozen=True, slots=True)
 class ValidationRequestExport:
     output_path: str
     sha256: str
@@ -69,6 +83,113 @@ class DevicePackValidationService:
     FORMAT = "romverse.device-pack-validation-request"
     PHYSICAL_REQUEST_FORMAT = "romverse.device-pack-physical-attestation-request"
     REPORT_SCHEMA_VERSION = 2
+
+    def next_safe_action(self, report: DevicePackValidationReport) -> DevicePackNextAction:
+        """Choose one explainable next step without changing readiness or authority."""
+
+        checks = {check.check_id: check for check in report.checks}
+
+        def unresolved(check_id: str) -> bool:
+            check = checks.get(check_id)
+            return check is not None and check.state is not ValidationState.PASS
+
+        if not report.build_contract_ready:
+            if unresolved("exact-model"):
+                check = checks["exact-model"]
+                return DevicePackNextAction(
+                    "confirm-exact-identity",
+                    check.check_id,
+                    "build",
+                    "Confirm the exact model contract",
+                    f"{check.evidence}. {check.resolution}",
+                    "archives",
+                    "android-device-identity-catalog",
+                    "Open exact identity guide",
+                )
+            for check_id in (
+                "firmware-contract",
+                "partition-layout",
+                "declarative-build-contract",
+            ):
+                if unresolved(check_id):
+                    check = checks[check_id]
+                    return DevicePackNextAction(
+                        f"resolve-{check.check_id}",
+                        check.check_id,
+                        "build",
+                        f"Resolve build gate • {check.label}",
+                        f"{check.evidence}. {check.resolution}",
+                        "archives",
+                        "device-pack-readiness-roadmap",
+                        "Open build-readiness guide",
+                    )
+            return DevicePackNextAction(
+                "review-build-readiness",
+                "",
+                "build",
+                "Review the incomplete build contract",
+                "One or more build gates are unresolved. Review the exact Device Pack evidence "
+                "before creating a build plan.",
+                "archives",
+                "device-pack-readiness-roadmap",
+                "Open build-readiness guide",
+            )
+
+        if not report.flash_contract_ready:
+            if unresolved("stock-recovery-route"):
+                check = checks["stock-recovery-route"]
+                return DevicePackNextAction(
+                    "prepare-stock-recovery",
+                    check.check_id,
+                    "flash",
+                    "Prepare the exact stock recovery route",
+                    f"{check.evidence}. Time Machine can collect and verify recovery evidence, "
+                    "but it cannot certify a Pack or authorize a phone write.",
+                    "time_machine",
+                    "",
+                    "Open Time Machine",
+                )
+            for check_id in (
+                "physical-recovery-test",
+                "avb-execution-policy",
+                "partition-write-contract",
+                "publisher-signature",
+            ):
+                if unresolved(check_id):
+                    check = checks[check_id]
+                    return DevicePackNextAction(
+                        f"resolve-{check.check_id}",
+                        check.check_id,
+                        "flash",
+                        f"Resolve flash gate • {check.label}",
+                        f"{check.evidence}. {check.resolution}",
+                        "archives",
+                        "device-pack-readiness-roadmap",
+                        "Open flash-readiness guide",
+                    )
+            return DevicePackNextAction(
+                "review-flash-readiness",
+                "",
+                "flash",
+                "Review the incomplete flash contract",
+                "The build contract is ready, but independent flash evidence remains unresolved. "
+                "No device-changing action is available.",
+                "archives",
+                "device-pack-readiness-roadmap",
+                "Open flash-readiness guide",
+            )
+
+        return DevicePackNextAction(
+            "continue-rom-studio",
+            "",
+            "ready",
+            "Device Pack evidence is ready for project planning",
+            "Continue with the exact current Device Pack in ROM Studio. Guardian still reviews "
+            "the protected source, plan, approvals, and every future device-changing action.",
+            "rom_studio",
+            "",
+            "Continue to ROM Studio",
+        )
 
     def assess(
         self,

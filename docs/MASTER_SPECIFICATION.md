@@ -225,6 +225,15 @@ select a retail name and improve Pack discovery, but cannot create or strengthen
 build contract, partition-write contract, physical attestation, Guardian approval, or execution
 authority. Unknown or conflicting devices remain explicit and build/flash locked.
 
+Device Atlas deterministically selects one next safe action from the exact current validation
+report. Every handoff binds the report digest, selected check, route, and exact Archives article
+identity where applicable. Build locks route to verified guidance; a build-ready but stock-
+recovery-locked Pack routes to Time Machine with the Pack/report context; a fully ready Pack routes
+to ROM Studio. Time Machine requires an existing protected-firmware project before external stock
+evidence can be enabled and otherwise routes visibly back to ROM Studio. Readiness reports publish
+deduplicated genuine Live Console evidence with Device Atlas as the canonical source. Navigation
+grants no build, flash, approval, worker, or execution authority.
+
 ### ROM project provenance increment
 
 ROM Studio creates project directories containing a private atomic, versioned `project.romverse`

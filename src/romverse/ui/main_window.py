@@ -3052,6 +3052,9 @@ class MainWindow(QMainWindow):
             self.app_settings.online_intelligence_enabled,
         )
         self.device_packs_center.catalog_refresh_requested.connect(self._refresh_device_catalog)
+        self.device_packs_center.knowledge_article_requested.connect(
+            self._open_knowledge_article
+        )
         self.device_packs_center.next_action_requested.connect(self._open_device_pack_next_action)
         self.device_packs_center.requirement_requested.connect(self._open_device_requirement)
         self.device_packs_center.readiness_changed.connect(self._record_device_pack_readiness)

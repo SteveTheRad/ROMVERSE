@@ -46,6 +46,7 @@ from romverse.device_packs.validation import (
 class DevicePacksCenter(QWidget):
     rom_studio_requested = Signal(str, str)
     catalog_refresh_requested = Signal()
+    knowledge_article_requested = Signal(str)
     next_action_requested = Signal(str, str, str, str)
     requirement_requested = Signal(str, str, str, str)
     readiness_changed = Signal(object)
@@ -77,6 +78,7 @@ class DevicePacksCenter(QWidget):
         self.requirement_buttons: dict[str, QPushButton] = {}
         self.requirement_badges: dict[str, QLabel] = {}
         self.official_result_buttons: list[QPushButton] = []
+        self.official_missing_pack_guide_button: QPushButton | None = None
         self.devices: list[AndroidDevice] = []
         self.source_summary = summarize_sources(registry)
 
@@ -1386,6 +1388,7 @@ class DevicePacksCenter(QWidget):
         explanation_layout.addWidget(explanation_copy)
         self.body_layout.addWidget(explanation)
 
+        self.official_missing_pack_guide_button = None
         packs = self._exact_packs_for_official_entry(entry)
         packs_title = QLabel(
             f"Exact local Pack evidence  •  {len(packs)} candidate(s)"
@@ -1407,6 +1410,25 @@ class DevicePacksCenter(QWidget):
             missing_copy.setWordWrap(True)
             missing_layout.addWidget(missing_title)
             missing_layout.addWidget(missing_copy)
+            self.official_missing_pack_guide_button = QPushButton(
+                "Open missing Device Pack guide"
+            )
+            self.official_missing_pack_guide_button.setObjectName("Primary")
+            self.official_missing_pack_guide_button.setToolTip(
+                "Open the exact verified Archives diagnosis for an official identity with no "
+                "local Pack. Navigation only; no target, scan, build, approval, flash, network, "
+                "or phone action starts."
+            )
+            self.official_missing_pack_guide_button.clicked.connect(
+                lambda: self.knowledge_article_requested.emit(
+                    "official-device-id-without-pack"
+                )
+            )
+            missing_layout.addWidget(
+                self.official_missing_pack_guide_button,
+                0,
+                Qt.AlignmentFlag.AlignLeft,
+            )
             self.body_layout.addWidget(missing)
         for pack in packs:
             card = QFrame()
@@ -1433,6 +1455,7 @@ class DevicePacksCenter(QWidget):
     def _show_installed(self) -> None:
         self._clear()
         self.official_result_buttons.clear()
+        self.official_missing_pack_guide_button = None
         query = self.catalog_search.text().strip()
         packs = self._matching_packs(query)
         official_matches = self._official_catalog_matches(query) if query else ()

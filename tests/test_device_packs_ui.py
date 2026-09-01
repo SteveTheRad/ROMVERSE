@@ -238,6 +238,35 @@ def test_device_atlas_refuses_a_search_result_after_catalog_evidence_changes(
     center.close()
 
 
+def test_official_identity_without_pack_requests_its_exact_archives_guide(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    monkeypatch.setattr(GooglePlayDeviceCatalog, "MINIMUM_ENTRIES", 1)
+    catalog = GooglePlayDeviceCatalog(tmp_path)
+    _sync(catalog, _payload(("Example", "Example Nebula", "nebula", "EX-100")))
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    center = DevicePacksCenter(registry, tmp_path, device_catalog=catalog)
+    requested: list[str] = []
+    center.knowledge_article_requested.connect(requested.append)
+
+    center.catalog_search.setText("Example Nebula")
+    app.processEvents()
+    center.official_result_buttons[0].click()
+    app.processEvents()
+
+    assert center.official_missing_pack_guide_button is not None
+    labels = [label.text() for label in center.findChildren(QLabel)]
+    assert "No exact Device Pack is declared for this official identity" in labels
+    center.official_missing_pack_guide_button.click()
+
+    assert requested == ["official-device-id-without-pack"]
+    assert center.active_device is None
+    assert center.active_report is None
+    center.close()
+
+
 def test_device_atlas_shows_exact_official_identity_without_inventing_build_support(
     tmp_path, monkeypatch
 ) -> None:

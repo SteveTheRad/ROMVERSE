@@ -1619,12 +1619,13 @@ KNOWN_FIXES = (
         ),
         fix_steps=(
             "Use Device Atlas search to inspect the verified official row and any exact literal model/codename patterns declared by local integrity-checked Packs.",
-            "If no exact Pack is shown, keep safe diagnostics available and prepare a review-only model Pack draft from connected-device evidence and authoritative sources.",
+            "If no exact Pack is shown, open this exact guide from the identity review, keep safe diagnostics available, and prepare a review-only model Pack draft only from independently scanned connected-device evidence and authoritative sources.",
             "Add build, compile, recovery, and flash contracts only through reviewed versioned Pack evidence; never promote the retail catalog row itself.",
             "Reconnect and run a fresh read-only scan after a Pack update so ROMVERSE re-derives identity and every Requirements Blueprint lane from current evidence.",
         ),
         verification=(
             "Manual official-ID review leaves the active device and Device Pack report unchanged and starts no network request or phone action.",
+            "Open missing Device Pack guide selects this exact Archives identity and Return to Device Atlas restores the unchanged official-identity review.",
             "An exact local Pack candidate opens its declared sources, capabilities, hash, and boundaries for read-only review.",
             "A missing candidate remains explicit while build, compile, flash, approval, and execution authority stay locked.",
             "A displayed row is revalidated against the current mirror before review; altered or replaced catalog evidence stops visibly.",

@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QPushButton
+from PySide6.QtWidgets import QApplication, QLabel, QPushButton
 
 from romverse.core.settings import AppSettings, DesktopTheme, ExperienceMode
 from romverse.device.catalog import (
@@ -1764,6 +1764,63 @@ def test_fresh_scan_connects_exact_official_device_identity_to_every_desktop_con
             "Determine what a recognized Android device needs to build, compile, and flash"
         )
         assert window.knowledge_center.source_return.text() == "Return to Device Atlas"
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_official_identity_missing_pack_opens_exact_archives_fix_and_returns_unchanged(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    monkeypatch.setattr(GooglePlayDeviceCatalog, "MINIMUM_ENTRIES", 1)
+    catalog = GooglePlayDeviceCatalog(tmp_path)
+    _sync(catalog, _payload(("Example", "Example Nebula", "nebula", "EX-100")))
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        pack_registry=registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    try:
+        window._navigate_route("device_atlas")
+        center = window.device_packs_center
+        center.catalog_search.setText("Example Nebula")
+        app.processEvents()
+        center.official_result_buttons[0].click()
+        app.processEvents()
+
+        assert center.official_missing_pack_guide_button is not None
+        center.official_missing_pack_guide_button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.knowledge_center
+        assert window.knowledge_center.list.currentItem().text() == (
+            "Official Android ID search finds a phone but no Device Pack"
+        )
+        assert window.knowledge_center.source_context.property("source_route") == (
+            "device_atlas"
+        )
+        assert window.knowledge_center.source_return.text() == "Return to Device Atlas"
+
+        window.knowledge_center.source_return.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is center
+        labels = [label.text() for label in center.findChildren(QLabel)]
+        assert "GOOGLE PLAY DEVICE ID  •  VERIFIED LOCAL MIRROR" in labels
+        assert "No exact Device Pack is declared for this official identity" in labels
+        assert center.active_device is None
+        assert center.active_report is None
+        assert window.active_worker is None
+        assert window.device_catalog_worker is None
+        assert window.rom_studio.worker is None
+        assert window.guardian_center.worker is None
     finally:
         window.companion_center.transport.close()
         window.close()

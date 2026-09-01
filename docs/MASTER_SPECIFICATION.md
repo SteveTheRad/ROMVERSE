@@ -434,6 +434,12 @@ Guardian & Recovery, Activity & Knowledge, Live Operations, Connected ROMVERSE, 
 existing feature route remains distinct and highlights its own active destination. Guided mode may
 fold specialist sidebar entries without hiding Guardian or Live Console.
 
+Ctrl+K opens a keyboard-first, navigation-only command palette populated from that same sidebar
+route registry and canonical feature vocabulary. Familiar legacy names remain searchable, while
+Guided mode excludes its folded specialist destinations and Expert mode exposes them. Activating a
+result emits only its stable page route: the palette has no operation callback, execution authority,
+device selector, or approval surface.
+
 Command Deck is the contextual home surface, not a second implementation of those features. It
 reads the actual active ROM Studio project and connected-device state, then labels its launch cards
 honestly as create/import/continue, needs firmware, connect device, ready, or safety active. Build

@@ -80,6 +80,8 @@ QPushButton#Primary:hover { background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop
 QPushButton#Nav { text-align: left; border: 0; border-radius: 8px; background: transparent; color: #AEB8CD; padding: 8px 12px; min-height: 30px; font-weight: 600; }
 QPushButton#Nav:hover { background: rgba(20, 31, 55, 185); color: #F4F7FF; border: 1px solid rgba(77, 142, 210, 90); }
 QPushButton#Nav[active="true"] { background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 rgba(103,35,151,210),stop:0.55 rgba(46,22,87,190),stop:1 rgba(18,53,76,175)); color: #FFFFFF; border: 1px solid rgba(183,92,255,145); border-left: 3px solid #B45CFF; padding-left: 9px; }
+QPushButton#CommandPaletteButton { text-align: left; color: #C8D5EE; background: rgba(8,16,31,180); border: 1px solid #2B416B; padding: 8px 11px; font-size: 11px; letter-spacing: 0.4px; }
+QPushButton#CommandPaletteButton:hover { color: #FFFFFF; border-color: #35E7F5; background: rgba(17,31,55,210); }
 QLabel#NavSection { color: #647594; background: transparent; border: 0; padding: 10px 10px 3px 10px; font-size: 9px; font-weight: 800; letter-spacing: 1.4px; }
 QPushButton#QuickAction, QToolButton#QuickAction { background: rgba(5, 9, 16, 250); border: 1px solid #2B416B; border-radius: 9px; color: #E9EDFF; font-size: 14px; padding: 9px; }
 QPushButton#QuickAction:hover, QToolButton#QuickAction:hover { background: rgba(28, 13, 47, 250); border-color: #A855F7; color: #E5B9FF; }
@@ -163,6 +165,12 @@ QListWidget#HistoryList { background: #0D1226; border: 1px solid #253462; border
 QListWidget#HistoryList::item { color: #AAB6D3; border-radius: 8px; padding: 12px 10px; margin: 2px; }
 QListWidget#HistoryList::item:hover { background: #151F40; color: #EDF4FF; }
 QListWidget#HistoryList::item:selected { background: #1B2A5A; color: #63ECF8; }
+QLineEdit#CommandPaletteSearch { min-height: 30px; border: 1px solid #4869B5; border-radius: 10px; padding: 10px 12px; font-size: 15px; }
+QLineEdit#CommandPaletteSearch:focus { border-color: #35E7F5; background: #0D1530; }
+QListWidget#CommandPaletteResults { background: #080D1C; border: 1px solid #253C6B; border-radius: 12px; padding: 7px; outline: 0; }
+QListWidget#CommandPaletteResults::item { color: #C2CDE3; border-radius: 8px; padding: 8px 11px; margin: 2px; }
+QListWidget#CommandPaletteResults::item:hover { background: #151F40; color: #FFFFFF; }
+QListWidget#CommandPaletteResults::item:selected { background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 rgba(79,45,139,230),stop:1 rgba(18,70,92,225)); color: #FFFFFF; border: 1px solid rgba(53,231,245,145); }
 QToolTip {
     color: #F4F8FF;
     background: rgba(7, 13, 29, 246);

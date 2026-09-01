@@ -574,7 +574,10 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   and removal of the obsolete seven-step progress file and duplicate guided wizard;
   Desktop settings schema-v4 Guided · Arcana and Expert · Architect experience persistence,
   specialist navigation/Command Console progressive disclosure that preserves the active route,
-  keeps Live Console and Guardian visible, and never changes approval policy; Companion persisted
+  keeps Live Console and Guardian visible, and never changes approval policy; accessible Desktop
+  Ctrl+K navigation-only command palette populated from the canonical sidebar routes and shared
+  feature vocabulary, with legacy-name search, stable relevance ranking, Guided/Expert disclosure,
+  and no operation or device authority; Companion persisted
   experience selection with Guided Device DNA overflow disclosure and Expert full-map presentation,
   runtime-verified across Android process restart; Guided Vitalis, Live Console Raw Terminal, and
   Ascension technical-evidence disclosure that never folds warnings, blockers, next safe actions, or

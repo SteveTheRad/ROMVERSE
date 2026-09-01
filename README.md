@@ -754,6 +754,12 @@ Guardian/ADB runtime was genuinely activated; otherwise it reports that nothing 
 data changed. Command Deck uses the same in-place resolver at startup, so missing Platform Tools no
 longer require an application restart before Device Engine can scan.
 
+Desktop navigation also has a keyboard-first **Ctrl+K command palette**. It searches the same
+canonical destinations as the permanent sidebar—including familiar earlier feature names—and
+opens only the selected page. Guided Mode keeps folded specialist destinations out of results;
+Expert Mode reveals them. The palette cannot run a tool, start a device operation, grant approval,
+or bypass Guardian.
+
 The **ROMVERSE activity ledger** replaces decorative dashboard history with durable local
 events from completed device scans, saved diagnostics, ROM Studio work, Time Machine,
 Recovery Bay planning, Quantum Optimizer cleanup, App Launchpad, and the offline Galaxy lab.

@@ -32,6 +32,7 @@ from PySide6.QtGui import (
     QFont,
     QGuiApplication,
     QIcon,
+    QKeySequence,
     QLinearGradient,
     QPainter,
     QPainterPath,
@@ -39,6 +40,7 @@ from PySide6.QtGui import (
     QPixmap,
     QPolygonF,
     QRadialGradient,
+    QShortcut,
 )
 from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PySide6.QtWidgets import (
@@ -108,6 +110,7 @@ from romverse.rom.projects import RomProjectStore
 from romverse.ui.apk_center import ApkCenter
 from romverse.ui.background import ManagedRunnable, shutdown_background_tasks, start_background
 from romverse.ui.backup_center import BackupCenter
+from romverse.ui.command_palette import CommandPaletteDialog, NavigationCommand
 from romverse.ui.companion_center import CompanionCenter
 from romverse.ui.connectivity import OnlineStatusBadge
 from romverse.ui.cosmic_icons import sidebar_icon
@@ -2395,6 +2398,17 @@ class MainWindow(QMainWindow):
         self.experience_badge.clicked.connect(self._open_settings)
         side.addWidget(self.experience_badge)
         side.addSpacing(3)
+        self.command_palette_button = QPushButton("⌕  FIND ANYTHING     Ctrl K")
+        self.command_palette_button.setObjectName("CommandPaletteButton")
+        self.command_palette_button.setAccessibleName(
+            "Find a ROMVERSE page with the command palette, keyboard shortcut Control K"
+        )
+        self.command_palette_button.setToolTip(
+            "Search canonical ROMVERSE pages. Navigation only; no device or build operation is executed."
+        )
+        self.command_palette_button.clicked.connect(self._open_command_palette)
+        side.addWidget(self.command_palette_button)
+        side.addSpacing(3)
 
         self.stack = QStackedWidget()
         self.page_routes: dict[str, int] = {}
@@ -2598,6 +2612,9 @@ class MainWindow(QMainWindow):
             "galaxy": galaxy_index,
             "about": about_index,
         }
+        self._route_by_page_index = {
+            page_index: route for route, page_index in self.page_routes.items()
+        }
         pages = [
             (feature("command_deck").title, self.page_routes["command_deck"], True),
             (feature("rom_studio").title, self.page_routes["rom_studio"], False),
@@ -2707,6 +2724,7 @@ class MainWindow(QMainWindow):
             button.setObjectName("Nav")
             button.setProperty("active", active)
             button.setProperty("page_index", index)
+            button.setProperty("route_key", self._route_by_page_index[index])
             button.setProperty("expert_only", label in expert_only_labels)
             button.clicked.connect(lambda _checked=False, i=index: self._navigate(i))
             nav_layout.addWidget(button)
@@ -2809,6 +2827,10 @@ class MainWindow(QMainWindow):
         self._clock_timer.timeout.connect(self._update_connection_bar)
         self._clock_timer.start()
         self._update_connection_bar()
+        self._command_palette: CommandPaletteDialog | None = None
+        self.command_palette_shortcut = QShortcut(QKeySequence("Ctrl+K"), self)
+        self.command_palette_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        self.command_palette_shortcut.activated.connect(self._open_command_palette)
 
         self.device_center.refresh_requested.connect(self.scan)
         self.device_center.runtime_tools_requested.connect(self._resolve_device_runtime)
@@ -3150,6 +3172,37 @@ class MainWindow(QMainWindow):
             return False
         self._navigate(index)
         return True
+
+    def _navigation_commands(self) -> tuple[NavigationCommand, ...]:
+        """Expose only the canonical routes available in the current experience mode."""
+
+        commands: list[NavigationCommand] = []
+        for button in self.nav_buttons:
+            if button.property("expert_only") and button.isHidden():
+                continue
+            route = button.property("route_key")
+            if not isinstance(route, str) or route not in FEATURES:
+                continue
+            name = feature(route)
+            commands.append(NavigationCommand(route, name.title, name.subtitle, name.legacy))
+        return tuple(commands)
+
+    @Slot()
+    def _open_command_palette(self) -> None:
+        if self._command_palette is not None:
+            self._command_palette.raise_()
+            self._command_palette.activateWindow()
+            self._command_palette.search.setFocus()
+            return
+        dialog = CommandPaletteDialog(self._navigation_commands(), self)
+        self._command_palette = dialog
+        dialog.navigation_requested.connect(self._navigate_route)
+        dialog.finished.connect(lambda _result, opened=dialog: self._command_palette_closed(opened))
+        dialog.open()
+
+    def _command_palette_closed(self, dialog: CommandPaletteDialog) -> None:
+        if self._command_palette is dialog:
+            self._command_palette = None
 
     def _apply_experience_mode(self, mode: ExperienceMode) -> None:
         """Reveal specialist surfaces without mutating the active workspace or route."""

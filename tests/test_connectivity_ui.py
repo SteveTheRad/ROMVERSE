@@ -34,3 +34,55 @@ def test_online_badge_distinguishes_checking_online_and_offline() -> None:
     assert states[-1] == (False, "Internet check failed")
 
     badge.close()
+
+
+def test_online_badge_local_mode_starts_no_monitor_and_can_be_toggled() -> None:
+    QApplication.instance() or QApplication([])
+    badge = OnlineStatusBadge(auto_start=True, monitoring_enabled=False)
+
+    assert not badge.monitoring_enabled
+    assert badge.online is None
+    assert badge.label.text() == "LOCAL"
+    assert "no internet reachability request is running" in badge.toolTip()
+    assert badge.reply is None
+    assert not badge.timer.isActive()
+
+    badge.refresh()
+    assert badge.reply is None
+
+    badge.set_monitoring_enabled(True)
+    assert badge.monitoring_enabled
+    assert badge.label.text() == "CHECKING"
+    assert badge.timer.isActive()
+
+    class FakeFinished:
+        def __init__(self) -> None:
+            self.disconnected = False
+
+        def disconnect(self, _callback) -> None:
+            self.disconnected = True
+
+    class FakeReply:
+        def __init__(self) -> None:
+            self.finished = FakeFinished()
+            self.aborted = False
+            self.deleted = False
+
+        def abort(self) -> None:
+            self.aborted = True
+
+        def deleteLater(self) -> None:
+            self.deleted = True
+
+    reply = FakeReply()
+    badge.reply = reply  # type: ignore[assignment]
+
+    badge.set_monitoring_enabled(False)
+    assert not badge.monitoring_enabled
+    assert badge.label.text() == "LOCAL"
+    assert badge.reply is None
+    assert not badge.timer.isActive()
+    assert reply.finished.disconnected
+    assert reply.aborted
+    assert reply.deleted
+    badge.close()

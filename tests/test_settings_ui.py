@@ -34,6 +34,8 @@ def test_settings_dialog_exposes_only_runtime_backed_controls(tmp_path) -> None:
     assert "Expert Mode · Architect workspace" in combo_text
     assert "Nebula Rose" in combo_text
     assert "Quantum Mint" in combo_text
+    assert "header reachability monitor" in dialog.online_intelligence.toolTip()
+    assert "official Android ID refresh" in dialog.online_intelligence.toolTip()
 
     dialog.experience_mode.setCurrentIndex(
         dialog.experience_mode.findData(ExperienceMode.EXPERT.value)

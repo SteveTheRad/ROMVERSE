@@ -2189,6 +2189,45 @@ KNOWN_FIXES = (
         source=ROMVERSE_SOURCE,
     ),
     _fix(
+        "online-monitor-runs-while-disabled",
+        "Online badge keeps checking after online sources are disabled",
+        "ROMVERSE WORKFLOWS",
+        "The header reachability badge previously started its own periodic Google connectivity "
+        "probe even when Settings disabled verified online diagnostics and sources. Device Atlas "
+        "and repair research respected the switch, but the independent badge did not, so the "
+        "Desktop was not truly local-only and could remain misleadingly CHECKING.",
+        checks=(
+            "Open Settings and confirm whether verified online diagnostics and sources is disabled.",
+            "Compare the header badge with Device Atlas: disabled online sources should show LOCAL rather than CHECKING, ONLINE, or OFFLINE.",
+            "Confirm the periodic reachability timer is stopped and no connectivity reply is active while local mode is selected.",
+            "Confirm an already verified local Android ID catalog remains searchable read-only even though refresh is disabled.",
+        ),
+        fix_steps=(
+            "Install the current Desktop build, which treats the persisted online-sources setting as the master gate for the header reachability monitor.",
+            "Disable online sources to stop the timer, cancel an in-flight reachability check, clear stale online state, and display LOCAL.",
+            "Re-enable online sources only when wanted; ROMVERSE then resumes reachability checks and independently verifies each remote source before using it.",
+            "Do not delete the verified local device catalog merely to enter local mode; its receipt-checked evidence remains useful without a network request.",
+        ),
+        verification=(
+            "A Desktop started with online sources disabled creates the badge in LOCAL state with no active timer or reply.",
+            "Calling refresh in local mode starts no request, and switching the setting on and off changes the monitor lifecycle immediately.",
+            "Device Atlas reports LOCAL ONLY while preserving verified local identity search and zero build/flash authority.",
+            "Changing this setting starts no scan, project worker, Guardian review, build, flash, upload, or phone action.",
+        ),
+        tags=(
+            "online badge keeps checking",
+            "disable online intelligence network request",
+            "local mode connectivity probe",
+            "checking badge stuck",
+            "online sources privacy setting",
+            "device atlas local catalog",
+        ),
+        route="command_deck",
+        evidence="ROMVERSE binds OnlineStatusBadge construction and runtime monitoring to validated AppSettings, verifies its timer/reply lifecycle, and keeps the receipt-checked local Google Play mirror independently available read-only.",
+        automation="SETTINGS-BOUND REACHABILITY MONITOR ONLY • NO SOURCE USE, SCAN, WORKER, BUILD, FLASH, UPLOAD, OR PHONE ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
         "desktop-licence-notice-inventory",
         "Open-source licences or third-party notices are incomplete",
         "TOOLS & HOST",

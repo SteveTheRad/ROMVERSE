@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import os
+from dataclasses import replace
 from importlib.resources import files
 from pathlib import Path
 from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QLabel, QPushButton
+from PySide6.QtWidgets import QApplication, QDialog, QLabel, QPushButton
 
 from romverse.core.settings import AppSettings, DesktopTheme, ExperienceMode
 from romverse.device.catalog import (
@@ -191,7 +192,7 @@ def test_about_recalculates_real_workspace_evidence_and_returns_from_its_exact_g
             f"{len(registry.packs)} DEVICE PACKS  •  1 OFFICIAL IDS"
         )
         assert window.about_page.evidence_values["knowledge"].text() == (
-            "134 VERIFIED GUIDES  •  84 KNOWN FIXES"
+            "135 VERIFIED GUIDES  •  85 KNOWN FIXES"
         )
         ready_tools = sum(status.available for status in window.toolchain_center.statuses)
         tool_count = len(window.toolchain_center.statuses)
@@ -1279,6 +1280,57 @@ def test_desktop_theme_is_applied_at_startup_and_new_choice_is_persistable(
         app.setStyleSheet(STYLESHEET)
 
 
+def test_online_setting_immediately_controls_the_global_reachability_monitor(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    saved: list[AppSettings] = []
+    window.settings_changed.connect(saved.append)
+    try:
+        assert window.online_status.label.text() == "LOCAL"
+        assert not window.online_status.monitoring_enabled
+        with patch("romverse.ui.main_window.SettingsDialog") as dialog_type:
+            dialog = dialog_type.return_value
+            dialog.exec.return_value = QDialog.DialogCode.Accepted
+            dialog.values.return_value = replace(
+                window.app_settings,
+                online_intelligence_enabled=True,
+            )
+            window._open_settings()
+
+            assert window.online_status.monitoring_enabled
+            assert window.online_status.label.text() == "CHECKING"
+            assert window.online_status.timer.isActive()
+
+            dialog.values.return_value = replace(
+                window.app_settings,
+                online_intelligence_enabled=False,
+            )
+            window._open_settings()
+
+        app.processEvents()
+        assert not window.online_status.monitoring_enabled
+        assert window.online_status.label.text() == "LOCAL"
+        assert window.online_status.reply is None
+        assert not window.online_status.timer.isActive()
+        assert [item.online_intelligence_enabled for item in saved] == [True, False]
+        assert window.device_catalog_worker is None
+        assert window.active_worker is None
+        assert window.rom_studio.worker is None
+        assert window.guardian_center.worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
 def test_genesis_learning_route_opens_archives_with_the_exact_guide(tmp_path: Path) -> None:
     app = QApplication.instance() or QApplication([])
     logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
@@ -1788,6 +1840,10 @@ def test_official_identity_missing_pack_opens_exact_archives_fix_and_returns_unc
         app_settings=AppSettings(online_intelligence_enabled=False),
     )
     try:
+        assert not window.online_status.monitoring_enabled
+        assert window.online_status.label.text() == "LOCAL"
+        assert window.online_status.reply is None
+        assert not window.online_status.timer.isActive()
         window._navigate_route("device_atlas")
         center = window.device_packs_center
         center.catalog_search.setText("Example Nebula")

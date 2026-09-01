@@ -1265,6 +1265,11 @@ class SettingsDialog(QDialog):
         form.addRow("Device scan interval", self.interval)
         self.online_intelligence = QCheckBox("Use verified online diagnostics and sources")
         self.online_intelligence.setChecked(settings.online_intelligence_enabled)
+        self.online_intelligence.setToolTip(
+            "Controls every optional online diagnostic/source connection, including the header "
+            "reachability monitor and official Android ID refresh. Existing verified local "
+            "evidence remains available read-only when disabled."
+        )
         form.addRow("Online intelligence", self.online_intelligence)
         self.community_research = QCheckBox("Include community reports as guidance only")
         self.community_research.setChecked(settings.community_research_enabled)
@@ -3419,7 +3424,9 @@ class MainWindow(QMainWindow):
         breadcrumb_layout.addWidget(self.workspace_route_title)
         workspace_bar_layout.addWidget(breadcrumb)
         workspace_bar_layout.addStretch(1)
-        self.online_status = OnlineStatusBadge()
+        self.online_status = OnlineStatusBadge(
+            monitoring_enabled=self.app_settings.online_intelligence_enabled
+        )
         workspace_bar_layout.addWidget(self.online_status)
         self.focus_button = QToolButton()
         self.focus_button.setObjectName("FocusWorkspaceControl")
@@ -5856,6 +5863,7 @@ class MainWindow(QMainWindow):
         )
         self.device_packs_center.online_catalog_enabled = settings.online_intelligence_enabled
         self.device_packs_center.set_catalog_status(self.device_catalog.status())
+        self.online_status.set_monitoring_enabled(settings.online_intelligence_enabled)
         if settings.online_intelligence_enabled and self.device_catalog.needs_refresh():
             self._catalog_auto_attempted = False
             QTimer.singleShot(0, self._maybe_refresh_device_catalog)

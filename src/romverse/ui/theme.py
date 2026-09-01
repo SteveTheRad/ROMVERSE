@@ -117,6 +117,11 @@ QPushButton#CommandPaletteButton:hover { color: #FFFFFF; border-color: #35E7F5; 
 QLabel#NavSection { color: #647594; background: transparent; border: 0; padding: 10px 10px 3px 10px; font-size: 9px; font-weight: 800; letter-spacing: 1.4px; }
 QPushButton#QuickAction, QToolButton#QuickAction { background: rgba(5, 9, 16, 250); border: 1px solid #2B416B; border-radius: 9px; color: #E9EDFF; font-size: 14px; padding: 9px; }
 QPushButton#QuickAction:hover, QToolButton#QuickAction:hover { background: rgba(28, 13, 47, 250); border-color: #A855F7; color: #E5B9FF; }
+QToolButton#QuickAction[evidenceReady="true"] {
+    color: #FFFFFF;
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(42,20,76,245),stop:1 rgba(5,47,61,240));
+    border: 2px solid #3EDDEB; border-left: 4px solid #B45CFF;
+}
 QFrame#StudioCommandGroup {
     background: qlineargradient(
         x1:0, y1:0, x2:1, y2:1,

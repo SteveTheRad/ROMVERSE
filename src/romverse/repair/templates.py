@@ -5,7 +5,7 @@ from enum import StrEnum
 from uuid import uuid4
 
 from romverse.device.models import AndroidDevice, DeviceState
-from romverse.diagnostics.models import DiagnosticReport
+from romverse.diagnostics.models import DiagnosticReport, Finding, Severity
 from romverse.guardian.models import OperationClass
 from romverse.guardian.planning import (
     CheckStatus,
@@ -47,6 +47,24 @@ def concern_for_finding(finding_id: str) -> RepairConcern | None:
     """Return the exact guided-repair category for one typed diagnostic finding."""
 
     return DIAGNOSTIC_REPAIR_CONCERNS.get(finding_id.strip()[:120])
+
+
+def actionable_repair_finding(report: DiagnosticReport | None) -> Finding | None:
+    """Select the highest-priority current finding that has an exact repair route."""
+
+    if report is None:
+        return None
+    ranking = {
+        Severity.ADVISORY: 1,
+        Severity.WARNING: 2,
+        Severity.CRITICAL: 3,
+    }
+    candidates = tuple(
+        finding
+        for finding in report.findings
+        if finding.severity in ranking and concern_for_finding(finding.finding_id) is not None
+    )
+    return max(candidates, key=lambda item: ranking[item.severity], default=None)
 
 
 class RepairAssessmentTemplates:

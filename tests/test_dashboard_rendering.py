@@ -139,6 +139,38 @@ def test_connected_dashboard_builds_all_approved_contextual_mission_cards(tmp_pa
     assert requested == ["Optimize"]
 
 
+def test_command_deck_repair_card_reflects_exact_diagnostic_context(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    center = DeviceCenter(tmp_path)
+    center.set_devices(
+        [
+            AndroidDevice(
+                serial="device-1",
+                state=DeviceState.DEVICE,
+                manufacturer="RadForge",
+                model="Reference Phone",
+                battery_percent=75,
+                storage=StorageInfo(percent_used=98),
+            )
+        ]
+    )
+
+    center.set_repair_context("storage.capacity", "Device storage is nearly full")
+    repair = center.quick_action_buttons["Repair Phone"]
+
+    assert repair.text().splitlines()[1] == "STORAGE PLAN READY"
+    assert repair.property("diagnosticFinding") == "storage.capacity"
+    assert repair.property("evidenceReady") is True
+    assert "Device storage is nearly full" in repair.toolTip()
+    assert repair.accessibleDescription() == "Device storage is nearly full"
+
+    center.set_repair_context()
+    repair = center.quick_action_buttons["Repair Phone"]
+    assert repair.text().splitlines()[1] == "DEVICE READY"
+    assert not repair.property("diagnosticFinding")
+    center.close()
+
+
 def test_command_deck_telemetry_keeps_unknown_readings_explicit(tmp_path) -> None:
     _app = QApplication.instance() or QApplication([])
     center = DeviceCenter(tmp_path)

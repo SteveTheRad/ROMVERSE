@@ -1,5 +1,6 @@
 from dataclasses import replace
 
+from romverse.device.models import StorageInfo
 from romverse.diagnostics.analyzer import DiagnosticAnalyzer
 from romverse.guardian.models import OperationClass, RiskLevel
 from romverse.guardian.planning import (
@@ -14,6 +15,7 @@ from romverse.repair.templates import (
     DIAGNOSTIC_REPAIR_CONCERNS,
     RepairAssessmentTemplates,
     RepairConcern,
+    actionable_repair_finding,
     concern_for_finding,
 )
 
@@ -130,3 +132,19 @@ def test_every_typed_diagnostic_handoff_has_a_deterministic_repair_concern():
     assert all(concern_for_finding(key) is value for key, value in expected.items())
     assert concern_for_finding("baseline.clear") is None
     assert concern_for_finding("unknown.future.rule") is None
+
+
+def test_repair_finding_selector_is_severity_ranked_and_actionable_only():
+    analyzer = DiagnosticAnalyzer()
+    report = analyzer.analyze(
+        device(
+            battery_percent=10,
+            storage=StorageInfo(percent_used=98),
+        )
+    )
+    selected = actionable_repair_finding(report)
+
+    assert selected is not None
+    assert selected.finding_id == "storage.capacity"
+    assert actionable_repair_finding(analyzer.analyze(device(uptime_seconds=90))) is None
+    assert actionable_repair_finding(None) is None

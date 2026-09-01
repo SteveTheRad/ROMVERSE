@@ -28,26 +28,30 @@ has current evidence.
    Repository tests also prove a changed packaged runtime module is rejected. This does not replace
    the required Windows installed-wheel pass or signed release-artifact validation.
 
-   Current Fedora development evidence recorded on 2026-09-01: 1,090 Desktop tests and the complete
+   Current Fedora development evidence recorded on 2026-09-01: 1,096 Desktop tests and the complete
    Ruff check/format gate pass after the Ctrl+K navigation-only palette, canonical Activity Center,
    connected About ROMVERSE V3, collapsible/focus workspace shell, and structured ROMVERSE Archives
    and deterministic Archives Advisor increments. Tests cover bounded ranked retrieval, weak-match
    rejection, catalog/schema/source validation, every typed Advisor rule, exact ADB-state and
    error-code priority, direct article and canonical-page handoffs, exact Diagnostics-to-Recovery
-   finding identity with stale-evidence refusal, no-worker navigation, and a reversible exact-source
-   focus, Recovery Bay report boundaries, adaptive research disclosure, strict guided-session
+   finding identity with stale-evidence refusal, no-worker navigation, a reversible exact-source
+   focus, and evidence-aware Command Deck exact/general/mismatch repair routing; Recovery Bay report
+   boundaries, adaptive research disclosure, strict guided-session
    evidence, exact-article local Resolution Memory, hostile and semantically false re-digested
-   outcome rejection, Live Console table contrast,
-   Activity Center filtering and export, adaptive rendering, accessibility, hostile ledger
+   outcome rejection, Live Console table contrast, Activity Center filtering and export, adaptive
+   rendering, accessibility, hostile ledger
    boundaries, and the strict private Origin-discovery record. A fresh
    isolated build produced a 219-member wheel with SHA-256
-   `1816e5ee3bd88049406172a60000fc4c184b9458859dcd29a8f372e84ca75029`; the verifier
+   `0690cb67ecb608e640606edc6a9b6aa18803fc83306336e6920208e04b871059`; the verifier
    byte-compared all runtime modules with source and revalidated all 21 indexed Device Packs. A
    separate wheel-target environment imported the packaged 110-guide catalog, Advisor, strict guided
    sessions, Resolution Memory, and the deterministic Diagnostics-to-Recovery concern map from
    outside the source checkout; verified one installed local improvement comparison and an exact
-   storage-finding handoff with no session/worker start plus its exact highlighted return to Quantum
-   Optimizer; opened the packaged Desktop offscreen; initialized a fresh workspace; and reloaded all
+   storage-finding handoff with no session/worker start, its exact highlighted return to Quantum
+   Optimizer, the promoted `STORAGE PLAN READY` Command Deck route, the healthy general-intake
+   fallback, and preservation of the real Platform Tools resolver after a failed refresh; opened the
+   packaged Desktop offscreen;
+   initialized a fresh workspace; and reloaded all
    21 Packs. This remains development evidence, not the required signed Windows/Fedora public-release
    certification.
 4. Launch the installed wheel on Ubuntu, Fedora, and Windows, initialize a fresh workspace, and verify

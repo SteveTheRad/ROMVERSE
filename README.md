@@ -798,6 +798,13 @@ Guardian/ADB runtime was genuinely activated; otherwise it reports that nothing 
 data changed. Command Deck uses the same in-place resolver at startup, so missing Platform Tools no
 longer require an application restart before Device Engine can scan.
 
+Command Deck's **Repair Phone** mission now subscribes to the current Quantum Optimizer report. When
+an actionable finding has an exact deterministic route, the card is visually promoted and names the
+topic-specific plan (for example, **STORAGE PLAN READY**); opening it preserves that finding in
+Recovery Bay. A healthy report opens an explicit general intake instead, while mismatched/stale
+Recovery evidence shows a refresh boundary. None of these navigation paths starts a session, worker,
+research lookup, approval, or phone operation.
+
 Desktop navigation also has a keyboard-first **Ctrl+K command palette**. It searches the same
 canonical destinations as the permanent sidebar—including familiar earlier feature names—and
 opens only the selected page. Guided Mode keeps folded specialist destinations out of results;

@@ -201,6 +201,135 @@ def test_command_deck_cards_are_context_aware_and_route_to_canonical_pages(
         window.close()
 
 
+def test_command_deck_repair_uses_exact_current_diagnostic_plan(tmp_path: Path) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    snapshot = AndroidDevice(
+        "private-command-device",
+        DeviceState.DEVICE,
+        manufacturer="RadForge",
+        model="Reference Phone",
+        battery_percent=75,
+        storage=StorageInfo(percent_used=98),
+        security_patch="2026-07-01",
+        bootloader_locked=True,
+        verified_boot="green",
+        root_detected=False,
+    )
+    try:
+        window.device_center.set_devices([snapshot])
+        window.repair_center.set_devices([snapshot])
+        window.diagnostics_center.set_devices([snapshot])
+        app.processEvents()
+        repair = window.device_center.quick_action_buttons["Repair Phone"]
+        assert "STORAGE PLAN READY" in repair.text()
+        assert repair.property("diagnosticFinding") == "storage.capacity"
+        assert repair.property("evidenceReady") is True
+
+        repair.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.repair_center
+        assert window.repair_center.current_concern is RepairConcern.STORAGE
+        assert "STORAGE.CAPACITY" in window.repair_center.diagnostic_context.text()
+        assert not window.repair_center.diagnostic_source_button.isHidden()
+        assert window.repair_center.active_session is None
+        assert window.repair_center.host_repair_worker is None
+        assert window.repair_center.online_worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_command_deck_repair_uses_honest_general_intake_without_warning(tmp_path: Path) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
+    snapshot = AndroidDevice(
+        "private-healthy-device",
+        DeviceState.DEVICE,
+        battery_percent=75,
+        storage=StorageInfo(percent_used=45),
+        security_patch="2026-07-01",
+        bootloader_locked=True,
+        verified_boot="green",
+        root_detected=False,
+    )
+    try:
+        window.device_center.set_devices([snapshot])
+        window.repair_center.set_devices([snapshot])
+        window.diagnostics_center.set_devices([snapshot])
+        app.processEvents()
+        repair = window.device_center.quick_action_buttons["Repair Phone"]
+        assert "DEVICE READY" in repair.text()
+
+        repair.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.repair_center
+        assert "NO CURRENT ACTIONABLE DIAGNOSTIC" in (
+            window.repair_center.diagnostic_context.text()
+        )
+        assert window.repair_center.diagnostic_source_button.isHidden()
+        assert window.repair_center.active_session is None
+        assert window.repair_center.host_repair_worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_command_deck_repair_refuses_mismatched_recovery_evidence(tmp_path: Path) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
+    warning = AndroidDevice(
+        "private-command-device",
+        DeviceState.DEVICE,
+        battery_percent=75,
+        storage=StorageInfo(percent_used=98),
+        security_patch="2026-07-01",
+        bootloader_locked=True,
+        verified_boot="green",
+        root_detected=False,
+    )
+    healthy = AndroidDevice(
+        "private-command-device",
+        DeviceState.DEVICE,
+        battery_percent=75,
+        storage=StorageInfo(percent_used=45),
+        security_patch="2026-07-01",
+        bootloader_locked=True,
+        verified_boot="green",
+        root_detected=False,
+    )
+    try:
+        window.device_center.set_devices([warning])
+        window.repair_center.set_devices([healthy])
+        window.diagnostics_center.set_devices([warning])
+        app.processEvents()
+
+        window.device_center.quick_action_buttons["Repair Phone"].click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.repair_center
+        assert "EXACT DIAGNOSTIC NEEDS FRESH EVIDENCE" in (
+            window.repair_center.diagnostic_context.text()
+        )
+        assert window.repair_center.diagnostic_source_button.isHidden()
+        assert window.repair_center.active_session is None
+        assert window.repair_center.host_repair_worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
 def test_expert_mode_is_applied_from_persisted_settings_without_changing_guardian(
     tmp_path: Path,
 ) -> None:
@@ -465,6 +594,7 @@ def test_failed_device_refresh_clears_stale_rom_studio_identity(tmp_path: Path) 
     window.rom_studio.set_devices(
         [AndroidDevice("stale-serial", DeviceState.DEVICE, model="Stale phone")]
     )
+    window.device_center.set_repair_context("storage.capacity", "Device storage is nearly full")
 
     try:
         window._scan_failed("ADB transport failed during refresh")
@@ -479,6 +609,10 @@ def test_failed_device_refresh_clears_stale_rom_studio_identity(tmp_path: Path) 
         assert window.sidebar_device_state.objectName() == "Warning"
         assert window._reconnect_timer.isActive()
         assert "automatic retry" in window.sidebar_device_detail.text()
+        assert any(
+            button.text() == "Resolve Platform Tools"
+            for button in window.device_center.findChildren(QPushButton)
+        )
     finally:
         window.companion_center.transport.close()
         window.close()

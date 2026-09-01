@@ -27,6 +27,7 @@ from romverse.diagnostics.history import DiagnosticHistoryError, DiagnosticHisto
 from romverse.diagnostics.models import DiagnosticReport, Finding, Severity
 from romverse.diagnostics.optimizer import OptimizerSafetyError, RomverseCacheOptimizer
 from romverse.knowledge.advisor import recommend_for_findings
+from romverse.repair.templates import actionable_repair_finding
 from romverse.ui.mini_chart import MiniChart
 from romverse.ui.process_progress import ProcessProgressBar
 
@@ -90,6 +91,7 @@ class DiagnosticsCenter(QWidget):
     repair_requested = Signal(str)
     knowledge_requested = Signal(str)
     knowledge_article_requested = Signal(str)
+    report_changed = Signal(object)
 
     def __init__(
         self,
@@ -367,6 +369,7 @@ class DiagnosticsCenter(QWidget):
             self._set_resource_graph(self.storage_graph, None)
             self._set_resource_graph(self.health_graph, None)
             self._empty("No diagnostic claims are made without device evidence.")
+            self.report_changed.emit(None)
 
     def show_error(self, message: str) -> None:
         self.current_device = None
@@ -381,6 +384,7 @@ class DiagnosticsCenter(QWidget):
         self._empty(
             "Device Engine must complete successfully before ROMVERSE can analyze evidence."
         )
+        self.report_changed.emit(None)
 
     def _render(self, device: AndroidDevice) -> None:
         report = self.analyzer.analyze(device)
@@ -421,6 +425,7 @@ class DiagnosticsCenter(QWidget):
         layout.addWidget(copy, 1, 0)
         self.body_layout.addWidget(limitations)
         self.body_layout.addStretch()
+        self.report_changed.emit(report)
 
     def open_finding(self, finding_id: str) -> bool:
         """Reveal one exact current finding without changing diagnostic evidence."""
@@ -465,6 +470,7 @@ class DiagnosticsCenter(QWidget):
         archive_recommendations = recommend_for_findings(report.findings, limit=3)
         archive_primary = archive_recommendations[0] if archive_recommendations else None
         priority = max(report.findings, key=lambda item: ranking[item.severity], default=None)
+        repair_priority = actionable_repair_finding(report)
         card = QFrame()
         card.setObjectName("HeroCard")
         layout = QVBoxLayout(card)
@@ -539,18 +545,19 @@ class DiagnosticsCenter(QWidget):
                 )
             actions.addWidget(search_fixes)
             actions.addStretch()
-            open_repair = QPushButton("Open guided fix in Recovery Bay")
-            open_repair.setObjectName("Primary")
-            open_repair.setToolTip(
-                "Open the model-aware guided repair workflow for the highest-priority finding. "
-                "No device change starts automatically."
-            )
-            open_repair.clicked.connect(
-                lambda _checked=False, finding_id=priority.finding_id: self.repair_requested.emit(
-                    finding_id
+            if repair_priority is not None:
+                open_repair = QPushButton("Open guided fix in Recovery Bay")
+                open_repair.setObjectName("Primary")
+                open_repair.setToolTip(
+                    "Open the model-aware guided repair workflow for the highest-priority routed "
+                    "finding. No device change starts automatically."
                 )
-            )
-            actions.addWidget(open_repair)
+                open_repair.clicked.connect(
+                    lambda _checked=False, finding_id=repair_priority.finding_id: (
+                        self.repair_requested.emit(finding_id)
+                    )
+                )
+                actions.addWidget(open_repair)
             layout.addLayout(actions)
         return card
 

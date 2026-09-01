@@ -223,6 +223,8 @@ class DeviceCenter(QWidget):
         self._project_name = ""
         self._project_has_firmware = False
         self._flight_plan: GenesisFlightPlan | None = None
+        self._repair_finding_id = ""
+        self._repair_finding_title = ""
         self.quick_action_buttons: dict[str, QToolButton] = {}
         self.metrics_history_path = (
             workspace / "logs" / "device-metrics-history.json" if workspace is not None else None
@@ -419,6 +421,21 @@ class DeviceCenter(QWidget):
                 "No Android device is connected. ROM Studio remains available for safe local firmware work."
             )
 
+    def set_repair_context(self, finding_id: str = "", title: str = "") -> None:
+        """Refresh Command Deck repair wording from current typed diagnostic evidence."""
+
+        normalized_id = finding_id.strip()[:120]
+        normalized_title = " ".join(title.replace("\x00", " ").split())[:160]
+        if (normalized_id, normalized_title) == (
+            self._repair_finding_id,
+            self._repair_finding_title,
+        ):
+            return
+        self._repair_finding_id = normalized_id
+        self._repair_finding_title = normalized_title
+        if self.devices:
+            self.render_device(self.devices[self._selected_index])
+
     def _apply_quick_action_visibility(self) -> None:
         expert = self._experience_mode is ExperienceMode.EXPERT
         command_console = self.quick_action_buttons.get("Command Console")
@@ -597,6 +614,21 @@ class DeviceCenter(QWidget):
             else "CREATE PROJECT"
         )
         device_status = "DEVICE READY" if connected else "CONNECT DEVICE"
+        repair_topic = {
+            "battery": "BATTERY / HEAT",
+            "storage": "STORAGE",
+            "connection": "USB / ADB",
+            "scan": "USB / ADB",
+            "boot": "SYSTEM",
+            "security": "SYSTEM",
+        }.get(self._repair_finding_id.partition(".")[0], "GUIDED")
+        repair_status = f"{repair_topic} PLAN READY" if self._repair_finding_id else device_status
+        repair_tooltip = (
+            f"Open Recovery Bay for the exact current finding: {self._repair_finding_title}. "
+            "Navigation starts no repair."
+            if self._repair_finding_id
+            else "Open Recovery Bay for diagnosis, evidence-backed fixes, and verification."
+        )
         cards = QFrame()
         cards.setObjectName("DashboardCard")
         cards_layout = QVBoxLayout(cards)
@@ -664,8 +696,8 @@ class DeviceCenter(QWidget):
                 "#3977FF",
                 "#6097FF",
                 "Repair Phone",
-                device_status,
-                "Open Recovery Bay for diagnosis, evidence-backed fixes, and verification.",
+                repair_status,
+                repair_tooltip,
             ),
             (
                 "sliders",
@@ -727,6 +759,10 @@ class DeviceCenter(QWidget):
             button.setObjectName("QuickAction")
             button.setToolTip(tooltip)
             button.setAccessibleName(f"{label}: {status.replace('_', ' ').title()}")
+            if label == "Repair Phone" and self._repair_finding_id:
+                button.setProperty("diagnosticFinding", self._repair_finding_id)
+                button.setProperty("evidenceReady", True)
+                button.setAccessibleDescription(self._repair_finding_title)
             button.setMinimumHeight(102)
             button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             button.clicked.connect(

@@ -490,6 +490,14 @@ Rescue & Backup, Timeline, Live Operations, Wireless Transfer, and ROMVERSE Lab 
 canonical pages. A missing phone or firmware remains a usable beginner state and never fabricates
 readiness.
 
+Repair Phone is evidence-aware rather than a blind page route. Command Deck consumes the same
+current typed report and severity-ranked finding-to-concern map as Quantum Optimizer. An exact
+actionable match visually promotes and names the topic-specific plan card, then opens the matching
+Recovery Bay context. No actionable match opens a labelled general intake. If Recovery Bay cannot
+independently re-confirm the selected finding, the intake states that fresh evidence is required and
+does not guess a fallback category. All three paths are navigation/presentation only and start no
+session, worker, remote research, approval, or phone action.
+
 The upper Command Deck now pairs Device Portal with an evidence-backed **Genesis Flight Plan**
 instead of repeating device-health gauges. The Flight Plan is compiled from the same
 `GuidedContext` and `GuidedMissionEngine` assessment used inside Genesis Sequence, so its current

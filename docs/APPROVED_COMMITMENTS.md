@@ -406,6 +406,9 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   displays a source-context/no-action-started boundary, clears that context on manual category
   change, returns to and visually focuses the unchanged exact Quantum Optimizer source finding, and
   fails closed in both directions on stale or unknown evidence without starting a session or worker;
+  Command Deck consumes that same severity-ranked actionable selector, visually promotes Repair
+  Phone with a topic-specific ready state, opens the exact matching plan, labels a healthy general
+  intake honestly, and exposes mismatched Recovery evidence as refresh-required rather than guessing;
   guided repair sessions now use a strict private schema-two integrity envelope, bind the primary
   evidence-matched Archives article, re-derive comparison direction and finding deltas, reject
   hostile/altered/re-digested evidence, and feed only integrity-verified fresh comparisons into an

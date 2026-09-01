@@ -583,6 +583,7 @@ class RepairCenter(QWidget):
             f"FROM QUANTUM OPTIMIZER  •  {normalized.upper()}  •  {finding.title.upper()}  "
             "•  CONTEXT ONLY — NO ACTION STARTED"
         )
+        self.diagnostic_source_button.setVisible(True)
         self.diagnostic_context.setVisible(True)
         self.diagnostic_context_row.setVisible(True)
         self._applying_diagnostic_context = True
@@ -595,6 +596,24 @@ class RepairCenter(QWidget):
             self._applying_diagnostic_context = False
         return True
 
+    def open_general_assessment(self, *, evidence_changed: bool = False) -> None:
+        """Present a no-action general intake when no exact current route can be proven."""
+
+        self._clear_diagnostic_context()
+        self.diagnostic_context.setAccessibleName("Command Deck general Recovery Bay intake")
+        self.diagnostic_context.setText(
+            "FROM COMMAND DECK  •  "
+            + (
+                "EXACT DIAGNOSTIC NEEDS FRESH EVIDENCE  •  REFRESH OR CHOOSE A PROBLEM"
+                if evidence_changed
+                else "NO CURRENT ACTIONABLE DIAGNOSTIC  •  CHOOSE A PROBLEM CATEGORY"
+            )
+            + "  •  NO ACTION STARTED"
+        )
+        self.diagnostic_source_button.setVisible(False)
+        self.diagnostic_context.setVisible(True)
+        self.diagnostic_context_row.setVisible(True)
+
     def _concern_changed(self, index: int) -> None:
         if not self._applying_diagnostic_context:
             self._clear_diagnostic_context()
@@ -603,7 +622,9 @@ class RepairCenter(QWidget):
     def _clear_diagnostic_context(self) -> None:
         self._diagnostic_context_id = ""
         self.diagnostic_context.clear()
+        self.diagnostic_context.setAccessibleName("Quantum Optimizer diagnostic handoff")
         self.diagnostic_context.setVisible(False)
+        self.diagnostic_source_button.setVisible(True)
         self.diagnostic_context_row.setVisible(False)
 
     def _request_diagnostic_source(self) -> None:

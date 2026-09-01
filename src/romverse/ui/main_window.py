@@ -85,6 +85,7 @@ from romverse.device_packs.attestations import DevicePackAttestationStore
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.diagnostics.analyzer import DiagnosticAnalyzer
 from romverse.diagnostics.history import DiagnosticHistoryStore
+from romverse.diagnostics.models import DiagnosticReport
 from romverse.guardian.approval import ApprovalStore
 from romverse.guardian.audit import GuardianAuditStore
 from romverse.guardian.gateway import ExecutionGateway
@@ -105,7 +106,7 @@ from romverse.nexus.planning import NexusPlan, NexusPlanStatus
 from romverse.platform.host import HostPlatform, current_host
 from romverse.repair.host import AdbHostRepairReceiptStore, AdbHostRepairService
 from romverse.repair.sessions import RepairSessionStore
-from romverse.repair.templates import RepairAssessmentTemplates
+from romverse.repair.templates import RepairAssessmentTemplates, actionable_repair_finding
 from romverse.rom.models import ProjectError
 from romverse.rom.projects import RomProjectStore
 from romverse.ui.about_state import OriginDiscoveryError, OriginDiscoveryStore
@@ -2491,6 +2492,7 @@ class MainWindow(QMainWindow):
         self.diagnostics_center.repair_requested.connect(self._open_repair_finding)
         self.diagnostics_center.knowledge_requested.connect(self._open_knowledge_query)
         self.diagnostics_center.knowledge_article_requested.connect(self._open_knowledge_article)
+        self.diagnostics_center.report_changed.connect(self._diagnostic_report_changed)
         self.stack.addWidget(self.diagnostics_center)
         self.history_center = HistoryCenter(history_store)
         self.stack.addWidget(self.history_center)
@@ -4081,6 +4083,16 @@ class MainWindow(QMainWindow):
             NotificationKind.ATTENTION,
         )
 
+    @Slot(object)
+    def _diagnostic_report_changed(self, report: object) -> None:
+        finding = actionable_repair_finding(
+            report if isinstance(report, DiagnosticReport) else None
+        )
+        self.device_center.set_repair_context(
+            finding.finding_id if finding is not None else "",
+            finding.title if finding is not None else "",
+        )
+
     @Slot(str)
     def _handle_dashboard_action(self, action: str) -> None:
         if action == "Continue Genesis":
@@ -4093,13 +4105,22 @@ class MainWindow(QMainWindow):
         if action == "Settings":
             self._open_settings()
             return
+        if action == "Repair Phone":
+            finding = actionable_repair_finding(self.diagnostics_center.current_report)
+            if finding is not None and self.repair_center.open_diagnostic_finding(
+                finding.finding_id
+            ):
+                self._navigate_route("recovery_bay")
+                return
+            self.repair_center.open_general_assessment(evidence_changed=finding is not None)
+            self._navigate_route("recovery_bay")
+            return
         targets = {
             "Build ROM": "rom_studio",
             "Device DNA": "device_atlas",
             "Pre-Build Simulation": "rom_studio",
             "Recipes": "rom_studio",
             "Health Review": "quantum_optimizer",
-            "Repair Phone": "recovery_bay",
             "Guardian": "guardian_core",
             "Rescue & Backup": "time_machine",
             "Timeline": "health_timeline",

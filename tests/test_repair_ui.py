@@ -194,6 +194,33 @@ def test_recovery_bay_rejects_unknown_or_stale_diagnostic_handoff(tmp_path) -> N
     center.close()
 
 
+def test_recovery_bay_general_command_deck_intake_clears_exact_source(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = RepairCenter(
+        DiagnosticAnalyzer(),
+        RepairAssessmentTemplates(),
+        GuardianPreflight(),
+        tmp_path,
+        ActivityStore(tmp_path),
+    )
+    center.set_devices([device(storage=StorageInfo(percent_used=98))])
+    assert center.open_diagnostic_finding("storage.capacity")
+
+    center.open_general_assessment()
+    app.processEvents()
+
+    assert not center.diagnostic_context_row.isHidden()
+    assert "FROM COMMAND DECK" in center.diagnostic_context.text()
+    assert "NO CURRENT ACTIONABLE DIAGNOSTIC" in center.diagnostic_context.text()
+    assert "NO ACTION STARTED" in center.diagnostic_context.text()
+    assert center.diagnostic_source_button.isHidden()
+    assert center._diagnostic_context_id == ""
+    assert center.active_session is None
+    assert center.host_repair_worker is None
+    assert center.online_worker is None
+    center.close()
+
+
 def test_recovery_bay_fresh_diagnostics_is_a_real_scan_action(tmp_path) -> None:
     app = QApplication.instance() or QApplication([])
     center = RepairCenter(

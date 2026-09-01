@@ -1785,6 +1785,46 @@ KNOWN_FIXES = (
         automation="PRIVATE READ-ONLY INDEXING AND COMPATIBLE-SCOPE QUERY ONLY • NO UPLOAD, APPROVAL, REMOTE TEXT EXECUTION, OR DEVICE ACTION",
         source=ROMVERSE_SOURCE,
     ),
+    _fix(
+        "activity-exact-source-context",
+        "Activity outcome cannot reopen its exact source evidence",
+        "ROMVERSE WORKFLOWS",
+        "Activity Center stores a bounded redacted outcome summary, not the producing record. "
+        "New ROM Studio and verified diagnostic-snapshot events can also carry a privacy-safe "
+        "typed identifier that ROMVERSE revalidates before restoring the exact project or "
+        "Health Timeline snapshot. Older and unsupported events honestly open only their "
+        "canonical source page.",
+        checks=(
+            "Confirm the event shows EXACT CONTEXT READY before expecting an exact project or snapshot handoff.",
+            "For ROM Studio, confirm the referenced project manifest still exists and passes the project store's validation.",
+            "For Health Timeline, confirm the snapshot is integrity-enveloped and still passes its SHA-256 verification.",
+            "Treat a page-level handoff as navigation only; it does not claim that a previous selection was restored.",
+        ),
+        fix_steps=(
+            "Refresh Activity Center so it rereads the bounded local ledger and rejects modified or unsupported records.",
+            "If exact context is available, use Open exact source evidence; ROMVERSE revalidates the identifier and owning record before leaving Activity Center.",
+            "If the handoff stops, preserve the activity and source evidence, then open the canonical page and inspect its current verified records manually.",
+            "Do not insert paths, device serials, credentials, or arbitrary routes into the ledger; the context contract rejects them.",
+        ),
+        verification=(
+            "A valid ROM project handoff opens ROM Studio with that exact project selected.",
+            "A valid diagnostic handoff opens Health Timeline with that exact verified snapshot selected.",
+            "Missing, legacy, tampered, incomplete, or unsupported context leaves Activity Center visible with a safe-stop reason and changes no workspace or phone state.",
+        ),
+        tags=(
+            "activity exact source",
+            "activity context unavailable",
+            "open exact project evidence",
+            "open diagnostic snapshot",
+            "activity handoff stopped",
+            "legacy activity event",
+            "source evidence missing",
+        ),
+        route="activity_center",
+        evidence="ROMVERSE accepts only registered type-to-route pairs and path-free identifiers, then asks the owning validated store to reload the exact current record.",
+        automation="LOCAL REVALIDATION AND EXACT NAVIGATION ONLY • NO APPROVAL, RESTORE, BUILD, INSTALL, FLASH, PUBLISH, OR DEVICE ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
 )
 
 

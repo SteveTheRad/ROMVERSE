@@ -41,6 +41,60 @@ def test_activity_store_records_deduplicates_and_exports_redacted_ledger(tmp_pat
     assert stat.S_IMODE(exported.stat().st_mode) == 0o600
 
 
+def test_activity_store_round_trips_exact_context_and_migrates_legacy_events(tmp_path) -> None:
+    store = ActivityStore(tmp_path)
+    store.record("device", "Legacy scan", "Read-only evidence")
+    payload = json.loads(store.path.read_text(encoding="utf-8"))
+    payload["schema_version"] = store.LEGACY_SCHEMA_VERSION
+    for key in ("source_route", "context_type", "context_id"):
+        payload["events"][0].pop(key)
+    store.path.write_text(json.dumps(payload), encoding="utf-8")
+
+    legacy = store.list_recent()[0]
+    assert (legacy.source_route, legacy.context_type, legacy.context_id) == ("", "", "")
+
+    exact = store.record(
+        "rom-studio",
+        "Project verified",
+        "Protected source remained unchanged",
+        outcome="success",
+        source="ROM Studio",
+        source_route="rom_studio",
+        context_type="rom-project",
+        context_id="project-one-1234abcd",
+    )
+    rewritten = json.loads(store.path.read_text(encoding="utf-8"))
+    assert rewritten["schema_version"] == store.SCHEMA_VERSION
+    assert store.list_recent()[0] == exact
+    assert rewritten["events"][1]["context_id"] == ""
+
+
+@pytest.mark.parametrize(
+    ("route", "context_type", "context_id"),
+    (
+        ("rom_studio", "rom-project", ""),
+        ("time_machine", "rom-project", "project-one-1234abcd"),
+        ("rom_studio", "rom-project", "/private/device/path"),
+        ("rom_studio", "device-serial", "abc123"),
+    ),
+)
+def test_activity_store_rejects_incomplete_unsupported_or_path_context(
+    tmp_path,
+    route,
+    context_type,
+    context_id,
+) -> None:
+    with pytest.raises(ActivityStoreError, match="context|privacy-safe"):
+        ActivityStore(tmp_path).record(
+            "rom-studio",
+            "Project verified",
+            "Evidence",
+            source_route=route,
+            context_type=context_type,
+            context_id=context_id,
+        )
+
+
 def test_activity_store_preserves_unreadable_ledger(tmp_path) -> None:
     path = tmp_path / "logs" / "activity-v1.json"
     path.parent.mkdir(parents=True)

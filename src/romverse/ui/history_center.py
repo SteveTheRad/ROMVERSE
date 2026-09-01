@@ -199,6 +199,25 @@ class HistoryCenter(QWidget):
                 "then select Save report. Rejected files remain preserved in the history folder."
             )
 
+    def open_snapshot(self, snapshot_id: str) -> bool:
+        """Re-verify and select one exact integrity-enveloped historical snapshot."""
+
+        self.refresh()
+        row = next(
+            (
+                index
+                for index, report in enumerate(self.reports)
+                if report.integrity_verified and report.snapshot_id == snapshot_id
+            ),
+            -1,
+        )
+        if row < 0:
+            return False
+        self.report_list.setCurrentRow(row)
+        self.report_list.scrollToItem(self.report_list.item(row))
+        self._select(row)
+        return True
+
     def _select(self, row: int) -> None:
         if not 0 <= row < len(self.reports):
             return

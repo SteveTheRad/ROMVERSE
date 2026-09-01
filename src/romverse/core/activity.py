@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import stat
 from contextlib import contextmanager, suppress
 from dataclasses import asdict, dataclass
@@ -25,17 +26,55 @@ class ActivityEvent:
     outcome: str
     source: str
     dedupe_key: str = ""
+    source_route: str = ""
+    context_type: str = ""
+    context_id: str = ""
+
+
+ACTIVITY_CONTEXT_ROUTES = {
+    "rom-project": "rom_studio",
+    "diagnostic-snapshot": "health_timeline",
+}
+_CONTEXT_IDENTIFIERS = {
+    "rom-project": re.compile(r"[a-z0-9][a-z0-9-]{0,39}-[0-9a-f]{8}"),
+    "diagnostic-snapshot": re.compile(r"[0-9a-f]{24}"),
+}
+
+
+def validate_activity_context(
+    source_route: str = "",
+    context_type: str = "",
+    context_id: str = "",
+) -> tuple[str, str, str]:
+    """Validate a privacy-safe, exact source reference with no path or device identity."""
+
+    values = (source_route, context_type, context_id)
+    if not any(values):
+        return "", "", ""
+    if not all(values):
+        raise ActivityStoreError("Activity source context must be complete")
+    if not all(isinstance(value, str) for value in values):
+        raise ActivityStoreError("Activity source context must be text")
+    clean_route, clean_type, clean_id = (value.strip() for value in values)
+    expected_route = ACTIVITY_CONTEXT_ROUTES.get(clean_type)
+    if expected_route is None or clean_route != expected_route:
+        raise ActivityStoreError("Unsupported activity source context")
+    identifier_pattern = _CONTEXT_IDENTIFIERS[clean_type]
+    if not identifier_pattern.fullmatch(clean_id):
+        raise ActivityStoreError("Activity context identifier is not privacy-safe")
+    return clean_route, clean_type, clean_id
 
 
 class ActivityStore:
     """Atomic, bounded, privacy-safe ledger of operations ROMVERSE really completed."""
 
-    SCHEMA_VERSION = 1
+    SCHEMA_VERSION = 2
+    LEGACY_SCHEMA_VERSION = 1
     MAX_EVENTS = 500
     MAX_FILE_BYTES = 1_048_576
     OUTCOMES = {"success", "attention", "information"}
     _ROOT_FIELDS = {"format", "schema_version", "privacy", "events"}
-    _EVENT_FIELDS = {
+    _EVENT_FIELDS_V1 = {
         "event_id",
         "recorded_at",
         "category",
@@ -44,6 +83,11 @@ class ActivityStore:
         "outcome",
         "source",
         "dedupe_key",
+    }
+    _EVENT_FIELDS_V2 = _EVENT_FIELDS_V1 | {
+        "source_route",
+        "context_type",
+        "context_id",
     }
     _process_lock = Lock()
 
@@ -63,12 +107,20 @@ class ActivityStore:
         source: str = "ROMVERSE",
         dedupe_key: str = "",
         dedupe_seconds: int = 0,
+        source_route: str = "",
+        context_type: str = "",
+        context_id: str = "",
     ) -> ActivityEvent:
         clean_category = self._text(category, "category", 48)
         clean_title = self._text(title, "title", 140)
         clean_detail = self._text(detail, "detail", 600)
         clean_source = self._text(source, "source", 80)
         clean_key = self._optional_text(dedupe_key, "dedupe key", 160)
+        clean_route, clean_context_type, clean_context_id = validate_activity_context(
+            source_route,
+            context_type,
+            context_id,
+        )
         if outcome not in self.OUTCOMES:
             raise ActivityStoreError("Unsupported activity outcome")
         now = datetime.now(UTC)
@@ -92,6 +144,9 @@ class ActivityStore:
                 outcome=outcome,
                 source=clean_source,
                 dedupe_key=clean_key,
+                source_route=clean_route,
+                context_type=clean_context_type,
+                context_id=clean_context_id,
             )
             self._save((event, *events)[: self.MAX_EVENTS])
             return event
@@ -148,18 +203,20 @@ class ActivityStore:
             if len(raw.encode("utf-8")) > self.MAX_FILE_BYTES:
                 raise ValueError("activity ledger exceeds the size limit")
             payload = json.loads(raw)
+            schema_version = payload.get("schema_version") if isinstance(payload, dict) else None
             if (
                 not isinstance(payload, dict)
                 or set(payload) != self._ROOT_FIELDS
                 or payload.get("format") != "romverse.activity-ledger"
-                or payload.get("schema_version") != self.SCHEMA_VERSION
+                or isinstance(schema_version, bool)
+                or schema_version not in {self.LEGACY_SCHEMA_VERSION, self.SCHEMA_VERSION}
                 or payload.get("privacy") != "redacted"
             ):
                 raise ValueError("unsupported activity ledger schema")
             raw_events = payload.get("events")
             if not isinstance(raw_events, list) or len(raw_events) > self.MAX_EVENTS:
                 raise ValueError("invalid activity event collection")
-            events = tuple(self._parse(item) for item in raw_events)
+            events = tuple(self._parse(item, int(schema_version)) for item in raw_events)
             if len({event.event_id for event in events}) != len(events):
                 raise ValueError("duplicate activity identifiers")
             return events
@@ -200,10 +257,15 @@ class ActivityStore:
                 temporary.unlink(missing_ok=True)
             raise ActivityStoreError(f"Could not preserve activity ledger: {exc}") from exc
 
-    def _parse(self, payload: object) -> ActivityEvent:
+    def _parse(self, payload: object, schema_version: int) -> ActivityEvent:
         if not isinstance(payload, dict):
             raise TypeError("activity event must be an object")
-        if set(payload) != self._EVENT_FIELDS:
+        expected_fields = (
+            self._EVENT_FIELDS_V1
+            if schema_version == self.LEGACY_SCHEMA_VERSION
+            else self._EVENT_FIELDS_V2
+        )
+        if set(payload) != expected_fields:
             raise ValueError("activity event fields are invalid")
         event_id = self._text(payload["event_id"], "event id", 80)
         recorded_at = self._text(payload["recorded_at"], "timestamp", 80)
@@ -213,6 +275,11 @@ class ActivityStore:
         outcome = self._text(payload["outcome"], "outcome", 24)
         if outcome not in self.OUTCOMES:
             raise ValueError("unsupported activity outcome")
+        source_route, context_type, context_id = validate_activity_context(
+            payload.get("source_route", ""),
+            payload.get("context_type", ""),
+            payload.get("context_id", ""),
+        )
         return ActivityEvent(
             event_id=event_id,
             recorded_at=recorded_at,
@@ -222,6 +289,9 @@ class ActivityStore:
             outcome=outcome,
             source=self._text(payload["source"], "source", 80),
             dedupe_key=self._optional_text(payload.get("dedupe_key", ""), "dedupe key", 160),
+            source_route=source_route,
+            context_type=context_type,
+            context_id=context_id,
         )
 
     @classmethod

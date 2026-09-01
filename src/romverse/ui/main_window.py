@@ -74,7 +74,11 @@ from romverse.ascension.companion import AscensionCompanionStatusService
 from romverse.ascension.releases import OfficialRootReleaseService
 from romverse.backup.media import PhoneMediaBackupService
 from romverse.companion.raw_terminal import RawTerminalFeed
-from romverse.core.activity import ActivityStore, ActivityStoreError
+from romverse.core.activity import (
+    ActivityStore,
+    ActivityStoreError,
+    validate_activity_context,
+)
 from romverse.core.settings import AppSettings, ExperienceMode
 from romverse.device.adb import AdbClient
 from romverse.device.apk_install import ApkInstallService
@@ -3056,6 +3060,7 @@ class MainWindow(QMainWindow):
         members_index = self.stack.addWidget(self.members_center)
         self.activity_center = ActivityCenter(self.activity_store)
         self.activity_center.route_requested.connect(self._navigate_route)
+        self.activity_center.source_requested.connect(self._open_activity_source)
         activity_index = self.stack.addWidget(self.activity_center)
         self.page_routes = {
             "command_deck": self.stack.indexOf(self.device_center),
@@ -3878,6 +3883,51 @@ class MainWindow(QMainWindow):
                 "The producing Desktop feature is not registered"
             )
 
+    @Slot(str, str, str)
+    def _open_activity_source(
+        self,
+        route: str,
+        context_type: str,
+        context_id: str,
+    ) -> None:
+        """Re-verify and restore one privacy-safe Activity Center source context."""
+
+        try:
+            source_route, clean_type, clean_id = validate_activity_context(
+                route,
+                context_type,
+                context_id,
+            )
+        except ActivityStoreError as exc:
+            self.activity_center.source_handoff_stopped(str(exc))
+            return
+
+        if clean_type == "rom-project":
+            try:
+                self.rom_studio.store.get(clean_id)
+            except ProjectError:
+                self.activity_center.source_handoff_stopped(
+                    "The event's exact ROM project evidence is no longer available"
+                )
+                return
+            self.rom_studio.refresh(clean_id)
+        elif clean_type == "diagnostic-snapshot":
+            if not self.history_center.open_snapshot(clean_id):
+                self.activity_center.source_handoff_stopped(
+                    "The event's exact diagnostic snapshot is missing, legacy, or failed integrity verification"
+                )
+                return
+        else:
+            self.activity_center.source_handoff_stopped(
+                "The event's source context is not supported by this ROMVERSE build"
+            )
+            return
+
+        if not self._navigate_route(source_route):
+            self.activity_center.source_handoff_stopped(
+                "The producing Desktop feature is not registered"
+            )
+
     @Slot(str, str, str, str)
     def _open_device_pack_next_action(
         self,
@@ -4312,7 +4362,21 @@ class MainWindow(QMainWindow):
             operation,
             ("ROM Studio operation completed", operation.replace("-", " ").title()),
         )
-        self._record_activity("rom-studio", title, detail, "success", "ROM Studio")
+        project_id = (
+            self.rom_studio.current_project.project_id
+            if self.rom_studio.current_project is not None
+            else ""
+        )
+        self._record_activity(
+            "rom-studio",
+            title,
+            detail,
+            "success",
+            "ROM Studio",
+            source_route="rom_studio" if project_id else "",
+            context_type="rom-project" if project_id else "",
+            context_id=project_id,
+        )
         self._update_companion_ascension_status()
         self._sync_command_deck_context()
 
@@ -4621,12 +4685,20 @@ class MainWindow(QMainWindow):
 
     @Slot(str, str)
     def _record_rom_failure(self, operation: str, _message: str) -> None:
+        project_id = (
+            self.rom_studio.current_project.project_id
+            if self.rom_studio.current_project is not None
+            else ""
+        )
         self._record_activity(
             "rom-studio",
             "ROM Studio stopped safely",
             f"{operation.replace('-', ' ').title()} did not complete; protected originals were preserved.",
             "attention",
             "ROM Studio",
+            source_route="rom_studio" if project_id else "",
+            context_type="rom-project" if project_id else "",
+            context_id=project_id,
         )
         self._update_companion_ascension_status()
 
@@ -4679,6 +4751,10 @@ class MainWindow(QMainWindow):
         detail: str,
         outcome: str,
         source: str,
+        *,
+        source_route: str = "",
+        context_type: str = "",
+        context_id: str = "",
     ) -> None:
         with suppress(ActivityStoreError):
             self.activity_store.record(
@@ -4687,6 +4763,9 @@ class MainWindow(QMainWindow):
                 detail,
                 outcome=outcome,
                 source=source,
+                source_route=source_route,
+                context_type=context_type,
+                context_id=context_id,
             )
 
     @Slot(object)

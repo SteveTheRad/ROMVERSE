@@ -66,7 +66,14 @@ def filter_activity_events(
         if normalized_outcome and event.outcome.casefold() != normalized_outcome:
             continue
         searchable = " ".join(
-            (event.title, event.detail, event.source, event.category, event.outcome)
+            (
+                event.title,
+                event.detail,
+                event.source,
+                event.category,
+                event.outcome,
+                event.context_id,
+            )
         ).casefold()
         if tokens and not all(token in searchable for token in tokens):
             continue
@@ -77,13 +84,14 @@ def filter_activity_events(
 def activity_source_route(event: ActivityEvent) -> str:
     """Resolve a ledger event back to its canonical Desktop source page when known."""
 
-    return canonical_source_route(event.source, event.category)
+    return event.source_route or canonical_source_route(event.source, event.category)
 
 
 class ActivityCenter(QWidget):
     """Searchable, evidence-aware viewer for completed and attention outcomes."""
 
     route_requested = Signal(str)
+    source_requested = Signal(str, str, str)
 
     def __init__(self, store: ActivityStore) -> None:
         super().__init__()
@@ -376,26 +384,63 @@ class ActivityCenter(QWidget):
         evidence_layout.addWidget(truth)
         route = activity_source_route(event)
         destination_title = feature(route).title if route else ""
+        exact_context = bool(event.source_route and event.context_type and event.context_id)
+        if exact_context:
+            context = QLabel(
+                f"EXACT CONTEXT READY  •  {event.context_type.replace('-', ' ').upper()}  •  "
+                f"{event.context_id}"
+            )
+            context.setObjectName("Good")
+            context.setWordWrap(True)
+            context.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            context.setAccessibleName(
+                f"Exact {event.context_type.replace('-', ' ')} source context is available"
+            )
+            evidence_layout.addWidget(context)
         self.open_source_button = QPushButton(
-            f"Open {destination_title}" if route else "Source page unavailable"
+            f"Open exact {destination_title} evidence"
+            if exact_context
+            else f"Open {destination_title}"
+            if route
+            else "Source page unavailable"
         )
         if route:
             self.open_source_button.setToolTip(
-                f"Open the canonical {destination_title} page for this {event.source} outcome."
+                f"Restore the exact verified {event.context_type.replace('-', ' ')} in "
+                f"{destination_title}."
+                if exact_context
+                else f"Open the canonical {destination_title} page for this {event.source} outcome."
             )
         self.open_source_button.setAccessibleName(
-            f"Open the canonical source page for {event.title}"
+            f"Open the exact source evidence for {event.title}"
+            if exact_context
+            else f"Open the canonical source page for {event.title}"
             if route
             else f"No canonical source page is registered for {event.title}"
         )
         self.open_source_button.setEnabled(bool(route))
-        if route:
+        if exact_context:
+            self.open_source_button.clicked.connect(
+                lambda _checked=False: self.source_requested.emit(
+                    event.source_route,
+                    event.context_type,
+                    event.context_id,
+                )
+            )
+        elif route:
             self.open_source_button.clicked.connect(
                 lambda _checked=False, destination=route: self.route_requested.emit(destination)
             )
         evidence_layout.addWidget(self.open_source_button)
         self.detail_layout.addWidget(evidence)
         self.detail_layout.addStretch()
+
+    def source_handoff_stopped(self, reason: str) -> None:
+        """Keep the user on Activity Center when referenced evidence is no longer valid."""
+
+        safe = reason.replace("\x00", " ").strip()[:240] or "Source evidence is unavailable"
+        self._set_status("ATTENTION  •  Exact source handoff stopped safely", "Warning")
+        self.footer.setText(f"{safe}. No workspace or device state changed.")
 
     def _render_empty(self, message: str) -> None:
         self._clear_detail()

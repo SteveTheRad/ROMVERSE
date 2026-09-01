@@ -26,6 +26,7 @@ class StoredFinding:
 @dataclass(frozen=True, slots=True)
 class StoredDiagnosticReport:
     path: Path
+    snapshot_id: str
     generated_at: str
     device_key: str
     device_name: str
@@ -117,6 +118,9 @@ class DiagnosticHistoryStore:
                     f"{report.device_name} • health score {report.health_score} • {len(report.findings)} finding(s)",
                     outcome="success",
                     source="System Scan",
+                    source_route="health_timeline",
+                    context_type="diagnostic-snapshot",
+                    context_id=str(payload["snapshot_id"]),
                 )
         return path
 
@@ -195,6 +199,7 @@ class DiagnosticHistoryStore:
         if present_snapshot_keys and present_snapshot_keys != snapshot_keys:
             raise ValueError("diagnostic snapshot integrity envelope is incomplete")
         integrity_verified = bool(present_snapshot_keys)
+        snapshot_id = ""
         snapshot_digest = ""
         verification_reason = "Legacy snapshot; integrity fingerprint unavailable"
         if integrity_verified:
@@ -241,6 +246,7 @@ class DiagnosticHistoryStore:
         cls._validate_supporting_collections(payload)
         return StoredDiagnosticReport(
             path=path,
+            snapshot_id=snapshot_id,
             generated_at=generated_at,
             device_key=device_key,
             device_name=cls._bounded_text(payload["device_name"], "device name", 240),

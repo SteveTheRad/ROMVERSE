@@ -42,6 +42,9 @@ def test_saved_report_records_truthful_activity(tmp_path):
     event = activity.list_recent()[0]
     assert event.title == "Health snapshot saved"
     assert event.outcome == "success"
+    assert event.source_route == "health_timeline"
+    assert event.context_type == "diagnostic-snapshot"
+    assert len(event.context_id) == 24
     assert source.serial not in activity.path.read_text()
 
 

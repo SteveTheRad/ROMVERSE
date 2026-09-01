@@ -62,6 +62,31 @@ def test_health_timeline_labels_legacy_snapshot_unverified(tmp_path) -> None:
     center.close()
 
 
+def test_health_timeline_reverifies_and_selects_exact_snapshot_context(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    store = DiagnosticHistoryStore(tmp_path)
+    source = device()
+    first_path = store.save(DiagnosticAnalyzer().analyze(source), source)
+    second_path = store.save(
+        DiagnosticAnalyzer().analyze(device(battery_percent=4)),
+        device(battery_percent=4),
+    )
+    first_id = json.loads(first_path.read_text(encoding="utf-8"))["snapshot_id"]
+    center = HistoryCenter(store)
+    app.processEvents()
+
+    assert center.open_snapshot(first_id)
+    assert center.reports[center.report_list.currentRow()].snapshot_id == first_id
+
+    payload = json.loads(second_path.read_text(encoding="utf-8"))
+    second_id = payload["snapshot_id"]
+    payload["summary"] = "tampered after activity was recorded"
+    second_path.write_text(json.dumps(payload), encoding="utf-8")
+    assert not center.open_snapshot(second_id)
+    assert "REJECTED EVIDENCE" in center.evidence_status.text()
+    center.close()
+
+
 def test_health_timeline_routes_typed_history_to_exact_archives_guide(tmp_path) -> None:
     app = QApplication.instance() or QApplication([])
     store = DiagnosticHistoryStore(tmp_path)
@@ -113,6 +138,20 @@ def test_health_timeline_handoffs_reach_archives_and_current_optimizer(tmp_path)
         app.processEvents()
         assert window.stack.currentWidget() is window.diagnostics_center
         assert window.diagnostics_center.current_report is not None
+
+        window._navigate_route("activity_center")
+        window.activity_center.refresh()
+        window.activity_center.search.setText("Health snapshot saved")
+        app.processEvents()
+        exact_id = window.activity_center.visible_events[0].context_id
+        assert window.activity_center.open_source_button.text() == (
+            "Open exact Health Timeline evidence"
+        )
+        window.activity_center.open_source_button.click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.history_center
+        selected = window.history_center.reports[window.history_center.report_list.currentRow()]
+        assert selected.snapshot_id == exact_id
     finally:
         window.companion_center.transport.close()
         window.close()

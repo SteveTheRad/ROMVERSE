@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from PySide6.QtCore import Qt, QTimer, Signal
-from PySide6.QtGui import QColor
+from PySide6.QtGui import QBrush, QColor, QPalette
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
@@ -33,6 +33,9 @@ class LiveConsoleCenter(QWidget):
 
     source_requested = Signal(str, str)
     FILTERS = ("All events", "Active", "Completed", "Needs attention")
+    TABLE_BASE = QColor("#060B16")
+    TABLE_ALTERNATE = QColor("#0B1322")
+    TABLE_TEXT = QColor("#DCE8F8")
 
     def __init__(self, store: LiveConsoleEventStore) -> None:
         super().__init__()
@@ -100,6 +103,7 @@ class LiveConsoleCenter(QWidget):
         table_header.setMinimumHeight(36)
         table_header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         table_header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        self._apply_dark_table_surface(table_header)
         self.table.itemSelectionChanged.connect(self._show_selected)
         page.addWidget(self.table, 1)
 
@@ -196,8 +200,12 @@ class LiveConsoleCenter(QWidget):
             for column, value in enumerate(values):
                 item = QTableWidgetItem(value)
                 item.setData(Qt.ItemDataRole.UserRole, event.event_id)
+                item.setBackground(
+                    QBrush(self.TABLE_BASE if row % 2 == 0 else self.TABLE_ALTERNATE)
+                )
+                item.setForeground(QBrush(self.TABLE_TEXT))
                 if column == 3:
-                    item.setForeground(color)
+                    item.setForeground(QBrush(color))
                 self.table.setItem(row, column, item)
         if events:
             self.table.selectRow(0)
@@ -306,6 +314,48 @@ class LiveConsoleCenter(QWidget):
             MissionState.BLOCKED: QColor("#FF8D74"),
             MissionState.FAILED: QColor("#FF6685"),
         }[state]
+
+    def _apply_dark_table_surface(self, header: QHeaderView) -> None:
+        """Keep Fedora's native palette from repainting this dark evidence grid white."""
+
+        palette = self.table.palette()
+        for group in (
+            QPalette.ColorGroup.Active,
+            QPalette.ColorGroup.Inactive,
+            QPalette.ColorGroup.Disabled,
+        ):
+            palette.setColor(group, QPalette.ColorRole.Base, self.TABLE_BASE)
+            palette.setColor(group, QPalette.ColorRole.AlternateBase, self.TABLE_ALTERNATE)
+            palette.setColor(group, QPalette.ColorRole.Text, self.TABLE_TEXT)
+            palette.setColor(group, QPalette.ColorRole.Window, self.TABLE_BASE)
+            palette.setColor(group, QPalette.ColorRole.WindowText, self.TABLE_TEXT)
+            palette.setColor(group, QPalette.ColorRole.Button, QColor("#0D1729"))
+            palette.setColor(group, QPalette.ColorRole.ButtonText, QColor("#CFE1F7"))
+            palette.setColor(group, QPalette.ColorRole.Highlight, QColor("#28589C"))
+            palette.setColor(group, QPalette.ColorRole.HighlightedText, QColor("#FFFFFF"))
+        self.table.setPalette(palette)
+        self.table.viewport().setPalette(palette)
+        self.table.viewport().setAutoFillBackground(True)
+        header.setPalette(palette)
+        header.setAutoFillBackground(True)
+
+        # This local header rule is intentional. Some Fedora desktop themes polish
+        # the internal header before its object name is assigned, leaving the global
+        # named selector unable to dislodge a light native base.
+        header.setStyleSheet(
+            """
+            QHeaderView { background-color: #0D1729; color: #CFE1F7; }
+            QHeaderView::section {
+                color: #CFE1F7;
+                background-color: #0D1729;
+                border: 0;
+                border-right: 1px solid #29466F;
+                border-bottom: 1px solid #3B5E8E;
+                padding: 8px 7px;
+                font-weight: 750;
+            }
+            """
+        )
 
     @staticmethod
     def _repolish(widget: QWidget) -> None:

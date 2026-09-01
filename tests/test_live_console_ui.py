@@ -5,6 +5,7 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtGui import QPalette
 from PySide6.QtWidgets import QApplication
 
 from romverse.nexus.events import LiveConsoleEventStore, MissionConfidence, MissionState
@@ -44,6 +45,8 @@ def test_live_console_renders_real_events_and_filters_active_work(tmp_path) -> N
     center = LiveConsoleCenter(store)
     center.refresh()
     assert center.table.rowCount() == 2
+    assert center.table.item(0, 0).background().color().name() == "#060b16"
+    assert center.table.item(1, 0).background().color().name() == "#0b1322"
     assert "2 genuine events" in center.status.text()
     assert "Inspect firmware" in center.detail_title.text()
     assert "WHY" in center.detail.text()
@@ -64,6 +67,10 @@ def test_live_console_renders_real_events_and_filters_active_work(tmp_path) -> N
     assert center.table.horizontalHeader().objectName() == "LiveConsoleHeader"
     assert center.table.alternatingRowColors()
     assert center.table.showGrid()
+    assert center.table.palette().color(QPalette.ColorRole.Base).name() == "#060b16"
+    assert center.table.viewport().palette().color(QPalette.ColorRole.Base).name() == "#060b16"
+    assert center.table.item(0, 0).background().color().name() == "#060b16"
+    assert "background-color: #0D1729" in center.table.horizontalHeader().styleSheet()
 
 
 def test_live_console_disables_source_action_for_unregistered_producer(tmp_path) -> None:

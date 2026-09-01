@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import date
 
+import pytest
+
 from romverse.device.models import DeviceState, StorageInfo
 from romverse.diagnostics.analyzer import DiagnosticAnalyzer
 from romverse.diagnostics.models import Finding, Severity
@@ -9,6 +11,7 @@ from romverse.knowledge.advisor import (
     DIAGNOSTIC_ARTICLE_KEYS,
     REPAIR_CONCERN_ARTICLE_KEYS,
     article_for_key,
+    article_key_for_apk_failure,
     article_key_for_diagnostic_finding,
     recommend_for_findings,
     recommend_for_repair,
@@ -132,3 +135,32 @@ def test_unauthorized_analyzer_report_reaches_authorization_guide() -> None:
     )
 
     assert recommend_for_findings(report.findings, limit=1)[0].article.key == "adb-unauthorized"
+
+
+@pytest.mark.parametrize(
+    ("failure", "article_key"),
+    (
+        ("INSTALL_FAILED_INVALID_APK", "apk-invalid"),
+        ("INSTALL_PARSE_FAILED_NOT_APK", "apk-invalid"),
+        ("INSTALL_FAILED_UPDATE_INCOMPATIBLE", "apk-signature-conflict"),
+        ("INSTALL_FAILED_INSUFFICIENT_STORAGE", "apk-insufficient-storage"),
+        ("INSTALL_FAILED_NO_MATCHING_ABIS", "apk-abi-incompatible"),
+        ("CPU_ABI_INCOMPATIBLE", "apk-abi-incompatible"),
+        ("INSTALL_FAILED_VERSION_DOWNGRADE", "apk-version-downgrade"),
+        ("INSTALL_FAILED_MISSING_SPLIT", "apk-missing-split"),
+        ("INSTALL_FAILED_USER_RESTRICTED", "apk-user-restricted"),
+        ("INSTALL_FAILED_TEST_ONLY", "apk-test-only"),
+    ),
+)
+def test_apk_failure_codes_resolve_to_exact_verified_guides(failure: str, article_key: str) -> None:
+    assert article_key_for_apk_failure(f"Failure [{failure}: details]") == article_key
+
+
+def test_apk_failure_advisor_refuses_unknown_or_conflicting_codes() -> None:
+    assert article_key_for_apk_failure("Failure [INSTALL_FAILED_UNKNOWN]") == ""
+    assert (
+        article_key_for_apk_failure(
+            "INSTALL_FAILED_INVALID_APK and INSTALL_FAILED_VERSION_DOWNGRADE"
+        )
+        == ""
+    )

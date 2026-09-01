@@ -404,10 +404,12 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   structured known-fix records, 35 official-source-linked records, bounded ranked retrieval, weak-
   match rejection, category filtering, source visibility, and canonical workspace handoffs;
   a deterministic Archives Advisor now maps every Recovery Bay concern and typed actionable
-  diagnostic finding to stable structured article identities, distinguishes exact ADB states,
+  diagnostic finding plus each recognized App Launchpad Package Manager failure to stable
+  structured article identities, distinguishes exact ADB states, rejects conflicting APK codes,
   prioritizes full error-code matches, exports its source/reason/automation boundary, and opens the
-  exact guide without starting research, approval, repair, build, or device work, while existing ROM
-  Studio/Genesis/Ascension/Recipe handoffs preserve their stages and drafts; Recovery Bay keeps
+  exact guide without starting research, approval, repair, build, retry, or device work; Archives
+  carries a universal navigation-only return path to the unchanged source workflow, while existing
+  ROM Studio/Genesis/Ascension/Recipe handoffs preserve their stages and drafts; Recovery Bay keeps
   disabled online research in an accessible compact drawer, automatically expands real evidence,
   and keeps the exact local Advisor action visible without changing workflow state;
   Device Atlas's deterministic Next Safe Action binds the current report digest, selected gate,
@@ -734,7 +736,10 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   Lifeline integrity evidence, with a host runner that refuses non-emulator Android targets;
   Desktop App Launchpad measured monotonic APK hash/container-inspection progress with duplicate
   actions locked, while the ADB installation phase remains honestly indeterminate rather than
-  presenting a fabricated percentage;
+  presenting a fabricated percentage; its responsive dark scroll surface preserves full evidence
+  readability, and recognized install failures persist only a privacy-safe workspace-key-bound code
+  identity that routes to the exact Archives fix after current-receipt revalidation, refuses stale
+  context, and returns to unchanged App Launchpad without retrying;
   Desktop Members and Command Console
   background-operation progress with duplicate-probe locking; Companion single-owner persistent
   top-right connectivity status with duplicate page/drawer indicators removed;

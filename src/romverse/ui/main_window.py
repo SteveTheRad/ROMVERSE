@@ -100,6 +100,7 @@ from romverse.guardian.policy import GuardianPolicy
 from romverse.infrastructure.process import CommandRunner, SubprocessRunner
 from romverse.infrastructure.tools import ToolStatus
 from romverse.intelligence.online_remediation import OnlineRemediationService
+from romverse.knowledge.advisor import article_for_key
 from romverse.knowledge.resolution_memory import ArchivesResolutionMemory
 from romverse.nexus.compatibility import CompatibilityMatrix, CompatibilityStatus
 from romverse.nexus.events import (
@@ -2608,6 +2609,7 @@ class MainWindow(QMainWindow):
         )
         self.apk_installer.runtime_tools_requested.connect(self._resolve_apk_runtime)
         self.apk_installer.inspection_tools_requested.connect(self._resolve_apk_inspection_tools)
+        self.apk_installer.knowledge_article_requested.connect(self._open_knowledge_article)
         self.stack.addWidget(self.apk_installer)
         media_backup_service = (
             PhoneMediaBackupService(
@@ -3433,6 +3435,8 @@ class MainWindow(QMainWindow):
             self.history_center.refresh()
         elif self.stack.currentWidget() is self.activity_center:
             self.activity_center.refresh()
+        elif self.stack.currentWidget() is self.knowledge_center:
+            self.knowledge_center.clear_source_context()
         elif self.stack.currentWidget() is self.guardian_center:
             self._revalidate_guardian_review_contexts()
             self.guardian_center.request_refresh()
@@ -3528,12 +3532,17 @@ class MainWindow(QMainWindow):
             )
             return
         if route == "archives":
-            if not article_key or not self.knowledge_center.open_article(article_key):
+            if not article_key or article_for_key(article_key) is None:
                 self.device_packs_center.next_action_handoff_stopped(
                     "The exact verified Archives guide is unavailable"
                 )
                 return
             self._navigate_route("archives")
+            if not self.knowledge_center.open_article(article_key, source_route="device_atlas"):
+                self.device_packs_center.next_action_handoff_stopped(
+                    "The exact verified Archives guide is unavailable"
+                )
+                return
             return
         if route == "time_machine":
             if not self.backup_center.open_device_atlas_readiness(report):
@@ -4329,13 +4338,15 @@ class MainWindow(QMainWindow):
 
     @Slot(str)
     def _open_knowledge_query(self, query: str) -> None:
+        source_route = self._route_by_page_index.get(self.stack.currentIndex(), "")
         self._navigate_route("archives")
-        self.knowledge_center.open_query(query)
+        self.knowledge_center.open_query(query, source_route=source_route)
 
     @Slot(str)
     def _open_knowledge_article(self, key: str) -> None:
+        source_route = self._route_by_page_index.get(self.stack.currentIndex(), "")
         self._navigate_route("archives")
-        self.knowledge_center.open_article(key)
+        self.knowledge_center.open_article(key, source_route=source_route)
 
     @Slot(str)
     def _open_repair_finding(self, finding_id: str) -> None:

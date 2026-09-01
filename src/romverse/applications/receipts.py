@@ -9,7 +9,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
-from romverse.device.apk_install import ApkInstallPlan, plan_summary
+from romverse.core.privacy import WorkspacePrivacy
+from romverse.device.apk_install import (
+    APK_INSTALL_FAILURE_CODES,
+    ApkInstallPlan,
+    extract_apk_install_failure_code,
+    plan_summary,
+)
 from romverse.infrastructure.process import CommandResult
 
 
@@ -38,6 +44,8 @@ class ApkReceiptStore:
     MAXIMUM_BYTES = 1 << 20
 
     def __init__(self, workspace: Path) -> None:
+        self.workspace = workspace
+        self.privacy = WorkspacePrivacy(workspace)
         self.root = workspace / "logs"
         self.latest_preflight_path = self.root / "latest-apk-preflight.json"
         self.latest_install_path = self.root / "latest-apk-install.json"
@@ -66,6 +74,17 @@ class ApkReceiptStore:
         success: bool,
     ) -> ApkReceiptRecord:
         payload = json.loads(plan_summary(plan))
+        failure_code = (
+            "" if success else extract_apk_install_failure_code(f"{result.stderr}\n{result.stdout}")
+        )
+        try:
+            failure_identity = (
+                self.privacy.pseudonym(f"apk-failure:{plan.digest}:{failure_code}", 64)
+                if failure_code
+                else ""
+            )
+        except (OSError, ValueError, KeyError) as exc:
+            raise OSError("APK failure identity binding is unavailable") from exc
         payload.update(
             {
                 "format": self.FORMAT,
@@ -76,6 +95,8 @@ class ApkReceiptStore:
                 "returncode": int(result.returncode),
                 "timed_out": bool(result.timed_out),
                 "device_command_executed": True,
+                "failure_code": failure_code,
+                "failure_identity": failure_identity,
             }
         )
         return self._write(payload, self.latest_install_path, "apk-install")
@@ -128,6 +149,27 @@ class ApkReceiptStore:
             return ApkReceiptRead(False, False, "APK receipt identity evidence is invalid")
         if any(key in data for key in ("apk_path", "device_serial", "stdout", "stderr")):
             return ApkReceiptRead(False, False, "APK receipt contains a forbidden private field")
+        failure_code = data.get("failure_code", "")
+        failure_identity = data.get("failure_identity", "")
+        if (
+            not isinstance(failure_code, str)
+            or failure_code not in APK_INSTALL_FAILURE_CODES | {""}
+            or not isinstance(failure_identity, str)
+            or (expected_kind == "install-result" and not isinstance(data.get("success"), bool))
+            or (bool(data.get("success")) and (failure_code or failure_identity))
+        ):
+            return ApkReceiptRead(False, False, "APK receipt failure identity is invalid")
+        if failure_code:
+            try:
+                expected_failure_identity = self.privacy.pseudonym(
+                    f"apk-failure:{data.get('manifest_digest', '')}:{failure_code}", 64
+                )
+            except (OSError, ValueError, KeyError):
+                return ApkReceiptRead(False, False, "APK failure identity key is unavailable")
+            if not hmac.compare_digest(failure_identity, expected_failure_identity):
+                return ApkReceiptRead(False, False, "APK receipt failure identity binding changed")
+        elif failure_identity:
+            return ApkReceiptRead(False, False, "APK receipt failure identity is invalid")
         command_executed = data.get("device_command_executed")
         expected_executed = expected_kind == "install-result"
         if not isinstance(command_executed, bool) or command_executed != expected_executed:

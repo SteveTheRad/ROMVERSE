@@ -28,6 +28,22 @@ from romverse.rom.models import ProjectError
 
 MAX_APK_ENTRIES = 50_000
 MAX_DECLARED_EXPANDED_BYTES = 8 * 1024**3
+APK_INSTALL_FAILURE_CODES = frozenset(
+    {
+        "INSTALL_FAILED_INSUFFICIENT_STORAGE",
+        "INSTALL_FAILED_INVALID_APK",
+        "INSTALL_FAILED_MISSING_SPLIT",
+        "INSTALL_FAILED_NO_MATCHING_ABIS",
+        "INSTALL_FAILED_TEST_ONLY",
+        "INSTALL_FAILED_UPDATE_INCOMPATIBLE",
+        "INSTALL_FAILED_USER_RESTRICTED",
+        "INSTALL_FAILED_VERSION_DOWNGRADE",
+    }
+)
+_APK_INSTALL_FAILURE_ALIASES = {
+    "CPU_ABI_INCOMPATIBLE": "INSTALL_FAILED_NO_MATCHING_ABIS",
+    "INSTALL_PARSE_FAILED_NOT_APK": "INSTALL_FAILED_INVALID_APK",
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -82,6 +98,22 @@ class ApkInstallPlan:
             not check.required or check.status is CheckStatus.PASS
             for check in self.manifest.preconditions
         )
+
+
+def extract_apk_install_failure_code(output: str) -> str:
+    """Return one recognized, privacy-safe Package Manager failure identity."""
+
+    bounded = output.replace("\x00", " ")[:4_000].upper()
+    matches = re.findall(
+        r"\b(?:INSTALL_(?:FAILED|PARSE_FAILED)_[A-Z0-9_]+|CPU_ABI_INCOMPATIBLE)\b",
+        bounded,
+    )
+    recognized = {
+        _APK_INSTALL_FAILURE_ALIASES.get(item, item)
+        for item in matches
+        if _APK_INSTALL_FAILURE_ALIASES.get(item, item) in APK_INSTALL_FAILURE_CODES
+    }
+    return next(iter(recognized)) if len(recognized) == 1 else ""
 
 
 def build_install_arguments(request: ApkInstallRequest) -> tuple[str, ...]:

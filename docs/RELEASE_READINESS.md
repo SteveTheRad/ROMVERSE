@@ -28,7 +28,7 @@ has current evidence.
    Repository tests also prove a changed packaged runtime module is rejected. This does not replace
    the required Windows installed-wheel pass or signed release-artifact validation.
 
-   Current Fedora development evidence recorded on 2026-09-01: 1,132 Desktop tests and the complete
+   Current Fedora development evidence recorded on 2026-09-01: 1,149 Desktop tests and the complete
    Ruff check/format gate pass after the Ctrl+K navigation-only palette, canonical Activity Center,
    connected About ROMVERSE V3, collapsible/focus workspace shell, and structured ROMVERSE Archives
    and deterministic Archives Advisor increments. Tests cover bounded ranked retrieval, weak-match
@@ -56,14 +56,17 @@ has current evidence.
    Archives or ROM Studio with no plan or worker; 113 structured Archives guides including the
    verified device-identification, build/flash roadmap, and Nexus evidence boundaries; a rendered
    1,600×950 audit of all 19 routes kept every bright-surface ratio below 0.84%, including the
-   previously affected Nexus, Forge Arsenal, and Galaxy pages; Recovery Bay report boundaries,
-   adaptive research
+   previously affected Nexus, Forge Arsenal, and Galaxy pages; exact App Launchpad Package Manager
+   failure-code normalization, workspace-key-bound privacy-safe receipt identity, unknown/conflict
+   refusal, redigested/superseded-context rejection, exact Archives routing, universal source return,
+   no-retry navigation, and a responsive dark Launchpad scroll surface; Recovery Bay report
+   boundaries, adaptive research
    disclosure, strict guided-session evidence, exact-article local Resolution Memory, hostile and
    semantically false re-digested outcome rejection, Live Console table contrast, Activity Center
    filtering and export, adaptive
    rendering, accessibility, hostile ledger boundaries, and the strict private Origin-discovery
    record. A fresh isolated build produced a 220-member wheel with SHA-256
-   `b8b3058cbdd81ee60e613fd138f4231a816e8f4b16603941d2a91679ca6304c8`; the verifier
+   `2f001ba76f70e8c6e7d456cebb8b51eff808ff1fe8798d1b9649bddd79b170b5`; the verifier
    byte-compared all runtime modules with source and revalidated all 21 indexed Device Packs. A
    separate wheel-target environment imported the packaged 113-guide catalog, Advisor, strict guided
    sessions, Resolution Memory, and the deterministic Diagnostics-to-Recovery concern map from
@@ -87,7 +90,10 @@ has current evidence.
    that return, and verified the installed shared item-view base as dark `#060b16`; loaded the
    packaged 113-guide/63-known-fix Archives; opened the exact packaged Nexus evidence guide and
    returned to ROM Studio without creating a plan, then rendered Galaxy, Nexus, and Forge Arsenal
-   viewport pixels as dark; opened the packaged Desktop
+   viewport pixels as dark; persisted a packaged exact APK failure as a workspace-key-bound typed
+   identity without its private detail, opened the exact installed Archives guide, returned to the
+   unchanged App Launchpad with no worker/retry, restored guidance after restart without restoring
+   approval, and rendered its responsive scroll viewport dark; opened the packaged Desktop
    offscreen; initialized a fresh workspace; and reloaded all 21 Packs. This remains development
    evidence, not the required signed Windows/Fedora public-release certification.
 4. Launch the installed wheel on Ubuntu, Fedora, and Windows, initialize a fresh workspace, and verify

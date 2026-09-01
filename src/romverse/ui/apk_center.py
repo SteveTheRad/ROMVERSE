@@ -7,9 +7,11 @@ from PySide6.QtCore import QObject, Signal, Slot
 from PySide6.QtWidgets import (
     QFileDialog,
     QFrame,
+    QHBoxLayout,
     QLabel,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
@@ -30,6 +32,7 @@ from romverse.device.models import AndroidDevice, DeviceState
 from romverse.guardian.approval import ApprovalStore
 from romverse.infrastructure.process import CommandResult, CommandRunner, SubprocessRunner
 from romverse.infrastructure.tools import ToolStatus
+from romverse.knowledge.advisor import article_for_key, article_key_for_apk_failure
 from romverse.ui.background import ManagedRunnable, start_background
 from romverse.ui.process_progress import ProcessProgressBar
 
@@ -125,6 +128,7 @@ class ApkCenter(QWidget):
 
     runtime_tools_requested = Signal()
     inspection_tools_requested = Signal()
+    knowledge_article_requested = Signal(str)
 
     def __init__(
         self,
@@ -148,10 +152,22 @@ class ApkCenter(QWidget):
         self.selected_apk_path: Path | None = None
         self.current_plan: ApkInstallPlan | None = None
         self.active_worker: ManagedRunnable | None = None
+        self.failure_context_article_key = ""
+        self.failure_context_plan_digest = ""
+        self.failure_context_receipt_digest = ""
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(40, 40, 40, 40)
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        self.scroll = QScrollArea()
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.scroll_host = QWidget()
+        self.scroll_host.setObjectName("ScrollContent")
+        layout = QVBoxLayout(self.scroll_host)
+        layout.setContentsMargins(30, 26, 30, 30)
         layout.setSpacing(12)
+        self.scroll.setWidget(self.scroll_host)
+        root.addWidget(self.scroll)
         eyebrow = QLabel("APP LAUNCHPAD  •  GUARDIAN CONTROLLED")
         eyebrow.setObjectName("Eyebrow")
         layout.addWidget(eyebrow)
@@ -173,6 +189,7 @@ class ApkCenter(QWidget):
 
         details = QFrame()
         details.setObjectName("Card")
+        details.setMinimumHeight(170)
         details_layout = QVBoxLayout(details)
         self.file_label = QLabel("1  •  Choose an APK to begin")
         self.file_label.setObjectName("Value")
@@ -235,8 +252,32 @@ class ApkCenter(QWidget):
         self.result_label.setWordWrap(True)
         result_layout.addWidget(self.result_label)
         layout.addWidget(result)
+
+        self.failure_guidance = QFrame()
+        self.failure_guidance.setObjectName("DiagnosticHandoffBar")
+        failure_layout = QHBoxLayout(self.failure_guidance)
+        failure_layout.setContentsMargins(18, 13, 18, 13)
+        failure_copy = QVBoxLayout()
+        failure_eyebrow = QLabel("APP LAUNCHPAD RECOVERY  •  EXACT VERIFIED ERROR")
+        failure_eyebrow.setObjectName("Eyebrow")
+        self.failure_guidance_title = QLabel()
+        self.failure_guidance_title.setObjectName("SectionTitle")
+        self.failure_guidance_detail = QLabel()
+        self.failure_guidance_detail.setObjectName("Muted")
+        self.failure_guidance_detail.setWordWrap(True)
+        failure_copy.addWidget(failure_eyebrow)
+        failure_copy.addWidget(self.failure_guidance_title)
+        failure_copy.addWidget(self.failure_guidance_detail)
+        failure_layout.addLayout(failure_copy, 1)
+        self.failure_guide_button = QPushButton("Open exact Archives fix")
+        self.failure_guide_button.setObjectName("Primary")
+        self.failure_guide_button.clicked.connect(self._open_failure_guide)
+        failure_layout.addWidget(self.failure_guide_button)
+        self.failure_guidance.setVisible(False)
+        layout.addWidget(self.failure_guidance)
         layout.addStretch(1)
         self._load_latest_review()
+        self._restore_latest_failure_guidance()
 
     def set_tool_statuses(self, statuses: tuple[ToolStatus, ...]) -> None:
         """Use only executables that Forge Arsenal has already verified."""
@@ -281,6 +322,7 @@ class ApkCenter(QWidget):
             self.install_button.setEnabled(False)
             if self.current_plan is not None:
                 self.current_plan = None
+                self._clear_failure_guidance()
                 self._set_result(
                     "Phone disconnected. The local APK inspection is retained, but its "
                     "device-bound approval plan was safely cleared.",
@@ -359,6 +401,7 @@ class ApkCenter(QWidget):
         self._start_inspection(Path(selected).expanduser().resolve())
 
     def _start_inspection(self, path: Path) -> None:
+        self._clear_failure_guidance()
         self.current_plan = None
         self.current_inspection = None
         self.selected_apk_path = path
@@ -663,6 +706,7 @@ class ApkCenter(QWidget):
         receipt_saved = self._save_install_receipt(result, success)
         self.install_button.setEnabled(not success)
         if success:
+            self._clear_failure_guidance()
             if receipt_saved:
                 self._set_result(
                     "Installation complete. ADB returned Success and Guardian recorded the operation.",
@@ -687,6 +731,9 @@ class ApkCenter(QWidget):
             return
         detail = (result.stderr or result.stdout or "ADB did not return Success").strip()[-600:]
         self._set_result(f"Installation failed safely: {detail}", "Danger")
+        self._show_failure_guidance(
+            f"{result.stderr}\n{result.stdout}", receipt_bound=receipt_saved
+        )
         QMessageBox.warning(self, "APK installation failed", detail)
 
     @Slot(str)
@@ -700,8 +747,10 @@ class ApkCenter(QWidget):
             )
         )
         self._set_result(f"Guardian stopped the operation: {message}", "Danger")
+        self._show_failure_guidance(message, receipt_bound=False)
 
     def _set_busy(self, message: str, *, determinate: bool = False) -> None:
+        self._clear_failure_guidance()
         self.progress.begin(determinate=determinate)
         self.choose.setEnabled(False)
         self.improve_inspection.setEnabled(False)
@@ -722,6 +771,7 @@ class ApkCenter(QWidget):
         self.result_label.style().polish(self.result_label)
 
     def _clear_plan(self, message: str) -> None:
+        self._clear_failure_guidance()
         self.current_plan = None
         self.approve.setEnabled(False)
         self.approve.setText("2  Review and approve exact plan")
@@ -752,3 +802,108 @@ class ApkCenter(QWidget):
                     source="App Launchpad",
                 )
         return True
+
+    def _restore_latest_failure_guidance(self) -> None:
+        loaded = self.receipts.load_latest_install()
+        data = loaded.data
+        if (
+            not loaded.valid
+            or not loaded.integrity_verified
+            or not isinstance(data, dict)
+            or data.get("success") is not False
+        ):
+            return
+        failure_code = str(data.get("failure_code", ""))
+        self._set_failure_guidance(
+            failure_code,
+            str(data.get("manifest_digest", "")),
+            str(data.get("receipt_digest", "")),
+        )
+
+    def _show_failure_guidance(self, output: str, *, receipt_bound: bool) -> None:
+        plan = self.current_plan
+        if plan is None:
+            self._clear_failure_guidance()
+            return
+        receipt_digest = ""
+        failure_output = output
+        if receipt_bound:
+            loaded = self.receipts.load_latest_install()
+            data = loaded.data
+            if (
+                not loaded.valid
+                or not loaded.integrity_verified
+                or not isinstance(data, dict)
+                or data.get("success") is not False
+                or data.get("manifest_digest") != plan.digest
+            ):
+                self._clear_failure_guidance()
+                return
+            failure_output = str(data.get("failure_code", ""))
+            receipt_digest = str(data.get("receipt_digest", ""))
+        self._set_failure_guidance(failure_output, plan.digest, receipt_digest)
+
+    def _set_failure_guidance(
+        self,
+        output: str,
+        plan_digest: str,
+        receipt_digest: str,
+    ) -> None:
+        article_key = article_key_for_apk_failure(output)
+        article = article_for_key(article_key)
+        if article is None or not plan_digest:
+            self._clear_failure_guidance()
+            return
+        self.failure_context_article_key = article_key
+        self.failure_context_plan_digest = plan_digest
+        self.failure_context_receipt_digest = receipt_digest
+        self.failure_guidance_title.setText(article.title)
+        self.failure_guidance_detail.setText(
+            "Android returned one recognized Package Manager failure identity. Review its exact "
+            "checks and verified safe fix before choosing any retry. Opening guidance grants no "
+            "approval and starts no install or phone action."
+        )
+        self.failure_guide_button.setEnabled(True)
+        self.failure_guidance.setVisible(True)
+
+    def _open_failure_guide(self) -> None:
+        article_key = self.failure_context_article_key
+        plan_digest = self.failure_context_plan_digest
+        receipt_digest = self.failure_context_receipt_digest
+        if not article_key or not plan_digest:
+            return
+        if receipt_digest:
+            loaded = self.receipts.load_latest_install()
+            data = loaded.data
+            valid = bool(
+                loaded.valid
+                and loaded.integrity_verified
+                and isinstance(data, dict)
+                and data.get("receipt_digest") == receipt_digest
+                and data.get("manifest_digest") == plan_digest
+                and data.get("success") is False
+                and article_key_for_apk_failure(str(data.get("failure_code", ""))) == article_key
+            )
+        else:
+            valid = bool(self.current_plan and self.current_plan.digest == plan_digest)
+        if not valid:
+            self.failure_guidance_title.setText("Archives handoff stopped")
+            self.failure_guidance_detail.setText(
+                "The displayed install failure no longer matches the current integrity-verified "
+                "receipt or plan. Refresh the workflow before opening guidance; no retry, "
+                "approval, install, or phone action started."
+            )
+            self.failure_guide_button.setEnabled(False)
+            return
+        self.knowledge_article_requested.emit(article_key)
+
+    def _clear_failure_guidance(self) -> None:
+        self.failure_context_article_key = ""
+        self.failure_context_plan_digest = ""
+        self.failure_context_receipt_digest = ""
+        if not hasattr(self, "failure_guidance"):
+            return
+        self.failure_guidance_title.clear()
+        self.failure_guidance_detail.clear()
+        self.failure_guide_button.setEnabled(True)
+        self.failure_guidance.setVisible(False)

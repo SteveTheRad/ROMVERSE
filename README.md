@@ -757,6 +757,14 @@ When package identity or signer evidence is partial, App Launchpad exposes **Imp
 verification**. It resolves only AAPT2 and APK Signer, then automatically re-inspects the same
 selected APK with those freshly verified executables. If either tool remains unavailable, the
 existing bounded inspection is retained and no approval or phone operation starts.
+When Android rejects an install with one recognized Package Manager failure identity, App
+Launchpad stores only that bounded code plus a workspace-key-bound receipt identity—never raw
+command output—and deterministically selects the matching verified Archives fix. Conflicting or
+unknown codes are not guessed, a superseded or altered receipt fails the handoff visibly, and
+opening guidance never retries the install. Archives preserves a navigation-only source banner so
+the user can return to the unchanged App Launchpad workflow after reviewing the guide. App
+Launchpad itself uses a dark responsive scrolling surface so complete APK identity and failure
+evidence remain readable at supported window sizes.
 
 **ROMVERSE Galaxy Community Lab** replaces the former Desktop placeholder and Companion
 single-note prototype. Desktop topics, comments, votes, search, deletion, and portable JSON

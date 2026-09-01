@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from romverse.device.apk_install import extract_apk_install_failure_code
 from romverse.diagnostics.models import Finding, Severity
 from romverse.knowledge.archives import KNOWN_FIXES, ArchiveArticle, search_catalog
 from romverse.repair.templates import RepairConcern
@@ -59,12 +60,24 @@ REPAIR_CONCERN_FINDING_IDS = {
     ),
 }
 
+APK_FAILURE_ARTICLE_KEYS = {
+    "INSTALL_FAILED_INVALID_APK": "apk-invalid",
+    "INSTALL_FAILED_UPDATE_INCOMPATIBLE": "apk-signature-conflict",
+    "INSTALL_FAILED_INSUFFICIENT_STORAGE": "apk-insufficient-storage",
+    "INSTALL_FAILED_NO_MATCHING_ABIS": "apk-abi-incompatible",
+    "INSTALL_FAILED_VERSION_DOWNGRADE": "apk-version-downgrade",
+    "INSTALL_FAILED_MISSING_SPLIT": "apk-missing-split",
+    "INSTALL_FAILED_USER_RESTRICTED": "apk-user-restricted",
+    "INSTALL_FAILED_TEST_ONLY": "apk-test-only",
+}
+
 _ARTICLE_BY_KEY = {article.key: article for article in KNOWN_FIXES}
 _DYNAMIC_DIAGNOSTIC_KEYS = frozenset({"adb-no-device", "adb-unauthorized", "adb-device-offline"})
 _REQUIRED_KEYS = (
     frozenset(DIAGNOSTIC_ARTICLE_KEYS.values())
     | frozenset(REPAIR_CONCERN_ARTICLE_KEYS.values())
     | _DYNAMIC_DIAGNOSTIC_KEYS
+    | frozenset(APK_FAILURE_ARTICLE_KEYS.values())
 )
 if missing := _REQUIRED_KEYS.difference(_ARTICLE_BY_KEY):
     raise RuntimeError(f"Archives Advisor references missing guides: {', '.join(sorted(missing))}")
@@ -98,6 +111,12 @@ def article_key_for_diagnostic_finding(finding_id: str, context: str = "") -> st
     if any(token in context for token in ("no device", "not found", "disconnected")):
         return "adb-no-device"
     return ""
+
+
+def article_key_for_apk_failure(output: str) -> str:
+    """Resolve one exact Android install failure without guessing from broad wording."""
+
+    return APK_FAILURE_ARTICLE_KEYS.get(extract_apk_install_failure_code(output), "")
 
 
 def recommend_for_findings(

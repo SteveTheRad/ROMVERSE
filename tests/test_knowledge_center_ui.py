@@ -79,6 +79,27 @@ def test_archives_opens_one_exact_typed_article_identity() -> None:
     center.close()
 
 
+def test_archives_returns_to_the_unchanged_source_workflow() -> None:
+    app = QApplication.instance() or QApplication([])
+    center = KnowledgeCenter()
+    routes: list[str] = []
+    center.route_requested.connect(routes.append)
+    center.show()
+
+    assert center.open_article("apk-version-downgrade", source_route="app_launchpad")
+    app.processEvents()
+
+    assert center.source_context.isVisibleTo(center)
+    assert center.source_return.text() == "Return to App Launchpad"
+    assert "starts no worker" in center.source_context_detail.text()
+    center.source_return.click()
+    assert routes == ["app_launchpad"]
+
+    center.clear_source_context()
+    assert not center.source_context.isVisible()
+    center.close()
+
+
 def test_archives_resolves_each_ascension_stage_to_one_authoritative_guide() -> None:
     app = QApplication.instance() or QApplication([])
     center = KnowledgeCenter()

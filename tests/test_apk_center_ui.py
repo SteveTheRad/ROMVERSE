@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QApplication
 
 from romverse.device.apk_install import ApkInstallRequest, create_install_plan, inspect_apk
 from romverse.device.models import AndroidDevice, DeviceState, StorageInfo
+from romverse.infrastructure.process import CommandResult
 from romverse.infrastructure.tools import ToolStatus
 from romverse.ui.apk_center import ApkCenter
 
@@ -271,4 +272,85 @@ def test_apk_center_uses_real_determinate_inspection_and_honest_install_progress
 
     center._set_idle()
     assert center.progress.isHidden()
+    center.close()
+
+
+def test_apk_failure_opens_exact_archives_fix_from_integrity_bound_receipt(
+    tmp_path, monkeypatch
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = ApkCenter(tmp_path, install_service=object())
+    center.set_devices([_device()])
+    center._plan_ready(_ready_plan(tmp_path))
+    requested: list[str] = []
+    center.knowledge_article_requested.connect(requested.append)
+    monkeypatch.setattr("romverse.ui.apk_center.QMessageBox.warning", lambda *args: None)
+
+    center._install_complete(
+        CommandResult(
+            ("adb",),
+            1,
+            "",
+            "Failure [INSTALL_FAILED_VERSION_DOWNGRADE: older version]",
+        )
+    )
+    app.processEvents()
+
+    loaded = center.receipts.load_latest_install()
+    assert loaded.valid and loaded.integrity_verified and loaded.data is not None
+    assert loaded.data["failure_code"] == "INSTALL_FAILED_VERSION_DOWNGRADE"
+    assert not center.failure_guidance.isHidden()
+    assert "VERSION_DOWNGRADE" in center.failure_guidance_title.text()
+    center.failure_guide_button.click()
+    assert requested == ["apk-version-downgrade"]
+    center.close()
+
+
+def test_apk_failure_handoff_refuses_a_superseded_receipt(tmp_path, monkeypatch) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = ApkCenter(tmp_path, install_service=object())
+    center.set_devices([_device()])
+    plan = _ready_plan(tmp_path)
+    center._plan_ready(plan)
+    requested: list[str] = []
+    center.knowledge_article_requested.connect(requested.append)
+    monkeypatch.setattr("romverse.ui.apk_center.QMessageBox.warning", lambda *args: None)
+    center._install_complete(CommandResult(("adb",), 1, "", "INSTALL_FAILED_INVALID_APK"))
+    center.receipts.write_install(plan, CommandResult(("adb",), 0, "Success", ""), True)
+
+    center.failure_guide_button.click()
+    app.processEvents()
+
+    assert requested == []
+    assert "handoff stopped" in center.failure_guidance_title.text().casefold()
+    assert "no retry" in center.failure_guidance_detail.text().casefold()
+    assert not center.failure_guide_button.isEnabled()
+    center.close()
+
+
+def test_apk_center_restores_verified_failure_guidance_without_restoring_authority(
+    tmp_path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    plan = _ready_plan(tmp_path)
+    first = ApkCenter(tmp_path)
+    store = first.receipts
+    store.write_install(
+        plan,
+        CommandResult(("adb",), 1, "", "INSTALL_FAILED_NO_MATCHING_ABIS"),
+        False,
+    )
+    first.close()
+
+    center = ApkCenter(tmp_path)
+    requested: list[str] = []
+    center.knowledge_article_requested.connect(requested.append)
+    app.processEvents()
+
+    assert not center.failure_guidance.isHidden()
+    assert center.current_plan is None
+    assert not center.approve.isEnabled()
+    assert not center.install_button.isEnabled()
+    center.failure_guide_button.click()
+    assert requested == ["apk-abi-incompatible"]
     center.close()

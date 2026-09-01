@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import zipfile
 
@@ -48,6 +49,7 @@ def test_apk_receipts_are_atomic_integrity_bound_and_privacy_safe(tmp_path) -> N
     assert loaded_install.integrity_verified
     assert loaded_install.data == install.data
     assert loaded_install.data["device_command_executed"] is True
+    assert loaded_install.data["failure_code"] == ""
     assert store.history_count("apk-preflight") == 1
     assert store.history_count("apk-install") == 1
     assert not list(store.root.glob(".*.tmp"))
@@ -64,6 +66,46 @@ def test_apk_receipts_are_atomic_integrity_bound_and_privacy_safe(tmp_path) -> N
         "device_serial",
     ):
         assert private_value not in encoded
+
+
+def test_failed_apk_receipt_keeps_only_the_exact_safe_failure_identity(tmp_path) -> None:
+    store = ApkReceiptStore(tmp_path)
+    plan = _plan(tmp_path)
+    private_detail = "private package path and device-specific explanation"
+    record = store.write_install(
+        plan,
+        CommandResult(
+            ("adb",),
+            1,
+            "",
+            f"Failure [INSTALL_FAILED_VERSION_DOWNGRADE: {private_detail}]",
+        ),
+        False,
+    )
+
+    loaded = store.load_latest_install()
+    assert loaded.valid
+    assert loaded.integrity_verified
+    assert loaded.data is not None
+    assert loaded.data["failure_code"] == "INSTALL_FAILED_VERSION_DOWNGRADE"
+    assert len(loaded.data["failure_identity"]) == 64
+    assert private_detail not in json.dumps(record.data)
+
+    hostile = dict(loaded.data)
+    hostile["failure_code"] = "INSTALL_FAILED_INVALID_APK"
+    hostile.pop("receipt_digest")
+    hostile["receipt_digest"] = hashlib.sha256(
+        json.dumps(
+            hostile,
+            ensure_ascii=True,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+    ).hexdigest()
+    store.latest_install_path.write_text(json.dumps(hostile), encoding="utf-8")
+    rejected = store.load_latest_install()
+    assert not rejected.valid
+    assert "failure identity binding" in rejected.reason.casefold()
 
 
 def test_apk_receipt_tampering_and_wrong_location_are_rejected(tmp_path) -> None:

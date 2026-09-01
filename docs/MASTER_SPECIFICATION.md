@@ -300,6 +300,14 @@ runs off the UI thread, requires a second confirmation, and writes a privacy-saf
 receipt without command output. ADB's explicit `Success` result is required before the UI
 reports completion.
 
+A failed result may retain only one allowlisted Package Manager failure code and a workspace-key-
+bound identity derived from the exact install-plan digest; raw stdout/stderr and device identity
+remain forbidden. The deterministic Archives Advisor maps that typed code to one structured guide,
+refuses unknown or conflicting codes, and revalidates the latest receipt before opening it. Archives
+must show a navigation-only return path to the unchanged originating Desktop workflow. Guide or
+return navigation cannot create approval, retry an install, start a worker, or change the phone.
+App Launchpad content must remain readable through an explicit dark responsive scroll surface.
+
 ### Transactional local Recipe execution increment
 
 ROM Studio may execute bounded Recipes only inside a verified extracted working tree.

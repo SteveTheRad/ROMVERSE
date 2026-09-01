@@ -18,6 +18,7 @@ from romverse.device.catalog import (
 from romverse.device.identity import IdentityAuthority
 from romverse.device.models import AndroidDevice, DeviceState, StorageInfo
 from romverse.device_packs.registry import DevicePackRegistry
+from romverse.infrastructure.process import CommandResult
 from romverse.infrastructure.tools import ToolStatus
 from romverse.nexus.events import MissionConfidence
 from romverse.nexus.planning import NexusObjective, NexusPlanner
@@ -29,6 +30,8 @@ from romverse.ui.main_window import (
     _sidebar_device_art_kind,
     _sidebar_nav_tooltip,
 )
+from tests.test_apk_center_ui import _device as _apk_device
+from tests.test_apk_center_ui import _ready_plan as _apk_ready_plan
 from tests.test_device_catalog import _payload, _sync
 from tests.test_device_dna import _device, _project
 
@@ -585,6 +588,50 @@ def test_nexus_missing_evidence_opens_exact_guide_then_rom_studio(tmp_path: Path
 
         assert window.stack.currentWidget() is window.rom_studio
         assert window.nexus_center.current_plan is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_apk_failure_opens_exact_guide_and_returns_to_unchanged_launchpad(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
+    try:
+        window._navigate_route("app_launchpad")
+        window.apk_installer.set_devices([_apk_device()])
+        plan = _apk_ready_plan(tmp_path)
+        window.apk_installer._plan_ready(plan)
+        with patch("romverse.ui.apk_center.QMessageBox.warning"):
+            window.apk_installer._install_complete(
+                CommandResult(
+                    ("adb",),
+                    1,
+                    "",
+                    "Failure [INSTALL_FAILED_VERSION_DOWNGRADE: older version]",
+                )
+            )
+        window.apk_installer.failure_guide_button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.knowledge_center
+        assert window.knowledge_center.list.count() == 1
+        assert window.knowledge_center.search.text() == (
+            "APK install error: INSTALL_FAILED_VERSION_DOWNGRADE"
+        )
+        assert window.knowledge_center.source_return.text() == "Return to App Launchpad"
+        assert window.apk_installer.current_plan is plan
+        assert window.apk_installer.active_worker is None
+
+        window.knowledge_center.source_return.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.apk_installer
+        assert window.apk_installer.current_plan is plan
+        assert not window.apk_installer.failure_guidance.isHidden()
+        assert window.apk_installer.active_worker is None
     finally:
         window.companion_center.transport.close()
         window.close()

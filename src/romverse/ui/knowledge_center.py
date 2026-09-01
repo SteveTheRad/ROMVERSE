@@ -30,7 +30,7 @@ from romverse.knowledge.resolution_memory import (
     ArchivesResolutionMemory,
     ArticleResolutionMemory,
 )
-from romverse.ui.vocabulary import feature
+from romverse.ui.vocabulary import FEATURES, feature
 
 LEGACY_GUIDES = (
     (
@@ -397,6 +397,25 @@ class KnowledgeCenter(QWidget):
         subtitle.setObjectName("Muted")
         layout.addWidget(subtitle)
 
+        self.source_context = QFrame()
+        self.source_context.setObjectName("DiagnosticHandoffBar")
+        source_layout = QHBoxLayout(self.source_context)
+        source_layout.setContentsMargins(18, 11, 18, 11)
+        source_copy = QVBoxLayout()
+        source_eyebrow = QLabel("SOURCE WORKFLOW  •  NAVIGATION ONLY")
+        source_eyebrow.setObjectName("Eyebrow")
+        self.source_context_detail = QLabel()
+        self.source_context_detail.setObjectName("Muted")
+        self.source_context_detail.setWordWrap(True)
+        source_copy.addWidget(source_eyebrow)
+        source_copy.addWidget(self.source_context_detail)
+        source_layout.addLayout(source_copy, 1)
+        self.source_return = QPushButton()
+        self.source_return.clicked.connect(self._return_to_source)
+        source_layout.addWidget(self.source_return)
+        self.source_context.setVisible(False)
+        layout.addWidget(self.source_context)
+
         controls = QHBoxLayout()
         self.search = QLineEdit()
         self.search.setMaxLength(160)
@@ -491,9 +510,10 @@ class KnowledgeCenter(QWidget):
         self.list.currentItemChanged.connect(self._show_article)
         self._filter("")
 
-    def open_query(self, query: str) -> None:
+    def open_query(self, query: str, *, source_route: str = "") -> None:
         """Open one verified guide query supplied by another ROMVERSE workflow."""
 
+        self.set_source_context(source_route)
         normalized = query.strip()[:160]
         self.category.setCurrentIndex(0)
         if self.search.text() == normalized:
@@ -502,9 +522,10 @@ class KnowledgeCenter(QWidget):
             self.search.setText(normalized)
         self.search.setFocus(Qt.FocusReason.OtherFocusReason)
 
-    def open_article(self, key: str) -> bool:
+    def open_article(self, key: str, *, source_route: str = "") -> bool:
         """Select one exact guide identity supplied by a typed ROMVERSE workflow."""
 
+        self.set_source_context(source_route)
         article = ARTICLE_BY_KEY.get(key.strip()[:80])
         if article is None:
             self.category.setCurrentIndex(0)
@@ -539,6 +560,28 @@ class KnowledgeCenter(QWidget):
                 self.search.setFocus(Qt.FocusReason.OtherFocusReason)
                 return True
         return False
+
+    def set_source_context(self, route: str) -> None:
+        """Keep a safe return path to the workflow that requested Archives guidance."""
+
+        normalized = route.strip()[:80]
+        if normalized not in FEATURES or normalized == "archives":
+            self.clear_source_context()
+            return
+        title = feature(normalized).title
+        self.source_context.setProperty("source_route", normalized)
+        self.source_context_detail.setText(
+            f"Opened from {title}. Return to the unchanged source workflow after reviewing this "
+            "guide; Archives navigation starts no worker, repair, build, or phone action."
+        )
+        self.source_return.setText(f"Return to {title}")
+        self.source_context.setVisible(True)
+
+    def clear_source_context(self) -> None:
+        self.source_context.setProperty("source_route", "")
+        self.source_context_detail.clear()
+        self.source_return.setText("")
+        self.source_context.setVisible(False)
 
     def _filter(self, _value: object = None) -> None:
         query = self.search.text().strip()[:160]
@@ -640,3 +683,8 @@ class KnowledgeCenter(QWidget):
             )
             self.search_status.style().unpolish(self.search_status)
             self.search_status.style().polish(self.search_status)
+
+    def _return_to_source(self) -> None:
+        route = str(self.source_context.property("source_route") or "")
+        if route in FEATURES and route != "archives":
+            self.route_requested.emit(route)

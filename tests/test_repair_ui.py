@@ -157,12 +157,18 @@ def test_recovery_bay_opens_exact_diagnostic_context_without_starting_action(tmp
     assert center.host_repair_worker is None
     assert center.online_worker is None
     assert center.intelligence_card.isHidden()
+    requested: list[str] = []
+    center.diagnostic_requested.connect(requested.append)
+    center.diagnostic_source_button.click()
+    app.processEvents()
+    assert requested == ["storage.capacity"]
 
     center.concern_selector.setCurrentIndex(
         center.concern_selector.findData(RepairConcern.NETWORK.value)
     )
     app.processEvents()
     assert center.diagnostic_context.isHidden()
+    assert center.diagnostic_context_row.isHidden()
     assert center.current_concern is RepairConcern.NETWORK
     center.close()
 

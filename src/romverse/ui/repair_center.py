@@ -115,6 +115,7 @@ class RepairCenter(QWidget):
     runtime_tools_requested = Signal()
     knowledge_requested = Signal(str)
     knowledge_article_requested = Signal(str)
+    diagnostic_requested = Signal(str)
     resolution_memory_updated = Signal()
 
     def __init__(
@@ -227,6 +228,11 @@ class RepairCenter(QWidget):
         self.archives_button.clicked.connect(self._search_archives)
         symptom_row.addWidget(self.archives_button)
         page.addLayout(symptom_row)
+        self.diagnostic_context_row = QFrame()
+        self.diagnostic_context_row.setObjectName("DiagnosticHandoffBar")
+        diagnostic_context_layout = QHBoxLayout(self.diagnostic_context_row)
+        diagnostic_context_layout.setContentsMargins(12, 5, 6, 5)
+        diagnostic_context_layout.setSpacing(10)
         self.diagnostic_context = QLabel("")
         self.diagnostic_context.setObjectName("Eyebrow")
         self.diagnostic_context.setAccessibleName("Quantum Optimizer diagnostic handoff")
@@ -236,7 +242,19 @@ class RepairCenter(QWidget):
             "This exact finding selected the repair category. It starts no repair and can be "
             "cleared by choosing another category."
         )
-        page.addWidget(self.diagnostic_context)
+        diagnostic_context_layout.addWidget(self.diagnostic_context, 1)
+        self.diagnostic_source_button = QPushButton("View source finding")
+        self.diagnostic_source_button.setObjectName("QuickAction")
+        self.diagnostic_source_button.setAccessibleName(
+            "View this Recovery Bay plan's exact Quantum Optimizer source finding"
+        )
+        self.diagnostic_source_button.setToolTip(
+            "Return to the exact current read-only finding that selected this plan."
+        )
+        self.diagnostic_source_button.clicked.connect(self._request_diagnostic_source)
+        diagnostic_context_layout.addWidget(self.diagnostic_source_button)
+        self.diagnostic_context_row.setVisible(False)
+        page.addWidget(self.diagnostic_context_row)
 
         self.hero = QFrame()
         self.hero.setObjectName("HeroCard")
@@ -566,6 +584,7 @@ class RepairCenter(QWidget):
             "•  CONTEXT ONLY — NO ACTION STARTED"
         )
         self.diagnostic_context.setVisible(True)
+        self.diagnostic_context_row.setVisible(True)
         self._applying_diagnostic_context = True
         try:
             if self.concern_selector.currentIndex() == index:
@@ -585,6 +604,11 @@ class RepairCenter(QWidget):
         self._diagnostic_context_id = ""
         self.diagnostic_context.clear()
         self.diagnostic_context.setVisible(False)
+        self.diagnostic_context_row.setVisible(False)
+
+    def _request_diagnostic_source(self) -> None:
+        if self._diagnostic_context_id:
+            self.diagnostic_requested.emit(self._diagnostic_context_id)
 
     def _render(
         self,

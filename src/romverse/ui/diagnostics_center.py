@@ -42,10 +42,17 @@ SEVERITY_UI = {
 class FindingCard(QFrame):
     def __init__(self, finding: Finding, evidence: dict[str, str]) -> None:
         super().__init__()
+        self.finding_id = finding.finding_id
         self.setObjectName("Card")
+        self.setProperty("diagnosticFocus", False)
+        self.setAccessibleName(f"Diagnostic finding: {finding.title}")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 17, 20, 17)
         layout.setSpacing(8)
+        self.source_context = QLabel("RECOVERY BAY SOURCE  •  EXACT FINDING")
+        self.source_context.setObjectName("Eyebrow")
+        self.source_context.setVisible(False)
+        layout.addWidget(self.source_context)
         heading = QHBoxLayout()
         title = QLabel(finding.title)
         title.setObjectName("SectionTitle")
@@ -70,6 +77,12 @@ class FindingCard(QFrame):
             guidance.setWordWrap(True)
             layout.addWidget(guidance)
 
+    def set_focused(self, focused: bool) -> None:
+        self.setProperty("diagnosticFocus", focused)
+        self.source_context.setVisible(focused)
+        self.style().unpolish(self)
+        self.style().polish(self)
+
 
 class DiagnosticsCenter(QWidget):
     refresh_requested = Signal()
@@ -92,6 +105,7 @@ class DiagnosticsCenter(QWidget):
         self.devices: list[AndroidDevice] = []
         self.current_device: AndroidDevice | None = None
         self.current_report: DiagnosticReport | None = None
+        self.finding_cards: dict[str, FindingCard] = {}
 
         page = QVBoxLayout(self)
         page.setContentsMargins(30, 26, 30, 30)
@@ -390,7 +404,9 @@ class DiagnosticsCenter(QWidget):
         evidence = {item.evidence_id: item.value for item in report.evidence}
         self.body_layout.addWidget(self._action_plan(report))
         for finding in report.findings:
-            self.body_layout.addWidget(FindingCard(finding, evidence))
+            card = FindingCard(finding, evidence)
+            self.finding_cards[finding.finding_id] = card
+            self.body_layout.addWidget(card)
 
         limitations = QFrame()
         limitations.setObjectName("Card")
@@ -405,6 +421,33 @@ class DiagnosticsCenter(QWidget):
         layout.addWidget(copy, 1, 0)
         self.body_layout.addWidget(limitations)
         self.body_layout.addStretch()
+
+    def open_finding(self, finding_id: str) -> bool:
+        """Reveal one exact current finding without changing diagnostic evidence."""
+
+        normalized = finding_id.strip()[:120]
+        report = self.current_report
+        card = self.finding_cards.get(normalized)
+        finding = (
+            next((item for item in report.findings if item.finding_id == normalized), None)
+            if report is not None
+            else None
+        )
+        for candidate in self.finding_cards.values():
+            candidate.set_focused(False)
+        if card is None or finding is None:
+            self.saved_label.setText("Recovery source changed  •  refresh current evidence")
+            self.saved_label.setObjectName("Warning")
+            self.saved_label.style().unpolish(self.saved_label)
+            self.saved_label.style().polish(self.saved_label)
+            return False
+        card.set_focused(True)
+        self.saved_label.setText(f"Recovery Bay source  •  {normalized}  •  evidence view only")
+        self.saved_label.setObjectName("Good")
+        self.saved_label.style().unpolish(self.saved_label)
+        self.saved_label.style().polish(self.saved_label)
+        self.body.ensureWidgetVisible(card, 0, 24)
+        return True
 
     def _action_plan(self, report: DiagnosticReport) -> QFrame:
         ranking = {
@@ -594,6 +637,7 @@ class DiagnosticsCenter(QWidget):
         self.body_layout.addStretch()
 
     def _clear_body(self) -> None:
+        self.finding_cards.clear()
         while self.body_layout.count():
             item = self.body_layout.takeAt(0)
             widget = item.widget()

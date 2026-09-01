@@ -60,6 +60,33 @@ def test_optimizer_handoff_preserves_storage_finding_identity(tmp_path) -> None:
     center.close()
 
 
+def test_optimizer_reveals_exact_recovery_source_without_changing_evidence(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = DiagnosticsCenter(
+        DiagnosticAnalyzer(),
+        DiagnosticHistoryStore(tmp_path),
+    )
+    center.set_devices([device(storage=StorageInfo(percent_used=98))])
+    report = center.current_report
+
+    assert center.open_finding("storage.capacity")
+    app.processEvents()
+
+    card = center.finding_cards["storage.capacity"]
+    assert card.property("diagnosticFocus") is True
+    assert not card.source_context.isHidden()
+    assert "RECOVERY BAY SOURCE" in card.source_context.text()
+    assert "evidence view only" in center.saved_label.text()
+    assert center.current_report is report
+
+    assert not center.open_finding("unknown.future.rule")
+    assert card.property("diagnosticFocus") is False
+    assert card.source_context.isHidden()
+    assert "refresh current evidence" in center.saved_label.text()
+    assert center.current_report is report
+    center.close()
+
+
 def test_optimizer_can_search_archives_for_the_priority_finding(tmp_path) -> None:
     app = QApplication.instance() or QApplication([])
     center = DiagnosticsCenter(

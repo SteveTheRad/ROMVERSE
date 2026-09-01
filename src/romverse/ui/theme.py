@@ -56,6 +56,14 @@ QFrame#TopBar { background: #05080E; border-bottom: 1px solid #1A2539; }
 QFrame#ConnectionBar { background: rgba(3, 7, 13, 250); border: 1px solid #22324E; border-radius: 11px; }
 QFrame#Card { background: rgba(5, 9, 16, 250); border: 1px solid #202C43; border-radius: 13px; }
 QFrame#HeroCard { background: rgba(5, 9, 16, 250); border: 1px solid #283A58; border-radius: 13px; }
+QFrame#DiagnosticHandoffBar {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 rgba(20,13,43,238),stop:1 rgba(5,31,42,232));
+    border: 1px solid rgba(64, 220, 235, 160); border-left: 3px solid #A855F7; border-radius: 9px;
+}
+QFrame#Card[diagnosticFocus="true"] {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(31,16,58,248),stop:1 rgba(5,31,43,248));
+    border: 2px solid #42DDEA; border-left: 4px solid #B45CFF;
+}
 QFrame#DashboardCard { background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(4, 8, 14, 252),stop:1 rgba(7, 12, 20, 252)); border: 1px solid #24334D; border-radius: 12px; }
 QFrame#GenesisFlightPlan {
     background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(18,11,39,248),stop:0.52 rgba(7,16,34,246),stop:1 rgba(5,25,35,244));

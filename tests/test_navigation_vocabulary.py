@@ -311,6 +311,17 @@ def test_optimizer_exact_finding_opens_matching_recovery_plan(tmp_path: Path) ->
         assert window.repair_center.active_session is None
         assert window.repair_center.host_repair_worker is None
         assert window.repair_center.online_worker is None
+
+        window.repair_center.diagnostic_source_button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.diagnostics_center
+        source_card = window.diagnostics_center.finding_cards["storage.capacity"]
+        assert source_card.property("diagnosticFocus") is True
+        assert not source_card.source_context.isHidden()
+        assert "Recovery Bay source" in window.diagnostics_center.saved_label.text()
+        assert window.repair_center.active_session is None
+        assert window.repair_center.host_repair_worker is None
     finally:
         window.companion_center.transport.close()
         window.close()
@@ -331,6 +342,30 @@ def test_optimizer_recovery_handoff_fails_closed_on_stale_evidence(tmp_path: Pat
         assert window.notification_center.last_notification is not None
         assert window.notification_center.last_notification.key == (
             "repair.handoff.storage.capacity"
+        )
+        assert "fresh evidence" in window.notification_center.last_notification.title.casefold()
+        assert window.repair_center.active_session is None
+        assert window.repair_center.host_repair_worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_recovery_source_handoff_fails_closed_when_finding_is_stale(tmp_path: Path) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
+    try:
+        window._navigate_route("recovery_bay")
+        previous_page = window.stack.currentWidget()
+
+        window.repair_center.diagnostic_requested.emit("storage.capacity")
+        app.processEvents()
+
+        assert window.stack.currentWidget() is previous_page
+        assert window.notification_center.last_notification is not None
+        assert window.notification_center.last_notification.key == (
+            "diagnostics.handoff.storage.capacity"
         )
         assert "fresh evidence" in window.notification_center.last_notification.title.casefold()
         assert window.repair_center.active_session is None

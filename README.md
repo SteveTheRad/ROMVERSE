@@ -76,8 +76,10 @@ stable article identity directly. Quantum Optimizer also carries its highest-pri
 finding ID into Recovery Bay, which selects the deterministic matching concern only when that same
 finding is present in Recovery Bay's current report. A visible source-context strip names the finding
 and states that no action started; stale or unknown handoffs fail closed instead of opening a generic
-plan. These handoffs do not start research, approval, or repair, while ROM Studio, Genesis, Ascension,
-and Recipe Forge retain their stage-specific guides and drafts.
+plan. **View source finding** returns to Quantum Optimizer, scrolls to the same current finding, and
+highlights its exact read-only evidence without rerunning or changing the report. A stale reverse
+handoff also fails closed. These handoffs do not start research, approval, or repair, while ROM Studio,
+Genesis, Ascension, and Recipe Forge retain their stage-specific guides and drafts.
 When online research is off, its secondary panel folds into a compact, accessible status row so local
 preconditions and the Advisor stay prominent. Active, returned, or failed research expands its full
 evidence automatically, and the user can fold only those details without changing assessment state.

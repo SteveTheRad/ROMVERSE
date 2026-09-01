@@ -2529,6 +2529,7 @@ class MainWindow(QMainWindow):
         )
         self.repair_center.knowledge_requested.connect(self._open_knowledge_query)
         self.repair_center.knowledge_article_requested.connect(self._open_knowledge_article)
+        self.repair_center.diagnostic_requested.connect(self._open_diagnostic_finding)
         self.stack.addWidget(self.repair_center)
         self.device_packs_center = DevicePacksCenter(
             resolved_registry,
@@ -4061,6 +4062,22 @@ class MainWindow(QMainWindow):
             "Repair handoff needs fresh evidence",
             "Recovery Bay could not match that finding to its current device report. "
             "Refresh Device Engine before opening a guided repair plan.",
+            NotificationKind.ATTENTION,
+        )
+
+    @Slot(str)
+    def _open_diagnostic_finding(self, finding_id: str) -> None:
+        if self.diagnostics_center.open_finding(finding_id):
+            self._navigate_route("quantum_optimizer")
+            self.diagnostics_center.body.ensureWidgetVisible(
+                self.diagnostics_center.finding_cards[finding_id.strip()[:120]], 0, 24
+            )
+            return
+        self.notification_center.notify(
+            f"diagnostics.handoff.{finding_id[:52] or 'missing'}",
+            "Diagnostic source needs fresh evidence",
+            "Quantum Optimizer could not match that Recovery Bay source to its current report. "
+            "Refresh Device Engine before reviewing the finding.",
             NotificationKind.ATTENTION,
         )
 

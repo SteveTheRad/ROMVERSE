@@ -133,7 +133,9 @@ The handoff must use a deterministic finding-to-concern map and must be accepted
 same finding exists in Recovery Bay's current independently derived report. The selected plan must
 show the diagnostic source identity and an explicit no-action-started boundary. Unknown or stale
 findings fail closed without navigating to a fallback concern, starting a session, launching a
-worker, researching remotely, or requesting approval.
+worker, researching remotely, or requesting approval. Recovery Bay must provide a reversible source
+action that returns to Quantum Optimizer and visibly focuses that exact finding in the unchanged
+current report. A stale reverse handoff must stay on the current page and request fresh evidence.
 
 Guardian Preflight returns Ready, Review or Blocked plus the maximum risk, reasons and
 approval requirement. Failed required evidence or destructive steps block a plan; unknown

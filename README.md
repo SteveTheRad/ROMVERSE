@@ -75,6 +75,9 @@ boundary, records every recommendation in the privacy-safe exported report, and 
 stable article identity directly. Quantum Optimizer uses the same exact-ID handoff for its
 highest-priority actionable finding. These handoffs do not start research, approval, or repair, while
 ROM Studio, Genesis, Ascension, and Recipe Forge retain their stage-specific guides and drafts.
+When online research is off, its secondary panel folds into a compact, accessible status row so local
+preconditions and the Advisor stay prominent. Active, returned, or failed research expands its full
+evidence automatically, and the user can fold only those details without changing assessment state.
 
 The Desktop **ROMVERSE Archives** catalog now contains 110 validated local guides across ten
 categories, including 60 structured known-fix records and 34 guide records backed by official-source

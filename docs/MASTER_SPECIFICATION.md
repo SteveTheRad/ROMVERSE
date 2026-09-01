@@ -151,6 +151,9 @@ and those outcomes are restricted to host/read-only work with `phone_changed: fa
 schema two must bind the candidate to the exact persisted error fingerprint and revalidate a
 workspace-relative, format-specific ADB-host, exact-toolchain, OTA-source, or AVB evidence file on
 creation and load. A digest-shaped value or legacy schema-one outcome is never sufficient proof.
+The online-research surface is secondary to local assessment: its disabled state remains a compact
+discoverable row, while active, returned, or failed evidence expands automatically. Folding research
+details is presentation-only and cannot clear, accept, retry, promote, or otherwise mutate evidence.
 
 Guided repair sessions persist a pseudonymous initial evidence digest, health signal score,
 finding IDs, and the user's reviewed checkpoints. Checkpoints record review only and never

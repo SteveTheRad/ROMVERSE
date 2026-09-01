@@ -197,6 +197,7 @@ def test_recovery_bay_advisor_opens_exact_symptom_fix_and_exports_reason(tmp_pat
     app.processEvents()
 
     assert requested == ["apk-version-downgrade"]
+    assert "INSTALL_FAILED_VERSION_DOWNGRADE" in button.accessibleName()
     assert center._report_payload is not None
     recommendations = center._report_payload["archive_recommendations"]
     assert isinstance(recommendations, list)
@@ -204,6 +205,36 @@ def test_recovery_bay_advisor_opens_exact_symptom_fix_and_exports_reason(tmp_pat
     assert recommendations[0]["source_authority"] == "AOSP SOURCE"
     assert center.active_session is None
     assert center.host_repair_worker is None
+    center.close()
+
+
+def test_recovery_bay_keeps_disabled_online_research_compact_but_discoverable(
+    tmp_path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = RepairCenter(
+        DiagnosticAnalyzer(),
+        RepairAssessmentTemplates(),
+        GuardianPreflight(),
+        tmp_path,
+        ActivityStore(tmp_path),
+    )
+    center.set_devices([device(battery_percent=8)])
+    app.processEvents()
+
+    assert not center.intelligence_card.isHidden()
+    assert center.intelligence_details.isHidden()
+    assert "LOCAL ADVISOR ACTIVE" in center.intelligence_status.text()
+    assert center.intelligence_toggle.text() == "SHOW RESEARCH DETAILS"
+    assert center.intelligence_toggle.accessibleName()
+    assert center.intelligence_status.accessibleName()
+
+    center.intelligence_toggle.click()
+    app.processEvents()
+
+    assert not center.intelligence_details.isHidden()
+    assert center.intelligence_toggle.text() == "HIDE RESEARCH DETAILS"
+    assert "Enable verified online diagnostics" in center.intelligence_detail.text()
     center.close()
 
 
@@ -366,6 +397,8 @@ def test_recovery_bay_automatically_researches_exact_error_without_executing_rem
     app.processEvents()
 
     assert center.intelligence_card.isVisibleTo(center)
+    assert not center.intelligence_details.isHidden()
+    assert center.intelligence_toggle.isChecked()
     assert "OFFICIAL" in center.intelligence_status.text()
     assert "90%" in center.intelligence_status.text()
     assert "developer.android.com" in center.intelligence_source.text()

@@ -398,7 +398,9 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   diagnostic finding to stable structured article identities, distinguishes exact ADB states,
   prioritizes full error-code matches, exports its source/reason/automation boundary, and opens the
   exact guide without starting research, approval, repair, build, or device work, while existing ROM
-  Studio/Genesis/Ascension/Recipe handoffs preserve their stages and drafts;
+  Studio/Genesis/Ascension/Recipe handoffs preserve their stages and drafts; Recovery Bay keeps
+  disabled online research in an accessible compact drawer, automatically expands real evidence,
+  and keeps the exact local Advisor action visible without changing workflow state;
   shared read-only root-identity review that separates an observed root signal from an
   evidence-labelled Manager candidate, keeps a normal ADB shell explicitly insufficient to prove an
   unrooted phone, uses a full official signer pin for the Companion candidate while basic Desktop

@@ -253,10 +253,29 @@ class RepairCenter(QWidget):
         self.intelligence_card.setObjectName("Card")
         intelligence_layout = QVBoxLayout(self.intelligence_card)
         intelligence_layout.setContentsMargins(18, 14, 18, 14)
+        intelligence_layout.setSpacing(8)
+        intelligence_header = QHBoxLayout()
         self.intelligence_heading = QLabel("ROMVERSE INTELLIGENCE • AUTOMATIC REPAIR RESEARCH")
         self.intelligence_heading.setObjectName("Eyebrow")
+        intelligence_header.addWidget(self.intelligence_heading)
+        intelligence_header.addStretch()
+        self.intelligence_toggle = QPushButton("HIDE RESEARCH DETAILS")
+        self.intelligence_toggle.setCheckable(True)
+        self.intelligence_toggle.setChecked(True)
+        self.intelligence_toggle.setAccessibleName("Show or hide online research evidence")
+        self.intelligence_toggle.setToolTip(
+            "Fold only the research explanation. The assessment, Archives Advisor, and Guardian "
+            "state remain unchanged."
+        )
+        self.intelligence_toggle.toggled.connect(self._set_intelligence_expanded)
+        intelligence_header.addWidget(self.intelligence_toggle)
         self.intelligence_status = QLabel("")
+        self.intelligence_status.setAccessibleName("ROMVERSE Intelligence status")
         self.intelligence_status.setWordWrap(True)
+        self.intelligence_details = QWidget()
+        intelligence_details_layout = QVBoxLayout(self.intelligence_details)
+        intelligence_details_layout.setContentsMargins(0, 0, 0, 0)
+        intelligence_details_layout.setSpacing(7)
         self.intelligence_detail = QLabel("")
         self.intelligence_detail.setObjectName("Muted")
         self.intelligence_detail.setWordWrap(True)
@@ -273,13 +292,14 @@ class RepairCenter(QWidget):
         self.intelligence_retry = QPushButton("Retry verified research")
         self.intelligence_retry.clicked.connect(self._retry_online_research)
         self.intelligence_retry.setVisible(False)
-        intelligence_layout.addWidget(self.intelligence_heading)
+        intelligence_layout.addLayout(intelligence_header)
         intelligence_layout.addWidget(self.intelligence_status)
-        intelligence_layout.addWidget(self.intelligence_detail)
-        intelligence_layout.addWidget(self.intelligence_source)
-        intelligence_layout.addWidget(self.intelligence_boundary)
-        intelligence_layout.addWidget(self.intelligence_progress)
-        intelligence_layout.addWidget(self.intelligence_retry)
+        intelligence_details_layout.addWidget(self.intelligence_detail)
+        intelligence_details_layout.addWidget(self.intelligence_source)
+        intelligence_details_layout.addWidget(self.intelligence_boundary)
+        intelligence_details_layout.addWidget(self.intelligence_progress)
+        intelligence_details_layout.addWidget(self.intelligence_retry)
+        intelligence_layout.addWidget(self.intelligence_details)
         self.intelligence_card.setVisible(False)
         page.addWidget(self.intelligence_card)
 
@@ -780,6 +800,20 @@ class RepairCenter(QWidget):
         heading.addWidget(title)
         heading.addStretch()
         heading.addWidget(status)
+        heading.addSpacing(10)
+        open_article = QPushButton("Open verified Archives guide")
+        open_article.setObjectName("Primary")
+        open_article.setAccessibleName(f"Open verified Archives guide: {primary.article.title}")
+        open_article.setToolTip(
+            "Open the exact local guide selected from this repair assessment. "
+            "No device change starts automatically."
+        )
+        open_article.clicked.connect(
+            lambda _checked=False, key=primary.article.key: self.knowledge_article_requested.emit(
+                key
+            )
+        )
+        heading.addWidget(open_article)
         layout.addLayout(heading)
 
         article_title = QLabel(primary.article.title)
@@ -804,22 +838,6 @@ class RepairCenter(QWidget):
         boundary.setObjectName("Warning")
         boundary.setWordWrap(True)
         layout.addWidget(boundary)
-
-        actions = QHBoxLayout()
-        actions.addStretch()
-        open_article = QPushButton("Open verified Archives guide")
-        open_article.setObjectName("Primary")
-        open_article.setToolTip(
-            "Open the exact local guide selected from this repair assessment. "
-            "No device change starts automatically."
-        )
-        open_article.clicked.connect(
-            lambda _checked=False, key=primary.article.key: self.knowledge_article_requested.emit(
-                key
-            )
-        )
-        actions.addWidget(open_article)
-        layout.addLayout(actions)
         self.body_layout.addWidget(card)
 
     def _configure_host_repair(
@@ -1133,11 +1151,12 @@ class RepairCenter(QWidget):
             self.intelligence_progress.stop()
             self.intelligence_retry.setVisible(False)
             self._set_intelligence_status(
-                "ONLINE RESEARCH DISABLED",
+                "LOCAL ADVISOR ACTIVE • ONLINE RESEARCH OFF",
                 "Enable verified online diagnostics in ROMVERSE Settings to check official and optional community evidence. Local guidance and Guardian remain available.",
                 "Warning",
             )
             self.intelligence_source.clear()
+            self._set_intelligence_expanded(False)
             return
         cached = self._online_receipts.get(fingerprint.fingerprint_id) or service.load(fingerprint)
         if cached is not None:
@@ -1156,6 +1175,7 @@ class RepairCenter(QWidget):
             return
         self._online_attempted.add(fingerprint.fingerprint_id)
         self.intelligence_card.setVisible(True)
+        self._set_intelligence_expanded(True)
         self.intelligence_retry.setVisible(False)
         self.intelligence_source.clear()
         self.intelligence_progress.begin(determinate=False)
@@ -1214,6 +1234,7 @@ class RepairCenter(QWidget):
         safe = message.replace("\x00", " ").strip()[:400] or "Online lookup failed"
         if self.online_service is not None:
             self.intelligence_card.setVisible(True)
+            self._set_intelligence_expanded(True)
             self.intelligence_retry.setVisible(True)
             self._set_intelligence_status(
                 "ONLINE RESEARCH NEEDS ATTENTION",
@@ -1229,6 +1250,7 @@ class RepairCenter(QWidget):
 
     def _show_online_receipt(self, receipt: OnlineFixReceipt) -> None:
         self.intelligence_card.setVisible(True)
+        self._set_intelligence_expanded(True)
         self.intelligence_progress.stop()
         if not receipt.candidates:
             self.intelligence_retry.setVisible(True)
@@ -1282,6 +1304,16 @@ class RepairCenter(QWidget):
         self.intelligence_status.style().unpolish(self.intelligence_status)
         self.intelligence_status.style().polish(self.intelligence_status)
         self.intelligence_detail.setText(detail)
+
+    @Slot(bool)
+    def _set_intelligence_expanded(self, expanded: bool) -> None:
+        self.intelligence_toggle.blockSignals(True)
+        self.intelligence_toggle.setChecked(expanded)
+        self.intelligence_toggle.setText(
+            "HIDE RESEARCH DETAILS" if expanded else "SHOW RESEARCH DETAILS"
+        )
+        self.intelligence_toggle.blockSignals(False)
+        self.intelligence_details.setVisible(expanded)
 
     def _retry_online_research(self) -> None:
         fingerprint = self._online_current

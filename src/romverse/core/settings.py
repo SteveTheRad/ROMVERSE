@@ -17,12 +17,25 @@ class ExperienceMode(StrEnum):
     EXPERT = "expert"
 
 
+class DesktopTheme(StrEnum):
+    """Persisted visual identity; themes never change workflow or Guardian policy."""
+
+    NEBULA_FLOW = "nebula-flow"
+    AURORA = "aurora"
+    VIOLET_NIGHT = "violet-night"
+    NEBULA_ROSE = "nebula-rose"
+    DEEP_SPACE = "deep-space"
+    SOLAR_FLARE = "solar-flare"
+    QUANTUM_MINT = "quantum-mint"
+
+
 @dataclass(slots=True)
 class AppSettings:
-    schema_version: int = 4
+    schema_version: int = 5
     onboarding_complete: bool = False
     workspace_path: str = ""
     experience_mode: ExperienceMode = ExperienceMode.GUIDED
+    desktop_theme: DesktopTheme = DesktopTheme.NEBULA_FLOW
     scan_interval_seconds: int = 8
     mask_device_serials: bool = True
     online_intelligence_enabled: bool = True
@@ -57,7 +70,7 @@ class SettingsStore:
             if size <= 0 or size > self.MAXIMUM_BYTES:
                 return AppSettings()
             data = json.loads(self._path.read_text(encoding="utf-8"))
-            if not isinstance(data, dict) or data.get("schema_version", 1) not in (1, 2, 3, 4):
+            if not isinstance(data, dict) or data.get("schema_version", 1) not in (1, 2, 3, 4, 5):
                 return AppSettings()
             return _validated_settings(data)
         except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError, TypeError):
@@ -86,6 +99,7 @@ def _validated_settings(data: dict[str, object]) -> AppSettings:
     workspace = data.get("workspace_path")
     interval = data.get("scan_interval_seconds")
     experience_mode = data.get("experience_mode")
+    desktop_theme = data.get("desktop_theme")
     mask_serials = data.get("mask_device_serials")
     backup_directory = data.get("backup_directory")
     update_channel = data.get("update_channel")
@@ -107,7 +121,7 @@ def _validated_settings(data: dict[str, object]) -> AppSettings:
         return value.strip() if isinstance(value, str) and len(value.strip()) <= maximum else ""
 
     return AppSettings(
-        schema_version=4,
+        schema_version=5,
         onboarding_complete=(
             onboarding if isinstance(onboarding, bool) else defaults.onboarding_complete
         ),
@@ -121,6 +135,12 @@ def _validated_settings(data: dict[str, object]) -> AppSettings:
             if isinstance(experience_mode, str)
             and experience_mode in {mode.value for mode in ExperienceMode}
             else defaults.experience_mode
+        ),
+        desktop_theme=(
+            DesktopTheme(desktop_theme)
+            if isinstance(desktop_theme, str)
+            and desktop_theme in {theme.value for theme in DesktopTheme}
+            else defaults.desktop_theme
         ),
         scan_interval_seconds=(
             interval

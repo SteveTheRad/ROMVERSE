@@ -2,7 +2,7 @@ import json
 import stat
 from pathlib import Path
 
-from romverse.core.settings import AppSettings, ExperienceMode, SettingsStore
+from romverse.core.settings import AppSettings, DesktopTheme, ExperienceMode, SettingsStore
 
 
 class FakeHost:
@@ -30,6 +30,7 @@ def test_settings_store_round_trips_bounded_private_preferences(tmp_path) -> Non
         onboarding_complete=True,
         workspace_path=str(tmp_path / "workspace"),
         experience_mode=ExperienceMode.EXPERT,
+        desktop_theme=DesktopTheme.SOLAR_FLARE,
         scan_interval_seconds=27,
         mask_device_serials=False,
         online_intelligence_enabled=False,
@@ -95,12 +96,13 @@ def test_settings_store_migrates_schema_one_without_losing_old_preferences(tmp_p
 
     migrated = store.load()
 
-    assert migrated.schema_version == 4
+    assert migrated.schema_version == 5
     assert migrated.onboarding_complete
     assert migrated.workspace_path == "/legacy/workspace"
     assert migrated.scan_interval_seconds == 31
     assert not migrated.mask_device_serials
     assert migrated.experience_mode is ExperienceMode.GUIDED
+    assert migrated.desktop_theme is DesktopTheme.NEBULA_FLOW
 
 
 def test_settings_store_rejects_unknown_experience_mode_without_losing_other_fields(
@@ -113,6 +115,7 @@ def test_settings_store_rejects_unknown_experience_mode_without_losing_other_fie
             {
                 "schema_version": 4,
                 "experience_mode": "unsafe-developer-bypass",
+                "desktop_theme": "guardian-bypass-red",
                 "scan_interval_seconds": 41,
             }
         ),
@@ -122,6 +125,7 @@ def test_settings_store_rejects_unknown_experience_mode_without_losing_other_fie
     loaded = store.load()
 
     assert loaded.experience_mode is ExperienceMode.GUIDED
+    assert loaded.desktop_theme is DesktopTheme.NEBULA_FLOW
     assert loaded.scan_interval_seconds == 41
 
 

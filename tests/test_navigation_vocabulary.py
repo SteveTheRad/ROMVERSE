@@ -9,7 +9,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication, QPushButton
 
-from romverse.core.settings import AppSettings, ExperienceMode
+from romverse.core.settings import AppSettings, DesktopTheme, ExperienceMode
 from romverse.device.catalog import (
     DeviceCatalogError,
     DeviceCatalogStatus,
@@ -37,6 +37,7 @@ from romverse.ui.main_window import (
     _sidebar_device_art_kind,
     _sidebar_nav_tooltip,
 )
+from romverse.ui.theme import STYLESHEET
 from tests.test_apk_center_ui import _device as _apk_device
 from tests.test_apk_center_ui import _ready_plan as _apk_ready_plan
 from tests.test_device_catalog import _payload, _sync
@@ -190,7 +191,7 @@ def test_about_recalculates_real_workspace_evidence_and_returns_from_its_exact_g
             f"{len(registry.packs)} DEVICE PACKS  •  1 OFFICIAL IDS"
         )
         assert window.about_page.evidence_values["knowledge"].text() == (
-            "132 VERIFIED GUIDES  •  82 KNOWN FIXES"
+            "133 VERIFIED GUIDES  •  83 KNOWN FIXES"
         )
         ready_tools = sum(status.available for status in window.toolchain_center.statuses)
         tool_count = len(window.toolchain_center.statuses)
@@ -1239,6 +1240,43 @@ def test_expert_mode_is_applied_from_persisted_settings_without_changing_guardia
     finally:
         window.companion_center.transport.close()
         window.close()
+
+
+def test_desktop_theme_is_applied_at_startup_and_new_choice_is_persistable(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        app_settings=AppSettings(desktop_theme=DesktopTheme.SOLAR_FLARE),
+    )
+    saved: list[AppSettings] = []
+    window.settings_changed.connect(saved.append)
+    try:
+        assert window.app_settings.desktop_theme is DesktopTheme.SOLAR_FLARE
+        assert window.device_center.export_button.text() == "Theme · Solar Flare  ⌄"
+        assert "border-color:#806137" in app.styleSheet()
+
+        window._apply_theme(DesktopTheme.QUANTUM_MINT)
+        app.processEvents()
+
+        assert window.app_settings.desktop_theme is DesktopTheme.QUANTUM_MINT
+        assert window.rom_studio.app_settings.desktop_theme is DesktopTheme.QUANTUM_MINT
+        assert saved == [window.app_settings]
+        assert saved[0].schema_version == 5
+        assert window.device_center.export_button.text() == "Theme · Quantum Mint  ⌄"
+        assert "border-color:#2E776D" in app.styleSheet()
+        assert "applied and saved" in window.device_center.device_note.text()
+        assert window.guardian_center.worker is None
+        assert window.rom_studio.worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+        app.setStyleSheet(STYLESHEET)
 
 
 def test_genesis_learning_route_opens_archives_with_the_exact_guide(tmp_path: Path) -> None:

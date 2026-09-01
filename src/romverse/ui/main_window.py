@@ -6,7 +6,7 @@ import math
 import random
 import time
 from contextlib import suppress
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from html import escape
 from importlib.resources import as_file, files
 from pathlib import Path
@@ -81,7 +81,7 @@ from romverse.core.activity import (
     ActivityStoreError,
     validate_activity_context,
 )
-from romverse.core.settings import AppSettings, ExperienceMode
+from romverse.core.settings import AppSettings, DesktopTheme, ExperienceMode
 from romverse.device.adb import AdbClient
 from romverse.device.apk_install import ApkInstallService
 from romverse.device.catalog import (
@@ -173,6 +173,47 @@ ROMVERSE_WEBSITE_URL = "https://romverse.app/"
 RADFORGE_LABS_URL = "https://radforgelabs.com/"
 FACEBOOK_URL = "https://www.facebook.com/ROMVERSEOfficial"
 REDDIT_URL = "https://www.reddit.com/user/ROMVERSE/"
+
+DESKTOP_THEMES: dict[DesktopTheme, tuple[str, str]] = {
+    DesktopTheme.NEBULA_FLOW: ("Nebula Flow", ""),
+    DesktopTheme.AURORA: (
+        "Aurora",
+        "QFrame#DashboardCard, QFrame#AboutTrustDock { border-color:#2B6C78; } "
+        "QLabel#DashboardHeading, QLabel#Eyebrow { color:#36E1D2; } "
+        "QPushButton#QuickAction:hover { border-color:#2DE7DA; }",
+    ),
+    DesktopTheme.VIOLET_NIGHT: (
+        "Violet Night",
+        "QFrame#DashboardCard, QFrame#AboutTrustDock { border-color:#563F83; } "
+        "QLabel#DashboardHeading, QLabel#Eyebrow { color:#D18CFF; } "
+        "QPushButton#QuickAction:hover { border-color:#D18CFF; }",
+    ),
+    DesktopTheme.NEBULA_ROSE: (
+        "Nebula Rose",
+        "QFrame#DashboardCard, QFrame#AboutTrustDock { border-color:#7D3E6D; } "
+        "QLabel#DashboardHeading, QLabel#Eyebrow { color:#FF8AD8; } "
+        "QPushButton#QuickAction:hover { border-color:#FF70C9; background:rgba(67,20,58,245); } "
+        "QLabel#Good { color:#69F2C0; }",
+    ),
+    DesktopTheme.DEEP_SPACE: (
+        "Deep Space",
+        "QFrame#DashboardCard, QFrame#AboutTrustDock { border-color:#293C67; } "
+        "QLabel#DashboardHeading, QLabel#Eyebrow { color:#78A8FF; } "
+        "QPushButton#QuickAction:hover { border-color:#78A8FF; background:rgba(19,34,73,245); }",
+    ),
+    DesktopTheme.SOLAR_FLARE: (
+        "Solar Flare",
+        "QFrame#DashboardCard, QFrame#AboutTrustDock { border-color:#806137; } "
+        "QLabel#DashboardHeading, QLabel#Eyebrow { color:#FFC46B; } "
+        "QPushButton#QuickAction:hover { border-color:#FFB454; background:rgba(67,43,18,245); }",
+    ),
+    DesktopTheme.QUANTUM_MINT: (
+        "Quantum Mint",
+        "QFrame#DashboardCard, QFrame#AboutTrustDock { border-color:#2E776D; } "
+        "QLabel#DashboardHeading, QLabel#Eyebrow { color:#65F0D1; } "
+        "QPushButton#QuickAction:hover { border-color:#65F0D1; background:rgba(15,62,56,245); }",
+    ),
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -1207,6 +1248,16 @@ class SettingsDialog(QDialog):
         form.addRow("Mode behavior", self.experience_note)
         self.experience_mode.currentIndexChanged.connect(self._update_experience_note)
         self._update_experience_note()
+        self.desktop_theme = QComboBox()
+        for theme, (label, _override) in DESKTOP_THEMES.items():
+            self.desktop_theme.addItem(label, theme.value)
+        selected_theme = self.desktop_theme.findData(settings.desktop_theme.value)
+        self.desktop_theme.setCurrentIndex(max(0, selected_theme))
+        self.desktop_theme.setToolTip(
+            "Choose a visual identity. Themes change presentation only; projects, evidence, "
+            "Guardian, and phone authority remain unchanged."
+        )
+        form.addRow("Desktop theme", self.desktop_theme)
         self.interval = QSpinBox()
         self.interval.setRange(3, 300)
         self.interval.setValue(settings.scan_interval_seconds)
@@ -1316,10 +1367,11 @@ class SettingsDialog(QDialog):
 
     def values(self) -> AppSettings:
         return AppSettings(
-            schema_version=4,
+            schema_version=5,
             onboarding_complete=self._settings.onboarding_complete,
             workspace_path=self._settings.workspace_path,
             experience_mode=ExperienceMode(self.experience_mode.currentData()),
+            desktop_theme=DesktopTheme(self.desktop_theme.currentData()),
             scan_interval_seconds=self.interval.value(),
             mask_device_serials=True,
             online_intelligence_enabled=self.online_intelligence.isChecked(),
@@ -3162,7 +3214,7 @@ class MainWindow(QMainWindow):
         self.about_page.knowledge_article_requested.connect(self._open_knowledge_article)
         about_index = self.stack.addWidget(self.about_page)
         self.galaxy_center = GalaxyCenter(workspace, self.activity_store)
-        galaxy_index = self.stack.addWidget(self.galaxy_center)
+        self.stack.addWidget(self.galaxy_center)
         self.members_center = MembersCenter(
             self.app_settings.members_issuer,
             self.app_settings.members_client_id,
@@ -3465,6 +3517,7 @@ class MainWindow(QMainWindow):
 
         self._apply_experience_mode(self.app_settings.experience_mode)
         self._apply_workspace_shell()
+        self._apply_theme(self.app_settings.desktop_theme, persist=False)
         self._update_workspace_breadcrumb("command_deck")
         self._sync_command_deck_context()
         self._resize_branding()
@@ -5804,6 +5857,7 @@ class MainWindow(QMainWindow):
             self._catalog_auto_attempted = False
             QTimer.singleShot(0, self._maybe_refresh_device_catalog)
         self._apply_experience_mode(settings.experience_mode)
+        self._apply_theme(settings.desktop_theme, persist=False)
         self.cosmic_background.set_reduced_motion(settings.reduced_motion)
         self._brand_logo.set_reduced_motion(settings.reduced_motion)
         self.about_page.logo.set_reduced_motion(settings.reduced_motion)
@@ -5819,7 +5873,7 @@ class MainWindow(QMainWindow):
         self.members_center.configure(settings.members_issuer, settings.members_client_id)
         self.device_center.device_note.setText(
             "Settings saved securely. Device timing, online research, verified tool acquisition, "
-            "experience mode, notifications, backup destination, accessibility, and Members "
+            "experience mode, Desktop theme, notifications, backup destination, accessibility, and Members "
             "configuration are active and persist after restart. Future AI and signed-update "
             "controls remain locked."
         )
@@ -5827,27 +5881,41 @@ class MainWindow(QMainWindow):
     def _show_theme_menu(self) -> None:
         menu = QMenu(self)
         menu.setTitle("ROMVERSE Theme")
-        themes = {
-            "Nebula Flow (default)": "",
-            "Aurora": "QFrame#DashboardCard { border-color:#2B6C78; } QLabel#DashboardHeading { color:#36E1D2; } QPushButton#QuickAction:hover { border-color:#2DE7DA; }",
-            "Violet Night": "QFrame#DashboardCard { border-color:#563F83; } QLabel#DashboardHeading { color:#D18CFF; } QPushButton#QuickAction:hover { border-color:#D18CFF; }",
-            "Nebula Rose": "QFrame#DashboardCard { border-color:#7D3E6D; } QLabel#DashboardHeading { color:#FF8AD8; } QPushButton#QuickAction:hover { border-color:#FF70C9; background:rgba(67,20,58,245); } QLabel#Good { color:#69F2C0; }",
-            "Deep Space": "QFrame#DashboardCard { border-color:#293C67; } QLabel#DashboardHeading { color:#78A8FF; } QPushButton#QuickAction:hover { border-color:#78A8FF; background:rgba(19,34,73,245); }",
-            "Solar Flare": "QFrame#DashboardCard { border-color:#806137; } QLabel#DashboardHeading { color:#FFC46B; } QPushButton#QuickAction:hover { border-color:#FFB454; background:rgba(67,43,18,245); }",
-            "Quantum Mint": "QFrame#DashboardCard { border-color:#2E776D; } QLabel#DashboardHeading { color:#65F0D1; } QPushButton#QuickAction:hover { border-color:#65F0D1; background:rgba(15,62,56,245); }",
-        }
-        for name, override in themes.items():
-            action = menu.addAction(name)
+        for theme, (label, _override) in DESKTOP_THEMES.items():
+            action = menu.addAction(label)
             action.setCheckable(True)
-            action.setChecked(getattr(self, "_theme_name", "Nebula Flow (default)") == name)
+            action.setChecked(self.app_settings.desktop_theme is theme)
             action.triggered.connect(
-                lambda _checked=False, theme=name, css=override: self._apply_theme(theme, css)
+                lambda _checked=False, selected=theme: self._apply_theme(selected)
             )
         button = self.device_center.export_button
         menu.popup(button.mapToGlobal(button.rect().bottomLeft()))
 
-    def _apply_theme(self, name: str, override: str) -> None:
-        self._theme_name = name
+    def _apply_theme(self, theme: DesktopTheme, *, persist: bool = True) -> None:
+        """Apply one validated presentation-only theme and persist explicit choices."""
+
+        try:
+            selected = DesktopTheme(theme)
+        except ValueError:
+            selected = DesktopTheme.NEBULA_FLOW
+        label, override = DESKTOP_THEMES[selected]
+        stylesheet = STYLESHEET + override
         app = QApplication.instance()
-        if app is not None:
-            app.setStyleSheet(STYLESHEET + override)
+        if app is not None and app.styleSheet() != stylesheet:
+            app.setStyleSheet(stylesheet)
+        self.device_center.export_button.setText(f"Theme · {label}  ⌄")
+        self.device_center.export_button.setToolTip(
+            f"Current Desktop theme: {label}. Presentation only; Guardian and evidence are unchanged."
+        )
+        if persist and selected is not self.app_settings.desktop_theme:
+            self.app_settings = replace(
+                self.app_settings,
+                schema_version=5,
+                desktop_theme=selected,
+            )
+            self.rom_studio.app_settings = self.app_settings
+            self.settings_changed.emit(self.app_settings)
+            self.device_center.device_note.setText(
+                f"{label} applied and saved. Projects, evidence, Guardian policy, and phone "
+                "authority were unchanged."
+            )

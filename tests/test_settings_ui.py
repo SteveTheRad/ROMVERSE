@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QApplication, QCheckBox, QComboBox, QLabel, QSpinBox
 
-from romverse.core.settings import AppSettings, ExperienceMode
+from romverse.core.settings import AppSettings, DesktopTheme, ExperienceMode
 from romverse.ui.main_window import SettingsDialog
 
 
@@ -10,6 +10,7 @@ def test_settings_dialog_exposes_only_runtime_backed_controls(tmp_path) -> None:
         ai_daily_reasoning_budget=123_000,
         ai_concurrency_limit=4,
         desktop_notifications_enabled=False,
+        desktop_theme=DesktopTheme.NEBULA_ROSE,
         update_channel="preview",
     )
     dialog = SettingsDialog(tmp_path, settings)
@@ -31,9 +32,14 @@ def test_settings_dialog_exposes_only_runtime_backed_controls(tmp_path) -> None:
     assert " tokens/day" not in spin_suffixes
     assert "Guided Mode · ROMVERSE Arcana" in combo_text
     assert "Expert Mode · Architect workspace" in combo_text
+    assert "Nebula Rose" in combo_text
+    assert "Quantum Mint" in combo_text
 
     dialog.experience_mode.setCurrentIndex(
         dialog.experience_mode.findData(ExperienceMode.EXPERT.value)
+    )
+    dialog.desktop_theme.setCurrentIndex(
+        dialog.desktop_theme.findData(DesktopTheme.QUANTUM_MINT.value)
     )
     assert "Guardian remains active" in dialog.experience_note.text()
 
@@ -43,5 +49,6 @@ def test_settings_dialog_exposes_only_runtime_backed_controls(tmp_path) -> None:
     assert not saved.desktop_notifications_enabled
     assert saved.update_channel == "preview"
     assert saved.experience_mode is ExperienceMode.EXPERT
+    assert saved.desktop_theme is DesktopTheme.QUANTUM_MINT
 
     dialog.close()

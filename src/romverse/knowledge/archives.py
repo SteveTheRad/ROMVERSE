@@ -2224,6 +2224,45 @@ KNOWN_FIXES = (
         source=ROMVERSE_SOURCE,
     ),
     _fix(
+        "desktop-theme-resets-after-restart",
+        "Desktop theme resets to default after ROMVERSE restarts",
+        "ROMVERSE WORKFLOWS",
+        "The Theme control previously changed only QApplication's current stylesheet. Because "
+        "the selected visual identity was not part of validated AppSettings, the next launch "
+        "correctly loaded every other preference but silently returned to Nebula Flow. ROMVERSE "
+        "now stores one closed-set DesktopTheme value in settings schema five and reapplies it "
+        "after the complete MainWindow is constructed.",
+        checks=(
+            "Confirm the chosen name is one of the seven packaged themes rather than arbitrary stylesheet text.",
+            "Inspect settings.json for schema version five and one desktop_theme enum value; never execute or load CSS from that file.",
+            "Confirm startup applies only the packaged stylesheet mapped to that enum after the Desktop controls exist.",
+            "Verify older settings schemas migrate to Nebula Flow without losing workspace, scan, privacy, experience, notification, or Members preferences.",
+        ),
+        fix_steps=(
+            "Choose the theme from Command Deck or Settings; ROMVERSE applies its packaged presentation rules and emits the complete validated settings record for private atomic persistence.",
+            "If an unknown or malformed theme value is found, keep the other valid preferences and safely fall back to Nebula Flow.",
+            "Restart ROMVERSE and confirm the Theme control names the restored selection before changing any project or device state.",
+        ),
+        verification=(
+            "A persisted Solar Flare launch renders Solar Flare and labels the Theme control accordingly.",
+            "Selecting Quantum Mint updates both MainWindow and ROM Studio settings, emits schema five once, and survives SettingsStore reload.",
+            "Theme changes start no scan, project worker, Guardian review, approval, build, network request, or phone action.",
+            "Official ROMVERSE and RadForge asset files and hashes are unchanged by every theme.",
+        ),
+        tags=(
+            "theme resets after restart",
+            "desktop theme not saved",
+            "appearance preference lost",
+            "nebula flow always returns",
+            "settings schema five theme",
+            "theme menu persistence",
+        ),
+        route="command_deck",
+        evidence="ROMVERSE tests schema-one through schema-four migration, invalid-value fallback, Settings round trips, startup theme application, one persistence emission, worker inactivity, and protected logo stability.",
+        automation="VALIDATED PRESENTATION SETTING ONLY • NO USER CSS, SCAN, WORKER, APPROVAL, BUILD, NETWORK, OR PHONE ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
         "activity-exact-source-context",
         "Activity outcome cannot reopen its exact source evidence",
         "ROMVERSE WORKFLOWS",

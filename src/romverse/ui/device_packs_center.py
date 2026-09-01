@@ -131,6 +131,33 @@ class DevicePacksCenter(QWidget):
         catalog_row.addWidget(self.catalog_button)
         page.addLayout(catalog_row)
 
+        self.dashboard_handoff = QFrame()
+        self.dashboard_handoff.setObjectName("DiagnosticHandoffBar")
+        dashboard_handoff_layout = QHBoxLayout(self.dashboard_handoff)
+        dashboard_handoff_layout.setContentsMargins(18, 13, 18, 13)
+        dashboard_handoff_layout.setSpacing(14)
+        dashboard_handoff_copy = QVBoxLayout()
+        dashboard_handoff_eyebrow = QLabel(
+            "COMMAND DECK HANDOFF  •  CURRENT DEVICE DNA EVIDENCE"
+        )
+        dashboard_handoff_eyebrow.setObjectName("Eyebrow")
+        self.dashboard_handoff_title = QLabel()
+        self.dashboard_handoff_title.setObjectName("SectionTitle")
+        self.dashboard_handoff_detail = QLabel()
+        self.dashboard_handoff_detail.setObjectName("Muted")
+        self.dashboard_handoff_detail.setWordWrap(True)
+        self.dashboard_handoff_detail.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        dashboard_handoff_copy.addWidget(dashboard_handoff_eyebrow)
+        dashboard_handoff_copy.addWidget(self.dashboard_handoff_title)
+        dashboard_handoff_copy.addWidget(self.dashboard_handoff_detail)
+        dashboard_handoff_layout.addLayout(dashboard_handoff_copy, 1)
+        self.dashboard_handoff_badge = QLabel()
+        dashboard_handoff_layout.addWidget(self.dashboard_handoff_badge)
+        self.dashboard_handoff.setVisible(False)
+        page.addWidget(self.dashboard_handoff)
+
         self.identity_catalog = QFrame()
         self.identity_catalog.setObjectName("DiagnosticHandoffBar")
         identity_layout = QHBoxLayout(self.identity_catalog)
@@ -372,6 +399,7 @@ class DevicePacksCenter(QWidget):
         return card, value
 
     def set_devices(self, devices: list[AndroidDevice]) -> None:
+        self.dashboard_handoff.setVisible(False)
         self.devices = devices
         self.selector.blockSignals(True)
         self.selector.clear()
@@ -404,6 +432,73 @@ class DevicePacksCenter(QWidget):
             if self.device_catalog is not None:
                 self.set_catalog_status(self.device_catalog.status())
             self._show_installed()
+
+    def open_dashboard_intent(self, action: str) -> bool:
+        """Explain the exact Device DNA evidence already owned by Device Atlas."""
+
+        if str(action).strip() != "Device DNA":
+            return False
+        device = self.active_device
+        report = self.active_report
+        pack = self.active_pack
+        if device is None:
+            self._show_dashboard_handoff(
+                "Device DNA needs a current Android identity",
+                "Connect and authorize one phone, then use Scan so Device Engine can collect "
+                "read-only identity evidence. ROMVERSE will not choose a model or capability "
+                "from an empty connection. NO SCAN, BUILD, FLASH, OR PHONE ACTION STARTED.",
+                "EVIDENCE NEEDED",
+                ready=False,
+            )
+            return True
+        if report is None or pack is None:
+            identity = (
+                self.active_catalog_match.marketing_name
+                if self.active_catalog_match is not None
+                and self.active_catalog_match.matched
+                else device.display_name
+            )
+            self._show_dashboard_handoff(
+                f"Device DNA identity only • {identity}",
+                f"Current Build.BRAND / Build.DEVICE evidence is "
+                f"{device.brand or 'unknown'} / {device.codename or 'unknown'}, but no "
+                "integrity-checked Device Pack produced a capability report. Build and flash "
+                "remain locked; NO SCAN OR PHONE ACTION STARTED.",
+                "IDENTITY ONLY",
+                ready=False,
+            )
+            return True
+        unresolved = len(report.checks) - report.passed_count
+        build = "READY" if report.build_contract_ready else "LOCKED"
+        flash = "READY" if report.flash_contract_ready else "LOCKED"
+        self._show_dashboard_handoff(
+            f"Device DNA • {report.model} / {report.codename}",
+            f"Current Pack {report.pack_id} v{report.pack_version}  •  report "
+            f"{report.report_digest[:16]}…  •  {report.passed_count}/{len(report.checks)} "
+            f"readiness checks pass  •  {unresolved} unresolved  •  build {build}  •  flash "
+            f"{flash}. Review the Requirements Blueprint below; NO SCAN, APPROVAL, BUILD, "
+            "FLASH, OR PHONE ACTION STARTED.",
+            "CURRENT EVIDENCE",
+            ready=True,
+        )
+        if hasattr(self, "requirements_blueprint_frame"):
+            self.body.ensureWidgetVisible(self.requirements_blueprint_frame, 0, 24)
+        return True
+
+    def _show_dashboard_handoff(
+        self,
+        title: str,
+        detail: str,
+        badge: str,
+        *,
+        ready: bool,
+    ) -> None:
+        self.dashboard_handoff_title.setText(title)
+        self.dashboard_handoff_detail.setText(detail)
+        self.dashboard_handoff_badge.setText(badge)
+        self.dashboard_handoff_badge.setObjectName("Good" if ready else "Warning")
+        self._repolish(self.dashboard_handoff_badge)
+        self.dashboard_handoff.setVisible(True)
 
     def _select(self, index: int) -> None:
         if 0 <= index < len(self.devices):

@@ -195,6 +195,32 @@ class BackupCenter(QWidget):
         self.status.setObjectName("Muted")
         self.status.setWordWrap(True)
         layout.addWidget(self.status)
+        self.dashboard_handoff = QFrame()
+        self.dashboard_handoff.setObjectName("DiagnosticHandoffBar")
+        dashboard_handoff_layout = QHBoxLayout(self.dashboard_handoff)
+        dashboard_handoff_layout.setContentsMargins(18, 13, 18, 13)
+        dashboard_handoff_layout.setSpacing(14)
+        dashboard_handoff_copy = QVBoxLayout()
+        dashboard_handoff_eyebrow = QLabel(
+            "COMMAND DECK HANDOFF  •  CURRENT RECOVERY MAP"
+        )
+        dashboard_handoff_eyebrow.setObjectName("Eyebrow")
+        self.dashboard_handoff_title = QLabel()
+        self.dashboard_handoff_title.setObjectName("SectionTitle")
+        self.dashboard_handoff_detail = QLabel()
+        self.dashboard_handoff_detail.setObjectName("Muted")
+        self.dashboard_handoff_detail.setWordWrap(True)
+        self.dashboard_handoff_detail.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        dashboard_handoff_copy.addWidget(dashboard_handoff_eyebrow)
+        dashboard_handoff_copy.addWidget(self.dashboard_handoff_title)
+        dashboard_handoff_copy.addWidget(self.dashboard_handoff_detail)
+        dashboard_handoff_layout.addLayout(dashboard_handoff_copy, 1)
+        self.dashboard_handoff_badge = QLabel()
+        dashboard_handoff_layout.addWidget(self.dashboard_handoff_badge)
+        self.dashboard_handoff.setVisible(False)
+        layout.addWidget(self.dashboard_handoff)
         self.plan_context = QFrame()
         self.plan_context.setObjectName("DiagnosticHandoffBar")
         plan_context_layout = QHBoxLayout(self.plan_context)
@@ -550,6 +576,7 @@ class BackupCenter(QWidget):
             )
 
     def set_devices(self, devices: list[AndroidDevice]) -> None:
+        self.dashboard_handoff.setVisible(False)
         self.device = next((item for item in devices if item.state is DeviceState.DEVICE), None)
         self._clear_checks()
         if self.device is None:
@@ -604,6 +631,74 @@ class BackupCenter(QWidget):
             self.phone_backup_result.setText(
                 "Ready. Choose a local destination and the categories you want ROMVERSE to copy."
             )
+
+    def open_dashboard_intent(self, action: str) -> bool:
+        """Compile the current recovery map without starting backup or restore work."""
+
+        if str(action).strip() != "Rescue & Backup":
+            return False
+        current_project = str(self.project_selector.currentData() or "")
+        self.refresh_local_snapshots(current_project)
+        self._load_latest_plan()
+        project_count = len(self.projects)
+        snapshot_count = sum(
+            len(self.rom_store.list_snapshots(project.project_id)) for project in self.projects
+        )
+        latest = self.plan_store.load_latest()
+        plan_ready = bool(latest.valid and latest.integrity_verified and latest.data is not None)
+        if self.device is not None:
+            tools = (
+                "Platform Tools ready"
+                if self.media_backup_service is not None
+                else "Platform Tools need verification"
+            )
+            self._show_dashboard_handoff(
+                f"Recovery map • {self.device.display_name}",
+                f"Current device evidence is loaded  •  Guardian readiness plan "
+                f"{'verified' if plan_ready else 'not recorded'}  •  {tools}  •  "
+                f"{project_count} ROM project(s)  •  {snapshot_count} local snapshot(s). "
+                "Choose the exact readiness, local-drive backup, or ROM baseline control below. "
+                "NO BACKUP, COPY, RESTORE, OR PHONE ACTION STARTED.",
+                "READY TO REVIEW" if plan_ready else "PLAN RECOVERY",
+                ready=plan_ready,
+            )
+            return True
+        if project_count:
+            self._show_dashboard_handoff(
+                "Local ROM recovery evidence is available",
+                f"No authorized phone is connected, but Time Machine found {project_count} ROM "
+                f"project(s) and {snapshot_count} local snapshot(s). Device backup planning stays "
+                "locked; local snapshots remain available for explicit verification or an "
+                "approval-bound workspace restore. NO BACKUP, COPY, RESTORE, OR PHONE ACTION "
+                "STARTED.",
+                "LOCAL ONLY",
+                ready=False,
+            )
+            return True
+        self._show_dashboard_handoff(
+            "Recovery evidence needs a device or ROM project",
+            "Connect and authorize a phone for recovery-readiness and local media backup, or "
+            "create a ROM Studio project and snapshot for local baseline recovery. ROMVERSE "
+            "will not invent a backup state. NO BACKUP, COPY, RESTORE, OR PHONE ACTION STARTED.",
+            "EVIDENCE NEEDED",
+            ready=False,
+        )
+        return True
+
+    def _show_dashboard_handoff(
+        self,
+        title: str,
+        detail: str,
+        badge: str,
+        *,
+        ready: bool,
+    ) -> None:
+        self.dashboard_handoff_title.setText(title)
+        self.dashboard_handoff_detail.setText(detail)
+        self.dashboard_handoff_badge.setText(badge)
+        self.dashboard_handoff_badge.setObjectName("Good" if ready else "Warning")
+        self._repolish(self.dashboard_handoff_badge)
+        self.dashboard_handoff.setVisible(True)
 
     def _prepare_or_resolve_phone_backup(self) -> None:
         if self.device is None or self.media_backup_worker is not None:

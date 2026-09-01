@@ -5082,6 +5082,22 @@ class MainWindow(QMainWindow):
                     NotificationKind.ATTENTION,
                 )
             return
+        owner_handoffs = {
+            "Device DNA": ("device_atlas", self.device_packs_center),
+            "Health Review": ("quantum_optimizer", self.diagnostics_center),
+            "Rescue & Backup": ("time_machine", self.backup_center),
+        }
+        if action in owner_handoffs:
+            route, owner = owner_handoffs[action]
+            if self._navigate_route(route) and not owner.open_dashboard_intent(action):
+                self.notification_center.notify(
+                    f"command-deck.handoff.{action.casefold().replace(' ', '-')}",
+                    "Command Deck handoff needs attention",
+                    f"ROMVERSE opened {route.replace('_', ' ').title()} but could not preserve "
+                    "the requested evidence view. No worker or phone action started.",
+                    NotificationKind.ATTENTION,
+                )
+            return
         if action == "Theme":
             self._show_theme_menu()
             return
@@ -5099,10 +5115,7 @@ class MainWindow(QMainWindow):
             self._navigate_route("recovery_bay")
             return
         targets = {
-            "Device DNA": "device_atlas",
-            "Health Review": "quantum_optimizer",
             "Guardian": "guardian_core",
-            "Rescue & Backup": "time_machine",
             "Timeline": "health_timeline",
             "Live Operations": "live_console",
             "Wireless Transfer": "companion_link",

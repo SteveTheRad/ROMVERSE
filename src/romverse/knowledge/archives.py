@@ -1827,6 +1827,47 @@ KNOWN_FIXES = (
         source=ROMVERSE_SOURCE,
     ),
     _fix(
+        "command-deck-current-evidence-handoff",
+        "Command Deck owner page opens without current device evidence",
+        "ROMVERSE WORKFLOWS",
+        "Device DNA, Health Review, and Rescue & Backup each depend on a different current "
+        "evidence owner. Opening the right page is not enough: Device Atlas must identify the "
+        "active Device Pack report, Quantum Optimizer must summarize the current diagnostic "
+        "report, and Time Machine must compile the current device, plan, tool, project, and "
+        "snapshot recovery map. Missing evidence stays an explicit prerequisite.",
+        checks=(
+            "Confirm the destination shows COMMAND DECK HANDOFF and names Device DNA, current health evidence, or the current recovery map.",
+            "For Device DNA, compare model/codename, Pack id/version, report digest, passed checks, and separate build/flash states with Device Atlas.",
+            "For Health Review, compare the device name, health score, finding count, and highest-priority finding with the current read-only report.",
+            "For Rescue & Backup, compare the connected device, Guardian plan integrity, Platform Tools state, ROM project count, and local snapshot count.",
+        ),
+        fix_steps=(
+            "If the handoff says evidence needed, connect and authorize one phone and run a fresh read-only Device Engine scan; do not infer the missing state.",
+            "If Device DNA is identity-only, review the official identity and add an integrity-checked exact Device Pack contract before expecting build or flash requirements.",
+            "If Health Review has no report, use Refresh health data; the Command Deck handoff itself deliberately does not launch a scan or optimization.",
+            "If recovery evidence is incomplete, record only the named Guardian plan, Platform Tools, project, or snapshot prerequisite from Time Machine.",
+        ),
+        verification=(
+            "Each card opens its canonical owner and displays a fresh banner compiled from that owner's current in-memory or integrity-checked local evidence.",
+            "A new device scan clears the previous handoff so stale model, health, or recovery claims are not retained.",
+            "Ready evidence reveals exact next controls while missing evidence remains visibly stopped with no substitute claim.",
+            "Opening any of the three handoffs leaves scan, optimization, cleanup, backup, copy, restore, build, flash, and phone workers idle.",
+        ),
+        tags=(
+            "owner page missing evidence",
+            "command deck current evidence",
+            "device dna handoff",
+            "health review handoff",
+            "rescue backup handoff",
+            "generic owner navigation",
+            "stale dashboard context",
+        ),
+        route="command_deck",
+        evidence="ROMVERSE tests prerequisite and connected-device states across Device Atlas, Quantum Optimizer, and Time Machine while asserting their execution workers remain idle.",
+        automation="CURRENT EVIDENCE SUMMARY AND EXACT LOCAL NAVIGATION ONLY • NO SCAN, OPTIMIZATION, CLEANUP, BACKUP, RESTORE, BUILD, FLASH, OR PHONE ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
         "activity-exact-source-context",
         "Activity outcome cannot reopen its exact source evidence",
         "ROMVERSE WORKFLOWS",

@@ -108,6 +108,7 @@ class DiagnosticsCenter(QWidget):
         self.current_device: AndroidDevice | None = None
         self.current_report: DiagnosticReport | None = None
         self.finding_cards: dict[str, FindingCard] = {}
+        self.action_plan_card: QFrame | None = None
 
         page = QVBoxLayout(self)
         page.setContentsMargins(30, 26, 30, 30)
@@ -174,6 +175,33 @@ class DiagnosticsCenter(QWidget):
         self.save_button.clicked.connect(self._save)
         actions.addWidget(self.save_button)
         page.addLayout(actions)
+
+        self.dashboard_handoff = QFrame()
+        self.dashboard_handoff.setObjectName("DiagnosticHandoffBar")
+        dashboard_handoff_layout = QHBoxLayout(self.dashboard_handoff)
+        dashboard_handoff_layout.setContentsMargins(18, 13, 18, 13)
+        dashboard_handoff_layout.setSpacing(14)
+        dashboard_handoff_copy = QVBoxLayout()
+        dashboard_handoff_eyebrow = QLabel(
+            "COMMAND DECK HANDOFF  •  CURRENT HEALTH EVIDENCE"
+        )
+        dashboard_handoff_eyebrow.setObjectName("Eyebrow")
+        self.dashboard_handoff_title = QLabel()
+        self.dashboard_handoff_title.setObjectName("SectionTitle")
+        self.dashboard_handoff_detail = QLabel()
+        self.dashboard_handoff_detail.setObjectName("Muted")
+        self.dashboard_handoff_detail.setWordWrap(True)
+        self.dashboard_handoff_detail.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        dashboard_handoff_copy.addWidget(dashboard_handoff_eyebrow)
+        dashboard_handoff_copy.addWidget(self.dashboard_handoff_title)
+        dashboard_handoff_copy.addWidget(self.dashboard_handoff_detail)
+        dashboard_handoff_layout.addLayout(dashboard_handoff_copy, 1)
+        self.dashboard_handoff_badge = QLabel()
+        dashboard_handoff_layout.addWidget(self.dashboard_handoff_badge)
+        self.dashboard_handoff.setVisible(False)
+        page.addWidget(self.dashboard_handoff)
 
         self.overview = QFrame()
         self.overview.setObjectName("HeroCard")
@@ -348,6 +376,7 @@ class DiagnosticsCenter(QWidget):
         return f"{value:.1f} {unit}"
 
     def set_devices(self, devices: list[AndroidDevice]) -> None:
+        self.dashboard_handoff.setVisible(False)
         self.devices = devices
         self.selector.blockSignals(True)
         self.selector.clear()
@@ -370,6 +399,65 @@ class DiagnosticsCenter(QWidget):
             self._set_resource_graph(self.health_graph, None)
             self._empty("No diagnostic claims are made without device evidence.")
             self.report_changed.emit(None)
+
+    def open_dashboard_intent(self, action: str) -> bool:
+        """Present the current Health Review without silently launching another scan."""
+
+        if str(action).strip() != "Health Review":
+            return False
+        report = self.current_report
+        device = self.current_device
+        if report is None or device is None:
+            self._show_dashboard_handoff(
+                "Health Review needs fresh Device Engine evidence",
+                "Connect and authorize one phone, then choose Refresh health data. ROMVERSE "
+                "will not infer a health score from stale or absent telemetry. NO SCAN, "
+                "OPTIMIZATION, CLEANUP, OR PHONE ACTION STARTED.",
+                "EVIDENCE NEEDED",
+                ready=False,
+            )
+            return True
+        review_levels = {Severity.ADVISORY, Severity.WARNING, Severity.CRITICAL}
+        actionable = tuple(
+            finding for finding in report.findings if finding.severity in review_levels
+        )
+        ranking = {
+            Severity.HEALTHY: 0,
+            Severity.INFORMATION: 1,
+            Severity.ADVISORY: 2,
+            Severity.WARNING: 3,
+            Severity.CRITICAL: 4,
+        }
+        priority = max(report.findings, key=lambda item: ranking[item.severity], default=None)
+        priority_text = priority.title if priority is not None else "No findings reported"
+        self._show_dashboard_handoff(
+            f"Health Review • {report.device_name} • score {report.health_score}",
+            f"The current read-only report contains {len(report.findings)} finding(s); "
+            f"{len(actionable)} need review. Highest priority: {priority_text}. The Recommended "
+            "Action Plan below links exact findings to Archives and Recovery Bay. NO NEW SCAN, "
+            "OPTIMIZATION, CLEANUP, OR PHONE ACTION STARTED.",
+            "ALL CLEAR" if not actionable else f"{len(actionable)} REVIEW",
+            ready=not actionable,
+        )
+        if self.action_plan_card is not None:
+            self.body.ensureWidgetVisible(self.action_plan_card, 0, 24)
+        return True
+
+    def _show_dashboard_handoff(
+        self,
+        title: str,
+        detail: str,
+        badge: str,
+        *,
+        ready: bool,
+    ) -> None:
+        self.dashboard_handoff_title.setText(title)
+        self.dashboard_handoff_detail.setText(detail)
+        self.dashboard_handoff_badge.setText(badge)
+        self.dashboard_handoff_badge.setObjectName("Good" if ready else "Warning")
+        self.dashboard_handoff_badge.style().unpolish(self.dashboard_handoff_badge)
+        self.dashboard_handoff_badge.style().polish(self.dashboard_handoff_badge)
+        self.dashboard_handoff.setVisible(True)
 
     def show_error(self, message: str) -> None:
         self.current_device = None
@@ -406,7 +494,8 @@ class DiagnosticsCenter(QWidget):
         self.save_button.setEnabled(True)
         self._clear_body()
         evidence = {item.evidence_id: item.value for item in report.evidence}
-        self.body_layout.addWidget(self._action_plan(report))
+        self.action_plan_card = self._action_plan(report)
+        self.body_layout.addWidget(self.action_plan_card)
         for finding in report.findings:
             card = FindingCard(finding, evidence)
             self.finding_cards[finding.finding_id] = card
@@ -656,6 +745,7 @@ class DiagnosticsCenter(QWidget):
 
     def _clear_body(self) -> None:
         self.finding_cards.clear()
+        self.action_plan_card = None
         while self.body_layout.count():
             item = self.body_layout.takeAt(0)
             widget = item.widget()

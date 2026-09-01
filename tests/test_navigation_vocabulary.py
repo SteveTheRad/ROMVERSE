@@ -188,7 +188,7 @@ def test_about_recalculates_real_workspace_evidence_and_returns_from_its_exact_g
             f"{len(registry.packs)} DEVICE PACKS  •  1 OFFICIAL IDS"
         )
         assert window.about_page.evidence_values["knowledge"].text() == (
-                "119 VERIFIED GUIDES  •  69 KNOWN FIXES"
+            "120 VERIFIED GUIDES  •  70 KNOWN FIXES"
         )
         ready_tools = sum(status.available for status in window.toolchain_center.statuses)
         tool_count = len(window.toolchain_center.statuses)
@@ -406,6 +406,89 @@ def test_command_deck_cards_are_context_aware_and_route_to_canonical_pages(
         lab.click()
         app.processEvents()
         assert window.stack.currentWidget() is window.nexus_center
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_command_deck_evidence_handoffs_preserve_current_owner_state(tmp_path: Path) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        pack_registry=registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    owners = (
+        ("Device DNA", window.device_packs_center),
+        ("Health Review", window.diagnostics_center),
+        ("Rescue & Backup", window.backup_center),
+    )
+    try:
+        for action, owner in owners:
+            window._navigate(0)
+            window._handle_dashboard_action(action)
+            app.processEvents()
+            assert window.stack.currentWidget() is owner
+            assert not owner.dashboard_handoff.isHidden()
+            assert owner.dashboard_handoff_badge.text() == "EVIDENCE NEEDED"
+            assert "NO " in owner.dashboard_handoff_detail.text()
+            assert not owner.open_dashboard_intent("Unknown workflow")
+
+        device = _device()
+        window._scan_complete([device])
+        app.processEvents()
+        assert window.device_packs_center.active_report is not None
+        assert window.diagnostics_center.current_report is not None
+        assert window.backup_center.device is not None
+
+        window._navigate(0)
+        window._handle_dashboard_action("Device DNA")
+        app.processEvents()
+        report = window.device_packs_center.active_report
+        assert report is not None
+        assert window.stack.currentWidget() is window.device_packs_center
+        assert window.device_packs_center.dashboard_handoff_badge.text() == "CURRENT EVIDENCE"
+        assert report.report_digest[:16] in (
+            window.device_packs_center.dashboard_handoff_detail.text()
+        )
+        assert "NO SCAN, APPROVAL, BUILD, FLASH, OR PHONE ACTION STARTED" in (
+            window.device_packs_center.dashboard_handoff_detail.text()
+        )
+
+        window._navigate(0)
+        window._handle_dashboard_action("Health Review")
+        app.processEvents()
+        diagnostic = window.diagnostics_center.current_report
+        assert diagnostic is not None
+        assert window.stack.currentWidget() is window.diagnostics_center
+        assert str(diagnostic.health_score) in window.diagnostics_center.dashboard_handoff_title.text()
+        assert "Recommended Action Plan" in (
+            window.diagnostics_center.dashboard_handoff_detail.text()
+        )
+        assert "NO NEW SCAN, OPTIMIZATION, CLEANUP, OR PHONE ACTION STARTED" in (
+            window.diagnostics_center.dashboard_handoff_detail.text()
+        )
+
+        window._navigate(0)
+        window._handle_dashboard_action("Rescue & Backup")
+        app.processEvents()
+        assert window.stack.currentWidget() is window.backup_center
+        assert window.backup_center.dashboard_handoff_badge.text() == "PLAN RECOVERY"
+        assert window.backup_center.device.display_name in (
+            window.backup_center.dashboard_handoff_title.text()
+        )
+        assert "NO BACKUP, COPY, RESTORE, OR PHONE ACTION STARTED" in (
+            window.backup_center.dashboard_handoff_detail.text()
+        )
+        assert window.active_worker is None
+        assert window.backup_center.worker is None
+        assert window.backup_center.evidence_worker is None
+        assert window.backup_center.media_backup_worker is None
     finally:
         window.companion_center.transport.close()
         window.close()

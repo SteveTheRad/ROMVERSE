@@ -15,9 +15,12 @@ from romverse.device.apk_install import ApkInstallRequest, create_install_plan
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.guardian.approval import ApprovalStore
 from romverse.guardian.audit import GuardianAuditStore
+from romverse.guardian.manifest_review import GuardianManifestReviewService
 from romverse.infrastructure.process import CommandResult
 from romverse.nexus.planning import NexusObjective, NexusPlanner
 from romverse.ui.guardian_center import GuardianCenter
+from romverse.ui.theme import STYLESHEET
+from tests.test_guardian_manifest_review import _prepared as _prepared_manifest
 from tests.test_nexus_planning import _evidence
 
 
@@ -216,4 +219,42 @@ def test_guardian_presents_recovery_plan_as_zero_authority_evidence(tmp_path) ->
     assert "Phone data copied: no" in detail
     assert "Approval: none" in detail
     assert "Execution: none" in detail
+    center.close()
+
+
+def test_guardian_presents_exact_studio_manifest_and_returns_its_identity(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    store, project, registry, report, device = _prepared_manifest(tmp_path)
+    manifest = GuardianManifestReviewService(store, registry).compile(
+        project.project_id,
+        report,
+        device,
+    )
+    center = GuardianCenter(GuardianAuditStore(store.workspace), auto_start=False)
+    returned: list[tuple[str, str]] = []
+    center.rom_studio_requested.connect(
+        lambda project_id, digest: returned.append((project_id, digest))
+    )
+
+    assert center.open_studio_review(manifest, project.name)
+    assert not center.studio_review.isHidden()
+    assert center.studio_review.objectName() == "StudioReviewCard"
+    assert "QFrame#StudioReviewCard" in STYLESHEET
+    assert center.nexus_review.isHidden()
+    assert center.backup_review.isHidden()
+    assert center.studio_review_identity == (
+        project.project_id,
+        manifest.manifest_digest,
+    )
+    detail = center.studio_review_detail.text()
+    assert manifest.manifest_digest[:16] in detail
+    assert manifest.handoff_digest[:16] in detail
+    assert manifest.source_sha256[:16] in detail
+    assert "Execution: none" in detail
+    assert "Final consent: locked" in detail
+    assert "Bootloader relock: never" in detail
+    assert "Phone changed: no" in detail
+
+    center.studio_return_button.click()
+    assert returned == [(project.project_id, manifest.manifest_digest)]
     center.close()

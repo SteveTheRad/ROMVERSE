@@ -19,6 +19,7 @@ from romverse.applications.receipts import ApkReceiptRead, ApkReceiptStore
 from romverse.backup.plans import BackupPlanRead, GuardianBackupPlanStore
 from romverse.guardian.approval import ApprovalRecord, ApprovalStore, ApprovalVerification
 from romverse.guardian.audit import AuditVerification, GuardianAuditStore
+from romverse.guardian.manifest_review import GuardianManifestReview
 from romverse.nexus.planning import NexusObjective, NexusPlan
 from romverse.ui.background import ManagedRunnable, start_background
 from romverse.ui.process_progress import ProcessProgressBar
@@ -88,6 +89,7 @@ class GuardianCenterWorker(ManagedRunnable):
 class GuardianCenter(QWidget):
     nexus_requested = Signal()
     time_machine_requested = Signal()
+    rom_studio_requested = Signal(str, str)
     REFRESH_DEBOUNCE_MS = 250
 
     def __init__(self, audit: GuardianAuditStore | None, *, auto_start: bool = True) -> None:
@@ -96,6 +98,7 @@ class GuardianCenter(QWidget):
         self.worker: GuardianCenterWorker | None = None
         self._nexus_review_identity: tuple[str, str] | None = None
         self._backup_review_identity: tuple[str, str] | None = None
+        self._studio_review_identity: tuple[str, str] | None = None
         self._refresh_pending = False
         self._refresh_timer = QTimer(self)
         self._refresh_timer.setSingleShot(True)
@@ -183,6 +186,37 @@ class GuardianCenter(QWidget):
         self.backup_review.setVisible(False)
         page.addWidget(self.backup_review)
 
+        self.studio_review = QFrame()
+        self.studio_review.setObjectName("StudioReviewCard")
+        studio_layout = QVBoxLayout(self.studio_review)
+        studio_layout.setContentsMargins(20, 16, 20, 16)
+        studio_layout.setSpacing(8)
+        studio_header = QHBoxLayout()
+        self.studio_review_eyebrow = QLabel(
+            "ROM STUDIO MANIFEST REVIEW  •  COMMAND-FREE EVIDENCE"
+        )
+        self.studio_review_eyebrow.setObjectName("Eyebrow")
+        studio_header.addWidget(self.studio_review_eyebrow, 1)
+        self.studio_review_badge = QLabel("ZERO AUTHORITY")
+        self.studio_review_badge.setObjectName("Warning")
+        studio_header.addWidget(self.studio_review_badge)
+        self.studio_return_button = QPushButton("Return to exact ROM project")
+        self.studio_return_button.clicked.connect(self._return_to_rom_studio)
+        studio_header.addWidget(self.studio_return_button)
+        studio_layout.addLayout(studio_header)
+        self.studio_review_title = QLabel()
+        self.studio_review_title.setObjectName("SectionTitle")
+        studio_layout.addWidget(self.studio_review_title)
+        self.studio_review_detail = QLabel()
+        self.studio_review_detail.setObjectName("Muted")
+        self.studio_review_detail.setWordWrap(True)
+        self.studio_review_detail.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        studio_layout.addWidget(self.studio_review_detail)
+        self.studio_review.setVisible(False)
+        page.addWidget(self.studio_review)
+
         self.hero = QFrame()
         self.hero.setObjectName("HeroCard")
         hero_layout = QHBoxLayout(self.hero)
@@ -255,6 +289,7 @@ class GuardianCenter(QWidget):
         if not clean_name:
             return False
         self.clear_backup_review()
+        self.clear_studio_review()
         objective = {
             NexusObjective.BUILD_ROM: "Build a ROM",
             NexusObjective.ROOT_ROM: "Prepare optional root",
@@ -333,6 +368,7 @@ class GuardianCenter(QWidget):
         if not clean_name:
             return False
         self.clear_nexus_review()
+        self.clear_studio_review()
         self.backup_review_title.setText(f"Recovery readiness  •  {clean_name}")
         self.backup_review_badge.setText("ZERO AUTHORITY")
         self.backup_review_badge.setObjectName("Warning")
@@ -381,6 +417,81 @@ class GuardianCenter(QWidget):
         self.backup_review_badge.setText("ZERO AUTHORITY")
         self.backup_review_badge.setObjectName("Warning")
         self._repolish(self.backup_review_badge)
+
+    def open_studio_review(
+        self,
+        manifest: GuardianManifestReview,
+        project_name: str,
+    ) -> bool:
+        """Present one exact command-free Studio manifest as persistent evidence."""
+
+        if (
+            not isinstance(manifest, GuardianManifestReview)
+            or not manifest.project_id
+            or not manifest.manifest_digest
+            or manifest.final_consent_available
+            or manifest.execution_authority != "none"
+            or manifest.phone_changed
+            or manifest.bootloader_relock_allowed
+            or manifest.command_manifest
+        ):
+            return False
+        clean_name = " ".join(project_name.replace("\x00", "").split())[:80]
+        if not clean_name:
+            return False
+        self.clear_nexus_review()
+        self.clear_backup_review()
+        self.studio_review_title.setText(f"{clean_name}  •  {manifest.device_name}")
+        self.studio_review_badge.setText("ZERO AUTHORITY")
+        self.studio_review_badge.setObjectName("Warning")
+        self._repolish(self.studio_review_badge)
+        blockers = "\n".join(f"• {item}" for item in manifest.blockers)
+        self.studio_review_detail.setText(
+            f"Manifest {manifest.manifest_digest[:16]}…  •  handoff "
+            f"{manifest.handoff_digest[:16]}…  •  project {manifest.project_id}\n"
+            f"EXACT BINDING  •  {manifest.model} / {manifest.codename}  •  Pack "
+            f"{manifest.device_pack_id} v{manifest.device_pack_version}  •  source "
+            f"{manifest.source_sha256[:16]}…  •  mode {manifest.mode.display_name}\n"
+            f"ARTIFACT REVIEW  •  {len(manifest.partition_writes)} image(s) hash-bound  •  "
+            f"status {manifest.review_status.replace('-', ' ')}\n"
+            f"REMAINING BLOCKERS\n{blockers}\n"
+            "REVIEW BOUNDARY  •  Approval: none  •  Execution: none  •  Final consent: "
+            "locked  •  Bootloader relock: never  •  Phone changed: no"
+        )
+        self._studio_review_identity = (manifest.project_id, manifest.manifest_digest)
+        self.studio_review.setVisible(True)
+        return True
+
+    @property
+    def studio_review_identity(self) -> tuple[str, str] | None:
+        return self._studio_review_identity
+
+    def studio_review_stopped(self, reason: str) -> None:
+        """Expire a retained Studio manifest visibly and without retaining authority."""
+
+        self._studio_review_identity = None
+        self.studio_review_title.setText("ROM Studio manifest context expired safely")
+        self.studio_review_detail.setText(
+            f"{reason}\nReturn to Forge Control and compile a fresh exact Guardian review. "
+            "Approval: none  •  Execution: none  •  No action started."
+        )
+        self.studio_review_badge.setText("CONTEXT REFUSED")
+        self.studio_review_badge.setObjectName("Danger")
+        self._repolish(self.studio_review_badge)
+        self.studio_review.setVisible(True)
+
+    def clear_studio_review(self) -> None:
+        self._studio_review_identity = None
+        self.studio_review.setVisible(False)
+        self.studio_review_title.clear()
+        self.studio_review_detail.clear()
+        self.studio_review_badge.setText("ZERO AUTHORITY")
+        self.studio_review_badge.setObjectName("Warning")
+        self._repolish(self.studio_review_badge)
+
+    def _return_to_rom_studio(self) -> None:
+        if self._studio_review_identity is not None:
+            self.rom_studio_requested.emit(*self._studio_review_identity)
 
     @staticmethod
     def _metric(label: str) -> tuple[QFrame, QLabel]:

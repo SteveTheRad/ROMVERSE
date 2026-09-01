@@ -201,10 +201,10 @@ class BackupCenter(QWidget):
         dashboard_handoff_layout.setContentsMargins(18, 13, 18, 13)
         dashboard_handoff_layout.setSpacing(14)
         dashboard_handoff_copy = QVBoxLayout()
-        dashboard_handoff_eyebrow = QLabel(
+        self.dashboard_handoff_eyebrow = QLabel(
             "COMMAND DECK HANDOFF  •  CURRENT RECOVERY MAP"
         )
-        dashboard_handoff_eyebrow.setObjectName("Eyebrow")
+        self.dashboard_handoff_eyebrow.setObjectName("Eyebrow")
         self.dashboard_handoff_title = QLabel()
         self.dashboard_handoff_title.setObjectName("SectionTitle")
         self.dashboard_handoff_detail = QLabel()
@@ -213,7 +213,7 @@ class BackupCenter(QWidget):
         self.dashboard_handoff_detail.setTextInteractionFlags(
             Qt.TextInteractionFlag.TextSelectableByMouse
         )
-        dashboard_handoff_copy.addWidget(dashboard_handoff_eyebrow)
+        dashboard_handoff_copy.addWidget(self.dashboard_handoff_eyebrow)
         dashboard_handoff_copy.addWidget(self.dashboard_handoff_title)
         dashboard_handoff_copy.addWidget(self.dashboard_handoff_detail)
         dashboard_handoff_layout.addLayout(dashboard_handoff_copy, 1)
@@ -685,6 +685,44 @@ class BackupCenter(QWidget):
         )
         return True
 
+    def open_rom_studio_project(self, project_id: str) -> bool:
+        """Select one exact Studio project without starting backup or restore work."""
+
+        normalized = str(project_id).strip()
+        if not normalized:
+            return False
+        try:
+            project = self.rom_store.get(normalized)
+        except (OSError, ProjectError, TypeError, ValueError):
+            return False
+        self.refresh_local_snapshots(project.project_id)
+        if str(self.project_selector.currentData() or "") != project.project_id:
+            return False
+        working = self.rom_store.working_copy(project.project_id)
+        snapshots = self.rom_store.list_snapshots(project.project_id)
+        current = tuple(item for item in snapshots if item.schema_version == 2)
+        source = project.original.sha256[:16] + "…" if project.original is not None else "not imported"
+        ready = working is not None and bool(current)
+        next_step = (
+            "The newest current snapshot is selected below for review. Verify or restore remains "
+            "an explicit, approval-bound local action."
+            if current
+            else "Return to ROM Studio and create a verified baseline snapshot before relying on "
+            "local rollback."
+        )
+        self._show_dashboard_handoff(
+            f"ROM Studio → {project.name}",
+            f"Exact project {project.project_id}  •  protected source {source}  •  "
+            f"working baseline {'available' if working is not None else 'missing'}  •  "
+            f"{len(snapshots)} snapshot(s), {len(current)} current. {next_step} "
+            "NO BACKUP, COPY, RESTORE, BUILD, FLASH, OR PHONE ACTION STARTED.",
+            "BASELINE READY" if ready else "BASELINE NEEDED",
+            ready=ready,
+            eyebrow="ROM STUDIO HANDOFF  •  EXACT LOCAL RECOVERY PROJECT",
+        )
+        self.project_selector.setFocus(Qt.FocusReason.OtherFocusReason)
+        return True
+
     def _show_dashboard_handoff(
         self,
         title: str,
@@ -692,7 +730,9 @@ class BackupCenter(QWidget):
         badge: str,
         *,
         ready: bool,
+        eyebrow: str = "COMMAND DECK HANDOFF  •  CURRENT RECOVERY MAP",
     ) -> None:
+        self.dashboard_handoff_eyebrow.setText(eyebrow)
         self.dashboard_handoff_title.setText(title)
         self.dashboard_handoff_detail.setText(detail)
         self.dashboard_handoff_badge.setText(badge)

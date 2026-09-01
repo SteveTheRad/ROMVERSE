@@ -1909,6 +1909,47 @@ KNOWN_FIXES = (
         source=ROMVERSE_SOURCE,
     ),
     _fix(
+        "rom-studio-outbound-evidence-context",
+        "ROM Studio opens recovery, Device Atlas, or Guardian without the exact project",
+        "ROMVERSE WORKFLOWS",
+        "An outbound Studio control must carry the selected project and the evidence owned by "
+        "that destination. Time Machine needs the exact project and its current snapshot records; "
+        "Device Atlas needs the project Pack/source relationship; Guardian Core needs the exact "
+        "command-free manifest plus current phone and readiness evidence. A page opening by itself "
+        "does not prove that the handoff succeeded.",
+        checks=(
+            "Confirm the destination eyebrow names ROM STUDIO HANDOFF and shows the originating project id rather than whichever project was already selected there.",
+            "In Time Machine, compare the protected-source prefix and selected snapshot with the current ROM Studio project.",
+            "In Device Atlas, compare project Pack id and protected-source digest with the Pack build contract; identity match alone must not imply build or flash readiness.",
+            "In Guardian Core, compare manifest, handoff, source, project, model/codename, data mode, blockers, and zero-authority invariants.",
+        ),
+        fix_steps=(
+            "Return to the exact ROM Studio project and reopen the destination from its relevant recovery or readiness control.",
+            "If Time Machine rejects the project, reload the project and create or verify a schema-two local baseline snapshot before relying on rollback.",
+            "If Device Atlas reports a Pack/source/device mismatch, connect and scan the exact target; never substitute a similar model or generic Pack.",
+            "If Guardian expires the manifest, return to Forge Control and compile a fresh review from current project, phone, readiness, handoff, and artifact evidence.",
+        ),
+        verification=(
+            "Time Machine selects the exact project and snapshot while leaving every backup and restore worker idle.",
+            "Device Atlas shows the project source/Pack relationship and reports EXACT MATCH only when the current report is genuinely ready.",
+            "Guardian Core retains the exact manifest as persistent evidence and revalidates it whenever the page is revisited.",
+            "Returning from Guardian selects the exact ROM project and Build & Proof group; stale project, phone, Pack, snapshot, or manifest evidence stops visibly in-page.",
+        ),
+        tags=(
+            "rom studio loses project on navigation",
+            "time machine wrong project",
+            "device atlas wrong pack context",
+            "guardian manifest only in dialog",
+            "guardian context expired",
+            "outbound project handoff",
+            "cross feature evidence routing",
+        ),
+        route="rom_studio",
+        evidence="ROMVERSE tests exact project selection, snapshot/source/Pack identity, persistent Guardian manifest identity, stale-context expiry, return routing, and idle worker/device boundaries.",
+        automation="EXACT PROJECT, SNAPSHOT, PACK, SOURCE, AND COMMAND-FREE MANIFEST NAVIGATION ONLY • NO WORKER, BUILD, APPROVAL, RESTORE, FLASH, OR PHONE ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
         "activity-exact-source-context",
         "Activity outcome cannot reopen its exact source evidence",
         "ROMVERSE WORKFLOWS",

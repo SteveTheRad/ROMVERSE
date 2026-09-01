@@ -18,6 +18,7 @@ from romverse.device.catalog import (
 from romverse.device.identity import IdentityAuthority
 from romverse.device.models import AndroidDevice, DeviceState, StorageInfo
 from romverse.device_packs.registry import DevicePackRegistry
+from romverse.guardian.manifest_review import GuardianManifestReviewService
 from romverse.infrastructure.process import CommandResult
 from romverse.infrastructure.tools import ToolStatus
 from romverse.intelligence.synapse import (
@@ -40,6 +41,7 @@ from tests.test_apk_center_ui import _device as _apk_device
 from tests.test_apk_center_ui import _ready_plan as _apk_ready_plan
 from tests.test_device_catalog import _payload, _sync
 from tests.test_device_dna import _device, _project
+from tests.test_guardian_manifest_review import _prepared as _prepared_guardian_manifest
 
 
 def test_every_desktop_navigation_label_opens_and_highlights_its_own_page(
@@ -188,7 +190,7 @@ def test_about_recalculates_real_workspace_evidence_and_returns_from_its_exact_g
             f"{len(registry.packs)} DEVICE PACKS  •  1 OFFICIAL IDS"
         )
         assert window.about_page.evidence_values["knowledge"].text() == (
-            "121 VERIFIED GUIDES  •  71 KNOWN FIXES"
+            "122 VERIFIED GUIDES  •  72 KNOWN FIXES"
         )
         ready_tools = sum(status.available for status in window.toolchain_center.statuses)
         tool_count = len(window.toolchain_center.statuses)
@@ -561,6 +563,143 @@ def test_device_atlas_and_nexus_preserve_exact_context_into_rom_studio(
             window.rom_studio.dashboard_handoff_detail.text()
         )
         assert window.rom_studio.worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_rom_studio_preserves_exact_project_into_time_machine_and_device_atlas(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    store, registry, project, _report = _project(tmp_path)
+    store.create_working_copy(project.project_id)
+    snapshot = store.create_snapshot(project.project_id)
+    window = MainWindow(
+        None,
+        logo,
+        store.workspace,
+        app_icon_path=logo,
+        pack_registry=registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    try:
+        window._scan_complete([_device()])
+        app.processEvents()
+        window.rom_studio.refresh(project.project_id)
+        assert window.rom_studio.current_project is not None
+
+        window.rom_studio.rollback_button.click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.backup_center
+        assert str(window.backup_center.project_selector.currentData()) == project.project_id
+        assert window.backup_center.snapshot_list.currentItem() is not None
+        assert snapshot.snapshot_id in window.backup_center.snapshot_list.currentItem().text()
+        assert window.backup_center.dashboard_handoff_eyebrow.text().startswith(
+            "ROM STUDIO HANDOFF"
+        )
+        assert project.project_id in window.backup_center.dashboard_handoff_detail.text()
+        assert project.original.sha256[:16] in window.backup_center.dashboard_handoff_detail.text()
+        assert "NO BACKUP, COPY, RESTORE, BUILD, FLASH, OR PHONE ACTION STARTED" in (
+            window.backup_center.dashboard_handoff_detail.text()
+        )
+        assert window.backup_center.worker is None
+
+        window._navigate_route("rom_studio")
+        assert window.rom_studio.request_device_atlas()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.device_packs_center
+        assert window.device_packs_center.dashboard_handoff_eyebrow.text().startswith(
+            "ROM STUDIO HANDOFF"
+        )
+        assert project.project_id in window.device_packs_center.dashboard_handoff_detail.text()
+        assert project.original.sha256[:16] in (
+            window.device_packs_center.dashboard_handoff_detail.text()
+        )
+        assert window.device_packs_center.dashboard_handoff_badge.text() == (
+            "CURRENT • GATES REMAIN"
+        )
+        assert window.device_packs_center.active_report.report_digest[:16] in (
+            window.device_packs_center.dashboard_handoff_detail.text()
+        )
+        assert "build LOCKED" in window.device_packs_center.dashboard_handoff_detail.text()
+        assert "NO SCAN, BUILD, APPROVAL, FLASH, OR PHONE ACTION STARTED" in (
+            window.device_packs_center.dashboard_handoff_detail.text()
+        )
+
+        window._navigate_route("rom_studio")
+        window._open_time_machine("missing-project")
+        assert window.stack.currentWidget() is window.rom_studio
+        assert "TIME MACHINE HANDOFF STOPPED" in window.rom_studio.operation_status.text()
+        window._open_device_atlas_from_studio("missing-project")
+        assert window.stack.currentWidget() is window.rom_studio
+        assert "DEVICE ATLAS HANDOFF STOPPED" in window.rom_studio.operation_status.text()
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_studio_manifest_opens_persistent_guardian_context_and_returns_exactly(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    store, project, registry, report, device = _prepared_guardian_manifest(tmp_path)
+    manifest = GuardianManifestReviewService(store, registry).compile(
+        project.project_id,
+        report,
+        device,
+    )
+    window = MainWindow(
+        None,
+        logo,
+        store.workspace,
+        app_icon_path=logo,
+        pack_registry=registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    monkeypatch.setattr(
+        "romverse.ui.main_window.BuildReadinessService.assess",
+        lambda *_args, **_kwargs: report,
+    )
+    try:
+        window.rom_studio.set_devices([device])
+        window.rom_studio.guardian_review_requested.emit(
+            project.project_id,
+            manifest.manifest_digest,
+        )
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.guardian_center
+        assert window.guardian_center.studio_review_identity == (
+            project.project_id,
+            manifest.manifest_digest,
+        )
+        assert manifest.manifest_digest[:16] in (
+            window.guardian_center.studio_review_detail.text()
+        )
+        assert window.guardian_center.studio_review_badge.text() == "ZERO AUTHORITY"
+        assert window.guardian_center.worker is None
+
+        window.guardian_center.studio_return_button.click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.rom_studio
+        assert window.rom_studio.current_project is not None
+        assert window.rom_studio.current_project.project_id == project.project_id
+        assert window.rom_studio.dashboard_handoff_eyebrow.text().startswith(
+            "GUARDIAN CORE HANDOFF"
+        )
+        assert manifest.manifest_digest[:16] in window.rom_studio.dashboard_handoff_detail.text()
+        assert "Execution authority: NONE" in window.rom_studio.dashboard_handoff_detail.text()
+
+        window.rom_studio.set_devices([])
+        window._navigate_route("guardian_core")
+        app.processEvents()
+        assert window.guardian_center.studio_review_identity is None
+        assert window.guardian_center.studio_review_badge.text() == "CONTEXT REFUSED"
+        assert "No action started" in window.guardian_center.studio_review_detail.text()
     finally:
         window.companion_center.transport.close()
         window.close()

@@ -279,10 +279,10 @@ def test_build_control_cards_explain_and_route_blocked_gates(tmp_path) -> None:
     assert control.autopilot_button.text() == "Auto-resolve && continue"
     assert "authoritative input" in control.autopilot_button.toolTip()
 
-    opened: list[bool] = []
-    studio.device_packs_requested.connect(lambda: opened.append(True))
+    opened: list[str] = []
+    studio.device_packs_requested.connect(opened.append)
     control._open_resolution("device-packs")
-    assert opened == [True]
+    assert opened == [control.project.project_id]
     studio.close()
 
 
@@ -901,7 +901,10 @@ def test_guardian_manifest_review_is_truthful_and_has_no_consent_control() -> No
     assert any("EXECUTION LOCKED" in text for text in texts)
     assert any("PARTITION WRITES • NONE AUTHORIZED" in text for text in texts)
     assert any("BOOTLOADER RELOCK: NEVER" in text for text in texts)
-    assert buttons == ["Return to Genesis"]
+    assert buttons == ["Return to Genesis", "Open Guardian Core"]
+    assert not dialog.open_guardian_core_requested
+    dialog._open_guardian_core()
+    assert dialog.open_guardian_core_requested
     dialog.close()
 
     bound = GuardianBoundArtifact(
@@ -932,7 +935,8 @@ def test_guardian_manifest_review_is_truthful_and_has_no_consent_control() -> No
     assert any("1 HASH-BOUND FOR REVIEW • NONE AUTHORIZED" in text for text in bound_texts)
     assert any("super  ←  super.img" in text for text in bound_texts)
     assert [button.text() for button in bound_dialog.findChildren(QPushButton)] == [
-        "Return to Genesis"
+        "Return to Genesis",
+        "Open Guardian Core",
     ]
     bound_dialog.close()
 

@@ -137,10 +137,10 @@ class DevicePacksCenter(QWidget):
         dashboard_handoff_layout.setContentsMargins(18, 13, 18, 13)
         dashboard_handoff_layout.setSpacing(14)
         dashboard_handoff_copy = QVBoxLayout()
-        dashboard_handoff_eyebrow = QLabel(
+        self.dashboard_handoff_eyebrow = QLabel(
             "COMMAND DECK HANDOFF  •  CURRENT DEVICE DNA EVIDENCE"
         )
-        dashboard_handoff_eyebrow.setObjectName("Eyebrow")
+        self.dashboard_handoff_eyebrow.setObjectName("Eyebrow")
         self.dashboard_handoff_title = QLabel()
         self.dashboard_handoff_title.setObjectName("SectionTitle")
         self.dashboard_handoff_detail = QLabel()
@@ -149,7 +149,7 @@ class DevicePacksCenter(QWidget):
         self.dashboard_handoff_detail.setTextInteractionFlags(
             Qt.TextInteractionFlag.TextSelectableByMouse
         )
-        dashboard_handoff_copy.addWidget(dashboard_handoff_eyebrow)
+        dashboard_handoff_copy.addWidget(self.dashboard_handoff_eyebrow)
         dashboard_handoff_copy.addWidget(self.dashboard_handoff_title)
         dashboard_handoff_copy.addWidget(self.dashboard_handoff_detail)
         dashboard_handoff_layout.addLayout(dashboard_handoff_copy, 1)
@@ -485,6 +485,104 @@ class DevicePacksCenter(QWidget):
             self.body.ensureWidgetVisible(self.requirements_blueprint_frame, 0, 24)
         return True
 
+    def open_rom_studio_project(
+        self,
+        project_id: str,
+        project_name: str,
+        pack_id: str,
+        source_sha256: str,
+    ) -> bool:
+        """Explain the exact Studio project's Pack relationship without guessing a phone."""
+
+        normalized_id = str(project_id).strip()
+        clean_name = " ".join(str(project_name).replace("\x00", "").split())[:100]
+        normalized_pack = str(pack_id).strip()
+        source = str(source_sha256).strip().casefold()
+        source_label = source[:16] + "…" if source else "not imported"
+        if not normalized_id or not clean_name:
+            return False
+        expected = next(
+            (item for item in self.registry.packs if item.pack_id == normalized_pack),
+            None,
+        )
+        active_matches = bool(
+            expected is not None
+            and self.active_pack is not None
+            and self.active_report is not None
+            and self.active_pack.pack_id == expected.pack_id
+            and self.active_report.pack_id == expected.pack_id
+            and self.active_report.pack_version == expected.version
+            and self.active_report.pack_sha256 == expected.sha256
+        )
+        source_matches = bool(
+            expected is not None
+            and expected.build_contract is not None
+            and source
+            and expected.build_contract.source.archive_sha256 == source
+        )
+        ready = bool(
+            active_matches
+            and source_matches
+            and self.active_report is not None
+            and self.active_report.build_contract_ready
+        )
+        if not normalized_pack:
+            detail = (
+                f"Exact project {normalized_id} has protected source {source_label} and no Device "
+                "Pack binding. Connect and scan the intended phone, then bind only an "
+                "integrity-checked exact Pack; ROMVERSE will not infer one from a project name or "
+                "firmware filename."
+            )
+            badge = "PACK REQUIRED"
+        elif expected is None:
+            detail = (
+                f"Exact project {normalized_id} requests Pack {normalized_pack}, but that Pack is "
+                f"not present in the integrity-checked registry  •  protected source "
+                f"{source_label}. Install or restore the exact reviewed Pack before continuing."
+            )
+            badge = "PACK MISSING"
+        elif ready and self.active_report is not None:
+            detail = (
+                f"Exact project {normalized_id} is source-bound to Pack {expected.pack_id} "
+                f"v{expected.version}  •  source {source_label}  •  current phone report "
+                f"{self.active_report.report_digest[:16]}… matches  •  build READY  •  flash "
+                f"{'READY' if self.active_report.flash_contract_ready else 'LOCKED'}. Review the "
+                "Requirements Blueprint below before returning to Forge Control."
+            )
+            badge = "EXACT MATCH"
+        elif active_matches and source_matches and self.active_report is not None:
+            unresolved = len(self.active_report.checks) - self.active_report.passed_count
+            detail = (
+                f"Exact project {normalized_id} and protected source {source_label} match Pack "
+                f"{expected.pack_id} v{expected.version} and current phone report "
+                f"{self.active_report.report_digest[:16]}…. {unresolved} readiness check(s) remain "
+                f"unresolved  •  build LOCKED  •  flash "
+                f"{'READY' if self.active_report.flash_contract_ready else 'LOCKED'}. Review the "
+                "Requirements Blueprint below; ROMVERSE will not promote identity evidence into "
+                "build or flash authority."
+            )
+            badge = "CURRENT • GATES REMAIN"
+        else:
+            active = self.active_pack.pack_id if self.active_pack is not None else "none"
+            source_state = "matches" if source_matches else "does not match"
+            detail = (
+                f"Exact project {normalized_id} requests Pack {expected.pack_id} v{expected.version} "
+                f"and its protected source {source_label} {source_state} that Pack's build "
+                f"contract. The current Device Atlas phone context is {active}; connect and scan "
+                "the exact target before accepting any capability or flash conclusion."
+            )
+            badge = "REVALIDATE DEVICE"
+        self._show_dashboard_handoff(
+            f"ROM Studio → {clean_name}",
+            detail + " NO SCAN, BUILD, APPROVAL, FLASH, OR PHONE ACTION STARTED.",
+            badge,
+            ready=ready,
+            eyebrow="ROM STUDIO HANDOFF  •  EXACT PROJECT / DEVICE PACK CONTRACT",
+        )
+        if ready and hasattr(self, "requirements_blueprint_frame"):
+            self.body.ensureWidgetVisible(self.requirements_blueprint_frame, 0, 24)
+        return True
+
     def _show_dashboard_handoff(
         self,
         title: str,
@@ -492,7 +590,9 @@ class DevicePacksCenter(QWidget):
         badge: str,
         *,
         ready: bool,
+        eyebrow: str = "COMMAND DECK HANDOFF  •  CURRENT DEVICE DNA EVIDENCE",
     ) -> None:
+        self.dashboard_handoff_eyebrow.setText(eyebrow)
         self.dashboard_handoff_title.setText(title)
         self.dashboard_handoff_detail.setText(detail)
         self.dashboard_handoff_badge.setText(badge)

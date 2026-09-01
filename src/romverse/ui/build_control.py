@@ -413,6 +413,7 @@ class GuardianManifestReviewDialog(QDialog):
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
+        self.open_guardian_core_requested = False
         self.setWindowTitle("ROMVERSE Guardian • exact manifest review")
         self.setMinimumSize(820, 640)
         self.resize(920, 760)
@@ -553,11 +554,22 @@ class GuardianManifestReviewDialog(QDialog):
         receipt = QLabel(f"Review receipt • {manifest.manifest_digest[:20]}…")
         receipt.setObjectName("MissionMuted")
         footer.addWidget(receipt, 1)
-        close = QPushButton("Return to Genesis")
-        close.setObjectName("MissionNext")
-        close.clicked.connect(self.accept)
-        footer.addWidget(close)
+        return_button = QPushButton("Return to Genesis")
+        return_button.clicked.connect(self.accept)
+        footer.addWidget(return_button)
+        self.guardian_core_button = QPushButton("Open Guardian Core")
+        self.guardian_core_button.setObjectName("MissionNext")
+        self.guardian_core_button.setToolTip(
+            "Open this exact command-free manifest as persistent Guardian Core evidence. "
+            "No approval, command, or phone action is created."
+        )
+        self.guardian_core_button.clicked.connect(self._open_guardian_core)
+        footer.addWidget(self.guardian_core_button)
         root.addLayout(footer)
+
+    def _open_guardian_core(self) -> None:
+        self.open_guardian_core_requested = True
+        self.accept()
 
 
 class SourceBlueprintWorker(ManagedRunnable):
@@ -2149,10 +2161,10 @@ class BuildControlCenter(QDialog):
             self.studio.toolchain_requested.emit()
         elif action_id == "time-machine":
             self.accept()
-            self.studio.time_machine_requested.emit()
+            self.studio.request_time_machine()
         elif action_id == "device-packs":
             self.accept()
-            self.studio.device_packs_requested.emit()
+            self.studio.request_device_atlas()
         elif action_id == "device-center":
             self.accept()
             self.studio.device_center_requested.emit()

@@ -451,8 +451,9 @@ class RomStudio(QWidget):
     operation_progress = Signal(str, int)
     toolchain_requested = Signal()
     tool_statuses_resolved = Signal(object)
-    time_machine_requested = Signal()
-    device_packs_requested = Signal()
+    time_machine_requested = Signal(str)
+    device_packs_requested = Signal(str)
+    guardian_review_requested = Signal(str, str)
     device_center_requested = Signal()
     knowledge_requested = Signal(str)
     ascension_status_changed = Signal()
@@ -766,7 +767,7 @@ class RomStudio(QWidget):
             "Open the Time Machine console to verify or restore a local working-baseline snapshot."
         )
         self.rollback_button.setEnabled(False)
-        self.rollback_button.clicked.connect(self.time_machine_requested)
+        self.rollback_button.clicked.connect(self.request_time_machine)
         self.replace_button = QPushButton("Run approved recipe")
         self.replace_button.setToolTip(
             "Execute all validated local recipe steps after confirmation and create automatic rollback data."
@@ -1139,6 +1140,74 @@ class RomStudio(QWidget):
         self.dashboard_handoff_badge.setObjectName("Good" if ready else "Warning")
         self._repolish(self.dashboard_handoff_badge)
         self.dashboard_handoff.setVisible(True)
+
+    def request_time_machine(self) -> bool:
+        """Open Time Machine only with the exact selected Studio project identity."""
+
+        project = self.current_project
+        if project is None:
+            self.outbound_handoff_stopped(
+                "Time Machine",
+                "No exact ROM project is selected",
+            )
+            return False
+        self.time_machine_requested.emit(project.project_id)
+        return True
+
+    def request_device_atlas(self) -> bool:
+        """Open Device Atlas only with the exact selected Studio project identity."""
+
+        project = self.current_project
+        if project is None:
+            self.outbound_handoff_stopped(
+                "Device Atlas",
+                "No exact ROM project is selected",
+            )
+            return False
+        self.device_packs_requested.emit(project.project_id)
+        return True
+
+    def outbound_handoff_stopped(self, destination: str, reason: str) -> None:
+        """Keep a refused outbound route visible without changing project or phone state."""
+
+        self.operation_status.setText(
+            f"{destination.upper()} HANDOFF STOPPED  •  {reason}  •  "
+            "NO WORKER, BUILD, APPROVAL, FLASH, RESTORE, OR PHONE ACTION STARTED"
+        )
+        self.operation_status.setObjectName("Danger")
+        self._repolish(self.operation_status)
+
+    def open_guardian_handoff(self, manifest: GuardianManifestReview) -> bool:
+        """Return from Guardian Core to the exact command-free Studio review context."""
+
+        if not isinstance(manifest, GuardianManifestReview):
+            return False
+        persisted = GuardianManifestReviewService(self.store, self.pack_registry).load(
+            manifest.project_id
+        )
+        if persisted != manifest:
+            return False
+        try:
+            project = self.store.get(manifest.project_id)
+            self.refresh(project.project_id)
+        except (OSError, ProjectError, TypeError, ValueError):
+            return False
+        self.command_tabs.setCurrentIndex(1)
+        bound = len(manifest.partition_writes)
+        self._show_dashboard_handoff(
+            f"Guardian Core → {project.name}",
+            f"Exact manifest {manifest.manifest_digest[:16]}… is selected for project "
+            f"{project.project_id}  •  {manifest.device_name} / {manifest.codename}  •  "
+            f"{bound} image(s) hash-bound for review  •  status "
+            f"{manifest.review_status.replace('-', ' ')}. Execution authority: NONE  •  "
+            "final consent: LOCKED  •  bootloader relock: NEVER  •  PHONE CHANGED: NO.",
+            "REVIEW ONLY",
+            ready=False,
+            eyebrow="GUARDIAN CORE HANDOFF  •  EXACT COMMAND-FREE MANIFEST",
+        )
+        self.detail_scroll.ensureWidgetVisible(self.command_tabs, 0, 24)
+        self.build_control_button.setFocus(Qt.FocusReason.OtherFocusReason)
+        return True
 
     def open_device_atlas_handoff(
         self,
@@ -2924,7 +2993,13 @@ class RomStudio(QWidget):
         if isinstance(result, GuardianManifestReview):
             from romverse.ui.build_control import GuardianManifestReviewDialog
 
-            GuardianManifestReviewDialog(result, self).exec()
+            review = GuardianManifestReviewDialog(result, self)
+            review.exec()
+            if review.open_guardian_core_requested:
+                self.guardian_review_requested.emit(
+                    result.project_id,
+                    result.manifest_digest,
+                )
 
     @Slot(str)
     def _worker_failed(self, message: str) -> None:

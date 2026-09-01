@@ -16,6 +16,7 @@ from romverse.ascension.models import AscensionMethod
 from romverse.device.dna import CapabilityState
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device_packs.registry import DevicePackRegistry
+from romverse.guardian.manifest_review import GuardianManifestReviewService
 from romverse.infrastructure.tools import ToolStatus
 from romverse.nexus.events import LiveConsoleEventStore, MissionState
 from romverse.rom.builds import RomBuildPlanner
@@ -42,6 +43,7 @@ from romverse.ui.guided_recipe import RecipeForgeSequence
 from romverse.ui.knowledge_center import KnowledgeGuideDialog
 from romverse.ui.partition_workspace import PartitionWorkspace, _filesystem_required_tools
 from romverse.ui.rom_studio import FirmwareImportResult, ProjectWorker, RomStudio
+from tests.test_guardian_manifest_review import _prepared as _prepared_guardian_manifest
 
 
 def test_rom_studio_project_card_uses_authoritative_genesis_state_and_ignores_legacy_summary(
@@ -892,6 +894,48 @@ def test_rom_studio_rejects_untyped_or_changed_terminal_evidence(tmp_path):
 
     assert "changed working-copy evidence" in failures[-1][1]
     assert completions == []
+    studio.close()
+
+
+def test_validated_guardian_completion_can_open_persistent_guardian_core(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    store, project, registry, report, device = _prepared_guardian_manifest(tmp_path)
+    manifest = GuardianManifestReviewService(store, registry).compile(
+        project.project_id,
+        report,
+        device,
+    )
+    studio = RomStudio(store, registry)
+    requested: list[tuple[str, str]] = []
+    studio.guardian_review_requested.connect(
+        lambda project_id, digest: requested.append((project_id, digest))
+    )
+
+    class ReviewDialog:
+        def __init__(self, _manifest, _parent) -> None:
+            self.open_guardian_core_requested = True
+
+        def exec(self) -> int:
+            return 1
+
+    monkeypatch.setattr(
+        "romverse.ui.build_control.GuardianManifestReviewDialog",
+        ReviewDialog,
+    )
+    studio.worker = SimpleNamespace()
+    studio._active_operation = "guardian-review"
+    studio._active_project_id = project.project_id
+
+    studio._worker_complete(manifest)
+    app.processEvents()
+
+    assert requested == [(project.project_id, manifest.manifest_digest)]
+    assert studio.is_validated_completion("guardian-review", manifest)
+    assert studio.worker is None
+    assert "commands: NONE" in studio.operation_status.text()
     studio.close()
 
 

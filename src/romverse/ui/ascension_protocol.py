@@ -2163,7 +2163,7 @@ class AscensionProtocolDialog(QDialog):
             return
         if action_id == "open-device-atlas":
             self._leave_for_navigation()
-            self.studio.device_packs_requested.emit()
+            self.studio.request_device_atlas()
             return
         if action_id == "refresh-device":
             QMessageBox.information(

@@ -100,6 +100,10 @@ from romverse.diagnostics.models import DiagnosticReport
 from romverse.guardian.approval import ApprovalStore
 from romverse.guardian.audit import GuardianAuditStore
 from romverse.guardian.gateway import ExecutionGateway
+from romverse.guardian.manifest_review import (
+    GuardianManifestReview,
+    GuardianManifestReviewService,
+)
 from romverse.guardian.planning import GuardianPreflight
 from romverse.guardian.policy import GuardianPolicy
 from romverse.infrastructure.process import CommandRunner, SubprocessRunner
@@ -123,6 +127,7 @@ from romverse.repair.sessions import RepairSessionStore
 from romverse.repair.templates import RepairAssessmentTemplates, actionable_repair_finding
 from romverse.rom.models import ProjectError
 from romverse.rom.projects import RomProjectStore
+from romverse.rom.readiness import BuildReadinessService
 from romverse.ui.about_state import OriginDiscoveryError, OriginDiscoveryStore
 from romverse.ui.activity_center import ActivityCenter
 from romverse.ui.apk_center import ApkCenter
@@ -2957,6 +2962,9 @@ class MainWindow(QMainWindow):
         self.guardian_center.time_machine_requested.connect(
             lambda: self._navigate_route("time_machine")
         )
+        self.guardian_center.rom_studio_requested.connect(
+            self._return_guardian_rom_studio
+        )
         self.stack.addWidget(self.backup_center)
         self.knowledge_center = KnowledgeCenter(
             ArchivesResolutionMemory(RepairSessionStore(workspace)),
@@ -3003,7 +3011,10 @@ class MainWindow(QMainWindow):
         self.rom_studio.set_tool_statuses(self.toolchain_center.statuses)
         self.rom_studio.toolchain_requested.connect(self._open_toolchain)
         self.rom_studio.time_machine_requested.connect(self._open_time_machine)
-        self.rom_studio.device_packs_requested.connect(lambda: self._navigate_route("device_atlas"))
+        self.rom_studio.device_packs_requested.connect(self._open_device_atlas_from_studio)
+        self.rom_studio.guardian_review_requested.connect(
+            self._open_studio_guardian_review
+        )
         self.rom_studio.device_center_requested.connect(
             lambda: self._navigate_route("command_deck")
         )
@@ -4303,6 +4314,76 @@ class MainWindow(QMainWindow):
             return
         self._navigate_route("guardian_core")
 
+    def _current_studio_guardian_manifest(
+        self,
+        project_id: str,
+        manifest_digest: str,
+    ) -> GuardianManifestReview | None:
+        """Reload and revalidate a Studio manifest against current phone/readiness evidence."""
+
+        service = GuardianManifestReviewService(
+            self.rom_studio.store,
+            self.rom_studio.pack_registry,
+        )
+        manifest = service.load(project_id)
+        if manifest is None or manifest.manifest_digest != manifest_digest:
+            return None
+        readiness = BuildReadinessService(
+            self.rom_studio.store,
+            self.rom_studio.pack_registry,
+            self.rom_studio.tool_statuses,
+            self.rom_studio.attestation_store,
+        )
+        for device in self.rom_studio.devices:
+            try:
+                report = readiness.assess(project_id, (device,), persist=False)
+            except (OSError, ProjectError, TypeError, ValueError):
+                continue
+            if service.matches_current(manifest, report, device):
+                return manifest
+        return None
+
+    @Slot(str, str)
+    def _open_studio_guardian_review(
+        self,
+        project_id: str,
+        manifest_digest: str,
+    ) -> None:
+        """Open one freshly revalidated Studio manifest in persistent Guardian Core."""
+
+        manifest = self._current_studio_guardian_manifest(project_id, manifest_digest)
+        try:
+            project = self.rom_studio.store.get(project_id)
+        except ProjectError:
+            project = None
+        if (
+            manifest is None
+            or project is None
+            or not self.guardian_center.open_studio_review(manifest, project.name)
+        ):
+            self.rom_studio.outbound_handoff_stopped(
+                "Guardian Core",
+                "The requested manifest no longer matches current project, phone, or readiness evidence",
+            )
+            return
+        self._navigate_route("guardian_core")
+
+    @Slot(str, str)
+    def _return_guardian_rom_studio(
+        self,
+        project_id: str,
+        manifest_digest: str,
+    ) -> None:
+        """Return a current Guardian card to the exact Studio project and command group."""
+
+        manifest = self._current_studio_guardian_manifest(project_id, manifest_digest)
+        if manifest is None or not self.rom_studio.open_guardian_handoff(manifest):
+            self.guardian_center.studio_review_stopped(
+                "The saved manifest no longer matches current project, phone, or readiness evidence."
+            )
+            return
+        self._navigate_route("rom_studio")
+
     def _revalidate_guardian_review_contexts(self) -> None:
         """Expire retained review cards when their exact evidence identity changes."""
 
@@ -4321,20 +4402,26 @@ class MainWindow(QMainWindow):
                     "The saved plan no longer matches current source-bound evidence."
                 )
         backup_identity = self.guardian_center.backup_review_identity
-        if backup_identity is None:
-            return
-        backup_plan_id, backup_digest = backup_identity
-        loaded = self.backup_center.plan_store.load_latest()
-        data = loaded.data
-        if (
-            not loaded.valid
-            or not loaded.integrity_verified
-            or not isinstance(data, dict)
-            or data.get("plan_id") != backup_plan_id
-            or data.get("plan_digest") != backup_digest
-        ):
-            self.guardian_center.backup_review_stopped(
-                "The saved recovery plan no longer matches the latest integrity-verified evidence."
+        if backup_identity is not None:
+            backup_plan_id, backup_digest = backup_identity
+            loaded = self.backup_center.plan_store.load_latest()
+            data = loaded.data
+            if (
+                not loaded.valid
+                or not loaded.integrity_verified
+                or not isinstance(data, dict)
+                or data.get("plan_id") != backup_plan_id
+                or data.get("plan_digest") != backup_digest
+            ):
+                self.guardian_center.backup_review_stopped(
+                    "The saved recovery plan no longer matches the latest integrity-verified evidence."
+                )
+        studio_identity = self.guardian_center.studio_review_identity
+        if studio_identity is not None and self._current_studio_guardian_manifest(
+            *studio_identity
+        ) is None:
+            self.guardian_center.studio_review_stopped(
+                "The saved Studio manifest no longer matches current project, phone, or readiness evidence."
             )
 
     def _navigation_commands(self) -> tuple[NavigationCommand, ...]:
@@ -5060,14 +5147,47 @@ class MainWindow(QMainWindow):
             parent=self,
         )
 
-    @Slot()
-    def _open_time_machine(self) -> None:
-        self.backup_center.refresh_local_snapshots(
-            self.rom_studio.current_project.project_id
-            if self.rom_studio.current_project is not None
-            else ""
-        )
+    @Slot(str)
+    def _open_time_machine(self, project_id: str) -> None:
+        """Carry the exact selected Studio project into local recovery evidence."""
+
+        current = self.rom_studio.current_project
+        if (
+            current is None
+            or current.project_id != project_id
+            or not self.backup_center.open_rom_studio_project(project_id)
+        ):
+            self.rom_studio.outbound_handoff_stopped(
+                "Time Machine",
+                "The requested project no longer matches the exact selected Studio project",
+            )
+            return
         self._navigate_route("time_machine")
+
+    @Slot(str)
+    def _open_device_atlas_from_studio(self, project_id: str) -> None:
+        """Carry one exact Studio project and source/Pack binding into Device Atlas."""
+
+        current = self.rom_studio.current_project
+        if current is None or current.project_id != project_id:
+            self.rom_studio.outbound_handoff_stopped(
+                "Device Atlas",
+                "The requested project no longer matches the exact selected Studio project",
+            )
+            return
+        source_sha256 = current.original.sha256 if current.original is not None else ""
+        if not self.device_packs_center.open_rom_studio_project(
+            current.project_id,
+            current.name,
+            current.device_pack_id,
+            source_sha256,
+        ):
+            self.rom_studio.outbound_handoff_stopped(
+                "Device Atlas",
+                "Device Atlas rejected incomplete or changed project identity",
+            )
+            return
+        self._navigate_route("device_atlas")
 
     @Slot(str)
     def _open_knowledge_route(self, route: str) -> None:

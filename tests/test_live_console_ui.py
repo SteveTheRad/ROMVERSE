@@ -37,6 +37,7 @@ def test_live_console_renders_real_events_and_filters_active_work(tmp_path) -> N
         summary="Bounded inspection started.",
         explanation="ROMVERSE is identifying the package structure.",
         next_action="Wait for inspection evidence.",
+        project_id="example-project",
     )
     store.progress(running.mission_id, 35)
 
@@ -47,6 +48,13 @@ def test_live_console_renders_real_events_and_filters_active_work(tmp_path) -> N
     assert "Inspect firmware" in center.detail_title.text()
     assert "WHY" in center.detail.text()
     assert center.progress.value() == 35
+    assert center.open_source_button.text() == "Open ROM Studio"
+    assert center.open_source_button.isEnabled()
+    assert "exact project example-project" in center.source_feedback.text()
+    routes: list[tuple[str, str]] = []
+    center.source_requested.connect(lambda route, project_id: routes.append((route, project_id)))
+    center.open_source_button.click()
+    assert routes == [("rom_studio", "example-project")]
 
     center.filter.setCurrentText("Active")
     app.processEvents()
@@ -56,6 +64,25 @@ def test_live_console_renders_real_events_and_filters_active_work(tmp_path) -> N
     assert center.table.horizontalHeader().objectName() == "LiveConsoleHeader"
     assert center.table.alternatingRowColors()
     assert center.table.showGrid()
+
+
+def test_live_console_disables_source_action_for_unregistered_producer(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    store = LiveConsoleEventStore(tmp_path)
+    store.note(
+        source="External fixture",
+        stage="observation",
+        title="External observation",
+        summary="A bounded fixture event was recorded.",
+        explanation="It has no registered ROMVERSE source surface.",
+        next_action="Review the event text only.",
+    )
+
+    center = LiveConsoleCenter(store)
+
+    assert not center.open_source_button.isEnabled()
+    assert center.open_source_button.text() == "Source page unavailable"
+    assert "did not report a registered" in center.source_feedback.text()
 
 
 def test_live_console_exposes_tamper_failure_instead_of_fabricating_events(tmp_path) -> None:
@@ -95,6 +122,71 @@ def test_main_window_routes_real_rom_studio_progress_to_live_console(tmp_path) -
         assert events[0].progress_percent == 100
         assert events[1].progress_percent == 55
         assert window.live_console.table.rowCount() == 2
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_live_console_opens_exact_current_nexus_project(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
+    try:
+        project = window.rom_studio.store.create("Console Nexus project")
+        window.rom_studio.refresh(project.project_id)
+        window.nexus_events.note(
+            source="ROMVERSE Nexus",
+            stage="pathfinder-route",
+            title="Nexus route ready for review",
+            summary="A project-bound route was recorded.",
+            explanation="The plan retained zero execution authority.",
+            next_action="Open its exact Nexus project.",
+            project_id=project.project_id,
+        )
+        window.live_console.refresh()
+        window._navigate_route("live_console")
+        app.processEvents()
+
+        assert "exact project" in window.live_console.source_feedback.text()
+        window.live_console.open_source_button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.nexus_center
+        assert window.nexus_center.project_selector.currentData() == project.project_id
+        assert window.nexus_center.current_plan is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_live_console_keeps_stale_project_source_failure_in_page(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
+    try:
+        window.nexus_events.note(
+            source="ROMVERSE Nexus",
+            stage="pathfinder-route",
+            title="Stale Nexus route",
+            summary="The former project is no longer present.",
+            explanation="The event remains an honest historical record.",
+            next_action="Do not infer a replacement project.",
+            project_id="missing-project-1234",
+        )
+        window.live_console.refresh()
+        window._navigate_route("live_console")
+        app.processEvents()
+        previous = window.stack.currentWidget()
+
+        window.live_console.open_source_button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is previous
+        assert "SOURCE HANDOFF STOPPED" in window.live_console.source_feedback.text()
+        assert "project evidence is no longer available" in (
+            window.live_console.source_feedback.text()
+        )
+        assert "NO ACTION STARTED" in window.live_console.source_feedback.text()
     finally:
         window.companion_center.transport.close()
         window.close()

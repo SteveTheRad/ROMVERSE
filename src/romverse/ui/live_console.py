@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -25,17 +25,21 @@ from romverse.nexus.events import (
     LiveConsoleStoreError,
     MissionState,
 )
+from romverse.ui.vocabulary import canonical_source_route, feature
 
 
 class LiveConsoleCenter(QWidget):
     """Beginner-readable view of genuine ROMVERSE Nexus mission events."""
 
+    source_requested = Signal(str, str)
     FILTERS = ("All events", "Active", "Completed", "Needs attention")
 
     def __init__(self, store: LiveConsoleEventStore) -> None:
         super().__init__()
         self.store = store
         self._events: tuple[LiveConsoleEvent, ...] = ()
+        self._selected_source_route = ""
+        self._selected_project_id = ""
         page = QVBoxLayout(self)
         page.setContentsMargins(30, 26, 30, 30)
         page.setSpacing(16)
@@ -119,6 +123,18 @@ class LiveConsoleCenter(QWidget):
         detail_layout.addWidget(self.detail_title)
         detail_layout.addWidget(self.detail)
         detail_layout.addWidget(self.progress)
+        source_actions = QHBoxLayout()
+        self.source_feedback = QLabel(
+            "Select a genuine event to inspect its canonical source feature."
+        )
+        self.source_feedback.setObjectName("Muted")
+        self.source_feedback.setWordWrap(True)
+        source_actions.addWidget(self.source_feedback, 1)
+        self.open_source_button = QPushButton("Source page unavailable")
+        self.open_source_button.setEnabled(False)
+        self.open_source_button.clicked.connect(self._open_selected_source)
+        source_actions.addWidget(self.open_source_button)
+        detail_layout.addLayout(source_actions)
         page.addWidget(detail_card)
 
         self._timer = QTimer(self)
@@ -131,6 +147,7 @@ class LiveConsoleCenter(QWidget):
             events = self.store.list_recent()
         except LiveConsoleStoreError as exc:
             self._events = ()
+            self._clear_source_action("Source routing is unavailable until the ledger verifies.")
             self.status.setText(f"Live Console evidence needs attention: {exc}")
             self.status.setObjectName("Danger")
             self._repolish(self.status)
@@ -191,6 +208,9 @@ class LiveConsoleCenter(QWidget):
             )
             self.progress.setValue(0)
             self.progress.setFormat("No active progress")
+            self._clear_source_action(
+                "No matching event has a canonical source to open from this view."
+            )
 
     def _show_selected(self) -> None:
         row = self.table.currentRow()
@@ -216,6 +236,52 @@ class LiveConsoleCenter(QWidget):
         )
         self.progress.setValue(event.progress_percent)
         self.progress.setFormat(f"{event.state.value.replace('-', ' ').title()}  •  %p%")
+        route = canonical_source_route(event.source)
+        self._selected_source_route = route
+        self._selected_project_id = event.project_id
+        if route:
+            destination = feature(route).title
+            self.open_source_button.setText(f"Open {destination}")
+            self.open_source_button.setEnabled(True)
+            self.open_source_button.setToolTip(
+                f"Open the canonical {destination} page for this genuine {event.source} event."
+            )
+            project = (
+                f"  •  exact project {event.project_id}"
+                if event.project_id and route in {"nexus", "rom_studio"}
+                else ""
+            )
+            self.source_feedback.setText(
+                f"SOURCE READY  •  {event.source} → {destination}{project}"
+            )
+            self.source_feedback.setObjectName("Good")
+            self._repolish(self.source_feedback)
+        else:
+            self._clear_source_action(
+                f"{event.source} did not report a registered canonical Desktop source page."
+            )
+
+    def _open_selected_source(self) -> None:
+        if not self._selected_source_route:
+            return
+        self.source_requested.emit(self._selected_source_route, self._selected_project_id)
+
+    def source_handoff_stopped(self, reason: str) -> None:
+        """Keep a failed source return readable even without Desktop notifications."""
+
+        self.source_feedback.setText(f"SOURCE HANDOFF STOPPED  •  {reason}  •  NO ACTION STARTED")
+        self.source_feedback.setObjectName("Danger")
+        self._repolish(self.source_feedback)
+
+    def _clear_source_action(self, message: str) -> None:
+        self._selected_source_route = ""
+        self._selected_project_id = ""
+        self.open_source_button.setText("Source page unavailable")
+        self.open_source_button.setEnabled(False)
+        self.open_source_button.setToolTip("")
+        self.source_feedback.setText(message)
+        self.source_feedback.setObjectName("Muted")
+        self._repolish(self.source_feedback)
 
     def showEvent(self, event) -> None:
         self.refresh()

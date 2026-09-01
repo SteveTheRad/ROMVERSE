@@ -76,11 +76,65 @@ FEATURES: dict[str, FeatureName] = {
     "about": FeatureName("About ROMVERSE", "Product family and project story"),
 }
 
+SOURCE_ROUTES = {
+    "app launchpad": "app_launchpad",
+    "ascension protocol": "rom_studio",
+    "command console": "command_console",
+    "compatibility matrix": "nexus",
+    "device atlas": "device_atlas",
+    "device dna": "rom_studio",
+    "device engine": "command_deck",
+    "forge arsenal": "forge_arsenal",
+    "forge control": "rom_studio",
+    "genesis sequence": "rom_studio",
+    "guardian core": "guardian_core",
+    "live console": "live_console",
+    "quantum optimizer": "quantum_optimizer",
+    "recipe forger": "rom_studio",
+    "recovery autopilot": "recovery_bay",
+    "recovery bay": "recovery_bay",
+    "rom studio": "rom_studio",
+    "romverse archives": "archives",
+    "romverse galaxy": "galaxy",
+    "romverse intelligence": "recovery_bay",
+    "romverse link": "companion_link",
+    "romverse members": "members",
+    "romverse nexus": "nexus",
+    "romverse synapse": "nexus",
+    "system scan": "quantum_optimizer",
+    "time machine": "time_machine",
+}
+
+CATEGORY_ROUTES = {
+    "applications": "app_launchpad",
+    "backup": "time_machine",
+    "community": "galaxy",
+    "device": "command_deck",
+    "diagnostics": "quantum_optimizer",
+    "guardian": "guardian_core",
+    "link": "companion_link",
+    "nexus": "nexus",
+    "optimizer": "quantum_optimizer",
+    "recovery": "time_machine",
+    "repair": "recovery_bay",
+    "rom-studio": "rom_studio",
+    "tools": "forge_arsenal",
+}
+
 
 def feature(key: str) -> FeatureName:
     """Return a canonical feature label without coupling callers to the mapping."""
 
     return FEATURES[key]
+
+
+def canonical_source_route(source: str, category: str = "") -> str:
+    """Resolve genuine local evidence to the Desktop feature that produced it."""
+
+    return SOURCE_ROUTES.get(
+        source.casefold().strip(),
+        CATEGORY_ROUTES.get(category.casefold().strip(), ""),
+    )
 
 
 def canonical_title(label: str) -> str:

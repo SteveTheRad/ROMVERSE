@@ -2599,6 +2599,7 @@ class MainWindow(QMainWindow):
         terminal_index = self.stack.addWidget(self.terminal_center)
         self.terminal_center_index = terminal_index
         self.live_console = LiveConsoleCenter(self.nexus_events)
+        self.live_console.source_requested.connect(self._open_live_console_source)
         self.backup_center.live_console_changed.connect(self.live_console.refresh)
         live_console_index = self.stack.addWidget(self.live_console)
         self.live_console_index = live_console_index
@@ -3382,6 +3383,30 @@ class MainWindow(QMainWindow):
             return False
         self._navigate(index)
         return True
+
+    @Slot(str, str)
+    def _open_live_console_source(self, route: str, project_id: str) -> None:
+        """Return one genuine console event to its canonical, current source context."""
+
+        if project_id and route in {"nexus", "rom_studio"}:
+            try:
+                self.rom_studio.store.get(project_id)
+            except ProjectError:
+                self.live_console.source_handoff_stopped(
+                    "The event's project evidence is no longer available"
+                )
+                return
+            if route == "nexus" and not self.nexus_center.open_project(project_id):
+                self.live_console.source_handoff_stopped(
+                    "Nexus could not bind the event to its exact current project"
+                )
+                return
+            if route == "rom_studio":
+                self.rom_studio.refresh(project_id)
+        if not self._navigate_route(route):
+            self.live_console.source_handoff_stopped(
+                "The producing Desktop feature is not registered"
+            )
 
     @Slot(str, str)
     def _open_nexus_guardian_review(self, project_id: str, plan_digest: str) -> None:

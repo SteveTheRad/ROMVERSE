@@ -196,6 +196,25 @@ class NexusCenter(QWidget):
         self.project_selector.setCurrentIndex(selected)
         self._select_project(selected)
 
+    def open_project(self, project_id: str) -> bool:
+        """Select one current project for an evidence-bound Desktop handoff."""
+
+        self.refresh()
+        index = self.project_selector.findData(project_id)
+        if index < 0:
+            self.status.setText(
+                "PROJECT HANDOFF STOPPED  •  The referenced project is no longer available  •  "
+                "No action started"
+            )
+            self.status.setObjectName("Danger")
+            self._repolish(self.status)
+            return False
+        if self.project_selector.currentIndex() == index:
+            self._select_project(index)
+        else:
+            self.project_selector.setCurrentIndex(index)
+        return True
+
     def generate_plan(self) -> None:
         project_id = self.project_selector.currentData()
         if not isinstance(project_id, str) or not project_id:

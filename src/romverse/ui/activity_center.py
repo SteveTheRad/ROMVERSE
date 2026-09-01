@@ -24,52 +24,7 @@ from PySide6.QtWidgets import (
 )
 
 from romverse.core.activity import ActivityEvent, ActivityStore, ActivityStoreError
-from romverse.ui.vocabulary import feature
-
-_SOURCE_ROUTES = {
-    "app launchpad": "app_launchpad",
-    "ascension protocol": "rom_studio",
-    "command console": "command_console",
-    "compatibility matrix": "nexus",
-    "device atlas": "device_atlas",
-    "device dna": "rom_studio",
-    "device engine": "command_deck",
-    "forge arsenal": "forge_arsenal",
-    "forge control": "rom_studio",
-    "genesis sequence": "rom_studio",
-    "guardian core": "guardian_core",
-    "live console": "live_console",
-    "quantum optimizer": "quantum_optimizer",
-    "recipe forger": "rom_studio",
-    "recovery autopilot": "recovery_bay",
-    "recovery bay": "recovery_bay",
-    "rom studio": "rom_studio",
-    "romverse archives": "archives",
-    "romverse galaxy": "galaxy",
-    "romverse intelligence": "recovery_bay",
-    "romverse link": "companion_link",
-    "romverse members": "members",
-    "romverse nexus": "nexus",
-    "romverse synapse": "nexus",
-    "system scan": "quantum_optimizer",
-    "time machine": "time_machine",
-}
-
-_CATEGORY_ROUTES = {
-    "applications": "app_launchpad",
-    "backup": "time_machine",
-    "community": "galaxy",
-    "device": "command_deck",
-    "diagnostics": "quantum_optimizer",
-    "guardian": "guardian_core",
-    "link": "companion_link",
-    "nexus": "nexus",
-    "optimizer": "quantum_optimizer",
-    "recovery": "time_machine",
-    "repair": "recovery_bay",
-    "rom-studio": "rom_studio",
-    "tools": "forge_arsenal",
-}
+from romverse.ui.vocabulary import canonical_source_route, feature
 
 
 @dataclass(frozen=True, slots=True)
@@ -122,10 +77,7 @@ def filter_activity_events(
 def activity_source_route(event: ActivityEvent) -> str:
     """Resolve a ledger event back to its canonical Desktop source page when known."""
 
-    return _SOURCE_ROUTES.get(
-        event.source.casefold().strip(),
-        _CATEGORY_ROUTES.get(event.category.casefold().strip(), ""),
-    )
+    return canonical_source_route(event.source, event.category)
 
 
 class ActivityCenter(QWidget):

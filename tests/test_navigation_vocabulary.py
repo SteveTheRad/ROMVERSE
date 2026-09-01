@@ -139,6 +139,97 @@ def test_every_desktop_navigation_label_opens_and_highlights_its_own_page(
         window.close()
 
 
+def test_about_recalculates_real_workspace_evidence_and_returns_from_its_exact_guide(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    monkeypatch.setattr(GooglePlayDeviceCatalog, "MINIMUM_ENTRIES", 1)
+    _sync(
+        GooglePlayDeviceCatalog(tmp_path),
+        _payload(("Example", "Example Nebula", "nebula", "EX-100")),
+    )
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    tools = (
+        ToolStatus("Python", True, "/verified/python", "3.14", "Ready"),
+        ToolStatus("ADB", False, detail="Not ready"),
+    )
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        pack_registry=registry,
+        tool_statuses=tools,
+        app_icon_path=logo,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    try:
+        window.rom_studio.store.create("About evidence project")
+        window.nexus_events.start(
+            source="ROM Studio",
+            stage="about-evidence-test",
+            title="Genuine local mission",
+            summary="A producing subsystem wrote this event.",
+            explanation="The About page may count it but cannot execute it.",
+            next_action="Inspect the owning feature.",
+        )
+
+        window._navigate_route("about")
+        app.processEvents()
+
+        assert window.about_page.evidence_values["device"].text() == (
+            f"{len(registry.packs)} DEVICE PACKS  •  1 OFFICIAL IDS"
+        )
+        assert window.about_page.evidence_values["knowledge"].text() == (
+            "116 VERIFIED GUIDES  •  66 KNOWN FIXES"
+        )
+        ready_tools = sum(status.available for status in window.toolchain_center.statuses)
+        tool_count = len(window.toolchain_center.statuses)
+        assert window.about_page.evidence_values["build"].text() == (
+            f"1 LOCAL PROJECT  •  {ready_tools}/{tool_count} HOST TOOLS READY"
+        )
+        assert window.about_page.evidence_values["live"].text() == ("1 GENUINE EVENT  •  1 ACTIVE")
+
+        owners = {
+            "device_atlas": window.device_packs_center,
+            "archives": window.knowledge_center,
+            "rom_studio": window.rom_studio,
+            "forge_arsenal": window.toolchain_center,
+            "live_console": window.live_console,
+        }
+        for route, owner in owners.items():
+            window._navigate_route("about")
+            window.about_page.evidence_buttons[route].click()
+            app.processEvents()
+            assert window.stack.currentWidget() is owner
+
+        window._navigate_route("about")
+        window.about_page.evidence_guide.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.knowledge_center
+        assert window.knowledge_center.list.currentItem().text() == (
+            "About runtime evidence is stale or unavailable"
+        )
+        assert window.knowledge_center.source_context.property("source_route") == "about"
+        assert not window.knowledge_center.source_context.isHidden()
+        window.knowledge_center.source_return.click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.about_page
+        assert window.guardian_center.worker is None
+
+        window.nexus_events.path.write_text("{}", encoding="utf-8")
+        window._navigate_route("about")
+        app.processEvents()
+        assert window.about_page.evidence_values["live"].text() == ("EVENT COUNTS UNAVAILABLE")
+        assert window.about_page.evidence_cards["live"].property("evidenceState") == ("unavailable")
+        assert "rejected the local ledger" in window.about_page.evidence_details["live"].text()
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
 def test_command_deck_cards_are_context_aware_and_route_to_canonical_pages(
     tmp_path: Path,
     monkeypatch,

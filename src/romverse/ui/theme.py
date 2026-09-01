@@ -56,6 +56,30 @@ QFrame#TopBar { background: #05080E; border-bottom: 1px solid #1A2539; }
 QFrame#ConnectionBar { background: rgba(3, 7, 13, 250); border: 1px solid #22324E; border-radius: 11px; }
 QFrame#Card { background: rgba(5, 9, 16, 250); border: 1px solid #202C43; border-radius: 13px; }
 QFrame#HeroCard { background: rgba(5, 9, 16, 250); border: 1px solid #283A58; border-radius: 13px; }
+QFrame#AboutEvidencePanel {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(12,17,45,246),stop:0.5 rgba(5,24,38,244),stop:1 rgba(24,12,43,242));
+    border: 1px solid rgba(77, 214, 235, 155); border-top: 2px solid rgba(180, 92, 255, 190); border-radius: 14px;
+}
+QFrame#AboutEvidenceCard {
+    background: rgba(4, 10, 22, 238); border: 1px solid rgba(61, 91, 143, 175);
+    border-left: 3px solid #536785; border-radius: 10px;
+}
+QFrame#AboutEvidenceCard[evidenceState="verified"] { border-left-color: #44E39A; }
+QFrame#AboutEvidenceCard[evidenceState="attention"] { border-left-color: #FFB454; }
+QFrame#AboutEvidenceCard[evidenceState="unavailable"] { border-left-color: #FF6685; }
+QLabel#AboutEvidenceTitle { color: #72EAF5; font-size: 10px; font-weight: 850; letter-spacing: 1.2px; }
+QLabel#AboutEvidenceValue { color: #F1F5FF; font-size: 15px; font-weight: 820; padding-top: 3px; }
+QPushButton#AboutEvidenceAction {
+    color: #DDE8FF; background: rgba(19, 31, 61, 215); border: 1px solid rgba(87, 125, 194, 190);
+    border-radius: 7px; padding: 6px 9px; font-size: 10px; font-weight: 760;
+}
+QPushButton#AboutEvidenceAction:hover { color: #FFFFFF; border-color: #63ECF8; background: rgba(27, 48, 83, 235); }
+QPushButton#AboutEvidenceAction:focus { border: 2px solid #FFFFFF; }
+QPushButton#AboutEvidenceGuide {
+    color: #E4D3FF; background: rgba(43, 20, 70, 220); border: 1px solid rgba(180, 92, 255, 175);
+    border-radius: 8px; padding: 8px 11px; font-size: 10px; font-weight: 790;
+}
+QPushButton#AboutEvidenceGuide:hover { color: #FFFFFF; border-color: #63ECF8; }
 QFrame#DiagnosticHandoffBar {
     background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 rgba(20,13,43,238),stop:1 rgba(5,31,42,232));
     border: 1px solid rgba(64, 220, 235, 160); border-left: 3px solid #A855F7; border-radius: 9px;

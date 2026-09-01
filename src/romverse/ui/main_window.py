@@ -4,6 +4,7 @@ import math
 import random
 import time
 from contextlib import suppress
+from dataclasses import dataclass
 from html import escape
 from importlib.resources import as_file, files
 from pathlib import Path
@@ -101,6 +102,7 @@ from romverse.infrastructure.process import CommandRunner, SubprocessRunner
 from romverse.infrastructure.tools import ToolStatus
 from romverse.intelligence.online_remediation import OnlineRemediationService
 from romverse.knowledge.advisor import article_for_key
+from romverse.knowledge.archives import catalog_metrics
 from romverse.knowledge.resolution_memory import ArchivesResolutionMemory
 from romverse.nexus.compatibility import CompatibilityMatrix, CompatibilityStatus
 from romverse.nexus.events import (
@@ -131,7 +133,7 @@ from romverse.ui.diagnostics_center import DiagnosticsCenter
 from romverse.ui.galaxy_center import GalaxyCenter
 from romverse.ui.guardian_center import GuardianCenter
 from romverse.ui.history_center import HistoryCenter
-from romverse.ui.knowledge_center import KnowledgeCenter
+from romverse.ui.knowledge_center import ARCHIVE_ARTICLES, KnowledgeCenter
 from romverse.ui.live_console import LiveConsoleCenter
 from romverse.ui.members_center import MembersCenter
 from romverse.ui.nexus_center import NexusCenter
@@ -154,6 +156,52 @@ ROMVERSE_WEBSITE_URL = "https://romverse.app/"
 RADFORGE_LABS_URL = "https://radforgelabs.com/"
 FACEBOOK_URL = "https://www.facebook.com/ROMVERSEOfficial"
 REDDIT_URL = "https://www.reddit.com/user/ROMVERSE/"
+
+
+@dataclass(frozen=True, slots=True)
+class AboutRuntimeEvidence:
+    """Bounded, read-only facts shown on About instead of marketing telemetry."""
+
+    device_pack_count: int
+    device_pack_issue_count: int
+    catalog_valid: bool
+    catalog_fresh: bool
+    catalog_entry_count: int
+    catalog_reason: str
+    archive_guide_count: int
+    archive_known_fix_count: int
+    archive_category_count: int
+    project_count: int
+    tool_ready_count: int
+    tool_count: int
+    live_ledger_valid: bool
+    live_event_count: int
+    live_active_count: int
+
+    def __post_init__(self) -> None:
+        counts = (
+            self.device_pack_count,
+            self.device_pack_issue_count,
+            self.catalog_entry_count,
+            self.archive_guide_count,
+            self.archive_known_fix_count,
+            self.archive_category_count,
+            self.project_count,
+            self.tool_ready_count,
+            self.tool_count,
+            self.live_event_count,
+            self.live_active_count,
+        )
+        if any(value < 0 for value in counts):
+            raise ValueError("About runtime evidence counts cannot be negative")
+        if self.tool_ready_count > self.tool_count:
+            raise ValueError("About runtime evidence has more ready tools than verified tools")
+        if not self.catalog_valid and self.catalog_entry_count:
+            raise ValueError("Rejected device catalog evidence cannot expose trusted entries")
+        if not self.live_ledger_valid and (self.live_event_count or self.live_active_count):
+            raise ValueError("Rejected Live Console evidence cannot expose trusted event counts")
+        if self.live_active_count > self.live_event_count:
+            raise ValueError("Active Live Console events cannot exceed the verified ledger")
 
 
 def _sidebar_nav_tooltip(label: str, subtitle: str) -> str:
@@ -1275,6 +1323,7 @@ class SettingsDialog(QDialog):
 class AboutPage(QWidget):
     logo_double_clicked = Signal()
     route_requested = Signal(str)
+    knowledge_article_requested = Signal(str)
 
     def __init__(
         self,
@@ -1462,6 +1511,145 @@ class AboutPage(QWidget):
             build_facts.addWidget(fact, 1)
         layout.addLayout(build_facts)
 
+        self.runtime_panel = QFrame()
+        self.runtime_panel.setObjectName("AboutEvidencePanel")
+        runtime_layout = QVBoxLayout(self.runtime_panel)
+        runtime_layout.setContentsMargins(18, 16, 18, 17)
+        runtime_layout.setSpacing(12)
+        runtime_header = QHBoxLayout()
+        runtime_header.setSpacing(12)
+        runtime_heading = QVBoxLayout()
+        runtime_heading.setSpacing(3)
+        runtime_eyebrow = QLabel("ROMVERSE NOW  •  VERIFIED LOCAL EVIDENCE")
+        runtime_eyebrow.setObjectName("Eyebrow")
+        runtime_title = QLabel("One universe, measured by its real systems")
+        runtime_title.setObjectName("SectionTitle")
+        runtime_intro = QLabel(
+            "These facts are recalculated from this workspace. They are never demo counters, "
+            "cloud estimates, or execution approvals."
+        )
+        runtime_intro.setObjectName("Muted")
+        runtime_intro.setWordWrap(True)
+        runtime_heading.addWidget(runtime_eyebrow)
+        runtime_heading.addWidget(runtime_title)
+        runtime_heading.addWidget(runtime_intro)
+        runtime_header.addLayout(runtime_heading, 1)
+        self.runtime_scope = QLabel("AWAITING WORKSPACE EVIDENCE")
+        self.runtime_scope.setObjectName("Warning")
+        self.runtime_scope.setAccessibleName("About page local evidence status")
+        self.runtime_scope.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.runtime_scope.setWordWrap(True)
+        self.runtime_scope.setMinimumWidth(210)
+        runtime_header.addWidget(self.runtime_scope)
+        runtime_layout.addLayout(runtime_header)
+
+        evidence_grid = QGridLayout()
+        evidence_grid.setContentsMargins(0, 0, 0, 0)
+        evidence_grid.setHorizontalSpacing(10)
+        evidence_grid.setVerticalSpacing(10)
+        evidence_specs = (
+            (
+                "device",
+                "DEVICE INTELLIGENCE",
+                "Registry and official identity evidence",
+                (("device_atlas", "Open Device Atlas"),),
+            ),
+            (
+                "knowledge",
+                "KNOWLEDGE MEMORY",
+                "Searchable guidance and known-safe fixes",
+                (("archives", "Open Archives"),),
+            ),
+            (
+                "build",
+                "BUILD WORKSPACE",
+                "Projects plus the current host tool inventory",
+                (("rom_studio", "ROM Studio"), ("forge_arsenal", "Forge Arsenal")),
+            ),
+            (
+                "live",
+                "EVIDENCE LEDGER",
+                "Genuine subsystem outcomes and active missions",
+                (("live_console", "Live Console"),),
+            ),
+        )
+        self.evidence_cards: dict[str, QFrame] = {}
+        self.evidence_values: dict[str, QLabel] = {}
+        self.evidence_states: dict[str, QLabel] = {}
+        self.evidence_details: dict[str, QLabel] = {}
+        self.evidence_buttons: dict[str, QPushButton] = {}
+        for index, (key, title, subtitle, actions) in enumerate(evidence_specs):
+            card = QFrame()
+            card.setObjectName("AboutEvidenceCard")
+            card.setProperty("evidenceState", "waiting")
+            card.setMinimumHeight(172)
+            card_layout = QVBoxLayout(card)
+            card_layout.setContentsMargins(15, 13, 15, 13)
+            card_layout.setSpacing(5)
+            card_title = QLabel(title)
+            card_title.setObjectName("AboutEvidenceTitle")
+            card_subtitle = QLabel(subtitle)
+            card_subtitle.setObjectName("Muted")
+            card_subtitle.setWordWrap(True)
+            value = QLabel("AWAITING LOCAL READ")
+            value.setObjectName("AboutEvidenceValue")
+            value.setAccessibleName(f"{title.title()} verified value")
+            value.setWordWrap(True)
+            state = QLabel("NOT YET REFRESHED")
+            state.setObjectName("Warning")
+            state.setAccessibleName(f"{title.title()} evidence state")
+            state.setWordWrap(True)
+            detail = QLabel("Open About inside a ROMVERSE workspace to calculate this evidence.")
+            detail.setObjectName("Muted")
+            detail.setWordWrap(True)
+            card_layout.addWidget(card_title)
+            card_layout.addWidget(card_subtitle)
+            card_layout.addWidget(value)
+            card_layout.addWidget(state)
+            card_layout.addWidget(detail, 1)
+            actions_layout = QHBoxLayout()
+            actions_layout.setContentsMargins(0, 4, 0, 0)
+            actions_layout.setSpacing(7)
+            for route, label in actions:
+                button = QPushButton(f"{label}  →")
+                button.setObjectName("AboutEvidenceAction")
+                button.setCursor(Qt.CursorShape.PointingHandCursor)
+                button.setAccessibleName(f"Open {feature(route).title} from About evidence")
+                button.clicked.connect(
+                    lambda _checked=False, destination=route: self.route_requested.emit(destination)
+                )
+                actions_layout.addWidget(button)
+                self.evidence_buttons[route] = button
+            actions_layout.addStretch(1)
+            card_layout.addLayout(actions_layout)
+            evidence_grid.addWidget(card, index // 2, index % 2)
+            self.evidence_cards[key] = card
+            self.evidence_values[key] = value
+            self.evidence_states[key] = state
+            self.evidence_details[key] = detail
+        evidence_grid.setColumnStretch(0, 1)
+        evidence_grid.setColumnStretch(1, 1)
+        runtime_layout.addLayout(evidence_grid)
+
+        evidence_footer = QHBoxLayout()
+        evidence_boundary = QLabel(
+            "READ-ONLY OBSERVATION  •  Feature pages own their evidence  •  Guardian owns approvals"
+        )
+        evidence_boundary.setObjectName("Muted")
+        evidence_boundary.setWordWrap(True)
+        evidence_footer.addWidget(evidence_boundary, 1)
+        self.evidence_guide = QPushButton("How this evidence works  →")
+        self.evidence_guide.setObjectName("AboutEvidenceGuide")
+        self.evidence_guide.setAccessibleName(
+            "Open the verified Archives guide for About runtime evidence"
+        )
+        self.evidence_guide.clicked.connect(
+            lambda: self.knowledge_article_requested.emit("about-live-evidence-unavailable")
+        )
+        evidence_footer.addWidget(self.evidence_guide)
+        runtime_layout.addLayout(evidence_footer)
+        layout.addWidget(self.runtime_panel)
+
         platform_panel = QFrame()
         platform_panel.setObjectName("AboutPanel")
         platform_panel.setStyleSheet(
@@ -1558,23 +1746,6 @@ class AboutPage(QWidget):
             card_layout.addWidget(card_body, 1)
             story.addWidget(card, index // 2, index % 2)
         layout.addLayout(story)
-
-        status_panel = QFrame()
-        status_panel.setObjectName("AboutStatusPanel")
-        status_panel.setStyleSheet(
-            "QFrame#AboutStatusPanel { background: rgba(6, 17, 27, 218); "
-            "border: 1px solid rgba(53, 240, 162, 120); border-radius: 13px; }"
-        )
-        status_layout = QHBoxLayout(status_panel)
-        status_layout.setContentsMargins(18, 14, 18, 14)
-        status_copy = QLabel(
-            f"●  DESKTOP RUNNING  •  {__version__}\n"
-            "Internal Alpha  •  Guardian policy loaded  •  Runtime metadata available"
-        )
-        status_copy.setStyleSheet("color: #72FFB2; font-size: 12px; font-weight: 750;")
-        status_copy.setWordWrap(True)
-        status_layout.addWidget(status_copy, 1)
-        layout.addWidget(status_panel)
 
         self.origin_replay = QPushButton("🌌  EXPERIENCE THE ORIGIN AGAIN")
         self.origin_replay.setObjectName("OriginReplay")
@@ -1917,6 +2088,152 @@ class AboutPage(QWidget):
         layout.addWidget(footer)
         self._apply_brand_layout()
         self._update_about_minimum_height()
+
+    def set_runtime_evidence(self, evidence: AboutRuntimeEvidence) -> None:
+        """Render only the current workspace facts supplied by the owning services."""
+
+        all_current = (
+            evidence.device_pack_issue_count == 0
+            and evidence.catalog_valid
+            and evidence.catalog_fresh
+            and evidence.live_ledger_valid
+        )
+        self.runtime_scope.setText(
+            "READ-ONLY  •  CURRENT WORKSPACE  •  NO EXECUTION AUTHORITY"
+            if all_current
+            else "READ-ONLY  •  CURRENT WORKSPACE  •  EVIDENCE NEEDS ATTENTION"
+        )
+        self.runtime_scope.setObjectName("Good" if all_current else "Warning")
+        self._repolish(self.runtime_scope)
+
+        pack_noun = "PACK" if evidence.device_pack_count == 1 else "PACKS"
+        if evidence.catalog_valid:
+            device_value = (
+                f"{evidence.device_pack_count} DEVICE {pack_noun}  •  "
+                f"{evidence.catalog_entry_count:,} OFFICIAL IDS"
+            )
+            if evidence.device_pack_issue_count:
+                device_state = "PACK REGISTRY NEEDS ATTENTION"
+                device_kind = "attention"
+            elif evidence.catalog_fresh:
+                device_state = "CURRENT  •  INTEGRITY CHECKED"
+                device_kind = "verified"
+            else:
+                device_state = "INTEGRITY CHECKED  •  REFRESH DUE"
+                device_kind = "attention"
+            issue_copy = (
+                f"{evidence.device_pack_issue_count} rejected Pack "
+                f"issue{'s' if evidence.device_pack_issue_count != 1 else ''}. "
+                if evidence.device_pack_issue_count
+                else "No Device Pack load issues. "
+            )
+            device_detail = (
+                f"{issue_copy}{evidence.catalog_reason}. Identity evidence never grants build, "
+                "flash, or execution authority."
+            )
+        else:
+            device_value = (
+                f"{evidence.device_pack_count} DEVICE {pack_noun}  •  ID CATALOG UNAVAILABLE"
+            )
+            device_state = "OFFICIAL ID EVIDENCE UNAVAILABLE"
+            device_kind = "unavailable"
+            device_detail = (
+                f"{evidence.catalog_reason}. Device Packs remain visible, but ROMVERSE will not "
+                "invent an official retail identity."
+            )
+        self._set_evidence_lane("device", device_value, device_state, device_detail, device_kind)
+
+        guide_noun = "GUIDE" if evidence.archive_guide_count == 1 else "GUIDES"
+        fix_noun = "FIX" if evidence.archive_known_fix_count == 1 else "FIXES"
+        knowledge_kind = "verified" if evidence.archive_guide_count else "unavailable"
+        self._set_evidence_lane(
+            "knowledge",
+            f"{evidence.archive_guide_count} VERIFIED {guide_noun}  •  "
+            f"{evidence.archive_known_fix_count} KNOWN {fix_noun}",
+            (
+                f"SEARCHABLE  •  {evidence.archive_category_count} CATEGORIES"
+                if evidence.archive_guide_count
+                else "VERIFIED CATALOG UNAVAILABLE"
+            ),
+            (
+                "Packaged Archives guidance is evidence-labelled. Learned outcomes remain "
+                "correlation until a typed workflow verifies them."
+                if evidence.archive_guide_count
+                else "No validated packaged Archives catalog is available."
+            ),
+            knowledge_kind,
+        )
+
+        build_kind = (
+            "verified"
+            if evidence.tool_count and evidence.tool_ready_count == evidence.tool_count
+            else "attention"
+        )
+        project_noun = "PROJECT" if evidence.project_count == 1 else "PROJECTS"
+        self._set_evidence_lane(
+            "build",
+            f"{evidence.project_count} LOCAL {project_noun}  •  "
+            f"{evidence.tool_ready_count}/{evidence.tool_count} HOST TOOLS READY",
+            (
+                "CURRENT HOST INVENTORY VERIFIED"
+                if build_kind == "verified"
+                else f"{evidence.tool_count - evidence.tool_ready_count} HOST TOOLS NEED ATTENTION"
+            ),
+            "Project manifests and executable checks are current. Exact compile requirements "
+            "still come from the selected source-bound Device Pack.",
+            build_kind,
+        )
+
+        if evidence.live_ledger_valid:
+            event_noun = "EVENT" if evidence.live_event_count == 1 else "EVENTS"
+            live_state = (
+                "LEDGER INTEGRITY VERIFIED"
+                if evidence.live_event_count
+                else "VERIFIED  •  NO EVENTS YET"
+            )
+            live_value = (
+                f"{evidence.live_event_count} GENUINE {event_noun}  •  "
+                f"{evidence.live_active_count} ACTIVE"
+            )
+            live_detail = (
+                "The privacy-redacted local ledger reports only outcomes written by producing "
+                "subsystems; viewing it starts no mission."
+            )
+            live_kind = "verified"
+        else:
+            live_state = "LEDGER INTEGRITY NEEDS ATTENTION"
+            live_value = "EVENT COUNTS UNAVAILABLE"
+            live_detail = (
+                "ROMVERSE rejected the local ledger, so About will not display untrusted event "
+                "or progress counts. Open Live Console for the bounded error."
+            )
+            live_kind = "unavailable"
+        self._set_evidence_lane("live", live_value, live_state, live_detail, live_kind)
+        QTimer.singleShot(0, self._update_about_minimum_height)
+
+    def _set_evidence_lane(
+        self,
+        key: str,
+        value: str,
+        state: str,
+        detail: str,
+        kind: str,
+    ) -> None:
+        card = self.evidence_cards[key]
+        card.setProperty("evidenceState", kind)
+        self.evidence_values[key].setText(value)
+        self.evidence_states[key].setText(state)
+        self.evidence_states[key].setObjectName(
+            "Good" if kind == "verified" else "Danger" if kind == "unavailable" else "Warning"
+        )
+        self.evidence_details[key].setText(detail)
+        for widget in (card, self.evidence_states[key]):
+            self._repolish(widget)
+
+    @staticmethod
+    def _repolish(widget: QWidget) -> None:
+        widget.style().unpolish(widget)
+        widget.style().polish(widget)
 
     def resizeEvent(self, event) -> None:  # noqa: N802
         self._apply_brand_layout()
@@ -2725,6 +3042,7 @@ class MainWindow(QMainWindow):
         )
         self.about_page.logo_double_clicked.connect(self._show_thanks)
         self.about_page.route_requested.connect(self._navigate_route)
+        self.about_page.knowledge_article_requested.connect(self._open_knowledge_article)
         about_index = self.stack.addWidget(self.about_page)
         galaxy_page = GalaxyCenter(workspace, self.activity_store)
         galaxy_index = self.stack.addWidget(galaxy_page)
@@ -3327,6 +3645,8 @@ class MainWindow(QMainWindow):
     def _device_catalog_complete(self, status: DeviceCatalogStatus) -> None:
         self.device_catalog_worker = None
         self.device_packs_center.set_catalog_status(status)
+        if hasattr(self, "about_page") and self.stack.currentWidget() is self.about_page:
+            self._refresh_about_evidence()
         self.notification_center.notify(
             "device.catalog.current",
             "Official Android device IDs updated",
@@ -3341,6 +3661,8 @@ class MainWindow(QMainWindow):
     def _device_catalog_failed(self, reason: str) -> None:
         self.device_catalog_worker = None
         self.device_packs_center.catalog_refresh_failed(reason)
+        if hasattr(self, "about_page") and self.stack.currentWidget() is self.about_page:
+            self._refresh_about_evidence()
 
     def _set_sidebar_device_art(self, device: AndroidDevice) -> None:
         kind = _sidebar_device_art_kind(device)
@@ -3453,6 +3775,8 @@ class MainWindow(QMainWindow):
             self.live_console.refresh()
         elif self.stack.currentWidget() is self.nexus_center:
             self.nexus_center.refresh()
+        elif self.stack.currentWidget() is self.about_page:
+            self._refresh_about_evidence()
         active_button: QPushButton | None = None
         for button in self.nav_buttons:
             active = button.property("page_index") == index
@@ -3468,6 +3792,41 @@ class MainWindow(QMainWindow):
         route = self._route_by_page_index.get(index)
         if route is not None:
             self._update_workspace_breadcrumb(route)
+
+    @Slot()
+    def _refresh_about_evidence(self) -> None:
+        """Recalculate About facts from the services that own each local record."""
+
+        registry = self.device_packs_center.registry
+        catalog_status = self.device_catalog.status()
+        archive_metrics = catalog_metrics(ARCHIVE_ARTICLES)
+        tool_statuses = self.toolchain_center.statuses
+        try:
+            events = self.nexus_events.list_recent()
+        except LiveConsoleStoreError:
+            events = ()
+            live_ledger_valid = False
+        else:
+            live_ledger_valid = True
+        self.about_page.set_runtime_evidence(
+            AboutRuntimeEvidence(
+                device_pack_count=len(registry.packs),
+                device_pack_issue_count=len(registry.issues),
+                catalog_valid=catalog_status.valid,
+                catalog_fresh=catalog_status.fresh,
+                catalog_entry_count=(catalog_status.entry_count if catalog_status.valid else 0),
+                catalog_reason=catalog_status.reason,
+                archive_guide_count=archive_metrics["guides"],
+                archive_known_fix_count=archive_metrics["known_fixes"],
+                archive_category_count=archive_metrics["categories"],
+                project_count=len(self.rom_studio.store.list_projects()),
+                tool_ready_count=sum(status.available for status in tool_statuses),
+                tool_count=len(tool_statuses),
+                live_ledger_valid=live_ledger_valid,
+                live_event_count=len(events),
+                live_active_count=sum(event.state is MissionState.RUNNING for event in events),
+            )
+        )
 
     def _navigate_route(self, route: str) -> bool:
         """Open one stable Desktop route or report the broken integration visibly."""
@@ -4334,6 +4693,8 @@ class MainWindow(QMainWindow):
         ):
             self.rom_studio.set_tool_statuses(statuses)
             self.apk_installer.set_tool_statuses(statuses)
+            if hasattr(self, "about_page") and self.stack.currentWidget() is self.about_page:
+                self._refresh_about_evidence()
             adb_status = next(
                 (
                     status

@@ -6,6 +6,8 @@ from hashlib import sha256
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import (
@@ -21,7 +23,12 @@ from PySide6.QtWidgets import (
 from romverse.device.models import AndroidDevice, DeviceState, MemoryInfo, StorageInfo
 from romverse.rom.guided import GenesisFlightPlan, GuidedStageStatus
 from romverse.ui.device_center import DeviceCenter, RingGauge
-from romverse.ui.main_window import AboutPage, ThanksPortal, WebsiteBrandCrest
+from romverse.ui.main_window import (
+    AboutPage,
+    AboutRuntimeEvidence,
+    ThanksPortal,
+    WebsiteBrandCrest,
+)
 from romverse.ui.mini_chart import MiniChart
 from romverse.ui.origin_story import ORIGIN_SCENES, origin_total_duration_ms
 
@@ -443,6 +450,85 @@ def test_about_product_family_routes_and_external_failure_are_visible() -> None:
     assert "Could not open ROMVERSE" in page.external_status.text()
     assert "No Desktop or device state changed" in page.external_status.text()
     page.close()
+
+
+def test_about_runtime_evidence_is_explicit_and_routes_to_its_owning_features() -> None:
+    app = QApplication.instance() or QApplication([])
+    icon_path = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    page = AboutPage(icon_path, app_icon_path=icon_path)
+    routes: list[str] = []
+    articles: list[str] = []
+    page.route_requested.connect(routes.append)
+    page.knowledge_article_requested.connect(articles.append)
+
+    page.set_runtime_evidence(
+        AboutRuntimeEvidence(
+            device_pack_count=21,
+            device_pack_issue_count=0,
+            catalog_valid=True,
+            catalog_fresh=True,
+            catalog_entry_count=12_345,
+            catalog_reason="Official Android IDs are integrity checked",
+            archive_guide_count=116,
+            archive_known_fix_count=66,
+            archive_category_count=10,
+            project_count=3,
+            tool_ready_count=17,
+            tool_count=19,
+            live_ledger_valid=True,
+            live_event_count=200,
+            live_active_count=38,
+        )
+    )
+    app.processEvents()
+
+    assert page.runtime_scope.text() == (
+        "READ-ONLY  •  CURRENT WORKSPACE  •  NO EXECUTION AUTHORITY"
+    )
+    assert page.evidence_values["device"].text() == ("21 DEVICE PACKS  •  12,345 OFFICIAL IDS")
+    assert page.evidence_values["knowledge"].text() == ("116 VERIFIED GUIDES  •  66 KNOWN FIXES")
+    assert page.evidence_values["build"].text() == ("3 LOCAL PROJECTS  •  17/19 HOST TOOLS READY")
+    assert page.evidence_values["live"].text() == ("200 GENUINE EVENTS  •  38 ACTIVE")
+    assert page.evidence_cards["device"].property("evidenceState") == "verified"
+    assert page.evidence_cards["build"].property("evidenceState") == "attention"
+    assert set(page.evidence_buttons) == {
+        "device_atlas",
+        "archives",
+        "rom_studio",
+        "forge_arsenal",
+        "live_console",
+    }
+
+    page.evidence_buttons["device_atlas"].click()
+    page.evidence_buttons["forge_arsenal"].click()
+    page.evidence_buttons["live_console"].click()
+    page.evidence_guide.click()
+    app.processEvents()
+
+    assert routes == ["device_atlas", "forge_arsenal", "live_console"]
+    assert articles == ["about-live-evidence-unavailable"]
+    page.close()
+
+
+def test_about_runtime_evidence_rejects_untrusted_counts() -> None:
+    with pytest.raises(ValueError, match="Rejected Live Console evidence"):
+        AboutRuntimeEvidence(
+            device_pack_count=0,
+            device_pack_issue_count=0,
+            catalog_valid=False,
+            catalog_fresh=False,
+            catalog_entry_count=0,
+            catalog_reason="Unavailable",
+            archive_guide_count=116,
+            archive_known_fix_count=66,
+            archive_category_count=10,
+            project_count=0,
+            tool_ready_count=0,
+            tool_count=0,
+            live_ledger_valid=False,
+            live_event_count=1,
+            live_active_count=0,
+        )
 
 
 def test_about_origin_discovery_persists_and_enables_replay(tmp_path) -> None:

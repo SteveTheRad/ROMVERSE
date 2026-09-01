@@ -36,6 +36,7 @@ CANONICAL_ROUTES = frozenset(
         "nexus",
         "forge_arsenal",
         "companion_link",
+        "about",
     }
 )
 
@@ -1705,6 +1706,43 @@ KNOWN_FIXES = (
         route="rom_studio",
         evidence="ROMVERSE re-derives Nexus decisions only from the exact current protected project, Device DNA, and Compatibility Matrix records.",
         automation="EXACT NAVIGATION AND EVIDENCE REFRESH ONLY • NO PLAN, APPROVAL, OR EXECUTION",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "about-live-evidence-unavailable",
+        "About runtime evidence is stale or unavailable",
+        "ROMVERSE WORKFLOWS",
+        "The ROMVERSE Now panel is a read-only map of facts owned by Device Atlas, Archives, "
+        "ROM Studio, Forge Arsenal, and Live Console. A warning means one owning service "
+        "rejected, could not refresh, or has not yet collected its evidence; About never fills "
+        "that gap with a demo counter or inferred success.",
+        checks=(
+            "Reopen About ROMVERSE so the panel recalculates from the current workspace rather than a previous screen state.",
+            "Open the card's exact owning feature and read its bounded reason: Device Atlas for Pack/catalog identity, Forge Arsenal for host tools, or Live Console for ledger integrity.",
+            "Keep official device identity separate from source-bound build, compile, flash, Guardian approval, and execution readiness.",
+        ),
+        fix_steps=(
+            "For a stale official ID receipt, use Device Atlas's reviewed catalog refresh and wait for its integrity receipt before returning to About.",
+            "For missing host tools, use the exact Device Pack handoff to Forge Arsenal; prepare only the declared missing subset, then run a fresh verifier scan.",
+            "For a rejected Live Console ledger, preserve the file and use Live Console's visible integrity error; do not rewrite or count untrusted events.",
+            "For zero projects or events, create work only through the owning ROM Studio or subsystem workflow. Zero is valid evidence and is not automatically repaired.",
+        ),
+        verification=(
+            "Returning to About shows counts identical to the current owning feature without starting a scan, build, approval, or phone action.",
+            "Every evidence card opens its registered canonical Desktop page and preserves the workspace state.",
+            "A rejected catalog or ledger remains visibly unavailable and contributes no trusted row or event count.",
+        ),
+        tags=(
+            "about runtime evidence",
+            "romverse now stale",
+            "about counters unavailable",
+            "device catalog warning",
+            "live ledger integrity",
+            "desktop feature evidence map",
+        ),
+        route="about",
+        evidence="ROMVERSE calculates the panel from current in-process service results and validated local records each time About is opened.",
+        automation="READ-ONLY RECALCULATION AND EXACT FEATURE ROUTING ONLY • NO SCAN, BUILD, APPROVAL, OR DEVICE ACTION",
         source=ROMVERSE_SOURCE,
     ),
 )

@@ -35,7 +35,7 @@ class NexusCenter(QWidget):
     """Visual Pathfinder, Foresight, and Insight surface for deterministic plans."""
 
     plan_updated = Signal(object)
-    guardian_requested = Signal()
+    guardian_requested = Signal(str, str)
     rom_studio_requested = Signal()
 
     OBJECTIVES = {
@@ -159,9 +159,9 @@ class NexusCenter(QWidget):
         self.export_button = QPushButton("Export privacy-scrubbed Insight")
         self.export_button.setEnabled(False)
         self.export_button.clicked.connect(self.export_insight)
-        self.guardian_button = QPushButton("Open Guardian Review")
+        self.guardian_button = QPushButton("Review plan in Guardian Core")
         self.guardian_button.setEnabled(False)
-        self.guardian_button.clicked.connect(self.guardian_requested)
+        self.guardian_button.clicked.connect(self.request_guardian_review)
         open_studio = QPushButton("Open ROM Studio")
         open_studio.clicked.connect(self.rom_studio_requested)
         actions.addWidget(self.export_button)
@@ -244,6 +244,39 @@ class NexusCenter(QWidget):
             return
         self.status.setText(f"Privacy-scrubbed Insight exported to {output.name}.")
         self.status.setObjectName("Good")
+        self._repolish(self.status)
+
+    def request_guardian_review(self) -> None:
+        """Hand off only the identity of the current, revalidated review plan."""
+
+        plan = self.current_plan
+        trusted = self.planner.plans.load(plan.project_id) if plan is not None else None
+        if (
+            plan is None
+            or trusted is None
+            or trusted.plan_digest != plan.plan_digest
+            or not trusted.ready_for_guardian_review
+            or trusted.execution_authorized
+            or trusted.bootloader_relock_permitted
+        ):
+            self.guardian_handoff_stopped(
+                "The displayed plan is no longer the current review-ready plan. Refresh evidence "
+                "and regenerate it; Guardian received no context and no action started."
+            )
+            return
+        self.status.setText(
+            "GUARDIAN REVIEW CONTEXT READY  •  Current plan revalidated  •  "
+            "Approval: NONE  •  Execution: NONE"
+        )
+        self.status.setObjectName("Good")
+        self._repolish(self.status)
+        self.guardian_requested.emit(trusted.project_id, trusted.plan_digest)
+
+    def guardian_handoff_stopped(self, reason: str) -> None:
+        """Keep a failed review handoff visible even when notifications are disabled."""
+
+        self.status.setText(f"GUARDIAN HANDOFF STOPPED  •  {reason}")
+        self.status.setObjectName("Danger")
         self._repolish(self.status)
 
     def _select_project(self, index: int) -> None:

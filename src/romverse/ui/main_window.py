@@ -2604,9 +2604,10 @@ class MainWindow(QMainWindow):
         self.live_console_index = live_console_index
         self.nexus_center = NexusCenter(self.rom_studio.store)
         self.stack.addWidget(self.nexus_center)
-        self.nexus_center.guardian_requested.connect(lambda: self._navigate_route("guardian_core"))
+        self.nexus_center.guardian_requested.connect(self._open_nexus_guardian_review)
         self.nexus_center.rom_studio_requested.connect(lambda: self._navigate_route("rom_studio"))
         self.nexus_center.plan_updated.connect(self._record_nexus_plan)
+        self.guardian_center.nexus_requested.connect(lambda: self._navigate_route("nexus"))
         resolved_host = host or current_host()
         resolved_runner = self._runtime_runner
         self.toolchain_center = ToolchainCenter(
@@ -3337,6 +3338,7 @@ class MainWindow(QMainWindow):
         elif self.stack.currentWidget() is self.activity_center:
             self.activity_center.refresh()
         elif self.stack.currentWidget() is self.guardian_center:
+            self._revalidate_guardian_nexus_review()
             self.guardian_center.request_refresh()
         elif self.stack.currentWidget() is self.live_console:
             self.live_console.refresh()
@@ -3380,6 +3382,50 @@ class MainWindow(QMainWindow):
             return False
         self._navigate(index)
         return True
+
+    @Slot(str, str)
+    def _open_nexus_guardian_review(self, project_id: str, plan_digest: str) -> None:
+        """Revalidate a zero-authority Nexus plan before showing Guardian context."""
+
+        trusted = self.nexus_center.planner.plans.load(project_id)
+        try:
+            project = self.rom_studio.store.get(project_id)
+        except ProjectError:
+            project = None
+        if (
+            trusted is None
+            or project is None
+            or trusted.plan_digest != plan_digest
+            or not trusted.ready_for_guardian_review
+            or trusted.execution_authorized
+            or trusted.bootloader_relock_permitted
+            or not self.guardian_center.open_nexus_review(trusted, project.name)
+        ):
+            self.nexus_center.guardian_handoff_stopped(
+                "The requested plan identity did not match current source-bound evidence. "
+                "Refresh the Nexus plan; no approval or execution was created."
+            )
+            return
+        self._navigate_route("guardian_core")
+
+    def _revalidate_guardian_nexus_review(self) -> None:
+        """Expire a retained plan card if its source-bound identity has changed."""
+
+        identity = self.guardian_center.nexus_review_identity
+        if identity is None:
+            return
+        project_id, plan_digest = identity
+        trusted = self.nexus_center.planner.plans.load(project_id)
+        if (
+            trusted is None
+            or trusted.plan_digest != plan_digest
+            or not trusted.ready_for_guardian_review
+            or trusted.execution_authorized
+            or trusted.bootloader_relock_permitted
+        ):
+            self.guardian_center.nexus_review_stopped(
+                "The saved plan no longer matches current source-bound evidence."
+            )
 
     def _navigation_commands(self) -> tuple[NavigationCommand, ...]:
         """Expose only the canonical routes available in the current experience mode."""

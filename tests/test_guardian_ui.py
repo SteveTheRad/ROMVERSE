@@ -16,7 +16,9 @@ from romverse.device.models import AndroidDevice, DeviceState
 from romverse.guardian.approval import ApprovalStore
 from romverse.guardian.audit import GuardianAuditStore
 from romverse.infrastructure.process import CommandResult
+from romverse.nexus.planning import NexusObjective, NexusPlanner
 from romverse.ui.guardian_center import GuardianCenter
+from tests.test_nexus_planning import _evidence
 
 
 def _device() -> AndroidDevice:
@@ -170,4 +172,24 @@ def test_hidden_guardian_defers_automatic_refresh_until_it_is_viewed(
     assert len(started) == 1
     assert center.worker is started[0]
     center.worker = None
+    center.close()
+
+
+def test_guardian_presents_nexus_plan_as_zero_authority_review_context(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    store, profile, matrix = _evidence(tmp_path)
+    plan = NexusPlanner(store).plan(profile, matrix, NexusObjective.BUILD_ROM)
+    center = GuardianCenter(GuardianAuditStore(tmp_path), auto_start=False)
+
+    assert center.open_nexus_review(plan, "Device DNA")
+    assert not center.nexus_review.isHidden()
+    assert center.nexus_review_title.text() == "Build a ROM  •  Device DNA"
+    detail = center.nexus_review_detail.text()
+    assert plan.plan_digest[:16] in detail
+    assert plan.mission_id[:12] in detail
+    assert "Approval: none" in detail
+    assert "Execution: none" in detail
+    assert "Bootloader relock: never" in detail
+    assert all(requirement in detail for requirement in plan.guardian_requirements)
+    assert center.nexus_review_badge.text() == "ZERO AUTHORITY"
     center.close()

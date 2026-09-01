@@ -28,7 +28,7 @@ has current evidence.
    Repository tests also prove a changed packaged runtime module is rejected. This does not replace
    the required Windows installed-wheel pass or signed release-artifact validation.
 
-   Current Fedora development evidence recorded on 2026-09-01: 1,097 Desktop tests and the complete
+   Current Fedora development evidence recorded on 2026-09-01: 1,103 Desktop tests and the complete
    Ruff check/format gate pass after the Ctrl+K navigation-only palette, canonical Activity Center,
    connected About ROMVERSE V3, collapsible/focus workspace shell, and structured ROMVERSE Archives
    and deterministic Archives Advisor increments. Tests cover bounded ranked retrieval, weak-match
@@ -36,14 +36,16 @@ has current evidence.
    error-code priority, direct article and canonical-page handoffs, exact Diagnostics-to-Recovery
    finding identity with stale-evidence refusal, no-worker navigation, a reversible exact-source
    focus, notification-independent in-page refusal feedback, and evidence-aware Command Deck
-   exact/general/mismatch repair routing; Recovery Bay report boundaries, adaptive research
+   exact/general/mismatch repair routing; exact source-bound Nexus-plan review context in Guardian
+   Core, bidirectional navigation, zero approval/execution authority, and source/destination stale
+   identity refusal; Recovery Bay report boundaries, adaptive research
    disclosure, strict guided-session evidence, exact-article local Resolution Memory, hostile and
    semantically false re-digested
    outcome rejection, Live Console table contrast, Activity Center filtering and export, adaptive
    rendering, accessibility, hostile ledger boundaries, and the strict private Origin-discovery
    record. A fresh
    isolated build produced a 219-member wheel with SHA-256
-   `3e7dcd00989d68d70f48037b74ce5345e62f3397f5b134fbd15cab5f08be3f3a`; the verifier
+   `2ff0ae2b90ccc2692a37606e49d90d07606def4040aecc547ecb993abaa773d2`; the verifier
    byte-compared all runtime modules with source and revalidated all 21 indexed Device Packs. A
    separate wheel-target environment imported the packaged 110-guide catalog, Advisor, strict guided
    sessions, Resolution Memory, and the deterministic Diagnostics-to-Recovery concern map from
@@ -51,7 +53,9 @@ has current evidence.
    storage-finding handoff with no session/worker start, its exact highlighted return to Quantum
    Optimizer, the promoted `STORAGE PLAN READY` Command Deck route, the healthy general-intake
    fallback, preservation of the real Platform Tools resolver after a failed refresh, and both
-   handoff refusal messages with Desktop notifications disabled; opened the packaged Desktop
+   handoff refusal messages with Desktop notifications disabled; opened an exact current Nexus plan
+   in the installed Guardian Core review card with its project/objective/digest/requirements and
+   zero authority; opened the packaged Desktop
    offscreen; initialized a fresh workspace; and reloaded all 21 Packs. This remains development
    evidence, not the required signed Windows/Fedora public-release certification.
 4. Launch the installed wheel on Ubuntu, Fedora, and Windows, initialize a fresh workspace, and verify

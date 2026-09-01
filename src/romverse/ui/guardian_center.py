@@ -19,6 +19,7 @@ from romverse.applications.receipts import ApkReceiptRead, ApkReceiptStore
 from romverse.backup.plans import BackupPlanRead, GuardianBackupPlanStore
 from romverse.guardian.approval import ApprovalRecord, ApprovalStore, ApprovalVerification
 from romverse.guardian.audit import AuditVerification, GuardianAuditStore
+from romverse.nexus.planning import NexusObjective, NexusPlan
 from romverse.ui.background import ManagedRunnable, start_background
 from romverse.ui.process_progress import ProcessProgressBar
 
@@ -85,12 +86,14 @@ class GuardianCenterWorker(ManagedRunnable):
 
 
 class GuardianCenter(QWidget):
+    nexus_requested = Signal()
     REFRESH_DEBOUNCE_MS = 250
 
     def __init__(self, audit: GuardianAuditStore | None, *, auto_start: bool = True) -> None:
         super().__init__()
         self.audit = audit
         self.worker: GuardianCenterWorker | None = None
+        self._nexus_review_identity: tuple[str, str] | None = None
         self._refresh_pending = False
         self._refresh_timer = QTimer(self)
         self._refresh_timer.setSingleShot(True)
@@ -119,6 +122,35 @@ class GuardianCenter(QWidget):
         self.refresh_button.clicked.connect(self.refresh)
         header.addWidget(self.refresh_button)
         page.addLayout(header)
+
+        self.nexus_review = QFrame()
+        self.nexus_review.setObjectName("NexusReviewCard")
+        review_layout = QVBoxLayout(self.nexus_review)
+        review_layout.setContentsMargins(20, 16, 20, 16)
+        review_layout.setSpacing(8)
+        review_header = QHBoxLayout()
+        self.nexus_review_eyebrow = QLabel("NEXUS PLAN REVIEW  •  CONTEXT ONLY")
+        self.nexus_review_eyebrow.setObjectName("Eyebrow")
+        review_header.addWidget(self.nexus_review_eyebrow, 1)
+        self.nexus_review_badge = QLabel("ZERO AUTHORITY")
+        self.nexus_review_badge.setObjectName("Warning")
+        review_header.addWidget(self.nexus_review_badge)
+        self.nexus_return_button = QPushButton("Return to Nexus Plan")
+        self.nexus_return_button.clicked.connect(self.nexus_requested)
+        review_header.addWidget(self.nexus_return_button)
+        review_layout.addLayout(review_header)
+        self.nexus_review_title = QLabel()
+        self.nexus_review_title.setObjectName("SectionTitle")
+        review_layout.addWidget(self.nexus_review_title)
+        self.nexus_review_detail = QLabel()
+        self.nexus_review_detail.setObjectName("Muted")
+        self.nexus_review_detail.setWordWrap(True)
+        self.nexus_review_detail.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        review_layout.addWidget(self.nexus_review_detail)
+        self.nexus_review.setVisible(False)
+        page.addWidget(self.nexus_review)
 
         self.hero = QFrame()
         self.hero.setObjectName("HeroCard")
@@ -177,6 +209,67 @@ class GuardianCenter(QWidget):
             self.refresh()
         else:
             self._refresh_pending = True
+
+    def open_nexus_review(self, plan: NexusPlan, project_name: str) -> bool:
+        """Present a validated Nexus plan without approving or executing it."""
+
+        if (
+            not isinstance(plan, NexusPlan)
+            or not plan.ready_for_guardian_review
+            or plan.execution_authorized
+            or plan.bootloader_relock_permitted
+        ):
+            return False
+        clean_name = " ".join(project_name.replace("\x00", "").split())[:80]
+        if not clean_name:
+            return False
+        objective = {
+            NexusObjective.BUILD_ROM: "Build a ROM",
+            NexusObjective.ROOT_ROM: "Prepare optional root",
+            NexusObjective.FLASH_DEVICE: "Prepare Guardian flash review",
+        }[plan.objective]
+        self.nexus_review_title.setText(f"{objective}  •  {clean_name}")
+        self.nexus_review_badge.setText("ZERO AUTHORITY")
+        self.nexus_review_badge.setObjectName("Warning")
+        self._repolish(self.nexus_review_badge)
+        requirements = "\n".join(f"• {item}" for item in plan.guardian_requirements)
+        self.nexus_review_detail.setText(
+            f"Plan {plan.plan_digest[:16]}…  •  Mission {plan.mission_id[:12]}…  •  "
+            "current source-bound evidence\n"
+            "REVIEW BOUNDARY  •  Approval: none  •  Execution: none  •  "
+            "Bootloader relock: never\n"
+            f"GUARDIAN MUST REVALIDATE\n{requirements}"
+        )
+        self._nexus_review_identity = (plan.project_id, plan.plan_digest)
+        self.nexus_review.setVisible(True)
+        return True
+
+    @property
+    def nexus_review_identity(self) -> tuple[str, str] | None:
+        return self._nexus_review_identity
+
+    def nexus_review_stopped(self, reason: str) -> None:
+        """Keep an expired destination context readable without retaining authority."""
+
+        self._nexus_review_identity = None
+        self.nexus_review_title.setText("Nexus review context expired safely")
+        self.nexus_review_detail.setText(
+            f"{reason}\nRefresh and reopen the plan from Nexus. Approval: none  •  "
+            "Execution: none  •  No action started."
+        )
+        self.nexus_review_badge.setText("CONTEXT REFUSED")
+        self.nexus_review_badge.setObjectName("Danger")
+        self._repolish(self.nexus_review_badge)
+        self.nexus_review.setVisible(True)
+
+    def clear_nexus_review(self) -> None:
+        self._nexus_review_identity = None
+        self.nexus_review.setVisible(False)
+        self.nexus_review_title.clear()
+        self.nexus_review_detail.clear()
+        self.nexus_review_badge.setText("ZERO AUTHORITY")
+        self.nexus_review_badge.setObjectName("Warning")
+        self._repolish(self.nexus_review_badge)
 
     @staticmethod
     def _metric(label: str) -> tuple[QFrame, QLabel]:

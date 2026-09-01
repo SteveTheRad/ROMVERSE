@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QApplication, QPushButton
 from romverse.core.settings import AppSettings, ExperienceMode
 from romverse.device.models import AndroidDevice, DeviceState, StorageInfo
 from romverse.infrastructure.tools import ToolStatus
+from romverse.nexus.planning import NexusObjective, NexusPlanner
 from romverse.repair.templates import RepairConcern
 from romverse.ui.main_window import (
     MainWindow,
@@ -18,6 +19,7 @@ from romverse.ui.main_window import (
     _sidebar_device_art_kind,
     _sidebar_nav_tooltip,
 )
+from tests.test_device_dna import _device, _project
 
 
 def test_every_desktop_navigation_label_opens_and_highlights_its_own_page(
@@ -196,6 +198,106 @@ def test_command_deck_cards_are_context_aware_and_route_to_canonical_pages(
         lab.click()
         app.processEvents()
         assert window.stack.currentWidget() is window.nexus_center
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_ready_nexus_plan_opens_exact_zero_authority_guardian_context(tmp_path: Path) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    store, registry, project, _report = _project(tmp_path)
+    window = MainWindow(None, logo, store.workspace, app_icon_path=logo, pack_registry=registry)
+    try:
+        window.rom_studio.set_devices([_device()])
+        app.processEvents()
+        profile = window.rom_studio.device_dna.profiles.load(project.project_id)
+        matrix = window.rom_studio.compatibility.matrices.load(project.project_id)
+        assert profile is not None
+        assert matrix is not None
+        plan = NexusPlanner(store).plan(profile, matrix, NexusObjective.BUILD_ROM)
+        assert plan.ready_for_guardian_review
+        window.nexus_center.refresh()
+        assert window.nexus_center.current_plan == plan
+        window._navigate_route("nexus")
+        window.nexus_center.guardian_button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.guardian_center
+        assert not window.guardian_center.nexus_review.isHidden()
+        assert plan.plan_digest[:16] in window.guardian_center.nexus_review_detail.text()
+        assert "Device DNA" in window.guardian_center.nexus_review_title.text()
+        assert window.guardian_center.nexus_review_badge.text() == "ZERO AUTHORITY"
+        assert window.guardian_center.worker is None
+
+        window.guardian_center.nexus_return_button.click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.nexus_center
+        assert window.nexus_center.current_plan == plan
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_nexus_guardian_route_rejects_mismatched_plan_identity_in_page(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    store, registry, project, _report = _project(tmp_path)
+    window = MainWindow(None, logo, store.workspace, app_icon_path=logo, pack_registry=registry)
+    try:
+        profile = window.rom_studio.device_dna.profiles.load(project.project_id)
+        matrix = window.rom_studio.compatibility.matrices.load(project.project_id)
+        assert profile is not None
+        assert matrix is not None
+        plan = NexusPlanner(store).plan(profile, matrix, NexusObjective.BUILD_ROM)
+        window.nexus_center.refresh()
+        window._navigate_route("nexus")
+        window.nexus_center.guardian_requested.emit(plan.project_id, "0" * 64)
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.nexus_center
+        assert window.guardian_center.nexus_review.isHidden()
+        assert "GUARDIAN HANDOFF STOPPED" in window.nexus_center.status.text()
+        assert "no approval or execution" in window.nexus_center.status.text().casefold()
+        assert window.guardian_center.worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_guardian_expires_retained_nexus_context_when_plan_changes(tmp_path: Path) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    store, registry, project, _report = _project(tmp_path)
+    window = MainWindow(None, logo, store.workspace, app_icon_path=logo, pack_registry=registry)
+    try:
+        window.rom_studio.set_devices([_device()])
+        app.processEvents()
+        profile = window.rom_studio.device_dna.profiles.load(project.project_id)
+        matrix = window.rom_studio.compatibility.matrices.load(project.project_id)
+        assert profile is not None
+        assert matrix is not None
+        plan = NexusPlanner(store).plan(profile, matrix, NexusObjective.BUILD_ROM)
+        window.nexus_center.refresh()
+        window.nexus_center.guardian_button.click()
+        app.processEvents()
+        assert window.guardian_center.nexus_review_identity == (
+            plan.project_id,
+            plan.plan_digest,
+        )
+
+        NexusPlanner(store).plan(profile, matrix, NexusObjective.ROOT_ROM)
+        window._navigate_route("nexus")
+        window._navigate_route("guardian_core")
+        app.processEvents()
+
+        assert window.guardian_center.nexus_review_identity is None
+        assert window.guardian_center.nexus_review_badge.text() == "CONTEXT REFUSED"
+        assert "no longer matches" in window.guardian_center.nexus_review_detail.text()
+        assert "No action started" in window.guardian_center.nexus_review_detail.text()
+        assert window.guardian_center.worker is None
     finally:
         window.companion_center.transport.close()
         window.close()

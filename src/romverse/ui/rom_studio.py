@@ -52,6 +52,7 @@ from romverse.infrastructure.process import SubprocessRunner
 from romverse.infrastructure.provisioning import required_tools_for_source
 from romverse.infrastructure.tools import ToolStatus, ToolVerifier
 from romverse.nexus.compatibility import CompatibilityMatrix, CompatibilityMatrixService
+from romverse.nexus.planning import NexusPlanStore
 from romverse.platform.host import current_host
 from romverse.rom.boot_observation import BootObservationService, BootObservationStatus
 from romverse.rom.builds import BuildPlan, RomBuildPlanner
@@ -1297,11 +1298,14 @@ class RomStudio(QWidget):
             self._open_guided_setup()
         return True
 
-    def open_nexus_handoff(self, project_id: str) -> bool:
+    def open_nexus_handoff(self, project_id: str, plan_digest: str = "") -> bool:
         """Open the exact Nexus project or its honest project-creation prerequisite."""
 
         normalized = str(project_id).strip()
+        normalized_digest = str(plan_digest).strip().casefold()
         if not normalized:
+            if normalized_digest:
+                return False
             self.command_tabs.setCurrentIndex(0)
             self._show_dashboard_handoff(
                 "ROMVERSE Nexus → protected project creation",
@@ -1321,6 +1325,13 @@ class RomStudio(QWidget):
             return False
         profile = self.device_dna.profiles.load(project.project_id)
         matrix = self.compatibility.matrices.load(project.project_id)
+        nexus_plan = NexusPlanStore(self.store).load(project.project_id)
+        if normalized_digest and (
+            nexus_plan is None or nexus_plan.plan_digest != normalized_digest
+        ):
+            return False
+        if not normalized_digest and nexus_plan is not None:
+            return False
         missing = tuple(
             label
             for label, available in (
@@ -1342,19 +1353,27 @@ class RomStudio(QWidget):
             )
             self.guided_button.setFocus(Qt.FocusReason.OtherFocusReason)
             return True
-        plan = RomBuildPlanner(self.store).load(project.project_id)
+        build_plan = RomBuildPlanner(self.store).load(project.project_id)
+        nexus_context = (
+            f"Nexus plan {nexus_plan.plan_digest[:16]}…  •  objective "
+            f"{nexus_plan.objective.value.replace('-', ' ').replace('_', ' ')}  •  status "
+            f"{nexus_plan.status.value.replace('-', ' ').replace('_', ' ')}. "
+            if nexus_plan is not None
+            else "No Nexus plan has been generated for this current evidence. "
+        )
         self.command_tabs.setCurrentIndex(1)
         self._show_dashboard_handoff(
             f"ROMVERSE Nexus → {project.name}",
             f"Exact project {project.project_id} is selected with current Device DNA and "
-            f"Compatibility Matrix evidence. Build plan: {'available' if plan is not None else 'not yet created'}. "
+            f"Compatibility Matrix evidence. {nexus_context}Build plan: "
+            f"{'available' if build_plan is not None else 'not yet created'}. "
             "Build & Proof is selected; NO PROJECT WORKER, PLAN, BUILD, OR PHONE ACTION STARTED.",
             "EVIDENCE READY",
             ready=True,
             eyebrow="ROMVERSE NEXUS HANDOFF  •  EXACT PROJECT EVIDENCE",
         )
         self.detail_scroll.ensureWidgetVisible(self.command_tabs, 0, 24)
-        (self.verify_plan_button if plan is not None else self.plan_button).setFocus(
+        (self.verify_plan_button if build_plan is not None else self.plan_button).setFocus(
             Qt.FocusReason.OtherFocusReason
         )
         return True

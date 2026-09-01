@@ -3971,8 +3971,12 @@ class MainWindow(QMainWindow):
         if self._navigate_route("quantum_optimizer"):
             self.diagnostics_center.open_dashboard_intent("Health Review")
 
-    @Slot()
-    def _continue_device_atlas_rom_studio(self) -> None:
+    @Slot(str, str)
+    def _continue_device_atlas_rom_studio(
+        self,
+        report_id: str,
+        report_digest: str,
+    ) -> None:
         """Continue an exact current Device Atlas build contract into Genesis."""
 
         report = self.device_packs_center.active_report
@@ -3982,6 +3986,8 @@ class MainWindow(QMainWindow):
             report is None
             or pack is None
             or device is None
+            or report.report_id != report_id
+            or report.report_digest != report_digest
             or not report.build_contract_ready
             or report.pack_id != pack.pack_id
             or report.pack_version != pack.version
@@ -4057,15 +4063,34 @@ class MainWindow(QMainWindow):
             return
         self._navigate_route("rom_studio")
 
-    @Slot()
-    def _open_nexus_rom_studio(self) -> None:
+    @Slot(str, str)
+    def _open_nexus_rom_studio(self, project_id: str, plan_digest: str) -> None:
         """Carry the selected Nexus project back to its exact ROM Studio evidence."""
 
-        project_id = self.nexus_center.project_selector.currentData()
-        normalized = project_id if isinstance(project_id, str) else ""
-        if not self.rom_studio.open_nexus_handoff(normalized):
+        selected = self.nexus_center.project_selector.currentData()
+        current_project_id = selected if isinstance(selected, str) else ""
+        trusted = self.nexus_center.planner.plans.load(project_id) if project_id else None
+        displayed = self.nexus_center.current_plan
+        if (
+            project_id != current_project_id
+            or bool(plan_digest)
+            != bool(displayed is not None and displayed.project_id == project_id)
+            or (
+                plan_digest
+                and (
+                    trusted is None
+                    or displayed is None
+                    or trusted.plan_digest != plan_digest
+                    or displayed.plan_digest != plan_digest
+                    or trusted.execution_authorized
+                    or trusted.bootloader_relock_permitted
+                )
+            )
+            or not self.rom_studio.open_nexus_handoff(project_id, plan_digest)
+        ):
             self.nexus_center.status.setText(
-                "ROM STUDIO HANDOFF STOPPED  •  The selected project is no longer available  •  "
+                "ROM STUDIO HANDOFF STOPPED  •  The requested project or plan no longer matches "
+                "the current Nexus evidence  •  "
                 "No project worker, plan, build, or phone action started"
             )
             self.nexus_center.status.setObjectName("Danger")

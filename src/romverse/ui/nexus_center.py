@@ -36,7 +36,7 @@ class NexusCenter(QWidget):
 
     plan_updated = Signal(object)
     guardian_requested = Signal(str, str)
-    rom_studio_requested = Signal()
+    rom_studio_requested = Signal(str, str)
     knowledge_article_requested = Signal(str)
 
     OBJECTIVES = {
@@ -142,7 +142,7 @@ class NexusCenter(QWidget):
         )
         self.evidence_studio_button = QPushButton("Open ROM Studio")
         self.evidence_studio_button.setObjectName("Primary")
-        self.evidence_studio_button.clicked.connect(self.rom_studio_requested)
+        self.evidence_studio_button.clicked.connect(self._request_rom_studio)
         handoff_actions.addWidget(self.evidence_guide_button)
         handoff_actions.addWidget(self.evidence_studio_button)
         handoff_layout.addLayout(handoff_actions)
@@ -198,11 +198,11 @@ class NexusCenter(QWidget):
         self.guardian_button = QPushButton("Review plan in Guardian Core")
         self.guardian_button.setEnabled(False)
         self.guardian_button.clicked.connect(self.request_guardian_review)
-        open_studio = QPushButton("Open ROM Studio")
-        open_studio.clicked.connect(self.rom_studio_requested)
+        self.open_studio_button = QPushButton("Open ROM Studio")
+        self.open_studio_button.clicked.connect(self._request_rom_studio)
         actions.addWidget(self.export_button)
         actions.addWidget(self.guardian_button)
-        actions.addWidget(open_studio)
+        actions.addWidget(self.open_studio_button)
         actions.addStretch(1)
         insight_layout.addLayout(actions)
         self.content.addWidget(self.insight_card)
@@ -344,6 +344,19 @@ class NexusCenter(QWidget):
         self.status.setObjectName("Good")
         self._repolish(self.status)
         self.guardian_requested.emit(trusted.project_id, trusted.plan_digest)
+
+    def _request_rom_studio(self) -> None:
+        """Carry the selected project and current Nexus plan identity into Studio."""
+
+        selected = self.project_selector.currentData()
+        project_id = selected if isinstance(selected, str) else ""
+        plan = self.current_plan
+        plan_digest = (
+            plan.plan_digest
+            if plan is not None and plan.project_id == project_id
+            else ""
+        )
+        self.rom_studio_requested.emit(project_id, plan_digest)
 
     def guardian_handoff_stopped(self, reason: str) -> None:
         """Keep a failed review handoff visible even when notifications are disabled."""

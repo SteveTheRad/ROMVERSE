@@ -99,9 +99,11 @@ def test_nexus_empty_state_routes_to_exact_guide_or_rom_studio_without_a_plan(
     app = QApplication.instance() or QApplication([])
     center = NexusCenter(RomProjectStore(tmp_path))
     articles: list[str] = []
-    studio_requests: list[bool] = []
+    studio_requests: list[tuple[str, str]] = []
     center.knowledge_article_requested.connect(articles.append)
-    center.rom_studio_requested.connect(lambda: studio_requests.append(True))
+    center.rom_studio_requested.connect(
+        lambda project_id, digest: studio_requests.append((project_id, digest))
+    )
 
     assert not center.evidence_handoff.isHidden()
     assert "protected ROM project" in center.evidence_handoff_title.text()
@@ -112,7 +114,7 @@ def test_nexus_empty_state_routes_to_exact_guide_or_rom_studio_without_a_plan(
     app.processEvents()
 
     assert articles == ["nexus-evidence-prerequisites"]
-    assert studio_requests == [True]
+    assert studio_requests == [("", "")]
     assert center.current_plan is None
 
 

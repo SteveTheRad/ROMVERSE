@@ -20,8 +20,8 @@ def test_archives_catalog_is_large_unique_classified_and_evidence_labelled() -> 
     validate_catalog(ARCHIVE_ARTICLES)
     metrics = catalog_metrics(ARCHIVE_ARTICLES)
 
-    assert len(ARCHIVE_ARTICLES) == 123
-    assert len(KNOWN_FIXES) == 73
+    assert len(ARCHIVE_ARTICLES) == 124
+    assert len(KNOWN_FIXES) == 74
     assert metrics == {
         "guides": len(ARCHIVE_ARTICLES),
         "categories": len(CATEGORIES),
@@ -49,6 +49,7 @@ def test_archives_catalog_is_large_unique_classified_and_evidence_labelled() -> 
         ("signature", "APK update error: INSTALL_FAILED_UPDATE_INCOMPATIBLE"),
         ("downgrade", "APK install error: INSTALL_FAILED_VERSION_DOWNGRADE"),
         ("return button loses context", "Return button opens the right page but loses the exact evidence"),
+        ("studio wrong nexus plan", "ROM Studio opens with a different Nexus plan or Device Atlas report"),
         (
             "android device id",
             "Recognize an Android model without guessing build or flash support",
@@ -106,7 +107,7 @@ def test_archives_rank_verified_known_fixes_for_real_failure_language(
 
 def test_archives_reject_weak_matches_and_bound_results() -> None:
     assert not search_catalog(ARCHIVE_ARTICLES, "definitely not a real ROMVERSE topic")
-    assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=1_000)) == 123
+    assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=1_000)) == 124
     assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=0)) == 1
     connectivity = search_catalog(
         ARCHIVE_ARTICLES,

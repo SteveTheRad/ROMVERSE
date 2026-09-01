@@ -43,7 +43,7 @@ from romverse.device_packs.validation import (
 
 
 class DevicePacksCenter(QWidget):
-    rom_studio_requested = Signal()
+    rom_studio_requested = Signal(str, str)
     catalog_refresh_requested = Signal()
     next_action_requested = Signal(str, str, str, str)
     requirement_requested = Signal(str, str, str, str)
@@ -225,7 +225,7 @@ class DevicePacksCenter(QWidget):
         self.continue_button.setToolTip(
             "Open ROM Studio. Genesis Sequence will continue source and safety checks automatically."
         )
-        self.continue_button.clicked.connect(self.rom_studio_requested.emit)
+        self.continue_button.clicked.connect(self._request_rom_studio)
         guidance_layout.addWidget(self.continue_button)
         page.addWidget(self.guidance)
 
@@ -1124,6 +1124,11 @@ class DevicePacksCenter(QWidget):
             action.check_id,
             report.report_digest,
         )
+
+    def _request_rom_studio(self) -> None:
+        report = self.active_report
+        if report is not None:
+            self.rom_studio_requested.emit(report.report_id, report.report_digest)
 
     def next_action_handoff_stopped(self, reason: str) -> None:
         """Keep a refused readiness handoff visible without relying on a toast."""

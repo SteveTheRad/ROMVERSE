@@ -66,6 +66,14 @@ def test_device_atlas_distinguishes_local_build_readiness_from_flash_lock(tmp_pa
     ]
     assert "rom build planning is ready" in center.guidance_title.text().casefold()
     assert center.continue_button.isVisibleTo(center)
+    studio_requests: list[tuple[str, str]] = []
+    center.rom_studio_requested.connect(
+        lambda report_id, digest: studio_requests.append((report_id, digest))
+    )
+    center.continue_button.click()
+    assert studio_requests == [
+        (center.active_report.report_id, center.active_report.report_digest)
+    ]
     exact_model = center.validation_rows["exact-model"]
     assert "Possible fix" in exact_model.toolTip()
     assert "model/product patterns" in exact_model.toolTip()

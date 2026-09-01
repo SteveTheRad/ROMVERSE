@@ -190,7 +190,7 @@ def test_about_recalculates_real_workspace_evidence_and_returns_from_its_exact_g
             f"{len(registry.packs)} DEVICE PACKS  •  1 OFFICIAL IDS"
         )
         assert window.about_page.evidence_values["knowledge"].text() == (
-            "123 VERIFIED GUIDES  •  73 KNOWN FIXES"
+            "124 VERIFIED GUIDES  •  74 KNOWN FIXES"
         )
         ready_tools = sum(status.available for status in window.toolchain_center.statuses)
         tool_count = len(window.toolchain_center.statuses)
@@ -523,6 +523,16 @@ def test_device_atlas_and_nexus_preserve_exact_context_into_rom_studio(
         report = window.device_packs_center.active_report
         assert report is not None and report.build_contract_ready
 
+        window._navigate_route("device_atlas")
+        window.device_packs_center.rom_studio_requested.emit(report.report_id, "0" * 64)
+        app.processEvents()
+        assert window.stack.currentWidget() is window.device_packs_center
+        assert "NEXT ACTION STOPPED" in window.device_packs_center.next_action_feedback.text()
+        assert "Continue control no longer matches" in (
+            window.device_packs_center.next_action_feedback.text()
+        )
+        assert window.rom_studio.worker is None
+
         window.device_packs_center.continue_button.click()
         app.processEvents()
         assert window.stack.currentWidget() is window.rom_studio
@@ -736,6 +746,18 @@ def test_ready_nexus_plan_opens_exact_zero_authority_guardian_context(tmp_path: 
         app.processEvents()
         assert window.stack.currentWidget() is window.nexus_center
         assert window.nexus_center.current_plan == plan
+
+        window.nexus_center.open_studio_button.click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.rom_studio
+        assert window.rom_studio.current_project is not None
+        assert window.rom_studio.current_project.project_id == project.project_id
+        assert plan.plan_digest[:16] in window.rom_studio.dashboard_handoff_detail.text()
+        assert "objective build rom" in window.rom_studio.dashboard_handoff_detail.text()
+        assert "NO PROJECT WORKER, PLAN, BUILD, OR PHONE ACTION STARTED" in (
+            window.rom_studio.dashboard_handoff_detail.text()
+        )
+        assert window.rom_studio.worker is None
     finally:
         window.companion_center.transport.close()
         window.close()
@@ -764,6 +786,41 @@ def test_nexus_guardian_route_rejects_mismatched_plan_identity_in_page(
         assert "GUARDIAN HANDOFF STOPPED" in window.nexus_center.status.text()
         assert "no approval or execution" in window.nexus_center.status.text().casefold()
         assert window.guardian_center.worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_nexus_rom_studio_route_refuses_a_superseded_displayed_plan(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    store, registry, project, _report = _project(tmp_path)
+    window = MainWindow(None, logo, store.workspace, app_icon_path=logo, pack_registry=registry)
+    try:
+        window.rom_studio.set_devices([_device()])
+        app.processEvents()
+        profile = window.rom_studio.device_dna.profiles.load(project.project_id)
+        matrix = window.rom_studio.compatibility.matrices.load(project.project_id)
+        assert profile is not None and matrix is not None
+        displayed = NexusPlanner(store).plan(profile, matrix, NexusObjective.BUILD_ROM)
+        window.nexus_center.refresh()
+        window._navigate_route("nexus")
+        assert window.nexus_center.current_plan == displayed
+
+        replacement = NexusPlanner(store).plan(profile, matrix, NexusObjective.ROOT_ROM)
+        assert replacement.plan_digest != displayed.plan_digest
+        window.nexus_center.open_studio_button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.nexus_center
+        assert "ROM STUDIO HANDOFF STOPPED" in window.nexus_center.status.text()
+        assert "project or plan no longer matches" in window.nexus_center.status.text()
+        assert "No project worker, plan, build, or phone action started" in (
+            window.nexus_center.status.text()
+        )
+        assert window.rom_studio.worker is None
     finally:
         window.companion_center.transport.close()
         window.close()

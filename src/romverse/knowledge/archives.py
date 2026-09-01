@@ -2037,6 +2037,48 @@ KNOWN_FIXES = (
         automation="EXACT IDENTITY REVALIDATION AND NAVIGATION ONLY • NO PLAN GENERATION, APPROVAL, WORKER, BUILD, RESTORE, FLASH, OR PHONE ACTION",
         source=ROMVERSE_SOURCE,
     ),
+    _fix(
+        "studio-continue-reloads-wrong-current-evidence",
+        "ROM Studio opens with a different Nexus plan or Device Atlas report",
+        "ROMVERSE WORKFLOWS",
+        "A Continue/Open control can be wired to the correct page yet still be wrong if it sends "
+        "no evidence identity. Nexus must send the selected project plus its current plan digest; "
+        "Device Atlas must send its report id plus report digest. ROM Studio and MainWindow then "
+        "independently reload the owning records before accepting the handoff, so a queued click "
+        "cannot silently adopt evidence that changed after it was shown.",
+        checks=(
+            "In Nexus, compare the selected project id and displayed plan digest with the Studio handoff banner.",
+            "In Device Atlas, compare the report id/digest, Pack id/version/hash, and model/codename with the Studio banner.",
+            "Confirm a Nexus project-creation handoff carries two explicit empty identities rather than an unrelated selected project.",
+            "Confirm the destination says no worker, plan, build, approval, flash, or phone action started.",
+        ),
+        fix_steps=(
+            "Return to Nexus and reopen Studio from the freshly loaded selected project and plan; regenerate the plan if its evidence changed.",
+            "Return to Device Atlas and reopen Studio from the current exact report after any phone, Pack, or attestation change.",
+            "If no Nexus project exists, use the explicit protected-project creation handoff; do not reuse a previous Studio selection.",
+            "Treat an in-page HANDOFF STOPPED message as evidence protection, then refresh the owning feature rather than bypassing it with sidebar navigation.",
+        ),
+        verification=(
+            "A current Nexus plan opens its exact project and displays the same plan digest, objective, and status in ROM Studio.",
+            "A superseded displayed Nexus plan leaves Nexus visible with a safe-stop explanation.",
+            "A current Device Atlas report opens Genesis with the same report digest and exact Pack relationship.",
+            "A mismatched report id/digest leaves Device Atlas visible and starts no Studio worker or phone action.",
+        ),
+        tags=(
+            "studio wrong nexus plan",
+            "studio wrong device atlas report",
+            "continue button stale evidence",
+            "queued signal current selection",
+            "nexus plan digest handoff",
+            "device atlas report id handoff",
+            "rom studio context mismatch",
+            "handoff stopped plan changed",
+        ),
+        route="rom_studio",
+        evidence="ROMVERSE tests exact signal payloads, independent store reloading, successful destination rendering, superseded-plan refusal, mismatched-report refusal, and idle worker/device boundaries.",
+        automation="EXACT PROJECT, PLAN, PACK, AND REPORT REVALIDATION ONLY • NO PLAN GENERATION, WORKER, BUILD, APPROVAL, FLASH, OR PHONE ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
 )
 
 

@@ -2071,6 +2071,159 @@ KNOWN_FIXES = (
         source=ROMVERSE_SOURCE,
     ),
     _fix(
+        "desktop-legal-publication-boundary",
+        "About shows Terms, but public legal terms are not published",
+        "ROMVERSE WORKFLOWS",
+        "ROMVERSE v0.1.0 is an internal development alpha. The source tree contains a "
+        "proprietary development-snapshot licence, while the approved product commitments "
+        "explicitly keep billing promises subject to production implementation and published "
+        "terms. A link-like Terms label must therefore report the missing publication gate; it "
+        "cannot imply that a reviewed public contract already exists.",
+        checks=(
+            "Confirm the installed build identifies itself as internal alpha rather than a public production release.",
+            "Inspect the packaged/source LICENSE and distinguish source-use permission from customer terms of service.",
+            "Confirm no public terms document has been packaged, versioned, and approved for this release.",
+            "Treat membership prices and future-service promises as product direction until production billing and published terms exist.",
+        ),
+        fix_steps=(
+            "Replace inert or misleading Terms text with a visible internal-alpha state and an exact explanatory record.",
+            "Before public release, obtain the reviewed legal text, assign a version/effective date, package it immutably, and connect the UI to that exact artifact.",
+            "Keep unavailable purchasing, renewal, cancellation, and public-account actions disabled until the production service and terms agree.",
+        ),
+        verification=(
+            "About displays PUBLIC LEGAL PACK NOT ISSUED and opens this exact record.",
+            "The destination retains a safe Return to About path and starts no account, browser, billing, or network action.",
+            "No UI label claims that public legal terms were accepted, published, or approved in this internal build.",
+        ),
+        tags=(
+            "terms not published",
+            "terms link does nothing",
+            "internal alpha legal status",
+            "membership terms unavailable",
+            "public legal pack",
+            "terms of service missing",
+        ),
+        route="about",
+        evidence="The current source contains a proprietary LICENSE and approved commitments that keep billing benefits subject to production implementation and published terms; no separate public terms artifact is packaged.",
+        automation="STATUS AND EXACT LOCAL GUIDANCE ONLY • NO LEGAL ACCEPTANCE, ACCOUNT, BILLING, BROWSER, NETWORK, OR PUBLISH ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "desktop-local-privacy-boundary",
+        "About Privacy must describe the real local and online data boundary",
+        "ROMVERSE WORKFLOWS",
+        "A generic Privacy label is not evidence of a privacy policy. The current Desktop is "
+        "local-first: activity, diagnostics, projects, receipts, Galaxy topics, Device Atlas "
+        "catalogs, and Synapse memory are stored in the selected workspace under bounded schemas. "
+        "Online intelligence, community research, Members sign-in, and wireless Companion each "
+        "have separate settings or explicit flows and must never be implied by opening About.",
+        checks=(
+            "Inspect Settings for online intelligence, community research, Synapse contribution, notifications, backup destination, and Members configuration.",
+            "Confirm device serials are masked or pseudonymized in user-facing ledgers, exports, approvals, and repair memory.",
+            "Distinguish local Galaxy topics from future public publishing and local Synapse memory from any remote contribution.",
+            "Confirm an external service is shown as unavailable when it is not configured or cannot prove its response.",
+        ),
+        fix_steps=(
+            "Keep data in the selected local workspace unless one named, enabled workflow explicitly requires a network service.",
+            "Scrub paths, full hashes, raw serials, credentials, and unrelated device data before any permitted bounded contribution or export.",
+            "Fail closed on malformed, oversized, linked, stale, redirected, or integrity-rejected local and remote evidence.",
+            "Before public release, publish a reviewed privacy statement covering collection, retention, deletion, accounts, backups, diagnostics, research, Companion, and community services.",
+        ),
+        verification=(
+            "Opening the About privacy control performs local navigation only and returns to About without changing settings.",
+            "Private workspace files remain local and integrity-protected; online switches retain their current explicit values.",
+            "No phone command, upload, contribution, account request, or public post starts from the About trust dock.",
+        ),
+        tags=(
+            "privacy policy local workspace",
+            "about privacy link",
+            "local first data boundary",
+            "serial masking",
+            "online intelligence privacy",
+            "community publishing locked",
+        ),
+        route="about",
+        evidence="ROMVERSE stores typed bounded records in the selected workspace, uses pseudonymous device bindings, and exposes online/community capabilities behind explicit configuration and workflow boundaries.",
+        automation="LOCAL GUIDANCE NAVIGATION ONLY • NO SETTING CHANGE, UPLOAD, CONTRIBUTION, ACCOUNT, PUBLISH, OR PHONE ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "desktop-licence-notice-inventory",
+        "Open-source licences or third-party notices are incomplete",
+        "TOOLS & HOST",
+        "The ROMVERSE source snapshot is proprietary and includes its own LICENSE, but it also "
+        "depends on Python, PySide6/Qt, cryptography, downloaded Android tools, host packages, and "
+        "other components with separate licences. A source licence is not a complete third-party "
+        "notice inventory, and a tool receipt naming Apache-2.0 does not cover every bundled or "
+        "installed dependency.",
+        checks=(
+            "Confirm the ROMVERSE LICENSE is present and matches the package metadata's proprietary classification.",
+            "Inventory every runtime, bundled asset, Python distribution, Qt component, managed Android artifact, and redistributed binary in the exact release artifact.",
+            "Verify each notice against the exact installed version and source/publisher receipt rather than a package name alone.",
+            "Separate host-only system tools from redistributed files and preserve required licence texts for bundled downloads.",
+        ),
+        fix_steps=(
+            "Keep the About status honest while the complete notice bundle is not generated and reviewed.",
+            "At release time, generate a deterministic dependency inventory from the final artifact, attach exact licence texts and attributions, and review incompatible or unknown entries.",
+            "Bind the notice bundle digest to the signed Desktop release and keep managed-tool licence receipts independently verifiable.",
+        ),
+        verification=(
+            "About opens this exact record instead of displaying inert Open-source licences or Third-party notices text.",
+            "A public release remains blocked until its final artifact and complete reviewed notice bundle have matching provenance.",
+            "Opening the record installs no dependency, accepts no SDK licence, downloads nothing, and changes no host or phone state.",
+        ),
+        tags=(
+            "third party notices incomplete",
+            "open source licences missing",
+            "license inventory",
+            "qt pyside cryptography notices",
+            "about licences link",
+            "release notice bundle",
+        ),
+        route="about",
+        evidence="The repository contains a proprietary LICENSE and explicit dependency/tool licence evidence, but no complete deterministic public-release third-party notice bundle.",
+        automation="LOCAL INVENTORY GUIDANCE ONLY • NO DOWNLOAD, INSTALL, LICENCE ACCEPTANCE, HOST CHANGE, OR RELEASE CLAIM",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "desktop-release-provenance",
+        "Changelog or installed Desktop build cannot prove what is running",
+        "ROMVERSE WORKFLOWS",
+        "A version label or changelog sentence cannot prove the installed executable contains the "
+        "reviewed changes. Release provenance needs the source revision, deterministic test result, "
+        "wheel checksum and member validation, installed import path, protected brand-asset hashes, "
+        "and a live process started from that exact environment. Signed update metadata remains a "
+        "separate production release gate.",
+        checks=(
+            "Compare the source revision with the wheel built from that clean worktree.",
+            "Verify the wheel ZIP, required members, SHA-256, installed module paths, and app entry point.",
+            "Recheck the official ROMVERSE and RadForge logo hashes after build and install.",
+            "Confirm one live Desktop process uses the pinned launcher environment and produces no startup error.",
+        ),
+        fix_steps=(
+            "Do not publish an unbound changelog; record each verified milestone with its local revision and artifact checksum.",
+            "Rebuild and reinstall after any source change, then rerun targeted installed-package checks and the full source suite.",
+            "Before public updates, sign release artifacts and update metadata, publish checksums and limitations, and verify rollback instructions.",
+        ),
+        verification=(
+            "About opens this exact provenance record and retains Return to About.",
+            "The running Desktop imports from the installed wheel environment and its launcher remains pinned to that environment.",
+            "No unsigned artifact or UI version string is represented as a signed public release.",
+        ),
+        tags=(
+            "changelog build proof",
+            "installed desktop provenance",
+            "version label not enough",
+            "wheel checksum",
+            "source revision installed build",
+            "signed update missing",
+        ),
+        route="about",
+        evidence="ROMVERSE release gates already require source tests, wheel integrity, installed import verification, protected asset hashes, launcher identity, and a live runtime; signed update metadata is not implemented in this alpha.",
+        automation="LOCAL EVIDENCE REVIEW ONLY • NO BUILD, INSTALL, UPDATE, SIGNING, PUBLISH, OR PROCESS ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
         "activity-exact-source-context",
         "Activity outcome cannot reopen its exact source evidence",
         "ROMVERSE WORKFLOWS",

@@ -2086,6 +2086,92 @@ class AboutPage(QWidget):
             "border-radius: 12px; padding: 15px 22px; color: #C9D6F1; font-size: 12px;"
         )
         layout.addWidget(trust)
+
+        trust_dock = QFrame()
+        trust_dock.setObjectName("AboutTrustDock")
+        trust_dock_layout = QVBoxLayout(trust_dock)
+        trust_dock_layout.setContentsMargins(18, 16, 18, 17)
+        trust_dock_layout.setSpacing(11)
+        trust_header = QHBoxLayout()
+        trust_copy = QVBoxLayout()
+        trust_eyebrow = QLabel("TRUST DOCK  •  LOCAL PROOF, NOT MARKETING LINKS")
+        trust_eyebrow.setObjectName("Eyebrow")
+        trust_title = QLabel("Privacy, licences, legal status, and release provenance")
+        trust_title.setObjectName("SectionTitle")
+        trust_detail = QLabel(
+            "Each control opens one exact ROMVERSE Archives record. This internal alpha has a "
+            "proprietary source licence, but public terms, a privacy statement, complete "
+            "third-party notices, and signed release notes remain explicit release gates."
+        )
+        trust_detail.setObjectName("Muted")
+        trust_detail.setWordWrap(True)
+        trust_copy.addWidget(trust_eyebrow)
+        trust_copy.addWidget(trust_title)
+        trust_copy.addWidget(trust_detail)
+        trust_header.addLayout(trust_copy, 1)
+        legal_state = QLabel("INTERNAL ALPHA\nPUBLIC LEGAL PACK NOT ISSUED")
+        legal_state.setObjectName("Warning")
+        legal_state.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        legal_state.setAccessibleName(
+            "Internal alpha; public terms and legal release pack have not been issued"
+        )
+        legal_state.setMinimumWidth(220)
+        trust_header.addWidget(legal_state)
+        trust_dock_layout.addLayout(trust_header)
+
+        trust_actions = QGridLayout()
+        trust_actions.setContentsMargins(0, 0, 0, 0)
+        trust_actions.setHorizontalSpacing(9)
+        trust_actions.setVerticalSpacing(9)
+        trust_specs = (
+            (
+                "desktop-legal-publication-boundary",
+                "TERMS STATUS",
+                "Not published for internal alpha",
+                "caution",
+            ),
+            (
+                "desktop-local-privacy-boundary",
+                "PRIVACY BOUNDARY",
+                "Local-first and setting-controlled",
+                "verified",
+            ),
+            (
+                "desktop-licence-notice-inventory",
+                "LICENCES & NOTICES",
+                "Source licence present; notices gated",
+                "attention",
+            ),
+            (
+                "desktop-release-provenance",
+                "CHANGELOG & BUILD PROOF",
+                "Installed artifact evidence required",
+                "proof",
+            ),
+        )
+        self.trust_buttons: dict[str, QPushButton] = {}
+        for index, (key, title, state, kind) in enumerate(trust_specs):
+            display_title = title.replace("&", "&&")
+            button = QPushButton(f"{display_title}\n{state}\nOPEN VERIFIED RECORD  →")
+            button.setObjectName("AboutTrustAction")
+            button.setProperty("trustState", kind)
+            button.setCursor(Qt.CursorShape.PointingHandCursor)
+            button.setAccessibleName(f"Open {title.title()} verified Archives record")
+            button.setToolTip(
+                "Open the exact local Archives record and retain a safe return path to About."
+            )
+            button.clicked.connect(
+                lambda _checked=False, article_key=key: self.knowledge_article_requested.emit(
+                    article_key
+                )
+            )
+            trust_actions.addWidget(button, index // 2, index % 2)
+            self.trust_buttons[key] = button
+        trust_actions.setColumnStretch(0, 1)
+        trust_actions.setColumnStretch(1, 1)
+        trust_dock_layout.addLayout(trust_actions)
+        layout.addWidget(trust_dock)
+
         thanks = QLabel(
             "Thank you for being part of ROMVERSE.\n\nWhether you're building your first ROM, "
             "developing your hundredth, testing a new device, helping another member or simply "
@@ -2097,7 +2183,8 @@ class AboutPage(QWidget):
         layout.addWidget(thanks)
         footer = QLabel(
             "One membership. Every ROMVERSE experience included.\n"
-            "Terms • Privacy • Open-source licences • Third-party notices • Changelog"
+            "Internal alpha  •  Proprietary source licence present  •  "
+            "Public legal and signed-release pack still gated"
         )
         footer.setObjectName("Muted")
         footer.setAlignment(Qt.AlignmentFlag.AlignCenter)

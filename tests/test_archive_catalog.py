@@ -20,8 +20,8 @@ def test_archives_catalog_is_large_unique_classified_and_evidence_labelled() -> 
     validate_catalog(ARCHIVE_ARTICLES)
     metrics = catalog_metrics(ARCHIVE_ARTICLES)
 
-    assert len(ARCHIVE_ARTICLES) == 128
-    assert len(KNOWN_FIXES) == 78
+    assert len(ARCHIVE_ARTICLES) == 132
+    assert len(KNOWN_FIXES) == 82
     assert metrics == {
         "guides": len(ARCHIVE_ARTICLES),
         "categories": len(CATEGORIES),
@@ -108,6 +108,22 @@ def test_archives_catalog_is_large_unique_classified_and_evidence_labelled() -> 
             "galaxy activity exact topic",
             "Activity Center opens Galaxy but not the exact local topic",
         ),
+        (
+            "terms not published",
+            "About shows Terms, but public legal terms are not published",
+        ),
+        (
+            "privacy policy local workspace",
+            "About Privacy must describe the real local and online data boundary",
+        ),
+        (
+            "third party notices incomplete",
+            "Open-source licences or third-party notices are incomplete",
+        ),
+        (
+            "changelog build proof",
+            "Changelog or installed Desktop build cannot prove what is running",
+        ),
     ),
 )
 def test_archives_rank_verified_known_fixes_for_real_failure_language(
@@ -121,7 +137,7 @@ def test_archives_rank_verified_known_fixes_for_real_failure_language(
 
 def test_archives_reject_weak_matches_and_bound_results() -> None:
     assert not search_catalog(ARCHIVE_ARTICLES, "definitely not a real ROMVERSE topic")
-    assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=1_000)) == 128
+    assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=1_000)) == 132
     assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=0)) == 1
     connectivity = search_catalog(
         ARCHIVE_ARTICLES,

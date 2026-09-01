@@ -80,6 +80,21 @@ QPushButton#AboutEvidenceGuide {
     border-radius: 8px; padding: 8px 11px; font-size: 10px; font-weight: 790;
 }
 QPushButton#AboutEvidenceGuide:hover { color: #FFFFFF; border-color: #63ECF8; }
+QFrame#AboutTrustDock {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(8,20,34,242),stop:0.5 rgba(18,13,42,240),stop:1 rgba(30,17,23,238));
+    border: 1px solid rgba(105, 122, 197, 160); border-top: 2px solid rgba(255, 180, 84, 190); border-radius: 14px;
+}
+QPushButton#AboutTrustAction {
+    color: #EAF1FF; background: rgba(5, 10, 23, 232); border: 1px solid rgba(69, 94, 145, 185);
+    border-left: 3px solid #60718E; border-radius: 9px; padding: 10px 12px; min-height: 58px;
+    text-align: left; font-size: 10px; font-weight: 740;
+}
+QPushButton#AboutTrustAction[trustState="verified"] { border-left-color: #44E39A; }
+QPushButton#AboutTrustAction[trustState="caution"] { border-left-color: #FFB454; }
+QPushButton#AboutTrustAction[trustState="attention"] { border-left-color: #FF8D74; }
+QPushButton#AboutTrustAction[trustState="proof"] { border-left-color: #35E7F5; }
+QPushButton#AboutTrustAction:hover { color: #FFFFFF; background: rgba(24, 33, 64, 240); border-color: #B45CFF; }
+QPushButton#AboutTrustAction:focus { border: 2px solid #FFFFFF; }
 QFrame#DiagnosticHandoffBar {
     background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 rgba(20,13,43,238),stop:1 rgba(5,31,42,232));
     border: 1px solid rgba(64, 220, 235, 160); border-left: 3px solid #A855F7; border-radius: 9px;

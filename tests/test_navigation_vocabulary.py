@@ -190,7 +190,7 @@ def test_about_recalculates_real_workspace_evidence_and_returns_from_its_exact_g
             f"{len(registry.packs)} DEVICE PACKS  •  1 OFFICIAL IDS"
         )
         assert window.about_page.evidence_values["knowledge"].text() == (
-            "128 VERIFIED GUIDES  •  78 KNOWN FIXES"
+            "132 VERIFIED GUIDES  •  82 KNOWN FIXES"
         )
         ready_tools = sum(status.available for status in window.toolchain_center.statuses)
         tool_count = len(window.toolchain_center.statuses)
@@ -226,6 +226,33 @@ def test_about_recalculates_real_workspace_evidence_and_returns_from_its_exact_g
         app.processEvents()
         assert window.stack.currentWidget() is window.about_page
         assert window.guardian_center.worker is None
+
+        trust_records = {
+            "desktop-legal-publication-boundary": (
+                "About shows Terms, but public legal terms are not published"
+            ),
+            "desktop-local-privacy-boundary": (
+                "About Privacy must describe the real local and online data boundary"
+            ),
+            "desktop-licence-notice-inventory": (
+                "Open-source licences or third-party notices are incomplete"
+            ),
+            "desktop-release-provenance": (
+                "Changelog or installed Desktop build cannot prove what is running"
+            ),
+        }
+        assert set(window.about_page.trust_buttons) == set(trust_records)
+        for key, title in trust_records.items():
+            window._navigate_route("about")
+            window.about_page.trust_buttons[key].click()
+            app.processEvents()
+            assert window.stack.currentWidget() is window.knowledge_center
+            assert window.knowledge_center.list.currentItem().text() == title
+            assert window.knowledge_center.source_context.property("source_route") == "about"
+            assert window.guardian_center.worker is None
+            window.knowledge_center.source_return.click()
+            app.processEvents()
+            assert window.stack.currentWidget() is window.about_page
 
         window.nexus_events.path.write_text("{}", encoding="utf-8")
         window._navigate_route("about")

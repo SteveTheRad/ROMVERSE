@@ -71,12 +71,13 @@ class OfficialAdbResearchProvider:
 
 def test_guided_repair_ui_saves_checkpoints_then_requires_fresh_scan(tmp_path) -> None:
     app = QApplication.instance() or QApplication([])
+    activity = ActivityStore(tmp_path)
     center = RepairCenter(
         DiagnosticAnalyzer(),
         RepairAssessmentTemplates(),
         GuardianPreflight(),
         tmp_path,
-        ActivityStore(tmp_path),
+        activity,
     )
     center.set_devices([device(battery_percent=8)])
     center._start_session()
@@ -84,6 +85,10 @@ def test_guided_repair_ui_saves_checkpoints_then_requires_fresh_scan(tmp_path) -
     assert center.active_session is not None
     assert center.active_session.status == "active"
     assert center.active_session.archive_article_keys == ("device-battery-low",)
+    session_id = center.active_session.session_id
+    started = activity.list_recent()[0]
+    assert started.context_type == "repair-session"
+    assert started.context_id == session_id
 
     for check in center.session_checks:
         check.setChecked(True)
@@ -102,6 +107,13 @@ def test_guided_repair_ui_saves_checkpoints_then_requires_fresh_scan(tmp_path) -
     assert center.active_session is not None
     assert center.active_session.status == "verified"
     assert "improved" in center.active_session.verification_summary
+    verified = activity.list_recent()[0]
+    assert verified.context_type == "repair-session"
+    assert verified.context_id == session_id
+    assert center.open_session(session_id)
+    assert center.session_context_row.isVisibleTo(center)
+    assert session_id in center.session_context_detail.text()
+    assert "no repair" in center.session_context_detail.text().casefold()
     center.close()
 
 

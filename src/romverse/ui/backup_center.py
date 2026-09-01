@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import suppress
+from datetime import datetime
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Qt, Signal, Slot
@@ -165,6 +166,7 @@ class BackupCenter(QWidget):
         self.rom_store = RomProjectStore(workspace)
         self.recovery_evidence = RecoveryEvidenceService(self.rom_store)
         self.plan_store = GuardianBackupPlanStore(workspace)
+        self._selected_plan_id = ""
         self.device: AndroidDevice | None = None
         self.projects = ()
         self.snapshots: tuple[TimeMachineSnapshot, ...] = ()
@@ -193,6 +195,29 @@ class BackupCenter(QWidget):
         self.status.setObjectName("Muted")
         self.status.setWordWrap(True)
         layout.addWidget(self.status)
+        self.plan_context = QFrame()
+        self.plan_context.setObjectName("DiagnosticHandoffBar")
+        plan_context_layout = QHBoxLayout(self.plan_context)
+        plan_context_layout.setContentsMargins(18, 13, 18, 13)
+        plan_context_copy = QVBoxLayout()
+        plan_context_eyebrow = QLabel("ACTIVITY HANDOFF  •  EXACT VERIFIED RECOVERY-READINESS PLAN")
+        plan_context_eyebrow.setObjectName("Eyebrow")
+        self.plan_context_title = QLabel()
+        self.plan_context_title.setObjectName("SectionTitle")
+        self.plan_context_detail = QLabel()
+        self.plan_context_detail.setObjectName("Muted")
+        self.plan_context_detail.setWordWrap(True)
+        self.plan_context_detail.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        plan_context_copy.addWidget(plan_context_eyebrow)
+        plan_context_copy.addWidget(self.plan_context_title)
+        plan_context_copy.addWidget(self.plan_context_detail)
+        plan_context_layout.addLayout(plan_context_copy, 1)
+        self.plan_context_badge = QLabel()
+        plan_context_layout.addWidget(self.plan_context_badge)
+        self.plan_context.setVisible(False)
+        layout.addWidget(self.plan_context)
         self.device_atlas_handoff = QFrame()
         self.device_atlas_handoff.setObjectName("DiagnosticHandoffBar")
         handoff_layout = QHBoxLayout(self.device_atlas_handoff)
@@ -248,7 +273,7 @@ class BackupCenter(QWidget):
             "Review the most recently recorded Guardian readiness evidence."
         )
         self.review_button.setEnabled(False)
-        self.review_button.clicked.connect(self._review_latest_plan)
+        self.review_button.clicked.connect(self._review_plan)
         readiness_layout.addWidget(self.review_button)
         self.guardian_button = QPushButton("Review plan in Guardian Core")
         self.guardian_button.setToolTip(
@@ -430,6 +455,78 @@ class BackupCenter(QWidget):
             )
             self.device_atlas_project_button.setVisible(True)
         self.device_atlas_handoff.setVisible(True)
+        return True
+
+    def open_backup_plan(self, plan_id: str) -> bool:
+        """Reverify and present one exact historical recovery-readiness plan."""
+
+        loaded = self.plan_store.load_history(plan_id)
+        data = loaded.data
+        if (
+            not loaded.valid
+            or not loaded.integrity_verified
+            or not isinstance(data, dict)
+            or data.get("plan_id") != plan_id
+        ):
+            return False
+        self._selected_plan_id = plan_id
+        self.review_button.setText("Review exact plan")
+        self.review_button.setEnabled(True)
+        latest = self.plan_store.load_latest()
+        latest_data = latest.data
+        is_latest = bool(
+            latest.valid
+            and latest.integrity_verified
+            and isinstance(latest_data, dict)
+            and latest_data.get("plan_id") == plan_id
+            and latest_data.get("plan_digest") == data.get("plan_digest")
+        )
+        self.guardian_button.setEnabled(is_latest)
+        self.plan_context_title.setText(
+            f"Recovery readiness  •  {data.get('device_name', 'Unknown device')}"
+        )
+        self.plan_context_detail.setText(
+            f"Plan {plan_id}  •  SHA-256 {str(data.get('plan_digest', ''))[:20]}…  •  "
+            f"created {_display_time(str(data.get('created_at', '')))}\n"
+            f"{'Current Guardian review context is available' if is_latest else 'Historical review only'}"
+            "  •  execution locked  •  phone data copied: no  •  no action started"
+        )
+        self.plan_context_badge.setText("CURRENT" if is_latest else "HISTORICAL")
+        self.plan_context_badge.setObjectName("Good" if is_latest else "Warning")
+        self._repolish(self.plan_context_badge)
+        self.plan_context.setVisible(True)
+        return True
+
+    def open_snapshot(self, project_id: str, snapshot_id: str) -> bool:
+        """Reverify record integrity and select one exact local Time Machine snapshot."""
+
+        try:
+            self.rom_store.get(project_id)
+        except ProjectError:
+            return False
+        self.refresh_local_snapshots(project_id)
+        row = next(
+            (
+                index
+                for index, snapshot in enumerate(self.snapshots)
+                if snapshot.snapshot_id == snapshot_id
+                and snapshot.project_id == project_id
+                and snapshot.schema_version == 2
+                and bool(snapshot.record_digest)
+            ),
+            -1,
+        )
+        if row < 0:
+            return False
+        self.snapshot_list.setCurrentRow(row)
+        self.snapshot_list.scrollToItem(self.snapshot_list.item(row))
+        self._snapshot_selected(self.snapshot_list.item(row), None)
+        self.local_result.setObjectName("Good")
+        self.local_result.setText(
+            f"EXACT ACTIVITY EVIDENCE  •  Snapshot {snapshot_id}  •  "
+            "integrity-sealed record selected  •  no restore or phone action started"
+        )
+        self._repolish(self.local_result)
         return True
 
     def set_media_backup_service(self, service: PhoneMediaBackupService | None) -> None:
@@ -656,6 +753,7 @@ class BackupCenter(QWidget):
     def _create_plan(self) -> None:
         if self.device is None:
             return
+        self.plan_context.setVisible(False)
         try:
             record = self.plan_store.create(self.device)
         except OSError as exc:
@@ -665,6 +763,8 @@ class BackupCenter(QWidget):
             return
         self.review_button.setEnabled(True)
         self.guardian_button.setEnabled(True)
+        self._selected_plan_id = record.plan_id
+        self.review_button.setText("Review latest plan")
         history_count = self.plan_store.history_count()
         self.result.setObjectName("Good")
         self.result.setText(
@@ -677,6 +777,8 @@ class BackupCenter(QWidget):
             "Guardian recovery plan recorded",
             "Device readiness evidence was saved locally; no phone data was copied.",
             "information",
+            context_type="backup-plan",
+            context_id=record.plan_id,
         )
         QMessageBox.information(
             self, "Backup plan ready", "Guardian readiness was recorded. No phone data was copied."
@@ -692,6 +794,9 @@ class BackupCenter(QWidget):
                 self._repolish(self.result)
             return
         data = loaded.data
+        plan_id = data.get("plan_id")
+        self._selected_plan_id = plan_id if isinstance(plan_id, str) else ""
+        self.review_button.setText("Review latest plan")
         self.result.setObjectName("Good" if loaded.integrity_verified else "Warning")
         self.result.setText(
             f"Latest plan: {data.get('status', 'unknown')}  •  "
@@ -884,6 +989,8 @@ class BackupCenter(QWidget):
     def _time_machine_complete(self, result: object) -> None:
         operation = self.worker.operation if self.worker is not None else ""
         project_id = self.worker.project_id if self.worker is not None else ""
+        snapshot_id = self.worker.snapshot.snapshot_id if self.worker is not None else ""
+        context_id = f"{project_id}.{snapshot_id}" if project_id and snapshot_id else ""
         self.worker = None
         self.local_progress.finish()
         self.local_result.setObjectName("Good")
@@ -902,6 +1009,8 @@ class BackupCenter(QWidget):
                 if valid
                 else "The local snapshot did not match its recorded integrity evidence.",
                 "success" if valid else "attention",
+                context_type="time-machine-snapshot" if context_id else "",
+                context_id=context_id,
             )
             self._finish_live_mission(
                 "time-machine-verify",
@@ -917,6 +1026,8 @@ class BackupCenter(QWidget):
                 "Local ROM baseline restored",
                 "Atomic restore verified • pre-restore safety snapshot preserved • phone untouched",
                 "success",
+                context_type="time-machine-snapshot" if context_id else "",
+                context_id=context_id,
             )
             self._finish_live_mission("time-machine-restore", MissionState.SUCCEEDED)
         else:
@@ -930,6 +1041,9 @@ class BackupCenter(QWidget):
     @Slot(str)
     def _time_machine_failed(self, message: str) -> None:
         operation = self.worker.operation if self.worker is not None else "operation"
+        project_id = self.worker.project_id if self.worker is not None else ""
+        snapshot_id = self.worker.snapshot.snapshot_id if self.worker is not None else ""
+        context_id = f"{project_id}.{snapshot_id}" if project_id and snapshot_id else ""
         self.worker = None
         self.local_progress.stop()
         self.local_result.setObjectName("Danger")
@@ -938,6 +1052,8 @@ class BackupCenter(QWidget):
             "Time Machine stopped safely",
             f"{operation.replace('-', ' ').title()} did not complete; no phone operation was attempted.",
             "attention",
+            context_type="time-machine-snapshot" if context_id else "",
+            context_id=context_id,
         )
         self._repolish(self.local_result)
         self._set_local_controls(self.snapshot_list.currentItem() is not None)
@@ -1072,7 +1188,15 @@ class BackupCenter(QWidget):
         self.evidence_result.setText("\n".join(assessment.evidence))
         self._repolish(self.evidence_result)
 
-    def _record_activity(self, title: str, detail: str, outcome: str) -> None:
+    def _record_activity(
+        self,
+        title: str,
+        detail: str,
+        outcome: str,
+        *,
+        context_type: str = "",
+        context_id: str = "",
+    ) -> None:
         if self.activity_store is None:
             return
         with suppress(ActivityStoreError):
@@ -1082,6 +1206,9 @@ class BackupCenter(QWidget):
                 detail,
                 outcome=outcome,
                 source="Time Machine",
+                source_route="time_machine" if context_id else "",
+                context_type=context_type,
+                context_id=context_id,
             )
 
     def _start_live_mission(self, stage: str, project_id: str = "") -> None:
@@ -1195,8 +1322,12 @@ class BackupCenter(QWidget):
         widget.style().unpolish(widget)
         widget.style().polish(widget)
 
-    def _review_latest_plan(self) -> None:
-        loaded = self.plan_store.load_latest()
+    def _review_plan(self) -> None:
+        loaded = (
+            self.plan_store.load_history(self._selected_plan_id)
+            if self._selected_plan_id
+            else self.plan_store.load_latest()
+        )
         if loaded.valid and loaded.data is not None:
             data = loaded.data
             readiness = data.get("readiness", {})
@@ -1211,7 +1342,7 @@ class BackupCenter(QWidget):
                 f"Integrity: {'verified' if loaded.integrity_verified else 'legacy / unverified'}",
                 "\nExecution remains locked; no phone data was copied.",
             ]
-            QMessageBox.information(self, "Latest Guardian backup plan", "\n".join(lines))
+            QMessageBox.information(self, "Guardian backup plan evidence", "\n".join(lines))
         else:
             self.review_button.setEnabled(False)
 
@@ -1229,3 +1360,10 @@ def _human_bytes(value: int) -> str:
             return f"{size:.0f} {unit}" if unit == "B" else f"{size:.1f} {unit}"
         size /= 1024
     return f"{size:.1f} TiB"
+
+
+def _display_time(value: str) -> str:
+    try:
+        return datetime.fromisoformat(value).astimezone().strftime("%d %b %Y • %H:%M")
+    except ValueError:
+        return "unknown"

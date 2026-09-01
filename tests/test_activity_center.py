@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import zipfile
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -10,6 +11,11 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QFileDialog, QLabel
 
 from romverse.core.activity import ActivityEvent, ActivityStore
+from romverse.device.apk_install import ApkInstallRequest, create_install_plan
+from romverse.diagnostics.analyzer import DiagnosticAnalyzer
+from romverse.infrastructure.process import CommandResult
+from romverse.repair.knowledge import knowledge_for
+from romverse.repair.templates import RepairConcern
 from romverse.ui.activity_center import (
     ActivityCenter,
     activity_source_route,
@@ -17,6 +23,8 @@ from romverse.ui.activity_center import (
     summarize_activity,
 )
 from romverse.ui.main_window import MainWindow
+
+from .test_diagnostics import device
 
 
 def _event(
@@ -241,6 +249,85 @@ def test_activity_exact_project_handoff_restores_project_and_stale_context_stops
         assert window.stack.currentWidget() is window.activity_center
         assert "no longer available" in window.activity_center.footer.text()
         assert "No workspace or device state changed" in window.activity_center.footer.text()
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_activity_handoffs_connect_exact_backup_repair_and_apk_evidence(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
+    source_device = device(battery_percent=8)
+    backup_plan = window.backup_center.plan_store.create(source_device)
+
+    source = tmp_path / "activity-baseline.img"
+    source.write_bytes(b"exact activity baseline" * 100)
+    project = window.rom_studio.store.import_original(
+        window.rom_studio.store.create("Activity evidence").project_id,
+        source,
+    )
+    window.rom_studio.store.create_working_copy(project.project_id)
+    snapshot = window.rom_studio.store.create_snapshot(project.project_id)
+
+    assert window.repair_center.session_store is not None
+    report = DiagnosticAnalyzer().analyze(source_device)
+    repair_session = window.repair_center.session_store.start(
+        RepairConcern.BATTERY_HEAT,
+        source_device,
+        report,
+        knowledge_for(RepairConcern.BATTERY_HEAT).recommended_steps,
+    )
+
+    apk = tmp_path / "activity.apk"
+    with zipfile.ZipFile(apk, "w") as archive:
+        archive.writestr("AndroidManifest.xml", b"manifest")
+        archive.writestr("classes.dex", b"dex\n035\0")
+    apk_plan = create_install_plan(
+        ApkInstallRequest(
+            str(apk),
+            source_device.serial,
+            battery_percent=90,
+            device_free_bytes=1024**3,
+        ),
+        "privacy-safe-target",
+    )
+    apk_receipt = window.apk_installer.receipts.write_install(
+        apk_plan,
+        CommandResult(("adb",), 1, "", "INSTALL_FAILED_INVALID_APK"),
+        False,
+    )
+
+    try:
+        window._open_activity_source("time_machine", "backup-plan", backup_plan.plan_id)
+        assert window.stack.currentWidget() is window.backup_center
+        assert backup_plan.plan_id in window.backup_center.plan_context_detail.text()
+
+        window._open_activity_source(
+            "time_machine",
+            "time-machine-snapshot",
+            f"{project.project_id}.{snapshot.snapshot_id}",
+        )
+        assert window.stack.currentWidget() is window.backup_center
+        assert snapshot.snapshot_id in window.backup_center.local_result.text()
+
+        window._open_activity_source(
+            "recovery_bay",
+            "repair-session",
+            repair_session.session_id,
+        )
+        assert window.stack.currentWidget() is window.repair_center
+        assert repair_session.session_id in window.repair_center.session_context_detail.text()
+
+        window._open_activity_source(
+            "app_launchpad",
+            "apk-install-receipt",
+            apk_receipt.receipt_id,
+        )
+        assert window.stack.currentWidget() is window.apk_installer
+        assert apk_receipt.receipt_id in window.apk_installer.receipt_context_detail.text()
+        assert window.apk_installer.current_plan is None
+        assert not window.apk_installer.install_button.isEnabled()
     finally:
         window.companion_center.transport.close()
         window.close()

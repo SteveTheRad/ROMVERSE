@@ -253,6 +253,27 @@ class ApkCenter(QWidget):
         result_layout.addWidget(self.result_label)
         layout.addWidget(result)
 
+        self.receipt_context = QFrame()
+        self.receipt_context.setObjectName("DiagnosticHandoffBar")
+        receipt_layout = QHBoxLayout(self.receipt_context)
+        receipt_layout.setContentsMargins(18, 13, 18, 13)
+        receipt_copy = QVBoxLayout()
+        receipt_eyebrow = QLabel("ACTIVITY HANDOFF  •  EXACT VERIFIED INSTALL RECEIPT")
+        receipt_eyebrow.setObjectName("Eyebrow")
+        self.receipt_context_title = QLabel()
+        self.receipt_context_title.setObjectName("SectionTitle")
+        self.receipt_context_detail = QLabel()
+        self.receipt_context_detail.setObjectName("Muted")
+        self.receipt_context_detail.setWordWrap(True)
+        receipt_copy.addWidget(receipt_eyebrow)
+        receipt_copy.addWidget(self.receipt_context_title)
+        receipt_copy.addWidget(self.receipt_context_detail)
+        receipt_layout.addLayout(receipt_copy, 1)
+        self.receipt_context_badge = QLabel()
+        receipt_layout.addWidget(self.receipt_context_badge)
+        self.receipt_context.setVisible(False)
+        layout.addWidget(self.receipt_context)
+
         self.failure_guidance = QFrame()
         self.failure_guidance.setObjectName("DiagnosticHandoffBar")
         failure_layout = QHBoxLayout(self.failure_guidance)
@@ -389,6 +410,39 @@ class ApkCenter(QWidget):
             f"Previous review loaded for reference ({integrity}). Reselect the APK to create "
             "a fresh, device-bound install session."
         )
+
+    def open_install_receipt(self, receipt_id: str) -> bool:
+        """Reverify and show one exact historical install receipt without restoring authority."""
+
+        loaded = self.receipts.load_install_history(receipt_id)
+        data = loaded.data
+        if (
+            not loaded.valid
+            or not loaded.integrity_verified
+            or not isinstance(data, dict)
+            or data.get("receipt_id") != receipt_id
+            or data.get("receipt_kind") != "install-result"
+        ):
+            return False
+        succeeded = data.get("success") is True
+        self.receipt_context_title.setText(
+            f"{data.get('apk_name', 'APK')}  •  "
+            f"{'installation completed' if succeeded else 'installation stopped safely'}"
+        )
+        failure = str(data.get("failure_code", ""))
+        self.receipt_context_detail.setText(
+            f"Receipt {receipt_id}  •  package {data.get('package_name') or 'not decoded'}  •  "
+            f"version {data.get('version_name') or 'unknown'}  •  "
+            f"APK SHA-256 {str(data.get('apk_sha256', ''))[:20]}…"
+            + (f"  •  Android result {failure}" if failure else "")
+            + "\nHistorical receipt only; no APK path, approval, retry, install, or phone action was restored."
+        )
+        self.receipt_context_badge.setText("SUCCESS" if succeeded else "ATTENTION")
+        self.receipt_context_badge.setObjectName("Good" if succeeded else "Warning")
+        self.receipt_context_badge.style().unpolish(self.receipt_context_badge)
+        self.receipt_context_badge.style().polish(self.receipt_context_badge)
+        self.receipt_context.setVisible(True)
+        return True
 
     def _choose(self) -> None:
         if self.active_worker is not None:
@@ -789,7 +843,7 @@ class ApkCenter(QWidget):
         if self.current_plan is None:
             return False
         try:
-            self.receipts.write_install(self.current_plan, result, success)
+            record = self.receipts.write_install(self.current_plan, result, success)
         except OSError:
             return False
         if self.activity_store is not None:
@@ -800,6 +854,9 @@ class ApkCenter(QWidget):
                     f"{Path(self.current_plan.inspection.path).name} • Guardian receipt recorded",
                     outcome="success" if success else "attention",
                     source="App Launchpad",
+                    source_route="app_launchpad",
+                    context_type="apk-install-receipt",
+                    context_id=record.receipt_id,
                 )
         return True
 

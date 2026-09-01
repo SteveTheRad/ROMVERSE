@@ -7,9 +7,11 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QPalette
 from PySide6.QtWidgets import QApplication, QLabel
 
+from romverse.core.activity import ActivityStore
 from romverse.device.models import AndroidDevice, DeviceState, StorageInfo
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.device_packs.validation import DevicePackValidationService
@@ -203,6 +205,52 @@ def test_time_machine_accepts_live_string_verified_boot_and_records_real_plan(tm
     assert center.review_button.isEnabled()
     assert "no phone data copied" in center.result.text()
     assert center.plan_store.load_latest().integrity_verified
+    center.close()
+
+
+def test_time_machine_activity_reopens_exact_plan_and_snapshot_evidence(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    activity = ActivityStore(tmp_path)
+    center = BackupCenter(tmp_path, activity)
+    device = AndroidDevice(
+        serial="private-serial",
+        state=DeviceState.DEVICE,
+        manufacturer="Xiaomi",
+        model="Test Phone",
+        battery_percent=90,
+        storage=StorageInfo(percent_used=30),
+        bootloader_locked=True,
+        verified_boot="green",
+    )
+    center.set_devices([device])
+    with patch("romverse.ui.backup_center.QMessageBox.information"):
+        center._create_plan()
+    plan_event = activity.list_recent()[0]
+    assert plan_event.context_type == "backup-plan"
+    assert center.open_backup_plan(plan_event.context_id)
+    assert center.plan_context.isVisibleTo(center)
+    assert plan_event.context_id in center.plan_context_detail.text()
+    assert "no action started" in center.plan_context_detail.text()
+
+    source = tmp_path / "baseline.img"
+    source.write_bytes(b"verified baseline" * 100)
+    project = center.rom_store.import_original(
+        center.rom_store.create("Activity snapshot").project_id,
+        source,
+    )
+    center.rom_store.create_working_copy(project.project_id)
+    snapshot = center.rom_store.create_snapshot(project.project_id)
+    center.refresh_local_snapshots(project.project_id)
+    center.worker = TimeMachineWorker(center.rom_store, "verify", project.project_id, snapshot)
+    center._time_machine_complete(center.rom_store.verify_snapshot(snapshot))
+    app.processEvents()
+
+    snapshot_event = activity.list_recent()[0]
+    assert snapshot_event.context_type == "time-machine-snapshot"
+    assert snapshot_event.context_id == f"{project.project_id}.{snapshot.snapshot_id}"
+    assert center.open_snapshot(project.project_id, snapshot.snapshot_id)
+    assert center.snapshot_list.currentItem().data(Qt.ItemDataRole.UserRole) == snapshot.snapshot_id
+    assert "no restore or phone action started" in center.local_result.text()
     center.close()
 
 

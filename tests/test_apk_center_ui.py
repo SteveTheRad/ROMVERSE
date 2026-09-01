@@ -8,6 +8,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication
 
+from romverse.core.activity import ActivityStore
 from romverse.device.apk_install import ApkInstallRequest, create_install_plan, inspect_apk
 from romverse.device.models import AndroidDevice, DeviceState, StorageInfo
 from romverse.infrastructure.process import CommandResult
@@ -279,7 +280,8 @@ def test_apk_failure_opens_exact_archives_fix_from_integrity_bound_receipt(
     tmp_path, monkeypatch
 ) -> None:
     app = QApplication.instance() or QApplication([])
-    center = ApkCenter(tmp_path, install_service=object())
+    activity = ActivityStore(tmp_path)
+    center = ApkCenter(tmp_path, install_service=object(), activity_store=activity)
     center.set_devices([_device()])
     center._plan_ready(_ready_plan(tmp_path))
     requested: list[str] = []
@@ -299,6 +301,13 @@ def test_apk_failure_opens_exact_archives_fix_from_integrity_bound_receipt(
     loaded = center.receipts.load_latest_install()
     assert loaded.valid and loaded.integrity_verified and loaded.data is not None
     assert loaded.data["failure_code"] == "INSTALL_FAILED_VERSION_DOWNGRADE"
+    event = activity.list_recent()[0]
+    assert event.context_type == "apk-install-receipt"
+    assert event.context_id == loaded.data["receipt_id"]
+    assert center.open_install_receipt(event.context_id)
+    assert center.receipt_context.isVisibleTo(center)
+    assert "VERSION_DOWNGRADE" in center.receipt_context_detail.text()
+    assert "no APK path" in center.receipt_context_detail.text()
     assert not center.failure_guidance.isHidden()
     assert "VERSION_DOWNGRADE" in center.failure_guidance_title.text()
     center.failure_guide_button.click()

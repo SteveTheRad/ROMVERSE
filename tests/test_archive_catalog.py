@@ -72,6 +72,10 @@ def test_archives_catalog_is_large_unique_classified_and_evidence_labelled() -> 
             "activity handoff stopped",
             "Activity outcome cannot reopen its exact source evidence",
         ),
+        (
+            "apk receipt activity",
+            "Activity outcome cannot reopen its exact source evidence",
+        ),
     ),
 )
 def test_archives_rank_verified_known_fixes_for_real_failure_language(

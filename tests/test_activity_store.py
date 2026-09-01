@@ -95,6 +95,40 @@ def test_activity_store_rejects_incomplete_unsupported_or_path_context(
         )
 
 
+@pytest.mark.parametrize(
+    ("route", "context_type", "context_id"),
+    (
+        ("time_machine", "backup-plan", "0" * 24),
+        (
+            "time_machine",
+            "time-machine-snapshot",
+            "project-one-1234abcd.20260902T101112-abcdef",
+        ),
+        ("recovery_bay", "repair-session", "1" * 32),
+        ("app_launchpad", "apk-install-receipt", "2" * 24),
+    ),
+)
+def test_activity_store_accepts_registered_exact_evidence_identifiers(
+    tmp_path,
+    route,
+    context_type,
+    context_id,
+) -> None:
+    event = ActivityStore(tmp_path).record(
+        "evidence",
+        "Exact source recorded",
+        "Validated local evidence",
+        source_route=route,
+        context_type=context_type,
+        context_id=context_id,
+    )
+    assert (event.source_route, event.context_type, event.context_id) == (
+        route,
+        context_type,
+        context_id,
+    )
+
+
 def test_activity_store_preserves_unreadable_ledger(tmp_path) -> None:
     path = tmp_path / "logs" / "activity-v1.json"
     path.parent.mkdir(parents=True)

@@ -1790,14 +1790,15 @@ KNOWN_FIXES = (
         "Activity outcome cannot reopen its exact source evidence",
         "ROMVERSE WORKFLOWS",
         "Activity Center stores a bounded redacted outcome summary, not the producing record. "
-        "New ROM Studio and verified diagnostic-snapshot events can also carry a privacy-safe "
-        "typed identifier that ROMVERSE revalidates before restoring the exact project or "
-        "Health Timeline snapshot. Older and unsupported events honestly open only their "
-        "canonical source page.",
+        "Supported events can also carry a privacy-safe typed identifier that ROMVERSE "
+        "revalidates before restoring the exact ROM project, Health Timeline snapshot, "
+        "recovery-readiness plan, Time Machine snapshot, guided repair session, or APK install "
+        "receipt. Older and unsupported events honestly open only their canonical source page.",
         checks=(
             "Confirm the event shows EXACT CONTEXT READY before expecting an exact project or snapshot handoff.",
             "For ROM Studio, confirm the referenced project manifest still exists and passes the project store's validation.",
             "For Health Timeline, confirm the snapshot is integrity-enveloped and still passes its SHA-256 verification.",
+            "For Time Machine, Recovery Bay, and App Launchpad, confirm the exact plan, snapshot, session, or receipt still passes its owning store's integrity checks.",
             "Treat a page-level handoff as navigation only; it does not claim that a previous selection was restored.",
         ),
         fix_steps=(
@@ -1809,6 +1810,7 @@ KNOWN_FIXES = (
         verification=(
             "A valid ROM project handoff opens ROM Studio with that exact project selected.",
             "A valid diagnostic handoff opens Health Timeline with that exact verified snapshot selected.",
+            "Valid Time Machine, Recovery Bay, and App Launchpad handoffs display their exact verified record without recreating approval or execution state.",
             "Missing, legacy, tampered, incomplete, or unsupported context leaves Activity Center visible with a safe-stop reason and changes no workspace or phone state.",
         ),
         tags=(
@@ -1819,6 +1821,10 @@ KNOWN_FIXES = (
             "activity handoff stopped",
             "legacy activity event",
             "source evidence missing",
+            "backup plan activity",
+            "repair session activity",
+            "apk receipt activity",
+            "time machine snapshot activity",
         ),
         route="activity_center",
         evidence="ROMVERSE accepts only registered type-to-route pairs and path-free identifiers, then asks the owning validated store to reload the exact current record.",

@@ -54,6 +54,16 @@ def test_apk_receipts_are_atomic_integrity_bound_and_privacy_safe(tmp_path) -> N
     assert store.history_count("apk-install") == 1
     assert not list(store.root.glob(".*.tmp"))
 
+    exact = store.load_install_history(install.receipt_id)
+    assert exact.valid and exact.integrity_verified
+    assert exact.data == install.data
+    assert not store.load_install_history("../private-path").valid
+
+    changed = json.loads(install.history_path.read_text(encoding="utf-8"))
+    changed["success"] = False
+    install.history_path.write_text(json.dumps(changed), encoding="utf-8")
+    assert not store.load_install_history(install.receipt_id).valid
+
     encoded = json.dumps({"preflight": preflight.data, "install": install.data})
     for private_value in (
         "PRIVATE-SERIAL",

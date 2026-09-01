@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -106,6 +107,13 @@ class ApkReceiptStore:
 
     def load_latest_install(self) -> ApkReceiptRead:
         return self.load(self.latest_install_path, "install-result")
+
+    def load_install_history(self, receipt_id: str) -> ApkReceiptRead:
+        """Load one exact install receipt without accepting a caller-provided path."""
+
+        if not re.fullmatch(r"[0-9a-f]{24}", receipt_id or ""):
+            return ApkReceiptRead(False, False, "APK receipt identifier is invalid")
+        return self.load(self.root / f"apk-install-{receipt_id}.json", "install-result")
 
     def load(self, path: Path, expected_kind: str) -> ApkReceiptRead:
         try:

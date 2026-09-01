@@ -256,6 +256,31 @@ class RepairCenter(QWidget):
         self.diagnostic_context_row.setVisible(False)
         page.addWidget(self.diagnostic_context_row)
 
+        self.session_context_row = QFrame()
+        self.session_context_row.setObjectName("DiagnosticHandoffBar")
+        session_context_layout = QHBoxLayout(self.session_context_row)
+        session_context_layout.setContentsMargins(18, 13, 18, 13)
+        session_copy = QVBoxLayout()
+        session_eyebrow = QLabel("ACTIVITY HANDOFF  •  EXACT VERIFIED REPAIR SESSION")
+        session_eyebrow.setObjectName("Eyebrow")
+        self.session_context_title = QLabel()
+        self.session_context_title.setObjectName("SectionTitle")
+        self.session_context_detail = QLabel()
+        self.session_context_detail.setObjectName("Muted")
+        self.session_context_detail.setWordWrap(True)
+        self.session_context_detail.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        session_copy.addWidget(session_eyebrow)
+        session_copy.addWidget(self.session_context_title)
+        session_copy.addWidget(self.session_context_detail)
+        session_context_layout.addLayout(session_copy, 1)
+        self.session_context_badge = QLabel("READ-ONLY EVIDENCE")
+        self.session_context_badge.setObjectName("Good")
+        session_context_layout.addWidget(self.session_context_badge)
+        self.session_context_row.setVisible(False)
+        page.addWidget(self.session_context_row)
+
         self.hero = QFrame()
         self.hero.setObjectName("HeroCard")
         hero_layout = QHBoxLayout(self.hero)
@@ -613,6 +638,44 @@ class RepairCenter(QWidget):
         self.diagnostic_source_button.setVisible(False)
         self.diagnostic_context.setVisible(True)
         self.diagnostic_context_row.setVisible(True)
+
+    def open_session(self, session_id: str) -> bool:
+        """Reverify and display one exact historical repair session without resuming it."""
+
+        if self.session_store is None:
+            return False
+        try:
+            session = self.session_store.load(session_id)
+        except RepairSessionError:
+            return False
+        if not session.integrity_verified or session.session_id != session_id:
+            return False
+        verification = (
+            f"  •  verification {session.verification_direction}  •  "
+            f"health {session.initial_health_score} → {session.verification_health_score}"
+            if session.verification_health_score is not None
+            else "  •  fresh verification not yet recorded"
+        )
+        self.session_context_title.setText(
+            f"{session.concern}  •  {session.status.replace('_', ' ')}"
+        )
+        self.session_context_detail.setText(
+            f"Session {session.session_id}  •  {session.device_name}  •  "
+            f"{len(session.reviewed_steps)}/{len(session.recommendations)} checkpoints reviewed"
+            f"{verification}\n"
+            f"Record SHA-256 {session.record_digest[:20]}…  •  Historical evidence only; "
+            "no repair, verification scan, approval, or device action resumed."
+        )
+        self.session_context_badge.setText(
+            "VERIFIED RESULT" if session.status == "verified" else "READ-ONLY EVIDENCE"
+        )
+        self.session_context_badge.setObjectName(
+            "Good" if session.status == "verified" else "Warning"
+        )
+        self.session_context_badge.style().unpolish(self.session_context_badge)
+        self.session_context_badge.style().polish(self.session_context_badge)
+        self.session_context_row.setVisible(True)
+        return True
 
     def show_diagnostic_handoff_error(self, finding_id: str) -> None:
         """Keep a failed source return visible when optional toasts are disabled."""
@@ -1699,6 +1762,7 @@ class RepairCenter(QWidget):
             "Guided repair session started",
             f"{self.current_concern.value} • privacy-safe evidence baseline recorded",
             "information",
+            session_id=self.active_session.session_id,
         )
         self.build_plan()
 
@@ -1764,10 +1828,18 @@ class RepairCenter(QWidget):
             "Guided repair evidence verified",
             self.active_session.verification_summary,
             "success" if "improved" in self.active_session.verification_summary else "information",
+            session_id=self.active_session.session_id,
         )
         self.resolution_memory_updated.emit()
 
-    def _record_activity(self, title: str, detail: str, outcome: str) -> None:
+    def _record_activity(
+        self,
+        title: str,
+        detail: str,
+        outcome: str,
+        *,
+        session_id: str = "",
+    ) -> None:
         if self.activity_store is None:
             return
         with suppress(ActivityStoreError):
@@ -1777,6 +1849,9 @@ class RepairCenter(QWidget):
                 detail,
                 outcome=outcome,
                 source="Recovery Bay",
+                source_route="recovery_bay" if session_id else "",
+                context_type="repair-session" if session_id else "",
+                context_id=session_id,
             )
 
     def _empty(self, message: str) -> None:

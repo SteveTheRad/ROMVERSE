@@ -3917,6 +3917,31 @@ class MainWindow(QMainWindow):
                     "The event's exact diagnostic snapshot is missing, legacy, or failed integrity verification"
                 )
                 return
+        elif clean_type == "backup-plan":
+            if not self.backup_center.open_backup_plan(clean_id):
+                self.activity_center.source_handoff_stopped(
+                    "The event's exact recovery-readiness plan is missing, legacy, or failed integrity verification"
+                )
+                return
+        elif clean_type == "time-machine-snapshot":
+            project_id, snapshot_id = clean_id.rsplit(".", 1)
+            if not self.backup_center.open_snapshot(project_id, snapshot_id):
+                self.activity_center.source_handoff_stopped(
+                    "The event's exact Time Machine snapshot is missing, legacy, or failed record verification"
+                )
+                return
+        elif clean_type == "repair-session":
+            if not self.repair_center.open_session(clean_id):
+                self.activity_center.source_handoff_stopped(
+                    "The event's exact guided repair session is missing or failed integrity verification"
+                )
+                return
+        elif clean_type == "apk-install-receipt":
+            if not self.apk_installer.open_install_receipt(clean_id):
+                self.activity_center.source_handoff_stopped(
+                    "The event's exact APK install receipt is missing, legacy, or failed integrity verification"
+                )
+                return
         else:
             self.activity_center.source_handoff_stopped(
                 "The event's source context is not supported by this ROMVERSE build"

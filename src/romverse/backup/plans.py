@@ -107,6 +107,13 @@ class GuardianBackupPlanStore:
     def load_latest(self) -> BackupPlanRead:
         return self.load(self.latest_path)
 
+    def load_history(self, plan_id: str) -> BackupPlanRead:
+        """Load one exact history record without accepting paths from the caller."""
+
+        if not re.fullmatch(r"[0-9a-f]{24}", plan_id or ""):
+            return BackupPlanRead(False, False, "Backup plan identifier is invalid")
+        return self.load(self.root / f"backup-plan-{plan_id}.json")
+
     def load(self, path: Path) -> BackupPlanRead:
         try:
             if path.is_symlink() or not path.is_file():

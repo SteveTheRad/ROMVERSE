@@ -39,6 +39,28 @@ def test_recovery_readiness_plan_is_atomic_private_and_integrity_verified(tmp_pa
     assert not list(store.root.glob("*.tmp"))
 
 
+def test_recovery_readiness_history_loads_exact_verified_plan_and_rejects_tampering(
+    tmp_path,
+) -> None:
+    store = GuardianBackupPlanStore(tmp_path)
+    first = store.create(_device())
+    second = store.create(_device())
+
+    loaded = store.load_history(first.plan_id)
+    assert loaded.valid and loaded.integrity_verified
+    assert loaded.data is not None
+    assert loaded.data["plan_id"] == first.plan_id
+    assert store.load_latest().data == second.data
+    assert not store.load_history("../private-path").valid
+
+    payload = json.loads(first.history_path.read_text(encoding="utf-8"))
+    payload["phone_data_copied"] = True
+    first.history_path.write_text(json.dumps(payload), encoding="utf-8")
+    rejected = store.load_history(first.plan_id)
+    assert not rejected.valid
+    assert "integrity mismatch" in rejected.reason
+
+
 def test_tampered_recovery_readiness_plan_is_rejected(tmp_path) -> None:
     store = GuardianBackupPlanStore(tmp_path)
     store.create(_device())

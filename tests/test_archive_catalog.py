@@ -20,8 +20,8 @@ def test_archives_catalog_is_large_unique_classified_and_evidence_labelled() -> 
     validate_catalog(ARCHIVE_ARTICLES)
     metrics = catalog_metrics(ARCHIVE_ARTICLES)
 
-    assert len(ARCHIVE_ARTICLES) == 116
-    assert len(KNOWN_FIXES) == 66
+    assert len(ARCHIVE_ARTICLES) == 117
+    assert len(KNOWN_FIXES) == 67
     assert metrics == {
         "guides": len(ARCHIVE_ARTICLES),
         "categories": len(CATEGORIES),
@@ -64,6 +64,10 @@ def test_archives_catalog_is_large_unique_classified_and_evidence_labelled() -> 
             "about counters unavailable",
             "About runtime evidence is stale or unavailable",
         ),
+        (
+            "synapse fix retired",
+            "Local learned fix is missing or retired in Archives",
+        ),
     ),
 )
 def test_archives_rank_verified_known_fixes_for_real_failure_language(
@@ -77,7 +81,7 @@ def test_archives_rank_verified_known_fixes_for_real_failure_language(
 
 def test_archives_reject_weak_matches_and_bound_results() -> None:
     assert not search_catalog(ARCHIVE_ARTICLES, "definitely not a real ROMVERSE topic")
-    assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=1_000)) == 116
+    assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=1_000)) == 117
     assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=0)) == 1
     connectivity = search_catalog(
         ARCHIVE_ARTICLES,

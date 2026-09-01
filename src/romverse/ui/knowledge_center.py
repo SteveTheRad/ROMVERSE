@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, QUrl, Signal
+from PySide6.QtCore import QSize, Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QComboBox,
@@ -18,6 +18,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from romverse.intelligence.synapse import (
+    SynapseKnowledge,
+    SynapseKnowledgeState,
+    SynapseStore,
+    SynapseStoreError,
+)
 from romverse.knowledge.archives import (
     ALL_CATEGORIES,
     CATEGORIES,
@@ -378,12 +384,182 @@ class KnowledgeGuideDialog(QDialog):
         """
 
 
+class SynapseLearningDialog(QDialog):
+    """Search integrity-checked private learning without turning it into authority."""
+
+    def __init__(
+        self,
+        knowledge: tuple[SynapseKnowledge, ...],
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self.knowledge = knowledge
+        self.visible_knowledge: tuple[SynapseKnowledge, ...] = ()
+        self.setWindowTitle("ROMVERSE Archives • Local Learning")
+        self.setMinimumSize(860, 560)
+        self.resize(980, 650)
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(24, 22, 24, 22)
+        root.setSpacing(12)
+        eyebrow = QLabel("ROMVERSE SYNAPSE  •  PRIVATE LOCAL EVIDENCE BANK")
+        eyebrow.setObjectName("Eyebrow")
+        title = QLabel("Learned fixes, with their limits intact")
+        title.setObjectName("Title")
+        subtitle = QLabel(
+            "Only privacy-scrubbed typed outcomes with local verification evidence appear here. "
+            "Retired knowledge remains visible so ROMVERSE does not repeat an invalid fix."
+        )
+        subtitle.setObjectName("Muted")
+        subtitle.setWordWrap(True)
+        root.addWidget(eyebrow)
+        root.addWidget(title)
+        root.addWidget(subtitle)
+
+        self.search = QLineEdit()
+        self.search.setMaxLength(160)
+        self.search.setClearButtonEnabled(True)
+        self.search.setAccessibleName("Search private ROMVERSE learned outcomes")
+        self.search.setPlaceholderText(
+            "Search operation, source format, device, build, tool, solution, or outcome…"
+        )
+        self.search.textChanged.connect(self._filter)
+        root.addWidget(self.search)
+
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter.setObjectName("ArchivesLearningSplitter")
+        self.list = QListWidget()
+        self.list.setObjectName("ArchivesLearningList")
+        self.list.setAccessibleName("Integrity-verified local learning records")
+        self.list.currentRowChanged.connect(self._select)
+        self.detail = QTextBrowser()
+        self.detail.setObjectName("ArchivesLearningDetail")
+        self.detail.setAccessibleName("Selected local learning evidence")
+        splitter.addWidget(self.list)
+        splitter.addWidget(self.detail)
+        splitter.setSizes([350, 590])
+        root.addWidget(splitter, 1)
+
+        boundary = QLabel(
+            "GUIDANCE ONLY  •  No upload  •  No remote instruction execution  •  Exact scope "
+            "must match again  •  Guardian remains the only approval boundary"
+        )
+        boundary.setObjectName("SynapseBoundary")
+        boundary.setWordWrap(True)
+        root.addWidget(boundary)
+        actions = QHBoxLayout()
+        self.result_status = QLabel()
+        self.result_status.setObjectName("Muted")
+        actions.addWidget(self.result_status, 1)
+        close = QPushButton("Return to Archives")
+        close.setObjectName("Primary")
+        close.clicked.connect(self.accept)
+        actions.addWidget(close)
+        root.addLayout(actions)
+        self._filter("")
+
+    def _filter(self, _value: object = None) -> None:
+        tokens = self.search.text().casefold().split()[:16]
+        self.visible_knowledge = tuple(
+            item
+            for item in self.knowledge
+            if not tokens or all(token in self._search_document(item) for token in tokens)
+        )
+        self.list.blockSignals(True)
+        self.list.clear()
+        for item in self.visible_knowledge:
+            marker = {
+                SynapseKnowledgeState.TRUSTED: "✶",
+                SynapseKnowledgeState.STRONG: "◆",
+                SynapseKnowledgeState.VERIFIED_SUCCESS: "✓",
+                SynapseKnowledgeState.CANDIDATE: "◇",
+                SynapseKnowledgeState.RETIRED: "×",
+            }[item.state]
+            row = QListWidgetItem(
+                f"{marker}  {item.solution_id.replace('-', ' ').title()}\n"
+                f"{item.scope.operation.replace('-', ' ').title()}  •  "
+                f"{item.state.value.replace('-', ' ').upper()}  "
+                f"•  {item.confidence}%"
+            )
+            row.setData(Qt.ItemDataRole.UserRole, item.knowledge_id)
+            row.setSizeHint(QSize(0, 58))
+            row.setToolTip(item.summary)
+            self.list.addItem(row)
+        self.list.blockSignals(False)
+        self.result_status.setText(
+            f"Showing {len(self.visible_knowledge)} of {len(self.knowledge)} local knowledge records"
+        )
+        if self.visible_knowledge:
+            self.list.setCurrentRow(0)
+            self._select(0)
+        else:
+            self.detail.setPlainText(
+                "No integrity-verified local learning record matched this search. ROMVERSE will "
+                "not broaden the scope or invent a learned fix."
+            )
+
+    def _select(self, row: int) -> None:
+        if not 0 <= row < len(self.visible_knowledge):
+            return
+        item = self.visible_knowledge[row]
+        scope = item.scope
+        state = item.state.value.replace("-", " ").upper()
+        source_families = ", ".join(item.independent_source_families) or "None verified"
+        self.detail.setPlainText(
+            f"SOLUTION\n{item.solution_id}\n\n"
+            f"KNOWLEDGE STATE\n{state}  •  {item.confidence}% confidence\n"
+            f"{item.successful_verifications} successful verification(s)  •  "
+            f"{item.failed_verifications} failed or drifted verification(s)\n\n"
+            "EXACT LEARNING SCOPE\n"
+            f"Operation: {scope.operation.replace('-', ' ')}\n"
+            f"Source format: {scope.source_kind or 'UNCONFIRMED'}\n"
+            f"Device codename: {scope.device_codename or 'UNCONFIRMED'}\n"
+            f"Build family: {scope.build_family or 'UNCONFIRMED'}\n"
+            f"Tool: {scope.tool_name or 'UNCONFIRMED'} "
+            f"{scope.tool_version or '(version unconfirmed)'}\n\n"
+            f"VERIFIED OUTCOME\n{item.summary}\n\n"
+            f"Independent source families: {source_families}\n"
+            f"Last observed: {item.last_observed_at}\n"
+            f"Last verified success: {item.last_verified_at or 'NONE'}\n"
+            f"Knowledge reference: {item.knowledge_id[:16]}…\n\n"
+            "AUTOMATION BOUNDARY\n"
+            "This record is guidance-only. A new error fingerprint and exact scope must match, "
+            "then the same built-in typed action must produce fresh verification evidence. "
+            "It cannot approve, build, flash, change a phone, or execute remote text."
+        )
+
+    @staticmethod
+    def _search_document(item: SynapseKnowledge) -> str:
+        scope = item.scope
+        return " ".join(
+            (
+                item.solution_id,
+                item.state.value,
+                item.summary,
+                scope.operation,
+                scope.source_kind,
+                scope.device_codename,
+                scope.build_family,
+                scope.tool_name,
+                scope.tool_version,
+                *item.independent_source_families,
+            )
+        ).casefold()
+
+
 class KnowledgeCenter(QWidget):
     route_requested = Signal(str)
 
-    def __init__(self, resolution_memory: ArchivesResolutionMemory | None = None) -> None:
+    def __init__(
+        self,
+        resolution_memory: ArchivesResolutionMemory | None = None,
+        synapse_store: SynapseStore | None = None,
+    ) -> None:
         super().__init__()
         self.resolution_memory = resolution_memory
+        self.synapse_store = synapse_store
+        self.synapse_knowledge: tuple[SynapseKnowledge, ...] = ()
+        self.learning_dialog: SynapseLearningDialog | None = None
         layout = QVBoxLayout(self)
         layout.setContentsMargins(30, 26, 30, 30)
         layout.setSpacing(14)
@@ -464,6 +640,32 @@ class KnowledgeCenter(QWidget):
         metrics_row.addStretch()
         layout.addLayout(metrics_row)
 
+        self.learning_panel = QFrame()
+        self.learning_panel.setObjectName("SynapseLearningPanel")
+        self.learning_panel.setProperty("learningState", "empty")
+        learning_layout = QHBoxLayout(self.learning_panel)
+        learning_layout.setContentsMargins(16, 11, 13, 11)
+        learning_layout.setSpacing(13)
+        learning_copy = QVBoxLayout()
+        learning_copy.setSpacing(3)
+        learning_eyebrow = QLabel("LOCAL LEARNING  •  ROMVERSE SYNAPSE")
+        learning_eyebrow.setObjectName("SynapseLearningTitle")
+        self.learning_status = QLabel("Checking the private local evidence bank…")
+        self.learning_status.setObjectName("Muted")
+        self.learning_status.setAccessibleName("Private local ROMVERSE learning status")
+        self.learning_status.setWordWrap(True)
+        learning_copy.addWidget(learning_eyebrow)
+        learning_copy.addWidget(self.learning_status)
+        learning_layout.addLayout(learning_copy, 1)
+        self.learning_button = QPushButton("How local learning works  →")
+        self.learning_button.setObjectName("SynapseLearningAction")
+        self.learning_button.setAccessibleName(
+            "Inspect private integrity-verified ROMVERSE learning"
+        )
+        self.learning_button.clicked.connect(self._open_local_learning)
+        learning_layout.addWidget(self.learning_button)
+        layout.addWidget(self.learning_panel)
+
         self.search_status = QLabel(f"{len(ARCHIVE_ARTICLES)} verified local guides available.")
         self.search_status.setObjectName("Muted")
         layout.addWidget(self.search_status)
@@ -508,6 +710,7 @@ class KnowledgeCenter(QWidget):
         layout.addLayout(actions)
 
         self.list.currentItemChanged.connect(self._show_article)
+        self.refresh_synapse_memory()
         self._filter("")
 
     def open_query(self, query: str, *, source_route: str = "") -> None:
@@ -603,9 +806,9 @@ class KnowledgeCenter(QWidget):
             self.list.setCurrentRow(0)
             self._show_article(self.list.currentItem(), None)
             self.search_status.setObjectName("Good" if query else "Muted")
+            guide_count = f"{len(matches)} verified guide{'s' if len(matches) != 1 else ''}"
             self.search_status.setText(
-                f"{len(matches)} verified guide{'s' if len(matches) != 1 else ''} found"
-                + (f" for “{query}”." if query else " available.")
+                f"{guide_count} found for “{query}”." if query else f"{guide_count} available."
             )
         else:
             self.detail.setText(
@@ -649,6 +852,79 @@ class KnowledgeCenter(QWidget):
         """Refresh presentation after Recovery Bay records a fresh comparison."""
 
         self._show_article(self.list.currentItem(), None)
+
+    def refresh_synapse_memory(self) -> None:
+        """Reload only integrity-checked private learning when Archives is opened."""
+
+        if self.synapse_store is None:
+            self.synapse_knowledge = ()
+            self._set_learning_state(
+                "0 LOCAL OUTCOMES  •  Learning begins only after a typed fix is verified  •  "
+                "GUIDANCE ONLY",
+                "empty",
+            )
+            self.learning_button.setText("How local learning works  →")
+            return
+        try:
+            self.synapse_knowledge = self.synapse_store.list_knowledge()
+        except SynapseStoreError:
+            self.synapse_knowledge = ()
+            self._set_learning_state(
+                "LOCAL LEARNING UNAVAILABLE  •  The integrity check rejected this private "
+                "cache  •  ORIGINAL PRESERVED",
+                "unavailable",
+            )
+            self.learning_button.setText("Review the safety boundary  →")
+            return
+        usable_states = {
+            SynapseKnowledgeState.VERIFIED_SUCCESS,
+            SynapseKnowledgeState.STRONG,
+            SynapseKnowledgeState.TRUSTED,
+        }
+        usable = sum(item.state in usable_states for item in self.synapse_knowledge)
+        trusted = sum(
+            item.state is SynapseKnowledgeState.TRUSTED for item in self.synapse_knowledge
+        )
+        retired = sum(
+            item.state is SynapseKnowledgeState.RETIRED for item in self.synapse_knowledge
+        )
+        if not self.synapse_knowledge:
+            self._set_learning_state(
+                "0 LOCAL OUTCOMES  •  Learning begins only after a typed fix is verified  •  "
+                "NO UPLOAD OR EXECUTION AUTHORITY",
+                "empty",
+            )
+            self.learning_button.setText("How local learning works  →")
+            return
+        self._set_learning_state(
+            f"{len(self.synapse_knowledge)} LOCAL KNOWLEDGE RECORD(S)  •  {usable} USABLE  •  "
+            f"{trusted} TRUSTED  •  {retired} RETIRED  •  GUIDANCE ONLY",
+            "verified" if usable and not retired else "attention",
+        )
+        self.learning_button.setText("Inspect learned fixes  →")
+
+    def _set_learning_state(self, text: str, state: str) -> None:
+        self.learning_status.setText(text)
+        self.learning_status.setObjectName(
+            "Good" if state == "verified" else "Danger" if state == "unavailable" else "Warning"
+        )
+        self.learning_panel.setProperty("learningState", state)
+        for widget in (self.learning_status, self.learning_panel):
+            widget.style().unpolish(widget)
+            widget.style().polish(widget)
+
+    def _open_local_learning(self) -> None:
+        if not self.synapse_knowledge:
+            self.open_article("archives-local-learning-boundary")
+            return
+        dialog = SynapseLearningDialog(self.synapse_knowledge, self)
+        self.learning_dialog = dialog
+        dialog.finished.connect(lambda _result, opened=dialog: self._learning_closed(opened))
+        dialog.open()
+
+    def _learning_closed(self, dialog: SynapseLearningDialog) -> None:
+        if self.learning_dialog is dialog:
+            self.learning_dialog = None
 
     def _show_resolution_memory(self, memory: ArticleResolutionMemory | None) -> None:
         if memory is None:

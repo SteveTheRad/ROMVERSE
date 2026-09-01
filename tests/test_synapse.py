@@ -84,6 +84,33 @@ def test_synapse_bounded_scope_never_claims_exact_compatibility(tmp_path) -> Non
     assert "exact-device verification" in match.explanation
 
 
+def test_synapse_lists_compiled_and_retired_local_knowledge_for_archives(tmp_path) -> None:
+    store = SynapseStore(tmp_path)
+    verified_scope = SynapseScope.create(
+        operation="payload extraction",
+        source_kind="payload-bin",
+        device_codename="popsicle",
+        tool_name="payload-dumper-go",
+    )
+    retired_scope = SynapseScope.create(operation="avb inspection", tool_name="avbtool")
+    store.contribute(_contribution(verified_scope, source="official-aosp"))
+    store.contribute(_contribution(verified_scope, source="maintainer-tool"))
+    store.contribute(
+        _contribution(retired_scope, source="official-aosp", success=False, drift=True)
+    )
+
+    knowledge = store.list_knowledge()
+
+    assert [item.state for item in knowledge] == [
+        SynapseKnowledgeState.STRONG,
+        SynapseKnowledgeState.RETIRED,
+    ]
+    assert knowledge[0].successful_verifications == 2
+    assert knowledge[1].failed_verifications == 1
+    assert store.list_knowledge(limit=1) == knowledge[:1]
+    assert store.list_knowledge(limit=0) == ()
+
+
 def test_synapse_rejects_phone_changes_unverified_success_and_tampering(tmp_path) -> None:
     scope = SynapseScope.create(operation="inspect")
     common = dict(

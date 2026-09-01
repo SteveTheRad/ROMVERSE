@@ -11,6 +11,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtWidgets import QApplication, QLabel, QMessageBox, QPushButton
 
 from romverse.backup.handoff import BackupHandoffService, CloudBackupProvider
+from romverse.core.settings import AppSettings
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device_packs.models import (
     CapabilityStatus,
@@ -31,6 +32,7 @@ from romverse.intelligence.online_remediation import (
     ErrorFingerprint,
     OnlineRemediationService,
 )
+from romverse.intelligence.synapse import SynapseKnowledgeState, SynapseStore
 from romverse.nexus.events import LiveConsoleEventStore, MissionState
 from romverse.rom.builds import RomBuildPlanner
 from romverse.rom.inspection import RomInspectionService
@@ -968,6 +970,54 @@ def test_online_research_completion_is_reported_truthfully_to_live_console(tmp_p
     assert "CORROBORATION:" in control.status.toolTip()
     assert "SCOPE:" in control.status.toolTip()
     assert "CONFIDENCE:" in control.status.toolTip()
+    control.close()
+    studio.close()
+
+
+def test_verified_typed_build_fix_becomes_private_archives_learning(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    _app = QApplication.instance() or QApplication([])
+    studio = _studio(tmp_path)
+    studio.app_settings = AppSettings(synapse_contributions_enabled=True)
+    control = BuildControlCenter(studio, auto_start=False)
+    fingerprint = ErrorFingerprint.create(
+        "payload.bin extraction failed",
+        category="source",
+        source_kind="payload-bin",
+        codename="popsicle",
+        tool_name="Payload Dumper",
+        tool_version="2.0.2",
+    )
+    control.online_receipt = OnlineRemediationService(studio.store.workspace).lookup(fingerprint)
+    assert any(
+        candidate.local_action_id == "inspect-payload-source"
+        for candidate in control.online_receipt.candidates
+    )
+    monkeypatch.setattr(
+        OnlineRemediationService,
+        "record_verified_outcome",
+        lambda *_args, **_kwargs: SimpleNamespace(outcome_digest="d" * 64),
+    )
+
+    control._record_online_fix_success(
+        ("inspect-payload-source",),
+        "b" * 64,
+        "Typed payload inspection completed and verified exact source evidence.",
+        f"projects/{control.project.project_id}/source-blueprint.romverse",
+        "romverse.source-blueprint",
+    )
+
+    learned = SynapseStore(studio.store.workspace).list_knowledge()
+    assert len(learned) == 1
+    assert learned[0].state is SynapseKnowledgeState.VERIFIED_SUCCESS
+    assert learned[0].scope.operation == "source"
+    assert learned[0].scope.source_kind == "payload-bin"
+    assert learned[0].scope.device_codename == "popsicle"
+    assert learned[0].scope.tool_name == "payload-dumper"
+    assert learned[0].execution_authority == "guidance-only"
+    assert "ONLINE FIX VERIFIED WORKING" in control.status.text()
     control.close()
     studio.close()
 

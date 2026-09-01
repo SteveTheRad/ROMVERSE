@@ -101,6 +101,7 @@ from romverse.guardian.policy import GuardianPolicy
 from romverse.infrastructure.process import CommandRunner, SubprocessRunner
 from romverse.infrastructure.tools import ToolStatus
 from romverse.intelligence.online_remediation import OnlineRemediationService
+from romverse.intelligence.synapse import SynapseStore
 from romverse.knowledge.advisor import article_for_key
 from romverse.knowledge.archives import catalog_metrics
 from romverse.knowledge.resolution_memory import ArchivesResolutionMemory
@@ -2956,7 +2957,8 @@ class MainWindow(QMainWindow):
         )
         self.stack.addWidget(self.backup_center)
         self.knowledge_center = KnowledgeCenter(
-            ArchivesResolutionMemory(RepairSessionStore(workspace))
+            ArchivesResolutionMemory(RepairSessionStore(workspace)),
+            SynapseStore(workspace),
         )
         self.knowledge_center.route_requested.connect(self._open_knowledge_route)
         self.repair_center.resolution_memory_updated.connect(
@@ -3768,6 +3770,7 @@ class MainWindow(QMainWindow):
             self.activity_center.refresh()
         elif self.stack.currentWidget() is self.knowledge_center:
             self.knowledge_center.clear_source_context()
+            self.knowledge_center.refresh_synapse_memory()
         elif self.stack.currentWidget() is self.guardian_center:
             self._revalidate_guardian_review_contexts()
             self.guardian_center.request_refresh()

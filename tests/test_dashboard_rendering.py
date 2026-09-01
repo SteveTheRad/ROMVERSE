@@ -469,8 +469,8 @@ def test_about_runtime_evidence_is_explicit_and_routes_to_its_owning_features() 
             catalog_fresh=True,
             catalog_entry_count=12_345,
             catalog_reason="Official Android IDs are integrity checked",
-            archive_guide_count=116,
-            archive_known_fix_count=66,
+            archive_guide_count=117,
+            archive_known_fix_count=67,
             archive_category_count=10,
             project_count=3,
             tool_ready_count=17,
@@ -486,7 +486,7 @@ def test_about_runtime_evidence_is_explicit_and_routes_to_its_owning_features() 
         "READ-ONLY  •  CURRENT WORKSPACE  •  NO EXECUTION AUTHORITY"
     )
     assert page.evidence_values["device"].text() == ("21 DEVICE PACKS  •  12,345 OFFICIAL IDS")
-    assert page.evidence_values["knowledge"].text() == ("116 VERIFIED GUIDES  •  66 KNOWN FIXES")
+    assert page.evidence_values["knowledge"].text() == ("117 VERIFIED GUIDES  •  67 KNOWN FIXES")
     assert page.evidence_values["build"].text() == ("3 LOCAL PROJECTS  •  17/19 HOST TOOLS READY")
     assert page.evidence_values["live"].text() == ("200 GENUINE EVENTS  •  38 ACTIVE")
     assert page.evidence_cards["device"].property("evidenceState") == "verified"
@@ -519,8 +519,8 @@ def test_about_runtime_evidence_rejects_untrusted_counts() -> None:
             catalog_fresh=False,
             catalog_entry_count=0,
             catalog_reason="Unavailable",
-            archive_guide_count=116,
-            archive_known_fix_count=66,
+            archive_guide_count=117,
+            archive_known_fix_count=67,
             archive_category_count=10,
             project_count=0,
             tool_ready_count=0,

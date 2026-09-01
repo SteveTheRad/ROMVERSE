@@ -1745,6 +1745,46 @@ KNOWN_FIXES = (
         automation="READ-ONLY RECALCULATION AND EXACT FEATURE ROUTING ONLY • NO SCAN, BUILD, APPROVAL, OR DEVICE ACTION",
         source=ROMVERSE_SOURCE,
     ),
+    _fix(
+        "archives-local-learning-boundary",
+        "Local learned fix is missing or retired in Archives",
+        "ROMVERSE WORKFLOWS",
+        "Archives Local Learning accepts only privacy-scrubbed host-side or read-only outcomes "
+        "produced by a built-in typed action with a verified action receipt. Research text, a "
+        "successful command exit, an unverified phone change, or a plausible community answer "
+        "cannot become learned knowledge. Retired records stay visible so ROMVERSE does not "
+        "silently reuse evidence invalidated by failures or version drift.",
+        checks=(
+            "Confirm Settings allowed ROMVERSE to prepare private local Synapse contributions; no production upload service is implied or used.",
+            "Confirm Forge Control first preserved an exact error fingerprint and source-attributed official or maintainer candidate.",
+            "Confirm the matching built-in typed action produced a receipt digest and separate verification-evidence digest without changing a phone.",
+            "Inspect the learned record's exact operation, source format, device codename, build family, tool name, and tool version scope.",
+        ),
+        fix_steps=(
+            "If no local record exists, complete the typed host/read-only repair and its verification; do not manually create a knowledge record.",
+            "If the cache is rejected, preserve it and review the visible integrity warning. ROMVERSE will not rewrite or count modified contributions.",
+            "If the record is candidate-only, gather another locally verified success before relying on it as a reusable fix.",
+            "If the record is retired, resolve the failed verification or version drift and create fresh exact-scope evidence instead of reviving the old record.",
+        ),
+        verification=(
+            "Archives reloads the cache and shows the same compiled state, confidence, success/failure counts, source families, and exact scope.",
+            "A new query can use only compatible non-retired knowledge; retired records remain inspection-only.",
+            "The record remains guidance-only and cannot approve, build, install, flash, publish, upload, or execute remote instructions.",
+        ),
+        tags=(
+            "local learning missing",
+            "synapse fix retired",
+            "learned outcome unavailable",
+            "archives learned fixes",
+            "verified repair memory",
+            "tool version drift",
+            "guidance only knowledge",
+        ),
+        route="archives",
+        evidence="ROMVERSE compiles Local Learning only from the digest-verified private Synapse cache and its typed local action evidence contracts.",
+        automation="PRIVATE READ-ONLY INDEXING AND COMPATIBLE-SCOPE QUERY ONLY • NO UPLOAD, APPROVAL, REMOTE TEXT EXECUTION, OR DEVICE ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
 )
 
 

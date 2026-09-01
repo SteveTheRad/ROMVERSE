@@ -233,6 +233,42 @@ class SynapseStore:
             )[:bounded]
         )
 
+    def list_knowledge(self, *, limit: int = 256) -> tuple[SynapseKnowledge, ...]:
+        """Compile the bounded local evidence bank for read-only Archives inspection.
+
+        Retired records remain visible here so Archives can explain why an older learned
+        outcome must not be reused. Query-based automation continues to exclude them.
+        """
+
+        bounded = max(0, min(int(limit), 256))
+        if not bounded:
+            return ()
+        grouped: dict[tuple[str, str, str], list[SynapseContribution]] = {}
+        for item in self._load():
+            grouped.setdefault(
+                (item.fingerprint_id, item.solution_id, item.scope.scope_digest), []
+            ).append(item)
+        state_rank = {
+            SynapseKnowledgeState.TRUSTED: 0,
+            SynapseKnowledgeState.STRONG: 1,
+            SynapseKnowledgeState.VERIFIED_SUCCESS: 2,
+            SynapseKnowledgeState.CANDIDATE: 3,
+            SynapseKnowledgeState.RETIRED: 4,
+        }
+        compiled = tuple(_compile_knowledge(tuple(items)) for items in grouped.values())
+        return tuple(
+            sorted(
+                compiled,
+                key=lambda item: (
+                    state_rank[item.state],
+                    -item.confidence,
+                    item.scope.operation,
+                    item.solution_id,
+                    item.knowledge_id,
+                ),
+            )[:bounded]
+        )
+
     def _load(self) -> tuple[SynapseContribution, ...]:
         if not self.path.exists():
             return ()

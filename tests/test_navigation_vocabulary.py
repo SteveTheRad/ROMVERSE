@@ -20,6 +20,12 @@ from romverse.device.models import AndroidDevice, DeviceState, StorageInfo
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.infrastructure.process import CommandResult
 from romverse.infrastructure.tools import ToolStatus
+from romverse.intelligence.synapse import (
+    SynapseContribution,
+    SynapseKnowledgeState,
+    SynapseScope,
+    SynapseStore,
+)
 from romverse.nexus.events import MissionConfidence
 from romverse.nexus.planning import NexusObjective, NexusPlanner
 from romverse.repair.templates import RepairConcern
@@ -182,7 +188,7 @@ def test_about_recalculates_real_workspace_evidence_and_returns_from_its_exact_g
             f"{len(registry.packs)} DEVICE PACKS  •  1 OFFICIAL IDS"
         )
         assert window.about_page.evidence_values["knowledge"].text() == (
-            "116 VERIFIED GUIDES  •  66 KNOWN FIXES"
+            "117 VERIFIED GUIDES  •  67 KNOWN FIXES"
         )
         ready_tools = sum(status.available for status in window.toolchain_center.statuses)
         tool_count = len(window.toolchain_center.statuses)
@@ -226,6 +232,65 @@ def test_about_recalculates_real_workspace_evidence_and_returns_from_its_exact_g
         assert window.about_page.evidence_cards["live"].property("evidenceState") == ("unavailable")
         assert "rejected the local ledger" in window.about_page.evidence_details["live"].text()
     finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_opening_archives_reloads_new_private_synapse_learning(tmp_path: Path) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
+    try:
+        store = window.knowledge_center.synapse_store
+        assert isinstance(store, SynapseStore)
+        scope = SynapseScope.create(
+            operation="payload extraction",
+            source_kind="payload-bin",
+            device_codename="popsicle",
+            tool_name="payload-dumper-go",
+            tool_version="2.0.2",
+        )
+
+        def add(source: str) -> None:
+            store.contribute(
+                SynapseContribution.create(
+                    fingerprint_id="a" * 64,
+                    solution_id="inspect-payload-source",
+                    scope=scope,
+                    source_family=source,
+                    summary="Verified typed payload inspection.",
+                    successful=True,
+                    locally_verified=True,
+                    action_receipt_digest="b" * 64,
+                    verification_evidence_digest="c" * 64,
+                )
+            )
+
+        add("official-aosp")
+        assert window.knowledge_center.synapse_knowledge == ()
+        window._navigate_route("archives")
+        app.processEvents()
+        assert len(window.knowledge_center.synapse_knowledge) == 1
+        assert window.knowledge_center.synapse_knowledge[0].state is (
+            SynapseKnowledgeState.VERIFIED_SUCCESS
+        )
+
+        window._navigate_route("about")
+        add("maintainer-tool")
+        window._navigate_route("archives")
+        app.processEvents()
+        assert window.knowledge_center.synapse_knowledge[0].state is (SynapseKnowledgeState.STRONG)
+        assert "1 USABLE" in window.knowledge_center.learning_status.text()
+        window.knowledge_center.learning_button.click()
+        app.processEvents()
+        assert window.knowledge_center.learning_dialog is not None
+        assert "2 successful verification(s)" in (
+            window.knowledge_center.learning_dialog.detail.toPlainText()
+        )
+        assert window.guardian_center.worker is None
+    finally:
+        if window.knowledge_center.learning_dialog is not None:
+            window.knowledge_center.learning_dialog.close()
         window.companion_center.transport.close()
         window.close()
 

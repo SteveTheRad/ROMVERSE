@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -8,11 +9,21 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QLabel
 
 from romverse.diagnostics.analyzer import DiagnosticAnalyzer
+from romverse.intelligence.synapse import (
+    SynapseContribution,
+    SynapseKnowledgeState,
+    SynapseScope,
+    SynapseStore,
+)
 from romverse.knowledge.resolution_memory import ArchivesResolutionMemory
 from romverse.repair.knowledge import knowledge_for
 from romverse.repair.sessions import RepairSessionStore
 from romverse.repair.templates import RepairConcern
-from romverse.ui.knowledge_center import KnowledgeCenter, KnowledgeGuideDialog
+from romverse.ui.knowledge_center import (
+    KnowledgeCenter,
+    KnowledgeGuideDialog,
+    SynapseLearningDialog,
+)
 
 from .test_diagnostics import device
 
@@ -180,4 +191,114 @@ def test_archives_displays_integrity_verified_local_resolution_memory(tmp_path) 
     assert "LOCAL RESOLUTION MEMORY" in center.detail.toPlainText()
     assert "does not prove" in center.detail.toPlainText()
     assert source.serial not in center.detail.toPlainText()
+    center.close()
+
+
+def test_archives_exposes_searchable_private_synapse_learning_and_retired_evidence(
+    tmp_path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    store = SynapseStore(tmp_path)
+    verified_scope = SynapseScope.create(
+        operation="payload extraction",
+        source_kind="payload-bin",
+        device_codename="popsicle",
+        build_family="os4-xpbcnxm",
+        tool_name="payload-dumper-go",
+        tool_version="2.0.2",
+    )
+    retired_scope = SynapseScope.create(operation="avb inspection", tool_name="avbtool")
+
+    def contribute(
+        scope: SynapseScope,
+        source: str,
+        *,
+        successful: bool = True,
+        drift: bool = False,
+    ) -> None:
+        store.contribute(
+            SynapseContribution.create(
+                fingerprint_id="a" * 64,
+                solution_id="inspect-payload-source",
+                scope=scope,
+                source_family=source,
+                summary="Verified without retaining /home/private/project or token=secret.",
+                successful=successful,
+                locally_verified=True,
+                action_receipt_digest="b" * 64,
+                verification_evidence_digest="c" * 64,
+                version_drift=drift,
+            )
+        )
+
+    contribute(verified_scope, "official-aosp")
+    contribute(verified_scope, "maintainer-tool")
+    contribute(verified_scope, "official-aosp")
+    contribute(retired_scope, "official-aosp", successful=False, drift=True)
+    center = KnowledgeCenter(synapse_store=store)
+    center.show()
+    app.processEvents()
+
+    assert len(center.synapse_knowledge) == 2
+    assert center.synapse_knowledge[0].state is SynapseKnowledgeState.TRUSTED
+    assert center.synapse_knowledge[1].state is SynapseKnowledgeState.RETIRED
+    assert "2 LOCAL KNOWLEDGE RECORD(S)" in center.learning_status.text()
+    assert "1 TRUSTED" in center.learning_status.text()
+    assert "1 RETIRED" in center.learning_status.text()
+    assert center.learning_panel.property("learningState") == "attention"
+
+    center.learning_button.click()
+    app.processEvents()
+    dialog = center.learning_dialog
+    assert isinstance(dialog, SynapseLearningDialog)
+    assert dialog.isVisible()
+    assert dialog.list.count() == 2
+    assert "payload extraction" in dialog.detail.toPlainText().casefold()
+    assert "guidance-only" in dialog.detail.toPlainText().casefold()
+    assert "private" not in dialog.detail.toPlainText().casefold()
+    dialog.search.setText("avbtool")
+    app.processEvents()
+    assert dialog.list.count() == 1
+    assert "RETIRED" in dialog.detail.toPlainText()
+    assert "failed or drifted" in dialog.detail.toPlainText()
+    dialog.close()
+    center.close()
+
+
+def test_archives_rejects_modified_synapse_memory_and_opens_its_exact_safety_guide(
+    tmp_path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    store = SynapseStore(tmp_path)
+    scope = SynapseScope.create(operation="source inspection")
+    store.contribute(
+        SynapseContribution.create(
+            fingerprint_id="a" * 64,
+            solution_id="inspect-source",
+            scope=scope,
+            source_family="official-aosp",
+            summary="Verified source inspection.",
+            successful=True,
+            locally_verified=True,
+            action_receipt_digest="b" * 64,
+            verification_evidence_digest="c" * 64,
+        )
+    )
+    payload = json.loads(store.path.read_text(encoding="utf-8"))
+    payload["contributions"][0]["summary"] = "modified"
+    store.path.write_text(json.dumps(payload), encoding="utf-8")
+
+    center = KnowledgeCenter(synapse_store=store)
+    center.show()
+    app.processEvents()
+
+    assert center.synapse_knowledge == ()
+    assert "LOCAL LEARNING UNAVAILABLE" in center.learning_status.text()
+    assert center.learning_panel.property("learningState") == "unavailable"
+    center.learning_button.click()
+    app.processEvents()
+    assert center.list.currentItem().data(Qt.ItemDataRole.UserRole) == (
+        "archives-local-learning-boundary"
+    )
+    assert "cannot become learned knowledge" in center.detail.toPlainText()
     center.close()

@@ -300,6 +300,38 @@ QListWidget#ArchivesList::item:selected {
     background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 rgba(87,42,143,235),stop:1 rgba(17,73,96,225));
     border: 1px solid rgba(62, 220, 238, 150);
 }
+QFrame#SynapseLearningPanel {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 rgba(17,13,43,235),stop:1 rgba(5,31,40,232));
+    border: 1px solid rgba(100, 92, 180, 155); border-left: 3px solid #7A75FF; border-radius: 10px;
+}
+QFrame#SynapseLearningPanel[learningState="verified"] { border-left-color: #44E39A; }
+QFrame#SynapseLearningPanel[learningState="attention"] { border-left-color: #FFB454; }
+QFrame#SynapseLearningPanel[learningState="unavailable"] { border-left-color: #FF6685; }
+QLabel#SynapseLearningTitle { color: #63ECF8; font-size: 10px; font-weight: 850; letter-spacing: 1.15px; }
+QPushButton#SynapseLearningAction {
+    color: #E7D9FF; background: rgba(46, 24, 76, 220); border: 1px solid rgba(180, 92, 255, 175);
+    border-radius: 8px; padding: 8px 12px; font-size: 11px; font-weight: 780;
+}
+QPushButton#SynapseLearningAction:hover { color: #FFFFFF; border-color: #63ECF8; }
+QSplitter#ArchivesLearningSplitter::handle { background: #17253E; width: 6px; }
+QListWidget#ArchivesLearningList {
+    color: #C9D7ED; background: #060B17; border: 1px solid #28426C; border-radius: 10px;
+    padding: 6px; outline: 0;
+}
+QListWidget#ArchivesLearningList::item { border-radius: 7px; padding: 11px 10px; margin: 2px; }
+QListWidget#ArchivesLearningList::item:hover { color: #FFFFFF; background: #13223A; }
+QListWidget#ArchivesLearningList::item:selected {
+    color: #FFFFFF; background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #54378B,stop:1 #18506A);
+    border: 1px solid rgba(77, 221, 238, 155);
+}
+QTextBrowser#ArchivesLearningDetail {
+    color: #DCE9FA; background: #060C19; border: 1px solid #28426C;
+    border-radius: 10px; padding: 15px; selection-background-color: #5F3AA8;
+}
+QLabel#SynapseBoundary {
+    color: #8EEAC8; background: rgba(7, 33, 29, 220); border: 1px solid rgba(51, 160, 124, 165);
+    border-radius: 8px; padding: 9px 12px; font-size: 10px; font-weight: 780;
+}
 QTextBrowser#ArchivesDetail {
     color: #DCE9FA; background: rgba(6, 12, 25, 248); border: 1px solid #28426C;
     border-radius: 10px; padding: 15px; selection-background-color: #5F3AA8;

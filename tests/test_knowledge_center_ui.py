@@ -4,6 +4,7 @@ import os
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QLabel
 
 from romverse.ui.knowledge_center import KnowledgeCenter, KnowledgeGuideDialog
@@ -48,6 +49,26 @@ def test_archives_accepts_a_bounded_contextual_query_from_guided_workflows() -> 
     assert center.search.text() == "Incremental debloat safety"
     assert "dependency failures" in center.detail.toPlainText()
     assert center.search.hasFocus()
+    center.close()
+
+
+def test_archives_opens_one_exact_typed_article_identity() -> None:
+    app = QApplication.instance() or QApplication([])
+    center = KnowledgeCenter()
+    center.show()
+
+    assert center.open_article("device-temperature-elevated")
+    app.processEvents()
+
+    assert center.list.count() == 1
+    assert center.list.currentItem().data(Qt.ItemDataRole.UserRole) == "device-temperature-elevated"
+    assert "temperature exceeds" in center.detail.toPlainText()
+    assert "PIXEL-SCOPED" in center.detail.toPlainText()
+    assert not center.open_article("not-a-real-article")
+    assert center.list.count() == 0
+    assert "could not be resolved" in center.detail.toPlainText()
+    assert not center.open_route.isVisible()
+    assert not center.open_source.isVisible()
     center.close()
 
 

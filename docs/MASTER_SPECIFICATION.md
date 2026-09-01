@@ -158,13 +158,18 @@ assert success. Verification always requests a fresh read-only Device Engine sca
 compares it with the baseline, reporting improved, unchanged, or needs more attention.
 Sessions do not execute device-changing operations.
 
-Recovery Bay exact-symptom input and Quantum Optimizer priority findings may hand off to ROMVERSE
-Archives as navigation-only local queries. ROM Studio stages may do the same while preserving their
-draft and stage. Archives retrieval is bounded, local, ranked, category-aware, and fail-closed for
-weak or unknown queries. Structured known-fix records must expose meaning, checks, safe fix steps,
+Recovery Bay exact-symptom input and Quantum Optimizer findings hand off to ROMVERSE Archives through
+stable structured article identities. The deterministic Advisor maps typed repair concerns and exact
+diagnostic finding IDs, distinguishes unauthorized/offline/no-device ADB states, and permits a symptom
+to outrank a generic concern only when the complete bounded phrase matches a structured article.
+Recovery reports retain article key, title, selection reason, source authority, and automation
+boundary without retaining extra raw symptom data. Manual and ROM Studio stage searches remain
+bounded, local, ranked, category-aware, and fail closed for weak or unknown queries while preserving
+their draft and stage. Structured known-fix records must expose meaning, checks, safe fix steps,
 verification, evidence basis, automation boundary, canonical Desktop destination, and source
-authority. A source link or historical field result is guidance evidence only and never provides
-Guardian approval, device identity, compatibility, build readiness, or execution authority.
+authority. A recommendation, source link, or historical field result is guidance evidence only and
+never provides Guardian approval, device identity, compatibility, build readiness, or execution
+authority.
 
 Companion implements the same pattern using Android app-private storage: a real local safe
 diagnostic becomes the baseline, safety checkpoints persist across restarts, and verification

@@ -40,6 +40,7 @@ from romverse.intelligence.online_remediation import (
     OnlineRemediationService,
     SourceAuthority,
 )
+from romverse.knowledge.advisor import ArchiveRecommendation, recommend_for_repair
 from romverse.nexus.events import (
     LiveConsoleEventStore,
     LiveConsoleStoreError,
@@ -109,6 +110,7 @@ class RepairCenter(QWidget):
     verification_scan_requested = Signal()
     runtime_tools_requested = Signal()
     knowledge_requested = Signal(str)
+    knowledge_article_requested = Signal(str)
 
     def __init__(
         self,
@@ -514,6 +516,16 @@ class RepairCenter(QWidget):
         )
         self.digest.setText(f"Immutable plan fingerprint  •  SHA-256 {assessment.manifest_digest}")
         entry = knowledge_for(concern) if concern is not None else None
+        archive_recommendations = (
+            recommend_for_repair(
+                concern,
+                self.symptom_input.text(),
+                report.findings if report is not None else (),
+                limit=3,
+            )
+            if concern is not None
+            else ()
+        )
         active_pack = (
             self.pack_registry.resolve(self.current_device).pack
             if self.current_device is not None
@@ -547,6 +559,17 @@ class RepairCenter(QWidget):
                 for item in (report.evidence if report is not None else ())
             ],
             "recommendations": list(entry.recommended_steps) if entry is not None else [],
+            "archive_recommendations": [
+                {
+                    "article_key": recommendation.article.key,
+                    "title": recommendation.article.title,
+                    "reason": recommendation.reason,
+                    "source": recommendation.article.source.label,
+                    "source_authority": recommendation.article.source.authority,
+                    "automation_boundary": recommendation.article.automation,
+                }
+                for recommendation in archive_recommendations
+            ],
             "device_pack": (
                 {
                     "pack_id": active_pack.pack_id,
@@ -602,6 +625,9 @@ class RepairCenter(QWidget):
         check_host = QWidget()
         check_host.setLayout(checks)
         self.body_layout.addWidget(check_host)
+
+        if archive_recommendations:
+            self._render_archive_advisor(archive_recommendations)
 
         # Offline repair playbook: explain the issue, evidence, and next actions
         # in plain language alongside the Guardian preflight.  This remains
@@ -734,6 +760,67 @@ class RepairCenter(QWidget):
             self.body_layout.addWidget(card)
         self._configure_host_repair(device=self.current_device, concern=concern)
         self.body_layout.addStretch()
+
+    def _render_archive_advisor(
+        self,
+        recommendations: tuple[ArchiveRecommendation, ...],
+    ) -> None:
+        primary = recommendations[0]
+        card = QFrame()
+        card.setObjectName("HeroCard")
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(20, 17, 20, 17)
+        heading = QHBoxLayout()
+        title = QLabel("ROMVERSE ARCHIVES ADVISOR")
+        title.setObjectName("Eyebrow")
+        status = QLabel(
+            f"{len(recommendations)} VERIFIED MATCH{'ES' if len(recommendations) != 1 else ''}"
+        )
+        status.setObjectName("Good")
+        heading.addWidget(title)
+        heading.addStretch()
+        heading.addWidget(status)
+        layout.addLayout(heading)
+
+        article_title = QLabel(primary.article.title)
+        article_title.setObjectName("HeroTitle")
+        article_title.setWordWrap(True)
+        layout.addWidget(article_title)
+        context = QLabel(
+            f"{primary.reason}  •  {primary.article.source.authority}\n{primary.article.meaning}"
+        )
+        context.setObjectName("Muted")
+        context.setWordWrap(True)
+        layout.addWidget(context)
+        if len(recommendations) > 1:
+            related = QLabel(
+                "Also matched  •  "
+                + "  |  ".join(item.article.title for item in recommendations[1:])
+            )
+            related.setObjectName("Muted")
+            related.setWordWrap(True)
+            layout.addWidget(related)
+        boundary = QLabel(primary.article.automation)
+        boundary.setObjectName("Warning")
+        boundary.setWordWrap(True)
+        layout.addWidget(boundary)
+
+        actions = QHBoxLayout()
+        actions.addStretch()
+        open_article = QPushButton("Open verified Archives guide")
+        open_article.setObjectName("Primary")
+        open_article.setToolTip(
+            "Open the exact local guide selected from this repair assessment. "
+            "No device change starts automatically."
+        )
+        open_article.clicked.connect(
+            lambda _checked=False, key=primary.article.key: self.knowledge_article_requested.emit(
+                key
+            )
+        )
+        actions.addWidget(open_article)
+        layout.addLayout(actions)
+        self.body_layout.addWidget(card)
 
     def _configure_host_repair(
         self,
@@ -984,6 +1071,16 @@ class RepairCenter(QWidget):
     @Slot()
     def _search_archives(self) -> None:
         query = self.symptom_input.text().replace("\x00", " ").strip()[:160]
+        if self.current_concern is not None:
+            recommendations = recommend_for_repair(
+                self.current_concern,
+                query,
+                self.current_report.findings if self.current_report is not None else (),
+                limit=1,
+            )
+            if recommendations:
+                self.knowledge_article_requested.emit(recommendations[0].article.key)
+                return
         if not query:
             query = self.concern_selector.currentText().strip()[:160] or "Recovery Bay"
         self.knowledge_requested.emit(query)

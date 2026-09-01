@@ -158,6 +158,41 @@ OTA_SOURCE = ArchiveSource(
     "OFFICIAL AOSP",
     "https://source.android.com/docs/core/ota/tools",
 )
+ANDROID_NETWORK_SOURCE = ArchiveSource(
+    "Fix internet connection problems on Android devices",
+    "OFFICIAL ANDROID SUPPORT",
+    "https://support.google.com/android/answer/2651367",
+)
+ANDROID_SCREEN_SOURCE = ArchiveSource(
+    "Fix a screen that isn't working right on Android",
+    "OFFICIAL ANDROID SUPPORT",
+    "https://support.google.com/android/answer/7666942",
+)
+ANDROID_APP_SOURCE = ArchiveSource(
+    "Find problem apps with Android safe mode",
+    "OFFICIAL ANDROID SUPPORT",
+    "https://support.google.com/android/answer/7665064",
+)
+ANDROID_STORAGE_SOURCE = ArchiveSource(
+    "Free up storage on your Android device",
+    "OFFICIAL ANDROID SUPPORT",
+    "https://support.google.com/android/answer/7431795",
+)
+ANDROID_PERFORMANCE_SOURCE = ArchiveSource(
+    "Speed up a slow Android device",
+    "OFFICIAL ANDROID SUPPORT",
+    "https://support.google.com/android/answer/7667018",
+)
+ANDROID_UPDATE_SOURCE = ArchiveSource(
+    "Check and update the Android version",
+    "OFFICIAL ANDROID SUPPORT",
+    "https://support.google.com/android/answer/7680439",
+)
+PIXEL_BATTERY_SOURCE = ArchiveSource(
+    "Google Pixel battery and heat safety guidance",
+    "OFFICIAL GOOGLE • PIXEL-SCOPED",
+    "https://support.google.com/pixelphone/answer/6090612",
+)
 ROMVERSE_SOURCE = ArchiveSource(
     "ROMVERSE tested safety and evidence contracts",
     "ROMVERSE VERIFIED",
@@ -1012,6 +1047,288 @@ KNOWN_FIXES = (
         source=ADB_SOURCE,
     ),
     _fix(
+        "device-battery-low",
+        "Device battery is below the safe maintenance threshold",
+        "DIAGNOSTICS & HEALTH",
+        "The read-only battery sample is low enough that a long maintenance or recovery workflow has avoidable interruption risk.",
+        checks=(
+            "Confirm the percentage with a fresh scan and check whether the level is still falling while connected.",
+            "Inspect the cable, charger, port, and charging indicator before planning long work.",
+        ),
+        fix_steps=(
+            "Pause long-running, privileged, build-transfer, or recovery work and charge the phone.",
+            "Use a compatible known-good charger and follow the exact manufacturer's guidance.",
+        ),
+        verification=("A fresh scan shows a stable charge above the workflow threshold.",),
+        tags=("battery low", "low charge", "battery level is low", "battery safety threshold"),
+        route="quantum_optimizer",
+        evidence="ROMVERSE treats charge as a readiness signal, never proof that a battery is healthy.",
+        automation="READ-ONLY RESCAN ONLY • CHARGING IS USER CONTROLLED",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "device-temperature-elevated",
+        "Device battery temperature is elevated",
+        "DIAGNOSTICS & HEALTH",
+        "The reported temperature exceeds ROMVERSE's conservative review threshold and may reflect load, charging, environment, battery condition, or inaccurate telemetry.",
+        checks=(
+            "Stop heavy use, disconnect charging when safe, move away from heat, and observe whether temperature falls.",
+            "Inspect for swelling, damage, odor, smoke, liquid exposure, or heat that remains extreme while idle.",
+        ),
+        fix_steps=(
+            "Let the phone cool naturally in a ventilated place; do not puncture, open, crush, externally heat, or rapidly chill the battery.",
+            "For damage, swelling, smoke, odor, or persistent extreme heat, stop using it and follow qualified manufacturer service guidance.",
+        ),
+        verification=(
+            "Several fresh idle samples return below the warning threshold without missing evidence.",
+        ),
+        tags=("battery temperature elevated", "phone overheating", "device hot", "battery heat"),
+        route="recovery_bay",
+        evidence="Google Pixel guidance confirms heat can accelerate drain; exact limits and service steps remain model/OEM scoped.",
+        automation="ALERT AND READ-ONLY TREND ONLY • NO AUTOMATIC THERMAL OR CHARGING CHANGE",
+        source=PIXEL_BATTERY_SOURCE,
+    ),
+    _fix(
+        "device-storage-nearly-full",
+        "Android device storage is nearly full",
+        "DIAGNOSTICS & HEALTH",
+        "Very low free user-data space can prevent app installs, updates, cameras, downloads, and Android services from completing.",
+        checks=(
+            "Confirm the affected mount and free-space reading with a fresh scan.",
+            "Review Android's storage categories and preserve important files before removing anything.",
+        ),
+        fix_steps=(
+            "Back up important data, then remove or move user-selected large files or unused apps through Android's normal UI.",
+            "Clear only an identified app's cache first; never delete unknown system or partition files.",
+        ),
+        verification=(
+            "A fresh scan shows sufficient free space and the original failing action completes.",
+        ),
+        tags=(
+            "device storage nearly full",
+            "storage capacity",
+            "low free space android",
+            "out of space phone",
+        ),
+        route="quantum_optimizer",
+        evidence="Official Android support distinguishes user-controlled unused-app cleanup from deleting unknown system data.",
+        automation="READ-ONLY CAPACITY ANALYSIS • PHONE FILE DELETION REQUIRES USER CHOICE",
+        source=ANDROID_STORAGE_SOURCE,
+    ),
+    _fix(
+        "security-patch-aging",
+        "Android security patch is aging",
+        "DIAGNOSTICS & HEALTH",
+        "The reported patch date is older than ROMVERSE's review window; availability still depends on exact model, region, carrier, and OEM support.",
+        checks=(
+            "Confirm patch date, Android version, model, region/carrier, and current OEM update channel.",
+            "Review exact OEM release notes rather than assuming another model's package is compatible.",
+        ),
+        fix_steps=(
+            "Check for a normal system update through the device and its authoritative OEM support page.",
+            "Do not sideload, downgrade, unlock, or flash a package selected only by a similar model name.",
+        ),
+        verification=(
+            "The device reports the expected signed build and newer patch after its normal update path.",
+        ),
+        tags=(
+            "security patch aging",
+            "old security patch",
+            "android update old",
+            "security patch age",
+        ),
+        route="device_atlas",
+        evidence="Official Android support documents how to check version/update state; the OEM supplies exact availability.",
+        automation="UPDATE DISCOVERY ONLY • INSTALLATION AND FIRMWARE CHANGES ARE NOT AUTOMATIC",
+        source=ANDROID_UPDATE_SOURCE,
+    ),
+    _fix(
+        "bootloader-unlocked-review",
+        "Bootloader is reported unlocked: verify the intended state",
+        "BOOT & SECURITY",
+        "An unlocked bootloader may be intentional for development, but changes the trust boundary and must not trigger an automatic relock.",
+        checks=(
+            "Confirm the observation against the exact device, active build, Verified Boot state, and recovery plan.",
+            "Determine whether unlock was intentional and whether data or keys depend on the current state.",
+        ),
+        fix_steps=(
+            "Record the state in Device DNA and use only workflows designed for that exact model/build contract.",
+            "Never relock merely to clear a warning; a mismatched relock can prevent boot or recovery.",
+        ),
+        verification=(
+            "Fresh Device DNA and boot evidence agree and keep relocking explicitly prohibited.",
+        ),
+        tags=("bootloader unlocked", "unlocked bootloader", "security bootloader"),
+        route="device_atlas",
+        evidence="AOSP Verified Boot describes trust outcomes; ROMVERSE permanently forbids inferred relocking.",
+        automation="READ-ONLY REVIEW ONLY • BOOTLOADER RELOCK NEVER AUTOMATIC",
+        source=BOOT_FLOW_SOURCE,
+    ),
+    _fix(
+        "verified-boot-state-review",
+        "Verified Boot reports orange, yellow, or red",
+        "BOOT & SECURITY",
+        "The device reports a non-green Verified Boot state. Exact meaning and recovery behavior remain device-specific.",
+        checks=(
+            "Record the exact state, bootloader observation, build identity, slot, and recent firmware changes.",
+            "Distinguish an expected development state from a new red verification failure.",
+        ),
+        fix_steps=(
+            "If unexpected or red, stop modification work, preserve evidence, and use the exact model's supported recovery path.",
+            "Do not disable verification or relock the bootloader as a generic fix.",
+        ),
+        verification=(
+            "The intended signed build and boot chain produce the expected state after a clean reboot and scan.",
+        ),
+        tags=(
+            "verified boot non green",
+            "verified boot orange",
+            "verified boot yellow",
+            "verified boot red",
+        ),
+        route="guardian_core",
+        evidence="AOSP defines distinct Verified Boot states; ROMVERSE treats them as evidence, not change authority.",
+        automation="READ-ONLY EVIDENCE ONLY • NO VERIFICATION OR LOCK-STATE CHANGE",
+        source=BOOT_FLOW_SOURCE,
+    ),
+    _fix(
+        "root-signal-review",
+        "Root signal or Root Manager candidate needs identity review",
+        "BOOT & SECURITY",
+        "A root-capable ADB identity, package candidate, or conflicting Manager evidence was observed; none alone proves the intended root configuration.",
+        checks=(
+            "Separate active ADB root evidence from a merely installed Manager package candidate.",
+            "Verify exact Manager identity, signer, build source, target image, and device/build scope.",
+        ),
+        fix_steps=(
+            "Record evidence in Device DNA and use Ascension only for an exact supported source-bound route.",
+            "Do not request elevation, patch, uninstall, hide, or change root from a generic finding.",
+        ),
+        verification=(
+            "Fresh evidence consistently identifies state without treating package presence as root proof.",
+        ),
+        tags=(
+            "root detected",
+            "root manager candidate",
+            "security root",
+            "magisk kernelsu conflict",
+        ),
+        route="rom_studio",
+        evidence="ROMVERSE's typed root-identity review separates active signals from candidate metadata.",
+        automation="CLASSIFICATION ONLY • ROOT AND PACKAGE CHANGES REQUIRE SEPARATE EXACT WORKFLOWS",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "android-app-crash-triage",
+        "Android app crashes or behaves unpredictably",
+        "APPS & PACKAGES",
+        "A repeatable crash can come from one app, damaged local state, low storage, an update, a dependency, or a wider Android problem; the symptom alone does not identify the cause.",
+        checks=(
+            "Record the exact package, action, time, repeatability, available storage, and recent app or system updates.",
+            "Compare the affected app with a trusted stock app and note whether the problem follows one user profile or the whole device.",
+        ),
+        fix_steps=(
+            "Use normal app and system updates, restart once, and clear only the identified app's cache before considering its data or removal.",
+            "Use the manufacturer's safe-mode guidance to isolate downloaded apps; back up important app data before any clear-data, uninstall, or reset step.",
+        ),
+        verification=(
+            "Repeat the exact failing action after one controlled change and confirm other core apps remain stable.",
+        ),
+        tags=("app crash", "application keeps stopping", "android instability", "safe mode app"),
+        route="recovery_bay",
+        evidence="Official Android support describes safe mode as an isolation step; it does not identify or remove an app automatically.",
+        automation="EVIDENCE CORRELATION ONLY • APP DATA AND PACKAGE CHANGES REQUIRE USER CHOICE",
+        source=ANDROID_APP_SOURCE,
+    ),
+    _fix(
+        "android-screen-touch-triage",
+        "Android display or touch is not working correctly",
+        "DIAGNOSTICS & HEALTH",
+        "Display, touch, accessory, software, liquid, impact, or hardware faults can look similar and must be separated before a recovery action is chosen.",
+        checks=(
+            "Inspect for cracks, liquid, contamination, a lifting screen, and accessories such as cases or protectors without opening the device.",
+            "Determine whether the image, touch response, one screen region, or the entire interface is affected and whether screenshots appear normal elsewhere.",
+        ),
+        fix_steps=(
+            "Clean and dry the exterior safely, remove interfering accessories, restart once, and follow the exact manufacturer's supported display diagnostics.",
+            "Use manufacturer safe mode only to isolate software; back up important data before any reset and use qualified service for damage or persistent hardware symptoms.",
+        ),
+        verification=(
+            "Test the same gestures and affected regions repeatedly after one controlled step.",
+        ),
+        tags=("screen not working", "touchscreen failure", "display touch", "ghost touch"),
+        route="recovery_bay",
+        evidence="Official Android support separates basic screen checks, safe-mode isolation, reset, and manufacturer service.",
+        automation="GUIDED CHECKS ONLY • NO AUTOMATIC RESET, CALIBRATION, OR HARDWARE ACTION",
+        source=ANDROID_SCREEN_SOURCE,
+    ),
+    _fix(
+        "android-network-triage",
+        "Android Wi-Fi, Bluetooth, or mobile network problem",
+        "DIAGNOSTICS & HEALTH",
+        "A connection failure may belong to one radio, location, router, accessory, carrier, account, or software state; resetting every network setting can erase useful evidence and saved connections.",
+        checks=(
+            "Identify the exact radio, location, network or accessory, signal state, and whether another device works on the same connection.",
+            "Test Wi-Fi, mobile data, and Bluetooth separately and record carrier or router messages before changing settings.",
+        ),
+        fix_steps=(
+            "Restart the affected connection and device once, then follow the router, carrier, accessory, or phone manufacturer's exact supported checks.",
+            "Record credentials and configuration before forgetting a network or performing a reviewed network reset; never invent APN values.",
+        ),
+        verification=(
+            "Reconnect to the original target and verify the exact failing service, not only an icon.",
+        ),
+        tags=("wifi problem", "bluetooth problem", "mobile network", "no internet android"),
+        route="recovery_bay",
+        evidence="Official Android support recommends isolating Wi-Fi and mobile-data causes before broader reset steps.",
+        automation="READ-ONLY CORRELATION ONLY • NETWORK RESET AND CREDENTIAL CHANGES ARE USER CONTROLLED",
+        source=ANDROID_NETWORK_SOURCE,
+    ),
+    _fix(
+        "android-camera-audio-triage",
+        "Android camera, microphone, or speaker problem",
+        "DIAGNOSTICS & HEALTH",
+        "Camera and audio symptoms can originate in one component, app, permission, privacy control, accessory, obstruction, routing state, or hardware fault.",
+        checks=(
+            "Identify the exact camera, microphone, speaker, app, permission state, accessory, and conditions that reproduce the fault.",
+            "Compare the stock camera or recorder with one other trusted app and inspect exterior openings without inserting tools.",
+        ),
+        fix_steps=(
+            "Review Android privacy controls and app permissions, remove an interfering case or accessory, and restart once.",
+            "Preserve important media and use exact manufacturer diagnostics or qualified service when the fault crosses apps or follows impact, liquid, or damage.",
+        ),
+        verification=(
+            "Record a fresh test with the same component and confirm playback or capture through a second trusted path.",
+        ),
+        tags=("camera failure", "microphone not working", "speaker problem", "camera audio"),
+        route="recovery_bay",
+        evidence="ROMVERSE separates observable component, app, permission, routing, and physical evidence before recommending a route.",
+        automation="GUIDED EVIDENCE ONLY • NO AUTOMATIC PERMISSION, MEDIA, OR HARDWARE CHANGE",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "android-performance-freezing",
+        "Android is slow, freezing, or repeatedly unresponsive",
+        "DIAGNOSTICS & HEALTH",
+        "Slowness can reflect heat, low storage, recent updates, one app, background work, short uptime, or a wider system fault; indiscriminately killing or removing software hides the cause.",
+        checks=(
+            "Correlate the symptom with temperature, free storage, recent apps or updates, uptime resets, and whether one action consistently triggers it.",
+            "Allow declared post-update optimization to settle and compare behavior in a trusted stock app.",
+        ),
+        fix_steps=(
+            "Restart once, cool the phone if needed, and review user-selected storage before changing one suspected app at a time.",
+            "Use the manufacturer's safe-mode guidance to isolate downloaded apps and back up important data before any clear-data, uninstall, or reset step.",
+        ),
+        verification=(
+            "Repeat the same measured task after one change and confirm the improvement survives another normal restart.",
+        ),
+        tags=("slow performance", "android freezing", "phone lag", "system unresponsive"),
+        route="recovery_bay",
+        evidence="Official Android performance guidance uses update, storage, app, and safe-mode checks without treating one signal as proof.",
+        automation="TREND AND EVIDENCE ANALYSIS ONLY • NO AUTOMATIC TASK KILL, REMOVAL, OR RESET",
+        source=ANDROID_PERFORMANCE_SOURCE,
+    ),
+    _fix(
         "boot-loop-first-triage",
         "Boot loop after a ROM change: first safe triage",
         "RECOVERY & GUARDIAN",
@@ -1364,11 +1681,11 @@ def search_catalog(
     query: str,
     category: str = ALL_CATEGORIES,
     *,
-    limit: int = 100,
+    limit: int = 256,
 ) -> tuple[ArchiveMatch, ...]:
     """Rank a bounded local query without network access or execution authority."""
 
-    bounded_limit = max(1, min(limit, 100))
+    bounded_limit = max(1, min(limit, 256))
     selected = (
         catalog
         if category == ALL_CATEGORIES

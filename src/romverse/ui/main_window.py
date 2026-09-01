@@ -2490,6 +2490,7 @@ class MainWindow(QMainWindow):
             lambda: self._navigate_route("recovery_bay")
         )
         self.diagnostics_center.knowledge_requested.connect(self._open_knowledge_query)
+        self.diagnostics_center.knowledge_article_requested.connect(self._open_knowledge_article)
         self.stack.addWidget(self.diagnostics_center)
         self.history_center = HistoryCenter(history_store)
         self.stack.addWidget(self.history_center)
@@ -2527,6 +2528,7 @@ class MainWindow(QMainWindow):
             recovery_online_service,
         )
         self.repair_center.knowledge_requested.connect(self._open_knowledge_query)
+        self.repair_center.knowledge_article_requested.connect(self._open_knowledge_article)
         self.stack.addWidget(self.repair_center)
         self.device_packs_center = DevicePacksCenter(
             resolved_registry,
@@ -4038,6 +4040,11 @@ class MainWindow(QMainWindow):
     def _open_knowledge_query(self, query: str) -> None:
         self._navigate_route("archives")
         self.knowledge_center.open_query(query)
+
+    @Slot(str)
+    def _open_knowledge_article(self, key: str) -> None:
+        self._navigate_route("archives")
+        self.knowledge_center.open_article(key)
 
     @Slot(str)
     def _handle_dashboard_action(self, action: str) -> None:

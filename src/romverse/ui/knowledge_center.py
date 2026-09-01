@@ -263,7 +263,7 @@ def matching_articles(query: str) -> tuple[tuple[str, str], ...]:
 
     return tuple(
         (match.article.title, match.article.plain_text)
-        for match in search_catalog(ARCHIVE_ARTICLES, query, limit=100)
+        for match in search_catalog(ARCHIVE_ARTICLES, query, limit=256)
     )
 
 
@@ -486,10 +486,47 @@ class KnowledgeCenter(QWidget):
             self.search.setText(normalized)
         self.search.setFocus(Qt.FocusReason.OtherFocusReason)
 
+    def open_article(self, key: str) -> bool:
+        """Select one exact guide identity supplied by a typed ROMVERSE workflow."""
+
+        article = ARTICLE_BY_KEY.get(key.strip()[:80])
+        if article is None:
+            self.category.setCurrentIndex(0)
+            self.search.blockSignals(True)
+            self.search.clear()
+            self.search.blockSignals(False)
+            self.list.blockSignals(True)
+            self.list.clear()
+            self.list.blockSignals(False)
+            self.detail.setText(
+                "The requested verified Archives article identity could not be resolved. "
+                "ROMVERSE will not substitute a text-search match or invent guidance."
+            )
+            self.search_status.setObjectName("Warning")
+            self.search_status.setText("Exact verified guide unavailable.")
+            self.open_route.setVisible(False)
+            self.open_source.setVisible(False)
+            self.search_status.style().unpolish(self.search_status)
+            self.search_status.style().polish(self.search_status)
+            return False
+        self.category.setCurrentIndex(0)
+        if self.search.text() == article.title:
+            self._filter(article.title)
+        else:
+            self.search.setText(article.title)
+        for row in range(self.list.count()):
+            item = self.list.item(row)
+            if item.data(Qt.ItemDataRole.UserRole) == article.key:
+                self.list.setCurrentItem(item)
+                self.list.scrollToItem(item)
+                self.search.setFocus(Qt.FocusReason.OtherFocusReason)
+                return True
+        return False
+
     def _filter(self, _value: object = None) -> None:
         query = self.search.text().strip()[:160]
         category = str(self.category.currentData() or ALL_CATEGORIES)
-        matches = search_catalog(ARCHIVE_ARTICLES, query, category, limit=100)
+        matches = search_catalog(ARCHIVE_ARTICLES, query, category, limit=256)
 
         self.list.blockSignals(True)
         self.list.clear()

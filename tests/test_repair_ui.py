@@ -5,7 +5,7 @@ from importlib.resources import files
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QLabel, QMessageBox
+from PySide6.QtWidgets import QApplication, QLabel, QMessageBox, QPushButton
 
 from romverse.core.activity import ActivityStore
 from romverse.device.models import DeviceState
@@ -168,6 +168,40 @@ def test_recovery_bay_searches_local_archives_without_starting_a_repair(tmp_path
     app.processEvents()
 
     assert queries == ["INSTALL_FAILED_VERSION_DOWNGRADE"]
+    assert center.active_session is None
+    assert center.host_repair_worker is None
+    center.close()
+
+
+def test_recovery_bay_advisor_opens_exact_symptom_fix_and_exports_reason(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = RepairCenter(
+        DiagnosticAnalyzer(),
+        RepairAssessmentTemplates(),
+        GuardianPreflight(),
+        tmp_path,
+        ActivityStore(tmp_path),
+    )
+    requested: list[str] = []
+    center.knowledge_article_requested.connect(requested.append)
+    center.symptom_input.setText("INSTALL_FAILED_VERSION_DOWNGRADE")
+    center.set_devices([device()])
+    app.processEvents()
+
+    button = next(
+        item
+        for item in center.findChildren(QPushButton)
+        if item.text() == "Open verified Archives guide"
+    )
+    button.click()
+    app.processEvents()
+
+    assert requested == ["apk-version-downgrade"]
+    assert center._report_payload is not None
+    recommendations = center._report_payload["archive_recommendations"]
+    assert isinstance(recommendations, list)
+    assert recommendations[0]["article_key"] == "apk-version-downgrade"
+    assert recommendations[0]["source_authority"] == "AOSP SOURCE"
     assert center.active_session is None
     assert center.host_repair_worker is None
     center.close()

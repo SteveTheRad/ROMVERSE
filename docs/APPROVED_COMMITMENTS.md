@@ -391,12 +391,14 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   `confirmed working`; schema-two outcomes additionally bind the exact persisted error-fingerprint
   candidate to a format-specific ADB-host, exact-toolchain, OTA-source, or AVB receipt, revalidate
   that evidence on load, and deny promotion to legacy digest-only outcomes;
-  Desktop ROMVERSE Archives expanded into a validated 98-guide, ten-category local catalog with 48
-  structured known-fix records, 25 official-source-linked records, bounded ranked retrieval, weak-
+  Desktop ROMVERSE Archives expanded into a validated 110-guide, ten-category local catalog with 60
+  structured known-fix records, 34 official-source-linked records, bounded ranked retrieval, weak-
   match rejection, category filtering, source visibility, and canonical workspace handoffs;
-  Recovery Bay exact symptoms and Quantum Optimizer priority findings now open the matching local
-  Archives context without starting research, approval, repair, build, or device work, while existing
-  ROM Studio/Genesis/Ascension/Recipe handoffs preserve their stages and drafts;
+  a deterministic Archives Advisor now maps every Recovery Bay concern and typed actionable
+  diagnostic finding to stable structured article identities, distinguishes exact ADB states,
+  prioritizes full error-code matches, exports its source/reason/automation boundary, and opens the
+  exact guide without starting research, approval, repair, build, or device work, while existing ROM
+  Studio/Genesis/Ascension/Recipe handoffs preserve their stages and drafts;
   shared read-only root-identity review that separates an observed root signal from an
   evidence-labelled Manager candidate, keeps a normal ADB shell explicitly insufficient to prove an
   unrooted phone, uses a full official signer pin for the Companion candidate while basic Desktop

@@ -43,18 +43,19 @@ def test_optimizer_can_search_archives_for_the_priority_finding(tmp_path) -> Non
         DiagnosticHistoryStore(tmp_path),
     )
     requested: list[str] = []
-    center.knowledge_requested.connect(requested.append)
+    center.knowledge_article_requested.connect(requested.append)
 
     center.set_devices([device(battery_percent=5)])
     app.processEvents()
     button = next(
-        item for item in center.findChildren(QPushButton) if item.text() == "Search known fixes"
+        item
+        for item in center.findChildren(QPushButton)
+        if item.text() == "Open verified fix in Archives"
     )
     button.click()
     app.processEvents()
 
-    assert requested
-    assert "battery" in requested[0].casefold()
+    assert requested == ["device-battery-low"]
     center.close()
 
 

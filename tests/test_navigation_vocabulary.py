@@ -243,6 +243,28 @@ def test_genesis_learning_route_opens_archives_with_the_exact_guide(tmp_path: Pa
         window.close()
 
 
+def test_typed_advisor_handoff_opens_the_exact_archives_identity(tmp_path: Path) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
+    try:
+        window.diagnostics_center.knowledge_article_requested.emit("device-battery-low")
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.knowledge_center
+        assert window.knowledge_center.list.count() == 1
+        assert window.knowledge_center.search.text() == (
+            "Device battery is below the safe maintenance threshold"
+        )
+        assert "CHARGING IS USER CONTROLLED" in window.knowledge_center.detail.toPlainText()
+        active = [item for item in window.nav_buttons if item.property("active")]
+        assert len(active) == 1
+        assert active[0].text().replace("&&", "&") == "ROMVERSE Archives"
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
 def test_recovery_bay_archives_handoff_and_canonical_fix_route_are_connected(
     tmp_path: Path,
 ) -> None:

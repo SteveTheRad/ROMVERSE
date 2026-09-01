@@ -26,6 +26,7 @@ from romverse.diagnostics.analyzer import DiagnosticAnalyzer
 from romverse.diagnostics.history import DiagnosticHistoryError, DiagnosticHistoryStore
 from romverse.diagnostics.models import DiagnosticReport, Finding, Severity
 from romverse.diagnostics.optimizer import OptimizerSafetyError, RomverseCacheOptimizer
+from romverse.knowledge.advisor import recommend_for_findings
 from romverse.ui.mini_chart import MiniChart
 from romverse.ui.process_progress import ProcessProgressBar
 
@@ -75,6 +76,7 @@ class DiagnosticsCenter(QWidget):
     report_saved = Signal()
     repair_requested = Signal()
     knowledge_requested = Signal(str)
+    knowledge_article_requested = Signal(str)
 
     def __init__(
         self,
@@ -417,6 +419,8 @@ class DiagnosticsCenter(QWidget):
             for finding in report.findings
             if finding.severity in {Severity.ADVISORY, Severity.WARNING, Severity.CRITICAL}
         )
+        archive_recommendations = recommend_for_findings(report.findings, limit=3)
+        archive_primary = archive_recommendations[0] if archive_recommendations else None
         priority = max(report.findings, key=lambda item: ranking[item.severity], default=None)
         card = QFrame()
         card.setObjectName("HeroCard")
@@ -446,6 +450,18 @@ class DiagnosticsCenter(QWidget):
         guidance.setObjectName("Muted")
         guidance.setWordWrap(True)
         layout.addWidget(guidance)
+        if actionable and archive_primary is not None:
+            advisor = QLabel("ROMVERSE ARCHIVES ADVISOR  •  EXACT DIAGNOSTIC MATCH")
+            advisor.setObjectName("Eyebrow")
+            layout.addWidget(advisor)
+            advisor_summary = QLabel(
+                f"{archive_primary.article.title}  •  "
+                f"{archive_primary.article.source.authority}\n"
+                f"{archive_primary.article.meaning}"
+            )
+            advisor_summary.setObjectName("Muted")
+            advisor_summary.setWordWrap(True)
+            layout.addWidget(advisor_summary)
         boundary = QLabel(
             "Guardian boundary  •  recommendation only; no device change runs automatically"
         )
@@ -454,13 +470,30 @@ class DiagnosticsCenter(QWidget):
         layout.addWidget(boundary)
         if actionable:
             actions = QHBoxLayout()
-            search_fixes = QPushButton("Search known fixes")
-            search_fixes.setToolTip(
-                "Search verified local ROMVERSE Archives guidance for the highest-priority finding."
+            search_fixes = QPushButton(
+                "Open verified fix in Archives"
+                if archive_primary is not None
+                else "Search known fixes"
             )
-            search_fixes.clicked.connect(
-                lambda _checked=False, query=priority.title: self.knowledge_requested.emit(query)
-            )
+            if archive_primary is not None:
+                search_fixes.setToolTip(
+                    "Open the exact local guide selected from the typed diagnostic finding. "
+                    "This does not start a device change."
+                )
+                search_fixes.clicked.connect(
+                    lambda _checked=False, key=archive_primary.article.key: (
+                        self.knowledge_article_requested.emit(key)
+                    )
+                )
+            else:
+                search_fixes.setToolTip(
+                    "Search verified local ROMVERSE Archives guidance for the highest-priority finding."
+                )
+                search_fixes.clicked.connect(
+                    lambda _checked=False, query=priority.title: self.knowledge_requested.emit(
+                        query
+                    )
+                )
             actions.addWidget(search_fixes)
             actions.addStretch()
             open_repair = QPushButton("Open guided fix in Recovery Bay")

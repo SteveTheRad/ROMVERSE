@@ -68,14 +68,20 @@ provider-controlled action/source identifiers fail closed. A provider cannot set
 remain valid. Schema-one guidance receipts remain readable with their newer evidence explicitly
 unconfirmed.
 
-Recovery Bay now also offers **Search local Archives** beside the exact symptom field. That handoff
-does not start research or a repair: it opens the bounded local ROMVERSE Archives query and preserves
-the symptom text. Quantum Optimizer offers the same navigation-only handoff for its highest-priority
-finding, while ROM Studio, Genesis, Ascension, and Recipe Forge retain their stage-specific guides.
+Recovery Bay now also offers **Search local Archives** beside the exact symptom field. Its deterministic
+Archives Advisor prioritizes an exact error-code match, then the selected typed repair concern and
+current diagnostic finding IDs. The assessment displays the primary source authority and automation
+boundary, records every recommendation in the privacy-safe exported report, and opens the selected
+stable article identity directly. Quantum Optimizer uses the same exact-ID handoff for its
+highest-priority actionable finding. These handoffs do not start research, approval, or repair, while
+ROM Studio, Genesis, Ascension, and Recipe Forge retain their stage-specific guides and drafts.
 
-The Desktop **ROMVERSE Archives** catalog now contains 98 validated local guides across ten
-categories, including 48 structured known-fix records and 25 guide records backed by official-source
-links. Ranked punctuation-tolerant retrieval covers ADB/USB, host tools, firmware intake, dynamic
+The Desktop **ROMVERSE Archives** catalog now contains 110 validated local guides across ten
+categories, including 60 structured known-fix records and 34 guide records backed by official-source
+links. The added official-source-labelled device triage covers battery/heat, storage, Android updates,
+app crashes, screen/touch, network, and performance, while camera/audio guidance remains explicitly
+ROMVERSE-scoped until exact OEM evidence is available. Ranked punctuation-tolerant retrieval covers
+ADB/USB, host tools, firmware intake, dynamic
 partitions and filesystems, AVB/boot, SELinux/build failures, APK install status, Guardian/recovery,
 and evidence integrity. Every structured fix separates meaning, checks, safe steps, verification,
 evidence, automation boundary, and source. Weak searches return no verified match instead of broad

@@ -2582,7 +2582,7 @@ class MainWindow(QMainWindow):
         )
         self.device_packs_center.catalog_refresh_requested.connect(self._refresh_device_catalog)
         self.device_packs_center.next_action_requested.connect(self._open_device_pack_next_action)
-        self.device_packs_center.toolchain_requested.connect(self._open_device_pack_toolchain)
+        self.device_packs_center.requirement_requested.connect(self._open_device_requirement)
         self.device_packs_center.readiness_changed.connect(self._record_device_pack_readiness)
         self.stack.addWidget(self.device_packs_center)
         self.rom_studio = RomStudio(
@@ -3568,6 +3568,79 @@ class MainWindow(QMainWindow):
             "The advised Desktop destination is not an approved readiness route"
         )
 
+    @Slot(str, str, str, str)
+    def _open_device_requirement(
+        self,
+        lane_id: str,
+        route: str,
+        article_key: str,
+        report_digest: str,
+    ) -> None:
+        """Re-derive one requirements lane before opening its connected Desktop feature."""
+
+        blueprint = self.device_packs_center.current_requirements()
+        report = self.device_packs_center.active_report
+        pack = self.device_packs_center.active_pack
+        lane = blueprint.lane(lane_id) if blueprint is not None else None
+        if (
+            blueprint is None
+            or report is None
+            or pack is None
+            or lane is None
+            or blueprint.report_digest != report_digest
+            or lane.route != route
+            or lane.article_key != article_key
+        ):
+            self.device_packs_center.requirement_handoff_stopped(
+                lane_id,
+                "The requested lane no longer matches the current automatic requirements blueprint",
+            )
+            return
+        if route == "archives":
+            if not article_key or article_for_key(article_key) is None:
+                self.device_packs_center.requirement_handoff_stopped(
+                    lane_id,
+                    "The exact verified requirements guide is unavailable",
+                )
+                return
+            self._navigate_route("archives")
+            if not self.knowledge_center.open_article(
+                article_key,
+                source_route="device_atlas",
+            ):
+                self.device_packs_center.requirement_handoff_stopped(
+                    lane_id,
+                    "The exact verified requirements guide is unavailable",
+                )
+            return
+        if route == "forge_arsenal":
+            if not self._open_device_pack_toolchain(
+                pack.pack_id,
+                pack.sha256,
+                report.report_digest,
+            ):
+                self.device_packs_center.requirement_handoff_stopped(
+                    lane_id,
+                    "Forge Arsenal rejected requirements that are not bound to the current exact Pack",
+                )
+            return
+        if route == "time_machine":
+            if not self.backup_center.open_device_atlas_readiness(report):
+                self.device_packs_center.requirement_handoff_stopped(
+                    lane_id,
+                    "Time Machine rejected a flash lane that is not the current stock-recovery gate",
+                )
+                return
+            self._navigate_route("time_machine")
+            return
+        if route == "rom_studio":
+            self._navigate_route("rom_studio")
+            return
+        self.device_packs_center.requirement_handoff_stopped(
+            lane_id,
+            "The requirements lane does not name an approved Desktop destination",
+        )
+
     def _current_device_pack_toolchain_context(
         self,
         pack_id: str,
@@ -3608,24 +3681,21 @@ class MainWindow(QMainWindow):
             flash_contract_ready=report.flash_contract_ready,
         )
 
-    @Slot(str, str, str)
     def _open_device_pack_toolchain(
         self,
         pack_id: str,
         pack_sha256: str,
         report_digest: str,
-    ) -> None:
+    ) -> bool:
         context = self._current_device_pack_toolchain_context(
             pack_id,
             pack_sha256,
             report_digest,
         )
         if context is None or not self.toolchain_center.open_device_pack_context(context):
-            self.device_packs_center.toolchain_handoff_stopped(
-                "The requested host requirements no longer match the current exact Device Pack report"
-            )
-            return
+            return False
         self._navigate_route("forge_arsenal")
+        return True
 
     @Slot(str, str, str)
     def _setup_device_pack_toolchain(
@@ -4012,6 +4082,12 @@ class MainWindow(QMainWindow):
                 ):
                     self.toolchain_center.device_pack_context_changed()
         action = self.device_packs_center.validation_service.next_safe_action(report)
+        blueprint = self.device_packs_center.current_requirements()
+        lane_states = (
+            " • ".join(f"{lane.lane_id}={lane.state.value}" for lane in blueprint.lanes)
+            if blueprint is not None
+            else "requirements blueprint unavailable"
+        )
         build = "ready" if report.build_contract_ready else "locked"
         flash = "ready" if report.flash_contract_ready else "locked"
         try:
@@ -4026,7 +4102,8 @@ class MainWindow(QMainWindow):
                 explanation=(
                     f"The report binds Device Pack {report.pack_id} v{report.pack_version} at "
                     f"SHA-256 {report.pack_sha256[:16]}…. Readiness remains separate from "
-                    "Guardian approval and execution authority."
+                    "Guardian approval and execution authority. Automatic Requirements "
+                    f"Blueprint: {lane_states}."
                 ),
                 next_action=action.title,
                 state=(

@@ -1553,6 +1553,47 @@ KNOWN_FIXES = (
         source=GOOGLE_DEVICE_CATALOG_SOURCE,
     ),
     _fix(
+        "device-build-requirements-blueprint",
+        "Determine what a recognized Android device needs to build, compile, and flash",
+        "ROMVERSE WORKFLOWS",
+        "A model name is only the first requirement. ROMVERSE must independently bind retail "
+        "identity, an exact protected-firmware build contract, the contract's ordered host "
+        "toolchain, and physical flash/recovery evidence. The Requirements Blueprint keeps "
+        "those four lanes separate so an official identity or installed compiler can never be "
+        "mistaken for permission to build or write a phone.",
+        checks=(
+            "Confirm the blueprint is bound to the current model/codename, Device Pack id and SHA-256, and readiness-report digest.",
+            "Read all four lane badges: Identity, Build Contract, Compile Toolchain, and Flash Contract can have different states.",
+            "For a generic/OEM Pack, expect build, toolchain, and flash requirements to remain explicit unknowns even when Google's retail identity is verified.",
+            "For an exact build Pack, compare declared tools and outputs with the Pack contract; host readiness and flash readiness still require separate verification.",
+        ),
+        fix_steps=(
+            "Use the Identity lane to sync or review exact Build.BRAND / Build.DEVICE evidence without granting compatibility.",
+            "Use the Build lane to resolve model scope, protected source hashes, partitions, editable images, and bounded allowed outputs.",
+            "Use the Compile lane only after an exact contract exists; Forge Arsenal will verify or prepare that declared ordered subset rather than guessing a generic bundle.",
+            "Use the Flash lane to prepare stock recovery and obtain signed exact-build AVB, physical-test, publisher, and partition-write evidence before Guardian review.",
+        ),
+        verification=(
+            "Every lane route re-derives the same current blueprint before navigating and refuses a stale or substituted report.",
+            "An exact build-ready Pack can open ROM Studio while a separate flash-locked lane remains visibly locked.",
+            "An official generic identity names the phone but never creates required tools, allowed images, partition writes, approval, or flash authority.",
+            "No blueprint button starts an approval, build worker, flash command, or device-changing operation.",
+        ),
+        tags=(
+            "build compile flash requirements",
+            "recognized android device requirements",
+            "automatic device blueprint",
+            "what tools does this phone need",
+            "device build contract missing",
+            "flash requirements unknown",
+            "identity build toolchain flash",
+        ),
+        route="device_atlas",
+        evidence="ROMVERSE derives each lane only from the current official identity match, integrity-checked Device Pack, deterministic validation rows, and exact report digest.",
+        automation="DETERMINISTIC REQUIREMENTS AND SAFE ROUTING ONLY • NO APPROVAL, BUILD, FLASH, OR DEVICE-CHANGING AUTHORITY",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
         "device-pack-readiness-roadmap",
         "Device Pack roadmap is build-locked or flash-locked",
         "ROMVERSE WORKFLOWS",

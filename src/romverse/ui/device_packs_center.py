@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
     QFrame,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -27,6 +28,11 @@ from romverse.device_packs.attestations import DevicePackAttestationStore
 from romverse.device_packs.drafts import DevicePackDraftService
 from romverse.device_packs.models import CapabilityStatus, DevicePack
 from romverse.device_packs.registry import DevicePackRegistry
+from romverse.device_packs.requirements import (
+    DeviceRequirementsBlueprint,
+    DeviceRequirementsService,
+    RequirementState,
+)
 from romverse.device_packs.source_audit import export_source_audit, summarize_sources
 from romverse.device_packs.validation import (
     DevicePackNextAction,
@@ -40,7 +46,7 @@ class DevicePacksCenter(QWidget):
     rom_studio_requested = Signal()
     catalog_refresh_requested = Signal()
     next_action_requested = Signal(str, str, str, str)
-    toolchain_requested = Signal(str, str, str)
+    requirement_requested = Signal(str, str, str, str)
     readiness_changed = Signal(object)
 
     def __init__(
@@ -58,12 +64,17 @@ class DevicePacksCenter(QWidget):
         self.device_catalog = device_catalog
         self.online_catalog_enabled = online_catalog_enabled
         self.validation_service = DevicePackValidationService()
+        self.requirements_service = DeviceRequirementsService()
         self.draft_service = DevicePackDraftService()
         self.active_report: DevicePackValidationReport | None = None
         self.active_next_action: DevicePackNextAction | None = None
+        self.active_requirements: DeviceRequirementsBlueprint | None = None
+        self.active_catalog_match: DeviceCatalogMatch | None = None
         self.active_pack: DevicePack | None = None
         self.active_device: AndroidDevice | None = None
         self.validation_rows: dict[str, QFrame] = {}
+        self.requirement_buttons: dict[str, QPushButton] = {}
+        self.requirement_badges: dict[str, QLabel] = {}
         self.devices: list[AndroidDevice] = []
         self.source_summary = summarize_sources(registry)
 
@@ -283,6 +294,8 @@ class DevicePacksCenter(QWidget):
         self._repolish(self.identity_catalog_badge)
         if self.active_device is not None:
             self._render_catalog_identity(self.active_device)
+            if self.active_pack is not None and self.active_report is not None:
+                self._render_pack(self.active_pack, self.active_report)
 
     def catalog_refresh_failed(self, reason: str) -> None:
         self.identity_catalog_title.setText("Official Android device ID sync stopped safely")
@@ -299,8 +312,10 @@ class DevicePacksCenter(QWidget):
 
     def _render_catalog_identity(self, device: AndroidDevice | None) -> DeviceCatalogMatch | None:
         if device is None or self.device_catalog is None:
+            self.active_catalog_match = None
             return None
         match = self.device_catalog.match(device)
+        self.active_catalog_match = match
         if match.matched:
             self.identity_catalog_title.setText(
                 f"Official identity recognized • {match.marketing_name}"
@@ -374,6 +389,8 @@ class DevicePacksCenter(QWidget):
             self.version_value.setText("—")
             self.active_report = None
             self.active_next_action = None
+            self.active_requirements = None
+            self.active_catalog_match = None
             self.active_pack = None
             self.active_device = None
             self._repolish(self.pack_badge)
@@ -403,6 +420,7 @@ class DevicePacksCenter(QWidget):
             self.version_value.setText("—")
             self.active_report = None
             self.active_next_action = None
+            self.active_requirements = None
             self.active_pack = None
             self.active_device = device
             self._repolish(self.pack_badge)
@@ -567,51 +585,12 @@ class DevicePacksCenter(QWidget):
         self.next_action_feedback.setWordWrap(True)
         roadmap_layout.addWidget(self.next_action_feedback)
 
-        contract = pack.build_contract
-        if contract is not None:
-            toolchain = QFrame()
-            toolchain.setObjectName("DiagnosticHandoffBar")
-            toolchain_layout = QVBoxLayout(toolchain)
-            toolchain_layout.setContentsMargins(16, 13, 16, 13)
-            toolchain_layout.setSpacing(8)
-            toolchain_top = QHBoxLayout()
-            toolchain_copy = QVBoxLayout()
-            toolchain_eyebrow = QLabel("EXACT BUILD TOOLCHAIN  •  DECLARED BY THIS DEVICE PACK")
-            toolchain_eyebrow.setObjectName("Eyebrow")
-            self.toolchain_title = QLabel(
-                f"{len(contract.required_tools)} host requirements for {pack.display_name}"
-            )
-            self.toolchain_title.setObjectName("SectionTitle")
-            self.toolchain_detail = QLabel(
-                " • ".join(contract.required_tools)
-                + "\nForge Arsenal can verify and prepare only this ordered requirement set. "
-                "Tool availability is separate from Device Pack build readiness, Guardian "
-                "approval, and the independently locked flash contract."
-            )
-            self.toolchain_detail.setObjectName("Muted")
-            self.toolchain_detail.setWordWrap(True)
-            toolchain_copy.addWidget(toolchain_eyebrow)
-            toolchain_copy.addWidget(self.toolchain_title)
-            toolchain_copy.addWidget(self.toolchain_detail)
-            toolchain_top.addLayout(toolchain_copy, 1)
-            toolchain_badge = QLabel("BUILD TOOLS ONLY  •  FLASH AUTHORITY NONE")
-            toolchain_badge.setObjectName("Warning")
-            toolchain_top.addWidget(toolchain_badge)
-            self.toolchain_button = QPushButton("Inspect exact build tools")
-            self.toolchain_button.setObjectName("Primary")
-            self.toolchain_button.setToolTip(
-                "Carry this exact report digest, Pack hash, and declared host-tool set into "
-                "Forge Arsenal. No installer, build, approval, or device-changing operation "
-                "starts automatically."
-            )
-            self.toolchain_button.clicked.connect(self._request_toolchain)
-            toolchain_top.addWidget(self.toolchain_button)
-            toolchain_layout.addLayout(toolchain_top)
-            self.toolchain_feedback = QLabel("")
-            self.toolchain_feedback.setObjectName("Muted")
-            self.toolchain_feedback.setWordWrap(True)
-            toolchain_layout.addWidget(self.toolchain_feedback)
-            roadmap_layout.addWidget(toolchain)
+        self.active_requirements = self.requirements_service.assess(
+            pack,
+            report,
+            self.active_catalog_match,
+        )
+        self._render_requirements_blueprint(roadmap_layout)
 
         for check in report.checks:
             row = QFrame()
@@ -812,6 +791,96 @@ class DevicePacksCenter(QWidget):
             self.body_layout.addWidget(notes)
         self.body_layout.addStretch()
 
+    def _render_requirements_blueprint(self, parent: QVBoxLayout) -> None:
+        blueprint = self.active_requirements
+        if blueprint is None:
+            return
+        self.requirement_buttons.clear()
+        self.requirement_badges.clear()
+        frame = QFrame()
+        frame.setObjectName("RequirementsBlueprint")
+        self.requirements_blueprint_frame = frame
+        layout = QVBoxLayout(frame)
+        layout.setContentsMargins(18, 15, 18, 15)
+        layout.setSpacing(11)
+        header = QHBoxLayout()
+        copy = QVBoxLayout()
+        eyebrow = QLabel("AUTOMATIC REQUIREMENTS BLUEPRINT  •  CURRENT EVIDENCE ONLY")
+        eyebrow.setObjectName("Eyebrow")
+        title = QLabel("What this phone needs to identify, build, compile, and flash")
+        title.setObjectName("SectionTitle")
+        detail = QLabel(
+            f"Bound to {blueprint.model} / {blueprint.codename}  •  Pack "
+            f"{blueprint.pack_id}  •  SHA-256 {blueprint.pack_sha256[:12]}…"
+        )
+        detail.setObjectName("Muted")
+        detail.setWordWrap(True)
+        copy.addWidget(eyebrow)
+        copy.addWidget(title)
+        copy.addWidget(detail)
+        header.addLayout(copy, 1)
+        digest = QLabel(f"REPORT {blueprint.report_digest[:12]}…  •  ZERO AUTHORITY")
+        digest.setObjectName("Warning")
+        header.addWidget(digest)
+        layout.addLayout(header)
+
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(10)
+        grid.setVerticalSpacing(10)
+        for index, lane in enumerate(blueprint.lanes):
+            card = QFrame()
+            card.setObjectName("RequirementLane")
+            card.setProperty("state", lane.state.value)
+            card_layout = QVBoxLayout(card)
+            card_layout.setContentsMargins(14, 12, 14, 12)
+            card_layout.setSpacing(7)
+            lane_header = QHBoxLayout()
+            lane_title = QLabel(lane.title)
+            lane_title.setObjectName("SectionTitle")
+            lane_header.addWidget(lane_title, 1)
+            badge = QLabel(lane.badge)
+            badge.setObjectName(
+                "Good"
+                if lane.state is RequirementState.VERIFIED
+                else "Warning"
+                if lane.state in {RequirementState.DECLARED, RequirementState.NEEDS_EVIDENCE}
+                else "Danger"
+            )
+            lane_header.addWidget(badge)
+            card_layout.addLayout(lane_header)
+            summary = QLabel(lane.summary)
+            summary.setObjectName("Muted")
+            summary.setWordWrap(True)
+            card_layout.addWidget(summary)
+            requirements = QLabel(
+                "REQUIRES\n" + " • ".join(lane.requirements)
+                if lane.requirements
+                else "REQUIRES\nNo additional evidence reported"
+            )
+            requirements.setObjectName("RequirementNeeds")
+            requirements.setWordWrap(True)
+            requirements.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            card_layout.addWidget(requirements, 1)
+            button = QPushButton(lane.button_label)
+            button.setObjectName("Primary" if lane.state is RequirementState.VERIFIED else "")
+            button.setToolTip(
+                "Revalidates this lane against the current report before opening its connected "
+                "Desktop feature. It starts no approval, build, flash, or device-changing action."
+            )
+            button.clicked.connect(
+                lambda _checked=False, lane_id=lane.lane_id: self._request_requirement(lane_id)
+            )
+            card_layout.addWidget(button, 0, Qt.AlignmentFlag.AlignLeft)
+            grid.addWidget(card, index // 2, index % 2)
+            self.requirement_buttons[lane.lane_id] = button
+            self.requirement_badges[lane.lane_id] = badge
+        layout.addLayout(grid)
+        self.requirements_feedback = QLabel("")
+        self.requirements_feedback.setObjectName("Muted")
+        self.requirements_feedback.setWordWrap(True)
+        layout.addWidget(self.requirements_feedback)
+        parent.addWidget(frame)
+
     def _request_next_action(self) -> None:
         action = self.active_next_action
         report = self.active_report
@@ -835,23 +904,45 @@ class DevicePacksCenter(QWidget):
         self.next_action_feedback.setObjectName("Danger")
         self._repolish(self.next_action_feedback)
 
-    def _request_toolchain(self) -> None:
+    def current_requirements(self) -> DeviceRequirementsBlueprint | None:
         report = self.active_report
         pack = self.active_pack
-        if report is None or pack is None or pack.build_contract is None:
-            return
-        self.toolchain_requested.emit(pack.pack_id, pack.sha256, report.report_digest)
+        if report is None or pack is None:
+            return None
+        try:
+            return self.requirements_service.assess(
+                pack,
+                report,
+                self.active_catalog_match,
+            )
+        except ValueError:
+            return None
 
-    def toolchain_handoff_stopped(self, reason: str) -> None:
-        """Keep a refused exact-toolchain handoff visible in Device Atlas."""
-
-        if not hasattr(self, "toolchain_feedback"):
+    def _request_requirement(self, lane_id: str) -> None:
+        blueprint = self.current_requirements()
+        if blueprint is None:
             return
-        self.toolchain_feedback.setText(
-            f"EXACT TOOLCHAIN HANDOFF STOPPED  •  {reason}  •  NO INSTALL, BUILD, OR PHONE ACTION STARTED"
+        lane = blueprint.lane(lane_id)
+        if lane is None:
+            return
+        self.requirement_requested.emit(
+            lane.lane_id,
+            lane.route,
+            lane.article_key,
+            blueprint.report_digest,
         )
-        self.toolchain_feedback.setObjectName("Danger")
-        self._repolish(self.toolchain_feedback)
+
+    def requirement_handoff_stopped(self, lane_id: str, reason: str) -> None:
+        """Keep a refused blueprint route visible without substituting another lane."""
+
+        if not hasattr(self, "requirements_feedback"):
+            return
+        label = lane_id.replace("-", " ").upper() or "REQUIREMENT"
+        self.requirements_feedback.setText(
+            f"{label} HANDOFF STOPPED  •  {reason}  •  NO APPROVAL, BUILD, FLASH, OR DEVICE-CHANGING ACTION STARTED"
+        )
+        self.requirements_feedback.setObjectName("Danger")
+        self._repolish(self.requirements_feedback)
 
     def _export_validation_request(self) -> None:
         if self.active_report is None or self.workspace is None:

@@ -60,6 +60,21 @@ QFrame#DiagnosticHandoffBar {
     background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 rgba(20,13,43,238),stop:1 rgba(5,31,42,232));
     border: 1px solid rgba(64, 220, 235, 160); border-left: 3px solid #A855F7; border-radius: 9px;
 }
+QFrame#RequirementsBlueprint {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(12,18,42,246),stop:0.5 rgba(10,25,43,244),stop:1 rgba(20,11,42,242));
+    border: 1px solid rgba(82, 117, 187, 185); border-top: 2px solid rgba(53, 222, 239, 180); border-radius: 11px;
+}
+QFrame#RequirementLane {
+    background: rgba(5, 11, 23, 238); border: 1px solid rgba(54, 80, 126, 180); border-radius: 9px;
+}
+QFrame#RequirementLane[state="verified"] { border-left: 3px solid #44E39A; }
+QFrame#RequirementLane[state="declared"] { border-left: 3px solid #4F7CFF; }
+QFrame#RequirementLane[state="needs-evidence"] { border-left: 3px solid #FFB454; }
+QFrame#RequirementLane[state="locked"] { border-left: 3px solid #FF6685; }
+QLabel#RequirementNeeds {
+    color: #AABAD6; background: rgba(6, 14, 28, 180); border: 1px solid rgba(42, 64, 101, 140);
+    border-radius: 7px; padding: 8px; font-size: 11px;
+}
 QFrame#NexusReviewCard {
     background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(31,16,58,248),stop:0.52 rgba(8,21,43,246),stop:1 rgba(5,35,43,244));
     border: 1px solid rgba(65, 222, 236, 185); border-left: 4px solid #B45CFF; border-radius: 11px;

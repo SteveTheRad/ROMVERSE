@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QApplication, QLabel
 from romverse.device.catalog import GooglePlayDeviceCatalog
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device_packs.registry import DevicePackRegistry
+from romverse.device_packs.requirements import RequirementState
 from romverse.ui.device_packs_center import DevicePacksCenter
 from tests.test_device_catalog import _payload, _sync
 
@@ -35,6 +36,23 @@ def test_device_atlas_distinguishes_local_build_readiness_from_flash_lock(tmp_pa
     assert center.active_next_action.route == "time_machine"
     assert center.next_action_title.text() == "Prepare the exact stock recovery route"
     assert center.next_action_badge.text() == "FLASH GATE • ZERO AUTHORITY"
+    assert center.active_requirements is not None
+    assert center.active_requirements.lane("build").state is RequirementState.VERIFIED
+    assert center.active_requirements.lane("compile").state is RequirementState.DECLARED
+    assert center.active_requirements.lane("flash").state is RequirementState.NEEDS_EVIDENCE
+    assert center.requirement_badges["build"].text() == "EXACT BUILD CONTRACT • READY"
+    assert "14 TOOLS DECLARED" in center.requirement_badges["compile"].text()
+    requirements_requested: list[tuple[str, str, str, str]] = []
+    center.requirement_requested.connect(lambda *values: requirements_requested.append(values))
+    center.requirement_buttons["compile"].click()
+    assert requirements_requested == [
+        (
+            "compile",
+            "forge_arsenal",
+            "",
+            center.active_report.report_digest,
+        )
+    ]
     requested: list[tuple[str, str, str, str]] = []
     center.next_action_requested.connect(lambda *values: requested.append(values))
     center.next_action_button.click()
@@ -184,8 +202,63 @@ def test_device_atlas_shows_exact_official_identity_without_inventing_build_supp
     assert center.active_next_action is not None
     assert center.active_next_action.article_key == "android-device-identity-catalog"
     assert center.next_action_badge.text() == "BUILD GATE • ZERO AUTHORITY"
+    assert center.active_requirements is not None
+    identity = center.active_requirements.lane("identity")
+    compile_lane = center.active_requirements.lane("compile")
+    assert identity is not None and identity.state is RequirementState.VERIFIED
+    assert compile_lane is not None and compile_lane.state is RequirementState.LOCKED
+    assert center.requirement_badges["identity"].text() == "OFFICIAL ID • READ ONLY"
+    assert center.requirement_badges["compile"].text() == ("TOOLCHAIN UNKNOWN • NO GENERIC GUESS")
+    requested_requirements = []
+    center.requirement_requested.connect(lambda *values: requested_requirements.append(values))
+    center.requirement_buttons["compile"].click()
+    assert requested_requirements == [
+        (
+            "compile",
+            "archives",
+            "device-build-requirements-blueprint",
+            center.active_report.report_digest,
+        )
+    ]
 
     center.identity_catalog_button.click()
     app.processEvents()
     assert requested == [True]
+    center.close()
+
+
+def test_official_id_refresh_recomputes_the_current_requirements_without_phone_action(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    monkeypatch.setattr(GooglePlayDeviceCatalog, "MINIMUM_ENTRIES", 1)
+    catalog = GooglePlayDeviceCatalog(tmp_path)
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    center = DevicePacksCenter(registry, tmp_path, device_catalog=catalog)
+    center.set_devices(
+        [
+            AndroidDevice(
+                "private-refresh",
+                DeviceState.DEVICE,
+                brand="Example",
+                manufacturer="Example Industries",
+                model="EX-100",
+                codename="nebula",
+            )
+        ]
+    )
+    initial_report = center.active_report
+    assert initial_report is not None and center.active_requirements is not None
+    assert center.active_requirements.lane("identity").state is RequirementState.NEEDS_EVIDENCE
+
+    _sync(catalog, _payload(("Example", "Example Nebula", "nebula", "EX-100")))
+    center.set_catalog_status(catalog.status())
+    app.processEvents()
+
+    assert center.active_report is initial_report
+    assert center.active_requirements is not None
+    assert center.active_requirements.lane("identity").state is RequirementState.VERIFIED
+    assert center.requirement_badges["identity"].text() == "OFFICIAL ID • READ ONLY"
+    assert center.active_requirements.lane("compile").state is RequirementState.LOCKED
     center.close()

@@ -957,6 +957,8 @@ def test_fresh_scan_connects_exact_official_device_identity_to_every_desktop_con
         assert "build is locked and flash is locked" in readiness.summary
         assert readiness.next_action == "Confirm the exact model contract"
         assert readiness.confidence is MissionConfidence.VERIFIED
+        assert "identity=verified" in readiness.explanation
+        assert "compile=locked" in readiness.explanation
 
         window._navigate_route("live_console")
         app.processEvents()
@@ -987,6 +989,27 @@ def test_fresh_scan_connects_exact_official_device_identity_to_every_desktop_con
         app.processEvents()
         assert window.stack.currentWidget() is window.knowledge_center
         assert "Recognize an Android model" in window.knowledge_center.list.currentItem().text()
+        window.knowledge_center.source_return.click()
+        assert window.stack.currentWidget() is window.device_packs_center
+
+        window._open_device_requirement(
+            "compile",
+            "archives",
+            "device-build-requirements-blueprint",
+            "0" * 64,
+        )
+        assert window.stack.currentWidget() is window.device_packs_center
+        assert "COMPILE HANDOFF STOPPED" in (
+            window.device_packs_center.requirements_feedback.text()
+        )
+
+        window.device_packs_center.requirement_buttons["compile"].click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.knowledge_center
+        assert window.knowledge_center.list.currentItem().text() == (
+            "Determine what a recognized Android device needs to build, compile, and flash"
+        )
+        assert window.knowledge_center.source_return.text() == "Return to Device Atlas"
     finally:
         window.companion_center.transport.close()
         window.close()
@@ -1074,7 +1097,8 @@ def test_device_atlas_stock_gate_opens_time_machine_with_exact_context(tmp_path:
 
         assert window.device_packs_center.active_next_action is not None
         assert window.device_packs_center.active_next_action.route == "time_machine"
-        window.device_packs_center.next_action_button.click()
+        assert "FLASH LOCKED" in window.device_packs_center.requirement_badges["flash"].text()
+        window.device_packs_center.requirement_buttons["flash"].click()
         app.processEvents()
 
         assert window.stack.currentWidget() is window.backup_center
@@ -1142,9 +1166,15 @@ def test_device_atlas_carries_exact_pack_tools_into_forge_and_verified_archives(
         pack = window.device_packs_center.active_pack
         report = window.device_packs_center.active_report
         assert pack is not None and pack.build_contract is not None and report is not None
-        assert "14 host requirements" in window.device_packs_center.toolchain_title.text()
-        assert "flash contract" in window.device_packs_center.toolchain_detail.text().casefold()
-        window.device_packs_center.toolchain_button.click()
+        assert "14 TOOLS DECLARED" in (
+            window.device_packs_center.requirement_badges["compile"].text()
+        )
+        assert "FLASH LOCKED" in window.device_packs_center.requirement_badges["flash"].text()
+        window.device_packs_center.requirement_buttons["build"].click()
+        assert window.stack.currentWidget() is window.rom_studio
+        window._navigate_route("device_atlas")
+        app.processEvents()
+        window.device_packs_center.requirement_buttons["compile"].click()
         app.processEvents()
 
         assert window.stack.currentWidget() is window.toolchain_center
@@ -1235,7 +1265,7 @@ def test_exact_forge_context_refuses_stale_device_and_separates_build_from_flash
         assert pack is not None and pack.build_contract is not None and report is not None
         assert report.build_contract_ready
         assert not report.flash_contract_ready
-        window.device_packs_center.toolchain_button.click()
+        window.device_packs_center.requirement_buttons["compile"].click()
         app.processEvents()
 
         first_digest = window.toolchain_center._device_pack_context.report_digest
@@ -1259,7 +1289,7 @@ def test_exact_forge_context_refuses_stale_device_and_separates_build_from_flash
         window.toolchain_center.context_continue_button.click()
         assert window.stack.currentWidget() is window.rom_studio
 
-        window.device_packs_center.toolchain_button.click()
+        window.device_packs_center.requirement_buttons["compile"].click()
         app.processEvents()
         window.toolchain_center.statuses = (ToolStatus("Python", False, detail="Missing fixture"),)
         window.toolchain_center._render()

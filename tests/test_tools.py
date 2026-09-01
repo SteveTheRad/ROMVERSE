@@ -132,6 +132,110 @@ def test_extended_verifier_skips_broken_shadowing_binary(monkeypatch, tmp_path):
     assert simg2img.path == str(good / "simg2img")
 
 
+def _android_build_tools_revision(sdk: Path, revision: str) -> Path:
+    tools = sdk / "build-tools" / revision
+    (tools / "lib").mkdir(parents=True)
+    (tools / "aapt2").write_text("fixture", encoding="utf-8")
+    (tools / "apksigner").write_text("fixture", encoding="utf-8")
+    (tools / "lib" / "apksigner.jar").write_text("fixture", encoding="utf-8")
+    return tools
+
+
+def test_extended_verifier_discovers_complete_android_studio_build_tools(
+    tmp_path,
+    monkeypatch,
+):
+    monkeypatch.setenv("PATH", "")
+    sdk = tmp_path / "Android" / "Sdk"
+    _android_build_tools_revision(sdk, "35.0.1")
+    expected = _android_build_tools_revision(sdk, "36.0.0")
+    _android_build_tools_revision(sdk, "37.0.0-rc2")
+
+    class SdkHost:
+        name = "Linux"
+
+        def find_tool(self, _name):
+            return None
+
+    class SdkRunner:
+        def run(self, args, timeout=10):
+            path = Path(args[0])
+            assert path.parent == expected
+            output = "Android Asset Packaging Tool 2.19" if path.name == "aapt2" else "0.9"
+            return CommandResult(tuple(args), 0, output, "")
+
+    statuses = ToolVerifier(SdkHost(), SdkRunner(), sdk_roots=(sdk,)).verify_extended()
+    aapt = next(status for status in statuses if status.name == "AAPT2")
+    signer = next(status for status in statuses if status.name == "APK Signer")
+
+    assert aapt.available and aapt.path == str(expected / "aapt2")
+    assert signer.available and signer.path == str(expected / "apksigner")
+
+
+def test_android_sdk_discovery_keeps_aapt2_and_apksigner_on_one_complete_revision(
+    tmp_path,
+    monkeypatch,
+):
+    monkeypatch.setenv("PATH", "")
+    sdk = tmp_path / "sdk"
+    complete = _android_build_tools_revision(sdk, "35.0.0")
+    incomplete = sdk / "build-tools" / "36.0.0"
+    incomplete.mkdir(parents=True)
+    (incomplete / "aapt2").write_text("fixture", encoding="utf-8")
+
+    class SdkHost:
+        name = "Linux"
+
+        def find_tool(self, _name):
+            return None
+
+    class SdkRunner:
+        def run(self, args, timeout=10):
+            assert Path(args[0]).parent == complete
+            return CommandResult(tuple(args), 0, "verified", "")
+
+    statuses = ToolVerifier(SdkHost(), SdkRunner(), sdk_roots=(sdk,)).verify_extended()
+
+    assert next(status for status in statuses if status.name == "AAPT2").path == str(
+        complete / "aapt2"
+    )
+    assert next(status for status in statuses if status.name == "APK Signer").path == str(
+        complete / "apksigner"
+    )
+
+
+def test_android_sdk_discovery_falls_back_when_newer_tools_do_not_start(
+    tmp_path,
+    monkeypatch,
+):
+    monkeypatch.setenv("PATH", "")
+    sdk = tmp_path / "sdk"
+    fallback = _android_build_tools_revision(sdk, "35.0.0")
+    broken = _android_build_tools_revision(sdk, "36.0.0")
+
+    class SdkHost:
+        name = "Linux"
+
+        def find_tool(self, _name):
+            return None
+
+    class SdkRunner:
+        def run(self, args, timeout=10):
+            path = Path(args[0])
+            if path.parent == broken:
+                return CommandResult(tuple(args), 1, "", "broken SDK fixture")
+            return CommandResult(tuple(args), 0, "verified fallback", "")
+
+    statuses = ToolVerifier(SdkHost(), SdkRunner(), sdk_roots=(sdk,)).verify_extended()
+
+    assert next(status for status in statuses if status.name == "AAPT2").path == str(
+        fallback / "aapt2"
+    )
+    assert next(status for status in statuses if status.name == "APK Signer").path == str(
+        fallback / "apksigner"
+    )
+
+
 def test_extended_verifier_uses_hash_bound_managed_version(monkeypatch, tmp_path):
     executable = tmp_path / "payload-dumper-go"
     executable.write_bytes(b"verified payload dumper")

@@ -22,9 +22,19 @@ class ToolStatus:
 
 
 class ToolVerifier:
-    def __init__(self, host: HostPlatform, runner: CommandRunner) -> None:
+    MAXIMUM_SDK_ROOTS = 8
+    MAXIMUM_BUILD_TOOL_REVISIONS = 128
+
+    def __init__(
+        self,
+        host: HostPlatform,
+        runner: CommandRunner,
+        *,
+        sdk_roots: tuple[Path, ...] | None = None,
+    ) -> None:
         self.host = host
         self.runner = runner
+        self.sdk_roots = sdk_roots
 
     def verify(self) -> tuple[ToolStatus, ...]:
         python = ToolStatus("Python", True, sys.executable, sys.version.split()[0], "Ready")
@@ -120,13 +130,19 @@ class ToolVerifier:
                 "Install verified Android logical-partition tools",
             ),
             ("Fakeroot", "fakeroot", ("-v",), frozenset({0}), "Install fakeroot"),
-            ("AAPT2", "aapt2", ("version",), frozenset({0}), "Install aapt"),
+            (
+                "AAPT2",
+                "aapt2",
+                ("version",),
+                frozenset({0}),
+                "Install Android SDK Build Tools 26.0.2+; ROMVERSE checks Android Studio SDK folders automatically",
+            ),
             (
                 "APK Signer",
                 "apksigner",
                 ("version",),
                 frozenset({0}),
-                "Install apksigner",
+                "Install Android SDK Build Tools 24.0.3+; ROMVERSE checks Android Studio SDK folders automatically",
             ),
         )
         if self.host.name.lower() == "windows":
@@ -229,4 +245,99 @@ class ToolVerifier:
                     path = Path(directory) / f"{name}{suffix}"
                     if path.is_file() and path not in candidates:
                         candidates.append(path)
+        for name in names:
+            if name not in {"aapt2", "apksigner"}:
+                continue
+            for path in self._android_sdk_tool_candidates(name):
+                if path not in candidates:
+                    candidates.append(path)
         return tuple(candidates)
+
+    def _android_sdk_tool_candidates(self, executable: str) -> tuple[Path, ...]:
+        """Find complete Android Studio Build Tools pairs without requiring PATH edits."""
+
+        roots = self.sdk_roots
+        if roots is None:
+            roots = self._default_android_sdk_roots()
+        candidates: list[tuple[tuple[object, ...], Path]] = []
+        suffix = ".exe" if self.host.name.casefold() == "windows" else ""
+        signer_names = (
+            ("apksigner.bat", "apksigner.exe")
+            if self.host.name.casefold() == "windows"
+            else ("apksigner",)
+        )
+        for root_index, root in enumerate(roots[: self.MAXIMUM_SDK_ROOTS]):
+            try:
+                build_tools = (root / "build-tools").resolve(strict=True)
+                revisions = tuple(build_tools.iterdir())
+            except (OSError, RuntimeError):
+                continue
+            if len(revisions) > self.MAXIMUM_BUILD_TOOL_REVISIONS:
+                continue
+            for revision in revisions:
+                if (
+                    not revision.is_dir()
+                    or revision.is_symlink()
+                    or re.fullmatch(
+                        r"[0-9]+(?:\.[0-9]+){1,3}(?:[-_.][A-Za-z0-9]+)*",
+                        revision.name,
+                    )
+                    is None
+                ):
+                    continue
+                try:
+                    resolved = revision.resolve(strict=True)
+                    resolved.relative_to(build_tools)
+                except (OSError, RuntimeError, ValueError):
+                    continue
+                aapt = resolved / f"aapt2{suffix}"
+                signer = next(
+                    (resolved / name for name in signer_names if (resolved / name).is_file()),
+                    None,
+                )
+                signer_jar = resolved / "lib" / "apksigner.jar"
+                if (
+                    not aapt.is_file()
+                    or aapt.is_symlink()
+                    or signer is None
+                    or signer.is_symlink()
+                    or not signer_jar.is_file()
+                    or signer_jar.is_symlink()
+                ):
+                    continue
+                selected = aapt if executable == "aapt2" else signer
+                candidates.append(
+                    (self._android_build_tools_revision_key(revision.name, root_index), selected)
+                )
+        candidates.sort(key=lambda item: item[0], reverse=True)
+        return tuple(path for _key, path in candidates)
+
+    def _default_android_sdk_roots(self) -> tuple[Path, ...]:
+        roots: list[Path] = []
+        for name in ("ANDROID_SDK_ROOT", "ANDROID_HOME"):
+            raw = os.environ.get(name, "").strip()
+            if raw and "\x00" not in raw:
+                path = Path(raw).expanduser()
+                if path.is_absolute() and path not in roots:
+                    roots.append(path)
+        if self.host.name.casefold() == "windows":
+            local = os.environ.get("LOCALAPPDATA", "").strip()
+            if local and "\x00" not in local:
+                path = Path(local) / "Android" / "Sdk"
+                if path not in roots:
+                    roots.append(path)
+            common = Path.home() / "AppData" / "Local" / "Android" / "Sdk"
+        else:
+            common = Path.home() / "Android" / "Sdk"
+        if common not in roots:
+            roots.append(common)
+        return tuple(roots[: self.MAXIMUM_SDK_ROOTS])
+
+    @staticmethod
+    def _android_build_tools_revision_key(
+        revision: str,
+        root_index: int,
+    ) -> tuple[object, ...]:
+        numbers = tuple(int(value) for value in re.findall(r"[0-9]+", revision)[:4])
+        stable = re.fullmatch(r"[0-9]+(?:\.[0-9]+){1,3}", revision) is not None
+        return stable, numbers, -root_index, revision

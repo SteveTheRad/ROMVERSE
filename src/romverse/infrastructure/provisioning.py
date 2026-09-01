@@ -248,7 +248,13 @@ def create_provision_plan(
         else:
             strategy = ProvisionStrategy.MANUAL
             packages = ()
-            explanation = "No bounded automatic installer is approved for this host yet."
+            explanation = (
+                "Install one stable Android SDK Build Tools revision with Android Studio or "
+                "sdkmanager. ROMVERSE automatically checks ANDROID_SDK_ROOT, ANDROID_HOME, and "
+                "the standard Android Studio SDK folder; package licenses remain user-controlled."
+                if status.name in {"AAPT2", "APK Signer"}
+                else "No bounded automatic installer is approved for this host yet."
+            )
         items.append(
             ToolProvisionItem(
                 status.name,

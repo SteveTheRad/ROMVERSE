@@ -784,9 +784,20 @@ class ToolchainCenter(QWidget):
             "Choose the default ROM Studio requirements when no exact Device Pack context is active."
         )
         guided.clicked.connect(self._guided_setup)
+        self.android_sdk_guide_button = QPushButton("Resolve Android SDK Build Tools")
+        self.android_sdk_guide_button.setToolTip(
+            "Open the verified Archives guide for AAPT2 and APK Signer discovery. Scanning an "
+            "installed SDK never downloads tools or accepts a license."
+        )
+        self.android_sdk_guide_button.clicked.connect(
+            lambda: self.knowledge_article_requested.emit(
+                "android-sdk-build-tools-not-discovered"
+            )
+        )
         general_actions = QHBoxLayout()
         general_actions.addWidget(refresh)
         general_actions.addWidget(guided)
+        general_actions.addWidget(self.android_sdk_guide_button)
         general_actions.addStretch()
         page.addLayout(general_actions)
         self.body = QScrollArea()
@@ -1240,6 +1251,12 @@ class ToolchainCenter(QWidget):
             for name in required
         ) + tuple(status for status in self.statuses if status.name not in required_set)
         ready = sum(status.available for status in ordered_statuses)
+        self.android_sdk_guide_button.setVisible(
+            any(
+                not status.available and status.name in {"AAPT2", "APK Signer"}
+                for status in ordered_statuses
+            )
+        )
         summary = QLabel(f"{ready} of {len(ordered_statuses)} tools verified on {self.host.name}")
         summary.setObjectName("Good" if ready == len(ordered_statuses) else "Warning")
         self.layout.addWidget(summary)

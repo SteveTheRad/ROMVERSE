@@ -103,6 +103,9 @@ def test_fedora_plan_uses_only_available_distro_packages() -> None:
     ]
     assert [item.name for item in plan.manual] == ["Java", "AAPT2"]
     assert all("Fedora" in item.explanation for item in plan.system)
+    aapt = next(item for item in plan.manual if item.name == "AAPT2")
+    assert "ANDROID_SDK_ROOT" in aapt.explanation
+    assert "licenses remain user-controlled" in aapt.explanation
 
 
 def test_contract_scoped_plan_excludes_unrelated_missing_tools() -> None:

@@ -154,6 +154,11 @@ BUILD_SOURCE = ArchiveSource(
     "OFFICIAL AOSP",
     "https://source.android.com/docs/setup/build/building",
 )
+ANDROID_BUILD_TOOLS_SOURCE = ArchiveSource(
+    "Android SDK Build Tools",
+    "OFFICIAL ANDROID",
+    "https://developer.android.com/tools/releases/build-tools",
+)
 OTA_SOURCE = ArchiveSource(
     "Build OTA packages",
     "OFFICIAL AOSP",
@@ -468,6 +473,45 @@ KNOWN_FIXES = (
         evidence="ROMVERSE resumes only after the required reader is freshly verified.",
         automation="VERIFIED TOOL RESOLUTION AVAILABLE • IMAGE REMAINS READ-ONLY",
         source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "android-sdk-build-tools-not-discovered",
+        "Android SDK is installed but AAPT2 or APK Signer is still missing",
+        "TOOLS & HOST",
+        "App Launchpad needs both AAPT2 and APK Signer from a complete Android SDK Build Tools "
+        "revision to decode package identity and verify APK signing evidence. Android Studio can "
+        "install them outside the shell PATH, which previously made a valid SDK look unavailable.",
+        checks=(
+            "Confirm one stable SDK build-tools revision contains aapt2, apksigner, and lib/apksigner.jar together.",
+            "Check ANDROID_SDK_ROOT and ANDROID_HOME, then check the standard Android Studio SDK folder for this account.",
+            "Run each tool's version command; a file that exists but cannot start is not verified.",
+            "Do not combine AAPT2 from one revision with an incomplete APK Signer revision merely because both filenames exist somewhere.",
+        ),
+        fix_steps=(
+            "Use Android Studio SDK Manager or sdkmanager to install one stable Android SDK Build Tools package and accept its license in that user-controlled flow.",
+            "Keep the official build-tools directory structure intact, or set ANDROID_SDK_ROOT / ANDROID_HOME to its SDK root.",
+            "Choose Re-scan toolchain in Forge Arsenal; ROMVERSE searches complete stable revisions before previews and falls back when a newer revision does not start.",
+            "Return the fresh paired tool evidence to App Launchpad before inspecting or approving an APK.",
+        ),
+        verification=(
+            "Forge Arsenal reports AAPT2 and APK Signer Ready with paths from the same complete build-tools revision.",
+            "App Launchpad can decode package identity and validate signing certificates without a PATH-only workaround.",
+            "Removing, breaking, or partially updating that revision makes the next fresh verifier fail or safely fall back to another complete revision.",
+            "ROMVERSE never downloads Build Tools or accepts an Android SDK license merely by scanning installed folders.",
+        ),
+        tags=(
+            "aapt2 missing",
+            "apksigner missing",
+            "android sdk build tools",
+            "android studio sdk not detected",
+            "ANDROID_SDK_ROOT",
+            "ANDROID_HOME",
+            "app launchpad package identity",
+        ),
+        route="forge_arsenal",
+        evidence="ROMVERSE now discovers complete paired Build Tools revisions from official Android SDK locations and accepts them only after both version interfaces start successfully.",
+        automation="READ-ONLY SDK DISCOVERY AND VERSION VERIFICATION • DOWNLOADS AND LICENSE ACCEPTANCE REMAIN USER-CONTROLLED",
+        source=ANDROID_BUILD_TOOLS_SOURCE,
     ),
     _fix(
         "tool-download-digest-mismatch",

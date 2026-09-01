@@ -190,7 +190,7 @@ def test_about_recalculates_real_workspace_evidence_and_returns_from_its_exact_g
             f"{len(registry.packs)} DEVICE PACKS  •  1 OFFICIAL IDS"
         )
         assert window.about_page.evidence_values["knowledge"].text() == (
-            "125 VERIFIED GUIDES  •  75 KNOWN FIXES"
+            "126 VERIFIED GUIDES  •  76 KNOWN FIXES"
         )
         ready_tools = sum(status.available for status in window.toolchain_center.statuses)
         tool_count = len(window.toolchain_center.statuses)
@@ -1950,6 +1950,46 @@ def test_device_atlas_carries_exact_pack_tools_into_forge_and_verified_archives(
         )
         assert window.knowledge_center.source_return.text() == "Return to Forge Arsenal"
         window.knowledge_center.source_return.click()
+        assert window.stack.currentWidget() is window.toolchain_center
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_forge_routes_missing_android_sdk_build_tools_to_exact_verified_fix(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    try:
+        window.toolchain_center.statuses = (
+            ToolStatus("AAPT2", False, detail="Android SDK Build Tools not found"),
+            ToolStatus("APK Signer", False, detail="Android SDK Build Tools not found"),
+        )
+        window.toolchain_center._render()
+        window._navigate_route("forge_arsenal")
+        app.processEvents()
+
+        assert window.toolchain_center.android_sdk_guide_button.isVisibleTo(
+            window.toolchain_center
+        )
+        window.toolchain_center.android_sdk_guide_button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.knowledge_center
+        assert window.knowledge_center.list.currentItem().text() == (
+            "Android SDK is installed but AAPT2 or APK Signer is still missing"
+        )
+        assert window.knowledge_center.source_return.text() == "Return to Forge Arsenal"
+        window.knowledge_center.source_return.click()
+        app.processEvents()
         assert window.stack.currentWidget() is window.toolchain_center
     finally:
         window.companion_center.transport.close()

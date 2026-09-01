@@ -12,10 +12,12 @@ from romverse.rom.projects import RomProjectStore
 from romverse.ui.backup_center import BackupCenter
 from romverse.ui.live_console import LiveConsoleCenter
 from romverse.ui.main_window import MainWindow
+from romverse.ui.theme import STYLESHEET
 
 
 def test_live_console_renders_real_events_and_filters_active_work(tmp_path) -> None:
     app = QApplication.instance() or QApplication([])
+    app.setStyleSheet(STYLESHEET)
     store = LiveConsoleEventStore(tmp_path)
     store.note(
         source="Device DNA",
@@ -50,6 +52,10 @@ def test_live_console_renders_real_events_and_filters_active_work(tmp_path) -> N
     app.processEvents()
     assert center.table.rowCount() == 1
     assert center.table.item(0, 3).text() == "RUNNING"
+    assert center.table.objectName() == "LiveConsoleTable"
+    assert center.table.horizontalHeader().objectName() == "LiveConsoleHeader"
+    assert center.table.alternatingRowColors()
+    assert center.table.showGrid()
 
 
 def test_live_console_exposes_tamper_failure_instead_of_fabricating_events(tmp_path) -> None:

@@ -207,6 +207,38 @@ QTextBrowser#ArchivesDetail {
     color: #DCE9FA; background: rgba(6, 12, 25, 248); border: 1px solid #28426C;
     border-radius: 10px; padding: 15px; selection-background-color: #5F3AA8;
 }
+QTableWidget#LiveConsoleTable {
+    color: #DCE8F8;
+    background: #060B16;
+    alternate-background-color: #0B1322;
+    gridline-color: #223653;
+    border: 1px solid #29466F;
+    border-radius: 10px;
+    outline: 0;
+    selection-color: #FFFFFF;
+    selection-background-color: #28589C;
+}
+QTableWidget#LiveConsoleTable::item {
+    color: #DCE8F8;
+    background: transparent;
+    border: 0;
+    padding: 7px 6px;
+}
+QTableWidget#LiveConsoleTable::item:alternate { background: #0B1322; }
+QTableWidget#LiveConsoleTable::item:hover { background: #142440; color: #FFFFFF; }
+QTableWidget#LiveConsoleTable::item:selected {
+    color: #FFFFFF;
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #523B9B,stop:1 #236996);
+}
+QHeaderView#LiveConsoleHeader::section {
+    color: #CFE1F7;
+    background: #0D1729;
+    border: 0;
+    border-right: 1px solid #29466F;
+    border-bottom: 1px solid #3B5E8E;
+    padding: 8px 7px;
+    font-weight: 750;
+}
 QLineEdit#CommandPaletteSearch { min-height: 30px; border: 1px solid #4869B5; border-radius: 10px; padding: 10px 12px; font-size: 15px; }
 QLineEdit#CommandPaletteSearch:focus { border-color: #35E7F5; background: #0D1530; }
 QListWidget#CommandPaletteResults { background: #080D1C; border: 1px solid #253C6B; border-radius: 12px; padding: 7px; outline: 0; }

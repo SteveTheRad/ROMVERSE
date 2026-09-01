@@ -77,6 +77,8 @@ class LiveConsoleCenter(QWidget):
         page.addWidget(controls)
 
         self.table = QTableWidget(0, 6)
+        self.table.setObjectName("LiveConsoleTable")
+        self.table.setAccessibleName("Genuine ROMVERSE mission events")
         self.table.setHorizontalHeaderLabels(
             ("Time", "Subsystem", "Stage", "State", "Progress", "Confidence")
         )
@@ -84,9 +86,16 @@ class LiveConsoleCenter(QWidget):
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setAlternatingRowColors(True)
+        self.table.setShowGrid(True)
+        self.table.setCornerButtonEnabled(False)
         self.table.verticalHeader().setVisible(False)
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        self.table.verticalHeader().setDefaultSectionSize(36)
+        table_header = self.table.horizontalHeader()
+        table_header.setObjectName("LiveConsoleHeader")
+        table_header.setDefaultAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        table_header.setMinimumHeight(36)
+        table_header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        table_header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         self.table.itemSelectionChanged.connect(self._show_selected)
         page.addWidget(self.table, 1)
 

@@ -377,8 +377,9 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   no build, root, unlock, recovery, or flash authority from an OEM manufacturer match; one-click
   bounded background synchronization of Google's official public supported-device catalog, exact
   live `Build.BRAND` + `Build.DEVICE` matching with model-only variant narrowing, private strict
-  SHA-256 receipts, stale/offline read-only reuse, ambiguous/redirected/malformed/oversized/linked/
-  altered evidence refusal, automatic Desktop-wide retail naming and Pack routing, and permanent
+  SHA-256 receipts, cancellable in-memory staging with current-setting-gated activation,
+  stale/offline read-only reuse, ambiguous/redirected/malformed/oversized/linked/altered evidence
+  refusal, automatic Desktop-wide retail naming and Pack routing, and permanent
   zero build/flash/execution authority from catalog data; one-click
   Device Atlas exact-model review drafts that exclude serial/private data, inherit only the matched
   Pack's reviewed HTTPS source starting points, mark proposed identity limited, use bounded no-link

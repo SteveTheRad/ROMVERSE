@@ -156,6 +156,10 @@ name only. It never supplies a partition map, firmware match, Device Pack, build
 approval, command, or execution authority. After recognition, the ordinary Device Pack roadmap
 still determines exactly what evidence and tools are missing for build planning and keeps flashing
 locked until its independent signed and physically tested contracts pass.
+Downloads are parsed and verified in memory before activation. Switching off online diagnostics
+and sources cancels a pending refresh and prevents a late response from replacing the active local
+mirror; any previously activated receipt-checked catalog remains available for local read-only
+search and recognition.
 
 For a connected phone, Device Atlas also produces a model-specific validation roadmap for
 pack integrity, exact model/codename scope, firmware and partition contracts, publisher

@@ -10,6 +10,7 @@ from dataclasses import dataclass, replace
 from html import escape
 from importlib.resources import as_file, files
 from pathlib import Path
+from threading import Event
 
 from PySide6.QtCore import (
     QAbstractAnimation,
@@ -85,8 +86,9 @@ from romverse.core.settings import AppSettings, DesktopTheme, ExperienceMode
 from romverse.device.adb import AdbClient
 from romverse.device.apk_install import ApkInstallService
 from romverse.device.catalog import (
+    DeviceCatalogCancelled,
     DeviceCatalogError,
-    DeviceCatalogStatus,
+    DeviceCatalogUpdate,
     GooglePlayDeviceCatalog,
 )
 from romverse.device.dna import CapabilityState, DeviceDnaProfile
@@ -427,6 +429,7 @@ class ScanWorker(ManagedRunnable):
 class DeviceCatalogSignals(QObject):
     complete = Signal(object)
     failed = Signal(str)
+    cancelled = Signal()
 
 
 class DeviceCatalogWorker(ManagedRunnable):
@@ -434,11 +437,23 @@ class DeviceCatalogWorker(ManagedRunnable):
         super().__init__()
         self.catalog = catalog
         self.signals = DeviceCatalogSignals()
+        self._cancel_requested = Event()
+
+    def cancel(self) -> None:
+        """Withdraw permission before any downloaded catalog can be activated."""
+
+        self._cancel_requested.set()
 
     @Slot()
     def execute(self) -> None:
         try:
-            self.signals.complete.emit(self.catalog.sync())
+            update = self.catalog.fetch(should_cancel=self._cancel_requested.is_set)
+            if self._cancel_requested.is_set():
+                self.signals.cancelled.emit()
+                return
+            self.signals.complete.emit(update)
+        except DeviceCatalogCancelled:
+            self.signals.cancelled.emit()
         except DeviceCatalogError as exc:
             self.signals.failed.emit(str(exc))
         except Exception:
@@ -3821,13 +3836,33 @@ class MainWindow(QMainWindow):
         self.device_packs_center.set_catalog_checking()
         worker = DeviceCatalogWorker(self.device_catalog)
         self.device_catalog_worker = worker
-        worker.signals.complete.connect(self._device_catalog_complete)
-        worker.signals.failed.connect(self._device_catalog_failed)
+        worker.signals.complete.connect(
+            lambda update, active=worker: self._device_catalog_complete(active, update)
+        )
+        worker.signals.failed.connect(
+            lambda reason, active=worker: self._device_catalog_failed(active, reason)
+        )
+        worker.signals.cancelled.connect(
+            lambda active=worker: self._device_catalog_cancelled(active)
+        )
         start_background(worker)
 
-    @Slot(object)
-    def _device_catalog_complete(self, status: DeviceCatalogStatus) -> None:
+    def _device_catalog_complete(
+        self,
+        worker: DeviceCatalogWorker,
+        update: DeviceCatalogUpdate,
+    ) -> None:
+        if self.device_catalog_worker is not worker:
+            return
         self.device_catalog_worker = None
+        if not self.app_settings.online_intelligence_enabled:
+            self.device_packs_center.set_catalog_status(self.device_catalog.status())
+            return
+        try:
+            status = self.device_catalog.activate(update)
+        except DeviceCatalogError as exc:
+            self._device_catalog_activation_failed(str(exc))
+            return
         self.device_packs_center.set_catalog_status(status)
         if hasattr(self, "about_page") and self.stack.currentWidget() is self.about_page:
             self._refresh_about_evidence()
@@ -3841,12 +3876,32 @@ class MainWindow(QMainWindow):
         if self.engine is not None:
             QTimer.singleShot(0, self.scan)
 
-    @Slot(str)
-    def _device_catalog_failed(self, reason: str) -> None:
-        self.device_catalog_worker = None
+    def _device_catalog_activation_failed(self, reason: str) -> None:
         self.device_packs_center.catalog_refresh_failed(reason)
         if hasattr(self, "about_page") and self.stack.currentWidget() is self.about_page:
             self._refresh_about_evidence()
+
+    def _device_catalog_failed(
+        self,
+        worker: DeviceCatalogWorker,
+        reason: str,
+    ) -> None:
+        if self.device_catalog_worker is not worker:
+            return
+        self.device_catalog_worker = None
+        self._device_catalog_activation_failed(reason)
+
+    def _device_catalog_cancelled(self, worker: DeviceCatalogWorker) -> None:
+        if self.device_catalog_worker is not worker:
+            return
+        self.device_catalog_worker = None
+        self.device_packs_center.set_catalog_status(self.device_catalog.status())
+        if (
+            self.app_settings.online_intelligence_enabled
+            and self.device_catalog.needs_refresh()
+        ):
+            self._catalog_auto_attempted = False
+            QTimer.singleShot(0, self._maybe_refresh_device_catalog)
 
     def _set_sidebar_device_art(self, device: AndroidDevice) -> None:
         kind = _sidebar_device_art_kind(device)
@@ -5864,6 +5919,8 @@ class MainWindow(QMainWindow):
         self.device_packs_center.online_catalog_enabled = settings.online_intelligence_enabled
         self.device_packs_center.set_catalog_status(self.device_catalog.status())
         self.online_status.set_monitoring_enabled(settings.online_intelligence_enabled)
+        if not settings.online_intelligence_enabled and self.device_catalog_worker is not None:
+            self.device_catalog_worker.cancel()
         if settings.online_intelligence_enabled and self.device_catalog.needs_refresh():
             self._catalog_auto_attempted = False
             QTimer.singleShot(0, self._maybe_refresh_device_catalog)

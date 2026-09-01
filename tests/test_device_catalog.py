@@ -4,6 +4,7 @@ import csv
 import io
 import json
 import os
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -11,6 +12,7 @@ import pytest
 import romverse.device.catalog as catalog_module
 from romverse.device.catalog import (
     GOOGLE_PLAY_CATALOG_URL,
+    DeviceCatalogCancelled,
     DeviceCatalogError,
     GooglePlayDeviceCatalog,
 )
@@ -215,6 +217,50 @@ def test_catalog_rejects_redirect_encoding_size_and_tampering_without_replacing_
     receipt["receipt_digest"] = catalog_module._digest(unsigned)
     catalog.receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
     assert not catalog.status().valid
+
+
+def test_catalog_fetch_is_cancellable_and_cannot_activate_unapproved_or_altered_data(
+    tmp_path, monkeypatch
+) -> None:
+    monkeypatch.setattr(GooglePlayDeviceCatalog, "MINIMUM_ENTRIES", 1)
+    catalog = GooglePlayDeviceCatalog(tmp_path)
+    baseline = _payload(("Example", "Nebula One", "nebula", "EX-100"))
+    replacement = _payload(("Example", "Nebula Two", "nebula2", "EX-200"))
+    _sync(catalog, baseline)
+    original_catalog = catalog.catalog_path.read_bytes()
+    original_receipt = catalog.receipt_path.read_bytes()
+
+    update = catalog.fetch(
+        open_url=lambda *_args, **_kwargs: _Response(replacement),
+    )
+
+    assert catalog.catalog_path.read_bytes() == original_catalog
+    assert catalog.receipt_path.read_bytes() == original_receipt
+    assert catalog.search_entries("Nebula One")
+    assert not catalog.search_entries("Nebula Two")
+
+    with pytest.raises(DeviceCatalogError, match="update is invalid"):
+        catalog.activate(replace(update, content=replacement + b"altered"))
+    assert catalog.catalog_path.read_bytes() == original_catalog
+    assert catalog.receipt_path.read_bytes() == original_receipt
+
+    cancelled_opened = False
+
+    def should_not_open(*_args, **_kwargs):
+        nonlocal cancelled_opened
+        cancelled_opened = True
+        return _Response(replacement)
+
+    with pytest.raises(DeviceCatalogCancelled, match="cancelled before activation"):
+        catalog.fetch(open_url=should_not_open, should_cancel=lambda: True)
+    assert not cancelled_opened
+    assert catalog.catalog_path.read_bytes() == original_catalog
+    assert catalog.receipt_path.read_bytes() == original_receipt
+
+    status = catalog.activate(update)
+    assert status.valid and status.entry_count == 1
+    assert catalog.search_entries("Nebula Two")
+    assert not catalog.search_entries("Nebula One")
 
 
 def test_stale_verified_catalog_remains_read_only_usable_while_refresh_is_due(

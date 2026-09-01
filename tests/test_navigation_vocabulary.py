@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import hashlib
 import os
 from dataclasses import replace
+from datetime import UTC, datetime
 from importlib.resources import files
 from pathlib import Path
 from unittest.mock import patch
@@ -12,8 +14,10 @@ from PySide6.QtWidgets import QApplication, QDialog, QLabel, QPushButton
 
 from romverse.core.settings import AppSettings, DesktopTheme, ExperienceMode
 from romverse.device.catalog import (
+    GOOGLE_PLAY_CATALOG_URL,
     DeviceCatalogError,
     DeviceCatalogStatus,
+    DeviceCatalogUpdate,
     GooglePlayDeviceCatalog,
 )
 from romverse.device.identity import IdentityAuthority
@@ -192,7 +196,7 @@ def test_about_recalculates_real_workspace_evidence_and_returns_from_its_exact_g
             f"{len(registry.packs)} DEVICE PACKS  •  1 OFFICIAL IDS"
         )
         assert window.about_page.evidence_values["knowledge"].text() == (
-            "135 VERIFIED GUIDES  •  85 KNOWN FIXES"
+            "136 VERIFIED GUIDES  •  86 KNOWN FIXES"
         )
         ready_tools = sum(status.available for status in window.toolchain_center.statuses)
         tool_count = len(window.toolchain_center.statuses)
@@ -1899,8 +1903,21 @@ def test_device_atlas_runs_official_id_sync_in_managed_worker_and_keeps_failure_
         "2026-09-01T00:00:00+00:00",
         "a" * 64,
     )
+    content = _payload(("Example", "Example Nebula", "nebula", "EX-100"))
+    update = DeviceCatalogUpdate(
+        GOOGLE_PLAY_CATALOG_URL,
+        datetime.now(UTC).isoformat(),
+        hashlib.sha256(content).hexdigest(),
+        content,
+        1,
+    )
     try:
-        monkeypatch.setattr(window.device_catalog, "sync", lambda: status)
+        monkeypatch.setattr(
+            window.device_catalog,
+            "fetch",
+            lambda *, should_cancel: update,
+        )
+        monkeypatch.setattr(window.device_catalog, "activate", lambda candidate: status)
         window.device_packs_center.identity_catalog_button.click()
 
         assert len(started) == 1
@@ -1913,10 +1930,10 @@ def test_device_atlas_runs_official_id_sync_in_managed_worker_and_keeps_failure_
         assert "53,575" in window.device_packs_center.identity_catalog_title.text()
         assert window.device_packs_center.identity_catalog_badge.text() == "CURRENT • READ ONLY"
 
-        def fail():
+        def fail(*, should_cancel):
             raise DeviceCatalogError("Official device catalog returned an unexpected route")
 
-        monkeypatch.setattr(window.device_catalog, "sync", fail)
+        monkeypatch.setattr(window.device_catalog, "fetch", fail)
         window.device_packs_center.identity_catalog_button.click()
         assert len(started) == 1
         started.pop().execute()
@@ -1929,6 +1946,91 @@ def test_device_atlas_runs_official_id_sync_in_managed_worker_and_keeps_failure_
         assert "No build, flash, approval, or phone action" in (
             window.device_packs_center.identity_catalog_detail.text()
         )
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_disabling_online_sources_cancels_pending_device_catalog_before_activation(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    started = []
+    activated: list[DeviceCatalogUpdate] = []
+    monkeypatch.setattr("romverse.ui.main_window.start_background", started.append)
+    monkeypatch.setattr(GooglePlayDeviceCatalog, "MINIMUM_ENTRIES", 1)
+    existing_catalog = GooglePlayDeviceCatalog(tmp_path)
+    _sync(
+        existing_catalog,
+        _payload(("Existing", "Existing Local", "local", "LOCAL-1")),
+    )
+    original_catalog = existing_catalog.catalog_path.read_bytes()
+    original_receipt = existing_catalog.receipt_path.read_bytes()
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    content = _payload(("Example", "Example Nebula", "nebula", "EX-100"))
+    update = DeviceCatalogUpdate(
+        GOOGLE_PLAY_CATALOG_URL,
+        datetime.now(UTC).isoformat(),
+        hashlib.sha256(content).hexdigest(),
+        content,
+        1,
+    )
+    try:
+        window.app_settings = replace(
+            window.app_settings,
+            online_intelligence_enabled=True,
+        )
+        window.device_packs_center.online_catalog_enabled = True
+        monkeypatch.setattr(
+            window.device_catalog,
+            "fetch",
+            lambda *, should_cancel: update,
+        )
+        monkeypatch.setattr(
+            window.device_catalog,
+            "activate",
+            lambda candidate: activated.append(candidate),
+        )
+
+        window._refresh_device_catalog()
+        worker = started.pop()
+        assert window.device_catalog_worker is worker
+        assert "CHECKING" in window.device_packs_center.identity_catalog_badge.text()
+
+        with patch("romverse.ui.main_window.SettingsDialog") as dialog_type:
+            dialog = dialog_type.return_value
+            dialog.exec.return_value = QDialog.DialogCode.Accepted
+            dialog.values.return_value = replace(
+                window.app_settings,
+                online_intelligence_enabled=False,
+            )
+            window._open_settings()
+
+        worker.execute()
+        app.processEvents()
+
+        assert not activated
+        assert window.device_catalog_worker is None
+        assert window.device_catalog.catalog_path.read_bytes() == original_catalog
+        assert window.device_catalog.receipt_path.read_bytes() == original_receipt
+        assert window.device_catalog.search_entries("Existing Local")
+        assert not window.device_catalog.search_entries("Example Nebula")
+        assert window.device_packs_center.identity_catalog_badge.text() == (
+            "LOCAL ONLY • ZERO AUTHORITY"
+        )
+        assert not window.device_packs_center.identity_catalog_button.isEnabled()
+        assert window.online_status.label.text() == "LOCAL"
+        assert window.active_worker is None
+        assert window.rom_studio.worker is None
+        assert window.guardian_center.worker is None
     finally:
         window.companion_center.transport.close()
         window.close()

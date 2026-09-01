@@ -57,6 +57,9 @@ required UTF-16 catalog. Exact columns, row shape, entry count, local regular-fi
 SHA-256, and a private strict receipt are revalidated whenever identity data is used. A failed
 refresh never activates the received bytes; a prior cache is reused only while it independently
 continues to pass those checks.
+The background worker stages a validated update in memory rather than writing it immediately.
+Disabling online sources cancels the worker, discards any late candidate, and gates activation on
+the current setting. Cancellation never removes the previously activated local mirror.
 
 The phone supplies `Build.BRAND`, `Build.DEVICE`, and model through ROMVERSE's read-only Device
 Engine. Matching requires the exact normalized brand/device pair. An exact model may narrow known

@@ -70,8 +70,25 @@ class DeviceCatalogStatus:
     content_sha256: str = ""
 
 
+@dataclass(frozen=True, slots=True)
+class DeviceCatalogUpdate:
+    """One fully downloaded and parsed update that has not been activated locally."""
+
+    source_url: str
+    fetched_at: str
+    content_sha256: str
+    content: bytes
+    entry_count: int
+    etag: str = ""
+    last_modified: str = ""
+
+
 class DeviceCatalogError(RuntimeError):
     """The official identity catalog failed a bounded network or evidence contract."""
+
+
+class DeviceCatalogCancelled(DeviceCatalogError):
+    """The caller withdrew permission before a downloaded catalog was activated."""
 
 
 class GooglePlayDeviceCatalog:
@@ -153,7 +170,28 @@ class GooglePlayDeviceCatalog:
         *,
         open_url: Callable[..., CatalogResponse] | None = None,
         now: datetime | None = None,
+        should_cancel: Callable[[], bool] | None = None,
     ) -> DeviceCatalogStatus:
+        """Fetch, verify, and activate an update for non-interactive callers."""
+
+        update = self.fetch(
+            open_url=open_url,
+            now=now,
+            should_cancel=should_cancel,
+        )
+        _raise_if_cancelled(should_cancel)
+        return self.activate(update, now=now)
+
+    def fetch(
+        self,
+        *,
+        open_url: Callable[..., CatalogResponse] | None = None,
+        now: datetime | None = None,
+        should_cancel: Callable[[], bool] | None = None,
+    ) -> DeviceCatalogUpdate:
+        """Download and validate an update without changing the active local mirror."""
+
+        _raise_if_cancelled(should_cancel)
         opener = open_url or urllib.request.urlopen
         request = urllib.request.Request(
             GOOGLE_PLAY_CATALOG_URL,
@@ -165,6 +203,7 @@ class GooglePlayDeviceCatalog:
         )
         try:
             with opener(request, timeout=20) as response:  # noqa: S310 - fixed Google URL
+                _raise_if_cancelled(should_cancel)
                 if response.status != 200 or response.geturl() != GOOGLE_PLAY_CATALOG_URL:
                     raise DeviceCatalogError("Official device catalog returned an unexpected route")
                 content_encoding = str(_header(response.headers, "Content-Encoding")).casefold()
@@ -179,7 +218,9 @@ class GooglePlayDeviceCatalog:
                 chunks: list[bytes] = []
                 total = 0
                 while True:
+                    _raise_if_cancelled(should_cancel)
                     chunk = response.read(self.CHUNK_BYTES)
+                    _raise_if_cancelled(should_cancel)
                     if not chunk:
                         break
                     total += len(chunk)
@@ -191,26 +232,71 @@ class GooglePlayDeviceCatalog:
                 payload = b"".join(chunks)
                 if reported is not None and reported != len(payload):
                     raise DeviceCatalogError("Official device catalog download was incomplete")
-                entries = self._parse(payload)
+                entries = self._parse(payload, should_cancel=should_cancel)
                 etag = _bounded_header(_header(response.headers, "ETag"))
                 last_modified = _bounded_header(_header(response.headers, "Last-Modified"))
+                _raise_if_cancelled(should_cancel)
         except DeviceCatalogError:
             raise
         except (OSError, TimeoutError, ValueError, TypeError, urllib.error.URLError) as exc:
             raise DeviceCatalogError("Official Android device IDs could not be downloaded") from exc
 
-        fetched_at = (now or datetime.now(UTC)).isoformat()
-        digest = hashlib.sha256(payload).hexdigest()
+        _raise_if_cancelled(should_cancel)
+        return DeviceCatalogUpdate(
+            source_url=GOOGLE_PLAY_CATALOG_URL,
+            fetched_at=(now or datetime.now(UTC)).isoformat(),
+            content_sha256=hashlib.sha256(payload).hexdigest(),
+            content=payload,
+            entry_count=len(entries),
+            etag=etag,
+            last_modified=last_modified,
+        )
+
+    def activate(
+        self,
+        update: DeviceCatalogUpdate,
+        *,
+        now: datetime | None = None,
+    ) -> DeviceCatalogStatus:
+        """Revalidate and atomically activate one caller-approved in-memory update."""
+
+        if type(update) is not DeviceCatalogUpdate:
+            raise DeviceCatalogError("Official device catalog update has an invalid shape")
+        payload = update.content
+        if (
+            update.source_url != GOOGLE_PLAY_CATALOG_URL
+            or type(payload) is not bytes
+            or not 0 < len(payload) <= self.MAXIMUM_BYTES
+            or type(update.fetched_at) is not str
+            or type(update.entry_count) is not int
+            or not self.MINIMUM_ENTRIES <= update.entry_count <= self.MAXIMUM_ENTRIES
+            or not _sha256(update.content_sha256)
+            or hashlib.sha256(payload).hexdigest() != update.content_sha256
+            or not _safe_header(update.etag)
+            or not _safe_header(update.last_modified)
+        ):
+            raise DeviceCatalogError("Official device catalog update is invalid")
+        try:
+            fetched = _aware_time(update.fetched_at)
+        except (TypeError, ValueError) as exc:
+            raise DeviceCatalogError("Official device catalog update timestamp is invalid") from exc
+        current = now or datetime.now(UTC)
+        if fetched > current + timedelta(minutes=5):
+            raise DeviceCatalogError("Official device catalog update timestamp is invalid")
+        entries = self._parse(payload)
+        if len(entries) != update.entry_count:
+            raise DeviceCatalogError("Official device catalog update entry count is invalid")
+
         receipt: dict[str, object] = {
             "schema_version": self.SCHEMA_VERSION,
             "source_id": GOOGLE_PLAY_CATALOG_SOURCE_ID,
-            "source_url": GOOGLE_PLAY_CATALOG_URL,
-            "fetched_at": fetched_at,
-            "content_sha256": digest,
+            "source_url": update.source_url,
+            "fetched_at": update.fetched_at,
+            "content_sha256": update.content_sha256,
             "content_bytes": len(payload),
             "entry_count": len(entries),
-            "etag": etag,
-            "last_modified": last_modified,
+            "etag": update.etag,
+            "last_modified": update.last_modified,
             "identity_authority": "read-only retail identity",
             "build_authority": "none",
             "flash_authority": "none",
@@ -235,7 +321,7 @@ class GooglePlayDeviceCatalog:
             raise DeviceCatalogError(
                 "Official Android device IDs could not be stored safely"
             ) from exc
-        self._cache(digest, entries)
+        self._cache(update.content_sha256, entries)
         return self.status(now=now)
 
     def search(self, device: AndroidDevice) -> tuple[DeviceNameCandidate, ...]:
@@ -417,7 +503,12 @@ class GooglePlayDeviceCatalog:
             and digest == _digest(unsigned)
         )
 
-    def _parse(self, payload: bytes) -> tuple[DeviceCatalogEntry, ...]:
+    def _parse(
+        self,
+        payload: bytes,
+        *,
+        should_cancel: Callable[[], bool] | None = None,
+    ) -> tuple[DeviceCatalogEntry, ...]:
         if not payload.startswith(b"\xff\xfe"):
             raise DeviceCatalogError("Official device catalog encoding marker is invalid")
         try:
@@ -428,7 +519,9 @@ class GooglePlayDeviceCatalog:
                 raise DeviceCatalogError("Official device catalog columns are invalid")
             entries: list[DeviceCatalogEntry] = []
             seen: set[DeviceCatalogEntry] = set()
-            for row in reader:
+            for row_number, row in enumerate(reader, start=1):
+                if row_number % 256 == 0:
+                    _raise_if_cancelled(should_cancel)
                 if len(row) != len(self.HEADER):
                     raise DeviceCatalogError("Official device catalog row is invalid")
                 entry = DeviceCatalogEntry(*(_text(value) for value in row))
@@ -442,6 +535,7 @@ class GooglePlayDeviceCatalog:
             raise DeviceCatalogError("Official device catalog could not be parsed") from exc
         if len(entries) < self.MINIMUM_ENTRIES:
             raise DeviceCatalogError("Official device catalog is unexpectedly incomplete")
+        _raise_if_cancelled(should_cancel)
         return tuple(entries)
 
     def _cache(self, digest: str, entries: tuple[DeviceCatalogEntry, ...]) -> None:
@@ -460,6 +554,13 @@ def _header(headers: object, name: str) -> str:
     getter = getattr(headers, "get", None)
     value = getter(name, "") if callable(getter) else ""
     return str(value or "")
+
+
+def _raise_if_cancelled(should_cancel: Callable[[], bool] | None) -> None:
+    if should_cancel is not None and should_cancel():
+        raise DeviceCatalogCancelled(
+            "Official Android device ID sync was cancelled before activation"
+        )
 
 
 def _content_length(headers: object) -> int | None:

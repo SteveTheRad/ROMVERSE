@@ -224,6 +224,9 @@ alone cannot decide an ambiguous identity. Remote catalog data is identity-only 
 select a retail name and improve Pack discovery, but cannot create or strengthen a firmware digest,
 build contract, partition-write contract, physical attestation, Guardian approval, or execution
 authority. Unknown or conflicting devices remain explicit and build/flash locked.
+Catalog refreshes are validated in memory before activation. Withdrawing online-source permission
+cancels a pending worker and prevents a late result from being committed, while prior independently
+verified local evidence remains searchable read-only.
 
 Device Atlas deterministically selects one next safe action from the exact current validation
 report. Every handoff binds the report digest, selected check, route, and exact Archives article

@@ -2228,6 +2228,45 @@ KNOWN_FIXES = (
         source=ROMVERSE_SOURCE,
     ),
     _fix(
+        "device-catalog-sync-finishes-after-disabled",
+        "Official Android ID sync finishes after online sources are disabled",
+        "ROMVERSE WORKFLOWS",
+        "An official Android-ID refresh may already be downloading when online diagnostics and "
+        "sources are switched off. A completed background response must not become the active "
+        "Device Atlas mirror after permission is withdrawn, even when its bytes and Google route "
+        "are otherwise valid.",
+        checks=(
+            "Check whether Device Atlas showed CHECKING immediately before online sources were disabled in Settings.",
+            "Confirm the header now says LOCAL and Device Atlas says LOCAL ONLY rather than later changing to CURRENT from the pending response.",
+            "Confirm the pending worker exits without activating a newly downloaded CSV or receipt.",
+            "Search an identity already present in the prior integrity-checked local mirror; cancellation must not delete or weaken existing evidence.",
+        ),
+        fix_steps=(
+            "Install the current Desktop build, which separates bounded download/validation from local catalog activation.",
+            "When online sources are disabled, ROMVERSE cancels the pending fetch and discards its in-memory candidate before activation.",
+            "If online sources are enabled again, start a fresh official-ID sync so the new request is governed by the current setting.",
+            "Keep using any previously activated receipt-checked mirror read-only; no identity row can create a Device Pack or build/flash authority.",
+        ),
+        verification=(
+            "Disabling online sources during a pending refresh produces LOCAL ONLY and disables the refresh control immediately.",
+            "Even if the background fetch returns after cancellation, its activation callback is never called and no new catalog files appear.",
+            "An existing verified mirror remains unchanged and locally searchable after cancellation.",
+            "Cancellation starts no device scan, Pack selection, build, approval, flash, upload, or phone action.",
+        ),
+        tags=(
+            "device catalog sync finishes after disabled",
+            "official android id download cancellation",
+            "online sources disabled pending worker",
+            "device atlas local only race",
+            "discard downloaded catalog",
+            "google play supported devices privacy",
+        ),
+        route="device_atlas",
+        evidence="ROMVERSE stages the fixed-endpoint Google Play catalog in memory, revalidates it before activation, and binds worker cancellation plus activation to the current online-sources setting while preserving prior local evidence.",
+        automation="CANCELLABLE IN-MEMORY ID CATALOG REFRESH ONLY • NO PACK PROMOTION, SCAN, BUILD, APPROVAL, FLASH, UPLOAD, OR PHONE ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
         "desktop-licence-notice-inventory",
         "Open-source licences or third-party notices are incomplete",
         "TOOLS & HOST",

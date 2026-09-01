@@ -2847,9 +2847,7 @@ class MainWindow(QMainWindow):
         self.diagnostics_center.report_changed.connect(self._diagnostic_report_changed)
         self.stack.addWidget(self.diagnostics_center)
         self.history_center = HistoryCenter(history_store)
-        self.history_center.current_scan_requested.connect(
-            lambda: self._navigate_route("quantum_optimizer")
-        )
+        self.history_center.current_scan_requested.connect(self._open_current_health_review)
         self.history_center.knowledge_article_requested.connect(self._open_knowledge_article)
         self.history_center.knowledge_requested.connect(self._open_knowledge_query)
         self.stack.addWidget(self.history_center)
@@ -2982,7 +2980,7 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.nexus_center)
         self.nexus_center.guardian_requested.connect(self._open_nexus_guardian_review)
         self.nexus_center.knowledge_article_requested.connect(self._open_knowledge_article)
-        self.nexus_center.rom_studio_requested.connect(lambda: self._navigate_route("rom_studio"))
+        self.nexus_center.rom_studio_requested.connect(self._open_nexus_rom_studio)
         self.nexus_center.plan_updated.connect(self._record_nexus_plan)
         self.guardian_center.nexus_requested.connect(lambda: self._navigate_route("nexus"))
         resolved_host = host or current_host()
@@ -3011,7 +3009,7 @@ class MainWindow(QMainWindow):
         )
         self.rom_studio.knowledge_requested.connect(self._open_knowledge_query)
         self.device_packs_center.rom_studio_requested.connect(
-            lambda: self._navigate_route("rom_studio")
+            self._continue_device_atlas_rom_studio
         )
         self.rom_studio.ascension_status_changed.connect(self._update_companion_ascension_status)
         self.companion_center = CompanionCenter(
@@ -3953,6 +3951,61 @@ class MainWindow(QMainWindow):
                 "The producing Desktop feature is not registered"
             )
 
+    @Slot()
+    def _open_current_health_review(self) -> None:
+        """Return from historical evidence to the current owner-controlled health report."""
+
+        if self._navigate_route("quantum_optimizer"):
+            self.diagnostics_center.open_dashboard_intent("Health Review")
+
+    @Slot()
+    def _continue_device_atlas_rom_studio(self) -> None:
+        """Continue an exact current Device Atlas build contract into Genesis."""
+
+        report = self.device_packs_center.active_report
+        pack = self.device_packs_center.active_pack
+        device = self.device_packs_center.active_device
+        if (
+            report is None
+            or pack is None
+            or device is None
+            or not report.build_contract_ready
+            or report.pack_id != pack.pack_id
+            or report.pack_version != pack.version
+            or report.pack_sha256 != pack.sha256
+        ):
+            self.device_packs_center.next_action_handoff_stopped(
+                "The Continue control no longer matches the current exact Device Pack report"
+            )
+            return
+        if not self._navigate_route("rom_studio"):
+            return
+        if not self.rom_studio.open_device_atlas_handoff(
+            report,
+            "genesis",
+            launch_genesis=True,
+        ):
+            self._navigate_route("device_atlas")
+            self.device_packs_center.next_action_handoff_stopped(
+                "ROM Studio rejected a changed or incomplete exact build contract"
+            )
+
+    @Slot()
+    def _open_nexus_rom_studio(self) -> None:
+        """Carry the selected Nexus project back to its exact ROM Studio evidence."""
+
+        project_id = self.nexus_center.project_selector.currentData()
+        normalized = project_id if isinstance(project_id, str) else ""
+        if not self.rom_studio.open_nexus_handoff(normalized):
+            self.nexus_center.status.setText(
+                "ROM STUDIO HANDOFF STOPPED  •  The selected project is no longer available  •  "
+                "No project worker, plan, build, or phone action started"
+            )
+            self.nexus_center.status.setObjectName("Danger")
+            self.nexus_center._repolish(self.nexus_center.status)
+            return
+        self._navigate_route("rom_studio")
+
     @Slot(str, str, str, str)
     def _open_device_pack_next_action(
         self,
@@ -3999,6 +4052,11 @@ class MainWindow(QMainWindow):
             self._navigate_route("time_machine")
             return
         if route == "rom_studio":
+            if not self.rom_studio.open_device_atlas_handoff(report, "build"):
+                self.device_packs_center.next_action_handoff_stopped(
+                    "ROM Studio rejected a changed or incomplete exact build contract"
+                )
+                return
             self._navigate_route("rom_studio")
             return
         self.device_packs_center.next_action_handoff_stopped(
@@ -4071,6 +4129,13 @@ class MainWindow(QMainWindow):
             self._navigate_route("time_machine")
             return
         if route == "rom_studio":
+            intent = "artifact" if lane_id == "flash" else "build"
+            if not self.rom_studio.open_device_atlas_handoff(report, intent):
+                self.device_packs_center.requirement_handoff_stopped(
+                    lane_id,
+                    "ROM Studio rejected a changed or incomplete exact requirements contract",
+                )
+                return
             self._navigate_route("rom_studio")
             return
         self.device_packs_center.requirement_handoff_stopped(
@@ -4181,6 +4246,16 @@ class MainWindow(QMainWindow):
             )
             return
         self.rom_studio.set_tool_statuses(self.toolchain_center.statuses)
+        report = self.device_packs_center.active_report
+        if report is None or not self.rom_studio.open_device_atlas_handoff(
+            report,
+            "build",
+            source="Forge Arsenal",
+        ):
+            self.toolchain_center.device_pack_handoff_stopped(
+                "ROM Studio rejected changed Pack or host-tool evidence"
+            )
+            return
         self._navigate_route("rom_studio")
 
     @Slot(str, str)

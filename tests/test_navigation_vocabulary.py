@@ -188,7 +188,7 @@ def test_about_recalculates_real_workspace_evidence_and_returns_from_its_exact_g
             f"{len(registry.packs)} DEVICE PACKS  •  1 OFFICIAL IDS"
         )
         assert window.about_page.evidence_values["knowledge"].text() == (
-            "120 VERIFIED GUIDES  •  70 KNOWN FIXES"
+            "121 VERIFIED GUIDES  •  71 KNOWN FIXES"
         )
         ready_tools = sum(status.available for status in window.toolchain_center.statuses)
         tool_count = len(window.toolchain_center.statuses)
@@ -489,6 +489,78 @@ def test_command_deck_evidence_handoffs_preserve_current_owner_state(tmp_path: P
         assert window.backup_center.worker is None
         assert window.backup_center.evidence_worker is None
         assert window.backup_center.media_backup_worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_device_atlas_and_nexus_preserve_exact_context_into_rom_studio(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        pack_registry=registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    genesis_opened: list[bool] = []
+    monkeypatch.setattr(
+        window.rom_studio,
+        "_open_guided_setup",
+        lambda: genesis_opened.append(True),
+    )
+    try:
+        window._scan_complete([_device()])
+        app.processEvents()
+        report = window.device_packs_center.active_report
+        assert report is not None and report.build_contract_ready
+
+        window.device_packs_center.continue_button.click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.rom_studio
+        assert genesis_opened == [True]
+        assert window.rom_studio.dashboard_handoff_eyebrow.text().startswith(
+            "DEVICE ATLAS HANDOFF"
+        )
+        assert report.report_digest[:16] in window.rom_studio.dashboard_handoff_detail.text()
+        assert "NO BUILD, APPROVAL, FLASH, OR PHONE ACTION STARTED" in (
+            window.rom_studio.dashboard_handoff_detail.text()
+        )
+        assert window.rom_studio.worker is None
+
+        window._navigate_route("device_atlas")
+        window.device_packs_center.requirement_buttons["build"].click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.rom_studio
+        assert genesis_opened == [True]
+        assert window.rom_studio.command_tabs.currentIndex() == 1
+        assert window.rom_studio.dashboard_handoff_title.text() == (
+            "Device Atlas → Build & Proof"
+        )
+        assert window.rom_studio.worker is None
+
+        project = window.rom_studio.store.create("Nexus exact project")
+        window.nexus_center.refresh()
+        window._navigate_route("nexus")
+        window.nexus_center.evidence_studio_button.click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.rom_studio
+        assert window.rom_studio.current_project is not None
+        assert window.rom_studio.current_project.project_id == project.project_id
+        assert window.rom_studio.dashboard_handoff_eyebrow.text().startswith(
+            "ROMVERSE NEXUS HANDOFF"
+        )
+        assert project.project_id in window.rom_studio.dashboard_handoff_detail.text()
+        assert "NO PROJECT WORKER, PLAN, BUILD, OR PHONE ACTION STARTED" in (
+            window.rom_studio.dashboard_handoff_detail.text()
+        )
+        assert window.rom_studio.worker is None
     finally:
         window.companion_center.transport.close()
         window.close()
@@ -1565,6 +1637,15 @@ def test_exact_forge_context_refuses_stale_device_and_separates_build_from_flash
         assert "FLASH LOCKED" in window.toolchain_center.device_pack_handoff_badge.text()
         window.toolchain_center.context_continue_button.click()
         assert window.stack.currentWidget() is window.rom_studio
+        assert window.rom_studio.dashboard_handoff_eyebrow.text().startswith(
+            "FORGE ARSENAL HANDOFF"
+        )
+        assert window.rom_studio.command_tabs.currentIndex() == 1
+        assert first_digest[:16] in window.rom_studio.dashboard_handoff_detail.text()
+        assert "NO BUILD, APPROVAL, FLASH, OR PHONE ACTION STARTED" in (
+            window.rom_studio.dashboard_handoff_detail.text()
+        )
+        assert window.rom_studio.worker is None
 
         window.device_packs_center.requirement_buttons["compile"].click()
         app.processEvents()

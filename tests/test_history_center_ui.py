@@ -138,6 +138,11 @@ def test_health_timeline_handoffs_reach_archives_and_current_optimizer(tmp_path)
         app.processEvents()
         assert window.stack.currentWidget() is window.diagnostics_center
         assert window.diagnostics_center.current_report is not None
+        assert not window.diagnostics_center.dashboard_handoff.isHidden()
+        assert window.diagnostics_center.dashboard_handoff_title.text().startswith(
+            "Health Review"
+        )
+        assert "NO NEW SCAN" in window.diagnostics_center.dashboard_handoff_detail.text()
 
         window._navigate_route("activity_center")
         window.activity_center.refresh()

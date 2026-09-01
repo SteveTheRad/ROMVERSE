@@ -1868,6 +1868,47 @@ KNOWN_FIXES = (
         source=ROMVERSE_SOURCE,
     ),
     _fix(
+        "rom-studio-cross-feature-context",
+        "Open ROM Studio loses the originating Pack, toolchain, or Nexus project",
+        "ROMVERSE WORKFLOWS",
+        "A cross-feature Continue or Open control must carry its verified reason into ROM "
+        "Studio. Device Atlas contributes the current exact Device Pack report, Forge Arsenal "
+        "adds the freshly verified ordered host toolchain, and ROMVERSE Nexus identifies the "
+        "exact selected project and its Device DNA/Compatibility Matrix state. Generic page "
+        "navigation is not accepted as a completed handoff.",
+        checks=(
+            "Read the ROM Studio handoff eyebrow and confirm it names DEVICE ATLAS, FORGE ARSENAL, or ROMVERSE NEXUS rather than Command Deck.",
+            "For Pack handoffs, compare model/codename, Pack id/version, report digest, and separate build/flash state with the source page.",
+            "For Forge handoffs, confirm every ordered required tool remains freshly available and the retained Device Atlas digest is still current.",
+            "For Nexus handoffs, confirm the exact project id is selected and missing Device DNA or Compatibility Matrix evidence remains explicit.",
+        ),
+        fix_steps=(
+            "Return to the originating feature and use its Continue/Open control again so ROMVERSE can revalidate the source identity at the boundary.",
+            "If Device Atlas context changed, run a fresh read-only scan and reopen the current Requirements Blueprint before continuing.",
+            "If a Forge context is stale or a required tool is missing, re-open it from Device Atlas and freshly verify the declared subset.",
+            "If a Nexus project is missing, create or select the exact protected-source project; do not substitute another current Studio project.",
+        ),
+        verification=(
+            "Device Atlas Continue opens Genesis with the current exact Pack report visible and does not start a build or phone action.",
+            "A verified build/artifact lane selects Build & Proof, while Forge Arsenal continues only when every declared host tool remains ready.",
+            "Nexus selects the exact project and reports its current evidence prerequisite without generating a plan or starting a project worker.",
+            "Changed Pack, tool, report, or project identity leaves the source page visibly stopped instead of opening an unrelated Studio context.",
+        ),
+        tags=(
+            "open rom studio loses context",
+            "device atlas studio handoff",
+            "forge arsenal studio handoff",
+            "nexus project handoff",
+            "wrong rom project selected",
+            "stale build contract context",
+            "continue button generic navigation",
+        ),
+        route="rom_studio",
+        evidence="ROMVERSE revalidates the source owner immediately before navigation and tests the resulting Studio eyebrow, digest/project binding, selected command group, and idle-worker boundary.",
+        automation="EXACT CONTEXT REVALIDATION, PROJECT SELECTION, AND WORKFLOW FOCUS ONLY • NO PROJECT WORKER, PLAN, BUILD, APPROVAL, FLASH, OR PHONE ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
         "activity-exact-source-context",
         "Activity outcome cannot reopen its exact source evidence",
         "ROMVERSE WORKFLOWS",

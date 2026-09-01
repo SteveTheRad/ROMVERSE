@@ -39,6 +39,7 @@ from romverse.device.dna import CapabilityState, DeviceDnaProfile, DeviceDnaServ
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device_packs.attestations import DevicePackAttestationStore
 from romverse.device_packs.registry import DevicePackRegistry
+from romverse.device_packs.validation import DevicePackValidationReport
 from romverse.guardian.approval import ApprovalStore
 from romverse.guardian.artifact_binding import GuardianArtifactBindingService
 from romverse.guardian.flash_handoff import GuardianFlashHandoffService
@@ -569,10 +570,10 @@ class RomStudio(QWidget):
         dashboard_handoff_layout.setContentsMargins(18, 13, 18, 13)
         dashboard_handoff_layout.setSpacing(14)
         dashboard_handoff_copy = QVBoxLayout()
-        dashboard_handoff_eyebrow = QLabel(
+        self.dashboard_handoff_eyebrow = QLabel(
             "COMMAND DECK HANDOFF  •  EXACT ROM STUDIO WORKFLOW"
         )
-        dashboard_handoff_eyebrow.setObjectName("Eyebrow")
+        self.dashboard_handoff_eyebrow.setObjectName("Eyebrow")
         self.dashboard_handoff_title = QLabel()
         self.dashboard_handoff_title.setObjectName("SectionTitle")
         self.dashboard_handoff_detail = QLabel()
@@ -581,7 +582,7 @@ class RomStudio(QWidget):
         self.dashboard_handoff_detail.setTextInteractionFlags(
             Qt.TextInteractionFlag.TextSelectableByMouse
         )
-        dashboard_handoff_copy.addWidget(dashboard_handoff_eyebrow)
+        dashboard_handoff_copy.addWidget(self.dashboard_handoff_eyebrow)
         dashboard_handoff_copy.addWidget(self.dashboard_handoff_title)
         dashboard_handoff_copy.addWidget(self.dashboard_handoff_detail)
         dashboard_handoff_layout.addLayout(dashboard_handoff_copy, 1)
@@ -1129,13 +1130,165 @@ class RomStudio(QWidget):
         badge: str,
         *,
         ready: bool,
+        eyebrow: str = "COMMAND DECK HANDOFF  •  EXACT ROM STUDIO WORKFLOW",
     ) -> None:
+        self.dashboard_handoff_eyebrow.setText(eyebrow)
         self.dashboard_handoff_title.setText(title)
         self.dashboard_handoff_detail.setText(detail)
         self.dashboard_handoff_badge.setText(badge)
         self.dashboard_handoff_badge.setObjectName("Good" if ready else "Warning")
         self._repolish(self.dashboard_handoff_badge)
         self.dashboard_handoff.setVisible(True)
+
+    def open_device_atlas_handoff(
+        self,
+        report: DevicePackValidationReport,
+        intent: str,
+        *,
+        source: str = "Device Atlas",
+        launch_genesis: bool = False,
+    ) -> bool:
+        """Accept one current exact Pack contract without inheriting execution authority."""
+
+        if source not in {"Device Atlas", "Forge Arsenal", "Time Machine"}:
+            return False
+        if intent not in {"genesis", "build", "artifact"}:
+            return False
+        if not isinstance(report, DevicePackValidationReport):
+            return False
+        pack = next(
+            (candidate for candidate in self.pack_registry.packs if candidate.pack_id == report.pack_id),
+            None,
+        )
+        if (
+            pack is None
+            or report.pack_version != pack.version
+            or report.pack_sha256 != pack.sha256
+            or not report.build_contract_ready
+        ):
+            return False
+        if source == "Forge Arsenal":
+            contract = pack.build_contract
+            statuses = {status.name: status for status in self.tool_statuses}
+            if contract is None or any(
+                name not in statuses or not statuses[name].available
+                for name in contract.required_tools
+            ):
+                return False
+
+        project = self.current_project
+        if project is None:
+            project_context = (
+                "No ROM project is selected. Create one and import the exact protected firmware; "
+                "the Device Pack cannot substitute for source bytes."
+            )
+        elif project.device_pack_id == pack.pack_id:
+            project_context = f"Current project {project.name} is associated with this Pack."
+        else:
+            project_context = (
+                f"Current project {project.name} is not associated with Pack {pack.pack_id}; "
+                "select or create the correct protected-source project before planning."
+            )
+        flash = "READY" if report.flash_contract_ready else "LOCKED"
+        if intent == "genesis":
+            title = f"{source} → Genesis Sequence"
+            next_step = (
+                "Genesis will re-check project source binding and resume at the exact safe stage."
+            )
+            tab_index = 0
+            focus = self.guided_button
+        elif intent == "artifact":
+            title = f"{source} → verified artifact build"
+            next_step = (
+                "Build & Proof is selected; Forge Control will independently revalidate every "
+                "artifact, signing, recovery, and flash gate."
+            )
+            tab_index = 1
+            focus = self.build_control_button
+        else:
+            title = f"{source} → Build & Proof"
+            next_step = (
+                "Build & Proof is selected for a deterministic plan; execution remains locked."
+            )
+            tab_index = 1
+            focus = self.plan_button
+        self.command_tabs.setCurrentIndex(tab_index)
+        self._show_dashboard_handoff(
+            title,
+            f"{report.model} / {report.codename}  •  Pack {pack.pack_id} v{pack.version}  •  "
+            f"report {report.report_digest[:16]}…  •  build READY  •  flash {flash}. "
+            f"{project_context} {next_step} NO BUILD, APPROVAL, FLASH, OR PHONE ACTION STARTED.",
+            f"BUILD READY • FLASH {flash}",
+            ready=True,
+            eyebrow=f"{source.upper()} HANDOFF  •  EXACT CURRENT BUILD CONTRACT",
+        )
+        self.detail_scroll.ensureWidgetVisible(self.command_tabs, 0, 24)
+        focus.setFocus(Qt.FocusReason.OtherFocusReason)
+        if intent == "genesis" and launch_genesis:
+            self._open_guided_setup()
+        return True
+
+    def open_nexus_handoff(self, project_id: str) -> bool:
+        """Open the exact Nexus project or its honest project-creation prerequisite."""
+
+        normalized = str(project_id).strip()
+        if not normalized:
+            self.command_tabs.setCurrentIndex(0)
+            self._show_dashboard_handoff(
+                "ROMVERSE Nexus → protected project creation",
+                "Nexus has no project to bind. Create a ROM project and import protected "
+                "firmware before Device DNA, Compatibility Matrix, or route planning can exist. "
+                "NO PROJECT WORKER, PLAN, BUILD, OR PHONE ACTION STARTED.",
+                "PROJECT REQUIRED",
+                ready=False,
+                eyebrow="ROMVERSE NEXUS HANDOFF  •  EXACT PROJECT EVIDENCE",
+            )
+            self.new_button.setFocus(Qt.FocusReason.OtherFocusReason)
+            return True
+        try:
+            project = self.store.get(normalized)
+            self.refresh(project.project_id)
+        except (OSError, ProjectError, TypeError, ValueError):
+            return False
+        profile = self.device_dna.profiles.load(project.project_id)
+        matrix = self.compatibility.matrices.load(project.project_id)
+        missing = tuple(
+            label
+            for label, available in (
+                ("Device DNA", profile is not None),
+                ("Compatibility Matrix", matrix is not None),
+            )
+            if not available
+        )
+        if missing:
+            self.command_tabs.setCurrentIndex(0)
+            self._show_dashboard_handoff(
+                f"ROMVERSE Nexus → {project.name}",
+                f"Exact project {project.project_id} is selected. Missing: {', '.join(missing)}. "
+                "Genesis will derive them only from this project's protected evidence. "
+                "NO PROJECT WORKER, PLAN, BUILD, OR PHONE ACTION STARTED.",
+                "EVIDENCE REQUIRED",
+                ready=False,
+                eyebrow="ROMVERSE NEXUS HANDOFF  •  EXACT PROJECT EVIDENCE",
+            )
+            self.guided_button.setFocus(Qt.FocusReason.OtherFocusReason)
+            return True
+        plan = RomBuildPlanner(self.store).load(project.project_id)
+        self.command_tabs.setCurrentIndex(1)
+        self._show_dashboard_handoff(
+            f"ROMVERSE Nexus → {project.name}",
+            f"Exact project {project.project_id} is selected with current Device DNA and "
+            f"Compatibility Matrix evidence. Build plan: {'available' if plan is not None else 'not yet created'}. "
+            "Build & Proof is selected; NO PROJECT WORKER, PLAN, BUILD, OR PHONE ACTION STARTED.",
+            "EVIDENCE READY",
+            ready=True,
+            eyebrow="ROMVERSE NEXUS HANDOFF  •  EXACT PROJECT EVIDENCE",
+        )
+        self.detail_scroll.ensureWidgetVisible(self.command_tabs, 0, 24)
+        (self.verify_plan_button if plan is not None else self.plan_button).setFocus(
+            Qt.FocusReason.OtherFocusReason
+        )
+        return True
 
     def guided_context(self, state: GuidedMissionState | None = None) -> GuidedContext:
         """Compile the single evidence context consumed by every Genesis surface."""

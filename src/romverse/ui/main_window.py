@@ -93,6 +93,7 @@ from romverse.guardian.policy import GuardianPolicy
 from romverse.infrastructure.process import CommandRunner, SubprocessRunner
 from romverse.infrastructure.tools import ToolStatus
 from romverse.intelligence.online_remediation import OnlineRemediationService
+from romverse.knowledge.resolution_memory import ArchivesResolutionMemory
 from romverse.nexus.compatibility import CompatibilityMatrix, CompatibilityStatus
 from romverse.nexus.events import (
     LiveConsoleEventStore,
@@ -103,6 +104,7 @@ from romverse.nexus.events import (
 from romverse.nexus.planning import NexusPlan, NexusPlanStatus
 from romverse.platform.host import HostPlatform, current_host
 from romverse.repair.host import AdbHostRepairReceiptStore, AdbHostRepairService
+from romverse.repair.sessions import RepairSessionStore
 from romverse.repair.templates import RepairAssessmentTemplates
 from romverse.rom.models import ProjectError
 from romverse.rom.projects import RomProjectStore
@@ -2583,8 +2585,13 @@ class MainWindow(QMainWindow):
         )
         self.backup_center.runtime_tools_requested.connect(self._resolve_backup_runtime)
         self.stack.addWidget(self.backup_center)
-        self.knowledge_center = KnowledgeCenter()
+        self.knowledge_center = KnowledgeCenter(
+            ArchivesResolutionMemory(RepairSessionStore(workspace))
+        )
         self.knowledge_center.route_requested.connect(self._open_knowledge_route)
+        self.repair_center.resolution_memory_updated.connect(
+            self.knowledge_center.refresh_resolution_memory
+        )
         self.knowledge_index = self.stack.addWidget(self.knowledge_center)
         self.terminal_center = TerminalCenter(gateway, adb_executable, self.raw_terminal_feed)
         self.terminal_center.runtime_tools_requested.connect(self._resolve_terminal_runtime)

@@ -111,6 +111,7 @@ class RepairCenter(QWidget):
     runtime_tools_requested = Signal()
     knowledge_requested = Signal(str)
     knowledge_article_requested = Signal(str)
+    resolution_memory_updated = Signal()
 
     def __init__(
         self,
@@ -1547,12 +1548,19 @@ class RepairCenter(QWidget):
         ):
             return
         entry = knowledge_for(self.current_concern)
+        archive_recommendations = recommend_for_repair(
+            self.current_concern,
+            self.symptom_input.text(),
+            self.current_report.findings,
+            limit=1,
+        )
         try:
             self.active_session = self.session_store.start(
                 self.current_concern,
                 self.current_device,
                 self.current_report,
                 entry.recommended_steps,
+                tuple(item.article.key for item in archive_recommendations),
             )
         except RepairSessionError as exc:
             self.digest.setText(f"Guided session could not start  •  {exc}")
@@ -1627,6 +1635,7 @@ class RepairCenter(QWidget):
             self.active_session.verification_summary,
             "success" if "improved" in self.active_session.verification_summary else "information",
         )
+        self.resolution_memory_updated.emit()
 
     def _record_activity(self, title: str, detail: str, outcome: str) -> None:
         if self.activity_store is None:

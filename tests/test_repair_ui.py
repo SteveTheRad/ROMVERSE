@@ -83,6 +83,7 @@ def test_guided_repair_ui_saves_checkpoints_then_requires_fresh_scan(tmp_path) -
     app.processEvents()
     assert center.active_session is not None
     assert center.active_session.status == "active"
+    assert center.active_session.archive_article_keys == ("device-battery-low",)
 
     for check in center.session_checks:
         check.setChecked(True)

@@ -159,7 +159,15 @@ Guided repair sessions persist a pseudonymous initial evidence digest, health si
 finding IDs, and the user's reviewed checkpoints. Checkpoints record review only and never
 assert success. Verification always requests a fresh read-only Device Engine scan and
 compares it with the baseline, reporting improved, unchanged, or needs more attention.
-Sessions do not execute device-changing operations.
+Current session evidence uses a strict private schema-two record with bounded fields and size,
+stable article identities, derived resolved/added finding sets, derived direction, and a complete
+content digest. Linked, non-regular, oversized, extra-field, wrong-type, duplicate, altered, and
+semantically false re-digested records fail closed. A valid legacy record may be read for continuity
+but cannot contribute learning until an intentional update rewrites it in the current format.
+Archives may aggregate only current integrity-verified comparisons for the exact recommended article
+and must label the result local correlation rather than causal or verified-fix evidence. No serial,
+raw symptom, unrecorded action, approval, or execution authority enters that memory. Sessions do not
+execute device-changing operations.
 
 Recovery Bay exact-symptom input and Quantum Optimizer findings hand off to ROMVERSE Archives through
 stable structured article identities. The deterministic Advisor maps typed repair concerns and exact

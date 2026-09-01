@@ -26,6 +26,10 @@ from romverse.knowledge.archives import (
     catalog_metrics,
     search_catalog,
 )
+from romverse.knowledge.resolution_memory import (
+    ArchivesResolutionMemory,
+    ArticleResolutionMemory,
+)
 from romverse.ui.vocabulary import feature
 
 LEGACY_GUIDES = (
@@ -377,8 +381,9 @@ class KnowledgeGuideDialog(QDialog):
 class KnowledgeCenter(QWidget):
     route_requested = Signal(str)
 
-    def __init__(self) -> None:
+    def __init__(self, resolution_memory: ArchivesResolutionMemory | None = None) -> None:
         super().__init__()
+        self.resolution_memory = resolution_memory
         layout = QVBoxLayout(self)
         layout.setContentsMargins(30, 26, 30, 30)
         layout.setSpacing(14)
@@ -459,6 +464,17 @@ class KnowledgeCenter(QWidget):
         splitter.setSizes([320, 700])
         layout.addWidget(splitter, 1)
 
+        self.resolution_status = QLabel("")
+        self.resolution_status.setObjectName("Eyebrow")
+        self.resolution_status.setAccessibleName("Local Archives resolution memory")
+        self.resolution_status.setWordWrap(True)
+        self.resolution_status.setVisible(False)
+        self.resolution_status.setToolTip(
+            "Integrity-verified before/after correlation only. It is not proof that a guide "
+            "caused the result and never grants execution authority."
+        )
+        layout.addWidget(self.resolution_status)
+
         actions = QHBoxLayout()
         self.open_source = QPushButton("Open official source")
         self.open_source.setVisible(False)
@@ -506,6 +522,7 @@ class KnowledgeCenter(QWidget):
             self.search_status.setText("Exact verified guide unavailable.")
             self.open_route.setVisible(False)
             self.open_source.setVisible(False)
+            self.resolution_status.setVisible(False)
             self.search_status.style().unpolish(self.search_status)
             self.search_status.style().polish(self.search_status)
             return False
@@ -557,6 +574,7 @@ class KnowledgeCenter(QWidget):
             self.search_status.setText(f"No verified guide matched “{query}”.")
             self.open_route.setVisible(False)
             self.open_source.setVisible(False)
+            self.resolution_status.setVisible(False)
         self.search_status.style().unpolish(self.search_status)
         self.search_status.style().polish(self.search_status)
 
@@ -564,7 +582,16 @@ class KnowledgeCenter(QWidget):
         self, current: QListWidgetItem | None, _previous: QListWidgetItem | None
     ) -> None:
         article = self._article_for(current)
-        self.detail.setPlainText(article.plain_text if article else "Select a topic.")
+        memory = (
+            self.resolution_memory.for_article(article.key)
+            if article is not None and self.resolution_memory is not None
+            else None
+        )
+        detail = article.plain_text if article else "Select a topic."
+        if memory is not None:
+            detail += "\n\n" + memory.plain_text
+        self.detail.setPlainText(detail)
+        self._show_resolution_memory(memory)
         route = article.route if article is not None else ""
         self.open_route.setProperty("route", route)
         self.open_route.setText(
@@ -574,6 +601,24 @@ class KnowledgeCenter(QWidget):
         source_url = article.source.url if article is not None else ""
         self.open_source.setProperty("source_url", source_url)
         self.open_source.setVisible(bool(source_url))
+
+    def refresh_resolution_memory(self) -> None:
+        """Refresh presentation after Recovery Bay records a fresh comparison."""
+
+        self._show_article(self.list.currentItem(), None)
+
+    def _show_resolution_memory(self, memory: ArticleResolutionMemory | None) -> None:
+        if memory is None:
+            self.resolution_status.clear()
+            self.resolution_status.setVisible(False)
+            return
+        noun = "comparison" if memory.comparisons == 1 else "comparisons"
+        self.resolution_status.setText(
+            f"LOCAL RESOLUTION MEMORY  •  {memory.comparisons} INTEGRITY-VERIFIED {noun.upper()}  "
+            f"•  {memory.improved} IMPROVED  •  {memory.unchanged} UNCHANGED  •  "
+            f"{memory.needs_attention} NEEDS ATTENTION  •  CORRELATION, NOT CAUSATION"
+        )
+        self.resolution_status.setVisible(True)
 
     @staticmethod
     def _article_for(current: QListWidgetItem | None) -> ArchiveArticle | None:

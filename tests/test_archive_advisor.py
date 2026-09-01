@@ -88,6 +88,24 @@ def test_unknown_symptom_falls_back_to_exact_concern_without_guessing() -> None:
     assert recommend_for_repair(RepairConcern.NETWORK, limit=0) == ()
 
 
+def test_exact_in_scope_diagnostic_evidence_outranks_a_broad_repair_concern() -> None:
+    report = DiagnosticAnalyzer(date(2026, 9, 1)).analyze(
+        device(battery_percent=4, battery_temperature_c=31.0)
+    )
+
+    recommendations = recommend_for_repair(
+        RepairConcern.BATTERY_HEAT,
+        findings=report.findings,
+        limit=3,
+    )
+
+    assert [item.article.key for item in recommendations[:2]] == [
+        "device-battery-low",
+        "device-temperature-elevated",
+    ]
+    assert recommendations[0].reason == "Exact diagnostic rule: battery.low"
+
+
 def test_each_repair_concern_has_one_exact_primary_guide() -> None:
     for concern in RepairConcern:
         recommendation = recommend_for_repair(concern, limit=1)

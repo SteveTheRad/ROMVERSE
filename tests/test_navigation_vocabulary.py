@@ -265,6 +265,63 @@ def test_typed_advisor_handoff_opens_the_exact_archives_identity(tmp_path: Path)
         window.close()
 
 
+def test_fresh_repair_comparison_refreshes_exact_local_archives_memory(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    initial = AndroidDevice(
+        "private-learning-device",
+        DeviceState.DEVICE,
+        manufacturer="RadForge",
+        model="Reference Phone",
+        battery_percent=8,
+        battery_temperature_c=31.0,
+        connection_note="Connected",
+    )
+    improved = AndroidDevice(
+        "private-learning-device",
+        DeviceState.DEVICE,
+        manufacturer="RadForge",
+        model="Reference Phone",
+        battery_percent=70,
+        battery_temperature_c=31.0,
+        connection_note="Connected",
+    )
+    try:
+        window.repair_center.set_devices([initial])
+        window.repair_center._start_session()
+        assert window.repair_center.active_session is not None
+        window.repair_center._pending_verification_session = (
+            window.repair_center.active_session.session_id
+        )
+
+        window.repair_center.set_devices([improved])
+        app.processEvents()
+
+        assert window.repair_center.active_session is not None
+        assert window.repair_center.active_session.verification_direction == "improved"
+        window.repair_center.knowledge_article_requested.emit("device-battery-low")
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.knowledge_center
+        assert window.knowledge_center.resolution_status.isVisibleTo(window.knowledge_center)
+        assert "1 IMPROVED" in window.knowledge_center.resolution_status.text()
+        assert "INTERPRETATION BOUNDARY" in window.knowledge_center.detail.toPlainText()
+        assert "does not prove" in window.knowledge_center.detail.toPlainText()
+        assert "private-learning-device" not in window.knowledge_center.detail.toPlainText()
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
 def test_recovery_bay_archives_handoff_and_canonical_fix_route_are_connected(
     tmp_path: Path,
 ) -> None:

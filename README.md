@@ -103,7 +103,14 @@ Recovery Bay also supports **guided repair sessions**: ROMVERSE preserves a pseu
 diagnostic baseline, saves which recommended checkpoints the user reviewed, and requests a
 fresh Device Engine scan before comparing health signals and finding IDs. A checked step is
 never treated as proof of repair, and comparison results say improved, unchanged, or needs
-more attention. Sessions remain local; no repair command is executed.
+more attention. Schema-two session evidence is strict-field, size-bounded, private, atomically
+stored, content-digested, and semantically re-derived; altered, linked, oversized, and falsely
+re-digested outcomes cannot teach the app. A new session also binds the primary evidence-matched
+Archives article identity. After a genuine fresh comparison, Archives may show aggregated local
+resolution memory for that exact article, clearly labelled as correlation rather than proof that a
+guide caused the change. Legacy sessions remain readable but cannot strengthen Archives until an
+intentional update rewrites them into the current verified format. Sessions remain local; no repair
+command is executed and the memory grants no execution authority.
 If the verified ADB runtime is missing, Recovery Bay now presents **Resolve Platform Tools and
 scan** inside its blocked-state card. The same scoped resolver refreshes the complete tool
 inventory, atomically restores every ADB-dependent Desktop service, and starts a fresh read-only

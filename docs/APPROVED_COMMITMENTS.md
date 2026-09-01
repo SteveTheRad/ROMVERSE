@@ -401,6 +401,10 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   Studio/Genesis/Ascension/Recipe handoffs preserve their stages and drafts; Recovery Bay keeps
   disabled online research in an accessible compact drawer, automatically expands real evidence,
   and keeps the exact local Advisor action visible without changing workflow state;
+  guided repair sessions now use a strict private schema-two integrity envelope, bind the primary
+  evidence-matched Archives article, re-derive comparison direction and finding deltas, reject
+  hostile/altered/re-digested evidence, and feed only integrity-verified fresh comparisons into an
+  exact-article local Resolution Memory that is explicitly correlation-only and grants no authority;
   shared read-only root-identity review that separates an observed root signal from an
   evidence-labelled Manager candidate, keeps a normal ADB shell explicitly insufficient to prove an
   unrooted phone, uses a full official signer pin for the Companion candidate while basic Desktop

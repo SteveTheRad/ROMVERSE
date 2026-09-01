@@ -43,6 +43,22 @@ REPAIR_CONCERN_ARTICLE_KEYS = {
     RepairConcern.PERFORMANCE: "android-performance-freezing",
 }
 
+REPAIR_CONCERN_FINDING_IDS = {
+    RepairConcern.BATTERY_HEAT: frozenset({"battery.low", "battery.temperature"}),
+    RepairConcern.STORAGE: frozenset({"storage.capacity"}),
+    RepairConcern.USB_ADB: frozenset({"connection.unavailable", "scan.partial"}),
+    RepairConcern.APP_CRASH: frozenset(),
+    RepairConcern.BOOT_UPDATE: frozenset(
+        {"boot.incomplete", "security.bootloader", "security.verified_boot"}
+    ),
+    RepairConcern.DISPLAY_TOUCH: frozenset(),
+    RepairConcern.NETWORK: frozenset(),
+    RepairConcern.CAMERA_AUDIO: frozenset(),
+    RepairConcern.PERFORMANCE: frozenset(
+        {"battery.temperature", "storage.capacity", "boot.recent"}
+    ),
+}
+
 _ARTICLE_BY_KEY = {article.key: article for article in KNOWN_FIXES}
 _REQUIRED_KEYS = frozenset(DIAGNOSTIC_ARTICLE_KEYS.values()) | frozenset(
     REPAIR_CONCERN_ARTICLE_KEYS.values()
@@ -143,6 +159,18 @@ def recommend_for_repair(
             )
             if len(recommendations) >= bounded_limit:
                 return tuple(recommendations)
+
+    contextual_ids = REPAIR_CONCERN_FINDING_IDS[concern]
+    contextual_findings = tuple(
+        finding for finding in findings if finding.finding_id in contextual_ids
+    )
+    for recommendation in recommend_for_findings(contextual_findings, limit=bounded_limit):
+        if recommendation.article.key in seen:
+            continue
+        seen.add(recommendation.article.key)
+        recommendations.append(recommendation)
+        if len(recommendations) >= bounded_limit:
+            return tuple(recommendations)
 
     concern_key = REPAIR_CONCERN_ARTICLE_KEYS[concern]
     concern_article = _ARTICLE_BY_KEY[concern_key]

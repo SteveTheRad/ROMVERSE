@@ -7,7 +7,14 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QLabel
 
+from romverse.diagnostics.analyzer import DiagnosticAnalyzer
+from romverse.knowledge.resolution_memory import ArchivesResolutionMemory
+from romverse.repair.knowledge import knowledge_for
+from romverse.repair.sessions import RepairSessionStore
+from romverse.repair.templates import RepairConcern
 from romverse.ui.knowledge_center import KnowledgeCenter, KnowledgeGuideDialog
+
+from .test_diagnostics import device
 
 
 def test_archives_search_selects_a_verified_guide_and_routes_to_rom_studio() -> None:
@@ -120,4 +127,36 @@ def test_archives_category_filter_and_source_evidence_stay_connected() -> None:
     assert center.open_source.isVisibleTo(center)
     assert center.open_source.property("source_url").startswith("https://android.googlesource.com/")
     assert center.open_route.property("route") == "app_launchpad"
+    center.close()
+
+
+def test_archives_displays_integrity_verified_local_resolution_memory(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    analyzer = DiagnosticAnalyzer()
+    store = RepairSessionStore(tmp_path)
+    source = device(battery_percent=8)
+    session = store.start(
+        RepairConcern.BATTERY_HEAT,
+        source,
+        analyzer.analyze(source),
+        knowledge_for(RepairConcern.BATTERY_HEAT).recommended_steps,
+        ("device-battery-low",),
+    )
+    store.verify(
+        session.session_id,
+        source,
+        analyzer.analyze(device(battery_percent=70)),
+    )
+    center = KnowledgeCenter(ArchivesResolutionMemory(store))
+    center.show()
+
+    assert center.open_article("device-battery-low")
+    app.processEvents()
+
+    assert center.resolution_status.isVisibleTo(center)
+    assert "1 IMPROVED" in center.resolution_status.text()
+    assert "CORRELATION, NOT CAUSATION" in center.resolution_status.text()
+    assert "LOCAL RESOLUTION MEMORY" in center.detail.toPlainText()
+    assert "does not prove" in center.detail.toPlainText()
+    assert source.serial not in center.detail.toPlainText()
     center.close()

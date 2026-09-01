@@ -36,6 +36,28 @@ def test_optimizer_routes_actionable_finding_to_guided_recovery(tmp_path) -> Non
     center.close()
 
 
+def test_optimizer_can_search_archives_for_the_priority_finding(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = DiagnosticsCenter(
+        DiagnosticAnalyzer(),
+        DiagnosticHistoryStore(tmp_path),
+    )
+    requested: list[str] = []
+    center.knowledge_requested.connect(requested.append)
+
+    center.set_devices([device(battery_percent=5)])
+    app.processEvents()
+    button = next(
+        item for item in center.findChildren(QPushButton) if item.text() == "Search known fixes"
+    )
+    button.click()
+    app.processEvents()
+
+    assert requested
+    assert "battery" in requested[0].casefold()
+    center.close()
+
+
 def test_optimizer_does_not_offer_repair_when_health_is_clear(tmp_path) -> None:
     app = QApplication.instance() or QApplication([])
     center = DiagnosticsCenter(

@@ -151,6 +151,28 @@ def test_recovery_bay_fresh_diagnostics_is_a_real_scan_action(tmp_path) -> None:
     center.close()
 
 
+def test_recovery_bay_searches_local_archives_without_starting_a_repair(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = RepairCenter(
+        DiagnosticAnalyzer(),
+        RepairAssessmentTemplates(),
+        GuardianPreflight(),
+        tmp_path,
+        ActivityStore(tmp_path),
+    )
+    queries: list[str] = []
+    center.knowledge_requested.connect(queries.append)
+    center.symptom_input.setText("  INSTALL_FAILED_VERSION_DOWNGRADE\x00  ")
+
+    center.archives_button.click()
+    app.processEvents()
+
+    assert queries == ["INSTALL_FAILED_VERSION_DOWNGRADE"]
+    assert center.active_session is None
+    assert center.host_repair_worker is None
+    center.close()
+
+
 def test_recovery_bay_resolves_missing_adb_runtime_from_blocked_state(tmp_path) -> None:
     app = QApplication.instance() or QApplication([])
     center = RepairCenter(

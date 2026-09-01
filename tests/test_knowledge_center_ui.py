@@ -79,3 +79,24 @@ def test_focused_recipe_guide_uses_the_authoritative_archives_article() -> None:
     labels = "\n".join(label.text() for label in guide.findChildren(QLabel))
     assert "Guardian authority stays locked" in labels
     guide.close()
+
+
+def test_archives_category_filter_and_source_evidence_stay_connected() -> None:
+    app = QApplication.instance() or QApplication([])
+    center = KnowledgeCenter()
+    center.show()
+
+    category_index = center.category.findData("APPS & PACKAGES")
+    center.category.setCurrentIndex(category_index)
+    center.search.setText("install_failed")
+    app.processEvents()
+
+    assert center.list.count() >= 7
+    assert center.list.item(0).text() == "APK install error: INSTALL_FAILED_INVALID_APK"
+    assert "KNOWN SAFE FIX" in center.detail.toPlainText()
+    assert "AUTOMATION BOUNDARY" in center.detail.toPlainText()
+    assert "AOSP SOURCE" in center.detail.toPlainText()
+    assert center.open_source.isVisibleTo(center)
+    assert center.open_source.property("source_url").startswith("https://android.googlesource.com/")
+    assert center.open_route.property("route") == "app_launchpad"
+    center.close()

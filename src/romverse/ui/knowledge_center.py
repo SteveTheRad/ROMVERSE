@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QUrl, Signal
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
+    QComboBox,
     QDialog,
     QFrame,
     QHBoxLayout,
@@ -16,7 +18,17 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-ARTICLES = (
+from romverse.knowledge.archives import (
+    ALL_CATEGORIES,
+    CATEGORIES,
+    ArchiveArticle,
+    build_catalog,
+    catalog_metrics,
+    search_catalog,
+)
+from romverse.ui.vocabulary import feature
+
+LEGACY_GUIDES = (
     (
         "Device Engine",
         "Connect a phone with USB debugging enabled, accept the RSA prompt, then run Scan now. Only read-only probes are used in v0.1.",
@@ -241,16 +253,17 @@ ARTICLES = (
 )
 
 
-def matching_articles(query: str) -> tuple[tuple[str, str], ...]:
-    """Return bounded local guides matching the same rules as ROMVERSE Archives."""
+ARCHIVE_ARTICLES = build_catalog(LEGACY_GUIDES)
+ARTICLES = tuple((article.title, article.plain_text) for article in ARCHIVE_ARTICLES)
+ARTICLE_BY_KEY = {article.key: article for article in ARCHIVE_ARTICLES}
 
-    normalized = query.casefold().strip()[:160]
-    if not normalized:
-        return ARTICLES
+
+def matching_articles(query: str) -> tuple[tuple[str, str], ...]:
+    """Return ranked, bounded local guides using the Archives retrieval rules."""
+
     return tuple(
-        (title, body)
-        for title, body in ARTICLES
-        if normalized in title.casefold() or normalized in body.casefold()
+        (match.article.title, match.article.plain_text)
+        for match in search_catalog(ARCHIVE_ARTICLES, query, limit=100)
     )
 
 
@@ -378,78 +391,126 @@ class KnowledgeCenter(QWidget):
         subtitle = QLabel("Search verified ROMVERSE knowledge, cached evidence, and guided fixes.")
         subtitle.setObjectName("Muted")
         layout.addWidget(subtitle)
+
+        controls = QHBoxLayout()
         self.search = QLineEdit()
-        self.search.setPlaceholderText("Search Device Portal, Guardian Core, APKs, ROM Studio…")
+        self.search.setMaxLength(160)
+        self.search.setAccessibleName("Search ROMVERSE Archives")
+        self.search.setPlaceholderText(
+            "Search an error code, symptom, tool, firmware format, or workflow…"
+        )
         self.search.textChanged.connect(self._filter)
-        layout.addWidget(self.search)
+        controls.addWidget(self.search, 1)
+        self.category = QComboBox()
+        self.category.setAccessibleName("Archives category")
+        self.category.addItem("All knowledge", ALL_CATEGORIES)
+        for category in CATEGORIES:
+            self.category.addItem(category.title(), category)
+        self.category.currentIndexChanged.connect(self._filter)
+        controls.addWidget(self.category)
+        layout.addLayout(controls)
+
         quick = QHBoxLayout()
         quick.addWidget(QLabel("Quick help:"))
         for label, query in (
-            ("ADB", "ADB error"),
-            ("payload.bin", "firmware source"),
+            ("ADB", "adb unauthorized"),
+            ("payload.bin", "payload.bin"),
             ("Boot loop", "boot loop"),
-            ("Backup", "backup"),
-            ("Root", "root state"),
+            ("APK install", "install_failed"),
+            ("AVB", "avb mismatch"),
+            ("EROFS", "erofs read only"),
         ):
             button = QPushButton(label)
             button.clicked.connect(lambda _checked=False, value=query: self.search.setText(value))
             quick.addWidget(button)
         quick.addStretch()
         layout.addLayout(quick)
-        self.search_status = QLabel(f"{len(ARTICLES)} verified local guides available.")
+
+        metrics = catalog_metrics(ARCHIVE_ARTICLES)
+        metrics_row = QHBoxLayout()
+        for text in (
+            f"{metrics['guides']} VERIFIED GUIDES",
+            f"{metrics['known_fixes']} KNOWN FIXES",
+            f"{metrics['categories']} CATEGORIES",
+            f"{metrics['official_sources']} OFFICIAL SOURCES",
+        ):
+            metric = QLabel(text)
+            metric.setObjectName("Good")
+            metrics_row.addWidget(metric)
+        metrics_row.addStretch()
+        layout.addLayout(metrics_row)
+
+        self.search_status = QLabel(f"{len(ARCHIVE_ARTICLES)} verified local guides available.")
         self.search_status.setObjectName("Muted")
         layout.addWidget(self.search_status)
         splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter.setObjectName("ArchivesSplitter")
         self.list = QListWidget()
+        self.list.setObjectName("ArchivesList")
+        self.list.setAccessibleName("Matching ROMVERSE Archives guides")
+        self.list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.list.setTextElideMode(Qt.TextElideMode.ElideRight)
         self.detail = QTextBrowser()
+        self.detail.setObjectName("ArchivesDetail")
+        self.detail.setAccessibleName("Selected ROMVERSE Archives guide")
         self.detail.setOpenExternalLinks(False)
         splitter.addWidget(self.list)
         splitter.addWidget(self.detail)
-        splitter.setSizes([260, 700])
+        splitter.setSizes([320, 700])
         layout.addWidget(splitter, 1)
+
+        actions = QHBoxLayout()
+        self.open_source = QPushButton("Open official source")
+        self.open_source.setVisible(False)
+        self.open_source.clicked.connect(self._open_current_source)
+        actions.addWidget(self.open_source)
+        actions.addStretch()
         self.open_route = QPushButton("Open relevant ROMVERSE section")
         self.open_route.setObjectName("Primary")
         self.open_route.setVisible(False)
         self.open_route.clicked.connect(self._open_current_route)
-        layout.addWidget(self.open_route)
-        for title_text, body in ARTICLES:
-            item = QListWidgetItem(title_text)
-            item.setData(Qt.ItemDataRole.UserRole, body)
-            self.list.addItem(item)
+        actions.addWidget(self.open_route)
+        layout.addLayout(actions)
+
         self.list.currentItemChanged.connect(self._show_article)
-        self.list.setCurrentRow(0)
+        self._filter("")
 
     def open_query(self, query: str) -> None:
         """Open one verified guide query supplied by another ROMVERSE workflow."""
 
         normalized = query.strip()[:160]
+        self.category.setCurrentIndex(0)
         if self.search.text() == normalized:
             self._filter(normalized)
         else:
             self.search.setText(normalized)
         self.search.setFocus(Qt.FocusReason.OtherFocusReason)
 
-    def _filter(self, query: str) -> None:
-        query = query.casefold().strip()
-        visible: list[QListWidgetItem] = []
-        for index in range(self.list.count()):
-            item = self.list.item(index)
-            body = str(item.data(Qt.ItemDataRole.UserRole))
-            hidden = (
-                bool(query) and query not in item.text().casefold() and query not in body.casefold()
+    def _filter(self, _value: object = None) -> None:
+        query = self.search.text().strip()[:160]
+        category = str(self.category.currentData() or ALL_CATEGORIES)
+        matches = search_catalog(ARCHIVE_ARTICLES, query, category, limit=100)
+
+        self.list.blockSignals(True)
+        self.list.clear()
+        for match in matches:
+            item = QListWidgetItem(match.article.title)
+            item.setData(Qt.ItemDataRole.UserRole, match.article.key)
+            item.setToolTip(
+                f"{match.article.category.title()}  •  {match.article.source.authority}"
             )
-            item.setHidden(hidden)
-            if not hidden:
-                visible.append(item)
-        if visible:
-            self.list.setCurrentItem(visible[0])
+            self.list.addItem(item)
+        self.list.blockSignals(False)
+
+        if matches:
+            self.list.setCurrentRow(0)
+            self._show_article(self.list.currentItem(), None)
             self.search_status.setObjectName("Good" if query else "Muted")
             self.search_status.setText(
-                f"{len(visible)} verified guide{'s' if len(visible) != 1 else ''} found"
+                f"{len(matches)} verified guide{'s' if len(matches) != 1 else ''} found"
                 + (f" for “{query}”." if query else " available.")
             )
         else:
-            self.list.clearSelection()
             self.detail.setText(
                 "No verified ROMVERSE guide matched this search. Try a shorter symptom, exact "
                 "error code, tool name, firmware format, or phone feature. ROMVERSE will not "
@@ -458,55 +519,42 @@ class KnowledgeCenter(QWidget):
             self.search_status.setObjectName("Warning")
             self.search_status.setText(f"No verified guide matched “{query}”.")
             self.open_route.setVisible(False)
+            self.open_source.setVisible(False)
         self.search_status.style().unpolish(self.search_status)
         self.search_status.style().polish(self.search_status)
 
     def _show_article(
         self, current: QListWidgetItem | None, _previous: QListWidgetItem | None
     ) -> None:
-        self.detail.setText(
-            current.data(Qt.ItemDataRole.UserRole) if current else "Select a topic."
-        )
-        route = _route_for(current.text()) if current is not None else ""
+        article = self._article_for(current)
+        self.detail.setPlainText(article.plain_text if article else "Select a topic.")
+        route = article.route if article is not None else ""
         self.open_route.setProperty("route", route)
-        self.open_route.setVisible(bool(route))
+        self.open_route.setText(
+            f"Open {feature(route).title}" if route and route != "archives" else ""
+        )
+        self.open_route.setVisible(bool(route and route != "archives"))
+        source_url = article.source.url if article is not None else ""
+        self.open_source.setProperty("source_url", source_url)
+        self.open_source.setVisible(bool(source_url))
+
+    @staticmethod
+    def _article_for(current: QListWidgetItem | None) -> ArchiveArticle | None:
+        if current is None:
+            return None
+        return ARTICLE_BY_KEY.get(str(current.data(Qt.ItemDataRole.UserRole) or ""))
 
     def _open_current_route(self) -> None:
         route = str(self.open_route.property("route") or "")
         if route:
             self.route_requested.emit(route)
 
-
-def _route_for(title: str) -> str:
-    lowered = title.casefold()
-    if any(token in lowered for token in ("adb", "usb", "device engine")):
-        return "device"
-    if any(token in lowered for token in ("time machine", "backup", "recovery checklist")):
-        return "backup"
-    if "app launchpad" in lowered:
-        return "apk"
-    if any(
-        token in lowered
-        for token in (
-            "rom studio",
-            "firmware source",
-            "recipe",
-            "rom inspection",
-            "build plan",
-            "ascension",
-        )
-    ):
-        return "rom_studio"
-    if any(token in lowered for token in ("diagnostic", "battery", "storage")):
-        return "diagnostics"
-    if "recovery bay" in lowered:
-        return "recovery"
-    if "device atlas" in lowered or "another phone" in lowered:
-        return "device_atlas"
-    if "guardian" in lowered:
-        return "guardian"
-    if "logs" in lowered or "history" in lowered:
-        return "history"
-    if "companion" in lowered or "galaxy" in lowered:
-        return "companion"
-    return ""
+    def _open_current_source(self) -> None:
+        source_url = str(self.open_source.property("source_url") or "")
+        if source_url and not QDesktopServices.openUrl(QUrl(source_url)):
+            self.search_status.setObjectName("Warning")
+            self.search_status.setText(
+                "The verified source link could not be opened. The local guide remains available."
+            )
+            self.search_status.style().unpolish(self.search_status)
+            self.search_status.style().polish(self.search_status)

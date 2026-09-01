@@ -108,6 +108,7 @@ class RepairResearchWorker(ManagedRunnable):
 class RepairCenter(QWidget):
     verification_scan_requested = Signal()
     runtime_tools_requested = Signal()
+    knowledge_requested = Signal(str)
 
     def __init__(
         self,
@@ -210,6 +211,12 @@ class RepairCenter(QWidget):
         self.symptom_input.editingFinished.connect(self.build_plan)
         symptom_row.addWidget(symptom_label)
         symptom_row.addWidget(self.symptom_input, 1)
+        self.archives_button = QPushButton("Search local Archives")
+        self.archives_button.setToolTip(
+            "Search verified local known fixes for this symptom. This does not run a repair or send text online."
+        )
+        self.archives_button.clicked.connect(self._search_archives)
+        symptom_row.addWidget(self.archives_button)
         page.addLayout(symptom_row)
 
         self.hero = QFrame()
@@ -973,6 +980,13 @@ class RepairCenter(QWidget):
             return
         if self.devices:
             self.build_plan()
+
+    @Slot()
+    def _search_archives(self) -> None:
+        query = self.symptom_input.text().replace("\x00", " ").strip()[:160]
+        if not query:
+            query = self.concern_selector.currentText().strip()[:160] or "Recovery Bay"
+        self.knowledge_requested.emit(query)
 
     def _repair_fingerprint(
         self,

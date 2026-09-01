@@ -2489,6 +2489,7 @@ class MainWindow(QMainWindow):
         self.diagnostics_center.repair_requested.connect(
             lambda: self._navigate_route("recovery_bay")
         )
+        self.diagnostics_center.knowledge_requested.connect(self._open_knowledge_query)
         self.stack.addWidget(self.diagnostics_center)
         self.history_center = HistoryCenter(history_store)
         self.stack.addWidget(self.history_center)
@@ -2525,6 +2526,7 @@ class MainWindow(QMainWindow):
             self.nexus_events,
             recovery_online_service,
         )
+        self.repair_center.knowledge_requested.connect(self._open_knowledge_query)
         self.stack.addWidget(self.repair_center)
         self.device_packs_center = DevicePacksCenter(
             resolved_registry,
@@ -4017,7 +4019,7 @@ class MainWindow(QMainWindow):
 
     @Slot(str)
     def _open_knowledge_route(self, route: str) -> None:
-        target = {
+        aliases = {
             "device": "command_deck",
             "diagnostics": "quantum_optimizer",
             "history": "health_timeline",
@@ -4028,7 +4030,8 @@ class MainWindow(QMainWindow):
             "apk": "app_launchpad",
             "backup": "time_machine",
             "companion": "companion_link",
-        }.get(route, "")
+        }
+        target = route if route in self.page_routes else aliases.get(route, "")
         self._navigate_route(target or f"knowledge:{route}")
 
     @Slot(str)

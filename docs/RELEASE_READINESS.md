@@ -28,17 +28,20 @@ has current evidence.
    Repository tests also prove a changed packaged runtime module is rejected. This does not replace
    the required Windows installed-wheel pass or signed release-artifact validation.
 
-   Current Fedora development evidence recorded on 2026-09-01: 1,037 Desktop tests and the complete
+   Current Fedora development evidence recorded on 2026-09-01: 1,058 Desktop tests and the complete
    Ruff check/format gate pass after the Ctrl+K navigation-only palette, canonical Activity Center,
-   and connected About ROMVERSE V3 increments. Tests cover Activity Center filtering, truthful
-   counts, source-page and About-family handoffs, accessibility metadata, redacted export, adaptive
-   rendering at wide and minimum supported widths, linked/oversized/extra-field/private-mode ledger
-   boundaries, and the strict private Origin-discovery record. A fresh isolated build produced a
-   214-member wheel; the verifier byte-compared all runtime modules with source and revalidated all
-   21 indexed Device Packs. A separate wheel environment installed that exact artifact, imported the
-   new About state module from site-packages, opened the packaged Desktop offscreen, initialized a
-   fresh workspace, and passed an installed Origin-state round trip. This remains development
-   evidence, not the required signed Windows/Fedora public-release certification.
+   connected About ROMVERSE V3, collapsible/focus workspace shell, and structured ROMVERSE Archives
+   increments. Tests cover bounded ranked retrieval, weak-match rejection, catalog/schema/source
+   validation, category filtering, source and canonical page handoffs, Recovery Bay/Quantum
+   Optimizer context routes, Activity Center filtering and export, adaptive rendering, accessibility,
+   hostile ledger boundaries, and the strict private Origin-discovery record. A fresh isolated build
+   produced a 217-member wheel with SHA-256
+   `b0a887e437355b126b9fbb68d0a7cee49caba08107173e699ad58e6e12d057cc`; the verifier
+   byte-compared all runtime modules with source and revalidated all 21 indexed Device Packs. A
+   separate wheel-target environment imported the packaged 98-guide Archives catalog from outside
+   the source checkout, opened the packaged Desktop offscreen, initialized a fresh workspace, and
+   reloaded all 21 Packs. This remains development evidence, not the required signed Windows/Fedora
+   public-release certification.
 4. Launch the installed wheel on Ubuntu, Fedora, and Windows, initialize a fresh workspace, and verify
    that an existing workspace opens without migration loss.
    For Desktop Device DNA, tamper and correctly re-digest nested facts and bootloader-relock state;

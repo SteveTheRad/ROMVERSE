@@ -74,6 +74,7 @@ class DiagnosticsCenter(QWidget):
     refresh_requested = Signal()
     report_saved = Signal()
     repair_requested = Signal()
+    knowledge_requested = Signal(str)
 
     def __init__(
         self,
@@ -452,6 +453,16 @@ class DiagnosticsCenter(QWidget):
         boundary.setWordWrap(True)
         layout.addWidget(boundary)
         if actionable:
+            actions = QHBoxLayout()
+            search_fixes = QPushButton("Search known fixes")
+            search_fixes.setToolTip(
+                "Search verified local ROMVERSE Archives guidance for the highest-priority finding."
+            )
+            search_fixes.clicked.connect(
+                lambda _checked=False, query=priority.title: self.knowledge_requested.emit(query)
+            )
+            actions.addWidget(search_fixes)
+            actions.addStretch()
             open_repair = QPushButton("Open guided fix in Recovery Bay")
             open_repair.setObjectName("Primary")
             open_repair.setToolTip(
@@ -459,7 +470,8 @@ class DiagnosticsCenter(QWidget):
                 "No device change starts automatically."
             )
             open_repair.clicked.connect(self.repair_requested.emit)
-            layout.addWidget(open_repair)
+            actions.addWidget(open_repair)
+            layout.addLayout(actions)
         return card
 
     def _save(self) -> None:

@@ -189,6 +189,24 @@ QListWidget#HistoryList { background: #0D1226; border: 1px solid #253462; border
 QListWidget#HistoryList::item { color: #AAB6D3; border-radius: 8px; padding: 12px 10px; margin: 2px; }
 QListWidget#HistoryList::item:hover { background: #151F40; color: #EDF4FF; }
 QListWidget#HistoryList::item:selected { background: #1B2A5A; color: #63ECF8; }
+QSplitter#ArchivesSplitter::handle { background: #17253E; width: 6px; }
+QListWidget#ArchivesList {
+    background: rgba(6, 11, 23, 245); border: 1px solid #28426C; border-radius: 10px;
+    padding: 6px; outline: 0;
+}
+QListWidget#ArchivesList::item {
+    color: #AEBED9; border-radius: 7px; padding: 9px 10px; margin: 1px;
+}
+QListWidget#ArchivesList::item:hover { color: #FFFFFF; background: rgba(25, 42, 72, 220); }
+QListWidget#ArchivesList::item:selected {
+    color: #FFFFFF;
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 rgba(87,42,143,235),stop:1 rgba(17,73,96,225));
+    border: 1px solid rgba(62, 220, 238, 150);
+}
+QTextBrowser#ArchivesDetail {
+    color: #DCE9FA; background: rgba(6, 12, 25, 248); border: 1px solid #28426C;
+    border-radius: 10px; padding: 15px; selection-background-color: #5F3AA8;
+}
 QLineEdit#CommandPaletteSearch { min-height: 30px; border: 1px solid #4869B5; border-radius: 10px; padding: 10px 12px; font-size: 15px; }
 QLineEdit#CommandPaletteSearch:focus { border-color: #35E7F5; background: #0D1530; }
 QListWidget#CommandPaletteResults { background: #080D1C; border: 1px solid #253C6B; border-radius: 12px; padding: 7px; outline: 0; }

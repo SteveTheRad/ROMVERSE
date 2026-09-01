@@ -68,6 +68,20 @@ provider-controlled action/source identifiers fail closed. A provider cannot set
 remain valid. Schema-one guidance receipts remain readable with their newer evidence explicitly
 unconfirmed.
 
+Recovery Bay now also offers **Search local Archives** beside the exact symptom field. That handoff
+does not start research or a repair: it opens the bounded local ROMVERSE Archives query and preserves
+the symptom text. Quantum Optimizer offers the same navigation-only handoff for its highest-priority
+finding, while ROM Studio, Genesis, Ascension, and Recipe Forge retain their stage-specific guides.
+
+The Desktop **ROMVERSE Archives** catalog now contains 98 validated local guides across ten
+categories, including 48 structured known-fix records and 25 guide records backed by official-source
+links. Ranked punctuation-tolerant retrieval covers ADB/USB, host tools, firmware intake, dynamic
+partitions and filesystems, AVB/boot, SELinux/build failures, APK install status, Guardian/recovery,
+and evidence integrity. Every structured fix separates meaning, checks, safe steps, verification,
+evidence, automation boundary, and source. Weak searches return no verified match instead of broad
+advice; category filters and canonical route buttons return the user to the relevant Desktop
+workspace. Local guidance never grants approval or execution authority.
+
 Verified outcomes now use schema two and require more than a digest-shaped string. The candidate
 must belong to the exact persisted error fingerprint, and the built-in action must supply a
 workspace-relative typed evidence reference. Recovery Autopilot revalidates its successful ADB

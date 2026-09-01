@@ -1,0 +1,1420 @@
+"""Structured ROMVERSE Archives catalog, validation, and bounded local retrieval."""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass
+from urllib.parse import urlsplit
+
+ALL_CATEGORIES = "ALL KNOWLEDGE"
+CATEGORIES = (
+    "CONNECTIVITY & ADB",
+    "TOOLS & HOST",
+    "FIRMWARE INTAKE",
+    "FILESYSTEMS & PARTITIONS",
+    "BUILD & RECIPES",
+    "BOOT & SECURITY",
+    "APPS & PACKAGES",
+    "RECOVERY & GUARDIAN",
+    "DIAGNOSTICS & HEALTH",
+    "ROMVERSE WORKFLOWS",
+)
+
+CANONICAL_ROUTES = frozenset(
+    {
+        "command_deck",
+        "rom_studio",
+        "quantum_optimizer",
+        "device_atlas",
+        "recovery_bay",
+        "guardian_core",
+        "app_launchpad",
+        "time_machine",
+        "activity_center",
+        "archives",
+        "live_console",
+        "nexus",
+        "forge_arsenal",
+        "companion_link",
+    }
+)
+
+
+@dataclass(frozen=True, slots=True)
+class ArchiveSource:
+    label: str
+    authority: str
+    url: str = ""
+    reviewed_on: str = "2026-09-01"
+
+
+@dataclass(frozen=True, slots=True)
+class ArchiveArticle:
+    key: str
+    title: str
+    category: str
+    meaning: str
+    checks: tuple[str, ...]
+    fix_steps: tuple[str, ...]
+    verification: tuple[str, ...]
+    tags: tuple[str, ...]
+    route: str
+    evidence: str
+    automation: str
+    source: ArchiveSource
+
+    @property
+    def plain_text(self) -> str:
+        sections = [f"WHAT IT MEANS\n{self.meaning}"]
+        if self.checks:
+            sections.append("CHECK FIRST\n" + "\n".join(f"• {item}" for item in self.checks))
+        if self.fix_steps:
+            sections.append("KNOWN SAFE FIX\n" + "\n".join(f"• {item}" for item in self.fix_steps))
+        if self.verification:
+            sections.append(
+                "VERIFY THE RESULT\n" + "\n".join(f"• {item}" for item in self.verification)
+            )
+        sections.extend(
+            (
+                f"EVIDENCE\n{self.evidence}",
+                f"AUTOMATION BOUNDARY\n{self.automation}",
+                f"SOURCE\n{self.source.label}  •  {self.source.authority}"
+                + (f"\n{self.source.url}" if self.source.url else ""),
+            )
+        )
+        return "\n\n".join(sections)
+
+    @property
+    def search_document(self) -> str:
+        return " ".join(
+            (
+                self.title,
+                self.category,
+                self.meaning,
+                *self.checks,
+                *self.fix_steps,
+                *self.verification,
+                *self.tags,
+                self.evidence,
+                self.automation,
+                self.source.label,
+            )
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class ArchiveMatch:
+    article: ArchiveArticle
+    score: int
+
+
+ADB_SOURCE = ArchiveSource(
+    "Android Debug Bridge (adb)",
+    "OFFICIAL ANDROID",
+    "https://developer.android.com/tools/adb",
+)
+PACKAGE_SOURCE = ArchiveSource(
+    "Android PackageManager install status definitions",
+    "AOSP SOURCE",
+    "https://android.googlesource.com/platform/frameworks/base/+/android16-qpr2-release/core/java/android/content/pm/PackageManager.java",
+)
+DYNAMIC_SOURCE = ArchiveSource(
+    "AOSP dynamic partitions",
+    "OFFICIAL AOSP",
+    "https://source.android.com/docs/core/ota/dynamic_partitions",
+)
+SUPER_SIZE_SOURCE = ArchiveSource(
+    "AOSP super partition sizing",
+    "OFFICIAL AOSP",
+    "https://source.android.com/docs/core/ota/dynamic_partitions/how_to_size_super",
+)
+AVB_SOURCE = ArchiveSource(
+    "Android Verified Boot",
+    "OFFICIAL AOSP",
+    "https://source.android.com/docs/security/features/verifiedboot/avb",
+)
+BOOT_FLOW_SOURCE = ArchiveSource(
+    "Verified Boot flow",
+    "OFFICIAL AOSP",
+    "https://source.android.com/docs/security/features/verifiedboot/boot-flow",
+)
+EROFS_SOURCE = ArchiveSource(
+    "AOSP EROFS",
+    "OFFICIAL AOSP",
+    "https://source.android.com/docs/core/architecture/kernel/erofs",
+)
+SELINUX_SOURCE = ArchiveSource(
+    "Build SELinux policy",
+    "OFFICIAL AOSP",
+    "https://source.android.com/docs/security/features/selinux/build",
+)
+BUILD_SOURCE = ArchiveSource(
+    "Build Android",
+    "OFFICIAL AOSP",
+    "https://source.android.com/docs/setup/build/building",
+)
+OTA_SOURCE = ArchiveSource(
+    "Build OTA packages",
+    "OFFICIAL AOSP",
+    "https://source.android.com/docs/core/ota/tools",
+)
+ROMVERSE_SOURCE = ArchiveSource(
+    "ROMVERSE tested safety and evidence contracts",
+    "ROMVERSE VERIFIED",
+)
+FIELD_SOURCE = ArchiveSource(
+    "Recorded ROMVERSE HyperOS reference workflow",
+    "FIELD VERIFIED • MODEL/BUILD SCOPED",
+)
+
+
+def _fix(
+    key: str,
+    title: str,
+    category: str,
+    meaning: str,
+    *,
+    checks: tuple[str, ...],
+    fix_steps: tuple[str, ...],
+    verification: tuple[str, ...],
+    tags: tuple[str, ...],
+    route: str,
+    evidence: str,
+    automation: str,
+    source: ArchiveSource,
+) -> ArchiveArticle:
+    return ArchiveArticle(
+        key,
+        title,
+        category,
+        meaning,
+        checks,
+        fix_steps,
+        verification,
+        tags,
+        route,
+        evidence,
+        automation,
+        source,
+    )
+
+
+KNOWN_FIXES = (
+    _fix(
+        "adb-multiple-targets",
+        "ADB error: more than one device or emulator",
+        "CONNECTIVITY & ADB",
+        "ADB found multiple transports and the request did not identify one exact target.",
+        checks=(
+            "Open Device Portal and identify every listed physical device and emulator.",
+            "Confirm the intended phone is authorized; do not choose by list position alone.",
+        ),
+        fix_steps=(
+            "Disconnect or stop unrelated transports, then rescan.",
+            "Let ROMVERSE bind read-only work to the selected device identity instead of issuing an unscoped adb command.",
+        ),
+        verification=("The fresh Device Portal scan shows one intended authorized target.",),
+        tags=("adb more than one device emulator", "multiple devices", "more than one device"),
+        route="command_deck",
+        evidence="The official adb contract requires an exact target when multiple transports exist.",
+        automation="READ-ONLY RESCAN AVAILABLE • NO AUTOMATIC TARGET SELECTION",
+        source=ADB_SOURCE,
+    ),
+    _fix(
+        "adb-unauthorized",
+        "ADB authorization is pending on the phone",
+        "CONNECTIVITY & ADB",
+        "The USB transport exists, but Android has not accepted this computer's debugging identity.",
+        checks=(
+            "Unlock the phone and keep its screen awake while the cable remains connected.",
+            "Confirm the host entry is unauthorized rather than offline or missing.",
+        ),
+        fix_steps=(
+            "Accept the RSA fingerprint prompt on the phone, then run a fresh read-only Device Portal scan.",
+            "If no prompt appears, revoke stale USB debugging authorizations on the phone, reconnect once, and review the new fingerprint before accepting it.",
+        ),
+        verification=(
+            "Device Portal reports the same phone identity in the authorized device state.",
+        ),
+        tags=("adb unauthorized", "device unauthorized", "rsa prompt", "usb debugging approval"),
+        route="command_deck",
+        evidence="The official adb workflow requires the user to acknowledge the computer's RSA key on the device.",
+        automation="PHONE APPROVAL IS MANUAL • READ-ONLY RESCAN AVAILABLE",
+        source=ADB_SOURCE,
+    ),
+    _fix(
+        "adb-device-offline",
+        "ADB device stays offline after reconnect",
+        "CONNECTIVITY & ADB",
+        "ADB remembers a transport, but that transport is not currently responding to host requests.",
+        checks=(
+            "Unlock the phone and inspect whether its USB connection is repeatedly reconnecting.",
+            "Use one known data cable and a direct USB port before changing host software.",
+        ),
+        fix_steps=(
+            "Reconnect once and perform a fresh read-only scan.",
+            "Use Recovery Bay's bounded host-daemon repair only when the collected evidence identifies the host daemon as the fault.",
+        ),
+        verification=("Consecutive scans keep the same device identity in the authorized state.",),
+        tags=("adb device offline", "adb offline", "device offline after reconnect"),
+        route="recovery_bay",
+        evidence="ADB distinguishes an offline transport from an unauthorized or absent transport.",
+        automation="SAFE RESCAN • HOST REPAIR REQUIRES EXACT REVIEW",
+        source=ADB_SOURCE,
+    ),
+    _fix(
+        "adb-no-device",
+        "ADB cannot find a connected device",
+        "CONNECTIVITY & ADB",
+        "The host has no usable Android debugging transport to identify or inspect.",
+        checks=(
+            "Confirm USB debugging, data mode, a data-capable cable, and an unlocked phone.",
+            "On Linux inspect udev access; on Windows inspect the Android/OEM USB driver.",
+        ),
+        fix_steps=(
+            "Correct the evidenced cable, mode, driver, or host-permission problem, then reconnect once.",
+            "Verify Platform Tools in Forge Arsenal if adb itself is unavailable.",
+        ),
+        verification=("adb and Device Portal independently show the intended phone identity.",),
+        tags=("adb no devices", "no devices attached", "device not found", "adb empty list"),
+        route="command_deck",
+        evidence="A missing transport cannot be safely inferred as a particular phone or failure cause.",
+        automation="HOST TOOL CHECK AND READ-ONLY RESCAN ONLY",
+        source=ADB_SOURCE,
+    ),
+    _fix(
+        "adb-server-version-mismatch",
+        "ADB server and client version mismatch",
+        "CONNECTIVITY & ADB",
+        "Different adb copies are competing, so the client and background server cannot share one protocol version reliably.",
+        checks=(
+            "Inspect Forge Arsenal for the exact active adb path and version.",
+            "Check whether Android Studio, a system package, and a downloaded Platform Tools copy are all on PATH.",
+        ),
+        fix_steps=(
+            "Choose one verified current Platform Tools installation and remove stale PATH precedence.",
+            "Use Recovery Bay's typed ADB host recovery to restart only the host daemon after Guardian review.",
+        ),
+        verification=(
+            "A fresh tool inventory and adb scan use the same verified executable path.",
+        ),
+        tags=("adb server version mismatch", "daemon version mismatch", "client server mismatch"),
+        route="recovery_bay",
+        evidence="ROMVERSE verifies the active executable and has a bounded host-only daemon repair.",
+        automation="TYPED HOST REPAIR • EXACT GUARDIAN REVIEW REQUIRED",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "adb-transport-timeout",
+        "ADB transport timeout or broken connection",
+        "CONNECTIVITY & ADB",
+        "The host saw a transport but a bounded probe did not complete before its deadline.",
+        checks=(
+            "Keep the phone unlocked and inspect its current authorized/offline state.",
+            "Remove USB hubs and try a known data-capable cable and direct port.",
+            "Check for a reconnect loop before repeating any operation.",
+        ),
+        fix_steps=(
+            "Reconnect once and run a fresh read-only scan.",
+            "If the host daemon is the evidenced fault, use the bounded Recovery Bay host repair.",
+        ),
+        verification=(
+            "Several consecutive read-only scans retain the same authorized device identity.",
+        ),
+        tags=("adb timeout", "transport failed", "broken pipe", "device disconnected"),
+        route="recovery_bay",
+        evidence="ROMVERSE treats probe timeouts as failed evidence and never assumes success from elapsed time.",
+        automation="SAFE RESCAN • HOST DAEMON REPAIR REQUIRES REVIEW",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "usb-charge-only",
+        "USB cable connects power but no ADB data",
+        "CONNECTIVITY & ADB",
+        "A charge-only cable, wrong USB mode, damaged port, or host permission can provide power without an adb transport.",
+        checks=(
+            "Confirm the phone exposes USB debugging and a data/file-transfer mode.",
+            "Try a known data cable and a direct motherboard port.",
+            "On Linux inspect udev access; on Windows inspect the OEM/Android USB driver.",
+        ),
+        fix_steps=(
+            "Correct the physical/driver issue, reconnect, unlock, and accept the RSA prompt.",
+        ),
+        verification=("adb devices and Device Portal show the same authorized phone.",),
+        tags=("charge only cable", "usb no data", "adb no device cable"),
+        route="command_deck",
+        evidence="ADB cannot diagnose a transport the operating system never exposes.",
+        automation="MANUAL HOST/USB FIX • READ-ONLY RESCAN AVAILABLE",
+        source=ADB_SOURCE,
+    ),
+    _fix(
+        "linux-udev-permission",
+        "Linux ADB USB permission denied",
+        "TOOLS & HOST",
+        "The host can see the USB device but the current account lacks permission to open it.",
+        checks=(
+            "Confirm the vendor/product USB identity and that adb is not being run as root.",
+            "Inspect the distribution's Android udev rules and current group membership.",
+        ),
+        fix_steps=(
+            "Install or correct the distribution/OEM udev rule, reload rules, then reconnect the phone.",
+            "Keep ROMVERSE under the normal user account so workspace ownership remains consistent.",
+        ),
+        verification=("The normal user can run a read-only adb devices scan without sudo.",),
+        tags=("udev", "insufficient permissions for device", "usb permission denied linux"),
+        route="forge_arsenal",
+        evidence="Host permission is distinct from Android's RSA authorization state.",
+        automation="OPERATING-SYSTEM AUTHORIZATION IS VISIBLE AND MANUAL",
+        source=ADB_SOURCE,
+    ),
+    _fix(
+        "managed-tool-receipt-mismatch",
+        "Managed tool changed after verification",
+        "TOOLS & HOST",
+        "A managed executable no longer matches the content digest in its activation receipt.",
+        checks=(
+            "Preserve the changed tool and receipt for review.",
+            "Confirm no linked binary or unexpected file entered the managed package directory.",
+        ),
+        fix_steps=(
+            "Deactivate the changed tool immediately.",
+            "Use Forge Arsenal to download and validate a fresh approved package; never bless the changed bytes in place.",
+        ),
+        verification=(
+            "A fresh inventory rehashes every required executable and activates only the matching receipt.",
+        ),
+        tags=("tool hash mismatch", "managed receipt invalid", "executable changed"),
+        route="forge_arsenal",
+        evidence="ROMVERSE's managed toolchain is content-addressed and reverified before activation.",
+        automation="SAFE DEACTIVATION • VERIFIED REPROVISIONING ONLY",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "payload-dumper-missing",
+        "payload.bin found but Payload Dumper is missing",
+        "TOOLS & HOST",
+        "The OTA structure is recognized, but no receipt-verified payload extraction tool is active.",
+        checks=("Confirm the protected source really contains one bounded payload.bin.",),
+        fix_steps=(
+            "Choose Resolve partition tools in ROM Studio.",
+            "Let Forge Arsenal select the approved host asset, require its published digest, and validate the archive before activation.",
+        ),
+        verification=(
+            "ROM Studio freshly verifies Payload Dumper and only then re-enters Partition Atlas.",
+        ),
+        tags=("payload dumper missing", "payload.bin tool unavailable", "extract ota payload"),
+        route="forge_arsenal",
+        evidence="ROMVERSE implements a scoped resolver tied to the current OTA workflow.",
+        automation="VERIFIED TOOL RESOLUTION AVAILABLE • NO FIRMWARE CHANGE",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "filesystem-reader-missing",
+        "EXT4 or EROFS filesystem reader is missing",
+        "TOOLS & HOST",
+        "The partition image format is known, but the corresponding receipt-verified reader is not active.",
+        checks=(
+            "Confirm Partition Atlas reports the detected filesystem and exact required tool profile.",
+        ),
+        fix_steps=(
+            "Resolve only the format-scoped filesystem tools through Forge Arsenal, then retry expansion.",
+        ),
+        verification=(
+            "The complete tool inventory passes and Partition Atlas reads the image without changing it.",
+        ),
+        tags=("erofs tool missing", "ext4 reader missing", "filesystem unavailable", "fsck erofs"),
+        route="forge_arsenal",
+        evidence="ROMVERSE resumes only after the required reader is freshly verified.",
+        automation="VERIFIED TOOL RESOLUTION AVAILABLE • IMAGE REMAINS READ-ONLY",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "tool-download-digest-mismatch",
+        "Downloaded tool archive digest mismatch",
+        "TOOLS & HOST",
+        "Downloaded bytes do not match the approved publisher digest, so authenticity and completeness are unconfirmed.",
+        checks=(
+            "Preserve the URL, expected digest, observed digest, and receipt failure without opening the archive.",
+        ),
+        fix_steps=(
+            "Discard the staged candidate and retry only from the approved official source after checking current release metadata.",
+        ),
+        verification=(
+            "The exact archive digest and every extracted executable digest match before activation.",
+        ),
+        tags=("sha256 mismatch download", "archive digest mismatch", "tool verification failed"),
+        route="forge_arsenal",
+        evidence="A mismatched artifact is never activated merely because its filename is expected.",
+        automation="FAIL-CLOSED STAGING CLEANUP • NO EXECUTION",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "firmware-source-changed",
+        "Firmware source changed during import",
+        "FIRMWARE INTAKE",
+        "The selected source identity changed while ROMVERSE was copying or hashing it.",
+        checks=(
+            "Compare the source's device/inode, size, timestamps, and complete digest captured across the import boundary.",
+        ),
+        fix_steps=(
+            "Discard the incomplete staging copy, preserve the original source, and start a new import from stable bytes.",
+        ),
+        verification=(
+            "The protected original's saved SHA-256 re-verifies after atomic publication.",
+        ),
+        tags=("source changed during copy", "firmware hash race", "import source mismatch"),
+        route="rom_studio",
+        evidence="ROMVERSE binds import completion to the same source identity observed before copying.",
+        automation="SAFE STAGING DISCARD • USER RESELECTS THE SOURCE",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "firmware-encrypted-archive",
+        "Encrypted firmware archive cannot be inspected safely",
+        "FIRMWARE INTAKE",
+        "Archive metadata indicates encrypted members, so ROMVERSE cannot prove bounded contents before extraction.",
+        checks=(
+            "Confirm the file came from an authoritative OEM or maintainer source and was not renamed.",
+        ),
+        fix_steps=(
+            "Obtain an unencrypted, hash-published source or inspect it in an isolated manual workflow; do not enter passwords into an unverified extractor path.",
+        ),
+        verification=(
+            "A fresh source passes bounded metadata inspection before any tree is materialized.",
+        ),
+        tags=("encrypted zip", "password protected firmware", "archive encrypted"),
+        route="rom_studio",
+        evidence="ROMVERSE rejects encrypted entries because expanded scope cannot be verified first.",
+        automation="BLOCKED • MANUAL AUTHORITATIVE SOURCE REQUIRED",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "firmware-unsafe-entry",
+        "Firmware archive contains traversal, link, or special entries",
+        "FIRMWARE INTAKE",
+        "An archive member could escape the contained working tree or materialize an unsafe filesystem object.",
+        checks=("Inspect the rejected normalized member name and type without extracting it.",),
+        fix_steps=(
+            "Reject the archive and obtain a clean authoritative copy; never rewrite unsafe paths and continue as if provenance were unchanged.",
+        ),
+        verification=(
+            "Every accepted member remains a regular file or directory beneath private staging.",
+        ),
+        tags=("zip slip", "path traversal", "archive symlink", "special file firmware"),
+        route="rom_studio",
+        evidence="ROMVERSE's bounded extractor rejects traversal, links, and special files before publication.",
+        automation="FAIL-CLOSED • NO EXTRACTION",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "firmware-unsupported-container",
+        "Firmware container is unsupported or ambiguous",
+        "FIRMWARE INTAKE",
+        "The bytes and bounded structure do not establish one supported OTA, factory archive, or raw-image route.",
+        checks=(
+            "Keep the original filename, size, hash, and first structure report.",
+            "Confirm the exact device/build source and whether an outer vendor container is expected.",
+        ),
+        fix_steps=(
+            "Use an authoritative source in a supported format or add a reviewed detector fixture; never guess from the extension.",
+        ),
+        verification=(
+            "Automatic Detection selects one route from bytes and structure with no conflicting finding.",
+        ),
+        tags=("unknown firmware format", "unsupported archive", "ambiguous container"),
+        route="rom_studio",
+        evidence="Format detection is evidence-backed and cannot be overridden by renaming a file.",
+        automation="GUIDANCE ONLY • DETECTOR UPDATE REQUIRES REVIEWED FIXTURES",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "payload-bin-missing",
+        "OTA package has no usable payload.bin",
+        "FIRMWARE INTAKE",
+        "The source was expected to follow an A/B OTA payload route, but the bounded archive inventory did not find one unambiguous payload.bin.",
+        checks=(
+            "Confirm whether the package is a full OTA, incremental OTA, recovery package, or vendor wrapper.",
+        ),
+        fix_steps=(
+            "Return to Automatic Detection or obtain the correct full package; do not fabricate an empty payload or reuse one from another build.",
+        ),
+        verification=(
+            "The protected source report binds exactly one contained payload.bin to the package hash.",
+        ),
+        tags=("payload.bin missing", "no payload bin", "ota payload not found"),
+        route="rom_studio",
+        evidence="AOSP OTA tooling treats package structure and target metadata as part of the update contract.",
+        automation="BLOCKED • CORRECT SOURCE REQUIRED",
+        source=OTA_SOURCE,
+    ),
+    _fix(
+        "sparse-image-conversion",
+        "Android sparse image needs conversion before byte inspection",
+        "FILESYSTEMS & PARTITIONS",
+        "The image uses Android sparse chunks, so its file size is not the raw partition extent and direct filesystem tools may reject it.",
+        checks=("Verify the sparse header and calculated expanded size before allocating space.",),
+        fix_steps=(
+            "Use a receipt-verified sparse converter in private staging, then inspect the raw result without replacing the protected source.",
+        ),
+        verification=(
+            "The raw size and content digest are recorded and the sparse source remains unchanged.",
+        ),
+        tags=("simg2img", "android sparse image", "invalid sparse file format"),
+        route="rom_studio",
+        evidence="AOSP super sizing guidance requires calculations from unsparsed image sizes.",
+        automation="SAFE LOCAL CONVERSION AFTER SPACE PREFLIGHT",
+        source=SUPER_SIZE_SOURCE,
+    ),
+    _fix(
+        "erofs-read-only-image",
+        "EROFS image is read-only by design",
+        "FILESYSTEMS & PARTITIONS",
+        "EROFS is a compressed read-only filesystem; treating it like a writable EXT4 tree is an invalid workflow.",
+        checks=("Confirm the detected filesystem and compressor/pcluster metadata.",),
+        fix_steps=(
+            "Extract into an isolated working tree, apply reviewed changes there, and rebuild a new EROFS image with the source contract preserved.",
+        ),
+        verification=(
+            "Reinspect the rebuilt image, size, compression settings, tree metadata, and AVB descriptors.",
+        ),
+        tags=("erofs read only", "erofs extraction", "cannot mount erofs rw", "mkfs erofs"),
+        route="rom_studio",
+        evidence="AOSP defines EROFS as read-only and documents its Android build/compression contract.",
+        automation="LOCAL EXTRACT/REBUILD ONLY • NEVER MODIFY SOURCE IN PLACE",
+        source=EROFS_SOURCE,
+    ),
+    _fix(
+        "filesystem-image-overflow",
+        "Rebuilt filesystem image exceeds its partition budget",
+        "FILESYSTEMS & PARTITIONS",
+        "The candidate filesystem cannot fit the exact logical partition or dynamic-group allocation.",
+        checks=(
+            "Compare unsparsed image size, filesystem free space, logical partition size, group maximum, and super overhead.",
+        ),
+        fix_steps=(
+            "Reduce reviewed content or rebuild with contract-compatible settings; never truncate an image or silently enlarge a partition.",
+        ),
+        verification=(
+            "The complete candidate fits with the required metadata overhead and all unchanged partitions retain their source extents.",
+        ),
+        tags=(
+            "image too large",
+            "partition size exceeded",
+            "not enough space super",
+            "lpmake overflow",
+        ),
+        route="rom_studio",
+        evidence="Dynamic partitions share super capacity; every group and physical bound must remain valid.",
+        automation="BLOCKED UNTIL A NEW REVIEWED BUILD PLAN EXISTS",
+        source=SUPER_SIZE_SOURCE,
+    ),
+    _fix(
+        "dynamic-super-layout-mismatch",
+        "Dynamic super metadata or group layout mismatch",
+        "FILESYSTEMS & PARTITIONS",
+        "Candidate metadata slots, groups, A/B attributes, or logical partition extents differ from the protected source contract.",
+        checks=(
+            "Compare LP Dump results for source and candidate, including metadata slots, group maxima, attributes, and extents.",
+        ),
+        fix_steps=(
+            "Regenerate lpmake inputs from the exact source layout; do not reuse another model/build's command line.",
+        ),
+        verification=(
+            "LP Dump and LP Unpack reproduce every expected logical partition and unchanged bytes match their originals.",
+        ),
+        tags=(
+            "lpmake failed",
+            "super metadata mismatch",
+            "dynamic partition group mismatch",
+            "lp metadata",
+        ),
+        route="rom_studio",
+        evidence="Dynamic partition metadata is device/build specific and controls shared super allocation.",
+        automation="LOCAL REBUILD GUIDANCE • NO FLASH AUTHORITY",
+        source=DYNAMIC_SOURCE,
+    ),
+    _fix(
+        "logical-partition-byte-mismatch",
+        "Unchanged logical partition differs after super rebuild",
+        "FILESYSTEMS & PARTITIONS",
+        "A partition that was outside the approved change scope no longer matches its protected source bytes.",
+        checks=(
+            "Unpack both source and candidate super images and hash every logical partition independently.",
+        ),
+        fix_steps=(
+            "Reject the candidate, rebuild from the known-good source layout, and include only the intended changed image.",
+        ),
+        verification=(
+            "Every out-of-scope partition is byte-identical and the intended partition has a reviewed provenance delta.",
+        ),
+        tags=("lp unpack mismatch", "partition hash changed", "unchanged image mismatch"),
+        route="rom_studio",
+        evidence="This comparison was required by the field-verified HyperOS reference workflow.",
+        automation="AUTOMATIC REJECTION IS SAFE • REBUILD REQUIRES REVIEW",
+        source=FIELD_SOURCE,
+    ),
+    _fix(
+        "avb-footer-mismatch",
+        "AVB footer, salt, root digest, or descriptor mismatch",
+        "BOOT & SECURITY",
+        "The rebuilt image no longer matches the AVB metadata contract bound to the protected source and candidate plan.",
+        checks=(
+            "Compare algorithm, key identity, salt, rollback index, hashtree root digest, footer size, and chained descriptors.",
+        ),
+        fix_steps=(
+            "Stop readiness, restore the correct source metadata inputs, and rebuild the descriptor chain; never disable verification as a generic fix.",
+        ),
+        verification=(
+            "Fresh AVB inspection deterministically matches every expected descriptor and candidate image digest.",
+        ),
+        tags=("avb digest mismatch", "hashtree error", "avb footer", "root digest mismatch"),
+        route="rom_studio",
+        evidence="AVB defines signed partition metadata and rollback protection as part of the boot chain.",
+        automation="FAIL-CLOSED VERIFICATION • NO AUTOMATIC BYPASS",
+        source=AVB_SOURCE,
+    ),
+    _fix(
+        "vbmeta-chain-mismatch",
+        "vbmeta descriptor chain does not match rebuilt partitions",
+        "BOOT & SECURITY",
+        "A top-level or chained vbmeta image describes different partition bytes, keys, or rollback metadata than the candidate contains.",
+        checks=(
+            "Inspect all descriptors recursively and bind each to the corresponding exact image digest.",
+        ),
+        fix_steps=(
+            "Regenerate only the approved subordinate metadata using the exact device/build policy; preserve signed top-level metadata unless a verified contract explicitly says otherwise.",
+        ),
+        verification=(
+            "The full descriptor graph resolves without missing, duplicate, or stale partition bindings.",
+        ),
+        tags=("vbmeta mismatch", "descriptor chain", "avbtool verify image failed"),
+        route="rom_studio",
+        evidence="Historical topology from one build is reference-only and cannot authorize another build.",
+        automation="GUIDANCE AND VERIFICATION ONLY • NO SIGNING/FLASH AUTHORITY",
+        source=AVB_SOURCE,
+    ),
+    _fix(
+        "verified-boot-red",
+        "Verified Boot red state or dm-verity corruption",
+        "BOOT & SECURITY",
+        "The boot chain found no valid OS or detected verified data that does not match its expected cryptographic metadata.",
+        checks=(
+            "Preserve the exact boot warning, slot, build identity, and most recent signed operation receipt.",
+        ),
+        fix_steps=(
+            "Stop repeated boots and use the exact OEM/device recovery route backed by a known-good image and tested rollback plan.",
+        ),
+        verification=(
+            "Recovery evidence and a fresh boot observation confirm a consistent exact build; never relock as a verification shortcut.",
+        ),
+        tags=("verified boot red", "dm verity corruption", "no valid os", "verity error"),
+        route="recovery_bay",
+        evidence="AOSP documents red boot states for corruption or no valid OS and requires recovery.",
+        automation="DEVICE RECOVERY REQUIRES EXACT GUARDIAN PLAN AND APPROVAL",
+        source=BOOT_FLOW_SOURCE,
+    ),
+    _fix(
+        "selinux-neverallow",
+        "SELinux neverallow or policy compilation failure",
+        "BUILD & RECIPES",
+        "A policy rule conflicts with an enforced platform security invariant or the combined policy cannot compile.",
+        checks=(
+            "Read the first concrete compiler violation and identify the source/vendor policy fragment that introduced it.",
+        ),
+        fix_steps=(
+            "Correct the domain/type design and least-privilege rule; do not delete or bypass upstream neverallow rules.",
+        ),
+        verification=(
+            "The full combined policy compiles and the intended service works under enforcing mode in a controlled test.",
+        ),
+        tags=(
+            "neverallow check failed",
+            "sepolicy compile error",
+            "avc denied build",
+            "selinux policy",
+        ),
+        route="rom_studio",
+        evidence="AOSP compiles merged policy and treats neverallow rules as security invariants.",
+        automation="DIAGNOSIS ONLY • SECURITY POLICY CHANGES REQUIRE HUMAN REVIEW",
+        source=SELINUX_SOURCE,
+    ),
+    _fix(
+        "file-contexts-missing",
+        "Wrong ownership, mode, or SELinux file context after rebuild",
+        "BUILD & RECIPES",
+        "Materialized files no longer carry the metadata Android services expect, which can cause access denials or userspace boot loops.",
+        checks=(
+            "Compare source and candidate path ownership, modes, capabilities, xattrs, and file_contexts mapping.",
+        ),
+        fix_steps=(
+            "Restore metadata from the protected baseline or an explicit reviewed recipe; never solve broad denials by making the device permissive.",
+        ),
+        verification=(
+            "Rebuilt metadata inventory matches the plan and enforcing-mode boot logs show no new relevant denial.",
+        ),
+        tags=(
+            "wrong selinux context",
+            "file_contexts",
+            "permission denied after rebuild",
+            "boot loop contexts",
+        ),
+        route="rom_studio",
+        evidence="The field-verified ROM workflow preserved ownership, modes, and SELinux context as build evidence.",
+        automation="LOCAL METADATA COMPARISON SAFE • CHANGES REQUIRE RECIPE REVIEW",
+        source=FIELD_SOURCE,
+    ),
+    _fix(
+        "aosp-wrong-jdk",
+        "Android build uses the wrong Java version",
+        "BUILD & RECIPES",
+        "The selected platform branch expects a different JDK than the one currently first on PATH.",
+        checks=(
+            "Capture the branch/API target, reported required Java version, java -version output, and active PATH.",
+        ),
+        fix_steps=(
+            "Install/select the branch-compatible JDK and restart the build environment; do not patch version checks blindly.",
+        ),
+        verification=(
+            "A clean environment reports the expected JDK and the build advances beyond toolchain validation.",
+        ),
+        tags=("wrong java version", "jdk mismatch", "javac version", "android build error"),
+        route="forge_arsenal",
+        evidence="AOSP's build guide identifies incompatible JDK selection as a known build failure.",
+        automation="HOST TOOLCHAIN SELECTION MAY BE ASSISTED • BUILD RETRY IS EXPLICIT",
+        source=BUILD_SOURCE,
+    ),
+    _fix(
+        "soong-ninja-first-error",
+        "Soong or Ninja build failure: diagnose the first real error",
+        "BUILD & RECIPES",
+        "Parallel build output often contains many downstream failures after one earlier compiler, generator, dependency, or space error.",
+        checks=(
+            "Preserve the complete log and locate the earliest concrete failed command, not only the final ninja summary.",
+        ),
+        fix_steps=(
+            "Correct one evidenced root cause, keep the same target, and rerun the smallest affected module before a full rebuild.",
+        ),
+        verification=(
+            "The original first error disappears and no unrelated source or target inputs changed.",
+        ),
+        tags=("ninja failed", "soong error", "build stopped subcommand failed", "m failed"),
+        route="rom_studio",
+        evidence="AOSP provides module-scoped builds and a parse-only target to separate configuration from compilation.",
+        automation="LOG RANKING SAFE • SOURCE CHANGES REQUIRE REVIEW",
+        source=BUILD_SOURCE,
+    ),
+    _fix(
+        "recipe-target-changed",
+        "Recipe target changed after preview",
+        "BUILD & RECIPES",
+        "A target's identity or content no longer matches the exact file reviewed in the Recipe plan.",
+        checks=("Compare project, relative path, file type, source digest, and current digest.",),
+        fix_steps=(
+            "Cancel the stale execution, inspect the new content, and generate a fresh preview and approval.",
+        ),
+        verification=(
+            "The new immutable preview binds every target and conflict to the current working tree.",
+        ),
+        tags=("recipe stale", "target changed", "recipe digest mismatch", "preview mismatch"),
+        route="rom_studio",
+        evidence="ROMVERSE revalidates recipe identities immediately before applying a change.",
+        automation="AUTOMATIC CANCELLATION • NEVER AUTO-APPROVE THE NEW TARGET",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "recipe-overlap-conflict",
+        "Recipe targets overlap or conflict",
+        "BUILD & RECIPES",
+        "Two steps address the same path or a parent/child scope in an order that could hide the resulting change.",
+        checks=(
+            "Review normalized targets, operation order, and each step's expected source digest.",
+        ),
+        fix_steps=(
+            "Split the intent into smaller recipes or explicitly reorder and regenerate the preview; never rely on incidental filesystem order.",
+        ),
+        verification=(
+            "The new preview has one unambiguous owner for every target and rollback entry.",
+        ),
+        tags=("recipe conflict", "overlapping targets", "duplicate recipe path"),
+        route="rom_studio",
+        evidence="ROMVERSE detects overlaps before execution and keeps protected originals out of scope.",
+        automation="CONFLICT DETECTION SAFE • RESOLUTION REQUIRES USER INTENT",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "apk-invalid",
+        "APK install error: INSTALL_FAILED_INVALID_APK",
+        "APPS & PACKAGES",
+        "Android Package Manager rejected the package as invalid rather than accepting an install session.",
+        checks=(
+            "Re-run bounded APK structure, manifest, signer, and ZIP integrity inspection on the unchanged file.",
+        ),
+        fix_steps=(
+            "Obtain a complete correctly signed APK from the authoritative publisher; do not repair or resign unknown bytes automatically.",
+        ),
+        verification=(
+            "App Launchpad produces a fresh inspection receipt for the exact replacement hash before any install review.",
+        ),
+        tags=("install failed invalid apk", "INSTALL_FAILED_INVALID_APK", "parse failed not apk"),
+        route="app_launchpad",
+        evidence="PackageManager defines invalid-package failures separately from transport failures.",
+        automation="INSPECTION ONLY • REPLACEMENT AND INSTALL REQUIRE USER REVIEW",
+        source=PACKAGE_SOURCE,
+    ),
+    _fix(
+        "apk-signature-conflict",
+        "APK update error: INSTALL_FAILED_UPDATE_INCOMPATIBLE",
+        "APPS & PACKAGES",
+        "The installed package and candidate update do not share the required signing identity or update lineage.",
+        checks=(
+            "Compare package name, installed signer evidence when available, candidate signer, version, and source.",
+        ),
+        fix_steps=(
+            "Use an update signed by the same trusted publisher; do not silently uninstall the existing app because that may delete its data.",
+        ),
+        verification=(
+            "The replacement's signer/update lineage is compatible before a new Guardian install plan is created.",
+        ),
+        tags=(
+            "INSTALL_FAILED_UPDATE_INCOMPATIBLE",
+            "signatures do not match",
+            "apk signer mismatch",
+        ),
+        route="app_launchpad",
+        evidence="Android reports update signing conflicts as an installation conflict.",
+        automation="NO AUTOMATIC UNINSTALL • EXACT APK INSTALL REVIEW REQUIRED",
+        source=PACKAGE_SOURCE,
+    ),
+    _fix(
+        "apk-insufficient-storage",
+        "APK install error: INSTALL_FAILED_INSUFFICIENT_STORAGE",
+        "APPS & PACKAGES",
+        "Package Manager could not allocate enough device storage for the install.",
+        checks=(
+            "Inspect current /data usage and package size; do not infer available space from host storage.",
+        ),
+        fix_steps=(
+            "Free user-approved device space outside ROMVERSE, then create a fresh install plan for the unchanged APK.",
+        ),
+        verification=("A fresh read-only storage probe shows sufficient headroom before retry.",),
+        tags=(
+            "INSTALL_FAILED_INSUFFICIENT_STORAGE",
+            "apk no space",
+            "insufficient storage install",
+        ),
+        route="quantum_optimizer",
+        evidence="PackageManager classifies this as a storage failure.",
+        automation="DIAGNOSIS ONLY • ROMVERSE DOES NOT DELETE PHONE DATA",
+        source=PACKAGE_SOURCE,
+    ),
+    _fix(
+        "apk-abi-incompatible",
+        "APK install error: INSTALL_FAILED_NO_MATCHING_ABIS",
+        "APPS & PACKAGES",
+        "The package's native libraries do not support the device's reported CPU ABI set.",
+        checks=(
+            "Compare APK lib/ directories and splits with the device's read-only ABI evidence.",
+        ),
+        fix_steps=(
+            "Obtain the correct architecture or universal package from the same trusted publisher.",
+        ),
+        verification=(
+            "App Launchpad inspection confirms at least one compatible ABI before review.",
+        ),
+        tags=("INSTALL_FAILED_NO_MATCHING_ABIS", "CPU_ABI_INCOMPATIBLE", "apk abi mismatch"),
+        route="app_launchpad",
+        evidence="PackageManager defines incompatible native-code and no-matching-ABI failures.",
+        automation="READ-ONLY COMPATIBILITY CHECK • NO BINARY REPACKING",
+        source=PACKAGE_SOURCE,
+    ),
+    _fix(
+        "apk-version-downgrade",
+        "APK install error: INSTALL_FAILED_VERSION_DOWNGRADE",
+        "APPS & PACKAGES",
+        "The candidate version code is older than the installed package and Android blocked the downgrade.",
+        checks=(
+            "Compare installed/candidate versions, signer, device policy, and why a downgrade was requested.",
+        ),
+        fix_steps=(
+            "Prefer a same-signer newer build; a deliberate downgrade needs a separate explicit policy and data-risk review that ROMVERSE v0.1 does not provide.",
+        ),
+        verification=(
+            "A new candidate passes inspection with a non-downgrade version relationship.",
+        ),
+        tags=("INSTALL_FAILED_VERSION_DOWNGRADE", "apk downgrade", "older version code"),
+        route="app_launchpad",
+        evidence="PackageManager explicitly rejects version downgrades.",
+        automation="BLOCKED • NO DOWNGRADE BYPASS",
+        source=PACKAGE_SOURCE,
+    ),
+    _fix(
+        "apk-missing-split",
+        "APK install error: INSTALL_FAILED_MISSING_SPLIT",
+        "APPS & PACKAGES",
+        "A split package requires one or more companion splits that were not provided.",
+        checks=(
+            "Inventory base APK, configuration splits, feature splits, package names, versions, and signer consistency.",
+        ),
+        fix_steps=(
+            "Obtain the complete matching split set or an official universal APK; never combine splits from different releases.",
+        ),
+        verification=(
+            "The complete set has one package/version/signer identity and every declared required split.",
+        ),
+        tags=("INSTALL_FAILED_MISSING_SPLIT", "missing split apk", "split install failed"),
+        route="app_launchpad",
+        evidence="PackageManager defines missing required split as a distinct install failure.",
+        automation="INSPECTION ONLY • MULTI-APK INSTALL NOT AUTHORIZED IN V0.1",
+        source=PACKAGE_SOURCE,
+    ),
+    _fix(
+        "apk-user-restricted",
+        "APK install error: INSTALL_FAILED_USER_RESTRICTED",
+        "APPS & PACKAGES",
+        "Android user, work-profile, parental, enterprise, or installer policy denied installation.",
+        checks=(
+            "Read the device-visible policy prompt and identify the active user/profile without attempting a bypass.",
+        ),
+        fix_steps=(
+            "Ask the device owner or administrator to change the legitimate policy, or stop the install.",
+        ),
+        verification=(
+            "Android's own confirmation permits the install for the intended user/profile.",
+        ),
+        tags=(
+            "INSTALL_FAILED_USER_RESTRICTED",
+            "user restricted install",
+            "device policy blocked apk",
+        ),
+        route="app_launchpad",
+        evidence="PackageManager exposes user restriction as an explicit failure.",
+        automation="BLOCKED • ROMVERSE NEVER BYPASSES DEVICE POLICY",
+        source=PACKAGE_SOURCE,
+    ),
+    _fix(
+        "apk-test-only",
+        "APK install error: INSTALL_FAILED_TEST_ONLY",
+        "APPS & PACKAGES",
+        "The manifest marks the APK test-only and a normal production install rejected it.",
+        checks=(
+            "Confirm the package source, signer, build type, and whether a test build is genuinely intended.",
+        ),
+        fix_steps=(
+            "Use a publisher-provided non-test build; ROMVERSE does not silently add adb install flags to weaken the reviewed plan.",
+        ),
+        verification=(
+            "The replacement manifest and exact install plan no longer require a test-only exception.",
+        ),
+        tags=("INSTALL_FAILED_TEST_ONLY", "testOnly apk", "adb install -t"),
+        route="app_launchpad",
+        evidence="Official adb documentation and PackageManager identify test-only installation behavior.",
+        automation="BLOCKED • INSTALL FLAGS CANNOT CHANGE AFTER APPROVAL",
+        source=ADB_SOURCE,
+    ),
+    _fix(
+        "boot-loop-first-triage",
+        "Boot loop after a ROM change: first safe triage",
+        "RECOVERY & GUARDIAN",
+        "Repeated boots after a change can come from framework, permissions, SELinux, AVB, filesystem, slot, kernel/vendor, or data compatibility failures; a moving animation is not proof of progress.",
+        checks=(
+            "Record the exact change set, active slot, elapsed boot pattern, and last known-good rollback artifact.",
+            "Preserve available recovery/boot logs and do not stack additional changes.",
+        ),
+        fix_steps=(
+            "Return to the immutable known-good baseline or exact tested rollback route, then reintroduce one reviewed change set at a time.",
+        ),
+        verification=(
+            "Require stable boot evidence plus core service checks; never relock merely because one boot completes.",
+        ),
+        tags=("bootloop", "boot loop", "stuck boot animation", "userspace reboot"),
+        route="recovery_bay",
+        evidence="The field-verified workflow separated boot stability from complete first-boot verification.",
+        automation="RECOVERY GUIDANCE ONLY • DEVICE CHANGE REQUIRES EXACT APPROVAL",
+        source=FIELD_SOURCE,
+    ),
+    _fix(
+        "active-slot-mismatch",
+        "Active A/B slot differs from the reviewed target",
+        "RECOVERY & GUARDIAN",
+        "The phone's current slot no longer matches the slot identity captured in the plan or recovery evidence.",
+        checks=(
+            "Refresh read-only slot, boot-control, build, and rollback evidence for the exact device.",
+        ),
+        fix_steps=(
+            "Cancel the stale plan and build a new slot-aware assessment; never assume _a or _b from a filename.",
+        ),
+        verification=(
+            "The newly reviewed plan and fresh evidence bind the same exact active/target slot.",
+        ),
+        tags=(
+            "current slot mismatch",
+            "slot a b",
+            "active slot changed",
+            "fastboot getvar current-slot",
+        ),
+        route="recovery_bay",
+        evidence="Slot identity is part of Device DNA and every high-consequence readiness decision.",
+        automation="AUTOMATIC CANCELLATION • NO AUTOMATIC SLOT CHANGE",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "guardian-approval-expired",
+        "Guardian approval expired before execution",
+        "RECOVERY & GUARDIAN",
+        "The short-lived approval is no longer valid, even if the visible plan appears unchanged.",
+        checks=("Revalidate the exact plan, target, evidence, tool identity, and current time.",),
+        fix_steps=("Request a fresh review and approval; never extend or rewrite the old record.",),
+        verification=(
+            "The gateway consumes one current approval bound to the unchanged exact operation.",
+        ),
+        tags=("approval expired", "guardian token expired", "stale approval"),
+        route="guardian_core",
+        evidence="ROMVERSE approvals expire and are reverified immediately before use.",
+        automation="BLOCKED UNTIL NEW EXPLICIT APPROVAL",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "guardian-target-changed",
+        "Approved target or plan changed before execution",
+        "RECOVERY & GUARDIAN",
+        "The current operation, file hash, device identity, arguments, or evidence no longer matches what the user approved.",
+        checks=(
+            "Compare the complete current manifest with the approval-bound digest and target.",
+        ),
+        fix_steps=(
+            "Reject the stale approval, show the change, and request a new review only if the new intent is legitimate.",
+        ),
+        verification=(
+            "The gateway receives a byte-for-byte matching current plan and one unconsumed approval.",
+        ),
+        tags=("plan changed after approval", "target mismatch", "approval digest mismatch"),
+        route="guardian_core",
+        evidence="Guardian binds approval to exact purpose, target, arguments, effects, and evidence.",
+        automation="AUTOMATIC REJECTION • NEVER AUTO-APPROVE CHANGES",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "backup-verification-failed",
+        "Backup completed but verification evidence failed",
+        "RECOVERY & GUARDIAN",
+        "Copied bytes or folders cannot be called a verified backup because integrity, scope, or receipt persistence did not complete.",
+        checks=(
+            "Preserve the destination, measured bytes, child approval, and exact failed verification stage.",
+        ),
+        fix_steps=(
+            "Do not overwrite the candidate; correct the host/storage issue and run a fresh bounded plan to a distinct destination.",
+        ),
+        verification=(
+            "Every planned item and digest verifies and the private receipt reloads successfully.",
+        ),
+        tags=(
+            "backup verification failed",
+            "receipt save failed",
+            "incomplete backup",
+            "adb pull failed",
+        ),
+        route="time_machine",
+        evidence="ROMVERSE separates copy completion from receipt-backed verified completion.",
+        automation="FAILED EVIDENCE STATE • NO AUTOMATIC RESTORE",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "workspace-no-space",
+        "Workspace is out of space",
+        "TOOLS & HOST",
+        "The Data-drive workspace cannot safely hold staging, expanded images, rollback material, and final output at the same time.",
+        checks=(
+            "Measure free bytes against the operation's bounded source, expansion, staging, rollback, and output budget.",
+        ),
+        fix_steps=(
+            "Free or select verified host storage without deleting protected originals, then recreate the plan so its space evidence is current.",
+        ),
+        verification=("Fresh preflight shows the required safety margin before writing starts.",),
+        tags=("no space left on device", "ENOSPC", "workspace full", "disk full"),
+        route="rom_studio",
+        evidence="ROMVERSE performs free-space preflight before materializing large firmware trees.",
+        automation="BLOCKED • USER CONTROLS HOST FILE DELETION",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "unknown-is-not-healthy",
+        "Unknown diagnostic evidence is not a healthy result",
+        "DIAGNOSTICS & HEALTH",
+        "A missing, failed, stale, or unsupported probe cannot contribute a green health claim or a zero-valued metric.",
+        checks=(
+            "Inspect evidence coverage, probe errors, freshness, and which facts were actually measured.",
+        ),
+        fix_steps=(
+            "Restore the read-only evidence path and scan again; keep the status Unconfirmed until genuine data arrives.",
+        ),
+        verification=(
+            "Every displayed health claim links to present accepted evidence and missing metrics remain dashes.",
+        ),
+        tags=("unknown health", "unconfirmed evidence", "missing diagnostic", "false green"),
+        route="quantum_optimizer",
+        evidence="ROMVERSE's safety vocabulary never maps absence of evidence to healthy.",
+        automation="READ-ONLY RESCAN AVAILABLE • NO FABRICATED DEFAULT",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "diagnostic-history-tampered",
+        "Saved diagnostic snapshot failed integrity checks",
+        "DIAGNOSTICS & HEALTH",
+        "A snapshot is malformed, linked, oversized, stale, or no longer matches its content fingerprint.",
+        checks=(
+            "Preserve the rejected file and review the visible reason without loading it into trends.",
+        ),
+        fix_steps=(
+            "Run a fresh read-only scan and explicitly save a new snapshot; never silently rewrite the damaged history.",
+        ),
+        verification=(
+            "The new snapshot reloads with its exact pseudonymous device binding and digest.",
+        ),
+        tags=("diagnostic snapshot tampered", "health history corrupt", "snapshot digest mismatch"),
+        route="quantum_optimizer",
+        evidence="Health Timeline excludes unverified records and explains every rejection.",
+        automation="SAFE EXCLUSION • USER-REQUESTED FRESH SNAPSHOT",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "cache-preview-changed",
+        "Cache file changed after cleanup preview",
+        "DIAGNOSTICS & HEALTH",
+        "A temporary file no longer matches the identity reviewed for bounded cleanup.",
+        checks=(
+            "Compare path containment, regular-file type, age, size, and modification identity.",
+        ),
+        fix_steps=("Preserve the changed file and clean only unchanged previewed candidates.",),
+        verification=(
+            "The cleanup receipt reports removed and preserved counts and reloads with a valid digest.",
+        ),
+        tags=("cache changed after preview", "cleanup skipped changed file", "safe cleanup"),
+        route="quantum_optimizer",
+        evidence="ROMVERSE's cache optimizer revalidates every candidate immediately before deletion.",
+        automation="BOUNDED HOST CLEANUP AFTER EXPLICIT CONFIRMATION",
+        source=ROMVERSE_SOURCE,
+    ),
+)
+
+
+def _key_for(title: str) -> str:
+    key = re.sub(r"[^a-z0-9]+", "-", title.casefold()).strip("-")[:72]
+    return f"guide-{key}"
+
+
+def _legacy_route(title: str) -> str:
+    lowered = title.casefold()
+    if any(token in lowered for token in ("adb", "usb", "device engine", "windows setup")):
+        return "command_deck"
+    if any(token in lowered for token in ("time machine", "backup", "recovery checklist")):
+        return "time_machine"
+    if "app launchpad" in lowered:
+        return "app_launchpad"
+    if any(
+        token in lowered
+        for token in (
+            "rom studio",
+            "firmware source",
+            "recipe",
+            "rom inspection",
+            "build plan",
+            "ascension",
+            "hyperos",
+            "dynamic partition",
+            "avb",
+            "android auto",
+            "first-boot",
+            "debloat",
+            "rom dna",
+        )
+    ):
+        return "rom_studio"
+    if any(token in lowered for token in ("diagnostic", "battery", "storage", "performance")):
+        return "quantum_optimizer"
+    if "recovery" in lowered or "scan fails" in lowered:
+        return "recovery_bay"
+    if "device atlas" in lowered or "another phone" in lowered:
+        return "device_atlas"
+    if "guardian" in lowered or "approval" in lowered:
+        return "guardian_core"
+    if "logs" in lowered or "history" in lowered:
+        return "activity_center"
+    if "companion" in lowered or "galaxy" in lowered:
+        return "companion_link"
+    return "archives"
+
+
+def _legacy_category(title: str, route: str) -> str:
+    lowered = title.casefold()
+    if route == "command_deck" or "adb" in lowered or "usb" in lowered:
+        return "CONNECTIVITY & ADB"
+    if route == "app_launchpad":
+        return "APPS & PACKAGES"
+    if route in {"guardian_core", "recovery_bay", "time_machine"}:
+        return "RECOVERY & GUARDIAN"
+    if route == "quantum_optimizer":
+        return "DIAGNOSTICS & HEALTH"
+    if any(token in lowered for token in ("avb", "boot", "root")):
+        return "BOOT & SECURITY"
+    if any(token in lowered for token in ("partition", "filesystem")):
+        return "FILESYSTEMS & PARTITIONS"
+    if route == "rom_studio":
+        return "BUILD & RECIPES"
+    return "ROMVERSE WORKFLOWS"
+
+
+def build_catalog(legacy_guides: tuple[tuple[str, str], ...]) -> tuple[ArchiveArticle, ...]:
+    """Upgrade established guides and append structured, evidence-labelled known fixes."""
+
+    established = []
+    for title, body in legacy_guides:
+        route = _legacy_route(title)
+        established.append(
+            ArchiveArticle(
+                _key_for(title),
+                title,
+                _legacy_category(title, route),
+                body,
+                (),
+                (),
+                (),
+                (title,),
+                route,
+                "Established ROMVERSE guidance; use exact live evidence before applying it.",
+                "GUIDANCE ONLY UNLESS A TYPED ROMVERSE WORKFLOW STATES OTHERWISE",
+                FIELD_SOURCE if "Verified HyperOS" in title else ROMVERSE_SOURCE,
+            )
+        )
+    catalog = tuple(established) + KNOWN_FIXES
+    validate_catalog(catalog)
+    return catalog
+
+
+def validate_catalog(catalog: tuple[ArchiveArticle, ...]) -> None:
+    if not catalog or len(catalog) > 256:
+        raise ValueError("Archives catalog size is invalid")
+    keys: set[str] = set()
+    titles: set[str] = set()
+    for article in catalog:
+        if not re.fullmatch(r"[a-z0-9][a-z0-9-]{2,79}", article.key):
+            raise ValueError(f"Archives key is invalid: {article.key}")
+        if article.key in keys or article.title.casefold() in titles:
+            raise ValueError(f"Archives article identity is duplicated: {article.title}")
+        keys.add(article.key)
+        titles.add(article.title.casefold())
+        if article.category not in CATEGORIES or article.route not in CANONICAL_ROUTES:
+            raise ValueError(f"Archives article classification is invalid: {article.title}")
+        bounded = (
+            (article.title, 140),
+            (article.meaning, 1_600),
+            (article.evidence, 600),
+            (article.automation, 300),
+            (article.source.label, 180),
+            (article.source.authority, 100),
+        )
+        if any(not value.strip() or len(value) > limit for value, limit in bounded):
+            raise ValueError(f"Archives article text is invalid: {article.title}")
+        for collection in (article.checks, article.fix_steps, article.verification, article.tags):
+            if len(collection) > 16 or any(
+                not item.strip() or len(item) > 500 for item in collection
+            ):
+                raise ValueError(f"Archives article collection is invalid: {article.title}")
+        if article.source.url:
+            parsed = urlsplit(article.source.url)
+            if (
+                len(article.source.url) > 500
+                or parsed.scheme != "https"
+                or not parsed.hostname
+                or parsed.username
+                or parsed.password
+            ):
+                raise ValueError(f"Archives source URL is invalid: {article.title}")
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", article.source.reviewed_on):
+            raise ValueError(f"Archives source review date is invalid: {article.title}")
+
+
+def _normalized(value: str) -> str:
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", value.casefold()).split())
+
+
+SEARCH_STOP_WORDS = frozenset(
+    {
+        "a",
+        "an",
+        "and",
+        "for",
+        "in",
+        "is",
+        "not",
+        "of",
+        "on",
+        "or",
+        "real",
+        "romverse",
+        "the",
+        "to",
+        "topic",
+        "with",
+    }
+)
+
+
+def search_catalog(
+    catalog: tuple[ArchiveArticle, ...],
+    query: str,
+    category: str = ALL_CATEGORIES,
+    *,
+    limit: int = 100,
+) -> tuple[ArchiveMatch, ...]:
+    """Rank a bounded local query without network access or execution authority."""
+
+    bounded_limit = max(1, min(limit, 100))
+    selected = (
+        catalog
+        if category == ALL_CATEGORIES
+        else tuple(article for article in catalog if article.category == category)
+    )
+    normalized = _normalized(query[:160])
+    if not normalized:
+        return tuple(ArchiveMatch(article, 0) for article in selected[:bounded_limit])
+    all_tokens = tuple(dict.fromkeys(normalized.split()))[:16]
+    query_tokens = tuple(token for token in all_tokens if token not in SEARCH_STOP_WORDS)
+    if not query_tokens:
+        query_tokens = all_tokens
+    exact: list[ArchiveMatch] = []
+    partial: list[ArchiveMatch] = []
+    for index, article in enumerate(selected):
+        title = _normalized(article.title)
+        tags = _normalized(" ".join(article.tags))
+        document = _normalized(article.search_document)
+        if normalized == title:
+            score = 1_200
+        elif normalized in title:
+            score = 1_000
+        elif normalized in tags:
+            score = 900
+        elif normalized in document:
+            score = 700
+        else:
+            hits = sum(token in document for token in query_tokens)
+            required_hits = 1 if len(query_tokens) == 1 else max(2, (len(query_tokens) + 1) // 2)
+            if hits < required_hits:
+                continue
+            score = hits * 90
+            if hits == len(query_tokens):
+                score += 260
+            score += sum(token in title for token in query_tokens) * 70
+        match = ArchiveMatch(article, score * 1_000 - index)
+        (exact if normalized in document else partial).append(match)
+    matches = exact or partial
+    matches.sort(key=lambda item: (-item.score, item.article.title.casefold()))
+    return tuple(matches[:bounded_limit])
+
+
+def catalog_metrics(catalog: tuple[ArchiveArticle, ...]) -> dict[str, int]:
+    return {
+        "guides": len(catalog),
+        "categories": len({article.category for article in catalog}),
+        "official_sources": sum(bool(article.source.url) for article in catalog),
+        "known_fixes": len(KNOWN_FIXES),
+    }

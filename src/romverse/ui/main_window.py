@@ -5067,8 +5067,20 @@ class MainWindow(QMainWindow):
     @Slot(str)
     def _handle_dashboard_action(self, action: str) -> None:
         if action == "Continue Genesis":
-            self._navigate_route("rom_studio")
-            self.rom_studio._open_guided_setup()
+            if self._navigate_route("rom_studio"):
+                self.rom_studio.open_dashboard_intent("Build ROM")
+            return
+        if action in {"Build ROM", "Pre-Build Simulation", "Recipes"}:
+            if self._navigate_route("rom_studio") and not self.rom_studio.open_dashboard_intent(
+                action
+            ):
+                self.notification_center.notify(
+                    f"command-deck.handoff.{action.casefold().replace(' ', '-')}",
+                    "ROM Studio handoff needs attention",
+                    "ROMVERSE opened ROM Studio but could not preserve the requested workflow. "
+                    "No build or phone action started.",
+                    NotificationKind.ATTENTION,
+                )
             return
         if action == "Theme":
             self._show_theme_menu()
@@ -5087,10 +5099,7 @@ class MainWindow(QMainWindow):
             self._navigate_route("recovery_bay")
             return
         targets = {
-            "Build ROM": "rom_studio",
             "Device DNA": "device_atlas",
-            "Pre-Build Simulation": "rom_studio",
-            "Recipes": "rom_studio",
             "Health Review": "quantum_optimizer",
             "Guardian": "guardian_core",
             "Rescue & Backup": "time_machine",

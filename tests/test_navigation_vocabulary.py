@@ -188,7 +188,7 @@ def test_about_recalculates_real_workspace_evidence_and_returns_from_its_exact_g
             f"{len(registry.packs)} DEVICE PACKS  •  1 OFFICIAL IDS"
         )
         assert window.about_page.evidence_values["knowledge"].text() == (
-            "118 VERIFIED GUIDES  •  68 KNOWN FIXES"
+                "119 VERIFIED GUIDES  •  69 KNOWN FIXES"
         )
         ready_tools = sum(status.available for status in window.toolchain_center.statuses)
         tool_count = len(window.toolchain_center.statuses)
@@ -343,6 +343,44 @@ def test_command_deck_cards_are_context_aware_and_route_to_canonical_pages(
         app.processEvents()
         assert window.stack.currentWidget() is window.rom_studio
         assert genesis_opened == [True]
+        assert not window.rom_studio.dashboard_handoff.isHidden()
+        assert window.rom_studio.dashboard_handoff_title.text() == (
+            "Build ROM → Genesis Sequence"
+        )
+        assert "NO BUILD OR PHONE ACTION STARTED" in (
+            window.rom_studio.dashboard_handoff_detail.text()
+        )
+
+        window._navigate(0)
+        actions["Build ROM"].click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.rom_studio
+        assert genesis_opened == [True, True]
+
+        window._navigate(0)
+        actions["Pre-Build Simulation"].click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.rom_studio
+        assert window.rom_studio.command_tabs.currentIndex() == 1
+        assert window.rom_studio.dashboard_handoff_title.text() == (
+            "Pre-Build Simulation → Build & Proof"
+        )
+        assert window.rom_studio.dashboard_handoff_badge.text() == "PREREQUISITE"
+        assert "NO BUILD OR PHONE ACTION STARTED" in (
+            window.rom_studio.dashboard_handoff_detail.text()
+        )
+        assert window.rom_studio.worker is None
+
+        window._navigate(0)
+        actions["Recipes"].click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.rom_studio
+        assert window.rom_studio.command_tabs.currentIndex() == 2
+        assert window.rom_studio.dashboard_handoff_title.text() == "Recipes → Recipe Forge"
+        assert "NO RECIPE OR PHONE ACTION STARTED" in (
+            window.rom_studio.dashboard_handoff_detail.text()
+        )
+        assert window.rom_studio.worker is None
 
         window._navigate(0)
         window._handle_dashboard_action("Optimize")

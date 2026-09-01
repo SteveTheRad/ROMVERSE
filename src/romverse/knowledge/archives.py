@@ -1786,6 +1786,47 @@ KNOWN_FIXES = (
         source=ROMVERSE_SOURCE,
     ),
     _fix(
+        "command-deck-exact-workflow-handoff",
+        "Command Deck opens ROM Studio but not the requested workflow",
+        "ROMVERSE WORKFLOWS",
+        "Build ROM, Pre-Build Simulation, and Recipes share ROM Studio, but they are not the "
+        "same intent. ROMVERSE preserves the selected card as an owner-controlled handoff: "
+        "Genesis opens for Build ROM, Build & Proof is selected for a dry-run, and Recipe "
+        "Forge is selected for contained customization. A route alone is not treated as a "
+        "successful feature connection.",
+        checks=(
+            "Confirm the ROM Studio handoff banner names the exact Command Deck action you selected.",
+            "For Pre-Build Simulation, confirm Build & Proof is selected and Plan build (dry-run) is the highlighted next control.",
+            "For Recipes, confirm Recipe Forge is selected and its readiness text is bound to the current project and working tree.",
+            "Treat a prerequisite badge as a safe stop; it must name the missing project, protected original, inspection, or working tree without starting work.",
+        ),
+        fix_steps=(
+            "Return to Command Deck and select the intended card again so ROM Studio can compile a fresh handoff from its current project state.",
+            "Complete only the prerequisite named in the handoff using Source Lab or Genesis Sequence, then re-open the original card.",
+            "Use Plan build (dry-run) for an execution-locked input plan, or Recipe Forge for a previewed rollback-protected change; do not substitute one workflow for the other.",
+            "If the exact banner does not appear, keep ROM Studio open and inspect Activity Center before retrying; navigation alone grants no execution authority.",
+        ),
+        verification=(
+            "Build ROM opens Genesis Sequence at the current project's exact next safe stage without starting a build or phone action.",
+            "Pre-Build Simulation selects Build & Proof and reports READY only when a contained working tree exists; the worker remains idle until the user chooses the dry-run control.",
+            "Recipes selects Recipe Forge and reports READY only when contained targets can be designed; no recipe executes during the handoff.",
+            "Missing, stale, or incomplete context remains visibly stopped in ROM Studio and changes no workspace file or connected device.",
+        ),
+        tags=(
+            "command deck wrong workflow",
+            "rom studio generic route",
+            "pre-build simulation handoff",
+            "recipes handoff",
+            "build rom genesis",
+            "workflow prerequisite",
+            "feature connection",
+        ),
+        route="command_deck",
+        evidence="ROMVERSE tests the three Command Deck actions against their exact ROM Studio owner state, selected command group, readiness copy, and zero-worker boundary.",
+        automation="EXACT LOCAL NAVIGATION AND PREREQUISITE EXPLANATION ONLY • NO BUILD, RECIPE EXECUTION, APPROVAL, FLASH, OR PHONE ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
         "activity-exact-source-context",
         "Activity outcome cannot reopen its exact source evidence",
         "ROMVERSE WORKFLOWS",

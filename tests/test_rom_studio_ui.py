@@ -125,6 +125,45 @@ def test_rom_studio_refresh_never_recursively_rescans_an_extracted_tree(tmp_path
     studio.close()
 
 
+def test_rom_studio_command_deck_handoffs_report_exact_ready_workflows(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    source = tmp_path / "firmware.zip"
+    with zipfile.ZipFile(source, "w") as output:
+        output.writestr("system/build.prop", b"ro.romverse=verified\n")
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.import_original(store.create("Handoff Project").project_id, source)
+    inspection = RomInspectionService(store)
+    inspection.inspect_project(project.project_id)
+    store.create_working_copy(project.project_id)
+    inspection.extract_project_tree(project.project_id)
+    studio = RomStudio(store, DevicePackRegistry(()))
+    studio.refresh(project.project_id)
+
+    assert studio.open_dashboard_intent("Pre-Build Simulation")
+    app.processEvents()
+    assert studio.command_tabs.currentIndex() == 1
+    assert studio.dashboard_handoff_badge.text() == "READY"
+    assert "Handoff Project has a contained working tree" in (
+        studio.dashboard_handoff_detail.text()
+    )
+    assert "Execution remains locked" in studio.dashboard_handoff_detail.text()
+    assert studio.worker is None
+
+    assert studio.open_dashboard_intent("Recipes")
+    app.processEvents()
+    assert studio.command_tabs.currentIndex() == 2
+    assert studio.dashboard_handoff_badge.text() == "READY"
+    assert "Handoff Project is ready for Recipe Forge" in (
+        studio.dashboard_handoff_detail.text()
+    )
+    assert "Nothing changes until explicit approval" in (
+        studio.dashboard_handoff_detail.text()
+    )
+    assert studio.worker is None
+    assert not studio.open_dashboard_intent("Unknown workflow")
+    studio.close()
+
+
 def test_partition_atlas_uses_honest_shared_progress_states(tmp_path):
     QApplication.instance() or QApplication([])
     store = RomProjectStore(tmp_path / "workspace")

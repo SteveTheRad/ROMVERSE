@@ -20,8 +20,8 @@ def test_archives_catalog_is_large_unique_classified_and_evidence_labelled() -> 
     validate_catalog(ARCHIVE_ARTICLES)
     metrics = catalog_metrics(ARCHIVE_ARTICLES)
 
-    assert len(ARCHIVE_ARTICLES) == 118
-    assert len(KNOWN_FIXES) == 68
+    assert len(ARCHIVE_ARTICLES) == 119
+    assert len(KNOWN_FIXES) == 69
     assert metrics == {
         "guides": len(ARCHIVE_ARTICLES),
         "categories": len(CATEGORIES),
@@ -73,6 +73,10 @@ def test_archives_catalog_is_large_unique_classified_and_evidence_labelled() -> 
             "Activity outcome cannot reopen its exact source evidence",
         ),
         (
+            "command deck wrong workflow",
+            "Command Deck opens ROM Studio but not the requested workflow",
+        ),
+        (
             "apk receipt activity",
             "Activity outcome cannot reopen its exact source evidence",
         ),
@@ -89,7 +93,7 @@ def test_archives_rank_verified_known_fixes_for_real_failure_language(
 
 def test_archives_reject_weak_matches_and_bound_results() -> None:
     assert not search_catalog(ARCHIVE_ARTICLES, "definitely not a real ROMVERSE topic")
-    assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=1_000)) == 118
+    assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=1_000)) == 119
     assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=0)) == 1
     connectivity = search_catalog(
         ARCHIVE_ARTICLES,

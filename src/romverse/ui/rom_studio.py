@@ -563,6 +563,33 @@ class RomStudio(QWidget):
         boundary_layout.addWidget(copy, 1)
         page.addWidget(boundary)
 
+        self.dashboard_handoff = QFrame()
+        self.dashboard_handoff.setObjectName("DiagnosticHandoffBar")
+        dashboard_handoff_layout = QHBoxLayout(self.dashboard_handoff)
+        dashboard_handoff_layout.setContentsMargins(18, 13, 18, 13)
+        dashboard_handoff_layout.setSpacing(14)
+        dashboard_handoff_copy = QVBoxLayout()
+        dashboard_handoff_eyebrow = QLabel(
+            "COMMAND DECK HANDOFF  •  EXACT ROM STUDIO WORKFLOW"
+        )
+        dashboard_handoff_eyebrow.setObjectName("Eyebrow")
+        self.dashboard_handoff_title = QLabel()
+        self.dashboard_handoff_title.setObjectName("SectionTitle")
+        self.dashboard_handoff_detail = QLabel()
+        self.dashboard_handoff_detail.setObjectName("Muted")
+        self.dashboard_handoff_detail.setWordWrap(True)
+        self.dashboard_handoff_detail.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        dashboard_handoff_copy.addWidget(dashboard_handoff_eyebrow)
+        dashboard_handoff_copy.addWidget(self.dashboard_handoff_title)
+        dashboard_handoff_copy.addWidget(self.dashboard_handoff_detail)
+        dashboard_handoff_layout.addLayout(dashboard_handoff_copy, 1)
+        self.dashboard_handoff_badge = QLabel()
+        dashboard_handoff_layout.addWidget(self.dashboard_handoff_badge)
+        self.dashboard_handoff.setVisible(False)
+        page.addWidget(self.dashboard_handoff)
+
         self.project_filter = QLineEdit()
         self.project_filter.setPlaceholderText("Search ROM projects…")
         self.project_filter.setToolTip("Filter projects by name, date, or protection status.")
@@ -903,12 +930,12 @@ class RomStudio(QWidget):
             self.command_tabs.addTab(group, heading.title())
         self.command_tabs.setCurrentIndex(0)
         detail_layout.addWidget(self.command_tabs)
-        detail_scroll = QScrollArea()
-        detail_scroll.setObjectName("StudioDetailScroll")
-        detail_scroll.setWidgetResizable(True)
-        detail_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        detail_scroll.setWidget(detail)
-        content.addWidget(detail_scroll, 1)
+        self.detail_scroll = QScrollArea()
+        self.detail_scroll.setObjectName("StudioDetailScroll")
+        self.detail_scroll.setWidgetResizable(True)
+        self.detail_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.detail_scroll.setWidget(detail)
+        content.addWidget(self.detail_scroll, 1)
         page.addLayout(content, 1)
 
         footer = QLabel(
@@ -965,6 +992,150 @@ class RomStudio(QWidget):
         from romverse.ui.guided_mission import GuidedBuildMission
 
         GuidedBuildMission(self).exec()
+
+    def open_dashboard_intent(self, action: str) -> bool:
+        """Preserve one Command Deck intent after navigation into ROM Studio.
+
+        Selecting a workflow never starts a worker or gains phone authority. Build ROM opens
+        the user-facing Genesis guide; simulation and Recipe Forge stop at their exact command
+        group with a visible readiness explanation.
+        """
+
+        action = str(action).strip()
+        if action == "Build ROM":
+            flight = self.genesis_flight_plan()
+            project_context = (
+                f"{flight.project_name}  •  Stage {flight.stage_number}/{flight.stage_total}: "
+                f"{flight.stage_title}  •  {flight.progress_percent}% verified."
+                if self.current_project is not None
+                else "No project exists yet; Genesis will begin at protected project creation."
+            )
+            self._show_dashboard_handoff(
+                "Build ROM → Genesis Sequence",
+                f"{project_context} The guide is opening at the exact next safe stage. "
+                "NO BUILD OR PHONE ACTION STARTED.",
+                "GUIDED ENTRY",
+                ready=True,
+            )
+            self.guided_button.setFocus(Qt.FocusReason.OtherFocusReason)
+            self._open_guided_setup()
+            return True
+
+        if action == "Pre-Build Simulation":
+            self.command_tabs.setCurrentIndex(1)
+            ready, detail = self._prebuild_simulation_handoff()
+            self._show_dashboard_handoff(
+                "Pre-Build Simulation → Build & Proof",
+                detail,
+                "READY" if ready else "PREREQUISITE",
+                ready=ready,
+            )
+            self.detail_scroll.ensureWidgetVisible(self.command_tabs, 0, 24)
+            self.plan_button.setFocus(Qt.FocusReason.OtherFocusReason)
+            return True
+
+        if action == "Recipes":
+            self.command_tabs.setCurrentIndex(2)
+            ready, detail = self._recipe_forge_handoff()
+            self._show_dashboard_handoff(
+                "Recipes → Recipe Forge",
+                detail,
+                "READY" if ready else "PREREQUISITE",
+                ready=ready,
+            )
+            self.detail_scroll.ensureWidgetVisible(self.command_tabs, 0, 24)
+            self.guided_recipe_button.setFocus(Qt.FocusReason.OtherFocusReason)
+            return True
+
+        return False
+
+    def _prebuild_simulation_handoff(self) -> tuple[bool, str]:
+        project = self.current_project
+        if project is None:
+            return (
+                False,
+                "Create or select a ROM project, then import its protected firmware source. "
+                "ROMVERSE cannot simulate an unknown input. NO BUILD OR PHONE ACTION STARTED.",
+            )
+        if project.original is None:
+            return (
+                False,
+                f"{project.name} needs a protected original before planning. Use Source Lab → "
+                "Import original. NO BUILD OR PHONE ACTION STARTED.",
+            )
+        report = self.inspection.load_report(project.project_id)
+        if report is None:
+            return (
+                False,
+                f"{project.name} needs a saved structure inspection before its build inputs can "
+                "be prepared. Use Source Lab → Inspect structure. NO BUILD OR PHONE ACTION STARTED.",
+            )
+        if not self.inspection.working_tree_exists(project.project_id):
+            return (
+                False,
+                f"{project.name} needs a contained working tree. Use Source Lab to create the "
+                "working copy and prepare the safe tree. NO BUILD OR PHONE ACTION STARTED.",
+            )
+        if self.worker is not None:
+            return (
+                False,
+                f"{project.name} already has a bounded Studio operation in progress. Wait for its "
+                "verified result before planning. NO BUILD OR PHONE ACTION STARTED.",
+            )
+        return (
+            True,
+            f"{project.name} has a contained working tree. Choose Plan build (dry-run) below to "
+            "freeze the exact inputs and run Guardian preflight. Execution remains locked; "
+            "NO BUILD OR PHONE ACTION STARTED.",
+        )
+
+    def _recipe_forge_handoff(self) -> tuple[bool, str]:
+        project = self.current_project
+        if project is None:
+            return (
+                False,
+                "Create or select a ROM project and prepare a contained working tree before "
+                "designing a recipe. NO RECIPE OR PHONE ACTION STARTED.",
+            )
+        if project.original is None:
+            return (
+                False,
+                f"{project.name} needs a protected original before Recipe Forge can target its "
+                "contents. NO RECIPE OR PHONE ACTION STARTED.",
+            )
+        if not self.inspection.working_tree_exists(project.project_id):
+            return (
+                False,
+                f"{project.name} needs a contained working tree. Complete Source Lab preparation, "
+                "then return to Recipe Forge. NO RECIPE OR PHONE ACTION STARTED.",
+            )
+        if self.worker is not None:
+            return (
+                False,
+                f"{project.name} already has a bounded Studio operation in progress. Wait for its "
+                "verified result before opening Recipe Forge. NO RECIPE OR PHONE ACTION STARTED.",
+            )
+        return (
+            True,
+            f"{project.name} is ready for Recipe Forge. Open the guided designer below to choose "
+            "contained targets, preview changes, and preserve rollback evidence. Nothing changes "
+            "until explicit approval; NO PHONE ACTION STARTED.",
+        )
+
+    def _show_dashboard_handoff(
+        self,
+        title: str,
+        detail: str,
+        badge: str,
+        *,
+        ready: bool,
+    ) -> None:
+        self.dashboard_handoff_title.setText(title)
+        self.dashboard_handoff_detail.setText(detail)
+        self.dashboard_handoff_badge.setText(badge)
+        self.dashboard_handoff_badge.setObjectName("Good" if ready else "Warning")
+        self._repolish(self.dashboard_handoff_badge)
+        self.dashboard_handoff.setVisible(True)
 
     def guided_context(self, state: GuidedMissionState | None = None) -> GuidedContext:
         """Compile the single evidence context consumed by every Genesis surface."""

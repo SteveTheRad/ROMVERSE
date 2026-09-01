@@ -16,6 +16,15 @@ local report history. Reports are saved only when the user selects **Save report
 The **Health Timeline** screen compares saved snapshots from the same pseudonymous device,
 showing score movement plus new and resolved findings without retaining raw serials.
 
+The Desktop **About ROMVERSE** experience now presents the approved ROMVERSE product crest and
+byte-exact RadForge Labs company identity together in one responsive studio hero. Live build,
+channel, safety-boundary, and navigation-authority facts remain visible near the top; product-family
+cards open their canonical Desktop destinations instead of acting as decorative tiles. Official
+website and social actions report browser-launch failure without implying that Desktop or device
+state changed. The hidden Origin discovery remains replayable, while its tiny local record is
+strictly schema-validated, private, atomic, and deliberately carries no XP, membership, account, or
+device-operation authority.
+
 The **Guardian Core** exposes the safety boundary: every Guardian-controlled operation is
 recorded in a local SHA-256 hash chain with device identifiers redacted. ROMVERSE verifies
 that chain before execution and blocks the gateway if previous audit records were altered.

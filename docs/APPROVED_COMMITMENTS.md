@@ -170,6 +170,12 @@ Their Qt presentation is native to the cosmic glass shell and mirrors the websit
 crest float, rotating cyan orbit, scan sweep, hover shimmer, and reduced-motion contract rather
 than displaying an unstyled pasted image.
 
+Desktop additionally presents the approved ROMVERSE product and RadForge Labs company identities
+together in one responsive hero. Its build/safety facts are explicit, and its ROMVERSE, Guardian,
+Companion, and Galaxy family cards route to the canonical Desktop pages. Official external actions
+surface browser failure without claiming a device or application state change. These About actions
+remain navigation-only and never inherit Guardian or execution authority.
+
 Double-clicking the R on Desktop or double-tapping it on Companion discovers **ROMVERSE: The
 Origin**. Discovery is remembered locally and enables replay. The first genuine discovery records
 **Beyond the Verse** locally, but no XP, account entitlement, or server award may be simulated before
@@ -179,7 +185,9 @@ pause, skip-to-finale, runtime Reduced Effects, readable automatic pacing, progr
 locally packaged ambient sound identity that is off by default. Companion uses a purpose-built
 vertical/OLED composition with restrained haptic transitions rather than cropping Desktop. The story
 describes why ROMVERSE exists without exposing proprietary internals, and personal recognition stays
-absent until genuine account evidence exists.
+absent until genuine account evidence exists. Desktop persists discovery as one private, bounded,
+atomic exact-schema record; symbolic links, non-regular files, oversize content, malformed values,
+and additional authority-like fields are rejected.
 
 The approved Galaxy shell is now represented in the Android runtime by a real edge-swipe drawer,
 persistent glass top and bottom navigation, a single bottom-left Home route, and a live read-only
@@ -683,9 +691,12 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   Desktop Members and Command Console
   background-operation progress with duplicate-probe locking; Companion single-owner persistent
   top-right connectivity status with duplicate page/drawer indicators removed;
-  Desktop and Companion About ROMVERSE V2 with live build metadata, Promise/creator/ecosystem/trust
-  story, exact clean ROMVERSE/RadForge Labs website and Facebook/Reddit actions with crisp
-  standalone icons, locally persistent
+  Desktop About ROMVERSE V3 and Companion About ROMVERSE V2 with live build metadata,
+  Promise/creator/ecosystem/trust story, exact clean ROMVERSE/RadForge Labs website and
+  Facebook/Reddit actions with crisp standalone icons; Desktop V3 also preserves both approved
+  identities in one responsive hero, connects all four product-family cards to canonical Desktop
+  routes, exposes external-launch failure honestly, and stores Origin discovery in a private,
+  bounded, exact-schema atomic record; both experiences retain locally persistent
   double-click/double-tap Origin discovery and replay, seven-chapter Origin story, honest Beyond the
   Verse discovery state, functional off-by-default cinematic ambience, immediate exit, pause,
   navigation, skip-to-finale, Reduced Effects handling, progress, and responsive scrolling.

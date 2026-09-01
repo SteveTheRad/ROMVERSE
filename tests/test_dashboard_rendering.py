@@ -299,9 +299,12 @@ def test_origin_cinematic_ambience_is_packaged_for_both_apps() -> None:
 
 
 def test_about_page_uses_wide_responsive_grid_and_crisp_social_actions() -> None:
-    _app = QApplication.instance() or QApplication([])
+    app = QApplication.instance() or QApplication([])
     icon_path = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
     page = AboutPage(icon_path, app_icon_path=icon_path)
+    page.resize(1200, 900)
+    page.show()
+    app.processEvents()
 
     scroll = page.findChild(QScrollArea, "AboutScroll")
     content = page.findChild(QWidget, "AboutContent")
@@ -314,17 +317,17 @@ def test_about_page_uses_wide_responsive_grid_and_crisp_social_actions() -> None
     assert scroll is not None and scroll.widgetResizable()
     assert content is not None and content.maximumWidth() == 1120
     assert radforge_studio_identity is not None
-    assert radforge_studio_identity.minimumHeight() == 410
+    assert radforge_studio_identity.minimumHeight() == 360
     assert radforge_company_logo is page.radforge_company_logo
-    assert radforge_company_logo.size().width() == 520
-    assert radforge_company_logo.size().height() == 332
+    assert radforge_company_logo.size().width() == 400
+    assert radforge_company_logo.size().height() == 255
     assert not radforge_company_logo.pixmap().isNull()
     assert radforge_company_logo.accessibleName() == "Official RadForge Labs company logo"
     assert facebook_card is not None and facebook_card.minimumHeight() == 78
     assert reddit_card is not None and reddit_card.minimumHeight() == 78
     assert romverse_website_card is not None and romverse_website_card.minimumHeight() == 118
     assert radforge_website_card is not None and radforge_website_card.minimumHeight() == 118
-    assert page.logo.width() == page.logo.height() == 380
+    assert page.logo.width() == page.logo.height() == 310
     assert page.logo.accessibleName() == "Official ROMVERSE website logo"
     assert page.logo.FLOAT_SECONDS == 6.2
     assert page.logo.ORBIT_SECONDS == 34.0
@@ -344,7 +347,22 @@ def test_about_page_uses_wide_responsive_grid_and_crisp_social_actions() -> None
     assert not page.radforge_website_icon.pixmap().isNull()
     assert page.radforge_website_link.minimumHeight() >= 44
     assert page.radforge_website_link.accessibleName() == "Open the official RadForge Labs website"
+    assert set(page.family_buttons) == {
+        "rom_studio",
+        "guardian_core",
+        "companion_link",
+        "galaxy",
+    }
+    assert all(button.minimumHeight() >= 78 for button in page.family_buttons.values())
     assert page.origin_replay.isHidden()
+
+    page.resize(800, 700)
+    app.processEvents()
+    assert radforge_studio_identity.minimumHeight() == 280
+    assert page.logo.width() == page.logo.height() == 220
+    assert page.brand_bridge.width() == 120
+    assert radforge_company_logo.size().width() == 260
+    assert radforge_company_logo.size().height() == 166
     page.close()
 
 
@@ -373,6 +391,25 @@ def test_about_official_website_actions_use_clean_approved_destinations() -> Non
         "https://romverse.app/",
         "https://radforgelabs.com/",
     ]
+    page.close()
+
+
+def test_about_product_family_routes_and_external_failure_are_visible() -> None:
+    app = QApplication.instance() or QApplication([])
+    icon_path = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    page = AboutPage(icon_path, app_icon_path=icon_path)
+    routes: list[str] = []
+    page.route_requested.connect(routes.append)
+
+    page.family_buttons["guardian_core"].click()
+    with patch("romverse.ui.main_window.QDesktopServices.openUrl", return_value=False):
+        page.romverse_website_link.click()
+    app.processEvents()
+
+    assert routes == ["guardian_core"]
+    assert not page.external_status.isHidden()
+    assert "Could not open ROMVERSE" in page.external_status.text()
+    assert "No Desktop or device state changed" in page.external_status.text()
     page.close()
 
 

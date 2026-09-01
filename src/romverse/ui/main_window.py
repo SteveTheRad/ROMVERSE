@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import json
 import math
-import os
 import random
 import time
 from contextlib import suppress
@@ -107,6 +105,7 @@ from romverse.repair.host import AdbHostRepairReceiptStore, AdbHostRepairService
 from romverse.repair.templates import RepairAssessmentTemplates
 from romverse.rom.models import ProjectError
 from romverse.rom.projects import RomProjectStore
+from romverse.ui.about_state import OriginDiscoveryError, OriginDiscoveryStore
 from romverse.ui.activity_center import ActivityCenter
 from romverse.ui.apk_center import ApkCenter
 from romverse.ui.background import ManagedRunnable, shutdown_background_tasks, start_background
@@ -1237,6 +1236,7 @@ class SettingsDialog(QDialog):
 
 class AboutPage(QWidget):
     logo_double_clicked = Signal()
+    route_requested = Signal(str)
 
     def __init__(
         self,
@@ -1247,30 +1247,42 @@ class AboutPage(QWidget):
         reduced_motion: bool = False,
     ) -> None:
         super().__init__()
+        self._origin_store = OriginDiscoveryStore(workspace) if workspace is not None else None
         self._origin_state_path = (
-            workspace / "about" / "origin-discovery.romverse" if workspace else None
+            self._origin_store.path if self._origin_store is not None else None
         )
-        self.origin_discovered = self._load_origin_discovery()
+        self._origin_state_error = ""
+        try:
+            self.origin_discovered = self._origin_store.load() if self._origin_store else False
+        except OriginDiscoveryError as exc:
+            self.origin_discovered = False
+            self._origin_state_error = str(exc)
         self.last_origin_was_first = False
+        self._compact_brand_layout: bool | None = None
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
         scroll = QScrollArea()
+        self.about_scroll = scroll
         scroll.setObjectName("AboutScroll")
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         canvas = QWidget()
+        self.about_canvas = canvas
         canvas.setObjectName("ScrollContent")
         outer = QHBoxLayout(canvas)
+        self.about_outer = outer
         outer.setContentsMargins(30, 26, 30, 30)
         outer.setSpacing(0)
         outer.addStretch(1)
         content = QWidget()
+        self.about_content = content
         content.setObjectName("AboutContent")
         content.setMaximumWidth(1120)
         layout = QVBoxLayout(content)
+        self.about_layout = layout
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(14)
         outer.addWidget(content, 30)
@@ -1286,16 +1298,131 @@ class AboutPage(QWidget):
         heading.setObjectName("Title")
         heading.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(heading)
+        brand_intro = QLabel(
+            "One connected Android engineering universe, created independently with technical truth at its core."
+        )
+        brand_intro.setObjectName("Muted")
+        brand_intro.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        brand_intro.setWordWrap(True)
+        layout.addWidget(brand_intro)
+
+        self.brand_stage = QFrame()
+        self.brand_stage.setObjectName("RadForgeStudioIdentity")
+        self.brand_stage.setStyleSheet(
+            "QFrame#RadForgeStudioIdentity { background: rgba(5, 9, 20, 224); "
+            "border: 1px solid rgba(122, 108, 230, 145); "
+            "border-top: 2px solid rgba(99, 236, 248, 205); border-radius: 18px; }"
+        )
+        self.brand_stage_layout = QHBoxLayout(self.brand_stage)
+        self.brand_stage_layout.setContentsMargins(22, 14, 22, 14)
+        self.brand_stage_layout.setSpacing(12)
+
+        romverse_identity = QVBoxLayout()
+        romverse_label = QLabel("ROMVERSE PRODUCT IDENTITY")
+        romverse_label.setObjectName("Eyebrow")
+        romverse_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.logo = WebsiteBrandCrest(
             brand_path or app_icon_path or logo_path,
             reduced_motion=reduced_motion,
         )
         self.logo.setObjectName("AboutLogo")
         self.logo.setAccessibleName("Official ROMVERSE website logo")
-        self.logo.setFixedSize(380, 380)
         self.logo.double_clicked.connect(self._request_origin)
-        layout.addWidget(self.logo)
-        layout.setAlignment(self.logo, Qt.AlignmentFlag.AlignHCenter)
+        romverse_identity.addWidget(romverse_label)
+        romverse_identity.addWidget(self.logo, 0, Qt.AlignmentFlag.AlignHCenter)
+        self.brand_stage_layout.addLayout(romverse_identity, 5)
+
+        self.brand_bridge = QFrame()
+        self.brand_bridge.setObjectName("BrandBridge")
+        bridge_layout = QVBoxLayout(self.brand_bridge)
+        bridge_layout.setContentsMargins(8, 8, 8, 8)
+        bridge_layout.addStretch(1)
+        created = QLabel("CREATED BY")
+        created.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        created.setStyleSheet(
+            "color:#FFAA45; font-size:10px; font-weight:850; letter-spacing:1.5px;"
+        )
+        bridge_mark = QLabel("◇")
+        bridge_mark.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        bridge_mark.setStyleSheet("color:#63ECF8; font-size:28px;")
+        handoff = QLabel("A RADFORGE\nLABS PROJECT")
+        handoff.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        handoff.setStyleSheet("color:#C9D6F1; font-size:9px; font-weight:750; letter-spacing:1px;")
+        bridge_layout.addWidget(created)
+        bridge_layout.addWidget(bridge_mark)
+        bridge_layout.addWidget(handoff)
+        bridge_layout.addStretch(1)
+        self.brand_stage_layout.addWidget(self.brand_bridge, 1)
+
+        studio_identity = QVBoxLayout()
+        studio_heading = QLabel("OFFICIAL STUDIO IDENTITY")
+        studio_heading.setObjectName("RadForgeStudioHeading")
+        studio_heading.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        studio_heading.setStyleSheet(
+            "color: #FFAA45; font-size: 11px; font-weight: 850; letter-spacing: 2px;"
+        )
+        self.radforge_company_logo = QLabel()
+        self.radforge_company_logo.setObjectName("RadForgeOfficialLogo")
+        self.radforge_company_logo.setAccessibleName("Official RadForge Labs company logo")
+        self.radforge_company_logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.radforge_company_logo.setStyleSheet("background: transparent; border: 0;")
+        radforge_logo_resource = files("romverse.assets").joinpath(
+            "radforge-labs-official-logo-transparent.png"
+        )
+        with as_file(radforge_logo_resource) as radforge_logo_path:
+            self._radforge_logo_source = QPixmap(str(radforge_logo_path))
+        studio_glow = QGraphicsDropShadowEffect(self.radforge_company_logo)
+        studio_glow.setColor(QColor(255, 130, 24, 115))
+        studio_glow.setBlurRadius(22)
+        studio_glow.setOffset(0, 2)
+        self.radforge_company_logo.setGraphicsEffect(studio_glow)
+        studio_identity.addWidget(studio_heading)
+        studio_identity.addWidget(
+            self.radforge_company_logo,
+            0,
+            Qt.AlignmentFlag.AlignHCenter,
+        )
+        self.brand_stage_layout.addLayout(studio_identity, 5)
+        layout.addWidget(self.brand_stage)
+
+        mission = QLabel(
+            "BUILD  •  OPTIMIZE  •  PERFECT\n"
+            "A safe, intelligent workspace for shaping the Android universe."
+        )
+        mission.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        mission.setStyleSheet(
+            "background: rgba(12, 17, 48, 190); border: 1px solid rgba(99, 236, 248, 90); "
+            "border-radius: 13px; padding: 14px 24px; color: #BFCBFF; "
+            "font-size: 14px; letter-spacing: 1px;"
+        )
+        mission.setWordWrap(True)
+        mission.setToolTip("ROMVERSE unites device care, diagnostics, repair, and creation.")
+        layout.addWidget(mission)
+
+        build_facts = QHBoxLayout()
+        build_facts.setSpacing(10)
+        for label, value, accent in (
+            ("DESKTOP BUILD", __version__, "#63ECF8"),
+            ("CHANNEL", "INTERNAL ALPHA", "#B45CFF"),
+            ("SAFETY", "GUARDIAN BOUNDARY", "#72FFB2"),
+            ("ABOUT AUTHORITY", "NAVIGATION ONLY", "#FFB454"),
+        ):
+            fact = QFrame()
+            fact.setObjectName("TelemetryTile")
+            fact_layout = QVBoxLayout(fact)
+            fact_layout.setContentsMargins(12, 9, 12, 9)
+            fact_label = QLabel(label)
+            fact_label.setObjectName("TelemetryLabel")
+            fact_value = QLabel(value)
+            fact_value.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            fact_value.setStyleSheet(
+                f"color:{accent}; font-size:11px; font-weight:800; letter-spacing:0.6px;"
+            )
+            fact_value.setAccessibleName(f"{label.title()}: {value}")
+            fact_layout.addWidget(fact_label)
+            fact_layout.addWidget(fact_value)
+            build_facts.addWidget(fact, 1)
+        layout.addLayout(build_facts)
 
         platform_panel = QFrame()
         platform_panel.setObjectName("AboutPanel")
@@ -1304,158 +1431,40 @@ class AboutPage(QWidget):
             "border: 1px solid rgba(113, 130, 220, 120); border-radius: 13px; }"
         )
         platforms = QHBoxLayout(platform_panel)
-        platforms.setContentsMargins(24, 16, 24, 16)
+        platforms.setContentsMargins(24, 12, 24, 12)
         platforms.setSpacing(18)
-        for icon, name in (("⊞", "Windows"), ("🐧", "Linux"), ("🤖", "Android")):
+        platform_svgs = {
+            "Windows": b"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><path fill="#09A9E8" d="M6 16 45 11v35H6zM51 10l39-5v41H51zM6 51h39v35L6 80zM51 51h39v41l-39-6z"/></svg>""",
+            "Linux": b"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><ellipse cx="48" cy="53" rx="27" ry="34" fill="#171B2C"/><ellipse cx="48" cy="58" rx="19" ry="27" fill="#F6F8FF"/><circle cx="39" cy="29" r="11" fill="#F6F8FF"/><circle cx="57" cy="29" r="11" fill="#F6F8FF"/><circle cx="40" cy="30" r="4" fill="#171B2C"/><circle cx="56" cy="30" r="4" fill="#171B2C"/><path d="M36 37q12-13 24 0l-12 9z" fill="#F5A900"/><ellipse cx="29" cy="84" rx="16" ry="6" fill="#F5A900"/><ellipse cx="67" cy="84" rx="16" ry="6" fill="#F5A900"/></svg>""",
+            "Android": b"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><g fill="#A4D65E" stroke="#A4D65E" stroke-width="3" stroke-linecap="round"><path d="M29 39a19 19 0 0 1 38 0v6H29z"/><rect x="31" y="43" width="34" height="25" rx="4"/><rect x="20" y="44" width="8" height="22" rx="4"/><rect x="68" y="44" width="8" height="22" rx="4"/><rect x="36" y="65" width="8" height="18" rx="4"/><rect x="52" y="65" width="8" height="18" rx="4"/><path d="M35 23l-5-8m31 8 5-8" fill="none"/></g><circle cx="40" cy="35" r="2" fill="#101735"/><circle cx="56" cy="35" r="2" fill="#101735"/></svg>""",
+        }
+        for name in ("Windows", "Linux", "Android"):
             platform = QWidget()
-            item = QVBoxLayout()
+            item = QHBoxLayout(platform)
             item.setContentsMargins(0, 0, 0, 0)
-            item.setSpacing(5)
-            glyph = QLabel(icon)
+            item.setSpacing(8)
+            glyph = QLabel()
             glyph.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            glyph.setFixedSize(62, 54)
-            glyph.setStyleSheet(
-                "font-family: 'Noto Color Emoji', 'Segoe UI Symbol'; "
-                "font-size: 38px; color: #63ECF8;"
+            glyph.setFixedSize(42, 42)
+            glyph.setAccessibleName(f"{name} platform")
+            pixmap = QPixmap()
+            pixmap.loadFromData(platform_svgs[name], "SVG")
+            glyph.setPixmap(
+                pixmap.scaled(
+                    38,
+                    38,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation,
+                )
             )
-            if name == "Windows":
-                windows_svg = b"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
-                  <path fill="#09A9E8" d="M6 16 45 11v35H6zM51 10l39-5v41H51zM6 51h39v35L6 80zM51 51h39v41l-39-6z"/>
-                </svg>"""
-                windows_pixmap = QPixmap()
-                windows_pixmap.loadFromData(windows_svg, "SVG")
-                glyph.setPixmap(
-                    windows_pixmap.scaled(
-                        50,
-                        50,
-                        Qt.AspectRatioMode.KeepAspectRatio,
-                        Qt.TransformationMode.SmoothTransformation,
-                    )
-                )
-            elif name == "Android":
-                android_svg = b"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
-                  <g fill="#A4D65E" stroke="#A4D65E" stroke-width="3" stroke-linecap="round">
-                    <path d="M29 39a19 19 0 0 1 38 0v6H29z"/><rect x="31" y="43" width="34" height="25" rx="4"/>
-                    <rect x="20" y="44" width="8" height="22" rx="4"/><rect x="68" y="44" width="8" height="22" rx="4"/>
-                    <rect x="36" y="65" width="8" height="18" rx="4"/><rect x="52" y="65" width="8" height="18" rx="4"/>
-                    <path d="M35 23l-5-8m31 8 5-8" fill="none"/>
-                  </g><circle cx="40" cy="35" r="2" fill="#101735"/><circle cx="56" cy="35" r="2" fill="#101735"/>
-                </svg>"""
-                android_pixmap = QPixmap()
-                android_pixmap.loadFromData(android_svg, "SVG")
-                glyph.setPixmap(
-                    android_pixmap.scaled(
-                        50,
-                        50,
-                        Qt.AspectRatioMode.KeepAspectRatio,
-                        Qt.TransformationMode.SmoothTransformation,
-                    )
-                )
-            elif name == "Linux":
-                linux_svg = b"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
-                  <ellipse cx="48" cy="53" rx="27" ry="34" fill="#171B2C"/>
-                  <ellipse cx="48" cy="58" rx="19" ry="27" fill="#F6F8FF"/>
-                  <circle cx="39" cy="29" r="11" fill="#F6F8FF"/><circle cx="57" cy="29" r="11" fill="#F6F8FF"/>
-                  <circle cx="40" cy="30" r="4" fill="#171B2C"/><circle cx="56" cy="30" r="4" fill="#171B2C"/>
-                  <path d="M36 37q12-13 24 0l-12 9z" fill="#F5A900"/>
-                  <ellipse cx="29" cy="84" rx="16" ry="6" fill="#F5A900"/><ellipse cx="67" cy="84" rx="16" ry="6" fill="#F5A900"/>
-                  <path d="M27 47q-13 10-8 24M69 47q13 10 8 24" fill="none" stroke="#171B2C" stroke-width="7" stroke-linecap="round"/>
-                </svg>"""
-                linux_pixmap = QPixmap()
-                linux_pixmap.loadFromData(linux_svg, "SVG")
-                glyph.setPixmap(
-                    linux_pixmap.scaled(
-                        50,
-                        50,
-                        Qt.AspectRatioMode.KeepAspectRatio,
-                        Qt.TransformationMode.SmoothTransformation,
-                    )
-                )
             label = QLabel(name)
-            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             label.setObjectName("Muted")
+            item.addStretch(1)
             item.addWidget(glyph)
             item.addWidget(label)
-            platform.setLayout(item)
-            platforms.addWidget(platform, 1, Qt.AlignmentFlag.AlignHCenter)
+            item.addStretch(1)
+            platforms.addWidget(platform, 1)
         layout.addWidget(platform_panel)
-        version = QLabel(f"ROMVERSE Studio {__version__}  •  Internal Alpha")
-        version.setObjectName("Muted")
-        version.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(version)
-        mission = QLabel(
-            "BUILD  •  OPTIMIZE  •  PERFECT\n"
-            "A safe, intelligent workspace for shaping the Android universe."
-        )
-        mission.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        mission.setStyleSheet(
-            "background: rgba(12, 17, 48, 190); border: 1px solid rgba(99, 236, 248, 90); "
-            "border-radius: 13px; padding: 16px 28px; color: #BFCBFF; "
-            "font-size: 14px; letter-spacing: 1px;"
-        )
-        mission.setWordWrap(True)
-        mission.setToolTip("ROMVERSE unites device care, diagnostics, repair, and creation.")
-        layout.addWidget(mission)
-
-        studio_panel = QFrame()
-        studio_panel.setObjectName("RadForgeStudioIdentity")
-        studio_panel.setMinimumHeight(410)
-        studio_panel.setStyleSheet(
-            "QFrame#RadForgeStudioIdentity { "
-            "background: rgba(5, 9, 20, 224); "
-            "border: 1px solid rgba(255, 144, 35, 125); "
-            "border-top: 2px solid rgba(255, 154, 46, 220); "
-            "border-radius: 16px; }"
-        )
-        studio_layout = QVBoxLayout(studio_panel)
-        studio_layout.setContentsMargins(28, 20, 28, 22)
-        studio_layout.setSpacing(8)
-
-        studio_heading = QLabel("OFFICIAL STUDIO IDENTITY")
-        studio_heading.setObjectName("RadForgeStudioHeading")
-        studio_heading.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        studio_heading.setStyleSheet(
-            "color: #FFAA45; font-size: 12px; font-weight: 850; letter-spacing: 2px;"
-        )
-        studio_layout.addWidget(studio_heading)
-
-        self.radforge_company_logo = QLabel()
-        self.radforge_company_logo.setObjectName("RadForgeOfficialLogo")
-        self.radforge_company_logo.setAccessibleName("Official RadForge Labs company logo")
-        self.radforge_company_logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.radforge_company_logo.setFixedSize(520, 332)
-        self.radforge_company_logo.setStyleSheet("background: transparent; border: 0;")
-        radforge_logo_resource = files("romverse.assets").joinpath(
-            "radforge-labs-official-logo-transparent.png"
-        )
-        with as_file(radforge_logo_resource) as radforge_logo_path:
-            radforge_logo = QPixmap(str(radforge_logo_path))
-        self.radforge_company_logo.setPixmap(
-            radforge_logo.scaled(
-                500,
-                319,
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation,
-            )
-        )
-        studio_glow = QGraphicsDropShadowEffect(self.radforge_company_logo)
-        studio_glow.setColor(QColor(255, 130, 24, 120))
-        studio_glow.setBlurRadius(22)
-        studio_glow.setOffset(0, 2)
-        self.radforge_company_logo.setGraphicsEffect(studio_glow)
-        studio_layout.addWidget(
-            self.radforge_company_logo,
-            0,
-            Qt.AlignmentFlag.AlignHCenter,
-        )
-
-        studio_caption = QLabel("ROMVERSE  •  CREATED BY RADFORGE LABS")
-        studio_caption.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        studio_caption.setStyleSheet(
-            "color: #C9D6F1; font-size: 11px; font-weight: 750; letter-spacing: 1px;"
-        )
-        studio_layout.addWidget(studio_caption)
-        layout.addWidget(studio_panel)
 
         story = QGridLayout()
         story.setContentsMargins(0, 0, 0, 0)
@@ -1543,6 +1552,13 @@ class AboutPage(QWidget):
             "QPushButton:hover { border-color: #63ECF8; color: white; }"
         )
         layout.addWidget(self.origin_replay)
+        self.origin_state_note = QLabel(self._origin_state_error)
+        self.origin_state_note.setObjectName("Danger")
+        self.origin_state_note.setAccessibleName("Origin discovery local storage status")
+        self.origin_state_note.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.origin_state_note.setWordWrap(True)
+        self.origin_state_note.setVisible(bool(self._origin_state_error))
+        layout.addWidget(self.origin_state_note)
 
         websites_heading = QLabel("OFFICIAL WEBSITES")
         websites_heading.setObjectName("Eyebrow")
@@ -1618,7 +1634,9 @@ class AboutPage(QWidget):
             open_button.setMinimumSize(94, 44)
             open_button.setAccessibleName(accessible_name)
             open_button.clicked.connect(
-                lambda _checked=False, destination=url: QDesktopServices.openUrl(QUrl(destination))
+                lambda _checked=False, destination=url, destination_title=title: (
+                    self._open_external(destination, destination_title)
+                )
             )
             open_button.setStyleSheet(
                 "QPushButton { background: rgba(20, 29, 65, 210); color: #EFF7FF; "
@@ -1725,7 +1743,9 @@ class AboutPage(QWidget):
         self.facebook_link.setCursor(Qt.CursorShape.PointingHandCursor)
         self.facebook_link.setMinimumHeight(42)
         self.facebook_link.setAccessibleName("Open ROMVERSE on Facebook")
-        self.facebook_link.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(FACEBOOK_URL)))
+        self.facebook_link.clicked.connect(
+            lambda: self._open_external(FACEBOOK_URL, "ROMVERSE on Facebook")
+        )
         self.facebook_link.setStyleSheet(
             "background: rgba(17, 34, 70, 190); color: #DDF8FF; font-weight: 750; "
             "border: 1px solid rgba(99, 236, 248, 145); border-radius: 9px; "
@@ -1777,7 +1797,9 @@ class AboutPage(QWidget):
         self.reddit_link.setCursor(Qt.CursorShape.PointingHandCursor)
         self.reddit_link.setMinimumHeight(42)
         self.reddit_link.setAccessibleName("Open ROMVERSE on Reddit")
-        self.reddit_link.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(REDDIT_URL)))
+        self.reddit_link.clicked.connect(
+            lambda: self._open_external(REDDIT_URL, "ROMVERSE on Reddit")
+        )
         self.reddit_link.setStyleSheet(
             "background: rgba(57, 25, 18, 205); color: #FFF0EA; font-weight: 750; "
             "border: 1px solid rgba(255, 109, 58, 170); border-radius: 9px; "
@@ -1785,6 +1807,13 @@ class AboutPage(QWidget):
         )
         reddit_layout.addWidget(self.reddit_link)
         layout.addWidget(reddit_card)
+        self.external_status = QLabel()
+        self.external_status.setObjectName("Warning")
+        self.external_status.setAccessibleName("Official link opening status")
+        self.external_status.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.external_status.setWordWrap(True)
+        self.external_status.setVisible(False)
+        layout.addWidget(self.external_status)
         family_heading = QLabel("ONE UNIVERSE  •  EVERY MISSION CONNECTED")
         family_heading.setObjectName("Eyebrow")
         family_heading.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -1794,21 +1823,30 @@ class AboutPage(QWidget):
         family.setHorizontalSpacing(12)
         family.setVerticalSpacing(12)
         family_items = (
-            ("ROMVERSE", "Build and customize", "#C45CFF"),
-            ("GUARDIAN", "Safety and protection", "#63ECF8"),
-            ("COMPANION", "Your Android sidekick", "#D26BFF"),
-            ("GALAXY", "Community and discovery", "#63ECF8"),
+            ("ROMVERSE", "Build and customize", "#C45CFF", "rom_studio"),
+            ("GUARDIAN", "Safety and protection", "#63ECF8", "guardian_core"),
+            ("COMPANION", "Desktop and phone connection", "#D26BFF", "companion_link"),
+            ("GALAXY", "Community and discovery", "#63ECF8", "galaxy"),
         )
-        for index, (name, detail, color) in enumerate(family_items):
-            card = QLabel(f"{name}\n{detail}")
-            card.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            card.setMinimumHeight(66)
+        self.family_buttons: dict[str, QPushButton] = {}
+        for index, (name, detail, color, route) in enumerate(family_items):
+            card = QPushButton(f"{name}\n{detail}\nOPEN  →")
+            card.setObjectName("AboutFamilyButton")
+            card.setMinimumHeight(78)
+            card.setCursor(Qt.CursorShape.PointingHandCursor)
+            card.setAccessibleName(f"Open {name}: {detail}")
+            card.clicked.connect(
+                lambda _checked=False, destination=route: self.route_requested.emit(destination)
+            )
             card.setStyleSheet(
-                "background: rgba(9, 14, 38, 210); border: 1px solid rgba(113, 130, 220, 120); "
+                "QPushButton { background: rgba(9, 14, 38, 210); border: 1px solid rgba(113, 130, 220, 120); "
                 f"border-top: 2px solid {color}; border-radius: 11px; padding: 11px 10px; "
-                f"color: {color}; font-size: 11px; font-weight: 700; letter-spacing: 1px;"
+                f"color: {color}; font-size: 11px; font-weight: 700; letter-spacing: 1px; }}"
+                "QPushButton:hover { background: rgba(22, 26, 62, 232); border-color: #FFFFFF; color: #FFFFFF; }"
+                "QPushButton:focus { border: 2px solid #FFFFFF; }"
             )
             family.addWidget(card, index // 2, index % 2)
+            self.family_buttons[route] = card
         layout.addLayout(family)
         trust = QLabel(
             "TRUST & TRANSPARENCY\nGuardian never treats unknown evidence as healthy, never "
@@ -1839,47 +1877,64 @@ class AboutPage(QWidget):
         footer.setAlignment(Qt.AlignmentFlag.AlignCenter)
         footer.setWordWrap(True)
         layout.addWidget(footer)
-        layout.activate()
-        required_height = layout.sizeHint().height()
-        content.setMinimumHeight(required_height)
-        canvas.setMinimumHeight(
-            required_height + outer.contentsMargins().top() + outer.contentsMargins().bottom()
-        )
+        self._apply_brand_layout()
+        self._update_about_minimum_height()
 
-    def _load_origin_discovery(self) -> bool:
-        if self._origin_state_path is None or not self._origin_state_path.is_file():
-            return False
-        try:
-            payload = json.loads(self._origin_state_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            return False
-        return (
-            payload.get("format") == "romverse.about.origin"
-            and payload.get("schema_version") == 1
-            and payload.get("discovered") is True
+    def resizeEvent(self, event) -> None:  # noqa: N802
+        self._apply_brand_layout()
+        super().resizeEvent(event)
+
+    def _apply_brand_layout(self) -> None:
+        compact = self.width() < 960
+        if self._compact_brand_layout is compact:
+            return
+        self._compact_brand_layout = compact
+        logo_size = 220 if compact else 310
+        company_width = 260 if compact else 400
+        company_height = round(company_width * 0.638)
+        self.logo.setFixedSize(logo_size, logo_size)
+        self.brand_bridge.setFixedWidth(120 if compact else 110)
+        self.radforge_company_logo.setFixedSize(company_width, company_height)
+        self.radforge_company_logo.setPixmap(
+            self._radforge_logo_source.scaled(
+                company_width - 10,
+                company_height - 8,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
         )
+        self.brand_stage.setMinimumHeight(280 if compact else 360)
+        QTimer.singleShot(0, self._update_about_minimum_height)
+
+    def _update_about_minimum_height(self) -> None:
+        self.about_layout.activate()
+        required_height = self.about_layout.sizeHint().height()
+        self.about_content.setMinimumHeight(required_height)
+        margins = self.about_outer.contentsMargins()
+        self.about_canvas.setMinimumHeight(required_height + margins.top() + margins.bottom())
+
+    def _open_external(self, url: str, title: str) -> None:
+        if QDesktopServices.openUrl(QUrl(url)):
+            self.external_status.setVisible(False)
+            return
+        self.external_status.setText(
+            f"Could not open {title} in the default browser. No Desktop or device state changed."
+        )
+        self.external_status.setVisible(True)
 
     def _request_origin(self) -> None:
         self.last_origin_was_first = not self.origin_discovered
         if self.last_origin_was_first:
             self.origin_discovered = True
-            if self._origin_state_path is not None:
-                with suppress(OSError):
-                    self._origin_state_path.parent.mkdir(parents=True, exist_ok=True)
-                    temporary = self._origin_state_path.with_suffix(".tmp")
-                    temporary.write_text(
-                        json.dumps(
-                            {
-                                "format": "romverse.about.origin",
-                                "schema_version": 1,
-                                "discovered": True,
-                                "award": "beyond-the-verse",
-                            },
-                            sort_keys=True,
-                        ),
-                        encoding="utf-8",
+            if self._origin_store is not None:
+                try:
+                    self._origin_store.discover()
+                    self.origin_state_note.setVisible(False)
+                except OriginDiscoveryError as exc:
+                    self.origin_state_note.setText(
+                        f"The Origin is available for this session, but its local discovery record could not be preserved: {exc}"
                     )
-                    os.replace(temporary, self._origin_state_path)
+                    self.origin_state_note.setVisible(True)
             self.origin_replay.setVisible(True)
         self.logo_double_clicked.emit()
 
@@ -2584,6 +2639,7 @@ class MainWindow(QMainWindow):
             reduced_motion=self.app_settings.reduced_motion,
         )
         self.about_page.logo_double_clicked.connect(self._show_thanks)
+        self.about_page.route_requested.connect(self._navigate_route)
         about_index = self.stack.addWidget(self.about_page)
         galaxy_page = GalaxyCenter(workspace, self.activity_store)
         galaxy_index = self.stack.addWidget(galaxy_page)

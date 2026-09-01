@@ -110,6 +110,12 @@ def test_every_desktop_navigation_label_opens_and_highlights_its_own_page(
         assert window.stack.currentIndex() == active_route
         assert window.notification_center.last_notification is not None
         assert window.notification_center.last_notification.key.startswith("navigation.missing.")
+
+        window._navigate_route("about")
+        window.about_page.family_buttons["guardian_core"].click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.guardian_center
+        assert by_label["Guardian Core"].property("active") is True
         assert window.guardian_center.worker is None
     finally:
         window.companion_center.transport.close()

@@ -607,17 +607,24 @@ purple/blue R inside a cyan orbital arc with the ROMVERSE wordmark beneath it. D
 Windows packaging, and Android launcher resources must derive from that canonical asset
 without distortion or creative reinterpretation.
 
-The About ROMVERSE page uses that same canonical mark with a restrained violet glow. A balanced
-Official Websites section links to the clean HTTPS `romverse.app` product destination and
-`radforgelabs.com` studio destination with distinct crisp marks, aligned actions, accessible names,
-and no tracking parameters. It sits before the existing official community/social destinations. A
-double-click on the About mark opens the approved cinematic supporter tribute: inward-
+The Desktop About ROMVERSE page places the canonical ROMVERSE product crest and the byte-exact
+approved RadForge Labs company logo together in one responsive studio-identity hero without
+altering either source asset. Build, channel, Guardian boundary, and navigation-only authority facts
+remain visible near the top. Product-family cards are real handoffs to canonical Desktop routes;
+About itself never gains device-changing authority. A balanced Official Websites section links to
+the clean HTTPS `romverse.app` product destination and `radforgelabs.com` studio destination with
+distinct crisp marks, aligned actions, accessible names, and no tracking parameters. Browser-launch
+failure is visible and cannot be presented as a change to Desktop or device state. It sits before
+the existing official community/social destinations. A double-click on the About mark opens the
+approved cinematic supporter tribute: inward-
 moving stars, a purple/cyan accretion disk, event horizon, collapse pulse, mark reveal, and
 the complete “To Everyone Who Believed” message signed SteveTheRad / A RadForge Labs
 Project. The sequence must remain fully visible without scrolling, keep a dark opaque
 ROMVERSE background, and stop its animation timer when complete or closed. This interaction
 and its message are a locked brand moment and should not be replaced during general UI
-restyling without an explicit product-owner decision.
+restyling without an explicit product-owner decision. Discovery is stored only as a private,
+bounded, exact-schema, atomic local record. Malformed, oversized, linked, or extra-field records
+fail visibly; the record has no XP, account, membership, entitlement, or operation authority.
 
 The core palette moves from purple through blue to cyan on a near-black space-like surface.
 Product-family marks remain related but distinct. Windows, Linux, and Android are planned;

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -297,6 +298,61 @@ def test_guardian_expires_retained_nexus_context_when_plan_changes(tmp_path: Pat
         assert window.guardian_center.nexus_review_badge.text() == "CONTEXT REFUSED"
         assert "no longer matches" in window.guardian_center.nexus_review_detail.text()
         assert "No action started" in window.guardian_center.nexus_review_detail.text()
+        assert window.guardian_center.worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_time_machine_opens_exact_guardian_context_and_expires_superseded_plan(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
+    device = AndroidDevice(
+        "private-backup-device",
+        DeviceState.DEVICE,
+        manufacturer="RadForge",
+        model="Reference Phone",
+        battery_percent=84,
+        storage=StorageInfo(percent_used=37),
+        bootloader_locked=True,
+        verified_boot="green",
+    )
+    try:
+        window.backup_center.set_devices([device])
+        with patch("romverse.ui.backup_center.QMessageBox.information"):
+            window.backup_center.plan_button.click()
+        loaded = window.backup_center.plan_store.load_latest()
+        assert loaded.data is not None
+
+        window.backup_center.guardian_button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.guardian_center
+        assert not window.guardian_center.backup_review.isHidden()
+        assert window.guardian_center.nexus_review.isHidden()
+        assert window.guardian_center.backup_review_identity == (
+            loaded.data["plan_id"],
+            loaded.data["plan_digest"],
+        )
+        assert window.guardian_center.backup_review_badge.text() == "ZERO AUTHORITY"
+        assert "Reference Phone" in window.guardian_center.backup_review_title.text()
+        assert window.guardian_center.worker is None
+
+        window.guardian_center.backup_return_button.click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.backup_center
+
+        window.backup_center.plan_store.create(device)
+        window._navigate_route("guardian_core")
+        app.processEvents()
+
+        assert window.guardian_center.backup_review_identity is None
+        assert window.guardian_center.backup_review_badge.text() == "CONTEXT REFUSED"
+        assert "no longer matches" in window.guardian_center.backup_review_detail.text()
+        assert "No action started" in window.guardian_center.backup_review_detail.text()
         assert window.guardian_center.worker is None
     finally:
         window.companion_center.transport.close()

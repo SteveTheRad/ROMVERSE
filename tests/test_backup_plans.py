@@ -1,3 +1,4 @@
+import hashlib
 import json
 
 from romverse.backup.plans import GuardianBackupPlanStore
@@ -71,3 +72,37 @@ def test_legacy_plan_remains_reviewable_but_is_not_called_integrity_verified(tmp
     assert loaded.valid
     assert not loaded.integrity_verified
     assert "Legacy" in loaded.reason
+
+
+def test_redigested_recovery_plan_schema_and_type_mutations_fail_closed(tmp_path) -> None:
+    store = GuardianBackupPlanStore(tmp_path)
+    store.create(_device())
+    original = json.loads(store.latest_path.read_text(encoding="utf-8"))
+
+    mutations = (
+        lambda data: data.update({"unexpected": "field"}),
+        lambda data: data.update({"plan_id": "not-a-plan"}),
+        lambda data: data.update({"device_name": "unsafe\x00name"}),
+        lambda data: data["readiness"].update({"battery_percent": True}),
+        lambda data: data["readiness"].update({"unexpected": "field"}),
+    )
+    for mutate in mutations:
+        data = json.loads(json.dumps(original))
+        mutate(data)
+        unsigned = dict(data)
+        unsigned.pop("plan_digest", None)
+        data["plan_digest"] = hashlib.sha256(
+            json.dumps(
+                unsigned,
+                ensure_ascii=True,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        ).hexdigest()
+        store.latest_path.write_text(json.dumps(data), encoding="utf-8")
+
+        loaded = store.load_latest()
+
+        assert not loaded.valid
+        assert not loaded.integrity_verified
+        assert "schema or typed evidence" in loaded.reason

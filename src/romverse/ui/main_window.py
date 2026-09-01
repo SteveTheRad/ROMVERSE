@@ -2590,6 +2590,10 @@ class MainWindow(QMainWindow):
             self.nexus_events,
         )
         self.backup_center.runtime_tools_requested.connect(self._resolve_backup_runtime)
+        self.backup_center.guardian_requested.connect(self._open_backup_guardian_review)
+        self.guardian_center.time_machine_requested.connect(
+            lambda: self._navigate_route("time_machine")
+        )
         self.stack.addWidget(self.backup_center)
         self.knowledge_center = KnowledgeCenter(
             ArchivesResolutionMemory(RepairSessionStore(workspace))
@@ -3344,7 +3348,7 @@ class MainWindow(QMainWindow):
         elif self.stack.currentWidget() is self.activity_center:
             self.activity_center.refresh()
         elif self.stack.currentWidget() is self.guardian_center:
-            self._revalidate_guardian_nexus_review()
+            self._revalidate_guardian_review_contexts()
             self.guardian_center.request_refresh()
         elif self.stack.currentWidget() is self.live_console:
             self.live_console.refresh()
@@ -3438,23 +3442,58 @@ class MainWindow(QMainWindow):
             return
         self._navigate_route("guardian_core")
 
-    def _revalidate_guardian_nexus_review(self) -> None:
-        """Expire a retained plan card if its source-bound identity has changed."""
+    @Slot(str, str)
+    def _open_backup_guardian_review(self, plan_id: str, plan_digest: str) -> None:
+        """Revalidate one recovery plan before showing evidence-only Guardian context."""
+
+        trusted = self.backup_center.plan_store.load_latest()
+        data = trusted.data
+        if (
+            not trusted.valid
+            or not trusted.integrity_verified
+            or not isinstance(data, dict)
+            or data.get("plan_id") != plan_id
+            or data.get("plan_digest") != plan_digest
+            or not self.guardian_center.open_backup_review(trusted)
+        ):
+            self.backup_center.guardian_handoff_stopped(
+                "The requested recovery plan did not match the latest integrity-verified evidence"
+            )
+            return
+        self._navigate_route("guardian_core")
+
+    def _revalidate_guardian_review_contexts(self) -> None:
+        """Expire retained review cards when their exact evidence identity changes."""
 
         identity = self.guardian_center.nexus_review_identity
-        if identity is None:
+        if identity is not None:
+            project_id, plan_digest = identity
+            trusted = self.nexus_center.planner.plans.load(project_id)
+            if (
+                trusted is None
+                or trusted.plan_digest != plan_digest
+                or not trusted.ready_for_guardian_review
+                or trusted.execution_authorized
+                or trusted.bootloader_relock_permitted
+            ):
+                self.guardian_center.nexus_review_stopped(
+                    "The saved plan no longer matches current source-bound evidence."
+                )
+        backup_identity = self.guardian_center.backup_review_identity
+        if backup_identity is None:
             return
-        project_id, plan_digest = identity
-        trusted = self.nexus_center.planner.plans.load(project_id)
+        backup_plan_id, backup_digest = backup_identity
+        loaded = self.backup_center.plan_store.load_latest()
+        data = loaded.data
         if (
-            trusted is None
-            or trusted.plan_digest != plan_digest
-            or not trusted.ready_for_guardian_review
-            or trusted.execution_authorized
-            or trusted.bootloader_relock_permitted
+            not loaded.valid
+            or not loaded.integrity_verified
+            or not isinstance(data, dict)
+            or data.get("plan_id") != backup_plan_id
+            or data.get("plan_digest") != backup_digest
         ):
-            self.guardian_center.nexus_review_stopped(
-                "The saved plan no longer matches current source-bound evidence."
+            self.guardian_center.backup_review_stopped(
+                "The saved recovery plan no longer matches the latest integrity-verified evidence."
             )
 
     def _navigation_commands(self) -> tuple[NavigationCommand, ...]:

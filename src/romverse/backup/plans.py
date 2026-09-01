@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -36,6 +37,33 @@ class GuardianBackupPlanStore:
     FORMAT = "romverse.guardian-recovery-readiness-plan"
     SCHEMA_VERSION = 2
     MAXIMUM_BYTES = 1 << 20
+    CURRENT_FIELDS = frozenset(
+        {
+            "format",
+            "schema_version",
+            "plan_id",
+            "created_at",
+            "device_key",
+            "device_name",
+            "status",
+            "execution_locked",
+            "execution_authority",
+            "phone_data_copied",
+            "scope",
+            "future_backup_scope",
+            "readiness",
+            "plan_digest",
+        }
+    )
+    READINESS_FIELDS = frozenset(
+        {
+            "adb_authorized",
+            "battery_percent",
+            "storage_percent_used",
+            "bootloader_locked",
+            "verified_boot",
+        }
+    )
 
     def __init__(self, workspace: Path) -> None:
         self.workspace = workspace
@@ -112,7 +140,58 @@ class GuardianBackupPlanStore:
             return BackupPlanRead(False, False, "Recovery-readiness safety boundary is invalid")
         if data.get("phone_data_copied") is not False:
             return BackupPlanRead(False, False, "Plan contains an unsupported backup claim")
+        if not self._valid_current_data(data):
+            return BackupPlanRead(
+                False,
+                False,
+                "Recovery-readiness plan schema or typed evidence is invalid",
+            )
         return BackupPlanRead(True, True, "Plan integrity verified", data)
+
+    @classmethod
+    def _valid_current_data(cls, data: dict[str, object]) -> bool:
+        if set(data) != cls.CURRENT_FIELDS:
+            return False
+        readiness = data.get("readiness")
+        if not isinstance(readiness, dict) or set(readiness) != cls.READINESS_FIELDS:
+            return False
+        try:
+            created = datetime.fromisoformat(str(data.get("created_at", "")))
+        except ValueError:
+            return False
+        battery = readiness.get("battery_percent")
+        storage = readiness.get("storage_percent_used")
+        bootloader = readiness.get("bootloader_locked")
+        verified_boot = readiness.get("verified_boot")
+        device_name = data.get("device_name")
+        return bool(
+            re.fullmatch(r"[0-9a-f]{24}", str(data.get("plan_id", "")))
+            and re.fullmatch(r"[0-9a-f]{20}", str(data.get("device_key", "")))
+            and re.fullmatch(r"[0-9a-f]{64}", str(data.get("plan_digest", "")))
+            and created.tzinfo is not None
+            and isinstance(device_name, str)
+            and "\x00" not in device_name
+            and device_name == device_name.strip()
+            and 1 <= len(device_name) <= 240
+            and data.get("status") == "review_required"
+            and data.get("execution_locked") is True
+            and data.get("execution_authority") == "none"
+            and data.get("phone_data_copied") is False
+            and data.get("scope") == ["recovery readiness evidence only"]
+            and data.get("future_backup_scope") == ["user data", "app data", "device configuration"]
+            and readiness.get("adb_authorized") is True
+            and cls._percent_or_none(battery)
+            and cls._percent_or_none(storage)
+            and (bootloader is None or type(bootloader) is bool)
+            and isinstance(verified_boot, str)
+            and "\x00" not in verified_boot
+            and verified_boot == verified_boot.strip().casefold()
+            and len(verified_boot) <= 32
+        )
+
+    @staticmethod
+    def _percent_or_none(value: object) -> bool:
+        return value is None or (type(value) is int and 0 <= value <= 100)
 
     def history_count(self) -> int:
         if not self.root.is_dir():

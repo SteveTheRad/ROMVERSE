@@ -87,6 +87,7 @@ class GuardianCenterWorker(ManagedRunnable):
 
 class GuardianCenter(QWidget):
     nexus_requested = Signal()
+    time_machine_requested = Signal()
     REFRESH_DEBOUNCE_MS = 250
 
     def __init__(self, audit: GuardianAuditStore | None, *, auto_start: bool = True) -> None:
@@ -94,6 +95,7 @@ class GuardianCenter(QWidget):
         self.audit = audit
         self.worker: GuardianCenterWorker | None = None
         self._nexus_review_identity: tuple[str, str] | None = None
+        self._backup_review_identity: tuple[str, str] | None = None
         self._refresh_pending = False
         self._refresh_timer = QTimer(self)
         self._refresh_timer.setSingleShot(True)
@@ -151,6 +153,35 @@ class GuardianCenter(QWidget):
         review_layout.addWidget(self.nexus_review_detail)
         self.nexus_review.setVisible(False)
         page.addWidget(self.nexus_review)
+
+        self.backup_review = QFrame()
+        self.backup_review.setObjectName("BackupReviewCard")
+        backup_layout = QVBoxLayout(self.backup_review)
+        backup_layout.setContentsMargins(20, 16, 20, 16)
+        backup_layout.setSpacing(8)
+        backup_header = QHBoxLayout()
+        self.backup_review_eyebrow = QLabel("TIME MACHINE PLAN REVIEW  •  EVIDENCE ONLY")
+        self.backup_review_eyebrow.setObjectName("Eyebrow")
+        backup_header.addWidget(self.backup_review_eyebrow, 1)
+        self.backup_review_badge = QLabel("ZERO AUTHORITY")
+        self.backup_review_badge.setObjectName("Warning")
+        backup_header.addWidget(self.backup_review_badge)
+        self.backup_return_button = QPushButton("Return to Time Machine")
+        self.backup_return_button.clicked.connect(self.time_machine_requested)
+        backup_header.addWidget(self.backup_return_button)
+        backup_layout.addLayout(backup_header)
+        self.backup_review_title = QLabel()
+        self.backup_review_title.setObjectName("SectionTitle")
+        backup_layout.addWidget(self.backup_review_title)
+        self.backup_review_detail = QLabel()
+        self.backup_review_detail.setObjectName("Muted")
+        self.backup_review_detail.setWordWrap(True)
+        self.backup_review_detail.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        backup_layout.addWidget(self.backup_review_detail)
+        self.backup_review.setVisible(False)
+        page.addWidget(self.backup_review)
 
         self.hero = QFrame()
         self.hero.setObjectName("HeroCard")
@@ -223,6 +254,7 @@ class GuardianCenter(QWidget):
         clean_name = " ".join(project_name.replace("\x00", "").split())[:80]
         if not clean_name:
             return False
+        self.clear_backup_review()
         objective = {
             NexusObjective.BUILD_ROM: "Build a ROM",
             NexusObjective.ROOT_ROM: "Prepare optional root",
@@ -270,6 +302,85 @@ class GuardianCenter(QWidget):
         self.nexus_review_badge.setText("ZERO AUTHORITY")
         self.nexus_review_badge.setObjectName("Warning")
         self._repolish(self.nexus_review_badge)
+
+    def open_backup_review(self, plan: BackupPlanRead) -> bool:
+        """Present one integrity-verified readiness plan without granting authority."""
+
+        if not isinstance(plan, BackupPlanRead):
+            return False
+        data = plan.data
+        if (
+            not plan.valid
+            or not plan.integrity_verified
+            or not isinstance(data, dict)
+            or data.get("execution_locked") is not True
+            or data.get("execution_authority") != "none"
+            or data.get("phone_data_copied") is not False
+        ):
+            return False
+        plan_id = data.get("plan_id")
+        plan_digest = data.get("plan_digest")
+        device_name = data.get("device_name")
+        readiness = data.get("readiness")
+        if (
+            not isinstance(plan_id, str)
+            or not isinstance(plan_digest, str)
+            or not isinstance(device_name, str)
+            or not isinstance(readiness, dict)
+        ):
+            return False
+        clean_name = " ".join(device_name.replace("\x00", "").split())[:240]
+        if not clean_name:
+            return False
+        self.clear_nexus_review()
+        self.backup_review_title.setText(f"Recovery readiness  •  {clean_name}")
+        self.backup_review_badge.setText("ZERO AUTHORITY")
+        self.backup_review_badge.setObjectName("Warning")
+        self._repolish(self.backup_review_badge)
+        battery = readiness.get("battery_percent")
+        storage = readiness.get("storage_percent_used")
+        self.backup_review_detail.setText(
+            f"Plan {plan_id}  •  SHA-256 {plan_digest[:16]}…  •  "
+            f"created {_display_time(str(data.get('created_at', '')))}\n"
+            "READINESS EVIDENCE  •  "
+            f"ADB authorized: {'yes' if readiness.get('adb_authorized') is True else 'no'}  •  "
+            f"Battery: {battery if battery is not None else 'unknown'}%  •  "
+            f"Storage used: {storage if storage is not None else 'unknown'}%  •  "
+            f"Bootloader locked: {_display_bool(readiness.get('bootloader_locked'))}  •  "
+            f"Verified Boot: {readiness.get('verified_boot') or 'unknown'}\n"
+            "REVIEW BOUNDARY  •  Recovery-readiness evidence only  •  Phone data copied: no  •  "
+            "Approval: none  •  Execution: none"
+        )
+        self._backup_review_identity = (plan_id, plan_digest)
+        self.backup_review.setVisible(True)
+        return True
+
+    @property
+    def backup_review_identity(self) -> tuple[str, str] | None:
+        return self._backup_review_identity
+
+    def backup_review_stopped(self, reason: str) -> None:
+        """Expire a retained recovery plan visibly and without retaining authority."""
+
+        self._backup_review_identity = None
+        self.backup_review_title.setText("Recovery-readiness context expired safely")
+        self.backup_review_detail.setText(
+            f"{reason}\nRefresh and reopen the plan from Time Machine. Approval: none  •  "
+            "Execution: none  •  No action started."
+        )
+        self.backup_review_badge.setText("CONTEXT REFUSED")
+        self.backup_review_badge.setObjectName("Danger")
+        self._repolish(self.backup_review_badge)
+        self.backup_review.setVisible(True)
+
+    def clear_backup_review(self) -> None:
+        self._backup_review_identity = None
+        self.backup_review.setVisible(False)
+        self.backup_review_title.clear()
+        self.backup_review_detail.clear()
+        self.backup_review_badge.setText("ZERO AUTHORITY")
+        self.backup_review_badge.setObjectName("Warning")
+        self._repolish(self.backup_review_badge)
 
     @staticmethod
     def _metric(label: str) -> tuple[QFrame, QLabel]:
@@ -549,3 +660,11 @@ def _display_time(value: str) -> str:
         return datetime.fromisoformat(value).astimezone().strftime("%d %b %Y • %H:%M:%S")
     except ValueError:
         return "Unknown time"
+
+
+def _display_bool(value: object) -> str:
+    if value is True:
+        return "yes"
+    if value is False:
+        return "no"
+    return "unknown"

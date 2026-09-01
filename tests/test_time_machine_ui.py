@@ -145,6 +145,72 @@ def test_time_machine_accepts_live_string_verified_boot_and_records_real_plan(tm
     center.close()
 
 
+def test_time_machine_emits_only_the_exact_verified_guardian_plan_identity(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = BackupCenter(tmp_path)
+    center.set_devices(
+        [
+            AndroidDevice(
+                serial="private-serial",
+                state=DeviceState.DEVICE,
+                manufacturer="Xiaomi",
+                model="Test Phone",
+                battery_percent=90,
+                storage=StorageInfo(percent_used=30),
+                bootloader_locked=True,
+                verified_boot="green",
+            )
+        ]
+    )
+    with patch("romverse.ui.backup_center.QMessageBox.information"):
+        center.plan_button.click()
+    loaded = center.plan_store.load_latest()
+    assert loaded.data is not None
+    requested: list[tuple[str, str]] = []
+    center.guardian_requested.connect(lambda plan_id, digest: requested.append((plan_id, digest)))
+
+    center.guardian_button.click()
+    app.processEvents()
+
+    assert requested == [(loaded.data["plan_id"], loaded.data["plan_digest"])]
+    assert "Approval: none" in center.result.text()
+    assert "Execution: none" in center.result.text()
+    center.close()
+
+
+def test_time_machine_refuses_a_plan_tampered_after_it_was_enabled(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = BackupCenter(tmp_path)
+    center.set_devices(
+        [
+            AndroidDevice(
+                serial="private-serial",
+                state=DeviceState.DEVICE,
+                manufacturer="Xiaomi",
+                model="Test Phone",
+                battery_percent=90,
+                storage=StorageInfo(percent_used=30),
+            )
+        ]
+    )
+    with patch("romverse.ui.backup_center.QMessageBox.information"):
+        center.plan_button.click()
+    requested: list[tuple[str, str]] = []
+    center.guardian_requested.connect(lambda plan_id, digest: requested.append((plan_id, digest)))
+    data = json.loads(center.plan_store.latest_path.read_text(encoding="utf-8"))
+    data["phone_data_copied"] = True
+    center.plan_store.latest_path.write_text(json.dumps(data), encoding="utf-8")
+
+    center.guardian_button.click()
+    app.processEvents()
+
+    assert requested == []
+    assert not center.guardian_button.isEnabled()
+    assert "GUARDIAN HANDOFF STOPPED" in center.result.text()
+    assert "No review context or action was created" in center.result.text()
+    center.close()
+
+
 def test_time_machine_resolves_runtime_in_place_before_real_local_backup(
     tmp_path, monkeypatch
 ) -> None:

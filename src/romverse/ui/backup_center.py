@@ -143,6 +143,7 @@ class BackupCenter(QWidget):
 
     live_console_changed = Signal()
     runtime_tools_requested = Signal()
+    guardian_requested = Signal(str, str)
 
     def __init__(
         self,
@@ -218,6 +219,13 @@ class BackupCenter(QWidget):
         self.review_button.setEnabled(False)
         self.review_button.clicked.connect(self._review_latest_plan)
         readiness_layout.addWidget(self.review_button)
+        self.guardian_button = QPushButton("Review plan in Guardian Core")
+        self.guardian_button.setToolTip(
+            "Reverify and open the exact current readiness plan as evidence-only Guardian context."
+        )
+        self.guardian_button.setEnabled(False)
+        self.guardian_button.clicked.connect(self._open_guardian_review)
+        readiness_layout.addWidget(self.guardian_button)
         phone_backup_title = QLabel("PHONE BACKUP TO LOCAL DRIVE")
         phone_backup_title.setObjectName("SectionTitle")
         readiness_layout.addWidget(phone_backup_title)
@@ -586,6 +594,7 @@ class BackupCenter(QWidget):
             self._repolish(self.result)
             return
         self.review_button.setEnabled(True)
+        self.guardian_button.setEnabled(True)
         history_count = self.plan_store.history_count()
         self.result.setObjectName("Good")
         self.result.setText(
@@ -605,6 +614,7 @@ class BackupCenter(QWidget):
 
     def _load_latest_plan(self) -> None:
         loaded = self.plan_store.load_latest()
+        self.guardian_button.setEnabled(False)
         if not loaded.valid or loaded.data is None:
             if self.plan_store.latest_path.exists():
                 self.result.setObjectName("Danger")
@@ -621,6 +631,38 @@ class BackupCenter(QWidget):
         )
         self._repolish(self.result)
         self.review_button.setEnabled(True)
+        self.guardian_button.setEnabled(loaded.integrity_verified)
+
+    def _open_guardian_review(self) -> None:
+        loaded = self.plan_store.load_latest()
+        data = loaded.data
+        plan_id = data.get("plan_id") if data is not None else None
+        plan_digest = data.get("plan_digest") if data is not None else None
+        if (
+            not loaded.valid
+            or not loaded.integrity_verified
+            or not isinstance(plan_id, str)
+            or not isinstance(plan_digest, str)
+        ):
+            self.guardian_button.setEnabled(False)
+            self.guardian_handoff_stopped(loaded.reason)
+            return
+        self.result.setObjectName("Good")
+        self.result.setText(
+            f"GUARDIAN REVIEW CONTEXT READY  •  Plan {plan_id}  •  "
+            f"SHA-256 {plan_digest[:16]}…  •  Approval: none  •  Execution: none"
+        )
+        self._repolish(self.result)
+        self.guardian_requested.emit(plan_id, plan_digest)
+
+    def guardian_handoff_stopped(self, reason: str) -> None:
+        """Keep a failed Guardian handoff visible without relying on notifications."""
+
+        self.result.setObjectName("Danger")
+        self.result.setText(
+            f"GUARDIAN HANDOFF STOPPED  •  {reason}  •  No review context or action was created"
+        )
+        self._repolish(self.result)
 
     def refresh_local_snapshots(self, select_project_id: str = "") -> None:
         current_id = select_project_id or str(self.project_selector.currentData() or "")

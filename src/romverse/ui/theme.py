@@ -64,6 +64,10 @@ QFrame#NexusReviewCard {
     background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(31,16,58,248),stop:0.52 rgba(8,21,43,246),stop:1 rgba(5,35,43,244));
     border: 1px solid rgba(65, 222, 236, 185); border-left: 4px solid #B45CFF; border-radius: 11px;
 }
+QFrame#BackupReviewCard {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(14,32,55,248),stop:0.55 rgba(15,18,48,246),stop:1 rgba(37,15,54,244));
+    border: 1px solid rgba(178, 94, 255, 185); border-left: 4px solid #42DDEA; border-radius: 11px;
+}
 QFrame#Card[diagnosticFocus="true"] {
     background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(31,16,58,248),stop:1 rgba(5,31,43,248));
     border: 2px solid #42DDEA; border-left: 4px solid #B45CFF;

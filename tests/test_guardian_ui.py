@@ -193,3 +193,27 @@ def test_guardian_presents_nexus_plan_as_zero_authority_review_context(tmp_path)
     assert all(requirement in detail for requirement in plan.guardian_requirements)
     assert center.nexus_review_badge.text() == "ZERO AUTHORITY"
     center.close()
+
+
+def test_guardian_presents_recovery_plan_as_zero_authority_evidence(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    store = GuardianBackupPlanStore(tmp_path)
+    record = store.create(_device())
+    loaded = store.load_latest()
+    center = GuardianCenter(GuardianAuditStore(tmp_path), auto_start=False)
+
+    assert center.open_backup_review(loaded)
+    assert not center.backup_review.isHidden()
+    assert center.nexus_review.isHidden()
+    assert center.backup_review_identity == (record.plan_id, record.plan_digest)
+    assert center.backup_review_badge.text() == "ZERO AUTHORITY"
+    assert "Test Phone" in center.backup_review_title.text()
+    detail = center.backup_review_detail.text()
+    assert record.plan_id in detail
+    assert record.plan_digest[:16] in detail
+    assert "ADB authorized: yes" in detail
+    assert "Verified Boot: green" in detail
+    assert "Phone data copied: no" in detail
+    assert "Approval: none" in detail
+    assert "Execution: none" in detail
+    center.close()

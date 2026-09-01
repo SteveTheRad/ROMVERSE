@@ -284,7 +284,11 @@ the firmware remains visible as UNSUPPORTED instead of being filtered out.
 draws the Understand → Research → Nexus Plan → Guardian Review → Execute → Nexus Verification
 route; Foresight predicts affected areas, dependencies, and required verification; Insight explains
 each decision and can export a privacy-scrubbed timeline. Build, optional Ascension root preparation,
-and Guardian flash-review objectives are planned without granting execution authority. The genuine
+and Guardian flash-review objectives are planned without granting execution authority. When the
+project or either evidence record is absent, Nexus shows the exact missing prerequisite and connects
+to a verified Archives guide or ROM Studio without creating a plan, starting a worker, or touching a
+phone. Native tables, lists, trees, text editors, and scrolling surfaces use explicit dark viewport
+styling so the Desktop remains readable under host themes. The genuine
 **Live Console** records tamper-detecting ROM Studio, Device DNA, Compatibility Matrix, and Nexus
 events with real progress and explicit success/failure states instead of decorative activity.
 Nexus Plans are private bounded strict schema-two records. Every load re-derives understanding,

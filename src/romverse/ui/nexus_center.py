@@ -37,6 +37,7 @@ class NexusCenter(QWidget):
     plan_updated = Signal(object)
     guardian_requested = Signal(str, str)
     rom_studio_requested = Signal()
+    knowledge_article_requested = Signal(str)
 
     OBJECTIVES = {
         "Build a ROM": NexusObjective.BUILD_ROM,
@@ -115,11 +116,46 @@ class NexusCenter(QWidget):
         controls_layout.addWidget(self.status)
         page.addWidget(controls)
 
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
-        host = QWidget()
-        self.content = QVBoxLayout(host)
+        self.evidence_handoff = QFrame()
+        self.evidence_handoff.setObjectName("DiagnosticHandoffBar")
+        handoff_layout = QHBoxLayout(self.evidence_handoff)
+        handoff_layout.setContentsMargins(18, 13, 18, 13)
+        handoff_copy = QVBoxLayout()
+        handoff_eyebrow = QLabel("NEXUS EVIDENCE PATH  •  NO PLAN GENERATED")
+        handoff_eyebrow.setObjectName("Eyebrow")
+        self.evidence_handoff_title = QLabel()
+        self.evidence_handoff_title.setObjectName("SectionTitle")
+        self.evidence_handoff_detail = QLabel()
+        self.evidence_handoff_detail.setObjectName("Muted")
+        self.evidence_handoff_detail.setWordWrap(True)
+        handoff_copy.addWidget(handoff_eyebrow)
+        handoff_copy.addWidget(self.evidence_handoff_title)
+        handoff_copy.addWidget(self.evidence_handoff_detail)
+        handoff_layout.addLayout(handoff_copy, 1)
+        handoff_badge = QLabel("EVIDENCE REQUIRED  •  ZERO AUTHORITY")
+        handoff_badge.setObjectName("Warning")
+        handoff_layout.addWidget(handoff_badge)
+        handoff_actions = QVBoxLayout()
+        self.evidence_guide_button = QPushButton("Open verified evidence guide")
+        self.evidence_guide_button.clicked.connect(
+            lambda: self.knowledge_article_requested.emit("nexus-evidence-prerequisites")
+        )
+        self.evidence_studio_button = QPushButton("Open ROM Studio")
+        self.evidence_studio_button.setObjectName("Primary")
+        self.evidence_studio_button.clicked.connect(self.rom_studio_requested)
+        handoff_actions.addWidget(self.evidence_guide_button)
+        handoff_actions.addWidget(self.evidence_studio_button)
+        handoff_layout.addLayout(handoff_actions)
+        self.evidence_handoff.setVisible(False)
+        page.addWidget(self.evidence_handoff)
+
+        self.scroll = QScrollArea()
+        self.scroll.setObjectName("NexusScroll")
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.scroll_host = QWidget()
+        self.scroll_host.setObjectName("ScrollContent")
+        self.content = QVBoxLayout(self.scroll_host)
         self.content.setContentsMargins(0, 0, 6, 12)
         self.content.setSpacing(14)
 
@@ -171,8 +207,8 @@ class NexusCenter(QWidget):
         insight_layout.addLayout(actions)
         self.content.addWidget(self.insight_card)
         self.content.addStretch(1)
-        scroll.setWidget(host)
-        page.addWidget(scroll, 1)
+        self.scroll.setWidget(self.scroll_host)
+        page.addWidget(self.scroll, 1)
         self._objective_changed(self.objective.currentText())
         self.refresh()
 
@@ -191,6 +227,15 @@ class NexusCenter(QWidget):
             self.current_plan = None
             self.generate_button.setEnabled(False)
             self.status.setText("No ROM project exists yet. Create and import one in ROM Studio.")
+            self.status.setObjectName("Warning")
+            self._repolish(self.status)
+            self._set_evidence_handoff(
+                "Start with one protected ROM project",
+                "Nexus needs a project and protected firmware source before it can derive Device "
+                "DNA or a Compatibility Matrix. Open the verified guide for the evidence path, "
+                "or continue to ROM Studio. No plan, approval, worker, or phone action has started.",
+                True,
+            )
             self._render(None)
             return
         self.project_selector.setCurrentIndex(selected)
@@ -222,12 +267,20 @@ class NexusCenter(QWidget):
         profile = DeviceDnaStore(self.store).load(project_id)
         matrix = CompatibilityMatrixStore(self.store).load(project_id)
         if profile is None or matrix is None:
+            missing = self._missing_evidence(profile is None, matrix is None)
             self.status.setText(
                 "Nexus needs current Device DNA and a Compatibility Matrix. Open ROM Studio; "
                 "ROMVERSE will generate both automatically from protected evidence."
             )
             self.status.setObjectName("Warning")
             self._repolish(self.status)
+            self._set_evidence_handoff(
+                "Complete the project's evidence chain",
+                f"Missing for {self.project_selector.currentText()}: {missing}. ROM Studio can "
+                "derive these records from the protected source; Nexus will not infer them from "
+                "a live phone or catalog identity. No plan or phone action has started.",
+                True,
+            )
             return
         try:
             plan = self.planner.plan(
@@ -242,6 +295,7 @@ class NexusCenter(QWidget):
             self._repolish(self.status)
             return
         self.current_plan = plan
+        self._set_evidence_handoff("", "", False)
         self._render(plan)
         self.plan_updated.emit(plan)
 
@@ -305,19 +359,43 @@ class NexusCenter(QWidget):
         profile = DeviceDnaStore(self.store).load(project_id)
         matrix = CompatibilityMatrixStore(self.store).load(project_id)
         self.generate_button.setEnabled(profile is not None and matrix is not None)
-        self.current_plan = self.planner.plans.load(project_id)
         if profile is None or matrix is None:
+            self.current_plan = None
+            missing = self._missing_evidence(profile is None, matrix is None)
             self.status.setText(
                 "Evidence pending  •  Open ROM Studio to create Device DNA and Compatibility Matrix."
             )
             self.status.setObjectName("Warning")
+            self._set_evidence_handoff(
+                "Complete Device DNA and Compatibility Matrix",
+                f"Missing for {self.projects[index].name}: {missing}. ROM Studio derives the "
+                "records from this exact protected project and source. Nexus grants no approval "
+                "and will not generate a route until both records are current.",
+                True,
+            )
         else:
+            self.current_plan = self.planner.plans.load(project_id)
             self.status.setText(
                 "Evidence ready  •  Nexus can create a route without changing the ROM or phone."
             )
             self.status.setObjectName("Good")
+            self._set_evidence_handoff("", "", False)
         self._repolish(self.status)
         self._render(self.current_plan)
+
+    @staticmethod
+    def _missing_evidence(profile_missing: bool, matrix_missing: bool) -> str:
+        missing = []
+        if profile_missing:
+            missing.append("Device DNA")
+        if matrix_missing:
+            missing.append("Compatibility Matrix")
+        return " and ".join(missing)
+
+    def _set_evidence_handoff(self, title: str, detail: str, visible: bool) -> None:
+        self.evidence_handoff_title.setText(title)
+        self.evidence_handoff_detail.setText(detail)
+        self.evidence_handoff.setVisible(visible)
 
     def _objective_changed(self, label: str) -> None:
         self.flash_mode.setVisible(self.OBJECTIVES[label] is NexusObjective.FLASH_DEVICE)

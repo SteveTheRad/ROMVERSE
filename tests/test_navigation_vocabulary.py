@@ -563,6 +563,33 @@ def test_typed_advisor_handoff_opens_the_exact_archives_identity(tmp_path: Path)
         window.close()
 
 
+def test_nexus_missing_evidence_opens_exact_guide_then_rom_studio(tmp_path: Path) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
+    try:
+        assert window.nexus_center.current_plan is None
+        assert not window.nexus_center.generate_button.isEnabled()
+        window.nexus_center.evidence_guide_button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.knowledge_center
+        assert window.knowledge_center.list.count() == 1
+        assert window.knowledge_center.search.text() == (
+            "Nexus cannot generate a plan because project evidence is missing"
+        )
+        assert window.knowledge_center.open_route.property("route") == "rom_studio"
+        assert "NO PLAN, APPROVAL, OR EXECUTION" in (window.knowledge_center.detail.toPlainText())
+        window.knowledge_center.open_route.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.rom_studio
+        assert window.nexus_center.current_plan is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
 def test_optimizer_exact_finding_opens_matching_recovery_plan(tmp_path: Path) -> None:
     app = QApplication.instance() or QApplication([])
     logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"

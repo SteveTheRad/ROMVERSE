@@ -107,6 +107,10 @@ current Device DNA and Compatibility Matrix evidence on every load. ROM DNA inde
 its project/Pack/source/tree/Recipe provenance. Re-digested edits, stale bindings and schema tricks
 cannot grant execution or bootloader relocking; valid schema-one evidence upgrades only at a genuine
 replanning or verified-save boundary.
+Nexus refuses to generate a plan when the protected project, current Device DNA, or Compatibility
+Matrix is absent. The visible evidence path names the missing record and opens either the exact
+structured Archives guide or ROM Studio; navigation and evidence refresh grant no plan, approval,
+worker, execution, or phone authority.
 
 ### Pathfinder, Foresight, and Insight
 
@@ -396,7 +400,7 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   `confirmed working`; schema-two outcomes additionally bind the exact persisted error-fingerprint
   candidate to a format-specific ADB-host, exact-toolchain, OTA-source, or AVB receipt, revalidate
   that evidence on load, and deny promotion to legacy digest-only outcomes;
-  Desktop ROMVERSE Archives expanded into a validated 112-guide, ten-category local catalog with 62
+  Desktop ROMVERSE Archives expanded into a validated 113-guide, ten-category local catalog with 63
   structured known-fix records, 35 official-source-linked records, bounded ranked retrieval, weak-
   match rejection, category filtering, source visibility, and canonical workspace handoffs;
   a deterministic Archives Advisor now maps every Recovery Bay concern and typed actionable
@@ -413,7 +417,10 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   Console readiness event whose source returns to Device Atlas; Time Machine refuses to invent a
   missing protected-firmware project and connects back to ROM Studio without starting a worker or
   phone action; shared dark item-view styling prevents native light list/tree/table viewports from
-  breaking Desktop readability;
+  breaking Desktop readability, while explicit text-editor and scroll-viewport styling closes the
+  same host-theme leak across Galaxy, Nexus, and Forge Arsenal; Nexus also exposes an exact
+  no-project/Device-DNA/Compatibility-Matrix evidence path into the verified Archives guide or ROM
+  Studio without generating a plan or starting a worker;
   Quantum Optimizer's exact actionable finding identity now selects the deterministic matching
   Recovery Bay concern only when the finding remains present in Recovery Bay's current report,
   displays a source-context/no-action-started boundary, clears that context on manual category

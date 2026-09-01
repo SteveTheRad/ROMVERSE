@@ -1590,6 +1590,42 @@ KNOWN_FIXES = (
         automation="DETERMINISTIC GUIDANCE AND ROUTING ONLY • NO APPROVAL OR EXECUTION AUTHORITY",
         source=ROMVERSE_SOURCE,
     ),
+    _fix(
+        "nexus-evidence-prerequisites",
+        "Nexus cannot generate a plan because project evidence is missing",
+        "ROMVERSE WORKFLOWS",
+        "Nexus plans only from one protected ROM project with current Device DNA and a "
+        "Compatibility Matrix. A connected phone or official catalog identity is useful context, "
+        "but neither proves the protected firmware, partition layout, or compatibility decisions "
+        "needed for an evidence-bound plan.",
+        checks=(
+            "Confirm ROM Studio contains the intended project and an integrity-verified protected firmware source.",
+            "Confirm Device DNA belongs to that exact project, source digest, and active Device Pack context.",
+            "Confirm the Compatibility Matrix was derived from the current Device DNA and protected source rather than an older project state.",
+        ),
+        fix_steps=(
+            "Open ROM Studio and create or import the intended project without changing its protected source.",
+            "Complete the read-only inspection so ROMVERSE can derive current Device DNA and the Compatibility Matrix from exact evidence.",
+            "Return to Nexus, refresh evidence, review the selected project identity, and generate a plan only when both records report ready.",
+        ),
+        verification=(
+            "Nexus selects the intended project and reports Evidence ready.",
+            "Generate Nexus Plan is enabled, but no plan exists until the user explicitly chooses it.",
+            "The evidence path grants no Guardian approval, execution authority, build worker, or phone action.",
+        ),
+        tags=(
+            "nexus evidence missing",
+            "nexus cannot generate plan",
+            "device dna missing",
+            "compatibility matrix missing",
+            "no rom project",
+            "nexus prerequisites",
+        ),
+        route="rom_studio",
+        evidence="ROMVERSE re-derives Nexus decisions only from the exact current protected project, Device DNA, and Compatibility Matrix records.",
+        automation="EXACT NAVIGATION AND EVIDENCE REFRESH ONLY • NO PLAN, APPROVAL, OR EXECUTION",
+        source=ROMVERSE_SOURCE,
+    ),
 )
 
 

@@ -196,6 +196,18 @@ QPushButton#StudioAction:disabled {
 }
 QComboBox, QLineEdit { background: #0B1022; border: 1px solid #2B3C70; border-radius: 8px; padding: 8px; }
 QComboBox::drop-down { border: 0; }
+QTextEdit, QPlainTextEdit, QTextBrowser {
+    color: #DCE8F8;
+    background: #060B16;
+    border: 1px solid #29466F;
+    border-radius: 9px;
+    padding: 7px;
+    selection-color: #FFFFFF;
+    selection-background-color: #523B9B;
+}
+QTextEdit:disabled, QPlainTextEdit:disabled, QTextBrowser:disabled {
+    color: #65708C; background: #080D18; border-color: #25334E;
+}
 QAbstractItemView {
     color: #DCE8F8;
     background: #060B16;
@@ -223,6 +235,9 @@ QProgressBar::chunk { background: #4F7CFF; border-radius: 4px; }
 QProgressBar#FlightPlanProgress { min-height: 18px; color: #F5F8FF; font-size: 10px; font-weight: 750; }
 QProgressBar#FlightPlanProgress::chunk { background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #8C45E8,stop:0.55 #536FFF,stop:1 #2ADCEB); }
 QScrollArea, QWidget#ScrollContent { border: 0; background: transparent; }
+QScrollArea > QWidget, QScrollArea > QWidget > QWidget { background: transparent; }
+QScrollArea#NexusScroll, QScrollArea#NexusScroll > QWidget,
+QScrollArea#NexusScroll > QWidget > QWidget { background: #02050A; }
 QScrollBar:vertical { background: #090D1D; width: 10px; margin: 0; }
 QScrollBar::handle:vertical { background: #31467F; border-radius: 5px; min-height: 36px; }
 QScrollBar::handle:vertical:hover { background: #4F7CFF; }

@@ -575,6 +575,12 @@ coerced, linked, oversized or re-digested changed plans fail closed. Execution a
 authority remain false. Adaptation retains only a bounded previous-plan ID and evidence-backed
 reason; valid schema-one plans upgrade through fresh replanning.
 
+Before planning, Nexus must visibly distinguish a missing project, missing Device DNA, and missing
+Compatibility Matrix. Its exact evidence-recovery handoff opens a structured Archives article or
+ROM Studio and must not create a plan, start a worker, infer project evidence from a connected phone
+or device catalog, or grant Guardian authority. Desktop-native item views, text editors, and scroll
+viewports must retain explicit high-contrast dark surfaces independent of the operating-system theme.
+
 ROM DNA separately binds current project ID, Device Pack association, protected-source hash,
 working-tree plan hash and Recipe digest. Its schema-two record is bounded, private, atomic and
 digested, but the loader also re-derives current ROM DNA before returning it. Thus a correctly

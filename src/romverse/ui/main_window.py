@@ -2655,6 +2655,7 @@ class MainWindow(QMainWindow):
         self.nexus_center = NexusCenter(self.rom_studio.store)
         self.stack.addWidget(self.nexus_center)
         self.nexus_center.guardian_requested.connect(self._open_nexus_guardian_review)
+        self.nexus_center.knowledge_article_requested.connect(self._open_knowledge_article)
         self.nexus_center.rom_studio_requested.connect(lambda: self._navigate_route("rom_studio"))
         self.nexus_center.plan_updated.connect(self._record_nexus_plan)
         self.guardian_center.nexus_requested.connect(lambda: self._navigate_route("nexus"))

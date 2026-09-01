@@ -9,6 +9,7 @@ from PySide6.QtWidgets import QApplication
 
 from romverse.galaxy.store import GalaxySort
 from romverse.ui.galaxy_center import GalaxyCenter, NewTopicDialog
+from romverse.ui.theme import STYLESHEET
 
 
 def test_galaxy_center_renders_and_updates_real_local_conversations(tmp_path) -> None:
@@ -96,4 +97,23 @@ def test_new_topic_dialog_recovers_private_local_draft(tmp_path) -> None:
     assert restored.body_input.toPlainText() == "Keep this evidence if the dialog closes."
     assert "restored" in restored.draft_status.text().casefold()
     restored.close()
+    center.close()
+
+
+def test_galaxy_editors_render_with_explicit_dark_theme_surfaces(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    app.setStyleSheet(STYLESHEET)
+    center = GalaxyCenter(tmp_path)
+    dialog = NewTopicDialog(center.store)
+    center.resize(1000, 700)
+    dialog.resize(620, 440)
+    center.show()
+    dialog.show()
+    app.processEvents()
+
+    center_image = center.comment_input.viewport().grab().toImage()
+    dialog_image = dialog.body_input.viewport().grab().toImage()
+    assert center_image.pixelColor(4, 4).lightness() < 40
+    assert dialog_image.pixelColor(4, 4).lightness() < 40
+    dialog.close()
     center.close()

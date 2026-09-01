@@ -2158,7 +2158,7 @@ class BuildControlCenter(QDialog):
             self.studio._guided_recipe()
         elif action_id == "toolchain":
             self.accept()
-            self.studio.toolchain_requested.emit()
+            self.studio.request_toolchain("build-readiness")
         elif action_id == "time-machine":
             self.accept()
             self.studio.request_time_machine()
@@ -2167,7 +2167,7 @@ class BuildControlCenter(QDialog):
             self.studio.request_device_atlas()
         elif action_id == "device-center":
             self.accept()
-            self.studio.device_center_requested.emit()
+            self.studio.request_device_center("build-readiness")
         elif action_id == "backup-guide":
             self.start_guided_backup()
         elif action_id == "ascension-protocol":

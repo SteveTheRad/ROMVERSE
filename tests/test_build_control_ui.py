@@ -283,6 +283,16 @@ def test_build_control_cards_explain_and_route_blocked_gates(tmp_path) -> None:
     studio.device_packs_requested.connect(opened.append)
     control._open_resolution("device-packs")
     assert opened == [control.project.project_id]
+
+    device_requests: list[tuple[str, str]] = []
+    studio.device_center_requested.connect(lambda *values: device_requests.append(values))
+    control._open_resolution("device-center")
+    assert device_requests == [(control.project.project_id, "build-readiness")]
+
+    tool_requests: list[tuple[str, str]] = []
+    studio.toolchain_requested.connect(lambda *values: tool_requests.append(values))
+    control._open_resolution("toolchain")
+    assert tool_requests == [(control.project.project_id, "build-readiness")]
     studio.close()
 
 

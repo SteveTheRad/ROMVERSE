@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 from contextlib import suppress
 from dataclasses import asdict, dataclass
@@ -450,12 +451,12 @@ class RomStudio(QWidget):
     operation_completed = Signal(str, object)
     operation_failed = Signal(str, str)
     operation_progress = Signal(str, int)
-    toolchain_requested = Signal()
+    toolchain_requested = Signal(str, str)
     tool_statuses_resolved = Signal(object)
     time_machine_requested = Signal(str)
     device_packs_requested = Signal(str)
     guardian_review_requested = Signal(str, str)
-    device_center_requested = Signal()
+    device_center_requested = Signal(str, str)
     knowledge_requested = Signal(str)
     ascension_status_changed = Signal()
     device_context_changed = Signal()
@@ -1168,6 +1169,32 @@ class RomStudio(QWidget):
         self.device_packs_requested.emit(project.project_id)
         return True
 
+    def request_device_center(self, intent: str) -> bool:
+        """Open Command Deck only with one exact selected project and bounded purpose."""
+
+        project = self.current_project
+        if project is None or intent not in {"build-readiness", "ascension-refresh"}:
+            self.outbound_handoff_stopped(
+                "Command Deck",
+                "No exact ROM project or approved device-evidence purpose is selected",
+            )
+            return False
+        self.device_center_requested.emit(project.project_id, intent)
+        return True
+
+    def request_toolchain(self, intent: str = "build-readiness") -> bool:
+        """Open Forge Arsenal with the exact selected project and bounded purpose."""
+
+        project = self.current_project
+        if project is None or project.original is None or intent != "build-readiness":
+            self.outbound_handoff_stopped(
+                "Forge Arsenal",
+                "No exact protected ROM source or approved tool-evidence purpose is selected",
+            )
+            return False
+        self.toolchain_requested.emit(project.project_id, intent)
+        return True
+
     def outbound_handoff_stopped(self, destination: str, reason: str) -> None:
         """Keep a refused outbound route visible without changing project or phone state."""
 
@@ -1205,6 +1232,110 @@ class RomStudio(QWidget):
             "REVIEW ONLY",
             ready=False,
             eyebrow="GUARDIAN CORE HANDOFF  •  EXACT COMMAND-FREE MANIFEST",
+        )
+        self.detail_scroll.ensureWidgetVisible(self.command_tabs, 0, 24)
+        self.build_control_button.setFocus(Qt.FocusReason.OtherFocusReason)
+        return True
+
+    def open_command_deck_handoff(
+        self,
+        project_id: str,
+        source_sha256: str,
+        intent: str,
+    ) -> bool:
+        """Return from Command Deck to the exact source-bound Studio project."""
+
+        if intent not in {"build-readiness", "ascension-refresh"}:
+            return False
+        try:
+            project = self.store.get(project_id)
+        except (OSError, ProjectError, TypeError, ValueError):
+            return False
+        if project.original is None or project.original.sha256 != source_sha256:
+            return False
+        self.refresh(project.project_id)
+        profile = self.device_dna.profiles.load(project.project_id)
+        expected_model = profile.fact("identity.model").value if profile and profile.fact("identity.model") else ""
+        expected_codename = (
+            profile.fact("identity.codename").value
+            if profile and profile.fact("identity.codename")
+            else ""
+        )
+        matching = next(
+            (
+                device
+                for device in self.devices
+                if device.state is DeviceState.DEVICE
+                and (not expected_model or device.model.casefold() == expected_model.casefold())
+                and (
+                    not expected_codename
+                    or device.codename.casefold() == expected_codename.casefold()
+                    or device.product.casefold() == expected_codename.casefold()
+                )
+            ),
+            None,
+        )
+        target = matching.display_name if matching is not None else "no exact authorized target"
+        if intent == "build-readiness":
+            self.command_tabs.setCurrentIndex(1)
+            focus = self.build_control_button
+            purpose = "Forge Control device prerequisite"
+        else:
+            focus = self.ascension_button
+            purpose = "Ascension target refresh"
+        self._show_dashboard_handoff(
+            f"Command Deck → {project.name}",
+            f"Exact project {project.project_id}  •  protected source {source_sha256[:16]}…  •  "
+            f"{purpose}  •  target evidence: {target}. The scan granted no build, root, approval, "
+            "flash, wipe, or relock authority; NO PROJECT WORKER OR PHONE-CHANGING ACTION STARTED.",
+            "TARGET EVIDENCE REVIEWED" if matching is not None else "TARGET EVIDENCE NEEDED",
+            ready=matching is not None,
+            eyebrow="COMMAND DECK HANDOFF  •  EXACT PROJECT / READ-ONLY DEVICE EVIDENCE",
+        )
+        focus.setFocus(Qt.FocusReason.OtherFocusReason)
+        return True
+
+    def open_forge_toolchain_handoff(
+        self,
+        project_id: str,
+        source_sha256: str,
+        context_digest: str,
+        required_tools: tuple[str, ...],
+        build_contract_bound: bool,
+    ) -> bool:
+        """Return freshly verified host-tool evidence to the exact Studio project."""
+
+        try:
+            project = self.store.get(project_id)
+        except (OSError, ProjectError, TypeError, ValueError):
+            return False
+        if (
+            project.original is None
+            or project.original.sha256 != source_sha256
+            or not re.fullmatch(r"[0-9a-f]{64}", context_digest)
+            or not required_tools
+        ):
+            return False
+        self.refresh(project.project_id)
+        statuses = {status.name: status for status in self.tool_statuses}
+        missing = tuple(
+            name
+            for name in required_tools
+            if name not in statuses or not statuses[name].available
+        )
+        ready = len(required_tools) - len(missing)
+        self.command_tabs.setCurrentIndex(1)
+        self._show_dashboard_handoff(
+            f"Forge Arsenal → {project.name}",
+            f"Exact project {project.project_id}  •  protected source {source_sha256[:16]}…  •  "
+            f"tool context {context_digest[:16]}…  •  {ready}/{len(required_tools)} required host "
+            f"tools verified  •  missing: {' • '.join(missing) if missing else 'none'}  •  "
+            f"source-matched Device Pack contract: {'YES' if build_contract_bound else 'NO'}. "
+            "Forge returned host evidence only; NO PROJECT WORKER, BUILD, ROOT, APPROVAL, FLASH, "
+            "WIPE, RELOCK, OR PHONE ACTION STARTED.",
+            "HOST TOOLS VERIFIED" if not missing else "HOST TOOLS NEED ATTENTION",
+            ready=not missing,
+            eyebrow="FORGE ARSENAL HANDOFF  •  EXACT PROJECT / SOURCE-BOUND HOST EVIDENCE",
         )
         self.detail_scroll.ensureWidgetVisible(self.command_tabs, 0, 24)
         self.build_control_button.setFocus(Qt.FocusReason.OtherFocusReason)

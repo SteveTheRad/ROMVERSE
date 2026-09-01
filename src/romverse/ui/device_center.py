@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 from contextlib import suppress
+from dataclasses import dataclass
 from datetime import datetime
 from importlib.resources import as_file, files
 from pathlib import Path
@@ -35,6 +36,19 @@ from romverse.ui.cosmic_icons import quick_action_icon
 from romverse.ui.formatters import human_bytes
 from romverse.ui.mini_chart import MiniChart
 from romverse.ui.process_progress import ProcessProgressBar
+
+
+@dataclass(frozen=True, slots=True)
+class RomStudioDeviceContext:
+    """Exact Studio project evidence carried into Command Deck for a read-only scan."""
+
+    project_id: str
+    project_name: str
+    source_sha256: str
+    device_pack_id: str
+    expected_model: str
+    expected_codename: str
+    intent: str
 
 
 class RingGauge(QWidget):
@@ -208,6 +222,7 @@ class DeviceCenter(QWidget):
     refresh_requested = Signal()
     action_requested = Signal(str)
     runtime_tools_requested = Signal()
+    rom_studio_requested = Signal(str, str, str)
 
     def __init__(
         self,
@@ -225,6 +240,7 @@ class DeviceCenter(QWidget):
         self._flight_plan: GenesisFlightPlan | None = None
         self._repair_finding_id = ""
         self._repair_finding_title = ""
+        self._studio_device_context: RomStudioDeviceContext | None = None
         self.quick_action_buttons: dict[str, QToolButton] = {}
         self.metrics_history_path = (
             workspace / "logs" / "device-metrics-history.json" if workspace is not None else None
@@ -287,6 +303,46 @@ class DeviceCenter(QWidget):
         )
         header.addWidget(self.apk_button)
         page.addLayout(header)
+
+        self.studio_handoff = QFrame()
+        self.studio_handoff.setObjectName("DiagnosticHandoffBar")
+        studio_handoff_layout = QHBoxLayout(self.studio_handoff)
+        studio_handoff_layout.setContentsMargins(18, 13, 18, 13)
+        studio_handoff_layout.setSpacing(14)
+        studio_copy = QVBoxLayout()
+        self.studio_handoff_eyebrow = QLabel(
+            "ROM STUDIO HANDOFF  •  EXACT PROJECT / READ-ONLY DEVICE EVIDENCE"
+        )
+        self.studio_handoff_eyebrow.setObjectName("Eyebrow")
+        self.studio_handoff_title = QLabel()
+        self.studio_handoff_title.setObjectName("SectionTitle")
+        self.studio_handoff_detail = QLabel()
+        self.studio_handoff_detail.setObjectName("Muted")
+        self.studio_handoff_detail.setWordWrap(True)
+        self.studio_handoff_detail.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        studio_copy.addWidget(self.studio_handoff_eyebrow)
+        studio_copy.addWidget(self.studio_handoff_title)
+        studio_copy.addWidget(self.studio_handoff_detail)
+        studio_handoff_layout.addLayout(studio_copy, 1)
+        self.studio_handoff_badge = QLabel()
+        studio_handoff_layout.addWidget(self.studio_handoff_badge)
+        studio_actions = QVBoxLayout()
+        self.studio_scan_button = QPushButton("Scan exact target")
+        self.studio_scan_button.setObjectName("Primary")
+        self.studio_scan_button.setToolTip(
+            "Run Device Engine's read-only identity and health scan. No reboot, unlock, root, "
+            "flash, wipe, or relock command is allowed."
+        )
+        self.studio_scan_button.clicked.connect(self.refresh_requested)
+        self.studio_return_button = QPushButton("Return to exact ROM project")
+        self.studio_return_button.clicked.connect(self._return_to_rom_studio)
+        studio_actions.addWidget(self.studio_scan_button)
+        studio_actions.addWidget(self.studio_return_button)
+        studio_handoff_layout.addLayout(studio_actions)
+        self.studio_handoff.setVisible(False)
+        page.addWidget(self.studio_handoff)
 
         next_action = QFrame()
         next_action.setObjectName("HeroCard")
@@ -527,6 +583,115 @@ class DeviceCenter(QWidget):
             self._set_badge("NOT CONNECTED", "Warning")
             self.show_empty(
                 "ADB is ready, but no device is visible. Try `adb devices -l` in a terminal to confirm the connection."
+            )
+        self._render_studio_handoff()
+
+    def open_rom_studio_context(self, context: RomStudioDeviceContext) -> bool:
+        """Show one exact project-to-device prerequisite without starting a scan."""
+
+        if not self._valid_studio_context(context):
+            return False
+        self._studio_device_context = context
+        self.studio_return_button.setEnabled(True)
+        self.studio_scan_button.setEnabled(True)
+        self._render_studio_handoff()
+        self.studio_handoff.setVisible(True)
+        return True
+
+    def studio_handoff_stopped(self, reason: str) -> None:
+        """Expire an exact Studio handoff visibly without changing device or project state."""
+
+        self._studio_device_context = None
+        self.studio_handoff_title.setText("ROM Studio device context expired safely")
+        self.studio_handoff_detail.setText(
+            f"{reason}. Reopen Command Deck from the exact Studio project. "
+            "NO SCAN, PROJECT WORKER, BUILD, ROOT, FLASH, OR PHONE-CHANGING ACTION STARTED."
+        )
+        self.studio_handoff_badge.setText("CONTEXT REFUSED")
+        self.studio_handoff_badge.setObjectName("Danger")
+        self._repolish(self.studio_handoff_badge)
+        self.studio_return_button.setEnabled(False)
+        self.studio_scan_button.setEnabled(False)
+        self.studio_handoff.setVisible(True)
+
+    @staticmethod
+    def _valid_studio_context(context: RomStudioDeviceContext) -> bool:
+        return bool(
+            isinstance(context, RomStudioDeviceContext)
+            and context.project_id.strip()
+            and context.project_name.strip()
+            and len(context.project_id) <= 80
+            and len(context.project_name) <= 120
+            and len(context.device_pack_id) <= 160
+            and len(context.expected_model) <= 160
+            and len(context.expected_codename) <= 120
+            and context.intent in {"build-readiness", "ascension-refresh"}
+            and len(context.source_sha256) == 64
+            and all(character in "0123456789abcdef" for character in context.source_sha256)
+        )
+
+    def _render_studio_handoff(self) -> None:
+        context = self._studio_device_context
+        if context is None:
+            return
+        authorized = tuple(
+            device for device in self.devices if device.state is DeviceState.DEVICE
+        )
+        expected_model = context.expected_model.casefold().strip()
+        expected_codename = context.expected_codename.casefold().strip()
+        matches = tuple(
+            device
+            for device in authorized
+            if (not expected_model or device.model.casefold().strip() == expected_model)
+            and (
+                not expected_codename
+                or device.codename.casefold().strip() == expected_codename
+                or device.product.casefold().strip() == expected_codename
+            )
+        )
+        expected = " / ".join(
+            value for value in (context.expected_model, context.expected_codename) if value
+        ) or "target identity not yet derived"
+        pack = context.device_pack_id or "not bound"
+        purpose = (
+            "Ascension requested a fresh read-only target check"
+            if context.intent == "ascension-refresh"
+            else "Forge Control requested current target evidence"
+        )
+        if matches:
+            state = f"EXACT TARGET PRESENT  •  {matches[0].display_name}"
+            badge = "TARGET MATCH • READ ONLY"
+            style = "Good"
+        elif authorized:
+            observed = " • ".join(device.display_name for device in authorized[:3])
+            state = f"Authorized device does not match expected {expected}; observed {observed}"
+            badge = "TARGET MISMATCH"
+            style = "Danger"
+        else:
+            state = f"No authorized device currently matches expected {expected}"
+            badge = "SCAN TARGET"
+            style = "Warning"
+        self.studio_handoff_title.setText(f"{purpose}  •  {context.project_name}")
+        self.studio_handoff_detail.setText(
+            f"Project {context.project_id}  •  protected source {context.source_sha256[:16]}…  •  "
+            f"Pack {pack}  •  {state}. Device Engine may collect identity and health evidence only; "
+            "NO REBOOT, UNLOCK, ROOT, BUILD, FLASH, WIPE, OR RELOCK ACTION STARTED."
+        )
+        self.studio_handoff_badge.setText(badge)
+        self.studio_handoff_badge.setObjectName(style)
+        self._repolish(self.studio_handoff_badge)
+        self.studio_scan_button.setText(
+            "Refresh exact target evidence" if authorized else "Scan exact target"
+        )
+        self.studio_handoff.setVisible(True)
+
+    def _return_to_rom_studio(self) -> None:
+        context = self._studio_device_context
+        if context is not None:
+            self.rom_studio_requested.emit(
+                context.project_id,
+                context.source_sha256,
+                context.intent,
             )
 
     def _record_device_scan(self, device: AndroidDevice) -> None:
@@ -1484,6 +1649,11 @@ class DeviceCenter(QWidget):
         self.status_badge.setObjectName(style)
         self.status_badge.style().unpolish(self.status_badge)
         self.status_badge.style().polish(self.status_badge)
+
+    @staticmethod
+    def _repolish(widget: QWidget) -> None:
+        widget.style().unpolish(widget)
+        widget.style().polish(widget)
 
     def _clear_body(self) -> None:
         while self.body_layout.count():

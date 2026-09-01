@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import math
 import random
 import time
@@ -107,6 +109,7 @@ from romverse.guardian.manifest_review import (
 from romverse.guardian.planning import GuardianPreflight
 from romverse.guardian.policy import GuardianPolicy
 from romverse.infrastructure.process import CommandRunner, SubprocessRunner
+from romverse.infrastructure.provisioning import required_tools_for_source
 from romverse.infrastructure.tools import ToolStatus
 from romverse.intelligence.online_remediation import OnlineRemediationService
 from romverse.intelligence.synapse import SynapseStore
@@ -137,7 +140,7 @@ from romverse.ui.command_palette import CommandPaletteDialog, NavigationCommand
 from romverse.ui.companion_center import CompanionCenter
 from romverse.ui.connectivity import OnlineStatusBadge
 from romverse.ui.cosmic_icons import sidebar_icon
-from romverse.ui.device_center import DeviceCenter
+from romverse.ui.device_center import DeviceCenter, RomStudioDeviceContext
 from romverse.ui.device_packs_center import DevicePacksCenter
 from romverse.ui.diagnostics_center import DiagnosticsCenter
 from romverse.ui.galaxy_center import GalaxyCenter
@@ -153,7 +156,11 @@ from romverse.ui.repair_center import RepairCenter
 from romverse.ui.rom_studio import RomStudio
 from romverse.ui.terminal_center import TerminalCenter
 from romverse.ui.theme import STYLESHEET
-from romverse.ui.toolchain_center import DevicePackToolchainContext, ToolchainCenter
+from romverse.ui.toolchain_center import (
+    DevicePackToolchainContext,
+    StudioProjectToolchainContext,
+    ToolchainCenter,
+)
 from romverse.ui.vocabulary import FEATURES, feature
 from romverse.ui.workspace_shell import (
     EXPERT_ONLY_ROUTES,
@@ -3008,6 +3015,12 @@ class MainWindow(QMainWindow):
         self.toolchain_center.device_atlas_requested.connect(
             self._return_forge_device_atlas
         )
+        self.toolchain_center.studio_project_setup_requested.connect(
+            self._setup_studio_project_toolchain
+        )
+        self.toolchain_center.studio_project_continue_requested.connect(
+            self._return_forge_rom_studio
+        )
         self.toolchain_center.knowledge_article_requested.connect(self._open_knowledge_article)
         self.rom_studio.tool_statuses_resolved.connect(self._tool_statuses_changed)
         self.rom_studio.set_tool_statuses(self.toolchain_center.statuses)
@@ -3018,7 +3031,7 @@ class MainWindow(QMainWindow):
             self._open_studio_guardian_review
         )
         self.rom_studio.device_center_requested.connect(
-            lambda: self._navigate_route("command_deck")
+            self._open_device_center_from_studio
         )
         self.rom_studio.knowledge_requested.connect(self._open_knowledge_query)
         self.device_packs_center.rom_studio_requested.connect(
@@ -3328,6 +3341,9 @@ class MainWindow(QMainWindow):
 
         self.device_center.refresh_requested.connect(self.scan)
         self.device_center.runtime_tools_requested.connect(self._resolve_device_runtime)
+        self.device_center.rom_studio_requested.connect(
+            self._return_command_deck_rom_studio
+        )
         self.device_center.action_requested.connect(self._handle_dashboard_action)
         self.diagnostics_center.refresh_requested.connect(self.scan)
         self.diagnostics_center.report_saved.connect(self.history_center.refresh)
@@ -5219,11 +5235,126 @@ class MainWindow(QMainWindow):
             self.timer.stop()
             self._reconnect_timer.stop()
 
-    @Slot()
-    def _open_toolchain(self) -> None:
-        self.toolchain_center.clear_device_pack_context()
-        self.toolchain_center.refresh()
+    def _current_studio_toolchain_context(
+        self,
+        project_id: str,
+        context_digest: str = "",
+    ) -> StudioProjectToolchainContext | None:
+        """Re-derive exact project/source/tool evidence without trusting retained UI text."""
+
+        current = self.rom_studio.current_project
+        if current is None or current.project_id != project_id:
+            return None
+        try:
+            project = self.rom_studio.store.get(project_id)
+        except (OSError, ProjectError, TypeError, ValueError):
+            return None
+        if project.original is None:
+            return None
+        inspection = self.rom_studio.inspection.load_report(project.project_id)
+        if inspection is not None and inspection.source_sha256 != project.original.sha256:
+            inspection = None
+        pack = next(
+            (
+                item
+                for item in self.rom_studio.pack_registry.packs
+                if item.pack_id == project.device_pack_id
+            ),
+            None,
+        )
+        contract = (
+            pack.build_contract
+            if pack is not None
+            and pack.build_contract is not None
+            and pack.build_contract.source.archive_sha256 == project.original.sha256
+            else None
+        )
+        partition_signals = inspection.partition_signals if inspection is not None else ()
+        required_tools = required_tools_for_source(contract, partition_signals)
+        payload = {
+            "project_id": project.project_id,
+            "project_name": project.name,
+            "source_sha256": project.original.sha256,
+            "device_pack_id": project.device_pack_id,
+            "pack_sha256": pack.sha256 if pack is not None else "",
+            "inspection_digest": inspection.record_digest if inspection is not None else "",
+            "partition_signals": partition_signals,
+            "required_tools": required_tools,
+            "build_contract_bound": contract is not None,
+        }
+        actual_digest = hashlib.sha256(
+            json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+        if context_digest and context_digest != actual_digest:
+            return None
+        return StudioProjectToolchainContext(
+            context_digest=actual_digest,
+            project_id=project.project_id,
+            project_name=project.name,
+            source_sha256=project.original.sha256,
+            device_pack_id=project.device_pack_id,
+            pack_sha256=pack.sha256 if pack is not None else "",
+            inspection_digest=inspection.record_digest if inspection is not None else "",
+            required_tools=required_tools,
+            build_contract_bound=contract is not None,
+        )
+
+    @Slot(str, str)
+    def _open_toolchain(self, project_id: str, intent: str) -> None:
+        if intent != "build-readiness":
+            self.rom_studio.outbound_handoff_stopped(
+                "Forge Arsenal",
+                "The requested host-tool purpose is not approved",
+            )
+            return
+        context = self._current_studio_toolchain_context(project_id)
+        if context is None or not self.toolchain_center.open_studio_project_context(context):
+            self.rom_studio.outbound_handoff_stopped(
+                "Forge Arsenal",
+                "The exact project, protected source, or derived tool evidence changed",
+            )
+            return
         self._navigate_route("forge_arsenal")
+
+    @Slot(str, str)
+    def _setup_studio_project_toolchain(
+        self,
+        project_id: str,
+        context_digest: str,
+    ) -> None:
+        context = self._current_studio_toolchain_context(project_id, context_digest)
+        if context is None or not self.toolchain_center.studio_project_context_matches(context):
+            self.toolchain_center.studio_project_context_changed(
+                "ROM Studio project, source, Device Pack, inspection, or required tools changed"
+            )
+            return
+        self.toolchain_center.open_studio_project_setup(context)
+
+    @Slot(str, str)
+    def _return_forge_rom_studio(
+        self,
+        project_id: str,
+        context_digest: str,
+    ) -> None:
+        context = self._current_studio_toolchain_context(project_id, context_digest)
+        if context is None or not self.toolchain_center.studio_project_context_matches(context):
+            self.toolchain_center.studio_project_context_changed(
+                "ROM Studio project, source, Device Pack, inspection, or required tools changed"
+            )
+            return
+        self.rom_studio.set_tool_statuses(self.toolchain_center.statuses)
+        if not self.rom_studio.open_forge_toolchain_handoff(
+            context.project_id,
+            context.source_sha256,
+            context.context_digest,
+            context.required_tools,
+            context.build_contract_bound,
+        ):
+            self.toolchain_center.studio_project_context_changed(
+                "ROM Studio rejected the changed project/source/tool evidence"
+            )
+            return
+        self._navigate_route("rom_studio")
 
     @Slot()
     def _resolve_apk_runtime(self) -> None:
@@ -5321,6 +5452,64 @@ class MainWindow(QMainWindow):
             )
             return
         self._navigate_route("time_machine")
+
+    @Slot(str, str)
+    def _open_device_center_from_studio(self, project_id: str, intent: str) -> None:
+        """Carry one exact Studio project into Command Deck's read-only target evidence."""
+
+        current = self.rom_studio.current_project
+        if (
+            current is None
+            or current.project_id != project_id
+            or current.original is None
+            or intent not in {"build-readiness", "ascension-refresh"}
+        ):
+            self.rom_studio.outbound_handoff_stopped(
+                "Command Deck",
+                "The requested project or device-evidence purpose no longer matches Studio",
+            )
+            return
+        profile = self.rom_studio.device_dna.profiles.load(project_id)
+        model_fact = profile.fact("identity.model") if profile is not None else None
+        codename_fact = profile.fact("identity.codename") if profile is not None else None
+        context = RomStudioDeviceContext(
+            project_id=current.project_id,
+            project_name=current.name,
+            source_sha256=current.original.sha256,
+            device_pack_id=current.device_pack_id,
+            expected_model=model_fact.value if model_fact is not None else "",
+            expected_codename=codename_fact.value if codename_fact is not None else "",
+            intent=intent,
+        )
+        if not self.device_center.open_rom_studio_context(context):
+            self.rom_studio.outbound_handoff_stopped(
+                "Command Deck",
+                "Command Deck rejected incomplete exact project/device evidence",
+            )
+            return
+        self._navigate_route("command_deck")
+        if intent == "ascension-refresh":
+            self.scan()
+
+    @Slot(str, str, str)
+    def _return_command_deck_rom_studio(
+        self,
+        project_id: str,
+        source_sha256: str,
+        intent: str,
+    ) -> None:
+        """Return Command Deck evidence to the exact source-bound Studio project."""
+
+        if not self.rom_studio.open_command_deck_handoff(
+            project_id,
+            source_sha256,
+            intent,
+        ):
+            self.device_center.studio_handoff_stopped(
+                "The retained project, protected source, or handoff purpose is no longer current"
+            )
+            return
+        self._navigate_route("rom_studio")
 
     @Slot(str)
     def _open_device_atlas_from_studio(self, project_id: str) -> None:

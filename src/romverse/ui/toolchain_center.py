@@ -664,6 +664,21 @@ class DevicePackToolchainContext:
     flash_contract_ready: bool
 
 
+@dataclass(frozen=True, slots=True)
+class StudioProjectToolchainContext:
+    """Immutable ROM Studio project/source evidence carried into Forge Arsenal."""
+
+    context_digest: str
+    project_id: str
+    project_name: str
+    source_sha256: str
+    device_pack_id: str
+    pack_sha256: str
+    inspection_digest: str
+    required_tools: tuple[str, ...]
+    build_contract_bound: bool
+
+
 class ToolchainCenter(QWidget):
     """Inventory and guidance for the local ROM and diagnostics toolchain."""
 
@@ -671,6 +686,8 @@ class ToolchainCenter(QWidget):
     device_pack_setup_requested = Signal(str, str, str)
     device_pack_continue_requested = Signal(str, str, str)
     device_atlas_requested = Signal(str, str, str)
+    studio_project_setup_requested = Signal(str, str)
+    studio_project_continue_requested = Signal(str, str)
     knowledge_article_requested = Signal(str)
 
     def __init__(
@@ -686,6 +703,8 @@ class ToolchainCenter(QWidget):
         self.workspace = workspace
         self._device_pack_context: DevicePackToolchainContext | None = None
         self._device_pack_context_stale = False
+        self._studio_project_context: StudioProjectToolchainContext | None = None
+        self._studio_project_context_stale = False
         self._activate_managed_tools()
         self.statuses = ToolVerifier(host, runner).verify_extended()
         if baseline:
@@ -740,9 +759,7 @@ class ToolchainCenter(QWidget):
         self.context_continue_button = QPushButton("Continue to ROM Studio")
         self.context_continue_button.clicked.connect(self._request_device_pack_continue)
         self.context_guide_button = QPushButton("Open verified guide")
-        self.context_guide_button.clicked.connect(
-            lambda: self.knowledge_article_requested.emit("device-pack-build-toolchain")
-        )
+        self.context_guide_button.clicked.connect(self._request_context_guide)
         self.context_return_button = QPushButton("Return to Device Atlas")
         self.context_return_button.clicked.connect(self._request_device_atlas_return)
         handoff_actions.addWidget(self.context_refresh_button)
@@ -812,6 +829,8 @@ class ToolchainCenter(QWidget):
 
         if not self._valid_device_pack_context(context):
             return False
+        self._studio_project_context = None
+        self._studio_project_context_stale = False
         self._device_pack_context = context
         self._device_pack_context_stale = False
         self.device_pack_handoff.setVisible(True)
@@ -823,7 +842,54 @@ class ToolchainCenter(QWidget):
     def clear_device_pack_context(self) -> None:
         self._device_pack_context = None
         self._device_pack_context_stale = False
-        self.device_pack_handoff.setVisible(False)
+        if self._studio_project_context is None:
+            self.device_pack_handoff.setVisible(False)
+
+    def open_studio_project_context(self, context: StudioProjectToolchainContext) -> bool:
+        """Open one exact Studio project as a source-bound, host-only Forge view."""
+
+        if not self._valid_studio_project_context(context):
+            return False
+        self._device_pack_context = None
+        self._device_pack_context_stale = False
+        self._studio_project_context = context
+        self._studio_project_context_stale = False
+        self.device_pack_handoff.setVisible(True)
+        self._verify_local_tools(emit=False)
+        return True
+
+    def clear_studio_project_context(self) -> None:
+        self._studio_project_context = None
+        self._studio_project_context_stale = False
+        if self._device_pack_context is None:
+            self.device_pack_handoff.setVisible(False)
+
+    def open_studio_project_setup(self, context: StudioProjectToolchainContext) -> bool:
+        """Open setup only after MainWindow re-derives the same exact project context."""
+
+        if (
+            context != self._studio_project_context
+            or not self._valid_studio_project_context(context)
+        ):
+            self.studio_project_context_changed(
+                "The setup request no longer matches the current exact ROM Studio project"
+            )
+            return False
+        dialog = ToolchainSetupDialog(
+            self.host,
+            self.statuses,
+            self.workspace,
+            self,
+            required_names=context.required_tools,
+        )
+        dialog.setWindowTitle(f"ROMVERSE • {context.project_name} exact tool setup")
+        dialog.status.setText(
+            f"Exact project {context.project_id} • {len(context.required_tools)} source-bound "
+            "requirements • no build or phone action starts here."
+        )
+        dialog.exec()
+        self.refresh()
+        return True
 
     def open_device_pack_setup(self, context: DevicePackToolchainContext) -> bool:
         """Open setup only when MainWindow has freshly revalidated the same context."""
@@ -916,7 +982,37 @@ class ToolchainCenter(QWidget):
         self.context_continue_button.setEnabled(False)
         self.device_pack_handoff_stopped(reason)
 
+    def studio_project_context_matches(self, context: StudioProjectToolchainContext) -> bool:
+        return (
+            not self._studio_project_context_stale
+            and context == self._studio_project_context
+            and self._valid_studio_project_context(context)
+        )
+
+    def studio_project_context_changed(self, reason: str) -> None:
+        """Disable retained Studio actions when project, source, or derived tools change."""
+
+        if self._studio_project_context is None:
+            return
+        self._studio_project_context_stale = True
+        self.context_setup_button.setEnabled(False)
+        self.context_continue_button.setEnabled(False)
+        self.device_pack_handoff_feedback.setText(
+            f"ROM STUDIO HANDOFF STOPPED  •  {reason}  •  "
+            "NO INSTALL, PROJECT WORKER, BUILD, ROOT, FLASH, OR PHONE ACTION STARTED"
+        )
+        self.device_pack_handoff_feedback.setObjectName("Danger")
+        self._repolish(self.device_pack_handoff_feedback)
+        self._render_studio_project_context()
+
     def _request_device_pack_setup(self) -> None:
+        studio_context = self._studio_project_context
+        if studio_context is not None:
+            self.studio_project_setup_requested.emit(
+                studio_context.project_id,
+                studio_context.context_digest,
+            )
+            return
         context = self._device_pack_context
         if context is not None:
             self.device_pack_setup_requested.emit(
@@ -926,6 +1022,13 @@ class ToolchainCenter(QWidget):
             )
 
     def _request_device_pack_continue(self) -> None:
+        studio_context = self._studio_project_context
+        if studio_context is not None:
+            self.studio_project_continue_requested.emit(
+                studio_context.project_id,
+                studio_context.context_digest,
+            )
+            return
         context = self._device_pack_context
         if context is not None:
             self.device_pack_continue_requested.emit(
@@ -943,6 +1046,14 @@ class ToolchainCenter(QWidget):
                 context.report_digest,
             )
 
+    def _request_context_guide(self) -> None:
+        key = (
+            "rom-studio-project-toolchain"
+            if self._studio_project_context is not None
+            else "device-pack-build-toolchain"
+        )
+        self.knowledge_article_requested.emit(key)
+
     @staticmethod
     def _valid_device_pack_context(context: DevicePackToolchainContext) -> bool:
         return bool(
@@ -957,12 +1068,103 @@ class ToolchainCenter(QWidget):
             and all(name in ROM_STUDIO_TOOL_CATALOG for name in context.required_tools)
         )
 
+    @staticmethod
+    def _valid_studio_project_context(context: StudioProjectToolchainContext) -> bool:
+        return bool(
+            re.fullmatch(r"[0-9a-f]{64}", context.context_digest)
+            and re.fullmatch(r"[0-9a-f]{64}", context.source_sha256)
+            and (not context.pack_sha256 or re.fullmatch(r"[0-9a-f]{64}", context.pack_sha256))
+            and (
+                not context.inspection_digest
+                or re.fullmatch(r"[0-9a-f]{64}", context.inspection_digest)
+            )
+            and context.project_id.strip()
+            and context.project_name.strip()
+            and context.required_tools
+            and len(context.required_tools) == len(set(context.required_tools))
+            and all(name in ROM_STUDIO_TOOL_CATALOG for name in context.required_tools)
+            and (not context.build_contract_bound or bool(context.device_pack_id and context.pack_sha256))
+        )
+
+    def _render_studio_project_context(self) -> None:
+        context = self._studio_project_context
+        if context is None:
+            return
+        self.device_pack_handoff.setVisible(True)
+        self.device_pack_handoff_eyebrow.setText(
+            "ROM STUDIO HANDOFF  •  EXACT PROJECT / SOURCE-BOUND TOOL EVIDENCE"
+        )
+        self.device_pack_handoff_title.setText(
+            f"{context.project_name} • exact host toolchain"
+        )
+        statuses = {status.name: status for status in self.statuses}
+        missing = tuple(
+            name
+            for name in context.required_tools
+            if name not in statuses or not statuses[name].available
+        )
+        ready = len(context.required_tools) - len(missing)
+        pack_copy = (
+            f"Pack {context.device_pack_id} • SHA-256 {context.pack_sha256[:16]}… • exact build contract"
+            if context.build_contract_bound
+            else "No source-matched Device Pack build contract • structural/default tools only"
+        )
+        inspection_copy = (
+            f"inspection {context.inspection_digest[:16]}…"
+            if context.inspection_digest
+            else "inspection evidence unavailable"
+        )
+        self.device_pack_handoff_detail.setText(
+            f"Project {context.project_id} • protected source {context.source_sha256[:16]}…\n"
+            f"{pack_copy} • {inspection_copy}\nRequired in derived order: "
+            + " • ".join(context.required_tools)
+            + f"\n{ready} of {len(context.required_tools)} host requirements verified. "
+            "This view verifies or sets up local host tools only; it grants no project-worker, "
+            "build, root, approval, flash, wipe, relock, or phone authority."
+        )
+        self.device_pack_handoff_badge.setText(
+            f"{ready}/{len(context.required_tools)} TOOLS  •  "
+            + ("SOURCE CONTRACT BOUND" if context.build_contract_bound else "HOST EVIDENCE ONLY")
+        )
+        self.device_pack_handoff_badge.setObjectName("Good" if not missing else "Warning")
+        self._repolish(self.device_pack_handoff_badge)
+        self.context_return_button.setVisible(False)
+        self.context_continue_button.setText("Return to exact ROM project")
+        self.context_continue_button.setEnabled(not self._studio_project_context_stale)
+        self.context_continue_button.setToolTip(
+            "Return the freshly verified host-tool evidence to this exact project. No build starts."
+        )
+        self.context_setup_button.setEnabled(bool(missing) and not self._studio_project_context_stale)
+        self.context_setup_button.setText(
+            "Set up missing requirements" if missing else "Exact requirements verified"
+        )
+        if self._studio_project_context_stale:
+            self.device_pack_handoff_badge.setText(
+                "STALE PROJECT CONTEXT  •  REOPEN FROM ROM STUDIO  •  ZERO AUTHORITY"
+            )
+            self.device_pack_handoff_badge.setObjectName("Danger")
+            self._repolish(self.device_pack_handoff_badge)
+            return
+        missing_copy = " • ".join(missing) if missing else "none"
+        self.device_pack_handoff_feedback.setText(
+            f"MISSING HOST REQUIREMENTS  •  {missing_copy}  •  BUILD / PHONE AUTHORITY: NONE"
+        )
+        self.device_pack_handoff_feedback.setObjectName("Warning" if missing else "Good")
+        self._repolish(self.device_pack_handoff_feedback)
+
     def _render_device_pack_context(self) -> None:
         context = self._device_pack_context
         if context is None:
-            self.device_pack_handoff.setVisible(False)
+            if self._studio_project_context is None:
+                self.device_pack_handoff.setVisible(False)
             return
         self.device_pack_handoff.setVisible(True)
+        self.device_pack_handoff_eyebrow.setText(
+            "DEVICE ATLAS HANDOFF  •  EXACT BUILD CONTRACT"
+        )
+        self.context_return_button.setVisible(True)
+        self.context_return_button.setText("Return to Device Atlas")
+        self.context_continue_button.setText("Continue to ROM Studio")
         statuses = {status.name: status for status in self.statuses}
         missing = tuple(
             name
@@ -1026,7 +1228,7 @@ class ToolchainCenter(QWidget):
             if item.widget() is not None:
                 item.widget().hide()
                 item.widget().deleteLater()
-        context = self._device_pack_context
+        context = self._studio_project_context or self._device_pack_context
         required = context.required_tools if context is not None else ()
         required_set = set(required)
         status_by_name = {status.name: status for status in self.statuses}
@@ -1052,7 +1254,11 @@ class ToolchainCenter(QWidget):
             name.setObjectName("SectionTitle")
             name_row.addWidget(name)
             if status.name in required:
-                required_badge = QLabel("EXACT PACK REQUIREMENT")
+                required_badge = QLabel(
+                    "EXACT PROJECT REQUIREMENT"
+                    if self._studio_project_context is not None
+                    else "EXACT PACK REQUIREMENT"
+                )
                 required_badge.setObjectName("Good" if status.available else "Warning")
                 name_row.addStretch()
                 name_row.addWidget(required_badge)
@@ -1072,7 +1278,10 @@ class ToolchainCenter(QWidget):
             row.addLayout(top)
             self.layout.addWidget(card)
         self.layout.addStretch()
-        self._render_device_pack_context()
+        if self._studio_project_context is not None:
+            self._render_studio_project_context()
+        else:
+            self._render_device_pack_context()
 
     @staticmethod
     def _repolish(widget: QWidget) -> None:

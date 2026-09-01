@@ -1673,6 +1673,45 @@ KNOWN_FIXES = (
         source=ROMVERSE_SOURCE,
     ),
     _fix(
+        "rom-studio-project-toolchain",
+        "ROM Studio prerequisite route loses the exact project or does not refresh evidence",
+        "ROMVERSE WORKFLOWS",
+        "A Studio prerequisite control must carry one exact project id, protected-source SHA-256, "
+        "and bounded purpose into Command Deck or Forge Arsenal. A navigation-only device refresh "
+        "or a generic tool list can look successful while leaving Build & Proof with stale or "
+        "unrelated evidence.",
+        checks=(
+            "Confirm the destination handoff names the same project id and protected-source fingerprint shown in ROM Studio.",
+            "For Command Deck, confirm the expected model/codename is compared with a fresh authorized-device scan rather than a retained label.",
+            "For Forge Arsenal, confirm required tools come from a source-matched Device Pack contract or are explicitly labelled structural/default guidance.",
+            "Confirm returning to Studio revalidates the context digest and never starts a project worker, build, root, flash, wipe, or relock action.",
+        ),
+        fix_steps=(
+            "Reopen the prerequisite from the exact ROM Studio project instead of using a generic sidebar destination.",
+            "Use Scan exact target in Command Deck when device evidence is requested; Ascension refresh must start that read-only scan, not merely navigate.",
+            "Use Re-check exact tools in Forge Arsenal, review any missing source-bound requirements, and return the fresh inventory to the same project.",
+            "If the source, Pack, inspection, device expectation, or context digest changed, keep the destination open in a stopped state and reopen from Studio.",
+        ),
+        verification=(
+            "Command Deck reports target match, mismatch, or scan needed and returns the same project/source identity.",
+            "Forge Arsenal shows the exact project/source, derived required tools, and whether a source-matched build contract is bound.",
+            "Studio's return banner reports the fresh evidence and explicitly confirms that no phone-changing or build action started.",
+            "A forged or stale source/context digest disables the retained action and remains at the evidence destination.",
+        ),
+        tags=(
+            "rom studio command deck handoff",
+            "refresh device does not scan",
+            "forge arsenal exact project",
+            "stale project context",
+            "source bound toolchain",
+            "build readiness prerequisites",
+        ),
+        route="forge_arsenal",
+        evidence="ROMVERSE binds each route to the persisted project, protected-source SHA-256, current inspection/Pack evidence, derived tool list, and fresh device or host verification result.",
+        automation="READ-ONLY SCAN OR USER-REVIEWED HOST-TOOL SETUP ONLY • NO PROJECT WORKER, BUILD, ROOT, APPROVAL, OR PHONE-WRITE AUTHORITY",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
         "nexus-evidence-prerequisites",
         "Nexus cannot generate a plan because project evidence is missing",
         "ROMVERSE WORKFLOWS",

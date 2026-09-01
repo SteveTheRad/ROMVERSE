@@ -2174,7 +2174,7 @@ class AscensionProtocolDialog(QDialog):
                 "and never unlock, relock, reboot, wipe, root, or flash during this scan.",
             )
             self._leave_for_navigation()
-            self.studio.device_center_requested.emit()
+            self.studio.request_device_center("ascension-refresh")
             return
         self.status.setText("That Guardian resolution is not available on this launch.")
 

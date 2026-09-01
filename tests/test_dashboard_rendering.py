@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (
 
 from romverse.device.models import AndroidDevice, DeviceState, MemoryInfo, StorageInfo
 from romverse.rom.guided import GenesisFlightPlan, GuidedStageStatus
-from romverse.ui.device_center import DeviceCenter, RingGauge
+from romverse.ui.device_center import DeviceCenter, RingGauge, RomStudioDeviceContext
 from romverse.ui.main_window import (
     AboutPage,
     AboutRuntimeEvidence,
@@ -221,6 +221,56 @@ def test_command_deck_scan_shows_honest_indeterminate_progress(tmp_path) -> None
     app.processEvents()
     assert center.scan_status_row.isHidden()
     assert not center.scan_progress.isVisible()
+    center.close()
+
+
+def test_command_deck_keeps_exact_studio_project_through_device_refresh(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = DeviceCenter(tmp_path)
+    context = RomStudioDeviceContext(
+        project_id="exact-project-1234",
+        project_name="Exact HyperOS Project",
+        source_sha256="a" * 64,
+        device_pack_id="xiaomi.popsicle.hyperos4.os4.0.0.23",
+        expected_model="2509FPN0BC",
+        expected_codename="popsicle",
+        intent="ascension-refresh",
+    )
+    scans: list[bool] = []
+    returned: list[tuple[str, str, str]] = []
+    center.refresh_requested.connect(lambda: scans.append(True))
+    center.rom_studio_requested.connect(lambda *values: returned.append(values))
+
+    assert center.open_rom_studio_context(context)
+    center.show()
+    app.processEvents()
+    assert center.studio_handoff.isVisibleTo(center)
+    assert center.studio_handoff_badge.text() == "SCAN TARGET"
+    assert context.project_id in center.studio_handoff_detail.text()
+    assert context.source_sha256[:16] in center.studio_handoff_detail.text()
+    center.studio_scan_button.click()
+    assert scans == [True]
+
+    center.set_devices(
+        [
+            AndroidDevice(
+                "private-exact-target",
+                DeviceState.DEVICE,
+                manufacturer="Xiaomi",
+                model=context.expected_model,
+                product="popsicle_global",
+                codename=context.expected_codename,
+            )
+        ]
+    )
+    app.processEvents()
+    assert center.studio_handoff_badge.text() == "TARGET MATCH • READ ONLY"
+    assert "EXACT TARGET PRESENT" in center.studio_handoff_detail.text()
+    assert "NO REBOOT, UNLOCK, ROOT, BUILD, FLASH, WIPE, OR RELOCK ACTION STARTED" in (
+        center.studio_handoff_detail.text()
+    )
+    center.studio_return_button.click()
+    assert returned == [(context.project_id, context.source_sha256, context.intent)]
     center.close()
 
 

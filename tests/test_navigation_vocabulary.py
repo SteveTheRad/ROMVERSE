@@ -190,7 +190,7 @@ def test_about_recalculates_real_workspace_evidence_and_returns_from_its_exact_g
             f"{len(registry.packs)} DEVICE PACKS  •  1 OFFICIAL IDS"
         )
         assert window.about_page.evidence_values["knowledge"].text() == (
-            "124 VERIFIED GUIDES  •  74 KNOWN FIXES"
+            "125 VERIFIED GUIDES  •  75 KNOWN FIXES"
         )
         ready_tools = sum(status.available for status in window.toolchain_center.statuses)
         tool_count = len(window.toolchain_center.statuses)
@@ -645,6 +645,143 @@ def test_rom_studio_preserves_exact_project_into_time_machine_and_device_atlas(
         window._open_device_atlas_from_studio("missing-project")
         assert window.stack.currentWidget() is window.rom_studio
         assert "DEVICE ATLAS HANDOFF STOPPED" in window.rom_studio.operation_status.text()
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_rom_studio_command_deck_device_evidence_round_trip_is_exact(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    store, registry, project, _report = _project(tmp_path)
+    window = MainWindow(None, logo, store.workspace, app_icon_path=logo, pack_registry=registry)
+    scans: list[bool] = []
+    monkeypatch.setattr(window, "scan", lambda: scans.append(True))
+    try:
+        window.rom_studio.set_devices([_device()])
+        window.device_center.set_devices([_device()])
+        window.rom_studio.refresh(project.project_id)
+        app.processEvents()
+
+        assert window.rom_studio.request_device_center("build-readiness")
+        app.processEvents()
+        assert window.stack.currentWidget() is window.device_center
+        assert window.device_center.studio_handoff.isVisibleTo(window.device_center)
+        assert window.device_center.studio_handoff_badge.text() == (
+            "TARGET MATCH • READ ONLY"
+        )
+        assert project.project_id in window.device_center.studio_handoff_detail.text()
+        assert project.original is not None
+        assert project.original.sha256[:16] in window.device_center.studio_handoff_detail.text()
+
+        window.device_center.studio_return_button.click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.rom_studio
+        assert window.rom_studio.current_project is not None
+        assert window.rom_studio.current_project.project_id == project.project_id
+        assert window.rom_studio.dashboard_handoff_eyebrow.text().startswith(
+            "COMMAND DECK HANDOFF"
+        )
+        assert "Forge Control device prerequisite" in (
+            window.rom_studio.dashboard_handoff_detail.text()
+        )
+        assert window.rom_studio.command_tabs.currentIndex() == 1
+        assert window.rom_studio.worker is None
+
+        assert window.rom_studio.request_device_center("ascension-refresh")
+        app.processEvents()
+        assert window.stack.currentWidget() is window.device_center
+        assert scans == [True]
+        assert "Ascension requested a fresh read-only target check" in (
+            window.device_center.studio_handoff_title.text()
+        )
+
+        window.device_center.rom_studio_requested.emit(
+            project.project_id,
+            "0" * 64,
+            "ascension-refresh",
+        )
+        app.processEvents()
+        assert window.stack.currentWidget() is window.device_center
+        assert window.device_center.studio_handoff_badge.text() == "CONTEXT REFUSED"
+        assert "NO SCAN, PROJECT WORKER, BUILD, ROOT, FLASH" in (
+            window.device_center.studio_handoff_detail.text()
+        )
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_rom_studio_forge_tool_evidence_round_trip_is_exact(tmp_path: Path) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    store, registry, project, report = _project(tmp_path)
+    window = MainWindow(None, logo, store.workspace, app_icon_path=logo, pack_registry=registry)
+    try:
+        window.rom_studio.refresh(project.project_id)
+        app.processEvents()
+
+        assert window.rom_studio.request_toolchain()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.toolchain_center
+        context = window.toolchain_center._studio_project_context
+        assert context is not None
+        assert context.project_id == project.project_id
+        assert project.original is not None
+        assert context.source_sha256 == project.original.sha256
+        assert context.inspection_digest == report.record_digest
+        assert context.build_contract_bound
+        assert project.project_id in window.toolchain_center.device_pack_handoff_detail.text()
+        assert project.original.sha256[:16] in (
+            window.toolchain_center.device_pack_handoff_detail.text()
+        )
+        assert "BUILD / PHONE AUTHORITY: NONE" in (
+            window.toolchain_center.device_pack_handoff_feedback.text()
+        )
+        assert window.toolchain_center.context_continue_button.isEnabled()
+
+        window.toolchain_center.context_guide_button.click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.knowledge_center
+        assert window.knowledge_center.list.currentItem().text() == (
+            "ROM Studio prerequisite route loses the exact project or does not refresh evidence"
+        )
+        window.knowledge_center.source_return.click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.toolchain_center
+
+        window.toolchain_center.context_continue_button.click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.rom_studio
+        assert window.rom_studio.current_project is not None
+        assert window.rom_studio.current_project.project_id == project.project_id
+        assert window.rom_studio.dashboard_handoff_eyebrow.text().startswith(
+            "FORGE ARSENAL HANDOFF"
+        )
+        assert context.context_digest[:16] in window.rom_studio.dashboard_handoff_detail.text()
+        assert "NO PROJECT WORKER, BUILD, ROOT, APPROVAL, FLASH" in (
+            window.rom_studio.dashboard_handoff_detail.text()
+        )
+        assert window.rom_studio.command_tabs.currentIndex() == 1
+        assert window.rom_studio.worker is None
+
+        assert window.rom_studio.request_toolchain()
+        app.processEvents()
+        window.toolchain_center.studio_project_continue_requested.emit(
+            project.project_id,
+            "0" * 64,
+        )
+        app.processEvents()
+        assert window.stack.currentWidget() is window.toolchain_center
+        assert "STALE PROJECT CONTEXT" in (
+            window.toolchain_center.device_pack_handoff_badge.text()
+        )
+        assert "NO INSTALL, PROJECT WORKER, BUILD, ROOT, FLASH" in (
+            window.toolchain_center.device_pack_handoff_feedback.text()
+        )
     finally:
         window.companion_center.transport.close()
         window.close()

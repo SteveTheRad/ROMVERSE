@@ -136,6 +136,8 @@ findings fail closed without navigating to a fallback concern, starting a sessio
 worker, researching remotely, or requesting approval. Recovery Bay must provide a reversible source
 action that returns to Quantum Optimizer and visibly focuses that exact finding in the unchanged
 current report. A stale reverse handoff must stay on the current page and request fresh evidence.
+Forward and reverse refusal must also persist a visible in-page explanation on the initiating page;
+optional Desktop toast settings may add secondary feedback but cannot be the sole failure surface.
 
 Guardian Preflight returns Ready, Review or Blocked plus the maximum risk, reasons and
 approval requirement. Failed required evidence or destructive steps block a plan; unknown

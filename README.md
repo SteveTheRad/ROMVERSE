@@ -78,8 +78,10 @@ finding is present in Recovery Bay's current report. A visible source-context st
 and states that no action started; stale or unknown handoffs fail closed instead of opening a generic
 plan. **View source finding** returns to Quantum Optimizer, scrolls to the same current finding, and
 highlights its exact read-only evidence without rerunning or changing the report. A stale reverse
-handoff also fails closed. These handoffs do not start research, approval, or repair, while ROM Studio,
-Genesis, Ascension, and Recipe Forge retain their stage-specific guides and drafts.
+handoff also fails closed. Both pages retain an in-page refresh/no-action explanation even when
+optional Desktop notifications are disabled, so safe refusal never looks like a dead button. These
+handoffs do not start research, approval, or repair, while ROM Studio, Genesis, Ascension, and Recipe
+Forge retain their stage-specific guides and drafts.
 When online research is off, its secondary panel folds into a compact, accessible status row so local
 preconditions and the Advisor stay prominent. Active, returned, or failed research expands its full
 evidence automatically, and the user can fold only those details without changing assessment state.

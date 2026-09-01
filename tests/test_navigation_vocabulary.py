@@ -473,6 +473,8 @@ def test_optimizer_recovery_handoff_fails_closed_on_stale_evidence(tmp_path: Pat
             "repair.handoff.storage.capacity"
         )
         assert "fresh evidence" in window.notification_center.last_notification.title.casefold()
+        assert "Recovery handoff stopped" in window.diagnostics_center.saved_label.text()
+        assert "nothing started" in window.diagnostics_center.saved_label.text()
         assert window.repair_center.active_session is None
         assert window.repair_center.host_repair_worker is None
     finally:
@@ -497,6 +499,47 @@ def test_recovery_source_handoff_fails_closed_when_finding_is_stale(tmp_path: Pa
             "diagnostics.handoff.storage.capacity"
         )
         assert "fresh evidence" in window.notification_center.last_notification.title.casefold()
+        assert "SOURCE RETURN STOPPED" in window.repair_center.diagnostic_context.text()
+        assert "NO ACTION STARTED" in window.repair_center.diagnostic_context.text()
+        assert window.repair_center.active_session is None
+        assert window.repair_center.host_repair_worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_handoff_failures_remain_visible_when_desktop_notifications_are_disabled(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        app_settings=AppSettings(desktop_notifications_enabled=False),
+    )
+    try:
+        window._navigate_route("quantum_optimizer")
+        window.diagnostics_center.repair_requested.emit("storage.capacity")
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.diagnostics_center
+        assert window.notification_center.last_notification is None
+        assert "storage.capacity needs fresh evidence" in (
+            window.diagnostics_center.saved_label.text()
+        )
+        assert "nothing started" in window.diagnostics_center.saved_label.text()
+
+        window._navigate_route("recovery_bay")
+        window.repair_center.diagnostic_requested.emit("storage.capacity")
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.repair_center
+        assert window.notification_center.last_notification is None
+        assert "SOURCE RETURN STOPPED" in window.repair_center.diagnostic_context.text()
+        assert "REFRESH DEVICE EVIDENCE" in window.repair_center.diagnostic_context.text()
         assert window.repair_center.active_session is None
         assert window.repair_center.host_repair_worker is None
     finally:

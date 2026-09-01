@@ -454,6 +454,17 @@ class DiagnosticsCenter(QWidget):
         self.body.ensureWidgetVisible(card, 0, 24)
         return True
 
+    def show_repair_handoff_error(self, finding_id: str) -> None:
+        """Keep a failed Recovery Bay handoff visible when optional toasts are disabled."""
+
+        normalized = finding_id.strip()[:120] or "unknown finding"
+        self.saved_label.setText(
+            f"Recovery handoff stopped  •  {normalized} needs fresh evidence  •  nothing started"
+        )
+        self.saved_label.setObjectName("Warning")
+        self.saved_label.style().unpolish(self.saved_label)
+        self.saved_label.style().polish(self.saved_label)
+
     def _action_plan(self, report: DiagnosticReport) -> QFrame:
         ranking = {
             Severity.HEALTHY: 0,

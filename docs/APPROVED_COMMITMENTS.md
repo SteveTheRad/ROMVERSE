@@ -405,7 +405,8 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   Recovery Bay concern only when the finding remains present in Recovery Bay's current report,
   displays a source-context/no-action-started boundary, clears that context on manual category
   change, returns to and visually focuses the unchanged exact Quantum Optimizer source finding, and
-  fails closed in both directions on stale or unknown evidence without starting a session or worker;
+  fails closed in both directions on stale or unknown evidence without starting a session or worker,
+  with persistent in-page refresh/no-action feedback independent of optional Desktop notifications;
   Command Deck consumes that same severity-ranked actionable selector, visually promotes Repair
   Phone with a topic-specific ready state, opens the exact matching plan, labels a healthy general
   intake honestly, and exposes mismatched Recovery evidence as refresh-required rather than guessing;

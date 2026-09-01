@@ -614,6 +614,22 @@ class RepairCenter(QWidget):
         self.diagnostic_context.setVisible(True)
         self.diagnostic_context_row.setVisible(True)
 
+    def show_diagnostic_handoff_error(self, finding_id: str) -> None:
+        """Keep a failed source return visible when optional toasts are disabled."""
+
+        normalized = finding_id.strip()[:120] or "unknown finding"
+        self._clear_diagnostic_context()
+        self.diagnostic_context.setAccessibleName(
+            "Recovery Bay source handoff needs fresh evidence"
+        )
+        self.diagnostic_context.setText(
+            f"SOURCE RETURN STOPPED  •  {normalized.upper()} IS NOT IN THE CURRENT REPORT  •  "
+            "REFRESH DEVICE EVIDENCE  •  NO ACTION STARTED"
+        )
+        self.diagnostic_source_button.setVisible(False)
+        self.diagnostic_context.setVisible(True)
+        self.diagnostic_context_row.setVisible(True)
+
     def _concern_changed(self, index: int) -> None:
         if not self._applying_diagnostic_context:
             self._clear_diagnostic_context()

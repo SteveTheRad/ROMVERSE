@@ -4059,6 +4059,7 @@ class MainWindow(QMainWindow):
         if self.repair_center.open_diagnostic_finding(finding_id):
             self._navigate_route("recovery_bay")
             return
+        self.diagnostics_center.show_repair_handoff_error(finding_id)
         self.notification_center.notify(
             f"repair.handoff.{finding_id[:60] or 'missing'}",
             "Repair handoff needs fresh evidence",
@@ -4075,6 +4076,7 @@ class MainWindow(QMainWindow):
                 self.diagnostics_center.finding_cards[finding_id.strip()[:120]], 0, 24
             )
             return
+        self.repair_center.show_diagnostic_handoff_error(finding_id)
         self.notification_center.notify(
             f"diagnostics.handoff.{finding_id[:52] or 'missing'}",
             "Diagnostic source needs fresh evidence",

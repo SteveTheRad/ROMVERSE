@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from PySide6.QtCore import Qt, QTimer, Signal
-from PySide6.QtGui import QBrush, QColor, QPalette
+from PySide6.QtGui import QBrush, QColor, QLinearGradient, QPainter, QPalette
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
@@ -13,6 +13,9 @@ from PySide6.QtWidgets import (
     QLabel,
     QProgressBar,
     QPushButton,
+    QStyle,
+    QStyledItemDelegate,
+    QStyleOptionViewItem,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -26,6 +29,99 @@ from romverse.nexus.events import (
     MissionState,
 )
 from romverse.ui.vocabulary import canonical_source_route, feature
+
+
+class _LiveConsoleItemDelegate(QStyledItemDelegate):
+    """Paint evidence cells without trusting the host desktop's item-view theme."""
+
+    BASE = QColor("#060B16")
+    ALTERNATE = QColor("#0B1322")
+    HOVER = QColor("#142440")
+    TEXT = QColor("#DCE8F8")
+    GRID = QColor("#223653")
+
+    def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index,
+    ) -> None:
+        painter.save()
+        selected = bool(option.state & QStyle.StateFlag.State_Selected)
+        hovered = bool(option.state & QStyle.StateFlag.State_MouseOver)
+        if selected:
+            background = QLinearGradient(option.rect.topLeft(), option.rect.topRight())
+            background.setColorAt(0.0, QColor("#523B9B"))
+            background.setColorAt(1.0, QColor("#236996"))
+            painter.fillRect(option.rect, QBrush(background))
+        else:
+            background = (
+                self.HOVER if hovered else (self.BASE if index.row() % 2 == 0 else self.ALTERNATE)
+            )
+            painter.fillRect(option.rect, background)
+
+        painter.setPen(self.GRID)
+        painter.drawLine(option.rect.bottomLeft(), option.rect.bottomRight())
+        painter.drawLine(option.rect.topRight(), option.rect.bottomRight())
+
+        foreground = index.data(Qt.ItemDataRole.ForegroundRole)
+        text_color = foreground.color() if isinstance(foreground, QBrush) else self.TEXT
+        painter.setPen(QColor("#FFFFFF") if selected or hovered else text_color)
+        painter.setFont(option.font)
+        text_rect = option.rect.adjusted(7, 0, -6, 0)
+        text = str(index.data(Qt.ItemDataRole.DisplayRole) or "")
+        text = option.fontMetrics.elidedText(
+            text,
+            Qt.TextElideMode.ElideRight,
+            max(0, text_rect.width()),
+        )
+        alignment = index.data(Qt.ItemDataRole.TextAlignmentRole)
+        if alignment is None:
+            alignment = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        painter.drawText(text_rect, int(alignment), text)
+        painter.restore()
+
+
+class _LiveConsoleHeader(QHeaderView):
+    """Paint a stable dark header even when Wayland injects a light native base."""
+
+    def paintSection(self, painter: QPainter, rect, logical_index: int) -> None:
+        if not rect.isValid():
+            return
+        painter.save()
+        painter.fillRect(rect, QColor("#0D1729"))
+        painter.setPen(QColor("#29466F"))
+        painter.drawLine(rect.topRight(), rect.bottomRight())
+        painter.setPen(QColor("#3B5E8E"))
+        painter.drawLine(rect.bottomLeft(), rect.bottomRight())
+
+        font = self.font()
+        font.setBold(True)
+        painter.setFont(font)
+        painter.setPen(QColor("#CFE1F7"))
+        text_rect = rect.adjusted(7, 0, -6, 0)
+        text = str(
+            self.model().headerData(
+                logical_index,
+                self.orientation(),
+                Qt.ItemDataRole.DisplayRole,
+            )
+            or ""
+        )
+        text = painter.fontMetrics().elidedText(
+            text,
+            Qt.TextElideMode.ElideRight,
+            max(0, text_rect.width()),
+        )
+        alignment = self.model().headerData(
+            logical_index,
+            self.orientation(),
+            Qt.ItemDataRole.TextAlignmentRole,
+        )
+        if alignment is None:
+            alignment = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        painter.drawText(text_rect, int(alignment), text)
+        painter.restore()
 
 
 class LiveConsoleCenter(QWidget):
@@ -86,6 +182,10 @@ class LiveConsoleCenter(QWidget):
         self.table = QTableWidget(0, 6)
         self.table.setObjectName("LiveConsoleTable")
         self.table.setAccessibleName("Genuine ROMVERSE mission events")
+        table_header = _LiveConsoleHeader(Qt.Orientation.Horizontal, self.table)
+        table_header.setObjectName("LiveConsoleHeader")
+        self.table.setHorizontalHeader(table_header)
+        self.table.setItemDelegate(_LiveConsoleItemDelegate(self.table))
         self.table.setHorizontalHeaderLabels(
             ("Time", "Subsystem", "Stage", "State", "Progress", "Confidence")
         )
@@ -97,8 +197,6 @@ class LiveConsoleCenter(QWidget):
         self.table.setCornerButtonEnabled(False)
         self.table.verticalHeader().setVisible(False)
         self.table.verticalHeader().setDefaultSectionSize(36)
-        table_header = self.table.horizontalHeader()
-        table_header.setObjectName("LiveConsoleHeader")
         table_header.setDefaultAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         table_header.setMinimumHeight(36)
         table_header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)

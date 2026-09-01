@@ -73,6 +73,47 @@ def test_live_console_renders_real_events_and_filters_active_work(tmp_path) -> N
     assert "background-color: #0D1729" in center.table.horizontalHeader().styleSheet()
 
 
+def test_live_console_rendered_cells_and_header_stay_dark(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    app.setStyle("Fusion")
+    app.setStyleSheet(STYLESHEET)
+    store = LiveConsoleEventStore(tmp_path)
+    for index in range(3):
+        store.note(
+            source=f"Visual evidence {index}",
+            stage="contrast-check",
+            title=f"Contrast event {index}",
+            summary="Rendered colors must remain readable.",
+            explanation="The host theme cannot own this evidence surface.",
+            next_action="Keep the table dark.",
+            state=MissionState.ATTENTION,
+        )
+
+    center = LiveConsoleCenter(store)
+    center.resize(1_300, 800)
+    center.show()
+    app.processEvents()
+    try:
+        viewport_image = center.table.viewport().grab().toImage()
+        alternate_rect = center.table.visualItemRect(center.table.item(1, 2))
+        alternate_pixel = viewport_image.pixelColor(
+            alternate_rect.right() - 3,
+            alternate_rect.center().y(),
+        )
+
+        header = center.table.horizontalHeader()
+        header_image = header.viewport().grab().toImage()
+        header_x = header.sectionViewportPosition(2) + header.sectionSize(2) - 3
+        header_pixel = header_image.pixelColor(header_x, header.height() // 2)
+
+        assert alternate_pixel.name() == "#0b1322"
+        assert header_pixel.name() == "#0d1729"
+        assert alternate_pixel.lightness() < 32
+        assert header_pixel.lightness() < 40
+    finally:
+        center.close()
+
+
 def test_live_console_disables_source_action_for_unregistered_producer(tmp_path) -> None:
     QApplication.instance() or QApplication([])
     store = LiveConsoleEventStore(tmp_path)

@@ -72,6 +72,7 @@ class AndroidDevice:
     dynamic_partitions: bool | None = None
     fastboot_capability: str = ""
     recovery_capability: str = ""
+    brand: str = ""
 
     @property
     def display_name(self) -> str:

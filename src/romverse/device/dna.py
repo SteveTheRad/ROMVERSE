@@ -376,6 +376,13 @@ def _facts(
             live_evidence if device and device.manufacturer else source_evidence,
         ),
         _fact(
+            "identity.brand",
+            "Retail brand",
+            device.brand if device else "",
+            live_confidence,
+            live_evidence,
+        ),
+        _fact(
             "identity.model",
             "Model",
             device.model if device else "",
@@ -1129,7 +1136,10 @@ def _device_matches_pack(device: AndroidDevice, pack: DevicePack) -> bool:
             pattern == "*" or fnmatch.fnmatchcase(normalized, pattern) for pattern in patterns
         )
 
-    if not matches(device.manufacturer, pack.manufacturers):
+    if not (
+        matches(device.manufacturer, pack.manufacturers)
+        or matches(device.brand, pack.manufacturers)
+    ):
         return False
     if pack.model_patterns and not matches(device.model, pack.model_patterns):
         return False

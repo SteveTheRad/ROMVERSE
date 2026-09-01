@@ -46,7 +46,9 @@ class DevicePackDraftService:
     ) -> dict[str, object]:
         """Create a privacy-safe review request without serial or device authority."""
 
-        manufacturer = _identity(device.manufacturer, "manufacturer")
+        manufacturer = _identity(
+            device.brand or device.manufacturer, "retail brand or manufacturer"
+        )
         model = _identity(device.model, "model")
         product = _identity(device.product or device.codename, "product or codename")
         codename = _identity(device.codename or device.product, "codename or product")

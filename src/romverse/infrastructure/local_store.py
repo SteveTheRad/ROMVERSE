@@ -120,6 +120,57 @@ def read_json_object(
         os.close(parent_fd)
 
 
+def read_regular_bytes(
+    path: Path,
+    *,
+    boundary: Path,
+    maximum_bytes: int,
+) -> bytes:
+    """Read one bounded regular file without following links inside a trusted root."""
+
+    if maximum_bytes < 1:
+        raise ValueError("maximum_bytes must be positive")
+    if os.name == "nt":
+        parent = _validated_directory_path(path.parent, boundary=boundary, create=False)
+        safe_path = parent / path.name
+        try:
+            details = safe_path.lstat()
+            if not stat.S_ISREG(details.st_mode) or not 0 < details.st_size <= maximum_bytes:
+                raise LocalStoreError("Binary evidence exceeds its size boundary")
+            payload = safe_path.read_bytes()
+        except OSError as exc:
+            raise LocalStoreError(f"Local evidence read failed: {exc}") from exc
+        if not 0 < len(payload) <= maximum_bytes:
+            raise LocalStoreError("Binary evidence exceeds its size boundary")
+        return payload
+
+    parent_fd = _open_parent(path, boundary=boundary, create=False)
+    try:
+        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+        descriptor = os.open(path.name, flags, dir_fd=parent_fd)
+        try:
+            details = os.fstat(descriptor)
+            if not stat.S_ISREG(details.st_mode):
+                raise LocalStoreError("Binary evidence is not a regular file")
+            if not 0 < details.st_size <= maximum_bytes:
+                raise LocalStoreError("Binary evidence exceeds its size boundary")
+            with os.fdopen(descriptor, "rb", closefd=True) as stream:
+                payload = stream.read(maximum_bytes + 1)
+        except Exception:
+            with suppress(OSError):
+                os.close(descriptor)
+            raise
+        if not 0 < len(payload) <= maximum_bytes:
+            raise LocalStoreError("Binary evidence exceeds its size boundary")
+        return payload
+    except OSError as exc:
+        if isinstance(exc, LocalStoreError):
+            raise
+        raise LocalStoreError(f"Local evidence read failed: {exc}") from exc
+    finally:
+        os.close(parent_fd)
+
+
 def bounded_regular_files(
     directory: Path,
     pattern_suffix: str,

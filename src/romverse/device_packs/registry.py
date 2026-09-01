@@ -111,12 +111,16 @@ class DevicePackRegistry:
 
     def resolve(self, device: AndroidDevice) -> PackResolution:
         manufacturer = device.manufacturer.casefold().strip()
+        brand = device.brand.casefold().strip()
         model = device.model.casefold().strip()
         product = device.product.casefold().strip()
         codename = device.codename.casefold().strip()
         candidates: list[DevicePack] = []
         for pack in self.packs:
-            if not self._matches(manufacturer, pack.manufacturers):
+            if not (
+                self._matches(manufacturer, pack.manufacturers)
+                or self._matches(brand, pack.manufacturers)
+            ):
                 continue
             if pack.model_patterns and not self._matches(model, pack.model_patterns):
                 continue
@@ -140,7 +144,11 @@ class DevicePackRegistry:
         pack = leaders[0]
         specific = pack.manufacturers != ("*",)
         reason = (
-            f"Manufacturer matched {device.manufacturer or 'reported OEM'}"
+            f"Retail brand matched {device.brand}"
+            if specific
+            and self._matches(brand, pack.manufacturers)
+            and not self._matches(manufacturer, pack.manufacturers)
+            else f"Manufacturer matched {device.manufacturer or 'reported OEM'}"
             if specific
             else "Generic Android fallback"
         )
@@ -193,6 +201,7 @@ class DevicePackRegistry:
         """
 
         manufacturer = device.manufacturer.casefold().strip()
+        brand = device.brand.casefold().strip()
         model = device.model.casefold().strip()
         product = device.product.casefold().strip()
         codename = device.codename.casefold().strip()
@@ -200,7 +209,10 @@ class DevicePackRegistry:
             pack
             for pack in self.packs
             if pack.build_contract is None
-            and self._matches(manufacturer, pack.manufacturers)
+            and (
+                self._matches(manufacturer, pack.manufacturers)
+                or self._matches(brand, pack.manufacturers)
+            )
             and (not pack.model_patterns or self._matches(model, pack.model_patterns))
             and (
                 not pack.product_patterns

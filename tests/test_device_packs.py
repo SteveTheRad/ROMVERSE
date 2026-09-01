@@ -68,6 +68,23 @@ def test_registry_resolves_xiaomi_samsung_and_generic_fallback():
     assert generic.reason == "Generic Android fallback"
 
 
+def test_registry_uses_exact_android_retail_brand_when_manufacturer_differs():
+    registry = builtin_registry()
+    device = AndroidDevice(
+        "private",
+        DeviceState.DEVICE,
+        brand="Xiaomi",
+        manufacturer="Contract Manufacturer",
+        model="Regional phone",
+    )
+
+    resolution = registry.resolve(device)
+
+    assert resolution.pack is not None
+    assert resolution.pack.pack_id == "xiaomi.hyperos"
+    assert resolution.reason == "Retail brand matched Xiaomi"
+
+
 def test_registry_resolves_new_read_only_oem_knowledge_packs():
     registry = builtin_registry()
 

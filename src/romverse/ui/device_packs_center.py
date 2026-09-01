@@ -17,6 +17,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from romverse.device.catalog import (
+    DeviceCatalogMatch,
+    DeviceCatalogStatus,
+    GooglePlayDeviceCatalog,
+)
 from romverse.device.models import AndroidDevice
 from romverse.device_packs.attestations import DevicePackAttestationStore
 from romverse.device_packs.drafts import DevicePackDraftService
@@ -32,17 +37,22 @@ from romverse.device_packs.validation import (
 
 class DevicePacksCenter(QWidget):
     rom_studio_requested = Signal()
+    catalog_refresh_requested = Signal()
 
     def __init__(
         self,
         registry: DevicePackRegistry,
         workspace: Path | None = None,
         attestation_store: DevicePackAttestationStore | None = None,
+        device_catalog: GooglePlayDeviceCatalog | None = None,
+        online_catalog_enabled: bool = True,
     ) -> None:
         super().__init__()
         self.registry = registry
         self.workspace = workspace
         self.attestation_store = attestation_store
+        self.device_catalog = device_catalog
+        self.online_catalog_enabled = online_catalog_enabled
         self.validation_service = DevicePackValidationService()
         self.draft_service = DevicePackDraftService()
         self.active_report: DevicePackValidationReport | None = None
@@ -104,6 +114,31 @@ class DevicePacksCenter(QWidget):
         self.catalog_button.clicked.connect(self._show_installed)
         catalog_row.addWidget(self.catalog_button)
         page.addLayout(catalog_row)
+
+        self.identity_catalog = QFrame()
+        self.identity_catalog.setObjectName("DiagnosticHandoffBar")
+        identity_layout = QHBoxLayout(self.identity_catalog)
+        identity_layout.setContentsMargins(20, 14, 20, 14)
+        identity_copy = QVBoxLayout()
+        self.identity_catalog_title = QLabel("Official Android device IDs")
+        self.identity_catalog_title.setObjectName("SectionTitle")
+        self.identity_catalog_detail = QLabel()
+        self.identity_catalog_detail.setObjectName("Muted")
+        self.identity_catalog_detail.setWordWrap(True)
+        identity_copy.addWidget(self.identity_catalog_title)
+        identity_copy.addWidget(self.identity_catalog_detail)
+        identity_layout.addLayout(identity_copy, 1)
+        self.identity_catalog_badge = QLabel()
+        identity_layout.addWidget(self.identity_catalog_badge)
+        self.identity_catalog_button = QPushButton("Sync official IDs")
+        self.identity_catalog_button.setToolTip(
+            "Downloads Google's public supported-device catalog in the background. It can label "
+            "an exact Build.BRAND + Build.DEVICE pair, but cannot enable building, flashing, or "
+            "any phone action."
+        )
+        self.identity_catalog_button.clicked.connect(self.catalog_refresh_requested)
+        identity_layout.addWidget(self.identity_catalog_button)
+        page.addWidget(self.identity_catalog)
 
         self.hero = QFrame()
         self.hero.setObjectName("HeroCard")
@@ -189,7 +224,109 @@ class DevicePacksCenter(QWidget):
         boundary.setObjectName("Muted")
         boundary.setWordWrap(True)
         page.addWidget(boundary)
+        self.set_catalog_status(
+            device_catalog.status()
+            if device_catalog is not None
+            else DeviceCatalogStatus(False, False, "Official device catalog is unavailable")
+        )
         self._show_installed()
+
+    def set_catalog_checking(self) -> None:
+        self.identity_catalog_title.setText("Checking official Android device IDs…")
+        self.identity_catalog_detail.setText(
+            "Google's public supported-device catalog is downloading in the background. "
+            "Existing Device Packs and all Guardian locks remain unchanged."
+        )
+        self.identity_catalog_badge.setText("CHECKING • ZERO AUTHORITY")
+        self.identity_catalog_badge.setObjectName("Warning")
+        self.identity_catalog_button.setText("Syncing…")
+        self.identity_catalog_button.setEnabled(False)
+        self._repolish(self.identity_catalog_badge)
+
+    def set_catalog_status(self, status: DeviceCatalogStatus) -> None:
+        self.identity_catalog_button.setText("Refresh official IDs")
+        self.identity_catalog_button.setEnabled(self.online_catalog_enabled)
+        if not self.online_catalog_enabled:
+            self.identity_catalog_title.setText(
+                "Official Android device IDs • online sync disabled"
+            )
+            self.identity_catalog_detail.setText(
+                "Enable verified online diagnostics and sources in Settings to refresh. Any "
+                "already verified local catalog remains available for read-only recognition."
+            )
+            self.identity_catalog_badge.setText("LOCAL ONLY • ZERO AUTHORITY")
+            self.identity_catalog_badge.setObjectName("Warning")
+        elif status.valid:
+            freshness = "CURRENT" if status.fresh else "UPDATE DUE"
+            self.identity_catalog_title.setText(
+                f"Official Android device IDs • {status.entry_count:,} verified rows"
+            )
+            self.identity_catalog_detail.setText(
+                f"{status.reason}  •  SHA-256 {status.content_sha256[:16]}…  •  "
+                "identity only; build authority: none; flash authority: none"
+            )
+            self.identity_catalog_badge.setText(f"{freshness} • READ ONLY")
+            self.identity_catalog_badge.setObjectName("Good" if status.fresh else "Warning")
+        else:
+            self.identity_catalog_title.setText("Official Android device IDs • sync needed")
+            self.identity_catalog_detail.setText(
+                f"{status.reason}. Connect to the internet and sync; ROMVERSE will keep unknown "
+                "identities explicit and will not guess."
+            )
+            self.identity_catalog_badge.setText("NOT SYNCED • ZERO AUTHORITY")
+            self.identity_catalog_badge.setObjectName("Warning")
+        self._repolish(self.identity_catalog_badge)
+        if self.active_device is not None:
+            self._render_catalog_identity(self.active_device)
+
+    def catalog_refresh_failed(self, reason: str) -> None:
+        self.identity_catalog_title.setText("Official Android device ID sync stopped safely")
+        self.identity_catalog_detail.setText(
+            f"{reason}. No unverified download was activated; any prior local catalog is reused "
+            "only if it still passes every integrity check. No build, flash, approval, or phone "
+            "action was created."
+        )
+        self.identity_catalog_badge.setText("SYNC FAILED • ZERO AUTHORITY")
+        self.identity_catalog_badge.setObjectName("Danger")
+        self.identity_catalog_button.setText("Retry official ID sync")
+        self.identity_catalog_button.setEnabled(self.online_catalog_enabled)
+        self._repolish(self.identity_catalog_badge)
+
+    def _render_catalog_identity(self, device: AndroidDevice | None) -> DeviceCatalogMatch | None:
+        if device is None or self.device_catalog is None:
+            return None
+        match = self.device_catalog.match(device)
+        if match.matched:
+            self.identity_catalog_title.setText(
+                f"Official identity recognized • {match.marketing_name}"
+            )
+            model = f" • model {match.model}" if match.model else ""
+            self.identity_catalog_detail.setText(
+                f"Exact Build.BRAND / Build.DEVICE: {device.brand} / {device.codename}{model}  •  "
+                f"{match.variant_count} matching catalog row(s)  •  retail identity only; "
+                "an exact signed Device Pack is still required for build or flash readiness"
+            )
+            self.identity_catalog_badge.setText("EXACT ID • READ ONLY")
+            self.identity_catalog_badge.setObjectName("Good")
+        elif match.ambiguous:
+            self.identity_catalog_title.setText("Official identity is ambiguous")
+            self.identity_catalog_detail.setText(
+                f"{match.reason}. Build.BRAND={device.brand or 'unknown'}  •  "
+                f"Build.DEVICE={device.codename or 'unknown'}  •  model={device.model or 'unknown'}"
+            )
+            self.identity_catalog_badge.setText("NO GUESS • BUILD LOCKED")
+            self.identity_catalog_badge.setObjectName("Danger")
+        else:
+            self.identity_catalog_title.setText("Official identity not confirmed")
+            self.identity_catalog_detail.setText(
+                f"{match.reason}. Build.BRAND={device.brand or 'unknown'}  •  "
+                f"Build.DEVICE={device.codename or 'unknown'}  •  model={device.model or 'unknown'}  •  "
+                "safe diagnostics remain available; model-specific build and flash stay locked"
+            )
+            self.identity_catalog_badge.setText("UNCONFIRMED • BUILD LOCKED")
+            self.identity_catalog_badge.setObjectName("Warning")
+        self._repolish(self.identity_catalog_badge)
+        return match
 
     def _export_source_audit(self) -> None:
         if self.workspace is None:
@@ -241,6 +378,8 @@ class DevicePacksCenter(QWidget):
                 "Muted",
                 False,
             )
+            if self.device_catalog is not None:
+                self.set_catalog_status(self.device_catalog.status())
             self._show_installed()
 
     def _select(self, index: int) -> None:
@@ -248,6 +387,7 @@ class DevicePacksCenter(QWidget):
             self._render_device(self.devices[index])
 
     def _render_device(self, device: AndroidDevice) -> None:
+        official_identity = self._render_catalog_identity(device)
         resolution = self.registry.resolve(device)
         if resolution.pack is None:
             self.pack_name.setText("No valid pack matched")
@@ -299,6 +439,15 @@ class DevicePacksCenter(QWidget):
                 "stage before any Guardian handoff.",
                 "Good",
                 True,
+            )
+        elif generic and official_identity is not None and official_identity.matched:
+            self._set_guidance(
+                "✓ Phone identity recognized — exact build support is still locked",
+                f"Google's official catalog identifies {official_identity.marketing_name}, but "
+                "identity data is not a partition map or flash contract. ROMVERSE can diagnose "
+                "the phone while Device Atlas gathers a signed exact model/source contract.",
+                "Warning",
+                False,
             )
         elif generic:
             self._set_guidance(

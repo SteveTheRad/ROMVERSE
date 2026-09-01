@@ -77,6 +77,11 @@ from romverse.core.activity import ActivityStore, ActivityStoreError
 from romverse.core.settings import AppSettings, ExperienceMode
 from romverse.device.adb import AdbClient
 from romverse.device.apk_install import ApkInstallService
+from romverse.device.catalog import (
+    DeviceCatalogError,
+    DeviceCatalogStatus,
+    GooglePlayDeviceCatalog,
+)
 from romverse.device.dna import CapabilityState, DeviceDnaProfile
 from romverse.device.engine import DeviceEngine
 from romverse.device.identity import DeviceIdentityResolver
@@ -309,6 +314,27 @@ class ScanWorker(ManagedRunnable):
             self.signals.complete.emit(self.engine.scan_reconnect_safe())
         except Exception as exc:  # UI boundary converts adapter failures to visible state
             self.signals.failed.emit(str(exc))
+
+
+class DeviceCatalogSignals(QObject):
+    complete = Signal(object)
+    failed = Signal(str)
+
+
+class DeviceCatalogWorker(ManagedRunnable):
+    def __init__(self, catalog: GooglePlayDeviceCatalog) -> None:
+        super().__init__()
+        self.catalog = catalog
+        self.signals = DeviceCatalogSignals()
+
+    @Slot()
+    def execute(self) -> None:
+        try:
+            self.signals.complete.emit(self.catalog.sync())
+        except DeviceCatalogError as exc:
+            self.signals.failed.emit(str(exc))
+        except Exception:
+            self.signals.failed.emit("Official Android device ID sync failed unexpectedly")
 
 
 class LogoLabel(QLabel):
@@ -2398,6 +2424,8 @@ class MainWindow(QMainWindow):
         )
         self.scanning = False
         self.active_worker: ScanWorker | None = None
+        self.device_catalog_worker: DeviceCatalogWorker | None = None
+        self._catalog_auto_attempted = False
         self._device_runtime_generation = 0
         self._reconnect_retry_ms = 1_500
         self._scan_failure_count = 0
@@ -2504,7 +2532,12 @@ class MainWindow(QMainWindow):
         self.guardian_center = GuardianCenter(self._audit_store, auto_start=False)
         self.stack.addWidget(self.guardian_center)
         resolved_registry = pack_registry or DevicePackRegistry(())
-        self.device_identity = DeviceIdentityResolver(workspace, resolved_registry)
+        self.device_catalog = GooglePlayDeviceCatalog(workspace)
+        self.device_identity = DeviceIdentityResolver(
+            workspace,
+            resolved_registry,
+            (self.device_catalog,),
+        )
         host_repair_service = (
             AdbHostRepairService(
                 adb_executable,
@@ -2542,7 +2575,10 @@ class MainWindow(QMainWindow):
             resolved_registry,
             workspace,
             attestation_store,
+            self.device_catalog,
+            self.app_settings.online_intelligence_enabled,
         )
+        self.device_packs_center.catalog_refresh_requested.connect(self._refresh_device_catalog)
         self.stack.addWidget(self.device_packs_center)
         self.rom_studio = RomStudio(
             RomProjectStore(workspace),
@@ -3161,7 +3197,7 @@ class MainWindow(QMainWindow):
         self.scanning = False
         self.active_worker = None
         self._scan_failure_count = 0
-        devices = [self.device_identity.resolve_local(device) for device in devices]
+        devices = [self.device_identity.resolve_online(device) for device in devices]
         self.device_center.set_scanning(False)
         self.device_center.set_devices(devices)
         self.companion_center.set_device_snapshot(devices)
@@ -3175,6 +3211,8 @@ class MainWindow(QMainWindow):
         self.apk_installer.set_devices(devices)
         self.backup_center.set_devices(devices)
         self.terminal_center.set_devices(devices)
+        if any(device.brand.strip() and device.codename.strip() for device in devices):
+            self._maybe_refresh_device_catalog()
         stabilizing = any(
             device.connection_note.startswith("USB link detected;") for device in devices
         )
@@ -3244,6 +3282,49 @@ class MainWindow(QMainWindow):
                 "ROMVERSE can read the connected device again and refreshed its current evidence.",
                 NotificationKind.SUCCESS,
             )
+
+    def _maybe_refresh_device_catalog(self) -> None:
+        if (
+            self._catalog_auto_attempted
+            or not self.app_settings.online_intelligence_enabled
+            or not self.device_catalog.needs_refresh()
+        ):
+            return
+        self._catalog_auto_attempted = True
+        self._refresh_device_catalog()
+
+    @Slot()
+    def _refresh_device_catalog(self) -> None:
+        if self.device_catalog_worker is not None:
+            return
+        if not self.app_settings.online_intelligence_enabled:
+            self.device_packs_center.set_catalog_status(self.device_catalog.status())
+            return
+        self.device_packs_center.set_catalog_checking()
+        worker = DeviceCatalogWorker(self.device_catalog)
+        self.device_catalog_worker = worker
+        worker.signals.complete.connect(self._device_catalog_complete)
+        worker.signals.failed.connect(self._device_catalog_failed)
+        start_background(worker)
+
+    @Slot(object)
+    def _device_catalog_complete(self, status: DeviceCatalogStatus) -> None:
+        self.device_catalog_worker = None
+        self.device_packs_center.set_catalog_status(status)
+        self.notification_center.notify(
+            "device.catalog.current",
+            "Official Android device IDs updated",
+            f"ROMVERSE verified {status.entry_count:,} Google Play catalog rows for read-only "
+            "identity matching. Build and flash authority remain locked.",
+            NotificationKind.SUCCESS,
+        )
+        if self.engine is not None:
+            QTimer.singleShot(0, self.scan)
+
+    @Slot(str)
+    def _device_catalog_failed(self, reason: str) -> None:
+        self.device_catalog_worker = None
+        self.device_packs_center.catalog_refresh_failed(reason)
 
     def _set_sidebar_device_art(self, device: AndroidDevice) -> None:
         kind = _sidebar_device_art_kind(device)
@@ -4275,6 +4356,11 @@ class MainWindow(QMainWindow):
             if settings.online_intelligence_enabled
             else None
         )
+        self.device_packs_center.online_catalog_enabled = settings.online_intelligence_enabled
+        self.device_packs_center.set_catalog_status(self.device_catalog.status())
+        if settings.online_intelligence_enabled and self.device_catalog.needs_refresh():
+            self._catalog_auto_attempted = False
+            QTimer.singleShot(0, self._maybe_refresh_device_catalog)
         self._apply_experience_mode(settings.experience_mode)
         self.cosmic_background.set_reduced_motion(settings.reduced_motion)
         self._brand_logo.set_reduced_motion(settings.reduced_motion)

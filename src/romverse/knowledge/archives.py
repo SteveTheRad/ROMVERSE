@@ -193,6 +193,11 @@ PIXEL_BATTERY_SOURCE = ArchiveSource(
     "OFFICIAL GOOGLE • PIXEL-SCOPED",
     "https://support.google.com/pixelphone/answer/6090612",
 )
+GOOGLE_DEVICE_CATALOG_SOURCE = ArchiveSource(
+    "Google Play supported Android device catalog",
+    "OFFICIAL GOOGLE • IDENTITY ONLY",
+    "https://storage.googleapis.com/play_public/supported_devices.csv",
+)
 ROMVERSE_SOURCE = ArchiveSource(
     "ROMVERSE tested safety and evidence contracts",
     "ROMVERSE VERIFIED",
@@ -1510,6 +1515,42 @@ KNOWN_FIXES = (
         evidence="ROMVERSE's cache optimizer revalidates every candidate immediately before deletion.",
         automation="BOUNDED HOST CLEANUP AFTER EXPLICIT CONFIRMATION",
         source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "android-device-identity-catalog",
+        "Recognize an Android model without guessing build or flash support",
+        "ROMVERSE WORKFLOWS",
+        "A retail phone name is useful context, but only the exact on-device Build.BRAND plus "
+        "Build.DEVICE pair identifies a Google Play device model. Marketing names, codenames, "
+        "and model strings can each be shared across variants and cannot prove a firmware or "
+        "partition contract.",
+        checks=(
+            "Run a fresh read-only Device Engine scan and confirm Build.BRAND, Build.DEVICE, and model are present.",
+            "Check that Device Atlas accepted a current private catalog receipt and an exact brand/device match.",
+            "Separate the identity result from the active Device Pack, protected firmware digest, build contract, and physical recovery evidence.",
+        ),
+        fix_steps=(
+            "Use Device Atlas to sync the official Android device IDs in the background, then rescan the connected phone.",
+            "If the official pair has multiple retail names, preserve the result as ambiguous until the exact model narrows it; never choose by popularity or list order.",
+            "Review the automatically selected Device Pack roadmap and prepare a review-only exact-model draft for any missing contract.",
+        ),
+        verification=(
+            "Device Atlas shows the exact retail identity and source digest as read-only evidence.",
+            "ROM Studio names the same phone while build and flash readiness remain locked unless their independent exact contracts pass.",
+            "Unknown, stale, malformed, redirected, linked, oversized, or altered catalog evidence never becomes a device identity claim.",
+        ),
+        tags=(
+            "android device id",
+            "Build.BRAND Build.DEVICE",
+            "official device catalog",
+            "unknown phone model",
+            "device codename",
+            "automatic device recognition",
+        ),
+        route="device_atlas",
+        evidence="Google defines a device model by the OEM-reported retail brand and device properties and warns that device or marketing name alone is not unique.",
+        automation="BOUNDED OFFICIAL CATALOG SYNC • READ-ONLY IDENTITY • BUILD/FLASH AUTHORITY NONE",
+        source=GOOGLE_DEVICE_CATALOG_SOURCE,
     ),
 )
 

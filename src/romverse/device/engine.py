@@ -190,6 +190,7 @@ class DeviceEngine:
         return AndroidDevice(
             **base,
             manufacturer=manufacturer,
+            brand=props.get("ro.product.brand", ""),
             model=model,
             marketing_name=marketing_name,
             product=props.get("ro.product.name", "") or discovered.get("product", ""),

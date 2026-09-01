@@ -87,6 +87,7 @@ def _device(**changes) -> AndroidDevice:
             "PRIVATE-SERIAL",
             DeviceState.DEVICE,
             manufacturer="Xiaomi",
+            brand="Xiaomi",
             model="2509FPN0BC",
             marketing_name="Xiaomi 17 Pro Max",
             product="popsicle",
@@ -129,6 +130,7 @@ def test_device_dna_combines_live_source_inspection_and_exact_pack_evidence(tmp_
     profile = DeviceDnaService(store, registry).refresh(project.project_id, _device(), report)
 
     assert profile.fact("identity.marketing_name").value == "Xiaomi 17 Pro Max"
+    assert profile.fact("identity.brand").value == "Xiaomi"
     assert profile.fact("soc.platform").value == "Snapdragon 8 Elite Gen 5"
     assert profile.fact("partition.ab_scheme").value == "Virtual A/B"
     assert profile.fact("security.encryption").value == "encrypted / file"

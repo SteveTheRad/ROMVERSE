@@ -146,6 +146,17 @@ Pack IDs must be unique and identity fields are bounded before activation. If tw
 device at the same highest priority, ROMVERSE blocks OEM-specific resolution instead of relying on
 file order; Companion reports the ambiguity and exposes only the Generic Android read-only context.
 
+Desktop Device Atlas can now synchronize Google's public supported-device catalog from its fixed
+official HTTPS endpoint on a managed background worker. The Device Engine reads the OEM-reported
+`Build.BRAND`, `Build.DEVICE`, and model properties; ROMVERSE requires the exact brand/device pair,
+uses the exact model only to narrow variants, and refuses conflicting retail names. The bounded
+UTF-16 catalog is checked for route, encoding, columns, size, entry count, local file type, SHA-256,
+and a strict private receipt before use. A current or still-valid stale cache may supply a retail
+name only. It never supplies a partition map, firmware match, Device Pack, build/flash contract,
+approval, command, or execution authority. After recognition, the ordinary Device Pack roadmap
+still determines exactly what evidence and tools are missing for build planning and keeps flashing
+locked until its independent signed and physically tested contracts pass.
+
 For a connected phone, Device Atlas also produces a model-specific validation roadmap for
 pack integrity, exact model/codename scope, firmware and partition contracts, publisher
 attestation, stock recovery, and physical recovery testing. Every card explains its current
@@ -154,9 +165,9 @@ be exported without serials, IMEI, accounts, files, keys, or capability-enabling
 Exporting a request never clears a gate; only a reviewed Device Pack with the required
 evidence can do that.
 
-The exact-identity catalog maps published Pixel 6 through Pixel 9a names/codenames from Google's
-AOSP kernel matrix and Sony Xperia product codenames from an immutable revision of Sony's Open
-Devices support table. It improves offline platform explanations in both apps while deliberately
+The bundled exact-identity Packs map published Pixel 6 through Pixel 9a names/codenames from
+Google's AOSP kernel matrix and Sony Xperia product codenames from an immutable revision of Sony's
+Open Devices support table. They complement the online retail-identity catalog while deliberately
 supplying no firmware build or device-changing contract.
 
 The shared integrity-indexed manufacturer catalog also supplies read-only identity and official

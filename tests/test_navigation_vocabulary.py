@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from importlib.resources import files
 from pathlib import Path
 from unittest.mock import patch
 
@@ -9,7 +10,14 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtWidgets import QApplication, QPushButton
 
 from romverse.core.settings import AppSettings, ExperienceMode
+from romverse.device.catalog import (
+    DeviceCatalogError,
+    DeviceCatalogStatus,
+    GooglePlayDeviceCatalog,
+)
+from romverse.device.identity import IdentityAuthority
 from romverse.device.models import AndroidDevice, DeviceState, StorageInfo
+from romverse.device_packs.registry import DevicePackRegistry
 from romverse.infrastructure.tools import ToolStatus
 from romverse.nexus.planning import NexusObjective, NexusPlanner
 from romverse.repair.templates import RepairConcern
@@ -20,6 +28,7 @@ from romverse.ui.main_window import (
     _sidebar_device_art_kind,
     _sidebar_nav_tooltip,
 )
+from tests.test_device_catalog import _payload, _sync
 from tests.test_device_dna import _device, _project
 
 
@@ -813,6 +822,109 @@ def test_failed_device_refresh_clears_stale_rom_studio_identity(tmp_path: Path) 
         assert any(
             button.text() == "Resolve Platform Tools"
             for button in window.device_center.findChildren(QPushButton)
+        )
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_fresh_scan_connects_exact_official_device_identity_to_every_desktop_consumer(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    monkeypatch.setattr(GooglePlayDeviceCatalog, "MINIMUM_ENTRIES", 1)
+    catalog = GooglePlayDeviceCatalog(tmp_path)
+    _sync(
+        catalog,
+        _payload(("Example", "Example Nebula", "nebula", "EX-100")),
+    )
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        pack_registry=registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    device = AndroidDevice(
+        "private-catalog-device",
+        DeviceState.DEVICE,
+        brand="Example",
+        manufacturer="Example Industries",
+        model="EX-100",
+        codename="nebula",
+        android_version="16",
+    )
+    try:
+        window._scan_complete([device])
+        app.processEvents()
+
+        assert window.device_center.devices[0].marketing_name == "Example Nebula"
+        assert window.diagnostics_center.devices[0].marketing_name == "Example Nebula"
+        assert window.rom_studio.devices[0].marketing_name == "Example Nebula"
+        assert window.sidebar_device_name.text() == "Example Industries Example Nebula"
+        assert window.connection_device.text() == (
+            "Device: Example Industries Example Nebula (nebula)"
+        )
+        assert window.device_packs_center.identity_catalog_badge.text() == ("EXACT ID • READ ONLY")
+        receipt = window.device_identity.load(window.device_center.devices[0])
+        assert receipt is not None
+        assert receipt.authority is IdentityAuthority.GOOGLE_PLAY_CATALOG
+        assert window.device_catalog_worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_device_atlas_runs_official_id_sync_in_managed_worker_and_keeps_failure_visible(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    started = []
+    monkeypatch.setattr("romverse.ui.main_window.start_background", started.append)
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
+    status = DeviceCatalogStatus(
+        True,
+        True,
+        "Official IDs current",
+        53_575,
+        "2026-09-01T00:00:00+00:00",
+        "a" * 64,
+    )
+    try:
+        monkeypatch.setattr(window.device_catalog, "sync", lambda: status)
+        window.device_packs_center.identity_catalog_button.click()
+
+        assert len(started) == 1
+        assert window.device_catalog_worker is started[0]
+        assert "CHECKING" in window.device_packs_center.identity_catalog_badge.text()
+        started.pop().execute()
+        app.processEvents()
+
+        assert window.device_catalog_worker is None
+        assert "53,575" in window.device_packs_center.identity_catalog_title.text()
+        assert window.device_packs_center.identity_catalog_badge.text() == "CURRENT • READ ONLY"
+
+        def fail():
+            raise DeviceCatalogError("Official device catalog returned an unexpected route")
+
+        monkeypatch.setattr(window.device_catalog, "sync", fail)
+        window.device_packs_center.identity_catalog_button.click()
+        assert len(started) == 1
+        started.pop().execute()
+        app.processEvents()
+
+        assert window.device_catalog_worker is None
+        assert "sync stopped safely" in (
+            window.device_packs_center.identity_catalog_title.text().casefold()
+        )
+        assert "No build, flash, approval, or phone action" in (
+            window.device_packs_center.identity_catalog_detail.text()
         )
     finally:
         window.companion_center.transport.close()

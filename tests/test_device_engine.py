@@ -19,6 +19,7 @@ class FakeAdbRunner:
             ("-s", "SERIAL123", "shell", "getprop"): "\n".join(
                 [
                     "[ro.product.manufacturer]: [RadForge]",
+                    "[ro.product.brand]: [ROMVERSE]",
                     "[ro.product.model]: [Rad Phone]",
                     "[ro.product.marketname]: [ROMVERSE One]",
                     "[ro.product.name]: [rad_global]",
@@ -82,6 +83,7 @@ def test_device_engine_builds_real_snapshot_and_preserves_unauthorized():
     assert len(devices) == 2
     phone = devices[0]
     assert phone.manufacturer == "RadForge"
+    assert phone.brand == "ROMVERSE"
     assert phone.marketing_name == "ROMVERSE One"
     assert phone.display_name == "RadForge ROMVERSE One"
     assert phone.android_version == "15"

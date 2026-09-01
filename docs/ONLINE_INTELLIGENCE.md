@@ -48,6 +48,28 @@ the corresponding validated local typed-outcome record is still present. These p
 and contain damaged or casually altered workspace evidence; they do not turn a same-user local
 digest into a cryptographic remote trust anchor.
 
+## Official Android device identity catalog
+
+Device Atlas has a separate, non-remediation online path for Google's public supported-device CSV.
+It contacts only `https://storage.googleapis.com/play_public/supported_devices.csv`, rejects a
+redirect or compressed response, and bounds the declared and received bytes before decoding the
+required UTF-16 catalog. Exact columns, row shape, entry count, local regular-file containment,
+SHA-256, and a private strict receipt are revalidated whenever identity data is used. A failed
+refresh never activates the received bytes; a prior cache is reused only while it independently
+continues to pass those checks.
+
+The phone supplies `Build.BRAND`, `Build.DEVICE`, and model through ROMVERSE's read-only Device
+Engine. Matching requires the exact normalized brand/device pair. An exact model may narrow known
+variants, but multiple remaining retail names are reported as ambiguous and never resolved by row
+order, popularity, manufacturer guess, or marketing-name similarity. A valid stale cache stays
+explicitly update-due and may provide read-only naming while offline.
+
+Catalog authority ends at retail identity. The downloaded data cannot define a firmware digest,
+partition layout, compiler toolchain, Device Pack, build contract, write contract, physical recovery
+attestation, approval, command, or execution authority. Device Atlas uses the result only to improve
+labeling and select the ordinary integrity-indexed Pack roadmap; every independent build and flash
+gate remains in force.
+
 Verified-fix outcomes use schema two. Creation requires all three bindings to pass together: the
 candidate still exists in the persisted receipt for that exact error fingerprint; its action ID is
 on ROMVERSE's typed local allowlist; and a workspace-relative action receipt passes its

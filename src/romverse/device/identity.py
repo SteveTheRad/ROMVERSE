@@ -29,6 +29,7 @@ class IdentityAuthority(StrEnum):
     ON_DEVICE = "on-device"
     DEVICE_PACK = "device-pack"
     OEM_OFFICIAL = "oem-official"
+    GOOGLE_PLAY_CATALOG = "google-play-catalog"
     CORROBORATED_PUBLIC = "corroborated-public"
     DISCOVERY = "discovery"
 
@@ -119,6 +120,7 @@ class DeviceIdentityResolver:
         if receipt is None or receipt.authority not in {
             IdentityAuthority.ON_DEVICE,
             IdentityAuthority.OEM_OFFICIAL,
+            IdentityAuthority.GOOGLE_PLAY_CATALOG,
             IdentityAuthority.CORROBORATED_PUBLIC,
         }:
             return device
@@ -136,6 +138,25 @@ class DeviceIdentityResolver:
             for candidate in provider.search(device)
             if _candidate_is_safe(candidate)
         )
+        catalog = tuple(
+            candidate
+            for candidate in candidates
+            if candidate.authority is IdentityAuthority.GOOGLE_PLAY_CATALOG
+            and candidate.source_id == "google-play-supported-devices"
+            and candidate.source_url
+            == "https://storage.googleapis.com/play_public/supported_devices.csv"
+        )
+        if len(catalog) == 1:
+            selected = catalog[0]
+            name = _clean_name(selected.marketing_name)
+            self._record(
+                device,
+                name,
+                IdentityAuthority.GOOGLE_PLAY_CATALOG,
+                (selected.source_id,),
+                (selected.source_url,),
+            )
+            return replace(device, marketing_name=name)
         official = tuple(
             candidate
             for candidate in candidates
@@ -300,6 +321,12 @@ def _candidate_is_safe(candidate: DeviceNameCandidate) -> bool:
     parts = urlsplit(candidate.source_url)
     if not name or len(name) < 3 or parts.scheme != "https" or not parts.hostname:
         return False
+    if candidate.authority is IdentityAuthority.GOOGLE_PLAY_CATALOG:
+        return (
+            candidate.source_id == "google-play-supported-devices"
+            and candidate.source_url
+            == "https://storage.googleapis.com/play_public/supported_devices.csv"
+        )
     return _public_host(parts.hostname)
 
 
@@ -348,6 +375,8 @@ def _identity_key(device: AndroidDevice) -> str:
         "codename": device.codename.casefold().strip(),
         "product": device.product.casefold().strip(),
     }
+    if device.brand.strip():
+        values["brand"] = device.brand.casefold().strip()
     return hashlib.sha256(
         json.dumps(values, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
@@ -439,6 +468,10 @@ def _valid_authority_sources(
             and len(source_urls) == 1
             and _public_https_shape(source_urls[0])
             and _is_official_oem_source(manufacturer, source_urls[0])
+        )
+    if authority is IdentityAuthority.GOOGLE_PLAY_CATALOG:
+        return source_ids == ("google-play-supported-devices",) and source_urls == (
+            "https://storage.googleapis.com/play_public/supported_devices.csv",
         )
     if authority is IdentityAuthority.CORROBORATED_PUBLIC:
         return (

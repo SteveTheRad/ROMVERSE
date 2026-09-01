@@ -216,6 +216,15 @@ packs are excluded from matching. This is package-integrity checking, not publis
 authenticity. Future downloaded packs require signed manifests and trust/revocation policy.
 No pack contains command definitions, grants execution authority, or bypasses Guardian.
 
+Desktop Device Engine additionally records the live Android retail brand. Device Atlas may refresh
+Google's public supported-device CSV from the one fixed official endpoint and cache it under a
+bounded private SHA-256 receipt. Recognition requires the exact OEM-reported retail-brand/device
+pair; model can narrow variants, but marketing name, model, device codename, row order, or popularity
+alone cannot decide an ambiguous identity. Remote catalog data is identity-only context: it can
+select a retail name and improve Pack discovery, but cannot create or strengthen a firmware digest,
+build contract, partition-write contract, physical attestation, Guardian approval, or execution
+authority. Unknown or conflicting devices remain explicit and build/flash locked.
+
 ### ROM project provenance increment
 
 ROM Studio creates project directories containing a private atomic, versioned `project.romverse`

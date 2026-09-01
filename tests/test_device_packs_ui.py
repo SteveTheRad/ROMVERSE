@@ -3,9 +3,11 @@ from importlib.resources import files
 
 from PySide6.QtWidgets import QApplication, QLabel
 
+from romverse.device.catalog import GooglePlayDeviceCatalog
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.ui.device_packs_center import DevicePacksCenter
+from tests.test_device_catalog import _payload, _sync
 
 
 def test_device_atlas_distinguishes_local_build_readiness_from_flash_lock(tmp_path) -> None:
@@ -126,4 +128,46 @@ def test_device_atlas_search_matches_model_codename_and_capability(tmp_path) -> 
     matches = center._matching_packs("caiman kernel")
 
     assert [pack.pack_id for pack in matches] == ["google.pixel.tensor-gki"]
+    center.close()
+
+
+def test_device_atlas_shows_exact_official_identity_without_inventing_build_support(
+    tmp_path, monkeypatch
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    monkeypatch.setattr(GooglePlayDeviceCatalog, "MINIMUM_ENTRIES", 1)
+    catalog = GooglePlayDeviceCatalog(tmp_path)
+    _sync(
+        catalog,
+        _payload(("Example", "Example Nebula", "nebula", "EX-100")),
+    )
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    center = DevicePacksCenter(registry, tmp_path, device_catalog=catalog)
+    requested = []
+    center.catalog_refresh_requested.connect(lambda: requested.append(True))
+
+    center.set_devices(
+        [
+            AndroidDevice(
+                "private-serial",
+                DeviceState.DEVICE,
+                brand="Example",
+                manufacturer="Example Industries",
+                model="EX-100",
+                codename="nebula",
+            )
+        ]
+    )
+    app.processEvents()
+
+    assert center.identity_catalog_title.text() == ("Official identity recognized • Example Nebula")
+    assert center.identity_catalog_badge.text() == "EXACT ID • READ ONLY"
+    assert "Build.BRAND / Build.DEVICE: Example / nebula" in (center.identity_catalog_detail.text())
+    assert "exact build support is still locked" in center.guidance_title.text().casefold()
+    assert center.active_pack is not None and center.active_pack.pack_id == "android.generic"
+    assert not center.continue_button.isVisible()
+
+    center.identity_catalog_button.click()
+    app.processEvents()
+    assert requested == [True]
     center.close()

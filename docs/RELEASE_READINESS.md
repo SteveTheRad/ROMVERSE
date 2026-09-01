@@ -28,7 +28,7 @@ has current evidence.
    Repository tests also prove a changed packaged runtime module is rejected. This does not replace
    the required Windows installed-wheel pass or signed release-artifact validation.
 
-   Current Fedora development evidence recorded on 2026-09-01: 1,114 Desktop tests and the complete
+   Current Fedora development evidence recorded on 2026-09-01: 1,123 Desktop tests and the complete
    Ruff check/format gate pass after the Ctrl+K navigation-only palette, canonical Activity Center,
    connected About ROMVERSE V3, collapsible/focus workspace shell, and structured ROMVERSE Archives
    and deterministic Archives Advisor increments. Tests cover bounded ranked retrieval, weak-match
@@ -43,17 +43,21 @@ has current evidence.
    typed Archives guides or an explicitly current Quantum Optimizer view without reclassifying saved
    evidence as live state; integrity-verified Time Machine recovery-plan context routed to Guardian
    Core with exact plan/digest identity, zero approval or execution authority, bidirectional return,
-   strict typed-plan validation, and visible tampered/superseded-context refusal; Recovery Bay report
-   boundaries, adaptive research
+   strict typed-plan validation, and visible tampered/superseded-context refusal; exact Google Play
+   catalog identity matching from live Android retail-brand/device/
+   model properties, bounded background refresh from the fixed official endpoint, strict private
+   content/receipt validation, ambiguous/stale/offline/redirect/encoding/size/tamper/link refusal,
+   Desktop-wide identity propagation, retail-brand Pack resolution, and permanent zero build/flash/
+   execution authority from online identity data; 111 structured Archives guides including the
+   verified device-identification boundary; Recovery Bay report boundaries, adaptive research
    disclosure, strict guided-session evidence, exact-article local Resolution Memory, hostile and
-   semantically false re-digested
-   outcome rejection, Live Console table contrast, Activity Center filtering and export, adaptive
+   semantically false re-digested outcome rejection, Live Console table contrast, Activity Center
+   filtering and export, adaptive
    rendering, accessibility, hostile ledger boundaries, and the strict private Origin-discovery
-   record. A fresh
-   isolated build produced a 219-member wheel with SHA-256
-   `5a2123b0381941b2057e15ab59cfbb0d4ff85f1f4688cd1f7b435a8f32287a72`; the verifier
+   record. A fresh isolated build produced a 220-member wheel with SHA-256
+   `91afc4dbf556eb73042eefc1bf2bb0445d30cf0bc58e163681570cd37680547c`; the verifier
    byte-compared all runtime modules with source and revalidated all 21 indexed Device Packs. A
-   separate wheel-target environment imported the packaged 110-guide catalog, Advisor, strict guided
+   separate wheel-target environment imported the packaged 111-guide catalog, Advisor, strict guided
    sessions, Resolution Memory, and the deterministic Diagnostics-to-Recovery concern map from
    outside the source checkout; verified one installed local improvement comparison and an exact
    storage-finding handoff with no session/worker start, its exact highlighted return to Quantum
@@ -66,7 +70,10 @@ has current evidence.
    installed Health Timeline's typed storage finding in the exact verified Archives guide and
    returned separately to current diagnostics; opened the exact installed Time Machine recovery
    plan in Guardian Core, then refused a newly superseded retained context without starting a
-   worker or action; opened the packaged Desktop
+   worker or action; downloaded and validated 53,575 current official Google Play device rows from
+   the installed package, resolved the exact Xiaomi/popsicle/2509FPN0BC retail identity, selected the
+   exact packaged HyperOS build Pack, kept its independent flash contract locked, and loaded the new
+   Archives identity guide; opened the packaged Desktop
    offscreen; initialized a fresh workspace; and reloaded all 21 Packs. This remains development
    evidence, not the required signed Windows/Fedora public-release certification.
 4. Launch the installed wheel on Ubuntu, Fedora, and Windows, initialize a fresh workspace, and verify

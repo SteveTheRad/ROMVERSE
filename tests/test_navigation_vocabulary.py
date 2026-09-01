@@ -1089,6 +1089,201 @@ def test_device_atlas_stock_gate_opens_time_machine_with_exact_context(tmp_path:
         window.close()
 
 
+def test_device_atlas_carries_exact_pack_tools_into_forge_and_verified_archives(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        pack_registry=registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    setup_calls = []
+
+    class SetupStatus:
+        def setText(self, message):
+            setup_calls.append(("status", message))
+
+    class SetupDialog:
+        def __init__(self, _host, statuses, _workspace, _parent, **options):
+            self.status = SetupStatus()
+            setup_calls.append(("statuses", statuses))
+            setup_calls.append(("options", options))
+
+        def setWindowTitle(self, title):
+            setup_calls.append(("title", title))
+
+        def exec(self):
+            setup_calls.append(("exec", True))
+
+    monkeypatch.setattr("romverse.ui.toolchain_center.ToolchainSetupDialog", SetupDialog)
+    try:
+        window._scan_complete(
+            [
+                AndroidDevice(
+                    "private-xiaomi-toolchain",
+                    DeviceState.DEVICE,
+                    brand="Xiaomi",
+                    manufacturer="Xiaomi",
+                    model="2509FPN0BC",
+                    product="popsicle_global",
+                    codename="popsicle",
+                )
+            ]
+        )
+        app.processEvents()
+
+        pack = window.device_packs_center.active_pack
+        report = window.device_packs_center.active_report
+        assert pack is not None and pack.build_contract is not None and report is not None
+        assert "14 host requirements" in window.device_packs_center.toolchain_title.text()
+        assert "flash contract" in window.device_packs_center.toolchain_detail.text().casefold()
+        window.device_packs_center.toolchain_button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.toolchain_center
+        assert not window.scanning
+        assert window.active_worker is None
+        assert pack.display_name in window.toolchain_center.device_pack_handoff_title.text()
+        assert report.report_digest == window.toolchain_center._device_pack_context.report_digest
+        assert "FLASH LOCKED" in window.toolchain_center.device_pack_handoff_badge.text()
+        assert "FLASH AUTHORITY: NONE" in (
+            window.toolchain_center.device_pack_handoff_feedback.text()
+        )
+        assert all(
+            name in window.toolchain_center.device_pack_handoff_detail.text()
+            for name in pack.build_contract.required_tools
+        )
+
+        window.toolchain_center.statuses = tuple(
+            ToolStatus(
+                name,
+                name != "AVBTool",
+                "/bin/true" if name != "AVBTool" else "",
+                "fixture" if name != "AVBTool" else "",
+                "Ready" if name != "AVBTool" else "Missing",
+            )
+            for name in pack.build_contract.required_tools
+        )
+        window.toolchain_center._render()
+        assert window.toolchain_center.context_setup_button.isEnabled()
+        window.toolchain_center.context_setup_button.click()
+        app.processEvents()
+
+        options = next(value for kind, value in setup_calls if kind == "options")
+        assert options["required_names"] == pack.build_contract.required_tools
+        assert ("exec", True) in setup_calls
+
+        window.toolchain_center.context_guide_button.click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.knowledge_center
+        assert window.knowledge_center.list.currentItem().text() == (
+            "Recognized device needs its exact build toolchain"
+        )
+        assert window.knowledge_center.source_return.text() == "Return to Forge Arsenal"
+        window.knowledge_center.source_return.click()
+        assert window.stack.currentWidget() is window.toolchain_center
+        window.toolchain_center.context_return_button.click()
+        assert window.stack.currentWidget() is window.device_packs_center
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_exact_forge_context_refuses_stale_device_and_separates_build_from_flash(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        pack_registry=registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    dialogs = []
+
+    class SetupDialog:
+        def __init__(self, *_args, **_kwargs):
+            dialogs.append(True)
+
+    monkeypatch.setattr("romverse.ui.toolchain_center.ToolchainSetupDialog", SetupDialog)
+    device = AndroidDevice(
+        "private-xiaomi-stale",
+        DeviceState.DEVICE,
+        brand="Xiaomi",
+        manufacturer="Xiaomi",
+        model="2509FPN0BC",
+        product="popsicle_global",
+        codename="popsicle",
+    )
+    try:
+        window._scan_complete([device])
+        app.processEvents()
+        pack = window.device_packs_center.active_pack
+        report = window.device_packs_center.active_report
+        assert pack is not None and pack.build_contract is not None and report is not None
+        assert report.build_contract_ready
+        assert not report.flash_contract_ready
+        window.device_packs_center.toolchain_button.click()
+        app.processEvents()
+
+        first_digest = window.toolchain_center._device_pack_context.report_digest
+        window._scan_complete([device])
+        app.processEvents()
+        refreshed_report = window.device_packs_center.active_report
+        assert refreshed_report is not None
+        assert refreshed_report.report_digest == first_digest
+        assert window.toolchain_center._device_pack_context.report_digest == (
+            refreshed_report.report_digest
+        )
+        assert "HANDOFF STOPPED" not in window.toolchain_center.device_pack_handoff_feedback.text()
+
+        window.toolchain_center.statuses = tuple(
+            ToolStatus(name, True, "/bin/true", "fixture", "Ready")
+            for name in pack.build_contract.required_tools
+        )
+        window.toolchain_center._render()
+        assert window.toolchain_center.context_continue_button.isEnabled()
+        assert "FLASH LOCKED" in window.toolchain_center.device_pack_handoff_badge.text()
+        window.toolchain_center.context_continue_button.click()
+        assert window.stack.currentWidget() is window.rom_studio
+
+        window.device_packs_center.toolchain_button.click()
+        app.processEvents()
+        window.toolchain_center.statuses = (ToolStatus("Python", False, detail="Missing fixture"),)
+        window.toolchain_center._render()
+        assert window.toolchain_center.context_setup_button.isEnabled()
+        window._scan_complete([])
+        app.processEvents()
+        window.toolchain_center.context_setup_button.click()
+
+        assert dialogs == []
+        assert window.stack.currentWidget() is window.toolchain_center
+        assert "DEVICE PACK HANDOFF STOPPED" in (
+            window.toolchain_center.device_pack_handoff_feedback.text()
+        )
+        assert "NO INSTALL, BUILD, OR PHONE ACTION STARTED" in (
+            window.toolchain_center.device_pack_handoff_feedback.text()
+        )
+        window.toolchain_center._render()
+        assert not window.toolchain_center.context_setup_button.isEnabled()
+        assert "STALE CONTEXT" in window.toolchain_center.device_pack_handoff_badge.text()
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
 def test_adb_tool_refresh_activates_and_revokes_every_dependent_runtime(
     tmp_path: Path,
     monkeypatch,

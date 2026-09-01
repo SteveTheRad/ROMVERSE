@@ -141,7 +141,7 @@ from romverse.ui.repair_center import RepairCenter
 from romverse.ui.rom_studio import RomStudio
 from romverse.ui.terminal_center import TerminalCenter
 from romverse.ui.theme import STYLESHEET
-from romverse.ui.toolchain_center import ToolchainCenter
+from romverse.ui.toolchain_center import DevicePackToolchainContext, ToolchainCenter
 from romverse.ui.vocabulary import FEATURES, feature
 from romverse.ui.workspace_shell import (
     EXPERT_ONLY_ROUTES,
@@ -2582,6 +2582,7 @@ class MainWindow(QMainWindow):
         )
         self.device_packs_center.catalog_refresh_requested.connect(self._refresh_device_catalog)
         self.device_packs_center.next_action_requested.connect(self._open_device_pack_next_action)
+        self.device_packs_center.toolchain_requested.connect(self._open_device_pack_toolchain)
         self.device_packs_center.readiness_changed.connect(self._record_device_pack_readiness)
         self.stack.addWidget(self.device_packs_center)
         self.rom_studio = RomStudio(
@@ -2669,6 +2670,14 @@ class MainWindow(QMainWindow):
         toolchain_index = self.stack.addWidget(self.toolchain_center)
         self.toolchain_index = toolchain_index
         self.toolchain_center.statuses_changed.connect(self._tool_statuses_changed)
+        self.toolchain_center.device_pack_setup_requested.connect(self._setup_device_pack_toolchain)
+        self.toolchain_center.device_pack_continue_requested.connect(
+            self._continue_device_pack_toolchain
+        )
+        self.toolchain_center.device_atlas_requested.connect(
+            lambda: self._navigate_route("device_atlas")
+        )
+        self.toolchain_center.knowledge_article_requested.connect(self._open_knowledge_article)
         self.rom_studio.tool_statuses_resolved.connect(self._tool_statuses_changed)
         self.rom_studio.set_tool_statuses(self.toolchain_center.statuses)
         self.rom_studio.toolchain_requested.connect(self._open_toolchain)
@@ -3559,6 +3568,114 @@ class MainWindow(QMainWindow):
             "The advised Desktop destination is not an approved readiness route"
         )
 
+    def _current_device_pack_toolchain_context(
+        self,
+        pack_id: str,
+        pack_sha256: str,
+        report_digest: str,
+    ) -> DevicePackToolchainContext | None:
+        """Resolve exact current Pack/tool evidence without trusting a retained UI request."""
+
+        report = self.device_packs_center.active_report
+        pack = self.device_packs_center.active_pack
+        device = self.device_packs_center.active_device
+        if (
+            report is None
+            or pack is None
+            or device is None
+            or pack.build_contract is None
+            or report.pack_id != pack.pack_id
+            or report.pack_version != pack.version
+            or report.pack_sha256 != pack.sha256
+            or pack.pack_id != pack_id
+            or pack.sha256 != pack_sha256
+            or report.report_digest != report_digest
+            or report.manufacturer != device.manufacturer
+            or report.model != device.model
+            or report.product != device.product
+            or report.codename != device.codename
+        ):
+            return None
+        return DevicePackToolchainContext(
+            report_digest=report.report_digest,
+            pack_id=pack.pack_id,
+            pack_sha256=pack.sha256,
+            pack_name=pack.display_name,
+            model=report.model,
+            codename=report.codename,
+            required_tools=pack.build_contract.required_tools,
+            build_contract_ready=report.build_contract_ready,
+            flash_contract_ready=report.flash_contract_ready,
+        )
+
+    @Slot(str, str, str)
+    def _open_device_pack_toolchain(
+        self,
+        pack_id: str,
+        pack_sha256: str,
+        report_digest: str,
+    ) -> None:
+        context = self._current_device_pack_toolchain_context(
+            pack_id,
+            pack_sha256,
+            report_digest,
+        )
+        if context is None or not self.toolchain_center.open_device_pack_context(context):
+            self.device_packs_center.toolchain_handoff_stopped(
+                "The requested host requirements no longer match the current exact Device Pack report"
+            )
+            return
+        self._navigate_route("forge_arsenal")
+
+    @Slot(str, str, str)
+    def _setup_device_pack_toolchain(
+        self,
+        pack_id: str,
+        pack_sha256: str,
+        report_digest: str,
+    ) -> None:
+        context = self._current_device_pack_toolchain_context(
+            pack_id,
+            pack_sha256,
+            report_digest,
+        )
+        if context is None or not self.toolchain_center.device_pack_context_matches(context):
+            self.toolchain_center.device_pack_context_changed(
+                "Device Atlas evidence changed after this Forge view was opened"
+            )
+            return
+        self.toolchain_center.open_device_pack_setup(context)
+
+    @Slot(str, str, str)
+    def _continue_device_pack_toolchain(
+        self,
+        pack_id: str,
+        pack_sha256: str,
+        report_digest: str,
+    ) -> None:
+        context = self._current_device_pack_toolchain_context(
+            pack_id,
+            pack_sha256,
+            report_digest,
+        )
+        if context is None or not self.toolchain_center.device_pack_context_matches(context):
+            self.toolchain_center.device_pack_context_changed(
+                "Device Atlas evidence changed after this Forge view was opened"
+            )
+            return
+        if not context.build_contract_ready:
+            self.toolchain_center.device_pack_handoff_stopped(
+                "The exact host tools cannot replace an unresolved Device Pack build gate"
+            )
+            return
+        if not self.toolchain_center.device_pack_requirements_ready():
+            self.toolchain_center.device_pack_handoff_stopped(
+                "One or more exact host requirements are no longer verified"
+            )
+            return
+        self.rom_studio.set_tool_statuses(self.toolchain_center.statuses)
+        self._navigate_route("rom_studio")
+
     @Slot(str, str)
     def _open_nexus_guardian_review(self, project_id: str, plan_digest: str) -> None:
         """Revalidate a zero-authority Nexus plan before showing Guardian context."""
@@ -3882,6 +3999,18 @@ class MainWindow(QMainWindow):
     def _record_device_pack_readiness(self, report: object) -> None:
         if not isinstance(report, DevicePackValidationReport):
             return
+        if hasattr(self, "toolchain_center"):
+            retained_identity = self.toolchain_center.device_pack_context_identity()
+            if retained_identity is not None:
+                current_context = self._current_device_pack_toolchain_context(
+                    report.pack_id,
+                    report.pack_sha256,
+                    report.report_digest,
+                )
+                if current_context is None or not self.toolchain_center.rebind_device_pack_context(
+                    current_context
+                ):
+                    self.toolchain_center.device_pack_context_changed()
         action = self.device_packs_center.validation_service.next_safe_action(report)
         build = "ready" if report.build_contract_ready else "locked"
         flash = "ready" if report.flash_contract_ready else "locked"
@@ -4227,6 +4356,7 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def _open_toolchain(self) -> None:
+        self.toolchain_center.clear_device_pack_context()
         self.toolchain_center.refresh()
         self._navigate_route("forge_arsenal")
 

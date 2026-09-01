@@ -40,6 +40,7 @@ class DevicePacksCenter(QWidget):
     rom_studio_requested = Signal()
     catalog_refresh_requested = Signal()
     next_action_requested = Signal(str, str, str, str)
+    toolchain_requested = Signal(str, str, str)
     readiness_changed = Signal(object)
 
     def __init__(
@@ -566,6 +567,52 @@ class DevicePacksCenter(QWidget):
         self.next_action_feedback.setWordWrap(True)
         roadmap_layout.addWidget(self.next_action_feedback)
 
+        contract = pack.build_contract
+        if contract is not None:
+            toolchain = QFrame()
+            toolchain.setObjectName("DiagnosticHandoffBar")
+            toolchain_layout = QVBoxLayout(toolchain)
+            toolchain_layout.setContentsMargins(16, 13, 16, 13)
+            toolchain_layout.setSpacing(8)
+            toolchain_top = QHBoxLayout()
+            toolchain_copy = QVBoxLayout()
+            toolchain_eyebrow = QLabel("EXACT BUILD TOOLCHAIN  •  DECLARED BY THIS DEVICE PACK")
+            toolchain_eyebrow.setObjectName("Eyebrow")
+            self.toolchain_title = QLabel(
+                f"{len(contract.required_tools)} host requirements for {pack.display_name}"
+            )
+            self.toolchain_title.setObjectName("SectionTitle")
+            self.toolchain_detail = QLabel(
+                " • ".join(contract.required_tools)
+                + "\nForge Arsenal can verify and prepare only this ordered requirement set. "
+                "Tool availability is separate from Device Pack build readiness, Guardian "
+                "approval, and the independently locked flash contract."
+            )
+            self.toolchain_detail.setObjectName("Muted")
+            self.toolchain_detail.setWordWrap(True)
+            toolchain_copy.addWidget(toolchain_eyebrow)
+            toolchain_copy.addWidget(self.toolchain_title)
+            toolchain_copy.addWidget(self.toolchain_detail)
+            toolchain_top.addLayout(toolchain_copy, 1)
+            toolchain_badge = QLabel("BUILD TOOLS ONLY  •  FLASH AUTHORITY NONE")
+            toolchain_badge.setObjectName("Warning")
+            toolchain_top.addWidget(toolchain_badge)
+            self.toolchain_button = QPushButton("Inspect exact build tools")
+            self.toolchain_button.setObjectName("Primary")
+            self.toolchain_button.setToolTip(
+                "Carry this exact report digest, Pack hash, and declared host-tool set into "
+                "Forge Arsenal. No installer, build, approval, or device-changing operation "
+                "starts automatically."
+            )
+            self.toolchain_button.clicked.connect(self._request_toolchain)
+            toolchain_top.addWidget(self.toolchain_button)
+            toolchain_layout.addLayout(toolchain_top)
+            self.toolchain_feedback = QLabel("")
+            self.toolchain_feedback.setObjectName("Muted")
+            self.toolchain_feedback.setWordWrap(True)
+            toolchain_layout.addWidget(self.toolchain_feedback)
+            roadmap_layout.addWidget(toolchain)
+
         for check in report.checks:
             row = QFrame()
             row.setObjectName("Card")
@@ -787,6 +834,24 @@ class DevicePacksCenter(QWidget):
         )
         self.next_action_feedback.setObjectName("Danger")
         self._repolish(self.next_action_feedback)
+
+    def _request_toolchain(self) -> None:
+        report = self.active_report
+        pack = self.active_pack
+        if report is None or pack is None or pack.build_contract is None:
+            return
+        self.toolchain_requested.emit(pack.pack_id, pack.sha256, report.report_digest)
+
+    def toolchain_handoff_stopped(self, reason: str) -> None:
+        """Keep a refused exact-toolchain handoff visible in Device Atlas."""
+
+        if not hasattr(self, "toolchain_feedback"):
+            return
+        self.toolchain_feedback.setText(
+            f"EXACT TOOLCHAIN HANDOFF STOPPED  •  {reason}  •  NO INSTALL, BUILD, OR PHONE ACTION STARTED"
+        )
+        self.toolchain_feedback.setObjectName("Danger")
+        self._repolish(self.toolchain_feedback)
 
     def _export_validation_request(self) -> None:
         if self.active_report is None or self.workspace is None:

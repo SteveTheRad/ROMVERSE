@@ -1591,6 +1591,46 @@ KNOWN_FIXES = (
         source=ROMVERSE_SOURCE,
     ),
     _fix(
+        "device-pack-build-toolchain",
+        "Recognized device needs its exact build toolchain",
+        "TOOLS & HOST",
+        "A recognized phone and an integrity-checked Device Pack can declare the exact host "
+        "programs needed to inspect and build its protected firmware. Tool availability proves "
+        "only that those local programs freshly start and report correctly; it does not prove "
+        "firmware compatibility, approve a build, unlock a bootloader, or authorize flashing.",
+        checks=(
+            "Confirm Device Atlas still binds the connected model/codename, Pack id, Pack SHA-256, and current readiness-report digest.",
+            "Compare Forge Arsenal's highlighted requirements with the ordered required_tools list in that exact Device Pack build contract.",
+            "Treat an absent, renamed, or failed verifier result as missing even if a similarly named executable exists elsewhere on the host.",
+            "Read build-contract and flash-contract badges independently; a complete host toolchain cannot turn a flash lock into authority.",
+        ),
+        fix_steps=(
+            "From the active Device Atlas roadmap, choose Inspect exact build tools so Forge Arsenal receives the current digest-bound contract.",
+            "Use Set up missing requirements to review only the missing declared subset, its official sources, and ROMVERSE's managed, operating-system-authorized, or manual strategy.",
+            "Approve only the visible plan you intend, then let Forge re-scan every requirement instead of trusting an installer exit message.",
+            "Continue to ROM Studio only when every exact host requirement and the independent Device Pack build contract both verify.",
+        ),
+        verification=(
+            "Forge Arsenal shows the same Pack id/hash and model/codename as the current Device Atlas report.",
+            "Every required tool is highlighted and reports Ready from a fresh verifier result; missing names remain explicit.",
+            "ROM Studio receives the refreshed tool inventory while flash authority remains none until Device Atlas and Guardian independently permit it.",
+            "A changed report, Pack, device, or tool result stops the retained handoff without installing, building, or touching a phone.",
+        ),
+        tags=(
+            "exact device toolchain",
+            "device pack required tools",
+            "recognized phone build tools",
+            "forge arsenal device pack",
+            "missing rom build dependency",
+            "build compile requirements",
+            "flash authority none",
+        ),
+        route="forge_arsenal",
+        evidence="ROMVERSE resolves this list only from the current integrity-checked Device Pack required_tools contract and freshly verified host-tool statuses.",
+        automation="EXACT TOOL INVENTORY AND USER-REVIEWED SETUP ONLY • NO BUILD, APPROVAL, OR PHONE-WRITE AUTHORITY",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
         "nexus-evidence-prerequisites",
         "Nexus cannot generate a plan because project evidence is missing",
         "ROMVERSE WORKFLOWS",

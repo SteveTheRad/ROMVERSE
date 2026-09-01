@@ -7,6 +7,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtWidgets import QApplication
 
 from romverse.infrastructure.payload_dumper import PayloadDumperRelease
+from romverse.infrastructure.provisioning import ProvisionStrategy, ToolProvisionItem
 from romverse.platform.host import LinuxHost
 from romverse.ui.toolchain_center import ToolchainDownloadWorker, ToolchainSetupDialog
 
@@ -87,6 +88,45 @@ def test_forge_arsenal_progress_widget_switches_modes_without_inventing_progress
     assert dialog.progress.maximum() == 0
     assert not dialog.progress.isTextVisible()
     dialog.close()
+
+
+def test_forge_arsenal_worker_routes_fedora_system_plan_through_authorized_installer(
+    tmp_path, monkeypatch
+) -> None:
+    QApplication.instance() or QApplication([])
+    host = LinuxHost(distribution_id="fedora")
+    plan_item = ToolProvisionItem(
+        "LZ4",
+        ProvisionStrategy.SYSTEM,
+        "official",
+        ("lz4",),
+    )
+    calls = []
+
+    def install(items, selected_host, runner):
+        calls.append((items, selected_host, runner))
+        return True, "Fedora installed: lz4"
+
+    monkeypatch.setattr("romverse.ui.toolchain_center.install_system_packages", install)
+    worker = ToolchainDownloadWorker(
+        host,
+        ["LZ4"],
+        tmp_path / "tools" / "downloads",
+        plan_items=(plan_item,),
+        boundary=tmp_path,
+    )
+    phases = []
+    completed = []
+    worker.signals.phase.connect(lambda label, determinate: phases.append((label, determinate)))
+    worker.signals.complete.connect(completed.append)
+
+    worker.run()
+
+    assert len(calls) == 1
+    assert calls[0][0] == (plan_item,)
+    assert calls[0][1] is host
+    assert any("operating system" in label for label, _determinate in phases)
+    assert completed == ["Downloaded and prepared: Fedora installed: lz4"]
 
 
 def test_forge_arsenal_unknown_length_download_stays_indeterminate(tmp_path, monkeypatch) -> None:

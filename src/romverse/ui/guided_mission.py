@@ -1357,7 +1357,7 @@ class GuidedBuildMission(QDialog):
             or "ROMVERSE rescanned the computer, but not every required read-only tool is verified.",
             (
                 f"Still required: {', '.join(remaining)}.",
-                "Choose Install and verify requirements, approve any visible Ubuntu prompt, then retry.",
+                "Choose Install and verify requirements, approve any visible operating-system prompt, then retry.",
                 "ROMVERSE will not claim an empty app scan or continue with guessed tool availability.",
             ),
         )

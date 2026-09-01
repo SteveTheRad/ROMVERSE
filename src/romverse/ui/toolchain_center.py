@@ -47,7 +47,7 @@ from romverse.infrastructure.provisioning import (
     ProvisionStrategy,
     ToolProvisionItem,
     create_provision_plan,
-    install_ubuntu_packages,
+    install_system_packages,
     source_for,
 )
 from romverse.infrastructure.tools import ToolStatus, ToolVerifier
@@ -678,7 +678,7 @@ class ToolchainCenter(QWidget):
         title = QLabel("Forge Arsenal")
         title.setObjectName("Title")
         subtitle = QLabel(
-            "Verify and provision tools for extraction, payload handling, ROM builds, signing, and diagnostics. Managed tools are integrity-receipted; system packages use the visible Ubuntu authorization prompt."
+            "Verify and provision tools for extraction, payload handling, ROM builds, signing, and diagnostics. Managed tools are integrity-receipted; approved system packages use the operating system's visible authorization prompt."
         )
         subtitle.setObjectName("Muted")
         subtitle.setWordWrap(True)
@@ -880,10 +880,10 @@ class ToolchainDownloadWorker(ManagedRunnable):
         )
         if system_items:
             self.signals.phase.emit(
-                "Waiting for Ubuntu to install and verify approved system packages…",
+                "Waiting for the operating system to install and verify approved system packages…",
                 False,
             )
-            installed, detail = install_ubuntu_packages(system_items, self.host, self.runner)
+            installed, detail = install_system_packages(system_items, self.host, self.runner)
             if not installed:
                 self.signals.failed.emit(detail)
                 return
@@ -946,7 +946,7 @@ class ToolchainSetupDialog(QDialog):
         title.setObjectName("Title")
         layout.addWidget(title)
         intro = QLabel(
-            "ROMVERSE selected only the missing dependencies required by the active ROM Studio build profile. Ubuntu will show its normal administrator authorization prompt for system packages."
+            "ROMVERSE selected only the missing dependencies required by the active ROM Studio build profile. Ubuntu or Fedora will show its normal administrator authorization prompt for approved system packages."
         )
         intro.setObjectName("Muted")
         intro.setWordWrap(True)
@@ -967,7 +967,7 @@ class ToolchainSetupDialog(QDialog):
             )
             method = {
                 ProvisionStrategy.MANAGED: "ROMVERSE managed download",
-                ProvisionStrategy.SYSTEM: "Ubuntu authorized install",
+                ProvisionStrategy.SYSTEM: "operating-system authorized install",
                 ProvisionStrategy.MANUAL: "manual action required",
             }[item.strategy]
             check = QCheckBox(f"{status.name}  —  {method}  —  {status.detail}")
@@ -1011,7 +1011,7 @@ class ToolchainSetupDialog(QDialog):
     def reject(self) -> None:
         if self._worker is not None:
             self.status.setText(
-                "Installation is still running. Finish or cancel the visible Ubuntu authorization prompt first."
+                "Installation is still running. Finish or cancel the visible operating-system authorization prompt first."
             )
             return
         super().reject()
@@ -1020,7 +1020,7 @@ class ToolchainSetupDialog(QDialog):
         if self._worker is not None:
             event.ignore()
             self.status.setText(
-                "Installation is still running. Finish or cancel the visible Ubuntu authorization prompt first."
+                "Installation is still running. Finish or cancel the visible operating-system authorization prompt first."
             )
             return
         super().closeEvent(event)
@@ -1068,7 +1068,7 @@ class ToolchainSetupDialog(QDialog):
             )
             return
         self.status.setText(
-            "Preparing verified requirements; approve the Ubuntu prompt if it appears …"
+            "Preparing verified requirements; approve the operating-system prompt if it appears …"
         )
         self.status.setObjectName("Muted")
         self.install_button.setEnabled(False)

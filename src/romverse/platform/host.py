@@ -1,15 +1,17 @@
 from __future__ import annotations
 
 import os
+import platform
 import shutil
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol
 
 
 class HostPlatform(Protocol):
     name: str
+    distribution_id: str
 
     def data_dir(self) -> Path: ...
     def config_dir(self) -> Path: ...
@@ -17,9 +19,18 @@ class HostPlatform(Protocol):
     def find_tool(self, name: str) -> Path | None: ...
 
 
+def _linux_distribution_id() -> str:
+    try:
+        value = platform.freedesktop_os_release().get("ID", "")
+    except OSError:
+        return ""
+    return str(value).casefold().strip()[:64]
+
+
 @dataclass(frozen=True, slots=True)
 class LinuxHost:
     name: str = "Linux"
+    distribution_id: str = field(default_factory=_linux_distribution_id)
 
     def data_dir(self) -> Path:
         override = os.environ.get("ROMVERSE_HOME")
@@ -39,6 +50,7 @@ class LinuxHost:
 @dataclass(frozen=True, slots=True)
 class WindowsHost:
     name: str = "Windows"
+    distribution_id: str = "windows"
 
     def data_dir(self) -> Path:
         override = os.environ.get("ROMVERSE_HOME") or os.environ.get("LOCALAPPDATA")

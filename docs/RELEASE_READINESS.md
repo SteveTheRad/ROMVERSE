@@ -27,7 +27,7 @@ has current evidence.
    packaged Desktop offscreen, initialized a fresh workspace, and reloaded all 21 packaged Packs.
    Repository tests also prove a changed packaged runtime module is rejected. This does not replace
    the required Windows installed-wheel pass or signed release-artifact validation.
-4. Launch the installed wheel on Ubuntu and Windows, initialize a fresh workspace, and verify
+4. Launch the installed wheel on Ubuntu, Fedora, and Windows, initialize a fresh workspace, and verify
    that an existing workspace opens without migration loss.
    For Desktop Device DNA, tamper and correctly re-digest nested facts and bootloader-relock state;
    add top-level/nested fields; inject wrong types, duplicate/cross-missing evidence IDs, oversized
@@ -312,14 +312,16 @@ has current evidence.
    completed-step counts below completion, and terminal 100 occurs only after the private project-
    level execution receipt is stored. A failed step must restore its verified snapshot without a
    success event.
-10. Exercise Forge Arsenal from a clean host with managed-only, Ubuntu-authorized, mixed, and
+10. Exercise Forge Arsenal from a clean host with managed-only, Ubuntu-authorized,
+    Fedora-authorized, mixed, and
     manual-only plans. Cancel the authorization prompt; inject network, timeout, malformed
     archive, hash-mismatch, and partial-install failures; tamper with every managed executable;
     and confirm Genesis remains blocked until a fresh complete verification succeeds. Confirm
     repeated setup is idempotent and never installs packages outside the allowlist.
 
-    Current Ubuntu development evidence recorded on 2026-08-30: repository tests cover managed,
-    Ubuntu allowlist, and manual plan separation; authorization denial; malformed/path-traversing
+    Current Linux development evidence: repository tests cover managed, Ubuntu and Fedora
+    allowlists, distro-specific argument arrays, unknown-distro fail-closed planning, manual plan
+    separation, and authorization denial; malformed/path-traversing
     and ambiguous archives; pinned digest failure with preservation of the prior install; executable
     tampering; strict receipt shape/source/type rejection; canonical-directory rebinding; redirected
     and linked storage; linked package directories; unapproved resealed file sets; candidate floods;

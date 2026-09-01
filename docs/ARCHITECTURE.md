@@ -34,7 +34,7 @@ src/romverse/
   assets/                scalable brand assets
 tests/                    hardware-free unit tests
 docs/                     product and engineering specifications
-scripts/                  Ubuntu and Windows environment bootstrap
+scripts/                  Linux and Windows environment bootstrap
 ```
 
 ## Extension contracts

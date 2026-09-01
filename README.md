@@ -563,7 +563,7 @@ receipts are discarded and the name remains unconfirmed.
 Before Nebula Debloat opens an image-based OTA, fastboot, or `super.img` source, Genesis now resolves
 the narrow read-only materialization profile first: Payload Dumper or LP Unpack as appropriate,
 `simg2img`, the ext4 browser, the EROFS reader, and fakeroot metadata support. Forge Arsenal selects
-only missing items, uses its existing managed/Ubuntu authorization boundaries, rescans the complete
+only missing items, uses its existing managed/operating-system authorization boundaries, rescans the complete
 inventory, and opens the app review only when those tools are genuinely available. Closing or
 failing setup leaves Debloat visibly blocked instead of presenting an empty inventory.
 Nebula's progress now follows the same evidence rule. Unknown-size directory discovery and external
@@ -926,7 +926,7 @@ all fail closed. Newly installed POSIX directories/files use private `0700`/`060
 The setup dialog never estimates completion from a fixed stage list. When an approved server
 provides a bounded content length, it reports coalesced downloaded-byte progress; pinned partition
 tools report their real completed-file count. Release discovery, archive validation/extraction,
-receipt activation, unknown-length transfers, and Ubuntu authorization remain visibly
+receipt activation, unknown-length transfers, and operating-system authorization remain visibly
 indeterminate until they genuinely finish.
 
 Payload Dumper uses a stricter release flow: ROMVERSE resolves the current host asset only from
@@ -948,20 +948,31 @@ critical images, unsupported formats, and insufficient-space findings remain exp
 
 Genesis Sequence now derives its install plan from the active Device Pack's exact tool profile.
 It does not install unrelated optional Forge Arsenal tools. Safe
-managed tools are downloaded and verified inside the workspace; allowlisted Ubuntu packages use
-the operating system's visible administrator prompt; requirements without an approved bounded
+managed tools are downloaded and verified inside the workspace; allowlisted Ubuntu and Fedora
+packages use the operating system's visible administrator prompt; requirements without an approved bounded
 installer remain manual. After setup closes, ROMVERSE reactivates only receipt-verified tools,
 rescans the complete profile, and refreshes the active Genesis stage. The Android logical
 partition tools are pinned to the exact commit and SHA-256 values validated by the successful
 Android 15 HyperOS reference build rather than silently tracking mutable binaries.
 
-## Ubuntu quick start
+## Linux quick start
 
-Ubuntu 24.04+ and Python 3.11–3.14 are supported for development.
+Ubuntu 24.04+, Fedora 44, and Python 3.11–3.14 are supported for development.
+
+Ubuntu:
 
 ```bash
 sudo apt update
 sudo apt install python3-venv adb libegl1 libxkbcommon-x11-0
+./scripts/bootstrap.sh
+source .venv/bin/activate
+romverse
+```
+
+Fedora:
+
+```bash
+sudo dnf install python3 android-tools mesa-libEGL libxkbcommon-x11
 ./scripts/bootstrap.sh
 source .venv/bin/activate
 romverse

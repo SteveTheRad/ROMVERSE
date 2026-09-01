@@ -183,6 +183,30 @@ _UBUNTU_PACKAGES = {
     "AAPT2": ("aapt",),
     "APK Signer": ("apksigner",),
 }
+_FEDORA_PACKAGES = {
+    "Git": ("git",),
+    "7-Zip": ("7zip",),
+    "Unzip": ("unzip",),
+    "LZ4": ("lz4",),
+    "EXT4 Browser": ("e2fsprogs",),
+    "Make": ("make",),
+    "EROFS Builder": ("erofs-utils",),
+    "EROFS Verifier": ("erofs-utils",),
+    "Fakeroot": ("fakeroot",),
+}
+
+
+def _system_package_profile(
+    host: HostPlatform,
+) -> tuple[str, dict[str, tuple[str, ...]]]:
+    if host.name.casefold() != "linux":
+        return "", {}
+    distribution_id = str(getattr(host, "distribution_id", "")).casefold().strip()
+    if distribution_id == "ubuntu":
+        return "Ubuntu", _UBUNTU_PACKAGES
+    if distribution_id == "fedora":
+        return "Fedora", _FEDORA_PACKAGES
+    return "", {}
 
 
 def create_provision_plan(
@@ -191,7 +215,7 @@ def create_provision_plan(
     required_names: tuple[str, ...] | None = None,
 ) -> ToolProvisionPlan:
     items: list[ToolProvisionItem] = []
-    linux = host.name.casefold() == "linux"
+    system_name, system_packages = _system_package_profile(host)
     status_by_name = {status.name: status for status in statuses}
     selected_statuses = (
         tuple(
@@ -215,10 +239,12 @@ def create_provision_plan(
                 if status.name in {"simg2img", "LP Make", "LP Unpack", "LP Dump"}
                 else "Downloaded from the official upstream source into ROMVERSE's managed tool directory."
             )
-        elif linux and status.name in _UBUNTU_PACKAGES:
+        elif status.name in system_packages:
             strategy = ProvisionStrategy.SYSTEM
-            packages = _UBUNTU_PACKAGES[status.name]
-            explanation = "Installed by Ubuntu after its normal administrator authorization prompt."
+            packages = system_packages[status.name]
+            explanation = (
+                f"Installed by {system_name} after its normal administrator authorization prompt."
+            )
         else:
             strategy = ProvisionStrategy.MANUAL
             packages = ()
@@ -278,28 +304,60 @@ def required_tools_for_debloat(partition_signals: tuple[str, ...] = ()) -> tuple
     return ()
 
 
-def install_ubuntu_packages(
+def install_system_packages(
     items: tuple[ToolProvisionItem, ...],
     host: HostPlatform,
     runner: CommandRunner,
 ) -> tuple[bool, str]:
-    """Install only allowlisted packages through Ubuntu's visible authorization boundary."""
+    """Install only distro-allowlisted packages through a visible authorization boundary."""
 
     if host.name.casefold() != "linux":
         return (
             False,
-            "Automatic system package installation is currently supported only on Ubuntu/Linux.",
+            "Automatic system package installation is currently supported only on Linux.",
         )
-    packages = tuple(sorted({package for item in items for package in item.packages}))
-    allowed = {package for values in _UBUNTU_PACKAGES.values() for package in values}
-    if not packages or any(package not in allowed for package in packages):
+    system_name, package_profile = _system_package_profile(host)
+    if not package_profile:
         return (
             False,
-            "The package plan is empty or contains a package outside ROMVERSE's allowlist.",
+            "Automatic system package installation is approved only for Ubuntu and Fedora.",
+        )
+    packages = tuple(sorted({package for item in items for package in item.packages}))
+    allowed = {package for values in package_profile.values() for package in values}
+    if (
+        not packages
+        or any(item.strategy is not ProvisionStrategy.SYSTEM for item in items)
+        or any(
+            item.name not in package_profile or item.packages != package_profile[item.name]
+            for item in items
+        )
+        or any(package not in allowed for package in packages)
+    ):
+        return (
+            False,
+            f"The package plan is empty or contains a package outside ROMVERSE's {system_name} allowlist.",
         )
     pkexec = host.find_tool("pkexec")
+    trusted_pkexec = Path("/usr/bin/pkexec")
+    if pkexec != trusted_pkexec or not trusted_pkexec.is_file():
+        return (
+            False,
+            f"{system_name} authorization tools are unavailable; install the listed packages manually.",
+        )
+    if system_name == "Ubuntu":
+        return _install_ubuntu_packages(packages, trusted_pkexec, runner)
+    if system_name == "Fedora":
+        return _install_fedora_packages(packages, trusted_pkexec, runner)
+    return False, "The detected Linux package manager is not approved."
+
+
+def _install_ubuntu_packages(
+    packages: tuple[str, ...],
+    pkexec: Path,
+    runner: CommandRunner,
+) -> tuple[bool, str]:
     apt_get = Path("/usr/bin/apt-get")
-    if pkexec is None or not apt_get.is_file():
+    if not apt_get.is_file():
         return (
             False,
             "Ubuntu authorization tools are unavailable; install the listed packages manually.",
@@ -323,6 +381,38 @@ def install_ubuntu_packages(
         detail = _bounded_detail(install.stderr or install.stdout)
         return False, f"Ubuntu package installation failed: {detail}"
     return True, "Ubuntu installed: " + ", ".join(packages)
+
+
+def _install_fedora_packages(
+    packages: tuple[str, ...],
+    pkexec: Path,
+    runner: CommandRunner,
+) -> tuple[bool, str]:
+    dnf = Path("/usr/bin/dnf")
+    if not dnf.is_file():
+        return (
+            False,
+            "Fedora authorization tools are unavailable; install the listed packages manually.",
+        )
+    refresh = runner.run((str(pkexec), str(dnf), "--refresh", "makecache"), timeout=20 * 60)
+    if not refresh.ok:
+        detail = _bounded_detail(refresh.stderr or refresh.stdout)
+        return False, f"Fedora package metadata refresh failed: {detail}"
+    install = runner.run(
+        (
+            str(pkexec),
+            str(dnf),
+            "--assumeyes",
+            "--setopt=install_weak_deps=False",
+            "install",
+            *packages,
+        ),
+        timeout=30 * 60,
+    )
+    if not install.ok:
+        detail = _bounded_detail(install.stderr or install.stdout)
+        return False, f"Fedora package installation failed: {detail}"
+    return True, "Fedora installed: " + ", ".join(packages)
 
 
 def source_for(name: str) -> str:

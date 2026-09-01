@@ -13,7 +13,7 @@ from romverse.infrastructure.provisioning import (
     ProvisionStrategy,
     ToolProvisionItem,
     create_provision_plan,
-    install_ubuntu_packages,
+    install_system_packages,
     required_tools_for_debloat,
     required_tools_for_source,
 )
@@ -22,9 +22,14 @@ from romverse.infrastructure.tools import ToolStatus
 
 class LinuxHost:
     name = "Linux"
+    distribution_id = "ubuntu"
 
     def find_tool(self, name):
         return Path("/usr/bin/pkexec") if name == "pkexec" else None
+
+
+class FedoraHost(LinuxHost):
+    distribution_id = "fedora"
 
 
 class RecordingRunner:
@@ -38,13 +43,13 @@ class RecordingRunner:
         return CommandResult(tuple(args), code, "ok", "authorization denied" if code else "")
 
 
-def _pretend_ubuntu_apt_get_exists(monkeypatch) -> None:
+def _pretend_package_tools_exist(monkeypatch, *paths: str) -> None:
     original_is_file = Path.is_file
-    apt_get = Path("/usr/bin/apt-get")
+    existing = {Path("/usr/bin/pkexec"), *(Path(path) for path in paths)}
     monkeypatch.setattr(
         Path,
         "is_file",
-        lambda path: path == apt_get or original_is_file(path),
+        lambda path: path in existing or original_is_file(path),
     )
 
 
@@ -78,6 +83,26 @@ def test_plan_separates_managed_system_and_manual_requirements() -> None:
     assert [item.name for item in plan.managed] == ["ADB", "LP Make"]
     assert [item.name for item in plan.system] == ["EROFS Builder"]
     assert [item.name for item in plan.manual] == ["Google USB Driver"]
+
+
+def test_fedora_plan_uses_only_available_distro_packages() -> None:
+    statuses = (
+        ToolStatus("7-Zip", False),
+        ToolStatus("EROFS Builder", False),
+        ToolStatus("Fakeroot", False),
+        ToolStatus("Java", False),
+        ToolStatus("AAPT2", False),
+    )
+
+    plan = create_provision_plan(FedoraHost(), statuses)
+
+    assert [(item.name, item.packages) for item in plan.system] == [
+        ("7-Zip", ("7zip",)),
+        ("EROFS Builder", ("erofs-utils",)),
+        ("Fakeroot", ("fakeroot",)),
+    ]
+    assert [item.name for item in plan.manual] == ["Java", "AAPT2"]
+    assert all("Fedora" in item.explanation for item in plan.system)
 
 
 def test_contract_scoped_plan_excludes_unrelated_missing_tools() -> None:
@@ -142,7 +167,7 @@ def test_exact_contract_tool_profile_overrides_structure_profile() -> None:
 
 
 def test_ubuntu_installer_uses_only_allowlisted_argument_array(monkeypatch) -> None:
-    _pretend_ubuntu_apt_get_exists(monkeypatch)
+    _pretend_package_tools_exist(monkeypatch, "/usr/bin/apt-get")
     runner = RecordingRunner()
     items = (
         ToolProvisionItem(
@@ -160,7 +185,7 @@ def test_ubuntu_installer_uses_only_allowlisted_argument_array(monkeypatch) -> N
         ToolProvisionItem("APK Signer", ProvisionStrategy.SYSTEM, "official", ("apksigner",)),
     )
 
-    success, detail = install_ubuntu_packages(items, LinuxHost(), runner)
+    success, detail = install_system_packages(items, LinuxHost(), runner)
 
     assert success
     assert "apksigner" in detail
@@ -180,20 +205,110 @@ def test_ubuntu_installer_rejects_non_allowlisted_package_without_running() -> N
     runner = RecordingRunner()
     item = ToolProvisionItem("Unexpected", ProvisionStrategy.SYSTEM, "", ("evil-package",))
 
-    success, detail = install_ubuntu_packages((item,), LinuxHost(), runner)
+    success, detail = install_system_packages((item,), LinuxHost(), runner)
 
     assert not success
-    assert "outside ROMVERSE's allowlist" in detail
+    assert "outside ROMVERSE's Ubuntu allowlist" in detail
     assert runner.calls == []
 
 
 def test_ubuntu_installer_reports_authorization_failure_and_stops(monkeypatch) -> None:
-    _pretend_ubuntu_apt_get_exists(monkeypatch)
+    _pretend_package_tools_exist(monkeypatch, "/usr/bin/apt-get")
     runner = RecordingRunner(fail_at=1)
     item = ToolProvisionItem("LZ4", ProvisionStrategy.SYSTEM, "", ("lz4",))
 
-    success, detail = install_ubuntu_packages((item,), LinuxHost(), runner)
+    success, detail = install_system_packages((item,), LinuxHost(), runner)
 
     assert not success
     assert "index refresh failed" in detail
     assert len(runner.calls) == 1
+
+
+def test_fedora_installer_uses_only_allowlisted_argument_array(monkeypatch) -> None:
+    _pretend_package_tools_exist(monkeypatch, "/usr/bin/dnf")
+    runner = RecordingRunner()
+    items = (
+        ToolProvisionItem(
+            "EROFS Builder",
+            ProvisionStrategy.SYSTEM,
+            "official",
+            ("erofs-utils",),
+        ),
+        ToolProvisionItem("7-Zip", ProvisionStrategy.SYSTEM, "official", ("7zip",)),
+    )
+
+    success, detail = install_system_packages(items, FedoraHost(), runner)
+
+    assert success
+    assert "7zip, erofs-utils" in detail
+    assert runner.calls[0][0] == (
+        "/usr/bin/pkexec",
+        "/usr/bin/dnf",
+        "--refresh",
+        "makecache",
+    )
+    assert runner.calls[1][0] == (
+        "/usr/bin/pkexec",
+        "/usr/bin/dnf",
+        "--assumeyes",
+        "--setopt=install_weak_deps=False",
+        "install",
+        "7zip",
+        "erofs-utils",
+    )
+
+
+def test_fedora_installer_rejects_ubuntu_package_without_running(monkeypatch) -> None:
+    _pretend_package_tools_exist(monkeypatch, "/usr/bin/dnf")
+    runner = RecordingRunner()
+    item = ToolProvisionItem(
+        "7-Zip",
+        ProvisionStrategy.SYSTEM,
+        "official",
+        ("p7zip-full",),
+    )
+
+    success, detail = install_system_packages((item,), FedoraHost(), runner)
+
+    assert not success
+    assert "outside ROMVERSE's Fedora allowlist" in detail
+    assert runner.calls == []
+
+
+def test_fedora_installer_rejects_allowlisted_package_bound_to_wrong_tool(monkeypatch) -> None:
+    _pretend_package_tools_exist(monkeypatch, "/usr/bin/dnf")
+    runner = RecordingRunner()
+    item = ToolProvisionItem(
+        "Unexpected",
+        ProvisionStrategy.SYSTEM,
+        "official",
+        ("git",),
+    )
+
+    success, detail = install_system_packages((item,), FedoraHost(), runner)
+
+    assert not success
+    assert "outside ROMVERSE's Fedora allowlist" in detail
+    assert runner.calls == []
+
+
+def test_fedora_installer_reports_metadata_failure_and_stops(monkeypatch) -> None:
+    _pretend_package_tools_exist(monkeypatch, "/usr/bin/dnf")
+    runner = RecordingRunner(fail_at=1)
+    item = ToolProvisionItem("LZ4", ProvisionStrategy.SYSTEM, "official", ("lz4",))
+
+    success, detail = install_system_packages((item,), FedoraHost(), runner)
+
+    assert not success
+    assert "metadata refresh failed" in detail
+    assert len(runner.calls) == 1
+
+
+def test_unknown_linux_distribution_keeps_system_tools_manual() -> None:
+    class UnknownLinuxHost(LinuxHost):
+        distribution_id = "unknown-linux"
+
+    plan = create_provision_plan(UnknownLinuxHost(), (ToolStatus("EROFS Builder", False),))
+
+    assert [item.name for item in plan.manual] == ["EROFS Builder"]
+    assert plan.system == ()

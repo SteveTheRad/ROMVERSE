@@ -1728,6 +1728,48 @@ KNOWN_FIXES = (
         source=ROMVERSE_SOURCE,
     ),
     _fix(
+        "device-dna-source-blueprint-disagreement",
+        "Device DNA says build unconfirmed after Forge verifies the source blueprint",
+        "ROMVERSE WORKFLOWS",
+        "Device DNA and Forge readiness must describe the same current protected-source evidence. "
+        "A strict project-local OTA, fastboot-super, or partition-bundle blueprint can prove the "
+        "source adapter, bounded tool profile, partition inventory, and local baseline/build "
+        "preparation even when no published exact-source Device Pack exists. It can never prove "
+        "a flash contract. If Device DNA ignores that receipt, one screen can incorrectly call "
+        "local preparation unconfirmed while Forge correctly reports a build-ready baseline.",
+        checks=(
+            "Confirm Forge readiness names a current source-bound blueprint and that its project id and protected archive SHA-256 match Device DNA.",
+            "Verify the blueprint reloads through its strict service with an allowed local-evidence authority, unchanged source files, a valid digest, and phone_changed=false.",
+            "Compare Device DNA source-adapter, tool-resolution, partition-map, ROM-build, and Guardian-flash capability rows rather than relying on one overall badge.",
+            "Keep a published Device Pack build/flash contract separate from a project-local source blueprint; the latter cannot authorize a partition write.",
+        ),
+        fix_steps=(
+            "Refresh Device DNA from the exact current ROM project so it reuses the same verified blueprint loader as Forge readiness.",
+            "Let the blueprint supply its source kind, narrow host-tool profile, partition inventory, and local baseline evidence when the older inspection record is absent or legacy.",
+            "Keep exact geometry limited for OTA or partition-bundle inventories; only verified fastboot-super geometry or an exact source Pack may mark the partition map supported.",
+            "Leave Guardian Flash unsupported without the independently verified Device Pack recovery, AVB, physical-test, publisher, and partition-write contracts.",
+        ),
+        verification=(
+            "Device DNA records a source.blueprint evidence item bound to the current project/source digest and never accepts a foreign, stale, changed, or phone-changing receipt.",
+            "OTA or fastboot blueprints mark the automatic adapter and narrow tool profile supported; a bounded partition bundle remains caution where deterministic rebuilding is incomplete.",
+            "ROM build preparation reports the verified local baseline boundary while Guardian Flash remains unsupported unless separate exact Pack evidence exists.",
+            "Refreshing an unchanged profile remains deterministic, bootloader relock remains permanently unsupported, and no scan, worker, build, flash, or phone action is started by this guide.",
+        ),
+        tags=(
+            "device dna build unconfirmed forge ready",
+            "device dna ignores source blueprint",
+            "source adapter unconfirmed after forge",
+            "tool resolution disagrees with build readiness",
+            "project local ota blueprint",
+            "device dna stale build capability",
+            "forge device dna mismatch",
+        ),
+        route="rom_studio",
+        evidence="ROMVERSE loads the same strict source-intelligence receipt in Device DNA and Forge readiness, verifies exact project/source/authority/digest/no-phone-change binding, and tests supported local-build versus unsupported flash boundaries.",
+        automation="STRICT LOCAL BLUEPRINT RELOAD, DEVICE DNA RECONCILIATION, AND READ-ONLY DISPLAY ONLY • NO SCAN, TOOL INSTALL, WORKER, BUILD, APPROVAL, FLASH, REBOOT, RELOCK, OR PHONE ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
         "device-pack-readiness-roadmap",
         "Device Pack roadmap is build-locked or flash-locked",
         "ROMVERSE WORKFLOWS",

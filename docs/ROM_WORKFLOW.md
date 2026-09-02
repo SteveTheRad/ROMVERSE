@@ -23,7 +23,10 @@ approve a plan, or grant phone-write authority.
    or partition-image structure—not merely a ZIP extension—selects the source adapter; unknown
    values remain unconfirmed, and bootloader relocking remains permanently unsupported. The strict
    private schema-two profile consumes structure only from the current persisted schema-two
-   inspection report; schema-one Device DNA remains readable and refreshes forward automatically.
+   inspection report or Forge's same strict current project/source-bound local blueprint. A valid
+   blueprint can confirm bounded build preparation but never supplies device-write or flash
+   authority; foreign, stale, phone-changing, malformed, or source-mismatched records are ignored.
+   Schema-one Device DNA remains readable and refreshes forward automatically.
    Genesis requests a fresh read-only device scan at this stage, shows the current identity and
    Capability Map states, and refuses to advance if either the profile or map is missing. A failed
    refresh clears stale ROM Studio device evidence rather than silently reusing it.

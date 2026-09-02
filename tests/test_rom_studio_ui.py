@@ -570,6 +570,53 @@ def test_firmware_import_worker_automatically_inspects_before_device_dna(tmp_pat
     studio.close()
 
 
+def test_rom_studio_surfaces_the_same_verified_source_blueprint_as_forge(
+    tmp_path,
+    monkeypatch,
+):
+    app = QApplication.instance() or QApplication([])
+    source = tmp_path / "popsicle-ota_full-OS4.0.0.25.XPBCNXM-user-17.0-test.zip"
+    with zipfile.ZipFile(source, "w") as archive:
+        archive.writestr("payload.bin", b"CrAU test")
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.import_original(store.create("Blueprint UI").project_id, source)
+    blueprint = SimpleNamespace(
+        project_id=project.project_id,
+        source_archive_sha256=project.original.sha256,
+        source_kind="ota-payload",
+        baseline_candidate_ready=True,
+        phone_changed=False,
+        authority="project-local-build-evidence-only",
+        blueprint_digest="a" * 64,
+        plan_digest="b" * 64,
+        manufacturer="Xiaomi",
+        codename="popsicle",
+        build_id="OS4.0.0.25.XPBCNXM",
+        android_version="17",
+        region="CN",
+        partitions=(
+            SimpleNamespace(name="system", estimated_bytes=3_000_000, image_format="unknown"),
+        ),
+    )
+    monkeypatch.setattr(
+        "romverse.device.dna.FirmwareSourceIntelligenceService.load",
+        lambda _self, _project_id: blueprint,
+    )
+
+    studio = RomStudio(store, DevicePackRegistry(()))
+    studio.refresh(project.project_id)
+    app.processEvents()
+
+    profile = studio.device_dna.profiles.load(project.project_id)
+    assert profile is not None
+    assert profile.capability("rom_build").state is CapabilityState.SUPPORTED
+    assert "Source Intelligence" in studio.device_dna_detail.text()
+    assert "Project-local Ota Payload blueprint" in studio.device_dna_detail.text()
+    assert "Build preparation evidence only" in studio.device_dna_detail.text()
+    assert "no device-write or flash authority" in studio.device_dna_detail.text()
+    studio.close()
+
+
 def test_project_worker_coalesces_duplicate_progress_before_it_reaches_the_ui(tmp_path):
     store = RomProjectStore(tmp_path / "workspace")
     project = store.create("Large archive progress")

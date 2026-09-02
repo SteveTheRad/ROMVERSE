@@ -587,7 +587,12 @@ Schema-two profiles use a strict nested shape, bounded collections and text, pri
 an exact profile digest, protected-source binding, typed confidence/state enums, unique identifiers,
 and evidence-reference validation. Linked, oversized, extra-field, coerced, malformed, or stale
 source records fail closed. Structure facts are taken only from the current persisted schema-two
-inspection report. Valid schema-one profiles remain readable and upgrade at the next refresh.
+inspection report or the same strict current project/source-bound source blueprint used by Forge
+readiness. That blueprint may reconcile source identity, adapter, tool selection, partition
+inventory and bounded local build preparation across both features, while retaining its explicit
+local-evidence-only authority and granting no device-write or flash authority. Foreign, stale,
+phone-changing, malformed or non-current blueprints are ignored. Valid schema-one profiles remain
+readable and upgrade at the next refresh.
 `bootloader_relock_permitted` must be false and the `bootloader_relock` capability must remain
 UNSUPPORTED even if a modified profile has been re-digested. Device DNA remains advisory and grants
 no command or device-changing authority.

@@ -53,7 +53,10 @@ scripts/                  Linux and Windows environment bootstrap
 - Persist Device DNA through a bounded private atomic schema-two contract with exact top-level and
   nested shapes, typed enums, bounded collections, valid evidence cross-references, source binding,
   and an invariant UNSUPPORTED bootloader-relock capability. Consume structure facts only from the
-  current stored schema-two inspection report; direct caller objects are not evidence.
+  current stored schema-two inspection report or Forge's strict current project/source-bound local
+  blueprint; direct caller objects are not evidence. The blueprint may reconcile identity,
+  adapters, tools, partition inventory and bounded build preparation, but its local-evidence-only
+  authority never permits a device write or flash.
 - Re-derive every persisted Compatibility Matrix decision from the exact current Device DNA profile
   and stored assessment time on load. A record digest alone is insufficient; strict schema-two
   storage, immutable safety/telemetry flags, and deterministic equality are all required.

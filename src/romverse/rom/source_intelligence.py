@@ -32,8 +32,17 @@ class FirmwareAdapter(StrEnum):
 class SourceBlueprint(Protocol):
     project_id: str
     source_kind: str
+    manufacturer: str
+    codename: str
+    build_id: str
+    android_version: str
+    region: str
+    source_archive_sha256: str
+    partitions: tuple[object, ...]
     plan_digest: str
     candidate_sha256: str
+    authority: str
+    phone_changed: bool
     baseline_candidate_ready: bool
     avb_topology_verified: bool
     blueprint_digest: str

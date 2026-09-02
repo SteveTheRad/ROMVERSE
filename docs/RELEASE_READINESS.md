@@ -28,15 +28,17 @@ has current evidence.
    Repository tests also prove a changed packaged runtime module is rejected. This does not replace
    the required Windows installed-wheel pass or signed release-artifact validation.
 
-   Current Fedora development evidence recorded on 2026-09-02: all 1,290 Desktop tests and both
-   complete Ruff gates passed after producer-aware Live Console and legacy Activity deep links were
-   connected to exact nested features. Regression coverage verifies exact project restoration,
-   stale-project refusal, unknown-source refusal, Guided-mode persistence, and zero scan/dialog/
-   worker/build/flash authority from source navigation. ROMVERSE Archives contains 150 validated
-   guides, 100 structured known fixes, and 38 official-source-backed records. A fresh isolated wheel
-   build produced 223 members and revalidated all 21 Device Packs; its SHA-256 is
-   `5140c062b1e2fd1ab6b2a402913ca47795c7d86ecbae54d78a6ed9d514b70712`. The installed-wheel smoke
-   opened a fresh dark Desktop workspace and verified 100 packaged fixes plus all 19 top-level route
+   Current Fedora development evidence recorded on 2026-09-02: all 1,294 Desktop tests and both
+   complete Ruff gates passed after producer-aware deep links and strict Device DNA/Forge source-
+   blueprint reconciliation were connected to exact nested features. Regression coverage verifies
+   exact project restoration, stale-project refusal, unknown-source refusal, Guided-mode
+   persistence, strict current project/source/authority/digest/no-phone-change blueprint binding,
+   visible local-build evidence, and zero scan/dialog/worker/build/flash authority from evidence
+   navigation. ROMVERSE Archives contains 151 validated guides, 101 structured known fixes, and 38
+   official-source-backed records. A fresh isolated wheel build produced 223 members and revalidated
+   all 21 Device Packs; its SHA-256 is
+   `d5080ffaea948d799969f43945e232a01cc4d38298f893d0f24c472917830691`. The installed-wheel smoke
+   opened a fresh dark Desktop workspace and verified 101 packaged fixes plus all 19 top-level route
    coverage. This remains local Fedora evidence, not Windows validation, signing, publication, or
    physical-device write certification.
 

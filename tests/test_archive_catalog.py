@@ -22,8 +22,8 @@ def test_archives_catalog_is_large_unique_classified_and_evidence_labelled() -> 
     validate_catalog(ARCHIVE_ARTICLES)
     metrics = catalog_metrics(ARCHIVE_ARTICLES)
 
-    assert len(ARCHIVE_ARTICLES) == 150
-    assert len(KNOWN_FIXES) == 100
+    assert len(ARCHIVE_ARTICLES) == 151
+    assert len(KNOWN_FIXES) == 101
     assert metrics == {
         "guides": len(ARCHIVE_ARTICLES),
         "categories": len(CATEGORIES),
@@ -85,6 +85,10 @@ def test_archives_have_an_exact_destination_for_every_top_level_desktop_page() -
         (
             "build compile flash requirements",
             "Determine what a recognized Android device needs to build, compile, and flash",
+        ),
+        (
+            "device dna build unconfirmed forge ready",
+            "Device DNA says build unconfirmed after Forge verifies the source blueprint",
         ),
         (
             "about counters unavailable",
@@ -215,7 +219,7 @@ def test_archives_rank_verified_known_fixes_for_real_failure_language(
 
 def test_archives_reject_weak_matches_and_bound_results() -> None:
     assert not search_catalog(ARCHIVE_ARTICLES, "definitely not a real ROMVERSE topic")
-    assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=1_000)) == 150
+    assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=1_000)) == 151
     assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=0)) == 1
     connectivity = search_catalog(
         ARCHIVE_ARTICLES,

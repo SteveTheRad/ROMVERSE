@@ -377,7 +377,10 @@ Nothing becomes Implemented and Verified merely because it is listed here.
 ## Repository evidence status — 2026-08-30
 
 - **IMPLEMENTED AND VERIFIED:** Device DNA and Capability Map client model/private bounded strict
-  schema-two persistence, legacy refresh, persisted-inspection binding, relock invariant/Desktop UI,
+  schema-two persistence, legacy refresh, persisted-inspection binding, strict current
+  project/source-bound Forge blueprint reconciliation for source identity, adapter, tools,
+  partition inventory, and bounded local build preparation without device-write/flash authority,
+  relock invariant/Desktop UI,
   plus deterministic Device-DNA-bound schema-two Compatibility Matrix persistence and legacy
   reassessment, and privacy-bounded read-only Companion Link v6 Capability Map parsing and UI;
   integrity-indexed shared Desktop/Companion Device Atlas coverage for Generic Android,
@@ -411,7 +414,7 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   `confirmed working`; schema-two outcomes additionally bind the exact persisted error-fingerprint
   candidate to a format-specific ADB-host, exact-toolchain, OTA-source, or AVB receipt, revalidate
   that evidence on load, and deny promotion to legacy digest-only outcomes;
-  Desktop ROMVERSE Archives expanded into a validated 150-guide, ten-category local catalog with 100
+  Desktop ROMVERSE Archives expanded into a validated 151-guide, ten-category local catalog with 101
   structured known-fix records, 38 official-source-linked records, bounded ranked retrieval, weak-
   match rejection, category filtering, source visibility, and canonical workspace handoffs;
   a deterministic Archives Advisor now maps every Recovery Bay concern and typed actionable

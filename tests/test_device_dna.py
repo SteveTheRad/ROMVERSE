@@ -6,6 +6,7 @@ import stat
 import struct
 import zipfile
 from dataclasses import replace
+from types import SimpleNamespace
 
 import pytest
 
@@ -173,6 +174,103 @@ def test_recognized_source_without_exact_contract_is_caution_not_build_authority
     assert profile.capability("guardian_flash").state is CapabilityState.UNSUPPORTED
     assert not profile.partitions
     assert any("exact source-bound" in warning for warning in profile.warnings)
+
+
+def test_device_dna_consumes_current_project_local_source_blueprint_without_flash_authority(
+    tmp_path,
+    monkeypatch,
+):
+    source = _source(tmp_path)
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.import_original(store.create("Blueprint DNA").project_id, source)
+    blueprint = SimpleNamespace(
+        project_id=project.project_id,
+        source_archive_sha256=project.original.sha256,
+        source_kind="ota-payload",
+        baseline_candidate_ready=True,
+        phone_changed=False,
+        authority="project-local-build-evidence-only",
+        blueprint_digest="a" * 64,
+        plan_digest="b" * 64,
+        manufacturer="Xiaomi",
+        codename="popsicle",
+        build_id="OS4.0.0.23.XPBCNXM",
+        android_version="17",
+        region="CN",
+        partitions=(
+            SimpleNamespace(name="product", estimated_bytes=2_000_000, image_format="unknown"),
+            SimpleNamespace(name="system", estimated_bytes=3_000_000, image_format="unknown"),
+        ),
+    )
+    monkeypatch.setattr(
+        "romverse.device.dna.FirmwareSourceIntelligenceService.load",
+        lambda _self, _project_id: blueprint,
+    )
+
+    profile = DeviceDnaService(store, DevicePackRegistry(())).refresh(
+        project.project_id,
+        _device(),
+    )
+
+    source_evidence = next(
+        item for item in profile.evidence if item.evidence_id == "source.blueprint"
+    )
+    assert source_evidence.confidence is EvidenceConfidence.VERIFIED
+    assert source_evidence.source_ref == "a" * 64
+    assert profile.fact("firmware.adapter").value == "Android OTA payload"
+    assert profile.fact("firmware.adapter").evidence_ids == ("source.blueprint",)
+    assert profile.fact("software.build").confidence is EvidenceConfidence.VERIFIED
+    assert profile.fact("software.build").evidence_ids == ("source.blueprint",)
+    assert profile.fact("software.region").value == "CN"
+    assert profile.capability("device_identity").evidence_ids == (
+        "device.live",
+        "source.blueprint",
+    )
+    assert profile.fact("firmware.tool_profile").value == "Python, Payload Dumper, AVBTool"
+    assert tuple(item.name for item in profile.partitions) == ("product", "system")
+    assert profile.capability("source_adapter").state is CapabilityState.SUPPORTED
+    assert profile.capability("tool_resolution").state is CapabilityState.SUPPORTED
+    assert profile.capability("partition_mapping").state is CapabilityState.CAUTION
+    assert profile.capability("rom_build").state is CapabilityState.SUPPORTED
+    assert "local baseline" in profile.capability("rom_build").detail
+    assert profile.capability("guardian_flash").state is CapabilityState.UNSUPPORTED
+    assert any("Flash authority remains unavailable" in item for item in profile.warnings)
+    assert profile.bootloader_relock_permitted is False
+
+
+def test_device_dna_rejects_blueprint_that_is_not_bound_to_the_exact_project_source(
+    tmp_path,
+    monkeypatch,
+):
+    source = _source(tmp_path)
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.import_original(store.create("Wrong blueprint DNA").project_id, source)
+    blueprint = SimpleNamespace(
+        project_id="another-project-12345678",
+        source_archive_sha256="0" * 64,
+        source_kind="ota-payload",
+        baseline_candidate_ready=True,
+        phone_changed=False,
+        authority="project-local-build-evidence-only",
+        blueprint_digest="a" * 64,
+        plan_digest="b" * 64,
+        partitions=(SimpleNamespace(name="product", estimated_bytes=2_000_000),),
+    )
+    monkeypatch.setattr(
+        "romverse.device.dna.FirmwareSourceIntelligenceService.load",
+        lambda _self, _project_id: blueprint,
+    )
+
+    profile = DeviceDnaService(store, DevicePackRegistry(())).refresh(
+        project.project_id,
+        _device(),
+    )
+
+    assert all(item.evidence_id != "source.blueprint" for item in profile.evidence)
+    assert profile.capability("source_adapter").state is CapabilityState.UNCONFIRMED
+    assert profile.capability("tool_resolution").state is CapabilityState.UNCONFIRMED
+    assert profile.capability("rom_build").state is CapabilityState.CAUTION
+    assert profile.capability("guardian_flash").state is CapabilityState.UNSUPPORTED
 
 
 def test_unknown_named_payload_is_detected_after_structure_inspection_without_guessing_phone(

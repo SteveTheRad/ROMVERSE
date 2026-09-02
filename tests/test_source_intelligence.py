@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pytest
 
+from romverse.device.dna import CapabilityState, DeviceDnaService
+from romverse.device_packs.registry import DevicePackRegistry
 from romverse.infrastructure.local_store import LocalStoreError
 from romverse.infrastructure.process import CommandResult
 from romverse.infrastructure.tools import ToolStatus
@@ -129,6 +131,15 @@ def test_source_intelligence_selects_nested_ota_payload_without_static_pack(tmp_
     assert service.load(project.project_id) == blueprint
     receipt_path = store.projects_root / project.project_id / service.OTA_NAME
     assert stat.S_IMODE(receipt_path.stat().st_mode) == 0o600
+
+    dna = DeviceDnaService(store, DevicePackRegistry(())).refresh(project.project_id)
+    assert dna.capability("source_adapter").state is CapabilityState.SUPPORTED
+    assert dna.capability("tool_resolution").state is CapabilityState.SUPPORTED
+    assert dna.capability("rom_build").state is CapabilityState.SUPPORTED
+    assert dna.capability("guardian_flash").state is CapabilityState.UNSUPPORTED
+    assert dna.fact("software.build").value == "OS4.0.0.23.XPBCNXM"
+    assert dna.fact("software.build").evidence_ids == ("source.blueprint",)
+    assert any(item.evidence_id == "source.blueprint" for item in dna.evidence)
 
 
 def test_ota_blueprint_rejects_extra_oversized_and_symlinked_evidence(tmp_path):

@@ -89,8 +89,8 @@ When online research is off, its secondary panel folds into a compact, accessibl
 preconditions and the Advisor stay prominent. Active, returned, or failed research expands its full
 evidence automatically, and the user can fold only those details without changing assessment state.
 
-The Desktop **ROMVERSE Archives** catalog now contains 150 validated local guides across ten
-categories, including 100 structured known-fix records and 38 official-source-backed records. The added
+The Desktop **ROMVERSE Archives** catalog now contains 151 validated local guides across ten
+categories, including 101 structured known-fix records and 38 official-source-backed records. The added
 official-source-labelled device triage covers battery/heat, storage, Android updates,
 app crashes, screen/touch, network, and performance, while camera/audio guidance remains explicitly
 ROMVERSE-scoped until exact OEM evidence is available. Ranked punctuation-tolerant retrieval covers
@@ -270,7 +270,12 @@ every nested fact, partition, capability, warning, and evidence reference. It re
 unknown fields, type coercion, invalid cross-references, and even a correctly re-digested attempt to
 mark bootloader relocking supported. Valid schema-one profiles remain readable and upgrade on the
 next evidence refresh. Structure-derived facts are accepted only from the current persisted
-schema-two inspection report; an in-memory lookalike cannot strengthen the Capability Map.
+schema-two inspection report or the same strict project-local source blueprint consumed by Forge
+readiness. A blueprint must bind the exact project and protected-source hash, preserve
+`phone_changed=false`, carry its verified plan/digest, and declare only bounded local build or
+inventory authority. It can strengthen source identity, adapter, tool, partition-inventory, and
+local build-preparation evidence, but never grants device-write or flash authority; an in-memory
+lookalike cannot strengthen the Capability Map.
 Root identity follows the same evidence rule. ROMVERSE records a separately sourced root signal
 and an evidence-labelled Magisk, KernelSU LKM, conflicting, absent, or unknown Manager candidate.
 Companion promotes a candidate only after its full official signer pin matches; the basic Desktop

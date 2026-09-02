@@ -15,6 +15,7 @@ from romverse.device.root_identity import review_root_identity
 from romverse.device_packs.models import DevicePack
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.infrastructure.local_store import atomic_write_json, read_json_object
+from romverse.infrastructure.process import SubprocessRunner
 from romverse.infrastructure.provisioning import required_tools_for_source
 from romverse.rom.inspection import (
     ContainerKind,
@@ -25,6 +26,10 @@ from romverse.rom.inspection import (
 from romverse.rom.models import ProjectError
 from romverse.rom.projects import RomProjectStore
 from romverse.rom.source_identity import FirmwareSourceIdentity, identify_firmware_source
+from romverse.rom.source_intelligence import (
+    FirmwareSourceIntelligenceService,
+    SourceBlueprint,
+)
 
 
 class EvidenceConfidence(StrEnum):
@@ -207,6 +212,11 @@ class DeviceDnaService:
             if persisted_inspection is not None and persisted_inspection.schema_version == 2
             else None
         )
+        blueprint = _load_current_source_blueprint(
+            self.store,
+            project_id,
+            project.original.sha256,
+        )
         profile = self._compile(
             project_id,
             project.original.sha256,
@@ -215,6 +225,7 @@ class DeviceDnaService:
             inspection,
             pack,
             exact_pack,
+            blueprint,
         )
         return self.profiles.save(profile)
 
@@ -227,14 +238,31 @@ class DeviceDnaService:
         inspection: RomInspectionReport | None,
         pack: DevicePack | None,
         exact_pack: bool,
+        blueprint: SourceBlueprint | None,
     ) -> DeviceDnaProfile:
         evidence = _evidence(
-            self.store, self.registry, source_sha256, source, device, inspection, pack, exact_pack
+            self.store,
+            self.registry,
+            source_sha256,
+            source,
+            device,
+            inspection,
+            pack,
+            exact_pack,
+            blueprint,
         )
-        facts = _facts(source, device, inspection, pack, exact_pack)
-        partitions = _partitions(pack, exact_pack)
-        warnings = _warnings(source, device, inspection, pack, exact_pack)
-        capabilities = _capability_map(source, device, inspection, pack, exact_pack, warnings)
+        facts = _facts(source, device, inspection, pack, exact_pack, blueprint)
+        partitions = _partitions(pack, exact_pack, blueprint)
+        warnings = _warnings(source, device, inspection, pack, exact_pack, blueprint)
+        capabilities = _capability_map(
+            source,
+            device,
+            inspection,
+            pack,
+            exact_pack,
+            blueprint,
+            warnings,
+        )
         payload: dict[str, object] = {
             "schema_version": 2,
             "profile_id": uuid4().hex,
@@ -251,6 +279,45 @@ class DeviceDnaService:
         return DeviceDnaProfile(**payload, profile_digest=_digest(payload))  # type: ignore[arg-type]
 
 
+def _load_current_source_blueprint(
+    store: RomProjectStore,
+    project_id: str,
+    source_sha256: str,
+) -> SourceBlueprint | None:
+    """Load only the same strict, project-local source evidence used by Forge readiness."""
+
+    try:
+        blueprint = FirmwareSourceIntelligenceService(store, (), SubprocessRunner()).load(
+            project_id
+        )
+    except (OSError, TypeError, ValueError):
+        return None
+    if blueprint is None:
+        return None
+    kind = str(getattr(blueprint, "source_kind", "")).strip()
+    authority = str(getattr(blueprint, "authority", "")).strip()
+    digest = str(getattr(blueprint, "blueprint_digest", "")).strip()
+    plan_digest = str(getattr(blueprint, "plan_digest", "")).strip()
+    return (
+        blueprint
+        if (
+            getattr(blueprint, "project_id", "") == project_id
+            and getattr(blueprint, "source_archive_sha256", "") == source_sha256
+            and getattr(blueprint, "baseline_candidate_ready", False) is True
+            and getattr(blueprint, "phone_changed", True) is False
+            and kind in {"ota-payload", "fastboot-super", "partition-bundle"}
+            and authority
+            in {
+                "project-local-build-evidence-only",
+                "project-local-inventory-evidence-only",
+            }
+            and bool(re.fullmatch(r"[0-9a-f]{64}", digest))
+            and bool(re.fullmatch(r"[0-9a-f]{64}", plan_digest))
+        )
+        else None
+    )
+
+
 def _evidence(
     store: RomProjectStore,
     registry: DevicePackRegistry,
@@ -260,6 +327,7 @@ def _evidence(
     inspection: RomInspectionReport | None,
     pack: DevicePack | None,
     exact_pack: bool,
+    blueprint: SourceBlueprint | None,
 ) -> tuple[DeviceDnaEvidence, ...]:
     results = [
         DeviceDnaEvidence(
@@ -298,6 +366,20 @@ def _evidence(
                     _structure_confidence(inspection),
                 )
             )
+    if blueprint is not None:
+        partitions = tuple(getattr(blueprint, "partitions", ()) or ())
+        kind = str(getattr(blueprint, "source_kind", ""))
+        results.append(
+            DeviceDnaEvidence(
+                "source.blueprint",
+                f"{kind}-source-blueprint",
+                str(getattr(blueprint, "blueprint_digest", "")),
+                f"Current project-local {kind} blueprint verified {len(partitions)} partition "
+                f"record(s) and plan {str(getattr(blueprint, 'plan_digest', ''))[:16]}…; "
+                f"authority={getattr(blueprint, 'authority', '')}; phone changed=NO.",
+                EvidenceConfidence.VERIFIED,
+            )
+        )
     if device is not None:
         receipt = DeviceIdentityResolver(store.workspace, registry).load(device)
         results.append(
@@ -336,6 +418,7 @@ def _facts(
     inspection: RomInspectionReport | None,
     pack: DevicePack | None,
     exact_pack: bool,
+    blueprint: SourceBlueprint | None,
 ) -> tuple[DeviceDnaFact, ...]:
     live_confidence = (
         EvidenceConfidence.HIGH if device is not None else EvidenceConfidence.UNCONFIRMED
@@ -343,16 +426,41 @@ def _facts(
     live_evidence = ("device.live",) if device is not None else ()
     source_confidence = _source_confidence(source)
     source_evidence = ("source.filename",)
-    structure = _firmware_structure(inspection)
-    structure_confidence = _structure_confidence(inspection)
+    blueprint_evidence = ("source.blueprint",) if blueprint is not None else ()
+
+    def project_source_fact(
+        attribute: str, fallback: str
+    ) -> tuple[str, EvidenceConfidence, tuple[str, ...]]:
+        observed = str(getattr(blueprint, attribute, "")).strip()
+        if observed:
+            return observed, EvidenceConfidence.VERIFIED, blueprint_evidence
+        return fallback, source_confidence, source_evidence
+
+    source_manufacturer, manufacturer_confidence, manufacturer_evidence = project_source_fact(
+        "manufacturer", source.manufacturer
+    )
+    source_codename, codename_confidence, codename_evidence = project_source_fact(
+        "codename", source.codename
+    )
+    source_android, android_confidence, android_evidence = project_source_fact(
+        "android_version", source.android_version
+    )
+    source_build, build_confidence, build_evidence = project_source_fact(
+        "build_id", source.build_id
+    )
+    source_region, region_confidence, region_evidence = project_source_fact("region", source.region)
+    structure = _effective_structure(inspection, blueprint)
+    structure_confidence = _effective_structure_confidence(inspection, blueprint)
     structure_evidence = (
-        ("source.android_structure", "source.container")
-        if structure is not FirmwareStructureKind.UNCONFIRMED
+        ("source.blueprint",)
+        if blueprint is not None
+        else ("source.android_structure", "source.container")
+        if _firmware_structure(inspection) is not FirmwareStructureKind.UNCONFIRMED
         else ()
     )
     resolved_tools = required_tools_for_source(
         pack.build_contract if exact_pack and pack is not None else None,
-        inspection.partition_signals if inspection is not None else (),
+        _source_tool_signals(inspection, blueprint),
     )
     root_review = review_root_identity(
         device.root_detected if device else None,
@@ -371,9 +479,9 @@ def _facts(
         _fact(
             "identity.manufacturer",
             "Manufacturer",
-            device.manufacturer if device and device.manufacturer else source.manufacturer,
-            live_confidence if device and device.manufacturer else source_confidence,
-            live_evidence if device and device.manufacturer else source_evidence,
+            device.manufacturer if device and device.manufacturer else source_manufacturer,
+            live_confidence if device and device.manufacturer else manufacturer_confidence,
+            live_evidence if device and device.manufacturer else manufacturer_evidence,
         ),
         _fact(
             "identity.brand",
@@ -392,9 +500,9 @@ def _facts(
         _fact(
             "identity.codename",
             "Codename",
-            device.codename if device and device.codename else source.codename,
-            live_confidence if device and device.codename else source_confidence,
-            live_evidence if device and device.codename else source_evidence,
+            device.codename if device and device.codename else source_codename,
+            live_confidence if device and device.codename else codename_confidence,
+            live_evidence if device and device.codename else codename_evidence,
         ),
         _fact(
             "soc.platform",
@@ -406,9 +514,9 @@ def _facts(
         _fact(
             "software.android_version",
             "Android version",
-            source.android_version or (device.android_version if device else ""),
-            source_confidence if source.android_version else live_confidence,
-            source_evidence if source.android_version else live_evidence,
+            source_android or (device.android_version if device else ""),
+            android_confidence if source_android else live_confidence,
+            android_evidence if source_android else live_evidence,
         ),
         _fact(
             "software.rom",
@@ -420,11 +528,17 @@ def _facts(
         _fact(
             "software.build",
             "Build",
-            source.build_id or (device.build_id if device else ""),
-            source_confidence if source.build_id else live_confidence,
-            source_evidence if source.build_id else live_evidence,
+            source_build or (device.build_id if device else ""),
+            build_confidence if source_build else live_confidence,
+            build_evidence if source_build else live_evidence,
         ),
-        _fact("software.region", "Region", source.region, source_confidence, source_evidence),
+        _fact(
+            "software.region",
+            "Region",
+            source_region,
+            region_confidence,
+            region_evidence,
+        ),
         _fact(
             "software.security_patch",
             "Security patch",
@@ -435,7 +549,7 @@ def _facts(
         _fact(
             "firmware.package_format",
             "Firmware format",
-            _package_format(source, inspection),
+            _package_format(source, inspection, blueprint),
             structure_confidence
             if structure is not FirmwareStructureKind.UNCONFIRMED
             else source_confidence,
@@ -454,26 +568,40 @@ def _facts(
             ", ".join(resolved_tools)
             if structure is not FirmwareStructureKind.UNCONFIRMED or exact_pack
             else "",
-            EvidenceConfidence.VERIFIED if exact_pack else structure_confidence,
-            ("pack.association",) if exact_pack else structure_evidence,
+            EvidenceConfidence.VERIFIED
+            if exact_pack or blueprint is not None
+            else structure_confidence,
+            ("pack.association",)
+            if exact_pack
+            else ("source.blueprint",)
+            if blueprint is not None
+            else structure_evidence,
         ),
         _fact(
             "partition.discovered",
             "Discovered partitions",
-            ", ".join(inspection.partition_signals) if inspection else "",
+            ", ".join(_blueprint_partition_names(blueprint))
+            if blueprint is not None
+            else ", ".join(inspection.partition_signals)
+            if inspection
+            else "",
             structure_confidence,
             structure_evidence,
         ),
         _fact(
             "partition.architecture",
             "Partition architecture",
-            _partition_architecture(device, pack, exact_pack),
+            _partition_architecture(device, pack, exact_pack, blueprint),
             EvidenceConfidence.VERIFIED
-            if exact_pack
+            if exact_pack or blueprint is not None
             else live_confidence
             if device and device.dynamic_partitions is not None
             else EvidenceConfidence.UNCONFIRMED,
-            ("pack.association",) if exact_pack else live_evidence,
+            ("pack.association",)
+            if exact_pack
+            else ("source.blueprint",)
+            if blueprint is not None
+            else live_evidence,
         ),
         _fact(
             "partition.ab_scheme",
@@ -547,20 +675,48 @@ def _facts(
     )
 
 
-def _partitions(pack: DevicePack | None, exact_pack: bool) -> tuple[DeviceDnaPartition, ...]:
-    if not exact_pack or pack is None or pack.build_contract is None:
-        return ()
-    return tuple(
-        DeviceDnaPartition(
-            rule.name,
-            rule.size_bytes,
-            rule.filesystem,
-            rule.group,
-            EvidenceConfidence.VERIFIED,
-            ("pack.association",),
+def _partitions(
+    pack: DevicePack | None,
+    exact_pack: bool,
+    blueprint: SourceBlueprint | None,
+) -> tuple[DeviceDnaPartition, ...]:
+    if exact_pack and pack is not None and pack.build_contract is not None:
+        return tuple(
+            DeviceDnaPartition(
+                rule.name,
+                rule.size_bytes,
+                rule.filesystem,
+                rule.group,
+                EvidenceConfidence.VERIFIED,
+                ("pack.association",),
+            )
+            for rule in pack.build_contract.partitions
         )
-        for rule in pack.build_contract.partitions
+    if blueprint is None:
+        return ()
+    kind = str(getattr(blueprint, "source_kind", ""))
+    confidence = (
+        EvidenceConfidence.VERIFIED if kind == "fastboot-super" else EvidenceConfidence.HIGH
     )
+    results: list[DeviceDnaPartition] = []
+    for item in tuple(getattr(blueprint, "partitions", ()) or ()):
+        name = str(getattr(item, "name", "")).strip()
+        if not name:
+            continue
+        size = getattr(item, "size_bytes", None)
+        if type(size) is not int:
+            size = getattr(item, "estimated_bytes", None)
+        results.append(
+            DeviceDnaPartition(
+                name,
+                size if type(size) is int and size >= 0 else None,
+                str(getattr(item, "image_format", "")).strip(),
+                str(getattr(item, "group_name", "")).strip(),
+                confidence,
+                ("source.blueprint",),
+            )
+        )
+    return tuple(results)
 
 
 def _warnings(
@@ -569,45 +725,57 @@ def _warnings(
     inspection: RomInspectionReport | None,
     pack: DevicePack | None,
     exact_pack: bool,
+    blueprint: SourceBlueprint | None,
 ) -> tuple[str, ...]:
     warnings: list[str] = []
+    blueprint_codename = str(getattr(blueprint, "codename", "")).strip()
+    source_codename = source.codename or blueprint_codename
+    source_build = source.build_id or str(getattr(blueprint, "build_id", "")).strip()
     if source.confidence != "high":
         warnings.append("Firmware identity is unconfirmed; no supported vendor signature matched.")
     if device is None:
         warnings.append("No single connected device supplied live identity or boot-state evidence.")
     elif (
-        source.codename
+        source_codename
         and device.codename
-        and source.codename.casefold() != device.codename.casefold()
+        and source_codename.casefold() != device.codename.casefold()
     ):
         warnings.append(
-            f"Connected device codename {device.codename} does not match firmware codename {source.codename}."
+            f"Connected device codename {device.codename} does not match firmware codename {source_codename}."
         )
     elif exact_pack and pack is not None and not _device_matches_pack(device, pack):
         warnings.append(
             f"Connected device identity does not match exact source-bound Pack {pack.pack_id}."
         )
-    if (
-        device
-        and source.build_id
-        and device.rom_display
-        and source.build_id not in device.rom_display
-    ):
+    if device and source_build and device.rom_display and source_build not in device.rom_display:
         warnings.append(
             "The connected phone build does not visibly match the imported firmware build."
         )
-    if inspection is None:
+    if inspection is None and blueprint is None:
         warnings.append("Firmware container inspection has not completed yet.")
-    elif any(item.severity is FindingSeverity.CRITICAL for item in inspection.findings):
+    elif inspection is not None and any(
+        item.severity is FindingSeverity.CRITICAL for item in inspection.findings
+    ):
         warnings.append("Critical firmware structure findings block automated preparation.")
-    elif _firmware_structure(inspection) is FirmwareStructureKind.UNCONFIRMED:
+    elif (
+        inspection is not None
+        and blueprint is None
+        and _firmware_structure(inspection) is FirmwareStructureKind.UNCONFIRMED
+    ):
         warnings.append(
             "The container is readable, but no supported Android payload, super, or partition-image structure was found."
         )
     if not exact_pack:
-        warnings.append(
-            "No exact source-bound Device Pack contract is active; build and flash authority remain unavailable."
-        )
+        if blueprint is not None:
+            warnings.append(
+                "No exact source-bound Device Pack contract is active; the verified project-local "
+                f"{getattr(blueprint, 'source_kind', 'source')} blueprint supports bounded local "
+                "build preparation only. Flash authority remains unavailable."
+            )
+        else:
+            warnings.append(
+                "No exact source-bound Device Pack contract is active; build and flash authority remain unavailable."
+            )
     return tuple(warnings)
 
 
@@ -617,13 +785,17 @@ def _capability_map(
     inspection: RomInspectionReport | None,
     pack: DevicePack | None,
     exact_pack: bool,
+    blueprint: SourceBlueprint | None,
     warnings: tuple[str, ...],
 ) -> tuple[CapabilityMapEntry, ...]:
+    blueprint_codename = str(getattr(blueprint, "codename", "")).strip()
+    source_codename = source.codename or blueprint_codename
+    target_identity_evidence = ("source.blueprint",) if blueprint_codename else ("source.filename",)
     source_mismatch = bool(
         device
-        and source.codename
+        and source_codename
         and device.codename
-        and source.codename.casefold() != device.codename.casefold()
+        and source_codename.casefold() != device.codename.casefold()
     )
     pack_mismatch = bool(
         device and exact_pack and pack is not None and not _device_matches_pack(device, pack)
@@ -633,23 +805,30 @@ def _capability_map(
         inspection
         and any(item.severity is FindingSeverity.CRITICAL for item in inspection.findings)
     )
-    structure = _firmware_structure(inspection)
-    structure_confidence = _structure_confidence(inspection)
+    structure = _effective_structure(inspection, blueprint)
+    structure_confidence = _effective_structure_confidence(inspection, blueprint)
+    blueprint_ready = blueprint is not None
+    blueprint_geometry = bool(
+        blueprint is not None and getattr(blueprint, "source_kind", "") == "fastboot-super"
+    )
     identity_state = (
         CapabilityState.UNSUPPORTED
         if mismatch
         else CapabilityState.SUPPORTED
         if device and device.codename and device.model
         else CapabilityState.CAUTION
-        if device or source.codename
+        if device or source_codename
         else CapabilityState.UNCONFIRMED
     )
     firmware_state = (
         CapabilityState.UNSUPPORTED
         if critical
         else CapabilityState.SUPPORTED
-        if structure is not FirmwareStructureKind.UNCONFIRMED
-        and structure_confidence is EvidenceConfidence.HIGH
+        if blueprint_ready
+        or (
+            structure is not FirmwareStructureKind.UNCONFIRMED
+            and structure_confidence is EvidenceConfidence.HIGH
+        )
         else CapabilityState.CAUTION
         if structure is not FirmwareStructureKind.UNCONFIRMED or source.confidence == "high"
         else CapabilityState.UNCONFIRMED
@@ -659,20 +838,25 @@ def _capability_map(
         if critical
         else CapabilityState.SUPPORTED
         if structure in {FirmwareStructureKind.OTA_PAYLOAD, FirmwareStructureKind.FASTBOOT_SUPER}
-        and structure_confidence is EvidenceConfidence.HIGH
+        and (blueprint_ready or structure_confidence is EvidenceConfidence.HIGH)
         else CapabilityState.CAUTION
         if structure is not FirmwareStructureKind.UNCONFIRMED
         else CapabilityState.UNCONFIRMED
     )
     resolved_tools = required_tools_for_source(
         pack.build_contract if exact_pack and pack is not None else None,
-        inspection.partition_signals if inspection is not None else (),
+        _source_tool_signals(inspection, blueprint),
     )
     tool_resolution_state = (
         CapabilityState.UNSUPPORTED
         if critical
         else CapabilityState.SUPPORTED
         if exact_pack
+        or (
+            blueprint_ready
+            and structure
+            in {FirmwareStructureKind.OTA_PAYLOAD, FirmwareStructureKind.FASTBOOT_SUPER}
+        )
         or (
             structure
             in {
@@ -687,16 +871,16 @@ def _capability_map(
     )
     partition_state = (
         CapabilityState.SUPPORTED
-        if exact_pack
+        if exact_pack or blueprint_geometry
         else CapabilityState.CAUTION
-        if inspection and inspection.partition_signals
+        if blueprint_ready or (inspection and inspection.partition_signals)
         else CapabilityState.UNCONFIRMED
     )
     build_state = (
         CapabilityState.UNSUPPORTED
         if critical
         else CapabilityState.SUPPORTED
-        if exact_pack
+        if exact_pack or blueprint_ready
         else CapabilityState.CAUTION
         if source.confidence == "high"
         else CapabilityState.UNCONFIRMED
@@ -718,11 +902,11 @@ def _capability_map(
             "Device identification",
             identity_state,
             "Live and firmware identity agree."
-            if identity_state is CapabilityState.SUPPORTED and (source.codename or exact_pack)
+            if identity_state is CapabilityState.SUPPORTED and (source_codename or exact_pack)
             else "Live device identity is supported; the firmware target identity remains unconfirmed."
             if identity_state is CapabilityState.SUPPORTED and device
             else _first_warning(warnings),
-            ("device.live", "source.filename") if device else ("source.filename",),
+            (("device.live",) + target_identity_evidence) if device else target_identity_evidence,
         ),
         CapabilityMapEntry(
             "firmware_detection",
@@ -731,8 +915,10 @@ def _capability_map(
             "Container and package evidence are available."
             if firmware_state is CapabilityState.SUPPORTED
             else "ROMVERSE needs complete, safe container evidence.",
-            ("source.android_structure", "source.container")
-            if structure is not FirmwareStructureKind.UNCONFIRMED
+            ("source.blueprint",)
+            if blueprint_ready
+            else ("source.android_structure", "source.container")
+            if _firmware_structure(inspection) is not FirmwareStructureKind.UNCONFIRMED
             else ("source.filename", "source.container")
             if inspection
             else ("source.filename",),
@@ -742,8 +928,10 @@ def _capability_map(
             "Automatic source adapter",
             adapter_state,
             _adapter_capability_detail(structure, adapter_state),
-            ("source.android_structure", "source.container")
-            if structure is not FirmwareStructureKind.UNCONFIRMED
+            ("source.blueprint",)
+            if blueprint_ready
+            else ("source.android_structure", "source.container")
+            if _firmware_structure(inspection) is not FirmwareStructureKind.UNCONFIRMED
             else (),
         ),
         CapabilityMapEntry(
@@ -753,6 +941,8 @@ def _capability_map(
             (
                 "Exact source contract selected: "
                 if exact_pack
+                else "Verified project-local source blueprint selected: "
+                if blueprint_ready
                 else "Structure-backed source profile selected: "
             )
             + ", ".join(resolved_tools)
@@ -765,8 +955,10 @@ def _capability_map(
             else "ROMVERSE needs supported Android structure or an exact source contract before selecting tools.",
             ("pack.association",)
             if exact_pack
+            else ("source.blueprint",)
+            if blueprint_ready
             else ("source.android_structure", "source.container")
-            if structure is not FirmwareStructureKind.UNCONFIRMED
+            if _firmware_structure(inspection) is not FirmwareStructureKind.UNCONFIRMED
             else (),
         ),
         CapabilityMapEntry(
@@ -775,11 +967,17 @@ def _capability_map(
             partition_state,
             "Exact source-bound partition geometry is available."
             if exact_pack
+            else "The verified local fastboot blueprint contains exact logical-partition geometry."
+            if blueprint_geometry
+            else "The verified local source blueprint contains a bounded partition inventory; exact rebuild geometry remains limited."
+            if blueprint_ready
             else "Partition names may be visible, but exact geometry is not confirmed.",
             ("pack.association",)
             if exact_pack
+            else ("source.blueprint",)
+            if blueprint_ready
             else ("source.android_structure", "source.container")
-            if structure is not FirmwareStructureKind.UNCONFIRMED
+            if _firmware_structure(inspection) is not FirmwareStructureKind.UNCONFIRMED
             else (),
         ),
         CapabilityMapEntry(
@@ -788,15 +986,25 @@ def _capability_map(
             build_state,
             "Exact source build contract is active."
             if exact_pack
+            else "A verified project-local source blueprint supports bounded local baseline and build preparation; it grants no flash authority."
+            if blueprint_ready
             else "A recognized package is not an exact build contract.",
-            ("pack.association",) if exact_pack else ("source.filename",),
+            ("pack.association",)
+            if exact_pack
+            else ("source.blueprint",)
+            if blueprint_ready
+            else ("source.filename",),
         ),
         CapabilityMapEntry(
             "guardian_flash",
             "Guardian flash",
             flash_state,
             "Final flash authority requires separate device, backup, slot, AVB, recovery, and physical attestation checks.",
-            ("pack.association",) if exact_pack else (),
+            ("pack.association",)
+            if exact_pack
+            else ("source.blueprint",)
+            if blueprint_ready
+            else (),
         ),
         CapabilityMapEntry(
             "root_state",
@@ -1021,17 +1229,27 @@ def _source_confidence(source: FirmwareSourceIdentity) -> EvidenceConfidence:
     )
 
 
-def _package_format(source: FirmwareSourceIdentity, inspection: RomInspectionReport | None) -> str:
-    if inspection is None:
+def _package_format(
+    source: FirmwareSourceIdentity,
+    inspection: RomInspectionReport | None,
+    blueprint: SourceBlueprint | None,
+) -> str:
+    if inspection is None and blueprint is None:
         return source.package_type
-    structure = _firmware_structure(inspection)
-    outer = inspection.container.value.replace("_", " ")
+    structure = _effective_structure(inspection, blueprint)
+    outer = inspection.container.value.replace("_", " ") if inspection is not None else ""
     structure_label = _structure_label(structure)
     if source.confidence == "high" and structure_label:
-        return f"{source.package_type}; {structure_label} ({outer})"
+        return f"{source.package_type}; {structure_label}" + (f" ({outer})" if outer else "")
     if structure_label:
-        return f"{structure_label} ({outer})"
-    return f"{source.package_type} ({outer})" if source.confidence == "high" else ""
+        return structure_label + (f" ({outer})" if outer else "")
+    return (
+        f"{source.package_type} ({outer})"
+        if source.confidence == "high" and outer
+        else source.package_type
+        if source.confidence == "high"
+        else ""
+    )
 
 
 def _firmware_structure(inspection: RomInspectionReport | None) -> FirmwareStructureKind:
@@ -1056,6 +1274,59 @@ def _structure_confidence(inspection: RomInspectionReport | None) -> EvidenceCon
     if inspection.container is ContainerKind.RAW:
         return EvidenceConfidence.MEDIUM
     return EvidenceConfidence.HIGH
+
+
+def _blueprint_structure(blueprint: SourceBlueprint | None) -> FirmwareStructureKind:
+    return {
+        "ota-payload": FirmwareStructureKind.OTA_PAYLOAD,
+        "fastboot-super": FirmwareStructureKind.FASTBOOT_SUPER,
+        "partition-bundle": FirmwareStructureKind.PARTITION_BUNDLE,
+    }.get(str(getattr(blueprint, "source_kind", "")), FirmwareStructureKind.UNCONFIRMED)
+
+
+def _effective_structure(
+    inspection: RomInspectionReport | None,
+    blueprint: SourceBlueprint | None,
+) -> FirmwareStructureKind:
+    observed = _blueprint_structure(blueprint)
+    return (
+        observed
+        if observed is not FirmwareStructureKind.UNCONFIRMED
+        else _firmware_structure(inspection)
+    )
+
+
+def _effective_structure_confidence(
+    inspection: RomInspectionReport | None,
+    blueprint: SourceBlueprint | None,
+) -> EvidenceConfidence:
+    return (
+        EvidenceConfidence.VERIFIED
+        if _blueprint_structure(blueprint) is not FirmwareStructureKind.UNCONFIRMED
+        else _structure_confidence(inspection)
+    )
+
+
+def _source_tool_signals(
+    inspection: RomInspectionReport | None,
+    blueprint: SourceBlueprint | None,
+) -> tuple[str, ...]:
+    kind = _blueprint_structure(blueprint)
+    if kind is FirmwareStructureKind.OTA_PAYLOAD:
+        return ("ota_payload",)
+    if kind is FirmwareStructureKind.FASTBOOT_SUPER:
+        return ("super",)
+    if kind is FirmwareStructureKind.PARTITION_BUNDLE:
+        return ("partition_bundle",)
+    return inspection.partition_signals if inspection is not None else ()
+
+
+def _blueprint_partition_names(blueprint: SourceBlueprint | None) -> tuple[str, ...]:
+    return tuple(
+        name
+        for item in tuple(getattr(blueprint, "partitions", ()) or ())[:256]
+        if (name := str(getattr(item, "name", "")).strip())
+    )
 
 
 def _structure_label(structure: FirmwareStructureKind) -> str:
@@ -1095,11 +1366,25 @@ def _adapter_capability_detail(
 
 
 def _partition_architecture(
-    device: AndroidDevice | None, pack: DevicePack | None, exact_pack: bool
+    device: AndroidDevice | None,
+    pack: DevicePack | None,
+    exact_pack: bool,
+    blueprint: SourceBlueprint | None,
 ) -> str:
     if exact_pack and pack is not None and pack.build_contract is not None:
         contract = pack.build_contract
         return f"Dynamic partitions; {len(contract.groups)} group(s); metadata slots {contract.metadata_slots}"
+    kind = _blueprint_structure(blueprint)
+    partitions = _blueprint_partition_names(blueprint)
+    if kind is FirmwareStructureKind.FASTBOOT_SUPER:
+        groups = tuple(getattr(blueprint, "groups", ()) or ())
+        metadata_slots = getattr(blueprint, "metadata_slots", None)
+        slots = f"; metadata slots {metadata_slots}" if type(metadata_slots) is int else ""
+        return f"Dynamic partitions; {len(groups)} observed group(s){slots}"
+    if kind is FirmwareStructureKind.OTA_PAYLOAD:
+        return f"OTA payload manifest; {len(partitions)} partition record(s)"
+    if kind is FirmwareStructureKind.PARTITION_BUNDLE:
+        return f"Hash-backed partition image bundle; {len(partitions)} image(s)"
     if device is not None and device.dynamic_partitions is True:
         return "Dynamic partitions reported by Android"
     if device is not None and device.dynamic_partitions is False:

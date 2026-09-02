@@ -2791,6 +2791,21 @@ class RomStudio(QWidget):
             if profile.warnings
             else ""
         )
+        blueprint = next(
+            (item for item in profile.evidence if item.evidence_id == "source.blueprint"),
+            None,
+        )
+        source_intelligence = ""
+        if blueprint is not None:
+            source_kind = (
+                blueprint.source_type.removesuffix("-source-blueprint").replace("-", " ").title()
+            )
+            source_intelligence = (
+                "\n\nSource Intelligence\n"
+                f"● VERIFIED  •  Project-local {source_kind} blueprint\n"
+                f"   Digest {blueprint.source_ref[:16]}…  •  Build preparation evidence only\n"
+                "   The blueprint grants no device-write or flash authority."
+            )
         matrix = self.compatibility.matrices.load(profile.project_id)
         compatibility = (
             "\n\nCompatibility Matrix\n"
@@ -2806,6 +2821,7 @@ class RomStudio(QWidget):
         self.device_dna_detail.setText(
             "Evidence-backed profile\n"
             + "\n".join(facts)
+            + source_intelligence
             + "\n\nCapability Map\n"
             + "\n".join(capabilities)
             + compatibility

@@ -2288,7 +2288,7 @@ def test_device_atlas_carries_exact_pack_tools_into_forge_and_verified_archives(
         pack = window.device_packs_center.active_pack
         report = window.device_packs_center.active_report
         assert pack is not None and pack.build_contract is not None and report is not None
-        assert "14 TOOLS DECLARED" in (
+        assert "0/14 TOOLS VERIFIED • 14 MISSING" in (
             window.device_packs_center.requirement_badges["compile"].text()
         )
         assert "FLASH LOCKED" in window.device_packs_center.requirement_badges["flash"].text()

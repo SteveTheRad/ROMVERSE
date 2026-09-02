@@ -41,6 +41,7 @@ from romverse.device_packs.validation import (
     DevicePackValidationService,
     ValidationState,
 )
+from romverse.infrastructure.tools import ToolStatus
 
 
 class DevicePacksCenter(QWidget):
@@ -58,6 +59,7 @@ class DevicePacksCenter(QWidget):
         attestation_store: DevicePackAttestationStore | None = None,
         device_catalog: GooglePlayDeviceCatalog | None = None,
         online_catalog_enabled: bool = True,
+        tool_statuses: tuple[ToolStatus, ...] | None = None,
     ) -> None:
         super().__init__()
         self.registry = registry
@@ -65,6 +67,7 @@ class DevicePacksCenter(QWidget):
         self.attestation_store = attestation_store
         self.device_catalog = device_catalog
         self.online_catalog_enabled = online_catalog_enabled
+        self.tool_statuses = tool_statuses
         self.validation_service = DevicePackValidationService()
         self.requirements_service = DeviceRequirementsService()
         self.draft_service = DevicePackDraftService()
@@ -825,6 +828,7 @@ class DevicePacksCenter(QWidget):
             pack,
             report,
             self.active_catalog_match,
+            self.tool_statuses,
         )
         self._render_requirements_blueprint(roadmap_layout)
 
@@ -1155,9 +1159,22 @@ class DevicePacksCenter(QWidget):
                 pack,
                 report,
                 self.active_catalog_match,
+                self.tool_statuses,
             )
         except ValueError:
             return None
+
+    def set_tool_statuses(self, statuses: tuple[ToolStatus, ...]) -> None:
+        """Refresh the visible compile lane from Forge Arsenal's current evidence."""
+
+        if not isinstance(statuses, tuple) or not all(
+            isinstance(status, ToolStatus) for status in statuses
+        ):
+            return
+        self.tool_statuses = statuses
+        if self.active_pack is None or self.active_report is None:
+            return
+        self._render_pack(self.active_pack, self.active_report)
 
     def _request_requirement(self, lane_id: str) -> None:
         blueprint = self.current_requirements()

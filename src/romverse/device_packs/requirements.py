@@ -10,6 +10,7 @@ from romverse.device_packs.validation import (
     ValidationCheck,
     ValidationState,
 )
+from romverse.infrastructure.tools import ToolStatus
 
 
 class RequirementState(StrEnum):
@@ -57,6 +58,7 @@ class DeviceRequirementsService:
         pack: DevicePack,
         report: DevicePackValidationReport,
         official_identity: DeviceCatalogMatch | None = None,
+        tool_statuses: tuple[ToolStatus, ...] | None = None,
     ) -> DeviceRequirementsBlueprint:
         if (
             report.pack_id != pack.pack_id
@@ -71,7 +73,7 @@ class DeviceRequirementsService:
 
         identity = self._identity_lane(exact_model, official_identity, report)
         build = self._build_lane(pack, report, build_unresolved)
-        compile_lane = self._compile_lane(pack)
+        compile_lane = self._compile_lane(pack, tool_statuses)
         flash = self._flash_lane(report, flash_unresolved)
         return DeviceRequirementsBlueprint(
             report.report_digest,
@@ -183,9 +185,51 @@ class DeviceRequirementsService:
             "Open build requirements",
         )
 
-    def _compile_lane(self, pack: DevicePack) -> DeviceRequirementLane:
+    def _compile_lane(
+        self,
+        pack: DevicePack,
+        tool_statuses: tuple[ToolStatus, ...] | None,
+    ) -> DeviceRequirementLane:
         contract = pack.build_contract
         if contract is not None:
+            if tool_statuses is not None:
+                verified: dict[str, ToolStatus] = {}
+                duplicates: set[str] = set()
+                for status in tool_statuses:
+                    if not isinstance(status, ToolStatus):
+                        continue
+                    if status.name in verified:
+                        duplicates.add(status.name)
+                    verified[status.name] = status
+                missing = tuple(
+                    name
+                    for name in contract.required_tools
+                    if name in duplicates or name not in verified or not verified[name].available
+                )
+                ready = len(contract.required_tools) - len(missing)
+                if not missing:
+                    return DeviceRequirementLane(
+                        "compile",
+                        "3 • Verify the compile toolchain",
+                        RequirementState.VERIFIED,
+                        f"{ready}/{len(contract.required_tools)} TOOLS VERIFIED • HOST READY",
+                        "Forge Arsenal freshly verified every executable declared by this exact Device Pack build contract.",
+                        contract.required_tools,
+                        "forge_arsenal",
+                        "",
+                        "Review verified toolchain",
+                    )
+                return DeviceRequirementLane(
+                    "compile",
+                    "3 • Verify the compile toolchain",
+                    RequirementState.NEEDS_EVIDENCE,
+                    f"{ready}/{len(contract.required_tools)} TOOLS VERIFIED • {len(missing)} MISSING",
+                    "The exact contract is known, but this host has not freshly verified every required executable.",
+                    missing,
+                    "forge_arsenal",
+                    "",
+                    "Resolve missing build tools",
+                )
             return DeviceRequirementLane(
                 "compile",
                 "3 • Verify the compile toolchain",

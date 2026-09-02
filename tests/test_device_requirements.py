@@ -8,6 +8,7 @@ from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.device_packs.requirements import DeviceRequirementsService, RequirementState
 from romverse.device_packs.validation import DevicePackValidationService
+from romverse.infrastructure.tools import ToolStatus
 
 
 def _xiaomi() -> AndroidDevice:
@@ -88,3 +89,57 @@ def test_requirements_blueprint_rejects_a_report_from_another_pack_digest() -> N
             pack,
             replace(report, pack_sha256="0" * 64),
         )
+
+
+def test_exact_compile_lane_consumes_current_host_tool_evidence() -> None:
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    pack = registry.resolve(_xiaomi()).pack
+    assert pack is not None and pack.build_contract is not None
+    report = DevicePackValidationService().assess(pack, _xiaomi())
+    statuses = tuple(
+        ToolStatus(name, True, f"/verified/{index}", f"test-{index}", "Ready")
+        for index, name in enumerate(pack.build_contract.required_tools)
+    )
+
+    ready = (
+        DeviceRequirementsService()
+        .assess(
+            pack,
+            report,
+            tool_statuses=statuses,
+        )
+        .lane("compile")
+    )
+    assert ready is not None and ready.state is RequirementState.VERIFIED
+    assert ready.badge == "14/14 TOOLS VERIFIED • HOST READY"
+    assert ready.requirements == pack.build_contract.required_tools
+    assert ready.button_label == "Review verified toolchain"
+
+    unavailable = replace(statuses[-1], available=False, detail="Not installed")
+    missing = (
+        DeviceRequirementsService()
+        .assess(
+            pack,
+            report,
+            tool_statuses=(*statuses[:-1], unavailable),
+        )
+        .lane("compile")
+    )
+    assert missing is not None and missing.state is RequirementState.NEEDS_EVIDENCE
+    assert missing.badge == "13/14 TOOLS VERIFIED • 1 MISSING"
+    assert missing.requirements == (pack.build_contract.required_tools[-1],)
+    assert missing.route == "forge_arsenal"
+    assert missing.button_label == "Resolve missing build tools"
+
+    contradictory = (
+        DeviceRequirementsService()
+        .assess(
+            pack,
+            report,
+            tool_statuses=(*statuses, replace(statuses[-1], available=False)),
+        )
+        .lane("compile")
+    )
+    assert contradictory is not None
+    assert contradictory.state is RequirementState.NEEDS_EVIDENCE
+    assert contradictory.requirements == (pack.build_contract.required_tools[-1],)

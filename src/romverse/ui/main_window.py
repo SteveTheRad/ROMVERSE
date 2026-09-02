@@ -3141,6 +3141,7 @@ class MainWindow(QMainWindow):
             attestation_store,
             self.device_catalog,
             self.app_settings.online_intelligence_enabled,
+            tool_statuses,
         )
         self.device_packs_center.catalog_refresh_requested.connect(self._refresh_device_catalog)
         self.device_packs_center.knowledge_article_requested.connect(self._open_knowledge_article)
@@ -5534,6 +5535,7 @@ class MainWindow(QMainWindow):
         if isinstance(statuses, tuple) and all(
             isinstance(status, ToolStatus) for status in statuses
         ):
+            self.device_packs_center.set_tool_statuses(statuses)
             self.rom_studio.set_tool_statuses(statuses)
             self.apk_installer.set_tool_statuses(statuses)
             if hasattr(self, "about_page") and self.stack.currentWidget() is self.about_page:

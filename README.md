@@ -159,6 +159,12 @@ name only. It never supplies a partition map, firmware match, Device Pack, build
 approval, command, or execution authority. After recognition, the ordinary Device Pack roadmap
 still determines exactly what evidence and tools are missing for build planning and keeps flashing
 locked until its independent signed and physically tested contracts pass.
+Its four-lane **Automatic Requirements Blueprint** now consumes Forge Arsenal's current host-tool
+verification instead of stopping at a declared list. For an exact build contract, the Compile lane
+shows the verified count and exact missing subset, updates when the tool inventory changes, and
+routes that same contract-scoped subset back to Forge Arsenal. A complete host toolchain changes
+only Compile to verified; it cannot strengthen identity, source/build, physical recovery, Guardian,
+or flash authority. Contradictory duplicate tool evidence fails closed as missing.
 Downloads are parsed and verified in memory before activation. Switching off online diagnostics
 and sources cancels a pending refresh and prevents a late response from replacing the active local
 mirror; any previously activated receipt-checked catalog remains available for local read-only

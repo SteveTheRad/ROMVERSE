@@ -7,6 +7,7 @@ from romverse.device.catalog import GooglePlayDeviceCatalog
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.device_packs.requirements import RequirementState
+from romverse.infrastructure.tools import ToolStatus
 from romverse.ui.device_packs_center import DevicePacksCenter
 from tests.test_device_catalog import _payload, _sync
 
@@ -89,6 +90,58 @@ def test_device_atlas_distinguishes_local_build_readiness_from_flash_lock(tmp_pa
     center._export_source_audit()
     assert "execution authority: none" in center.match_reason.text()
     assert list((tmp_path / "device_atlas_audits").glob("*.json"))
+    center.close()
+
+
+def test_device_atlas_compile_lane_tracks_forge_arsenal_without_starting_work(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    center = DevicePacksCenter(registry, tmp_path)
+    center.set_devices(
+        [
+            AndroidDevice(
+                "private-serial",
+                DeviceState.DEVICE,
+                manufacturer="Xiaomi",
+                model="2509FPN0BC",
+                product="popsicle_global",
+                codename="popsicle",
+            )
+        ]
+    )
+    assert center.active_pack is not None and center.active_pack.build_contract is not None
+    report = center.active_report
+    required = center.active_pack.build_contract.required_tools
+    requested: list[tuple[str, str, str, str]] = []
+    center.requirement_requested.connect(lambda *values: requested.append(values))
+
+    center.set_tool_statuses(
+        tuple(
+            ToolStatus(name, True, f"/verified/{index}", "test", "Ready")
+            for index, name in enumerate(required)
+        )
+    )
+    app.processEvents()
+    assert center.active_report is report
+    assert center.active_requirements is not None
+    assert center.active_requirements.lane("compile").state is RequirementState.VERIFIED
+    assert center.requirement_badges["compile"].text() == "14/14 TOOLS VERIFIED • HOST READY"
+    assert center.requirement_buttons["compile"].text() == "Review verified toolchain"
+    assert requested == []
+
+    center.set_tool_statuses(
+        tuple(
+            ToolStatus(name, name != required[-1], f"/verified/{index}", "test", "Ready")
+            for index, name in enumerate(required)
+        )
+    )
+    app.processEvents()
+    compile_lane = center.active_requirements.lane("compile")
+    assert compile_lane is not None and compile_lane.state is RequirementState.NEEDS_EVIDENCE
+    assert center.requirement_badges["compile"].text() == "13/14 TOOLS VERIFIED • 1 MISSING"
+    assert compile_lane.requirements == (required[-1],)
+    assert center.requirement_buttons["compile"].text() == "Resolve missing build tools"
+    assert requested == []
     center.close()
 
 

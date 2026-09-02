@@ -23,6 +23,54 @@ def parse_adb_devices(output: str) -> list[dict[str, str]]:
     return devices
 
 
+def parse_fastboot_devices(output: str) -> list[dict[str, str]]:
+    """Parse the bounded identity rows emitted by ``fastboot devices -l``."""
+
+    devices: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for raw_line in output.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("< waiting for"):
+            continue
+        parts = line.split()
+        if len(parts) < 2 or parts[1].casefold() != "fastboot":
+            continue
+        serial = parts[0]
+        if (
+            serial in seen
+            or re.fullmatch(r"[A-Za-z0-9._:-]{1,256}", serial) is None
+            or len(devices) >= 64
+        ):
+            continue
+        seen.add(serial)
+        details = {"serial": serial, "state": "fastboot"}
+        for token in parts[2:]:
+            if ":" in token and len(token) <= 320:
+                key, value = token.split(":", 1)
+                if re.fullmatch(r"[A-Za-z0-9._-]{1,64}", key):
+                    details[key] = value[:256]
+        devices.append(details)
+    return devices
+
+
+def parse_fastboot_getvar(output: str, variable: str) -> str:
+    """Extract one exact ``getvar`` value without trusting status chatter."""
+
+    expected = variable.casefold().strip()
+    if not expected:
+        return ""
+    for raw_line in output.splitlines():
+        line = raw_line.strip()
+        if line.casefold().startswith("(bootloader)"):
+            line = line[len("(bootloader)") :].strip()
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        if key.casefold().strip() == expected:
+            return " ".join(value.replace("\x00", " ").split())[:160]
+    return ""
+
+
 def coerce_device_state(value: str) -> DeviceState:
     try:
         return DeviceState(value)

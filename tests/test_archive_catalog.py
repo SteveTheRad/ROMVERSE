@@ -22,12 +22,12 @@ def test_archives_catalog_is_large_unique_classified_and_evidence_labelled() -> 
     validate_catalog(ARCHIVE_ARTICLES)
     metrics = catalog_metrics(ARCHIVE_ARTICLES)
 
-    assert len(ARCHIVE_ARTICLES) == 148
-    assert len(KNOWN_FIXES) == 98
+    assert len(ARCHIVE_ARTICLES) == 149
+    assert len(KNOWN_FIXES) == 99
     assert metrics == {
         "guides": len(ARCHIVE_ARTICLES),
         "categories": len(CATEGORIES),
-        "official_sources": 37,
+        "official_sources": 38,
         "known_fixes": len(KNOWN_FIXES),
     }
     assert len({article.key for article in ARCHIVE_ARTICLES}) == len(ARCHIVE_ARTICLES)
@@ -211,7 +211,7 @@ def test_archives_rank_verified_known_fixes_for_real_failure_language(
 
 def test_archives_reject_weak_matches_and_bound_results() -> None:
     assert not search_catalog(ARCHIVE_ARTICLES, "definitely not a real ROMVERSE topic")
-    assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=1_000)) == 148
+    assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=1_000)) == 149
     assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=0)) == 1
     connectivity = search_catalog(
         ARCHIVE_ARTICLES,

@@ -279,7 +279,7 @@ def test_about_recalculates_real_workspace_evidence_and_returns_from_its_exact_g
             f"{len(registry.packs)} DEVICE PACKS  •  1 OFFICIAL IDS"
         )
         assert window.about_page.evidence_values["knowledge"].text() == (
-            "148 VERIFIED GUIDES  •  98 KNOWN FIXES"
+            "149 VERIFIED GUIDES  •  99 KNOWN FIXES"
         )
         ready_tools = sum(status.available for status in window.toolchain_center.statuses)
         tool_count = len(window.toolchain_center.statuses)
@@ -2568,6 +2568,88 @@ def test_adb_tool_refresh_activates_and_revokes_every_dependent_runtime(
         assert window.repair_center.devices == []
         assert window.rom_studio.devices == []
         assert "Platform Tools" in window.device_center.device_note.text()
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_fastboot_only_tool_refresh_keeps_read_only_identity_scanning_available(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
+    scans: list[bool] = []
+    monkeypatch.setattr(window, "scan", lambda: scans.append(True))
+    available = (
+        ToolStatus("ADB", False, detail="Missing"),
+        ToolStatus("Fastboot", True, "/bin/true", "test", "Ready"),
+    )
+
+    try:
+        window._tool_statuses_changed(available)
+
+        assert window.engine is not None
+        assert window.engine.adb is None
+        assert window.engine.fastboot is not None
+        assert window.timer.isActive()
+        assert scans == [True]
+        assert window.rom_studio.adb_executable is None
+        assert window.rom_studio.device_scan_available
+        assert window.apk_installer.install_service is None
+        assert window.backup_center.media_backup_service is None
+        assert window.terminal_center.adb_executable is None
+        assert window.repair_center.host_repair_service is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_fastboot_scan_connects_command_deck_to_exact_device_atlas_pack(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        pack_registry=registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    fastboot = AndroidDevice(
+        "private-fastboot",
+        DeviceState.BOOTLOADER,
+        transport="usb-fastboot",
+        model="popsicle",
+        product="popsicle",
+        codename="popsicle",
+        bootloader_locked=False,
+        fastboot_capability="Observed bootloader fastboot transport",
+        connection_note="Connected in bootloader fastboot mode with read-only identity evidence.",
+    )
+
+    try:
+        window._scan_complete([fastboot])
+        app.processEvents()
+
+        assert window.connection_state.text() == "⌁  Connected via Bootloader"
+        assert window.device_center.devices[0].marketing_name == "Xiaomi 17 Pro Max"
+        assert window.device_packs_center.active_pack is not None
+        assert window.device_packs_center.active_pack.pack_id == (
+            "xiaomi.popsicle.hyperos4.os4.0.0.23"
+        )
+
+        window.device_center.next_button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.device_packs_center
+        assert window.device_packs_center.active_report is not None
+        assert window.device_packs_center.active_report.build_contract_ready
+        assert not window.device_packs_center.active_report.flash_contract_ready
     finally:
         window.companion_center.transport.close()
         window.close()

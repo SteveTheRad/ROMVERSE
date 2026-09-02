@@ -46,6 +46,14 @@ class MilestoneOnePolicy:
         ("shell", "pm", "path", "com.topjohnwu.magisk"),
         ("shell", "pm", "path", "me.weishu.kernelsu"),
     }
+    _FASTBOOT_HOST_COMMANDS = {("devices", "-l")}
+    _FASTBOOT_DEVICE_COMMANDS = {
+        ("getvar", "product"),
+        ("getvar", "current-slot"),
+        ("getvar", "unlocked"),
+        ("getvar", "secure"),
+        ("getvar", "is-userspace"),
+    }
 
     def assess(self, request: OperationRequest) -> GuardianDecision:
         command = ((Path(request.executable).name, *request.arguments),)
@@ -56,11 +64,14 @@ class MilestoneOnePolicy:
                 ("ROMVERSE permanently prohibits bootloader relocking",),
                 user_approval_required=False,
             )
-        if Path(request.executable).name.casefold() not in {"adb", "adb.exe"}:
+        executable = Path(request.executable).name.casefold()
+        if executable not in {"adb", "adb.exe", "fastboot", "fastboot.exe"}:
             return GuardianDecision(
                 False,
                 RiskLevel.HIGH,
-                ("Guardian only permits the verified ADB executable for device operations",),
+                (
+                    "Guardian only permits verified ADB or Fastboot executables for device operations",
+                ),
             )
         if request.category is not OperationClass.READ_ONLY:
             return GuardianDecision(
@@ -73,7 +84,27 @@ class MilestoneOnePolicy:
 
         args = request.arguments
         normalized = args
-        if len(args) >= 2 and args[0] == "-s":
+        if executable in {"fastboot", "fastboot.exe"}:
+            if len(args) >= 4 and args[0] == "-s":
+                normalized = args[2:]
+                expected_operation = (
+                    f"fastboot.getvar.{normalized[1]}"
+                    if len(normalized) == 2 and normalized[0] == "getvar"
+                    else ""
+                )
+                allowed = bool(
+                    args[1]
+                    and request.target == args[1]
+                    and normalized in self._FASTBOOT_DEVICE_COMMANDS
+                    and request.operation_id == expected_operation
+                )
+            else:
+                allowed = bool(
+                    normalized in self._FASTBOOT_HOST_COMMANDS
+                    and request.target == "host"
+                    and request.operation_id == "fastboot.devices"
+                )
+        elif len(args) >= 2 and args[0] == "-s":
             normalized = args[2:]
             allowed = normalized in self._DEVICE_COMMANDS
         else:

@@ -93,8 +93,9 @@ from romverse.device.catalog import (
 )
 from romverse.device.dna import CapabilityState, DeviceDnaProfile
 from romverse.device.engine import DeviceEngine
+from romverse.device.fastboot import FastbootClient
 from romverse.device.identity import DeviceIdentityResolver
-from romverse.device.models import AndroidDevice
+from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device_packs.attestations import DevicePackAttestationStore
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.device_packs.validation import DevicePackValidationReport, ValidationState
@@ -2970,6 +2971,7 @@ class MainWindow(QMainWindow):
         app_icon_path: Path | None = None,
         gateway: ExecutionGateway | None = None,
         adb_executable: Path | None = None,
+        fastboot_executable: Path | None = None,
         attestation_store: DevicePackAttestationStore | None = None,
         app_settings: AppSettings | None = None,
     ) -> None:
@@ -2979,6 +2981,8 @@ class MainWindow(QMainWindow):
         self._runtime_runner = runner or SubprocessRunner()
         self._audit_store = audit_store or GuardianAuditStore(workspace)
         self._runtime_gateway = gateway
+        self._device_adb_executable = adb_executable
+        self._device_fastboot_executable = fastboot_executable
         self.scan_interval_seconds = max(scan_interval, 3)
         self.app_settings = app_settings or AppSettings(
             onboarding_complete=True,
@@ -3825,26 +3829,49 @@ class MainWindow(QMainWindow):
             self.timer.setInterval(self.scan_interval_seconds * 1000)
         if devices:
             device = devices[0]
-            connected = device.state.value == "device"
+            connected = device.state is DeviceState.DEVICE
+            fastboot_connected = device.is_fastboot
             self.connection_state.setText(
-                "⌁  Connected via ADB" if connected else f"⌁  {device.state.value.title()}"
+                "⌁  Connected via ADB"
+                if connected
+                else f"⌁  Connected via {device.state.value.title()}"
+                if fastboot_connected
+                else f"⌁  {device.state.value.title()}"
             )
-            self.connection_state.setObjectName("Good" if connected else "Warning")
+            self.connection_state.setObjectName(
+                "Good" if (connected or fastboot_connected) and not device.errors else "Warning"
+            )
             self.connection_device.setText(
                 f"Device: {device.display_name} ({device.codename or 'unknown'})"
             )
-            self.connection_android.setText(f"Android {device.android_version or '—'}")
+            self.connection_android.setText(
+                f"Android {device.android_version or '—'}"
+                if connected
+                else f"{device.state.value.title()} • Android telemetry unavailable"
+                if fastboot_connected
+                else "Android —"
+            )
             self._device_uptime_seconds = device.uptime_seconds if connected else None
             self._device_uptime_seen_at = time.monotonic()
             self.sidebar_device_state.setText(
-                "●  Device Connected" if connected else f"●  {device.state.value.title()}"
+                "●  Device Connected"
+                if connected
+                else f"●  {device.state.value.title()} Connected"
+                if fastboot_connected
+                else f"●  {device.state.value.title()}"
             )
-            self.sidebar_device_state.setObjectName("Good" if connected else "Warning")
+            self.sidebar_device_state.setObjectName(
+                "Good" if (connected or fastboot_connected) and not device.errors else "Warning"
+            )
             self._set_sidebar_device_art(device)
-            self.sidebar_device_image.setVisible(connected)
+            self.sidebar_device_image.setVisible(connected or fastboot_connected)
             self.sidebar_device_name.setText(device.display_name)
             self.sidebar_device_detail.setText(
                 f"{device.codename or 'Unknown codename'}\nAndroid {device.android_version or '—'} • {device.rom_display or 'ROM unavailable'}"
+                if connected
+                else f"{device.codename or 'Unknown product'}\n{device.state.value.title()} • identity only"
+                if fastboot_connected
+                else device.connection_note
             )
         else:
             self.connection_state.setText("⌁  No device connected")
@@ -3857,7 +3884,7 @@ class MainWindow(QMainWindow):
             self.sidebar_device_state.setObjectName("Warning")
             self.sidebar_device_image.setVisible(False)
             self.sidebar_device_name.setText("Android device")
-            self.sidebar_device_detail.setText("Connect via ADB")
+            self.sidebar_device_detail.setText("Connect via ADB or Fastboot")
         for widget in (
             self.connection_state,
             self.connection_device,
@@ -5540,23 +5567,11 @@ class MainWindow(QMainWindow):
             self.apk_installer.set_tool_statuses(statuses)
             if hasattr(self, "about_page") and self.stack.currentWidget() is self.about_page:
                 self._refresh_about_evidence()
-            adb_status = next(
-                (
-                    status
-                    for status in statuses
-                    if status.name == "ADB" and status.available and status.path
-                ),
-                None,
-            )
-            if adb_status is None:
+            adb_executable = self._verified_runtime_executable(statuses, "ADB")
+            fastboot_executable = self._verified_runtime_executable(statuses, "Fastboot")
+            if adb_executable is None and fastboot_executable is None:
                 self._disable_android_runtime(
-                    "Verified Android Platform Tools are unavailable. Open Forge Arsenal to restore ADB monitoring."
-                )
-                return
-            adb_executable = Path(adb_status.path).expanduser().resolve()
-            if not adb_executable.is_file():
-                self._disable_android_runtime(
-                    "The verified ADB executable is no longer present. Open Forge Arsenal to repair the toolchain."
+                    "Verified Android Platform Tools are unavailable. Open Forge Arsenal to restore ADB and Fastboot monitoring."
                 )
                 return
             gateway = self._runtime_gateway
@@ -5568,7 +5583,9 @@ class MainWindow(QMainWindow):
                 )
                 self._runtime_gateway = gateway
             runtime_changed = (
-                self.engine is None or self.rom_studio.adb_executable != adb_executable
+                self.engine is None
+                or self._device_adb_executable != adb_executable
+                or self._device_fastboot_executable != fastboot_executable
             )
             if runtime_changed:
                 self._device_runtime_generation += 1
@@ -5576,39 +5593,69 @@ class MainWindow(QMainWindow):
                 self.active_worker = None
                 self.device_center.set_scanning(False)
                 self.diagnostics_center.set_scanning(False)
-                self.engine = DeviceEngine(AdbClient(adb_executable, gateway))
-            self.rom_studio.set_android_runtime(gateway, adb_executable)
+                self.engine = DeviceEngine(
+                    AdbClient(adb_executable, gateway) if adb_executable is not None else None,
+                    FastbootClient(fastboot_executable, gateway)
+                    if fastboot_executable is not None
+                    else None,
+                )
+                self._device_adb_executable = adb_executable
+                self._device_fastboot_executable = fastboot_executable
+            self.rom_studio.set_android_runtime(
+                gateway if adb_executable is not None else None,
+                adb_executable,
+            )
             self.rom_studio.device_scan_available = True
-            self.apk_installer.set_install_service(
-                ApkInstallService(
-                    adb_executable,
-                    gateway,
-                    ApprovalStore(self._workspace),
+            if adb_executable is not None:
+                self.apk_installer.set_install_service(
+                    ApkInstallService(
+                        adb_executable,
+                        gateway,
+                        ApprovalStore(self._workspace),
+                    )
                 )
-            )
-            self.backup_center.set_media_backup_service(
-                PhoneMediaBackupService(
-                    self._workspace,
-                    adb_executable,
-                    gateway,
-                    ApprovalStore(self._workspace),
+                self.backup_center.set_media_backup_service(
+                    PhoneMediaBackupService(
+                        self._workspace,
+                        adb_executable,
+                        gateway,
+                        ApprovalStore(self._workspace),
+                    )
                 )
-            )
-            self.terminal_center.set_runtime(gateway, adb_executable)
-            self.repair_center.set_host_repair_service(
-                AdbHostRepairService(
-                    adb_executable,
-                    gateway,
-                    ApprovalStore(self._workspace),
-                    AdbHostRepairReceiptStore(self._workspace),
+                self.terminal_center.set_runtime(gateway, adb_executable)
+                self.repair_center.set_host_repair_service(
+                    AdbHostRepairService(
+                        adb_executable,
+                        gateway,
+                        ApprovalStore(self._workspace),
+                        AdbHostRepairReceiptStore(self._workspace),
+                    )
                 )
-            )
+            else:
+                self.apk_installer.set_install_service(None)
+                self.backup_center.set_media_backup_service(None)
+                self.terminal_center.set_runtime(None, None)
+                self.repair_center.set_host_repair_service(None)
             self._reconnect_timer.stop()
             self._scan_failure_count = 0
             self.timer.setInterval(self.scan_interval_seconds * 1000)
             if not self.timer.isActive():
                 self.timer.start()
             self.scan()
+
+    @staticmethod
+    def _verified_runtime_executable(
+        statuses: tuple[ToolStatus, ...],
+        name: str,
+    ) -> Path | None:
+        status = next(
+            (item for item in statuses if item.name == name and item.available and item.path),
+            None,
+        )
+        if status is None:
+            return None
+        executable = Path(status.path).expanduser().resolve()
+        return executable if executable.is_file() else None
 
     def _disable_android_runtime(self, message: str) -> None:
         had_runtime = any(
@@ -5618,10 +5665,13 @@ class MainWindow(QMainWindow):
                 self.apk_installer.install_service is not None,
                 self.backup_center.media_backup_service is not None,
                 self.terminal_center.adb_executable is not None,
+                self._device_fastboot_executable is not None,
             )
         )
         self._device_runtime_generation += 1
         self.engine = None
+        self._device_adb_executable = None
+        self._device_fastboot_executable = None
         self.scanning = False
         self.active_worker = None
         self.timer.stop()

@@ -93,6 +93,38 @@ def test_device_atlas_distinguishes_local_build_readiness_from_flash_lock(tmp_pa
     center.close()
 
 
+def test_device_atlas_resolves_literal_fastboot_product_without_inventing_oem(
+    tmp_path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    center = DevicePacksCenter(registry, tmp_path)
+
+    center.set_devices(
+        [
+            AndroidDevice(
+                "private-fastboot",
+                DeviceState.BOOTLOADER,
+                transport="usb-fastboot",
+                model="popsicle",
+                product="popsicle",
+                codename="popsicle",
+                fastboot_capability="Observed bootloader fastboot transport",
+            )
+        ]
+    )
+    app.processEvents()
+
+    assert center.active_pack is not None
+    assert center.active_pack.pack_id == "xiaomi.popsicle.hyperos4.os4.0.0.23"
+    assert center.active_report is not None and center.active_report.build_contract_ready
+    assert center.active_requirements is not None
+    assert center.active_requirements.lane("identity").state is RequirementState.DECLARED
+    assert center.active_requirements.lane("build").state is RequirementState.VERIFIED
+    assert not center.active_report.flash_contract_ready
+    center.close()
+
+
 def test_device_atlas_compile_lane_tracks_forge_arsenal_without_starting_work(tmp_path) -> None:
     app = QApplication.instance() or QApplication([])
     registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))

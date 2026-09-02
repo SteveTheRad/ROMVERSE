@@ -215,6 +215,42 @@ def test_command_deck_telemetry_keeps_unknown_readings_explicit(tmp_path) -> Non
     center.close()
 
 
+def test_command_deck_turns_fastboot_identity_into_a_safe_device_atlas_handoff(
+    tmp_path,
+) -> None:
+    QApplication.instance() or QApplication([])
+    center = DeviceCenter(tmp_path)
+    requested: list[str] = []
+    center.action_requested.connect(requested.append)
+
+    center.set_devices(
+        [
+            AndroidDevice(
+                "boot-serial",
+                DeviceState.BOOTLOADER,
+                transport="usb-fastboot",
+                model="popsicle",
+                product="popsicle",
+                codename="popsicle",
+                slot_suffix="_a",
+                bootloader_locked=False,
+                fastboot_capability="Observed bootloader fastboot transport",
+                connection_note="Connected in bootloader fastboot mode; read-only identity only.",
+            )
+        ]
+    )
+
+    labels = [label.text() for label in center.findChildren(QLabel)]
+    assert center.status_badge.text() == "BOOTLOADER • READ ONLY"
+    assert "BOOTLOADER IDENTITY  •  GUARDIAN READ ONLY" in labels
+    assert "popsicle" in labels
+    assert "Unlocked" in labels
+    assert center.next_button.text() == "Open Device Atlas"
+    center.next_button.click()
+    assert requested == ["Device DNA"]
+    center.close()
+
+
 def test_command_deck_scan_shows_honest_indeterminate_progress(tmp_path) -> None:
     app = QApplication.instance() or QApplication([])
     center = DeviceCenter(tmp_path)

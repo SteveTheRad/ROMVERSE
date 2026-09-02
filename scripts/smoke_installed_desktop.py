@@ -69,6 +69,7 @@ def main() -> int:
         "synapse-evidence-opens-wrong-workspace",
         "nexus-intelligence-feature-opens-generic-page",
         "architect-mode-does-not-change-desktop",
+        "fastboot-identity-only",
     }
     installed_handoffs = {item.key for item in KNOWN_FIXES}
     if missing := required_handoffs - installed_handoffs:

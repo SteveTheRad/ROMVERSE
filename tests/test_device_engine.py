@@ -2,6 +2,7 @@ from pathlib import Path
 
 from romverse.device.adb import AdbClient
 from romverse.device.engine import DeviceEngine
+from romverse.device.fastboot import FastbootClient
 from romverse.device.models import DeviceState
 from romverse.guardian.gateway import ExecutionGateway
 from romverse.guardian.policy import MilestoneOnePolicy
@@ -207,3 +208,106 @@ def test_device_engine_stops_probe_chain_after_usb_transport_timeout():
     assert len(runner.calls) == 2
     assert "USB reconnect is unstable" in device.connection_note
     assert device.errors == ("adb.getprop: USB transport timed out",)
+
+
+class FastbootRunner(FakeAdbRunner):
+    def run(self, args, timeout=10):
+        call = tuple(args)
+        if Path(args[0]).name == "fastboot":
+            key = tuple(args[1:])
+            outputs = {
+                ("devices", "-l"): ("BOOT123\tfastboot usb:3-2\n", ""),
+                ("-s", "BOOT123", "getvar", "product"): (
+                    "",
+                    "(bootloader) product: popsicle\nFinished. Total time: 0.001s\n",
+                ),
+                ("-s", "BOOT123", "getvar", "current-slot"): (
+                    "",
+                    "current-slot: b\n",
+                ),
+                ("-s", "BOOT123", "getvar", "unlocked"): ("", "unlocked: yes\n"),
+                ("-s", "BOOT123", "getvar", "secure"): ("", "secure: yes\n"),
+                ("-s", "BOOT123", "getvar", "is-userspace"): (
+                    "",
+                    "is-userspace: no\n",
+                ),
+            }
+            output = outputs.get(key)
+            return CommandResult(
+                call,
+                0 if output is not None else 1,
+                output[0] if output else "",
+                output[1] if output else "unknown fake fastboot command",
+            )
+        return super().run(args, timeout)
+
+
+def test_device_engine_combines_adb_and_guardian_read_only_fastboot_identity() -> None:
+    runner = FastbootRunner()
+    gateway = ExecutionGateway(MilestoneOnePolicy(), runner)
+    engine = DeviceEngine(
+        AdbClient(Path("adb"), gateway),
+        FastbootClient(Path("fastboot"), gateway),
+    )
+
+    devices = engine.scan()
+
+    assert len(devices) == 3
+    bootloader = devices[-1]
+    assert bootloader.state is DeviceState.BOOTLOADER
+    assert bootloader.transport == "usb-fastboot"
+    assert bootloader.product == "popsicle"
+    assert bootloader.codename == "popsicle"
+    assert bootloader.slot_suffix == "_b"
+    assert bootloader.bootloader_locked is False
+    assert bootloader.is_fastboot
+    assert "read-only identity probes" in bootloader.connection_note
+    assert not bootloader.errors
+
+
+def test_device_engine_can_identify_fastbootd_when_adb_is_unavailable() -> None:
+    class FastbootdRunner(FastbootRunner):
+        def run(self, args, timeout=10):
+            if tuple(args[1:]) == ("-s", "BOOT123", "getvar", "is-userspace"):
+                return CommandResult(tuple(args), 0, "", "is-userspace: yes\n")
+            return super().run(args, timeout)
+
+    runner = FastbootdRunner()
+    gateway = ExecutionGateway(MilestoneOnePolicy(), runner)
+    engine = DeviceEngine(None, FastbootClient(Path("fastboot"), gateway))
+
+    device = engine.scan_reconnect_safe()[0]
+
+    assert device.state is DeviceState.FASTBOOTD
+    assert device.is_fastboot
+    assert "userspace fastbootd" in device.fastboot_capability
+
+
+def test_device_engine_stops_fastboot_probe_chain_after_transport_timeout() -> None:
+    class TimedOutFastbootRunner:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, ...]] = []
+
+        def run(self, args, timeout=10):
+            call = tuple(args)
+            self.calls.append(call)
+            if tuple(args[1:]) == ("devices", "-l"):
+                return CommandResult(call, 0, "BOOT123 fastboot usb:3-2\n", "")
+            return CommandResult(
+                call,
+                124,
+                "",
+                "USB read error: device disconnected",
+                timed_out=True,
+            )
+
+    runner = TimedOutFastbootRunner()
+    gateway = ExecutionGateway(MilestoneOnePolicy(), runner)
+    engine = DeviceEngine(None, FastbootClient(Path("fastboot"), gateway))
+
+    device = engine.scan()[0]
+
+    assert len(runner.calls) == 2
+    assert device.state is DeviceState.FASTBOOT
+    assert "stopped the probe chain" in device.connection_note
+    assert device.errors == ("fastboot.getvar.product: USB read error: device disconnected",)

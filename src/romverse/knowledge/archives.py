@@ -118,6 +118,12 @@ ADB_SOURCE = ArchiveSource(
     "OFFICIAL ANDROID",
     "https://developer.android.com/tools/adb",
 )
+FASTBOOT_SOURCE = ArchiveSource(
+    "AOSP fastboot and userspace fastbootd",
+    "OFFICIAL AOSP",
+    "https://source.android.com/docs/core/architecture/bootloader/fastbootd",
+    "2026-09-02",
+)
 PACKAGE_SOURCE = ArchiveSource(
     "Android PackageManager install status definitions",
     "AOSP SOURCE",
@@ -331,6 +337,38 @@ KNOWN_FIXES = (
         evidence="A missing transport cannot be safely inferred as a particular phone or failure cause.",
         automation="HOST TOOL CHECK AND READ-ONLY RESCAN ONLY",
         source=ADB_SOURCE,
+    ),
+    _fix(
+        "fastboot-identity-only",
+        "Phone detected in bootloader Fastboot or userspace fastbootd",
+        "CONNECTIVITY & ADB",
+        "The USB device is responding to Fastboot rather than a running authorized Android Debug Bridge. ROMVERSE can collect a bounded product, slot, lock-state, and mode identity, but Android version, battery, storage, root, apps, and health telemetry remain unknown.",
+        checks=(
+            "Confirm Device Engine labels the transport FASTBOOT, BOOTLOADER, or FASTBOOTD and masks its serial.",
+            "Review which exact getvar values were reported; unsupported variables remain explicit rather than inferred.",
+            "Use Device Atlas to compare the observed product/codename with an integrity-checked Device Pack and protected firmware source.",
+        ),
+        fix_steps=(
+            "If this mode is intentional, keep the phone where it is and review Device Atlas build and tool requirements; identity review does not require a reboot.",
+            "If Android health telemetry is needed, use the phone's own hardware/menu controls to boot Android normally, authorize USB debugging, and run a fresh scan.",
+            "If Fastboot cannot see the phone, verify current Android Platform Tools plus the host USB driver or udev permissions before reconnecting once.",
+        ),
+        verification=(
+            "Device Engine detects the same masked serial and product across consecutive read-only scans.",
+            "Device Atlas shows an exact Pack match or an explicit identity gap without granting flash authority.",
+            "Guardian audit contains only fastboot devices -l and the five allowlisted getvar identity probes; no reboot, flash, erase, unlock, wipe, or relock command appears.",
+        ),
+        tags=(
+            "fastboot device detected",
+            "fastbootd identity only",
+            "bootloader mode no adb",
+            "android telemetry unavailable",
+            "getvar is-userspace",
+        ),
+        route="device_atlas",
+        evidence="AOSP defines getvar as the Fastboot variable-reading command and defines getvar is-userspace as yes for fastbootd and no for bootloader Fastboot. ROMVERSE allows only a fixed identity subset through Guardian.",
+        automation="AUTOMATIC READ-ONLY DISCOVERY AND DEVICE ATLAS HANDOFF • NO REBOOT OR WRITE AUTHORITY",
+        source=FASTBOOT_SOURCE,
     ),
     _fix(
         "adb-server-version-mismatch",

@@ -137,6 +137,22 @@ def test_unauthorized_analyzer_report_reaches_authorization_guide() -> None:
     assert recommend_for_findings(report.findings, limit=1)[0].article.key == "adb-unauthorized"
 
 
+def test_fastboot_identity_report_reaches_its_exact_read_only_guide() -> None:
+    report = DiagnosticAnalyzer(date(2026, 9, 1)).analyze(
+        device(
+            state=DeviceState.FASTBOOTD,
+            product="popsicle",
+            codename="popsicle",
+            connection_note="Connected in userspace fastbootd with identity-only evidence.",
+        )
+    )
+
+    assert report.findings[0].finding_id == "connection.fastboot_identity_only"
+    assert recommend_for_findings(report.findings, limit=1)[0].article.key == (
+        "fastboot-identity-only"
+    )
+
+
 @pytest.mark.parametrize(
     ("failure", "article_key"),
     (

@@ -16,6 +16,7 @@ from romverse.core.settings import AppSettings, SettingsStore
 from romverse.core.workspace import WorkspaceInitializer
 from romverse.device.adb import AdbClient
 from romverse.device.engine import DeviceEngine
+from romverse.device.fastboot import FastbootClient
 from romverse.device_packs.attestations import (
     DevicePackAttestationStore,
     DevicePackAttestationVerifier,
@@ -139,10 +140,12 @@ def main(argv: list[str] | None = None) -> int:
             settings = persistent_settings
             store.save(settings)
 
-        adb_status = next(status for status in tools if status.name == "ADB")
+        adb_status = next((status for status in tools if status.name == "ADB"), None)
+        fastboot_status = next((status for status in tools if status.name == "Fastboot"), None)
         engine = None
         gateway = None
         adb_executable = None
+        fastboot_executable = None
         audit_store = GuardianAuditStore(workspace)
         pack_registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
         openssl = host.find_tool("openssl")
@@ -158,10 +161,18 @@ def main(argv: list[str] | None = None) -> int:
             if openssl is not None
             else None
         )
-        if adb_status.available:
+        if adb_status is not None and adb_status.available and adb_status.path:
             adb_executable = Path(adb_status.path)
+        if fastboot_status is not None and fastboot_status.available and fastboot_status.path:
+            fastboot_executable = Path(fastboot_status.path)
+        if adb_executable is not None or fastboot_executable is not None:
             gateway = ExecutionGateway(GuardianPolicy(workspace), runner, audit_store)
-            engine = DeviceEngine(AdbClient(adb_executable, gateway))
+            engine = DeviceEngine(
+                AdbClient(adb_executable, gateway) if adb_executable is not None else None,
+                FastbootClient(fastboot_executable, gateway)
+                if fastboot_executable is not None
+                else None,
+            )
         with GuiThreadGarbageCollector(app), RuntimeCrashGuard(workspace):
             window = MainWindow(
                 engine,
@@ -178,6 +189,7 @@ def main(argv: list[str] | None = None) -> int:
                 app_icon_path=app_icon_path,
                 gateway=gateway,
                 adb_executable=adb_executable,
+                fastboot_executable=fastboot_executable,
                 attestation_store=attestation_store,
                 app_settings=settings,
             )

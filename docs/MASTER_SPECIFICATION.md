@@ -559,12 +559,17 @@ useful when no phone is connected, while the history retains at most 30 privacy-
 
 ### Device Engine
 
-Discovery begins with `adb devices -l`. Offline and unauthorized devices remain visible
-with actionable state text but are not queried. For an authorized device the engine reads
-properties, battery, `/data` filesystem usage, ADB state, and process identity. Failure of
-one probe yields partial information rather than discarding the device. Polling is
-non-blocking to the UI. Multiple devices are modeled even though v0.1 presents one detail
-view at a time.
+Discovery combines `adb devices -l` with `fastboot devices -l` when each executable is present in
+the verified host inventory. Offline and unauthorized ADB devices remain visible with actionable
+state text but are not queried. For an authorized ADB device the engine reads properties, battery,
+`/data` filesystem usage, ADB state, and process identity. For a Fastboot device, Guardian permits
+only the exact `product`, `current-slot`, `unlocked`, `secure`, and `is-userspace` variable reads;
+the latter distinguishes bootloader Fastboot from userspace fastbootd when the device reports it.
+Fastboot observations are identity-only and connect to Device Atlas, while Android health fields
+stay unknown and no reboot or write command exists in the adapter. Failure of one probe yields
+partial information rather than discarding a detected device. Polling is non-blocking to the UI,
+duplicate ADB/Fastboot serials prefer the richer ADB snapshot, and multiple devices are modeled even
+though v0.1 presents one detail view at a time.
 
 ### Device DNA and Capability Map
 

@@ -18,6 +18,20 @@ class DiagnosticAnalyzer:
         findings: list[Finding] = []
         score = 100
 
+        if device.is_fastboot:
+            findings.append(
+                Finding(
+                    "connection.fastboot_identity_only",
+                    Severity.WARNING,
+                    "Fastboot identity is available; Android telemetry is paused",
+                    device.connection_note
+                    or "ROMVERSE detected a read-only bootloader transport, not a running Android system.",
+                    ("connection.state", "device.codename", "security.bootloader"),
+                    "Review the product identity in Device Atlas, or boot Android normally and scan again for health telemetry.",
+                )
+            )
+            return self._report(device, 50, evidence, findings)
+
         if device.state is not DeviceState.DEVICE:
             severity = (
                 Severity.WARNING if device.state is DeviceState.UNAUTHORIZED else Severity.CRITICAL

@@ -85,6 +85,43 @@ def test_registry_uses_exact_android_retail_brand_when_manufacturer_differs():
     assert resolution.reason == "Retail brand matched Xiaomi"
 
 
+def test_registry_uses_unambiguous_literal_product_for_fastboot_identity_only() -> None:
+    registry = builtin_registry()
+    device = AndroidDevice(
+        "private",
+        DeviceState.BOOTLOADER,
+        transport="usb-fastboot",
+        model="popsicle",
+        product="popsicle",
+        codename="popsicle",
+    )
+
+    resolution = registry.resolve(device)
+
+    assert resolution.pack is not None
+    assert resolution.pack.pack_id == "xiaomi.popsicle.hyperos4.os4.0.0.23"
+    assert resolution.reason == (
+        "Exact literal product identity matched popsicle; OEM was not reported in Fastboot"
+    )
+
+
+def test_registry_does_not_guess_a_fastboot_pack_from_a_wildcard_product() -> None:
+    registry = builtin_registry()
+    device = AndroidDevice(
+        "private",
+        DeviceState.FASTBOOT,
+        transport="usb-fastboot",
+        product="popsicle_unpublished_variant",
+        codename="popsicle_unpublished_variant",
+    )
+
+    resolution = registry.resolve(device)
+
+    assert resolution.pack is not None
+    assert resolution.pack.pack_id == "android.generic"
+    assert resolution.reason == "Generic Android fallback"
+
+
 def test_registry_resolves_new_read_only_oem_knowledge_packs():
     registry = builtin_registry()
 

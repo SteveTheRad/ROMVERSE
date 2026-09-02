@@ -115,6 +115,10 @@ class DevicePackRegistry:
         model = device.model.casefold().strip()
         product = device.product.casefold().strip()
         codename = device.codename.casefold().strip()
+        if not manufacturer and not brand:
+            product_only = self._resolve_literal_product_identity(product, codename)
+            if product_only is not None:
+                return product_only
         candidates: list[DevicePack] = []
         for pack in self.packs:
             if not (
@@ -153,6 +157,45 @@ class DevicePackRegistry:
             else "Generic Android fallback"
         )
         return PackResolution(pack, True, reason)
+
+    def _resolve_literal_product_identity(
+        self,
+        product: str,
+        codename: str,
+    ) -> PackResolution | None:
+        """Use an unambiguous literal Pack product when Fastboot cannot report an OEM."""
+
+        identities = {value for value in (product, codename) if value}
+        if not identities:
+            return None
+        candidates = tuple(
+            pack
+            for pack in self.packs
+            if pack.manufacturers != ("*",)
+            and any(
+                pattern.casefold() in identities
+                for pattern in pack.product_patterns
+                if pattern and not any(marker in pattern for marker in "*?[]")
+            )
+        )
+        if not candidates:
+            return None
+        highest_priority = max(pack.priority for pack in candidates)
+        leaders = tuple(pack for pack in candidates if pack.priority == highest_priority)
+        if len(leaders) != 1:
+            names = ", ".join(sorted(pack.pack_id for pack in leaders))
+            return PackResolution(
+                None,
+                False,
+                f"Ambiguous literal product identity at priority {highest_priority}: {names}",
+            )
+        pack = leaders[0]
+        observed = product or codename
+        return PackResolution(
+            pack,
+            True,
+            f"Exact literal product identity matched {observed}; OEM was not reported in Fastboot",
+        )
 
     def resolve_source(
         self,

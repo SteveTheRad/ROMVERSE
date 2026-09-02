@@ -3,11 +3,14 @@ from __future__ import annotations
 from time import monotonic
 
 from romverse.device.adb import AdbClient
+from romverse.device.fastboot import FastbootClient
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device.parsers import (
     coerce_device_state,
     parse_adb_devices,
     parse_battery,
+    parse_fastboot_devices,
+    parse_fastboot_getvar,
     parse_getprop,
     parse_memory,
     parse_storage,
@@ -22,18 +25,42 @@ class DeviceEngine:
     KERNELSU_PACKAGE = "me.weishu.kernelsu"
     DETAIL_CACHE_SECONDS = 30.0
 
-    def __init__(self, adb: AdbClient) -> None:
+    FASTBOOT_IDENTITY_VARIABLES = (
+        "product",
+        "current-slot",
+        "unlocked",
+        "secure",
+        "is-userspace",
+    )
+
+    def __init__(
+        self,
+        adb: AdbClient | None,
+        fastboot: FastbootClient | None = None,
+    ) -> None:
+        if adb is None and fastboot is None:
+            raise ValueError("Device Engine requires a verified ADB or Fastboot client")
         self.adb = adb
+        self.fastboot = fastboot
         self._transport_tokens: dict[str, str] = {}
         self._stable_sightings: dict[str, int] = {}
         self._detail_cache: dict[str, tuple[float, AndroidDevice]] = {}
 
     def scan(self) -> list[AndroidDevice]:
-        discovery = self.adb.devices()
-        if not discovery.ok:
-            message = discovery.stderr.strip() or "ADB discovery failed"
-            raise RuntimeError(message)
-        return [self._inspect(item) for item in parse_adb_devices(discovery.stdout)]
+        errors: list[str] = []
+        snapshots: list[AndroidDevice] = []
+        if self.adb is not None:
+            discovery = self.adb.devices()
+            if discovery.ok:
+                snapshots.extend(
+                    self._inspect(item) for item in parse_adb_devices(discovery.stdout)
+                )
+            else:
+                errors.append(f"ADB: {discovery.stderr.strip() or 'discovery failed'}")
+        snapshots.extend(self._scan_fastboot({item.serial for item in snapshots}, errors))
+        if not snapshots and errors:
+            raise RuntimeError(" • ".join(errors))
+        return snapshots
 
     def scan_reconnect_safe(self) -> list[AndroidDevice]:
         """Debounce a new USB transport before issuing the detailed probe sequence.
@@ -44,11 +71,15 @@ class DeviceEngine:
         detail is then cached briefly so the periodic UI scan remains lightweight.
         """
 
-        discovery = self.adb.devices()
-        if not discovery.ok:
-            message = discovery.stderr.strip() or "ADB discovery failed"
-            raise RuntimeError(message)
-        discovered = parse_adb_devices(discovery.stdout)
+        errors: list[str] = []
+        snapshots: list[AndroidDevice] = []
+        discovered: list[dict[str, str]] = []
+        if self.adb is not None:
+            discovery = self.adb.devices()
+            if discovery.ok:
+                discovered = parse_adb_devices(discovery.stdout)
+            else:
+                errors.append(f"ADB: {discovery.stderr.strip() or 'discovery failed'}")
         present = {item["serial"] for item in discovered}
         for serial in tuple(self._transport_tokens):
             if serial not in present:
@@ -56,7 +87,6 @@ class DeviceEngine:
                 self._stable_sightings.pop(serial, None)
                 self._detail_cache.pop(serial, None)
 
-        snapshots: list[AndroidDevice] = []
         now = monotonic()
         for item in discovered:
             serial = item["serial"]
@@ -84,7 +114,97 @@ class DeviceEngine:
             snapshots.append(snapshot)
             if not snapshot.errors:
                 self._detail_cache[serial] = (now, snapshot)
+        snapshots.extend(self._scan_fastboot({item.serial for item in snapshots}, errors))
+        if not snapshots and errors:
+            raise RuntimeError(" • ".join(errors))
         return snapshots
+
+    def _scan_fastboot(
+        self,
+        observed_serials: set[str],
+        errors: list[str],
+    ) -> list[AndroidDevice]:
+        if self.fastboot is None:
+            return []
+        discovery = self.fastboot.devices()
+        if not discovery.ok:
+            errors.append(f"Fastboot: {discovery.stderr.strip() or 'discovery failed'}")
+            return []
+        return [
+            self._inspect_fastboot(item)
+            for item in parse_fastboot_devices(discovery.stdout + "\n" + discovery.stderr)
+            if item["serial"] not in observed_serials
+        ]
+
+    def _inspect_fastboot(self, discovered: dict[str, str]) -> AndroidDevice:
+        if self.fastboot is None:  # defensive; discovery cannot reach this state
+            raise RuntimeError("Verified Fastboot runtime is unavailable")
+        serial = discovered["serial"]
+        values: dict[str, str] = {}
+        errors: list[str] = []
+        transport_lost = False
+        for variable in self.FASTBOOT_IDENTITY_VARIABLES:
+            result = self.fastboot.getvar(serial, variable)
+            value = parse_fastboot_getvar(
+                result.stdout + "\n" + result.stderr,
+                variable,
+            )
+            if value:
+                values[variable] = value
+            elif not result.ok:
+                detail = " ".join(result.stderr.replace("\x00", " ").split())[:180]
+                detail = detail.replace(serial, _masked_serial(serial))
+                errors.append(f"fastboot.getvar.{variable}: {detail or 'not reported'}")
+                normalized = detail.casefold()
+                if result.timed_out or any(
+                    phrase in normalized
+                    for phrase in (
+                        "device disconnected",
+                        "device not found",
+                        "no devices",
+                        "transport error",
+                        "usb read error",
+                        "waiting for device",
+                    )
+                ):
+                    transport_lost = True
+                    break
+
+        userspace = values.get("is-userspace", "").casefold()
+        state = (
+            DeviceState.FASTBOOTD
+            if userspace in {"yes", "1", "true"}
+            else DeviceState.BOOTLOADER
+            if userspace in {"no", "0", "false"}
+            else DeviceState.FASTBOOT
+        )
+        unlocked = _property_bool(values.get("unlocked", ""))
+        product = values.get("product", "")
+        slot = values.get("current-slot", "").casefold().removeprefix("_")
+        mode = {
+            DeviceState.FASTBOOTD: "userspace fastbootd",
+            DeviceState.BOOTLOADER: "bootloader fastboot",
+            DeviceState.FASTBOOT: "fastboot",
+        }[state]
+        return AndroidDevice(
+            serial=serial,
+            state=state,
+            transport="usb-fastboot",
+            model=product,
+            product=product,
+            codename=product,
+            bootloader_locked=None if unlocked is None else not unlocked,
+            slot_suffix=f"_{slot}" if slot in {"a", "b"} else "",
+            fastboot_capability=f"Observed {mode} transport",
+            connection_note=(
+                "Fastboot transport became unstable during a bounded identity probe. ROMVERSE "
+                "stopped the probe chain and will retry without changing the phone."
+                if transport_lost
+                else f"Connected in {mode} mode. ROMVERSE used only Guardian-approved read-only "
+                "identity probes; Android health telemetry is unavailable until Android boots."
+            ),
+            errors=tuple(errors),
+        )
 
     def _inspect(self, discovered: dict[str, str]) -> AndroidDevice:
         serial = discovered["serial"]
@@ -297,3 +417,7 @@ def _property_bool(value: str) -> bool | None:
     if normalized in {"0", "false", "no", "n"}:
         return False
     return None
+
+
+def _masked_serial(serial: str) -> str:
+    return "••••" if len(serial) <= 4 else f"••••{serial[-4:]}"

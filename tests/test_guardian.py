@@ -17,8 +17,15 @@ class RecordingRunner:
         return CommandResult(tuple(args), 0, "", "")
 
 
-def request(category=OperationClass.READ_ONLY, arguments=("devices", "-l")):
-    return OperationRequest("test", category, "adb", arguments, "test")
+def request(
+    category=OperationClass.READ_ONLY,
+    arguments=("devices", "-l"),
+    *,
+    operation_id="test",
+    executable="adb",
+    target="host",
+):
+    return OperationRequest(operation_id, category, executable, arguments, "test", target)
 
 
 def test_allows_known_read_only_probe():
@@ -87,3 +94,57 @@ def test_allows_bounded_console_device_probes(arguments):
     gateway.execute(request(arguments=arguments))
 
     assert runner.calls == [("adb", *arguments)]
+
+
+def test_allows_only_exact_guardian_named_fastboot_identity_probes() -> None:
+    runner = RecordingRunner()
+    gateway = ExecutionGateway(MilestoneOnePolicy(), runner)
+
+    gateway.execute(
+        request(
+            executable="fastboot",
+            operation_id="fastboot.devices",
+            arguments=("devices", "-l"),
+        )
+    )
+    gateway.execute(
+        request(
+            executable="fastboot",
+            operation_id="fastboot.getvar.is-userspace",
+            arguments=("-s", "serial", "getvar", "is-userspace"),
+            target="serial",
+        )
+    )
+
+    assert runner.calls == [
+        ("fastboot", "devices", "-l"),
+        ("fastboot", "-s", "serial", "getvar", "is-userspace"),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("operation_id", "arguments"),
+    [
+        ("fastboot.getvar.all", ("-s", "serial", "getvar", "all")),
+        ("fastboot.flash", ("-s", "serial", "flash", "boot", "boot.img")),
+        ("fastboot.reboot", ("-s", "serial", "reboot")),
+    ],
+)
+def test_denies_fastboot_commands_outside_exact_read_only_identity_allowlist(
+    operation_id,
+    arguments,
+) -> None:
+    runner = RecordingRunner()
+    gateway = ExecutionGateway(MilestoneOnePolicy(), runner)
+
+    with pytest.raises(GuardianDeniedError):
+        gateway.execute(
+            request(
+                executable="fastboot",
+                operation_id=operation_id,
+                arguments=arguments,
+                target="serial",
+            )
+        )
+
+    assert runner.calls == []

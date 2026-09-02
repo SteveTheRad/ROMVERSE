@@ -89,8 +89,8 @@ When online research is off, its secondary panel folds into a compact, accessibl
 preconditions and the Advisor stay prominent. Active, returned, or failed research expands its full
 evidence automatically, and the user can fold only those details without changing assessment state.
 
-The Desktop **ROMVERSE Archives** catalog now contains 148 validated local guides across ten
-categories, including 98 structured known-fix records and 37 distinct official sources. The added
+The Desktop **ROMVERSE Archives** catalog now contains 149 validated local guides across ten
+categories, including 99 structured known-fix records and 38 official-source-backed records. The added
 official-source-labelled device triage covers battery/heat, storage, Android updates,
 app crashes, screen/touch, network, and performance, while camera/audio guidance remains explicitly
 ROMVERSE-scoped until exact OEM evidence is available. Ranked punctuation-tolerant retrieval covers
@@ -100,6 +100,15 @@ and evidence integrity. Every structured fix separates meaning, checks, safe ste
 evidence, automation boundary, and source. Weak searches return no verified match instead of broad
 advice; category filters and canonical route buttons return the user to the relevant Desktop
 workspace. Local guidance never grants approval or execution authority.
+
+Device Engine now discovers both running Android/ADB transports and phones already connected in
+bootloader Fastboot or userspace fastbootd. The Fastboot adapter is routed through Guardian and can
+run only `devices -l` plus the exact `product`, `current-slot`, `unlocked`, `secure`, and
+`is-userspace` variable reads documented by the AOSP Fastboot contract. Command Deck presents the
+result as identity-only evidence and connects it directly to Device Atlas, where the observed
+product/codename can select the integrity-checked Device Pack and build/tool roadmap. Android health
+telemetry stays unknown in this mode, serials remain masked, and reboot, flash, erase, unlock, wipe,
+and relock commands are not on the adapter or Guardian allowlist.
 
 Verified outcomes now use schema two and require more than a digest-shaped string. The candidate
 must belong to the exact persisted error fingerprint, and the built-in action must supply a

@@ -284,7 +284,7 @@ class DeviceCenter(QWidget):
         scan_status_layout.addWidget(self.scan_status_label)
         self.scan_progress = ProcessProgressBar()
         self.scan_progress.setToolTip(
-            "ROMVERSE is collecting read-only ADB identity and health evidence."
+            "ROMVERSE is collecting read-only ADB or Fastboot identity evidence and, when Android is running, health telemetry."
         )
         self.scan_progress.setFixedWidth(108)
         scan_status_layout.addWidget(self.scan_progress)
@@ -663,6 +663,15 @@ class DeviceCenter(QWidget):
                 )
                 self.next_button.setText("Scan again")
                 self.next_button.setToolTip("Retry device detection after approving USB debugging.")
+            elif device.is_fastboot:
+                self.next_title.setText("Review the detected bootloader identity")
+                self.next_note.setText(
+                    "Device Atlas can match this read-only product identity to its exact build requirements. Android health checks remain unavailable in this mode."
+                )
+                self.next_button.setText("Open Device Atlas")
+                self.next_button.setToolTip(
+                    "Review the detected Fastboot identity and Device Pack requirements. No phone command is started."
+                )
             if device.battery_percent is not None:
                 self.battery_history.append(float(device.battery_percent))
             if device.battery_temperature_c is not None:
@@ -672,6 +681,8 @@ class DeviceCenter(QWidget):
                 if device.state is DeviceState.DEVICE
                 else 0.5
                 if device.state is DeviceState.UNAUTHORIZED
+                else 0.75
+                if device.is_fastboot
                 else 0.0
             )
             if device.storage.percent_used is not None:
@@ -697,11 +708,11 @@ class DeviceCenter(QWidget):
             )
             self.device_name.setText("No Android device detected")
             self.device_note.setText(
-                "Connect with USB debugging enabled, authorize this computer, then scan again."
+                "Connect with USB debugging enabled, or connect a phone already in bootloader/fastbootd mode, then scan again."
             )
             self._set_badge("NOT CONNECTED", "Warning")
             self.show_empty(
-                "ADB is ready, but no device is visible. Try `adb devices -l` in a terminal to confirm the connection."
+                "No Android transport is visible. ROMVERSE checks verified ADB and Fastboot runtimes without rebooting or changing a phone."
             )
         self._render_studio_handoff()
 
@@ -818,15 +829,23 @@ class DeviceCenter(QWidget):
         if self.activity_store is None or self.workspace is None:
             return
         state = device.state
-        outcome = "success" if state is DeviceState.DEVICE else "attention"
+        outcome = (
+            "success"
+            if (state is DeviceState.DEVICE or device.is_fastboot) and not device.errors
+            else "attention"
+        )
         title = (
             "Device scan completed"
             if state is DeviceState.DEVICE
+            else "Fastboot identity captured"
+            if device.is_fastboot
             else f"Device scan: {state.value}"
         )
         detail = (
             f"{device.display_name} • Android {device.android_version or 'unknown'} • read-only evidence captured"
             if state is DeviceState.DEVICE
+            else f"{device.display_name} • {state.value} • read-only identity evidence captured"
+            if device.is_fastboot
             else device.connection_note or "Device authorization needs attention"
         )
         device_key = WorkspacePrivacy(self.workspace).pseudonym(device.serial)
@@ -845,6 +864,9 @@ class DeviceCenter(QWidget):
         if self.devices and self.devices[0].state is DeviceState.DEVICE:
             self.action_requested.emit("Optimize")
             return
+        if self.devices and self.devices[0].is_fastboot:
+            self.action_requested.emit("Device DNA")
+            return
         self.refresh_requested.emit()
 
     def refresh_activity(self) -> None:
@@ -855,9 +877,9 @@ class DeviceCenter(QWidget):
     def show_error(self, message: str) -> None:
         self.device_name.setText("Device Engine needs attention")
         self.device_note.setText(message)
-        self._set_badge("ADB ERROR", "Danger")
+        self._set_badge("DEVICE ENGINE ERROR", "Danger")
         self.show_empty(
-            "ROMVERSE did not run any device-changing command. Resolve verified Android Platform Tools in place, then Device Engine will scan again automatically.",
+            "ROMVERSE did not run any device-changing command. Resolve verified Android Platform Tools in place, then Device Engine will recheck ADB and Fastboot automatically.",
             action_text="Resolve Platform Tools",
             action=self.runtime_tools_requested.emit,
         )
@@ -1591,9 +1613,17 @@ class DeviceCenter(QWidget):
             self._set_badge("CONNECTED • READ ONLY", "Good")
         elif device.state is DeviceState.UNAUTHORIZED:
             self._set_badge("AUTHORIZATION NEEDED", "Warning")
+        elif device.is_fastboot:
+            self._set_badge(
+                f"{device.state.value.upper()} • {'PARTIAL' if device.errors else 'READ ONLY'}",
+                "Warning" if device.errors else "Good",
+            )
         else:
             self._set_badge(device.state.value.upper(), "Warning")
 
+        if device.is_fastboot:
+            self._render_fastboot_device(device)
+            return
         if device.state is not DeviceState.DEVICE:
             self.show_empty(device.connection_note)
             return
@@ -1754,6 +1784,52 @@ class DeviceCenter(QWidget):
         if device.errors:
             warning = InfoCard("Partial scan")
             warning.add_value("Some details unavailable", "\n".join(device.errors))
+            self.body_layout.addWidget(warning)
+        self.body_layout.addStretch()
+
+    def _render_fastboot_device(self, device: AndroidDevice) -> None:
+        identity = InfoCard("BOOTLOADER IDENTITY  •  GUARDIAN READ ONLY")
+        identity.add_value("Detected product / codename", device.codename or "Unconfirmed")
+        identity.add_value("Transport mode", device.state.value.upper())
+        identity.add_value("Current slot", device.slot_suffix or "Not reported")
+        identity.add_value(
+            "Bootloader state",
+            "Unlocked"
+            if device.bootloader_locked is False
+            else "Locked"
+            if device.bootloader_locked is True
+            else "Not reported",
+        )
+        identity.add_value("Evidence", device.fastboot_capability or "Fastboot observed")
+        self.body_layout.addWidget(identity)
+
+        handoff = QFrame()
+        handoff.setObjectName("DiagnosticHandoffBar")
+        layout = QHBoxLayout(handoff)
+        layout.setContentsMargins(18, 14, 18, 14)
+        copy = QVBoxLayout()
+        heading = QLabel("DEVICE ATLAS  •  EXACT REQUIREMENTS NEXT")
+        heading.setObjectName("DashboardHeading")
+        detail = QLabel(
+            "ROMVERSE can use this product identity to select and review a Device Pack, build contract, and host-tool requirements. Battery, Android version, storage, root, and live health evidence are intentionally unknown until Android boots. Fastboot detection grants no build, flash, wipe, unlock, reboot, or relock authority."
+        )
+        detail.setObjectName("Muted")
+        detail.setWordWrap(True)
+        copy.addWidget(heading)
+        copy.addWidget(detail)
+        layout.addLayout(copy, 1)
+        open_atlas = QPushButton("Review Device DNA  →")
+        open_atlas.setObjectName("Primary")
+        open_atlas.setAccessibleName(
+            "Open Device Atlas for the detected read-only Fastboot identity"
+        )
+        open_atlas.clicked.connect(lambda _checked=False: self.action_requested.emit("Device DNA"))
+        layout.addWidget(open_atlas)
+        self.body_layout.addWidget(handoff)
+        self._add_command_cards(connected=False)
+        if device.errors:
+            warning = InfoCard("PARTIAL FASTBOOT EVIDENCE")
+            warning.add_value("Unsupported or unavailable variables", "\n".join(device.errors))
             self.body_layout.addWidget(warning)
         self.body_layout.addStretch()
 

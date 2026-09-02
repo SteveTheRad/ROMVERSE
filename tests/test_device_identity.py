@@ -97,6 +97,22 @@ def test_exact_device_pack_supplies_retail_name_but_generic_pack_cannot(tmp_path
     assert not untouched.marketing_name
 
 
+def test_literal_product_pack_names_fastboot_identity_without_inventing_oem(tmp_path) -> None:
+    fastboot = _device(
+        state=DeviceState.BOOTLOADER,
+        transport="usb-fastboot",
+        manufacturer="",
+        model="popsicle",
+    )
+    resolver = DeviceIdentityResolver(tmp_path, DevicePackRegistry((_pack(),)))
+
+    resolved = resolver.resolve_local(fastboot)
+
+    assert resolved.marketing_name == "Xiaomi 17 Pro Max"
+    assert resolved.manufacturer == ""
+    assert resolver.load(resolved).authority is IdentityAuthority.DEVICE_PACK
+
+
 def test_device_pack_receipt_is_not_reused_after_the_pack_authority_is_removed(tmp_path):
     resolver = DeviceIdentityResolver(tmp_path, DevicePackRegistry((_pack(),)))
     resolved = resolver.resolve_local(_device())

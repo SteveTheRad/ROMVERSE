@@ -1,6 +1,8 @@
 from romverse.device.parsers import (
     parse_adb_devices,
     parse_battery,
+    parse_fastboot_devices,
+    parse_fastboot_getvar,
     parse_getprop,
     parse_memory,
     parse_storage,
@@ -17,6 +19,37 @@ XYZ999 unauthorized usb:2-1 transport_id:2
     assert devices[0]["model"] == "Pixel_8"
     assert devices[0]["device"] == "shiba"
     assert devices[1]["state"] == "unauthorized"
+
+
+def test_parse_fastboot_devices_and_exact_getvar_values() -> None:
+    devices = parse_fastboot_devices(
+        "BOOT123\tfastboot usb:1-2 product:popsicle\nnoise that is not a device row\n"
+    )
+
+    assert devices == [
+        {
+            "serial": "BOOT123",
+            "state": "fastboot",
+            "usb": "1-2",
+            "product": "popsicle",
+        }
+    ]
+    assert parse_fastboot_getvar("(bootloader) product: popsicle\nFinished.\n", "product") == (
+        "popsicle"
+    )
+    assert parse_fastboot_getvar("is-userspace: yes\n", "is-userspace") == "yes"
+    assert parse_fastboot_getvar("product-other: wrong\n", "product") == ""
+
+
+def test_parse_fastboot_devices_deduplicates_and_rejects_hostile_serials() -> None:
+    devices = parse_fastboot_devices(
+        "SAFE-123 fastboot usb:1-2\n"
+        "SAFE-123 fastboot usb:9-9\n"
+        "../escape fastboot usb:2-1\n"
+        "bad/serial fastboot usb:2-2\n"
+    )
+
+    assert devices == [{"serial": "SAFE-123", "state": "fastboot", "usb": "1-2"}]
 
 
 def test_parse_getprop_and_battery():

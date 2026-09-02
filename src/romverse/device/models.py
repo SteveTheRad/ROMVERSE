@@ -10,6 +10,9 @@ class DeviceState(StrEnum):
     OFFLINE = "offline"
     RECOVERY = "recovery"
     SIDELOAD = "sideload"
+    FASTBOOT = "fastboot"
+    BOOTLOADER = "bootloader"
+    FASTBOOTD = "fastbootd"
     UNKNOWN = "unknown"
 
 
@@ -92,3 +95,11 @@ class AndroidDevice:
         if len(self.serial) <= 4:
             return "••••"
         return f"••••{self.serial[-4:]}"
+
+    @property
+    def is_fastboot(self) -> bool:
+        return self.state in {
+            DeviceState.FASTBOOT,
+            DeviceState.BOOTLOADER,
+            DeviceState.FASTBOOTD,
+        }

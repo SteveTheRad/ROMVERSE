@@ -20,6 +20,7 @@ class ArchiveRecommendation:
 
 
 DIAGNOSTIC_ARTICLE_KEYS = {
+    "connection.fastboot_identity_only": "fastboot-identity-only",
     "battery.low": "device-battery-low",
     "battery.temperature": "device-temperature-elevated",
     "storage.capacity": "device-storage-nearly-full",

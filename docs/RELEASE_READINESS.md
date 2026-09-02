@@ -204,6 +204,13 @@ has current evidence.
    device-list output. Confirm it always attempts the bounded daemon restoration after an unclean
    stop, stores only output digests, never constructs `adb -s`, never deletes host keys, and cannot
    authorize any phone operation.
+   Exercise Device Engine with ADB-only, Fastboot-only, fastbootd, simultaneous transports,
+   duplicate serials, unsupported getvars, missing runtimes, timeouts, and hostile output. Confirm
+   Fastboot discovery exposes only masked identity evidence, `getvar is-userspace` distinguishes
+   modes only when reported, and the Command Deck handoff lands on the exact Device Atlas report.
+   Guardian must permit only `devices -l` plus the five named getvars and reject `getvar all`,
+   reboot, boot, flash, erase, set-active, unlock, wipe, and every relock spelling before process
+   execution.
    For automatic Recovery Bay research, inject paths, email addresses, credentials, IP addresses,
    serial-like values, long hashes, hostile URLs, stale/future/missing dates, malformed provider
    responses, and settings changes during lookup. Confirm private values never enter the query or

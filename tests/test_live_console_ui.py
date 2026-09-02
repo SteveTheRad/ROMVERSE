@@ -8,6 +8,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtGui import QPalette
 from PySide6.QtWidgets import QApplication
 
+from romverse.core.settings import AppSettings, ExperienceMode
 from romverse.nexus.events import LiveConsoleEventStore, MissionConfidence, MissionState
 from romverse.rom.projects import RomProjectStore
 from romverse.ui.backup_center import BackupCenter
@@ -152,10 +153,56 @@ def test_live_console_returns_synapse_evidence_to_archives_not_nexus(tmp_path) -
     center.source_requested.connect(lambda route, project_id: requested.append((route, project_id)))
     center.refresh()
 
-    assert center.open_source_button.text() == "Open ROMVERSE Archives"
+    assert center.open_source_button.text() == "Open ROMVERSE Synapse"
     assert center.open_source_button.isEnabled()
     center.open_source_button.click()
-    assert requested == [("archives", "")]
+    assert requested == [("romverse_synapse", "")]
+
+
+def test_live_console_restores_exact_project_and_nested_producer_without_running_it(
+    tmp_path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        app_settings=AppSettings(experience_mode=ExperienceMode.GUIDED),
+    )
+    try:
+        project = window.rom_studio.store.create("Exact Forge source")
+        window.nexus_events.note(
+            source="Forge Control",
+            stage="readiness-review",
+            title="Forge evidence needs review",
+            summary="The project has a current bounded readiness result.",
+            explanation="No build or phone operation was authorized.",
+            next_action="Review the exact Forge Control evidence.",
+            state=MissionState.ATTENTION,
+            project_id=project.project_id,
+        )
+
+        window._navigate_route("live_console")
+        window.live_console.refresh()
+        app.processEvents()
+
+        assert window.live_console.open_source_button.text() == "Open Forge Control"
+        assert f"exact project {project.project_id}" in window.live_console.source_feedback.text()
+        window.live_console.open_source_button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.rom_studio
+        assert window.rom_studio.current_project is not None
+        assert window.rom_studio.current_project.project_id == project.project_id
+        assert "Forge Control" in window.rom_studio.dashboard_handoff_title.text()
+        assert window.rom_studio.app_settings.experience_mode is ExperienceMode.GUIDED
+        assert window.rom_studio.worker is None
+        assert not QApplication.activeModalWidget()
+    finally:
+        window.companion_center.transport.close()
+        window.close()
 
 
 def test_live_console_exposes_tamper_failure_instead_of_fabricating_events(tmp_path) -> None:
@@ -238,9 +285,9 @@ def test_live_console_keeps_stale_project_source_failure_in_page(tmp_path) -> No
     window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
     try:
         window.nexus_events.note(
-            source="ROMVERSE Nexus",
-            stage="pathfinder-route",
-            title="Stale Nexus route",
+            source="Forge Control",
+            stage="readiness-review",
+            title="Stale Forge Control review",
             summary="The former project is no longer present.",
             explanation="The event remains an honest historical record.",
             next_action="Do not infer a replacement project.",
@@ -251,6 +298,7 @@ def test_live_console_keeps_stale_project_source_failure_in_page(tmp_path) -> No
         app.processEvents()
         previous = window.stack.currentWidget()
 
+        assert window.live_console.open_source_button.text() == "Open Forge Control"
         window.live_console.open_source_button.click()
         app.processEvents()
 

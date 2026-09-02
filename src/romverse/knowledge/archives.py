@@ -2278,6 +2278,48 @@ KNOWN_FIXES = (
         source=ROMVERSE_SOURCE,
     ),
     _fix(
+        "live-console-source-opens-owner-not-feature",
+        "Live Console source opens the owner page but loses the exact feature",
+        "ROMVERSE WORKFLOWS",
+        "A genuine ROMVERSE event names the subsystem that produced it, not merely the page that "
+        "contains that subsystem. Returning an Ascension Protocol, Forge Control, Device DNA, "
+        "System Scan, Recovery Autopilot, or Synapse event only to ROM Studio, Quantum Optimizer, "
+        "Recovery Bay, or Archives loses the user's evidence context. The source action must "
+        "restore the event's exact project when one exists and reveal the named nested feature "
+        "without repeating its operation.",
+        checks=(
+            "Read the selected event's Source and Project fields; do not infer a destination from its title or free-form explanation.",
+            "Confirm the producer name resolves to one canonical top-level or nested feature in the current Desktop registry.",
+            "When a project identifier is present, require that exact local project to exist before leaving Live Console.",
+            "Treat an unknown producer, missing project, hidden feature, or failed evidence load as a stopped handoff rather than opening a similar page.",
+        ),
+        fix_steps=(
+            "Select the genuine event in Live Console and choose its Open action again so the current canonical source map is used.",
+            "Verify ROMVERSE restores the referenced project before opening the owner and then reveals the exact producer handoff inside that page.",
+            "For an Architect-only producer viewed from Guided Arcana, allow the explicit evidence link to reveal that bounded feature without changing the persisted experience mode.",
+            "If the source remains unavailable, use Find Anything with the exact producer name and preserve the failed event for diagnosis; never rerun the original operation merely to recover navigation.",
+        ),
+        verification=(
+            "The source button names the exact producer, such as Open Ascension Protocol or Open Forge Control, instead of only Open ROM Studio.",
+            "A project-bound event selects the same current project and exposes the producer's current evidence or prerequisite badge.",
+            "Legacy Activity outcomes use the same exact nested-feature resolver while typed Activity contexts retain their stricter receipt-specific validation.",
+            "Opening the source starts no scan, dialog, worker, tool installation, build, signing, approval, flash, reboot, or phone change.",
+        ),
+        tags=(
+            "live console opens wrong page",
+            "source opens owner not feature",
+            "event loses nested context",
+            "open rom studio instead of forge control",
+            "ascension event source handoff",
+            "activity source deep link",
+            "restore event project",
+        ),
+        route="live_console",
+        evidence="ROMVERSE tests exact producer-to-feature routing, project-bound Live Console restoration, legacy Activity deep links, unknown-source refusal, persisted Guided mode, and zero-operation source navigation.",
+        automation="CANONICAL SOURCE RESOLUTION, PROJECT REVALIDATION, OWNER NAVIGATION, CONTEXT DISPLAY, AND CONTROL FOCUS ONLY • NO SCAN, DIALOG, WORKER, TOOL INSTALL, BUILD, SIGNING, APPROVAL, FLASH, REBOOT, OR PHONE ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
         "synapse-evidence-opens-wrong-workspace",
         "ROMVERSE Synapse evidence opens the wrong workspace",
         "ROMVERSE WORKFLOWS",
@@ -2298,7 +2340,7 @@ KNOWN_FIXES = (
             "Return to the originating workflow only after selecting its explicit route; opening Synapse itself starts no work.",
         ),
         verification=(
-            "Canonical source routing maps ROMVERSE Synapse to Archives and Compatibility Matrix to its ROM Studio evidence owner.",
+            "Canonical source routing maps ROMVERSE Synapse and Compatibility Matrix to their exact nested features inside Archives and ROM Studio.",
             "Find Anything selects the visible ROMVERSE Synapse Local Learning panel by canonical or legacy vocabulary.",
             "The route reads only local integrity-checked Synapse evidence and starts no dialog, query, contribution, upload, research, worker, or phone action.",
             "Unknown source names still expose no source action rather than guessing a related ROMVERSE page.",

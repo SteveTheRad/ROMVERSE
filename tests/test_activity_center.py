@@ -78,7 +78,7 @@ def test_activity_view_model_filters_summarizes_and_resolves_canonical_sources()
     assert (summary.total, summary.success, summary.attention, summary.information) == (3, 1, 1, 1)
     assert filter_activity_events(events, query="health 92") == (events[0],)
     assert filter_activity_events(events, category="repair", outcome="attention") == (events[1],)
-    assert activity_source_route(events[0]) == "quantum_optimizer"
+    assert activity_source_route(events[0]) == "system_scan"
     assert activity_source_route(events[1]) == "recovery_bay"
     assert activity_source_route(events[2]) == ""
 
@@ -140,9 +140,9 @@ def test_activity_center_connects_filters_details_source_route_and_export(
         assert center.activity_list.count() == 1
         accessible = center.activity_list.item(0).data(Qt.ItemDataRole.AccessibleTextRole)
         assert accessible.startswith("Health snapshot saved. success. System Scan.")
-        assert center.open_source_button.text() == "Open Quantum Optimizer"
+        assert center.open_source_button.text() == "Open System Scan"
         center.open_source_button.click()
-        assert routes == ["quantum_optimizer"]
+        assert routes == ["system_scan"]
 
         destination = tmp_path / "activity-export.json"
         monkeypatch.setattr(
@@ -157,6 +157,37 @@ def test_activity_center_connects_filters_details_source_route_and_export(
         assert "Exported privacy-safe" in center.footer.text()
     finally:
         center.close()
+
+
+def test_main_window_opens_legacy_activity_at_exact_nested_source_without_scanning(
+    tmp_path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
+    try:
+        window.activity_store.record(
+            "diagnostics",
+            "System scan review",
+            "A previous read-only scan produced a reviewable outcome.",
+            outcome="information",
+            source="System Scan",
+        )
+        window.activity_center.refresh()
+        window._navigate_route("activity_center")
+        app.processEvents()
+
+        assert window.activity_center.open_source_button.text() == "Open System Scan"
+        window.activity_center.open_source_button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.diagnostics_center
+        assert window.diagnostics_center.dashboard_handoff_title.text().startswith("System Scan")
+        assert not window.scanning
+        assert not QApplication.activeModalWidget()
+    finally:
+        window.companion_center.transport.close()
+        window.close()
 
 
 def test_activity_center_preserves_and_surfaces_an_unreadable_ledger(tmp_path) -> None:

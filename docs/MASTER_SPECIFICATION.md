@@ -509,6 +509,11 @@ Foresight, or Insight at the matching current Nexus panel without generating or 
 Every visible Command Deck launch-card name also resolves to its canonical destination. Familiar
 legacy names remain searchable, while Guided mode excludes its folded specialist destinations and
 Expert mode exposes them. Synapse evidence returns to its real Archives owner rather than Nexus.
+Live Console and legacy Activity source actions retain the exact producer feature, restore an exact
+referenced ROM project before navigation, and invoke the same nested destination resolver without
+repeating the operation. An explicit event link may reveal its bounded Architect-only destination
+from Guided mode but cannot change the persisted experience mode. Unknown features and stale projects
+fail visibly in the originating evidence surface.
 The ROM Studio Architect control updates and persists that same Desktop experience. The palette and
 mode transition have no operation callback, execution authority, device selector, or approval
 surface.

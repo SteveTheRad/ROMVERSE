@@ -22,8 +22,8 @@ def test_archives_catalog_is_large_unique_classified_and_evidence_labelled() -> 
     validate_catalog(ARCHIVE_ARTICLES)
     metrics = catalog_metrics(ARCHIVE_ARTICLES)
 
-    assert len(ARCHIVE_ARTICLES) == 149
-    assert len(KNOWN_FIXES) == 99
+    assert len(ARCHIVE_ARTICLES) == 150
+    assert len(KNOWN_FIXES) == 100
     assert metrics == {
         "guides": len(ARCHIVE_ARTICLES),
         "categories": len(CATEGORIES),
@@ -127,6 +127,10 @@ def test_archives_have_an_exact_destination_for_every_top_level_desktop_page() -
             "Find Anything cannot open a named internal ROMVERSE feature",
         ),
         (
+            "live console opens wrong page",
+            "Live Console source opens the owner page but loses the exact feature",
+        ),
+        (
             "architect mode does nothing",
             "Architect Mode does not reveal the Expert desktop",
         ),
@@ -211,7 +215,7 @@ def test_archives_rank_verified_known_fixes_for_real_failure_language(
 
 def test_archives_reject_weak_matches_and_bound_results() -> None:
     assert not search_catalog(ARCHIVE_ARTICLES, "definitely not a real ROMVERSE topic")
-    assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=1_000)) == 149
+    assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=1_000)) == 150
     assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=0)) == 1
     connectivity = search_catalog(
         ARCHIVE_ARTICLES,

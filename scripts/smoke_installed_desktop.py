@@ -66,6 +66,7 @@ def main() -> int:
         "galaxy-local-publishing-boundary",
         "nexus-current-evidence-route-unavailable",
         "command-palette-nested-feature-missing",
+        "live-console-source-opens-owner-not-feature",
         "synapse-evidence-opens-wrong-workspace",
         "nexus-intelligence-feature-opens-generic-page",
         "architect-mode-does-not-change-desktop",

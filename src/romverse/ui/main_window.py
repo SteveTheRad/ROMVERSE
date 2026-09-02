@@ -3314,7 +3314,7 @@ class MainWindow(QMainWindow):
         self.members_center.knowledge_article_requested.connect(self._open_knowledge_article)
         members_index = self.stack.addWidget(self.members_center)
         self.activity_center = ActivityCenter(self.activity_store)
-        self.activity_center.route_requested.connect(self._navigate_route)
+        self.activity_center.route_requested.connect(self._navigate_feature_route)
         self.activity_center.source_requested.connect(self._open_activity_source)
         activity_index = self.stack.addWidget(self.activity_center)
         self.page_routes = {
@@ -4207,7 +4207,8 @@ class MainWindow(QMainWindow):
     def _open_live_console_source(self, route: str, project_id: str) -> None:
         """Return one genuine console event to its canonical, current source context."""
 
-        if project_id and route in {"nexus", "rom_studio"}:
+        owner_route = NESTED_FEATURE_OWNERS.get(route, route)
+        if project_id and owner_route in {"nexus", "rom_studio"}:
             try:
                 self.rom_studio.store.get(project_id)
             except ProjectError:
@@ -4215,16 +4216,16 @@ class MainWindow(QMainWindow):
                     "The event's project evidence is no longer available"
                 )
                 return
-            if route == "nexus" and not self.nexus_center.open_project(project_id):
+            if owner_route == "nexus" and not self.nexus_center.open_project(project_id):
                 self.live_console.source_handoff_stopped(
                     "Nexus could not bind the event to its exact current project"
                 )
                 return
-            if route == "rom_studio":
+            if owner_route == "rom_studio":
                 self.rom_studio.refresh(project_id)
-        if not self._navigate_route(route):
+        if not self._navigate_feature_route(route):
             self.live_console.source_handoff_stopped(
-                "The producing Desktop feature is not registered"
+                "The producing Desktop feature or its exact nested destination is not registered"
             )
 
     @Slot(str, str, str)
@@ -4984,10 +4985,7 @@ class MainWindow(QMainWindow):
         if route in self.page_routes:
             return self._navigate_route(route)
         owner_route = NESTED_FEATURE_OWNERS.get(route)
-        if owner_route is None or (
-            route in EXPERT_ONLY_NESTED_FEATURES
-            and self._experience_mode is not ExperienceMode.EXPERT
-        ):
+        if owner_route is None:
             return False
         if not self._navigate_route(owner_route):
             return False

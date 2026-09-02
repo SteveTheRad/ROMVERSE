@@ -89,8 +89,8 @@ When online research is off, its secondary panel folds into a compact, accessibl
 preconditions and the Advisor stay prominent. Active, returned, or failed research expands its full
 evidence automatically, and the user can fold only those details without changing assessment state.
 
-The Desktop **ROMVERSE Archives** catalog now contains 149 validated local guides across ten
-categories, including 99 structured known-fix records and 38 official-source-backed records. The added
+The Desktop **ROMVERSE Archives** catalog now contains 150 validated local guides across ten
+categories, including 100 structured known-fix records and 38 official-source-backed records. The added
 official-source-labelled device triage covers battery/heat, storage, Android updates,
 app crashes, screen/touch, network, and performance, while camera/audio guidance remains explicitly
 ROMVERSE-scoped until exact OEM evidence is available. Ranked punctuation-tolerant retrieval covers
@@ -878,6 +878,10 @@ Deck, ROM Studio, Quantum Optimizer, Recovery Bay, Archives, or Nexus owner and 
 feature evidence or prerequisite without clicking it. Every visible Command Deck launch-card label
 is searchable. Pathfinder, Foresight, and Insight reveal their matching current-plan panels without
 generating or adapting a plan, and Synapse source events return to Archives rather than Nexus.
+Live Console and legacy Activity source actions preserve the producer's exact nested identity: an
+Ascension, Forge Control, Device DNA, System Scan, Recovery Autopilot, or Synapse event restores its
+current project when available and opens that precise evidence/prerequisite handoff rather than only
+the containing page. Unknown or stale sources still stop visibly, and source navigation runs nothing.
 Guided Mode keeps Architect-only destinations out of results; Expert Mode reveals them. The ROM
 Studio Architect control changes and persists that same authoritative Desktop experience rather
 than showing a decorative status. Neither transition can run a tool, open an operation dialog,

@@ -28,7 +28,7 @@ from romverse.nexus.events import (
     LiveConsoleStoreError,
     MissionState,
 )
-from romverse.ui.vocabulary import canonical_source_route, feature
+from romverse.ui.vocabulary import NESTED_FEATURE_OWNERS, canonical_source_route, feature
 
 
 class _LiveConsoleItemDelegate(QStyledItemDelegate):
@@ -350,11 +350,13 @@ class LiveConsoleCenter(QWidget):
             self.open_source_button.setText(f"Open {destination}")
             self.open_source_button.setEnabled(True)
             self.open_source_button.setToolTip(
-                f"Open the canonical {destination} page for this genuine {event.source} event."
+                f"Open the exact canonical {destination} destination for this genuine "
+                f"{event.source} event without repeating it."
             )
+            owner_route = NESTED_FEATURE_OWNERS.get(route, route)
             project = (
                 f"  •  exact project {event.project_id}"
-                if event.project_id and route in {"nexus", "rom_studio"}
+                if event.project_id and owner_route in {"nexus", "rom_studio"}
                 else ""
             )
             self.source_feedback.setText(

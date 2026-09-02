@@ -411,8 +411,8 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   `confirmed working`; schema-two outcomes additionally bind the exact persisted error-fingerprint
   candidate to a format-specific ADB-host, exact-toolchain, OTA-source, or AVB receipt, revalidate
   that evidence on load, and deny promotion to legacy digest-only outcomes;
-  Desktop ROMVERSE Archives expanded into a validated 113-guide, ten-category local catalog with 63
-  structured known-fix records, 35 official-source-linked records, bounded ranked retrieval, weak-
+  Desktop ROMVERSE Archives expanded into a validated 150-guide, ten-category local catalog with 100
+  structured known-fix records, 38 official-source-linked records, bounded ranked retrieval, weak-
   match rejection, category filtering, source visibility, and canonical workspace handoffs;
   a deterministic Archives Advisor now maps every Recovery Bay concern and typed actionable
   diagnostic finding plus each recognized App Launchpad Package Manager failure to stable
@@ -643,7 +643,10 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   feature vocabulary, and exact owner-routed nested features across Command Deck, ROM Studio,
   Recovery Bay, and Archives, with legacy-name search, stable relevance ranking, Guided/Expert
   disclosure, visible in-page prerequisites, corrected Synapse-to-Archives source ownership, and no
-  operation or device authority; exact zero-action Pathfinder, Foresight, and Insight panel
+  operation or device authority; exact producer-aware Live Console and legacy Activity source
+  deep links that restore current project context, reveal the named nested feature without changing
+  persisted Guided/Architect mode, and stop on stale or unknown evidence; exact zero-action
+  Pathfinder, Foresight, and Insight panel
   destinations plus complete Command Deck launch-card name discovery; a genuine ROM Studio
   Architect toggle that persists that same authoritative
   Desktop mode without changing evidence or Guardian; one authoritative grouped navigation registry with live

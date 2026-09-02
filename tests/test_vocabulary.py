@@ -2,6 +2,7 @@ from romverse.ui.vocabulary import (
     EXPERT_ONLY_NESTED_FEATURES,
     FEATURES,
     NESTED_FEATURE_OWNERS,
+    SOURCE_ROUTES,
     canonical_source_route,
     canonical_title,
     feature,
@@ -43,10 +44,26 @@ def test_every_nested_feature_has_a_real_top_level_owner_and_expert_scope() -> N
     assert set(NESTED_FEATURE_OWNERS) >= EXPERT_ONLY_NESTED_FEATURES
 
 
-def test_evidence_sources_return_to_their_real_desktop_owner() -> None:
-    assert canonical_source_route("Device Engine") == "command_deck"
-    assert canonical_source_route("Device DNA") == "rom_studio"
-    assert canonical_source_route("Compatibility Matrix") == "rom_studio"
-    assert canonical_source_route("Recovery Autopilot") == "recovery_bay"
-    assert canonical_source_route("ROMVERSE Intelligence") == "recovery_bay"
-    assert canonical_source_route("ROMVERSE Synapse") == "archives"
+def test_evidence_sources_return_to_their_exact_desktop_feature() -> None:
+    assert canonical_source_route("Device Engine") == "device_engine"
+    assert canonical_source_route("Device DNA") == "device_dna"
+    assert canonical_source_route("Compatibility Matrix") == "compatibility_matrix"
+    assert canonical_source_route("Recovery Autopilot") == "recovery_autopilot"
+    assert canonical_source_route("ROMVERSE Intelligence") == "romverse_intelligence"
+    assert canonical_source_route("ROMVERSE Synapse") == "romverse_synapse"
+
+
+def test_every_evidence_source_resolves_to_a_registered_page_or_nested_feature() -> None:
+    assert set(SOURCE_ROUTES.values()) <= set(FEATURES)
+    for source in (
+        "Ascension Protocol",
+        "Forge Control",
+        "Genesis Sequence",
+        "Recipe Forger",
+        "System Scan",
+        "Health Review",
+        "Pathfinder",
+        "Foresight",
+        "Insight",
+    ):
+        assert canonical_source_route(source) in FEATURES

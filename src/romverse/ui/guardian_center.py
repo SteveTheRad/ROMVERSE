@@ -226,9 +226,7 @@ class GuardianCenter(QWidget):
         studio_layout.setContentsMargins(20, 16, 20, 16)
         studio_layout.setSpacing(8)
         studio_header = QHBoxLayout()
-        self.studio_review_eyebrow = QLabel(
-            "ROM STUDIO MANIFEST REVIEW  •  COMMAND-FREE EVIDENCE"
-        )
+        self.studio_review_eyebrow = QLabel("ROM STUDIO MANIFEST REVIEW  •  COMMAND-FREE EVIDENCE")
         self.studio_review_eyebrow.setObjectName("Eyebrow")
         studio_header.addWidget(self.studio_review_eyebrow, 1)
         self.studio_review_badge = QLabel("ZERO AUTHORITY")

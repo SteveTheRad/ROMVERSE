@@ -460,8 +460,7 @@ class DevicePacksCenter(QWidget):
         if report is None or pack is None:
             identity = (
                 self.active_catalog_match.marketing_name
-                if self.active_catalog_match is not None
-                and self.active_catalog_match.matched
+                if self.active_catalog_match is not None and self.active_catalog_match.matched
                 else device.display_name
             )
             self._show_dashboard_handoff(
@@ -1308,9 +1307,7 @@ class DevicePacksCenter(QWidget):
         matches: list[DevicePack] = []
         for pack in self.registry.packs:
             manufacturers = {
-                " ".join(value.casefold().split())
-                for value in pack.manufacturers
-                if value != "*"
+                " ".join(value.casefold().split()) for value in pack.manufacturers if value != "*"
             }
             if not manufacturers or (brand and brand not in manufacturers):
                 continue
@@ -1390,9 +1387,7 @@ class DevicePacksCenter(QWidget):
 
         self.official_missing_pack_guide_button = None
         packs = self._exact_packs_for_official_entry(entry)
-        packs_title = QLabel(
-            f"Exact local Pack evidence  •  {len(packs)} candidate(s)"
-        )
+        packs_title = QLabel(f"Exact local Pack evidence  •  {len(packs)} candidate(s)")
         packs_title.setObjectName("SectionTitle")
         self.body_layout.addWidget(packs_title)
         if not packs:
@@ -1410,9 +1405,7 @@ class DevicePacksCenter(QWidget):
             missing_copy.setWordWrap(True)
             missing_layout.addWidget(missing_title)
             missing_layout.addWidget(missing_copy)
-            self.official_missing_pack_guide_button = QPushButton(
-                "Open missing Device Pack guide"
-            )
+            self.official_missing_pack_guide_button = QPushButton("Open missing Device Pack guide")
             self.official_missing_pack_guide_button.setObjectName("Primary")
             self.official_missing_pack_guide_button.setToolTip(
                 "Open the exact verified Archives diagnosis for an official identity with no "
@@ -1420,9 +1413,7 @@ class DevicePacksCenter(QWidget):
                 "or phone action starts."
             )
             self.official_missing_pack_guide_button.clicked.connect(
-                lambda: self.knowledge_article_requested.emit(
-                    "official-device-id-without-pack"
-                )
+                lambda: self.knowledge_article_requested.emit("official-device-id-without-pack")
             )
             missing_layout.addWidget(
                 self.official_missing_pack_guide_button,

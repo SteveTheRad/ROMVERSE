@@ -157,13 +157,18 @@ from romverse.ui.origin_story import ORIGIN_SCENES
 from romverse.ui.repair_center import RepairCenter
 from romverse.ui.rom_studio import RomStudio
 from romverse.ui.terminal_center import TerminalCenter
-from romverse.ui.theme import STYLESHEET
+from romverse.ui.theme import STYLESHEET, apply_dark_palette
 from romverse.ui.toolchain_center import (
     DevicePackToolchainContext,
     StudioProjectToolchainContext,
     ToolchainCenter,
 )
-from romverse.ui.vocabulary import FEATURES, feature
+from romverse.ui.vocabulary import (
+    EXPERT_ONLY_NESTED_FEATURES,
+    FEATURES,
+    NESTED_FEATURE_OWNERS,
+    feature,
+)
 from romverse.ui.workspace_shell import (
     EXPERT_ONLY_ROUTES,
     NAVIGATION_GROUPS,
@@ -2988,6 +2993,7 @@ class MainWindow(QMainWindow):
         self._reconnect_retry_ms = 1_500
         self._scan_failure_count = 0
         self._workspace_shell_state = WorkspaceShellState()
+        self._experience_mode = self.app_settings.experience_mode
         self.setWindowTitle("ROMVERSE Studio v0.1")
         self.setWindowIcon(QIcon(str(app_icon_path or logo_path)))
         self.resize(1440, 900)
@@ -3086,12 +3092,8 @@ class MainWindow(QMainWindow):
         self.history_center.knowledge_requested.connect(self._open_knowledge_query)
         self.stack.addWidget(self.history_center)
         self.guardian_center = GuardianCenter(self._audit_store, auto_start=False)
-        self.guardian_center.dashboard_state_changed.connect(
-            self._guardian_dashboard_state_changed
-        )
-        self.device_center.set_guardian_state(
-            *self.guardian_center.current_dashboard_state()
-        )
+        self.guardian_center.dashboard_state_changed.connect(self._guardian_dashboard_state_changed)
+        self.device_center.set_guardian_state(*self.guardian_center.current_dashboard_state())
         self.stack.addWidget(self.guardian_center)
         resolved_registry = pack_registry or DevicePackRegistry(())
         self.device_catalog = GooglePlayDeviceCatalog(workspace)
@@ -3141,9 +3143,7 @@ class MainWindow(QMainWindow):
             self.app_settings.online_intelligence_enabled,
         )
         self.device_packs_center.catalog_refresh_requested.connect(self._refresh_device_catalog)
-        self.device_packs_center.knowledge_article_requested.connect(
-            self._open_knowledge_article
-        )
+        self.device_packs_center.knowledge_article_requested.connect(self._open_knowledge_article)
         self.device_packs_center.next_action_requested.connect(self._open_device_pack_next_action)
         self.device_packs_center.requirement_requested.connect(self._open_device_requirement)
         self.device_packs_center.readiness_changed.connect(self._record_device_pack_readiness)
@@ -3196,15 +3196,12 @@ class MainWindow(QMainWindow):
         )
         self.backup_center.runtime_tools_requested.connect(self._resolve_backup_runtime)
         self.backup_center.guardian_requested.connect(self._open_backup_guardian_review)
-        self.backup_center.rom_studio_requested.connect(
-            self._return_time_machine_rom_studio
+        self.backup_center.rom_studio_requested.connect(self._return_time_machine_rom_studio)
+        self.backup_center.rom_studio_setup_requested.connect(
+            self._open_time_machine_rom_studio_setup
         )
-        self.guardian_center.time_machine_requested.connect(
-            self._return_guardian_time_machine
-        )
-        self.guardian_center.rom_studio_requested.connect(
-            self._return_guardian_rom_studio
-        )
+        self.guardian_center.time_machine_requested.connect(self._return_guardian_time_machine)
+        self.guardian_center.rom_studio_requested.connect(self._return_guardian_rom_studio)
         self.stack.addWidget(self.backup_center)
         self.knowledge_center = KnowledgeCenter(
             ArchivesResolutionMemory(RepairSessionStore(workspace)),
@@ -3217,6 +3214,7 @@ class MainWindow(QMainWindow):
         self.knowledge_index = self.stack.addWidget(self.knowledge_center)
         self.terminal_center = TerminalCenter(gateway, adb_executable, self.raw_terminal_feed)
         self.terminal_center.runtime_tools_requested.connect(self._resolve_terminal_runtime)
+        self.terminal_center.knowledge_article_requested.connect(self._open_knowledge_article)
         terminal_index = self.stack.addWidget(self.terminal_center)
         self.terminal_center_index = terminal_index
         self.live_console = LiveConsoleCenter(self.nexus_events)
@@ -3243,9 +3241,7 @@ class MainWindow(QMainWindow):
         self.toolchain_center.device_pack_continue_requested.connect(
             self._continue_device_pack_toolchain
         )
-        self.toolchain_center.device_atlas_requested.connect(
-            self._return_forge_device_atlas
-        )
+        self.toolchain_center.device_atlas_requested.connect(self._return_forge_device_atlas)
         self.toolchain_center.studio_project_setup_requested.connect(
             self._setup_studio_project_toolchain
         )
@@ -3258,13 +3254,10 @@ class MainWindow(QMainWindow):
         self.rom_studio.toolchain_requested.connect(self._open_toolchain)
         self.rom_studio.time_machine_requested.connect(self._open_time_machine)
         self.rom_studio.device_packs_requested.connect(self._open_device_atlas_from_studio)
-        self.rom_studio.guardian_review_requested.connect(
-            self._open_studio_guardian_review
-        )
-        self.rom_studio.device_center_requested.connect(
-            self._open_device_center_from_studio
-        )
+        self.rom_studio.guardian_review_requested.connect(self._open_studio_guardian_review)
+        self.rom_studio.device_center_requested.connect(self._open_device_center_from_studio)
         self.rom_studio.knowledge_requested.connect(self._open_knowledge_query)
+        self.rom_studio.experience_mode_requested.connect(self._set_experience_mode_from_studio)
         self.device_packs_center.rom_studio_requested.connect(
             self._continue_device_atlas_rom_studio
         )
@@ -3306,12 +3299,14 @@ class MainWindow(QMainWindow):
         self.about_page.knowledge_article_requested.connect(self._open_knowledge_article)
         about_index = self.stack.addWidget(self.about_page)
         self.galaxy_center = GalaxyCenter(workspace, self.activity_store)
+        self.galaxy_center.knowledge_article_requested.connect(self._open_knowledge_article)
         self.stack.addWidget(self.galaxy_center)
         self.members_center = MembersCenter(
             self.app_settings.members_issuer,
             self.app_settings.members_client_id,
         )
         self.members_center.settings_requested.connect(self._open_settings)
+        self.members_center.knowledge_article_requested.connect(self._open_knowledge_article)
         members_index = self.stack.addWidget(self.members_center)
         self.activity_center = ActivityCenter(self.activity_store)
         self.activity_center.route_requested.connect(self._navigate_route)
@@ -3501,6 +3496,7 @@ class MainWindow(QMainWindow):
         self.workspace_section.setObjectName("WorkspaceSection")
         self.workspace_route_title = QLabel(feature("command_deck").title)
         self.workspace_route_title.setObjectName("WorkspaceRouteTitle")
+        self.workspace_route_title.setMinimumWidth(260)
         self.workspace_route_title.setAccessibleName(
             f"Current Desktop page: {feature('command_deck').title}"
         )
@@ -3574,9 +3570,7 @@ class MainWindow(QMainWindow):
 
         self.device_center.refresh_requested.connect(self.scan)
         self.device_center.runtime_tools_requested.connect(self._resolve_device_runtime)
-        self.device_center.rom_studio_requested.connect(
-            self._return_command_deck_rom_studio
-        )
+        self.device_center.rom_studio_requested.connect(self._return_command_deck_rom_studio)
         self.device_center.action_requested.connect(self._handle_dashboard_action)
         self.diagnostics_center.refresh_requested.connect(self.scan)
         self.diagnostics_center.report_saved.connect(self.history_center.refresh)
@@ -3965,10 +3959,7 @@ class MainWindow(QMainWindow):
             return
         self.device_catalog_worker = None
         self.device_packs_center.set_catalog_status(self.device_catalog.status())
-        if (
-            self.app_settings.online_intelligence_enabled
-            and self.device_catalog.needs_refresh()
-        ):
+        if self.app_settings.online_intelligence_enabled and self.device_catalog.needs_refresh():
             self._catalog_auto_attempted = False
             QTimer.singleShot(0, self._maybe_refresh_device_catalog)
 
@@ -4074,6 +4065,8 @@ class MainWindow(QMainWindow):
             self.history_center.refresh()
         elif self.stack.currentWidget() is self.activity_center:
             self.activity_center.refresh()
+        elif self.stack.currentWidget() is self.backup_center:
+            self.backup_center.refresh_local_snapshots()
         elif self.stack.currentWidget() is self.knowledge_center:
             self.knowledge_center.clear_source_context()
             self.knowledge_center.refresh_synapse_memory()
@@ -4156,10 +4149,7 @@ class MainWindow(QMainWindow):
         """Publish Guardian's one truth state to every visible summary surface."""
 
         self.device_center.set_guardian_state(state, detail, verified)
-        if (
-            hasattr(self, "about_page")
-            and self.stack.currentWidget() is self.about_page
-        ):
+        if hasattr(self, "about_page") and self.stack.currentWidget() is self.about_page:
             self._refresh_about_evidence()
 
     def _navigate_route(self, route: str) -> bool:
@@ -4362,8 +4352,7 @@ class MainWindow(QMainWindow):
             report is None
             or pack is None
             or device is None
-            or self.backup_center.device_atlas_report_identity
-            != (report_id, report_digest)
+            or self.backup_center.device_atlas_report_identity != (report_id, report_digest)
             or report.report_id != report_id
             or report.report_digest != report_digest
             or report.pack_id != pack.pack_id
@@ -4389,6 +4378,29 @@ class MainWindow(QMainWindow):
         ):
             self.backup_center.rom_studio_handoff_stopped(
                 "ROM Studio rejected the changed or incomplete exact build contract"
+            )
+            return
+        self._navigate_route("rom_studio")
+
+    @Slot(str)
+    def _open_time_machine_rom_studio_setup(self, project_id: str) -> None:
+        """Carry Time Machine's exact missing local-baseline prerequisite into Studio."""
+
+        requested = str(project_id).strip()
+        current = str(self.backup_center.project_selector.currentData() or "").strip()
+        projects = self.backup_center.rom_store.list_projects()
+        if requested:
+            snapshots = self.backup_center.rom_store.list_snapshots(requested)
+            valid = (
+                current == requested
+                and any(project.project_id == requested for project in projects)
+                and not snapshots
+            )
+        else:
+            valid = not current and not projects
+        if not valid or not self.rom_studio.open_time_machine_setup_handoff(requested):
+            self.backup_center.rom_studio_setup_handoff_stopped(
+                "The displayed project or snapshot state changed before ROM Studio opened"
             )
             return
         self._navigate_route("rom_studio")
@@ -4905,17 +4917,19 @@ class MainWindow(QMainWindow):
                     "The saved recovery plan no longer matches the latest integrity-verified evidence."
                 )
         studio_identity = self.guardian_center.studio_review_identity
-        if studio_identity is not None and self._current_studio_guardian_manifest(
-            *studio_identity
-        ) is None:
+        if (
+            studio_identity is not None
+            and self._current_studio_guardian_manifest(*studio_identity) is None
+        ):
             self.guardian_center.studio_review_stopped(
                 "The saved Studio manifest no longer matches current project, phone, or readiness evidence."
             )
 
     def _navigation_commands(self) -> tuple[NavigationCommand, ...]:
-        """Expose only the canonical routes available in the current experience mode."""
+        """Expose pages and exact nested features available in the current experience."""
 
         commands: list[NavigationCommand] = []
+        included: set[str] = set()
         for button in self.nav_buttons:
             if button.property("expert_only") and button.isHidden():
                 continue
@@ -4924,7 +4938,55 @@ class MainWindow(QMainWindow):
                 continue
             name = feature(route)
             commands.append(NavigationCommand(route, name.title, name.subtitle, name.legacy))
+            included.add(route)
+        for route in NESTED_FEATURE_OWNERS:
+            if route in included or (
+                route in EXPERT_ONLY_NESTED_FEATURES
+                and self._experience_mode is not ExperienceMode.EXPERT
+            ):
+                continue
+            name = feature(route)
+            commands.append(NavigationCommand(route, name.title, name.subtitle, name.legacy))
         return tuple(commands)
+
+    @Slot(str)
+    def _navigate_feature_route(self, route: str) -> bool:
+        """Resolve a palette destination to its exact owner without starting work."""
+
+        if route in self.page_routes:
+            return self._navigate_route(route)
+        owner_route = NESTED_FEATURE_OWNERS.get(route)
+        if owner_route is None or (
+            route in EXPERT_ONLY_NESTED_FEATURES
+            and self._experience_mode is not ExperienceMode.EXPERT
+        ):
+            return False
+        if not self._navigate_route(owner_route):
+            return False
+        if owner_route == "command_deck":
+            opened = self.device_center.open_feature_destination(route)
+        elif owner_route == "quantum_optimizer":
+            opened = self.diagnostics_center.open_dashboard_intent(feature(route).title)
+        elif owner_route == "rom_studio":
+            opened = self.rom_studio.open_feature_destination(route)
+        elif owner_route == "recovery_bay":
+            opened = self.repair_center.open_feature_destination(route)
+        elif owner_route == "archives":
+            opened = self.knowledge_center.open_feature_destination(route)
+        elif owner_route == "nexus":
+            opened = self.nexus_center.open_feature_destination(route)
+        else:
+            opened = False
+        if opened:
+            return True
+        self.notification_center.notify(
+            f"navigation.feature.{route}",
+            "Feature destination needs attention",
+            f"ROMVERSE opened {feature(owner_route).title}, but {feature(route).title} could not "
+            "revalidate its exact local destination. No worker or phone action started.",
+            NotificationKind.ATTENTION,
+        )
+        return False
 
     @Slot()
     def _open_command_palette(self) -> None:
@@ -4935,7 +4997,7 @@ class MainWindow(QMainWindow):
             return
         dialog = CommandPaletteDialog(self._navigation_commands(), self)
         self._command_palette = dialog
-        dialog.navigation_requested.connect(self._navigate_route)
+        dialog.navigation_requested.connect(self._navigate_feature_route)
         dialog.finished.connect(lambda _result, opened=dialog: self._command_palette_closed(opened))
         dialog.open()
 
@@ -4943,9 +5005,31 @@ class MainWindow(QMainWindow):
         if self._command_palette is dialog:
             self._command_palette = None
 
+    @Slot(object)
+    def _set_experience_mode_from_studio(self, mode: object) -> None:
+        """Persist the deliberate Architect control without weakening Guardian."""
+
+        try:
+            selected = ExperienceMode(mode)
+        except (TypeError, ValueError):
+            self.rom_studio.set_experience_mode(self._experience_mode)
+            return
+        changed = selected is not self.app_settings.experience_mode
+        if changed:
+            self.app_settings = replace(
+                self.app_settings,
+                schema_version=5,
+                experience_mode=selected,
+            )
+            self.rom_studio.app_settings = self.app_settings
+        self._apply_experience_mode(selected)
+        if changed:
+            self.settings_changed.emit(self.app_settings)
+
     def _apply_experience_mode(self, mode: ExperienceMode) -> None:
         """Reveal specialist surfaces without mutating the active workspace or route."""
 
+        self._experience_mode = mode
         expert = mode is ExperienceMode.EXPERT
         mode_text = "EXPERT  •  ARCHITECT" if expert else "GUIDED  •  ARCANA"
         self.experience_badge.setProperty("expanded_text", mode_text)
@@ -4964,6 +5048,7 @@ class MainWindow(QMainWindow):
             if button.property("expert_only"):
                 button.setVisible(expert)
         self.device_center.set_experience_mode(mode)
+        self.rom_studio.set_experience_mode(mode)
 
     @Slot(str, object)
     def _record_rom_operation(self, operation: str, _result: object) -> None:
@@ -6062,8 +6147,10 @@ class MainWindow(QMainWindow):
         label, override = DESKTOP_THEMES[selected]
         stylesheet = STYLESHEET + override
         app = QApplication.instance()
-        if app is not None and app.styleSheet() != stylesheet:
-            app.setStyleSheet(stylesheet)
+        if app is not None:
+            apply_dark_palette(app)
+            if app.styleSheet() != stylesheet:
+                app.setStyleSheet(stylesheet)
         self.device_center.export_button.setText(f"Theme · {label}  ⌄")
         self.device_center.export_button.setToolTip(
             f"Current Desktop theme: {label}. Presentation only; Guardian and evidence are unchanged."

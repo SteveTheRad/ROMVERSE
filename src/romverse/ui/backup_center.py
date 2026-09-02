@@ -147,6 +147,7 @@ class BackupCenter(QWidget):
     runtime_tools_requested = Signal()
     guardian_requested = Signal(str, str)
     rom_studio_requested = Signal(str, str)
+    rom_studio_setup_requested = Signal(str)
 
     def __init__(
         self,
@@ -202,9 +203,7 @@ class BackupCenter(QWidget):
         dashboard_handoff_layout.setContentsMargins(18, 13, 18, 13)
         dashboard_handoff_layout.setSpacing(14)
         dashboard_handoff_copy = QVBoxLayout()
-        self.dashboard_handoff_eyebrow = QLabel(
-            "COMMAND DECK HANDOFF  •  CURRENT RECOVERY MAP"
-        )
+        self.dashboard_handoff_eyebrow = QLabel("COMMAND DECK HANDOFF  •  CURRENT RECOVERY MAP")
         self.dashboard_handoff_eyebrow.setObjectName("Eyebrow")
         self.dashboard_handoff_title = QLabel()
         self.dashboard_handoff_title.setObjectName("SectionTitle")
@@ -374,6 +373,25 @@ class BackupCenter(QWidget):
         self.snapshot_detail.setWordWrap(True)
         self.snapshot_detail.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         recovery_layout.addWidget(self.snapshot_detail)
+        self.local_setup = QFrame()
+        self.local_setup.setObjectName("ProcessStatusRow")
+        local_setup_layout = QHBoxLayout(self.local_setup)
+        local_setup_layout.setContentsMargins(12, 9, 12, 9)
+        local_setup_layout.setSpacing(12)
+        self.local_setup_detail = QLabel()
+        self.local_setup_detail.setObjectName("Muted")
+        self.local_setup_detail.setWordWrap(True)
+        local_setup_layout.addWidget(self.local_setup_detail, 1)
+        self.local_setup_button = QPushButton()
+        self.local_setup_button.setObjectName("Primary")
+        self.local_setup_button.setToolTip(
+            "Open ROM Studio at the exact missing project or baseline step. This starts no "
+            "project worker, build, restore, or phone action."
+        )
+        self.local_setup_button.clicked.connect(self._request_rom_studio_setup)
+        local_setup_layout.addWidget(self.local_setup_button)
+        self.local_setup.setVisible(False)
+        recovery_layout.addWidget(self.local_setup)
         local_actions = QHBoxLayout()
         self.verify_snapshot_button = QPushButton("Verify snapshot")
         self.verify_snapshot_button.setToolTip(
@@ -492,6 +510,23 @@ class BackupCenter(QWidget):
     def _request_rom_studio_project(self) -> None:
         if self._device_atlas_report_identity is not None:
             self.rom_studio_requested.emit(*self._device_atlas_report_identity)
+
+    def _request_rom_studio_setup(self) -> None:
+        """Request only the exact currently displayed missing baseline step."""
+
+        project_id = str(self.project_selector.currentData() or "").strip()
+        self.rom_studio_setup_requested.emit(project_id)
+
+    def rom_studio_setup_handoff_stopped(self, reason: str) -> None:
+        """Keep a stale generic Studio handoff visible inside Time Machine."""
+
+        self.local_result.setObjectName("Danger")
+        self.local_result.setText(
+            f"ROM STUDIO SETUP HANDOFF STOPPED  •  {reason}  •  "
+            "No project worker, snapshot, restore, build, or phone action started"
+        )
+        self._repolish(self.local_result)
+        self.refresh_local_snapshots()
 
     def rom_studio_handoff_stopped(self, reason: str) -> None:
         """Expire a Device Atlas prerequisite without opening a generic Studio page."""
@@ -723,7 +758,9 @@ class BackupCenter(QWidget):
         working = self.rom_store.working_copy(project.project_id)
         snapshots = self.rom_store.list_snapshots(project.project_id)
         current = tuple(item for item in snapshots if item.schema_version == 2)
-        source = project.original.sha256[:16] + "…" if project.original is not None else "not imported"
+        source = (
+            project.original.sha256[:16] + "…" if project.original is not None else "not imported"
+        )
         ready = working is not None and bool(current)
         next_step = (
             "The newest current snapshot is selected below for review. Verify or restore remains "
@@ -1019,6 +1056,12 @@ class BackupCenter(QWidget):
             self.snapshot_detail.setText(
                 "No ROM Studio projects yet. Create a project and working copy, then take a Time Machine snapshot."
             )
+            self.local_setup_detail.setText(
+                "No recovery project yet. Create a protected project in ROM Studio, then return "
+                "after its verified baseline snapshot."
+            )
+            self.local_setup_button.setText("Create project in ROM Studio")
+            self.local_setup.setVisible(True)
             self._set_local_controls(False)
             self._set_evidence_controls(False)
 
@@ -1038,10 +1081,17 @@ class BackupCenter(QWidget):
             self.snapshot_list.addItem(item)
         if self.snapshots:
             self.snapshot_list.setCurrentRow(0)
+            self.local_setup.setVisible(False)
         else:
             self.snapshot_detail.setText(
                 "This project has no baseline snapshots. Open ROM Studio and choose Time Machine snapshot."
             )
+            self.local_setup_detail.setText(
+                f"{project.name} has no recovery baseline. Continue in ROM Studio at its exact "
+                "next prerequisite."
+            )
+            self.local_setup_button.setText("Prepare baseline in ROM Studio")
+            self.local_setup.setVisible(True)
             self._set_local_controls(False)
         receipt = self.rom_store.load_latest_restore_receipt(project.project_id)
         if receipt is not None:

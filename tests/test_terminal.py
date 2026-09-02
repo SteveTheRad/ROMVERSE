@@ -69,6 +69,21 @@ def test_terminal_selects_only_authorized_device() -> None:
     app.processEvents()
 
 
+def test_command_console_opens_its_exact_local_archives_guide_without_running() -> None:
+    app = QApplication.instance() or QApplication([])
+    center = TerminalCenter()
+    requested: list[str] = []
+    center.knowledge_article_requested.connect(requested.append)
+
+    center.guide_button.click()
+
+    assert requested == ["command-console-no-trusted-result"]
+    assert center._worker is None
+    assert not center.output.toPlainText()
+    center.close()
+    app.processEvents()
+
+
 def test_raw_terminal_feed_accepts_only_privacy_filtered_read_only_probes() -> None:
     feed = RawTerminalFeed()
     private_serial = "private-device-serial"

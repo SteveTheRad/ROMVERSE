@@ -5,6 +5,7 @@ import os
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtGui import QPalette
 from PySide6.QtWidgets import QApplication
 
 from romverse.core.activity import ActivityStore
@@ -43,6 +44,20 @@ def test_galaxy_center_renders_and_updates_real_local_conversations(tmp_path) ->
     app.processEvents()
     assert center.topic_list.count() == 0
     center.close()
+
+
+def test_galaxy_opens_its_exact_local_privacy_guide_without_publishing(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = GalaxyCenter(tmp_path)
+    requested: list[str] = []
+    center.knowledge_article_requested.connect(requested.append)
+
+    center.guide_button.click()
+
+    assert requested == ["galaxy-local-publishing-boundary"]
+    assert not center.store.path.exists()
+    center.close()
+    app.processEvents()
 
 
 def test_galaxy_activity_records_and_reopens_the_exact_local_topic(tmp_path) -> None:
@@ -145,5 +160,6 @@ def test_galaxy_editors_render_with_explicit_dark_theme_surfaces(tmp_path) -> No
     dialog_image = dialog.body_input.viewport().grab().toImage()
     assert center_image.pixelColor(4, 4).lightness() < 40
     assert dialog_image.pixelColor(4, 4).lightness() < 40
+    assert center.topic_body.palette().color(QPalette.ColorRole.Text).lightness() > 160
     dialog.close()
     center.close()

@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QDialog, QLabel, QPushButton
 
 from romverse.core.settings import AppSettings, DesktopTheme, ExperienceMode
@@ -153,6 +154,88 @@ def test_every_desktop_navigation_label_opens_and_highlights_its_own_page(
         window.close()
 
 
+def test_new_archives_owner_routes_open_and_return_to_exact_desktop_pages(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    owner_guides = (
+        (
+            "command_console",
+            window.terminal_center,
+            window.terminal_center.guide_button,
+            "command-console-no-trusted-result",
+        ),
+        (
+            "members",
+            window.members_center,
+            window.members_center.guide_button,
+            "members-service-unavailable-or-unconfigured",
+        ),
+        (
+            "galaxy",
+            window.galaxy_center,
+            window.galaxy_center.guide_button,
+            "galaxy-local-publishing-boundary",
+        ),
+    )
+    try:
+        window.resize(1_200, 760)
+        window.show()
+        app.processEvents()
+        for route, owner, guide_button, article_key in owner_guides:
+            assert window._navigate_route(route)
+            app.processEvents()
+            assert window.workspace_route_title.width() >= (
+                window.workspace_route_title.fontMetrics().horizontalAdvance(
+                    window.workspace_route_title.text()
+                )
+            )
+            guide_button.click()
+            app.processEvents()
+
+            assert window.stack.currentWidget() is window.knowledge_center
+            assert (
+                window.knowledge_center.list.currentItem().data(Qt.ItemDataRole.UserRole)
+                == article_key
+            )
+            assert window.knowledge_center.source_context.property("source_route") == route
+            assert window.knowledge_center.open_route.property("route") == route
+            window.knowledge_center.source_return.click()
+            app.processEvents()
+            assert window.stack.currentWidget() is owner
+
+        for route, owner, article_key in (
+            (
+                "health_timeline",
+                window.history_center,
+                "health-timeline-comparison-unavailable",
+            ),
+            ("nexus", window.nexus_center, "nexus-current-evidence-route-unavailable"),
+        ):
+            assert window._navigate_route("archives")
+            assert window.knowledge_center.open_article(article_key)
+            assert window.knowledge_center.open_route.property("route") == route
+            window.knowledge_center.open_route.click()
+            app.processEvents()
+            assert window.stack.currentWidget() is owner
+
+        assert window.terminal_center._worker is None
+        assert not window.members_center._busy
+        assert window.guardian_center.worker is None
+        assert window.rom_studio.worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
 def test_about_recalculates_real_workspace_evidence_and_returns_from_its_exact_guide(
     tmp_path: Path,
     monkeypatch,
@@ -196,7 +279,7 @@ def test_about_recalculates_real_workspace_evidence_and_returns_from_its_exact_g
             f"{len(registry.packs)} DEVICE PACKS  •  1 OFFICIAL IDS"
         )
         assert window.about_page.evidence_values["knowledge"].text() == (
-            "137 VERIFIED GUIDES  •  87 KNOWN FIXES"
+            "148 VERIFIED GUIDES  •  98 KNOWN FIXES"
         )
         ready_tools = sum(status.available for status in window.toolchain_center.statuses)
         tool_count = len(window.toolchain_center.statuses)
@@ -204,9 +287,7 @@ def test_about_recalculates_real_workspace_evidence_and_returns_from_its_exact_g
             f"1 LOCAL PROJECT  •  {ready_tools}/{tool_count} HOST TOOLS READY"
         )
         assert window.about_page.evidence_values["live"].text() == ("1 GENUINE EVENT  •  1 ACTIVE")
-        assert window.about_page.evidence_values["guardian"].text() == (
-            "AUDIT + APPROVAL EVIDENCE"
-        )
+        assert window.about_page.evidence_values["guardian"].text() == ("AUDIT + APPROVAL EVIDENCE")
         assert window.about_page.evidence_states["guardian"].text() == "VERIFY REQUIRED"
         assert window.about_page.evidence_cards["guardian"].property("evidenceState") == (
             "attention"
@@ -296,12 +377,8 @@ def test_about_observes_guardian_verification_and_retires_stale_evidence(
 
         window._navigate_route("about")
         app.processEvents()
-        assert window.about_page.evidence_states["guardian"].text() == (
-            "INTEGRITY VERIFIED"
-        )
-        assert window.about_page.evidence_cards["guardian"].property(
-            "evidenceState"
-        ) == "verified"
+        assert window.about_page.evidence_states["guardian"].text() == ("INTEGRITY VERIFIED")
+        assert window.about_page.evidence_cards["guardian"].property("evidenceState") == "verified"
 
         audit = window.guardian_center.audit
         assert audit is not None
@@ -311,12 +388,8 @@ def test_about_observes_guardian_verification_and_retires_stale_evidence(
         app.processEvents()
 
         assert window.guardian_center.current_dashboard_state()[0] == "review_due"
-        assert window.about_page.evidence_states["guardian"].text() == (
-            "REVERIFY REQUIRED"
-        )
-        assert window.about_page.evidence_cards["guardian"].property(
-            "evidenceState"
-        ) == "attention"
+        assert window.about_page.evidence_states["guardian"].text() == ("REVERIFY REQUIRED")
+        assert window.about_page.evidence_cards["guardian"].property("evidenceState") == "attention"
         assert "EVIDENCE NEEDS ATTENTION" in window.about_page.runtime_scope.text()
         assert len(started) == 1
         assert window.guardian_center.worker is None
@@ -437,9 +510,7 @@ def test_command_deck_cards_are_context_aware_and_route_to_canonical_pages(
         assert window.stack.currentWidget() is window.rom_studio
         assert genesis_opened == [True]
         assert not window.rom_studio.dashboard_handoff.isHidden()
-        assert window.rom_studio.dashboard_handoff_title.text() == (
-            "Build ROM → Genesis Sequence"
-        )
+        assert window.rom_studio.dashboard_handoff_title.text() == ("Build ROM → Genesis Sequence")
         assert "NO BUILD OR PHONE ACTION STARTED" in (
             window.rom_studio.dashboard_handoff_detail.text()
         )
@@ -496,9 +567,7 @@ def test_command_deck_cards_are_context_aware_and_route_to_canonical_pages(
         )
         assert guardian_action.text().splitlines()[1] == "INTEGRITY VERIFIED"
         assert guardian_action.property("evidenceReady") is True
-        assert window.guardian_center.dashboard_handoff_badge.text() == (
-            "INTEGRITY VERIFIED"
-        )
+        assert window.guardian_center.dashboard_handoff_badge.text() == ("INTEGRITY VERIFIED")
         window._navigate(0)
         window.device_center.quick_action_buttons["Wireless Transfer"].click()
         app.processEvents()
@@ -574,7 +643,9 @@ def test_command_deck_evidence_handoffs_preserve_current_owner_state(tmp_path: P
         diagnostic = window.diagnostics_center.current_report
         assert diagnostic is not None
         assert window.stack.currentWidget() is window.diagnostics_center
-        assert str(diagnostic.health_score) in window.diagnostics_center.dashboard_handoff_title.text()
+        assert (
+            str(diagnostic.health_score) in window.diagnostics_center.dashboard_handoff_title.text()
+        )
         assert "Recommended Action Plan" in (
             window.diagnostics_center.dashboard_handoff_detail.text()
         )
@@ -643,9 +714,7 @@ def test_device_atlas_and_nexus_preserve_exact_context_into_rom_studio(
         app.processEvents()
         assert window.stack.currentWidget() is window.rom_studio
         assert genesis_opened == [True]
-        assert window.rom_studio.dashboard_handoff_eyebrow.text().startswith(
-            "DEVICE ATLAS HANDOFF"
-        )
+        assert window.rom_studio.dashboard_handoff_eyebrow.text().startswith("DEVICE ATLAS HANDOFF")
         assert report.report_digest[:16] in window.rom_studio.dashboard_handoff_detail.text()
         assert "NO BUILD, APPROVAL, FLASH, OR PHONE ACTION STARTED" in (
             window.rom_studio.dashboard_handoff_detail.text()
@@ -658,9 +727,7 @@ def test_device_atlas_and_nexus_preserve_exact_context_into_rom_studio(
         assert window.stack.currentWidget() is window.rom_studio
         assert genesis_opened == [True]
         assert window.rom_studio.command_tabs.currentIndex() == 1
-        assert window.rom_studio.dashboard_handoff_title.text() == (
-            "Device Atlas → Build & Proof"
-        )
+        assert window.rom_studio.dashboard_handoff_title.text() == ("Device Atlas → Build & Proof")
         assert window.rom_studio.worker is None
 
         project = window.rom_studio.store.create("Nexus exact project")
@@ -776,9 +843,7 @@ def test_rom_studio_command_deck_device_evidence_round_trip_is_exact(
         app.processEvents()
         assert window.stack.currentWidget() is window.device_center
         assert window.device_center.studio_handoff.isVisibleTo(window.device_center)
-        assert window.device_center.studio_handoff_badge.text() == (
-            "TARGET MATCH • READ ONLY"
-        )
+        assert window.device_center.studio_handoff_badge.text() == ("TARGET MATCH • READ ONLY")
         assert project.project_id in window.device_center.studio_handoff_detail.text()
         assert project.original is not None
         assert project.original.sha256[:16] in window.device_center.studio_handoff_detail.text()
@@ -788,9 +853,7 @@ def test_rom_studio_command_deck_device_evidence_round_trip_is_exact(
         assert window.stack.currentWidget() is window.rom_studio
         assert window.rom_studio.current_project is not None
         assert window.rom_studio.current_project.project_id == project.project_id
-        assert window.rom_studio.dashboard_handoff_eyebrow.text().startswith(
-            "COMMAND DECK HANDOFF"
-        )
+        assert window.rom_studio.dashboard_handoff_eyebrow.text().startswith("COMMAND DECK HANDOFF")
         assert "Forge Control device prerequisite" in (
             window.rom_studio.dashboard_handoff_detail.text()
         )
@@ -882,9 +945,7 @@ def test_rom_studio_forge_tool_evidence_round_trip_is_exact(tmp_path: Path) -> N
         )
         app.processEvents()
         assert window.stack.currentWidget() is window.toolchain_center
-        assert "STALE PROJECT CONTEXT" in (
-            window.toolchain_center.device_pack_handoff_badge.text()
-        )
+        assert "STALE PROJECT CONTEXT" in (window.toolchain_center.device_pack_handoff_badge.text())
         assert "NO INSTALL, PROJECT WORKER, BUILD, ROOT, FLASH" in (
             window.toolchain_center.device_pack_handoff_feedback.text()
         )
@@ -930,9 +991,7 @@ def test_studio_manifest_opens_persistent_guardian_context_and_returns_exactly(
             project.project_id,
             manifest.manifest_digest,
         )
-        assert manifest.manifest_digest[:16] in (
-            window.guardian_center.studio_review_detail.text()
-        )
+        assert manifest.manifest_digest[:16] in (window.guardian_center.studio_review_detail.text())
         assert window.guardian_center.studio_review_badge.text() == "ZERO AUTHORITY"
         assert window.guardian_center.worker is None
 
@@ -1936,9 +1995,7 @@ def test_official_identity_missing_pack_opens_exact_archives_fix_and_returns_unc
         assert window.knowledge_center.list.currentItem().text() == (
             "Official Android ID search finds a phone but no Device Pack"
         )
-        assert window.knowledge_center.source_context.property("source_route") == (
-            "device_atlas"
-        )
+        assert window.knowledge_center.source_context.property("source_route") == ("device_atlas")
         assert window.knowledge_center.source_return.text() == "Return to Device Atlas"
 
         window.knowledge_center.source_return.click()
@@ -2156,9 +2213,7 @@ def test_device_atlas_stock_gate_opens_time_machine_with_exact_context(tmp_path:
         window.backup_center.device_atlas_project_button.click()
         app.processEvents()
         assert window.stack.currentWidget() is window.rom_studio
-        assert window.rom_studio.dashboard_handoff_eyebrow.text().startswith(
-            "TIME MACHINE HANDOFF"
-        )
+        assert window.rom_studio.dashboard_handoff_eyebrow.text().startswith("TIME MACHINE HANDOFF")
         assert report.report_digest[:16] in window.rom_studio.dashboard_handoff_detail.text()
         assert window.rom_studio.worker is None
 
@@ -2268,9 +2323,7 @@ def test_device_atlas_carries_exact_pack_tools_into_forge_and_verified_archives(
         assert report.report_digest[:16] in (
             window.device_packs_center.dashboard_handoff_detail.text()
         )
-        assert "AUTHORITY NONE" in (
-            window.device_packs_center.dashboard_handoff_detail.text()
-        )
+        assert "AUTHORITY NONE" in (window.device_packs_center.dashboard_handoff_detail.text())
         assert "NO ACTION STARTED" in window.device_packs_center.dashboard_handoff_detail.text()
         window.device_packs_center.requirement_buttons["compile"].click()
         app.processEvents()
@@ -2330,9 +2383,7 @@ def test_forge_routes_missing_android_sdk_build_tools_to_exact_verified_fix(
         window._navigate_route("forge_arsenal")
         app.processEvents()
 
-        assert window.toolchain_center.android_sdk_guide_button.isVisibleTo(
-            window.toolchain_center
-        )
+        assert window.toolchain_center.android_sdk_guide_button.isVisibleTo(window.toolchain_center)
         window.toolchain_center.android_sdk_guide_button.click()
         app.processEvents()
 

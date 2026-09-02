@@ -182,9 +182,7 @@ class DiagnosticsCenter(QWidget):
         dashboard_handoff_layout.setContentsMargins(18, 13, 18, 13)
         dashboard_handoff_layout.setSpacing(14)
         dashboard_handoff_copy = QVBoxLayout()
-        dashboard_handoff_eyebrow = QLabel(
-            "COMMAND DECK HANDOFF  •  CURRENT HEALTH EVIDENCE"
-        )
+        dashboard_handoff_eyebrow = QLabel("COMMAND DECK HANDOFF  •  CURRENT HEALTH EVIDENCE")
         dashboard_handoff_eyebrow.setObjectName("Eyebrow")
         self.dashboard_handoff_title = QLabel()
         self.dashboard_handoff_title.setObjectName("SectionTitle")
@@ -403,19 +401,22 @@ class DiagnosticsCenter(QWidget):
     def open_dashboard_intent(self, action: str) -> bool:
         """Present the current Health Review without silently launching another scan."""
 
-        if str(action).strip() != "Health Review":
+        requested = str(action).strip()
+        if requested not in {"Health Review", "System Scan"}:
             return False
+        title_prefix = "System Scan" if requested == "System Scan" else "Health Review"
         report = self.current_report
         device = self.current_device
         if report is None or device is None:
             self._show_dashboard_handoff(
-                "Health Review needs fresh Device Engine evidence",
+                f"{title_prefix} needs fresh Device Engine evidence",
                 "Connect and authorize one phone, then choose Refresh health data. ROMVERSE "
                 "will not infer a health score from stale or absent telemetry. NO SCAN, "
                 "OPTIMIZATION, CLEANUP, OR PHONE ACTION STARTED.",
                 "EVIDENCE NEEDED",
                 ready=False,
             )
+            self.refresh.setFocus(Qt.FocusReason.OtherFocusReason)
             return True
         review_levels = {Severity.ADVISORY, Severity.WARNING, Severity.CRITICAL}
         actionable = tuple(
@@ -431,7 +432,7 @@ class DiagnosticsCenter(QWidget):
         priority = max(report.findings, key=lambda item: ranking[item.severity], default=None)
         priority_text = priority.title if priority is not None else "No findings reported"
         self._show_dashboard_handoff(
-            f"Health Review • {report.device_name} • score {report.health_score}",
+            f"{title_prefix} • {report.device_name} • score {report.health_score}",
             f"The current read-only report contains {len(report.findings)} finding(s); "
             f"{len(actionable)} need review. Highest priority: {priority_text}. The Recommended "
             "Action Plan below links exact findings to Archives and Recovery Bay. NO NEW SCAN, "
@@ -441,6 +442,7 @@ class DiagnosticsCenter(QWidget):
         )
         if self.action_plan_card is not None:
             self.body.ensureWidgetVisible(self.action_plan_card, 0, 24)
+        self.refresh.setFocus(Qt.FocusReason.OtherFocusReason)
         return True
 
     def _show_dashboard_handoff(

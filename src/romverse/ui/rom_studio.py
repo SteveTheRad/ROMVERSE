@@ -4,7 +4,7 @@ import json
 import re
 import shutil
 from contextlib import suppress
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import datetime
 from pathlib import Path, PurePosixPath
 
@@ -35,7 +35,7 @@ from romverse.ascension.build_handoff import RootRomBuildHandoffService
 from romverse.ascension.integration import RootRomIntegrationService
 from romverse.ascension.models import AscensionMethod
 from romverse.ascension.planning import AscensionRootPlanService
-from romverse.core.settings import AppSettings
+from romverse.core.settings import AppSettings, ExperienceMode
 from romverse.device.dna import CapabilityState, DeviceDnaProfile, DeviceDnaService
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device_packs.attestations import DevicePackAttestationStore
@@ -464,6 +464,7 @@ class RomStudio(QWidget):
     device_scan_finished = Signal(bool, str)
     device_dna_updated = Signal(object)
     compatibility_matrix_updated = Signal(object)
+    experience_mode_requested = Signal(object)
 
     def __init__(
         self,
@@ -544,10 +545,13 @@ class RomStudio(QWidget):
         self.ascension_button.clicked.connect(self._open_ascension_protocol)
         header.addWidget(self.ascension_button)
         self.expert_button = QPushButton("Architect Mode")
+        self.expert_button.setObjectName("ArchitectModeButton")
+        self.expert_button.setCheckable(True)
         self.expert_button.setToolTip(
-            "Show the complete advanced ROM workspace; Guardian Core protections remain active."
+            "Switch the complete Desktop to Expert · Architect mode and reveal specialist "
+            "routes. Projects, evidence, and Guardian protections remain unchanged."
         )
-        self.expert_button.clicked.connect(self._enable_expert_mode)
+        self.expert_button.clicked.connect(self._toggle_architect_mode)
         header.addWidget(self.expert_button)
         page.addLayout(header)
 
@@ -949,6 +953,7 @@ class RomStudio(QWidget):
         footer.setWordWrap(True)
         page.addWidget(footer)
         self.refresh()
+        self.set_experience_mode(self.app_settings.experience_mode)
 
     def _configure_tools(self, tool_statuses: tuple[ToolStatus, ...]) -> None:
         self.tool_statuses = tuple(tool_statuses)
@@ -1156,6 +1161,65 @@ class RomStudio(QWidget):
         self.time_machine_requested.emit(project.project_id)
         return True
 
+    def open_time_machine_setup_handoff(self, project_id: str) -> bool:
+        """Open the exact missing prerequisite requested by Time Machine."""
+
+        normalized = str(project_id).strip()
+        self.command_tabs.setCurrentIndex(0)
+        if not normalized:
+            if self.store.list_projects():
+                return False
+            self.refresh()
+            self._show_dashboard_handoff(
+                "Time Machine → protected recovery project",
+                "No ROM project exists. Create one, import its exact protected firmware, then "
+                "prepare a working baseline before taking a Time Machine snapshot. The New "
+                "project control is focused; no dialog or worker was started automatically. "
+                "NO PROJECT, SNAPSHOT, RESTORE, BUILD, OR PHONE ACTION STARTED.",
+                "PROJECT REQUIRED",
+                ready=False,
+                eyebrow="TIME MACHINE HANDOFF  •  EXACT MISSING RECOVERY PREREQUISITE",
+            )
+            self.new_button.setFocus(Qt.FocusReason.OtherFocusReason)
+            return True
+
+        try:
+            project = self.store.get(normalized)
+        except (OSError, ProjectError, TypeError, ValueError):
+            return False
+        if self.store.list_snapshots(project.project_id):
+            return False
+        self.refresh(project.project_id)
+        if self.current_project is None or self.current_project.project_id != project.project_id:
+            return False
+        working = self.store.working_copy(project.project_id)
+        if project.original is None:
+            next_step = "Import original"
+            detail = (
+                "needs its exact protected firmware source before a recovery baseline can exist"
+            )
+            focus = self.import_button
+        elif working is None:
+            next_step = "Create working copy"
+            detail = "has protected source evidence but no isolated working baseline"
+            focus = self.working_button
+        else:
+            next_step = "Time Machine snapshot"
+            detail = "has an isolated working baseline ready for a verified local snapshot"
+            focus = self.snapshot_button
+        self._show_dashboard_handoff(
+            f"Time Machine → {project.name}",
+            f"Exact project {project.project_id} {detail}. Continue with {next_step}; ROM Studio "
+            "will preserve its normal verification and approval boundaries. NO PROJECT WORKER, "
+            "SNAPSHOT, RESTORE, BUILD, FLASH, OR PHONE ACTION STARTED.",
+            next_step.upper(),
+            ready=focus.isEnabled(),
+            eyebrow="TIME MACHINE HANDOFF  •  EXACT MISSING RECOVERY PREREQUISITE",
+        )
+        self.detail_scroll.ensureWidgetVisible(self.command_tabs, 0, 24)
+        focus.setFocus(Qt.FocusReason.OtherFocusReason)
+        return True
+
     def request_device_atlas(self) -> bool:
         """Open Device Atlas only with the exact selected Studio project identity."""
 
@@ -1255,7 +1319,11 @@ class RomStudio(QWidget):
             return False
         self.refresh(project.project_id)
         profile = self.device_dna.profiles.load(project.project_id)
-        expected_model = profile.fact("identity.model").value if profile and profile.fact("identity.model") else ""
+        expected_model = (
+            profile.fact("identity.model").value
+            if profile and profile.fact("identity.model")
+            else ""
+        )
         expected_codename = (
             profile.fact("identity.codename").value
             if profile and profile.fact("identity.codename")
@@ -1319,9 +1387,7 @@ class RomStudio(QWidget):
         self.refresh(project.project_id)
         statuses = {status.name: status for status in self.tool_statuses}
         missing = tuple(
-            name
-            for name in required_tools
-            if name not in statuses or not statuses[name].available
+            name for name in required_tools if name not in statuses or not statuses[name].available
         )
         ready = len(required_tools) - len(missing)
         self.command_tabs.setCurrentIndex(1)
@@ -1358,7 +1424,11 @@ class RomStudio(QWidget):
         if not isinstance(report, DevicePackValidationReport):
             return False
         pack = next(
-            (candidate for candidate in self.pack_registry.packs if candidate.pack_id == report.pack_id),
+            (
+                candidate
+                for candidate in self.pack_registry.packs
+                if candidate.pack_id == report.pack_id
+            ),
             None,
         )
         if (
@@ -1732,12 +1802,494 @@ class RomStudio(QWidget):
         AscensionProtocolDialog(self, parent or self).exec()
         self.ascension_status_changed.emit()
 
-    def _enable_expert_mode(self) -> None:
-        self.operation_status.setText(
-            "Architect Mode enabled. Guardian Core protections remain active."
+    def set_experience_mode(self, mode: ExperienceMode) -> None:
+        """Mirror the authoritative Desktop experience without changing project state."""
+
+        try:
+            selected = ExperienceMode(mode)
+        except ValueError:
+            selected = ExperienceMode.GUIDED
+        self.app_settings = replace(self.app_settings, experience_mode=selected)
+        expert = selected is ExperienceMode.EXPERT
+        self.expert_button.blockSignals(True)
+        self.expert_button.setChecked(expert)
+        self.expert_button.blockSignals(False)
+        self.expert_button.setProperty("active", expert)
+        self.expert_button.setText("Return to Guided Mode" if expert else "Enter Architect Mode")
+        self.expert_button.setAccessibleName(
+            "Return ROMVERSE Desktop to Guided Arcana mode"
+            if expert
+            else "Enter ROMVERSE Desktop Expert Architect mode"
         )
-        self.operation_status.setObjectName("Good")
-        self._repolish(self.operation_status)
+        self.expert_button.style().unpolish(self.expert_button)
+        self.expert_button.style().polish(self.expert_button)
+
+    def _toggle_architect_mode(self, enabled: bool) -> None:
+        """Make the Studio mode control a genuine persisted Desktop transition."""
+
+        selected = ExperienceMode.EXPERT if enabled else ExperienceMode.GUIDED
+        self.set_experience_mode(selected)
+        self.reveal_experience_mode(selected)
+        self.experience_mode_requested.emit(selected)
+
+    def reveal_experience_mode(self, mode: ExperienceMode) -> None:
+        """Reveal the selected workspace while retaining every evidence boundary."""
+
+        selected = ExperienceMode(mode)
+        if selected is ExperienceMode.EXPERT:
+            self.command_tabs.setCurrentIndex(1)
+            ready, detail = self._prebuild_simulation_handoff()
+            self._show_dashboard_handoff(
+                "Architect Mode → complete advanced workspace",
+                f"{detail} Specialist Desktop routes are now visible. Projects, evidence, "
+                "approvals, and Guardian policy are unchanged; NO WORKER, BUILD, FLASH, OR "
+                "PHONE ACTION STARTED.",
+                "EXPERT • ARCHITECT" if ready else "EXPERT • PREREQUISITE",
+                ready=ready,
+                eyebrow="ARCHITECT MODE  •  PERSISTED DESKTOP EXPERIENCE",
+            )
+            self.detail_scroll.ensureWidgetVisible(self.command_tabs, 0, 24)
+            (self.plan_button if self.plan_button.isEnabled() else self.expert_button).setFocus(
+                Qt.FocusReason.OtherFocusReason
+            )
+            return
+
+        self.command_tabs.setCurrentIndex(0)
+        project = self.current_project
+        if project is None:
+            detail = (
+                "No project is selected. Guided Arcana begins with New project and a protected "
+                "firmware source."
+            )
+            focus = self.new_button
+        elif project.original is None:
+            detail = (
+                f"{project.name} is selected and needs its protected firmware source before "
+                "guided preparation can continue."
+            )
+            focus = self.import_button
+        else:
+            detail = (
+                f"{project.name} is selected with protected source evidence. Source Lab is "
+                "restored to the current safe next step."
+            )
+            focus = next(
+                (
+                    button
+                    for button in (
+                        self.verify_button,
+                        self.inspect_button,
+                        self.working_button,
+                        self.extract_button,
+                    )
+                    if button.isEnabled()
+                ),
+                self.guided_button,
+            )
+        self._show_dashboard_handoff(
+            "Guided Mode → Arcana workspace",
+            f"{detail} Specialist sidebar routes are folded, but no capability, evidence, "
+            "project, or Guardian boundary was removed. NO WORKER, BUILD, FLASH, OR PHONE "
+            "ACTION STARTED.",
+            "GUIDED • ARCANA",
+            ready=True,
+            eyebrow="GUIDED MODE  •  PERSISTED DESKTOP EXPERIENCE",
+        )
+        self.detail_scroll.ensureWidgetVisible(self.command_tabs, 0, 24)
+        focus.setFocus(Qt.FocusReason.OtherFocusReason)
+
+    def open_feature_destination(self, route: str) -> bool:
+        """Open one named Studio feature without launching its operation or dialog."""
+
+        destination = str(route).strip()
+        if destination == "source_lab":
+            self.command_tabs.setCurrentIndex(0)
+            project = self.current_project
+            if project is None:
+                detail = "Create or select an exact ROM project to begin protected source work."
+                focus = self.new_button
+            elif project.original is None:
+                detail = (
+                    f"{project.name} is ready for its exact firmware source to be copied, hashed, "
+                    "protected, and bounded-inspected."
+                )
+                focus = self.import_button
+            else:
+                report = self.inspection.load_report(project.project_id)
+                tree_ready = self.inspection.working_tree_exists(project.project_id)
+                detail = (
+                    f"{project.name} has protected source {project.original.sha256[:16]}…; "
+                    f"structure {'inspected' if report is not None else 'needs inspection'}; "
+                    f"contained tree {'ready' if tree_ready else 'not yet prepared'}."
+                )
+                focus = self.verify_button
+            self._show_dashboard_handoff(
+                "Find Anything → Source Lab",
+                f"{detail} The Source Lab tab is selected. NO FILE DIALOG, IMPORT, HASH, "
+                "INSPECTION, EXTRACTION, WORKER, BUILD, FLASH, OR PHONE ACTION STARTED.",
+                "SOURCE WORKSPACE" if project is not None else "PROJECT REQUIRED",
+                ready=project is not None,
+                eyebrow="FIND ANYTHING  •  EXACT ROM STUDIO COMMAND GROUP",
+            )
+            focus.setFocus(Qt.FocusReason.OtherFocusReason)
+        elif destination == "build_proof":
+            self.command_tabs.setCurrentIndex(1)
+            ready, detail = self._prebuild_simulation_handoff()
+            self._show_dashboard_handoff(
+                "Find Anything → Build & Proof",
+                f"{detail} The deterministic planning and verification tab is selected. "
+                "NO PLAN, WORKER, BUNDLE, BUILD, SIGNING, FLASH, OR PHONE ACTION STARTED.",
+                "INPUTS READY" if ready else "PREREQUISITE",
+                ready=ready,
+                eyebrow="FIND ANYTHING  •  EXACT ROM STUDIO COMMAND GROUP",
+            )
+            (self.plan_button if ready else self.command_tabs).setFocus(
+                Qt.FocusReason.OtherFocusReason
+            )
+        elif destination == "guided_arcana":
+            guided = self.app_settings.experience_mode is ExperienceMode.GUIDED
+            if guided:
+                self.command_tabs.setCurrentIndex(0)
+            self._show_dashboard_handoff(
+                "Find Anything → Guided Arcana",
+                (
+                    "Guided Arcana is already the persisted Desktop experience. Source Lab is "
+                    "selected and the current next-safe-action guidance remains unchanged."
+                    if guided
+                    else "The Desktop is currently in Expert Architect mode. Choose Return to "
+                    "Guided Mode to switch the persisted experience deliberately."
+                )
+                + " Navigation did not switch mode, change a project or evidence, start a worker, "
+                "build, flash, or change a phone.",
+                "ACTIVE" if guided else "MODE CHOICE REQUIRED",
+                ready=guided,
+                eyebrow="FIND ANYTHING  •  PERSISTED DESKTOP EXPERIENCE",
+            )
+            (self.command_tabs if guided else self.expert_button).setFocus(
+                Qt.FocusReason.OtherFocusReason
+            )
+        elif destination == "forge_bundle":
+            self.command_tabs.setCurrentIndex(1)
+            project = self.current_project
+            receipt = (
+                ForgeBundleService(self.store).load_receipt(project.project_id)
+                if project is not None
+                else None
+            )
+            creatable = self.forge_button.isEnabled()
+            if receipt is not None:
+                detail = (
+                    f"{project.name} has verified Forge Bundle {receipt.archive_sha256[:16]}… "
+                    f"containing {receipt.file_count} file(s) and {receipt.content_bytes} bytes."
+                )
+                badge = "VERIFIED INTERMEDIATE"
+                ready = True
+                focus = self.verify_forge_button
+            elif creatable:
+                detail = (
+                    f"{project.name} has a verified deterministic plan ready for deliberate "
+                    "Forge Bundle creation."
+                )
+                badge = "READY TO CREATE"
+                ready = True
+                focus = self.forge_button
+            else:
+                _planning_ready, detail = self._prebuild_simulation_handoff()
+                detail += " Create and verify the exact build plan before forging the bundle."
+                badge = "PREREQUISITE"
+                ready = False
+                focus = self.command_tabs
+            self._show_dashboard_handoff(
+                "Find Anything → Forge Bundle",
+                f"{detail} This artifact remains unsigned, non-bootable, and non-flashable. "
+                "NO WORKER, BUNDLE CREATION, BUILD, SIGNING, FLASH, OR PHONE ACTION STARTED.",
+                badge,
+                ready=ready,
+                eyebrow="FIND ANYTHING  •  EXACT ROM STUDIO ARTIFACT",
+            )
+            focus.setFocus(Qt.FocusReason.OtherFocusReason)
+        elif destination == "nebula_debloat":
+            self.command_tabs.setCurrentIndex(2)
+            project = self.current_project
+            receipt = None
+            if project is not None:
+                with suppress(ProjectError):
+                    receipt = DebloatService(self.store).load_receipt(project.project_id)
+            if receipt is not None:
+                detail = (
+                    f"{project.name} has a current Nebula Debloat receipt for "
+                    f"{receipt.removed_app_count} reviewed app group(s)."
+                )
+                badge = "CURRENT RECEIPT"
+                ready = True
+            elif project is None:
+                detail = "Create or select a ROM project before entering the Genesis customization stage."
+                badge = "PROJECT REQUIRED"
+                ready = False
+            elif self.inspection.load_report(project.project_id) is None:
+                detail = f"{project.name} needs a saved structure inspection before app discovery."
+                badge = "INSPECTION REQUIRED"
+                ready = False
+            elif not self.inspection.working_tree_exists(project.project_id):
+                detail = f"{project.name} needs a contained working tree before app review."
+                badge = "WORKING TREE REQUIRED"
+                ready = False
+            else:
+                detail = (
+                    f"{project.name} can enter the Nebula Debloat stage through Genesis Sequence; "
+                    "the stage will verify its exact source-shape tools first."
+                )
+                badge = "READY FOR GENESIS REVIEW"
+                ready = True
+            self._show_dashboard_handoff(
+                "Find Anything → Nebula Debloat",
+                f"{detail} Protected apps remain locked and changes target only the isolated "
+                "working tree after review. NO DIALOG, SCAN, REMOVAL, WORKER, BUILD, FLASH, OR "
+                "PHONE ACTION STARTED.",
+                badge,
+                ready=ready,
+                eyebrow="FIND ANYTHING  •  EXACT GENESIS SUBSYSTEM",
+            )
+            self.guided_button.setFocus(Qt.FocusReason.OtherFocusReason)
+        elif destination == "genesis_sequence":
+            flight = self.genesis_flight_plan()
+            self.command_tabs.setCurrentIndex(0)
+            self._show_dashboard_handoff(
+                "Find Anything → Genesis Sequence",
+                f"{flight.project_name}  •  stage {flight.stage_number}/{flight.stage_total}: "
+                f"{flight.stage_title}  •  {flight.progress_percent}% verified. Choose Genesis "
+                "Sequence to open the guided journey; NO DIALOG, WORKER, BUILD, FLASH, OR PHONE "
+                "ACTION STARTED.",
+                "GUIDED ENTRY",
+                ready=True,
+                eyebrow="FIND ANYTHING  •  EXACT NESTED FEATURE",
+            )
+            self.guided_button.setFocus(Qt.FocusReason.OtherFocusReason)
+        elif destination == "ascension_protocol":
+            self.command_tabs.setCurrentIndex(0)
+            project = self.current_project
+            ready = project is not None
+            detail = (
+                f"Exact project {project.name} is selected. Choose Ascension Protocol to review "
+                "the evidence-bound optional root-preparation journey."
+                if project is not None
+                else "Create or select an exact ROM project before optional root preparation can begin."
+            )
+            self._show_dashboard_handoff(
+                "Find Anything → Ascension Protocol",
+                f"{detail} Navigation did not open the dialog or acquire, install, copy, patch, "
+                "build, root, flash, or change a phone.",
+                "READY TO REVIEW" if ready else "PROJECT REQUIRED",
+                ready=ready,
+                eyebrow="FIND ANYTHING  •  EXACT NESTED FEATURE",
+            )
+            self.ascension_button.setFocus(Qt.FocusReason.OtherFocusReason)
+        elif destination == "device_dna":
+            self.command_tabs.setCurrentIndex(0)
+            project = self.current_project
+            profile = (
+                self.device_dna.profiles.load(project.project_id) if project is not None else None
+            )
+            if project is None:
+                detail = (
+                    "Create or select a ROM project, then import its protected firmware before "
+                    "Device DNA can bind device and source evidence."
+                )
+            elif profile is None:
+                detail = (
+                    f"{project.name} has no current Device DNA. Genesis must derive it from the "
+                    "exact protected source and a fresh read-only device context without guessing."
+                )
+            else:
+                detail = (
+                    f"{project.name} has current Device DNA {profile.profile_digest[:16]}… with "
+                    f"{len(profile.facts)} facts, {len(profile.capabilities)} Capability Map "
+                    f"decisions, and {len(profile.warnings)} warning(s)."
+                )
+            ready = profile is not None
+            self._show_dashboard_handoff(
+                "Find Anything → Device DNA",
+                f"{detail} The source-bound profile is displayed above the Source Lab controls. "
+                "NO SCAN, PROFILE REFRESH, WORKER, BUILD, FLASH, OR PHONE ACTION STARTED.",
+                "CURRENT EVIDENCE" if ready else "PREREQUISITE",
+                ready=ready,
+                eyebrow="FIND ANYTHING  •  EXACT NESTED FEATURE",
+            )
+            (self.project_list if ready else self.guided_button).setFocus(
+                Qt.FocusReason.OtherFocusReason
+            )
+        elif destination == "compatibility_matrix":
+            self.command_tabs.setCurrentIndex(0)
+            project = self.current_project
+            profile = (
+                self.device_dna.profiles.load(project.project_id) if project is not None else None
+            )
+            matrix = (
+                self.compatibility.matrices.load(project.project_id)
+                if project is not None and profile is not None
+                else None
+            )
+            if project is None:
+                detail = "Select a protected-source project before compatibility can be assessed."
+            elif profile is None:
+                detail = (
+                    f"{project.name} needs current Device DNA before the Compatibility Matrix can "
+                    "separate proven, limited, unknown, and incompatible capability evidence."
+                )
+            elif matrix is None:
+                detail = (
+                    f"{project.name} has Device DNA {profile.profile_digest[:16]}… but no current "
+                    "source-bound Compatibility Matrix. Resume Genesis to derive it."
+                )
+            else:
+                states: dict[str, int] = {}
+                for decision in matrix.decisions:
+                    states[decision.status.value] = states.get(decision.status.value, 0) + 1
+                summary = ", ".join(
+                    f"{count} {state.replace('-', ' ')}" for state, count in sorted(states.items())
+                )
+                detail = (
+                    f"{project.name} has current Compatibility Matrix "
+                    f"{matrix.matrix_digest[:16]}… with {summary or 'no decisions'}."
+                )
+            ready = matrix is not None
+            self._show_dashboard_handoff(
+                "Find Anything → Compatibility Matrix",
+                f"{detail} Its decisions remain Guardian-advisory only. NO PROFILE REFRESH, "
+                "RESEARCH, WORKER, BUILD, APPROVAL, FLASH, OR PHONE ACTION STARTED.",
+                "CURRENT EVIDENCE" if ready else "PREREQUISITE",
+                ready=ready,
+                eyebrow="FIND ANYTHING  •  EXACT NESTED FEATURE",
+            )
+            (self.project_list if ready else self.guided_button).setFocus(
+                Qt.FocusReason.OtherFocusReason
+            )
+        elif destination == "prebuild_simulation":
+            opened = self.open_dashboard_intent("Pre-Build Simulation")
+            if opened:
+                self.dashboard_handoff_eyebrow.setText("FIND ANYTHING  •  EXACT NESTED FEATURE")
+                self.dashboard_handoff_title.setText("Find Anything → Pre-Build Simulation")
+            return opened
+        elif destination == "rom_dna":
+            self.command_tabs.setCurrentIndex(1)
+            project = self.current_project
+            dna = DnaStore().load(self.store, project.project_id) if project is not None else None
+            if project is None:
+                detail = "Select an exact ROM project before project provenance can be derived."
+            elif dna is None:
+                detail = (
+                    f"{project.name} needs a current protected source and deterministic build plan "
+                    "before ROM DNA can bind its Pack, source, tree, and Recipe provenance."
+                )
+            else:
+                detail = (
+                    f"{project.name} has current ROM DNA {dna.fingerprint} with record "
+                    f"{dna.record_digest[:16]}… bound to Pack {dna.device_pack_id or 'none'}."
+                )
+            ready = dna is not None
+            self._show_dashboard_handoff(
+                "Find Anything → ROM DNA",
+                f"{detail} Navigation did not derive, save, modify, plan, build, sign, flash, or "
+                "change a phone.",
+                "PROVENANCE CURRENT" if ready else "PREREQUISITE",
+                ready=ready,
+                eyebrow="FIND ANYTHING  •  EXACT NESTED FEATURE",
+            )
+            (self.verify_plan_button if ready else self.plan_button).setFocus(
+                Qt.FocusReason.OtherFocusReason
+            )
+        elif destination == "boot_observatory":
+            self.command_tabs.setCurrentIndex(1)
+            project = self.current_project
+            receipt = (
+                BootObservationService(self.store, self.pack_registry).load(project.project_id)
+                if project is not None
+                else None
+            )
+            if receipt is None:
+                detail = (
+                    "Boot Observatory needs an exact protected-source project, a reviewed Device "
+                    "Pack build contract, and the matching authorized phone inside Forge Control."
+                )
+            else:
+                detail = (
+                    f"{project.name} has {len(receipt.samples)} current read-only boot sample(s); "
+                    f"status {receipt.status.value}, stable {'yes' if receipt.stable else 'no'}, "
+                    f"receipt {receipt.receipt_digest[:16]}…."
+                )
+            ready = receipt is not None
+            self._show_dashboard_handoff(
+                "Find Anything → Boot Observatory",
+                f"{detail} Stability never proves a flash or verified first boot by itself. "
+                "NO DIALOG, SAMPLE, ADB COMMAND, BUILD, FLASH, OR PHONE ACTION STARTED.",
+                "CURRENT OBSERVATION" if ready else "FORGE CONTROL PREREQUISITE",
+                ready=ready,
+                eyebrow="FIND ANYTHING  •  EXACT NESTED FEATURE",
+            )
+            (self.build_control_button if project is not None else self.command_tabs).setFocus(
+                Qt.FocusReason.OtherFocusReason
+            )
+        elif destination == "architect_mode":
+            self.reveal_experience_mode(ExperienceMode.EXPERT)
+        elif destination == "partition_atlas":
+            self.command_tabs.setCurrentIndex(1)
+            ready = self.partition_button.isEnabled()
+            self._show_dashboard_handoff(
+                "Find Anything → Partition Atlas",
+                (
+                    "The current project has a contained payload source ready for Partition "
+                    "Atlas review. Choose the highlighted control when ready."
+                    if ready
+                    else "Partition Atlas needs an exact project, protected firmware, a contained "
+                    "tree with payload.bin, and verified Payload Dumper evidence. Complete the "
+                    "Source Lab prerequisites first."
+                )
+                + " NO DIALOG, TOOL INSTALL, EXTRACTION WORKER, BUILD, FLASH, OR PHONE ACTION STARTED.",
+                "READY TO REVIEW" if ready else "PREREQUISITE",
+                ready=ready,
+                eyebrow="FIND ANYTHING  •  EXACT NESTED FEATURE",
+            )
+            (self.partition_button if ready else self.command_tabs).setFocus(
+                Qt.FocusReason.OtherFocusReason
+            )
+        elif destination == "recipe_forge":
+            self.command_tabs.setCurrentIndex(2)
+            ready, detail = self._recipe_forge_handoff()
+            self._show_dashboard_handoff(
+                "Find Anything → Recipe Forge",
+                detail,
+                "READY TO REVIEW" if ready else "PREREQUISITE",
+                ready=ready,
+                eyebrow="FIND ANYTHING  •  EXACT NESTED FEATURE",
+            )
+            (self.guided_recipe_button if ready else self.command_tabs).setFocus(
+                Qt.FocusReason.OtherFocusReason
+            )
+        elif destination == "forge_control":
+            self.command_tabs.setCurrentIndex(1)
+            ready = self.build_control_button.isEnabled()
+            if ready:
+                detail = (
+                    "Current project evidence can open Forge Control for build, signing, "
+                    "recovery, and flash-readiness review."
+                )
+            else:
+                _planning_ready, detail = self._prebuild_simulation_handoff()
+                detail += " Prepare and verify a build plan before Forge Control can open."
+            self._show_dashboard_handoff(
+                "Find Anything → Forge Control",
+                f"{detail} NO DIALOG, WORKER, BUILD, SIGNING, FLASH, OR PHONE ACTION STARTED.",
+                "READY TO REVIEW" if ready else "PREREQUISITE",
+                ready=ready,
+                eyebrow="FIND ANYTHING  •  EXACT NESTED FEATURE",
+            )
+            (self.build_control_button if ready else self.command_tabs).setFocus(
+                Qt.FocusReason.OtherFocusReason
+            )
+        else:
+            return False
+        self.detail_scroll.ensureWidgetVisible(self.command_tabs, 0, 24)
+        return True
 
     def choose_mode(self) -> int:
         return RomModeChooser(self).exec()

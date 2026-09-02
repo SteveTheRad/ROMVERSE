@@ -499,10 +499,19 @@ existing feature route remains distinct and highlights its own active destinatio
 fold specialist sidebar entries without hiding Guardian or Live Console.
 
 Ctrl+K opens a keyboard-first, navigation-only command palette populated from that same sidebar
-route registry and canonical feature vocabulary. Familiar legacy names remain searchable, while
-Guided mode excludes its folded specialist destinations and Expert mode exposes them. Activating a
-result emits only its stable page route: the palette has no operation callback, execution authority,
-device selector, or approval surface.
+route registry and canonical feature vocabulary. Named nested features resolve through one
+authoritative owner map and display their exact current prerequisite inside Command Deck, System
+Scan, ROM Studio, Recovery Bay, or Archives without invoking the focused control. This includes
+Device Engine, Device DNA, Compatibility Matrix, Pre-Build Simulation, ROM DNA, Boot Observatory,
+Recovery Autopilot, ROMVERSE Intelligence, and ROMVERSE Synapse as well as the guided creation
+surfaces. Health Review is distinct from starting System Scan, and Expert mode can open Pathfinder,
+Foresight, or Insight at the matching current Nexus panel without generating or adapting a plan.
+Every visible Command Deck launch-card name also resolves to its canonical destination. Familiar
+legacy names remain searchable, while Guided mode excludes its folded specialist destinations and
+Expert mode exposes them. Synapse evidence returns to its real Archives owner rather than Nexus.
+The ROM Studio Architect control updates and persists that same Desktop experience. The palette and
+mode transition have no operation callback, execution authority, device selector, or approval
+surface.
 
 The group/route structure has one authoritative registry shared by sidebar construction, active
 selection, command search, and live breadcrumbs. Ctrl+B may collapse the full sidebar into a

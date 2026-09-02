@@ -281,6 +281,27 @@ class RepairCenter(QWidget):
         self.session_context_row.setVisible(False)
         page.addWidget(self.session_context_row)
 
+        self.feature_handoff = QFrame()
+        self.feature_handoff.setObjectName("DiagnosticHandoffBar")
+        feature_handoff_layout = QHBoxLayout(self.feature_handoff)
+        feature_handoff_layout.setContentsMargins(18, 11, 18, 11)
+        feature_copy = QVBoxLayout()
+        feature_eyebrow = QLabel("FIND ANYTHING  •  EXACT NESTED FEATURE")
+        feature_eyebrow.setObjectName("Eyebrow")
+        self.feature_handoff_title = QLabel()
+        self.feature_handoff_title.setObjectName("SectionTitle")
+        self.feature_handoff_detail = QLabel()
+        self.feature_handoff_detail.setObjectName("Muted")
+        self.feature_handoff_detail.setWordWrap(True)
+        feature_copy.addWidget(feature_eyebrow)
+        feature_copy.addWidget(self.feature_handoff_title)
+        feature_copy.addWidget(self.feature_handoff_detail)
+        feature_handoff_layout.addLayout(feature_copy, 1)
+        self.feature_handoff_badge = QLabel()
+        feature_handoff_layout.addWidget(self.feature_handoff_badge)
+        self.feature_handoff.setVisible(False)
+        page.addWidget(self.feature_handoff)
+
         self.hero = QFrame()
         self.hero.setObjectName("HeroCard")
         hero_layout = QHBoxLayout(self.hero)
@@ -425,6 +446,63 @@ class RepairCenter(QWidget):
         footer.addWidget(self.export_button)
         page.addLayout(footer)
         self._empty("Select a connected device and problem category to create a dry-run plan.")
+
+    def open_feature_destination(self, route: str) -> bool:
+        """Reveal one Recovery Bay subsystem without starting research or repair."""
+
+        destination = str(route).strip()
+        if destination == "recovery_autopilot":
+            active = self.host_action_card.isVisible() and bool(
+                self.host_action_detail.text().strip()
+            )
+            self.feature_handoff_title.setText("Find Anything → Recovery Autopilot")
+            self.feature_handoff_detail.setText(
+                (
+                    "The current bounded ADB host-recovery evidence is displayed below. Review "
+                    "its exact plan and Guardian boundary before choosing any action."
+                    if active
+                    else "Recovery Autopilot needs a current USB/ADB assessment that identifies "
+                    "an offline or failed host daemon. Select the matching concern and build a "
+                    "safety plan after a Device Engine snapshot exists."
+                )
+                + " Navigation did not scan, restart ADB, research, repair, approve, build, "
+                "flash, or change a phone."
+            )
+            self.feature_handoff_badge.setText(
+                "CURRENT HOST PLAN" if active else "EVIDENCE REQUIRED"
+            )
+            self.feature_handoff_badge.setObjectName("Good" if active else "Warning")
+            focus = self._host_action_button if active else self.concern_selector
+        elif destination == "romverse_intelligence":
+            active = self.intelligence_card.isVisible() and bool(
+                self.intelligence_status.text().strip()
+            )
+            self.feature_handoff_title.setText("Find Anything → ROMVERSE Intelligence")
+            self.feature_handoff_detail.setText(
+                (
+                    "The current source-attributed repair-research evidence is displayed below. "
+                    "Remote text remains guidance-only and cannot become an operation."
+                    if active
+                    else "ROMVERSE Intelligence needs a current bounded error fingerprint from "
+                    "an exact symptom, device error, or diagnostic finding before verified online "
+                    "research can be requested."
+                )
+                + " Navigation did not submit text, start research, scan, repair, approve, build, "
+                "flash, or change a phone."
+            )
+            self.feature_handoff_badge.setText(
+                "GUIDANCE ONLY" if active else "FINGERPRINT REQUIRED"
+            )
+            self.feature_handoff_badge.setObjectName("Good" if active else "Warning")
+            focus = self.intelligence_toggle if active else self.symptom_input
+        else:
+            return False
+        for widget in (self.feature_handoff_badge, self.feature_handoff):
+            widget.style().unpolish(widget)
+            widget.style().polish(widget)
+        self.feature_handoff.setVisible(True)
+        focus.setFocus(Qt.FocusReason.OtherFocusReason)
+        return True
 
     def set_devices(self, devices: list[AndroidDevice]) -> None:
         self.devices = devices

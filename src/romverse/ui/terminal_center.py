@@ -99,6 +99,7 @@ class TerminalCenter(QWidget):
     """Guardian-bounded terminal for safe host and read-only ADB inspection."""
 
     runtime_tools_requested = Signal()
+    knowledge_article_requested = Signal(str)
 
     _PRESETS = {
         "ADB devices": ["adb", "devices", "-l"],
@@ -185,7 +186,18 @@ class TerminalCenter(QWidget):
         )
         note.setObjectName("Muted")
         note.setWordWrap(True)
-        controls_layout.addWidget(note)
+        note_row = QHBoxLayout()
+        note_row.addWidget(note, 1)
+        self.guide_button = QPushButton("Command safety guide")
+        self.guide_button.setToolTip(
+            "Open the exact local Archives guide for blocked or unavailable Command Console "
+            "checks. This starts no command or device action."
+        )
+        self.guide_button.clicked.connect(
+            lambda: self.knowledge_article_requested.emit("command-console-no-trusted-result")
+        )
+        note_row.addWidget(self.guide_button)
+        controls_layout.addLayout(note_row)
         self.progress = ProcessProgressBar()
         self.progress.setAccessibleName("Command Console probe progress")
         controls_layout.addWidget(self.progress)

@@ -89,8 +89,8 @@ When online research is off, its secondary panel folds into a compact, accessibl
 preconditions and the Advisor stay prominent. Active, returned, or failed research expands its full
 evidence automatically, and the user can fold only those details without changing assessment state.
 
-The Desktop **ROMVERSE Archives** catalog now contains 137 validated local guides across ten
-categories, including 87 structured known-fix records and 37 distinct official sources. The added
+The Desktop **ROMVERSE Archives** catalog now contains 148 validated local guides across ten
+categories, including 98 structured known-fix records and 37 distinct official sources. The added
 official-source-labelled device triage covers battery/heat, storage, Android updates,
 app crashes, screen/touch, network, and performance, while camera/audio guidance remains explicitly
 ROMVERSE-scoped until exact OEM evidence is available. Ranked punctuation-tolerant retrieval covers
@@ -853,11 +853,20 @@ shows **INTEGRITY VERIFIED** only after both audit and approval chains pass, and
 The destination displays the same lifecycle in a visible handoff and navigation starts no approval,
 command, build, flash, or phone action.
 
-Desktop navigation also has a keyboard-first **Ctrl+K command palette**. It searches the same
-canonical destinations as the permanent sidebar—including familiar earlier feature names—and
-opens only the selected page. Guided Mode keeps folded specialist destinations out of results;
-Expert Mode reveals them. The palette cannot run a tool, start a device operation, grant approval,
-or bypass Guardian.
+Desktop navigation also has a keyboard-first **Ctrl+K command palette**. It searches every
+canonical sidebar page plus every registered implemented internal feature, including Device Portal,
+Device Engine, System Scan, Genesis Sequence, Ascension Protocol, Device DNA, Compatibility Matrix,
+Pre-Build Simulation, Partition Atlas, Recipe Forge, Forge Control, ROM DNA, Boot Observatory,
+Recovery Autopilot, ROMVERSE Intelligence, ROMVERSE Synapse, Health Review, Pathfinder, Foresight,
+and Insight—including familiar earlier feature names. Each internal result opens its exact Command
+Deck, ROM Studio, Quantum Optimizer, Recovery Bay, Archives, or Nexus owner and displays the current
+feature evidence or prerequisite without clicking it. Every visible Command Deck launch-card label
+is searchable. Pathfinder, Foresight, and Insight reveal their matching current-plan panels without
+generating or adapting a plan, and Synapse source events return to Archives rather than Nexus.
+Guided Mode keeps Architect-only destinations out of results; Expert Mode reveals them. The ROM
+Studio Architect control changes and persists that same authoritative Desktop experience rather
+than showing a decorative status. Neither transition can run a tool, open an operation dialog,
+start a device operation, grant approval, or bypass Guardian.
 
 The Desktop shell can collapse that same authoritative navigation into a permanent icon rail with
 **Ctrl+B**, preserving the current page, active highlight, tooltips, and accessible names. A

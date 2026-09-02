@@ -546,9 +546,7 @@ def test_about_runtime_evidence_is_explicit_and_routes_to_its_owning_features() 
             live_event_count=200,
             live_active_count=38,
             guardian_state="verified",
-            guardian_detail=(
-                "SHA-256 audit chain verified across current operation evidence"
-            ),
+            guardian_detail=("SHA-256 audit chain verified across current operation evidence"),
             guardian_verified=True,
         )
     )

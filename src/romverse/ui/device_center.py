@@ -250,9 +250,7 @@ class DeviceCenter(QWidget):
         self._repair_finding_id = ""
         self._repair_finding_title = ""
         self._guardian_state = "unverified"
-        self._guardian_detail = (
-            "Guardian's current audit and approval evidence has not yet been verified in this session."
-        )
+        self._guardian_detail = "Guardian's current audit and approval evidence has not yet been verified in this session."
         self._guardian_verified = False
         self._studio_device_context: RomStudioDeviceContext | None = None
         self.quick_action_buttons: dict[str, QToolButton] = {}
@@ -357,6 +355,28 @@ class DeviceCenter(QWidget):
         studio_handoff_layout.addLayout(studio_actions)
         self.studio_handoff.setVisible(False)
         page.addWidget(self.studio_handoff)
+
+        self.feature_handoff = QFrame()
+        self.feature_handoff.setObjectName("DiagnosticHandoffBar")
+        feature_handoff_layout = QHBoxLayout(self.feature_handoff)
+        feature_handoff_layout.setContentsMargins(18, 11, 18, 11)
+        feature_copy = QVBoxLayout()
+        feature_eyebrow = QLabel("FIND ANYTHING  •  EXACT NESTED FEATURE")
+        feature_eyebrow.setObjectName("Eyebrow")
+        self.feature_handoff_title = QLabel()
+        self.feature_handoff_title.setObjectName("SectionTitle")
+        self.feature_handoff_detail = QLabel()
+        self.feature_handoff_detail.setObjectName("Muted")
+        self.feature_handoff_detail.setWordWrap(True)
+        feature_copy.addWidget(feature_eyebrow)
+        feature_copy.addWidget(self.feature_handoff_title)
+        feature_copy.addWidget(self.feature_handoff_detail)
+        feature_handoff_layout.addLayout(feature_copy, 1)
+        self.feature_handoff_badge = QLabel("READ ONLY")
+        self.feature_handoff_badge.setObjectName("Good")
+        feature_handoff_layout.addWidget(self.feature_handoff_badge)
+        self.feature_handoff.setVisible(False)
+        page.addWidget(self.feature_handoff)
 
         next_action = QFrame()
         next_action.setObjectName("HeroCard")
@@ -465,6 +485,63 @@ class DeviceCenter(QWidget):
 
         self._experience_mode = mode
         self._apply_quick_action_visibility()
+
+    def open_feature_destination(self, route: str) -> bool:
+        """Reveal a Command Deck feature without starting a Device Engine scan."""
+
+        destination = str(route).strip()
+        if destination not in {"device_nexus", "device_engine"}:
+            return False
+        device = (
+            self.devices[self._selected_index]
+            if 0 <= self._selected_index < len(self.devices)
+            else None
+        )
+        if destination == "device_engine" and device is None:
+            self.feature_handoff_title.setText("Device Engine is ready for a read-only scan")
+            self.feature_handoff_detail.setText(
+                "Choose Scan for device when the phone is connected and authorized. Navigation "
+                "did not invoke ADB, refresh tools, scan, command, build, flash, or change a phone."
+            )
+            self.feature_handoff_badge.setText("READY • NO SCAN STARTED")
+            self.feature_handoff_badge.setObjectName("Good")
+            self.next_button.setFocus(Qt.FocusReason.OtherFocusReason)
+        elif destination == "device_engine":
+            self.feature_handoff_title.setText(f"Device Engine evidence • {device.display_name}")
+            self.feature_handoff_detail.setText(
+                f"The current {device.state.value} snapshot for {device.masked_serial()} is "
+                "already displayed below. Navigation did not refresh ADB, scan, command, build, "
+                "flash, or change the phone."
+            )
+            self.feature_handoff_badge.setText("CURRENT • READ ONLY")
+            self.feature_handoff_badge.setObjectName(
+                "Good" if device.state is DeviceState.DEVICE else "Warning"
+            )
+            self.next_button.setFocus(Qt.FocusReason.OtherFocusReason)
+        elif device is None:
+            self.feature_handoff_title.setText("Device Portal needs a current Android identity")
+            self.feature_handoff_detail.setText(
+                "Connect and authorize a phone, then choose Scan. ROMVERSE opened the owning "
+                "Command Deck only; NO SCAN, COMMAND, BUILD, FLASH, OR PHONE ACTION STARTED."
+            )
+            self.feature_handoff_badge.setText("EVIDENCE NEEDED")
+            self.feature_handoff_badge.setObjectName("Warning")
+        else:
+            self.feature_handoff_title.setText(f"Device Portal • {device.display_name}")
+            self.feature_handoff_detail.setText(
+                f"Current {device.state.value} evidence is already displayed below for "
+                f"{device.masked_serial()}. Navigation did not refresh, command, build, flash, "
+                "or change the phone."
+            )
+            self.feature_handoff_badge.setText("CURRENT • READ ONLY")
+            self.feature_handoff_badge.setObjectName(
+                "Good" if device.state is DeviceState.DEVICE else "Warning"
+            )
+            self.next_button.setFocus(Qt.FocusReason.OtherFocusReason)
+        self._repolish(self.feature_handoff_badge)
+        self.feature_handoff.setVisible(True)
+        self.body.verticalScrollBar().setValue(0)
+        return True
 
     def set_workspace_context(
         self,
@@ -676,9 +753,7 @@ class DeviceCenter(QWidget):
         context = self._studio_device_context
         if context is None:
             return
-        authorized = tuple(
-            device for device in self.devices if device.state is DeviceState.DEVICE
-        )
+        authorized = tuple(device for device in self.devices if device.state is DeviceState.DEVICE)
         expected_model = context.expected_model.casefold().strip()
         expected_codename = context.expected_codename.casefold().strip()
         matches = tuple(
@@ -691,9 +766,12 @@ class DeviceCenter(QWidget):
                 or device.product.casefold().strip() == expected_codename
             )
         )
-        expected = " / ".join(
-            value for value in (context.expected_model, context.expected_codename) if value
-        ) or "target identity not yet derived"
+        expected = (
+            " / ".join(
+                value for value in (context.expected_model, context.expected_codename) if value
+            )
+            or "target identity not yet derived"
+        )
         pack = context.device_pack_id or "not bound"
         purpose = (
             "Ascension requested a fresh read-only target check"

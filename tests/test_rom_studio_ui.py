@@ -155,12 +155,8 @@ def test_rom_studio_command_deck_handoffs_report_exact_ready_workflows(tmp_path)
     app.processEvents()
     assert studio.command_tabs.currentIndex() == 2
     assert studio.dashboard_handoff_badge.text() == "READY"
-    assert "Handoff Project is ready for Recipe Forge" in (
-        studio.dashboard_handoff_detail.text()
-    )
-    assert "Nothing changes until explicit approval" in (
-        studio.dashboard_handoff_detail.text()
-    )
+    assert "Handoff Project is ready for Recipe Forge" in (studio.dashboard_handoff_detail.text())
+    assert "Nothing changes until explicit approval" in (studio.dashboard_handoff_detail.text())
     assert studio.worker is None
     assert not studio.open_dashboard_intent("Unknown workflow")
     studio.close()

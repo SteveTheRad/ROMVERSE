@@ -639,9 +639,14 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   Desktop settings schema-v4 Guided · Arcana and Expert · Architect experience persistence,
   specialist navigation/Command Console progressive disclosure that preserves the active route,
   keeps Live Console and Guardian visible, and never changes approval policy; accessible Desktop
-  Ctrl+K navigation-only command palette populated from the canonical sidebar routes and shared
-  feature vocabulary, with legacy-name search, stable relevance ranking, Guided/Expert disclosure,
-  and no operation or device authority; one authoritative grouped navigation registry with live
+  Ctrl+K navigation-only command palette populated from the canonical sidebar routes, shared
+  feature vocabulary, and exact owner-routed nested features across Command Deck, ROM Studio,
+  Recovery Bay, and Archives, with legacy-name search, stable relevance ranking, Guided/Expert
+  disclosure, visible in-page prerequisites, corrected Synapse-to-Archives source ownership, and no
+  operation or device authority; exact zero-action Pathfinder, Foresight, and Insight panel
+  destinations plus complete Command Deck launch-card name discovery; a genuine ROM Studio
+  Architect toggle that persists that same authoritative
+  Desktop mode without changing evidence or Guardian; one authoritative grouped navigation registry with live
   canonical breadcrumbs, Ctrl+B compact icon rail, and reversible Ctrl+Shift+F/Escape Focus
   workspace that preserves the exact active page, prior rail choice, workers, evidence, projects,
   and Guardian state while keeping visible search and connectivity context; canonical Desktop

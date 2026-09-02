@@ -23,7 +23,7 @@ from PySide6.QtWidgets import (
 
 @dataclass(frozen=True, slots=True)
 class NavigationCommand:
-    """One canonical Desktop destination searchable by public vocabulary."""
+    """One canonical Desktop page or owner-routed feature destination."""
 
     route: str
     title: str
@@ -110,7 +110,7 @@ class CommandPaletteDialog(QDialog):
 
         self.search = QLineEdit()
         self.search.setObjectName("CommandPaletteSearch")
-        self.search.setAccessibleName("Search ROMVERSE pages")
+        self.search.setAccessibleName("Search ROMVERSE features")
         self.search.setPlaceholderText("Type a page, goal, or familiar feature name …")
         self.search.setClearButtonEnabled(True)
         self.search.setMaxLength(120)
@@ -126,15 +126,15 @@ class CommandPaletteDialog(QDialog):
 
         self.results = QListWidget()
         self.results.setObjectName("CommandPaletteResults")
-        self.results.setAccessibleName("Matching ROMVERSE pages")
+        self.results.setAccessibleName("Matching ROMVERSE features")
         self.results.setUniformItemSizes(True)
         self.results.itemActivated.connect(self._activate_item)
         layout.addWidget(self.results, 1)
 
-        keyboard_help = QLabel("Enter opens the selected page  •  Esc closes  •  Ctrl+K opens")
+        keyboard_help = QLabel("Enter opens the selected feature  •  Esc closes  •  Ctrl+K opens")
         keyboard_help.setObjectName("Muted")
         keyboard_help.setAccessibleName(
-            "Keyboard help: Enter opens the selected page, Escape closes the palette"
+            "Keyboard help: Enter opens the selected feature, Escape closes the palette"
         )
         layout.addWidget(keyboard_help)
 
@@ -159,9 +159,9 @@ class CommandPaletteDialog(QDialog):
             noun = "destination" if len(matches) == 1 else "destinations"
             self.result_count.setText(f"{len(matches)} {noun}")
         else:
-            empty = QListWidgetItem("No matching ROMVERSE page")
+            empty = QListWidgetItem("No matching ROMVERSE feature")
             empty.setFlags(Qt.ItemFlag.NoItemFlags)
-            empty.setData(Qt.ItemDataRole.AccessibleTextRole, "No matching ROMVERSE page")
+            empty.setData(Qt.ItemDataRole.AccessibleTextRole, "No matching ROMVERSE feature")
             empty.setSizeHint(QSize(0, 52))
             self.results.addItem(empty)
             self.result_count.setText("0 destinations")

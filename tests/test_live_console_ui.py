@@ -133,6 +133,31 @@ def test_live_console_disables_source_action_for_unregistered_producer(tmp_path)
     assert "did not report a registered" in center.source_feedback.text()
 
 
+def test_live_console_returns_synapse_evidence_to_archives_not_nexus(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    store = LiveConsoleEventStore(tmp_path)
+    store.note(
+        source="ROMVERSE Synapse",
+        stage="verified-resolution-memory",
+        title="Typed fix learned locally",
+        summary="An integrity-verified local outcome updated private guidance.",
+        explanation="The record has no upload or execution authority.",
+        next_action="Review its exact scope in Archives.",
+        state=MissionState.INFORMATION,
+        confidence=MissionConfidence.VERIFIED,
+    )
+
+    center = LiveConsoleCenter(store)
+    requested: list[tuple[str, str]] = []
+    center.source_requested.connect(lambda route, project_id: requested.append((route, project_id)))
+    center.refresh()
+
+    assert center.open_source_button.text() == "Open ROMVERSE Archives"
+    assert center.open_source_button.isEnabled()
+    center.open_source_button.click()
+    assert requested == [("archives", "")]
+
+
 def test_live_console_exposes_tamper_failure_instead_of_fabricating_events(tmp_path) -> None:
     QApplication.instance() or QApplication([])
     store = LiveConsoleEventStore(tmp_path)

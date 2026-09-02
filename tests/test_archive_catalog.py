@@ -6,6 +6,7 @@ import pytest
 
 from romverse.knowledge.archives import (
     ALL_CATEGORIES,
+    CANONICAL_ROUTES,
     CATEGORIES,
     KNOWN_FIXES,
     ArchiveSource,
@@ -14,14 +15,15 @@ from romverse.knowledge.archives import (
     validate_catalog,
 )
 from romverse.ui.knowledge_center import ARCHIVE_ARTICLES
+from romverse.ui.workspace_shell import NAVIGATION_GROUPS
 
 
 def test_archives_catalog_is_large_unique_classified_and_evidence_labelled() -> None:
     validate_catalog(ARCHIVE_ARTICLES)
     metrics = catalog_metrics(ARCHIVE_ARTICLES)
 
-    assert len(ARCHIVE_ARTICLES) == 137
-    assert len(KNOWN_FIXES) == 87
+    assert len(ARCHIVE_ARTICLES) == 148
+    assert len(KNOWN_FIXES) == 98
     assert metrics == {
         "guides": len(ARCHIVE_ARTICLES),
         "categories": len(CATEGORIES),
@@ -32,6 +34,14 @@ def test_archives_catalog_is_large_unique_classified_and_evidence_labelled() -> 
     assert len({article.title.casefold() for article in ARCHIVE_ARTICLES}) == len(ARCHIVE_ARTICLES)
     assert {article.category for article in ARCHIVE_ARTICLES} == set(CATEGORIES)
     assert all(article.evidence and article.automation and article.route for article in KNOWN_FIXES)
+
+
+def test_archives_have_an_exact_destination_for_every_top_level_desktop_page() -> None:
+    top_level_routes = {route for group in NAVIGATION_GROUPS for route in group.routes}
+    represented_routes = {article.route for article in ARCHIVE_ARTICLES}
+
+    assert top_level_routes <= CANONICAL_ROUTES
+    assert top_level_routes <= represented_routes
 
 
 @pytest.mark.parametrize(
@@ -51,6 +61,14 @@ def test_archives_catalog_is_large_unique_classified_and_evidence_labelled() -> 
         (
             "return button loses context",
             "Return button opens the right page but loses the exact evidence",
+        ),
+        (
+            "synapse opens nexus",
+            "ROMVERSE Synapse evidence opens the wrong workspace",
+        ),
+        (
+            "pathfinder opens generic nexus",
+            "Pathfinder, Foresight, or Insight opens only a generic Nexus page",
         ),
         (
             "studio wrong nexus plan",
@@ -75,6 +93,42 @@ def test_archives_catalog_is_large_unique_classified_and_evidence_labelled() -> 
         (
             "live console white table",
             "Live Console table is white or unreadable on a dark desktop",
+        ),
+        (
+            "desktop app all white",
+            "ROMVERSE Desktop is white or unreadable after a source update",
+        ),
+        (
+            "time machine no enabled buttons",
+            "Time Machine has no action when no ROM project or snapshot exists",
+        ),
+        (
+            "command console blocked",
+            "Command Console check is blocked or produces no trusted result",
+        ),
+        (
+            "health timeline cannot compare",
+            "Health Timeline cannot compare the selected diagnostic snapshot",
+        ),
+        (
+            "members service not configured",
+            "ROMVERSE Members sign-in is unavailable or unconfigured",
+        ),
+        (
+            "galaxy topic not published",
+            "ROMVERSE Galaxy topic is local and not published",
+        ),
+        (
+            "nexus cannot derive route",
+            "ROMVERSE Nexus cannot derive a route from current project evidence",
+        ),
+        (
+            "find anything missing feature",
+            "Find Anything cannot open a named internal ROMVERSE feature",
+        ),
+        (
+            "architect mode does nothing",
+            "Architect Mode does not reveal the Expert desktop",
         ),
         (
             "synapse fix retired",
@@ -157,7 +211,7 @@ def test_archives_rank_verified_known_fixes_for_real_failure_language(
 
 def test_archives_reject_weak_matches_and_bound_results() -> None:
     assert not search_catalog(ARCHIVE_ARTICLES, "definitely not a real ROMVERSE topic")
-    assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=1_000)) == 137
+    assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=1_000)) == 148
     assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=0)) == 1
     connectivity = search_catalog(
         ARCHIVE_ARTICLES,

@@ -30,7 +30,7 @@ from romverse.infrastructure.tools import ToolVerifier
 from romverse.platform.host import current_host
 from romverse.ui.main_window import MainWindow
 from romverse.ui.setup_wizard import SetupWizard
-from romverse.ui.theme import STYLESHEET
+from romverse.ui.theme import STYLESHEET, apply_dark_palette
 from romverse.ui.toolchain_center import activate_verified_managed_tools
 
 
@@ -91,6 +91,7 @@ def main(argv: list[str] | None = None) -> int:
     app.setApplicationName("ROMVERSE")
     app.setOrganizationName("RadForge Labs")
     app.setStyle("Fusion")
+    apply_dark_palette(app)
     app.setStyleSheet(STYLESHEET)
     instance_lock = QLockFile(str(Path(tempfile.gettempdir()) / "romverse-studio.lock"))
     # A killed/aborted GUI can leave lock metadata behind. Qt can safely

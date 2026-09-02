@@ -6,7 +6,7 @@ from contextlib import suppress
 from datetime import datetime
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -134,6 +134,8 @@ class NewTopicDialog(QDialog):
 class GalaxyCenter(QWidget):
     """Real offline community workspace with no implied network synchronization."""
 
+    knowledge_article_requested = Signal(str)
+
     def __init__(
         self,
         workspace: Path,
@@ -187,6 +189,15 @@ class GalaxyCenter(QWidget):
         boundary_layout.addWidget(state)
         boundary_layout.addSpacing(16)
         boundary_layout.addWidget(explanation, 1)
+        self.guide_button = QPushButton("Privacy & publishing guide")
+        self.guide_button.setToolTip(
+            "Open the exact local Archives guide for Galaxy privacy, integrity, and publishing "
+            "boundaries. This starts no upload or network action."
+        )
+        self.guide_button.clicked.connect(
+            lambda: self.knowledge_article_requested.emit("galaxy-local-publishing-boundary")
+        )
+        boundary_layout.addWidget(self.guide_button)
         page.addWidget(boundary)
 
         tools = QHBoxLayout()
@@ -230,7 +241,8 @@ class GalaxyCenter(QWidget):
         self.topic_body.setOpenExternalLinks(False)
         self.topic_body.setMinimumHeight(150)
         self.topic_body.setStyleSheet(
-            "background:#030711; border:1px solid #202E49; border-radius:10px; padding:10px;"
+            "background:#030711; color:#D8E3FA; border:1px solid #202E49; "
+            "border-radius:10px; padding:10px;"
         )
         self.topic_body.setHtml(self._empty_html())
         detail_layout.addWidget(self.topic_title)

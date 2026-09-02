@@ -1,3 +1,6 @@
+from PySide6.QtGui import QColor, QPalette
+from PySide6.QtWidgets import QApplication
+
 COLORS = {
     "background": "#02050A",
     "surface": "#060A11",
@@ -15,7 +18,7 @@ COLORS = {
 
 STYLESHEET = """
 * { font-family: Inter, "Noto Sans", "Segoe UI", sans-serif; }
-QMainWindow, QWidget#AppRoot { background: transparent; color: #EDF4FF; }
+QMainWindow, QWidget#AppRoot { background: #02050A; color: #EDF4FF; }
 QDialog { background: #090D24; color: #EDF4FF; }
 QWidget { color: #EDF4FF; font-size: 14px; }
 QFrame#Sidebar {
@@ -171,6 +174,10 @@ QPushButton { background: #090E19; border: 1px solid #2A3D67; border-radius: 9px
 QPushButton:hover { background: #11192A; border-color: #6B4BC4; }
 QPushButton:pressed { background: #0A1120; }
 QPushButton:disabled { color: #65708C; border-color: #263150; background: #12172A; }
+QPushButton#ArchitectModeButton:checked {
+    color: #FFFFFF; background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #6A32C8,stop:1 #1F718F);
+    border: 1px solid #63ECF8;
+}
 QPushButton#Primary { background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #6236CA,stop:1 #2567B9); border-color: #8B72FF; }
 QPushButton#Primary:hover { background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #7847E0,stop:1 #2D79CF); border-color: #A88BFF; }
 QPushButton#Nav { text-align: left; border: 0; border-radius: 8px; background: transparent; color: #AEB8CD; padding: 8px 12px; min-height: 30px; font-weight: 600; }
@@ -294,6 +301,7 @@ QProgressBar#FlightPlanProgress { min-height: 18px; color: #F5F8FF; font-size: 1
 QProgressBar#FlightPlanProgress::chunk { background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #8C45E8,stop:0.55 #536FFF,stop:1 #2ADCEB); }
 QScrollArea, QWidget#ScrollContent { border: 0; background: transparent; }
 QScrollArea > QWidget, QScrollArea > QWidget > QWidget { background: transparent; }
+QScrollArea::viewport { background: #050A16; }
 QScrollArea#NexusScroll, QScrollArea#NexusScroll > QWidget,
 QScrollArea#NexusScroll > QWidget > QWidget { background: #02050A; }
 QScrollBar:vertical { background: #090D1D; width: 10px; margin: 0; }
@@ -401,3 +409,39 @@ QToolTip {
     padding: 8px 10px;
 }
 """
+
+
+def apply_dark_palette(app: QApplication) -> QPalette:
+    """Remove host-theme ambiguity while preserving transparent layered widgets."""
+
+    palette = QPalette()
+    for group in (
+        QPalette.ColorGroup.Active,
+        QPalette.ColorGroup.Inactive,
+        QPalette.ColorGroup.Disabled,
+    ):
+        palette.setColor(group, QPalette.ColorRole.Window, QColor(COLORS["background"]))
+        palette.setColor(group, QPalette.ColorRole.WindowText, QColor(COLORS["text"]))
+        palette.setColor(group, QPalette.ColorRole.Base, QColor("#060B16"))
+        palette.setColor(group, QPalette.ColorRole.AlternateBase, QColor("#0B1322"))
+        palette.setColor(group, QPalette.ColorRole.ToolTipBase, QColor("#070D1D"))
+        palette.setColor(group, QPalette.ColorRole.ToolTipText, QColor("#F4F8FF"))
+        palette.setColor(group, QPalette.ColorRole.Text, QColor("#DCE8F8"))
+        palette.setColor(group, QPalette.ColorRole.Button, QColor("#090E19"))
+        palette.setColor(group, QPalette.ColorRole.ButtonText, QColor(COLORS["text"]))
+        palette.setColor(group, QPalette.ColorRole.BrightText, QColor("#FFFFFF"))
+        palette.setColor(group, QPalette.ColorRole.Highlight, QColor("#28589C"))
+        palette.setColor(group, QPalette.ColorRole.HighlightedText, QColor("#FFFFFF"))
+        palette.setColor(group, QPalette.ColorRole.Link, QColor(COLORS["cyan"]))
+        palette.setColor(group, QPalette.ColorRole.LinkVisited, QColor("#C78AFF"))
+        palette.setColor(group, QPalette.ColorRole.PlaceholderText, QColor("#65708C"))
+    disabled = QPalette.ColorGroup.Disabled
+    for role in (
+        QPalette.ColorRole.WindowText,
+        QPalette.ColorRole.Text,
+        QPalette.ColorRole.ButtonText,
+        QPalette.ColorRole.PlaceholderText,
+    ):
+        palette.setColor(disabled, role, QColor("#65708C"))
+    app.setPalette(palette)
+    return palette

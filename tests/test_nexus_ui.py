@@ -36,6 +36,43 @@ def test_nexus_center_generates_beginner_route_without_execution_authority(tmp_p
     assert all(button.text() != "Execute" for button in center.findChildren(QPushButton))
 
 
+def test_nexus_internal_features_reveal_exact_panel_without_generating_or_adapting_plan(
+    tmp_path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    store, _profile, _matrix = _evidence(tmp_path)
+    center = NexusCenter(store)
+
+    for route, title in (
+        ("pathfinder", "Pathfinder"),
+        ("foresight", "Foresight"),
+        ("insight", "Insight"),
+    ):
+        assert center.open_feature_destination(route)
+        app.processEvents()
+        assert center.current_plan is None
+        assert center.evidence_handoff_title.text() == f"Find Anything → {title}"
+        assert center.evidence_handoff_badge.text() == "PLAN REQUIRED • ZERO AUTHORITY"
+        assert "did not refresh evidence" in center.evidence_handoff_detail.text()
+
+    center.generate_plan()
+    plan = center.current_plan
+    assert plan is not None
+    for route, title in (
+        ("pathfinder", "Pathfinder"),
+        ("foresight", "Foresight"),
+        ("insight", "Insight"),
+    ):
+        assert center.open_feature_destination(route)
+        app.processEvents()
+        assert center.current_plan is plan
+        assert center.evidence_handoff_title.text() == f"Find Anything → {title}"
+        assert center.evidence_handoff_badge.text() == "CURRENT PLAN • ZERO AUTHORITY"
+        assert plan.plan_digest[:16] in center.evidence_handoff_detail.text()
+
+    assert not center.open_feature_destination("unknown-nexus-feature")
+
+
 def test_nexus_guardian_handoff_emits_only_current_plan_identity(tmp_path) -> None:
     app = QApplication.instance() or QApplication([])
     store, _profile, _matrix = _evidence(tmp_path)

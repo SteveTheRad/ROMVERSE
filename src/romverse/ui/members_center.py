@@ -47,6 +47,7 @@ class MembersCenter(QWidget):
     """Passwordless ROMVERSE Members sign-in with honest server-issued status."""
 
     settings_requested = Signal()
+    knowledge_article_requested = Signal(str)
 
     def __init__(self, issuer: str = "", client_id: str = "") -> None:
         super().__init__()
@@ -163,6 +164,17 @@ class MembersCenter(QWidget):
         privacy_copy.setObjectName("Muted")
         privacy_copy.setWordWrap(True)
         privacy_layout.addWidget(privacy_copy)
+        self.guide_button = QPushButton("Review Members service guide")
+        self.guide_button.setToolTip(
+            "Open the exact local Archives guide for Members configuration and sign-in "
+            "failures. This starts no browser, account, or network action."
+        )
+        self.guide_button.clicked.connect(
+            lambda: self.knowledge_article_requested.emit(
+                "members-service-unavailable-or-unconfigured"
+            )
+        )
+        privacy_layout.addWidget(self.guide_button, 0)
         layout.addWidget(privacy)
         layout.addStretch()
         self._render()

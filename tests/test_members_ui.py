@@ -24,3 +24,20 @@ def test_members_network_busy_state_has_honest_indeterminate_progress() -> None:
 
     center.close()
     app.processEvents()
+
+
+def test_members_opens_its_exact_local_service_guide_without_network_work() -> None:
+    app = QApplication.instance() or QApplication([])
+    center = MembersCenter()
+    requested: list[str] = []
+    center.knowledge_article_requested.connect(requested.append)
+
+    center.guide_button.click()
+
+    assert requested == ["members-service-unavailable-or-unconfigured"]
+    assert not center._busy
+    assert center._authorization is None
+    assert center.session is None
+    assert not center._poll_timer.isActive()
+    center.close()
+    app.processEvents()

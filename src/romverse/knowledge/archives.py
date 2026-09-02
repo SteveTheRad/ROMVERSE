@@ -23,8 +23,10 @@ CATEGORIES = (
 CANONICAL_ROUTES = frozenset(
     {
         "command_deck",
+        "command_console",
         "rom_studio",
         "quantum_optimizer",
+        "health_timeline",
         "device_atlas",
         "recovery_bay",
         "guardian_core",
@@ -36,6 +38,8 @@ CANONICAL_ROUTES = frozenset(
         "nexus",
         "forge_arsenal",
         "companion_link",
+        "members",
+        "galaxy",
         "about",
     }
 )
@@ -1913,6 +1917,445 @@ KNOWN_FIXES = (
         source=ROMVERSE_SOURCE,
     ),
     _fix(
+        "desktop-light-surface-stale-install",
+        "ROMVERSE Desktop is white or unreadable after a source update",
+        "ROMVERSE WORKFLOWS",
+        "The pinned Desktop launcher runs the packaged ROMVERSE wheel inside its selected virtual "
+        "environment. Editing recovered source does not change that installed copy. A stale wheel "
+        "can therefore keep an earlier Qt stylesheet, while a light Fedora or Windows host palette "
+        "paints plain widgets and scroll viewports white beneath ROMVERSE's light text. This is a "
+        "presentation and deployment mismatch; it does not imply that projects or evidence were lost.",
+        checks=(
+            "Confirm the official ROMVERSE and RadForge logos still render; do not replace either brand asset while diagnosing contrast.",
+            "Resolve the dash launcher's exact Exec path, then inspect the imported romverse module path from that same Python environment.",
+            "Compare the installed theme and affected page module byte-for-byte with the verified recovered source instead of trusting the shared 0.1.0 label.",
+            "Render the affected route and all registered Desktop routes offscreen, checking for large near-white surfaces rather than counting bright text and logos as failures.",
+        ),
+        fix_steps=(
+            "Run the complete source suite with the source directory explicitly first on Python's import path so a stale installed wheel cannot satisfy the tests.",
+            "Build a fresh wheel, verify every packaged runtime module and asset against source, and record its SHA-256 before installation.",
+            "Update only the pinned launcher's existing local environment from that verified wheel, then restart ROMVERSE so the new Qt rules are loaded.",
+            "Keep shared plain-widget, text-browser, item-view, and scroll-viewport backgrounds dark with explicit readable foreground colors.",
+        ),
+        verification=(
+            "The launcher's environment imports theme.py and the affected page from the newly verified installed wheel, with no source/install byte mismatch.",
+            "Every registered Desktop route renders with a dark surface and readable text under a deliberately light Fusion host palette.",
+            "ROMVERSE Galaxy topic text, editors, empty lists, tables, and scroll viewports remain readable after navigating away and back.",
+            "Projects, workspace evidence, settings, logos, Guardian state, workers, and phone state are unchanged by the presentation-only repair.",
+        ),
+        tags=(
+            "desktop app all white",
+            "white text white background",
+            "romverse window unreadable",
+            "pinned launcher stale wheel",
+            "source changes not installed",
+            "fedora qt light palette",
+            "scroll viewport white",
+            "galaxy topic text invisible",
+        ),
+        route="command_deck",
+        evidence="ROMVERSE reproduced the source-versus-installed-wheel mismatch, added a light-host rendered regression, audits all 19 Desktop routes for bright surfaces, and verifies packaged runtime bytes before updating the pinned environment.",
+        automation="DIAGNOSIS AND DISPLAY VERIFICATION ONLY • PACKAGE UPDATE REQUIRES AN EXPLICIT LOCAL INSTALL WORKFLOW • NO PROJECT, EVIDENCE, LOGO, PHONE, OR PUBLISH ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "time-machine-empty-state-dead-end",
+        "Time Machine has no action when no ROM project or snapshot exists",
+        "ROMVERSE WORKFLOWS",
+        "Time Machine's recovery, evidence, and restore controls correctly remain disabled when "
+        "there is no authorized phone, ROM project, or baseline snapshot. The page previously "
+        "explained those prerequisites but offered no enabled route to satisfy the local ROM "
+        "recovery side, leaving a fresh workspace at a genuine navigation dead end.",
+        checks=(
+            "Confirm the phone backup controls are disabled because no authorized device exists; do not bypass that independent safety gate.",
+            "Check whether the project selector is empty or names an exact project with zero Time Machine snapshots.",
+            "Reopen Time Machine so it refreshes current ROM Studio projects instead of relying on an earlier page snapshot.",
+            "Distinguish a missing local baseline from Device Atlas stock-recovery evidence; each handoff owns different exact context.",
+        ),
+        fix_steps=(
+            "Use Create project in ROM Studio when no project exists; ROMVERSE opens and focuses New project without opening a dialog or starting work automatically.",
+            "For an existing project with no snapshot, use Prepare baseline in ROM Studio; ROMVERSE selects that exact project and focuses Import original, Create working copy, or Time Machine snapshot as appropriate.",
+            "Return to Time Machine after the verified snapshot completes; the local verify and approval-bound restore controls then derive their state from the saved record.",
+            "If project or snapshot state changes during the handoff, keep Time Machine open, refresh the current evidence, and use the newly valid control rather than navigating generically.",
+        ),
+        verification=(
+            "A fresh Time Machine page always exposes one enabled project-setup action while every unavailable backup or restore action remains disabled.",
+            "The destination banner names TIME MACHINE HANDOFF, carries either the empty workspace or exact project identity, and focuses the correct prerequisite control.",
+            "A project that appears or gains a snapshot before navigation is rejected in-page and then refreshed instead of opening stale Studio state.",
+            "The handoff starts no project worker, dialog, snapshot, restore, build, approval, flash, or phone action.",
+        ),
+        tags=(
+            "time machine no enabled buttons",
+            "time machine empty state",
+            "no rom project recovery dead end",
+            "create recovery project",
+            "prepare baseline in rom studio",
+            "no snapshot next action",
+            "time machine studio handoff",
+        ),
+        route="time_machine",
+        evidence="ROMVERSE audits all visible enabled Desktop controls, verifies fresh and exact-project Time Machine-to-Studio handoffs, tests stale-state refusal, and confirms every worker and phone boundary remains idle.",
+        automation="CURRENT PROJECT REFRESH, EXACT NAVIGATION, AND CONTROL FOCUS ONLY • NO DIALOG, PROJECT WORKER, SNAPSHOT, RESTORE, BUILD, APPROVAL, FLASH, OR PHONE ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "command-console-no-trusted-result",
+        "Command Console check is blocked or produces no trusted result",
+        "TOOLS & HOST",
+        "Command Console is a Guardian-bounded probe surface, not a general shell. It accepts "
+        "only ROMVERSE's exact host and read-only ADB presets. A missing runtime, unauthorized "
+        "phone, altered command, Guardian refusal, timeout, or non-zero result must stay visible "
+        "as evidence and must never be converted into a guessed success.",
+        checks=(
+            "Confirm the command exactly matches one packaged preset; pipes, redirects, arbitrary shells, package changes, flashing, and destructive arguments are intentionally rejected.",
+            "For ADB checks, verify Platform Tools and Guardian are available; device-scoped checks also require one currently authorized phone.",
+            "Read the displayed exit code and stderr or bounded error instead of treating non-empty output as success.",
+            "If the audit chain is rejected, stop and review Guardian Core before running any further gateway operation.",
+        ),
+        fix_steps=(
+            "Select the closest approved preset again so Command Console restores its exact allowlisted argument vector.",
+            "Use Resolve Platform Tools when shown, then let ROMVERSE rebind the verified ADB path before retrying once.",
+            "Authorize the exact phone for device-scoped probes, or use a host-only platform/Python check while no phone is connected.",
+            "Preserve a failed result for Activity, Live Console, or support review; never widen the allowlist to make an unknown command run.",
+        ),
+        verification=(
+            "The output begins with the privacy-safe exact preset and ends with its genuine result or exit code.",
+            "A device-scoped result masks the serial while Guardian receives the real selected target internally.",
+            "Only successful approved probe classes can enter the read-only Companion Raw Terminal feed, and clearing the view changes no phone state.",
+            "Opening this guide or returning to Command Console starts no command, runtime install, worker, approval, or phone action.",
+        ),
+        tags=(
+            "command console blocked",
+            "terminal no output",
+            "command console unavailable",
+            "unsafe command rejected",
+            "adb probe failed",
+            "resolve platform tools console",
+            "guardian bounded terminal",
+        ),
+        route="command_console",
+        evidence="ROMVERSE tests the closed command allowlist, selected-device masking, Guardian gateway arguments, duplicate-worker lock, verified-runtime resolver, genuine exit output, and privacy-filtered Companion feed.",
+        automation="EXACT LOCAL GUIDANCE AND ROUTING ONLY • NO COMMAND, RUNTIME INSTALL, WORKER, APPROVAL, SHELL, DEVICE WRITE, OR PHONE ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "health-timeline-comparison-unavailable",
+        "Health Timeline cannot compare the selected diagnostic snapshot",
+        "DIAGNOSTICS & HEALTH",
+        "Health Timeline compares saved, integrity-verified diagnostic snapshots for the same "
+        "pseudonymous device. A current scan is not automatically history, one snapshot cannot "
+        "show movement, and records from another device or with invalid integrity must not be "
+        "combined merely to produce a chart.",
+        checks=(
+            "Confirm the diagnostic report was explicitly saved and still passes its strict schema and content-digest checks.",
+            "Verify at least two accepted snapshots share the same pseudonymous device identity and chronological order.",
+            "Read any rejection count or integrity warning; rejected records contribute no score, metric, new finding, or resolved finding.",
+            "Distinguish Open current Health Review from historical selection; returning to current diagnostics requests no new scan automatically.",
+        ),
+        fix_steps=(
+            "Run a fresh read-only System Scan in Quantum Optimizer and save the report only when you intentionally want a new timeline point.",
+            "Select two verified snapshots from the same device; do not rename, redigest, merge, or hand-edit diagnostic history.",
+            "If one file fails validation, preserve it for review and continue only with the remaining verified evidence.",
+            "Use an exact finding guide for the selected historical record, then return to the unchanged snapshot through the source-context control.",
+        ),
+        verification=(
+            "The timeline names the same pseudonymous device and shows genuine score movement plus new and resolved finding identities.",
+            "A single accepted snapshot reports that comparison evidence is not yet available instead of inventing a trend.",
+            "Cross-device, linked, malformed, oversized, extra-field, or correctly redigested semantic tampering remains excluded.",
+            "Opening this guide or Health Timeline starts no scan, repair, approval, network request, or phone action.",
+        ),
+        tags=(
+            "health timeline cannot compare",
+            "not enough diagnostic snapshots",
+            "health history different device",
+            "diagnostic trend unavailable",
+            "saved snapshot integrity",
+            "new and resolved findings",
+        ),
+        route="health_timeline",
+        evidence="ROMVERSE tests strict saved-snapshot integrity, same-device grouping, chronological comparison, rejection visibility, exact finding handoffs, and current-versus-historical navigation boundaries.",
+        automation="VERIFIED HISTORY READING, COMPARISON, AND ROUTING ONLY • NO SCAN, REPAIR, APPROVAL, NETWORK, OR PHONE ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "members-service-unavailable-or-unconfigured",
+        "ROMVERSE Members sign-in is unavailable or unconfigured",
+        "ROMVERSE WORKFLOWS",
+        "Members uses passwordless browser device authorization against one configured HTTPS "
+        "identity service and accepts access only from a server-issued profile. An empty issuer, "
+        "missing public client ID, invalid response, expired request, or unavailable service must "
+        "not be replaced by a local subscription checkbox or an invented entitlement.",
+        checks=(
+            "Confirm Settings contains the exact approved HTTPS issuer and public client ID for the intended Members environment.",
+            "Check whether the page says unconfigured, ready, waiting, expired, declined, or signed in; each state has a different safe next step.",
+            "Enter the short code only on the trusted browser page opened for that request; ROMVERSE never asks for the account password.",
+            "Treat plan name, membership status, and entitlements as unverified until they arrive in the validated server profile.",
+        ),
+        fix_steps=(
+            "For an internal build without an approved service, leave Members unconfigured and use the rest of the local Desktop normally.",
+            "When approved service values exist, save them in Settings, begin a fresh sign-in, and complete the short-lived browser request.",
+            "If the request expires or is declined, start a new request; do not reuse the old code or persist its in-memory access token.",
+            "Sign out to stop polling and discard the in-memory session immediately when the account or service identity is uncertain.",
+        ),
+        verification=(
+            "A configured service reaches browser authorization without collecting a password inside ROMVERSE.",
+            "A successful response displays only the validated server profile and entitlements; an invalid response remains visibly rejected.",
+            "Settings never contain an access token, and sign-out clears authorization, session, client, timer, and progress state.",
+            "Opening this guide or returning to Members starts no browser, sign-in, network request, account change, billing, or phone action.",
+        ),
+        tags=(
+            "members service not configured",
+            "romverse members unavailable",
+            "members sign in failed",
+            "device authorization expired",
+            "membership entitlement unverified",
+            "configure issuer client id",
+        ),
+        route="members",
+        evidence="ROMVERSE tests strict Members configuration, HTTPS endpoint validation, device-authorization responses, bounded polling states, in-memory-only sessions, server-issued entitlements, and immediate sign-out clearing.",
+        automation="LOCAL GUIDANCE AND ROUTING ONLY • NO BROWSER, SIGN-IN, NETWORK, ACCOUNT, BILLING, ENTITLEMENT, OR PHONE ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "galaxy-local-publishing-boundary",
+        "ROMVERSE Galaxy topic is local and not published",
+        "ROMVERSE WORKFLOWS",
+        "Galaxy Community Lab stores topics, replies, votes, and drafts only in the selected "
+        "local workspace. A topic that appears in Galaxy has not been synchronized, moderated, "
+        "uploaded, or published. Public Galaxy remains locked until accounts, consent, privacy, "
+        "moderation, transport security, and server integrity are implemented and reviewed.",
+        checks=(
+            "Read the OFFLINE LOCAL MODE banner and the store integrity state before interpreting a topic as current local evidence.",
+            "Confirm the status names the selected workspace file and says Online publishing locked.",
+            "Inspect whether a draft, topic, reply, vote, export, or deletion is the intended local action; none implies a network action.",
+            "Treat exported JSON as a portable local record, not proof that another person or service received it.",
+        ),
+        fix_steps=(
+            "Create or edit local discussion only through Galaxy so bounded field limits, private storage, and integrity upgrades remain active.",
+            "Use Export topic when you intentionally need a portable copy; choose its destination explicitly and review it before sharing outside ROMVERSE.",
+            "If integrity validation fails, preserve the original community file and resolve the visible error rather than overwriting it with an empty store.",
+            "Keep online publishing locked until a separately reviewed service provides explicit account, consent, moderation, privacy, and delivery receipts.",
+        ),
+        verification=(
+            "Creating, replying, voting, filtering, and reloading preserve the exact local topic without any network request.",
+            "Private drafts restore after closing the dialog, and a successful save upgrades valid legacy data without losing content.",
+            "Activity Center can reopen the exact existing topic and refuses a deleted or changed identity in-page.",
+            "Opening this guide or returning to Galaxy starts no upload, publication, account, moderation, network, or phone action.",
+        ),
+        tags=(
+            "galaxy topic not published",
+            "romverse galaxy local only",
+            "community topic offline",
+            "online publishing locked",
+            "galaxy privacy",
+            "local topic integrity",
+            "galaxy draft restored",
+        ),
+        route="galaxy",
+        evidence="ROMVERSE tests private bounded Galaxy storage, draft recovery, integrity upgrade and rejection, local topic/reply/vote behavior, export, exact Activity handoff, and zero network synchronization.",
+        automation="PRIVATE LOCAL GUIDANCE AND ROUTING ONLY • NO UPLOAD, PUBLICATION, ACCOUNT, MODERATION, NETWORK, OR PHONE ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "nexus-current-evidence-route-unavailable",
+        "ROMVERSE Nexus cannot derive a route from current project evidence",
+        "ROMVERSE WORKFLOWS",
+        "Nexus is a deterministic pathfinder over one exact ROM project, current Device DNA, "
+        "Compatibility Matrix, build plan, Device Pack, and recovery evidence. Without those "
+        "records—or when any binding becomes stale—it must show the missing prerequisite instead "
+        "of inventing a route, confidence, prediction, or Guardian readiness state.",
+        checks=(
+            "Confirm an exact ROM Studio project is selected and its protected source still matches the manifest.",
+            "Verify current Device DNA and Compatibility Matrix records belong to that same project and source evidence.",
+            "Inspect each route requirement and research gap; a missing build plan, Pack contract, recovery record, or attestation remains explicit.",
+            "If a saved Nexus plan exists, compare its project, objective, evidence digest, requirements, and status with the currently displayed plan.",
+        ),
+        fix_steps=(
+            "Use the highlighted prerequisite handoff to ROM Studio, Device Atlas, Forge Arsenal, Time Machine, or this exact Archives guide.",
+            "Refresh the owning evidence through its normal read-only or local project workflow, then return to Nexus and re-plan deliberately.",
+            "If the project or evidence changed, discard only the stale planning assumption by generating a new plan; preserve the underlying records for audit.",
+            "Never use a similar project, device name, Pack, or historical confidence value to fill an exact-identity gap.",
+        ),
+        verification=(
+            "Nexus names the exact selected project and derives each route requirement from current persisted evidence.",
+            "A current plan survives reload with the same digest; changed DNA, Matrix, build plan, Recipe, source, or Pack evidence invalidates it.",
+            "Cross-feature Continue controls carry the exact plan/project identity and refuse a mismatch without generic navigation.",
+            "Opening this guide or returning to Nexus starts no plan, research, worker, build, approval, network, or phone action.",
+        ),
+        tags=(
+            "nexus cannot derive route",
+            "nexus missing project evidence",
+            "nexus plan stale",
+            "pathfinder requirements missing",
+            "nexus confidence unavailable",
+            "current project route planning",
+        ),
+        route="nexus",
+        evidence="ROMVERSE tests exact project/evidence binding, deterministic requirement derivation, plan integrity and invalidation, prerequisite routing, stale handoff refusal, and zero execution authority from Nexus guidance.",
+        automation="CURRENT EVIDENCE READING AND EXACT ROUTING ONLY • NO PLAN, RESEARCH, WORKER, BUILD, APPROVAL, NETWORK, OR PHONE ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "command-palette-nested-feature-missing",
+        "Find Anything cannot open a named internal ROMVERSE feature",
+        "ROMVERSE WORKFLOWS",
+        "ROMVERSE pages such as ROM Studio own several distinct features. Opening only the "
+        "owner page is not an exact connection when the user searched for Device Portal, "
+        "System Scan, Genesis Sequence, Ascension Protocol, Architect Mode, Partition Atlas, "
+        "Recipe Forge, Forge Control, Device Engine, Device DNA, Compatibility Matrix, Pre-Build "
+        "Simulation, ROM DNA, Boot Observatory, Recovery Autopilot, ROMVERSE Intelligence, or "
+        "ROMVERSE Synapse. Find Anything must preserve that feature identity and let the owning "
+        "page reveal its current evidence or prerequisite without starting work.",
+        checks=(
+            "Search the canonical feature title or one of its supported earlier names, rather than relying on an unrelated page keyword.",
+            "Confirm Guided Arcana includes guided nested features but omits Architect-only destinations; Expert Architect must expose the complete set.",
+            "After navigation, verify the owner page shows a FIND ANYTHING handoff naming the exact selected feature and its current prerequisite.",
+            "Treat a prerequisite badge as a safe stop; navigation must not click the focused control or substitute another workflow.",
+        ),
+        fix_steps=(
+            "Open Find Anything with Ctrl+K and search the exact feature again so the current canonical registry is used.",
+            "For an Architect-only result, deliberately enter Architect Mode in ROM Studio, then repeat the search after the specialist destinations become visible.",
+            "Complete only the prerequisite named by the owner page, then invoke the feature's own control when ready.",
+            "If the destination cannot be revalidated, remain on the owner page and preserve its visible refusal instead of triggering a generic operation.",
+        ),
+        verification=(
+            "Every implemented named internal feature resolves through one canonical owner map and remains searchable by canonical and legacy vocabulary.",
+            "Command Deck, ROM Studio, Recovery Bay, and Archives reveal the exact requested internal feature and its current evidence or prerequisite.",
+            "Guided and Expert results remain distinct, while Guardian Core and Live Console stay available in both modes.",
+            "Opening any nested destination starts no scan, dialog, worker, tool install, approval, build, signing, flash, or phone action.",
+        ),
+        tags=(
+            "find anything missing feature",
+            "command palette cannot find nested feature",
+            "automatic guided setup search",
+            "partition workspace search",
+            "build control center search",
+            "deep feature navigation",
+            "exact owner destination",
+        ),
+        route="command_deck",
+        evidence="ROMVERSE tests the complete canonical nested-feature registry, Guided and Expert disclosure, legacy-name ranking, exact owner activation, visible prerequisite handoffs, and zero-operation navigation boundaries.",
+        automation="CANONICAL SEARCH, OWNER ROUTING, CONTEXT DISPLAY, AND CONTROL FOCUS ONLY • NO SCAN, DIALOG, WORKER, TOOL INSTALL, APPROVAL, BUILD, SIGNING, FLASH, OR PHONE ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "synapse-evidence-opens-wrong-workspace",
+        "ROMVERSE Synapse evidence opens the wrong workspace",
+        "ROMVERSE WORKFLOWS",
+        "ROMVERSE Synapse is the private integrity-verified resolution-memory surface inside "
+        "ROMVERSE Archives. Sending a Synapse event to Nexus loses the exact evidence owner and "
+        "misrepresents local learned-fix review as mission planning. The source route and Find "
+        "Anything destination must both return to Archives without opening a modal or network path.",
+        checks=(
+            "Confirm the selected event source is exactly ROMVERSE Synapse rather than a Nexus plan or Compatibility Matrix event.",
+            "Open the event's source action and verify ROMVERSE Archives becomes the active page.",
+            "Confirm the visible Local Learning panel reports only integrity-checked private outcomes and keeps unavailable or retired evidence explicit.",
+            "Treat every learned record as bounded guidance; it cannot approve, execute, build, flash, or change a phone.",
+        ),
+        fix_steps=(
+            "Use Find Anything and search ROMVERSE Synapse or Local Learning to open the exact Archives evidence panel.",
+            "Review the learned record's typed action, verified receipt, scope, confidence, failures, and version drift before using its guidance.",
+            "If the private cache is rejected, preserve it and follow the displayed integrity boundary instead of rebuilding or trusting it manually.",
+            "Return to the originating workflow only after selecting its explicit route; opening Synapse itself starts no work.",
+        ),
+        verification=(
+            "Canonical source routing maps ROMVERSE Synapse to Archives and Compatibility Matrix to its ROM Studio evidence owner.",
+            "Find Anything selects the visible ROMVERSE Synapse Local Learning panel by canonical or legacy vocabulary.",
+            "The route reads only local integrity-checked Synapse evidence and starts no dialog, query, contribution, upload, research, worker, or phone action.",
+            "Unknown source names still expose no source action rather than guessing a related ROMVERSE page.",
+        ),
+        tags=(
+            "synapse opens nexus",
+            "synapse wrong page",
+            "local learning route",
+            "romverse synapse archives",
+            "learned fix source action",
+            "synapse evidence owner",
+        ),
+        route="archives",
+        evidence="ROMVERSE tests canonical evidence-source ownership, exact nested-feature routing, visible Synapse selection, private cache integrity, and idle dialog/network/worker/device boundaries.",
+        automation="LOCAL EVIDENCE READING, EXACT OWNER ROUTING, AND CONTROL FOCUS ONLY • NO DIALOG, QUERY, CONTRIBUTION, UPLOAD, RESEARCH, WORKER, APPROVAL, BUILD, FLASH, OR PHONE ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "nexus-intelligence-feature-opens-generic-page",
+        "Pathfinder, Foresight, or Insight opens only a generic Nexus page",
+        "ROMVERSE WORKFLOWS",
+        "Pathfinder, Foresight, and Insight are distinct implemented views over one exact Nexus "
+        "Plan. A generic Nexus landing loses which intelligence result the user requested. Find "
+        "Anything must retain that identity, reveal the matching panel, and state whether its "
+        "project-bound plan is current without silently generating or adapting one.",
+        checks=(
+            "Confirm the requested name is Pathfinder, Foresight, or Insight and that Expert Architect mode exposes Nexus destinations.",
+            "Read the visible Nexus handoff for the exact selected feature and current project or missing-plan prerequisite.",
+            "When a plan exists, compare the displayed digest with the current persisted project-bound Nexus Plan.",
+            "Treat every prediction, route, and explanation as planning evidence with zero execution or bootloader-relock authority.",
+        ),
+        fix_steps=(
+            "Open Find Anything and search the exact Nexus intelligence feature again.",
+            "If no plan exists, complete the named ROM project, Device DNA, and Compatibility Matrix prerequisites before deliberately choosing Generate Nexus Plan.",
+            "If a current plan exists, review the revealed route, prediction, or decision panel without refreshing or adapting it implicitly.",
+            "Return to ROM Studio or the verified evidence guide only through the visible explicit control when prerequisite evidence is missing.",
+        ),
+        verification=(
+            "Pathfinder reveals the current route map, Foresight the prediction panel, and Insight the why/evidence timeline.",
+            "All three handoffs retain the same current plan object and digest or explicitly report that a plan is required.",
+            "Every visible Command Deck launch-card name resolves to its canonical top-level or nested feature in Find Anything.",
+            "Navigation starts no evidence refresh, plan generation/adaptation, export, research, Guardian request, build, flash, or phone action.",
+        ),
+        tags=(
+            "pathfinder opens generic nexus",
+            "foresight direct navigation",
+            "insight wrong panel",
+            "nexus feature deep link",
+            "command deck card missing search",
+            "find anything nexus intelligence",
+        ),
+        route="nexus",
+        evidence="ROMVERSE tests all three exact Nexus panel destinations before and after a real current plan, plan identity preservation, complete Command Deck card-name discovery, and zero-operation navigation boundaries.",
+        automation="PLAN READING, PANEL SELECTION, EXACT OWNER ROUTING, AND CONTROL FOCUS ONLY • NO REFRESH, PLAN GENERATION OR ADAPTATION, EXPORT, RESEARCH, GUARDIAN REQUEST, BUILD, FLASH, OR PHONE ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "architect-mode-does-not-change-desktop",
+        "Architect Mode does not reveal the Expert desktop",
+        "ROMVERSE WORKFLOWS",
+        "Architect Mode is a real Desktop experience setting, not a decorative ROM Studio "
+        "message. A deliberate toggle must update the persistent Guided or Expert selection, "
+        "reveal or fold specialist navigation consistently, synchronize the Studio control, and "
+        "retain the exact project, evidence, active page, and Guardian policy.",
+        checks=(
+            "Read the sidebar experience badge and the ROM Studio Architect control; both must describe the same current mode.",
+            "In Expert Architect, confirm Command Console, ROMVERSE Nexus, Forge Arsenal, and Architect-only Find Anything destinations are visible.",
+            "In Guided Arcana, confirm those specialist destinations are folded while Guardian Core, Live Console, projects, and evidence remain available.",
+            "Confirm the Studio handoff states that the transition started no worker, build, flash, or phone action.",
+        ),
+        fix_steps=(
+            "Use Enter Architect Mode inside ROM Studio to deliberately switch the authoritative Desktop experience and reveal Build & Proof.",
+            "Use Return to Guided Mode to restore Source Lab and fold specialist navigation without deleting or downgrading project evidence.",
+            "If the two controls disagree, reopen ROM Studio from the current sidebar and use the in-page toggle once so the persisted setting is reapplied.",
+            "Continue through the exact focused prerequisite; changing experience never clicks or enables an otherwise unsafe operation.",
+        ),
+        verification=(
+            "The sidebar badge, specialist route visibility, ROM Studio button text/check state, command group, and stored setting change together.",
+            "A restart restores the selected experience through the normal settings record.",
+            "Switching either direction retains the active ROM Studio page, selected project, evidence files, and all Guardian boundaries.",
+            "No modal dialog, device scan, project worker, approval, build, signing, flash, or phone action starts during the transition.",
+        ),
+        tags=(
+            "architect mode does nothing",
+            "expert mode not enabled",
+            "specialist routes hidden",
+            "guided expert mode mismatch",
+            "rom studio architect toggle",
+            "persist desktop experience",
+        ),
+        route="rom_studio",
+        evidence="ROMVERSE tests both in-page mode transitions against the authoritative Desktop setting, specialist sidebar and palette disclosure, Studio focus state, persistence signal, and idle worker/Guardian boundaries.",
+        automation="PRESENTATION STATE, PERSISTED EXPERIENCE, ROUTE DISCLOSURE, AND CONTROL FOCUS ONLY • NO DIALOG, SCAN, WORKER, APPROVAL, BUILD, SIGNING, FLASH, OR PHONE ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
+    _fix(
         "archives-local-learning-boundary",
         "Local learned fix is missing or retired in Archives",
         "ROMVERSE WORKFLOWS",
@@ -1924,7 +2367,7 @@ KNOWN_FIXES = (
         checks=(
             "Confirm Settings allowed ROMVERSE to prepare private local Synapse contributions; no production upload service is implied or used.",
             "Confirm Forge Control first preserved an exact error fingerprint and source-attributed official or maintainer candidate.",
-            "Confirm the matching built-in typed action produced a receipt digest and separate verification-evidence digest without changing a phone.",
+            "Confirm a failed repeat or version drift demotes or retires the exact learned scope instead of preserving an earlier green state.",
             "Inspect the learned record's exact operation, source format, device codename, build family, tool name, and tool version scope.",
         ),
         fix_steps=(

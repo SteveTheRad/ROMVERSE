@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 from importlib.resources import files
+from pathlib import Path
 from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -12,11 +13,13 @@ from PySide6.QtGui import QPalette
 from PySide6.QtWidgets import QApplication, QLabel
 
 from romverse.core.activity import ActivityStore
+from romverse.core.settings import AppSettings
 from romverse.device.models import AndroidDevice, DeviceState, StorageInfo
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.device_packs.validation import DevicePackValidationService
 from romverse.rom.projects import RomProjectStore
 from romverse.ui.backup_center import BackupCenter, TimeMachineWorker
+from romverse.ui.main_window import MainWindow
 from romverse.ui.theme import STYLESHEET
 
 
@@ -59,6 +62,117 @@ def test_time_machine_explains_device_atlas_stock_gate_without_inventing_project
     center.device_atlas_project_button.click()
     assert requested == [(report.report_id, report.report_digest)]
     center.close()
+
+
+def test_time_machine_empty_state_opens_rom_studio_at_project_creation(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    window.resize(1_440, 900)
+    window.show()
+    try:
+        assert window._navigate_route("time_machine")
+        app.processEvents()
+
+        assert window.backup_center.local_setup.isVisibleTo(window.backup_center)
+        assert window.backup_center.local_setup_button.isEnabled()
+        assert window.backup_center.local_setup_button.text() == "Create project in ROM Studio"
+
+        window.backup_center.local_setup_button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.rom_studio
+        assert window.rom_studio.dashboard_handoff.isVisibleTo(window.rom_studio)
+        assert window.rom_studio.dashboard_handoff_eyebrow.text().startswith("TIME MACHINE HANDOFF")
+        assert "no dialog or worker was started automatically" in (
+            window.rom_studio.dashboard_handoff_detail.text().casefold()
+        )
+        assert window.rom_studio.new_button.hasFocus()
+        assert window.rom_studio.worker is None
+        assert window.backup_center.worker is None
+        assert not window.rom_studio.store.list_projects()
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_time_machine_project_without_snapshot_opens_exact_studio_prerequisite(
+    tmp_path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    project = window.rom_studio.store.create("Recovery baseline project")
+    window.resize(1_440, 900)
+    window.show()
+    try:
+        assert window._navigate_route("time_machine")
+        app.processEvents()
+
+        assert window.backup_center.project_selector.currentData() == project.project_id
+        assert window.backup_center.local_setup.isVisibleTo(window.backup_center)
+        assert window.backup_center.local_setup_button.text() == ("Prepare baseline in ROM Studio")
+
+        window.backup_center.local_setup_button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.rom_studio
+        assert window.rom_studio.current_project is not None
+        assert window.rom_studio.current_project.project_id == project.project_id
+        assert window.rom_studio.import_button.hasFocus()
+        assert project.project_id in window.rom_studio.dashboard_handoff_detail.text()
+        assert "IMPORT ORIGINAL" in window.rom_studio.dashboard_handoff_badge.text()
+        assert window.rom_studio.worker is None
+        assert window.backup_center.worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_time_machine_refuses_stale_empty_setup_handoff_in_page(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    window.resize(1_440, 900)
+    window.show()
+    try:
+        assert window._navigate_route("time_machine")
+        app.processEvents()
+        assert window.backup_center.project_selector.currentData() is None
+
+        window.rom_studio.store.create("Externally appeared project")
+        window.backup_center.local_setup_button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.backup_center
+        assert "ROM STUDIO SETUP HANDOFF STOPPED" in window.backup_center.local_result.text()
+        assert "No project worker, snapshot, restore, build, or phone action started" in (
+            window.backup_center.local_result.text()
+        )
+        assert window.backup_center.project_selector.count() == 1
+        assert window.rom_studio.worker is None
+        assert window.backup_center.worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
 
 
 def test_time_machine_binds_device_atlas_handoff_to_existing_project(tmp_path) -> None:

@@ -232,9 +232,7 @@ def test_guardian_presents_nexus_plan_as_zero_authority_review_context(tmp_path)
     plan = NexusPlanner(store).plan(profile, matrix, NexusObjective.BUILD_ROM)
     center = GuardianCenter(GuardianAuditStore(tmp_path), auto_start=False)
     returned: list[tuple[str, str]] = []
-    center.nexus_requested.connect(
-        lambda project_id, digest: returned.append((project_id, digest))
-    )
+    center.nexus_requested.connect(lambda project_id, digest: returned.append((project_id, digest)))
 
     assert center.open_nexus_review(plan, "Device DNA")
     assert not center.nexus_review.isHidden()

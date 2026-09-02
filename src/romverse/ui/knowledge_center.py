@@ -648,13 +648,13 @@ class KnowledgeCenter(QWidget):
         learning_layout.setSpacing(13)
         learning_copy = QVBoxLayout()
         learning_copy.setSpacing(3)
-        learning_eyebrow = QLabel("LOCAL LEARNING  •  ROMVERSE SYNAPSE")
-        learning_eyebrow.setObjectName("SynapseLearningTitle")
+        self.learning_eyebrow = QLabel("LOCAL LEARNING  •  ROMVERSE SYNAPSE")
+        self.learning_eyebrow.setObjectName("SynapseLearningTitle")
         self.learning_status = QLabel("Checking the private local evidence bank…")
         self.learning_status.setObjectName("Muted")
         self.learning_status.setAccessibleName("Private local ROMVERSE learning status")
         self.learning_status.setWordWrap(True)
-        learning_copy.addWidget(learning_eyebrow)
+        learning_copy.addWidget(self.learning_eyebrow)
         learning_copy.addWidget(self.learning_status)
         learning_layout.addLayout(learning_copy, 1)
         self.learning_button = QPushButton("How local learning works  →")
@@ -724,6 +724,23 @@ class KnowledgeCenter(QWidget):
         else:
             self.search.setText(normalized)
         self.search.setFocus(Qt.FocusReason.OtherFocusReason)
+
+    def open_feature_destination(self, route: str) -> bool:
+        """Reveal the private Synapse evidence bank without opening a dialog or network path."""
+
+        if str(route).strip() != "romverse_synapse":
+            return False
+        self.clear_source_context()
+        self.refresh_synapse_memory()
+        self.learning_eyebrow.setText(
+            "FIND ANYTHING  •  ROMVERSE SYNAPSE  •  PRIVATE LOCAL EVIDENCE"
+        )
+        self.learning_panel.setToolTip(
+            "Find Anything opened ROMVERSE Synapse's private integrity-verified local evidence "
+            "bank. No query, upload, contribution, network request, repair, or phone action started."
+        )
+        self.learning_button.setFocus(Qt.FocusReason.OtherFocusReason)
+        return True
 
     def open_article(self, key: str, *, source_route: str = "") -> bool:
         """Select one exact guide identity supplied by a typed ROMVERSE workflow."""
@@ -856,6 +873,7 @@ class KnowledgeCenter(QWidget):
     def refresh_synapse_memory(self) -> None:
         """Reload only integrity-checked private learning when Archives is opened."""
 
+        self.learning_eyebrow.setText("LOCAL LEARNING  •  ROMVERSE SYNAPSE")
         if self.synapse_store is None:
             self.synapse_knowledge = ()
             self._set_learning_state(

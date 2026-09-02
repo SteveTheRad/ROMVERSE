@@ -121,20 +121,20 @@ class NexusCenter(QWidget):
         handoff_layout = QHBoxLayout(self.evidence_handoff)
         handoff_layout.setContentsMargins(18, 13, 18, 13)
         handoff_copy = QVBoxLayout()
-        handoff_eyebrow = QLabel("NEXUS EVIDENCE PATH  •  NO PLAN GENERATED")
-        handoff_eyebrow.setObjectName("Eyebrow")
+        self.evidence_handoff_eyebrow = QLabel("NEXUS EVIDENCE PATH  •  NO PLAN GENERATED")
+        self.evidence_handoff_eyebrow.setObjectName("Eyebrow")
         self.evidence_handoff_title = QLabel()
         self.evidence_handoff_title.setObjectName("SectionTitle")
         self.evidence_handoff_detail = QLabel()
         self.evidence_handoff_detail.setObjectName("Muted")
         self.evidence_handoff_detail.setWordWrap(True)
-        handoff_copy.addWidget(handoff_eyebrow)
+        handoff_copy.addWidget(self.evidence_handoff_eyebrow)
         handoff_copy.addWidget(self.evidence_handoff_title)
         handoff_copy.addWidget(self.evidence_handoff_detail)
         handoff_layout.addLayout(handoff_copy, 1)
-        handoff_badge = QLabel("EVIDENCE REQUIRED  •  ZERO AUTHORITY")
-        handoff_badge.setObjectName("Warning")
-        handoff_layout.addWidget(handoff_badge)
+        self.evidence_handoff_badge = QLabel("EVIDENCE REQUIRED  •  ZERO AUTHORITY")
+        self.evidence_handoff_badge.setObjectName("Warning")
+        handoff_layout.addWidget(self.evidence_handoff_badge)
         handoff_actions = QVBoxLayout()
         self.evidence_guide_button = QPushButton("Open verified evidence guide")
         self.evidence_guide_button.clicked.connect(
@@ -260,6 +260,66 @@ class NexusCenter(QWidget):
             self.project_selector.setCurrentIndex(index)
         return True
 
+    def open_feature_destination(self, route: str) -> bool:
+        """Reveal one Nexus intelligence panel without generating or changing a plan."""
+
+        destination = str(route).strip()
+        cards = {
+            "pathfinder": ("Pathfinder", self.route_card),
+            "foresight": ("Foresight", self.foresight_card),
+            "insight": ("Insight", self.insight_card),
+        }
+        selected = cards.get(destination)
+        if selected is None:
+            return False
+        title, card = selected
+        plan = self.current_plan
+        if plan is None:
+            project = self.project_selector.currentText().strip()
+            context = (
+                f"Current project {project} has no current Nexus plan."
+                if project
+                else "No ROM project is currently available to Nexus."
+            )
+            detail = (
+                f"{context} Complete the visible project, Device DNA, and Compatibility Matrix "
+                f"prerequisites before generating the plan that supplies {title}."
+            )
+            badge = "PLAN REQUIRED • ZERO AUTHORITY"
+            ready = False
+            focus = (
+                self.generate_button
+                if self.generate_button.isEnabled()
+                else self.evidence_studio_button
+            )
+        else:
+            if destination == "pathfinder":
+                evidence = f"{len(plan.route)} route stage(s)"
+            elif destination == "foresight":
+                evidence = f"{len(plan.predictions)} prediction(s)"
+            else:
+                evidence = f"{len(plan.decisions)} decision record(s)"
+            detail = (
+                f"Current plan {plan.plan_digest[:16]}… for {self.project_selector.currentText()} "
+                f"contains {evidence}. The panel below is derived from that persisted plan."
+            )
+            badge = "CURRENT PLAN • ZERO AUTHORITY"
+            ready = True
+            focus = self.export_button if destination == "insight" else self.refresh_button
+        self.evidence_handoff_eyebrow.setText("FIND ANYTHING  •  EXACT NEXUS INTELLIGENCE FEATURE")
+        self.evidence_handoff_title.setText(f"Find Anything → {title}")
+        self.evidence_handoff_detail.setText(
+            f"{detail} Navigation did not refresh evidence, generate or adapt a plan, export, "
+            "research, request Guardian review, build, flash, or change a phone."
+        )
+        self.evidence_handoff_badge.setText(badge)
+        self.evidence_handoff_badge.setObjectName("Good" if ready else "Warning")
+        self._repolish(self.evidence_handoff_badge)
+        self.evidence_handoff.setVisible(True)
+        self.scroll.ensureWidgetVisible(card, 0, 24)
+        focus.setFocus(Qt.FocusReason.OtherFocusReason)
+        return True
+
     def generate_plan(self) -> None:
         project_id = self.project_selector.currentData()
         if not isinstance(project_id, str) or not project_id:
@@ -351,11 +411,7 @@ class NexusCenter(QWidget):
         selected = self.project_selector.currentData()
         project_id = selected if isinstance(selected, str) else ""
         plan = self.current_plan
-        plan_digest = (
-            plan.plan_digest
-            if plan is not None and plan.project_id == project_id
-            else ""
-        )
+        plan_digest = plan.plan_digest if plan is not None and plan.project_id == project_id else ""
         self.rom_studio_requested.emit(project_id, plan_digest)
 
     def guardian_handoff_stopped(self, reason: str) -> None:
@@ -406,8 +462,12 @@ class NexusCenter(QWidget):
         return " and ".join(missing)
 
     def _set_evidence_handoff(self, title: str, detail: str, visible: bool) -> None:
+        self.evidence_handoff_eyebrow.setText("NEXUS EVIDENCE PATH  •  NO PLAN GENERATED")
         self.evidence_handoff_title.setText(title)
         self.evidence_handoff_detail.setText(detail)
+        self.evidence_handoff_badge.setText("EVIDENCE REQUIRED  •  ZERO AUTHORITY")
+        self.evidence_handoff_badge.setObjectName("Warning")
+        self._repolish(self.evidence_handoff_badge)
         self.evidence_handoff.setVisible(visible)
 
     def _objective_changed(self, label: str) -> None:

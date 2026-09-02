@@ -545,6 +545,11 @@ def test_about_runtime_evidence_is_explicit_and_routes_to_its_owning_features() 
             live_ledger_valid=True,
             live_event_count=200,
             live_active_count=38,
+            guardian_state="verified",
+            guardian_detail=(
+                "SHA-256 audit chain verified across current operation evidence"
+            ),
+            guardian_verified=True,
         )
     )
     app.processEvents()
@@ -556,6 +561,9 @@ def test_about_runtime_evidence_is_explicit_and_routes_to_its_owning_features() 
     assert page.evidence_values["knowledge"].text() == ("117 VERIFIED GUIDES  •  67 KNOWN FIXES")
     assert page.evidence_values["build"].text() == ("3 LOCAL PROJECTS  •  17/19 HOST TOOLS READY")
     assert page.evidence_values["live"].text() == ("200 GENUINE EVENTS  •  38 ACTIVE")
+    assert page.evidence_values["guardian"].text() == "AUDIT + APPROVAL EVIDENCE"
+    assert page.evidence_states["guardian"].text() == "INTEGRITY VERIFIED"
+    assert page.evidence_cards["guardian"].property("evidenceState") == "verified"
     assert page.evidence_cards["device"].property("evidenceState") == "verified"
     assert page.evidence_cards["build"].property("evidenceState") == "attention"
     assert set(page.evidence_buttons) == {
@@ -564,15 +572,17 @@ def test_about_runtime_evidence_is_explicit_and_routes_to_its_owning_features() 
         "rom_studio",
         "forge_arsenal",
         "live_console",
+        "guardian_core",
     }
 
+    page.evidence_buttons["guardian_core"].click()
     page.evidence_buttons["device_atlas"].click()
     page.evidence_buttons["forge_arsenal"].click()
     page.evidence_buttons["live_console"].click()
     page.evidence_guide.click()
     app.processEvents()
 
-    assert routes == ["device_atlas", "forge_arsenal", "live_console"]
+    assert routes == ["guardian_core", "device_atlas", "forge_arsenal", "live_console"]
     assert articles == ["about-live-evidence-unavailable"]
     page.close()
 
@@ -595,6 +605,31 @@ def test_about_runtime_evidence_rejects_untrusted_counts() -> None:
             live_ledger_valid=False,
             live_event_count=1,
             live_active_count=0,
+            guardian_state="unverified",
+            guardian_detail="Guardian evidence has not been verified",
+            guardian_verified=False,
+        )
+
+    with pytest.raises(ValueError, match="contradictory Guardian verification"):
+        AboutRuntimeEvidence(
+            device_pack_count=0,
+            device_pack_issue_count=0,
+            catalog_valid=False,
+            catalog_fresh=False,
+            catalog_entry_count=0,
+            catalog_reason="Unavailable",
+            archive_guide_count=137,
+            archive_known_fix_count=87,
+            archive_category_count=10,
+            project_count=0,
+            tool_ready_count=0,
+            tool_count=0,
+            live_ledger_valid=True,
+            live_event_count=0,
+            live_active_count=0,
+            guardian_state="verified",
+            guardian_detail="No full verification was performed",
+            guardian_verified=False,
         )
 
 

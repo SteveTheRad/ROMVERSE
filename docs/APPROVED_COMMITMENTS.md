@@ -180,6 +180,12 @@ Companion, and Galaxy family cards route to the canonical Desktop pages. Officia
 surface browser failure without claiming a device or application state change. These About actions
 remain navigation-only and never inherit Guardian or execution authority.
 
+The Desktop ROMVERSE Now panel includes one prominent Guardian-owned evidence lane. About observes
+only Guardian Core's bounded audit/approval lifecycle and may never infer a green safety state from
+the existence of an audit file, a cached count, or a previous render. Only a current full Guardian
+verification may display `INTEGRITY VERIFIED`; a revision change retires that claim to
+`REVERIFY REQUIRED`. The lane routes to Guardian Core and starts no approval or device action.
+
 Double-clicking the R on Desktop or double-tapping it on Companion discovers **ROMVERSE: The
 Origin**. Discovery is remembered locally and enables replay. The first genuine discovery records
 **Beyond the Verse** locally, but no XP, account entitlement, or server award may be simulated before

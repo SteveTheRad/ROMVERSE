@@ -1841,16 +1841,17 @@ KNOWN_FIXES = (
         "about-live-evidence-unavailable",
         "About runtime evidence is stale or unavailable",
         "ROMVERSE WORKFLOWS",
-        "The ROMVERSE Now panel is a read-only map of facts owned by Device Atlas, Archives, "
-        "ROM Studio, Forge Arsenal, and Live Console. A warning means one owning service "
+        "The ROMVERSE Now panel is a read-only map of facts owned by Guardian Core, Device "
+        "Atlas, Archives, ROM Studio, Forge Arsenal, and Live Console. A warning means one owning service "
         "rejected, could not refresh, or has not yet collected its evidence; About never fills "
         "that gap with a demo counter or inferred success.",
         checks=(
             "Reopen About ROMVERSE so the panel recalculates from the current workspace rather than a previous screen state.",
-            "Open the card's exact owning feature and read its bounded reason: Device Atlas for Pack/catalog identity, Forge Arsenal for host tools, or Live Console for ledger integrity.",
+            "Open the card's exact owning feature and read its bounded reason: Guardian Core for audit/approval integrity, Device Atlas for Pack/catalog identity, Forge Arsenal for host tools, or Live Console for ledger integrity.",
             "Keep official device identity separate from source-bound build, compile, flash, Guardian approval, and execution readiness.",
         ),
         fix_steps=(
+            "For VERIFY REQUIRED, REVERIFY REQUIRED, or VERIFY FAILED, open Guardian Core and let its bounded verifier inspect the current audit and approval evidence; About cannot perform or assume that verification.",
             "For a stale official ID receipt, use Device Atlas's reviewed catalog refresh and wait for its integrity receipt before returning to About.",
             "For missing host tools, use the exact Device Pack handoff to Forge Arsenal; prepare only the declared missing subset, then run a fresh verifier scan.",
             "For a rejected Live Console ledger, preserve the file and use Live Console's visible integrity error; do not rewrite or count untrusted events.",
@@ -1859,6 +1860,8 @@ KNOWN_FIXES = (
         verification=(
             "Returning to About shows counts identical to the current owning feature without starting a scan, build, approval, or phone action.",
             "Every evidence card opens its registered canonical Desktop page and preserves the workspace state.",
+            "About cannot report the complete local evidence map as current unless Guardian's latest audit and approval revision is integrity verified.",
+            "Changing Guardian evidence after verification immediately retires the About safety lane to REVERIFY REQUIRED when About recalculates.",
             "A rejected catalog or ledger remains visibly unavailable and contributes no trusted row or event count.",
         ),
         tags=(
@@ -1868,6 +1871,8 @@ KNOWN_FIXES = (
             "device catalog warning",
             "live ledger integrity",
             "desktop feature evidence map",
+            "about guardian verify required",
+            "about safety status stale",
         ),
         route="about",
         evidence="ROMVERSE calculates the panel from current in-process service results and validated local records each time About is opened.",

@@ -24,6 +24,9 @@ website and social actions report browser-launch failure without implying that D
 state changed. The hidden Origin discovery remains replayable, while its tiny local record is
 strictly schema-validated, private, atomic, and deliberately carries no XP, membership, account, or
 device-operation authority.
+Its ROMVERSE Now evidence map gives Guardian a full-width owner lane: About can display only the
+current Guardian Core audit/approval state, cannot turn green before full verification, and retires
+stale audit metadata to reverify-required without starting an approval or device action.
 
 The **Guardian Core** exposes the safety boundary: every Guardian-controlled operation is
 recorded in a local SHA-256 hash chain with device identifiers redacted. ROMVERSE verifies

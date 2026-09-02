@@ -237,6 +237,9 @@ class AboutRuntimeEvidence:
     live_ledger_valid: bool
     live_event_count: int
     live_active_count: int
+    guardian_state: str
+    guardian_detail: str
+    guardian_verified: bool
 
     def __post_init__(self) -> None:
         counts = (
@@ -262,6 +265,26 @@ class AboutRuntimeEvidence:
             raise ValueError("Rejected Live Console evidence cannot expose trusted event counts")
         if self.live_active_count > self.live_event_count:
             raise ValueError("Active Live Console events cannot exceed the verified ledger")
+        guardian_states = {
+            "unverified",
+            "review_due",
+            "verifying",
+            "verified",
+            "locked",
+            "failed",
+            "unavailable",
+        }
+        if self.guardian_state not in guardian_states:
+            raise ValueError("About runtime evidence has an invalid Guardian state")
+        if self.guardian_verified is not (self.guardian_state == "verified"):
+            raise ValueError("About runtime evidence has contradictory Guardian verification")
+        if (
+            not isinstance(self.guardian_detail, str)
+            or not self.guardian_detail.strip()
+            or "\x00" in self.guardian_detail
+            or len(self.guardian_detail) > 360
+        ):
+            raise ValueError("About runtime evidence has invalid Guardian detail")
 
 
 def _sidebar_nav_tooltip(label: str, subtitle: str) -> str:
@@ -1638,6 +1661,12 @@ class AboutPage(QWidget):
         evidence_grid.setVerticalSpacing(10)
         evidence_specs = (
             (
+                "guardian",
+                "GUARDIAN EVIDENCE",
+                "Current audit and approval integrity from Guardian Core",
+                (("guardian_core", "Open Guardian Core"),),
+            ),
+            (
                 "device",
                 "DEVICE INTELLIGENCE",
                 "Registry and official identity evidence",
@@ -1711,7 +1740,12 @@ class AboutPage(QWidget):
                 self.evidence_buttons[route] = button
             actions_layout.addStretch(1)
             card_layout.addLayout(actions_layout)
-            evidence_grid.addWidget(card, index // 2, index % 2)
+            if key == "guardian":
+                card.setMinimumHeight(150)
+                evidence_grid.addWidget(card, 0, 0, 1, 2)
+            else:
+                slot = index - 1
+                evidence_grid.addWidget(card, 1 + slot // 2, slot % 2)
             self.evidence_cards[key] = card
             self.evidence_values[key] = value
             self.evidence_states[key] = state
@@ -2273,6 +2307,7 @@ class AboutPage(QWidget):
             and evidence.catalog_valid
             and evidence.catalog_fresh
             and evidence.live_ledger_valid
+            and evidence.guardian_verified
         )
         self.runtime_scope.setText(
             "READ-ONLY  •  CURRENT WORKSPACE  •  NO EXECUTION AUTHORITY"
@@ -2281,6 +2316,34 @@ class AboutPage(QWidget):
         )
         self.runtime_scope.setObjectName("Good" if all_current else "Warning")
         self._repolish(self.runtime_scope)
+
+        guardian_labels = {
+            "unverified": "VERIFY REQUIRED",
+            "review_due": "REVERIFY REQUIRED",
+            "verifying": "VERIFYING",
+            "verified": "INTEGRITY VERIFIED",
+            "locked": "EXECUTION LOCKED",
+            "failed": "VERIFY FAILED",
+            "unavailable": "AUDIT UNAVAILABLE",
+        }
+        guardian_label = guardian_labels[evidence.guardian_state]
+        guardian_kind = (
+            "verified"
+            if evidence.guardian_verified
+            else (
+                "unavailable"
+                if evidence.guardian_state in {"locked", "failed", "unavailable"}
+                else "attention"
+            )
+        )
+        guardian_detail = evidence.guardian_detail.rstrip(". ")
+        self._set_evidence_lane(
+            "guardian",
+            "AUDIT + APPROVAL EVIDENCE",
+            guardian_label,
+            f"{guardian_detail}. About observes this state only; Guardian Core owns verification, approvals, and every execution lock.",
+            guardian_kind,
+        )
 
         pack_noun = "PACK" if evidence.device_pack_count == 1 else "PACKS"
         if evidence.catalog_valid:
@@ -3024,7 +3087,7 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.history_center)
         self.guardian_center = GuardianCenter(self._audit_store, auto_start=False)
         self.guardian_center.dashboard_state_changed.connect(
-            self.device_center.set_guardian_state
+            self._guardian_dashboard_state_changed
         )
         self.device_center.set_guardian_state(
             *self.guardian_center.current_dashboard_state()
@@ -4045,6 +4108,10 @@ class MainWindow(QMainWindow):
     def _refresh_about_evidence(self) -> None:
         """Recalculate About facts from the services that own each local record."""
 
+        self.guardian_center.invalidate_dashboard_if_evidence_changed()
+        guardian_state, guardian_detail, guardian_verified = (
+            self.guardian_center.current_dashboard_state()
+        )
         registry = self.device_packs_center.registry
         catalog_status = self.device_catalog.status()
         archive_metrics = catalog_metrics(ARCHIVE_ARTICLES)
@@ -4073,8 +4140,27 @@ class MainWindow(QMainWindow):
                 live_ledger_valid=live_ledger_valid,
                 live_event_count=len(events),
                 live_active_count=sum(event.state is MissionState.RUNNING for event in events),
+                guardian_state=guardian_state,
+                guardian_detail=guardian_detail,
+                guardian_verified=guardian_verified,
             )
         )
+
+    @Slot(str, str, bool)
+    def _guardian_dashboard_state_changed(
+        self,
+        state: str,
+        detail: str,
+        verified: bool,
+    ) -> None:
+        """Publish Guardian's one truth state to every visible summary surface."""
+
+        self.device_center.set_guardian_state(state, detail, verified)
+        if (
+            hasattr(self, "about_page")
+            and self.stack.currentWidget() is self.about_page
+        ):
+            self._refresh_about_evidence()
 
     def _navigate_route(self, route: str) -> bool:
         """Open one stable Desktop route or report the broken integration visibly."""

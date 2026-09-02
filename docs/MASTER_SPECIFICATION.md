@@ -705,7 +705,11 @@ About itself never gains device-changing authority. A balanced Official Websites
 the clean HTTPS `romverse.app` product destination and `radforgelabs.com` studio destination with
 distinct crisp marks, aligned actions, accessible names, and no tracking parameters. Browser-launch
 failure is visible and cannot be presented as a change to Desktop or device state. It sits before
-the existing official community/social destinations. A double-click on the About mark opens the
+the existing official community/social destinations. The read-only ROMVERSE Now map must include a prominent
+Guardian-owned audit/approval lane alongside device, knowledge, build, and Live Console evidence.
+Only Guardian Core may publish that lane as integrity verified; unverified, changed, checking,
+locked, failed, or unavailable evidence keeps About out of its all-current state, and opening About
+must never start an approval, command, build, flash, or phone action. A double-click on the About mark opens the
 approved cinematic supporter tribute: inward-
 moving stars, a purple/cyan accretion disk, event horizon, collapse pulse, mark reveal, and
 the complete “To Everyone Who Believed” message signed SteveTheRad / A RadForge Labs

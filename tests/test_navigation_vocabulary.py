@@ -204,6 +204,13 @@ def test_about_recalculates_real_workspace_evidence_and_returns_from_its_exact_g
             f"1 LOCAL PROJECT  •  {ready_tools}/{tool_count} HOST TOOLS READY"
         )
         assert window.about_page.evidence_values["live"].text() == ("1 GENUINE EVENT  •  1 ACTIVE")
+        assert window.about_page.evidence_values["guardian"].text() == (
+            "AUDIT + APPROVAL EVIDENCE"
+        )
+        assert window.about_page.evidence_states["guardian"].text() == "VERIFY REQUIRED"
+        assert window.about_page.evidence_cards["guardian"].property("evidenceState") == (
+            "attention"
+        )
 
         owners = {
             "device_atlas": window.device_packs_center,
@@ -266,6 +273,57 @@ def test_about_recalculates_real_workspace_evidence_and_returns_from_its_exact_g
         assert window.about_page.evidence_values["live"].text() == ("EVENT COUNTS UNAVAILABLE")
         assert window.about_page.evidence_cards["live"].property("evidenceState") == ("unavailable")
         assert "rejected the local ledger" in window.about_page.evidence_details["live"].text()
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_about_observes_guardian_verification_and_retires_stale_evidence(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    started: list[object] = []
+    monkeypatch.setattr("romverse.ui.guardian_center.start_background", started.append)
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
+    try:
+        window.guardian_center.refresh()
+        assert len(started) == 1
+        started[0].execute()
+        app.processEvents()
+        assert window.guardian_center.current_dashboard_state()[0] == "verified"
+
+        window._navigate_route("about")
+        app.processEvents()
+        assert window.about_page.evidence_states["guardian"].text() == (
+            "INTEGRITY VERIFIED"
+        )
+        assert window.about_page.evidence_cards["guardian"].property(
+            "evidenceState"
+        ) == "verified"
+
+        audit = window.guardian_center.audit
+        assert audit is not None
+        audit.path.parent.mkdir(parents=True, exist_ok=True)
+        audit.path.write_text("changed after About verification\n", encoding="utf-8")
+        assert window.guardian_center.invalidate_dashboard_if_evidence_changed()
+        app.processEvents()
+
+        assert window.guardian_center.current_dashboard_state()[0] == "review_due"
+        assert window.about_page.evidence_states["guardian"].text() == (
+            "REVERIFY REQUIRED"
+        )
+        assert window.about_page.evidence_cards["guardian"].property(
+            "evidenceState"
+        ) == "attention"
+        assert "EVIDENCE NEEDS ATTENTION" in window.about_page.runtime_scope.text()
+        assert len(started) == 1
+        assert window.guardian_center.worker is None
+
+        window.about_page.evidence_buttons["guardian_core"].click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.guardian_center
     finally:
         window.companion_center.transport.close()
         window.close()

@@ -37,7 +37,7 @@ has current evidence.
    navigation. ROMVERSE Archives contains 151 validated guides, 101 structured known fixes, and 38
    official-source-backed records. A fresh isolated wheel build produced 223 members and revalidated
    all 21 Device Packs; its SHA-256 is
-   `d5080ffaea948d799969f43945e232a01cc4d38298f893d0f24c472917830691`. The installed-wheel smoke
+   `a466909e95591f5dc2e2a371af8ce9d5ed1a66ddc15af3b5fd85d101307550ac`. The installed-wheel smoke
    opened a fresh dark Desktop workspace and verified 101 packaged fixes plus all 19 top-level route
    coverage. This remains local Fedora evidence, not Windows validation, signing, publication, or
    physical-device write certification.

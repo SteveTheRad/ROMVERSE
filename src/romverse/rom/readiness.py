@@ -37,7 +37,7 @@ from romverse.rom.recipes import RecipeStore, load_run_receipt
 from romverse.rom.recovery_evidence import RecoveryEvidenceService
 from romverse.rom.signing_ceremony import OfflineSigningCeremonyService
 from romverse.rom.source_blueprint import FastbootSourceBlueprintService
-from romverse.rom.source_intelligence import FirmwareSourceIntelligenceService
+from romverse.rom.source_intelligence import FirmwareSourceIntelligenceService, SourceBlueprint
 
 
 class GateStatus(StrEnum):
@@ -692,11 +692,11 @@ class BuildReadinessService:
             ),
             BuildGate(
                 "device-build-plan",
-                "Deterministic Device Pack plan",
+                "Deterministic source/build plan",
                 "Build",
                 GateStatus.PASS if contract_plan_ready else GateStatus.BLOCKED,
                 (
-                    f"Plan {source_blueprint.plan_digest[:16]}… binds the exact fastboot super geometry and baseline"
+                    _source_blueprint_plan_evidence(source_blueprint)
                     if source_blueprint is not None and source_blueprint.baseline_candidate_ready
                     else f"Plan {contract_plan.plan_digest[:16]}… binds exact source, partitions, metadata, and outputs"
                     if contract_plan_ready and contract_plan is not None
@@ -1110,6 +1110,24 @@ def _gate(
         evidence,
         required_for,
     )
+
+
+def _source_blueprint_plan_evidence(blueprint: SourceBlueprint) -> str:
+    digest = blueprint.plan_digest[:16]
+    partition_count = len(blueprint.partitions)
+    if blueprint.source_kind == "ota-payload":
+        return (
+            f"Plan {digest}… binds the protected source, payload hash, and "
+            f"{partition_count}-partition OTA baseline"
+        )
+    if blueprint.source_kind == "fastboot-super":
+        return f"Plan {digest}… binds the exact fastboot super geometry and baseline"
+    if blueprint.source_kind == "partition-bundle":
+        return (
+            f"Plan {digest}… binds the protected source and hash-backed "
+            f"{partition_count}-image baseline inventory"
+        )
+    return f"Plan {digest}… binds the current {blueprint.source_kind} baseline evidence"
 
 
 def _read_json(path: Path) -> dict[str, object] | None:

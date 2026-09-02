@@ -13,6 +13,7 @@ from romverse.infrastructure.process import CommandResult
 from romverse.infrastructure.tools import ToolStatus
 from romverse.rom.models import ProjectError
 from romverse.rom.projects import RomProjectStore
+from romverse.rom.readiness import BuildReadinessService
 from romverse.rom.source_intelligence import (
     FirmwareAdapter,
     FirmwareSourceIntelligenceService,
@@ -96,6 +97,12 @@ def test_source_intelligence_selects_fastboot_super_and_persists_exact_blueprint
     assert service.load(project.project_id) == blueprint
     receipt_path = store.projects_root / project.project_id / "source-blueprint.romverse"
     assert stat.S_IMODE(receipt_path.stat().st_mode) == 0o600
+    readiness = BuildReadinessService(store, DevicePackRegistry(())).assess(
+        project.project_id,
+        persist=False,
+    )
+    plan_gate = next(gate for gate in readiness.gates if gate.gate_id == "device-build-plan")
+    assert "exact fastboot super geometry" in plan_gate.evidence
     hostile = json.loads(receipt_path.read_text(encoding="utf-8"))
     hostile["groups"][0]["unexpected"] = True
     receipt_path.write_text(json.dumps(hostile), encoding="utf-8")
@@ -140,6 +147,14 @@ def test_source_intelligence_selects_nested_ota_payload_without_static_pack(tmp_
     assert dna.fact("software.build").value == "OS4.0.0.23.XPBCNXM"
     assert dna.fact("software.build").evidence_ids == ("source.blueprint",)
     assert any(item.evidence_id == "source.blueprint" for item in dna.evidence)
+    readiness = BuildReadinessService(store, DevicePackRegistry(())).assess(
+        project.project_id,
+        persist=False,
+    )
+    plan_gate = next(gate for gate in readiness.gates if gate.gate_id == "device-build-plan")
+    assert "payload hash" in plan_gate.evidence
+    assert "3-partition OTA baseline" in plan_gate.evidence
+    assert "fastboot super" not in plan_gate.evidence
 
 
 def test_ota_blueprint_rejects_extra_oversized_and_symlinked_evidence(tmp_path):

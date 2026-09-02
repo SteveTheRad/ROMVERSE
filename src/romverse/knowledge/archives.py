@@ -1736,16 +1736,20 @@ KNOWN_FIXES = (
         "source adapter, bounded tool profile, partition inventory, and local baseline/build "
         "preparation even when no published exact-source Device Pack exists. It can never prove "
         "a flash contract. If Device DNA ignores that receipt, one screen can incorrectly call "
-        "local preparation unconfirmed while Forge correctly reports a build-ready baseline.",
+        "local preparation unconfirmed while Forge correctly reports a build-ready baseline. "
+        "The Forge plan row must also name the actual source kind; an OTA or partition bundle "
+        "must never be described as fastboot-super geometry.",
         checks=(
             "Confirm Forge readiness names a current source-bound blueprint and that its project id and protected archive SHA-256 match Device DNA.",
             "Verify the blueprint reloads through its strict service with an allowed local-evidence authority, unchanged source files, a valid digest, and phone_changed=false.",
             "Compare Device DNA source-adapter, tool-resolution, partition-map, ROM-build, and Guardian-flash capability rows rather than relying on one overall badge.",
+            "Confirm Forge's deterministic source/build-plan row describes OTA payload hashes, fastboot-super geometry, or a hash-backed partition-image inventory according to the loaded blueprint kind.",
             "Keep a published Device Pack build/flash contract separate from a project-local source blueprint; the latter cannot authorize a partition write.",
         ),
         fix_steps=(
             "Refresh Device DNA from the exact current ROM project so it reuses the same verified blueprint loader as Forge readiness.",
             "Let the blueprint supply its source kind, narrow host-tool profile, partition inventory, and local baseline evidence when the older inspection record is absent or legacy.",
+            "Render source-specific plan evidence instead of reusing fastboot-super wording for every valid local blueprint.",
             "Keep exact geometry limited for OTA or partition-bundle inventories; only verified fastboot-super geometry or an exact source Pack may mark the partition map supported.",
             "Leave Guardian Flash unsupported without the independently verified Device Pack recovery, AVB, physical-test, publisher, and partition-write contracts.",
         ),
@@ -1753,6 +1757,7 @@ KNOWN_FIXES = (
             "Device DNA records a source.blueprint evidence item bound to the current project/source digest and never accepts a foreign, stale, changed, or phone-changing receipt.",
             "OTA or fastboot blueprints mark the automatic adapter and narrow tool profile supported; a bounded partition bundle remains caution where deterministic rebuilding is incomplete.",
             "ROM build preparation reports the verified local baseline boundary while Guardian Flash remains unsupported unless separate exact Pack evidence exists.",
+            "OTA, fastboot-super, and partition-bundle readiness fixtures each retain their own truthful plan description.",
             "Refreshing an unchanged profile remains deterministic, bootloader relock remains permanently unsupported, and no scan, worker, build, flash, or phone action is started by this guide.",
         ),
         tags=(
@@ -1763,6 +1768,8 @@ KNOWN_FIXES = (
             "project local ota blueprint",
             "device dna stale build capability",
             "forge device dna mismatch",
+            "forge ota plan says fastboot super",
+            "wrong source geometry label",
         ),
         route="rom_studio",
         evidence="ROMVERSE loads the same strict source-intelligence receipt in Device DNA and Forge readiness, verifies exact project/source/authority/digest/no-phone-change binding, and tests supported local-build versus unsupported flash boundaries.",

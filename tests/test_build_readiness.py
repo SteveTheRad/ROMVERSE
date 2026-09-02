@@ -166,6 +166,10 @@ def test_partition_bundle_blueprint_advances_local_baseline_but_not_flash_author
     assert states["device"] is GateStatus.BLOCKED
     assert states["physical-validation"] is GateStatus.BLOCKED
     assert not report.flash_ready
+    plan_gate = next(gate for gate in report.gates if gate.gate_id == "device-build-plan")
+    assert plan_gate.label == "Deterministic source/build plan"
+    assert "hash-backed 1-image baseline inventory" in plan_gate.evidence
+    assert "fastboot super" not in plan_gate.evidence
 
 
 def test_readiness_uses_structure_scoped_tools_without_granting_build_authority(tmp_path):
@@ -228,6 +232,7 @@ def test_automatic_recovery_contract_stays_attention_until_exact_write_contract_
         baseline_candidate_ready=True,
         avb_topology_verified=False,
         blueprint_digest="3" * 64,
+        partitions=(SimpleNamespace(name="system"),),
     )
     rollback = SimpleNamespace(record_digest="4" * 64, stock_recovery=object())
     monkeypatch.setattr(FirmwareSourceIntelligenceService, "load", lambda *_args: blueprint)
@@ -354,6 +359,7 @@ def test_ascension_build_seal_is_a_real_local_candidate_but_guardian_review_rema
         baseline_candidate_ready=True,
         avb_topology_verified=False,
         blueprint_digest="3" * 64,
+        partitions=(SimpleNamespace(name="system"),),
     )
     rollback = SimpleNamespace(record_digest="4" * 64, stock_recovery=object())
     integration = SimpleNamespace(integration_digest="5" * 64)

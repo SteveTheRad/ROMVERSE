@@ -91,6 +91,10 @@ def test_archives_have_an_exact_destination_for_every_top_level_desktop_page() -
             "Device DNA says build unconfirmed after Forge verifies the source blueprint",
         ),
         (
+            "forge ota plan says fastboot super",
+            "Device DNA says build unconfirmed after Forge verifies the source blueprint",
+        ),
+        (
             "about counters unavailable",
             "About runtime evidence is stale or unavailable",
         ),

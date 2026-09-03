@@ -4,6 +4,7 @@ import hashlib
 import json
 from contextlib import suppress
 from dataclasses import asdict, is_dataclass
+from datetime import datetime
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Qt, QTimer, Signal, Slot
@@ -54,6 +55,10 @@ from romverse.guardian.execution_plan import GuardianExecutionPlan
 from romverse.guardian.flash_handoff import (
     FlashMode,
     GuardianFlashHandoffService,
+)
+from romverse.guardian.live_target_receipt import (
+    GuardianLiveTargetReceipt,
+    GuardianLiveTargetReceiptService,
 )
 from romverse.guardian.manifest_review import (
     GuardianManifestReview,
@@ -115,6 +120,37 @@ from romverse.ui.backup_center import RecoveryEvidenceWorker
 from romverse.ui.guided_mission import GuidedBuildMission
 from romverse.ui.phone_backup import PhoneMediaBackupDialog, PhoneMediaBackupWorker
 from romverse.ui.process_progress import ProcessProgressBar
+
+
+class LiveTargetCheckSignals(QObject):
+    complete = Signal(object)
+    failed = Signal(str)
+
+
+class LiveTargetCheckWorker(ManagedRunnable):
+    """Run the bounded read-only re-identification sequence off the UI thread."""
+
+    def __init__(
+        self,
+        service: GuardianLiveTargetReceiptService,
+        gateway: GuardianExecutionGatewayContract,
+        reviewed_device: AndroidDevice,
+    ) -> None:
+        super().__init__()
+        self.service = service
+        self.gateway = gateway
+        self.reviewed_device = reviewed_device
+        self.signals = LiveTargetCheckSignals()
+
+    @Slot()
+    def execute(self) -> None:
+        try:
+            receipt = self.service.observe(self.gateway, self.reviewed_device)
+            with suppress(RuntimeError):
+                self.signals.complete.emit(receipt)
+        except (OSError, ProjectError, TypeError, ValueError) as exc:
+            with suppress(RuntimeError):
+                self.signals.failed.emit(str(exc))
 
 
 class RebuildMetadataSignals(QObject):
@@ -421,6 +457,8 @@ class GuardianManifestReviewDialog(QDialog):
         *,
         execution_plan: GuardianExecutionPlan | None = None,
         gateway_contract: GuardianExecutionGatewayContract | None = None,
+        live_target_service: GuardianLiveTargetReceiptService | None = None,
+        reviewed_device: AndroidDevice | None = None,
     ) -> None:
         super().__init__(parent)
         self.execution_plan = (
@@ -431,6 +469,10 @@ class GuardianManifestReviewDialog(QDialog):
             if gateway_contract_matches_plan(gateway_contract, self.execution_plan)
             else None
         )
+        self.live_target_service = live_target_service
+        self.reviewed_device = reviewed_device
+        self.live_target_receipt: GuardianLiveTargetReceipt | None = None
+        self.live_target_worker: LiveTargetCheckWorker | None = None
         self.open_guardian_core_requested = False
         self.setWindowTitle("ROMVERSE Guardian • exact manifest review")
         self.setMinimumSize(820, 640)
@@ -741,6 +783,56 @@ class GuardianManifestReviewDialog(QDialog):
         result_layout.insertWidget(1, result_copy)
         body_layout.addWidget(result_card)
 
+        self.live_target_card = QFrame()
+        self.live_target_card.setObjectName("BuildPhase")
+        live_target_available = bool(
+            contract is not None
+            and self.live_target_service is not None
+            and isinstance(self.reviewed_device, AndroidDevice)
+            and self.reviewed_device.build_id
+            and self.reviewed_device.build_fingerprint
+        )
+        self.live_target_card.setProperty(
+            "gateStatus", "attention" if live_target_available else "blocked"
+        )
+        live_target_layout = QVBoxLayout(self.live_target_card)
+        live_target_layout.setContentsMargins(18, 15, 18, 15)
+        live_target_layout.setSpacing(7)
+        live_target_title = QLabel("LIVE TARGET CHECK v1 • READ-ONLY • TWO-MINUTE RECEIPT")
+        live_target_title.setObjectName("CardHeading")
+        live_target_title.setWordWrap(True)
+        live_target_layout.addWidget(live_target_title)
+        self.live_target_status = QLabel(
+            "Not captured. Put the exact reviewed phone into the entry mode shown by this "
+            "gateway, connect only that one phone by USB, then run the check. Guardian samples "
+            "discovery three times around two matching product, unlock and mode checks. It "
+            "does not flash, reboot, unlock, relock or grant consent."
+            if live_target_available
+            else "Unavailable in this review. A current exact gateway, complete earlier Android "
+            "build identity, and verified ADB plus Fastboot tools are required. Opening this "
+            "screen did not contact or change the phone."
+        )
+        self.live_target_status.setObjectName("GateCopy")
+        self.live_target_status.setWordWrap(True)
+        self.live_target_status.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        live_target_layout.addWidget(self.live_target_status)
+        self.live_target_button: QPushButton | None = None
+        if live_target_available:
+            self.live_target_button = QPushButton("Run read-only target check")
+            self.live_target_button.setObjectName("MissionNext")
+            self.live_target_button.setAccessibleName(
+                "Run the read-only Guardian live target identity check"
+            )
+            self.live_target_button.setToolTip(
+                "Uses only ADB/Fastboot discovery and allowlisted Fastboot identity reads. "
+                "No device-changing command or final consent is available."
+            )
+            self.live_target_button.clicked.connect(self._start_live_target_check)
+            live_target_layout.addWidget(self.live_target_button, 0, Qt.AlignmentFlag.AlignLeft)
+        body_layout.addWidget(self.live_target_card)
+
         invariant = QLabel(
             "PERMANENT GUARDIAN RULE • BOOTLOADER RELOCK: NEVER • EXECUTION AUTHORITY: NONE • PHONE CHANGED: NO"
         )
@@ -771,6 +863,93 @@ class GuardianManifestReviewDialog(QDialog):
     def _open_guardian_core(self) -> None:
         self.open_guardian_core_requested = True
         self.accept()
+
+    def _start_live_target_check(self) -> None:
+        if (
+            self.live_target_worker is not None
+            or self.live_target_button is None
+            or self.live_target_service is None
+            or self.gateway_contract is None
+            or not isinstance(self.reviewed_device, AndroidDevice)
+        ):
+            return
+        self.live_target_receipt = None
+        self.live_target_button.setEnabled(False)
+        self.live_target_status.setObjectName("MissionMuted")
+        self.live_target_status.setText(
+            "Checking one exact Fastboot target with read-only discovery and identity probes… "
+            "No flash, reboot, wipe, unlock, relock or consent action can run."
+        )
+        self._repolish_live_target_status()
+        worker = LiveTargetCheckWorker(
+            self.live_target_service,
+            self.gateway_contract,
+            self.reviewed_device,
+        )
+        self.live_target_worker = worker
+        worker.signals.complete.connect(self._live_target_check_complete)
+        worker.signals.failed.connect(self._live_target_check_failed)
+        start_background(worker)
+
+    @Slot(object)
+    def _live_target_check_complete(self, result: object) -> None:
+        self.live_target_worker = None
+        if (
+            not isinstance(result, GuardianLiveTargetReceipt)
+            or self.gateway_contract is None
+            or result.gateway_contract_digest != self.gateway_contract.contract_digest
+            or not result.identity_verified
+            or result.execution_authority != "none"
+            or result.runtime_invoked
+            or result.phone_changed
+        ):
+            self._live_target_check_failed(
+                "The returned receipt did not match this exact Guardian gateway"
+            )
+            return
+        self.live_target_receipt = result
+        self.live_target_card.setProperty("gateStatus", "pass")
+        self.live_target_status.setObjectName("Good")
+        slot = (
+            f" • recorded pre-write slot {result.recorded_prewrite_slot.upper()}"
+            if result.recorded_prewrite_slot
+            else ""
+        )
+        self.live_target_status.setText(
+            f"PASSED • {result.observed_product} • {result.observed_entry_mode.upper()} • "
+            f"bootloader unlocked{slot}\nReceipt {result.receipt_digest[:20]}… • valid until "
+            f"{_display_time(result.expires_at)} • local observation only • cryptographic device "
+            "attestation: no • final consent: locked • execution authority: none • phone changed: no"
+        )
+        self._repolish_live_target_status()
+        if self.live_target_button is not None:
+            self.live_target_button.setText("Run check again")
+            self.live_target_button.setEnabled(True)
+
+    @Slot(str)
+    def _live_target_check_failed(self, message: str) -> None:
+        self.live_target_worker = None
+        self.live_target_receipt = None
+        self.live_target_card.setProperty("gateStatus", "blocked")
+        clean = " ".join(str(message).replace("\x00", " ").split())[:500]
+        self.live_target_status.setObjectName("Danger")
+        self.live_target_status.setText(
+            f"CHECK STOPPED SAFELY • {clean or 'The exact target could not be verified.'}\n"
+            "No receipt remains current. No flash, reboot, wipe, unlock, relock, consent or phone "
+            "change was attempted. Confirm one exact phone is in the gateway entry mode, then retry."
+        )
+        self._repolish_live_target_status()
+        if self.live_target_button is not None:
+            self.live_target_button.setText("Retry read-only target check")
+            self.live_target_button.setEnabled(True)
+
+    def _repolish_live_target_status(self) -> None:
+        style = self.live_target_status.style()
+        style.unpolish(self.live_target_status)
+        style.polish(self.live_target_status)
+        card_style = self.live_target_card.style()
+        card_style.unpolish(self.live_target_card)
+        card_style.polish(self.live_target_card)
 
 
 class SourceBlueprintWorker(ManagedRunnable):
@@ -3471,3 +3650,10 @@ def _human_bytes(value: int) -> str:
             return f"{size:.0f} {unit}" if unit == "B" else f"{size:.1f} {unit}"
         size /= 1024
     return f"{size:.1f} TiB"
+
+
+def _display_time(value: str) -> str:
+    try:
+        return datetime.fromisoformat(value).astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
+    except (TypeError, ValueError):
+        return "invalid time"

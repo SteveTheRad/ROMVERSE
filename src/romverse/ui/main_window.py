@@ -3565,6 +3565,7 @@ class MainWindow(QMainWindow):
             gateway,
             adb_executable,
             self.app_settings,
+            fastboot_executable=fastboot_executable,
         )
         self.rom_studio.live_console_store = self.nexus_events
         self.stack.addWidget(self.rom_studio)
@@ -6112,6 +6113,7 @@ class MainWindow(QMainWindow):
             self.rom_studio.set_android_runtime(
                 gateway if adb_executable is not None else None,
                 adb_executable,
+                fastboot_executable,
             )
             self.rom_studio.device_scan_available = True
             if adb_executable is not None:
@@ -6184,7 +6186,7 @@ class MainWindow(QMainWindow):
         self.active_worker = None
         self.timer.stop()
         self._reconnect_timer.stop()
-        self.rom_studio.set_android_runtime(None, None)
+        self.rom_studio.set_android_runtime(None, None, None)
         self.rom_studio.device_scan_available = False
         self.apk_installer.set_install_service(None)
         self.backup_center.set_media_backup_service(None)

@@ -534,7 +534,11 @@ and neither surface exposes an execute, flash, consent, transition or reboot con
 state that result-receipt schema two requires an Ed25519 runtime signature plus independently verified
 target/consent bindings and that no runtime trust is enrolled.
 They also expose live-target check v1 as a read-only, two-minute prerequisite while making clear that
-opening a review does not capture a receipt or contact the phone.
+opening a review does not capture a receipt or contact the phone. When the exact gateway, reviewed
+Android build identity, ADB and Fastboot runtimes are all present, the manifest dialog offers one
+explicitly labelled read-only check control. It runs on a managed background worker, displays the
+verified product/mode/unlock/slot scope and expiry, and still exposes no flash, reboot, wipe, unlock,
+relock, consent or execution control. A failed retry invalidates the prior short-lived receipt.
 For schema three, the same worker performs all three measured full rehash passes and seals the
 transition-aware gateway only after the artifact-bound manifest and transition/recovery-bound plan
 remain exact. The gateway is still inert and reaches terminal completion only after all fail-closed

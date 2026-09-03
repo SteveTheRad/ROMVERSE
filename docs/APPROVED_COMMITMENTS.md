@@ -685,7 +685,9 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   missing build identity, expiry, tampering, links, duplicate fields or extra fields; its private
   two-minute receipt contains no raw serial, build fingerprint, stdout or stderr, explicitly denies
   cryptographic-device-attestation, consent, runtime, phone-change and execution-authority claims, and
-  still requires physical-device validation plus a separately trusted runtime;
+  still requires physical-device validation plus a separately trusted runtime; the exact Guardian
+  review conditionally exposes this as one managed-background read-only action with clear pass/fail,
+  expiry and zero-authority status, and a failed retry invalidates the older receipt;
   end-to-end Desktop presentation of that inert chain through the managed ROM Studio Guardian
   worker, with a single monotonic byte-derived scale across each required artifact rehash, terminal
   100 only after the applicable private records are sealed, readable dark scroll cards for

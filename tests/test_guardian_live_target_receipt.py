@@ -8,7 +8,11 @@ import stat
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
 import pytest
+from PySide6.QtCore import QThreadPool
+from PySide6.QtWidgets import QApplication, QLabel, QPushButton
 
 from romverse.device.models import DeviceState
 from romverse.guardian.live_target_receipt import (
@@ -18,6 +22,7 @@ from romverse.guardian.live_target_receipt import (
 from romverse.guardian.models import OperationClass, OperationRequest
 from romverse.guardian.policy import MilestoneOnePolicy
 from romverse.infrastructure.process import CommandResult
+from romverse.ui.build_control import GuardianManifestReviewDialog
 from tests.test_guardian_execution_gateway_contract import _service as gateway_service
 from tests.test_guardian_execution_plan import _prepared_with_transition_recovery
 
@@ -379,3 +384,55 @@ def test_live_target_receipt_has_no_mutation_or_runtime_surface() -> None:
     assert names.isdisjoint(forbidden)
     source = inspect.getsource(GuardianLiveTargetReceiptService)
     assert "subprocess" not in source
+
+
+def test_guardian_review_runs_the_read_only_check_off_the_ui_thread(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    plans, project, report, device, manifest, *_rest = _prepared_with_transition_recovery(
+        tmp_path,
+        monkeypatch,
+    )
+    reviewed = replace(
+        device,
+        build_id="CURRENT.BUILD",
+        build_fingerprint="test/product/current-build:user/release-keys",
+    )
+    plan = plans.compile(project.project_id, report, reviewed)
+    gateway = gateway_service(plans).compile(project.project_id, report, reviewed)
+    service = GuardianLiveTargetReceiptService(
+        plans.store,
+        _AdbFixture(),
+        _FastbootFixture(),
+    )
+    dialog = GuardianManifestReviewDialog(
+        manifest,
+        execution_plan=plan,
+        gateway_contract=gateway,
+        live_target_service=service,
+        reviewed_device=reviewed,
+    )
+
+    buttons = [button.text() for button in dialog.findChildren(QPushButton)]
+    labels = [label.text() for label in dialog.findChildren(QLabel)]
+    assert "Run read-only target check" in buttons
+    assert any("does not flash, reboot, unlock, relock or grant consent" in text for text in labels)
+    assert dialog.live_target_receipt is None
+    dialog._start_live_target_check()
+    assert dialog.live_target_button is not None
+    assert not dialog.live_target_button.isEnabled()
+    QThreadPool.globalInstance().waitForDone(5_000)
+    for _ in range(10):
+        app.processEvents()
+        if dialog.live_target_worker is None:
+            break
+
+    assert dialog.live_target_receipt is not None
+    assert dialog.live_target_receipt.gateway_contract_digest == gateway.contract_digest
+    assert "PASSED" in dialog.live_target_status.text()
+    assert "final consent: locked" in dialog.live_target_status.text()
+    assert "execution authority: none" in dialog.live_target_status.text()
+    assert "phone changed: no" in dialog.live_target_status.text()
+    dialog.close()

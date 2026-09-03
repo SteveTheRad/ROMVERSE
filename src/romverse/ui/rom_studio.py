@@ -36,7 +36,9 @@ from romverse.ascension.integration import RootRomIntegrationService
 from romverse.ascension.models import AscensionMethod
 from romverse.ascension.planning import AscensionRootPlanService
 from romverse.core.settings import AppSettings, ExperienceMode
+from romverse.device.adb import AdbClient
 from romverse.device.dna import CapabilityState, DeviceDnaProfile, DeviceDnaService
+from romverse.device.fastboot import FastbootClient
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device_packs.attestations import DevicePackAttestationStore
 from romverse.device_packs.registry import DevicePackRegistry
@@ -55,6 +57,7 @@ from romverse.guardian.execution_plan import (
 )
 from romverse.guardian.flash_handoff import GuardianFlashHandoffService
 from romverse.guardian.gateway import ExecutionGateway
+from romverse.guardian.live_target_receipt import GuardianLiveTargetReceiptService
 from romverse.guardian.manifest_review import (
     GuardianManifestReview,
     GuardianManifestReviewService,
@@ -543,6 +546,7 @@ class RomStudio(QWidget):
         gateway: ExecutionGateway | None = None,
         adb_executable: Path | None = None,
         app_settings: AppSettings | None = None,
+        fastboot_executable: Path | None = None,
     ) -> None:
         super().__init__()
         self.store = store
@@ -553,6 +557,7 @@ class RomStudio(QWidget):
         self.attestation_store = attestation_store
         self.gateway = gateway
         self.adb_executable = adb_executable
+        self.fastboot_executable = fastboot_executable
         self.app_settings = app_settings or AppSettings()
         self.projects: tuple[RomProject, ...] = ()
         self.current_project: RomProject | None = None
@@ -573,6 +578,7 @@ class RomStudio(QWidget):
         self._last_recovery_report: WorkspaceRecoveryReport | None = None
         self._latest_guardian_execution_plan: GuardianExecutionPlan | None = None
         self._latest_guardian_gateway_contract: GuardianExecutionGatewayContract | None = None
+        self._latest_guardian_reviewed_device: AndroidDevice | None = None
 
         page = QVBoxLayout(self)
         page.setContentsMargins(30, 26, 30, 30)
@@ -2479,10 +2485,16 @@ class RomStudio(QWidget):
         self,
         gateway: ExecutionGateway | None,
         adb_executable: Path | None,
+        fastboot_executable: Path | None = None,
     ) -> None:
-        changed = self.gateway is not gateway or self.adb_executable != adb_executable
+        changed = (
+            self.gateway is not gateway
+            or self.adb_executable != adb_executable
+            or self.fastboot_executable != fastboot_executable
+        )
         self.gateway = gateway
         self.adb_executable = adb_executable
+        self.fastboot_executable = fastboot_executable
         if changed:
             self.device_context_changed.emit()
 
@@ -3217,6 +3229,7 @@ class RomStudio(QWidget):
         )
         self._latest_guardian_execution_plan = None
         self._latest_guardian_gateway_contract = None
+        self._latest_guardian_reviewed_device = device
         worker = GuardianReviewWorker(
             binding_service,
             GuardianManifestReviewService(self.store, self.pack_registry),
@@ -3815,6 +3828,17 @@ class RomStudio(QWidget):
             return plan, None
         return plan, contract
 
+    def _live_target_service(self) -> GuardianLiveTargetReceiptService | None:
+        """Create the read-only final identity checker only with both verified tools."""
+
+        if self.gateway is None or self.adb_executable is None or self.fastboot_executable is None:
+            return None
+        return GuardianLiveTargetReceiptService(
+            self.store,
+            AdbClient(self.adb_executable, self.gateway),
+            FastbootClient(self.fastboot_executable, self.gateway),
+        )
+
     @Slot(object)
     def _worker_complete(self, result: object) -> None:
         completed_worker = self.worker
@@ -3959,6 +3983,7 @@ class RomStudio(QWidget):
             from romverse.ui.build_control import GuardianManifestReviewDialog
 
             plan, contract = self.guardian_execution_context(result)
+            live_target_service = self._live_target_service() if contract is not None else None
             if plan is None and contract is None:
                 review = GuardianManifestReviewDialog(result, self)
             else:
@@ -3967,6 +3992,8 @@ class RomStudio(QWidget):
                     self,
                     execution_plan=plan,
                     gateway_contract=contract,
+                    live_target_service=live_target_service,
+                    reviewed_device=self._latest_guardian_reviewed_device,
                 )
             review.exec()
             if review.open_guardian_core_requested:
@@ -3981,6 +4008,7 @@ class RomStudio(QWidget):
         if operation == "guardian-review":
             self._latest_guardian_execution_plan = None
             self._latest_guardian_gateway_contract = None
+            self._latest_guardian_reviewed_device = None
         recovery = self._last_recovery_report
         self._active_operation = ""
         self._active_project_id = ""

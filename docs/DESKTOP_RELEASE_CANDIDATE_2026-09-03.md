@@ -129,7 +129,9 @@ in this report.
   build identity, stores no raw serial/fingerprint/tool output, grants no consent or authority, and is
   explicitly not cryptographic device attestation. Fixture tests cover target swap, ambiguity, wrong
   product/unlock/mode, probe failure/drift, incomplete prior build evidence, expiry, tampering, duplicate
-  fields and linked files; real-device validation remains required.
+  fields and linked files. The exact Guardian review now offers this check only when the gateway,
+  reviewed Android build identity and both verified tools are present; it runs off the UI thread and
+  shows pass/fail, expiry and explicit zero-authority status. Real-device validation remains required.
 - A persistent user-supplied firmware responsibility notice and explicit import acknowledgement,
   without attempting to exclude rights or obligations that cannot legally be excluded.
 - Signed Desktop update checking and explicit, cancellable staging with measured progress, strict

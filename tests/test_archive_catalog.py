@@ -22,13 +22,13 @@ def test_archives_catalog_is_large_unique_classified_and_evidence_labelled() -> 
     validate_catalog(ARCHIVE_ARTICLES)
     metrics = catalog_metrics(ARCHIVE_ARTICLES)
 
-    assert len(ARCHIVE_ARTICLES) == 193
-    assert len(KNOWN_FIXES) == 143
+    assert len(ARCHIVE_ARTICLES) == 194
+    assert len(KNOWN_FIXES) == 144
     assert metrics == {
         "guides": len(ARCHIVE_ARTICLES),
         "categories": len(CATEGORIES),
-        "sourced_guides": 80,
-        "official_sources": 76,
+        "sourced_guides": 81,
+        "official_sources": 77,
         "community_sources": 4,
         "known_fixes": len(KNOWN_FIXES),
     }
@@ -53,6 +53,18 @@ def test_archives_have_an_exact_destination_for_every_top_level_desktop_page() -
         ("payload.bin", "payload.bin found but Payload Dumper is missing"),
         ("adb unauthorized", "ADB authorization is pending on the phone"),
         ("multiple devices", "ADB error: more than one device or emulator"),
+        (
+            "Phone detected in bootloader Fastboot or userspace fastbootd",
+            "Phone detected in bootloader Fastboot or userspace fastbootd",
+        ),
+        (
+            "Phone detected in Android recovery or ADB sideload mode",
+            "Phone detected in Android recovery or ADB sideload mode",
+        ),
+        (
+            "Android device identity fields: brand, manufacturer, model, device, and product",
+            "Android device identity fields: brand, manufacturer, model, device, and product",
+        ),
         ("erofs", "EXT4 or EROFS filesystem reader is missing"),
         ("out of space", "Workspace is out of space"),
         ("hash mismatch", "Managed tool changed after verification"),
@@ -225,7 +237,7 @@ def test_archives_rank_verified_known_fixes_for_real_failure_language(
 
 def test_archives_reject_weak_matches_and_bound_results() -> None:
     assert not search_catalog(ARCHIVE_ARTICLES, "definitely not a real ROMVERSE topic")
-    assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=1_000)) == 193
+    assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=1_000)) == 194
     assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=0)) == 1
     connectivity = search_catalog(
         ARCHIVE_ARTICLES,

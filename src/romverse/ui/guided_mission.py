@@ -860,12 +860,12 @@ class GuidedBuildMission(QDialog):
             if device.state is DeviceState.OFFLINE:
                 return "adb device offline"
             if device.is_fastboot:
-                return "fastboot identity only"
+                return "Phone detected in bootloader Fastboot or userspace fastbootd"
             if device.state in {DeviceState.RECOVERY, DeviceState.SIDELOAD}:
-                return "Android recovery sideload"
+                return "Phone detected in Android recovery or ADB sideload mode"
             if device.state is DeviceState.UNKNOWN:
                 return "Android device connection"
-            return "Device DNA"
+            return "Android device identity fields: brand, manufacturer, model, device, and product"
         if len(context.observed_devices) > 1:
             return "multiple devices"
         if context.device_scan_error:

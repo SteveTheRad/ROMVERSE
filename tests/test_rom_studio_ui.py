@@ -1051,11 +1051,23 @@ def test_genesis_device_learning_routes_each_detected_state_to_its_exact_fix(tmp
     cases = (
         (DeviceState.UNAUTHORIZED, "adb unauthorized"),
         (DeviceState.OFFLINE, "adb device offline"),
-        (DeviceState.FASTBOOT, "fastboot identity only"),
-        (DeviceState.RECOVERY, "Android recovery sideload"),
-        (DeviceState.SIDELOAD, "Android recovery sideload"),
+        (
+            DeviceState.FASTBOOT,
+            "Phone detected in bootloader Fastboot or userspace fastbootd",
+        ),
+        (
+            DeviceState.RECOVERY,
+            "Phone detected in Android recovery or ADB sideload mode",
+        ),
+        (
+            DeviceState.SIDELOAD,
+            "Phone detected in Android recovery or ADB sideload mode",
+        ),
         (DeviceState.UNKNOWN, "Android device connection"),
-        (DeviceState.DEVICE, "Device DNA"),
+        (
+            DeviceState.DEVICE,
+            "Android device identity fields: brand, manufacturer, model, device, and product",
+        ),
     )
     for state, expected in cases:
         device = AndroidDevice("serial", state, model="Visible Phone")

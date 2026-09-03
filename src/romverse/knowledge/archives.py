@@ -127,6 +127,12 @@ FASTBOOT_SOURCE = ArchiveSource(
     "https://source.android.com/docs/core/architecture/bootloader/fastbootd",
     "2026-09-02",
 )
+RECOVERY_SIDELOAD_SOURCE = ArchiveSource(
+    "AOSP recovery USB sideloading mechanism",
+    "OFFICIAL AOSP",
+    "https://source.android.com/docs/core/ota/nonab/device_code#sideloading-mechanism",
+    "2026-09-03",
+)
 PACKAGE_SOURCE = ArchiveSource(
     "Android PackageManager install status definitions",
     "AOSP SOURCE",
@@ -372,6 +378,38 @@ KNOWN_FIXES = (
         evidence="AOSP defines getvar as the Fastboot variable-reading command and defines getvar is-userspace as yes for fastbootd and no for bootloader Fastboot. ROMVERSE allows only a fixed identity subset through Guardian.",
         automation="AUTOMATIC READ-ONLY DISCOVERY AND DEVICE ATLAS HANDOFF • NO REBOOT OR WRITE AUTHORITY",
         source=FASTBOOT_SOURCE,
+    ),
+    _fix(
+        "recovery-sideload-identity-only",
+        "Phone detected in Android recovery or ADB sideload mode",
+        "CONNECTIVITY & ADB",
+        "The phone is connected, but it is not running a normal authorized Android Debug Bridge session. Recovery exposes a limited maintenance environment, while ADB sideload deliberately accepts only an update package transfer. ROMVERSE therefore cannot claim a complete Device DNA, Android health, app, storage, or battery scan from this mode.",
+        checks=(
+            "Confirm Device Engine labels the current transport RECOVERY or SIDELOAD and masks its serial.",
+            "Treat every Android-runtime field that was not observed in this same connection state as unknown; do not reuse a prior scan as current evidence.",
+            "If sideload was intentional, inspect the selected package, exact device/build target, signer, rollback readiness, and recovery trust contract before considering any separate Guardian review.",
+        ),
+        fix_steps=(
+            "If this mode was accidental, use the phone's own recovery controls to return to Android normally, then unlock it, authorize USB debugging, and run a new read-only Device DNA scan.",
+            "If recovery was intentional, keep the phone in that mode and use Recovery Bay for evidence review; a detection scan must not send a package, reboot the phone, or start an install.",
+            "If the expected mode is not detected, verify the current Android Platform Tools and host USB driver or udev access before reconnecting once.",
+        ),
+        verification=(
+            "A new scan either identifies the same masked target in its intended recovery/sideload state or obtains a fresh authorized Android Device DNA after a manual normal boot.",
+            "The activity record contains detection evidence only and no adb sideload, reboot, push, pull, shell, install, erase, unlock, relock, or flash command.",
+            "Any later package action remains a separate, exact-scope Guardian decision with an independently verifiable outcome.",
+        ),
+        tags=(
+            "android recovery device detected",
+            "adb sideload device connected",
+            "recovery mode no device dna",
+            "sideload only connection",
+            "Android recovery sideload",
+        ),
+        route="recovery_bay",
+        evidence="AOSP defines recovery and sideload as distinct ADB states. Its recovery implementation uses a restricted adbd in sideload mode that supports only package sideloading; normal shell, log, reboot, push, and pull commands are unavailable there.",
+        automation="AUTOMATIC READ-ONLY STATE DETECTION AND RECOVERY BAY HANDOFF • NO PACKAGE TRANSFER, REBOOT, INSTALL, OR DEVICE WRITE AUTHORITY",
+        source=RECOVERY_SIDELOAD_SOURCE,
     ),
     _fix(
         "adb-server-version-mismatch",

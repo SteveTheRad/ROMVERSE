@@ -497,6 +497,24 @@ policy evidence, not universal device assurance or a live flashing runtime.
    this on representative physical Android versions and hostile-network test fixtures before
    describing wireless pairing as safe on an untrusted network.
 
+   Current physical USB-assist evidence recorded on 2026-09-04 used the authorized Xiaomi 17 Pro
+   Max (`2509FPN0BC`, `popsicle`) with Companion `0.2.0-alpha.2` build 5. The data-preserving update
+   installed successfully, and the APK in phone Downloads matched the Desktop candidate at SHA-256
+   `52162325f6dc2a626b8f851474bd9e2f1eda5922aaf230a0c32f07daf6b36a03`. Desktop created only
+   `adb reverse tcp:8765 tcp:8765` and the exact explicit Companion confirmation handoff. After the
+   user accepted the matching safety code, Companion reported a fresh authenticated two-way sync.
+   Guardian recorded both operations as low-risk and successful while redacting the physical serial
+   and six-digit code. Desktop then restored the private remembered-session verifier after restart;
+   a fresh post-restart phone observation remains pending until the phone is awake and Companion is
+   foregrounded. No firmware, partition, root, wipe, reboot, unlock, relock, or bootloader operation
+   was performed.
+
+   The same 2026-09-04 candidate passed all 1,536 Desktop tests and Ruff checks locally. Companion
+   passed all 150 JVM tests, Android-test source compilation, clean debug assembly, APK ZIP/signature
+   verification, and Android lint. GitHub Actions run `33817739893` did not start any runner steps:
+   GitHub rejected every job at scheduling time because of the account payment/spending-limit state,
+   so that red status is external CI infrastructure evidence rather than a code-test failure.
+
    Current repository evidence recorded on 2026-08-31 covers strict endpoint parsing, exact
    fingerprint comparison, refusal without active authenticated proof, bounded reconnect delay,
    continued discovery after UDP receive timeouts, persisted digest-only Desktop sessions across

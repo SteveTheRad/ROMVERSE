@@ -419,9 +419,13 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   `confirmed working`; schema-two outcomes additionally bind the exact persisted error-fingerprint
   candidate to a format-specific ADB-host, exact-toolchain, OTA-source, or AVB receipt, revalidate
   that evidence on load, and deny promotion to legacy digest-only outcomes;
-  Desktop ROMVERSE Archives expanded into a validated 151-guide, ten-category local catalog with 101
-  structured known-fix records, 38 official-source-linked records, bounded ranked retrieval, weak-
-  match rejection, category filtering, source visibility, and canonical workspace handoffs;
+  Desktop ROMVERSE Archives expanded into a validated 193-guide, eleven-category local catalog with
+  143 structured known-fix records, 76 official-source-linked records, four community/maintainer
+  evidence guides, current official device-ID coverage, bounded ranked retrieval, weak-match
+  rejection, category filtering, source visibility, and canonical workspace handoffs; the added
+  Android-wide reference layer covers identity fields, compatibility states, firmware targeting,
+  full/incremental OTA metadata, update-engine errors, partitions/slots/AVB, bootloader and APK
+  boundaries, OEM-scoped guidance, and reported/corroborated/locally verified community evidence;
   a deterministic Archives Advisor now maps every Recovery Bay concern and typed actionable
   diagnostic finding plus each recognized App Launchpad Package Manager failure to stable
   structured article identities, distinguishes exact ADB states, rejects conflicting APK codes,

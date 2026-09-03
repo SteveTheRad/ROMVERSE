@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import html
 import ipaddress
 import json
 import os
@@ -210,12 +211,120 @@ _OFFICIAL_CATALOG = (
         "Identify whether the input is a full or incremental OTA and use the matching source-bound build path.",
         "classify-ota-source",
     ),
+    _CatalogEntry(
+        "android.build-identity",
+        ("device id", "model", "codename", "fingerprint", "build id", "product"),
+        "Android Build identity fields",
+        "https://developer.android.com/reference/android/os/Build",
+        "Compare model, device, product, fingerprint, SDK, incremental, and security-patch evidence as separate fields; do not infer firmware support from one label.",
+    ),
+    _CatalogEntry(
+        "google.play-device-catalog",
+        ("retail name", "marketing name", "device catalog", "device id", "unknown model"),
+        "Google Play supported Android device catalog",
+        "https://storage.googleapis.com/play_public/supported_devices.csv",
+        "Use the official catalog for retail naming and device/model identifiers only; it provides no build, partition, recovery, or flash authority.",
+    ),
+    _CatalogEntry(
+        "android.hardware-device",
+        ("usb", "driver", "udev", "plugdev", "cable", "wireless debugging"),
+        "Run apps on a hardware device",
+        "https://developer.android.com/studio/run/device",
+        "Check the host-specific USB driver or permissions, data cable, Developer options, authorization, and current Platform Tools before changing the phone.",
+    ),
+    _CatalogEntry(
+        "aosp.update-engine-errors",
+        (
+            "update engine",
+            "update_engine",
+            "payload hash mismatch",
+            "payload size mismatch",
+            "payload timestamp",
+            "not enough space",
+            "updated but not active",
+        ),
+        "Android update_engine error definitions",
+        "https://android.googlesource.com/platform/system/update_engine/+/refs/heads/main/common/error_code.h",
+        "Keep the exact numeric code: transfer, integrity, timestamp, inactive-slot, space, and corruption failures have different recovery paths.",
+    ),
+    _CatalogEntry(
+        "aosp.fastbootd",
+        ("fastbootd", "is-userspace", "logical partition", "partition not found", "super"),
+        "Userspace fastbootd and logical partitions",
+        "https://source.android.com/docs/core/architecture/bootloader/fastbootd",
+        "Verify whether the device is in bootloader Fastboot or userspace fastbootd and whether the target is logical before planning any partition operation.",
+    ),
+    _CatalogEntry(
+        "aosp.dynamic-partitions",
+        ("dynamic partition", "super partition", "lpmake", "lp metadata", "group size"),
+        "Android dynamic partitions",
+        "https://source.android.com/docs/core/ota/dynamic_partitions",
+        "Compare the exact super geometry, groups, slots, logical partitions, filesystem sizes, and metadata before rebuilding an image set.",
+    ),
+    _CatalogEntry(
+        "aosp.ota-signing",
+        ("signature verification", "ota signature", "otacerts", "res keys", "sideload"),
+        "Sign Android builds and OTA packages",
+        "https://source.android.com/docs/core/ota/sign_builds",
+        "Sideloading does not bypass recovery signature checks; inspect the signer and the device recovery trust contract.",
+    ),
+    _CatalogEntry(
+        "aosp.bootloader-lock",
+        ("bootloader", "unlock", "locked", "flashing unlock", "factory reset"),
+        "Lock and unlock the Android bootloader",
+        "https://source.android.com/docs/core/architecture/bootloader/locking_unlocking",
+        "Treat unlocking as a destructive, physically confirmed transition that normally erases user data and remains subject to stricter OEM rules.",
+    ),
+    _CatalogEntry(
+        "aosp.gsi",
+        ("gsi", "treble", "generic system image", "vts", "cts on gsi"),
+        "Android Generic System Images",
+        "https://source.android.com/docs/core/tests/vts/gsi",
+        "Confirm Treble/vendor interfaces, CPU architecture, launch version, partition layout, AVB, and a recovery route; GSI support does not mean every ROM is compatible.",
+    ),
+    _CatalogEntry(
+        "aosp.compatibility",
+        ("compatibility", "compatible", "incompatible", "cdd", "cts", "vts"),
+        "Android compatibility program",
+        "https://source.android.com/docs/compatibility/overview",
+        "Separate Android platform compatibility from exact firmware-to-device compatibility; require device, build, partition, signer, and recovery evidence.",
+    ),
+    _CatalogEntry(
+        "android.apk-signing",
+        ("apk", "signature", "certificate", "update incompatible", "apksigner"),
+        "Verify APK signatures with apksigner",
+        "https://developer.android.com/tools/apksigner",
+        "Verify the full APK or split set and compare certificate identity with the installed package before requesting an install or update.",
+    ),
+    _CatalogEntry(
+        "google.pixel-images",
+        ("pixel", "factory image", "full ota", "anti rollback"),
+        "Factory and full OTA images for Google Pixel",
+        "https://developers.google.com/android/images",
+        "Read the exact Pixel build notes and checksums; full OTA sideload and factory-image flashing have different prerequisites and data-loss behavior.",
+    ),
+    _CatalogEntry(
+        "xiaomi.hyperos-support",
+        ("xiaomi", "redmi", "poco", "hyperos", "miui", "popsicle"),
+        "Xiaomi HyperOS update guidance",
+        "https://www.mi.com/global/support/hyperos/",
+        "Check the exact model, codename, region/channel, current build, rollout phase, and package metadata; a higher marketing version alone is insufficient.",
+    ),
+    _CatalogEntry(
+        "motorola.software-fix",
+        ("motorola", "lenovo", "moto", "rescue smart assistant", "software fix"),
+        "Motorola Software Fix rescue guidance",
+        "https://en-ca.support.motorola.com/app/answers/detail/a_id/167770/",
+        "Use Motorola's own identity-matched recovery route when applicable and treat Rescue as data-erasing until the current OEM workflow proves otherwise.",
+    ),
 )
 
 
 class OfficialCatalogProvider:
     def search(self, fingerprint: ErrorFingerprint) -> Sequence[OnlineFixCandidate]:
-        haystack = f"{fingerprint.category} {fingerprint.normalized_error}".casefold()
+        haystack = (
+            f"{fingerprint.category} {fingerprint.manufacturer} {fingerprint.query}"
+        ).casefold()
         matches = []
         for entry in _OFFICIAL_CATALOG:
             tokens = tuple(pattern for pattern in entry.patterns if pattern in haystack)
@@ -291,6 +400,73 @@ class RedditSearchProvider:
                     confidence=min(68, 32 + 7 * len(exact)),
                     confirmed_working=False,
                     published_at=published_at,
+                )
+            )
+        return tuple(candidates)
+
+
+class StackExchangeSearchProvider:
+    """Search accepted Android Enthusiasts questions as scoped community evidence."""
+
+    def __init__(
+        self,
+        loader: Callable[[str, Mapping[str, str], int], bytes] | None = None,
+    ) -> None:
+        self.loader = loader or _load_url
+
+    def search(self, fingerprint: ErrorFingerprint) -> Sequence[OnlineFixCandidate]:
+        query = urllib.parse.urlencode(
+            {
+                "site": "android",
+                "order": "desc",
+                "sort": "relevance",
+                "accepted": "true",
+                "pagesize": "8",
+                "filter": "withbody",
+                "q": fingerprint.query,
+            }
+        )
+        url = f"https://api.stackexchange.com/2.3/search/advanced?{query}"
+        try:
+            payload = json.loads(
+                self.loader(
+                    url,
+                    {"User-Agent": "ROMVERSE/0.1 verified-remediation-research"},
+                    2_000_000,
+                )
+            )
+        except (OSError, ValueError, TypeError, urllib.error.URLError):
+            return ()
+        items = payload.get("items", ()) if isinstance(payload, dict) else ()
+        candidates = []
+        for item in items[:8] if isinstance(items, Sequence) else ():
+            if not isinstance(item, Mapping) or not item.get("accepted_answer_id"):
+                continue
+            title = _bounded_text(html.unescape(str(item.get("title", ""))), 180)
+            body = _bounded_text(_strip_html(str(item.get("body", ""))), 500)
+            link = str(item.get("link", ""))
+            if (
+                not title
+                or not _safe_public_https_url(link)
+                or (urllib.parse.urlsplit(link).hostname or "").casefold()
+                != "android.stackexchange.com"
+            ):
+                continue
+            exact = _exact_identity_tokens(fingerprint, f"{title} {body}")
+            if fingerprint.model and not exact:
+                continue
+            candidates.append(
+                OnlineFixCandidate(
+                    f"stackexchange.{item.get('question_id', uuid4().hex[:10])}",
+                    SourceAuthority.COMMUNITY,
+                    title,
+                    link,
+                    body or "Accepted-answer community thread found for scoped review.",
+                    exact,
+                    _corroboration_key(title),
+                    confidence=min(74, 44 + 7 * len(exact)),
+                    confirmed_working=False,
+                    published_at=_unix_timestamp(item.get("last_activity_date")),
                 )
             )
         return tuple(candidates)
@@ -389,6 +565,7 @@ class OnlineRemediationService:
         providers: list[OnlineFixProvider] = [OfficialCatalogProvider()]
         if include_community:
             providers.append(RedditSearchProvider())
+            providers.append(StackExchangeSearchProvider())
             google = GoogleProgrammableSearchProvider(
                 os.environ.get("ROMVERSE_GOOGLE_SEARCH_API_KEY", ""),
                 os.environ.get("ROMVERSE_GOOGLE_SEARCH_ENGINE_ID", ""),
@@ -827,6 +1004,10 @@ def _bounded_text(value: object, maximum: int) -> str:
     return re.sub(r"\s+", " ", text).strip()[:maximum]
 
 
+def _strip_html(value: str) -> str:
+    return html.unescape(re.sub(r"<[^>]{0,500}>", " ", value))
+
+
 def _receipt_from_payload(
     payload: Mapping[str, object],
     *,
@@ -1189,10 +1370,53 @@ def _corroboration_key(title: str) -> str:
 
 def _authority_for_host(host: str) -> SourceAuthority:
     host = host.casefold().rstrip(".")
-    if host.endswith(("developer.android.com", "source.android.com", "support.google.com")):
+    if _host_matches(
+        host,
+        (
+            "developer.android.com",
+            "source.android.com",
+            "support.google.com",
+            "developers.google.com",
+            "android.googlesource.com",
+            "samsung.com",
+            "samsungknox.com",
+            "mi.com",
+            "xiaomi.com",
+            "motorola.com",
+            "sony.com",
+            "oneplus.com",
+            "oppo.com",
+            "realme.com",
+            "vivo.com",
+            "huawei.com",
+            "honor.com",
+            "asus.com",
+            "hmd.com",
+            "nokia.com",
+            "fairphone.com",
+            "nothing.tech",
+            "ztedevices.com",
+            "nubia.com",
+            "infinixmobility.com",
+            "itel-life.com",
+        ),
+    ):
         return SourceAuthority.OFFICIAL
-    if host.endswith(("github.com", "gitlab.com")):
+    if _host_matches(host, ("github.com", "gitlab.com")):
         return SourceAuthority.MAINTAINER
-    if host.endswith(("reddit.com", "xda-developers.com")):
+    if _host_matches(
+        host,
+        (
+            "reddit.com",
+            "xda-developers.com",
+            "xdaforums.com",
+            "stackexchange.com",
+            "stackoverflow.com",
+        ),
+    ):
         return SourceAuthority.COMMUNITY
     return SourceAuthority.DISCOVERY
+
+
+def _host_matches(host: str, domains: tuple[str, ...]) -> bool:
+    return any(host == domain or host.endswith(f".{domain}") for domain in domains)

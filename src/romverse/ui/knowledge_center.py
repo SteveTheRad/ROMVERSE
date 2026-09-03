@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from romverse.device.catalog import GooglePlayDeviceCatalog
 from romverse.intelligence.synapse import (
     SynapseKnowledge,
     SynapseKnowledgeState,
@@ -554,10 +555,12 @@ class KnowledgeCenter(QWidget):
         self,
         resolution_memory: ArchivesResolutionMemory | None = None,
         synapse_store: SynapseStore | None = None,
+        device_catalog: GooglePlayDeviceCatalog | None = None,
     ) -> None:
         super().__init__()
         self.resolution_memory = resolution_memory
         self.synapse_store = synapse_store
+        self.device_catalog = device_catalog
         self.synapse_knowledge: tuple[SynapseKnowledge, ...] = ()
         self.learning_dialog: SynapseLearningDialog | None = None
         layout = QVBoxLayout(self)
@@ -613,6 +616,7 @@ class KnowledgeCenter(QWidget):
         quick = QHBoxLayout()
         quick.addWidget(QLabel("Quick help:"))
         for label, query in (
+            ("Device IDs", "android device id"),
             ("ADB", "adb unauthorized"),
             ("payload.bin", "payload.bin"),
             ("Boot loop", "boot loop"),
@@ -632,13 +636,20 @@ class KnowledgeCenter(QWidget):
             f"{metrics['guides']} VERIFIED GUIDES",
             f"{metrics['known_fixes']} KNOWN FIXES",
             f"{metrics['categories']} CATEGORIES",
-            f"{metrics['official_sources']} OFFICIAL SOURCES",
+            f"{metrics['official_sources']} OFFICIAL GUIDES",
+            f"{metrics['community_sources']} COMMUNITY GUIDES",
         ):
             metric = QLabel(text)
             metric.setObjectName("Good")
             metrics_row.addWidget(metric)
         metrics_row.addStretch()
         layout.addLayout(metrics_row)
+
+        self.device_catalog_status = QLabel()
+        self.device_catalog_status.setAccessibleName("Official Android device ID catalog status")
+        self.device_catalog_status.setWordWrap(True)
+        layout.addWidget(self.device_catalog_status)
+        self.refresh_device_catalog()
 
         self.learning_panel = QFrame()
         self.learning_panel.setObjectName("SynapseLearningPanel")
@@ -869,6 +880,32 @@ class KnowledgeCenter(QWidget):
         """Refresh presentation after Recovery Bay records a fresh comparison."""
 
         self._show_article(self.list.currentItem(), None)
+
+    def refresh_device_catalog(self) -> None:
+        """Show current integrity-checked naming coverage without implying flash support."""
+
+        status = self.device_catalog.status() if self.device_catalog is not None else None
+        if status is None:
+            self.device_catalog_status.setObjectName("Muted")
+            self.device_catalog_status.setText(
+                "OFFICIAL DEVICE IDS  •  Open Device Atlas to sync and search Google's naming "
+                "catalog  •  IDENTITY ONLY"
+            )
+        elif status.valid:
+            state = "CURRENT" if status.fresh else "UPDATE DUE"
+            self.device_catalog_status.setObjectName("Good" if status.fresh else "Warning")
+            self.device_catalog_status.setText(
+                f"{status.entry_count:,} OFFICIAL ANDROID DEVICE ID ROWS  •  {state}  •  "
+                "INTEGRITY CHECKED  •  NAMES AND IDS ONLY — NOT BUILD OR FLASH AUTHORITY"
+            )
+        else:
+            self.device_catalog_status.setObjectName("Warning")
+            self.device_catalog_status.setText(
+                "OFFICIAL DEVICE IDS UNAVAILABLE  •  Existing guides remain local  •  Open Device "
+                "Atlas to sync when online sources are enabled"
+            )
+        self.device_catalog_status.style().unpolish(self.device_catalog_status)
+        self.device_catalog_status.style().polish(self.device_catalog_status)
 
     def refresh_synapse_memory(self) -> None:
         """Reload only integrity-checked private learning when Archives is opened."""

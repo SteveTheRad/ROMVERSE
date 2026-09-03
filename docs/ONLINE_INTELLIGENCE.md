@@ -32,6 +32,13 @@ unverified operations remain tool-unconfirmed rather than guessing. ROMVERSE dis
 - independent-source corroboration count and authority families;
 - numeric confidence and a plain-language explanation of that confidence.
 
+The connected provider set always begins with ROMVERSE's curated official Android/AOSP/OEM index.
+When community research is enabled it also searches Reddit reports and accepted-answer Android
+Enthusiasts threads. A configured Google Programmable Search connection may add official OEM pages,
+actual tool-maintainer repositories, XDA discussions, and wider discovery results. Host classification,
+exact identity tokens, freshness, and independent corroboration remain visible; a platform name or
+accepted answer never self-promotes a result to verified working.
+
 Stale community/discovery evidence is downgraded. Missing or future-dated timestamps do not become
 current by assumption. V1 cached receipts remain readable but their new evidence fields stay
 unconfirmed. Editing any V2 evidence assessment invalidates its digest. None of these fields grants

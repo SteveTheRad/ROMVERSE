@@ -22,12 +22,14 @@ def test_archives_catalog_is_large_unique_classified_and_evidence_labelled() -> 
     validate_catalog(ARCHIVE_ARTICLES)
     metrics = catalog_metrics(ARCHIVE_ARTICLES)
 
-    assert len(ARCHIVE_ARTICLES) == 151
-    assert len(KNOWN_FIXES) == 101
+    assert len(ARCHIVE_ARTICLES) == 193
+    assert len(KNOWN_FIXES) == 143
     assert metrics == {
         "guides": len(ARCHIVE_ARTICLES),
         "categories": len(CATEGORIES),
-        "official_sources": 38,
+        "sourced_guides": 80,
+        "official_sources": 76,
+        "community_sources": 4,
         "known_fixes": len(KNOWN_FIXES),
     }
     assert len({article.key for article in ARCHIVE_ARTICLES}) == len(ARCHIVE_ARTICLES)
@@ -76,7 +78,7 @@ def test_archives_have_an_exact_destination_for_every_top_level_desktop_page() -
         ),
         (
             "android device id",
-            "Recognize an Android model without guessing build or flash support",
+            "Android device identity fields: brand, manufacturer, model, device, and product",
         ),
         (
             "exact device toolchain",
@@ -223,7 +225,7 @@ def test_archives_rank_verified_known_fixes_for_real_failure_language(
 
 def test_archives_reject_weak_matches_and_bound_results() -> None:
     assert not search_catalog(ARCHIVE_ARTICLES, "definitely not a real ROMVERSE topic")
-    assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=1_000)) == 151
+    assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=1_000)) == 193
     assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=0)) == 1
     connectivity = search_catalog(
         ARCHIVE_ARTICLES,
@@ -234,6 +236,37 @@ def test_archives_reject_weak_matches_and_bound_results() -> None:
     assert all(match.article.category == "CONNECTIVITY & ADB" for match in connectivity)
     assert not search_catalog(ARCHIVE_ARTICLES, "adb", category="NOT A CATEGORY")
     assert ALL_CATEGORIES not in CATEGORIES
+
+
+@pytest.mark.parametrize(
+    ("query", "expected_title"),
+    (
+        (
+            "compatible not compatible unknown",
+            "Unknown compatibility is not the same as known incompatible",
+        ),
+        ("update engine error 51", "update_engine error 51: payload timestamp rejected"),
+        (
+            "pre-build pre-build-incremental mismatch",
+            "Incremental OTA pre-build and pre-incremental values must match exactly",
+        ),
+        (
+            "gsi compatible rom",
+            "A GSI-capable device is not automatically compatible with every ROM",
+        ),
+        (
+            "community report valid evidence",
+            "Community reports: reported, corroborated, locally verified, and retired",
+        ),
+    ),
+)
+def test_archives_rank_android_identity_compatibility_and_community_knowledge(
+    query: str, expected_title: str
+) -> None:
+    matches = search_catalog(ARCHIVE_ARTICLES, query, limit=3)
+
+    assert matches
+    assert matches[0].article.title == expected_title
 
 
 def test_archives_validation_rejects_duplicate_identity_and_unsafe_source() -> None:

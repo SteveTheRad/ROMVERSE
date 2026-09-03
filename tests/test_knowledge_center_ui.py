@@ -8,6 +8,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QLabel
 
+from romverse.device.catalog import DeviceCatalogStatus
 from romverse.diagnostics.analyzer import DiagnosticAnalyzer
 from romverse.intelligence.synapse import (
     SynapseContribution,
@@ -41,6 +42,28 @@ def test_archives_search_selects_a_verified_guide_and_routes_to_rom_studio() -> 
     assert center.open_route.isVisibleTo(center)
     center.open_route.click()
     assert routes == ["rom_studio"]
+    center.close()
+
+
+def test_archives_shows_verified_official_device_id_coverage() -> None:
+    QApplication.instance() or QApplication([])
+
+    class Catalog:
+        @staticmethod
+        def status() -> DeviceCatalogStatus:
+            return DeviceCatalogStatus(
+                True,
+                True,
+                "Official Google Play device IDs are current and integrity checked",
+                53_623,
+                "2026-09-03T10:18:26+00:00",
+                "a" * 64,
+            )
+
+    center = KnowledgeCenter(device_catalog=Catalog())  # type: ignore[arg-type]
+
+    assert "53,623 OFFICIAL ANDROID DEVICE ID ROWS" in center.device_catalog_status.text()
+    assert "NOT BUILD OR FLASH AUTHORITY" in center.device_catalog_status.text()
     center.close()
 
 

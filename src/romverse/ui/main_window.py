@@ -3214,6 +3214,7 @@ class MainWindow(QMainWindow):
         self.knowledge_center = KnowledgeCenter(
             ArchivesResolutionMemory(RepairSessionStore(workspace)),
             SynapseStore(workspace),
+            self.device_catalog,
         )
         self.knowledge_center.route_requested.connect(self._open_knowledge_route)
         self.repair_center.resolution_memory_updated.connect(
@@ -4000,6 +4001,7 @@ class MainWindow(QMainWindow):
             self._device_catalog_activation_failed(str(exc))
             return
         self.device_packs_center.set_catalog_status(status)
+        self.knowledge_center.refresh_device_catalog()
         if hasattr(self, "about_page") and self.stack.currentWidget() is self.about_page:
             self._refresh_about_evidence()
         self.notification_center.notify(
@@ -4014,6 +4016,7 @@ class MainWindow(QMainWindow):
 
     def _device_catalog_activation_failed(self, reason: str) -> None:
         self.device_packs_center.catalog_refresh_failed(reason)
+        self.knowledge_center.refresh_device_catalog()
         if hasattr(self, "about_page") and self.stack.currentWidget() is self.about_page:
             self._refresh_about_evidence()
 
@@ -4032,6 +4035,7 @@ class MainWindow(QMainWindow):
             return
         self.device_catalog_worker = None
         self.device_packs_center.set_catalog_status(self.device_catalog.status())
+        self.knowledge_center.refresh_device_catalog()
         if self.app_settings.online_intelligence_enabled and self.device_catalog.needs_refresh():
             self._catalog_auto_attempted = False
             QTimer.singleShot(0, self._maybe_refresh_device_catalog)

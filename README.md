@@ -59,7 +59,9 @@ and a healthy daemon is not restarted merely because the user opened the page.
 Recovery Bay also accepts an exact symptom or error and automatically creates a bounded research
 fingerprint when real warning/error evidence exists. Host paths, contacts, credential-like values,
 IP addresses, serial-like identifiers, and long digests are removed before official and optionally
-enabled community providers are queried. The result card exposes authority, source date/freshness,
+enabled community providers are queried. Built-in connected research covers Reddit and accepted-answer
+Android Enthusiasts threads; optional configured web discovery can also surface official OEM pages,
+maintainer issue trackers, and XDA discussions. The result card exposes authority, source date/freshness,
 scope, corroboration, confidence, and the confidence reason. Remote text remains guidance-only.
 Only a matching built-in typed action with a successful local receipt can be recorded as locally
 verified working; disabling online intelligence while a lookup is running discards that result.
@@ -89,9 +91,13 @@ When online research is off, its secondary panel folds into a compact, accessibl
 preconditions and the Advisor stay prominent. Active, returned, or failed research expands its full
 evidence automatically, and the user can fold only those details without changing assessment state.
 
-The Desktop **ROMVERSE Archives** catalog now contains 151 validated local guides across ten
-categories, including 101 structured known-fix records and 38 official-source-backed records. The added
-official-source-labelled device triage covers battery/heat, storage, Android updates,
+The Desktop **ROMVERSE Archives** catalog now contains 193 validated local guides across eleven
+categories, including 143 structured known-fix records, 76 official-source-backed records, and four
+community/maintainer evidence guides. The dedicated **Device Identity & Compatibility** category
+explains Android identity fields, the official device-name catalog, firmware target/region matching,
+compatibility and incompatibility states, CTS/VTS/GSI scope, full and incremental OTA rules,
+`update_engine` errors, partitions, slots, AVB, bootloader, APK, backup, Pixel, Xiaomi, and Motorola
+boundaries. Official-source-labelled device triage also covers battery/heat, storage, Android updates,
 app crashes, screen/touch, network, and performance, while camera/audio guidance remains explicitly
 ROMVERSE-scoped until exact OEM evidence is available. Ranked punctuation-tolerant retrieval covers
 ADB/USB, host tools, firmware intake, dynamic
@@ -175,6 +181,9 @@ name only. It never supplies a partition map, firmware match, Device Pack, build
 approval, command, or execution authority. After recognition, the ordinary Device Pack roadmap
 still determines exactly what evidence and tools are missing for build planning and keeps flashing
 locked until its independent signed and physically tested contracts pass.
+Archives receives the same verified catalog status and displays the current row count prominently;
+the active data-drive workspace currently contains the local mirror rather than bundling a stale
+device list into the executable.
 Its four-lane **Automatic Requirements Blueprint** now consumes Forge Arsenal's current host-tool
 verification instead of stopping at a declared list. For an exact build contract, the Compile lane
 shows the verified count and exact missing subset, updates when the tool inventory changes, and
@@ -363,7 +372,9 @@ recipe provenance and becomes unavailable immediately when any bound input chang
 remediation, privacy-safe Synapse promotion/demotion, provider-independent AI routing, and bounded
 fair-use governance. Remediation receipts expose source authority, explicit freshness, exact scope,
 independent corroboration, confidence, and the confidence reason; unknown source dates remain
-unconfirmed and stale community evidence is downgraded. See
+unconfirmed and stale community evidence is downgraded. Community reports are not discarded: the
+knowledge model distinguishes reported, independently corroborated, matching locally verified, and
+retired outcomes. See
 [docs/ONLINE_INTELLIGENCE.md](docs/ONLINE_INTELLIGENCE.md). The public
 Synapse, AI, Members, billing, and community services remain explicit production release gates.
 

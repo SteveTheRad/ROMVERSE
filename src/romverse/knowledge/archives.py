@@ -6,6 +6,8 @@ import re
 from dataclasses import dataclass
 from urllib.parse import urlsplit
 
+from romverse.knowledge.android_reference import ANDROID_REFERENCE_SEEDS, SOURCES
+
 ALL_CATEGORIES = "ALL KNOWLEDGE"
 CATEGORIES = (
     "CONNECTIVITY & ADB",
@@ -17,6 +19,7 @@ CATEGORIES = (
     "APPS & PACKAGES",
     "RECOVERY & GUARDIAN",
     "DIAGNOSTICS & HEALTH",
+    "DEVICE IDENTITY & COMPATIBILITY",
     "ROMVERSE WORKFLOWS",
 )
 
@@ -3187,6 +3190,31 @@ KNOWN_FIXES = (
 )
 
 
+ANDROID_REFERENCE_FIXES = tuple(
+    _fix(
+        seed.key,
+        seed.title,
+        seed.category,
+        seed.meaning,
+        checks=seed.checks,
+        fix_steps=seed.fix_steps,
+        verification=seed.verification,
+        tags=seed.tags,
+        route=seed.route,
+        evidence=seed.evidence,
+        automation=seed.automation,
+        source=ArchiveSource(
+            SOURCES[seed.source_id].label,
+            SOURCES[seed.source_id].authority,
+            SOURCES[seed.source_id].url,
+            SOURCES[seed.source_id].reviewed_on,
+        ),
+    )
+    for seed in ANDROID_REFERENCE_SEEDS
+)
+KNOWN_FIXES = KNOWN_FIXES + ANDROID_REFERENCE_FIXES
+
+
 def _key_for(title: str) -> str:
     key = re.sub(r"[^a-z0-9]+", "-", title.casefold()).strip("-")[:72]
     return f"guide-{key}"
@@ -3405,6 +3433,21 @@ def catalog_metrics(catalog: tuple[ArchiveArticle, ...]) -> dict[str, int]:
     return {
         "guides": len(catalog),
         "categories": len({article.category for article in catalog}),
-        "official_sources": sum(bool(article.source.url) for article in catalog),
+        "sourced_guides": sum(bool(article.source.url) for article in catalog),
+        "official_sources": sum(
+            bool(article.source.url)
+            and (
+                "OFFICIAL" in article.source.authority or article.source.authority == "AOSP SOURCE"
+            )
+            for article in catalog
+        ),
+        "community_sources": sum(
+            bool(article.source.url)
+            and (
+                "COMMUNITY" in article.source.authority
+                or article.source.authority.startswith("MAINTAINER/")
+            )
+            for article in catalog
+        ),
         "known_fixes": len(KNOWN_FIXES),
     }

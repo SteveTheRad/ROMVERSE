@@ -16,6 +16,7 @@ from romverse.intelligence.online_remediation import (
     OnlineRemediationService,
     RedditSearchProvider,
     SourceAuthority,
+    StackExchangeSearchProvider,
 )
 
 
@@ -116,6 +117,45 @@ def test_reddit_results_stay_unconfirmed_without_independent_corroboration(tmp_p
     assert not receipt.candidates[0].confirmed_working
 
 
+def test_android_stackexchange_accepted_answer_is_scoped_community_evidence(tmp_path):
+    payload = {
+        "items": [
+            {
+                "question_id": 123,
+                "title": "2509FPN0BC popsicle update_engine error 51",
+                "body": "<p>OS4.0.0.23.XPBCNXM payload timestamp failed.</p>",
+                "link": "https://android.stackexchange.com/questions/123/example",
+                "accepted_answer_id": 456,
+                "last_activity_date": datetime.now(UTC).timestamp(),
+            },
+            {
+                "question_id": 999,
+                "title": "Question without an accepted answer",
+                "body": "<p>Not resolved.</p>",
+                "link": "https://android.stackexchange.com/questions/999/example",
+            },
+        ]
+    }
+    provider = StackExchangeSearchProvider(
+        lambda _url, _headers, _maximum: json.dumps(payload).encode()
+    )
+    fingerprint = ErrorFingerprint.create(
+        "update_engine error 51",
+        model="2509FPN0BC",
+        codename="popsicle",
+        build_id="OS4.0.0.23.XPBCNXM",
+    )
+
+    receipt = OnlineRemediationService(tmp_path, (provider,)).lookup(fingerprint)
+
+    assert len(receipt.candidates) == 1
+    candidate = receipt.candidates[0]
+    assert candidate.authority is SourceAuthority.COMMUNITY
+    assert candidate.scope_match == "exact build, exact device"
+    assert not candidate.confirmed_working
+    assert "<p>" not in candidate.summary
+
+
 def test_provider_cannot_self_confirm_a_fix_or_inject_an_action_identifier(tmp_path):
     fingerprint = ErrorFingerprint.create(
         "payload.bin extraction failed",
@@ -207,6 +247,40 @@ def test_google_provider_rejects_non_https_and_labels_unknown_hosts_discovery_on
     assert len(receipt.candidates) == 1
     assert receipt.candidates[0].authority is SourceAuthority.DISCOVERY
     assert not receipt.candidates[0].confirmed_working
+
+
+def test_google_provider_requires_a_real_domain_boundary_for_oem_authority(tmp_path):
+    payload = {
+        "items": [
+            {
+                "title": "SM-TEST official Samsung support",
+                "link": "https://support.samsung.com/example",
+                "snippet": "SM-TEST firmware support",
+            },
+            {
+                "title": "SM-TEST misleading Samsung-like domain",
+                "link": "https://notsamsung.com/example",
+                "snippet": "SM-TEST firmware claim",
+            },
+        ]
+    }
+    provider = GoogleProgrammableSearchProvider(
+        "key",
+        "engine",
+        lambda _url, _headers, _maximum: json.dumps(payload).encode(),
+    )
+
+    receipt = OnlineRemediationService(tmp_path, (provider,)).lookup(
+        ErrorFingerprint.create("firmware error", model="SM-TEST")
+    )
+
+    authority_by_host = {
+        candidate.url.split("/")[2]: candidate.authority for candidate in receipt.candidates
+    }
+    assert authority_by_host == {
+        "support.samsung.com": SourceAuthority.OFFICIAL,
+        "notsamsung.com": SourceAuthority.DISCOVERY,
+    }
 
 
 def test_candidate_cannot_point_to_local_network(tmp_path):
@@ -388,6 +462,10 @@ def test_connected_service_can_exclude_community_research(tmp_path):
     )
     assert any(
         isinstance(provider, RedditSearchProvider) for provider in community_enabled.providers
+    )
+    assert any(
+        isinstance(provider, StackExchangeSearchProvider)
+        for provider in community_enabled.providers
     )
 
 

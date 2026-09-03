@@ -109,6 +109,10 @@ result as identity-only evidence and connects it directly to Device Atlas, where
 product/codename can select the integrity-checked Device Pack and build/tool roadmap. Android health
 telemetry stays unknown in this mode, serials remain masked, and reboot, flash, erase, unlock, wipe,
 and relock commands are not on the adapter or Guardian allowlist.
+Device Engine probes every visible transport. Project-bound Device DNA uses live phone evidence only
+when exactly one authorized Android phone is connected; with multiple authorized phones ROM Studio
+withholds the binding instead of guessing. An explicit selection model shared across every
+device-facing page is still required before simultaneous multi-device targeting is supported.
 
 Verified outcomes now use schema two and require more than a digest-shaped string. The candidate
 must belong to the exact persisted error fingerprint, and the built-in action must supply a

@@ -8,39 +8,38 @@ installation. This report covers the Windows/Linux PySide6 desktop and its local
 Android Companion and public online services are outside this candidate.
 
 The candidate application source is commit
-`7096c8c46e6b85adfd8cfad0779da790d08e414c`. The documentation-only evidence commit is
-`0367858750a78c7768df9b2fabccb4fd1dee780a`.
+`a0ecf1b9266ee8918dc27665ef35f615f9899f59`.
 
 ## Release artifacts
 
-All files are in `dist/github-candidate-7096c8c/`.
+All files are in `dist/github-candidate-a0ecf1b/`.
 
 | Platform or role | File | Bytes | SHA-256 | Entrypoint |
 | --- | --- | ---: | --- | --- |
-| Linux x86-64 | `ROMVERSE-Desktop-0.1.0-linux-x86_64.zip` | 156,007,370 | `27f6f507ec9a2e79f774c6955acf9ec3d156229aef9a597edd98ed3b4613c4e6` | `ROMVERSE/ROMVERSE` |
-| Windows x86-64 | `ROMVERSE-Desktop-0.1.0-windows-x86_64.zip` | 72,845,873 | `dc726bb11dcf13bb2fdca237b44a9c29120233e2fcd8fda70396c26bc0f34da7` | `ROMVERSE/ROMVERSE.exe` |
-| Unsigned manifest | `romverse-desktop-0.1.0-unsigned.json` | 1,185 | `d3b0a10c3120818d5d20fba001eb39f9f5e04746d20646dba0e83e4d0ba5b6d6` | Not executable |
+| Linux x86-64 | `ROMVERSE-Desktop-0.1.0-linux-x86_64.zip` | 156,014,440 | `486fc1ce8f18446b61df2891866c5fe216c1dd5cc502be2d27d637914e2e9142` | `ROMVERSE/ROMVERSE` |
+| Windows x86-64 | `ROMVERSE-Desktop-0.1.0-windows-x86_64.zip` | 72,854,967 | `481d95ac2a22b8de569e3a0566caff543a5814fa30863a4f4490129589edb9bd` | `ROMVERSE/ROMVERSE.exe` |
+| Unsigned manifest | `romverse-desktop-0.1.0-unsigned.json` | 1,185 | `b2e6b4de5ebee75c599f68087896c2a854188ff3b1b9e005ffbc973997f108cf` | Not executable |
 
 The manifest release identity is
-`romverse-desktop-0.1.0-7096c8c46e6b85adfd8cfad0779da790d08e414c`. It binds both archives,
-228,853,243 total artifact bytes, explicit-update consent, workspace preservation, no execution
+`romverse-desktop-0.1.0-a0ecf1b9266ee8918dc27665ef35f615f9899f59`. It binds both archives,
+228,869,407 total artifact bytes, explicit-update consent, workspace preservation, no execution
 authority, and unavailable rollback because no earlier signed public release exists.
 
 ## Passing evidence
 
-GitHub Actions run `33729703131` completed successfully for the exact application-source commit:
+GitHub Actions run `33737571344` completed successfully for the exact application-source commit:
 
-- Linux Python 3.12 and 3.14: 1,323 tests on each version, complete Ruff check, and complete Ruff
+- Linux Python 3.12 and 3.14: 1,331 tests on each version, complete Ruff check, and complete Ruff
   formatting check.
 - Windows Python 3.12 and 3.14: 154 dedicated portability tests on each version, complete Ruff
   check, and complete Ruff formatting check.
-- Both native packaging jobs: verified 224-member wheel, all 21 integrity-indexed Device Packs,
+- Both native packaging jobs: verified 225-member wheel, all 21 integrity-indexed Device Packs,
   installation from the wheel outside the checkout, fresh-workspace launch, populated-workspace
   reopen, frozen-app launch, and complete portable-archive verification.
 - Existing-workspace smoke: the project manifest, protected original, working copy, and Time
   Machine snapshot remained byte-identical across restart on both target operating systems.
-- Linux portable archive: 441 regular files and 385,445,509 expanded bytes.
-- Windows portable archive: 296 regular files and 170,381,593 expanded bytes.
+- Linux portable archive: 441 regular files and 385,451,797 expanded bytes.
+- Windows portable archive: 296 regular files and 170,387,944 expanded bytes.
 - Final CI stage: independently downloaded both platform artifacts, reverified them, and prepared
   the combined unsigned manifest only after both native jobs passed.
 
@@ -60,6 +59,11 @@ theme, and reopened the populated test workspace without changing tracked bytes.
 - Integrity-indexed Device Pack lookup, Compatibility Matrix, ROM DNA, build planning, Recipe
   design, local toolchain preparation, diagnostics, Archives guidance, and evidence-bound Guardian
   review.
+- Conservative Xiaomi HyperOS upgrade-candidate identification from live/source codename, region,
+  firmware branch, and numeric version evidence. Same-version, downgrade, incompatible, and
+  unconfirmed inputs remain distinct, and no relationship label grants installation authority.
+- A persistent user-supplied firmware responsibility notice and an explicit import acknowledgement,
+  while preserving rights and obligations that cannot legally be excluded.
 - Explicit, non-automatic desktop update policy that preserves the existing workspace and grants
   release metadata no device-changing or execution authority.
 - A pinned Fedora launcher currently runs the installed 0.1.0 wheel from the recovered source and
@@ -78,6 +82,10 @@ theme, and reopened the populated test workspace without changing tracked bytes.
   independent physical validation genuinely exist.
 - Physical-device and broad multi-OEM claims remain limited to the hardware evidence actually
   collected; passing desktop simulation or CI is not represented as phone-write certification.
+- Device Engine discovers and reads every visible transport, and ROM Studio binds live Device DNA
+  only when exactly one authorized Android phone is connected. Simultaneous multi-device targeting
+  still needs an explicit selection model across every device-facing page; users should connect one
+  intended phone at a time until that work is complete.
 - Android Companion, public Synapse, production Members/billing, Galaxy backend, public community
   services, and other hosted services are not part of this desktop candidate.
 

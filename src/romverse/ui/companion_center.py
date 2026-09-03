@@ -629,7 +629,9 @@ class CompanionCenter(QWidget):
         else:
             hours = max(1, ceil(remaining / (60 * 60)))
             lifetime = f"about {hours} hour{'s' if hours != 1 else ''}"
-        return f"Remembered wireless session expires in {lifetime}. Reset it anytime from this screen."
+        return (
+            f"Remembered wireless session expires in {lifetime}. Reset it anytime from this screen."
+        )
 
     def _sync_approved_state(self) -> None:
         approved = self.transport.approved
@@ -649,7 +651,9 @@ class CompanionCenter(QWidget):
         self.generate.setEnabled(self.transport.available and not self._usb_paired)
         self.code.setText("------")
         self.copy_button.setEnabled(False)
-        self.expiry.setText("Remembered wireless session expired. Generate a new code to pair again.")
+        self.expiry.setText(
+            "Remembered wireless session expired. Generate a new code to pair again."
+        )
         self.remote_summary.setText(
             "LIVE COMPANION HEALTH\nWaiting for an authenticated phone snapshot."
         )
@@ -691,7 +695,9 @@ class CompanionCenter(QWidget):
             self.instructions.setText(
                 "Wireless pairing was reset on this computer. Generate a new code whenever you want to reconnect Companion."
             )
-            self.expiry.setText("Wireless pairing reset. Any remembered Companion token is now revoked.")
+            self.expiry.setText(
+                "Wireless pairing reset. Any remembered Companion token is now revoked."
+            )
         self._record_link_note(
             title="Companion Link pairing reset",
             summary="The remembered wireless Companion authorization was revoked locally.",

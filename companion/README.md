@@ -4,7 +4,7 @@ The Android sidekick for ROMVERSE Studio.
 
 Package: `com.radforge.romverse.companion`
 
-The v0.1 shell provides the branded mobile **Home**, **ROMVERSE Link** pairing,
+The current 0.2 alpha provides the branded mobile **Home**, **ROMVERSE Link** pairing,
 **Pulse**, **Vitalis**, **Lifeline**, **Live Console**, **Device DNA**, **Ascension Protocol**,
 **App Launchpad**, **ROMVERSE Galaxy**, Guardian Core state, and activity feed.
 

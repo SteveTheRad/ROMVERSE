@@ -75,7 +75,7 @@ class CompanionLinkReadinessTest {
 
         assertEquals(CompanionLinkJourneyState.REAUTHORIZE, result.state)
         assertEquals(60, result.progressPercent)
-        assertEquals("REAUTHORIZE LINK", result.nextAction)
+        assertEquals("ENTER NEW LINK CODE", result.nextAction)
         assertEquals(CompanionLinkStepState.ACTIVE, result.steps[3].state)
     }
 
@@ -85,6 +85,7 @@ class CompanionLinkReadinessTest {
 
         assertEquals(CompanionLinkJourneyState.CONFIRM_IDENTITY, result.state)
         assertEquals(40, result.progressPercent)
+        assertEquals("REVIEW SAFETY CODE", result.nextAction)
         assertEquals(CompanionLinkStepState.ACTIVE, result.steps[2].state)
         assertFalse(result.steps[3].state == CompanionLinkStepState.COMPLETE)
     }
@@ -95,7 +96,7 @@ class CompanionLinkReadinessTest {
 
         assertEquals(CompanionLinkJourneyState.ENTER_CODE, result.state)
         assertEquals(60, result.progressPercent)
-        assertEquals("CONNECT SECURELY", result.nextAction)
+        assertEquals("ENTER LINK CODE", result.nextAction)
     }
 
     @Test

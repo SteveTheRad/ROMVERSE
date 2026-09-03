@@ -142,17 +142,17 @@ internal object CompanionLinkReadinessPolicy {
         CompanionLinkJourneyState.REAUTHORIZE -> Triple(
             "Trusted Desktop remembered",
             "Its pinned identity is preserved, but the time-limited approval has ended.",
-            "REAUTHORIZE LINK",
+            "ENTER NEW LINK CODE",
         )
         CompanionLinkJourneyState.ENTER_CODE -> Triple(
             "Desktop identity confirmed",
             "Enter the six-digit code from Desktop, then approve the request on the PC.",
-            "CONNECT SECURELY",
+            "ENTER LINK CODE",
         )
         CompanionLinkJourneyState.CONFIRM_IDENTITY -> Triple(
             "Compare the Link safety code",
             "Confirm the same code is visible on Desktop before requesting approval.",
-            "CONFIRM SAFETY CODE",
+            "REVIEW SAFETY CODE",
         )
         CompanionLinkJourneyState.DISCOVERING -> Triple(
             "Searching the local galaxy",

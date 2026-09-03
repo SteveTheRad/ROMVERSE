@@ -15,6 +15,7 @@ from romverse.device_packs.models import (
     CapabilityStatus,
     DeviceBuildContract,
     DevicePack,
+    DevicePostWriteVerificationContract,
     DeviceWriteContract,
     DeviceWriteTransport,
     DynamicPartitionGroup,
@@ -22,7 +23,10 @@ from romverse.device_packs.models import (
     FirmwareSourceContract,
     PackCapability,
     PartitionBuildRule,
+    PartitionReadbackRule,
+    PartitionVerificationMethod,
     PartitionWriteRule,
+    PostBootPropertyRule,
 )
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.infrastructure.process import SubprocessRunner
@@ -543,7 +547,7 @@ def test_readiness_consumes_only_exact_stored_physical_attestation(tmp_path) -> 
     envelope_sha256 = "8" * 64
     contract = DeviceBuildContract(
         "test-flash-contract",
-        1,
+        2,
         FirmwareSourceContract("TEST.FLASH", archive_sha256, "b" * 64),
         4096,
         512,
@@ -595,7 +599,7 @@ def test_readiness_consumes_only_exact_stored_physical_attestation(tmp_path) -> 
         ),
         partition_write_contract=DeviceWriteContract(
             "test-flash-writes",
-            1,
+            2,
             "TEST.FLASH",
             envelope_sha256,
             True,
@@ -610,6 +614,33 @@ def test_readiness_consumes_only_exact_stored_physical_attestation(tmp_path) -> 
                     "none",
                     True,
                 ),
+            ),
+            post_write_verification_contract=DevicePostWriteVerificationContract(
+                "test-flash-post-write",
+                1,
+                "TEST.FLASH",
+                envelope_sha256,
+                (
+                    PartitionReadbackRule(
+                        "super",
+                        DeviceWriteTransport.FASTBOOTD,
+                        "none",
+                        PartitionVerificationMethod.FASTBOOT_FETCH_SHA256,
+                        4096,
+                        "7" * 64,
+                    ),
+                ),
+                (
+                    PostBootPropertyRule("sys.boot_completed", "1"),
+                    PostBootPropertyRule("ro.product.device", "product"),
+                    PostBootPropertyRule("ro.build.fingerprint", "test/product/build"),
+                    PostBootPropertyRule("ro.build.version.incremental", "TEST.FLASH"),
+                    PostBootPropertyRule("ro.build.version.sdk", "37"),
+                    PostBootPropertyRule("ro.build.version.security_patch", "2026-08-01"),
+                    PostBootPropertyRule("ro.boot.verifiedbootstate", "orange"),
+                ),
+                True,
+                300,
             ),
         ),
     )

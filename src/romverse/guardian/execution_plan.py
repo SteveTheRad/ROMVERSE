@@ -10,7 +10,7 @@ from pathlib import Path, PurePosixPath
 from uuid import uuid4
 
 from romverse.device.models import AndroidDevice
-from romverse.device_packs.models import DeviceWriteTransport
+from romverse.device_packs.models import DeviceWriteContract, DeviceWriteTransport
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.guardian.artifact_binding import (
     GuardianArtifactBindingReceipt,
@@ -82,6 +82,12 @@ class GuardianExecutionPlan:
     write_contract_id: str
     write_contract_version: int
     write_attestation_sha256: str
+    post_write_verification_contract_id: str
+    post_write_verification_contract_version: int
+    post_write_verification_contract_digest: str
+    post_write_readback_count: int
+    post_boot_property_count: int
+    post_boot_timeout_seconds: int
     commands: tuple[GuardianPlannedCommand, ...]
     blockers: tuple[str, ...]
     plan_status: str
@@ -96,17 +102,24 @@ class GuardianExecutionPlanService:
     """Compile and reload an exact inert plan before any final-consent milestone exists."""
 
     FORMAT = "romverse.guardian-execution-plan"
-    SCHEMA_VERSION = 1
+    SCHEMA_VERSION = 2
     LATEST_NAME = "execution-plan.romverse"
     MAX_BYTES = 256 * 1024
     MAX_COMMANDS = GuardianArtifactBindingService.MAX_WRITES * 3 + 4
     TARGET_TOKEN = "{CURRENT_EXACT_TARGET}"
     WORKSPACE_TOKEN = "{ROMVERSE_WORKSPACE}"
-    PLAN_STATUS = "blocked-missing-exact-post-write-verification"
-    BLOCKERS = (
+    MISSING_VERIFICATION_STATUS = "blocked-missing-exact-post-write-verification"
+    MISSING_VERIFICATION_BLOCKERS = (
         "The signed write contract requires verification after every image, but it does not yet define an exact readback or post-boot Device DNA postcondition.",
         "Automatic mode transitions, slot activation, reboot, wipe, rollback, and recovery commands are absent and must never be inferred from filenames or generic Fastboot behavior.",
     )
+    VERIFIED_CONTRACT_STATUS = "blocked-missing-typed-execution-gateway"
+    VERIFIED_CONTRACT_BLOCKERS = (
+        "The signed Device Pack defines exact partition readback digests and post-boot Device DNA, but ROMVERSE does not yet have a verified execution gateway, immutable execution receipt, or final-consent authority.",
+        "Automatic mode transitions, slot activation, reboot, wipe, rollback, and recovery commands are absent and must never be inferred from filenames or generic Fastboot behavior.",
+    )
+    PLAN_STATUS = MISSING_VERIFICATION_STATUS
+    BLOCKERS = MISSING_VERIFICATION_BLOCKERS
 
     def __init__(
         self,
@@ -128,8 +141,10 @@ class GuardianExecutionPlanService:
         report: BuildReadinessReport,
         device: AndroidDevice,
     ) -> GuardianExecutionPlan:
-        manifest, binding = self._current_context(project_id, report, device)
+        manifest, binding, write_contract = self._current_context(project_id, report, device)
         commands = self._commands(manifest)
+        verification = self._verification_metadata(write_contract)
+        blockers, plan_status = self._plan_boundary(write_contract)
         payload: dict[str, object] = {
             "schema_version": self.SCHEMA_VERSION,
             "plan_id": uuid4().hex,
@@ -150,9 +165,10 @@ class GuardianExecutionPlanService:
             "write_contract_id": binding.write_contract_id,
             "write_contract_version": binding.write_contract_version,
             "write_attestation_sha256": binding.write_attestation_sha256,
+            **verification,
             "commands": [asdict(command) for command in commands],
-            "blockers": self.BLOCKERS,
-            "plan_status": self.PLAN_STATUS,
+            "blockers": blockers,
+            "plan_status": plan_status,
             "final_consent_available": False,
             "execution_authority": "none",
             "phone_changed": False,
@@ -213,8 +229,8 @@ class GuardianExecutionPlanService:
             data["blockers"] = tuple(raw_blockers)
             plan = GuardianExecutionPlan(**data, commands=commands)
             self.validate(plan)
-            manifest, binding = self._current_context(project_id, report, device)
-            if not self._matches(plan, manifest, binding):
+            manifest, binding, write_contract = self._current_context(project_id, report, device)
+            if not self._matches(plan, manifest, binding, write_contract):
                 return None
             return plan
         except (
@@ -254,15 +270,15 @@ class GuardianExecutionPlanService:
             or not _hex(plan.device_pack_sha256, 64)
             or not _clean(plan.write_contract_id, 80)
             or type(plan.write_contract_version) is not int
-            or plan.write_contract_version != 1
+            or plan.write_contract_version not in {1, 2}
             or not _hex(plan.write_attestation_sha256, 64)
+            or not self._valid_verification_metadata(plan)
             or not 1 <= len(plan.commands) <= self.MAX_COMMANDS
             or tuple(command.order for command in plan.commands)
             != tuple(range(1, len(plan.commands) + 1))
             or any(not self._valid_command(command) for command in plan.commands)
             or contains_bootloader_relock(serialized_commands)
-            or plan.blockers != self.BLOCKERS
-            or plan.plan_status != self.PLAN_STATUS
+            or (plan.blockers, plan.plan_status) != self._plan_boundary_from_metadata(plan)
             or type(plan.final_consent_available) is not bool
             or plan.final_consent_available
             or plan.execution_authority != "none"
@@ -307,13 +323,32 @@ class GuardianExecutionPlanService:
             raise ProjectError(
                 "Guardian could not rehash the exact current artifact binding before planning"
             )
-        return manifest, binding
+        pack = next(
+            (item for item in self.registry.packs if item.pack_id == manifest.device_pack_id),
+            None,
+        )
+        write_contract = (
+            pack.build_contract.partition_write_contract
+            if pack is not None and pack.build_contract is not None
+            else None
+        )
+        if (
+            write_contract is None
+            or write_contract.contract_id != binding.write_contract_id
+            or write_contract.version != binding.write_contract_version
+            or write_contract.attestation_sha256 != binding.write_attestation_sha256
+        ):
+            raise ProjectError(
+                "Guardian could not bind the current Device Pack write contract to the plan"
+            )
+        return manifest, binding, write_contract
 
     def _matches(
         self,
         plan: GuardianExecutionPlan,
         manifest: GuardianManifestReview,
         binding: GuardianArtifactBindingReceipt,
+        write_contract: DeviceWriteContract,
     ) -> bool:
         return bool(
             plan.project_id == manifest.project_id
@@ -332,7 +367,87 @@ class GuardianExecutionPlanService:
             and plan.write_contract_id == binding.write_contract_id
             and plan.write_contract_version == binding.write_contract_version
             and plan.write_attestation_sha256 == binding.write_attestation_sha256
+            and self._plan_verification_metadata(plan)
+            == self._verification_metadata(write_contract)
+            and (plan.blockers, plan.plan_status) == self._plan_boundary(write_contract)
             and plan.commands == self._commands(manifest)
+        )
+
+    @classmethod
+    def _verification_metadata(cls, write_contract: DeviceWriteContract) -> dict[str, object]:
+        verification = write_contract.post_write_verification_contract
+        if verification is None:
+            return {
+                "post_write_verification_contract_id": "",
+                "post_write_verification_contract_version": 0,
+                "post_write_verification_contract_digest": "",
+                "post_write_readback_count": 0,
+                "post_boot_property_count": 0,
+                "post_boot_timeout_seconds": 0,
+            }
+        return {
+            "post_write_verification_contract_id": verification.contract_id,
+            "post_write_verification_contract_version": verification.version,
+            "post_write_verification_contract_digest": _digest(asdict(verification)),
+            "post_write_readback_count": len(verification.readbacks),
+            "post_boot_property_count": len(verification.post_boot_properties),
+            "post_boot_timeout_seconds": verification.boot_timeout_seconds,
+        }
+
+    @staticmethod
+    def _plan_verification_metadata(plan: GuardianExecutionPlan) -> dict[str, object]:
+        return {
+            "post_write_verification_contract_id": plan.post_write_verification_contract_id,
+            "post_write_verification_contract_version": plan.post_write_verification_contract_version,
+            "post_write_verification_contract_digest": plan.post_write_verification_contract_digest,
+            "post_write_readback_count": plan.post_write_readback_count,
+            "post_boot_property_count": plan.post_boot_property_count,
+            "post_boot_timeout_seconds": plan.post_boot_timeout_seconds,
+        }
+
+    @classmethod
+    def _plan_boundary(cls, write_contract: DeviceWriteContract) -> tuple[tuple[str, ...], str]:
+        if write_contract.post_write_verification_contract is None:
+            return cls.MISSING_VERIFICATION_BLOCKERS, cls.MISSING_VERIFICATION_STATUS
+        return cls.VERIFIED_CONTRACT_BLOCKERS, cls.VERIFIED_CONTRACT_STATUS
+
+    @classmethod
+    def _plan_boundary_from_metadata(
+        cls, plan: GuardianExecutionPlan
+    ) -> tuple[tuple[str, ...], str]:
+        if plan.post_write_verification_contract_version == 0:
+            return cls.MISSING_VERIFICATION_BLOCKERS, cls.MISSING_VERIFICATION_STATUS
+        return cls.VERIFIED_CONTRACT_BLOCKERS, cls.VERIFIED_CONTRACT_STATUS
+
+    @classmethod
+    def _valid_verification_metadata(cls, plan: GuardianExecutionPlan) -> bool:
+        values = (
+            plan.post_write_verification_contract_version,
+            plan.post_write_readback_count,
+            plan.post_boot_property_count,
+            plan.post_boot_timeout_seconds,
+        )
+        if any(type(value) is not int for value in values):
+            return False
+        if plan.write_contract_version == 1:
+            return bool(
+                not plan.post_write_verification_contract_id
+                and plan.post_write_verification_contract_version == 0
+                and not plan.post_write_verification_contract_digest
+                and plan.post_write_readback_count == 0
+                and plan.post_boot_property_count == 0
+                and plan.post_boot_timeout_seconds == 0
+            )
+        write_count = sum(command.phase is ExecutionPlanPhase.WRITE for command in plan.commands)
+        return bool(
+            plan.write_contract_version == 2
+            and _clean(plan.post_write_verification_contract_id, 80)
+            and plan.post_write_verification_contract_version == 1
+            and _hex(plan.post_write_verification_contract_digest, 64)
+            and plan.post_write_readback_count == write_count
+            and 1 <= plan.post_write_readback_count <= GuardianArtifactBindingService.MAX_WRITES
+            and 7 <= plan.post_boot_property_count <= 16
+            and 30 <= plan.post_boot_timeout_seconds <= 900
         )
 
     @classmethod

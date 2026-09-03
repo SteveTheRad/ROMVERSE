@@ -8,10 +8,14 @@ from romverse.device_packs.models import (
     AvbPolicyAuthority,
     CapabilityStatus,
     DevicePack,
+    DevicePostWriteVerificationContract,
     DeviceWriteContract,
     DeviceWriteTransport,
     PackCapability,
+    PartitionReadbackRule,
+    PartitionVerificationMethod,
     PartitionWriteRule,
+    PostBootPropertyRule,
 )
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.device_packs.validation import DevicePackValidationService, ValidationState
@@ -254,6 +258,96 @@ def test_exact_write_contract_passes_only_with_matching_physical_attestation() -
     assert wrong_check.state is ValidationState.BLOCKED
     assert verified_check.state is ValidationState.PASS
     assert "relocking is prohibited" in verified_check.evidence
+    post_write_check = next(
+        check
+        for check in with_attestation.checks
+        if check.check_id == "post-write-verification-contract"
+    )
+    assert post_write_check.state is ValidationState.BLOCKED
+    assert not with_attestation.flash_contract_ready
+
+
+def test_exact_post_write_contract_is_required_for_flash_contract_readiness() -> None:
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    base = registry.resolve(_xiaomi()).pack
+    assert base is not None and base.build_contract is not None
+    assert base.build_contract.avb_execution_policy is not None
+    envelope_sha256 = "c" * 64
+    avb = replace(
+        base.build_contract.avb_execution_policy,
+        authority=AvbPolicyAuthority.FLASH_VALIDATED,
+        evidence_build_id=base.build_contract.source.build_id,
+        attestation_sha256=envelope_sha256,
+    )
+    verification = DevicePostWriteVerificationContract(
+        "validated-post-write",
+        1,
+        base.build_contract.source.build_id,
+        envelope_sha256,
+        (
+            PartitionReadbackRule(
+                "super",
+                DeviceWriteTransport.FASTBOOTD,
+                "none",
+                PartitionVerificationMethod.FASTBOOT_FETCH_SHA256,
+                base.build_contract.super_size_bytes,
+                "d" * 64,
+            ),
+        ),
+        (
+            PostBootPropertyRule("sys.boot_completed", "1"),
+            PostBootPropertyRule("ro.product.device", "popsicle"),
+            PostBootPropertyRule("ro.build.fingerprint", "xiaomi/popsicle/test"),
+            PostBootPropertyRule("ro.build.version.incremental", "TEST.1"),
+            PostBootPropertyRule("ro.build.version.sdk", "37"),
+            PostBootPropertyRule("ro.build.version.security_patch", "2026-08-01"),
+            PostBootPropertyRule("ro.boot.verifiedbootstate", "orange"),
+        ),
+        True,
+        300,
+    )
+    writes = DeviceWriteContract(
+        "validated-writes",
+        2,
+        base.build_contract.source.build_id,
+        envelope_sha256,
+        True,
+        avb.require_critical_unlocked,
+        True,
+        True,
+        (
+            PartitionWriteRule(
+                "super",
+                "super.img",
+                DeviceWriteTransport.FASTBOOTD,
+                "none",
+                True,
+            ),
+        ),
+        post_write_verification_contract=verification,
+    )
+    pack = replace(
+        base,
+        capabilities=tuple(
+            replace(item, status=CapabilityStatus.SUPPORTED)
+            if "recovery" in item.capability_id
+            else item
+            for item in base.capabilities
+        ),
+        build_contract=replace(
+            base.build_contract,
+            version=2,
+            avb_execution_policy=avb,
+            partition_write_contract=writes,
+        ),
+    )
+
+    report = DevicePackValidationService().assess(pack, _xiaomi(), _verified_attestation(pack))
+
+    checks = {check.check_id: check for check in report.checks}
+    assert checks["partition-write-contract"].state is ValidationState.PASS
+    assert checks["post-write-verification-contract"].state is ValidationState.PASS
+    assert report.flash_contract_ready
 
 
 def test_attestation_for_different_hardware_cannot_clear_recovery_gate() -> None:

@@ -639,8 +639,12 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   current artifact binding and derives only exact product/unlocked/mode/slot preconditions and
   hash-bound Fastboot writes using redacted target/workspace placeholders; strict reload regenerates
   the plan from current evidence, forbids arbitrary options, erase/unlock/relock/reboot inference and
-  raw serial persistence, and remains blocked with zero consent or execution authority until a
-  signed exact post-write/readback and post-boot verification contract exists;
+  raw serial persistence; partition-write schema two requires one exact full-partition Fastboot
+  fetch size/digest per write, the same signed source/attestation identity, authorized ADB, bounded
+  first-boot timing and allowlisted exact Device DNA properties, while schema one remains explicitly
+  non-flash-ready; the inert plan binds the complete verification-contract digest but remains blocked
+  with zero consent or execution authority until a separately verified execution gateway and
+  immutable execution/postcondition receipt exist;
   Forge Control stale-card detachment and natural-height scrolling, two aligned footer action rows,
   and separate blocked/attention counts so repeated evidence refreshes cannot jumble controls or
   make an amber certification requirement appear complete;

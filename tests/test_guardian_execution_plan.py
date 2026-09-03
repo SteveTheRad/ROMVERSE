@@ -8,7 +8,15 @@ from dataclasses import asdict, replace
 
 import pytest
 
-from romverse.device_packs.models import DeviceWriteTransport
+from romverse.device_packs.models import (
+    DevicePostWriteVerificationContract,
+    DeviceWriteTransport,
+    PartitionReadbackRule,
+    PartitionVerificationMethod,
+    PostBootPropertyRule,
+)
+from romverse.device_packs.registry import DevicePackRegistry
+from romverse.guardian.artifact_binding import GuardianArtifactBindingService
 from romverse.guardian.execution_plan import (
     ExecutionPlanPhase,
     GuardianExecutionPlanService,
@@ -31,6 +39,65 @@ def _prepared(tmp_path, monkeypatch):
     )
     plans = GuardianExecutionPlanService(service.store, service.registry)
     return plans, project, report, device, manifest, binding
+
+
+def _prepared_with_post_write_verification(tmp_path, monkeypatch):
+    service, project, pack, report, device, _handoff, _artifact, _build = _setup(
+        tmp_path, monkeypatch
+    )
+    assert pack.build_contract is not None
+    write_contract = pack.build_contract.partition_write_contract
+    assert write_contract is not None
+    write_rule = write_contract.writes[0]
+    verification = DevicePostWriteVerificationContract(
+        "exact-post-write",
+        1,
+        write_contract.source_build_id,
+        write_contract.attestation_sha256,
+        (
+            PartitionReadbackRule(
+                write_rule.partition,
+                write_rule.transport,
+                write_rule.target_slot,
+                PartitionVerificationMethod.FASTBOOT_FETCH_SHA256,
+                4096,
+                "b" * 64,
+            ),
+        ),
+        (
+            PostBootPropertyRule("sys.boot_completed", "1"),
+            PostBootPropertyRule("ro.product.device", "product"),
+            PostBootPropertyRule("ro.build.fingerprint", "test/product/build"),
+            PostBootPropertyRule("ro.build.version.incremental", "TEST.BUILD"),
+            PostBootPropertyRule("ro.build.version.sdk", "37"),
+            PostBootPropertyRule("ro.build.version.security_patch", "2026-08-01"),
+            PostBootPropertyRule("ro.boot.verifiedbootstate", "orange"),
+        ),
+        True,
+        300,
+    )
+    upgraded_write_contract = replace(
+        write_contract,
+        version=2,
+        post_write_verification_contract=verification,
+    )
+    upgraded_pack = replace(
+        pack,
+        build_contract=replace(
+            pack.build_contract,
+            partition_write_contract=upgraded_write_contract,
+        ),
+    )
+    registry = DevicePackRegistry((upgraded_pack,))
+    binding = GuardianArtifactBindingService(service.store, registry).prepare(project.project_id)
+    manifest = GuardianManifestReviewService(service.store, registry).compile(
+        project.project_id,
+        report,
+        device,
+        binding=binding,
+    )
+    plans = GuardianExecutionPlanService(service.store, registry)
+    return plans, project, report, device, manifest, binding, verification
 
 
 def test_execution_plan_derives_exact_redacted_review_only_commands(tmp_path, monkeypatch):
@@ -77,6 +144,58 @@ def test_execution_plan_derives_exact_redacted_review_only_commands(tmp_path, mo
     if os.name != "nt":
         assert stat.S_IMODE(root.stat().st_mode) == 0o700
         assert stat.S_IMODE((root / plans.LATEST_NAME).stat().st_mode) == 0o600
+
+
+def test_execution_plan_binds_exact_post_write_contract_but_keeps_consent_locked(
+    tmp_path, monkeypatch
+):
+    plans, project, report, device, _manifest, _binding, verification = (
+        _prepared_with_post_write_verification(tmp_path, monkeypatch)
+    )
+
+    plan = plans.compile(project.project_id, report, device)
+    pack = next(item for item in plans.registry.packs if item.pack_id == plan.device_pack_id)
+    assert pack.build_contract is not None
+    write_contract = pack.build_contract.partition_write_contract
+    assert write_contract is not None
+    verification_metadata = plans._verification_metadata(write_contract)
+
+    assert plan.write_contract_version == 2
+    assert plan.post_write_verification_contract_id == verification.contract_id
+    assert plan.post_write_verification_contract_version == 1
+    assert (
+        plan.post_write_verification_contract_digest
+        == verification_metadata["post_write_verification_contract_digest"]
+    )
+    assert plan.post_write_readback_count == 1
+    assert plan.post_boot_property_count == 7
+    assert plan.post_boot_timeout_seconds == 300
+    assert plan.plan_status == "blocked-missing-typed-execution-gateway"
+    assert not plan.final_consent_available
+    assert plan.execution_authority == "none"
+    assert not plan.phone_changed
+    assert plans.load(project.project_id, report, device) == plan
+
+    changed_verification = replace(
+        verification,
+        readbacks=(replace(verification.readbacks[0], expected_sha256="c" * 64),),
+    )
+    changed_contract = replace(
+        write_contract,
+        post_write_verification_contract=changed_verification,
+    )
+    plans.registry = DevicePackRegistry(
+        (
+            replace(
+                pack,
+                build_contract=replace(
+                    pack.build_contract,
+                    partition_write_contract=changed_contract,
+                ),
+            ),
+        )
+    )
+    assert plans.load(project.project_id, report, device) is None
 
 
 def test_execution_plan_rehashes_artifacts_and_rejects_changed_current_evidence(
@@ -218,6 +337,8 @@ def test_execution_plan_rejects_wrong_field_shape_and_oversized_storage(tmp_path
         ("schema_version", True),
         ("write_contract_id", "forged-contract"),
         ("write_attestation_sha256", "9" * 64),
+        ("post_write_verification_contract_version", True),
+        ("post_write_readback_count", 1),
     ),
 )
 def test_execution_plan_rejects_resealed_type_or_contract_mutation(

@@ -393,7 +393,15 @@ has current evidence.
    mode, unknown/non-image/duplicate artifacts, duplicate or destructive targets, implicit slot
    suffixes, unsupported transports/slots, disabled verification and more than 32 writes. Confirm
    only an exact signed physical-attestation envelope makes the Device Atlas write-contract check
-   pass. With a synthetic flash-certified Pack and current local-build receipt, prepare both
+   pass. For partition-write schema two, require a same-source/same-attestation post-write contract
+   with exactly one matching full-partition `fastboot fetch` size/SHA-256 per write, authorized ADB,
+   a strict 30-to-900 second boot timeout, and unique allowlisted post-boot properties including
+   `sys.boot_completed=1`, device, fingerprint, incremental, SDK, security patch and Verified Boot
+   state. Reject missing/extra/duplicate readbacks or properties, changed partition/transport/slot,
+   unknown methods, unsafe properties, bad digests/sizes/timeouts, Boolean confusion and mismatched
+   source or attestation. Confirm schema-one writes can pass their own signed evidence check but keep
+   overall flash-contract readiness blocked without schema-two verification. With a synthetic
+   flash-certified Pack and current local-build receipt, prepare both
    supported data modes and run Guardian artifact binding on its managed worker. Confirm byte
    progress is relayed unchanged below completion, binding's terminal 100 is withheld during
    unbounded manifest compilation, and review completion reaches 100 only after the command-free
@@ -413,9 +421,13 @@ has current evidence.
    only against unchanged readiness/device/manifest/binding evidence, and reject a changed artifact,
    stale phone, re-digested command substitution, arbitrary `--force` or verification-disabling
    option, relock spelling, Boolean/schema confusion, extra fields, oversized file and linked path.
-   Confirm the plan explicitly remains blocked for missing exact post-write/post-boot verification,
-   contains no inferred transition, activation, reboot, wipe, rollback or recovery command, exposes
-   no final consent, grants execution authority `none`, and records `phone_changed: false`.
+   Confirm a schema-one plan explicitly remains
+   `blocked-missing-exact-post-write-verification`. For schema two, change any readback digest and
+   confirm strict reload rejects the stored plan even if all write artifacts are unchanged; otherwise
+   bind the exact verification contract identity, digest, readback/property counts and timeout, then
+   stop at `blocked-missing-typed-execution-gateway`. Both paths must contain no inferred transition,
+   activation, reboot, wipe, rollback or recovery command, expose no final consent, grant execution
+   authority `none`, and record `phone_changed: false`.
    Refresh Forge Control repeatedly while readiness changes between blocked and attention states at
    its 1040-pixel minimum width. Confirm removed cards are no longer parented or visible, the content
    keeps its natural scroll height, no footer buttons overlap, and blocked/attention totals match the

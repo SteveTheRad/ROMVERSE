@@ -18,6 +18,7 @@ from romverse.device_packs.models import (
     CapabilityStatus,
     DeviceBuildContract,
     DevicePack,
+    DevicePostWriteVerificationContract,
     DeviceWriteContract,
     DeviceWriteTransport,
     DynamicPartitionGroup,
@@ -29,12 +30,37 @@ from romverse.device_packs.models import (
     PackLoadIssue,
     PackResolution,
     PartitionBuildRule,
+    PartitionReadbackRule,
+    PartitionVerificationMethod,
     PartitionWriteRule,
+    PostBootPropertyRule,
 )
 from romverse.infrastructure.provisioning import (
     ROM_STUDIO_CONTRACT_MINIMUM_TOOLS,
     ROM_STUDIO_TOOL_CATALOG,
 )
+
+_REQUIRED_POST_BOOT_PROPERTIES = frozenset(
+    {
+        "sys.boot_completed",
+        "ro.product.device",
+        "ro.build.fingerprint",
+        "ro.build.version.incremental",
+        "ro.build.version.sdk",
+        "ro.build.version.security_patch",
+        "ro.boot.verifiedbootstate",
+    }
+)
+_ALLOWED_POST_BOOT_PROPERTIES = _REQUIRED_POST_BOOT_PROPERTIES | {
+    "ro.product.manufacturer",
+    "ro.product.model",
+    "ro.build.id",
+    "ro.build.type",
+    "ro.build.tags",
+    "ro.boot.slot_suffix",
+    "ro.boot.veritymode",
+    "ro.boot.vbmeta.device_state",
+}
 
 
 class PackResource(Protocol):
@@ -372,7 +398,11 @@ class DevicePackRegistry:
 
     @staticmethod
     def _parse_build_contract(data: object) -> DeviceBuildContract:
-        if not isinstance(data, dict) or data.get("schema_version") not in {1, 2}:
+        if (
+            not isinstance(data, dict)
+            or type(data.get("schema_version")) is not int
+            or data.get("schema_version") not in {1, 2}
+        ):
             raise ValueError("unsupported build contract schema")
         schema_version = int(data["schema_version"])
         contract_id = _safe_identifier(data["contract_id"], "contract id")
@@ -527,8 +557,13 @@ class DevicePackRegistry:
         allowed_outputs: tuple[str, ...],
         avb_policy: AvbExecutionPolicy | None,
     ) -> DeviceWriteContract:
-        if not isinstance(data, dict) or data.get("schema_version") != 1:
+        if (
+            not isinstance(data, dict)
+            or type(data.get("schema_version")) is not int
+            or data.get("schema_version") not in {1, 2}
+        ):
             raise ValueError("unsupported partition-write contract schema")
+        schema_version = data["schema_version"]
         expected_fields = {
             "schema_version",
             "contract_id",
@@ -541,6 +576,8 @@ class DevicePackRegistry:
             "bootloader_relock_allowed",
             "writes",
         }
+        if schema_version == 2:
+            expected_fields.add("post_write_verification_contract")
         if set(data) != expected_fields:
             raise ValueError("partition-write contract fields are incomplete or unsupported")
         contract_id = _safe_identifier(data["contract_id"], "partition-write contract id")
@@ -592,9 +629,19 @@ class DevicePackRegistry:
             raise ValueError("partition-write targets must be unique")
         if len({item.artifact for item in writes}) != len(writes):
             raise ValueError("partition-write artifacts must be unique")
+        verification_contract = (
+            DevicePackRegistry._parse_post_write_verification_contract(
+                data["post_write_verification_contract"],
+                source,
+                attestation_sha256,
+                writes,
+            )
+            if schema_version == 2
+            else None
+        )
         return DeviceWriteContract(
             contract_id=contract_id,
-            version=1,
+            version=schema_version,
             source_build_id=source_build_id,
             attestation_sha256=attestation_sha256,
             require_unlocked_bootloader=require_unlocked,
@@ -603,7 +650,165 @@ class DevicePackRegistry:
             wipe_user_data_supported=wipe_supported,
             writes=writes,
             bootloader_relock_allowed=False,
+            post_write_verification_contract=verification_contract,
         )
+
+    @staticmethod
+    def _parse_post_write_verification_contract(
+        data: object,
+        source: FirmwareSourceContract,
+        write_attestation_sha256: str,
+        writes: tuple[PartitionWriteRule, ...],
+    ) -> DevicePostWriteVerificationContract:
+        if (
+            not isinstance(data, dict)
+            or type(data.get("schema_version")) is not int
+            or data.get("schema_version") != 1
+        ):
+            raise ValueError("unsupported post-write verification contract schema")
+        if set(data) != {
+            "schema_version",
+            "contract_id",
+            "source_build_id",
+            "attestation_sha256",
+            "readbacks",
+            "post_boot_properties",
+            "require_adb_authorized",
+            "boot_timeout_seconds",
+        }:
+            raise ValueError(
+                "post-write verification contract fields are incomplete or unsupported"
+            )
+        contract_id = _safe_identifier(data["contract_id"], "post-write verification contract id")
+        source_build_id = _bounded_text(
+            data["source_build_id"], "post-write verification source build id"
+        )
+        attestation_sha256 = _sha256(
+            data["attestation_sha256"], "post-write verification attestation"
+        )
+        if source_build_id != source.build_id:
+            raise ValueError("post-write verification must bind the exact source build")
+        if attestation_sha256 != write_attestation_sha256:
+            raise ValueError("post-write verification must bind the partition-write attestation")
+        require_adb_authorized = _strict_bool(
+            data["require_adb_authorized"], "require_adb_authorized"
+        )
+        if not require_adb_authorized:
+            raise ValueError("post-boot verification must require authorized ADB")
+        boot_timeout = data["boot_timeout_seconds"]
+        if type(boot_timeout) is not int or not 30 <= boot_timeout <= 900:
+            raise ValueError("post-boot verification timeout must be 30 to 900 seconds")
+
+        raw_readbacks = _object_list(data["readbacks"], "partition readbacks", allow_empty=True)
+        if len(raw_readbacks) > 32:
+            raise ValueError("post-write verification exceeds the 32-readback limit")
+        readbacks = tuple(
+            DevicePackRegistry._parse_partition_readback_rule(item) for item in raw_readbacks
+        )
+        if len({item.partition for item in readbacks}) != len(readbacks):
+            raise ValueError("partition readback targets must be unique")
+        expected_writes = {(item.partition, item.transport, item.target_slot) for item in writes}
+        actual_readbacks = {
+            (item.partition, item.transport, item.target_slot) for item in readbacks
+        }
+        if actual_readbacks != expected_writes:
+            raise ValueError("every declared write requires one exact matching readback")
+
+        raw_properties = _object_list(
+            data["post_boot_properties"], "post-boot properties", allow_empty=True
+        )
+        if len(raw_properties) > 16:
+            raise ValueError("post-boot verification exceeds the 16-property limit")
+        properties = tuple(
+            DevicePackRegistry._parse_post_boot_property_rule(item) for item in raw_properties
+        )
+        property_values = {item.property_name: item.expected_value for item in properties}
+        if len(property_values) != len(properties):
+            raise ValueError("post-boot property names must be unique")
+        missing = _REQUIRED_POST_BOOT_PROPERTIES - property_values.keys()
+        if missing:
+            raise ValueError("post-boot verification is missing required Device DNA properties")
+        if property_values["sys.boot_completed"] != "1":
+            raise ValueError("post-boot verification must require sys.boot_completed=1")
+        try:
+            sdk = int(property_values["ro.build.version.sdk"])
+        except ValueError as exc:
+            raise ValueError("post-boot SDK must be a decimal Android API level") from exc
+        if not 1 <= sdk <= 100 or str(sdk) != property_values["ro.build.version.sdk"]:
+            raise ValueError("post-boot SDK must be a decimal Android API level")
+        try:
+            date.fromisoformat(property_values["ro.build.version.security_patch"])
+        except ValueError as exc:
+            raise ValueError("post-boot security patch must use YYYY-MM-DD") from exc
+        if property_values["ro.boot.verifiedbootstate"] not in {
+            "green",
+            "yellow",
+            "orange",
+        }:
+            raise ValueError("post-boot verified boot state is unsupported")
+        return DevicePostWriteVerificationContract(
+            contract_id=contract_id,
+            version=1,
+            source_build_id=source_build_id,
+            attestation_sha256=attestation_sha256,
+            readbacks=readbacks,
+            post_boot_properties=properties,
+            require_adb_authorized=True,
+            boot_timeout_seconds=boot_timeout,
+        )
+
+    @staticmethod
+    def _parse_partition_readback_rule(data: dict) -> PartitionReadbackRule:
+        if set(data) != {
+            "partition",
+            "transport",
+            "target_slot",
+            "method",
+            "expected_size_bytes",
+            "expected_sha256",
+        }:
+            raise ValueError("partition readback fields are incomplete or unsupported")
+        partition = _safe_identifier(data["partition"], "partition readback target")
+        if partition != partition.casefold() or _unsafe_write_partition(partition):
+            raise ValueError(f"unsafe partition readback target: {partition}")
+        if partition.endswith(("_a", "_b")):
+            raise ValueError("partition readback target must omit the slot suffix")
+        target_slot = str(data["target_slot"])
+        if target_slot not in {"a", "b", "none"}:
+            raise ValueError("partition readback target slot must be a, b, or none")
+        try:
+            transport = DeviceWriteTransport(str(data["transport"]))
+            method = PartitionVerificationMethod(str(data["method"]))
+        except ValueError as exc:
+            raise ValueError("unsupported partition readback transport or method") from exc
+        expected_size = data["expected_size_bytes"]
+        if type(expected_size) is not int:
+            raise TypeError("partition readback size must be an integer")
+        return PartitionReadbackRule(
+            partition=partition,
+            transport=transport,
+            target_slot=target_slot,
+            method=method,
+            expected_size_bytes=_bounded_size(expected_size, "partition readback size", 128 << 30),
+            expected_sha256=_sha256(data["expected_sha256"], "partition readback expected"),
+        )
+
+    @staticmethod
+    def _parse_post_boot_property_rule(data: dict) -> PostBootPropertyRule:
+        if set(data) != {"property_name", "expected_value"}:
+            raise ValueError("post-boot property fields are incomplete or unsupported")
+        property_name = str(data["property_name"])
+        if property_name not in _ALLOWED_POST_BOOT_PROPERTIES:
+            raise ValueError("post-boot property is not in the read-only allowlist")
+        expected_value = data["expected_value"]
+        if (
+            not isinstance(expected_value, str)
+            or not expected_value
+            or len(expected_value) > 240
+            or any(ord(character) < 32 for character in expected_value)
+        ):
+            raise ValueError("post-boot expected property value is invalid")
+        return PostBootPropertyRule(property_name, expected_value)
 
     @staticmethod
     def _parse_partition_write_rule(

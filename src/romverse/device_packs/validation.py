@@ -15,7 +15,34 @@ from romverse.device_packs.attestations import (
     DevicePackAttestationVerifier,
     PhysicalRecoveryAttestationReport,
 )
-from romverse.device_packs.models import AvbPolicyAuthority, CapabilityStatus, DevicePack
+from romverse.device_packs.models import (
+    AvbPolicyAuthority,
+    CapabilityStatus,
+    DevicePack,
+    PartitionVerificationMethod,
+)
+
+_REQUIRED_POST_BOOT_PROPERTIES = frozenset(
+    {
+        "sys.boot_completed",
+        "ro.product.device",
+        "ro.build.fingerprint",
+        "ro.build.version.incremental",
+        "ro.build.version.sdk",
+        "ro.build.version.security_patch",
+        "ro.boot.verifiedbootstate",
+    }
+)
+_ALLOWED_POST_BOOT_PROPERTIES = _REQUIRED_POST_BOOT_PROPERTIES | {
+    "ro.product.manufacturer",
+    "ro.product.model",
+    "ro.build.id",
+    "ro.build.type",
+    "ro.build.tags",
+    "ro.boot.slot_suffix",
+    "ro.boot.veritymode",
+    "ro.boot.vbmeta.device_state",
+}
 
 
 class ValidationState(StrEnum):
@@ -287,6 +314,56 @@ class DevicePackValidationService:
             and not write_contract.bootloader_relock_allowed
             and write_contract.writes
         )
+        verification_contract = (
+            write_contract.post_write_verification_contract if write_contract else None
+        )
+        post_boot_values = {
+            item.property_name: item.expected_value
+            for item in (
+                verification_contract.post_boot_properties if verification_contract else ()
+            )
+        }
+        write_targets = {
+            (item.partition, item.transport, item.target_slot)
+            for item in (write_contract.writes if write_contract else ())
+        }
+        readback_targets = {
+            (item.partition, item.transport, item.target_slot)
+            for item in (verification_contract.readbacks if verification_contract else ())
+        }
+        post_write_verification_ready = bool(
+            write_contract_ready
+            and write_contract is not None
+            and write_contract.version == 2
+            and verification_contract is not None
+            and verification_contract.version == 1
+            and pack.build_contract is not None
+            and attestation is not None
+            and verification_contract.source_build_id == pack.build_contract.source.build_id
+            and verification_contract.attestation_sha256 == attestation.envelope_sha256
+            and verification_contract.require_adb_authorized
+            and 30 <= verification_contract.boot_timeout_seconds <= 900
+            and len(verification_contract.readbacks) == len(write_contract.writes)
+            and readback_targets == write_targets
+            and all(
+                item.method is PartitionVerificationMethod.FASTBOOT_FETCH_SHA256
+                and type(item.expected_size_bytes) is int
+                and 0 < item.expected_size_bytes <= 128 << 30
+                and item.expected_size_bytes % 512 == 0
+                and _is_sha256(item.expected_sha256)
+                for item in verification_contract.readbacks
+            )
+            and len(post_boot_values) == len(verification_contract.post_boot_properties)
+            and _REQUIRED_POST_BOOT_PROPERTIES.issubset(post_boot_values)
+            and set(post_boot_values).issubset(_ALLOWED_POST_BOOT_PROPERTIES)
+            and all(
+                isinstance(value, str)
+                and 1 <= len(value) <= 240
+                and all(ord(character) >= 32 for character in value)
+                for value in post_boot_values.values()
+            )
+            and post_boot_values.get("sys.boot_completed") == "1"
+        )
         checks = (
             ValidationCheck(
                 "integrity",
@@ -357,6 +434,29 @@ class DevicePackValidationService:
                     )
                 ),
                 "Publish a schema-two build contract with bounded image writes, explicit transport and slots, supported data modes, permanent relock prohibition, and the same exact signed physical-attestation digest as the AVB policy.",
+                "flash",
+            ),
+            ValidationCheck(
+                "post-write-verification-contract",
+                "Exact readback and first-boot verification contract",
+                (
+                    ValidationState.PASS
+                    if post_write_verification_ready
+                    else ValidationState.BLOCKED
+                ),
+                (
+                    f"Contract {verification_contract.contract_id} v{verification_contract.version} "
+                    f"binds {len(verification_contract.readbacks)} full partition readback(s) and "
+                    f"{len(verification_contract.post_boot_properties)} exact post-boot properties"
+                    if post_write_verification_ready and verification_contract is not None
+                    else (
+                        "A write contract exists, but it has no signed exact partition-readback and "
+                        "post-boot Device DNA contract"
+                        if write_contract is not None
+                        else "No partition write contract exists to verify"
+                    )
+                ),
+                "Publish write-contract schema 2 with one physically tested full-partition Fastboot fetch digest per write, authorized-ADB first-boot properties, a bounded timeout, and the same exact signed physical-attestation digest.",
                 "flash",
             ),
             ValidationCheck(
@@ -568,3 +668,11 @@ def _bounded(value: str) -> str:
 def _digest(payload: dict[str, object]) -> str:
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
+
+
+def _is_sha256(value: object) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 64
+        and all(character in "0123456789abcdef" for character in value)
+    )

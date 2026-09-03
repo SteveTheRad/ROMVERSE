@@ -441,11 +441,21 @@ unlock-state, mode and slot preconditions plus the explicitly declared partition
 serials never enter the saved plan. Workspace and target placeholders keep it non-executable, while
 strict reload independently regenerates the expected commands and rejects changed evidence,
 unknown Fastboot options, destructive targets, relock language, hostile structure and type
-confusion. Because the current write-contract schema does not define exact readback or post-boot
-postconditions, automatic mode transitions, slot activation, reboot, wipe, rollback and recovery,
-the plan remains `blocked-missing-exact-post-write-verification` with final consent unavailable,
-execution authority `none` and phone changed `false`. A successful Fastboot response alone must
-never be presented as a verified healthy upgrade.
+confusion. When a schema-one write contract does not define exact readback or post-boot
+postconditions, the plan remains `blocked-missing-exact-post-write-verification` with final consent
+unavailable, execution authority `none` and phone changed `false`. Partition-write schema two
+defines the
+next exact contract boundary: one full-partition `fastboot fetch` size and SHA-256 per declared
+write, the same source-build and signed physical-attestation digest, authorized ADB, a 30-to-900
+second first-boot timeout, and an allowlisted minimum Device DNA set including boot completion,
+device, fingerprint, incremental, SDK, security patch and Verified Boot state. Device Atlas counts
+this as flash-contract evidence only when all of those facts match exactly; schema one remains
+readable but not flash-ready. The inert plan binds the schema-two verification contract's identity,
+digest and bounded counts, then advances only to `blocked-missing-typed-execution-gateway`. It still
+cannot expose final consent or execute a command until a separately verified gateway and immutable
+execution/postcondition receipt exist. A successful Fastboot response alone must never be presented
+as a verified healthy upgrade. Neither schema authorizes or infers mode transitions, slot
+activation, reboot, wipe, rollback or recovery.
 
 Time Machine registers independently stored phone backups and exact stock-recovery packages without
 copying them into the workspace. Its public-safe evidence and private locator use separate bounded

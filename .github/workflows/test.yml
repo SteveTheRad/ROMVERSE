@@ -50,6 +50,9 @@ jobs:
           tests/test_desktop_bundle.py
           tests/test_release_assets.py
           tests/test_device_requirements.py
+          tests/test_device_packs.py
+          tests/test_device_pack_validation.py
+          tests/test_build_readiness.py
           tests/test_activity_center.py
           tests/test_galaxy_store.py
           tests/test_galaxy_ui.py

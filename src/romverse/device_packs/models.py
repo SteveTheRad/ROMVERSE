@@ -27,6 +27,12 @@ class DeviceWriteTransport(StrEnum):
     FASTBOOTD = "fastbootd"
 
 
+class PartitionVerificationMethod(StrEnum):
+    """Exact readback method declared by a physically tested Device Pack."""
+
+    FASTBOOT_FETCH_SHA256 = "fastboot_fetch_sha256"
+
+
 @dataclass(frozen=True, slots=True)
 class PackCapability:
     capability_id: str
@@ -135,6 +141,40 @@ class PartitionWriteRule:
 
 
 @dataclass(frozen=True, slots=True)
+class PartitionReadbackRule:
+    """One exact partition readback and expected full-byte digest."""
+
+    partition: str
+    transport: DeviceWriteTransport
+    target_slot: str
+    method: PartitionVerificationMethod
+    expected_size_bytes: int
+    expected_sha256: str
+
+
+@dataclass(frozen=True, slots=True)
+class PostBootPropertyRule:
+    """One exact read-only Android property expected after a successful boot."""
+
+    property_name: str
+    expected_value: str
+
+
+@dataclass(frozen=True, slots=True)
+class DevicePostWriteVerificationContract:
+    """Signed readback and first-boot proof; it is not execution authority."""
+
+    contract_id: str
+    version: int
+    source_build_id: str
+    attestation_sha256: str
+    readbacks: tuple[PartitionReadbackRule, ...]
+    post_boot_properties: tuple[PostBootPropertyRule, ...]
+    require_adb_authorized: bool
+    boot_timeout_seconds: int
+
+
+@dataclass(frozen=True, slots=True)
 class DeviceWriteContract:
     """Signed write intent that still requires Guardian artifact binding and consent."""
 
@@ -148,6 +188,7 @@ class DeviceWriteContract:
     wipe_user_data_supported: bool
     writes: tuple[PartitionWriteRule, ...]
     bootloader_relock_allowed: bool = False
+    post_write_verification_contract: DevicePostWriteVerificationContract | None = None
 
 
 @dataclass(frozen=True, slots=True)

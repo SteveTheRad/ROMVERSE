@@ -495,6 +495,46 @@ def _schema_two_build_contract() -> dict:
     return contract
 
 
+def _schema_two_build_contract_with_post_write_verification() -> dict:
+    contract = _schema_two_build_contract()
+    write_contract = contract["partition_write_contract"]
+    write_contract["schema_version"] = 2
+    write_contract["post_write_verification_contract"] = {
+        "schema_version": 1,
+        "contract_id": "popsicle-exact-post-write",
+        "source_build_id": contract["source"]["build_id"],
+        "attestation_sha256": "c" * 64,
+        "readbacks": [
+            {
+                "partition": "super",
+                "transport": "fastbootd",
+                "target_slot": "none",
+                "method": "fastboot_fetch_sha256",
+                "expected_size_bytes": 13_421_772_800,
+                "expected_sha256": "d" * 64,
+            }
+        ],
+        "post_boot_properties": [
+            {"property_name": "sys.boot_completed", "expected_value": "1"},
+            {"property_name": "ro.product.device", "expected_value": "popsicle"},
+            {
+                "property_name": "ro.build.fingerprint",
+                "expected_value": "Xiaomi/popsicle/popsicle:17/TEST/1:user/release-keys",
+            },
+            {"property_name": "ro.build.version.incremental", "expected_value": "TEST.1"},
+            {"property_name": "ro.build.version.sdk", "expected_value": "37"},
+            {
+                "property_name": "ro.build.version.security_patch",
+                "expected_value": "2026-08-01",
+            },
+            {"property_name": "ro.boot.verifiedbootstate", "expected_value": "orange"},
+        ],
+        "require_adb_authorized": True,
+        "boot_timeout_seconds": 300,
+    }
+    return contract
+
+
 def test_schema_two_build_contract_parses_bounded_signed_write_intent():
     parsed = DevicePackRegistry._parse_build_contract(_schema_two_build_contract())
 
@@ -507,6 +547,104 @@ def test_schema_two_build_contract_parses_bounded_signed_write_intent():
     assert write_contract.wipe_user_data_supported
     assert not write_contract.bootloader_relock_allowed
     assert write_contract.writes[0].transport is DeviceWriteTransport.FASTBOOTD
+
+
+def test_write_contract_schema_two_parses_exact_readback_and_post_boot_contract():
+    parsed = DevicePackRegistry._parse_build_contract(
+        _schema_two_build_contract_with_post_write_verification()
+    )
+
+    write_contract = parsed.partition_write_contract
+    assert write_contract is not None and write_contract.version == 2
+    verification = write_contract.post_write_verification_contract
+    assert verification is not None
+    assert verification.source_build_id == parsed.source.build_id
+    assert verification.attestation_sha256 == write_contract.attestation_sha256
+    assert verification.readbacks[0].partition == write_contract.writes[0].partition
+    assert verification.readbacks[0].method.value == "fastboot_fetch_sha256"
+    assert verification.post_boot_properties[0].property_name == "sys.boot_completed"
+    assert verification.boot_timeout_seconds == 300
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    (
+        (lambda value: value["readbacks"].clear(), "matching readback"),
+        (
+            lambda value: value["readbacks"][0].update(partition="boot"),
+            "matching readback",
+        ),
+        (
+            lambda value: value["readbacks"][0].update(method="fastboot_upload"),
+            "transport or method",
+        ),
+        (
+            lambda value: value.update(attestation_sha256="e" * 64),
+            "partition-write attestation",
+        ),
+        (
+            lambda value: value.update(require_adb_authorized=False),
+            "require authorized ADB",
+        ),
+        (
+            lambda value: value.update(boot_timeout_seconds=True),
+            "30 to 900",
+        ),
+        (
+            lambda value: value["post_boot_properties"].pop(),
+            "missing required Device DNA",
+        ),
+    ),
+)
+def test_post_write_verification_contract_rejects_incomplete_or_unbound_rules(mutation, message):
+    contract = _schema_two_build_contract_with_post_write_verification()
+    mutation(contract["partition_write_contract"]["post_write_verification_contract"])
+
+    with pytest.raises(ValueError, match=message):
+        DevicePackRegistry._parse_build_contract(contract)
+
+
+def test_post_write_verification_rejects_unsafe_property_and_non_exact_boot_values():
+    unsafe = _schema_two_build_contract_with_post_write_verification()
+    properties = unsafe["partition_write_contract"]["post_write_verification_contract"][
+        "post_boot_properties"
+    ]
+    properties[0]["property_name"] = "persist.vendor.secret"
+    with pytest.raises(ValueError, match="read-only allowlist"):
+        DevicePackRegistry._parse_build_contract(unsafe)
+
+    incomplete = _schema_two_build_contract_with_post_write_verification()
+    values = incomplete["partition_write_contract"]["post_write_verification_contract"]
+    values["post_boot_properties"][0]["expected_value"] = "0"
+    with pytest.raises(ValueError, match="boot_completed=1"):
+        DevicePackRegistry._parse_build_contract(incomplete)
+
+
+def test_partition_write_schema_one_cannot_smuggle_post_write_authority():
+    contract = _schema_two_build_contract_with_post_write_verification()
+    contract["partition_write_contract"]["schema_version"] = 1
+
+    with pytest.raises(ValueError, match="incomplete or unsupported"):
+        DevicePackRegistry._parse_build_contract(contract)
+
+
+def test_write_and_verification_schema_versions_reject_boolean_confusion():
+    build_boolean = _schema_two_build_contract()
+    build_boolean["schema_version"] = True
+    with pytest.raises(ValueError, match="unsupported build contract schema"):
+        DevicePackRegistry._parse_build_contract(build_boolean)
+
+    write_boolean = _schema_two_build_contract()
+    write_boolean["partition_write_contract"]["schema_version"] = True
+    with pytest.raises(ValueError, match="unsupported partition-write contract schema"):
+        DevicePackRegistry._parse_build_contract(write_boolean)
+
+    verification_boolean = _schema_two_build_contract_with_post_write_verification()
+    verification_boolean["partition_write_contract"]["post_write_verification_contract"][
+        "schema_version"
+    ] = True
+    with pytest.raises(ValueError, match="unsupported post-write verification contract schema"):
+        DevicePackRegistry._parse_build_contract(verification_boolean)
 
 
 @pytest.mark.parametrize(

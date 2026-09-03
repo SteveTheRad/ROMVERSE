@@ -720,6 +720,22 @@ class GuardianExecutionResultVerifier:
         return signature
 
 
+def validate_guardian_runtime_trust(
+    trust: GuardianRuntimeTrust,
+    public_key: Ed25519PublicKey,
+    gateway: GuardianExecutionGatewayContract,
+) -> None:
+    """Validate an externally supplied runtime identity without granting authority."""
+
+    try:
+        GuardianExecutionGatewayContractService.validate(gateway)
+        GuardianExecutionResultVerifier._validate_trust(trust, public_key, gateway)
+    except ExecutionResultValidationError:
+        raise
+    except (AttributeError, TypeError, ValueError, ProjectError) as exc:
+        raise ExecutionResultValidationError("Runtime trust record is invalid") from exc
+
+
 def load_signed_execution_result(path: Path) -> dict[str, Any]:
     """Load one bounded regular JSON result without following a link or duplicate keys."""
 

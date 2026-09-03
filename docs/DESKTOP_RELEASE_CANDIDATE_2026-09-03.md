@@ -132,6 +132,15 @@ in this report.
   fields and linked files. The exact Guardian review now offers this check only when the gateway,
   reviewed Android build identity and both verified tools are present; it runs off the UI thread and
   shows pass/fail, expiry and explicit zero-authority status. Real-device validation remains required.
+- Guardian final consent v1 is now defined as a strict runtime-bound source boundary rather than a
+  generic approval. It requires the exact schema-three gateway and plan, the still-current stored
+  target receipt, the same reviewed phone, an externally pinned runtime public key/adapter, every
+  dynamic consequence acknowledgement, and a typed phrase containing the exact product, plan digest
+  segment and keep/erase action. It records every ordered forward and recovery consequence, expires
+  with the target receipt, stores only an ephemeral-token digest, and leaves recovery and possible
+  wipe separately unconsented. It grants no execution authority and contains no signer, token
+  consumer, runner or device command. The Desktop visibly explains this boundary after the read-only
+  target card but offers no consent button because no production runtime trust is enrolled.
 - A persistent user-supplied firmware responsibility notice and explicit import acknowledgement,
   without attempting to exclude rights or obligations that cannot legally be excluded.
 - Signed Desktop update checking and explicit, cancellable staging with measured progress, strict
@@ -163,9 +172,11 @@ in this report.
   currently carries the required signed schema-two or schema-three contracts. Both gateway variants
   are inert result templates—not execution receipts. A domain-separated Ed25519 result verifier is
   now defined and tested, but it has no signer, runner or execution method and no production runtime
-  trust is enrolled. The read-only live-target receipt issuer is implemented but not physically
-  validated; actual independently bound final-consent/result receipts, a governed runtime adapter and
-  independent physical validation remain unavailable.
+  trust is enrolled. The read-only live-target receipt issuer and runtime-bound final-consent receipt
+  verifier/issuer are implemented but not physically validated; no consent can be created in the
+  production Desktop without enrolled trust, and atomic token consumption, separately consented
+  recovery/wipe, a governed runtime adapter, physical validation, and an actual signed result remain
+  unavailable.
 - Physical-device and broad multi-OEM claims remain limited to the hardware evidence actually
   collected. Samsung Download Mode, Qualcomm EDL, MediaTek preloader, OEM unlock services, recovery
   signing, and other vendor-specific write paths still need separately reviewed adapters and signed

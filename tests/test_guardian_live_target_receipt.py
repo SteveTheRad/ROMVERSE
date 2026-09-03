@@ -418,7 +418,9 @@ def test_guardian_review_runs_the_read_only_check_off_the_ui_thread(
     buttons = [button.text() for button in dialog.findChildren(QPushButton)]
     labels = [label.text() for label in dialog.findChildren(QLabel)]
     assert "Run read-only target check" in buttons
+    assert not any("consent" in text.casefold() for text in buttons)
     assert any("does not flash, reboot, unlock, relock or grant consent" in text for text in labels)
+    assert any("no enrolled production writing runtime" in text for text in labels)
     assert dialog.live_target_receipt is None
     dialog._start_live_target_check()
     assert dialog.live_target_button is not None
@@ -435,4 +437,6 @@ def test_guardian_review_runs_the_read_only_check_off_the_ui_thread(
     assert "final consent: locked" in dialog.live_target_status.text()
     assert "execution authority: none" in dialog.live_target_status.text()
     assert "phone changed: no" in dialog.live_target_status.text()
+    assert "Final consent remains locked" in dialog.final_consent_status.text()
+    assert "not consent and cannot execute anything" in dialog.final_consent_status.text()
     dialog.close()

@@ -833,6 +833,47 @@ class GuardianManifestReviewDialog(QDialog):
             live_target_layout.addWidget(self.live_target_button, 0, Qt.AlignmentFlag.AlignLeft)
         body_layout.addWidget(self.live_target_card)
 
+        self.final_consent_card = QFrame()
+        self.final_consent_card.setObjectName("BuildPhase")
+        self.final_consent_card.setProperty("gateStatus", "blocked")
+        final_consent_layout = QVBoxLayout(self.final_consent_card)
+        final_consent_layout.setContentsMargins(18, 15, 18, 15)
+        final_consent_layout.setSpacing(7)
+        final_consent_title = QLabel("FINAL CONSENT v1 • RUNTIME-BOUND • LOCKED")
+        final_consent_title.setObjectName("CardHeading")
+        final_consent_title.setWordWrap(True)
+        final_consent_layout.addWidget(final_consent_title)
+        if (
+            contract is not None
+            and contract.write_contract_version == 3
+            and contract.transition_final_consent_required
+            and contract.recovery_steps
+        ):
+            final_consent_copy = (
+                "The exact consent contract is ready to bind this gateway, a still-current live "
+                "target, every ordered forward and recovery consequence, the keep/wipe choice, "
+                "and one pinned runtime public key plus adapter. Its raw ephemeral grant token "
+                "would stay in memory and the receipt would expire with the two-minute target "
+                "check. ROMVERSE has no enrolled production writing runtime, so it correctly "
+                "offers no consent button and no device action. Recovery and any possible wipe "
+                "would still require separate consent."
+            )
+        else:
+            final_consent_copy = (
+                "Unavailable. Guardian first needs the complete signed transition/recovery "
+                "gateway, a current live-target receipt, and a separately enrolled and pinned "
+                "runtime identity. A name match, firmware file, checkbox, or generic approval "
+                "cannot unlock this stage."
+            )
+        self.final_consent_status = QLabel(final_consent_copy)
+        self.final_consent_status.setObjectName("Danger")
+        self.final_consent_status.setWordWrap(True)
+        self.final_consent_status.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        final_consent_layout.addWidget(self.final_consent_status)
+        body_layout.addWidget(self.final_consent_card)
+
         invariant = QLabel(
             "PERMANENT GUARDIAN RULE • BOOTLOADER RELOCK: NEVER • EXECUTION AUTHORITY: NONE • PHONE CHANGED: NO"
         )
@@ -921,6 +962,12 @@ class GuardianManifestReviewDialog(QDialog):
             f"{_display_time(result.expires_at)} • local observation only • cryptographic device "
             "attestation: no • final consent: locked • execution authority: none • phone changed: no"
         )
+        self.final_consent_status.setText(
+            f"LIVE TARGET CURRENT • receipt {result.receipt_digest[:20]}… • expires "
+            f"{_display_time(result.expires_at)}\n"
+            "Final consent remains locked because no production runtime public key and adapter "
+            "are enrolled. This target receipt is not consent and cannot execute anything."
+        )
         self._repolish_live_target_status()
         if self.live_target_button is not None:
             self.live_target_button.setText("Run check again")
@@ -937,6 +984,10 @@ class GuardianManifestReviewDialog(QDialog):
             f"CHECK STOPPED SAFELY • {clean or 'The exact target could not be verified.'}\n"
             "No receipt remains current. No flash, reboot, wipe, unlock, relock, consent or phone "
             "change was attempted. Confirm one exact phone is in the gateway entry mode, then retry."
+        )
+        self.final_consent_status.setText(
+            "LOCKED • No current live-target receipt remains. No runtime trust is enrolled and no "
+            "consent or phone operation is available."
         )
         self._repolish_live_target_status()
         if self.live_target_button is not None:

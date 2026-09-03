@@ -169,8 +169,14 @@ has current evidence.
    product/unlocked/mode probe rounds, produces only a two-minute zero-authority local receipt, and
    rejects target swaps, ambiguity, probe drift, stale/tampered/linked evidence and raw serial/fingerprint
    persistence in fixture tests. It is not cryptographic device attestation and has not yet passed
-   physical-device validation. Final-consent issuers, governed execution, physical validation and
-   built-in schema-three Pack authority remain unfinished.
+   physical-device validation. A new final-consent-v1 source boundary now requires that current
+   live receipt, the exact schema-three gateway/plan/device, an externally pinned runtime public key
+   and adapter identity, every dynamic consequence acknowledgement, and an exact product/plan/data
+   typed phrase. It materializes every forward and recovery consequence, expires with the live
+   receipt, persists only the ephemeral-token digest, and grants no execution, recovery or wipe
+   authority. The production runtime trust, atomic one-use consumption, separately consented
+   recovery/wipe paths, governed execution, physical validation and built-in schema-three Pack
+   authority remain unfinished.
 
    Exact application-source commit `fe0f1521f656e0595ddbab855882262109fe37c4` is fully green in
    GitHub Actions run `33790777149`: both Linux versions passed all 1,468 tests and both Ruff gates;

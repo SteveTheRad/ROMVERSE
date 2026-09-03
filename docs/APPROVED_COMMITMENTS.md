@@ -688,6 +688,18 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   still requires physical-device validation plus a separately trusted runtime; the exact Guardian
   review conditionally exposes this as one managed-background read-only action with clear pass/fail,
   expiry and zero-authority status, and a failed retry invalidates the older receipt;
+  a strict runtime-bound Guardian final-consent-v1 receipt issuer that accepts only the current
+  schema-three gateway, validated plan, still-current stored live-target receipt, exact reviewed
+  device and externally pinned runtime public key/adapter trust; requires the complete dynamic
+  acknowledgement set plus an exact product/plan/data-action typed phrase; materializes every
+  ordered forward and signed recovery consequence; binds all exact gateway/device/Pack/runtime
+  digests; expires with the two-minute live receipt; stores no raw serial, phrase, public key or raw
+  ephemeral grant token; and leaves recovery and possible wipe separately unconsented, automatic
+  recovery/wipe and relock prohibited, runtime uninvoked, phone unchanged and execution authority
+  `none`; strict fields, nested types, duplicate keys, links, tampering, changed context, expired
+  evidence, wrong runtime key and missing token all fail closed; the verifier-only service contains
+  no signer, consumer, runner or execute method, and the Desktop shows its state as locked because
+  no production runtime trust is enrolled;
   end-to-end Desktop presentation of that inert chain through the managed ROM Studio Guardian
   worker, with a single monotonic byte-derived scale across each required artifact rehash, terminal
   100 only after the applicable private records are sealed, readable dark scroll cards for

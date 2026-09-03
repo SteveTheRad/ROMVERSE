@@ -521,6 +521,24 @@ rejection; and records no runtime invocation or phone change. It is explicitly l
 not cryptographic device attestation, consent or execution authority. Real-device validation and the
 separately trusted runtime remain required.
 
+The next verification-only boundary is a runtime-bound Guardian final-consent receipt. It accepts
+only the current schema-three transition/recovery gateway, its independently validated execution
+plan, the still-current stored live-target receipt, the same reviewed device, and an externally
+supplied runtime public key/trust record scoped to the exact Pack, write contract, attestation and
+transition/recovery digest. The user must acknowledge every exact-device, forward-write,
+transition, verification, failure-state, recovery-separation, relock-prohibition, expiry and
+keep-data/erase-data consequence and type a phrase containing the observed product, final plan
+digest segment and explicit data action. The receipt materializes every ordered forward consequence
+and every signed recovery consequence, but final consent covers the forward gateway only; recovery
+and every possible wipe remain separately unconsented. It expires at the same instant as the
+two-minute live-target receipt, stores no raw serial, typed phrase, public key or ephemeral grant
+token, and binds only their digests. The raw ephemeral token exists in memory only. A future isolated
+runtime must still atomically consume it once; this service deliberately provides no consumption,
+signing, command, runner or execution method. Consequently the receipt records runtime trust bound,
+final consent recorded, execution authority `none`, runtime invoked `false`, phone changed `false`,
+automatic recovery/wipe `false`, and bootloader relock allowed `false`. No production runtime trust
+is enrolled, so the shipping Desktop correctly offers no final-consent control yet.
+
 ROM Studio's managed Guardian review worker carries this inert chain through the actual Desktop
 journey. It seals the command-free manifest, independently rehashes the same artifacts for the inert
 plan, and, when schema two or schema three is present, rehashes them again before sealing the result template. One
@@ -539,6 +557,10 @@ Android build identity, ADB and Fastboot runtimes are all present, the manifest 
 explicitly labelled read-only check control. It runs on a managed background worker, displays the
 verified product/mode/unlock/slot scope and expiry, and still exposes no flash, reboot, wipe, unlock,
 relock, consent or execution control. A failed retry invalidates the prior short-lived receipt.
+The same review now shows a separate final-consent-v1 card. It explains the exact gateway/target/
+runtime/consequence binding and changes to a current-target explanation after a successful read-only
+check, while remaining visibly locked because no production runtime identity is enrolled. It never
+substitutes the live-target receipt for consent and adds no consent or execution button.
 For schema three, the same worker performs all three measured full rehash passes and seals the
 transition-aware gateway only after the artifact-bound manifest and transition/recovery-bound plan
 remain exact. The gateway is still inert and reaches terminal completion only after all fail-closed

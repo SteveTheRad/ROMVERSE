@@ -59,6 +59,18 @@ installed/frozen/package jobs, and the combined unsigned candidate passed. Produ
 enrollment, process isolation, deletion-resistant consumption state, a governed executor and
 physical-phone validation remain required.
 
+The subsequent one-use runtime execution-claim increment passes all 1,523 local Desktop tests and
+complete Ruff check/format gates across 372 Python files. A fresh isolated 241-member wheel contains
+all 21 Device Packs and the byte-exact execution-claim module; SHA-256 is
+`02ed2855d400419d5c228f29697cdb8c7e2e86dd8d7d93825b66795e044cd1ed`. Its installed smoke opened
+the Desktop, loaded 148 known fixes and all 19 routes, reopened populated workspace evidence
+byte-for-byte, and confirmed the authorization and execution-claim services expose no device-open
+or execution method. A separate self-contained Fedora app also launched successfully. Its verified
+451-file Linux bundle expands to 355,696,971 bytes and has SHA-256
+`ad7f4c1cfebde7930ba4630bbfb6caf866ac795a9d1bc17cda092d8eb03f77dc`. This is local
+source/package evidence only; the exact commit and cross-platform CI result remain pending until
+the increment is committed and GitHub Actions completes.
+
 Exact preceding commit `2eb043b119d3a0986f334738a05189a5065adb60` is fully green in GitHub
 Actions run `33803846046`: both 1,509-test Linux quality jobs, both Windows portability jobs,
 Companion tests/build, Linux and Windows installed/frozen/package jobs, and the combined unsigned
@@ -259,9 +271,14 @@ policy evidence, not universal device assurance or a live flashing runtime.
    wrong key, changed evidence, unsafe authority claims, tampering, duplicate fields and links fail
    closed, while neither raw token nor phone serial is persisted. It has no device runner and its
    private local workspace record is not claimed to resist administrator deletion or provide process
-   isolation. No production runtime trust/key/process is enrolled. Atomic executor claim-and-open,
-   separately consented recovery/wipe paths, governed execution, physical validation and built-in
-   schema-three Pack authority remain unfinished.
+   isolation. A second runtime-only create-once claim now converts the still-live memory grant into
+   one memory-only exact-target open permit. It binds the first read-only gateway step/transport,
+   entry mode, product, unlocked state, slot, Pack and runtime identity; one concurrent caller wins;
+   no raw token or serial is persisted; and its audit record explicitly says target unopened, first
+   step unstarted and phone unchanged. No production runtime trust/key/process is enrolled. Fresh
+   runtime target re-identification plus atomic permit claim-and-open, separately consented
+   recovery/wipe paths, governed execution, physical validation and built-in schema-three Pack
+   authority remain unfinished.
 
    Exact post-candidate source commit `898bd04d87fba52690a330d09eeb61c4275c3649` is fully green in
    GitHub Actions run `33797435368`: both Linux versions passed all 1,489 tests and complete Ruff

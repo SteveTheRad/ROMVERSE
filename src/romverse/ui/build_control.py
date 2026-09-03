@@ -857,10 +857,12 @@ class GuardianManifestReviewDialog(QDialog):
                 "check. The safety path also requires a signed 45-second runtime-session handshake "
                 "and an exclusive consent-capability reservation. A runtime-signed, atomic "
                 "one-use consumption can then issue only a memory-held exact forward grant; it "
-                "cannot add recovery, wipe, relock, or wider command authority. ROMVERSE has no "
-                "enrolled production writing runtime or device executor, so it correctly offers "
-                "no consent button and no device action. Recovery and any possible wipe would "
-                "still require separate consent."
+                "cannot add recovery, wipe, relock, or wider command authority. A second "
+                "runtime-signed create-once claim converts that grant into one memory-held "
+                "exact-target open permit, beginning only with the reviewed read-only "
+                "precondition. ROMVERSE has no enrolled production writing runtime, target "
+                "opener, or device executor, so it correctly offers no consent button and no "
+                "device action. Recovery and any possible wipe would still require separate consent."
             )
         else:
             final_consent_copy = (
@@ -972,8 +974,9 @@ class GuardianManifestReviewDialog(QDialog):
             "Final consent remains locked because no production runtime public key and adapter "
             "are enrolled. A signed runtime-session handshake and one exclusive capability "
             "reservation would also be required, followed by runtime-signed atomic one-use "
-            "consumption into a memory-only exact forward grant. This target receipt is not "
-            "consent and cannot execute anything."
+            "consumption into a memory-only exact forward grant and a create-once execution "
+            "claim for one memory-only target-open permit. This target receipt is not consent "
+            "and cannot execute anything."
         )
         self._repolish_live_target_status()
         if self.live_target_button is not None:

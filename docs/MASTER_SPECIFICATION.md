@@ -571,10 +571,17 @@ replay, changed context, the wrong private key, re-signed unsafe claims, duplica
 tampering fail closed. Loading the record supplies audit proof only and cannot reconstruct its lost
 memory token. This is a source/package protocol boundary backed by a private local workspace record,
 not protection against an administrator deleting local state and not evidence of process isolation.
-No production runtime key/process is enrolled and the Desktop never imports or exposes this signer.
-A separately packaged and enrolled production runtime, atomic claim-and-device-open inside that
-runtime, governed forward executor, distinct recovery/wipe consent, signed result production and
-physical-device validation remain required.
+A second runtime-only service revalidates that live memory grant, requires the same matching private
+key, and create-once signs an exact execution claim before returning a new memory-only target-open
+permit. The claim binds the consumption, grant-token digest, first gateway-step digest and transport,
+entry mode, product, unlocked state, pre-write slot, Pack, adapter and expiry. One concurrent caller
+wins; neither token nor the raw target serial is persisted; and the first bound operation must be a
+read-only precondition. Loading the claim is audit-only and cannot recreate its permit. It explicitly
+records target unopened, first forward step unstarted and phone unchanged. No production runtime
+key/process is enrolled and the Desktop never imports or exposes either signer. A separately
+packaged and enrolled production runtime, fresh target re-identification plus atomic permit
+claim-and-device-open inside that runtime, governed forward executor, distinct recovery/wipe consent,
+signed result production and physical-device validation remain required.
 
 ROM Studio's managed Guardian review worker carries this inert chain through the actual Desktop
 journey. It seals the command-free manifest, independently rehashes the same artifacts for the inert

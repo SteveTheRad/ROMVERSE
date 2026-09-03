@@ -164,9 +164,12 @@ in this report.
   authorization boundary requires the matching externally supplied runtime private key, exclusively
   signs one exact consumption record, and returns only a memory-held exact-forward grant. One
   concurrent caller wins, both raw tokens remain unpersisted, and replay, expiry, changed evidence,
-  unsafe claims, duplicate fields, links and tampering fail closed. This is protocol/source evidence,
-  not an enrolled or separately packaged production runtime: no device runner, atomic executor claim,
-  Android command, recovery/wipe consent, result signer or physical validation has been added.
+  unsafe claims, duplicate fields, links and tampering fail closed. A second create-once runtime
+  claim converts that still-live grant into one memory-only exact-target open permit bound to the
+  first read-only step, entry mode, product, unlocked state and slot; it also has one concurrent
+  winner and persists no raw token or serial. This is protocol/source evidence, not an enrolled or
+  separately packaged production runtime: no target opener, device runner, Android command,
+  recovery/wipe consent, result signer or physical validation has been added.
 - A persistent user-supplied firmware responsibility notice and explicit import acknowledgement,
   without attempting to exclude rights or obligations that cannot legally be excluded.
 - Signed Desktop update checking and explicit, cancellable staging with measured progress, strict

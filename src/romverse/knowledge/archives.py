@@ -3245,12 +3245,14 @@ KNOWN_FIXES = (
         "ROMVERSE binds it to one exact live target, reviewed build, forward plan, firmware "
         "artifact, Device Pack, runtime session and enrolled runtime identity. A second caller, "
         "a late caller, or a caller whose evidence changed must stop before device access opens. "
-        "If the runtime stops after recording consumption, the memory-only execution token is "
-        "unrecoverable by design and the old approval must not be replayed.",
+        "If the runtime stops after recording consumption or the later execution claim, the "
+        "corresponding memory-only token is unrecoverable by design and the old approval or "
+        "forward grant must not be replayed.",
         checks=(
             "Confirm the message says already consumed, expired, or no longer current rather than treating it as a USB or firmware failure.",
             "Check whether the two-minute live-target receipt, 45-second runtime session, exact plan, firmware digest, Pack, device identity or data action changed.",
             "Confirm the signed consumption record says device access unopened and phone unchanged when no executor started.",
+            "If an execution-claim record exists, confirm it binds the exact first read-only gateway step and says the target was not opened.",
             "Do not delete or edit the record to force a retry; local file removal is not proof that an approval became safe to reuse.",
         ),
         fix_steps=(
@@ -3261,6 +3263,7 @@ KNOWN_FIXES = (
         ),
         verification=(
             "Exactly one concurrent consumer can create the signed one-use record and receive the memory-only exact-forward token.",
+            "Exactly one concurrent executor claimant can convert that grant into a memory-only exact-target open permit.",
             "The saved record contains neither raw consent token, raw execution token nor phone serial, and tampering, duplicate fields or linked files fail closed.",
             "Expiry or a lost memory token produces a fresh-review requirement and starts no automatic retry, recovery, wipe, relock or phone command.",
         ),
@@ -3273,8 +3276,8 @@ KNOWN_FIXES = (
             "fresh live target check required",
         ),
         route="guardian_core",
-        evidence="ROMVERSE runtime-authorization schema one signs the exact one-use consumption, creates its local record exclusively, keeps both raw capability tokens out of storage and issues only an in-memory forward grant. It deliberately provides no device runner or recovery, wipe or relock authority.",
-        automation="SIGNED ONE-USE LOCAL CONSUMPTION AND MEMORY-ONLY FORWARD GRANT • NO DEVICE RUNNER, RETRY, RECOVERY, WIPE, RELOCK, OR PHONE ACTION",
+        evidence="ROMVERSE runtime-authorization and execution-claim schema-one records bind the exact consent, forward grant, first read-only gateway step and target scope. Both records are signed and create-once; all raw tokens and the phone serial remain out of storage. Neither service provides a target opener, device runner, recovery, wipe or relock authority.",
+        automation="SIGNED ONE-USE CONSUMPTION, EXECUTION CLAIM, AND MEMORY-ONLY PERMITS • NO TARGET OPEN, DEVICE RUNNER, RETRY, RECOVERY, WIPE, RELOCK, OR PHONE ACTION",
         source=ROMVERSE_SOURCE,
     ),
 )

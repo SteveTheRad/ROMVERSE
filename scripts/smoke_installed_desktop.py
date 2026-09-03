@@ -14,6 +14,7 @@ from PySide6.QtWidgets import QApplication
 from romverse import app as romverse_app
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.guardian.runtime_authorization import GuardianRuntimeAuthorizationService
+from romverse.guardian.runtime_execution_claim import GuardianRuntimeExecutionClaimService
 from romverse.knowledge.archives import CANONICAL_ROUTES, KNOWN_FIXES
 from romverse.legal import (
     PRIVACY_STATUS,
@@ -114,6 +115,17 @@ def main() -> int:
         "run",
     }:
         raise RuntimeError("Installed Guardian authorization unexpectedly exposes device execution")
+    if set(dir(GuardianRuntimeExecutionClaimService)) & {
+        "execute",
+        "flash",
+        "reboot",
+        "erase",
+        "unlock",
+        "relock",
+        "run",
+        "open",
+    }:
+        raise RuntimeError("Installed Guardian execution claim unexpectedly opens a device")
 
     app = QApplication.instance() or QApplication([])
     app.setStyle("Fusion")

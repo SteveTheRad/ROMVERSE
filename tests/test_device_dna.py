@@ -205,6 +205,55 @@ def test_device_dna_identifies_newer_same_device_firmware_as_candidate_only(tmp_
     assert profile.capability("guardian_flash").state is CapabilityState.UNSUPPORTED
 
 
+def test_device_dna_uses_standard_ota_metadata_for_an_unknown_android_brand(tmp_path):
+    source = tmp_path / "official-update.zip"
+    with zipfile.ZipFile(source, "w") as archive:
+        archive.writestr("payload.bin", b"CrAU test payload")
+        archive.writestr(
+            "META-INF/com/android/metadata",
+            b"\n".join(
+                (
+                    b"ota-type=AB",
+                    b"pre-device=rad",
+                    b"pre-build-incremental=100",
+                    b"post-build-incremental=200",
+                    b"post-sdk-level=35",
+                    b"post-security-patch-level=2026-09-01",
+                    b"post-timestamp=200",
+                )
+            ),
+        )
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.import_original(store.create("Generic OTA").project_id, source)
+    report = RomInspectionService(store).inspect_project(project.project_id)
+    device = AndroidDevice(
+        "PRIVATE-GENERIC",
+        DeviceState.DEVICE,
+        manufacturer="RadForge",
+        model="Universal One",
+        product="rad_global",
+        codename="rad",
+        vendor_device="rad",
+        api_level="35",
+        build_id="AP4A",
+        build_incremental="100",
+        build_timestamp_utc=100,
+    )
+
+    profile = DeviceDnaService(store, DevicePackRegistry(())).refresh(
+        project.project_id, device, report
+    )
+
+    assert profile.fact("identity.product").value == "rad_global"
+    assert profile.fact("identity.vendor_device").value == "rad"
+    assert profile.fact("software.live_incremental").value == "100"
+    assert profile.fact("software.build").value == "200"
+    assert profile.fact("firmware.upgrade_relationship").value == ("UPGRADE CANDIDATE • AP4A → 200")
+    assert any(item.evidence_id == "source.ota_metadata" for item in profile.evidence)
+    assert profile.capability("firmware_detection").state is CapabilityState.SUPPORTED
+    assert profile.capability("guardian_flash").state is CapabilityState.UNSUPPORTED
+
+
 def test_device_dna_consumes_current_project_local_source_blueprint_without_flash_authority(
     tmp_path,
     monkeypatch,

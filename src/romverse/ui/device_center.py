@@ -220,6 +220,7 @@ class InfoCard(QFrame):
 
 class DeviceCenter(QWidget):
     refresh_requested = Signal()
+    device_selected = Signal(str)
     action_requested = Signal(str)
     runtime_tools_requested = Signal()
     rom_studio_requested = Signal(str, str, str)
@@ -477,7 +478,7 @@ class DeviceCenter(QWidget):
         self.body.setWidget(self.body_content)
         page.addWidget(self.body, 1)
         self.devices: list[AndroidDevice] = []
-        self._selected_index = 0
+        self._selected_index = -1
         self.show_empty("Scanning for devices…")
 
     def set_experience_mode(self, mode: ExperienceMode) -> None:
@@ -634,20 +635,29 @@ class DeviceCenter(QWidget):
             self.status_badge.style().unpolish(self.status_badge)
             self.status_badge.style().polish(self.status_badge)
 
-    def set_devices(self, devices: list[AndroidDevice]) -> None:
+    def set_devices(self, devices: list[AndroidDevice], selected_serial: str = "") -> None:
         self.devices = devices
-        self._selected_index = 0
+        selected = next(
+            (index for index, device in enumerate(devices) if device.serial == selected_serial),
+            0 if len(devices) == 1 else -1,
+        )
+        self._selected_index = selected
         self.last_scan_label.setText(
             f"Last scan: {datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')}"
         )
         self.selector.blockSignals(True)
         self.selector.clear()
+        if len(devices) > 1:
+            self.selector.addItem("Choose one connected device…", "")
         for device in devices:
-            self.selector.addItem(f"{device.display_name}  •  {device.masked_serial()}")
+            self.selector.addItem(
+                f"{device.display_name}  •  {device.masked_serial()}", device.serial
+            )
+        self.selector.setCurrentIndex(selected + 1 if len(devices) > 1 and selected >= 0 else 0)
         self.selector.setVisible(len(devices) > 1)
         self.selector.blockSignals(False)
-        if devices:
-            device = devices[0]
+        if selected >= 0:
+            device = devices[selected]
             self._record_device_scan(device)
             if device.state is DeviceState.DEVICE:
                 self.next_title.setText("Run a safe health review")
@@ -696,7 +706,24 @@ class DeviceCenter(QWidget):
             self.temperature_chart.set_values(self.temperature_history)
             self.connection_chart.set_values(self.connection_history)
             self.storage_chart.set_values(self.storage_history)
-            self.render_device(devices[0])
+            self.render_device(device)
+        elif devices:
+            self.next_title.setText("Choose the device you want to use")
+            self.next_note.setText(
+                "More than one Android transport is connected. Select one above before ROMVERSE binds diagnostics, firmware, backup, or terminal actions."
+            )
+            self.next_button.setText("Choose a device above")
+            self.next_button.setToolTip(
+                "Select one exact connected device from the device chooser."
+            )
+            self.device_name.setText(f"{len(devices)} Android devices detected")
+            self.device_note.setText(
+                "No device is active yet. This prevents work intended for one phone from being applied to another."
+            )
+            self._set_badge("SELECT ONE DEVICE", "Warning")
+            self.show_empty(
+                "Choose one connected device above. ROMVERSE has not bound any device-changing workflow to a phone."
+            )
         else:
             self.next_title.setText("Connect your Android device")
             self.next_note.setText(
@@ -764,7 +791,14 @@ class DeviceCenter(QWidget):
         context = self._studio_device_context
         if context is None:
             return
-        authorized = tuple(device for device in self.devices if device.state is DeviceState.DEVICE)
+        selected = (
+            self.devices[self._selected_index]
+            if 0 <= self._selected_index < len(self.devices)
+            else None
+        )
+        authorized = (
+            (selected,) if selected is not None and selected.state is DeviceState.DEVICE else ()
+        )
         expected_model = context.expected_model.casefold().strip()
         expected_codename = context.expected_codename.casefold().strip()
         matches = tuple(
@@ -861,11 +895,18 @@ class DeviceCenter(QWidget):
             )
 
     def _perform_next_action(self) -> None:
-        if self.devices and self.devices[0].state is DeviceState.DEVICE:
+        device = (
+            self.devices[self._selected_index]
+            if 0 <= self._selected_index < len(self.devices)
+            else None
+        )
+        if device is not None and device.state is DeviceState.DEVICE:
             self.action_requested.emit("Optimize")
             return
-        if self.devices and self.devices[0].is_fastboot:
+        if device is not None and device.is_fastboot:
             self.action_requested.emit("Device DNA")
+            return
+        if self.devices:
             return
         self.refresh_requested.emit()
 
@@ -1548,7 +1589,7 @@ class DeviceCenter(QWidget):
         return f"uptime {hours}h {minutes}m"
 
     def _export_snapshot(self) -> None:
-        if not self.devices:
+        if not (0 <= self._selected_index < len(self.devices)):
             return
         device = self.devices[self._selected_index]
         destination, _ = QFileDialog.getSaveFileName(
@@ -1840,9 +1881,15 @@ class DeviceCenter(QWidget):
         return heading
 
     def _select(self, index: int) -> None:
-        if 0 <= index < len(self.devices):
-            self._selected_index = index
-            self.render_device(self.devices[index])
+        device_index = index - 1 if len(self.devices) > 1 else index
+        if 0 <= device_index < len(self.devices):
+            self._selected_index = device_index
+            device = self.devices[device_index]
+            self.render_device(device)
+            self.device_selected.emit(device.serial)
+        elif self.devices:
+            self._selected_index = -1
+            self.device_selected.emit("")
 
     def _set_badge(self, text: str, style: str) -> None:
         self.status_badge.setText(text)

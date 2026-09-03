@@ -174,6 +174,14 @@ has current evidence.
    an older version, wrong codename, wrong region, unknown region, and changed branch; confirm each
    conservative label. Confirm the user-supplied firmware responsibility notice remains visible and
    is included in the import acknowledgement.
+   Import standards-conforming Android OTA ZIP fixtures for an otherwise unknown manufacturer and
+   confirm the embedded target/update path and post timestamp are checked against the live device
+   passport. Repeat with a wrong target, wrong pre-build fingerprint, wrong incremental, older SDK,
+   older timestamp, missing live timestamp, duplicate metadata key, contradictory pre/post target,
+   oversized metadata, and malformed metadata. Confirm none grants flash authority.
+   Connect two simulated or physical transports and confirm every action page remains unbound until
+   Command Deck selects one. Confirm all pages bind the same chosen device, the choice survives a
+   reordered rescan, disappears when that transport is removed, and no raw serial is persisted.
    For Compatibility Matrix, alter and correctly re-digest each decision/status/boolean; add
    top-level or nested fields; coerce booleans; oversize or link the record; remove/reorder a
    decision; and refresh Device DNA after saving a Matrix. Confirm every load re-derives the exact

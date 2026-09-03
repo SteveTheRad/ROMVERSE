@@ -1,3 +1,4 @@
+from romverse.rom.ota_metadata import parse_android_ota_metadata
 from romverse.rom.upgrade import FirmwareRelationship, assess_firmware_upgrade
 
 
@@ -58,3 +59,70 @@ def test_unknown_or_changed_branch_stays_unconfirmed() -> None:
     assert unknown.relationship is FirmwareRelationship.UNCONFIRMED
     assert unknown_region.relationship is FirmwareRelationship.UNCONFIRMED
     assert branch_change.relationship is FirmwareRelationship.UNCONFIRMED
+
+
+def _android_ota(*, target: str = "komodo", timestamp: int = 200, pre_incremental="100"):
+    return parse_android_ota_metadata(
+        (
+            f"pre-device={target}\n"
+            f"pre-build-incremental={pre_incremental}\n"
+            "post-build-incremental=200\n"
+            "post-sdk-level=36\n"
+            f"post-timestamp={timestamp}\n"
+        ).encode()
+    )
+
+
+def test_generic_android_ota_metadata_identifies_an_upgrade_without_flash_authority() -> None:
+    result = assess_firmware_upgrade(
+        current_build="BP2A.260801.001",
+        candidate_build="",
+        device_codename="komodo",
+        candidate_codename="",
+        current_incremental="100",
+        current_sdk_level="36",
+        current_build_timestamp=100,
+        ota_metadata=_android_ota(),
+    )
+
+    assert result.relationship is FirmwareRelationship.UPGRADE
+    assert result.summary == "UPGRADE CANDIDATE • BP2A.260801.001 → 200"
+    assert not result.install_authority
+    assert not result.phone_changed
+
+
+def test_generic_android_ota_rejects_wrong_device_or_update_path() -> None:
+    wrong_device = assess_firmware_upgrade(
+        current_build="100",
+        candidate_build="200",
+        device_codename="husky",
+        candidate_codename="",
+        current_incremental="100",
+        current_build_timestamp=100,
+        ota_metadata=_android_ota(),
+    )
+    wrong_path = assess_firmware_upgrade(
+        current_build="100",
+        candidate_build="200",
+        device_codename="komodo",
+        candidate_codename="",
+        current_incremental="99",
+        current_build_timestamp=100,
+        ota_metadata=_android_ota(),
+    )
+
+    assert wrong_device.relationship is FirmwareRelationship.INCOMPATIBLE
+    assert wrong_path.relationship is FirmwareRelationship.INCOMPATIBLE
+
+
+def test_generic_android_ota_stays_unconfirmed_without_comparable_timestamp() -> None:
+    result = assess_firmware_upgrade(
+        current_build="100",
+        candidate_build="200",
+        device_codename="komodo",
+        candidate_codename="",
+        current_incremental="100",
+        ota_metadata=_android_ota(),
+    )
+
+    assert result.relationship is FirmwareRelationship.UNCONFIRMED

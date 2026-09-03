@@ -326,11 +326,23 @@ class DeviceEngine:
             model=model,
             marketing_name=marketing_name,
             product=props.get("ro.product.name", "") or discovered.get("product", ""),
-            codename=props.get("ro.product.device", "") or discovered.get("device", ""),
+            codename=(
+                props.get("ro.product.device", "")
+                or props.get("ro.product.vendor.device", "")
+                or discovered.get("device", "")
+            ),
+            vendor_device=props.get("ro.product.vendor.device", ""),
+            hardware=props.get("ro.hardware", ""),
+            hardware_sku=(
+                props.get("ro.boot.hardware.sku", "")
+                or props.get("ro.boot.product.hardware.sku", "")
+            ),
             android_version=props.get("ro.build.version.release", ""),
             api_level=props.get("ro.build.version.sdk", ""),
             build_id=props.get("ro.build.id", ""),
             build_fingerprint=props.get("ro.build.fingerprint", ""),
+            build_incremental=props.get("ro.build.version.incremental", ""),
+            build_timestamp_utc=_positive_int(props.get("ro.build.date.utc", "")),
             rom_display=rom_display,
             security_patch=props.get("ro.build.version.security_patch", ""),
             abi=props.get("ro.product.cpu.abi", ""),
@@ -420,6 +432,14 @@ class DeviceEngine:
 
 class _DeviceTransportLost(RuntimeError):
     pass
+
+
+def _positive_int(value: str) -> int | None:
+    try:
+        parsed = int(value.strip())
+    except (AttributeError, ValueError):
+        return None
+    return parsed if parsed > 0 else None
 
 
 def _property_bool(value: str) -> bool | None:

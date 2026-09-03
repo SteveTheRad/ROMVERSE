@@ -2995,6 +2995,8 @@ class MainWindow(QMainWindow):
         self.device_catalog_worker: DeviceCatalogWorker | None = None
         self._catalog_auto_attempted = False
         self._device_runtime_generation = 0
+        self._observed_devices: list[AndroidDevice] = []
+        self._selected_device_serial = ""
         self._reconnect_retry_ms = 1_500
         self._scan_failure_count = 0
         self._workspace_shell_state = WorkspaceShellState()
@@ -3575,6 +3577,7 @@ class MainWindow(QMainWindow):
         self.focus_exit_shortcut.setEnabled(False)
 
         self.device_center.refresh_requested.connect(self.scan)
+        self.device_center.device_selected.connect(self._select_observed_device)
         self.device_center.runtime_tools_requested.connect(self._resolve_device_runtime)
         self.device_center.rom_studio_requested.connect(self._return_command_deck_rom_studio)
         self.device_center.action_requested.connect(self._handle_dashboard_action)
@@ -3800,19 +3803,19 @@ class MainWindow(QMainWindow):
         self.active_worker = None
         self._scan_failure_count = 0
         devices = [self.device_identity.resolve_online(device) for device in devices]
+        self._observed_devices = list(devices)
+        observed_serials = {device.serial for device in devices}
+        if len(devices) == 1:
+            self._selected_device_serial = devices[0].serial
+        elif self._selected_device_serial not in observed_serials:
+            self._selected_device_serial = ""
+        active_devices = [
+            device for device in devices if device.serial == self._selected_device_serial
+        ]
         self.device_center.set_scanning(False)
-        self.device_center.set_devices(devices)
-        self.companion_center.set_device_snapshot(devices)
-        self._update_companion_ascension_status()
+        self.device_center.set_devices(devices, self._selected_device_serial)
         self.diagnostics_center.set_scanning(False)
-        self.diagnostics_center.set_devices(devices)
-        self.guardian_center.request_refresh()
-        self.repair_center.set_devices(devices)
-        self.device_packs_center.set_devices(devices)
-        self.rom_studio.set_devices(devices)
-        self.apk_installer.set_devices(devices)
-        self.backup_center.set_devices(devices)
-        self.terminal_center.set_devices(devices)
+        self._set_active_device_context(active_devices)
         if any(device.brand.strip() and device.codename.strip() for device in devices):
             self._maybe_refresh_device_catalog()
         stabilizing = any(
@@ -3828,8 +3831,50 @@ class MainWindow(QMainWindow):
             self._reconnect_retry_ms = 1_500
             self._reconnect_timer.stop()
             self.timer.setInterval(self.scan_interval_seconds * 1000)
-        if devices:
-            device = devices[0]
+        self._render_active_device(active_devices[0] if active_devices else None, len(devices))
+        self.rom_studio.device_scan_finished.emit(
+            True,
+            "Fresh device scan completed."
+            if active_devices
+            else "Fresh device scan completed; choose one of the connected Android devices."
+            if devices
+            else "Fresh device scan completed; no Android device is visible.",
+        )
+        if previous_failures and devices:
+            self.notification_center.notify(
+                "device.connection.restored",
+                "Device connection restored",
+                "ROMVERSE can read the connected device again and refreshed its current evidence.",
+                NotificationKind.SUCCESS,
+            )
+
+    @Slot(str)
+    def _select_observed_device(self, serial: str) -> None:
+        selected = next(
+            (device for device in self._observed_devices if device.serial == serial),
+            None,
+        )
+        self._selected_device_serial = selected.serial if selected is not None else ""
+        active_devices = [selected] if selected is not None else []
+        self._set_active_device_context(active_devices)
+        self._render_active_device(selected, len(self._observed_devices))
+
+    def _set_active_device_context(self, devices: list[AndroidDevice]) -> None:
+        """Bind all action surfaces to the same explicitly selected device."""
+
+        self.companion_center.set_device_snapshot(devices)
+        self._update_companion_ascension_status()
+        self.diagnostics_center.set_devices(devices)
+        self.guardian_center.request_refresh()
+        self.repair_center.set_devices(devices)
+        self.device_packs_center.set_devices(devices)
+        self.rom_studio.set_devices(devices)
+        self.apk_installer.set_devices(devices)
+        self.backup_center.set_devices(devices)
+        self.terminal_center.set_devices(devices)
+
+    def _render_active_device(self, device: AndroidDevice | None, observed_count: int) -> None:
+        if device is not None:
             connected = device.state is DeviceState.DEVICE
             fastboot_connected = device.is_fastboot
             self.connection_state.setText(
@@ -3874,6 +3919,18 @@ class MainWindow(QMainWindow):
                 if fastboot_connected
                 else device.connection_note
             )
+        elif observed_count > 1:
+            self.connection_state.setText("⌁  Select a device")
+            self.connection_state.setObjectName("Warning")
+            self.connection_device.setText(f"Devices detected: {observed_count}")
+            self.connection_android.setText("Android —")
+            self._device_uptime_seconds = None
+            self._device_uptime_seen_at = time.monotonic()
+            self.sidebar_device_state.setText("●  Device selection required")
+            self.sidebar_device_state.setObjectName("Warning")
+            self.sidebar_device_image.setVisible(False)
+            self.sidebar_device_name.setText(f"{observed_count} Android devices")
+            self.sidebar_device_detail.setText("Choose one in Command Deck")
         else:
             self.connection_state.setText("⌁  No device connected")
             self.connection_state.setObjectName("Warning")
@@ -3894,19 +3951,6 @@ class MainWindow(QMainWindow):
         ):
             widget.style().unpolish(widget)
             widget.style().polish(widget)
-        self.rom_studio.device_scan_finished.emit(
-            True,
-            "Fresh device scan completed."
-            if devices
-            else "Fresh device scan completed; no Android device is visible.",
-        )
-        if previous_failures and devices:
-            self.notification_center.notify(
-                "device.connection.restored",
-                "Device connection restored",
-                "ROMVERSE can read the connected device again and refreshed its current evidence.",
-                NotificationKind.SUCCESS,
-            )
 
     def _maybe_refresh_device_catalog(self) -> None:
         if (

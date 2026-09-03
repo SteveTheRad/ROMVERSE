@@ -25,9 +25,14 @@ class FakeAdbRunner:
                     "[ro.product.marketname]: [ROMVERSE One]",
                     "[ro.product.name]: [rad_global]",
                     "[ro.product.device]: [rad]",
+                    "[ro.product.vendor.device]: [rad_vendor]",
+                    "[ro.hardware]: [rad_board]",
+                    "[ro.boot.hardware.sku]: [pro]",
                     "[ro.build.version.release]: [15]",
                     "[ro.build.version.sdk]: [35]",
                     "[ro.build.id]: [AP4A]",
+                    "[ro.build.version.incremental]: [123456]",
+                    "[ro.build.date.utc]: [1788220800]",
                     "[ro.build.version.security_patch]: [2026-08-01]",
                     "[ro.product.cpu.abi]: [arm64-v8a]",
                     "[ro.boot.flash.locked]: [1]",
@@ -88,6 +93,11 @@ def test_device_engine_builds_real_snapshot_and_preserves_unauthorized():
     assert phone.marketing_name == "ROMVERSE One"
     assert phone.display_name == "RadForge ROMVERSE One"
     assert phone.android_version == "15"
+    assert phone.vendor_device == "rad_vendor"
+    assert phone.hardware == "rad_board"
+    assert phone.hardware_sku == "pro"
+    assert phone.build_incremental == "123456"
+    assert phone.build_timestamp_utc == 1788220800
     assert phone.battery_percent == 77
     assert phone.memory.percent_used == 25
     assert phone.bootloader_locked is True

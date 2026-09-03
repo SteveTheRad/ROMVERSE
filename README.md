@@ -109,10 +109,13 @@ result as identity-only evidence and connects it directly to Device Atlas, where
 product/codename can select the integrity-checked Device Pack and build/tool roadmap. Android health
 telemetry stays unknown in this mode, serials remain masked, and reboot, flash, erase, unlock, wipe,
 and relock commands are not on the adapter or Guardian allowlist.
-Device Engine probes every visible transport. Project-bound Device DNA uses live phone evidence only
-when exactly one authorized Android phone is connected; with multiple authorized phones ROM Studio
-withholds the binding instead of guessing. An explicit selection model shared across every
-device-facing page is still required before simultaneous multi-device targeting is supported.
+Device Engine probes every visible transport. One detected phone is selected automatically. When
+multiple ADB/Fastboot transports are present, Command Deck requires an explicit device choice and
+binds that same in-memory selection across diagnostics, repair, Device Atlas, ROM Studio, APK,
+backup, terminal, and Companion context. Until a choice is made those action surfaces receive no
+active device, so ROMVERSE cannot silently target whichever transport happened to be listed first.
+The choice survives rescans only while that exact transport remains present and is never persisted
+as a raw serial.
 
 Verified outcomes now use schema two and require more than a digest-shaped string. The candidate
 must belong to the exact persisted error fingerprint, and the built-in action must supply a
@@ -282,6 +285,15 @@ the user-supplied firmware responsibility and risk notice visible and requires a
 before import. Users must obtain the correct package from a trusted official source for their exact
 model, region, and current update path. The notice does not purport to exclude any right or
 obligation that cannot legally be excluded.
+For vendor-neutral Android OTA ZIPs, Device DNA also reads the standard bounded
+`META-INF/com/android/metadata` record without extracting the archive. It compares `pre-device`,
+`pre-build`, `pre-build-incremental`, `post-build`, `post-build-incremental`, `post-sdk-level`, and
+`post-timestamp` with the live product/device aliases, fingerprint, incremental build, SDK, and
+build timestamp. Contradictory targets, duplicate keys, malformed values, wrong-device packages,
+and wrong incremental paths fail closed. An Upgrade Candidate requires matching identity/update
+preconditions and a newer package timestamp; missing comparable evidence remains Unconfirmed.
+This covers standards-conforming Android OTAs without pretending that OEM-specific Download Mode,
+EDL, preloader, unlock, signing, recovery, or flashing protocols are interchangeable.
 The Matrix uses private bounded strict schema-two persistence and is re-derived from its exact
 current Device DNA binding whenever loaded. Extra/coerced/linked records fail closed, and changing
 even a correctly re-digested decision cannot override the deterministic result. Schema-one Matrix

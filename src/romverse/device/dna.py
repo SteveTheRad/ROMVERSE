@@ -24,6 +24,11 @@ from romverse.rom.inspection import (
     RomInspectionService,
 )
 from romverse.rom.models import ProjectError
+from romverse.rom.ota_metadata import (
+    AndroidOtaMetadata,
+    OtaMetadataError,
+    read_android_ota_metadata,
+)
 from romverse.rom.projects import RomProjectStore
 from romverse.rom.source_identity import (
     FirmwareSourceIdentity,
@@ -222,6 +227,12 @@ class DeviceDnaService:
             project_id,
             project.original.sha256,
         )
+        ota_metadata: AndroidOtaMetadata | None = None
+        ota_error = ""
+        try:
+            ota_metadata = read_android_ota_metadata(self.store.original_path(project_id))
+        except OtaMetadataError as exc:
+            ota_error = str(exc)
         profile = self._compile(
             project_id,
             project.original.sha256,
@@ -231,6 +242,8 @@ class DeviceDnaService:
             pack,
             exact_pack,
             blueprint,
+            ota_metadata,
+            ota_error,
         )
         return self.profiles.save(profile)
 
@@ -244,6 +257,8 @@ class DeviceDnaService:
         pack: DevicePack | None,
         exact_pack: bool,
         blueprint: SourceBlueprint | None,
+        ota_metadata: AndroidOtaMetadata | None,
+        ota_error: str,
     ) -> DeviceDnaProfile:
         evidence = _evidence(
             self.store,
@@ -255,10 +270,21 @@ class DeviceDnaService:
             pack,
             exact_pack,
             blueprint,
+            ota_metadata,
+            ota_error,
         )
-        facts = _facts(source, device, inspection, pack, exact_pack, blueprint)
+        facts = _facts(source, device, inspection, pack, exact_pack, blueprint, ota_metadata)
         partitions = _partitions(pack, exact_pack, blueprint)
-        warnings = _warnings(source, device, inspection, pack, exact_pack, blueprint)
+        warnings = _warnings(
+            source,
+            device,
+            inspection,
+            pack,
+            exact_pack,
+            blueprint,
+            ota_metadata,
+            ota_error,
+        )
         capabilities = _capability_map(
             source,
             device,
@@ -266,6 +292,7 @@ class DeviceDnaService:
             pack,
             exact_pack,
             blueprint,
+            ota_metadata,
             warnings,
         )
         payload: dict[str, object] = {
@@ -333,6 +360,8 @@ def _evidence(
     pack: DevicePack | None,
     exact_pack: bool,
     blueprint: SourceBlueprint | None,
+    ota_metadata: AndroidOtaMetadata | None,
+    ota_error: str,
 ) -> tuple[DeviceDnaEvidence, ...]:
     results = [
         DeviceDnaEvidence(
@@ -350,6 +379,28 @@ def _evidence(
             _source_confidence(source),
         ),
     ]
+    if ota_metadata is not None:
+        results.append(
+            DeviceDnaEvidence(
+                "source.ota_metadata",
+                "android-ota-metadata",
+                ota_metadata.metadata_digest,
+                "Standard META-INF/com/android/metadata was read without extracting the "
+                f"archive; targets={', '.join(ota_metadata.target_devices) or 'unreported'}; "
+                f"OTA type={ota_metadata.ota_type or 'unreported'}.",
+                EvidenceConfidence.VERIFIED,
+            )
+        )
+    elif ota_error:
+        results.append(
+            DeviceDnaEvidence(
+                "source.ota_metadata",
+                "android-ota-metadata",
+                "rejected",
+                ota_error,
+                EvidenceConfidence.UNCONFIRMED,
+            )
+        )
     if inspection is not None:
         results.append(
             DeviceDnaEvidence(
@@ -424,6 +475,7 @@ def _facts(
     pack: DevicePack | None,
     exact_pack: bool,
     blueprint: SourceBlueprint | None,
+    ota_metadata: AndroidOtaMetadata | None,
 ) -> tuple[DeviceDnaFact, ...]:
     live_confidence = (
         EvidenceConfidence.HIGH if device is not None else EvidenceConfidence.UNCONFIRMED
@@ -453,6 +505,15 @@ def _facts(
     source_build, build_confidence, build_evidence = project_source_fact(
         "build_id", source.build_id
     )
+    if ota_metadata is not None and ota_metadata.target_devices:
+        source_codename = " | ".join(ota_metadata.target_devices)
+        codename_confidence = EvidenceConfidence.VERIFIED
+        codename_evidence = ("source.ota_metadata",)
+    ota_build = _ota_candidate_build(ota_metadata)
+    if ota_build and not source_build:
+        source_build = ota_build
+        build_confidence = EvidenceConfidence.VERIFIED
+        build_evidence = ("source.ota_metadata",)
     build_region = xiaomi_build_region(source_build)
     if build_region:
         source_region, region_confidence, region_evidence = (
@@ -464,12 +525,7 @@ def _facts(
         source_region, region_confidence, region_evidence = project_source_fact(
             "region", source.region
         )
-    upgrade = assess_firmware_upgrade(
-        current_build=(device.rom_display or device.build_id) if device is not None else "",
-        candidate_build=source_build,
-        device_codename=device.codename if device is not None else "",
-        candidate_codename=source_codename,
-    )
+    upgrade = _assess_upgrade(device, source_build, source_codename, ota_metadata)
     upgrade_evidence = tuple(dict.fromkeys((*live_evidence, *codename_evidence, *build_evidence)))
     structure = _effective_structure(inspection, blueprint)
     structure_confidence = _effective_structure_confidence(inspection, blueprint)
@@ -527,6 +583,27 @@ def _facts(
             live_evidence if device and device.codename else codename_evidence,
         ),
         _fact(
+            "identity.product",
+            "Product",
+            device.product if device else "",
+            live_confidence,
+            live_evidence,
+        ),
+        _fact(
+            "identity.vendor_device",
+            "Vendor device",
+            device.vendor_device if device else "",
+            live_confidence,
+            live_evidence,
+        ),
+        _fact(
+            "identity.hardware_sku",
+            "Hardware SKU",
+            device.hardware_sku if device else "",
+            live_confidence,
+            live_evidence,
+        ),
+        _fact(
             "soc.platform",
             "SoC / platform",
             device.soc_platform if device else "",
@@ -553,6 +630,40 @@ def _facts(
             source_build or (device.build_id if device else ""),
             build_confidence if source_build else live_confidence,
             build_evidence if source_build else live_evidence,
+        ),
+        _fact(
+            "software.live_incremental",
+            "Live incremental build",
+            device.build_incremental if device else "",
+            live_confidence,
+            live_evidence,
+        ),
+        _fact(
+            "software.live_build_timestamp",
+            "Live build timestamp",
+            str(device.build_timestamp_utc) if device and device.build_timestamp_utc else "",
+            live_confidence,
+            live_evidence,
+        ),
+        _fact(
+            "firmware.ota_post_incremental",
+            "OTA post-build incremental",
+            ota_metadata.post_build_incremental if ota_metadata else "",
+            EvidenceConfidence.VERIFIED
+            if ota_metadata and ota_metadata.post_build_incremental
+            else EvidenceConfidence.UNCONFIRMED,
+            ("source.ota_metadata",) if ota_metadata else (),
+        ),
+        _fact(
+            "firmware.ota_post_timestamp",
+            "OTA post-build timestamp",
+            str(ota_metadata.post_timestamp)
+            if ota_metadata and ota_metadata.post_timestamp
+            else "",
+            EvidenceConfidence.VERIFIED
+            if ota_metadata and ota_metadata.post_timestamp
+            else EvidenceConfidence.UNCONFIRMED,
+            ("source.ota_metadata",) if ota_metadata else (),
         ),
         _fact(
             "firmware.upgrade_relationship",
@@ -750,6 +861,56 @@ def _partitions(
     return tuple(results)
 
 
+def _ota_candidate_build(metadata: AndroidOtaMetadata | None) -> str:
+    if metadata is None:
+        return ""
+    return metadata.post_build_incremental or (
+        metadata.post_builds[0] if metadata.post_builds else ""
+    )
+
+
+def _assess_upgrade(
+    device: AndroidDevice | None,
+    candidate_build: str,
+    candidate_codename: str,
+    ota_metadata: AndroidOtaMetadata | None,
+):
+    return assess_firmware_upgrade(
+        current_build=(device.rom_display or device.build_id) if device is not None else "",
+        candidate_build=candidate_build,
+        device_codename=device.codename if device is not None else "",
+        candidate_codename=candidate_codename,
+        current_fingerprint=device.build_fingerprint if device is not None else "",
+        current_incremental=device.build_incremental if device is not None else "",
+        current_sdk_level=device.api_level if device is not None else "",
+        current_build_timestamp=device.build_timestamp_utc if device is not None else None,
+        device_aliases=(device.product, device.vendor_device) if device is not None else (),
+        ota_metadata=(
+            ota_metadata if ota_metadata is not None and ota_metadata.target_devices else None
+        ),
+    )
+
+
+def _device_matches_candidate(
+    device: AndroidDevice,
+    candidate_codename: str,
+    ota_metadata: AndroidOtaMetadata | None,
+) -> bool:
+    if ota_metadata is not None and ota_metadata.target_devices:
+        live = {
+            item.casefold().strip()
+            for item in (device.codename, device.product, device.vendor_device)
+            if item.strip()
+        }
+        targets = set(ota_metadata.target_devices)
+    else:
+        live = {device.codename.casefold().strip()} if device.codename.strip() else set()
+        targets = {
+            item.casefold().strip() for item in candidate_codename.split("|") if item.strip()
+        }
+    return bool(live and targets and not live.isdisjoint(targets))
+
+
 def _warnings(
     source: FirmwareSourceIdentity,
     device: AndroidDevice | None,
@@ -757,25 +918,34 @@ def _warnings(
     pack: DevicePack | None,
     exact_pack: bool,
     blueprint: SourceBlueprint | None,
+    ota_metadata: AndroidOtaMetadata | None,
+    ota_error: str,
 ) -> tuple[str, ...]:
     warnings: list[str] = []
     blueprint_codename = str(getattr(blueprint, "codename", "")).strip()
-    source_codename = source.codename or blueprint_codename
-    source_build = source.build_id or str(getattr(blueprint, "build_id", "")).strip()
-    upgrade = assess_firmware_upgrade(
-        current_build=(device.rom_display or device.build_id) if device is not None else "",
-        candidate_build=source_build,
-        device_codename=device.codename if device is not None else "",
-        candidate_codename=source_codename,
+    source_codename = (
+        " | ".join(ota_metadata.target_devices)
+        if ota_metadata is not None and ota_metadata.target_devices
+        else source.codename or blueprint_codename
     )
-    if source.confidence != "high":
+    source_build = (
+        source.build_id
+        or str(getattr(blueprint, "build_id", "")).strip()
+        or _ota_candidate_build(ota_metadata)
+    )
+    upgrade = _assess_upgrade(device, source_build, source_codename, ota_metadata)
+    if ota_error:
+        warnings.append(f"Android OTA metadata was rejected: {ota_error}.")
+    if source.confidence != "high" and not (
+        ota_metadata is not None and ota_metadata.target_devices
+    ):
         warnings.append("Firmware identity is unconfirmed; no supported vendor signature matched.")
     if device is None:
         warnings.append("No single connected device supplied live identity or boot-state evidence.")
     elif (
         source_codename
         and device.codename
-        and source_codename.casefold() != device.codename.casefold()
+        and not _device_matches_candidate(device, source_codename, ota_metadata)
     ):
         warnings.append(
             f"Connected device codename {device.codename} does not match firmware codename {source_codename}."
@@ -836,16 +1006,27 @@ def _capability_map(
     pack: DevicePack | None,
     exact_pack: bool,
     blueprint: SourceBlueprint | None,
+    ota_metadata: AndroidOtaMetadata | None,
     warnings: tuple[str, ...],
 ) -> tuple[CapabilityMapEntry, ...]:
     blueprint_codename = str(getattr(blueprint, "codename", "")).strip()
-    source_codename = source.codename or blueprint_codename
-    target_identity_evidence = ("source.blueprint",) if blueprint_codename else ("source.filename",)
+    source_codename = (
+        " | ".join(ota_metadata.target_devices)
+        if ota_metadata is not None and ota_metadata.target_devices
+        else source.codename or blueprint_codename
+    )
+    target_identity_evidence = (
+        ("source.ota_metadata",)
+        if ota_metadata is not None and ota_metadata.target_devices
+        else ("source.blueprint",)
+        if blueprint_codename
+        else ("source.filename",)
+    )
     source_mismatch = bool(
         device
         and source_codename
         and device.codename
-        and source_codename.casefold() != device.codename.casefold()
+        and not _device_matches_candidate(device, source_codename, ota_metadata)
     )
     pack_mismatch = bool(
         device and exact_pack and pack is not None and not _device_matches_pack(device, pack)
@@ -875,6 +1056,7 @@ def _capability_map(
         if critical
         else CapabilityState.SUPPORTED
         if blueprint_ready
+        or (ota_metadata is not None and ota_metadata.target_devices)
         or (
             structure is not FirmwareStructureKind.UNCONFIRMED
             and structure_confidence is EvidenceConfidence.HIGH

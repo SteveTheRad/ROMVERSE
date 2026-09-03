@@ -583,8 +583,11 @@ the latter distinguishes bootloader Fastboot from userspace fastbootd when the d
 Fastboot observations are identity-only and connect to Device Atlas, while Android health fields
 stay unknown and no reboot or write command exists in the adapter. Failure of one probe yields
 partial information rather than discarding a detected device. Polling is non-blocking to the UI,
-duplicate ADB/Fastboot serials prefer the richer ADB snapshot, and multiple devices are modeled even
-though v0.1 presents one detail view at a time.
+duplicate ADB/Fastboot serials prefer the richer ADB snapshot, and multiple devices are modeled.
+One visible transport is selected automatically. Two or more require an explicit Command Deck
+selection; every device-facing action surface receives only that same selection, and receives no
+device until the selection is made. The session-only choice is retained across scans only while the
+exact transport remains present.
 
 ### Device DNA and Capability Map
 
@@ -592,6 +595,15 @@ Device DNA is the source-bound authoritative project profile consumed by ROM Stu
 Compatibility Matrix, Nexus, Ascension, Guardian, and the privacy-reduced Companion view. Its facts,
 partition geometry, warnings, evidence and SUPPORTED/CAUTION/UNSUPPORTED/UNCONFIRMED Capability Map
 retain explicit confidence; unknown evidence remains unconfirmed.
+
+The generic ADB identity passport records the standard product name, product/vendor device aliases,
+hardware and hardware SKU, build ID/fingerprint/incremental/timestamp, Android/SDK/security patch,
+ABI, verified boot, slot, dynamic/A/B state, encryption, kernel, platform and health observations
+that the device actually reports. Vendor-neutral OTA intake reads only the bounded standard
+`META-INF/com/android/metadata` ZIP entry and validates its target, current-build preconditions,
+post-build identity, SDK and timestamp against that live passport. The comparison may label upgrade,
+same timestamp, downgrade, incompatible, or unconfirmed, but it grants no installation authority.
+OEM-specific transport and write protocols remain separate signed adapter/Device Pack work.
 
 Schema-two profiles use a strict nested shape, bounded collections and text, private atomic storage,
 an exact profile digest, protected-source binding, typed confidence/state enums, unique identifiers,

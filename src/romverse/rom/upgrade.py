@@ -4,6 +4,7 @@ import re
 from dataclasses import dataclass
 from enum import StrEnum
 
+from romverse.rom.ota_metadata import AndroidOtaMetadata
 from romverse.rom.source_identity import xiaomi_build_region
 
 
@@ -62,8 +63,28 @@ def assess_firmware_upgrade(
     candidate_build: str,
     device_codename: str,
     candidate_codename: str,
+    current_fingerprint: str = "",
+    current_incremental: str = "",
+    current_sdk_level: str = "",
+    current_build_timestamp: int | None = None,
+    device_aliases: tuple[str, ...] = (),
+    ota_metadata: AndroidOtaMetadata | None = None,
 ) -> FirmwareUpgradeAssessment:
     """Classify a conservative firmware relationship without granting install authority."""
+
+    if ota_metadata is not None:
+        return _assess_android_ota(
+            current_build=current_build,
+            candidate_build=candidate_build,
+            device_codename=device_codename,
+            candidate_codename=candidate_codename,
+            current_fingerprint=current_fingerprint,
+            current_incremental=current_incremental,
+            current_sdk_level=current_sdk_level,
+            current_build_timestamp=current_build_timestamp,
+            device_aliases=device_aliases,
+            metadata=ota_metadata,
+        )
 
     current = _parse_xiaomi_build(current_build)
     candidate = _parse_xiaomi_build(candidate_build)
@@ -176,6 +197,194 @@ def assess_firmware_upgrade(
             "Version order was derived from numeric HyperOS components.",
         ),
     )
+
+
+def _assess_android_ota(
+    *,
+    current_build: str,
+    candidate_build: str,
+    device_codename: str,
+    candidate_codename: str,
+    current_fingerprint: str,
+    current_incremental: str,
+    current_sdk_level: str,
+    current_build_timestamp: int | None,
+    device_aliases: tuple[str, ...],
+    metadata: AndroidOtaMetadata,
+) -> FirmwareUpgradeAssessment:
+    live_devices = {
+        value.casefold().strip() for value in (device_codename, *device_aliases) if value.strip()
+    }
+    target_devices = set(metadata.target_devices)
+    if not target_devices and candidate_codename.strip():
+        target_devices.add(candidate_codename.casefold().strip())
+    display_device = device_codename.casefold().strip()
+    display_target = (
+        sorted(target_devices)[0] if target_devices else candidate_codename.casefold().strip()
+    )
+    current_label = (
+        current_build.strip() or current_incremental.strip() or current_fingerprint.strip()
+    )
+    candidate_label = (
+        candidate_build.strip()
+        or metadata.post_build_incremental
+        or (metadata.post_builds[0] if metadata.post_builds else "")
+    )
+
+    if live_devices and target_devices and live_devices.isdisjoint(target_devices):
+        return _assessment(
+            FirmwareRelationship.INCOMPATIBLE,
+            current_label,
+            candidate_label,
+            display_device,
+            display_target,
+            "",
+            "",
+            "INCOMPATIBLE FIRMWARE",
+            ("Connected device identities do not match the OTA pre-device/post-build target.",),
+        )
+    if not live_devices or not target_devices:
+        return _assessment(
+            FirmwareRelationship.UNCONFIRMED,
+            current_label,
+            candidate_label,
+            display_device,
+            display_target,
+            "",
+            "",
+            "UPGRADE STATUS UNCONFIRMED",
+            ("Both live device identity and OTA target-device metadata are required.",),
+        )
+
+    precondition_error = _ota_precondition_error(
+        metadata,
+        current_fingerprint=current_fingerprint,
+        current_incremental=current_incremental,
+    )
+    if precondition_error:
+        relationship = (
+            FirmwareRelationship.UNCONFIRMED
+            if "unavailable" in precondition_error
+            else FirmwareRelationship.INCOMPATIBLE
+        )
+        return _assessment(
+            relationship,
+            current_label,
+            candidate_label,
+            display_device,
+            display_target,
+            "",
+            "",
+            "UPGRADE STATUS UNCONFIRMED"
+            if relationship is FirmwareRelationship.UNCONFIRMED
+            else "INCOMPATIBLE UPDATE PATH",
+            (precondition_error,),
+        )
+
+    try:
+        current_sdk = int(current_sdk_level) if current_sdk_level else None
+    except ValueError:
+        current_sdk = None
+    if (
+        metadata.post_sdk_level is not None
+        and current_sdk is not None
+        and metadata.post_sdk_level < current_sdk
+    ):
+        return _assessment(
+            FirmwareRelationship.DOWNGRADE,
+            current_label,
+            candidate_label,
+            display_device,
+            display_target,
+            "",
+            "",
+            f"DOWNGRADE CANDIDATE • {current_label} → {candidate_label}",
+            (f"OTA post SDK {metadata.post_sdk_level} is below live SDK {current_sdk}.",),
+        )
+
+    if metadata.post_timestamp is None or current_build_timestamp is None:
+        return _assessment(
+            FirmwareRelationship.UNCONFIRMED,
+            current_label,
+            candidate_label,
+            display_device,
+            display_target,
+            "",
+            "",
+            "UPGRADE STATUS UNCONFIRMED",
+            (
+                "Device target and OTA update path matched, but comparable build timestamps "
+                "were not available.",
+            ),
+        )
+
+    relationship = (
+        FirmwareRelationship.UPGRADE
+        if metadata.post_timestamp > current_build_timestamp
+        else FirmwareRelationship.DOWNGRADE
+        if metadata.post_timestamp < current_build_timestamp
+        else FirmwareRelationship.SAME
+    )
+    if (
+        relationship is FirmwareRelationship.SAME
+        and candidate_label
+        and candidate_label not in {current_incremental.strip(), current_fingerprint.strip()}
+    ):
+        return _assessment(
+            FirmwareRelationship.UNCONFIRMED,
+            current_label,
+            candidate_label,
+            display_device,
+            display_target,
+            "",
+            "",
+            "UPGRADE STATUS UNCONFIRMED",
+            ("Build timestamps match but the candidate build identity is different.",),
+        )
+    label = {
+        FirmwareRelationship.UPGRADE: "UPGRADE CANDIDATE",
+        FirmwareRelationship.DOWNGRADE: "DOWNGRADE CANDIDATE",
+        FirmwareRelationship.SAME: "SAME FIRMWARE TIMESTAMP",
+    }[relationship]
+    reasons = [
+        f"OTA target matched the connected device: {display_target}.",
+        "Any OTA pre-build requirements matched the live build evidence.",
+        "Version order was derived from Android OTA post-timestamp and the live build timestamp.",
+    ]
+    if metadata.post_sdk_level is not None and current_sdk is not None:
+        reasons.append(
+            f"OTA post SDK {metadata.post_sdk_level} was checked against live SDK {current_sdk}."
+        )
+    return _assessment(
+        relationship,
+        current_label,
+        candidate_label,
+        display_device,
+        display_target,
+        "",
+        "",
+        f"{label} • {current_label} → {candidate_label}",
+        tuple(reasons),
+    )
+
+
+def _ota_precondition_error(
+    metadata: AndroidOtaMetadata,
+    *,
+    current_fingerprint: str,
+    current_incremental: str,
+) -> str:
+    if metadata.pre_builds:
+        if not current_fingerprint.strip():
+            return "Live build fingerprint is unavailable for the OTA pre-build check."
+        if current_fingerprint.strip() not in metadata.pre_builds:
+            return "Live build fingerprint does not satisfy the OTA pre-build requirement."
+    if metadata.pre_build_incrementals:
+        if not current_incremental.strip():
+            return "Live incremental build is unavailable for the OTA update-path check."
+        if current_incremental.strip() not in metadata.pre_build_incrementals:
+            return "Live incremental build does not satisfy the OTA update-path requirement."
+    return ""
 
 
 def _parse_xiaomi_build(value: str) -> _XiaomiBuild | None:

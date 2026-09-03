@@ -76,6 +76,11 @@ class AndroidDevice:
     fastboot_capability: str = ""
     recovery_capability: str = ""
     brand: str = ""
+    vendor_device: str = ""
+    hardware: str = ""
+    hardware_sku: str = ""
+    build_incremental: str = ""
+    build_timestamp_utc: int | None = None
 
     @property
     def display_name(self) -> str:

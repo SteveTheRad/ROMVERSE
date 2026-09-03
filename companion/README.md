@@ -8,6 +8,16 @@ The v0.1 shell provides the branded mobile **Home**, **ROMVERSE Link** pairing,
 **Pulse**, **Vitalis**, **Lifeline**, **Live Console**, **Device DNA**, **Ascension Protocol**,
 **App Launchpad**, **ROMVERSE Galaxy**, Guardian Core state, and activity feed.
 
+Home begins with a truthful **ROMVERSE Link Flight Path**: PHONE → DESKTOP → IDENTITY → SESSION →
+SYNC. Its five evidence-derived stages, deterministic progress, freshness label, and one contextual
+action distinguish discovery, safety-code comparison, authorization, expiry, refresh, and a genuinely
+fresh two-way sync. USB detection never masquerades as encrypted Companion pairing and no longer
+disables wireless setup; it remains useful for Desktop-side read-only identity while Companion can
+pair independently over trusted local Wi-Fi. The animated active-stage pulse is purposeful, stops
+off-screen, and respects Reduced Effects and Android's disabled-animation setting. The entire route
+has a concise accessibility description and permanently states that it grants no flash, root, wipe,
+unlock, relock, or command authority.
+
 The approved Galaxy interface now uses a responsive `RomverseDrawerLayout`: swipe inward from the
 left edge (or tap the menu control) for the translucent glass feature drawer. A bounded classifier
 accepts only a deliberate horizontal right-swipe that begins in the 28dp edge zone; vertical,
@@ -93,6 +103,10 @@ Android's secure-window policy to block screenshots and screen recording. **Reve
 uncovers the current foreground session without disabling capture protection; leaving the app closes
 that temporary reveal. The persistent app bar, single connectivity status, drawer, ROMVERSE Link,
 and Guardian state remain available and unchanged.
+
+Android backup and device-to-device transfer explicitly exclude all Companion app-private state.
+Link tokens, certificate pins, private evidence, and local history therefore cannot silently migrate
+to another phone; that device must establish and verify its own Link identity.
 
 Optional **OLED mode** applies a tested true-black palette to the command surface, focused sections,
 glass cards, swipe drawer, persistent bars, and inactive navigation controls while preserving the

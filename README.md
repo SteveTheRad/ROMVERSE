@@ -999,6 +999,15 @@ drawer icons and direct routes; an unlinked Ascension page explicitly says it is
 Link and never claims synchronization. A Kotlin navigation contract prevents duplicate Home paths
 or dropped functional destinations.
 
+Companion Home now leads with a five-stage **ROMVERSE Link Flight Path** from phone readiness through
+Desktop discovery, pinned identity, authorized session, and fresh two-way sync. Every stage is
+derived from current Link evidence, carries a freshness-aware status, and supplies one contextual
+next action. USB remains useful read-only evidence but never pretends to be the encrypted Companion
+session and does not disable wireless pairing. The compact active-stage animation respects Reduced
+Effects and Android animation policy, and the route exposes a complete accessibility description.
+Companion app-private state is explicitly excluded from Android cloud backup and device transfer so
+pairing tokens, certificate pins, and private evidence cannot migrate to an unverified phone.
+
 Companion Settings includes an optional local **Privacy Curtain**. It covers device, project, and
 session content whenever Companion opens or returns from the background and applies Android secure
 window protection against screenshots and screen recording. A deliberate foreground-session reveal

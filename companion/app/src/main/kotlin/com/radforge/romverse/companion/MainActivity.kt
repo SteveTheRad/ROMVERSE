@@ -118,6 +118,7 @@ class MainActivity : ComponentActivity() {
         const val FACEBOOK_URL = "https://www.facebook.com/ROMVERSEOfficial"
         const val REDDIT_URL = "https://www.reddit.com/user/ROMVERSE/"
         const val ACTIVITY_ROUTE_KEY = "romverse_visible_route_v1"
+        const val LAST_SUCCESSFUL_LINK_SYNC_KEY = "last_successful_link_sync_epoch_ms"
         val ORIGIN_SCENES = listOf(
             CompanionOriginScene(
                 "SCENE 01  •  THE BEGINNING",
@@ -233,6 +234,15 @@ class MainActivity : ComponentActivity() {
     private var linkAddressField: EditText? = null
     private var linkFingerprintField: EditText? = null
     private var linkSafetyLabel: TextView? = null
+    private var linkSafetyConfirmation: CheckBox? = null
+    private var linkCodeField: EditText? = null
+    private var linkConnectButton: Button? = null
+    private var linkFlightPathView: LinkFlightPathView? = null
+    private var linkFlightHeadline: TextView? = null
+    private var linkFlightDetail: TextView? = null
+    private var linkFlightProgress: ProgressBar? = null
+    private var linkFlightLastSync: TextView? = null
+    private var linkFlightAction: Button? = null
     private var telemetryRetryAttempt = 0
     private var activityResumed = false
     private var lastNetworkOnline = false
@@ -253,6 +263,7 @@ class MainActivity : ComponentActivity() {
     private var currentRoute = CompanionRoute.HOME
     private val navigationButtons = mutableMapOf<NavKind, MutableList<RomverseNavButton>>()
     private var pairSyncCard: View? = null
+    private var pairingControlsCard: View? = null
     private var greetingView: TextView? = null
     private var homeHeroEyebrow: TextView? = null
     private var homeHeroDetail: TextView? = null
@@ -830,8 +841,53 @@ class MainActivity : ComponentActivity() {
         page.addView(tabs)
         tabs.visibility = View.GONE
 
+        val linkFlight = card()
+        pairSyncCard = linkFlight
+        linkFlight.addView(text("ROMVERSE LINK  •  FLIGHT PATH", 12f, violet, true))
+        linkFlightHeadline = text("Assessing Link readiness…", 20f, Color.WHITE, true)
+        linkFlight.addView(linkFlightHeadline)
+        linkFlightDetail = text(
+            "Checking the local connection without opening device-control authority.",
+            13f,
+            muted,
+            false,
+        )
+        linkFlight.addView(linkFlightDetail)
+        linkFlightPathView = LinkFlightPathView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(-1, dp(104)).apply {
+                topMargin = dp(4)
+            }
+        }
+        linkFlight.addView(linkFlightPathView)
+        linkFlightProgress = ProgressBar(
+            this,
+            null,
+            android.R.attr.progressBarStyleHorizontal,
+        ).apply {
+            max = 100
+            progress = 20
+            progressTintList = ColorStateList.valueOf(cyan)
+            progressBackgroundTintList = ColorStateList.valueOf("#202A43".toColorInt())
+            contentDescription = "ROMVERSE Link Flight Path progress 20 percent"
+            layoutParams = LinearLayout.LayoutParams(-1, dp(12)).apply {
+                bottomMargin = dp(8)
+            }
+        }
+        linkFlight.addView(linkFlightProgress)
+        linkFlightLastSync = text("No verified two-way sync yet", 11f, muted, true)
+        linkFlight.addView(linkFlightLastSync)
+        linkFlightAction = sectionAction("FIND DESKTOP") { handleLinkFlightAction() }
+        linkFlight.addView(linkFlightAction)
+        linkFlight.addView(text(
+            "The flight path measures verified connection stages only. It grants no flash, root, wipe, unlock, relock, or command authority.",
+            11f,
+            muted,
+            false,
+        ))
+        page.addView(linkFlight)
+
         connection = card()
-        pairSyncCard = connection
+        pairingControlsCard = connection
         connection.addView(text("PAIR & SYNC", 13f, violet, true))
         val secureWireless = hasSecureWirelessSession()
         val rememberedDesktop = hasRememberedDesktop()
@@ -891,13 +947,16 @@ class MainActivity : ComponentActivity() {
         linkAddressField = pcAddress
         linkFingerprintField = pcFingerprint
         linkSafetyLabel = linkSafety
+        pcAddress.doAfterTextChanged { refreshLinkFlightPath() }
         val safetyConfirm = CheckBox(this).apply {
             text = "I confirmed the Link safety code matches on the PC and phone"
             setTextColor(muted)
+            buttonTintList = ColorStateList.valueOf(cyan)
             isChecked = rememberedDesktop
             isEnabled = !rememberedDesktop
             setPadding(0, dp(8), 0, dp(8))
         }
+        linkSafetyConfirmation = safetyConfirm
         connection.addView(safetyConfirm)
         pcFingerprint.doAfterTextChanged { value ->
             val safetyCode = DesktopLinkSecurity.safetyCode(value?.toString().orEmpty())
@@ -905,6 +964,13 @@ class MainActivity : ComponentActivity() {
                 "LINK SAFETY CODE  •  $it\nCompare this exact code with ROMVERSE Desktop."
             } ?: "LINK SAFETY CODE  •  invalid or incomplete PC identity"
             if (!rememberedDesktop) safetyConfirm.isChecked = false
+            refreshLinkFlightPath()
+        }
+        safetyConfirm.setOnCheckedChangeListener { button, checked ->
+            button.buttonTintList = ColorStateList.valueOf(
+                if (checked) "#72FFB2".toColorInt() else cyan,
+            )
+            refreshLinkFlightPath()
         }
         discoverPc(pcAddress, pcFingerprint, linkSafety)
         val pairRow = LinearLayout(this).apply {
@@ -924,6 +990,7 @@ class MainActivity : ComponentActivity() {
             background = outlinedPanel()
             layoutParams = LinearLayout.LayoutParams(0, dp(56), 1f)
         }
+        linkCodeField = code
         lateinit var wireless: Button
         val unpair = Button(this).apply {
             text = "RESET PAIRING"
@@ -936,9 +1003,13 @@ class MainActivity : ComponentActivity() {
                 pairingState.text = "Not paired yet"
                 refreshHomeHero()
                 val usbConnected = isUsbConnected()
-                wireless.text = if (usbConnected) "USB CONNECTED" else "CONNECT WIRELESSLY"
-                wireless.background = if (usbConnected) successBackground() else actionBackground()
-                wireless.isEnabled = !usbConnected
+                wireless.text = if (usbConnected) {
+                    "CONNECT WIRELESSLY  •  USB SEEN"
+                } else {
+                    "CONNECT WIRELESSLY"
+                }
+                wireless.background = actionBackground()
+                wireless.isEnabled = true
                 code.text?.clear()
                 pcFingerprint.text?.clear()
                 pcFingerprint.isEnabled = true
@@ -946,21 +1017,22 @@ class MainActivity : ComponentActivity() {
                 safetyConfirm.isEnabled = true
                 discoverPc(pcAddress, pcFingerprint, linkSafety)
                 logActivity("Pairing session cleared")
+                refreshLinkFlightPath()
             }
         }
         pairRow.addView(code)
         connection.addView(pairRow)
         wireless = Button(this).apply {
             text = when {
-                isUsbConnected() -> "USB CONNECTED"
                 secureWireless -> "PAIRED"
                 rememberedDesktop -> "REAUTHORIZE LINK"
+                isUsbConnected() -> "CONNECT WIRELESSLY  •  USB SEEN"
                 else -> "CONNECT WIRELESSLY"
             }
             setTextColor(cyan)
-            background = if (isUsbConnected() || secureWireless) successBackground() else actionBackground()
+            background = if (secureWireless) successBackground() else actionBackground()
             alignPanelAction()
-            isEnabled = !isUsbConnected() && !secureWireless
+            isEnabled = !secureWireless
             setOnClickListener {
                 val host = pcAddress.text.toString().trim()
                 val candidate = code.text.toString().replace(" ", "")
@@ -1052,18 +1124,31 @@ class MainActivity : ComponentActivity() {
                                         .apply()
                                     telemetryRetryAttempt = 0
                                     refreshHomeHero()
+                                    if (phoneSync.accepted) {
+                                        pairingPrefs.edit()
+                                            .putLong(
+                                                LAST_SUCCESSFUL_LINK_SYNC_KEY,
+                                                System.currentTimeMillis(),
+                                            )
+                                            .apply()
+                                    }
+                                    refreshLinkFlightPath()
                                     logActivity("Wireless pairing approved")
                                 }
                                 return@Thread
                             }
                         }
                         if (!approved) {
-                            runOnUiThread { text = "APPROVAL TIMEOUT • TRY AGAIN" }
+                            runOnUiThread {
+                                text = "APPROVAL TIMEOUT • TRY AGAIN"
+                                refreshLinkFlightPath()
+                            }
                         }
                     }
                 }.start()
             }
         }
+        linkConnectButton = wireless
         connection.addView(wireless)
         connection.addView(unpair)
         if (secureWireless) {
@@ -1072,6 +1157,7 @@ class MainActivity : ComponentActivity() {
             desktopTelemetry.text =
                 "Desktop remembered securely • enter a new Link code when approval expires"
         }
+        refreshLinkFlightPath()
         page.addView(connection)
 
         val identity = card()
@@ -1488,6 +1574,15 @@ class MainActivity : ComponentActivity() {
         setStroke(dp(1), "#7545CFE8".toColorInt())
     }
 
+    private fun confirmationHaptic(view: View) {
+        val feedback = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            HapticFeedbackConstants.CONFIRM
+        } else {
+            HapticFeedbackConstants.VIRTUAL_KEY
+        }
+        view.performHapticFeedback(feedback)
+    }
+
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).roundToInt()
 
     private fun displayMode(): CompanionDisplayMode = CompanionDisplayMode.parse(
@@ -1662,6 +1757,14 @@ class MainActivity : ComponentActivity() {
             resumeRememberedLink()
         }
         lastNetworkOnline = online
+        refreshLinkFlightPath()
+    }
+
+    private fun isLocalLinkNetworkAvailable(): Boolean {
+        val manager = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
+        val capabilities = manager.activeNetwork?.let(manager::getNetworkCapabilities) ?: return false
+        return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
     }
 
     private fun isUsbConnected(): Boolean {
@@ -1676,6 +1779,130 @@ class MainActivity : ComponentActivity() {
         if (poweredByUsb) return true
         val usb = getSystemService(USB_SERVICE) as UsbManager
         return usb.deviceList.isNotEmpty()
+    }
+
+    private fun currentLinkReadiness(
+        nowEpochMs: Long = System.currentTimeMillis(),
+    ): CompanionLinkReadiness = CompanionLinkReadinessPolicy.assess(
+        localNetworkAvailable = isLocalLinkNetworkAvailable(),
+        usbConnected = isUsbConnected(),
+        endpointPresent = DesktopLinkSecurity.isValidEndpointHost(
+            linkAddressField?.text?.toString()?.trim().orEmpty(),
+        ),
+        certificateValid = DesktopLinkSecurity.normalizeFingerprint(
+            linkFingerprintField?.text?.toString().orEmpty(),
+        ) != null,
+        safetyConfirmed = linkSafetyConfirmation?.isChecked == true,
+        desktopRemembered = hasRememberedDesktop(),
+        secureSession = hasSecureWirelessSession(),
+        discoveryInFlight = linkDiscoveryInFlight,
+        syncInFlight = telemetryRefreshInFlight,
+        lastSuccessfulSyncEpochMs = pairingPrefs.getLong(
+            LAST_SUCCESSFUL_LINK_SYNC_KEY,
+            0L,
+        ),
+        nowEpochMs = nowEpochMs,
+    )
+
+    private fun refreshLinkFlightPath() {
+        if (linkFlightPathView == null) return
+        val readiness = currentLinkReadiness()
+        val stateColor = when (readiness.state) {
+            CompanionLinkJourneyState.LIVE -> "#72FFB2".toColorInt()
+            CompanionLinkJourneyState.NETWORK_NEEDED,
+            CompanionLinkJourneyState.USB_ONLY,
+            CompanionLinkJourneyState.STALE,
+            CompanionLinkJourneyState.REAUTHORIZE,
+            CompanionLinkJourneyState.CONFIRM_IDENTITY,
+            -> "#FFB454".toColorInt()
+            else -> cyan
+        }
+        linkFlightHeadline?.apply {
+            text = readiness.headline
+            setTextColor(stateColor)
+        }
+        linkFlightDetail?.text = readiness.detail
+        linkFlightProgress?.apply {
+            progress = readiness.progressPercent
+            progressTintList = ColorStateList.valueOf(stateColor)
+            contentDescription =
+                "ROMVERSE Link Flight Path progress ${readiness.progressPercent} percent"
+        }
+        linkFlightLastSync?.text = buildString {
+            append(readiness.lastSyncLabel)
+            if (isUsbConnected()) append("  •  USB detected")
+        }
+        linkFlightPathView?.render(
+            readiness,
+            allowMotion = !userSettingsPrefs.getBoolean("reduced_motion", false),
+        )
+        linkFlightAction?.apply {
+            text = readiness.nextAction
+            isEnabled = readiness.state !in setOf(
+                CompanionLinkJourneyState.SYNCING,
+                CompanionLinkJourneyState.DISCOVERING,
+            )
+            contentDescription = "ROMVERSE Link: ${readiness.nextAction}"
+        }
+    }
+
+    private fun handleLinkFlightAction() {
+        when (currentLinkReadiness().state) {
+            CompanionLinkJourneyState.LIVE,
+            CompanionLinkJourneyState.STALE,
+            -> desktopTelemetryView?.let { label -> refreshTelemetry(label) }
+            CompanionLinkJourneyState.SYNCING,
+            CompanionLinkJourneyState.DISCOVERING,
+            -> Unit
+            CompanionLinkJourneyState.NETWORK_NEEDED,
+            CompanionLinkJourneyState.USB_ONLY,
+            -> startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
+            CompanionLinkJourneyState.DISCOVER -> {
+                val address = linkAddressField
+                val fingerprint = linkFingerprintField
+                val safety = linkSafetyLabel
+                if (address != null && fingerprint != null && safety != null) {
+                    discoverPc(address, fingerprint, safety)
+                    refreshLinkFlightPath()
+                }
+            }
+            CompanionLinkJourneyState.CONFIRM_IDENTITY -> {
+                linkSafetyConfirmation?.apply {
+                    error = "Compare this code with Desktop, then confirm it here"
+                    buttonTintList = ColorStateList.valueOf("#FFB454".toColorInt())
+                    revealPairingControl(
+                        this,
+                        "Compare the safety code, then tick this confirmation box.",
+                    )
+                }
+            }
+            CompanionLinkJourneyState.REAUTHORIZE,
+            CompanionLinkJourneyState.ENTER_CODE,
+            -> {
+                val code = linkCodeField
+                if (code != null) {
+                    revealPairingControl(code, "Enter the six-digit code shown on Desktop.")
+                    if (code.text.toString().replace(" ", "").length == 6) {
+                        linkConnectButton?.performClick()
+                    } else {
+                        code.error = "Enter the six-digit code shown on Desktop"
+                    }
+                }
+            }
+        }
+    }
+
+    private fun revealPairingControl(target: View, accessibilityMessage: String) {
+        target.requestFocus()
+        target.announceForAccessibility(accessibilityMessage)
+        val scroll = homeScroll ?: return
+        scroll.post {
+            val cardTop = pairingControlsCard?.top ?: 0
+            scroll.smoothScrollTo(
+                0,
+                (cardTop + target.top - dp(88)).coerceAtLeast(0),
+            )
+        }
     }
 
     private fun showSection(title: String, detail: String) {
@@ -3270,7 +3497,7 @@ class MainActivity : ComponentActivity() {
                                     .commit()
                             } else true
                             if (recorded) originReplay?.visibility = View.VISIBLE
-                            performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                            confirmationHaptic(this)
                             showSupporterTribute(firstDiscovery && recorded)
                         } else {
                             lastMarkTap = now
@@ -4075,7 +4302,7 @@ class MainActivity : ComponentActivity() {
                 storyBody.alpha = 1f
             }
             if (sceneIndex in setOf(2, 4, 6)) {
-                overlay.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                confirmationHaptic(overlay)
             }
         }
 
@@ -5623,6 +5850,7 @@ Guardian: ACTIVE (read-only)
                 "Desktop telemetry: secure session expired • pair again"
             }
             refreshHomeHero()
+            refreshLinkFlightPath()
             onFinished?.invoke()
             return
         }
@@ -5635,10 +5863,12 @@ Guardian: ACTIVE (read-only)
         val certificateSha256 = telemetryCertificateSha256
         if (host == null || token == null || certificateSha256 == null) {
             label.text = "Desktop telemetry: secure session details are unavailable • pair again"
+            refreshLinkFlightPath()
             onFinished?.invoke()
             return
         }
         telemetryRefreshInFlight = true
+        refreshLinkFlightPath()
         Thread {
             val telemetry = getTelemetrySummary(host, token, certificateSha256)
             val phoneSync = if (!telemetry.unauthorized) {
@@ -5651,6 +5881,7 @@ Guardian: ACTIVE (read-only)
                     label.text =
                         "Trusted Desktop remembered • approval ended • enter a new Link code"
                     refreshHomeHero()
+                    refreshLinkFlightPath()
                     onFinished?.invoke()
                 }
                 return@Thread
@@ -5667,6 +5898,11 @@ Guardian: ACTIVE (read-only)
                     desktopAscensionStatus = telemetry.ascension
                     desktopLiveConsoleStatus = telemetry.liveConsole
                     desktopDeviceDnaStatus = telemetry.deviceDna
+                    if (phoneSync.accepted) {
+                        pairingPrefs.edit()
+                            .putLong(LAST_SUCCESSFUL_LINK_SYNC_KEY, System.currentTimeMillis())
+                            .apply()
+                    }
                     refreshHomeHero()
                     label.text = if (phoneSync.accepted) {
                         "${telemetry.summary}  •  phone health synced"
@@ -5681,6 +5917,7 @@ Guardian: ACTIVE (read-only)
                     } else if (hydrateVisibleRoute) {
                         restoreRoute(currentRoute)
                     }
+                    refreshLinkFlightPath()
                     onFinished?.invoke()
                     scheduleTelemetryRefresh(label)
                 }
@@ -5690,6 +5927,7 @@ Guardian: ACTIVE (read-only)
                     val delay = DesktopLinkSecurity.retryDelayMillis(telemetryRetryAttempt)
                     telemetryRetryAttempt = (telemetryRetryAttempt + 1).coerceAtMost(50)
                     label.text = "Desktop temporarily unavailable • reconnecting automatically"
+                    refreshLinkFlightPath()
                     onFinished?.invoke()
                     scheduleTelemetryRefresh(label, delay)
                     val addressField = linkAddressField
@@ -5746,6 +5984,7 @@ Guardian: ACTIVE (read-only)
                 .remove("paired_host")
                 .remove("certificate_sha256")
                 .remove("link_protocol_version")
+                .remove(LAST_SUCCESSFUL_LINK_SYNC_KEY)
         }
         editor.apply()
     }
@@ -5790,6 +6029,16 @@ Guardian: ACTIVE (read-only)
         linkAddressField = null
         linkFingerprintField = null
         linkSafetyLabel = null
+        linkSafetyConfirmation = null
+        linkCodeField = null
+        linkConnectButton = null
+        linkFlightPathView = null
+        linkFlightHeadline = null
+        linkFlightDetail = null
+        linkFlightProgress = null
+        linkFlightLastSync = null
+        linkFlightAction = null
+        pairingControlsCard = null
         telemetryHandler.removeCallbacksAndMessages(null)
         memberHandler.removeCallbacksAndMessages(null)
         super.onDestroy()
@@ -5802,6 +6051,7 @@ Guardian: ACTIVE (read-only)
     ) {
         if (linkDiscoveryInFlight) return
         linkDiscoveryInFlight = true
+        refreshLinkFlightPath()
         Thread {
             try {
                 DatagramSocket(45678).use { socket ->
@@ -5890,6 +6140,7 @@ Guardian: ACTIVE (read-only)
                                             "Compare this exact code with ROMVERSE Desktop."
                                     }
                                 }
+                                refreshLinkFlightPath()
                             }
                             return@Thread
                         }
@@ -5898,7 +6149,10 @@ Guardian: ACTIVE (read-only)
             } catch (_: Exception) {
                 // Manual PC address remains available when discovery is blocked by the network.
             } finally {
-                runOnUiThread { linkDiscoveryInFlight = false }
+                runOnUiThread {
+                    linkDiscoveryInFlight = false
+                    refreshLinkFlightPath()
+                }
             }
         }.start()
     }

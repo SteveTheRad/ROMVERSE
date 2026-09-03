@@ -76,7 +76,7 @@ internal object DesktopLinkSecurity {
         return delays[failedAttempts.coerceIn(0, delays.lastIndex)]
     }
 
-    private fun isValidEndpointHost(host: String): Boolean = runCatching {
+    fun isValidEndpointHost(host: String): Boolean = runCatching {
         require(host.length in 3..255)
         require(host.none { it.isWhitespace() || it in "@/\\?#" })
         val endpoint = URI("https://$host")

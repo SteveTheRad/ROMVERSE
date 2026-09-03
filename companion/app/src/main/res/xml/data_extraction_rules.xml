@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-backup>
+        <!-- Never export Link credentials or private ROMVERSE evidence to cloud backup. -->
+        <exclude domain="root" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <!-- A new phone must establish its own verified ROMVERSE Link identity. -->
+        <exclude domain="root" path="." />
+    </device-transfer>
+</data-extraction-rules>

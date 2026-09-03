@@ -175,6 +175,20 @@ class MainActivityInstrumentedTest {
                 )
                 assertEquals(
                     1,
+                    views.count {
+                        it.contentDescription?.toString()
+                            ?.startsWith("ROMVERSE Link Flight Path.") == true
+                    },
+                )
+                assertEquals(
+                    1,
+                    views.count {
+                        it.contentDescription?.toString()
+                            ?.startsWith("ROMVERSE Link Flight Path progress ") == true
+                    },
+                )
+                assertEquals(
+                    1,
                     views.count { view ->
                         val description = view.contentDescription?.toString().orEmpty()
                         description == "Checking ROMVERSE internet connectivity" ||

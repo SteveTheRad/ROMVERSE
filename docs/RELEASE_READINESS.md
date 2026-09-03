@@ -86,10 +86,11 @@ has current evidence.
    `https://github.com/SteveTheRad/ROMVERSE/actions/runs/33750194118`. This remains unsigned build
    evidence and does not replace production signing or physical-device write certification.
 
-   Current Fedora development evidence recorded on 2026-09-04: all 1,421 Desktop tests and both
+   Current Fedora development evidence recorded on 2026-09-04: all 1,433 Desktop tests and both
    complete Ruff gates pass after the signed-update Settings journey, inert Guardian execution
-   plan, exact post-write verification contract, inert typed gateway contract, and its managed
-   ROM Studio/Guardian Core review journey were completed.
+   plan, exact post-write verification contract, inert typed gateway contract, signed schema-three
+   transition/recovery boundary, and their managed ROM Studio/Guardian Core review journeys were
+   completed.
    The user must separately
    confirm download; byte-derived progress remains
    below 100 until the artifact and
@@ -99,11 +100,11 @@ has current evidence.
    that claim automatic installation. Linked staging roots, release directories, receipts and
    artifacts fail closed, and replacing an artifact with byte-identical content after hashing is
    detected through its changed file identity. The exact current Windows portability selection
-   passes all 266 tests locally and runs on both supported Python versions in CI. The stage grants no
+   passes all 278 tests locally and runs on both supported Python versions in CI. The stage grants no
    execution or Android-device authority and never launches the artifact. A fresh isolated build
    produced and verified a 231-member wheel with
    all 21 Device Packs and SHA-256
-   `28eac9e685bb22892e3674ed4d870097b606a22fcc1851ebc947898fb18e0aea`. That exact wheel was installed
+   `d578d804836c62dda46f876eda2feaa6331e8b18af03b3192a9855b89b2cb721`. That exact wheel was installed
    into an isolated target and its packaged smoke passed with 194 guides, 144 known fixes, all 19
    covered Desktop routes, a dark Time Machine state, and byte-exact populated-workspace reopening. This is
    local implementation evidence; the production publisher key and signed channels remain intentionally
@@ -122,6 +123,20 @@ has current evidence.
    Pack currently supplies that signed schema-2 authority. The new gateway contract is an inert
    result template rather than a runtime or execution receipt; signed transition/recovery
    orchestration, governed execution, physical validation and final consent remain unavailable.
+
+   Synthetic signed schema-three evidence now adds the fail-closed mode/slot/recovery boundary. The
+   parser requires one contiguous transport-correct write-boundary sequence, a single final system
+   transition, exact final slot activation when writes are slotted, and a bounded source-package-
+   digest-bound stock-recovery action chain. Backup and stock recovery are mandatory; possible wipes
+   must be disclosed; automatic wipe, relock and execution authority are prohibited; and separate
+   final consent is required but not made available. Device Atlas revalidates the same strict
+   semantics even for an in-memory Pack, and Guardian refuses a malformed replacement before plan
+   compilation. The private inert plan binds the exact transition/recovery digest and summary, then
+   stops at `ready-for-inert-transition-aware-gateway-contract`. ROM Studio performs only the two
+   applicable measured artifact/plan rehash passes and deliberately emits no schema-two gateway,
+   runner call, consent or phone action. No built-in Device Pack carries this schema-three signed
+   authority, and the transition-aware gateway/runtime/receipt/physical-validation stages remain
+   unfinished.
 
    That exact candidate adds the first typed execution-gateway boundary. Given synthetic signed
    schema-two evidence, it regenerates exact Fastboot
@@ -469,6 +484,21 @@ has current evidence.
    and Open Guardian Core, never execute, flash, consent, transition or reboot controls. Stale or
    re-digested objects, claimed runtime/authority/phone change, manifest mismatch and disconnected
    evidence must be refused rather than displayed as current.
+   Parse partition-write schema three only when schema-two readback/first-boot evidence is also
+   present and an exact signed transition/recovery contract binds the same source and attestation.
+   Reject missing or extra fields, non-contiguous or non-monotonic write boundaries, a mode chain that
+   does not reach each declared Fastboot/Fastbootd write, missing or duplicate final reboot, implicit
+   or wrong slot activation, changed stock-package digest, unscoped/duplicate recovery adapter action,
+   missing backup or stock-recovery requirement, inconsistent wipe disclosure, any automatic wipe,
+   any relock permission, fabricated execution authority, or absent separate-final-consent
+   requirement. Confirm Device Atlas keeps schema one and schema two independently non-flash-ready
+   without this third contract. From valid synthetic schema-three evidence, bind its exact identity,
+   digest, transition/recovery counts, adapter, stock digest and wipe disclosure into the private
+   execution plan, then alter the current recovery digest and confirm reload fails. Exercise the
+   managed Desktop worker and confirm it completes only the two measured artifact/plan passes,
+   records `phone_changed: false` and execution authority `none`, emits no schema-two gateway file,
+   invokes no runner, and stops at `ready-for-inert-transition-aware-gateway-contract` with no final
+   consent or device control.
    Refresh Forge Control repeatedly while readiness changes between blocked and attention states at
    its 1040-pixel minimum width. Confirm removed cards are no longer parented or visible, the content
    keeps its natural scroll height, no footer buttons overlap, and blocked/attention totals match the

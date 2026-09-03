@@ -7,8 +7,16 @@ from romverse.device_packs.attestations import PhysicalRecoveryAttestationReport
 from romverse.device_packs.models import (
     AvbPolicyAuthority,
     CapabilityStatus,
+    DeviceMode,
+    DeviceModeTransitionRule,
     DevicePack,
     DevicePostWriteVerificationContract,
+    DeviceRecoveryActionRule,
+    DeviceRecoveryContract,
+    DeviceRecoveryOperation,
+    DeviceRecoveryStrategy,
+    DeviceTransitionOperation,
+    DeviceTransitionRecoveryContract,
     DeviceWriteContract,
     DeviceWriteTransport,
     PackCapability,
@@ -306,9 +314,84 @@ def test_exact_post_write_contract_is_required_for_flash_contract_readiness() ->
         True,
         300,
     )
+    transition = DeviceTransitionRecoveryContract(
+        "validated-transition-recovery",
+        1,
+        base.build_contract.source.build_id,
+        envelope_sha256,
+        DeviceMode.BOOTLOADER,
+        (
+            DeviceModeTransitionRule(
+                1,
+                0,
+                DeviceTransitionOperation.REBOOT_FASTBOOTD,
+                DeviceMode.BOOTLOADER,
+                DeviceMode.FASTBOOTD,
+                "none",
+                60,
+            ),
+            DeviceModeTransitionRule(
+                2,
+                1,
+                DeviceTransitionOperation.REBOOT_SYSTEM,
+                DeviceMode.FASTBOOTD,
+                DeviceMode.ANDROID,
+                "none",
+                300,
+            ),
+        ),
+        DeviceMode.ANDROID,
+        DeviceRecoveryContract(
+            DeviceRecoveryStrategy.STOCK_PACKAGE_RESTORE,
+            "xiaomi.fastboot.stock",
+            base.build_contract.source.archive_sha256,
+            DeviceMode.BOOTLOADER,
+            (
+                DeviceRecoveryActionRule(
+                    1,
+                    DeviceRecoveryOperation.RESTORE_STOCK_PACKAGE,
+                    "xiaomi.fastboot.stock.restore",
+                    DeviceMode.BOOTLOADER,
+                    DeviceMode.BOOTLOADER,
+                    "none",
+                    1800,
+                    True,
+                ),
+                DeviceRecoveryActionRule(
+                    2,
+                    DeviceRecoveryOperation.REBOOT_SYSTEM,
+                    "xiaomi.fastboot.stock.reboot",
+                    DeviceMode.BOOTLOADER,
+                    DeviceMode.ANDROID,
+                    "none",
+                    300,
+                    False,
+                ),
+                DeviceRecoveryActionRule(
+                    3,
+                    DeviceRecoveryOperation.VERIFY_POST_BOOT,
+                    "xiaomi.fastboot.stock.verify",
+                    DeviceMode.ANDROID,
+                    DeviceMode.ANDROID,
+                    "none",
+                    300,
+                    False,
+                ),
+            ),
+            True,
+            True,
+            False,
+            True,
+            False,
+            False,
+        ),
+        True,
+        "none",
+        False,
+    )
     writes = DeviceWriteContract(
         "validated-writes",
-        2,
+        3,
         base.build_contract.source.build_id,
         envelope_sha256,
         True,
@@ -325,6 +408,7 @@ def test_exact_post_write_contract_is_required_for_flash_contract_readiness() ->
             ),
         ),
         post_write_verification_contract=verification,
+        transition_recovery_contract=transition,
     )
     pack = replace(
         base,
@@ -347,7 +431,34 @@ def test_exact_post_write_contract_is_required_for_flash_contract_readiness() ->
     checks = {check.check_id: check for check in report.checks}
     assert checks["partition-write-contract"].state is ValidationState.PASS
     assert checks["post-write-verification-contract"].state is ValidationState.PASS
+    assert checks["transition-recovery-contract"].state is ValidationState.PASS
     assert report.flash_contract_ready
+
+    unsafe_transition = replace(
+        transition,
+        transitions=(
+            replace(transition.transitions[0], after_write_order=1),
+            *transition.transitions[1:],
+        ),
+    )
+    unsafe_pack = replace(
+        pack,
+        build_contract=replace(
+            pack.build_contract,
+            partition_write_contract=replace(
+                writes,
+                transition_recovery_contract=unsafe_transition,
+            ),
+        ),
+    )
+    unsafe_report = DevicePackValidationService().assess(
+        unsafe_pack,
+        _xiaomi(),
+        _verified_attestation(unsafe_pack),
+    )
+    unsafe_checks = {check.check_id: check for check in unsafe_report.checks}
+    assert unsafe_checks["transition-recovery-contract"].state is ValidationState.BLOCKED
+    assert not unsafe_report.flash_contract_ready
 
 
 def test_attestation_for_different_hardware_cannot_clear_recovery_gate() -> None:

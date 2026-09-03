@@ -301,7 +301,7 @@ class GuardianArtifactBindingService:
             or receipt.build_contract_version not in {1, 2}
             or not _clean(receipt.write_contract_id, 80)
             or type(receipt.write_contract_version) is not int
-            or receipt.write_contract_version not in {1, 2}
+            or receipt.write_contract_version not in {1, 2, 3}
             or not _hex(receipt.write_attestation_sha256, 64)
             or not _clean(receipt.source_build_id, 160)
             or not _hex(receipt.source_archive_sha256, 64)

@@ -528,7 +528,7 @@ class DeviceRequirementsService:
                 "4 • Prove the flash contract",
                 RequirementState.VERIFIED,
                 "FLASH CONTRACT EVIDENCE • READY",
-                "The Pack's recovery, AVB, physical-test, publisher, and partition-write gates pass for this exact evidence.",
+                "The Pack's recovery, AVB, physical-test, publisher, write/readback, and transition-orchestration gates pass for this exact evidence.",
                 (
                     "A built and signed artifact is still required",
                     "Guardian artifact binding and fresh explicit approval remain mandatory",

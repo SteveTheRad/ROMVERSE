@@ -27,6 +27,33 @@ class DeviceWriteTransport(StrEnum):
     FASTBOOTD = "fastbootd"
 
 
+class DeviceMode(StrEnum):
+    """Exact observable mode used by a signed transition/recovery contract."""
+
+    BOOTLOADER = "bootloader"
+    FASTBOOTD = "fastbootd"
+    ANDROID = "android"
+
+
+class DeviceTransitionOperation(StrEnum):
+    REBOOT_FASTBOOTD = "reboot_fastbootd"
+    REBOOT_BOOTLOADER = "reboot_bootloader"
+    SET_ACTIVE_SLOT = "set_active_slot"
+    REBOOT_SYSTEM = "reboot_system"
+
+
+class DeviceRecoveryStrategy(StrEnum):
+    STOCK_PACKAGE_RESTORE = "stock_package_restore"
+    RECORDED_SLOT_THEN_STOCK_PACKAGE = "recorded_slot_then_stock_package"
+
+
+class DeviceRecoveryOperation(StrEnum):
+    ACTIVATE_RECORDED_SLOT = "activate_recorded_slot"
+    RESTORE_STOCK_PACKAGE = "restore_stock_package"
+    REBOOT_SYSTEM = "reboot_system"
+    VERIFY_POST_BOOT = "verify_post_boot"
+
+
 class PartitionVerificationMethod(StrEnum):
     """Exact readback method declared by a physically tested Device Pack."""
 
@@ -175,6 +202,67 @@ class DevicePostWriteVerificationContract:
 
 
 @dataclass(frozen=True, slots=True)
+class DeviceModeTransitionRule:
+    """One signed mode/slot boundary around the exact ordered image writes."""
+
+    order: int
+    after_write_order: int
+    operation: DeviceTransitionOperation
+    from_mode: DeviceMode
+    to_mode: DeviceMode
+    target_slot: str
+    timeout_seconds: int
+
+
+@dataclass(frozen=True, slots=True)
+class DeviceRecoveryActionRule:
+    """One adapter-scoped recovery action; never a raw command string."""
+
+    order: int
+    operation: DeviceRecoveryOperation
+    adapter_action_id: str
+    from_mode: DeviceMode
+    to_mode: DeviceMode
+    target_slot: str
+    timeout_seconds: int
+    may_wipe_user_data: bool
+
+
+@dataclass(frozen=True, slots=True)
+class DeviceRecoveryContract:
+    """Exact stock-recovery path required before a runtime may be considered."""
+
+    strategy: DeviceRecoveryStrategy
+    adapter_id: str
+    stock_package_sha256: str
+    entry_mode: DeviceMode
+    actions: tuple[DeviceRecoveryActionRule, ...]
+    require_external_backup: bool
+    require_stock_recovery: bool
+    require_prewrite_slot_capture: bool
+    may_wipe_user_data: bool
+    automatic_wipe_allowed: bool
+    bootloader_relock_allowed: bool
+
+
+@dataclass(frozen=True, slots=True)
+class DeviceTransitionRecoveryContract:
+    """Signed orchestration intent with deliberately zero execution authority."""
+
+    contract_id: str
+    version: int
+    source_build_id: str
+    attestation_sha256: str
+    entry_mode: DeviceMode
+    transitions: tuple[DeviceModeTransitionRule, ...]
+    final_mode: DeviceMode
+    recovery: DeviceRecoveryContract
+    final_consent_required: bool
+    execution_authority: str
+    bootloader_relock_allowed: bool
+
+
+@dataclass(frozen=True, slots=True)
 class DeviceWriteContract:
     """Signed write intent that still requires Guardian artifact binding and consent."""
 
@@ -189,6 +277,7 @@ class DeviceWriteContract:
     writes: tuple[PartitionWriteRule, ...]
     bootloader_relock_allowed: bool = False
     post_write_verification_contract: DevicePostWriteVerificationContract | None = None
+    transition_recovery_contract: DeviceTransitionRecoveryContract | None = None
 
 
 @dataclass(frozen=True, slots=True)

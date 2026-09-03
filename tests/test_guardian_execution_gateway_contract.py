@@ -30,6 +30,7 @@ from romverse.ui.rom_studio import GuardianReviewWorker, RomStudio
 from tests.test_guardian_execution_plan import (
     _prepared,
     _prepared_with_post_write_verification,
+    _prepared_with_transition_recovery,
 )
 
 
@@ -192,6 +193,55 @@ def test_guardian_worker_seals_schema_two_plan_and_gateway_contract(tmp_path, mo
     assert 90 not in progress
     assert 94 not in progress
     assert terminal_records == [(True, True, True)]
+
+
+def test_guardian_worker_seals_schema_three_plan_without_using_schema_two_gateway(
+    tmp_path,
+    monkeypatch,
+):
+    plans, project, report, device, _manifest, _binding, _verification, transition = (
+        _prepared_with_transition_recovery(tmp_path, monkeypatch)
+    )
+    worker = GuardianReviewWorker(
+        GuardianArtifactBindingService(
+            plans.store,
+            plans.registry,
+            runner=_NoRuntimeRunner(),
+        ),
+        GuardianManifestReviewService(plans.store, plans.registry),
+        project.project_id,
+        report,
+        device,
+    )
+    completed = []
+    failed = []
+    progress = []
+    worker.signals.complete.connect(completed.append)
+    worker.signals.failed.connect(failed.append)
+    worker.signals.progress.connect(progress.append)
+
+    worker.run()
+
+    assert failed == []
+    assert len(completed) == 1
+    assert worker.execution_plan is not None
+    assert worker.execution_plan.plan_status == (
+        "ready-for-inert-transition-aware-gateway-contract"
+    )
+    assert worker.execution_plan.transition_recovery_contract_id == transition.contract_id
+    assert worker.execution_plan.execution_authority == "none"
+    assert not worker.execution_plan.phone_changed
+    assert worker.gateway_contract is None
+    guardian_root = plans.store.projects_root / project.project_id / "guardian"
+    assert (guardian_root / "artifact-binding.romverse").is_file()
+    assert (guardian_root / "manifest-review.romverse").is_file()
+    assert (guardian_root / "execution-plan.romverse").is_file()
+    assert not (guardian_root / "execution-gateway-contract.romverse").exists()
+    assert progress[0] == 0
+    assert progress[-1] == 100
+    assert progress == sorted(progress)
+    assert 90 not in progress
+    assert 94 not in progress
 
 
 def test_guardian_ui_shows_plan_and_result_template_without_execution_control(

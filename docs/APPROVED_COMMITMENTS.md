@@ -654,6 +654,15 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   is explicitly not an execution receipt, invokes no runtime, changes no phone, exposes no final
   consent, and remains blocked on exact signed transition/recovery orchestration and physical
   validation;
+  fail-closed partition-write schema three for the next signed orchestration boundary, binding the
+  same exact source/attestation to a contiguous transport-correct Bootloader/Fastbootd write-boundary
+  sequence, one final system transition, exact final activation for slotted writes, and a bounded
+  source-package-digest-bound stock recovery adapter/action chain; external backup and stock recovery
+  are mandatory, every possible wipe is disclosed while automatic wipe and all relocking remain
+  prohibited, separate final consent is required but unavailable, and execution authority is `none`;
+  the inert plan binds that complete contract and stops at
+  `ready-for-inert-transition-aware-gateway-contract`, while the managed Desktop worker refuses to
+  reuse or emit the schema-two gateway and performs no phone action;
   end-to-end Desktop presentation of that inert chain through the managed ROM Studio Guardian
   worker, with a single monotonic byte-derived scale across each required artifact rehash, terminal
   100 only after the applicable private records are sealed, readable dark scroll cards for

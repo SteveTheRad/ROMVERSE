@@ -444,8 +444,7 @@ unknown Fastboot options, destructive targets, relock language, hostile structur
 confusion. When a schema-one write contract does not define exact readback or post-boot
 postconditions, the plan remains `blocked-missing-exact-post-write-verification` with final consent
 unavailable, execution authority `none` and phone changed `false`. Partition-write schema two
-defines the
-next exact contract boundary: one full-partition `fastboot fetch` size and SHA-256 per declared
+defines the next exact contract boundary: one full-partition `fastboot fetch` size and SHA-256 per declared
 write, the same source-build and signed physical-attestation digest, authorized ADB, a 30-to-900
 second first-boot timeout, and an allowlisted minimum Device DNA set including boot completion,
 device, fingerprint, incremental, SDK, security patch and Verified Boot state. Device Atlas counts
@@ -453,10 +452,21 @@ this as flash-contract evidence only when all of those facts match exactly; sche
 readable but not flash-ready. The inert plan binds the schema-two verification contract's identity,
 digest and bounded counts, then advances only to `ready-for-inert-gateway-contract`. That state permits
 only regeneration of the separately verified, still-inert gateway/result template. Neither record can
-expose final consent or execute a command; signed transition/recovery orchestration, the governed
-runtime, immutable execution/postcondition receipts and physical validation remain absent. A
-successful Fastboot response alone must never be presented as a verified healthy upgrade. Neither
-schema authorizes or infers mode transitions, slot activation, reboot, wipe, rollback or recovery.
+expose final consent or execute a command.
+
+Partition-write schema three adds a separately signed transition/recovery contract. It binds the
+same exact source build and physical-attestation digest, a contiguous device-mode chain at explicit
+write boundaries, transport-correct Bootloader/Fastbootd states, one final system transition, and,
+for slotted writes, one exact final slot activation. Its recovery contract names a bounded adapter,
+binds the exact stock source-package SHA-256, declares typed recovery actions and prior-slot capture
+where applicable, requires an external backup and stock-recovery evidence, discloses every possible
+data wipe, prohibits automatic wipe and relocking, and requires separate final consent while granting
+execution authority `none`. The execution plan binds the complete transition/recovery digest and
+counts but stops at `ready-for-inert-transition-aware-gateway-contract`: it does not turn those typed
+rules into commands or reuse the schema-two gateway. A successful Fastboot response alone must never
+be presented as a verified healthy upgrade. A transition-aware inert gateway, live target
+re-identification, immutable execution/postcondition receipts, governed runtime, explicit final
+consent and independent physical validation remain separate unfinished gates.
 
 The next private record is a typed, still-inert execution-gateway contract. It independently reloads
 the current execution plan, rehashes its bound artifacts through that plan, and accepts only a
@@ -482,6 +492,9 @@ cards for exact binding, partition intent, preconditions, immediate readback siz
 Device DNA and unresolved blockers. Guardian Core retains the same exact plan/template identities
 only while the manifest remains valid. Changed or authority-bearing cached objects are discarded,
 and neither surface exposes an execute, flash, consent, transition or reboot control.
+For schema three, the same worker seals the artifact-bound manifest and transition/recovery-bound
+plan using two measured full rehash passes, deliberately leaves the schema-two gateway absent, and
+reaches terminal completion only after those fail-closed records exist.
 
 Time Machine registers independently stored phone backups and exact stock-recovery packages without
 copying them into the workspace. Its public-safe evidence and private locator use separate bounded

@@ -4,7 +4,7 @@ import fnmatch
 import hashlib
 import json
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import date
 from typing import Protocol
 from urllib.parse import urlsplit
@@ -17,8 +17,16 @@ from romverse.device_packs.models import (
     AvbPolicyMode,
     CapabilityStatus,
     DeviceBuildContract,
+    DeviceMode,
+    DeviceModeTransitionRule,
     DevicePack,
     DevicePostWriteVerificationContract,
+    DeviceRecoveryActionRule,
+    DeviceRecoveryContract,
+    DeviceRecoveryOperation,
+    DeviceRecoveryStrategy,
+    DeviceTransitionOperation,
+    DeviceTransitionRecoveryContract,
     DeviceWriteContract,
     DeviceWriteTransport,
     DynamicPartitionGroup,
@@ -560,7 +568,7 @@ class DevicePackRegistry:
         if (
             not isinstance(data, dict)
             or type(data.get("schema_version")) is not int
-            or data.get("schema_version") not in {1, 2}
+            or data.get("schema_version") not in {1, 2, 3}
         ):
             raise ValueError("unsupported partition-write contract schema")
         schema_version = data["schema_version"]
@@ -576,8 +584,10 @@ class DevicePackRegistry:
             "bootloader_relock_allowed",
             "writes",
         }
-        if schema_version == 2:
+        if schema_version in {2, 3}:
             expected_fields.add("post_write_verification_contract")
+        if schema_version == 3:
+            expected_fields.add("transition_recovery_contract")
         if set(data) != expected_fields:
             raise ValueError("partition-write contract fields are incomplete or unsupported")
         contract_id = _safe_identifier(data["contract_id"], "partition-write contract id")
@@ -636,7 +646,17 @@ class DevicePackRegistry:
                 attestation_sha256,
                 writes,
             )
-            if schema_version == 2
+            if schema_version in {2, 3}
+            else None
+        )
+        transition_recovery_contract = (
+            DevicePackRegistry._parse_transition_recovery_contract(
+                data["transition_recovery_contract"],
+                source,
+                attestation_sha256,
+                writes,
+            )
+            if schema_version == 3
             else None
         )
         return DeviceWriteContract(
@@ -651,6 +671,7 @@ class DevicePackRegistry:
             writes=writes,
             bootloader_relock_allowed=False,
             post_write_verification_contract=verification_contract,
+            transition_recovery_contract=transition_recovery_contract,
         )
 
     @staticmethod
@@ -755,6 +776,447 @@ class DevicePackRegistry:
             post_boot_properties=properties,
             require_adb_authorized=True,
             boot_timeout_seconds=boot_timeout,
+        )
+
+    @staticmethod
+    def _parse_transition_recovery_contract(
+        data: object,
+        source: FirmwareSourceContract,
+        write_attestation_sha256: str,
+        writes: tuple[PartitionWriteRule, ...],
+    ) -> DeviceTransitionRecoveryContract:
+        if (
+            not isinstance(data, dict)
+            or type(data.get("schema_version")) is not int
+            or data.get("schema_version") != 1
+        ):
+            raise ValueError("unsupported transition/recovery contract schema")
+        if set(data) != {
+            "schema_version",
+            "contract_id",
+            "source_build_id",
+            "attestation_sha256",
+            "entry_mode",
+            "transitions",
+            "final_mode",
+            "recovery",
+            "final_consent_required",
+            "execution_authority",
+            "bootloader_relock_allowed",
+        }:
+            raise ValueError("transition/recovery contract fields are incomplete or unsupported")
+        contract_id = _safe_identifier(data["contract_id"], "transition/recovery contract id")
+        source_build_id = _bounded_text(
+            data["source_build_id"], "transition/recovery source build id"
+        )
+        attestation_sha256 = _sha256(data["attestation_sha256"], "transition/recovery attestation")
+        if source_build_id != source.build_id:
+            raise ValueError("transition/recovery contract must bind the exact source build")
+        if attestation_sha256 != write_attestation_sha256:
+            raise ValueError(
+                "transition/recovery contract must bind the partition-write attestation"
+            )
+        try:
+            entry_mode = DeviceMode(str(data["entry_mode"]))
+            final_mode = DeviceMode(str(data["final_mode"]))
+        except ValueError as exc:
+            raise ValueError("unsupported transition/recovery device mode") from exc
+        if entry_mode not in {DeviceMode.BOOTLOADER, DeviceMode.FASTBOOTD}:
+            raise ValueError("transition/recovery entry mode must be bootloader or fastbootd")
+        if final_mode is not DeviceMode.ANDROID:
+            raise ValueError("forward transition contract must end in Android")
+        raw_transitions = _object_list(data["transitions"], "mode transitions")
+        if len(raw_transitions) > len(writes) * 2 + 3:
+            raise ValueError("transition/recovery contract exceeds the bounded transition limit")
+        transitions = tuple(
+            DevicePackRegistry._parse_mode_transition_rule(item, len(writes))
+            for item in raw_transitions
+        )
+        DevicePackRegistry._validate_transition_sequence(
+            entry_mode,
+            final_mode,
+            transitions,
+            writes,
+        )
+        recovery = DevicePackRegistry._parse_recovery_contract(
+            data["recovery"],
+            source,
+            writes,
+        )
+        final_consent_required = _strict_bool(
+            data["final_consent_required"], "final_consent_required"
+        )
+        relock_allowed = _strict_bool(
+            data["bootloader_relock_allowed"], "transition bootloader_relock_allowed"
+        )
+        if not final_consent_required:
+            raise ValueError("transition/recovery contract must require separate final consent")
+        if data["execution_authority"] != "none":
+            raise ValueError("transition/recovery contract cannot grant execution authority")
+        if relock_allowed:
+            raise ValueError("bootloader relocking is permanently prohibited")
+        return DeviceTransitionRecoveryContract(
+            contract_id=contract_id,
+            version=1,
+            source_build_id=source_build_id,
+            attestation_sha256=attestation_sha256,
+            entry_mode=entry_mode,
+            transitions=transitions,
+            final_mode=final_mode,
+            recovery=recovery,
+            final_consent_required=True,
+            execution_authority="none",
+            bootloader_relock_allowed=False,
+        )
+
+    @staticmethod
+    def transition_recovery_contract_is_valid(
+        write_contract: DeviceWriteContract,
+        source: FirmwareSourceContract,
+    ) -> bool:
+        """Revalidate an in-memory schema-three contract through the strict parser."""
+
+        contract = write_contract.transition_recovery_contract
+        if write_contract.version != 3 or contract is None:
+            return False
+        # Match the JSON/list shapes accepted at the untrusted Pack boundary rather than
+        # accidentally treating dataclass tuples as a second, weaker input language.
+        raw = json.loads(json.dumps(asdict(contract)))
+        raw["schema_version"] = raw.pop("version")
+        try:
+            parsed = DevicePackRegistry._parse_transition_recovery_contract(
+                raw,
+                source,
+                write_contract.attestation_sha256,
+                write_contract.writes,
+            )
+        except (KeyError, TypeError, ValueError):
+            return False
+        return parsed == contract
+
+    @staticmethod
+    def _parse_mode_transition_rule(
+        data: dict,
+        write_count: int,
+    ) -> DeviceModeTransitionRule:
+        if set(data) != {
+            "order",
+            "after_write_order",
+            "operation",
+            "from_mode",
+            "to_mode",
+            "target_slot",
+            "timeout_seconds",
+        }:
+            raise ValueError("mode-transition fields are incomplete or unsupported")
+        order = data["order"]
+        after_write_order = data["after_write_order"]
+        timeout = data["timeout_seconds"]
+        if type(order) is not int or type(after_write_order) is not int or type(timeout) is not int:
+            raise TypeError("mode-transition order and timeout fields must be integers")
+        if not 0 <= after_write_order <= write_count:
+            raise ValueError("mode transition references an impossible write boundary")
+        if not 5 <= timeout <= 600:
+            raise ValueError("mode-transition timeout must be 5 to 600 seconds")
+        try:
+            operation = DeviceTransitionOperation(str(data["operation"]))
+            from_mode = DeviceMode(str(data["from_mode"]))
+            to_mode = DeviceMode(str(data["to_mode"]))
+        except ValueError as exc:
+            raise ValueError("unsupported mode-transition operation or device mode") from exc
+        target_slot = str(data["target_slot"])
+        if target_slot not in {"a", "b", "none"}:
+            raise ValueError("mode-transition target slot must be a, b, or none")
+        valid_shape = {
+            DeviceTransitionOperation.REBOOT_FASTBOOTD: (
+                DeviceMode.BOOTLOADER,
+                DeviceMode.FASTBOOTD,
+                "none",
+            ),
+            DeviceTransitionOperation.REBOOT_BOOTLOADER: (
+                DeviceMode.FASTBOOTD,
+                DeviceMode.BOOTLOADER,
+                "none",
+            ),
+            DeviceTransitionOperation.REBOOT_SYSTEM: (
+                from_mode,
+                DeviceMode.ANDROID,
+                "none",
+            ),
+        }.get(operation)
+        valid = from_mode in {DeviceMode.BOOTLOADER, DeviceMode.FASTBOOTD} and (
+            (
+                operation is DeviceTransitionOperation.SET_ACTIVE_SLOT
+                and to_mode is from_mode
+                and target_slot in {"a", "b"}
+            )
+            or (valid_shape is not None and (from_mode, to_mode, target_slot) == valid_shape)
+        )
+        if not valid:
+            raise ValueError("mode-transition operation does not match its modes or target slot")
+        return DeviceModeTransitionRule(
+            order,
+            after_write_order,
+            operation,
+            from_mode,
+            to_mode,
+            target_slot,
+            timeout,
+        )
+
+    @staticmethod
+    def _validate_transition_sequence(
+        entry_mode: DeviceMode,
+        final_mode: DeviceMode,
+        transitions: tuple[DeviceModeTransitionRule, ...],
+        writes: tuple[PartitionWriteRule, ...],
+    ) -> None:
+        if tuple(item.order for item in transitions) != tuple(range(1, len(transitions) + 1)):
+            raise ValueError("mode-transition order must be contiguous")
+        boundaries = tuple(item.after_write_order for item in transitions)
+        if boundaries != tuple(sorted(boundaries)):
+            raise ValueError("mode-transition write boundaries must be monotonic")
+        current_mode = entry_mode
+        transition_index = 0
+        for write_index, write in enumerate(writes, 1):
+            boundary = write_index - 1
+            while (
+                transition_index < len(transitions)
+                and transitions[transition_index].after_write_order == boundary
+            ):
+                transition = transitions[transition_index]
+                if transition.from_mode is not current_mode:
+                    raise ValueError("mode-transition chain does not match the prior mode")
+                current_mode = transition.to_mode
+                transition_index += 1
+            required_mode = (
+                DeviceMode.BOOTLOADER
+                if write.transport is DeviceWriteTransport.FASTBOOT
+                else DeviceMode.FASTBOOTD
+            )
+            if current_mode is not required_mode:
+                raise ValueError("mode-transition chain does not reach each write transport")
+        while transition_index < len(transitions):
+            transition = transitions[transition_index]
+            if transition.after_write_order != len(writes):
+                raise ValueError("mode-transition chain contains an unresolved write boundary")
+            if transition.from_mode is not current_mode:
+                raise ValueError("mode-transition chain does not match the prior mode")
+            current_mode = transition.to_mode
+            transition_index += 1
+        if current_mode is not final_mode:
+            raise ValueError("mode-transition chain does not reach its declared final mode")
+        reboot_steps = tuple(
+            item
+            for item in transitions
+            if item.operation is DeviceTransitionOperation.REBOOT_SYSTEM
+        )
+        if len(reboot_steps) != 1 or transitions[-1] is not reboot_steps[0]:
+            raise ValueError("mode-transition chain must end with exactly one system reboot")
+        activation_steps = tuple(
+            item
+            for item in transitions
+            if item.operation is DeviceTransitionOperation.SET_ACTIVE_SLOT
+        )
+        written_slots = {item.target_slot for item in writes if item.target_slot != "none"}
+        if written_slots:
+            if (
+                len(activation_steps) != 1
+                or activation_steps[0].target_slot not in written_slots
+                or activation_steps[0].after_write_order != len(writes)
+            ):
+                raise ValueError("slotted writes require one exact final activation step")
+        elif activation_steps:
+            raise ValueError("non-slotted writes cannot declare slot activation")
+
+    @staticmethod
+    def _parse_recovery_contract(
+        data: object,
+        source: FirmwareSourceContract,
+        writes: tuple[PartitionWriteRule, ...],
+    ) -> DeviceRecoveryContract:
+        if not isinstance(data, dict) or set(data) != {
+            "strategy",
+            "adapter_id",
+            "stock_package_sha256",
+            "entry_mode",
+            "actions",
+            "require_external_backup",
+            "require_stock_recovery",
+            "require_prewrite_slot_capture",
+            "may_wipe_user_data",
+            "automatic_wipe_allowed",
+            "bootloader_relock_allowed",
+        }:
+            raise ValueError("recovery-contract fields are incomplete or unsupported")
+        try:
+            strategy = DeviceRecoveryStrategy(str(data["strategy"]))
+            entry_mode = DeviceMode(str(data["entry_mode"]))
+        except ValueError as exc:
+            raise ValueError("unsupported recovery strategy or entry mode") from exc
+        if entry_mode not in {DeviceMode.BOOTLOADER, DeviceMode.FASTBOOTD}:
+            raise ValueError("recovery entry mode must be bootloader or fastbootd")
+        adapter_id = _safe_identifier(data["adapter_id"], "recovery adapter id")
+        if "relock" in adapter_id.casefold():
+            raise ValueError("recovery adapter cannot contain a relock operation")
+        stock_package_sha256 = _sha256(data["stock_package_sha256"], "stock recovery package")
+        if stock_package_sha256 != source.archive_sha256:
+            raise ValueError("recovery contract must bind the exact stock source package")
+        flags = {
+            name: _strict_bool(data[name], name)
+            for name in (
+                "require_external_backup",
+                "require_stock_recovery",
+                "require_prewrite_slot_capture",
+                "may_wipe_user_data",
+                "automatic_wipe_allowed",
+                "bootloader_relock_allowed",
+            )
+        }
+        if not flags["require_external_backup"] or not flags["require_stock_recovery"]:
+            raise ValueError(
+                "recovery contract must require backup and exact stock recovery evidence"
+            )
+        if flags["automatic_wipe_allowed"]:
+            raise ValueError("recovery contract cannot authorize an automatic wipe")
+        if flags["bootloader_relock_allowed"]:
+            raise ValueError("bootloader relocking is permanently prohibited")
+        raw_actions = _object_list(data["actions"], "recovery actions")
+        if len(raw_actions) > 16:
+            raise ValueError("recovery contract exceeds the 16-action limit")
+        actions = tuple(
+            DevicePackRegistry._parse_recovery_action_rule(item, adapter_id) for item in raw_actions
+        )
+        if tuple(item.order for item in actions) != tuple(range(1, len(actions) + 1)):
+            raise ValueError("recovery-action order must be contiguous")
+        if len({item.adapter_action_id for item in actions}) != len(actions):
+            raise ValueError("recovery adapter action identifiers must be unique")
+        current_mode = entry_mode
+        for action in actions:
+            if action.from_mode is not current_mode:
+                raise ValueError("recovery-action chain does not match the prior mode")
+            current_mode = action.to_mode
+        if current_mode is not DeviceMode.ANDROID:
+            raise ValueError("recovery-action chain must finish in Android")
+        restores = tuple(
+            item
+            for item in actions
+            if item.operation is DeviceRecoveryOperation.RESTORE_STOCK_PACKAGE
+        )
+        verifications = tuple(
+            item for item in actions if item.operation is DeviceRecoveryOperation.VERIFY_POST_BOOT
+        )
+        activations = tuple(
+            item
+            for item in actions
+            if item.operation is DeviceRecoveryOperation.ACTIVATE_RECORDED_SLOT
+        )
+        if len(restores) != 1 or len(verifications) != 1 or actions[-1] is not verifications[0]:
+            raise ValueError(
+                "recovery requires one stock restore and one final post-boot verification"
+            )
+        if flags["may_wipe_user_data"] != any(item.may_wipe_user_data for item in actions):
+            raise ValueError("recovery wipe disclosure must match its declared actions")
+        if strategy is DeviceRecoveryStrategy.STOCK_PACKAGE_RESTORE:
+            if activations or flags["require_prewrite_slot_capture"]:
+                raise ValueError("stock-package recovery cannot claim a recorded-slot action")
+        elif (
+            len(activations) != 1
+            or actions[0] is not activations[0]
+            or not flags["require_prewrite_slot_capture"]
+            or not any(item.target_slot != "none" for item in writes)
+        ):
+            raise ValueError(
+                "recorded-slot recovery requires a slotted write and captured prior slot"
+            )
+        return DeviceRecoveryContract(
+            strategy=strategy,
+            adapter_id=adapter_id,
+            stock_package_sha256=stock_package_sha256,
+            entry_mode=entry_mode,
+            actions=actions,
+            require_external_backup=True,
+            require_stock_recovery=True,
+            require_prewrite_slot_capture=flags["require_prewrite_slot_capture"],
+            may_wipe_user_data=flags["may_wipe_user_data"],
+            automatic_wipe_allowed=False,
+            bootloader_relock_allowed=False,
+        )
+
+    @staticmethod
+    def _parse_recovery_action_rule(
+        data: dict,
+        adapter_id: str,
+    ) -> DeviceRecoveryActionRule:
+        if set(data) != {
+            "order",
+            "operation",
+            "adapter_action_id",
+            "from_mode",
+            "to_mode",
+            "target_slot",
+            "timeout_seconds",
+            "may_wipe_user_data",
+        }:
+            raise ValueError("recovery-action fields are incomplete or unsupported")
+        order = data["order"]
+        timeout = data["timeout_seconds"]
+        if type(order) is not int or type(timeout) is not int:
+            raise TypeError("recovery-action order and timeout must be integers")
+        if not 5 <= timeout <= 3600:
+            raise ValueError("recovery-action timeout must be 5 to 3600 seconds")
+        try:
+            operation = DeviceRecoveryOperation(str(data["operation"]))
+            from_mode = DeviceMode(str(data["from_mode"]))
+            to_mode = DeviceMode(str(data["to_mode"]))
+        except ValueError as exc:
+            raise ValueError("unsupported recovery operation or device mode") from exc
+        action_id = _safe_identifier(data["adapter_action_id"], "recovery adapter action id")
+        if not action_id.startswith(f"{adapter_id}.") or "relock" in action_id.casefold():
+            raise ValueError("recovery action is not scoped to the declared safe adapter")
+        target_slot = str(data["target_slot"])
+        if target_slot not in {"none", "recorded_prewrite"}:
+            raise ValueError("recovery target slot must be none or recorded_prewrite")
+        may_wipe = _strict_bool(data["may_wipe_user_data"], "recovery may_wipe_user_data")
+        fastboot_modes = {DeviceMode.BOOTLOADER, DeviceMode.FASTBOOTD}
+        if operation is DeviceRecoveryOperation.ACTIVATE_RECORDED_SLOT:
+            valid = (
+                from_mode in fastboot_modes
+                and to_mode is from_mode
+                and target_slot == "recorded_prewrite"
+                and not may_wipe
+            )
+        elif operation is DeviceRecoveryOperation.RESTORE_STOCK_PACKAGE:
+            valid = (
+                from_mode in fastboot_modes
+                and to_mode in {*fastboot_modes, DeviceMode.ANDROID}
+                and target_slot == "none"
+            )
+        elif operation is DeviceRecoveryOperation.REBOOT_SYSTEM:
+            valid = (
+                from_mode in fastboot_modes
+                and to_mode is DeviceMode.ANDROID
+                and target_slot == "none"
+                and not may_wipe
+            )
+        else:
+            valid = (
+                from_mode is DeviceMode.ANDROID
+                and to_mode is DeviceMode.ANDROID
+                and target_slot == "none"
+                and not may_wipe
+            )
+        if not valid:
+            raise ValueError("recovery action does not match its operation safety boundary")
+        return DeviceRecoveryActionRule(
+            order,
+            operation,
+            action_id,
+            from_mode,
+            to_mode,
+            target_slot,
+            timeout,
+            may_wipe,
         )
 
     @staticmethod

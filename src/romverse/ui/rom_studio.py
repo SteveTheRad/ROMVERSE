@@ -374,6 +374,7 @@ class GuardianReviewWorker(ManagedRunnable):
                 + int(
                     write_contract is not None
                     and write_contract.post_write_verification_contract is not None
+                    and write_contract.transition_recovery_contract is None
                 )
             )
 
@@ -414,7 +415,10 @@ class GuardianReviewWorker(ManagedRunnable):
                     self.device,
                     lambda value: publish_rehash_progress(1, value),
                 )
-                if self.execution_plan.post_write_verification_contract_version:
+                if (
+                    self.execution_plan.post_write_verification_contract_version
+                    and not self.execution_plan.transition_recovery_contract_version
+                ):
                     self.gateway_contract = GuardianExecutionGatewayContractService(
                         self.binding_service.store,
                         self.binding_service.registry,

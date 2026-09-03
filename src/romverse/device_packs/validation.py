@@ -18,7 +18,11 @@ from romverse.device_packs.attestations import (
 from romverse.device_packs.models import (
     AvbPolicyAuthority,
     CapabilityStatus,
+    DeviceMode,
     DevicePack,
+    DeviceRecoveryOperation,
+    DeviceRecoveryStrategy,
+    DeviceTransitionOperation,
     PartitionVerificationMethod,
 )
 
@@ -180,6 +184,8 @@ class DevicePackValidationService:
                 "physical-recovery-test",
                 "avb-execution-policy",
                 "partition-write-contract",
+                "post-write-verification-contract",
+                "transition-recovery-contract",
                 "publisher-signature",
             ):
                 if unresolved(check_id):
@@ -334,7 +340,7 @@ class DevicePackValidationService:
         post_write_verification_ready = bool(
             write_contract_ready
             and write_contract is not None
-            and write_contract.version == 2
+            and write_contract.version in {2, 3}
             and verification_contract is not None
             and verification_contract.version == 1
             and pack.build_contract is not None
@@ -363,6 +369,69 @@ class DevicePackValidationService:
                 for value in post_boot_values.values()
             )
             and post_boot_values.get("sys.boot_completed") == "1"
+        )
+        transition_contract = (
+            write_contract.transition_recovery_contract if write_contract is not None else None
+        )
+        recovery_contract = (
+            transition_contract.recovery if transition_contract is not None else None
+        )
+        transition_recovery_semantics_ready = False
+        if write_contract is not None and pack.build_contract is not None:
+            # Registry-loaded Packs already pass this parser. Repeating the strict check here also
+            # prevents a constructed or replaced in-memory Pack from bypassing Device Atlas.
+            from romverse.device_packs.registry import DevicePackRegistry
+
+            transition_recovery_semantics_ready = (
+                DevicePackRegistry.transition_recovery_contract_is_valid(
+                    write_contract,
+                    pack.build_contract.source,
+                )
+            )
+        transition_recovery_ready = bool(
+            post_write_verification_ready
+            and transition_recovery_semantics_ready
+            and write_contract is not None
+            and write_contract.version == 3
+            and transition_contract is not None
+            and transition_contract.version == 1
+            and pack.build_contract is not None
+            and attestation is not None
+            and transition_contract.source_build_id == pack.build_contract.source.build_id
+            and transition_contract.attestation_sha256 == attestation.envelope_sha256
+            and transition_contract.entry_mode in {DeviceMode.BOOTLOADER, DeviceMode.FASTBOOTD}
+            and transition_contract.final_mode is DeviceMode.ANDROID
+            and transition_contract.transitions
+            and tuple(item.order for item in transition_contract.transitions)
+            == tuple(range(1, len(transition_contract.transitions) + 1))
+            and transition_contract.transitions[-1].operation
+            is DeviceTransitionOperation.REBOOT_SYSTEM
+            and transition_contract.final_consent_required
+            and transition_contract.execution_authority == "none"
+            and not transition_contract.bootloader_relock_allowed
+            and recovery_contract is not None
+            and recovery_contract.strategy
+            in {
+                DeviceRecoveryStrategy.STOCK_PACKAGE_RESTORE,
+                DeviceRecoveryStrategy.RECORDED_SLOT_THEN_STOCK_PACKAGE,
+            }
+            and recovery_contract.stock_package_sha256 == pack.build_contract.source.archive_sha256
+            and recovery_contract.require_external_backup
+            and recovery_contract.require_stock_recovery
+            and recovery_contract.actions
+            and tuple(item.order for item in recovery_contract.actions)
+            == tuple(range(1, len(recovery_contract.actions) + 1))
+            and sum(
+                item.operation is DeviceRecoveryOperation.RESTORE_STOCK_PACKAGE
+                for item in recovery_contract.actions
+            )
+            == 1
+            and recovery_contract.actions[-1].operation is DeviceRecoveryOperation.VERIFY_POST_BOOT
+            and recovery_contract.actions[-1].to_mode is DeviceMode.ANDROID
+            and recovery_contract.may_wipe_user_data
+            == any(item.may_wipe_user_data for item in recovery_contract.actions)
+            and not recovery_contract.automatic_wipe_allowed
+            and not recovery_contract.bootloader_relock_allowed
         )
         checks = (
             ValidationCheck(
@@ -456,7 +525,29 @@ class DevicePackValidationService:
                         else "No partition write contract exists to verify"
                     )
                 ),
-                "Publish write-contract schema 2 with one physically tested full-partition Fastboot fetch digest per write, authorized-ADB first-boot properties, a bounded timeout, and the same exact signed physical-attestation digest.",
+                "Publish write-contract schema 2 or 3 with one physically tested full-partition Fastboot fetch digest per write, authorized-ADB first-boot properties, a bounded timeout, and the same exact signed physical-attestation digest.",
+                "flash",
+            ),
+            ValidationCheck(
+                "transition-recovery-contract",
+                "Exact transition, slot and recovery orchestration contract",
+                ValidationState.PASS if transition_recovery_ready else ValidationState.BLOCKED,
+                (
+                    f"Contract {transition_contract.contract_id} v{transition_contract.version} "
+                    f"binds {len(transition_contract.transitions)} forward transition(s), "
+                    f"{len(recovery_contract.actions)} recovery action(s), and exact stock package "
+                    f"{recovery_contract.stock_package_sha256[:16]}… with zero execution authority"
+                    if transition_recovery_ready
+                    and transition_contract is not None
+                    and recovery_contract is not None
+                    else (
+                        "A verified write/readback contract exists, but it has no signed exact "
+                        "mode, slot, reboot and stock-recovery orchestration"
+                        if post_write_verification_ready
+                        else "Post-write verification must be proven before transition/recovery orchestration"
+                    )
+                ),
+                "Publish write-contract schema 3 with a contiguous mode/slot sequence, exact source-bound stock-recovery adapter actions, backup requirements, wipe disclosure, separate final consent, zero execution authority, and permanent relock prohibition.",
                 "flash",
             ),
             ValidationCheck(

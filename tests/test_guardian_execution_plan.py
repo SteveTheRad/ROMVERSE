@@ -9,7 +9,15 @@ from dataclasses import asdict, replace
 import pytest
 
 from romverse.device_packs.models import (
+    DeviceMode,
+    DeviceModeTransitionRule,
     DevicePostWriteVerificationContract,
+    DeviceRecoveryActionRule,
+    DeviceRecoveryContract,
+    DeviceRecoveryOperation,
+    DeviceRecoveryStrategy,
+    DeviceTransitionOperation,
+    DeviceTransitionRecoveryContract,
     DeviceWriteTransport,
     PartitionReadbackRule,
     PartitionVerificationMethod,
@@ -24,6 +32,12 @@ from romverse.guardian.execution_plan import (
 from romverse.guardian.manifest_review import GuardianManifestReviewService
 from romverse.rom.models import ProjectError
 from tests.test_guardian_artifact_binding import _setup
+
+
+def _digest(payload: dict[str, object]) -> str:
+    return hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
 
 
 def _prepared(tmp_path, monkeypatch):
@@ -98,6 +112,121 @@ def _prepared_with_post_write_verification(tmp_path, monkeypatch):
     )
     plans = GuardianExecutionPlanService(service.store, registry)
     return plans, project, report, device, manifest, binding, verification
+
+
+def _prepared_with_transition_recovery(tmp_path, monkeypatch):
+    plans, project, report, device, _manifest, _binding, verification = (
+        _prepared_with_post_write_verification(tmp_path, monkeypatch)
+    )
+    pack = plans.registry.packs[0]
+    assert pack.build_contract is not None
+    write_contract = pack.build_contract.partition_write_contract
+    assert write_contract is not None
+    transition = DeviceTransitionRecoveryContract(
+        "exact-transition-recovery",
+        1,
+        write_contract.source_build_id,
+        write_contract.attestation_sha256,
+        DeviceMode.BOOTLOADER,
+        (
+            DeviceModeTransitionRule(
+                1,
+                0,
+                DeviceTransitionOperation.REBOOT_FASTBOOTD,
+                DeviceMode.BOOTLOADER,
+                DeviceMode.FASTBOOTD,
+                "none",
+                60,
+            ),
+            DeviceModeTransitionRule(
+                2,
+                1,
+                DeviceTransitionOperation.REBOOT_SYSTEM,
+                DeviceMode.FASTBOOTD,
+                DeviceMode.ANDROID,
+                "none",
+                300,
+            ),
+        ),
+        DeviceMode.ANDROID,
+        DeviceRecoveryContract(
+            DeviceRecoveryStrategy.STOCK_PACKAGE_RESTORE,
+            "test.fastboot.stock",
+            pack.build_contract.source.archive_sha256,
+            DeviceMode.BOOTLOADER,
+            (
+                DeviceRecoveryActionRule(
+                    1,
+                    DeviceRecoveryOperation.RESTORE_STOCK_PACKAGE,
+                    "test.fastboot.stock.restore",
+                    DeviceMode.BOOTLOADER,
+                    DeviceMode.BOOTLOADER,
+                    "none",
+                    1800,
+                    True,
+                ),
+                DeviceRecoveryActionRule(
+                    2,
+                    DeviceRecoveryOperation.REBOOT_SYSTEM,
+                    "test.fastboot.stock.reboot",
+                    DeviceMode.BOOTLOADER,
+                    DeviceMode.ANDROID,
+                    "none",
+                    300,
+                    False,
+                ),
+                DeviceRecoveryActionRule(
+                    3,
+                    DeviceRecoveryOperation.VERIFY_POST_BOOT,
+                    "test.fastboot.stock.verify",
+                    DeviceMode.ANDROID,
+                    DeviceMode.ANDROID,
+                    "none",
+                    300,
+                    False,
+                ),
+            ),
+            True,
+            True,
+            False,
+            True,
+            False,
+            False,
+        ),
+        True,
+        "none",
+        False,
+    )
+    upgraded_write_contract = replace(
+        write_contract,
+        version=3,
+        transition_recovery_contract=transition,
+    )
+    upgraded_pack = replace(
+        pack,
+        build_contract=replace(
+            pack.build_contract,
+            partition_write_contract=upgraded_write_contract,
+        ),
+    )
+    registry = DevicePackRegistry((upgraded_pack,))
+    binding = GuardianArtifactBindingService(plans.store, registry).prepare(project.project_id)
+    manifest = GuardianManifestReviewService(plans.store, registry).compile(
+        project.project_id,
+        report,
+        device,
+        binding=binding,
+    )
+    return (
+        GuardianExecutionPlanService(plans.store, registry),
+        project,
+        report,
+        device,
+        manifest,
+        binding,
+        verification,
+        transition,
+    )
 
 
 def test_execution_plan_derives_exact_redacted_review_only_commands(tmp_path, monkeypatch):
@@ -196,6 +325,82 @@ def test_execution_plan_binds_exact_post_write_contract_but_keeps_consent_locked
         )
     )
     assert plans.load(project.project_id, report, device) is None
+
+
+def test_execution_plan_binds_exact_transition_recovery_contract_without_authority(
+    tmp_path,
+    monkeypatch,
+):
+    plans, project, report, device, _manifest, _binding, _verification, transition = (
+        _prepared_with_transition_recovery(tmp_path, monkeypatch)
+    )
+
+    plan = plans.compile(project.project_id, report, device)
+
+    assert plan.schema_version == 3
+    assert plan.write_contract_version == 3
+    assert plan.transition_recovery_contract_id == transition.contract_id
+    assert plan.transition_recovery_contract_version == transition.version
+    assert plan.transition_recovery_contract_digest == _digest(asdict(transition))
+    assert plan.mode_transition_count == len(transition.transitions)
+    assert plan.recovery_action_count == len(transition.recovery.actions)
+    assert plan.recovery_adapter_id == transition.recovery.adapter_id
+    assert plan.recovery_stock_package_sha256 == transition.recovery.stock_package_sha256
+    assert plan.recovery_may_wipe_user_data
+    assert plan.plan_status == "ready-for-inert-transition-aware-gateway-contract"
+    assert not plan.final_consent_available
+    assert plan.execution_authority == "none"
+    assert not plan.phone_changed
+    assert not plan.bootloader_relock_allowed
+    assert plans.load(project.project_id, report, device) == plan
+
+    pack = plans.registry.packs[0]
+    assert pack.build_contract is not None
+    write_contract = pack.build_contract.partition_write_contract
+    assert write_contract is not None
+    changed_transition = replace(
+        transition,
+        recovery=replace(transition.recovery, stock_package_sha256="e" * 64),
+    )
+    plans.registry = DevicePackRegistry(
+        (
+            replace(
+                pack,
+                build_contract=replace(
+                    pack.build_contract,
+                    partition_write_contract=replace(
+                        write_contract,
+                        transition_recovery_contract=changed_transition,
+                    ),
+                ),
+            ),
+        )
+    )
+    assert plans.load(project.project_id, report, device) is None
+
+    unsafe_transition = replace(
+        transition,
+        transitions=(
+            replace(transition.transitions[0], after_write_order=1),
+            *transition.transitions[1:],
+        ),
+    )
+    plans.registry = DevicePackRegistry(
+        (
+            replace(
+                pack,
+                build_contract=replace(
+                    pack.build_contract,
+                    partition_write_contract=replace(
+                        write_contract,
+                        transition_recovery_contract=unsafe_transition,
+                    ),
+                ),
+            ),
+        )
+    )
+    with pytest.raises(ProjectError, match="write contract"):
+        plans.compile(project.project_id, report, device)
 
 
 def test_execution_plan_rehashes_artifacts_and_rejects_changed_current_evidence(

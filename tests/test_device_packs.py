@@ -12,6 +12,10 @@ from romverse.device_packs.models import (
     AvbPolicyAuthority,
     AvbPolicyMode,
     CapabilityStatus,
+    DeviceMode,
+    DeviceRecoveryOperation,
+    DeviceRecoveryStrategy,
+    DeviceTransitionOperation,
     DeviceWriteTransport,
     FirmwareSourceContract,
 )
@@ -535,6 +539,88 @@ def _schema_two_build_contract_with_post_write_verification() -> dict:
     return contract
 
 
+def _schema_three_build_contract_with_transition_recovery() -> dict:
+    contract = _schema_two_build_contract_with_post_write_verification()
+    write_contract = contract["partition_write_contract"]
+    write_contract["schema_version"] = 3
+    write_contract["transition_recovery_contract"] = {
+        "schema_version": 1,
+        "contract_id": "popsicle-exact-transition-recovery",
+        "source_build_id": contract["source"]["build_id"],
+        "attestation_sha256": "c" * 64,
+        "entry_mode": "bootloader",
+        "transitions": [
+            {
+                "order": 1,
+                "after_write_order": 0,
+                "operation": "reboot_fastbootd",
+                "from_mode": "bootloader",
+                "to_mode": "fastbootd",
+                "target_slot": "none",
+                "timeout_seconds": 60,
+            },
+            {
+                "order": 2,
+                "after_write_order": 1,
+                "operation": "reboot_system",
+                "from_mode": "fastbootd",
+                "to_mode": "android",
+                "target_slot": "none",
+                "timeout_seconds": 300,
+            },
+        ],
+        "final_mode": "android",
+        "recovery": {
+            "strategy": "stock_package_restore",
+            "adapter_id": "xiaomi.fastboot.stock",
+            "stock_package_sha256": contract["source"]["archive_sha256"],
+            "entry_mode": "bootloader",
+            "actions": [
+                {
+                    "order": 1,
+                    "operation": "restore_stock_package",
+                    "adapter_action_id": "xiaomi.fastboot.stock.restore",
+                    "from_mode": "bootloader",
+                    "to_mode": "bootloader",
+                    "target_slot": "none",
+                    "timeout_seconds": 1800,
+                    "may_wipe_user_data": True,
+                },
+                {
+                    "order": 2,
+                    "operation": "reboot_system",
+                    "adapter_action_id": "xiaomi.fastboot.stock.reboot",
+                    "from_mode": "bootloader",
+                    "to_mode": "android",
+                    "target_slot": "none",
+                    "timeout_seconds": 300,
+                    "may_wipe_user_data": False,
+                },
+                {
+                    "order": 3,
+                    "operation": "verify_post_boot",
+                    "adapter_action_id": "xiaomi.fastboot.stock.verify",
+                    "from_mode": "android",
+                    "to_mode": "android",
+                    "target_slot": "none",
+                    "timeout_seconds": 300,
+                    "may_wipe_user_data": False,
+                },
+            ],
+            "require_external_backup": True,
+            "require_stock_recovery": True,
+            "require_prewrite_slot_capture": False,
+            "may_wipe_user_data": True,
+            "automatic_wipe_allowed": False,
+            "bootloader_relock_allowed": False,
+        },
+        "final_consent_required": True,
+        "execution_authority": "none",
+        "bootloader_relock_allowed": False,
+    }
+    return contract
+
+
 def test_schema_two_build_contract_parses_bounded_signed_write_intent():
     parsed = DevicePackRegistry._parse_build_contract(_schema_two_build_contract())
 
@@ -547,6 +633,107 @@ def test_schema_two_build_contract_parses_bounded_signed_write_intent():
     assert write_contract.wipe_user_data_supported
     assert not write_contract.bootloader_relock_allowed
     assert write_contract.writes[0].transport is DeviceWriteTransport.FASTBOOTD
+
+
+def test_write_contract_schema_three_parses_exact_transition_and_recovery_contract():
+    parsed = DevicePackRegistry._parse_build_contract(
+        _schema_three_build_contract_with_transition_recovery()
+    )
+
+    write_contract = parsed.partition_write_contract
+    assert write_contract is not None
+    assert write_contract.version == 3
+    transition = write_contract.transition_recovery_contract
+    assert transition is not None
+    assert transition.entry_mode is DeviceMode.BOOTLOADER
+    assert transition.final_mode is DeviceMode.ANDROID
+    assert [item.operation for item in transition.transitions] == [
+        DeviceTransitionOperation.REBOOT_FASTBOOTD,
+        DeviceTransitionOperation.REBOOT_SYSTEM,
+    ]
+    assert transition.final_consent_required
+    assert transition.execution_authority == "none"
+    assert not transition.bootloader_relock_allowed
+    recovery = transition.recovery
+    assert recovery.strategy is DeviceRecoveryStrategy.STOCK_PACKAGE_RESTORE
+    assert recovery.stock_package_sha256 == parsed.source.archive_sha256
+    assert [item.operation for item in recovery.actions] == [
+        DeviceRecoveryOperation.RESTORE_STOCK_PACKAGE,
+        DeviceRecoveryOperation.REBOOT_SYSTEM,
+        DeviceRecoveryOperation.VERIFY_POST_BOOT,
+    ]
+    assert recovery.require_external_backup
+    assert recovery.require_stock_recovery
+    assert recovery.may_wipe_user_data
+    assert not recovery.automatic_wipe_allowed
+    assert not recovery.bootloader_relock_allowed
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    (
+        (
+            lambda value: value["partition_write_contract"]["transition_recovery_contract"].update(
+                {"source_build_id": "different"}
+            ),
+            "exact source build",
+        ),
+        (
+            lambda value: value["partition_write_contract"]["transition_recovery_contract"].update(
+                {"final_consent_required": False}
+            ),
+            "separate final consent",
+        ),
+        (
+            lambda value: value["partition_write_contract"]["transition_recovery_contract"].update(
+                {"execution_authority": "device-write"}
+            ),
+            "cannot grant execution authority",
+        ),
+        (
+            lambda value: value["partition_write_contract"]["transition_recovery_contract"].update(
+                {"bootloader_relock_allowed": True}
+            ),
+            "relocking is permanently prohibited",
+        ),
+        (
+            lambda value: value["partition_write_contract"]["transition_recovery_contract"][
+                "transitions"
+            ][0].update({"after_write_order": 1}),
+            "does not reach each write transport",
+        ),
+        (
+            lambda value: value["partition_write_contract"]["transition_recovery_contract"][
+                "recovery"
+            ].update({"stock_package_sha256": "e" * 64}),
+            "exact stock source package",
+        ),
+        (
+            lambda value: value["partition_write_contract"]["transition_recovery_contract"][
+                "recovery"
+            ].update({"automatic_wipe_allowed": True}),
+            "cannot authorize an automatic wipe",
+        ),
+        (
+            lambda value: value["partition_write_contract"]["transition_recovery_contract"][
+                "recovery"
+            ]["actions"][0].update({"adapter_action_id": "xiaomi.fastboot.stock.relock"}),
+            "declared safe adapter",
+        ),
+        (
+            lambda value: value["partition_write_contract"]["transition_recovery_contract"][
+                "recovery"
+            ].update({"may_wipe_user_data": False}),
+            "wipe disclosure",
+        ),
+    ),
+)
+def test_transition_recovery_contract_rejects_unsafe_or_unbound_rules(mutation, message):
+    contract = _schema_three_build_contract_with_transition_recovery()
+    mutation(contract)
+
+    with pytest.raises((TypeError, ValueError), match=message):
+        DevicePackRegistry._parse_build_contract(contract)
 
 
 def test_write_contract_schema_two_parses_exact_readback_and_post_boot_contract():

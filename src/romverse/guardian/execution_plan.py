@@ -11,7 +11,11 @@ from pathlib import Path, PurePosixPath
 from uuid import uuid4
 
 from romverse.device.models import AndroidDevice
-from romverse.device_packs.models import DeviceWriteContract, DeviceWriteTransport
+from romverse.device_packs.models import (
+    DeviceTransitionRecoveryContract,
+    DeviceWriteContract,
+    DeviceWriteTransport,
+)
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.guardian.artifact_binding import (
     GuardianArtifactBindingReceipt,
@@ -89,6 +93,14 @@ class GuardianExecutionPlan:
     post_write_readback_count: int
     post_boot_property_count: int
     post_boot_timeout_seconds: int
+    transition_recovery_contract_id: str
+    transition_recovery_contract_version: int
+    transition_recovery_contract_digest: str
+    mode_transition_count: int
+    recovery_action_count: int
+    recovery_adapter_id: str
+    recovery_stock_package_sha256: str
+    recovery_may_wipe_user_data: bool
     commands: tuple[GuardianPlannedCommand, ...]
     blockers: tuple[str, ...]
     plan_status: str
@@ -103,7 +115,7 @@ class GuardianExecutionPlanService:
     """Compile and reload an exact inert plan before any final-consent milestone exists."""
 
     FORMAT = "romverse.guardian-execution-plan"
-    SCHEMA_VERSION = 2
+    SCHEMA_VERSION = 3
     LATEST_NAME = "execution-plan.romverse"
     MAX_BYTES = 256 * 1024
     MAX_COMMANDS = GuardianArtifactBindingService.MAX_WRITES * 3 + 4
@@ -118,6 +130,11 @@ class GuardianExecutionPlanService:
     VERIFIED_CONTRACT_BLOCKERS = (
         "The signed Device Pack defines exact partition readback digests and post-boot Device DNA. This plan is ready for the separately regenerated inert gateway and result template; it still has no runtime, execution receipt, or final-consent authority.",
         "Automatic mode transitions, slot activation, reboot, wipe, rollback, and recovery commands are absent and must never be inferred from filenames or generic Fastboot behavior.",
+    )
+    ORCHESTRATED_CONTRACT_STATUS = "ready-for-inert-transition-aware-gateway-contract"
+    ORCHESTRATED_CONTRACT_BLOCKERS = (
+        "The signed Device Pack defines exact mode/slot transitions, source-bound stock recovery, readback digests, and post-boot Device DNA. This plan is ready only for a separately regenerated transition-aware inert gateway and result template.",
+        "Live target re-identification, the governed runtime, immutable execution/postcondition receipts, separate final consent, and independent validation of the ROMVERSE runtime remain unavailable.",
     )
     PLAN_STATUS = MISSING_VERIFICATION_STATUS
     BLOCKERS = MISSING_VERIFICATION_BLOCKERS
@@ -283,7 +300,7 @@ class GuardianExecutionPlanService:
             or not _hex(plan.device_pack_sha256, 64)
             or not _clean(plan.write_contract_id, 80)
             or type(plan.write_contract_version) is not int
-            or plan.write_contract_version not in {1, 2}
+            or plan.write_contract_version not in {1, 2, 3}
             or not _hex(plan.write_attestation_sha256, 64)
             or not self._valid_verification_metadata(plan)
             or not 1 <= len(plan.commands) <= self.MAX_COMMANDS
@@ -351,6 +368,17 @@ class GuardianExecutionPlanService:
             or write_contract.contract_id != binding.write_contract_id
             or write_contract.version != binding.write_contract_version
             or write_contract.attestation_sha256 != binding.write_attestation_sha256
+            or (
+                write_contract.version == 3
+                and (
+                    pack is None
+                    or pack.build_contract is None
+                    or not DevicePackRegistry.transition_recovery_contract_is_valid(
+                        write_contract,
+                        pack.build_contract.source,
+                    )
+                )
+            )
         ):
             raise ProjectError(
                 "Guardian could not bind the current Device Pack write contract to the plan"
@@ -390,6 +418,7 @@ class GuardianExecutionPlanService:
     @classmethod
     def _verification_metadata(cls, write_contract: DeviceWriteContract) -> dict[str, object]:
         verification = write_contract.post_write_verification_contract
+        transition = write_contract.transition_recovery_contract
         if verification is None:
             return {
                 "post_write_verification_contract_id": "",
@@ -398,6 +427,7 @@ class GuardianExecutionPlanService:
                 "post_write_readback_count": 0,
                 "post_boot_property_count": 0,
                 "post_boot_timeout_seconds": 0,
+                **cls._transition_metadata(None),
             }
         return {
             "post_write_verification_contract_id": verification.contract_id,
@@ -406,6 +436,7 @@ class GuardianExecutionPlanService:
             "post_write_readback_count": len(verification.readbacks),
             "post_boot_property_count": len(verification.post_boot_properties),
             "post_boot_timeout_seconds": verification.boot_timeout_seconds,
+            **cls._transition_metadata(transition),
         }
 
     @staticmethod
@@ -417,12 +448,48 @@ class GuardianExecutionPlanService:
             "post_write_readback_count": plan.post_write_readback_count,
             "post_boot_property_count": plan.post_boot_property_count,
             "post_boot_timeout_seconds": plan.post_boot_timeout_seconds,
+            "transition_recovery_contract_id": plan.transition_recovery_contract_id,
+            "transition_recovery_contract_version": plan.transition_recovery_contract_version,
+            "transition_recovery_contract_digest": plan.transition_recovery_contract_digest,
+            "mode_transition_count": plan.mode_transition_count,
+            "recovery_action_count": plan.recovery_action_count,
+            "recovery_adapter_id": plan.recovery_adapter_id,
+            "recovery_stock_package_sha256": plan.recovery_stock_package_sha256,
+            "recovery_may_wipe_user_data": plan.recovery_may_wipe_user_data,
+        }
+
+    @staticmethod
+    def _transition_metadata(
+        transition: DeviceTransitionRecoveryContract | None,
+    ) -> dict[str, object]:
+        if transition is None:
+            return {
+                "transition_recovery_contract_id": "",
+                "transition_recovery_contract_version": 0,
+                "transition_recovery_contract_digest": "",
+                "mode_transition_count": 0,
+                "recovery_action_count": 0,
+                "recovery_adapter_id": "",
+                "recovery_stock_package_sha256": "",
+                "recovery_may_wipe_user_data": False,
+            }
+        return {
+            "transition_recovery_contract_id": transition.contract_id,
+            "transition_recovery_contract_version": transition.version,
+            "transition_recovery_contract_digest": _digest(asdict(transition)),
+            "mode_transition_count": len(transition.transitions),
+            "recovery_action_count": len(transition.recovery.actions),
+            "recovery_adapter_id": transition.recovery.adapter_id,
+            "recovery_stock_package_sha256": transition.recovery.stock_package_sha256,
+            "recovery_may_wipe_user_data": transition.recovery.may_wipe_user_data,
         }
 
     @classmethod
     def _plan_boundary(cls, write_contract: DeviceWriteContract) -> tuple[tuple[str, ...], str]:
         if write_contract.post_write_verification_contract is None:
             return cls.MISSING_VERIFICATION_BLOCKERS, cls.MISSING_VERIFICATION_STATUS
+        if write_contract.transition_recovery_contract is not None:
+            return cls.ORCHESTRATED_CONTRACT_BLOCKERS, cls.ORCHESTRATED_CONTRACT_STATUS
         return cls.VERIFIED_CONTRACT_BLOCKERS, cls.VERIFIED_CONTRACT_STATUS
 
     @classmethod
@@ -431,6 +498,8 @@ class GuardianExecutionPlanService:
     ) -> tuple[tuple[str, ...], str]:
         if plan.post_write_verification_contract_version == 0:
             return cls.MISSING_VERIFICATION_BLOCKERS, cls.MISSING_VERIFICATION_STATUS
+        if plan.transition_recovery_contract_version == 1:
+            return cls.ORCHESTRATED_CONTRACT_BLOCKERS, cls.ORCHESTRATED_CONTRACT_STATUS
         return cls.VERIFIED_CONTRACT_BLOCKERS, cls.VERIFIED_CONTRACT_STATUS
 
     @classmethod
@@ -440,6 +509,9 @@ class GuardianExecutionPlanService:
             plan.post_write_readback_count,
             plan.post_boot_property_count,
             plan.post_boot_timeout_seconds,
+            plan.transition_recovery_contract_version,
+            plan.mode_transition_count,
+            plan.recovery_action_count,
         )
         if any(type(value) is not int for value in values):
             return False
@@ -451,10 +523,11 @@ class GuardianExecutionPlanService:
                 and plan.post_write_readback_count == 0
                 and plan.post_boot_property_count == 0
                 and plan.post_boot_timeout_seconds == 0
+                and cls._empty_transition_metadata(plan)
             )
         write_count = sum(command.phase is ExecutionPlanPhase.WRITE for command in plan.commands)
-        return bool(
-            plan.write_contract_version == 2
+        verification_valid = bool(
+            plan.write_contract_version in {2, 3}
             and _clean(plan.post_write_verification_contract_id, 80)
             and plan.post_write_verification_contract_version == 1
             and _hex(plan.post_write_verification_contract_digest, 64)
@@ -462,6 +535,34 @@ class GuardianExecutionPlanService:
             and 1 <= plan.post_write_readback_count <= GuardianArtifactBindingService.MAX_WRITES
             and 7 <= plan.post_boot_property_count <= 16
             and 30 <= plan.post_boot_timeout_seconds <= 900
+        )
+        if not verification_valid:
+            return False
+        if plan.write_contract_version == 2:
+            return cls._empty_transition_metadata(plan)
+        return bool(
+            _clean(plan.transition_recovery_contract_id, 80)
+            and plan.transition_recovery_contract_version == 1
+            and _hex(plan.transition_recovery_contract_digest, 64)
+            and 1 <= plan.mode_transition_count <= write_count * 2 + 3
+            and 2 <= plan.recovery_action_count <= 16
+            and _clean(plan.recovery_adapter_id, 80)
+            and _hex(plan.recovery_stock_package_sha256, 64)
+            and type(plan.recovery_may_wipe_user_data) is bool
+        )
+
+    @staticmethod
+    def _empty_transition_metadata(plan: GuardianExecutionPlan) -> bool:
+        return bool(
+            not plan.transition_recovery_contract_id
+            and plan.transition_recovery_contract_version == 0
+            and not plan.transition_recovery_contract_digest
+            and plan.mode_transition_count == 0
+            and plan.recovery_action_count == 0
+            and not plan.recovery_adapter_id
+            and not plan.recovery_stock_package_sha256
+            and type(plan.recovery_may_wipe_user_data) is bool
+            and not plan.recovery_may_wipe_user_data
         )
 
     @classmethod

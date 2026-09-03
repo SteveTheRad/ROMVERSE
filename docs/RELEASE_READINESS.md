@@ -51,9 +51,13 @@ byte-for-byte while confirming the authorization service exposes no device-execu
 self-contained Fedora build also launched successfully. Its verified 451-file Linux bundle expands
 to 355,681,739 bytes and has SHA-256
 `65437c244119986c6962bcc18af17fdbdcd5f9b888b67ac277386a17a6450a91`. This proves the source/package
-protocol and local one-winner tests; cross-platform CI, production runtime enrollment, process
-isolation, deletion-resistant consumption state, a governed executor and physical-phone validation
-remain required for this increment.
+protocol and local one-winner tests. Exact application commit
+`962900b4329c8307a41c4c4e73f16d6b41d18198` is fully green in GitHub Actions run `33810374324`:
+both Linux versions passed all 1,518 tests and both Ruff gates; both Windows versions passed all 443
+selected portability tests and both Ruff gates; Companion unit/build, Linux and Windows
+installed/frozen/package jobs, and the combined unsigned candidate passed. Production runtime
+enrollment, process isolation, deletion-resistant consumption state, a governed executor and
+physical-phone validation remain required.
 
 Exact preceding commit `2eb043b119d3a0986f334738a05189a5065adb60` is fully green in GitHub
 Actions run `33803846046`: both 1,509-test Linux quality jobs, both Windows portability jobs,

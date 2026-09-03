@@ -1073,6 +1073,10 @@ private atomic record. It rejects extra fields, Boolean/number confusion, oversi
 targets and redirected directories; an unsafe record is never authorized or followed outside the
 Link identity root. Genuine schema-one digest-only records migrate to schema two after full expiry,
 hash and lifetime validation. Reset and expiry remove only a contained regular record.
+The Link screen now restores that genuine remembered state after a Desktop restart, shows its
+remaining lifetime, disables code copying when no live one-time code exists, labels replacement as
+revoking the prior session, and provides a separate Reset wireless pairing control. Reset clears
+pending authorization and cached wireless telemetry without changing USB read-only pairing.
 
 Live Console records genuine pairing-opened, pending-safety-check, and approved states. These events
 explain what happened and what the user should do next, expose no certificate private key or bearer

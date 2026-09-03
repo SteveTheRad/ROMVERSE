@@ -181,9 +181,13 @@ def test_companion_center_requires_matching_tls_safety_code_before_approval(tmp_
     assert center.transport.certificate_sha256 in center.identity_status.text()
     assert not center.approve.isEnabled()
     assert not center.safety_confirm.isEnabled()
+    assert not center.copy_button.isEnabled()
+    assert not center.reset_link.isEnabled()
     assert store.list_recent() == ()
 
     center.generate_code()
+    assert center.copy_button.isEnabled()
+    assert center.reset_link.isEnabled()
     assert any(item.title == "Encrypted Companion pairing opened" for item in store.list_recent())
     pairing = center._pairing
     assert pairing is not None
@@ -195,8 +199,53 @@ def test_companion_center_requires_matching_tls_safety_code_before_approval(tmp_
     assert center.approve.isEnabled()
     center.approve_device()
     assert "Paired" in center.state.text()
+    assert not center.copy_button.isEnabled()
+    assert center.reset_link.isEnabled()
+    assert center.generate.text() == "Replace wireless pairing code"
+    assert "30 days" in center.expiry.text()
+    assert "12 hours" not in center.expiry.text()
     assert any(item.title == "Encrypted Companion Link approved" for item in store.list_recent())
     center.shutdown()
+
+
+def test_companion_center_restores_and_can_revoke_remembered_pairing(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    first = CompanionCenter(workspace=tmp_path)
+    assert first.transport.available
+    first.generate_code()
+    pairing = first._pairing
+    assert pairing is not None
+    request_id = first.transport._sessions.request(pairing, pairing.code, "127.0.0.1")
+    assert request_id
+    first.safety_confirm.setEnabled(True)
+    first.safety_confirm.setChecked(True)
+    first.approve_device()
+    token = first.transport._sessions.status(request_id).session_token
+    assert token
+    session_path = tmp_path / "config" / "companion-link" / "remembered-session.romverse"
+    assert session_path.is_file()
+    first.shutdown()
+
+    restarted = CompanionCenter(workspace=tmp_path)
+    assert restarted.transport.approved
+    assert restarted.transport._sessions.authorize(token)
+    assert "Remembered pairing active" in restarted.state.text()
+    assert restarted.generate.text() == "Replace wireless pairing code"
+    assert not restarted.copy_button.isEnabled()
+    assert restarted.reset_link.isEnabled()
+    assert "30 days" in restarted.expiry.text()
+
+    restarted.reset_pairing()
+
+    assert not restarted.transport.approved
+    assert not restarted.transport._sessions.authorize(token)
+    assert not session_path.exists()
+    assert restarted.state.text() == "Not paired"
+    assert restarted.generate.text() == "Generate wireless code"
+    assert not restarted.copy_button.isEnabled()
+    assert not restarted.reset_link.isEnabled()
+    assert "revoked" in restarted.expiry.text()
+    restarted.shutdown()
 
 
 def test_companion_center_relays_only_verified_raw_terminal_feed(tmp_path) -> None:

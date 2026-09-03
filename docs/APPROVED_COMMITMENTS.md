@@ -645,7 +645,9 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   schema-one migration and hostile link/redirect/oversize/extra-field/type-confusion rejection,
   automatic foreground/network reconnect with bounded backoff, certificate-bound
   DHCP rediscovery, explicit Reset Pairing revocation, and genuine Link state in Live Console with
-  zero execution authority;
+  zero execution authority; Desktop startup hydration of genuine remembered pairing, truthful
+  remaining-lifetime display, code copying only while a live one-time code exists, and explicit
+  replacement/reset language that cannot imply USB revocation;
   Genesis genuine 15-stage Live Console/Companion lifecycle with evidence-derived progress, plus
   a stage-preserving Learn this stage route into bounded, context-selected verified Archives
   guidance that cannot advance readiness or weaken Guardian; one private atomic strict schema-five

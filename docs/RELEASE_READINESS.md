@@ -86,7 +86,7 @@ has current evidence.
    `https://github.com/SteveTheRad/ROMVERSE/actions/runs/33750194118`. This remains unsigned build
    evidence and does not replace production signing or physical-device write certification.
 
-   Current Fedora development evidence recorded on 2026-09-03: all 1,367 Desktop tests and both
+   Current Fedora development evidence recorded on 2026-09-03: all 1,368 Desktop tests and both
    complete Ruff gates pass after the signed-update Settings journey was completed. The user must
    separately confirm download; byte-derived progress remains below 100 until the artifact and
    digest-bound private receipt have been independently reloaded and verified; cancellation removes
@@ -102,7 +102,11 @@ has current evidence.
    installed locally and its packaged smoke passed with 143 known fixes, all 19 covered Desktop
    routes, a dark Time Machine state, and byte-exact populated-workspace reopening. This is local
    implementation evidence; the production publisher key and signed channels remain intentionally
-   unconfigured.
+   unconfigured. ROMVERSE Link now also restores a genuine remembered wireless pairing visibly
+   after restart, reports its actual remaining lifetime instead of the obsolete 12-hour/close copy,
+   enables Copy only for a live one-time code, and exposes explicit replacement and reset controls.
+   Reset immediately revokes the stored token verifier and clears cached wireless telemetry while
+   preserving USB read-only pairing; the old token is rejected in the restart/revocation regression.
 
    The Desktop release trust layer now prepares a bounded exact-schema artifact manifest, enforces
    user-confirmed non-automatic updates and workspace preservation, represents unavailable rollback

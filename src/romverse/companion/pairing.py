@@ -169,6 +169,15 @@ class PairingSessionBroker:
         with self._lock:
             return self._session_active_locked()
 
+    @property
+    def expires_in_seconds(self) -> int:
+        """Return the remaining lifetime of the active remembered session."""
+
+        with self._lock:
+            if not self._session_active_locked():
+                return 0
+            return max(0, int(self._session_expires - self._clock()))
+
     def reset(self) -> None:
         with self._lock:
             self._pending_request_id = ""

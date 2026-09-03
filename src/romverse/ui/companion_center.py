@@ -4,6 +4,7 @@ import re
 import socket
 from dataclasses import replace
 from datetime import UTC, datetime
+from math import ceil
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer, Signal, Slot
@@ -64,6 +65,7 @@ class CompanionCenter(QWidget):
             identity_root,
         )
         self.transport.start()
+        self._approved = self.transport.approved
         self._record_link_availability()
         application = QApplication.instance()
         if application is not None:
@@ -173,8 +175,9 @@ class CompanionCenter(QWidget):
                 "This environment denied ROMVERSE permission to open a local pairing endpoint."
             )
         self.generate.clicked.connect(self.generate_code)
-        copy = QPushButton("Copy code")
-        copy.clicked.connect(self.copy_code)
+        self.copy_button = QPushButton("Copy code")
+        self.copy_button.setEnabled(False)
+        self.copy_button.clicked.connect(self.copy_code)
         self.approve = QPushButton("Approve device")
         self.approve.setObjectName("Primary")
         self.approve.setEnabled(False)
@@ -190,15 +193,22 @@ class CompanionCenter(QWidget):
             "This comparison binds the one-time pairing request to this PC's exact TLS certificate."
         )
         self.safety_confirm.toggled.connect(self._update_approval_button)
+        self.reset_link = QPushButton("Reset wireless pairing")
+        self.reset_link.setEnabled(False)
+        self.reset_link.setToolTip(
+            "Immediately revoke the remembered wireless session on this computer. USB pairing is not changed."
+        )
+        self.reset_link.clicked.connect(self.reset_pairing)
         import_summary = QPushButton("Import phone summary")
         import_summary.setToolTip(
             "Read a ROMVERSE health summary from the clipboard. This is display-only and never executes commands."
         )
         import_summary.clicked.connect(self.import_summary)
         buttons.addWidget(self.generate)
-        buttons.addWidget(copy)
+        buttons.addWidget(self.copy_button)
         buttons.addWidget(self.safety_confirm)
         buttons.addWidget(self.approve)
+        buttons.addWidget(self.reset_link)
         buttons.addWidget(import_summary)
         layout.addLayout(buttons)
         page.addWidget(card)
@@ -209,16 +219,20 @@ class CompanionCenter(QWidget):
         boundary.setWordWrap(True)
         page.addWidget(boundary)
         page.addStretch()
+        if self._approved:
+            self._render_approved_state(restored=True)
 
     def set_device_snapshot(self, devices: list[AndroidDevice]) -> None:
         """Reflect the latest read-only Device Engine result in Companion."""
 
+        self._sync_approved_state()
         device = next((item for item in devices if item.state is DeviceState.DEVICE), None)
         if device is None:
             if self._approved:
                 self.device_status.setText(
                     "Desktop device link: wireless Companion active  •  USB is disconnected"
                 )
+                self._render_approved_state(restored=True)
             else:
                 self.device_status.setText(
                     "Desktop device link: no USB device detected  •  wireless pairing remains available"
@@ -427,6 +441,12 @@ class CompanionCenter(QWidget):
         self.safety_confirm.setChecked(False)
         self.safety_confirm.setEnabled(False)
         self.code.setText(self._pairing.code[:3] + " " + self._pairing.code[3:])
+        self.copy_button.setEnabled(True)
+        self.reset_link.setEnabled(True)
+        self.generate.setText("Generate wireless code")
+        self.generate.setToolTip(
+            "This code is valid for ten minutes and does not grant device-changing authority."
+        )
         self.expiry.setText("Expires in 10:00")
         self.state.setText("Awaiting device approval")
         self.instructions.setText(
@@ -460,16 +480,7 @@ class CompanionCenter(QWidget):
             )
             self.approve.setEnabled(False)
             return
-        self._approved = True
-        self.state.setText("Paired • read-only telemetry enabled")
-        self.instructions.setText(
-            "Companion is approved for health and activity telemetry. Guardian still blocks device-changing actions."
-        )
-        self.approve.setEnabled(False)
-        self.safety_confirm.setEnabled(False)
-        self._expiry_timer.stop()
-        self.code.setText("••• •••")
-        self.expiry.setText("Approved session expires after 12 hours or when ROMVERSE closes.")
+        self._render_approved_state(restored=False)
         self._record_link_note(
             title="Encrypted Companion Link approved",
             summary="The phone completed TLS-pinned, safety-code-confirmed read-only pairing.",
@@ -481,6 +492,7 @@ class CompanionCenter(QWidget):
         )
 
     def _update_remote_snapshot(self) -> None:
+        self._sync_approved_state()
         snapshot = self.transport.latest_remote_snapshot
         received_at = self.transport.remote_snapshot_received_at
         if snapshot is None or received_at is None:
@@ -560,10 +572,14 @@ class CompanionCenter(QWidget):
         )
         if remaining <= 0:
             self._expiry_timer.stop()
+            self.transport.reset()
             self._pairing = None
             self.code.setText("------")
+            self.copy_button.setEnabled(False)
+            self.reset_link.setEnabled(False)
             self.expiry.setText("Pairing code expired. Generate a new code.")
             self.state.setText("Not paired")
+            self.generate.setText("Generate wireless code")
             self.approve.setEnabled(False)
             self.safety_confirm.setChecked(False)
             self.safety_confirm.setEnabled(False)
@@ -575,6 +591,115 @@ class CompanionCenter(QWidget):
     def _update_approval_button(self, confirmed: bool) -> None:
         self.approve.setEnabled(
             confirmed and self.transport.pending and not self.transport.approved
+        )
+
+    def _render_approved_state(self, *, restored: bool) -> None:
+        self._approved = True
+        if not self._usb_paired:
+            self.state.setText(
+                "Remembered pairing active • read-only telemetry enabled"
+                if restored
+                else "Paired • read-only telemetry enabled"
+            )
+            self.instructions.setText(
+                "This workspace remembers the approved Companion for read-only health and activity telemetry. Guardian still blocks device-changing actions."
+            )
+        self._expiry_timer.stop()
+        self._pairing = None
+        self.code.setText("••• •••")
+        self.copy_button.setEnabled(False)
+        self.approve.setEnabled(False)
+        self.safety_confirm.setChecked(False)
+        self.safety_confirm.setEnabled(False)
+        self.reset_link.setEnabled(True)
+        self.generate.setText("Replace wireless pairing code")
+        self.generate.setToolTip(
+            "Revoke the remembered wireless session and create a new short-lived pairing code."
+        )
+        self.generate.setEnabled(self.transport.available and not self._usb_paired)
+        self.expiry.setText(self._approved_expiry_text())
+
+    def _approved_expiry_text(self) -> str:
+        remaining = self.transport.session_expires_in_seconds
+        if remaining <= 0:
+            return "Remembered wireless session has expired."
+        days = ceil(remaining / (24 * 60 * 60))
+        if days >= 2:
+            lifetime = f"about {days} days"
+        else:
+            hours = max(1, ceil(remaining / (60 * 60)))
+            lifetime = f"about {hours} hour{'s' if hours != 1 else ''}"
+        return f"Remembered wireless session expires in {lifetime}. Reset it anytime from this screen."
+
+    def _sync_approved_state(self) -> None:
+        approved = self.transport.approved
+        if approved and not self._approved:
+            self._render_approved_state(restored=True)
+            return
+        if approved:
+            self.expiry.setText(self._approved_expiry_text())
+            return
+        if not self._approved:
+            return
+        self.transport.reset()
+        self._approved = False
+        self.reset_link.setEnabled(False)
+        self.generate.setText("Generate wireless code")
+        self.generate.setToolTip("")
+        self.generate.setEnabled(self.transport.available and not self._usb_paired)
+        self.code.setText("------")
+        self.copy_button.setEnabled(False)
+        self.expiry.setText("Remembered wireless session expired. Generate a new code to pair again.")
+        self.remote_summary.setText(
+            "LIVE COMPANION HEALTH\nWaiting for an authenticated phone snapshot."
+        )
+        self._last_remote_capture = 0
+        if not self._usb_paired:
+            self.state.setText("Not paired")
+            self.instructions.setText(
+                "Generate a code, then enter it in ROMVERSE Companion on your Android phone."
+            )
+
+    @Slot()
+    def reset_pairing(self) -> None:
+        self.transport.reset()
+        self._pairing = None
+        self._approved = False
+        self._pending_announced = False
+        self._last_remote_capture = 0
+        self._expiry_timer.stop()
+        self.code.setText("------")
+        self.copy_button.setEnabled(False)
+        self.approve.setEnabled(False)
+        self.safety_confirm.setChecked(False)
+        self.safety_confirm.setEnabled(False)
+        self.reset_link.setEnabled(False)
+        self.generate.setText("Generate wireless code")
+        self.generate.setToolTip("")
+        self.generate.setEnabled(self.transport.available and not self._usb_paired)
+        self.remote_summary.setText(
+            "LIVE COMPANION HEALTH\nWaiting for an authenticated phone snapshot."
+        )
+        if self._usb_paired:
+            self.state.setText("USB paired • read-only telemetry enabled")
+            self.instructions.setText(
+                "Wireless pairing was reset. This authorized phone remains connected through USB read-only mode."
+            )
+            self.expiry.setText("Wireless pairing reset. USB pairing was not changed.")
+        else:
+            self.state.setText("Not paired")
+            self.instructions.setText(
+                "Wireless pairing was reset on this computer. Generate a new code whenever you want to reconnect Companion."
+            )
+            self.expiry.setText("Wireless pairing reset. Any remembered Companion token is now revoked.")
+        self._record_link_note(
+            title="Companion Link pairing reset",
+            summary="The remembered wireless Companion authorization was revoked locally.",
+            explanation="ROMVERSE cleared the pending request, stored session digest, and cached wireless telemetry. USB read-only pairing was not changed.",
+            next_action="Generate a new wireless code only when you want to pair Companion again.",
+            state=MissionState.INFORMATION,
+            confidence=MissionConfidence.VERIFIED,
+            dedupe_key="",
         )
 
     def _record_link_availability(self) -> None:
@@ -621,7 +746,7 @@ class CompanionCenter(QWidget):
             return
 
     def copy_code(self) -> None:
-        if self._pairing is not None:
+        if self._pairing is not None and not self._pairing.expired:
             QApplication.clipboard().setText(self._pairing.code)
 
     def import_summary(self) -> None:

@@ -71,11 +71,13 @@ def test_session_broker_expires_tokens() -> None:
     request_id = broker.request(pairing, pairing.code)
     assert broker.approve()
     token = broker.status(request_id).session_token
+    assert broker.expires_in_seconds == 60
 
     now[0] += 61
 
     assert not broker.authorize(token)
     assert not broker.approved
+    assert broker.expires_in_seconds == 0
     assert broker.status(request_id).state == "pending"
 
 

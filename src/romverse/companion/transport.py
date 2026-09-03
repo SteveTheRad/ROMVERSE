@@ -283,6 +283,10 @@ class CompanionTransport:
         return self._sessions.approved
 
     @property
+    def session_expires_in_seconds(self) -> int:
+        return self._sessions.expires_in_seconds
+
+    @property
     def latest_remote_snapshot(self) -> RemoteCompanionSnapshot | None:
         with self._remote_lock:
             return self._remote_snapshot

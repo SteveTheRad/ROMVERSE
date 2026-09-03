@@ -13,6 +13,7 @@ REQUIRED_FILES = frozenset(
         "romverse/infrastructure/local_store.py",
         "romverse/infrastructure/provisioning.py",
         "romverse/intelligence/action_evidence.py",
+        "romverse/release.py",
         "romverse/repair/host.py",
         "romverse/rom/inspection.py",
         "romverse/ui/main_window.py",

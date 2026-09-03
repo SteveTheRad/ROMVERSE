@@ -1,0 +1,115 @@
+from __future__ import annotations
+
+import zipfile
+from pathlib import Path
+from subprocess import CompletedProcess
+
+import pytest
+
+from romverse.app import build_parser
+from scripts.build_desktop_executable import pyinstaller_arguments
+from scripts.package_desktop_bundle import package_bundle, verify_bundle_archive
+from scripts.smoke_frozen_desktop import smoke_frozen_desktop
+
+
+def _bundle(tmp_path: Path) -> Path:
+    root = tmp_path / "ROMVERSE"
+    (root / "_internal" / "romverse" / "assets").mkdir(parents=True)
+    executable = root / "ROMVERSE"
+    executable.write_bytes(b"executable")
+    executable.chmod(0o755)
+    (root / "_internal" / "romverse" / "assets" / "romverse-brand.png").write_bytes(b"brand")
+    return root
+
+
+def test_desktop_bundle_packages_and_verifies_exact_tree(tmp_path: Path) -> None:
+    root = _bundle(tmp_path)
+    output = tmp_path / "ROMVERSE-Desktop-0.1.0-linux-x86_64.zip"
+
+    digest, count, total = package_bundle(root, "linux-x86_64", output)
+
+    assert len(digest) == 64
+    assert count == 2
+    assert total == len(b"executable") + len(b"brand")
+    assert verify_bundle_archive(output, "linux-x86_64") == (digest, count, total)
+    assert output.stat().st_mode & 0o777 == 0o644
+
+
+def test_desktop_bundle_materializes_internal_file_link(tmp_path: Path) -> None:
+    root = _bundle(tmp_path)
+    (root / "executable-alias").symlink_to("ROMVERSE")
+
+    _digest, count, total = package_bundle(root, "linux-x86_64", tmp_path / "linked.zip")
+
+    assert count == 3
+    assert total == len(b"executable") * 2 + len(b"brand")
+    with zipfile.ZipFile(tmp_path / "linked.zip") as archive:
+        assert archive.read("ROMVERSE/executable-alias") == b"executable"
+
+
+def test_desktop_bundle_rejects_escaping_link_and_missing_executable(tmp_path: Path) -> None:
+    root = _bundle(tmp_path)
+    outside = tmp_path / "outside"
+    outside.write_bytes(b"outside")
+    (root / "linked").symlink_to(outside)
+    with pytest.raises(ValueError, match="escapes its regular-file boundary"):
+        package_bundle(root, "linux-x86_64", tmp_path / "linked.zip")
+
+    (root / "linked").unlink()
+    (root / "ROMVERSE").unlink()
+    with pytest.raises(ValueError, match="missing its platform executable"):
+        package_bundle(root, "linux-x86_64", tmp_path / "missing.zip")
+
+
+def test_desktop_bundle_rejects_unsafe_archive_member(tmp_path: Path) -> None:
+    archive = tmp_path / "unsafe.zip"
+    with zipfile.ZipFile(archive, "w") as output:
+        output.writestr("ROMVERSE/ROMVERSE", b"executable")
+        output.writestr("../outside", b"unsafe")
+
+    with pytest.raises(ValueError, match="unsafe member"):
+        verify_bundle_archive(archive, "linux-x86_64")
+
+
+def test_pyinstaller_build_collects_package_data_and_submodules(tmp_path: Path) -> None:
+    repository = Path(__file__).resolve().parents[1]
+    arguments = pyinstaller_arguments(repository, tmp_path / "dist", tmp_path / "build")
+
+    assert "--windowed" in arguments
+    assert "--onedir" in arguments
+    assert "--collect-data=romverse" in arguments
+    assert "--collect-submodules=romverse" in arguments
+    assert str(repository / "src" / "romverse" / "__main__.py") == arguments[-1]
+
+
+def test_release_smoke_flag_is_explicit_and_phone_neutral() -> None:
+    args = build_parser().parse_args(["--release-smoke", "--skip-onboarding"])
+
+    assert args.release_smoke is True
+    assert args.skip_onboarding is True
+    assert args.workspace is None
+
+
+def test_frozen_smoke_uses_bounded_release_mode(tmp_path: Path, monkeypatch) -> None:
+    executable = tmp_path / "ROMVERSE"
+    executable.write_bytes(b"executable")
+    recorded: dict[str, object] = {}
+
+    def fake_run(command, **kwargs):
+        recorded.update(command=command, kwargs=kwargs)
+        return CompletedProcess(command, 0)
+
+    monkeypatch.setattr("scripts.smoke_frozen_desktop.subprocess.run", fake_run)
+    workspace = tmp_path / "workspace"
+
+    smoke_frozen_desktop(executable, workspace)
+
+    assert recorded["command"] == [
+        str(executable.resolve()),
+        "--workspace",
+        str(workspace.resolve()),
+        "--skip-onboarding",
+        "--release-smoke",
+    ]
+    assert recorded["kwargs"]["timeout"] == 60
+    assert recorded["kwargs"]["check"] is False

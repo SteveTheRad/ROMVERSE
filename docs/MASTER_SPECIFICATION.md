@@ -694,6 +694,11 @@ and Community Lab content is not included in activity titles.
 - Logs avoid raw serials and command output that may contain personal data.
 - Packaging uses a `src/` layout, type hints, immutable domain records, and dependency
   injection at process/device boundaries.
+- Desktop release candidates are built natively on Linux x86-64 and Windows x86-64 as PyInstaller
+  one-folder applications, launched against disposable workspaces, and packaged as bounded verified
+  ZIP archives. CI manifests remain explicitly unsigned. Public trust requires the external-key
+  Ed25519 ceremony and independent verification in `docs/DESKTOP_RELEASE.md`; release metadata has
+  no device-operation authority and updates are never installed automatically.
 
 ## 7. Roadmap gates
 

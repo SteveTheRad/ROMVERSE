@@ -7,7 +7,7 @@ from dataclasses import replace
 from importlib.resources import as_file, files
 from pathlib import Path
 
-from PySide6.QtCore import QLockFile, Qt
+from PySide6.QtCore import QLockFile, Qt, QTimer
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QDialog
 
@@ -43,6 +43,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Temporarily override the ROMVERSE workspace for this launch only",
     )
     parser.add_argument("--skip-onboarding", action="store_true", help="Skip the first-run wizard")
+    parser.add_argument("--release-smoke", action="store_true", help=argparse.SUPPRESS)
     return parser
 
 
@@ -195,4 +196,6 @@ def main(argv: list[str] | None = None) -> int:
             )
             window.settings_changed.connect(store.save)
             window.show()
+            if args.release_smoke:
+                QTimer.singleShot(250, app.quit)
             return app.exec()

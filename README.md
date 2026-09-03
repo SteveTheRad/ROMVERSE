@@ -1165,6 +1165,30 @@ romverse
 An OEM USB driver may also be required on Windows. ROMVERSE verifies tools but does not
 silently install system packages or drivers.
 
+## Desktop release candidates
+
+The release pipeline builds self-contained one-folder ROMVERSE applications for Linux x86-64 and
+Windows x86-64, launches each frozen executable against a disposable workspace, packages each app
+directory as a verified ZIP, and combines both exact archives in one unsigned release manifest.
+The extracted application does not require a separate Python installation. CI output remains an
+unsigned candidate until the external-key ceremony in
+[docs/DESKTOP_RELEASE.md](docs/DESKTOP_RELEASE.md) succeeds.
+
+For a local Linux candidate:
+
+```bash
+python -m pip install -e '.[release]'
+python scripts/build_desktop_executable.py \
+  --output-directory build/frozen \
+  --work-directory build/pyinstaller
+python scripts/smoke_frozen_desktop.py \
+  build/frozen/ROMVERSE/ROMVERSE /tmp/romverse-frozen-smoke
+python scripts/package_desktop_bundle.py \
+  build/frozen/ROMVERSE \
+  --platform linux-x86_64 \
+  --output dist/ROMVERSE-Desktop-0.1.0-linux-x86_64.zip
+```
+
 ## Development
 
 ```bash

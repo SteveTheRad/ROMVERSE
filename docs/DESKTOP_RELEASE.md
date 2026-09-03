@@ -1,7 +1,9 @@
 # ROMVERSE Desktop release process
 
-ROMVERSE Desktop release candidates are prepared locally and tested on Linux and Windows. A wheel
-or manifest is not a public release merely because it builds or passes CI.
+ROMVERSE Desktop release candidates are prepared locally and tested on Linux and Windows. The
+release pipeline uses a PyInstaller one-folder build so the extracted application does not require
+a separate Python installation. A wheel, portable ZIP, or manifest is not a public release merely
+because it builds or passes CI.
 
 ## Trust boundary
 
@@ -23,17 +25,41 @@ application workspace. The release owner supplies an externally held Ed25519 key
 offline signing ceremony. The corresponding public key and stable key identity must be pinned in
 the distribution channel before any update can be described as trusted.
 
-## Prepare an unsigned candidate
+## Build the self-contained platform bundles
 
-Build and verify the wheel first, then create the candidate manifest:
+Build each bundle on its target operating system; do not cross-label one host's executable as the
+other platform. The builder collects all ROMVERSE modules and packaged assets. The release smoke
+opens the frozen application against a disposable workspace and exits through the normal Qt event
+loop. The archive verifier rejects missing executables, unsafe members, escaping links, CRC errors,
+excessive file counts, and excessive expanded size. Safe internal Linux library links are
+materialized as regular archive files so extraction does not depend on symlink privileges.
 
 ```bash
-python -m build --wheel
-python scripts/verify_wheel.py dist/romverse-0.1.0-py3-none-any.whl
+python -m pip install -e '.[release]'
+python scripts/build_desktop_executable.py \
+  --output-directory build/frozen \
+  --work-directory build/pyinstaller
+python scripts/smoke_frozen_desktop.py \
+  build/frozen/ROMVERSE/ROMVERSE /tmp/romverse-frozen-smoke
+python scripts/package_desktop_bundle.py \
+  build/frozen/ROMVERSE \
+  --platform linux-x86_64 \
+  --output dist/ROMVERSE-Desktop-0.1.0-linux-x86_64.zip
+```
+
+Use `ROMVERSE.exe` and `windows-x86_64` for the native Windows build. CI performs both target-host
+builds and joins their exact verified ZIPs only after both jobs pass.
+
+## Prepare an unsigned candidate
+
+After both native bundles pass, create the candidate manifest:
+
+```bash
 python scripts/prepare_desktop_release.py \
   --version 0.1.0 \
   --release-id romverse-desktop-0.1.0-rc.1 \
-  --artifact current-python-wheel:python-any:wheel:dist/romverse-0.1.0-py3-none-any.whl \
+  --artifact linux-portable:linux-x86_64:archive:dist/ROMVERSE-Desktop-0.1.0-linux-x86_64.zip \
+  --artifact windows-portable:windows-x86_64:archive:dist/ROMVERSE-Desktop-0.1.0-windows-x86_64.zip \
   --output dist/romverse-desktop-0.1.0-unsigned.json
 python scripts/verify_unsigned_desktop_release.py \
   dist/romverse-desktop-0.1.0-unsigned.json \
@@ -41,7 +67,8 @@ python scripts/verify_unsigned_desktop_release.py \
 ```
 
 The unsigned verifier deliberately prints that it grants no signing trust or update authority.
-Linux and Windows CI each build, install, launch, inspect, and upload this unsigned candidate.
+Linux and Windows CI each build, install, launch, inspect, and upload their native bundle; the final
+CI job emits the combined unsigned candidate only when both platform jobs pass.
 
 ## Offline signing and independent verification
 

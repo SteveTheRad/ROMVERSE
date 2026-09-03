@@ -67,9 +67,19 @@ the Desktop, loaded 148 known fixes and all 19 routes, reopened populated worksp
 byte-for-byte, and confirmed the authorization and execution-claim services expose no device-open
 or execution method. A separate self-contained Fedora app also launched successfully. Its verified
 451-file Linux bundle expands to 355,696,971 bytes and has SHA-256
-`ad7f4c1cfebde7930ba4630bbfb6caf866ac795a9d1bc17cda092d8eb03f77dc`. This is local
-source/package evidence only; the exact commit and cross-platform CI result remain pending until
-the increment is committed and GitHub Actions completes.
+`ad7f4c1cfebde7930ba4630bbfb6caf866ac795a9d1bc17cda092d8eb03f77dc`. Exact application commit
+`a69480c420acf2b938f95bff879db0d483520472` was tested in GitHub Actions run `33812805462`: both
+Linux versions passed all 1,523 tests and both Ruff gates; both Windows versions passed all 448
+selected portability tests and both Ruff gates; Companion unit/build plus Linux and Windows
+installed/frozen/package jobs passed. The Linux CI bundle SHA-256 is
+`b4f8b07a9a5a98d6e4f10094b1a0c83b182ed9d7d9914f66771bcdfae228679d`; the Windows CI bundle
+SHA-256 is `d04429893ac2cd22c4b0ee47e16607a5d3dba6281d7ffce4497d75c3ed65e2ca`. GitHub refused to start
+only the dependent combined-candidate job because of the repository account's payment/spending
+limit, not a test or package failure. The exact two uploaded native artifacts were downloaded and
+the same final preparation/verification scripts passed locally: two artifacts, 229,478,059 bytes,
+unsigned manifest SHA-256 `23bb24d9f14a732c6ecc3d1c863d0281d6fe3022b92221b824c5711c184b39fd`.
+The workflow therefore remains visibly non-green until the account-side runner limit is corrected
+and that final job is rerun; no signing trust or update authority is claimed.
 
 Exact preceding commit `2eb043b119d3a0986f334738a05189a5065adb60` is fully green in GitHub
 Actions run `33803846046`: both 1,509-test Linux quality jobs, both Windows portability jobs,

@@ -178,6 +178,17 @@ has current evidence.
    recovery/wipe paths, governed execution, physical validation and built-in schema-three Pack
    authority remain unfinished.
 
+   Exact post-candidate source commit `898bd04d87fba52690a330d09eeb61c4275c3649` is fully green in
+   GitHub Actions run `33797435368`: both Linux versions passed all 1,489 tests and complete Ruff
+   check/format gates across 359 files; both Windows versions passed all 334 selected portability
+   tests and both Ruff gates; Companion unit/build, Linux and Windows installed/frozen/package jobs,
+   and the combined unsigned candidate passed. Both CI package jobs verified 234-member wheels and
+   all 21 Device Packs. A fresh isolated Fedora wheel build produced the same 234-member/21-Pack
+   structure with SHA-256 `1614f04ba2df4a3a41f31624ef049cbeace99b09757a8c4f204eb3119269ff78`;
+   an isolated install loaded final-consent schema one with execution authority `none` and no execute
+   or token-consumption surface. This proves the runtime-bound consent source/package increment, not
+   enrolled production trust, physical device behavior, or governed execution.
+
    Exact application-source commit `fe0f1521f656e0595ddbab855882262109fe37c4` is fully green in
    GitHub Actions run `33790777149`: both Linux versions passed all 1,468 tests and both Ruff gates;
    both Windows versions passed the expanded 313-test portability selection and both Ruff gates;

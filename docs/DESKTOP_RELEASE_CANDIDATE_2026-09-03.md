@@ -51,6 +51,19 @@ completed successfully for the exact source commit:
   8.11.1, Android setup v4, and Gradle setup v6. The Kotlin test source contains 25 test files and
   138 `@Test` declarations; the Android unit-test task executed rather than being skipped.
 
+Subsequent source commit `898bd04d87fba52690a330d09eeb61c4275c3649` adds the exact
+runtime-bound final-consent-v1 verifier/issuer and its deliberately locked Desktop explanation.
+[GitHub Actions run 33797435368](https://github.com/SteveTheRad/ROMVERSE/actions/runs/33797435368)
+is fully green for that exact commit: both Linux versions passed all 1,489 tests and both complete
+Ruff gates across 359 files; both Windows versions passed the 334-test portability selection and
+both Ruff gates; Companion unit/build, both installed/frozen/native package jobs, and the combined
+unsigned candidate all passed. Each CI wheel contains 234 members and all 21 Device Packs. A fresh
+isolated Fedora wheel build has SHA-256
+`1614f04ba2df4a3a41f31624ef049cbeace99b09757a8c4f204eb3119269ff78`; its verifier found the
+same 234 members/21 Packs, and an isolated install loaded final-consent schema one with execution
+authority `none` and no execute or token-consumption method. This is later source/build evidence; it
+does not silently replace the exact artifact hashes listed above.
+
 Independent Fedora verification on 2026-09-04 reproduced the manifest's two artifact sizes and
 SHA-256 values, checked every ZIP member and CRC, and confirmed both duplicate CI copies were
 byte-identical. The Linux bundle has the expected executable, and the Windows bundle has the

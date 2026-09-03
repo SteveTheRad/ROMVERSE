@@ -231,6 +231,11 @@ FIELD_SOURCE = ArchiveSource(
     "Recorded ROMVERSE HyperOS reference workflow",
     "FIELD VERIFIED • MODEL/BUILD SCOPED",
 )
+HYPEROS_40025_FIELD_SOURCE = ArchiveSource(
+    "ROMVERSE HyperOS 4 OS4.0.0.25 field record",
+    "FIELD VERIFIED • ONE DEVICE/EXACT BUILD",
+    reviewed_on="2026-09-04",
+)
 
 
 def _fix(
@@ -2782,28 +2787,30 @@ KNOWN_FIXES = (
     ),
     _fix(
         "desktop-legal-publication-boundary",
-        "About shows Terms, but public legal terms are not published",
+        "About contains draft Terms pending legal review",
         "ROMVERSE WORKFLOWS",
         "ROMVERSE v0.1.0 is an internal development alpha. The source tree contains a "
-        "proprietary development-snapshot licence, while the approved product commitments "
-        "explicitly keep billing promises subject to production implementation and published "
-        "terms. A link-like Terms label must therefore report the missing publication gate; it "
-        "cannot imply that a reviewed public contract already exists.",
+        "proprietary development-snapshot licence and now packages a versioned Terms & Conditions "
+        "review draft. The draft assigns firmware/source responsibility, prohibits misuse, "
+        "explains high-risk device operations, and limits liability only to the extent law permits. "
+        "It is not effective public terms and cannot imply legal approval or recorded acceptance.",
         checks=(
             "Confirm the installed build identifies itself as internal alpha rather than a public production release.",
             "Inspect the packaged/source LICENSE and distinguish source-use permission from customer terms of service.",
-            "Confirm no public terms document has been packaged, versioned, and approved for this release.",
+            "Load the packaged draft by its version and SHA-256 and confirm About labels it INTERNAL REVIEW DRAFT and LEGAL REVIEW REQUIRED.",
+            "Confirm no effective public terms version, provider/contact identity or acceptance record is claimed for this release.",
             "Treat membership prices and future-service promises as product direction until production billing and published terms exist.",
         ),
         fix_steps=(
-            "Replace inert or misleading Terms text with a visible internal-alpha state and an exact explanatory record.",
-            "Before public release, obtain the reviewed legal text, assign a version/effective date, package it immutably, and connect the UI to that exact artifact.",
+            "Keep the local draft readable from About while making its review status and integrity digest visible.",
+            "Before public release, obtain qualified legal review, complete provider/contact and jurisdiction details, align the Privacy Policy and third-party notices, then assign an effective version/date.",
+            "Bind the legally approved document digest to the signed release before collecting contractual acceptance.",
             "Keep unavailable purchasing, renewal, cancellation, and public-account actions disabled until the production service and terms agree.",
         ),
         verification=(
-            "About displays PUBLIC LEGAL PACK NOT ISSUED and opens this exact record.",
-            "The destination retains a safe Return to About path and starts no account, browser, billing, or network action.",
-            "No UI label claims that public legal terms were accepted, published, or approved in this internal build.",
+            "About displays DRAFT TERMS • LEGAL REVIEW REQUIRED and opens the complete local draft in a readable dialog.",
+            "Reading or closing the draft records no acceptance and starts no account, browser, billing, network, build or phone action.",
+            "The status record retains a safe Return to About path and no UI claims public terms were accepted, effective, published or legally approved.",
         ),
         tags=(
             "terms not published",
@@ -2814,8 +2821,8 @@ KNOWN_FIXES = (
             "terms of service missing",
         ),
         route="about",
-        evidence="The current source contains a proprietary LICENSE and approved commitments that keep billing benefits subject to production implementation and published terms; no separate public terms artifact is packaged.",
-        automation="STATUS AND EXACT LOCAL GUIDANCE ONLY • NO LEGAL ACCEPTANCE, ACCOUNT, BILLING, BROWSER, NETWORK, OR PUBLISH ACTION",
+        evidence="The packaged draft is versioned draft-2026-09-04 and explicitly preserves non-excludable rights, separates Terms acceptance from plan-specific operation consent, and leaves provider/contact, jurisdiction, Privacy Policy, notices, effective date and legal approval as release gates.",
+        automation="LOCAL DRAFT DISPLAY AND STATUS GUIDANCE ONLY • NO LEGAL ACCEPTANCE, ACCOUNT, BILLING, NETWORK, PUBLISH, BUILD, OR PHONE ACTION",
         source=ROMVERSE_SOURCE,
     ),
     _fix(
@@ -3228,6 +3235,139 @@ KNOWN_FIXES = (
 )
 
 
+HYPEROS_40025_FIELD_FIXES = (
+    _fix(
+        "popsicle-os40025-android-auto-integration",
+        "HyperOS 4 OS4.0.0.25 Android Auto: field-validated integration pattern",
+        "APPS & PACKAGES",
+        "One Xiaomi 17 Pro Max (2509FPN0BC, codename popsicle) clean-wipe installation of "
+        "OS4.0.0.25.XPBCNXM reached Android userspace and the user confirmed Android Auto and "
+        "Gboard fully working. The successful change was a coordinated product-partition system "
+        "integration, not a standalone APK copy. This evidence applies only to the recorded "
+        "device/build/package contract and must not be inherited by another model, incompatible "
+        "update path, package hash, or partition layout. The country where a phone is used is not "
+        "a compatibility condition.",
+        checks=(
+            "Bind the project to Xiaomi 2509FPN0BC / popsicle and target OS4.0.0.25.XPBCNXM, Android 17/API 37, the target firmware channel and protected OTA digest; do not confuse firmware channel with the phone's physical location.",
+            "Confirm the base already contains Google Services Framework, the Play services APEX, Play Store updater/configuration and required Google sysconfig; preserve them unchanged.",
+            "Inspect every Android Auto APK or split, its package identity, minimum/target SDK and complete signing lineage before privileged placement.",
+            "Inspect existing automotive projection providers and services; CarWith was a confirmed conflict in this exact build, not a universal removal rule.",
+            "Record the product EROFS feature set, UUID, ownership, modes, SELinux contexts/xattrs, capacity, AVB hashtree inputs and chained descriptors before changing the working copy.",
+            "Record the exact super size, metadata slots, A/B groups, logical partition extents and every unchanged source-image digest.",
+        ),
+        fix_steps=(
+            "Start from an immutable verified OTA and make every change in an isolated working tree with a file-level change manifest.",
+            "Place the Google-signed Android Auto stub as a privileged product app and retain its verified signer lineage so Google Play can update the system app.",
+            "Add the reviewed privileged-permission allowlist and default permissions needed for projection, location, Bluetooth, nearby Wi-Fi/local network, phone/call log, contacts, SMS/MMS, microphone and calendar.",
+            "Use a minimal static framework overlay for config_systemAutomotiveProjection and append Android Auto to config_defaultListenerAccessPackages without replacing Xiaomi's existing listeners.",
+            "Preserve the existing Google dependency stack. Remove or disable another projection provider only when an exact-build dependency/conflict review proves it necessary.",
+            "Rebuild only product with source-compatible EROFS features, filesystem identity, metadata, combined SELinux file contexts and the exact partition budget.",
+            "Regenerate the product hashtree and replace only its descriptor in vbmeta_system; preserve the untouched system/system_ext descriptors and the exact Xiaomi-signed top-level vbmeta when the reviewed contract requires that topology.",
+            "Reconstruct sparse super from the exact source layout, expand and unpack it, then byte-compare all logical partitions against the intended source/custom images.",
+        ),
+        verification=(
+            "Verify the protected OTA, every package file and the final bundle against recorded SHA-256 digests before it is considered a candidate.",
+            "Verify APK Signature Scheme v3, signing lineage, privileged/default permission counts and the two overlay resource values from the built product image.",
+            "Verify EROFS integrity, staged-tree content and uid/gid/mode/symlink round-trip, SELinux xattrs, product AVB hashtree and the complete vbmeta_system descriptor chain.",
+            "Expand and unpack sparse super; require every slot-A logical partition to match its intended image byte-for-byte.",
+            "After a separately governed installation, verify exact build/slot identity, Android Auto system flags and role, overlay enablement, permission state, dependency presence and absence of the reviewed conflicting provider.",
+            "Treat successful boot and setup as separate evidence from a real USB/Bluetooth in-car projection test; record both rather than inferring one from the other.",
+        ),
+        tags=(
+            "popsicle OS4.0.0.25 XPBCNXM android auto",
+            "xiaomi 17 pro max android auto system app",
+            "com.google.android.projection.gearhead privileged",
+            "config_systemAutomotiveProjection",
+            "config_defaultListenerAccessPackages",
+            "android auto privapp permissions",
+            "hyperos carwith conflict",
+            "android auto product erofs avb",
+        ),
+        route="rom_studio",
+        evidence="The local record binds base OTA SHA-256 3c5fa73c…c76c368, a 52-file product-only delta, verified EROFS/AVB/sparse-super round-trips and package checksums to the clean-wipe slot-A installation performed on 2026-09-03. The user confirmed the resulting Android Auto and Gboard behavior fully working. It is one-device, exact-build field evidence—not a population guarantee.",
+        automation="GUIDANCE AND EXACT-BUILD COMPARISON ONLY • NO BUILD, FLASH, WIPE, SLOT, UNLOCK, RELOCK, OR PHONE AUTHORITY",
+        source=HYPEROS_40025_FIELD_SOURCE,
+    ),
+    _fix(
+        "android-auto-system-app-no-projection",
+        "Android Auto is installed as a system app but projection is unavailable",
+        "APPS & PACKAGES",
+        "A visible or privileged Android Auto package does not prove that Android selected it as "
+        "the automotive-projection service. Projection can remain unavailable when a split or "
+        "dependency is missing, the signer or permission XML is wrong, framework resources do not "
+        "name the package, notification-listener access was overwritten, an OEM projection provider "
+        "conflicts, or rebuilt filesystem/AVB metadata is stale.",
+        checks=(
+            "Read the installed package path, system/privileged flags, version, enabled state, split inventory and signing lineage without changing the phone.",
+            "Inspect privileged-permission denials, runtime/default permission state and package-manager or system-server errors for the exact package.",
+            "Read the resolved automotive-projection package and notification-listener allowlist; confirm the OEM's existing listener entries were preserved.",
+            "Confirm Google Services Framework, Play services, Play Store support and required Google system components still exist and match the base ROM.",
+            "Check whether another automotive projection service owns USB, Bluetooth, calls, notifications or the projection role on this exact build.",
+            "Compare product ownership, modes, SELinux labels/xattrs, EROFS integrity, partition capacity, hashtree and chained AVB descriptors with the reviewed candidate.",
+        ),
+        fix_steps=(
+            "Return to the immutable stock/product baseline and correct one evidenced layer at a time: package/splits and signer, XML policy, overlay resources, dependencies, provider conflict, filesystem metadata, then AVB/super packaging.",
+            "Append required listeners instead of replacing the OEM list, and remove an OEM projection provider only when the exact-build conflict is demonstrated and rollback material exists.",
+            "Rebuild and validate the affected partition in isolation; do not grant permissions interactively as a substitute for a correct privileged system integration.",
+        ),
+        verification=(
+            "The installed package retains the expected system/privileged identity, complete split/signing relationship and reviewed permissions after reboot.",
+            "The framework resolves Android Auto as the projection package while retaining intended OEM listener entries and dependent Google services.",
+            "A real car session completes USB or wireless projection, Bluetooth/call/media behavior and reconnect testing; an icon or successful boot alone is insufficient.",
+        ),
+        tags=(
+            "android auto installed but not working",
+            "android auto no projection",
+            "gearhead privileged permission denial",
+            "automotive projection role missing",
+            "hyperos android auto troubleshooting",
+            "carwith conflict",
+        ),
+        route="rom_studio",
+        evidence="The exact popsicle OS4.0.0.25 result required the package, permission policy, framework overlay, preserved Google dependencies, product metadata and verified AVB/super chain to agree. This diagnostic pattern helps locate a missing layer but does not prove the same fix is correct on another ROM.",
+        automation="READ-ONLY DIAGNOSIS AND LOCAL CANDIDATE VERIFICATION ONLY • NO AUTOMATIC PERMISSION, DEBLOAT, BUILD, OR PHONE CHANGE",
+        source=HYPEROS_40025_FIELD_SOURCE,
+    ),
+    _fix(
+        "popsicle-os40025-same-device-boundary",
+        "OS4.0.0.25 popsicle field result and same-device compatibility boundary",
+        "DEVICE IDENTITY & COMPATIBILITY",
+        "The recorded package successfully flashed and worked on one real unlocked Xiaomi 17 Pro "
+        "Max. That is strong exact-device field evidence, but one result cannot guarantee every unit: "
+        "the codename, retail model, installation/update path, rollback state, bootloader states, package "
+        "bytes, partition geometry, hardware health and user-data expectations must still be checked "
+        "on each target before ROMVERSE can describe it as a match.",
+        checks=(
+            "Require both retail identity 2509FPN0BC and codename/product popsicle; a similar marketing name is not enough.",
+            "Require the OS4.0.0.25.XPBCNXM target contract, Android 17/API 37, matching partition topology and exact verified package digests; Australia versus China usage location is irrelevant.",
+            "Treat a firmware-channel change as visible review evidence, not an automatic incompatibility. A full clean image set may permit it; an incremental OTA must satisfy its signed pre-build/update-path requirements.",
+            "Require fresh unlocked and critical-unlocked evidence, acceptable rollback state, target-slot/recovery facts, adequate battery and one unambiguous USB target.",
+            "Explain that this clean-install package erases metadata and userdata, writes slot A only, leaves slot B as a recovery option and must never be followed by bootloader relocking.",
+            "Require an independent backup and known-good stock recovery package; a preserved slot is useful recovery evidence but not a complete backup.",
+        ),
+        fix_steps=(
+            "If exact identity, a package-required source path, rollback, unlock, package hash, partition, recovery or consent evidence fails, classify the target as unverified and stop rather than generalizing from the successful phone.",
+            "For another matching unit, collect a new preflight, installation receipt, first-boot/post-boot evidence and recovery outcome so the confidence can grow without erasing per-device uncertainty.",
+        ),
+        verification=(
+            "Keep build-static verification, write completion, first boot/setup and real in-car Android Auto operation as separate evidence states.",
+            "Record the exact device/build/package/slot relationship and the observed outcome without serial numbers, account data or other unnecessary personal identifiers.",
+        ),
+        tags=(
+            "will popsicle OS4.0.0.25 work all devices",
+            "xiaomi 17 pro max same device compatibility",
+            "2509FPN0BC XPBCNXM clean flash",
+            "one device field validation",
+            "popsicle bootloader unlocked critical unlocked",
+        ),
+        route="device_atlas",
+        evidence="The 2026-09-03 field record shows a completed clean-wipe slot-A flash and user-confirmed working result on one real popsicle. It supports exact-scope confidence and reusable safeguards; it does not statistically establish universal success across all units sold under the same name.",
+        automation="EXACT-SCOPE MATCHING AND EVIDENCE COLLECTION ONLY • UNKNOWN OR MISMATCHED TARGETS FAIL CLOSED",
+        source=HYPEROS_40025_FIELD_SOURCE,
+    ),
+)
+
+
 ANDROID_REFERENCE_FIXES = tuple(
     _fix(
         seed.key,
@@ -3250,7 +3390,7 @@ ANDROID_REFERENCE_FIXES = tuple(
     )
     for seed in ANDROID_REFERENCE_SEEDS
 )
-KNOWN_FIXES = KNOWN_FIXES + ANDROID_REFERENCE_FIXES
+KNOWN_FIXES = KNOWN_FIXES + HYPEROS_40025_FIELD_FIXES + ANDROID_REFERENCE_FIXES
 
 
 def _key_for(title: str) -> str:

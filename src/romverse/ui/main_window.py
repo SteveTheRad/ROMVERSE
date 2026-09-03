@@ -68,6 +68,7 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QSpinBox,
     QStackedWidget,
+    QTextBrowser,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -120,6 +121,7 @@ from romverse.intelligence.synapse import SynapseStore
 from romverse.knowledge.advisor import article_for_key
 from romverse.knowledge.archives import catalog_metrics
 from romverse.knowledge.resolution_memory import ArchivesResolutionMemory
+from romverse.legal import load_terms_document
 from romverse.nexus.compatibility import CompatibilityMatrix, CompatibilityStatus
 from romverse.nexus.events import (
     LiveConsoleEventStore,
@@ -1838,6 +1840,48 @@ class SettingsDialog(QDialog):
         )
 
 
+class TermsDialog(QDialog):
+    """Readable local view of the packaged Terms draft; it records no acceptance."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        document = load_terms_document()
+        self.document = document
+        self.setWindowTitle("ROMVERSE Terms & Conditions")
+        self.setModal(False)
+        self.resize(860, 720)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 18, 20, 18)
+        layout.setSpacing(10)
+        status = QLabel(
+            f"{document.status}\nVersion {document.version}  •  SHA-256 {document.sha256[:16]}…"
+        )
+        status.setObjectName("Warning")
+        status.setAccessibleName("Terms document review status and integrity digest")
+        status.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        status.setWordWrap(True)
+        layout.addWidget(status)
+
+        self.content = QTextBrowser()
+        self.content.setObjectName("TermsDocument")
+        self.content.setAccessibleName("ROMVERSE Terms and Conditions internal review draft")
+        self.content.setOpenExternalLinks(False)
+        self.content.setMarkdown(document.text)
+        layout.addWidget(self.content, 1)
+
+        boundary = QLabel(
+            "Reading this internal draft records no acceptance and grants no device, build, "
+            "account, billing, network, or execution authority."
+        )
+        boundary.setObjectName("Muted")
+        boundary.setWordWrap(True)
+        layout.addWidget(boundary)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        buttons.rejected.connect(self.close)
+        layout.addWidget(buttons)
+
+
 class AboutPage(QWidget):
     logo_double_clicked = Signal()
     route_requested = Signal(str)
@@ -2611,9 +2655,9 @@ class AboutPage(QWidget):
         trust_title = QLabel("Privacy, licences, legal status, and release provenance")
         trust_title.setObjectName("SectionTitle")
         trust_detail = QLabel(
-            "Each control opens one exact ROMVERSE Archives record. This internal alpha has a "
-            "proprietary source licence, but public terms, a privacy statement, complete "
-            "third-party notices, and signed release notes remain explicit release gates."
+            "Read the packaged Terms review draft or open one exact ROMVERSE Archives record. "
+            "This internal alpha has not issued effective public terms; legal approval, a privacy "
+            "statement, complete third-party notices, and signed release notes remain release gates."
         )
         trust_detail.setObjectName("Muted")
         trust_detail.setWordWrap(True)
@@ -2621,15 +2665,27 @@ class AboutPage(QWidget):
         trust_copy.addWidget(trust_title)
         trust_copy.addWidget(trust_detail)
         trust_header.addLayout(trust_copy, 1)
-        legal_state = QLabel("INTERNAL ALPHA\nPUBLIC LEGAL PACK NOT ISSUED")
-        legal_state.setObjectName("Warning")
-        legal_state.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        legal_state.setAccessibleName(
-            "Internal alpha; public terms and legal release pack have not been issued"
+        self.legal_state = QLabel("INTERNAL ALPHA\nDRAFT TERMS • LEGAL REVIEW REQUIRED")
+        self.legal_state.setObjectName("Warning")
+        self.legal_state.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.legal_state.setAccessibleName(
+            "Internal alpha; draft Terms are included but public terms remain unissued"
         )
-        legal_state.setMinimumWidth(220)
-        trust_header.addWidget(legal_state)
+        self.legal_state.setMinimumWidth(220)
+        trust_header.addWidget(self.legal_state)
         trust_dock_layout.addLayout(trust_header)
+
+        self.terms_button = QPushButton("READ DRAFT TERMS & CONDITIONS  →")
+        self.terms_button.setObjectName("AboutTermsAction")
+        self.terms_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.terms_button.setAccessibleName(
+            "Read the packaged ROMVERSE Terms and Conditions internal review draft"
+        )
+        self.terms_button.setToolTip(
+            "Open the local versioned draft. Reading it records no contractual acceptance."
+        )
+        self.terms_button.clicked.connect(self._show_terms)
+        trust_dock_layout.addWidget(self.terms_button)
 
         trust_actions = QGridLayout()
         trust_actions.setContentsMargins(0, 0, 0, 0)
@@ -2639,7 +2695,7 @@ class AboutPage(QWidget):
             (
                 "desktop-legal-publication-boundary",
                 "TERMS STATUS",
-                "Not published for internal alpha",
+                "Draft included; legal review required",
                 "caution",
             ),
             (
@@ -2704,6 +2760,15 @@ class AboutPage(QWidget):
         layout.addWidget(footer)
         self._apply_brand_layout()
         self._update_about_minimum_height()
+
+    def _show_terms(self) -> None:
+        previous = getattr(self, "terms_dialog", None)
+        if previous is not None:
+            previous.close()
+        self.terms_dialog = TermsDialog(self)
+        self.terms_dialog.show()
+        self.terms_dialog.raise_()
+        self.terms_dialog.activateWindow()
 
     def set_runtime_evidence(self, evidence: AboutRuntimeEvidence) -> None:
         """Render only the current workspace facts supplied by the owning services."""

@@ -34,8 +34,9 @@ class FirmwareUpgradeAssessment:
 
 USER_FIRMWARE_RESPONSIBILITY_NOTICE = (
     "Firmware files are selected and supplied by you. You are responsible for confirming that a "
-    "package came from a trusted official source and is intended for your exact model, region, "
-    "and current update path. ROMVERSE does not provide, endorse, or warrant user-supplied "
+    "package came from a trusted official source and is intended for your exact model, firmware "
+    "channel, and installation/update path. The country where the phone is used is not a "
+    "compatibility gate. ROMVERSE does not provide, endorse, or warrant user-supplied "
     "firmware and cannot guarantee third-party provenance. Firmware changes can cause data loss "
     "or device failure and remain at your own risk. Import and upgrade detection grant no "
     "installation or flash authority. Nothing in this notice excludes rights or obligations that "
@@ -146,16 +147,36 @@ def assess_firmware_upgrade(
             ("Both current and candidate firmware regions must be recognized.",),
         )
     if current.region and candidate.region and current.region != candidate.region:
+        relationship = (
+            FirmwareRelationship.UPGRADE
+            if candidate.version > current.version
+            else FirmwareRelationship.DOWNGRADE
+            if candidate.version < current.version
+            else FirmwareRelationship.SAME
+        )
+        label = {
+            FirmwareRelationship.UPGRADE: "CROSS-CHANNEL UPGRADE CANDIDATE",
+            FirmwareRelationship.DOWNGRADE: "CROSS-CHANNEL DOWNGRADE CANDIDATE",
+            FirmwareRelationship.SAME: "CROSS-CHANNEL SAME VERSION",
+        }[relationship]
         return _assessment(
-            FirmwareRelationship.INCOMPATIBLE,
+            relationship,
             current.raw,
             candidate.raw,
             device,
             target,
             current.region,
             candidate.region,
-            "INCOMPATIBLE REGION",
-            (f"Current region is {current.region}; candidate region is {candidate.region}.",),
+            f"{label} • {current.raw} → {candidate.raw}",
+            (
+                f"Exact codename matched: {device}.",
+                "The phone's physical country of use is irrelevant to this classification.",
+                f"Firmware distribution channel changes from {current.region} to {candidate.region}.",
+                "A full clean package may support a channel change when an exact Device Pack "
+                "verifies its product, partition, rollback, unlock, wipe, and recovery contract; "
+                "an incremental OTA must still match its signed pre-build/update path.",
+                "This version relationship grants no installation or flash authority.",
+            ),
         )
     if current.branch != candidate.branch:
         return _assessment(

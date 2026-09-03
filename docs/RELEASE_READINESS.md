@@ -4,6 +4,36 @@ ROMVERSE must not be described as production-ready merely because the desktop sh
 debug APK opens. A public build is eligible for release only when every applicable gate below
 has current evidence.
 
+The current source includes `draft-2026-09-04` Terms & Conditions as a complete readable About-page
+artifact with a visible SHA-256 and explicit internal-review status. It covers authorised use,
+misuse, user-selected firmware, high-risk Android operations, plan-specific warnings, third-party
+inputs, backup/recovery responsibility, liability limitations and non-excludable Australian
+Consumer Law rights. Reading it records no acceptance or authority. Public contractual acceptance
+must remain disabled until qualified legal review completes the contracting provider/contact,
+jurisdiction, effective date, Privacy Policy, notice inventory, fair-standard-terms review, and
+signed-release document binding. This draft is implementation evidence, not legal approval.
+
+Current Fedora source evidence recorded on 2026-09-04: all 1,509 Desktop tests pass, complete Ruff
+check/format gates are clean across 366 files, and the focused About/Archives/firmware/Guardian/
+release regression passes. The isolated 238-member wheel contains all 21 Device Packs, the legal
+loader and the byte-exact Terms draft; wheel SHA-256 is
+`b596579194eece43f286a3a203f8ad720a857ae34313b1ba93be1842d1ab5660`. Its installed smoke loads
+147 known fixes and all 19 Desktop routes, verifies the Terms document, renders the dark fresh
+workspace and reopens populated evidence byte-for-byte. A separate self-contained Fedora build
+also launched successfully and contained the Terms asset. The Terms draft SHA-256 is
+`b3a188f94dbc910f218ca368818c031395610313939064edf9e8b0d47881b718`.
+
+The exact local HyperOS 4 OS4.0.0.25.XPBCNXM package record was reinspected read-only. Its 72-entry
+`SHA256SUMS` manifest (`23bca4405ff47c3c8bd3a3b086d9c7525942347cf3ba43bb8537715e13e16b14`)
+verified every documented package file. ROMVERSE now carries three structured exact-scope records:
+the Android Auto integration pattern, an installed-but-no-projection diagnostic, and the same-device
+compatibility boundary. It also classifies a numerically newer same-codename cross-channel HyperOS
+build as an upgrade candidate with review evidence rather than as automatically incompatible.
+Physical country of use never gates compatibility. Guardian Preflight now reserves Blocked for a
+failed required check; advisory, privileged and destructive consequences enter Review and may
+advance only through a supported gateway with fresh exact-plan acceptance. This is useful build and
+policy evidence, not universal device assurance or a live flashing runtime.
+
 ## Required gates
 
 1. Run the complete `pytest`, `ruff check .`, and `ruff format --check .` gates on supported Linux

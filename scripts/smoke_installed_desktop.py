@@ -14,6 +14,7 @@ from PySide6.QtWidgets import QApplication
 from romverse import app as romverse_app
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.knowledge.archives import CANONICAL_ROUTES, KNOWN_FIXES
+from romverse.legal import TERMS_STATUS, load_terms_document
 from romverse.rom.projects import RomProjectStore
 from romverse.ui import main_window as main_window_module
 from romverse.ui.backup_center import BackupCenter
@@ -67,6 +68,9 @@ def main() -> int:
     for name in ("product-family.png", "romverse-mark.svg", "romverse-app-icon.png"):
         if not assets.joinpath(name).is_file():
             raise RuntimeError(f"Installed desktop asset is missing: {name}")
+    terms = load_terms_document()
+    if terms.status != TERMS_STATUS or "Australian Consumer Law" not in terms.text:
+        raise RuntimeError("Installed desktop Terms draft is missing or incomplete")
     required_handoffs = {
         "time-machine-empty-state-dead-end",
         "command-console-no-trusted-result",

@@ -281,13 +281,26 @@ compatibility failures.
 ## Proven HyperOS reference evidence
 
 ROMVERSE's offline guidance includes the successful Xiaomi 17 Pro Max (`popsicle`) HyperOS 4
-reference workflow as scoped evidence. It establishes useful engineering checks—preserve a
-known-good stock base; retain owners, modes, SELinux contexts, filesystem identity and AVB
-descriptors; rebuild dynamic partitions with exact metadata; unsparse and unpack generated
-`super`; byte-compare every logical partition; and validate first boot, reconnect, and stability
-after incremental changes. Privileged Android Auto integration additionally requires signer,
-split-APK, permission XML, dependency, and AVB verification. These lessons improve diagnostics
-and build planning, but do not certify another model, firmware, region, or partition layout.
+reference workflow as scoped evidence. The exact OS4.0.0.25.XPBCNXM clean-install package was
+flashed to one real `popsicle` on 2026-09-03 and the user confirmed its Android Auto and Gboard
+result fully working. The build changed only `product`, preserved the base Google framework and
+Xiaomi-signed top-level `vbmeta`, retained source EROFS identity/features and filesystem metadata,
+updated only the product descriptor inside `vbmeta_system`, then expanded and unpacked sparse
+`super` and byte-compared all nine slot-A logical partitions.
+
+The Android Auto result came from a coordinated privileged integration: verified Google signer,
+system stub, privileged/default-permission XML, a minimal static overlay naming the projection
+package and appending notification-listener access without dropping Xiaomi's listeners, plus
+exact-build conflict resolution for CarWith. CarWith removal is recorded as specific to this
+build, not a universal Android Auto requirement. ROMVERSE keeps build-static verification, flash
+completion, first boot/setup, and real in-car projection as separate evidence states. A successful
+result on one phone raises confidence for an identical target but cannot guarantee all units.
+Physical location is never a compatibility gate: a Chinese device used in Australia is still the
+same device. Firmware channel is shown as review evidence rather than an automatic refusal for a
+full clean package; signed incremental OTA pre-build requirements remain exact. Device identity,
+package hashes, rollback, unlock states, partition geometry, backup and recovery facts still
+require fresh per-device checks. These lessons improve diagnostics and build
+planning but do not supply build, flash, wipe, slot, unlock, relock, or phone authority.
 
 Extraction capacity is adaptive rather than a generic small-archive ceiling. ROMVERSE uses the
 inspected expanded size, source-to-output ratio, current workspace free space, a minimum 4 GiB

@@ -22,6 +22,7 @@ REQUIRED_FILES = frozenset(
         "romverse/assets/radforge-labs-official-logo-transparent.png",
         "romverse/assets/romverse-app-icon.png",
         "romverse/assets/romverse-mark.svg",
+        "romverse/assets/TERMS-AND-CONDITIONS-DRAFT.md",
         "romverse/assets/device_pack_trust/index.json",
         "romverse/assets/device_packs/index.json",
     }

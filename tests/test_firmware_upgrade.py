@@ -39,7 +39,7 @@ def test_recognizes_same_version_and_downgrade_without_authorizing_either() -> N
     assert not downgrade.install_authority
 
 
-def test_wrong_device_or_region_never_becomes_an_upgrade() -> None:
+def test_wrong_device_is_incompatible_but_cross_channel_version_is_visible() -> None:
     wrong_device = _assess(
         "OS4.0.0.23.XPBCNXM",
         "OS4.0.0.25.XPBCNXM",
@@ -48,7 +48,12 @@ def test_wrong_device_or_region_never_becomes_an_upgrade() -> None:
     wrong_region = _assess("OS4.0.0.23.XPBCNXM", "OS4.0.0.25.XPBMIXM")
 
     assert wrong_device.relationship is FirmwareRelationship.INCOMPATIBLE
-    assert wrong_region.relationship is FirmwareRelationship.INCOMPATIBLE
+    assert wrong_region.relationship is FirmwareRelationship.UPGRADE
+    assert wrong_region.summary.startswith("CROSS-CHANNEL UPGRADE CANDIDATE")
+    assert any("physical country" in reason for reason in wrong_region.reasons)
+    assert any("incremental OTA" in reason for reason in wrong_region.reasons)
+    assert not wrong_region.install_authority
+    assert not wrong_region.phone_changed
 
 
 def test_unknown_or_changed_branch_stays_unconfirmed() -> None:

@@ -66,6 +66,48 @@ def test_failed_required_precondition_blocks_plan():
     assert "Failed required checks" in assessment.reasons[0]
 
 
+def test_destructive_plan_is_reviewable_when_hard_checks_pass():
+    assessment = GuardianPreflight().assess(
+        manifest(OperationClass.DESTRUCTIVE), execution_supported=True
+    )
+
+    assert assessment.status is PreflightStatus.REVIEW
+    assert assessment.risk is RiskLevel.CRITICAL
+    assert assessment.approval_required
+    assert not assessment.execution_locked
+    assert any("plan-bound acceptance" in reason for reason in assessment.reasons)
+
+
+def test_advisory_failure_requires_review_but_is_not_a_hard_stop():
+    operation = replace(
+        manifest(OperationClass.STATE_CHANGING),
+        preconditions=(
+            Precondition(
+                "channel",
+                "Firmware distribution channel differs",
+                CheckStatus.FAIL,
+                "Exact device matched; full clean package needs user review",
+                required=False,
+            ),
+        ),
+    )
+    assessment = GuardianPreflight().assess(operation, execution_supported=True)
+
+    assert assessment.status is PreflightStatus.REVIEW
+    assert assessment.approval_required
+    assert not assessment.execution_locked
+    assert any("advisory warnings" in reason.casefold() for reason in assessment.reasons)
+
+
+def test_required_failure_cannot_be_accepted_even_when_execution_is_supported():
+    assessment = GuardianPreflight().assess(
+        manifest(OperationClass.DESTRUCTIVE, CheckStatus.FAIL), execution_supported=True
+    )
+
+    assert assessment.status is PreflightStatus.BLOCKED
+    assert assessment.execution_locked
+
+
 def test_manifest_digest_detects_changes():
     planner = GuardianPreflight()
     original = manifest()

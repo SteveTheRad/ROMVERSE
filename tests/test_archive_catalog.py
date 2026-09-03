@@ -22,8 +22,8 @@ def test_archives_catalog_is_large_unique_classified_and_evidence_labelled() -> 
     validate_catalog(ARCHIVE_ARTICLES)
     metrics = catalog_metrics(ARCHIVE_ARTICLES)
 
-    assert len(ARCHIVE_ARTICLES) == 194
-    assert len(KNOWN_FIXES) == 144
+    assert len(ARCHIVE_ARTICLES) == 197
+    assert len(KNOWN_FIXES) == 147
     assert metrics == {
         "guides": len(ARCHIVE_ARTICLES),
         "categories": len(CATEGORIES),
@@ -190,7 +190,7 @@ def test_archives_have_an_exact_destination_for_every_top_level_desktop_page() -
         ),
         (
             "terms not published",
-            "About shows Terms, but public legal terms are not published",
+            "About contains draft Terms pending legal review",
         ),
         (
             "privacy policy local workspace",
@@ -237,7 +237,7 @@ def test_archives_rank_verified_known_fixes_for_real_failure_language(
 
 def test_archives_reject_weak_matches_and_bound_results() -> None:
     assert not search_catalog(ARCHIVE_ARTICLES, "definitely not a real ROMVERSE topic")
-    assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=1_000)) == 194
+    assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=1_000)) == 197
     assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=0)) == 1
     connectivity = search_catalog(
         ARCHIVE_ARTICLES,
@@ -279,6 +279,53 @@ def test_archives_rank_android_identity_compatibility_and_community_knowledge(
 
     assert matches
     assert matches[0].article.title == expected_title
+
+
+@pytest.mark.parametrize(
+    ("query", "expected_title"),
+    (
+        (
+            "popsicle OS4.0.0.25 android auto",
+            "HyperOS 4 OS4.0.0.25 Android Auto: field-validated integration pattern",
+        ),
+        (
+            "android auto installed but not working projection",
+            "Android Auto is installed as a system app but projection is unavailable",
+        ),
+        (
+            "will popsicle OS4.0.0.25 work all devices",
+            "OS4.0.0.25 popsicle field result and same-device compatibility boundary",
+        ),
+    ),
+)
+def test_archives_surface_hyperos_40025_field_knowledge(query: str, expected_title: str) -> None:
+    matches = search_catalog(ARCHIVE_ARTICLES, query, limit=3)
+
+    assert matches
+    assert matches[0].article.title == expected_title
+    assert matches[0].article.source.authority == "FIELD VERIFIED • ONE DEVICE/EXACT BUILD"
+
+
+def test_hyperos_40025_field_knowledge_preserves_evidence_boundaries() -> None:
+    integration = next(
+        article
+        for article in KNOWN_FIXES
+        if article.key == "popsicle-os40025-android-auto-integration"
+    )
+    boundary = next(
+        article for article in KNOWN_FIXES if article.key == "popsicle-os40025-same-device-boundary"
+    )
+
+    integration_text = integration.search_document.casefold()
+    boundary_text = boundary.search_document.casefold()
+    assert "config_systemautomotiveprojection" in integration_text
+    assert "config_defaultlisteneraccesspackages" in integration_text
+    assert "google services framework" in integration_text
+    assert "carwith was a confirmed conflict in this exact build" in integration_text
+    assert "one-device, exact-build field evidence" in integration_text
+    assert "does not statistically establish universal success" in boundary_text
+    assert "never be followed by bootloader relocking" in boundary_text
+    assert "no build, flash, wipe" in integration.automation.casefold()
 
 
 def test_archives_validation_rejects_duplicate_identity_and_unsafe_source() -> None:

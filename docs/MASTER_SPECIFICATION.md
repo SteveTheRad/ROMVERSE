@@ -140,10 +140,14 @@ Forward and reverse refusal must also persist a visible in-page explanation on t
 optional Desktop toast settings may add secondary feedback but cannot be the sole failure surface.
 
 Guardian Preflight returns Ready, Review or Blocked plus the maximum risk, reasons and
-approval requirement. Failed required evidence or destructive steps block a plan; unknown
-evidence and future state-changing/privileged steps require review. All v0.1 preflight
-outcomes keep generic device repair locked. A repair becomes executable only through its own
-typed, tested contract.
+approval requirement. A failed required safety condition is a hard stop. Unknown required
+evidence, advisory findings, and future state-changing, privileged, or destructive steps enter
+Review instead: every applicable consequence must be shown plainly and accepted against the exact
+current plan before a supported gateway can proceed. Advisory acceptance can never override a
+wrong target, altered artifact, rollback violation, or other failed required condition. All v0.1
+preflight outcomes keep generic device repair locked until that operation has its own typed, tested
+execution contract; the three-level model prevents that implementation boundary from becoming a
+permanent blanket ban.
 
 The first such contract is Recovery Autopilot's host ADB daemon recovery. It is offered only
 for an offline or failed ADB state, binds approval to the exact ADB executable SHA-256 and plan,
@@ -924,6 +928,15 @@ and its message are a locked brand moment and should not be replaced during gene
 restyling without an explicit product-owner decision. Discovery is stored only as a private,
 bounded, exact-schema, atomic local record. Malformed, oversized, linked, or extra-field records
 fail visibly; the record has no XP, account, membership, entitlement, or operation authority.
+
+The About Trust Dock includes a complete, scrollable, versioned Terms & Conditions review draft
+with its status and SHA-256 visible. The draft addresses authorised use, misuse, user-supplied
+firmware, third-party dependencies, high-risk Android operations, recovery responsibility,
+plan-specific warning acceptance, fair liability limits, and rights that cannot legally be
+excluded. It remains explicitly ineffective until professional legal review completes the provider,
+contact, jurisdiction, Privacy Policy, notice, effective-date, and signed-release binding gates.
+Opening or reading it is local-only and records no acceptance. Effective general Terms acceptance
+will remain separate from the exact expiring consent required for each device-changing plan.
 
 The core palette moves from purple through blue to cyan on a near-black space-like surface.
 Product-family marks remain related but distinct. Windows, Linux, and Android are planned;

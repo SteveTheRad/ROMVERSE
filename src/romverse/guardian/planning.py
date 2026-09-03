@@ -81,6 +81,11 @@ class GuardianPreflight:
             for check in manifest.preconditions
             if check.required and check.status is CheckStatus.UNKNOWN
         )
+        advisory_findings = tuple(
+            check.title
+            for check in manifest.preconditions
+            if not check.required and check.status is not CheckStatus.PASS
+        )
         highest = max(
             (self._risk(step.category) for step in manifest.steps),
             key=self._risk_order,
@@ -98,16 +103,21 @@ class GuardianPreflight:
             reasons.append("Failed required checks: " + ", ".join(required_failures))
         if required_unknown:
             reasons.append("Evidence still required: " + ", ".join(required_unknown))
+        if advisory_findings:
+            reasons.append("Review advisory warnings: " + ", ".join(advisory_findings))
         if has_destructive:
-            reasons.append("Manifest contains a destructive step")
+            reasons.append(
+                "Manifest contains a destructive step; every exact consequence requires "
+                "fresh plan-bound acceptance before a supported gateway may proceed"
+            )
         elif has_non_read_only:
             reasons.append("Manifest contains future device-changing or privileged steps")
         if not reasons:
             reasons.append("All available preconditions pass for a read-only plan")
 
-        if required_failures or has_destructive:
+        if required_failures:
             status = PreflightStatus.BLOCKED
-        elif required_unknown or has_non_read_only:
+        elif required_unknown or advisory_findings or has_non_read_only:
             status = PreflightStatus.REVIEW
         else:
             status = PreflightStatus.READY

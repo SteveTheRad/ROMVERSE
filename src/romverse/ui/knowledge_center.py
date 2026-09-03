@@ -149,7 +149,7 @@ LEGACY_GUIDES = (
     ),
     (
         "Verified HyperOS rebuild pattern",
-        "Evidence from the successful Xiaomi 17 Pro Max (popsicle) HyperOS 4 workflow: preserve a known-good stock base; change one small feature set at a time; rebuild only the intended filesystem; preserve ownership, modes, SELinux contexts, UUID, timestamp policy, partition size, AVB salt and descriptors; reconstruct dynamic partitions from the exact source layout; then unpack the generated super image and compare every logical partition byte-for-byte before it is considered a candidate. This is model/build-specific evidence, not permission to flash another device.",
+        "The Xiaomi 17 Pro Max (popsicle) OS4.0.0.25.XPBCNXM workflow succeeded by preserving a verified stock base and existing Google framework, changing only product, retaining ownership, modes, SELinux contexts/xattrs, EROFS UUID/features and AVB topology, then expanding and unpacking the rebuilt sparse super image and byte-comparing all nine slot-A logical partitions. The exact package clean-flashed and reached a user-confirmed working Android Auto/Gboard result on one real phone. This is strong model/build/package-scoped evidence, not a guarantee for every unit or permission to flash another target.",
     ),
     (
         "Dynamic partition and AVB validation",
@@ -165,7 +165,7 @@ LEGACY_GUIDES = (
     ),
     (
         "Privileged Android Auto integration",
-        "The proven popsicle workflow treated Android Auto as a privileged system integration, not a copied APK. It verified the Google APK signer, complete split set, privileged-permission allowlist, default-permission certificate digest, dependent Google services, filesystem metadata, partition capacity and AVB descriptors. A userspace boot loop can result from an incomplete permission allowlist, missing split, removed dependency, wrong ownership/SELinux context, stale AVB metadata or over-aggressive debloat. Restore the known-good product baseline and reintroduce one change set at a time.",
+        "The field-validated popsicle OS4.0.0.25 workflow treated Android Auto as a complete privileged system integration, not a copied APK. It preserved the base Google framework, verified the Google signer, added the privileged stub and reviewed permission XML, used a minimal static overlay for the projection role and notification-listener allowlist, resolved the exact build's CarWith conflict, retained filesystem metadata and updated only product's AVB descriptor before a full super round-trip. A visible app icon or successful boot does not prove projection: verify the installed system role, permissions, overlay, dependencies and a real car connection separately.",
     ),
     (
         "First-boot evidence after a ROM change",

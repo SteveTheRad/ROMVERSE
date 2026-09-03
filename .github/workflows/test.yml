@@ -70,6 +70,7 @@ jobs:
           tests/test_guardian_live_target_receipt.py
           tests/test_guardian_final_consent.py
           tests/test_guardian_runtime_session.py
+          tests/test_guardian_runtime_authorization.py
           tests/test_optimizer.py
           tests/test_navigation_vocabulary.py
         env:

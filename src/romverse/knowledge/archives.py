@@ -3237,6 +3237,46 @@ KNOWN_FIXES = (
         automation="EXACT PROJECT, PLAN, PACK, AND REPORT REVALIDATION ONLY • NO PLAN GENERATION, WORKER, BUILD, APPROVAL, FLASH, OR PHONE ACTION",
         source=ROMVERSE_SOURCE,
     ),
+    _fix(
+        "guardian-runtime-consent-consumed-or-expired",
+        "Guardian runtime consent was already consumed or expired",
+        "ROMVERSE WORKFLOWS",
+        "A final-consent capability is deliberately short-lived and can be consumed only once. "
+        "ROMVERSE binds it to one exact live target, reviewed build, forward plan, firmware "
+        "artifact, Device Pack, runtime session and enrolled runtime identity. A second caller, "
+        "a late caller, or a caller whose evidence changed must stop before device access opens. "
+        "If the runtime stops after recording consumption, the memory-only execution token is "
+        "unrecoverable by design and the old approval must not be replayed.",
+        checks=(
+            "Confirm the message says already consumed, expired, or no longer current rather than treating it as a USB or firmware failure.",
+            "Check whether the two-minute live-target receipt, 45-second runtime session, exact plan, firmware digest, Pack, device identity or data action changed.",
+            "Confirm the signed consumption record says device access unopened and phone unchanged when no executor started.",
+            "Do not delete or edit the record to force a retry; local file removal is not proof that an approval became safe to reuse.",
+        ),
+        fix_steps=(
+            "Return to the exact Guardian review and repeat the read-only live-target check.",
+            "Recreate the runtime session and review every current consequence before issuing fresh final consent.",
+            "If the previous runtime may have opened the device, inspect its signed result and physical phone state before deciding any recovery action.",
+            "Require separate explicit consent for recovery or a possible wipe; a forward grant can never be widened into either path.",
+        ),
+        verification=(
+            "Exactly one concurrent consumer can create the signed one-use record and receive the memory-only exact-forward token.",
+            "The saved record contains neither raw consent token, raw execution token nor phone serial, and tampering, duplicate fields or linked files fail closed.",
+            "Expiry or a lost memory token produces a fresh-review requirement and starts no automatic retry, recovery, wipe, relock or phone command.",
+        ),
+        tags=(
+            "guardian consent already consumed",
+            "guardian approval expired",
+            "runtime execution grant no longer current",
+            "lost execution token",
+            "consent replay rejected",
+            "fresh live target check required",
+        ),
+        route="guardian_core",
+        evidence="ROMVERSE runtime-authorization schema one signs the exact one-use consumption, creates its local record exclusively, keeps both raw capability tokens out of storage and issues only an in-memory forward grant. It deliberately provides no device runner or recovery, wipe or relock authority.",
+        automation="SIGNED ONE-USE LOCAL CONSUMPTION AND MEMORY-ONLY FORWARD GRANT • NO DEVICE RUNNER, RETRY, RECOVERY, WIPE, RELOCK, OR PHONE ACTION",
+        source=ROMVERSE_SOURCE,
+    ),
 )
 
 

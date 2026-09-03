@@ -726,8 +726,14 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   receipt and memory-only token digest to one verified runtime session, persists no raw token or
   phone serial, grants no recovery/wipe/relock or execution authority, and explicitly records that
   runtime consumption is incomplete, device access unopened, runtime uninvoked and phone unchanged;
-  the separately packaged production runtime, runtime-owned atomic consume-and-start operation,
-  result signing, recovery/wipe consent and physical validation remain unavailable;
+  a runtime-only Guardian authorization boundary that revalidates that exact chain, requires the
+  matching externally supplied Ed25519 runtime private key, exclusively signs and stores one
+  consumption record, and returns only a memory-held exact-forward grant; one concurrent caller
+  wins, neither raw token is persisted, and replay, expiry, wrong keys, changed evidence, tampering,
+  duplicate fields, links, recovery/wipe/relock claims and wider authority fail closed; this source
+  boundary has no device runner and its local record is not process-isolated or deletion-resistant;
+  the separately packaged/enrolled production runtime, atomic grant claim plus device open, governed
+  forward execution, result signing, recovery/wipe consent and physical validation remain unavailable;
   end-to-end Desktop presentation of that inert chain through the managed ROM Studio Guardian
   worker, with a single monotonic byte-derived scale across each required artifact rehash, terminal
   100 only after the applicable private records are sealed, readable dark scroll cards for

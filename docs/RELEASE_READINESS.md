@@ -37,13 +37,29 @@ contains both legal drafts and all 21 Device Packs; its SHA-256 is
 loaded the Privacy draft and preserved the populated workspace byte-for-byte. A separate frozen
 Linux app launched successfully and carries the byte-exact Privacy asset with SHA-256
 `829f94155250f7bfb68252bd3c883d5cddab340f82dc756d5d2a0a54bdeda069`. Windows installed/frozen and
-full cross-platform CI remain required for this new increment.
+full cross-platform CI passed at exact commit `1b51ed6d46194cea77c4f6e4fe88ab9fcf0fa38b` in GitHub
+Actions run `33807735415`: both 1,512-test Linux quality jobs, both Windows portability jobs,
+Companion tests/build, both installed/frozen/package jobs, and the combined unsigned candidate were
+green.
+
+The subsequent Guardian runtime-authorization increment passes all 1,518 local Desktop tests and
+complete Ruff check/format gates across 370 Python files. A fresh isolated 240-member wheel contains
+all 21 Device Packs plus the byte-exact runtime-authorization module; SHA-256 is
+`a03009fd1e9b803b4133771ce8b2fce6e7178d227b4c91bac0c5b45b2717235f`. Its installed smoke started
+the Desktop, loaded 148 known fixes, covered all 19 routes and reopened populated workspace evidence
+byte-for-byte while confirming the authorization service exposes no device-execution method. A
+self-contained Fedora build also launched successfully. Its verified 451-file Linux bundle expands
+to 355,681,739 bytes and has SHA-256
+`65437c244119986c6962bcc18af17fdbdcd5f9b888b67ac277386a17a6450a91`. This proves the source/package
+protocol and local one-winner tests; cross-platform CI, production runtime enrollment, process
+isolation, deletion-resistant consumption state, a governed executor and physical-phone validation
+remain required for this increment.
 
 Exact preceding commit `2eb043b119d3a0986f334738a05189a5065adb60` is fully green in GitHub
 Actions run `33803846046`: both 1,509-test Linux quality jobs, both Windows portability jobs,
 Companion tests/build, Linux and Windows installed/frozen/package jobs, and the combined unsigned
 Desktop candidate passed. This proves the Terms/HyperOS/Guardian milestone before the Privacy
-increment; it does not replace the new increment's pending cross-platform run.
+increment.
 
 The exact local HyperOS 4 OS4.0.0.25.XPBCNXM package record was reinspected read-only. Its 72-entry
 `SHA256SUMS` manifest (`23bca4405ff47c3c8bd3a3b086d9c7525942347cf3ba43bb8537715e13e16b14`)
@@ -232,10 +248,16 @@ policy evidence, not universal device assurance or a live flashing runtime.
    changed context, unsafe assertions, tampering, duplicate fields and links fail closed. A separate
    create-once consent reservation then binds the raw-token digest and exact final-consent receipt to
    that verified session without persisting the token. It explicitly leaves runtime consumption
-   incomplete, execution authority unissued, device access unopened and the phone unchanged. No
-   production runtime trust or runtime process is enrolled. Runtime-owned atomic one-use
-   consumption, separately consented recovery/wipe paths, governed execution, physical validation
-   and built-in schema-three Pack authority remain unfinished.
+   incomplete, execution authority unissued, device access unopened and the phone unchanged. A new
+   runtime-only authorization boundary revalidates that complete chain, requires the matching
+   externally supplied runtime private key, creates one exclusive signed consumption record and
+   returns only a memory-held exact-forward grant. Concurrency has one winner; expiry, replay, a
+   wrong key, changed evidence, unsafe authority claims, tampering, duplicate fields and links fail
+   closed, while neither raw token nor phone serial is persisted. It has no device runner and its
+   private local workspace record is not claimed to resist administrator deletion or provide process
+   isolation. No production runtime trust/key/process is enrolled. Atomic executor claim-and-open,
+   separately consented recovery/wipe paths, governed execution, physical validation and built-in
+   schema-three Pack authority remain unfinished.
 
    Exact post-candidate source commit `898bd04d87fba52690a330d09eeb61c4275c3649` is fully green in
    GitHub Actions run `33797435368`: both Linux versions passed all 1,489 tests and complete Ruff

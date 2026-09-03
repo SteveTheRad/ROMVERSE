@@ -160,9 +160,13 @@ in this report.
   relock, opened device access and phone change. One boundary-anchored exclusive claim prevents two
   concurrent responses from winning. A create-once consent-capability reservation can then bind the
   in-memory grant's digest to that exact verified session; it stores no raw token and explicitly
-  records that runtime consumption and execution authority remain absent. These are verifier/local
-  reservation source boundaries only: no production runtime, signer, launcher, device runner or
-  Android command has been added.
+  records that runtime consumption and execution authority remain absent. A subsequent runtime-only
+  authorization boundary requires the matching externally supplied runtime private key, exclusively
+  signs one exact consumption record, and returns only a memory-held exact-forward grant. One
+  concurrent caller wins, both raw tokens remain unpersisted, and replay, expiry, changed evidence,
+  unsafe claims, duplicate fields, links and tampering fail closed. This is protocol/source evidence,
+  not an enrolled or separately packaged production runtime: no device runner, atomic executor claim,
+  Android command, recovery/wipe consent, result signer or physical validation has been added.
 - A persistent user-supplied firmware responsibility notice and explicit import acknowledgement,
   without attempting to exclude rights or obligations that cannot legally be excluded.
 - Signed Desktop update checking and explicit, cancellable staging with measured progress, strict

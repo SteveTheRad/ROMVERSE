@@ -423,6 +423,7 @@ def test_guardian_review_runs_the_read_only_check_off_the_ui_thread(
     assert any("no enrolled production writing runtime" in text for text in labels)
     assert any("signed 45-second runtime-session handshake" in text for text in labels)
     assert any("exclusive consent-capability reservation" in text for text in labels)
+    assert any("atomic one-use consumption" in text for text in labels)
     assert dialog.live_target_receipt is None
     dialog._start_live_target_check()
     assert dialog.live_target_button is not None
@@ -442,5 +443,6 @@ def test_guardian_review_runs_the_read_only_check_off_the_ui_thread(
     assert "Final consent remains locked" in dialog.final_consent_status.text()
     assert "signed runtime-session handshake" in dialog.final_consent_status.text()
     assert "exclusive capability reservation" in dialog.final_consent_status.text()
+    assert "atomic one-use consumption" in dialog.final_consent_status.text()
     assert "not consent and cannot execute anything" in dialog.final_consent_status.text()
     dialog.close()

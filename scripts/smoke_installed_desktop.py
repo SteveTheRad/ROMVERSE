@@ -13,6 +13,7 @@ from PySide6.QtWidgets import QApplication
 
 from romverse import app as romverse_app
 from romverse.device_packs.registry import DevicePackRegistry
+from romverse.guardian.runtime_authorization import GuardianRuntimeAuthorizationService
 from romverse.knowledge.archives import CANONICAL_ROUTES, KNOWN_FIXES
 from romverse.legal import (
     PRIVACY_STATUS,
@@ -94,6 +95,7 @@ def main() -> int:
         "fastboot-identity-only",
         "device-build-requirements-blueprint",
         "device-dna-source-blueprint-disagreement",
+        "guardian-runtime-consent-consumed-or-expired",
     }
     installed_handoffs = {item.key for item in KNOWN_FIXES}
     if missing := required_handoffs - installed_handoffs:
@@ -102,6 +104,16 @@ def main() -> int:
     archive_routes = {article.route for article in ARCHIVE_ARTICLES}
     if desktop_routes - CANONICAL_ROUTES or desktop_routes - archive_routes:
         raise RuntimeError("Installed Archives do not cover every desktop route")
+    if set(dir(GuardianRuntimeAuthorizationService)) & {
+        "execute",
+        "flash",
+        "reboot",
+        "erase",
+        "unlock",
+        "relock",
+        "run",
+    }:
+        raise RuntimeError("Installed Guardian authorization unexpectedly exposes device execution")
 
     app = QApplication.instance() or QApplication([])
     app.setStyle("Fusion")

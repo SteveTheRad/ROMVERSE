@@ -559,10 +559,22 @@ concurrent callers cannot replace it, and the record binds the gateway, plan, ta
 consent, token digest, session attestation, signer and adapter. It persists no raw token and
 explicitly records runtime consumption incomplete, execution grant unissued, execution authority
 `none`, device access unopened, runtime uninvoked and phone unchanged. This closes the duplicate
-Desktop-side reservation race but is not the future runtime-owned atomic consume-and-start boundary.
-Neither service contains a private key, process launcher, device runner or command. A separately
-packaged and enrolled production runtime, atomic consumption inside that isolated runtime, distinct
-recovery/wipe consent, signed result production and physical-device validation remain required.
+Desktop-side reservation race.
+
+A runtime-only authorization service now revalidates that complete reservation/session/consent
+chain, requires the matching externally supplied Ed25519 runtime private key, and exclusively creates
+one signed consumption record before returning a new memory-only exact-forward grant. Exactly one
+concurrent caller wins. The record binds every upstream digest plus the ordered forward steps and
+data action; persists neither raw consent token nor raw execution token; and explicitly denies
+recovery, wipe, automatic recovery/wipe, relock, opened device access and phone change. Expiry,
+replay, changed context, the wrong private key, re-signed unsafe claims, duplicate fields, links and
+tampering fail closed. Loading the record supplies audit proof only and cannot reconstruct its lost
+memory token. This is a source/package protocol boundary backed by a private local workspace record,
+not protection against an administrator deleting local state and not evidence of process isolation.
+No production runtime key/process is enrolled and the Desktop never imports or exposes this signer.
+A separately packaged and enrolled production runtime, atomic claim-and-device-open inside that
+runtime, governed forward executor, distinct recovery/wipe consent, signed result production and
+physical-device validation remain required.
 
 ROM Studio's managed Guardian review worker carries this inert chain through the actual Desktop
 journey. It seals the command-free manifest, independently rehashes the same artifacts for the inert

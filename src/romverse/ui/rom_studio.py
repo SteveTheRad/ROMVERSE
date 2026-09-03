@@ -97,6 +97,7 @@ from romverse.rom.recipes import (
 )
 from romverse.rom.source_identity import identify_firmware_source
 from romverse.rom.source_intelligence import FirmwareSourceIntelligenceService
+from romverse.rom.upgrade import USER_FIRMWARE_RESPONSIBILITY_NOTICE
 from romverse.rom.workspace_recovery import WorkspaceRecoveryReport, WorkspaceRecoveryService
 from romverse.ui.background import (
     CoalescedProgress,
@@ -653,6 +654,15 @@ class RomStudio(QWidget):
         self.original_detail.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         detail_layout.addWidget(self.original_name)
         detail_layout.addWidget(self.original_detail)
+        self.firmware_responsibility_notice = QLabel(
+            "Firmware source responsibility  •  " + USER_FIRMWARE_RESPONSIBILITY_NOTICE
+        )
+        self.firmware_responsibility_notice.setObjectName("Warning")
+        self.firmware_responsibility_notice.setWordWrap(True)
+        self.firmware_responsibility_notice.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        detail_layout.addWidget(self.firmware_responsibility_notice)
 
         inspection_title = QLabel("Structure inspection")
         inspection_title.setObjectName("SectionTitle")
@@ -2855,6 +2865,7 @@ class RomStudio(QWidget):
             "identity.codename",
             "soc.platform",
             "software.build",
+            "firmware.upgrade_relationship",
             "firmware.package_format",
             "partition.ab_scheme",
             "security.verified_boot",
@@ -3403,7 +3414,9 @@ class RomStudio(QWidget):
             "Import protected original?",
             f"ROMVERSE will copy {source.name} ({human_bytes(size)}) into Original ROMs, compute SHA-256, "
             "protect the copy, and automatically inspect its bounded structure for Device DNA. "
-            "The source file will not be changed or extracted in place.",
+            "The source file will not be changed or extracted in place.\n\n"
+            + USER_FIRMWARE_RESPONSIBILITY_NOTICE
+            + "\n\nBy selecting Yes, you confirm that you understand and accept this responsibility.",
         )
         if answer != QMessageBox.StandardButton.Yes:
             return

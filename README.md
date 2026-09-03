@@ -270,6 +270,14 @@ Capability Map uses SUPPORTED, CAUTION, UNSUPPORTED, and UNCONFIRMED. A persiste
 **Compatibility Matrix** then distinguishes Verified, Strong Match, Limited Evidence, Unknown,
 and Known Incompatible while keeping “technically possible” separate from “proven compatible.”
 Both artifacts are advisory to Guardian and can never authorize bootloader relocking.
+For recognized Xiaomi HyperOS builds, Device DNA now compares numeric version components only
+after the live and imported codenames, distribution regions, and firmware branches agree. It labels
+the result Upgrade Candidate, Same Firmware Version, Downgrade Candidate, Incompatible, or
+Unconfirmed; this relationship never grants installation or flash authority. ROM Studio also keeps
+the user-supplied firmware responsibility and risk notice visible and requires acknowledgement
+before import. Users must obtain the correct package from a trusted official source for their exact
+model, region, and current update path. The notice does not purport to exclude any right or
+obligation that cannot legally be excluded.
 The Matrix uses private bounded strict schema-two persistence and is re-derived from its exact
 current Device DNA binding whenever loaded. Extra/coerced/linked records fail closed, and changing
 even a correctly re-digested decision cannot override the deterministic result. Schema-one Matrix

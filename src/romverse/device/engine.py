@@ -307,6 +307,18 @@ class DeviceEngine:
             if kernelsu_raw.strip()
             else "none"
         )
+        rom_display = next(
+            (
+                props.get(key, "").strip()
+                for key in (
+                    "ro.mi.os.version.incremental",
+                    "ro.build.version.incremental",
+                    "ro.build.display.id",
+                )
+                if props.get(key, "").strip()
+            ),
+            "",
+        )
         return AndroidDevice(
             **base,
             manufacturer=manufacturer,
@@ -319,7 +331,7 @@ class DeviceEngine:
             api_level=props.get("ro.build.version.sdk", ""),
             build_id=props.get("ro.build.id", ""),
             build_fingerprint=props.get("ro.build.fingerprint", ""),
-            rom_display=props.get("ro.build.display.id", ""),
+            rom_display=rom_display,
             security_patch=props.get("ro.build.version.security_patch", ""),
             abi=props.get("ro.product.cpu.abi", ""),
             battery_percent=battery,

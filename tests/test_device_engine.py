@@ -135,6 +135,30 @@ def test_device_engine_reports_manager_presence_as_a_candidate_not_root_proof():
     assert phone.root_manager_evidence == "allowlisted-package-presence"
 
 
+def test_device_engine_prefers_xiaomi_hyperos_incremental_over_android_build_label():
+    class XiaomiRunner(FakeAdbRunner):
+        def run(self, args, timeout=10):
+            result = super().run(args, timeout)
+            if tuple(args[1:]) == ("-s", "SERIAL123", "shell", "getprop"):
+                return CommandResult(
+                    result.args,
+                    result.returncode,
+                    result.stdout
+                    + "\n[ro.mi.os.version.incremental]: [OS4.0.0.23.XPBCNXM]"
+                    + "\n[ro.build.version.incremental]: [OS4.0.0.23.XPBCNXM]"
+                    + "\n[ro.build.display.id]: [CP2A.260605.016]",
+                    result.stderr,
+                )
+            return result
+
+    gateway = ExecutionGateway(MilestoneOnePolicy(), XiaomiRunner())
+
+    phone = DeviceEngine(AdbClient(Path("adb"), gateway)).scan()[0]
+
+    assert phone.rom_display == "OS4.0.0.23.XPBCNXM"
+    assert phone.build_id == "AP4A"
+
+
 class ReconnectRunner(FakeAdbRunner):
     def __init__(self) -> None:
         self.transport_id = "1"

@@ -58,6 +58,11 @@ fastboot/recovery capabilities, compatibility warnings, sources, and confidence.
 
 The beginner Capability Map uses exactly `SUPPORTED`, `CAUTION`, `UNSUPPORTED`, and
 `UNCONFIRMED`. Device DNA never manufactures certainty and never authorizes relocking.
+Recognized Xiaomi HyperOS firmware receives an evidence-only relationship label after strict
+codename, region, branch, and numeric-version comparison. Import requires an acknowledgement that
+the user supplied the firmware and is responsible for its trusted official source and exact update
+path. The acknowledgement does not create compatibility, installation, flash, or blanket legal
+waiver authority.
 The persisted profile uses bounded private atomic schema-two storage, strict nested shapes and
 cross-references, exact protected-source binding, and a digest over the normalized profile. Valid
 schema-one evidence remains readable and refreshes forward. Structure-backed facts consume only the

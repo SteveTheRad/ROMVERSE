@@ -23,7 +23,8 @@ def test_identifies_xiaomi_full_ota_without_granting_compatibility() -> None:
     assert identity.codename == "popsicle"
     assert identity.build_id == "OS4.0.0.23.XPBCNXM"
     assert identity.android_version == "17.0"
-    assert identity.region == "User"
+    assert identity.region == "China"
+    assert "distribution region" in " ".join(identity.evidence)
     assert "SHA-256" in " ".join(identity.evidence)
 
 

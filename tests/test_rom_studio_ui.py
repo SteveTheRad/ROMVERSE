@@ -516,6 +516,9 @@ def test_rom_studio_creates_and_renders_device_dna_without_guessing(tmp_path):
     assert "Compatibility Matrix" in studio.device_dna_detail.text()
     assert studio.compatibility.matrices.load(project.project_id) is not None
     assert "Bootloader relock: NEVER" in studio.device_dna_detail.text()
+    assert "Firmware files are selected and supplied by you" in (
+        studio.firmware_responsibility_notice.text()
+    )
 
     studio.inspection.inspect_project(project.project_id)
     studio.refresh(project.project_id)
@@ -523,6 +526,40 @@ def test_rom_studio_creates_and_renders_device_dna_without_guessing(tmp_path):
     assert strengthened is not None
     assert strengthened.profile_id != profile.profile_id
     assert strengthened.capability("firmware_detection").state is CapabilityState.SUPPORTED
+    studio.close()
+
+
+def test_rom_studio_renders_a_newer_same_device_firmware_as_an_upgrade_candidate(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    source = tmp_path / "popsicle-ota_full-OS4.0.0.25.XPBCNXM-user-17.0-test.zip"
+    with zipfile.ZipFile(source, "w") as archive:
+        archive.writestr("payload.bin", b"CrAU test")
+        archive.writestr("META-INF/com/android/metadata", "ota-type=AB")
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.import_original(store.create("Upgrade UI").project_id, source)
+    studio = RomStudio(store, DevicePackRegistry(()))
+    studio.refresh(project.project_id)
+    studio.set_devices(
+        [
+            AndroidDevice(
+                "private-serial",
+                DeviceState.DEVICE,
+                manufacturer="Xiaomi",
+                model="2509FPN0BC",
+                codename="popsicle",
+                product="popsicle",
+                rom_display="OS4.0.0.23.XPBCNXM",
+            )
+        ]
+    )
+    app.processEvents()
+
+    assert (
+        "Firmware relationship: UPGRADE CANDIDATE • OS4.0.0.23.XPBCNXM → OS4.0.0.25.XPBCNXM [high]"
+    ) in studio.device_dna_detail.text()
+    profile = studio.device_dna.profiles.load(project.project_id)
+    assert profile is not None
+    assert profile.capability("guardian_flash").state is CapabilityState.UNSUPPORTED
     studio.close()
 
 

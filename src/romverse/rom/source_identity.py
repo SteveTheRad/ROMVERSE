@@ -54,6 +54,27 @@ _REGIONS = {
     "tr": "Türkiye",
     "tw": "Taiwan",
 }
+_XIAOMI_BUILD_REGIONS = {
+    "CNXM": "China",
+    "MIXM": "Global",
+    "EUXM": "EEA",
+    "INXM": "India",
+    "IDXM": "Indonesia",
+    "RUXM": "Russia",
+    "TRXM": "Türkiye",
+    "TWXM": "Taiwan",
+    "JPXM": "Japan",
+}
+
+
+def xiaomi_build_region(build_id: str) -> str:
+    """Derive Xiaomi's distribution region only from a recognized build suffix."""
+
+    normalized = str(build_id).strip().upper()
+    return next(
+        (region for suffix, region in _XIAOMI_BUILD_REGIONS.items() if normalized.endswith(suffix)),
+        "",
+    )
 
 
 def identify_firmware_source(filename: str) -> FirmwareSourceIdentity:
@@ -86,16 +107,23 @@ def identify_firmware_source(filename: str) -> FirmwareSourceIdentity:
     if ota:
         values = ota.groupdict()
         channel = values["channel"].casefold()
+        build = values["build"].upper()
+        build_region = xiaomi_build_region(build)
         return FirmwareSourceIdentity(
             "Xiaomi",
             values["codename"].casefold(),
-            values["build"].upper(),
+            build,
             values["android"],
-            channel.title(),
+            build_region or channel.title(),
             "Xiaomi full OTA archive",
             "high",
             (
                 "Xiaomi *-ota_full-* naming structure matched",
+                *(
+                    (f"Xiaomi build suffix identifies the {build_region} distribution region",)
+                    if build_region
+                    else ()
+                ),
                 "Build authority still requires an exact SHA-256 Device Pack contract",
             ),
         )

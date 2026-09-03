@@ -133,6 +133,9 @@ def test_device_dna_combines_live_source_inspection_and_exact_pack_evidence(tmp_
     assert profile.fact("identity.marketing_name").value == "Xiaomi 17 Pro Max"
     assert profile.fact("identity.brand").value == "Xiaomi"
     assert profile.fact("soc.platform").value == "Snapdragon 8 Elite Gen 5"
+    assert profile.fact("firmware.upgrade_relationship").value == (
+        "SAME FIRMWARE VERSION • OS4.0.0.23.XPBCNXM → OS4.0.0.23.XPBCNXM"
+    )
     assert profile.fact("partition.ab_scheme").value == "Virtual A/B"
     assert profile.fact("security.encryption").value == "encrypted / file"
     assert profile.fact("capability.fastboot").confidence is EvidenceConfidence.HIGH
@@ -174,6 +177,32 @@ def test_recognized_source_without_exact_contract_is_caution_not_build_authority
     assert profile.capability("guardian_flash").state is CapabilityState.UNSUPPORTED
     assert not profile.partitions
     assert any("exact source-bound" in warning for warning in profile.warnings)
+
+
+def test_device_dna_identifies_newer_same_device_firmware_as_candidate_only(tmp_path):
+    store, registry, _project_record, _report = _project(
+        tmp_path,
+        exact=False,
+    )
+    newer_source = _source(
+        tmp_path,
+        "popsicle-ota_full-OS4.0.0.25.XPBCNXM-user-17.0-newer.zip",
+    )
+    newer_project = store.import_original(store.create("Newer candidate").project_id, newer_source)
+    newer_report = RomInspectionService(store).inspect_project(newer_project.project_id)
+
+    profile = DeviceDnaService(store, registry).refresh(
+        newer_project.project_id,
+        _device(),
+        newer_report,
+    )
+
+    relationship = profile.fact("firmware.upgrade_relationship")
+    assert relationship is not None
+    assert relationship.value == ("UPGRADE CANDIDATE • OS4.0.0.23.XPBCNXM → OS4.0.0.25.XPBCNXM")
+    assert relationship.confidence is EvidenceConfidence.HIGH
+    assert any("version relationship only" in warning for warning in profile.warnings)
+    assert profile.capability("guardian_flash").state is CapabilityState.UNSUPPORTED
 
 
 def test_device_dna_consumes_current_project_local_source_blueprint_without_flash_authority(
@@ -221,7 +250,8 @@ def test_device_dna_consumes_current_project_local_source_blueprint_without_flas
     assert profile.fact("firmware.adapter").evidence_ids == ("source.blueprint",)
     assert profile.fact("software.build").confidence is EvidenceConfidence.VERIFIED
     assert profile.fact("software.build").evidence_ids == ("source.blueprint",)
-    assert profile.fact("software.region").value == "CN"
+    assert profile.fact("software.region").value == "China"
+    assert profile.fact("software.region").evidence_ids == ("source.blueprint",)
     assert profile.capability("device_identity").evidence_ids == (
         "device.live",
         "source.blueprint",

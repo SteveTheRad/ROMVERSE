@@ -168,6 +168,12 @@ has current evidence.
    only from current evidence. Disconnect or stop ADB during a second refresh and confirm ROM Studio
    clears the last-seen device, explains the failure, and does not reuse stale identity; reconnect
    and confirm a later fresh scan restores the correct profile without changing phone state.
+   Import a recognized Xiaomi HyperOS package that is newer than the live build but has the same
+   codename, distribution region, and branch. Confirm Device DNA displays Upgrade Candidate using
+   numeric version ordering while Guardian flash remains unavailable. Repeat with the same version,
+   an older version, wrong codename, wrong region, unknown region, and changed branch; confirm each
+   conservative label. Confirm the user-supplied firmware responsibility notice remains visible and
+   is included in the import acknowledgement.
    For Compatibility Matrix, alter and correctly re-digest each decision/status/boolean; add
    top-level or nested fields; coerce booleans; oversize or link the record; remove/reorder a
    decision; and refresh Device DNA after saving a Matrix. Confirm every load re-derives the exact

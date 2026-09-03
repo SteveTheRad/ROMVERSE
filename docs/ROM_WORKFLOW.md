@@ -26,6 +26,12 @@ approve a plan, or grant phone-write authority.
    inspection report or Forge's same strict current project/source-bound local blueprint. A valid
    blueprint can confirm bounded build preparation but never supplies device-write or flash
    authority; foreign, stale, phone-changing, malformed, or source-mismatched records are ignored.
+   Recognized Xiaomi HyperOS version ordering is numeric and is classified only after live/source
+   codenames, distribution regions, and firmware branches agree. The resulting Upgrade Candidate,
+   Same Firmware Version, Downgrade Candidate, Incompatible, or Unconfirmed label is evidence, not
+   install authority. ROM Studio requires the user to acknowledge that they supplied the firmware,
+   must confirm its trusted official source and exact model/region/update path, and accept the risk;
+   this notice does not claim to exclude rights or obligations that law does not allow excluding.
    Schema-one Device DNA remains readable and refreshes forward automatically.
    Genesis requests a fresh read-only device scan at this stage, shows the current identity and
    Capability Map states, and refuses to advance if either the profile or map is missing. A failed

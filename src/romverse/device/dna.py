@@ -25,11 +25,16 @@ from romverse.rom.inspection import (
 )
 from romverse.rom.models import ProjectError
 from romverse.rom.projects import RomProjectStore
-from romverse.rom.source_identity import FirmwareSourceIdentity, identify_firmware_source
+from romverse.rom.source_identity import (
+    FirmwareSourceIdentity,
+    identify_firmware_source,
+    xiaomi_build_region,
+)
 from romverse.rom.source_intelligence import (
     FirmwareSourceIntelligenceService,
     SourceBlueprint,
 )
+from romverse.rom.upgrade import FirmwareRelationship, assess_firmware_upgrade
 
 
 class EvidenceConfidence(StrEnum):
@@ -448,7 +453,24 @@ def _facts(
     source_build, build_confidence, build_evidence = project_source_fact(
         "build_id", source.build_id
     )
-    source_region, region_confidence, region_evidence = project_source_fact("region", source.region)
+    build_region = xiaomi_build_region(source_build)
+    if build_region:
+        source_region, region_confidence, region_evidence = (
+            build_region,
+            build_confidence,
+            build_evidence,
+        )
+    else:
+        source_region, region_confidence, region_evidence = project_source_fact(
+            "region", source.region
+        )
+    upgrade = assess_firmware_upgrade(
+        current_build=(device.rom_display or device.build_id) if device is not None else "",
+        candidate_build=source_build,
+        device_codename=device.codename if device is not None else "",
+        candidate_codename=source_codename,
+    )
+    upgrade_evidence = tuple(dict.fromkeys((*live_evidence, *codename_evidence, *build_evidence)))
     structure = _effective_structure(inspection, blueprint)
     structure_confidence = _effective_structure_confidence(inspection, blueprint)
     structure_evidence = (
@@ -531,6 +553,15 @@ def _facts(
             source_build or (device.build_id if device else ""),
             build_confidence if source_build else live_confidence,
             build_evidence if source_build else live_evidence,
+        ),
+        _fact(
+            "firmware.upgrade_relationship",
+            "Firmware relationship",
+            upgrade.summary,
+            EvidenceConfidence.HIGH
+            if upgrade.relationship is not FirmwareRelationship.UNCONFIRMED
+            else EvidenceConfidence.UNCONFIRMED,
+            upgrade_evidence,
         ),
         _fact(
             "software.region",
@@ -731,6 +762,12 @@ def _warnings(
     blueprint_codename = str(getattr(blueprint, "codename", "")).strip()
     source_codename = source.codename or blueprint_codename
     source_build = source.build_id or str(getattr(blueprint, "build_id", "")).strip()
+    upgrade = assess_firmware_upgrade(
+        current_build=(device.rom_display or device.build_id) if device is not None else "",
+        candidate_build=source_build,
+        device_codename=device.codename if device is not None else "",
+        candidate_codename=source_codename,
+    )
     if source.confidence != "high":
         warnings.append("Firmware identity is unconfirmed; no supported vendor signature matched.")
     if device is None:
@@ -747,9 +784,22 @@ def _warnings(
         warnings.append(
             f"Connected device identity does not match exact source-bound Pack {pack.pack_id}."
         )
-    if device and source_build and device.rom_display and source_build not in device.rom_display:
+    if upgrade.relationship is FirmwareRelationship.UPGRADE:
         warnings.append(
-            "The connected phone build does not visibly match the imported firmware build."
+            f"{upgrade.summary}. This is a version relationship only; trusted provenance, package "
+            "signature, an exact update path, recovery evidence, consent, and installation "
+            "authority remain separate requirements."
+        )
+    elif upgrade.relationship is FirmwareRelationship.DOWNGRADE:
+        warnings.append(f"{upgrade.summary}. Downgrade installation remains blocked.")
+    elif upgrade.relationship is FirmwareRelationship.SAME:
+        warnings.append(f"{upgrade.summary}. The imported firmware is not an upgrade.")
+    elif upgrade.relationship is FirmwareRelationship.INCOMPATIBLE:
+        warnings.extend(upgrade.reasons)
+    elif device and source_build:
+        warnings.append(
+            "ROMVERSE could not prove that the imported firmware is a valid upgrade from the "
+            "connected phone. Installation authority remains unavailable."
         )
     if inspection is None and blueprint is None:
         warnings.append("Firmware container inspection has not completed yet.")

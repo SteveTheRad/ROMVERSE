@@ -35,10 +35,11 @@ has current evidence.
    and runtime visual/audio asset against the source tree and validated all 21 indexed Device Packs.
    A separate temporary environment installed the wheel and its declared dependencies, opened the
    packaged Desktop offscreen, initialized a fresh workspace, and reloaded all 21 packaged Packs.
-   Repository tests also prove a changed packaged runtime module is rejected. This does not replace
-   the required Windows installed-wheel pass or signed release-artifact validation.
+   Repository tests also prove a changed packaged runtime module is rejected. That earlier evidence
+   alone did not replace the Windows installed-wheel pass or signed release-artifact validation;
+   the current cross-platform candidate evidence is recorded below.
 
-   Current Fedora development evidence recorded on 2026-09-03: all 1,322 Desktop tests and both
+   Current Fedora development evidence recorded on 2026-09-03: all 1,323 Desktop tests and both
    complete Ruff gates passed after the exact ROM Studio → Device Atlas → Forge Arsenal
    project/source handoff was completed. Regression coverage verifies strict current
    project/source/authority/blueprint/plan/no-phone-change binding; replacement of an unrelated
@@ -49,21 +50,32 @@ has current evidence.
    including the wrong-project-Pack diagnosis. The current fresh isolated wheel build produced 224
    members, includes the Desktop release trust and frozen-app smoke layers, and revalidated all 21
    Device Packs; its SHA-256 is
-   `2d6f7ce69733bd271322ab459ad98714cb59f4962bccf7d6f08f3ee5fcb479d0`. A separate temporary Python
+   `dcf427d83d722e30305b7909f3bb16c8f2c153e8702bec39bafe2418dd4b6996`. A separate temporary Python
    3.14 environment installed the wheel and all declared dependencies from outside the checkout.
    Its installed Desktop smoke passed twice against the same clean workspace with 101 packaged
    fixes and all 19 top-level routes. A populated-workspace launch separately preserved the project
    manifest, immutable original, working copy, and Time Machine snapshot byte-for-byte and
-   revalidated the original afterward. This remains local Fedora evidence, not Windows validation,
-   production signing, publication, or physical-device write certification.
+   revalidated the original afterward. This remains local Fedora evidence, not production signing,
+   publication, or physical-device write certification.
 
-   The native Linux x86-64 development build also passed on 2026-09-03 using PyInstaller 6.22.2 and
-   Python 3.14. The frozen application launched and exited cleanly both from its original one-folder
-   build and after extraction from the verified portable ZIP. The ZIP contains 448 regular files,
-   expands to 355,373,045 bytes, and has SHA-256
-   `dbc114c6e520d332591f584e7c194b494efeb6cb3be7b5902cde4344bc652a35`. Internal Linux Qt library
-   links were proven contained and materialized as regular archive files. This is native Linux
-   development evidence; the Windows bundle and CI run are still required.
+   Cross-platform release-candidate evidence recorded on 2026-09-03 for commit `7096c8c` is fully
+   green in GitHub Actions run `33729703131`. Linux Python 3.12 and 3.14 each passed all 1,323 tests
+   plus both complete Ruff gates. Windows Python 3.12 and 3.14 each passed all 154 dedicated
+   portability tests plus both complete Ruff gates. Native Linux and Windows jobs each built and
+   verified the 224-member wheel and all 21 Device Packs, launched the installed application against
+   a fresh workspace, reopened a populated project while preserving its manifest, protected
+   original, working copy, and Time Machine snapshot byte-for-byte, launched the frozen application,
+   and verified the complete portable archive. The Linux archive contains 441 regular files,
+   expands to 385,445,509 bytes, and has SHA-256
+   `27f6f507ec9a2e79f774c6955acf9ec3d156229aef9a597edd98ed3b4613c4e6`. The Windows archive
+   contains 296 regular files, expands to 170,381,593 bytes, and has SHA-256
+   `dc726bb11dcf13bb2fdca237b44a9c29120233e2fcd8fda70396c26bc0f34da7`. The combined unsigned
+   manifest binds 228,853,243 artifact bytes under release identity
+   `romverse-desktop-0.1.0-7096c8c46e6b85adfd8cfad0779da790d08e414c`; its SHA-256 is
+   `d3b0a10c3120818d5d20fba001eb39f9f5e04746d20646dba0e83e4d0ba5b6d6`. The downloaded candidate
+   and both archives were independently reverified on Fedora. See
+   `https://github.com/SteveTheRad/ROMVERSE/actions/runs/33729703131`. This is verified unsigned
+   release-candidate evidence, not a production signature or publication authorization.
 
    The Desktop release trust layer now prepares a bounded exact-schema artifact manifest, enforces
    user-confirmed non-automatic updates and workspace preservation, represents unavailable rollback

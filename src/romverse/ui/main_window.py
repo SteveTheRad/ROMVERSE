@@ -5385,10 +5385,20 @@ class MainWindow(QMainWindow):
             project = self.rom_studio.store.get(project_id)
         except ProjectError:
             project = None
+        plan, contract = (
+            self.rom_studio.guardian_execution_context(manifest)
+            if manifest is not None
+            else (None, None)
+        )
         if (
             manifest is None
             or project is None
-            or not self.guardian_center.open_studio_review(manifest, project.name)
+            or not self.guardian_center.open_studio_review(
+                manifest,
+                project.name,
+                plan,
+                contract,
+            )
         ):
             self.rom_studio.outbound_handoff_stopped(
                 "Guardian Core",

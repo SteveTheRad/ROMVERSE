@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, fields
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
@@ -23,6 +24,7 @@ from romverse.guardian.execution_plan import (
     GuardianExecutionPlanService,
 )
 from romverse.guardian.invariants import contains_bootloader_relock
+from romverse.guardian.manifest_review import GuardianManifestReview
 from romverse.guardian.models import OperationClass
 from romverse.infrastructure.local_store import (
     LocalStoreError,
@@ -120,6 +122,64 @@ class GuardianExecutionGatewayContract:
     contract_digest: str
 
 
+def execution_plan_matches_manifest(
+    plan: GuardianExecutionPlan | None,
+    manifest: GuardianManifestReview,
+) -> bool:
+    """Match a validated inert plan to the exact command-free review it extends."""
+
+    return bool(
+        isinstance(plan, GuardianExecutionPlan)
+        and plan.project_id == manifest.project_id
+        and plan.handoff_digest == manifest.handoff_digest
+        and plan.readiness_evidence_digest == manifest.readiness_evidence_digest
+        and plan.manifest_digest == manifest.manifest_digest
+        and plan.artifact_binding_digest == manifest.artifact_binding_digest
+        and plan.source_sha256 == manifest.source_sha256
+        and plan.device_key == manifest.device_key
+        and plan.device_name == manifest.device_name
+        and plan.codename == manifest.codename
+        and plan.mode is manifest.mode
+        and plan.device_pack_id == manifest.device_pack_id
+        and plan.device_pack_version == manifest.device_pack_version
+        and plan.device_pack_sha256 == manifest.device_pack_sha256
+        and not plan.final_consent_available
+        and plan.execution_authority == "none"
+        and not plan.phone_changed
+        and not plan.bootloader_relock_allowed
+    )
+
+
+def gateway_contract_matches_plan(
+    contract: GuardianExecutionGatewayContract | None,
+    plan: GuardianExecutionPlan | None,
+) -> bool:
+    """Match a validated inert gateway contract to its exact plan."""
+
+    return bool(
+        isinstance(contract, GuardianExecutionGatewayContract)
+        and isinstance(plan, GuardianExecutionPlan)
+        and contract.project_id == plan.project_id
+        and contract.plan_id == plan.plan_id
+        and contract.plan_digest == plan.plan_digest
+        and contract.manifest_digest == plan.manifest_digest
+        and contract.artifact_binding_digest == plan.artifact_binding_digest
+        and contract.device_key == plan.device_key
+        and contract.device_pack_id == plan.device_pack_id
+        and contract.device_pack_version == plan.device_pack_version
+        and contract.device_pack_sha256 == plan.device_pack_sha256
+        and contract.write_contract_id == plan.write_contract_id
+        and contract.write_contract_version == plan.write_contract_version
+        and contract.write_attestation_sha256 == plan.write_attestation_sha256
+        and contract.post_write_verification_contract_digest
+        == plan.post_write_verification_contract_digest
+        and not contract.final_consent_available
+        and contract.execution_authority == "none"
+        and not contract.runtime_invoked
+        and not contract.phone_changed
+    )
+
+
 class GuardianExecutionGatewayContractService:
     """Compile a typed gateway boundary without running or authorizing any command."""
 
@@ -158,8 +218,14 @@ class GuardianExecutionGatewayContractService:
         project_id: str,
         report: BuildReadinessReport,
         device: AndroidDevice,
+        progress: Callable[[int], None] | None = None,
     ) -> GuardianExecutionGatewayContract:
-        plan, write_contract, verification = self._current_context(project_id, report, device)
+        plan, write_contract, verification = self._current_context(
+            project_id,
+            report,
+            device,
+            progress,
+        )
         steps = self._steps(plan, verification)
         steps_digest = _digest({"steps": [asdict(step) for step in steps]})
         payload: dict[str, object] = {
@@ -211,6 +277,7 @@ class GuardianExecutionGatewayContractService:
         project_id: str,
         report: BuildReadinessReport,
         device: AndroidDevice,
+        progress: Callable[[int], None] | None = None,
     ) -> GuardianExecutionGatewayContract | None:
         try:
             data = read_json_object(
@@ -251,7 +318,12 @@ class GuardianExecutionGatewayContractService:
             data["blockers"] = tuple(raw_blockers)
             contract = GuardianExecutionGatewayContract(**data, steps=steps)
             self.validate(contract)
-            plan, _write_contract, verification = self._current_context(project_id, report, device)
+            plan, _write_contract, verification = self._current_context(
+                project_id,
+                report,
+                device,
+                progress,
+            )
             if not self._matches(contract, plan, verification):
                 return None
             return contract
@@ -334,6 +406,7 @@ class GuardianExecutionGatewayContractService:
         project_id: str,
         report: BuildReadinessReport,
         device: AndroidDevice,
+        progress: Callable[[int], None] | None = None,
     ) -> tuple[
         GuardianExecutionPlan,
         DeviceWriteContract,
@@ -345,7 +418,7 @@ class GuardianExecutionGatewayContractService:
             self.tool_statuses,
             self.avbtool,
             self.runner,
-        ).load(project_id, report, device)
+        ).load(project_id, report, device, progress)
         if plan is None:
             raise ProjectError(
                 "A current, exact Guardian execution plan is required before preparing the gateway contract"

@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, fields
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
@@ -113,9 +114,9 @@ class GuardianExecutionPlanService:
         "The signed write contract requires verification after every image, but it does not yet define an exact readback or post-boot Device DNA postcondition.",
         "Automatic mode transitions, slot activation, reboot, wipe, rollback, and recovery commands are absent and must never be inferred from filenames or generic Fastboot behavior.",
     )
-    VERIFIED_CONTRACT_STATUS = "blocked-missing-typed-execution-gateway"
+    VERIFIED_CONTRACT_STATUS = "ready-for-inert-gateway-contract"
     VERIFIED_CONTRACT_BLOCKERS = (
-        "The signed Device Pack defines exact partition readback digests and post-boot Device DNA, but ROMVERSE does not yet have a verified execution gateway, immutable execution receipt, or final-consent authority.",
+        "The signed Device Pack defines exact partition readback digests and post-boot Device DNA. This plan is ready for the separately regenerated inert gateway and result template; it still has no runtime, execution receipt, or final-consent authority.",
         "Automatic mode transitions, slot activation, reboot, wipe, rollback, and recovery commands are absent and must never be inferred from filenames or generic Fastboot behavior.",
     )
     PLAN_STATUS = MISSING_VERIFICATION_STATUS
@@ -140,8 +141,14 @@ class GuardianExecutionPlanService:
         project_id: str,
         report: BuildReadinessReport,
         device: AndroidDevice,
+        progress: Callable[[int], None] | None = None,
     ) -> GuardianExecutionPlan:
-        manifest, binding, write_contract = self._current_context(project_id, report, device)
+        manifest, binding, write_contract = self._current_context(
+            project_id,
+            report,
+            device,
+            progress,
+        )
         commands = self._commands(manifest)
         verification = self._verification_metadata(write_contract)
         blockers, plan_status = self._plan_boundary(write_contract)
@@ -188,6 +195,7 @@ class GuardianExecutionPlanService:
         project_id: str,
         report: BuildReadinessReport,
         device: AndroidDevice,
+        progress: Callable[[int], None] | None = None,
     ) -> GuardianExecutionPlan | None:
         try:
             data = read_json_object(
@@ -229,7 +237,12 @@ class GuardianExecutionPlanService:
             data["blockers"] = tuple(raw_blockers)
             plan = GuardianExecutionPlan(**data, commands=commands)
             self.validate(plan)
-            manifest, binding, write_contract = self._current_context(project_id, report, device)
+            manifest, binding, write_contract = self._current_context(
+                project_id,
+                report,
+                device,
+                progress,
+            )
             if not self._matches(plan, manifest, binding, write_contract):
                 return None
             return plan
@@ -296,6 +309,7 @@ class GuardianExecutionPlanService:
         project_id: str,
         report: BuildReadinessReport,
         device: AndroidDevice,
+        progress: Callable[[int], None] | None = None,
     ):
         manifests = GuardianManifestReviewService(self.store, self.registry)
         manifest = manifests.load(project_id)
@@ -314,7 +328,7 @@ class GuardianExecutionPlanService:
             self.tool_statuses,
             self.avbtool,
             self.runner,
-        ).load(project_id)
+        ).load(project_id, progress)
         if (
             binding is None
             or binding.binding_digest != manifest.artifact_binding_digest

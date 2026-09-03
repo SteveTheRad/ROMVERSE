@@ -451,11 +451,12 @@ second first-boot timeout, and an allowlisted minimum Device DNA set including b
 device, fingerprint, incremental, SDK, security patch and Verified Boot state. Device Atlas counts
 this as flash-contract evidence only when all of those facts match exactly; schema one remains
 readable but not flash-ready. The inert plan binds the schema-two verification contract's identity,
-digest and bounded counts, then advances only to `blocked-missing-typed-execution-gateway`. It still
-cannot expose final consent or execute a command until a separately verified gateway and immutable
-execution/postcondition receipt exist. A successful Fastboot response alone must never be presented
-as a verified healthy upgrade. Neither schema authorizes or infers mode transitions, slot
-activation, reboot, wipe, rollback or recovery.
+digest and bounded counts, then advances only to `ready-for-inert-gateway-contract`. That state permits
+only regeneration of the separately verified, still-inert gateway/result template. Neither record can
+expose final consent or execute a command; signed transition/recovery orchestration, the governed
+runtime, immutable execution/postcondition receipts and physical validation remain absent. A
+successful Fastboot response alone must never be presented as a verified healthy upgrade. Neither
+schema authorizes or infers mode transitions, slot activation, reboot, wipe, rollback or recovery.
 
 The next private record is a typed, still-inert execution-gateway contract. It independently reloads
 the current execution plan, rehashes its bound artifacts through that plan, and accepts only a
@@ -471,6 +472,16 @@ execution authority `none`, and final consent unavailable. It remains
 `blocked-missing-signed-transition-recovery-and-final-consent` until exact signed mode/slot/reboot,
 rollback and recovery orchestration, live target re-identification, explicit final consent, a
 separately governed runtime adapter, and independent physical validation exist.
+
+ROM Studio's managed Guardian review worker carries this inert chain through the actual Desktop
+journey. It seals the command-free manifest, independently rehashes the same artifacts for the inert
+plan, and, when schema two is present, rehashes them again before sealing the result template. One
+monotonic byte-derived progress scale covers every required full pass; terminal 100 is withheld until
+the applicable records are validated and saved. The review dialog presents separate dark, scrollable
+cards for exact binding, partition intent, preconditions, immediate readback sizes/digests, post-boot
+Device DNA and unresolved blockers. Guardian Core retains the same exact plan/template identities
+only while the manifest remains valid. Changed or authority-bearing cached objects are discarded,
+and neither surface exposes an execute, flash, consent, transition or reboot control.
 
 Time Machine registers independently stored phone backups and exact stock-recovery packages without
 copying them into the workspace. Its public-safe evidence and private locator use separate bounded

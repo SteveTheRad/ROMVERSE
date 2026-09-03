@@ -170,7 +170,7 @@ def test_execution_plan_binds_exact_post_write_contract_but_keeps_consent_locked
     assert plan.post_write_readback_count == 1
     assert plan.post_boot_property_count == 7
     assert plan.post_boot_timeout_seconds == 300
-    assert plan.plan_status == "blocked-missing-typed-execution-gateway"
+    assert plan.plan_status == "ready-for-inert-gateway-contract"
     assert not plan.final_consent_available
     assert plan.execution_authority == "none"
     assert not plan.phone_changed

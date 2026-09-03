@@ -43,6 +43,16 @@ from romverse.device_packs.registry import DevicePackRegistry
 from romverse.device_packs.validation import DevicePackValidationReport
 from romverse.guardian.approval import ApprovalStore
 from romverse.guardian.artifact_binding import GuardianArtifactBindingService
+from romverse.guardian.execution_gateway_contract import (
+    GuardianExecutionGatewayContract,
+    GuardianExecutionGatewayContractService,
+    execution_plan_matches_manifest,
+    gateway_contract_matches_plan,
+)
+from romverse.guardian.execution_plan import (
+    GuardianExecutionPlan,
+    GuardianExecutionPlanService,
+)
 from romverse.guardian.flash_handoff import GuardianFlashHandoffService
 from romverse.guardian.gateway import ExecutionGateway
 from romverse.guardian.manifest_review import (
@@ -324,6 +334,8 @@ class GuardianReviewWorker(ManagedRunnable):
         self.report = report
         self.device = device
         self.signals = ProjectWorkerSignals()
+        self.execution_plan: GuardianExecutionPlan | None = None
+        self.gateway_contract: GuardianExecutionGatewayContract | None = None
 
     @Slot()
     def execute(self) -> None:
@@ -342,11 +354,38 @@ class GuardianReviewWorker(ManagedRunnable):
                 raise ProjectError(
                     "Prepare a fresh current Guardian keep-data or wipe-data handoff first"
                 )
+            project = self.binding_service.store.get(self.project_id)
+            pack = next(
+                (
+                    item
+                    for item in self.binding_service.registry.packs
+                    if item.pack_id == project.device_pack_id
+                ),
+                None,
+            )
+            write_contract = (
+                pack.build_contract.partition_write_contract
+                if pack is not None and pack.build_contract is not None
+                else None
+            )
+            rehash_passes = (
+                1
+                + int(write_contract is not None)
+                + int(
+                    write_contract is not None
+                    and write_contract.post_write_verification_contract is not None
+                )
+            )
+
+            def publish_rehash_progress(phase: int, value: int) -> None:
+                measured = round((phase * 100 + max(0, min(100, int(value)))) / rehash_passes)
+                if measured < 100:
+                    emit_progress(measured)
+
             try:
 
                 def publish_binding_progress(value: int) -> None:
-                    if int(value) < 100:
-                        emit_progress(value)
+                    publish_rehash_progress(0, value)
 
                 binding = self.binding_service.prepare(
                     self.project_id,
@@ -361,6 +400,33 @@ class GuardianReviewWorker(ManagedRunnable):
                 binding=binding,
                 binding_error=binding_error,
             )
+            if manifest.partition_writes:
+                plan_service = GuardianExecutionPlanService(
+                    self.binding_service.store,
+                    self.binding_service.registry,
+                    self.binding_service.tool_statuses,
+                    self.binding_service.avbtool,
+                    self.binding_service.runner,
+                )
+                self.execution_plan = plan_service.compile(
+                    self.project_id,
+                    self.report,
+                    self.device,
+                    lambda value: publish_rehash_progress(1, value),
+                )
+                if self.execution_plan.post_write_verification_contract_version:
+                    self.gateway_contract = GuardianExecutionGatewayContractService(
+                        self.binding_service.store,
+                        self.binding_service.registry,
+                        self.binding_service.tool_statuses,
+                        self.binding_service.avbtool,
+                        self.binding_service.runner,
+                    ).compile(
+                        self.project_id,
+                        self.report,
+                        self.device,
+                        lambda value: publish_rehash_progress(2, value),
+                    )
             emit_progress(100)
             self.signals.complete.emit(manifest)
         except (OSError, ProjectError) as exc:
@@ -505,6 +571,8 @@ class RomStudio(QWidget):
         self._active_project_id = ""
         self._last_validated_completion: tuple[str, str, int] | None = None
         self._last_recovery_report: WorkspaceRecoveryReport | None = None
+        self._latest_guardian_execution_plan: GuardianExecutionPlan | None = None
+        self._latest_guardian_gateway_contract: GuardianExecutionGatewayContract | None = None
 
         page = QVBoxLayout(self)
         page.setContentsMargins(30, 26, 30, 30)
@@ -3147,6 +3215,8 @@ class RomStudio(QWidget):
             avbtool,
             runner,
         )
+        self._latest_guardian_execution_plan = None
+        self._latest_guardian_gateway_contract = None
         worker = GuardianReviewWorker(
             binding_service,
             GuardianManifestReviewService(self.store, self.pack_registry),
@@ -3543,7 +3613,7 @@ class RomStudio(QWidget):
             if operation == "execute-recipe"
             else "Verifying and restoring the selected recipe snapshot…"
             if operation == "rollback-recipe"
-            else "Guardian is binding every declared image with measured byte progress, then compiling the full review without inventing a final-verification percentage… phone changed: NO"
+            else "Guardian is rehashing every declared image across the manifest, inert plan, and applicable result template with one measured byte progress scale, without inventing completion… phone changed: NO"
             if operation == "guardian-review"
             else "Recomputing SHA-256…"
         )
@@ -3712,8 +3782,42 @@ class RomStudio(QWidget):
         project_id = self.current_project.project_id if self.current_project is not None else ""
         return self._last_validated_completion == (operation, project_id, id(result))
 
+    def guardian_execution_context(
+        self,
+        manifest: GuardianManifestReview,
+    ) -> tuple[
+        GuardianExecutionPlan | None,
+        GuardianExecutionGatewayContract | None,
+    ]:
+        """Return only the locally validated inert evidence attached to this exact manifest."""
+
+        plan = self._latest_guardian_execution_plan
+        if plan is None:
+            return None, None
+        try:
+            GuardianExecutionPlanService(self.store, self.pack_registry).validate(plan)
+        except ProjectError:
+            return None, None
+        if not execution_plan_matches_manifest(plan, manifest):
+            return None, None
+
+        contract = self._latest_guardian_gateway_contract
+        if contract is None:
+            return plan, None
+        try:
+            GuardianExecutionGatewayContractService(
+                self.store,
+                self.pack_registry,
+            ).validate(contract)
+        except ProjectError:
+            return plan, None
+        if not gateway_contract_matches_plan(contract, plan):
+            return plan, None
+        return plan, contract
+
     @Slot(object)
     def _worker_complete(self, result: object) -> None:
+        completed_worker = self.worker
         operation = self._active_operation
         project_id = self._active_project_id
         evidence_error = self._completion_evidence_error(operation, project_id, result)
@@ -3797,10 +3901,28 @@ class RomStudio(QWidget):
                 f"{len(result.restored_targets)} target(s) restored from {result.snapshot_id}."
             )
         elif isinstance(result, GuardianManifestReview):
+            if isinstance(completed_worker, GuardianReviewWorker):
+                self._latest_guardian_execution_plan = completed_worker.execution_plan
+                self._latest_guardian_gateway_contract = completed_worker.gateway_contract
+            else:
+                self._latest_guardian_execution_plan = None
+                self._latest_guardian_gateway_contract = None
             bound = len(result.partition_writes)
+            plan, contract = self.guardian_execution_context(result)
             self.operation_status.setText(
                 f"Guardian review sealed  •  {bound} image(s) hash-bound for review  •  "
-                "commands: NONE  •  final consent: LOCKED  •  phone changed: NO"
+                + (
+                    f"inert plan: {len(plan.commands)} step(s)  •  "
+                    if plan is not None
+                    else "inert plan: unavailable  •  "
+                )
+                + (
+                    f"result template: {contract.step_count} checks  •  "
+                    if contract is not None
+                    else "result template: locked  •  "
+                )
+                + "executable commands: NONE  •  execution: NONE  •  "
+                "final consent: LOCKED  •  phone changed: NO"
             )
         if self._last_recovery_report is not None:
             self.operation_status.setText(
@@ -3836,7 +3958,16 @@ class RomStudio(QWidget):
         if isinstance(result, GuardianManifestReview):
             from romverse.ui.build_control import GuardianManifestReviewDialog
 
-            review = GuardianManifestReviewDialog(result, self)
+            plan, contract = self.guardian_execution_context(result)
+            if plan is None and contract is None:
+                review = GuardianManifestReviewDialog(result, self)
+            else:
+                review = GuardianManifestReviewDialog(
+                    result,
+                    self,
+                    execution_plan=plan,
+                    gateway_contract=contract,
+                )
             review.exec()
             if review.open_guardian_core_requested:
                 self.guardian_review_requested.emit(
@@ -3847,6 +3978,9 @@ class RomStudio(QWidget):
     @Slot(str)
     def _worker_failed(self, message: str) -> None:
         operation = self._active_operation
+        if operation == "guardian-review":
+            self._latest_guardian_execution_plan = None
+            self._latest_guardian_gateway_contract = None
         recovery = self._last_recovery_report
         self._active_operation = ""
         self._active_project_id = ""

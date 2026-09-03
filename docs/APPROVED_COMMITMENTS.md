@@ -642,9 +642,10 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   raw serial persistence; partition-write schema two requires one exact full-partition Fastboot
   fetch size/digest per write, the same signed source/attestation identity, authorized ADB, bounded
   first-boot timing and allowlisted exact Device DNA properties, while schema one remains explicitly
-  non-flash-ready; the inert plan binds the complete verification-contract digest but remains blocked
-  with zero consent or execution authority until a separately verified execution gateway and
-  immutable execution/postcondition receipt exist;
+  non-flash-ready; the inert plan binds the complete verification-contract digest and becomes ready
+  only for the separately verified inert gateway/result template, while both records retain zero
+  consent or execution authority and cannot advance without signed transitions/recovery, a governed
+  runtime, immutable execution/postcondition receipts and physical validation;
   a strict private execution-gateway contract that accepts only the current schema-two inert plan,
   regenerates typed Fastboot precondition/write/readback and ADB post-boot steps, binds one exact
   size/SHA-256 result obligation per full-partition fetch plus every allowlisted Device DNA value,
@@ -653,6 +654,12 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   is explicitly not an execution receipt, invokes no runtime, changes no phone, exposes no final
   consent, and remains blocked on exact signed transition/recovery orchestration and physical
   validation;
+  end-to-end Desktop presentation of that inert chain through the managed ROM Studio Guardian
+  worker, with a single monotonic byte-derived scale across each required artifact rehash, terminal
+  100 only after the applicable private records are sealed, readable dark scroll cards for
+  preconditions, partition intent, immediate readback hashes, first-boot Device DNA and remaining
+  blockers, and an exact-identity handoff into Guardian Core that rejects stale, tampered or
+  authority-bearing cached context while offering no execute or flash control;
   Forge Control stale-card detachment and natural-height scrolling, two aligned footer action rows,
   and separate blocked/attention counts so repeated evidence refreshes cannot jumble controls or
   make an amber certification requirement appear complete;

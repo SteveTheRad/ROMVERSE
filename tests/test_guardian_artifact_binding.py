@@ -276,7 +276,13 @@ def test_guardian_review_worker_reports_real_hash_progress_without_phone_command
     assert len(completed) == 1
     assert completed[0].partition_writes
     assert completed[0].command_manifest == ()
-    assert progress == [0, 17, 63, 100]
+    assert worker.execution_plan is not None
+    assert worker.execution_plan.plan_status == "blocked-missing-exact-post-write-verification"
+    assert not worker.execution_plan.final_consent_available
+    assert worker.execution_plan.execution_authority == "none"
+    assert worker.gateway_contract is None
+    assert progress == [0, 8, 32, 50, 100]
+    assert progress == sorted(progress)
     assert 90 not in progress
     assert 94 not in progress
 

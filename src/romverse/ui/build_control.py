@@ -44,6 +44,13 @@ from romverse.backup.media import (
 )
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.guardian.approval import ApprovalStore
+from romverse.guardian.execution_gateway_contract import (
+    GatewayStepPhase,
+    GuardianExecutionGatewayContract,
+    execution_plan_matches_manifest,
+    gateway_contract_matches_plan,
+)
+from romverse.guardian.execution_plan import GuardianExecutionPlan
 from romverse.guardian.flash_handoff import (
     FlashMode,
     GuardianFlashHandoffService,
@@ -411,8 +418,19 @@ class GuardianManifestReviewDialog(QDialog):
         self,
         manifest: GuardianManifestReview,
         parent: QWidget | None = None,
+        *,
+        execution_plan: GuardianExecutionPlan | None = None,
+        gateway_contract: GuardianExecutionGatewayContract | None = None,
     ) -> None:
         super().__init__(parent)
+        self.execution_plan = (
+            execution_plan if execution_plan_matches_manifest(execution_plan, manifest) else None
+        )
+        self.gateway_contract = (
+            gateway_contract
+            if gateway_contract_matches_plan(gateway_contract, self.execution_plan)
+            else None
+        )
         self.open_guardian_core_requested = False
         self.setWindowTitle("ROMVERSE Guardian • exact manifest review")
         self.setMinimumSize(820, 640)
@@ -429,11 +447,24 @@ class GuardianManifestReviewDialog(QDialog):
         title = QLabel("GUARDIAN MANIFEST REVIEW • EXECUTION LOCKED")
         title.setObjectName("ReadyHeading")
         root.addWidget(title)
-        if manifest.partition_writes:
+        if self.gateway_contract is not None:
+            review_detail = (
+                f"ROMVERSE rehashed {len(manifest.partition_writes)} exact current image(s), "
+                "compiled the inert command plan, and sealed every required readback and first-boot "
+                "result check. The runtime and final consent remain unavailable, so nothing can be "
+                "written to the phone."
+            )
+        elif self.execution_plan is not None:
             review_detail = (
                 f"ROMVERSE rehashed {len(manifest.partition_writes)} exact current image(s) and "
-                "bound them to this handoff for review. No executable command manifest or final "
-                "consent is available yet, so nothing can be written to the phone."
+                "compiled a private inert command preview. The remaining plan blockers below keep "
+                "the runtime and final consent unavailable, so nothing can be written to the phone."
+            )
+        elif manifest.partition_writes:
+            review_detail = (
+                f"ROMVERSE rehashed {len(manifest.partition_writes)} exact current image(s) and "
+                "bound them to this handoff for review. The inert execution plan is not available "
+                "in this view, so nothing can be written to the phone."
             )
         elif manifest.review_status == "blocked-missing-current-artifact-binding":
             review_detail = (
@@ -539,6 +570,113 @@ class GuardianManifestReviewDialog(QDialog):
             )
             writes_layout.addWidget(row)
         body_layout.addWidget(writes)
+
+        plan = self.execution_plan
+        plan_card = QFrame()
+        plan_card.setObjectName("BuildPhase")
+        plan_card.setProperty("gateStatus", "attention" if plan is not None else "blocked")
+        plan_layout = QVBoxLayout(plan_card)
+        plan_layout.setContentsMargins(18, 15, 18, 15)
+        plan_layout.setSpacing(7)
+        if plan is None:
+            plan_title = QLabel("INERT EXECUTION PLAN • NOT AVAILABLE")
+            plan_copy = QLabel(
+                "The command-free manifest remains useful evidence, but this view has no current "
+                "independently sealed command preview. Return to Forge Control to regenerate the "
+                "exact Guardian review. Execution and final consent remain locked."
+            )
+        else:
+            preconditions = sum(command.phase.value == "precondition" for command in plan.commands)
+            writes_count = sum(command.phase.value == "write" for command in plan.commands)
+            plan_title = QLabel(
+                f"INERT EXECUTION PLAN • {preconditions} PREFLIGHT • {writes_count} WRITE PREVIEW"
+            )
+            plan_copy = QLabel(
+                f"Plan {plan.plan_digest[:20]}… • {plan.plan_status.replace('-', ' ')}\n"
+                "Every target and workspace path is redacted. These are review templates, not "
+                "runnable commands; execution authority is NONE and final consent is LOCKED."
+            )
+            for command in plan.commands:
+                if command.phase.value != "precondition":
+                    continue
+                row = QLabel(f"{command.order:02d}  •  CHECK  •  {command.expected_result}")
+                row.setObjectName("GateCopy")
+                row.setWordWrap(True)
+                plan_layout.addWidget(row)
+            blockers = QLabel(
+                "REMAINING PLAN BLOCKERS\n" + "\n".join(f"• {item}" for item in plan.blockers)
+            )
+            blockers.setObjectName("GateCopy")
+            blockers.setWordWrap(True)
+            plan_layout.addWidget(blockers)
+        plan_title.setObjectName("CardHeading")
+        plan_copy.setObjectName("GateCopy")
+        plan_copy.setWordWrap(True)
+        plan_layout.insertWidget(0, plan_title)
+        plan_layout.insertWidget(1, plan_copy)
+        body_layout.addWidget(plan_card)
+
+        contract = self.gateway_contract
+        result_card = QFrame()
+        result_card.setObjectName("BuildPhase")
+        result_card.setProperty("gateStatus", "attention" if contract is not None else "blocked")
+        result_layout = QVBoxLayout(result_card)
+        result_layout.setContentsMargins(18, 15, 18, 15)
+        result_layout.setSpacing(7)
+        if contract is None:
+            result_title = QLabel("VERIFICATION RESULT TEMPLATE • LOCKED")
+            result_copy = QLabel(
+                "Guardian has not sealed a current schema-two result template. Exact signed "
+                "partition readbacks and post-boot Device DNA are still required before this stage "
+                "can advance. No command or phone action is available."
+            )
+        else:
+            result_title = QLabel(
+                f"VERIFICATION RESULT TEMPLATE • {contract.readback_count} IMMEDIATE READBACK"
+                f"{'S' if contract.readback_count != 1 else ''} • "
+                f"{contract.post_boot_property_count} FIRST-BOOT CHECKS"
+            )
+            result_copy = QLabel(
+                f"Contract {contract.contract_digest[:20]}… • "
+                f"{contract.contract_status.replace('-', ' ')}\n"
+                "Each write must be read back immediately and match the signed full-partition "
+                "size and SHA-256. After a separately governed transition, the same phone must "
+                "match every listed Device DNA value. This template did not run anything."
+            )
+            for step in contract.steps:
+                if step.phase is GatewayStepPhase.READBACK:
+                    slot = step.target_slot.upper() if step.target_slot != "none" else "NO SLOT"
+                    row = QLabel(
+                        f"{step.order:02d}  •  READ BACK {step.partition}  •  {slot}  •  "
+                        f"{_human_bytes(step.expected_size_bytes)}  •  SHA-256 "
+                        f"{step.expected_sha256[:20]}…"
+                    )
+                    row.setToolTip(
+                        f"Full expected SHA-256: {step.expected_sha256}\n"
+                        "Private output path remains redacted until a governed runtime exists."
+                    )
+                elif step.phase is GatewayStepPhase.POST_BOOT:
+                    row = QLabel(
+                        f"{step.order:02d}  •  FIRST BOOT  •  {step.property_name} = "
+                        f"{step.expected_value}"
+                    )
+                else:
+                    continue
+                row.setObjectName("GateCopy")
+                row.setWordWrap(True)
+                result_layout.addWidget(row)
+            blockers = QLabel(
+                "STILL REQUIRED\n" + "\n".join(f"• {item}" for item in contract.blockers)
+            )
+            blockers.setObjectName("GateCopy")
+            blockers.setWordWrap(True)
+            result_layout.addWidget(blockers)
+        result_title.setObjectName("CardHeading")
+        result_copy.setObjectName("GateCopy")
+        result_copy.setWordWrap(True)
+        result_layout.insertWidget(0, result_title)
+        result_layout.insertWidget(1, result_copy)
+        body_layout.addWidget(result_card)
 
         invariant = QLabel(
             "PERMANENT GUARDIAN RULE • BOOTLOADER RELOCK: NEVER • EXECUTION AUTHORITY: NONE • PHONE CHANGED: NO"

@@ -5,11 +5,17 @@ import json
 import os
 import stat
 from dataclasses import asdict, replace
+from pathlib import Path
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
+from PySide6.QtWidgets import QApplication, QLabel, QPushButton
 
+from romverse.core.settings import AppSettings
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.guardian.artifact_binding import GuardianArtifactBindingService
+from romverse.guardian.audit import GuardianAuditStore
 from romverse.guardian.execution_gateway_contract import (
     GatewayEvidenceKind,
     GatewayStepPhase,
@@ -17,6 +23,10 @@ from romverse.guardian.execution_gateway_contract import (
 )
 from romverse.guardian.manifest_review import GuardianManifestReviewService
 from romverse.rom.models import ProjectError
+from romverse.ui.build_control import GuardianManifestReviewDialog
+from romverse.ui.guardian_center import GuardianCenter
+from romverse.ui.main_window import MainWindow
+from romverse.ui.rom_studio import GuardianReviewWorker, RomStudio
 from tests.test_guardian_execution_plan import (
     _prepared,
     _prepared_with_post_write_verification,
@@ -128,6 +138,170 @@ def test_gateway_contract_compiles_typed_inert_result_template(tmp_path, monkeyp
     if os.name != "nt":
         assert stat.S_IMODE(path.parent.stat().st_mode) == 0o700
         assert stat.S_IMODE(path.stat().st_mode) == 0o600
+
+
+def test_guardian_worker_seals_schema_two_plan_and_gateway_contract(tmp_path, monkeypatch):
+    plans, project, report, device, _manifest, _binding, _verification = (
+        _prepared_with_post_write_verification(tmp_path, monkeypatch)
+    )
+    worker = GuardianReviewWorker(
+        GuardianArtifactBindingService(plans.store, plans.registry),
+        GuardianManifestReviewService(plans.store, plans.registry),
+        project.project_id,
+        report,
+        device,
+    )
+    completed = []
+    failed = []
+    progress = []
+    terminal_records = []
+    worker.signals.complete.connect(completed.append)
+    worker.signals.failed.connect(failed.append)
+
+    def record_progress(value):
+        progress.append(value)
+        if value == 100:
+            guardian_root = plans.store.projects_root / project.project_id / "guardian"
+            terminal_records.append(
+                tuple(
+                    (guardian_root / name).is_file()
+                    for name in (
+                        "manifest-review.romverse",
+                        "execution-plan.romverse",
+                        "execution-gateway-contract.romverse",
+                    )
+                )
+            )
+
+    worker.signals.progress.connect(record_progress)
+
+    worker.run()
+
+    assert failed == []
+    assert len(completed) == 1
+    assert worker.execution_plan is not None
+    assert worker.execution_plan.plan_status == "ready-for-inert-gateway-contract"
+    assert worker.gateway_contract is not None
+    assert worker.gateway_contract.readback_count == worker.gateway_contract.write_count
+    assert worker.gateway_contract.execution_authority == "none"
+    assert not worker.gateway_contract.runtime_invoked
+    assert not worker.gateway_contract.phone_changed
+    assert progress[0] == 0
+    assert progress[-1] == 100
+    assert progress == sorted(progress)
+    assert 90 not in progress
+    assert 94 not in progress
+    assert terminal_records == [(True, True, True)]
+
+
+def test_guardian_ui_shows_plan_and_result_template_without_execution_control(
+    tmp_path,
+    monkeypatch,
+):
+    app = QApplication.instance() or QApplication([])
+    plans, project, report, device, manifest, _binding, _verification = (
+        _prepared_with_post_write_verification(tmp_path, monkeypatch)
+    )
+    plan = plans.compile(project.project_id, report, device)
+    contract = _service(plans).compile(project.project_id, report, device)
+
+    dialog = GuardianManifestReviewDialog(
+        manifest,
+        execution_plan=plan,
+        gateway_contract=contract,
+    )
+    app.processEvents()
+    texts = [label.text() for label in dialog.findChildren(QLabel)]
+    buttons = [button.text() for button in dialog.findChildren(QPushButton)]
+    assert any("INERT EXECUTION PLAN" in text for text in texts)
+    assert any("VERIFICATION RESULT TEMPLATE" in text for text in texts)
+    assert any("READ BACK super" in text for text in texts)
+    assert any("sys.boot_completed = 1" in text for text in texts)
+    assert any("This template did not run anything" in text for text in texts)
+    assert buttons == ["Return to Genesis", "Open Guardian Core"]
+    dialog.close()
+
+    center = GuardianCenter(GuardianAuditStore(plans.store.workspace), auto_start=False)
+    assert center.open_studio_review(manifest, project.name, plan, contract)
+    detail = center.studio_review_detail.text()
+    assert "INERT EXECUTION PLAN" in detail
+    assert "RESULT TEMPLATE" in detail
+    assert "immediate readback" in detail
+    assert "Runtime invoked: no" in detail
+    assert "Execution: none" in detail
+    center.close()
+
+
+def test_studio_refuses_tampered_cached_gateway_context(tmp_path, monkeypatch):
+    app = QApplication.instance() or QApplication([])
+    plans, project, report, device, manifest, _binding, _verification = (
+        _prepared_with_post_write_verification(tmp_path, monkeypatch)
+    )
+    plan = plans.compile(project.project_id, report, device)
+    contract = _service(plans).compile(project.project_id, report, device)
+    studio = RomStudio(plans.store, plans.registry)
+    studio._latest_guardian_execution_plan = plan
+    studio._latest_guardian_gateway_contract = contract
+
+    assert studio.guardian_execution_context(manifest) == (plan, contract)
+    studio._latest_guardian_gateway_contract = replace(contract, runtime_invoked=True)
+    assert studio.guardian_execution_context(manifest) == (plan, None)
+    center = GuardianCenter(GuardianAuditStore(plans.store.workspace), auto_start=False)
+    assert not center.open_studio_review(
+        manifest,
+        project.name,
+        plan,
+        replace(contract, execution_authority="device-write"),
+    )
+    center.close()
+    studio.close()
+    app.processEvents()
+
+
+def test_main_window_carries_exact_gateway_context_into_guardian_core(
+    tmp_path,
+    monkeypatch,
+):
+    app = QApplication.instance() or QApplication([])
+    plans, project, report, device, manifest, _binding, _verification = (
+        _prepared_with_post_write_verification(tmp_path, monkeypatch)
+    )
+    plan = plans.compile(project.project_id, report, device)
+    contract = _service(plans).compile(project.project_id, report, device)
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(
+        None,
+        logo,
+        plans.store.workspace,
+        app_icon_path=logo,
+        pack_registry=plans.registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    monkeypatch.setattr(
+        "romverse.ui.main_window.BuildReadinessService.assess",
+        lambda *_args, **_kwargs: report,
+    )
+    try:
+        window.rom_studio.set_devices([device])
+        window.rom_studio._latest_guardian_execution_plan = plan
+        window.rom_studio._latest_guardian_gateway_contract = contract
+        window.rom_studio.guardian_review_requested.emit(
+            project.project_id,
+            manifest.manifest_digest,
+        )
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.guardian_center
+        detail = window.guardian_center.studio_review_detail.text()
+        assert plan.plan_digest[:16] in detail
+        assert contract.contract_digest[:16] in detail
+        assert "1 immediate readback" in detail
+        assert "7 first-boot checks" in detail
+        assert "Runtime invoked: no" in detail
+        assert "Execution: none" in detail
+    finally:
+        window.companion_center.transport.close()
+        window.close()
 
 
 def test_gateway_contract_supports_explicit_readback_slot(tmp_path, monkeypatch):

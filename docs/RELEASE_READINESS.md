@@ -86,9 +86,10 @@ has current evidence.
    `https://github.com/SteveTheRad/ROMVERSE/actions/runs/33750194118`. This remains unsigned build
    evidence and does not replace production signing or physical-device write certification.
 
-   Current Fedora development evidence recorded on 2026-09-04: all 1,417 Desktop tests and both
+   Current Fedora development evidence recorded on 2026-09-04: all 1,421 Desktop tests and both
    complete Ruff gates pass after the signed-update Settings journey, inert Guardian execution
-   plan, exact post-write verification contract, and inert typed gateway contract were completed.
+   plan, exact post-write verification contract, inert typed gateway contract, and its managed
+   ROM Studio/Guardian Core review journey were completed.
    The user must separately
    confirm download; byte-derived progress remains
    below 100 until the artifact and
@@ -97,13 +98,14 @@ has current evidence.
    action opens the verified folder. Tests also reject forged UI completions and re-digested receipts
    that claim automatic installation. Linked staging roots, release directories, receipts and
    artifacts fail closed, and replacing an artifact with byte-identical content after hashing is
-   detected through its changed file identity. Windows CI now runs this updater suite on both
-   supported Python versions. The stage grants no execution or Android-device authority and never
-   launches the artifact. A fresh isolated build produced and verified a 231-member wheel with
+   detected through its changed file identity. The exact current Windows portability selection
+   passes all 266 tests locally and runs on both supported Python versions in CI. The stage grants no
+   execution or Android-device authority and never launches the artifact. A fresh isolated build
+   produced and verified a 231-member wheel with
    all 21 Device Packs and SHA-256
-   `3196793701b3bb6d0501c27c9895d6e532adbba5f0b31e28c878c0d5bf417bc4`. The exact wheel was then
-   installed locally and its packaged smoke passed with 194 guides, 144 known fixes, all 19 covered
-   Desktop routes, a dark Time Machine state, and byte-exact populated-workspace reopening. This is
+   `28eac9e685bb22892e3674ed4d870097b606a22fcc1851ebc947898fb18e0aea`. That exact wheel was installed
+   into an isolated target and its packaged smoke passed with 194 guides, 144 known fixes, all 19
+   covered Desktop routes, a dark Time Machine state, and byte-exact populated-workspace reopening. This is
    local implementation evidence; the production publisher key and signed channels remain intentionally
    unconfigured. ROMVERSE Link now also restores a genuine remembered wireless pairing visibly
    after restart, reports its actual remaining lifetime instead of the obsolete 12-hour/close copy,
@@ -443,7 +445,7 @@ has current evidence.
    `blocked-missing-exact-post-write-verification`. For schema two, change any readback digest and
    confirm strict reload rejects the stored plan even if all write artifacts are unchanged; otherwise
    bind the exact verification contract identity, digest, readback/property counts and timeout, then
-   stop at `blocked-missing-typed-execution-gateway`. Both paths must contain no inferred transition,
+   stop at `ready-for-inert-gateway-contract`. Both paths must contain no inferred transition,
    activation, reboot, wipe, rollback or recovery command, expose no final consent, grant execution
    authority `none`, and record `phone_changed: false`.
    From a current schema-two plan, compile the separate execution-gateway contract without invoking
@@ -457,6 +459,16 @@ has current evidence.
    and any erase, reboot, unlock or relock command. Confirm it stops at
    `blocked-missing-signed-transition-recovery-and-final-consent` and is visibly identified as an
    inert result template rather than an execution receipt.
+   Exercise the schema-two journey through the managed ROM Studio Guardian worker. It must begin
+   indeterminately, then expose one monotonic byte-derived scale across all three complete artifact
+   rehashes without fixed 90/94 milestones; 100 may appear only after the manifest, inert plan and
+   result template are validated and saved. Confirm the manifest dialog and persistent Guardian Core
+   card show the exact plan/template digests, bounded preflight/write/readback/property counts,
+   immediate size/SHA-256 expectations, first-boot Device DNA and remaining blockers in a readable
+   dark theme at minimum size and after full scrolling. The dialog must offer only Return to Genesis
+   and Open Guardian Core, never execute, flash, consent, transition or reboot controls. Stale or
+   re-digested objects, claimed runtime/authority/phone change, manifest mismatch and disconnected
+   evidence must be refused rather than displayed as current.
    Refresh Forge Control repeatedly while readiness changes between blocked and attention states at
    its 1040-pixel minimum width. Confirm removed cards are no longer parented or visible, the content
    keeps its natural scroll height, no footer buttons overlap, and blocked/attention totals match the

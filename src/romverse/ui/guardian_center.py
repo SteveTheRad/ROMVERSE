@@ -19,6 +19,12 @@ from romverse.applications.receipts import ApkReceiptRead, ApkReceiptStore
 from romverse.backup.plans import BackupPlanRead, GuardianBackupPlanStore
 from romverse.guardian.approval import ApprovalRecord, ApprovalStore, ApprovalVerification
 from romverse.guardian.audit import AuditVerification, GuardianAuditStore
+from romverse.guardian.execution_gateway_contract import (
+    GuardianExecutionGatewayContract,
+    execution_plan_matches_manifest,
+    gateway_contract_matches_plan,
+)
+from romverse.guardian.execution_plan import GuardianExecutionPlan
 from romverse.guardian.manifest_review import GuardianManifestReview
 from romverse.nexus.planning import NexusObjective, NexusPlan
 from romverse.ui.background import ManagedRunnable, start_background
@@ -545,6 +551,8 @@ class GuardianCenter(QWidget):
         self,
         manifest: GuardianManifestReview,
         project_name: str,
+        execution_plan: GuardianExecutionPlan | None = None,
+        gateway_contract: GuardianExecutionGatewayContract | None = None,
     ) -> bool:
         """Present one exact command-free Studio manifest as persistent evidence."""
 
@@ -562,6 +570,16 @@ class GuardianCenter(QWidget):
         clean_name = " ".join(project_name.replace("\x00", "").split())[:80]
         if not clean_name:
             return False
+        if execution_plan is not None and not execution_plan_matches_manifest(
+            execution_plan,
+            manifest,
+        ):
+            return False
+        if gateway_contract is not None and not gateway_contract_matches_plan(
+            gateway_contract,
+            execution_plan,
+        ):
+            return False
         self.clear_nexus_review()
         self.clear_backup_review()
         self.studio_review_title.setText(f"{clean_name}  •  {manifest.device_name}")
@@ -569,6 +587,26 @@ class GuardianCenter(QWidget):
         self.studio_review_badge.setObjectName("Warning")
         self._repolish(self.studio_review_badge)
         blockers = "\n".join(f"• {item}" for item in manifest.blockers)
+        plan_detail = "\nINERT EXECUTION PLAN  •  not attached to this view"
+        if execution_plan is not None:
+            preconditions = sum(
+                command.phase.value == "precondition" for command in execution_plan.commands
+            )
+            writes = sum(command.phase.value == "write" for command in execution_plan.commands)
+            plan_detail = (
+                f"\nINERT EXECUTION PLAN  •  {preconditions} preflight / {writes} write preview"
+                f"  •  {execution_plan.plan_digest[:16]}…"
+                f"\nPlan state  •  {execution_plan.plan_status.replace('-', ' ')}"
+            )
+        if gateway_contract is not None:
+            plan_detail += (
+                f"\nRESULT TEMPLATE  •  {gateway_contract.readback_count} immediate readback"
+                f"{'s' if gateway_contract.readback_count != 1 else ''} / "
+                f"{gateway_contract.post_boot_property_count} first-boot checks"
+                f"  •  {gateway_contract.contract_digest[:16]}…"
+                f"\nTemplate state  •  {gateway_contract.contract_status.replace('-', ' ')}"
+                "  •  Runtime invoked: no"
+            )
         self.studio_review_detail.setText(
             f"Manifest {manifest.manifest_digest[:16]}…  •  handoff "
             f"{manifest.handoff_digest[:16]}…  •  project {manifest.project_id}\n"
@@ -577,6 +615,7 @@ class GuardianCenter(QWidget):
             f"{manifest.source_sha256[:16]}…  •  mode {manifest.mode.display_name}\n"
             f"ARTIFACT REVIEW  •  {len(manifest.partition_writes)} image(s) hash-bound  •  "
             f"status {manifest.review_status.replace('-', ' ')}\n"
+            f"{plan_detail}\n"
             f"REMAINING BLOCKERS\n{blockers}\n"
             "REVIEW BOUNDARY  •  Approval: none  •  Execution: none  •  Final consent: "
             "locked  •  Bootloader relock: never  •  Phone changed: no"

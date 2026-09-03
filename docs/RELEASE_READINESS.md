@@ -86,9 +86,10 @@ has current evidence.
    `https://github.com/SteveTheRad/ROMVERSE/actions/runs/33750194118`. This remains unsigned build
    evidence and does not replace production signing or physical-device write certification.
 
-   Current Fedora development evidence recorded on 2026-09-04: all 1,403 Desktop tests and both
+   Current Fedora development evidence recorded on 2026-09-04: all 1,417 Desktop tests and both
    complete Ruff gates pass after the signed-update Settings journey, inert Guardian execution
-   plan, and exact post-write verification contract were completed. The user must separately
+   plan, exact post-write verification contract, and inert typed gateway contract were completed.
+   The user must separately
    confirm download; byte-derived progress remains
    below 100 until the artifact and
    digest-bound private receipt have been independently reloaded and verified; cancellation removes
@@ -98,9 +99,9 @@ has current evidence.
    artifacts fail closed, and replacing an artifact with byte-identical content after hashing is
    detected through its changed file identity. Windows CI now runs this updater suite on both
    supported Python versions. The stage grants no execution or Android-device authority and never
-   launches the artifact. A fresh isolated build produced and verified a 230-member wheel with
+   launches the artifact. A fresh isolated build produced and verified a 231-member wheel with
    all 21 Device Packs and SHA-256
-   `db95b42cb735283c9813bed22042ddde76012269d28550f23c1c3567f7a8e97c`. The exact wheel was then
+   `3196793701b3bb6d0501c27c9895d6e532adbba5f0b31e28c878c0d5bf417bc4`. The exact wheel was then
    installed locally and its packaged smoke passed with 194 guides, 144 known fixes, all 19 covered
    Desktop routes, a dark Time Machine state, and byte-exact populated-workspace reopening. This is
    local implementation evidence; the production publisher key and signed channels remain intentionally
@@ -109,18 +110,19 @@ has current evidence.
    enables Copy only for a live one-time code, and exposes explicit replacement and reset controls.
    Reset immediately revokes the stored token verifier and clears cached wireless telemetry while
    preserving USB read-only pairing; the old token is rejected in the restart/revocation regression.
-   Exact commit `5250fed20e3d3dc7e86d37e56c62132e8b579a81` is fully green in GitHub Actions run
-   `33768842523`: both Linux 1,403-test jobs, both Windows 248-test portability jobs, both native
+   Exact commit `220a0a24c2346287220f79e692c82d92236f872b` is fully green in GitHub Actions run
+   `33772226324`: both Linux 1,417-test jobs, both Windows 262-test portability jobs, both native
    installed/frozen/package jobs, Companion tests/build, and the combined unsigned candidate passed.
    The exact downloaded archives and manifest were independently rehashed and CRC-verified on
    Fedora; the separate and combined archive copies are byte-identical. Guardian can now bind a
    signed schema-2 exact SHA-256 readback and allowlisted post-boot verification contract from the
    same source build and physical attestation. Its plan remains command-inert: no built-in Device
-   Pack currently supplies that signed schema-2 authority, and the typed execution gateway and final
-   consent remain unavailable.
+   Pack currently supplies that signed schema-2 authority. The new gateway contract is an inert
+   result template rather than a runtime or execution receipt; signed transition/recovery
+   orchestration, governed execution, physical validation and final consent remain unavailable.
 
-   Subsequent Desktop development adds the first typed execution-gateway boundary without weakening
-   that candidate. Given synthetic signed schema-two evidence, it regenerates exact Fastboot
+   That exact candidate adds the first typed execution-gateway boundary. Given synthetic signed
+   schema-two evidence, it regenerates exact Fastboot
    precondition/write/readback steps and exact ADB post-boot property checks from the current plan,
    binds every required output size and SHA-256 into a private tamper-evident contract, retains only
    redacted target/workspace/output placeholders, and independently rejects resealed substitutions,

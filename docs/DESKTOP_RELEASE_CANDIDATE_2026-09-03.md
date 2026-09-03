@@ -9,33 +9,33 @@ Windows/Linux PySide6 app, its local ROM workflows, the Android Companion build,
 offline/Link contracts. Public hosted services remain outside this candidate.
 
 The exact application-source commit is
-`220a0a24c2346287220f79e692c82d92236f872b`.
+`516eceed3ebd3f1266bab02f2b7677bf559d755b`.
 
 ## Release artifacts
 
-The independently downloaded CI artifacts are under `dist/github-candidate-220a0a2/`.
+The CI artifacts were independently downloaded into an isolated temporary verification directory.
 
 | Platform or role | File | Bytes | SHA-256 | Entrypoint or identity |
 | --- | --- | ---: | --- | --- |
-| Linux x86-64 | `candidate/ROMVERSE-Desktop-0.1.0-linux-x86_64.zip` | 156,134,455 | `b94dcf9cf7c99517388948bd4a688bb4488b715b6c70cf0e7bdd0452a5b7f3dd` | `ROMVERSE/ROMVERSE` |
-| Windows x86-64 | `candidate/ROMVERSE-Desktop-0.1.0-windows-x86_64.zip` | 72,976,455 | `3aadfdbabb0a37666fe95e6aa32040eb121bec30f99de62d652ea7ee0193a947` | `ROMVERSE/ROMVERSE.exe` |
-| Unsigned Desktop manifest | `candidate/romverse-desktop-0.1.0-unsigned.json` | 1,185 | `1f7e7f9f013567cbb2e0ce3fcc3333cb04ef02e7e018fecacf3334d37f3b0b3a` | Not executable |
-| Android Companion test build | `companion/app-debug.apk` | 8,171,670 | `817edda8154f5b713f8b16c0d6801fd12d5caadc842cb723a9bb7aed066de80a` | `com.radforge.romverse.companion` |
+| Linux x86-64 | `ROMVERSE-Desktop-0.1.0-linux-x86_64.zip` | 156,143,535 | `f9b402270cac965b997670c1749e46632a8e92412ca9f8e9f8e1e060559d000c` | `ROMVERSE/ROMVERSE` |
+| Windows x86-64 | `ROMVERSE-Desktop-0.1.0-windows-x86_64.zip` | 72,984,769 | `a7bada401ee5b42c7e4d0fb1c0ef755139f07b581b7158b9a888cc8259721c67` | `ROMVERSE/ROMVERSE.exe` |
+| Unsigned Desktop manifest | `romverse-desktop-0.1.0-unsigned.json` | 1,185 | `85197fa48c4a853ccf5193c482dadf12776f7580dec0dcbfb0b4d1f501fc9957` | Not executable |
+| Android Companion test build | `app-debug.apk` | 8,171,670 | `8f3b4cf727e81f076f345f8932cdf4b628578111f9d5acfb6447e63f3523acac` | `com.radforge.romverse.companion` |
 
 The Desktop manifest release identity is
-`romverse-desktop-0.1.0-220a0a24c2346287220f79e692c82d92236f872b`. It binds both archives,
-229,110,910 total artifact bytes, explicit-update consent, workspace preservation, no execution
+`romverse-desktop-0.1.0-516eceed3ebd3f1266bab02f2b7677bf559d755b`. It binds both archives,
+229,128,304 total artifact bytes, explicit-update consent, workspace preservation, no execution
 authority, and unavailable rollback because no earlier signed public release exists. The separate
 per-platform CI copies are byte-identical to the copies in the combined candidate.
 
 ## Passing evidence
 
-[GitHub Actions run 33772226324](https://github.com/SteveTheRad/ROMVERSE/actions/runs/33772226324)
+[GitHub Actions run 33777073363](https://github.com/SteveTheRad/ROMVERSE/actions/runs/33777073363)
 completed successfully for the exact source commit:
 
-- Linux Python 3.12 and 3.14 each passed all 1,417 tests, complete Ruff checking, and the complete
+- Linux Python 3.12 and 3.14 each passed all 1,421 tests, complete Ruff checking, and the complete
   formatting gate.
-- Windows Python 3.12 and 3.14 each passed all 262 portability tests, including Device Pack schema,
+- Windows Python 3.12 and 3.14 each passed all 266 portability tests, including Device Pack schema,
   build-readiness, Guardian inert execution-plan/gateway contract, and signed Desktop update
   coverage, plus both complete Ruff gates.
 - Both native packaging jobs built and verified the 231-member wheel and all 21 integrity-indexed
@@ -43,8 +43,8 @@ completed successfully for the exact source commit:
   launched the frozen app, and verified the complete portable archive.
 - Existing-workspace smoke preserved the project manifest, protected original, working copy, and
   Time Machine snapshot byte-for-byte across restart on both operating systems.
-- The Linux archive contains 442 regular files and 385,571,951 expanded bytes.
-- The Windows archive contains 297 regular files and 170,509,151 expanded bytes.
+- The Linux archive contains 442 regular files and 385,580,279 expanded bytes.
+- The Windows archive contains 297 regular files and 170,517,634 expanded bytes.
 - The final CI stage downloaded both native archives and independently accepted the combined
   unsigned manifest only after both packaging jobs passed.
 - Companion `testDebugUnitTest` and `assembleDebug` completed successfully using Java 17, Gradle
@@ -55,7 +55,7 @@ Independent Fedora verification on 2026-09-04 reproduced the manifest's two arti
 SHA-256 values, checked every ZIP member and CRC, and confirmed both duplicate CI copies were
 byte-identical. The Linux bundle has the expected executable, and the Windows bundle has the
 expected `.exe` entrypoint. A fresh isolated local build produced the expected 231-member wheel with
-SHA-256 `3196793701b3bb6d0501c27c9895d6e532adbba5f0b31e28c878c0d5bf417bc4`.
+SHA-256 `28eac9e685bb22892e3674ed4d870097b606a22fcc1851ebc947898fb18e0aea`.
 That exact wheel passed all 19 top-level route checks, loaded 194 packaged guides with 144 known
 fixes and all 21 Device Packs, rendered the Time Machine empty state with the shared dark theme, and
 reopened a populated test workspace without changing tracked bytes.
@@ -64,7 +64,7 @@ The downloaded Companion APK passed complete ZIP CRC validation. Android Build T
 identified package `com.radforge.romverse.companion`, version code 3/version 0.1.0, minimum API 26,
 and target API 35. `apksigner` independently verified one APK Signature Scheme v2 signer with
 certificate SHA-256
-`2892a4c6379878b7435d2fb87add6310d6b36b43e16573f33044768b9770479c`. Its certificate identity is
+`ee9013d599905da28bdd5944df2c09c9b73ed30736bd987899debf1e7bdd068a`. Its certificate identity is
 `Android Debug`, so this proves artifact integrity for testing, not production publisher identity.
 
 The protected Xiaomi 17 Pro Max candidate was previously read through the bounded standard-metadata
@@ -106,6 +106,12 @@ in this report.
   write, immediate per-partition readback and post-boot result obligations, with only redacted
   target/workspace/output placeholders. Both private records regenerate from current evidence,
   store no raw serial, grant no phone authority, and invoke no runtime.
+- ROM Studio now carries that entire inert chain through its managed Guardian review operation with
+  one monotonic byte-derived progress scale across each required artifact rehash. The review dialog
+  presents readable dark scroll cards for the exact binding, partition intent, preconditions,
+  immediate readback hashes, first-boot Device DNA and blockers, then hands the same exact identities
+  into Guardian Core. Changed, mismatched or authority-bearing cached context is discarded, and both
+  screens expose no execute, flash, consent, transition or reboot control.
 - A persistent user-supplied firmware responsibility notice and explicit import acknowledgement,
   without attempting to exclude rights or obligations that cannot legally be excluded.
 - Signed Desktop update checking and explicit, cancellable staging with measured progress, strict

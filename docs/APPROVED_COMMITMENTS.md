@@ -635,6 +635,12 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   final-consent, execution or phone-changing authority; Guardian Review begins indeterminately,
   relays only genuine binding percentages below completion, emits no synthetic 90/94 manifest
   milestones, and reaches 100 only after the full command-free review is compiled;
+  a separate private, bounded, tamper-evident Guardian execution-plan preview that rehashes the
+  current artifact binding and derives only exact product/unlocked/mode/slot preconditions and
+  hash-bound Fastboot writes using redacted target/workspace placeholders; strict reload regenerates
+  the plan from current evidence, forbids arbitrary options, erase/unlock/relock/reboot inference and
+  raw serial persistence, and remains blocked with zero consent or execution authority until a
+  signed exact post-write/readback and post-boot verification contract exists;
   Forge Control stale-card detachment and natural-height scrolling, two aligned footer action rows,
   and separate blocked/attention counts so repeated evidence refreshes cannot jumble controls or
   make an amber certification requirement appear complete;

@@ -397,6 +397,17 @@ has current evidence.
    change, re-digested relock flag, hostile/oversized record, mismatched signed evidence, and a signed
    composite image not proven by the current signing pipeline. Confirm command-free schema-one
    review history remains readable only for audit.
+   From that synthetic artifact-bound review, compile the separate Guardian execution-plan preview
+   and confirm it rehashes all current artifacts before saving. Every previewed write must retain
+   its exact order, partition, explicit slot, transport, workspace-relative path, size and SHA-256;
+   product, unlocked, userspace-mode and explicit has-slot checks must be deterministic. The saved
+   private plan must contain target/workspace placeholders rather than a raw device serial, reload
+   only against unchanged readiness/device/manifest/binding evidence, and reject a changed artifact,
+   stale phone, re-digested command substitution, arbitrary `--force` or verification-disabling
+   option, relock spelling, Boolean/schema confusion, extra fields, oversized file and linked path.
+   Confirm the plan explicitly remains blocked for missing exact post-write/post-boot verification,
+   contains no inferred transition, activation, reboot, wipe, rollback or recovery command, exposes
+   no final consent, grants execution authority `none`, and records `phone_changed: false`.
    Refresh Forge Control repeatedly while readiness changes between blocked and attention states at
    its 1040-pixel minimum width. Confirm removed cards are no longer parented or visible, the content
    keeps its natural scroll height, no footer buttons overlap, and blocked/attention totals match the

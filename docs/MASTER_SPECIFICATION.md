@@ -433,6 +433,20 @@ its identity; flash and first boot remain Guardian-locked until external device 
 recovery validation, a device-bound manifest, separate final consent, execution, and postcondition
 evidence exist.
 
+After the command-free manifest has hash-bound every declared image, Guardian may compile a
+separate inert execution-plan preview. The preview rehashes the current artifact binding, remains
+bound to the exact project, source, readiness facts, pseudonymous phone identity, Device Pack,
+write contract and physical-attestation digest, and derives only bounded Fastboot product,
+unlock-state, mode and slot preconditions plus the explicitly declared partition writes. Raw device
+serials never enter the saved plan. Workspace and target placeholders keep it non-executable, while
+strict reload independently regenerates the expected commands and rejects changed evidence,
+unknown Fastboot options, destructive targets, relock language, hostile structure and type
+confusion. Because the current write-contract schema does not define exact readback or post-boot
+postconditions, automatic mode transitions, slot activation, reboot, wipe, rollback and recovery,
+the plan remains `blocked-missing-exact-post-write-verification` with final consent unavailable,
+execution authority `none` and phone changed `false`. A successful Fastboot response alone must
+never be presented as a verified healthy upgrade.
+
 Time Machine registers independently stored phone backups and exact stock-recovery packages without
 copying them into the workspace. Its public-safe evidence and private locator use separate bounded
 atomic exact-schema records bound to the project, protected source, Pack, role, size, mtime, and

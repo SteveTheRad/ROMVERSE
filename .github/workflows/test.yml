@@ -7,24 +7,31 @@ on:
 jobs:
   quality:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
         python-version: ["3.12", "3.14"]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
+      - if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libpulse0
       - run: python -m pip install -e ".[dev]"
       - run: pytest
+        env:
+          QT_QPA_PLATFORM: offscreen
       - run: ruff check .
       - run: ruff format --check .
 
   companion:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -34,7 +41,7 @@ jobs:
         with:
           gradle-version: "8.11.1"
       - run: gradle --no-daemon -p companion testDebugUnitTest :app:assembleDebug
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: romverse-companion-debug
           path: companion/app/build/outputs/apk/debug/app-debug.apk
@@ -53,10 +60,14 @@ jobs:
             executable: ROMVERSE.exe
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
+      - if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libpulse0
       - run: python -m pip install build "pyinstaller>=6.22,<7"
       - run: python -m build --wheel
       - run: python scripts/verify_wheel.py dist/romverse-0.1.0-py3-none-any.whl
@@ -79,7 +90,7 @@ jobs:
           build/frozen/ROMVERSE
           --platform ${{ matrix.platform }}
           --output dist/ROMVERSE-Desktop-0.1.0-${{ matrix.platform }}.zip
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: romverse-desktop-bundle-${{ matrix.platform }}
           path: dist/ROMVERSE-Desktop-0.1.0-${{ matrix.platform }}.zip
@@ -89,12 +100,12 @@ jobs:
     needs: desktop-package
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
       - run: python -m pip install .
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: romverse-desktop-bundle-*
           path: dist
@@ -110,7 +121,7 @@ jobs:
           python scripts/verify_unsigned_desktop_release.py
           dist/romverse-desktop-0.1.0-unsigned.json
           --artifact-directory dist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: romverse-desktop-release-candidate
           path: |

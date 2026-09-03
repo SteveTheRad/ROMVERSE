@@ -45,3 +45,14 @@ def test_wheel_verifier_rejects_runtime_module_content_drift(tmp_path: Path) -> 
 
     with pytest.raises(ValueError, match="runtime content differs"):
         verify_wheel(wheel)
+
+
+def test_integrity_bound_source_files_have_cross_platform_line_endings() -> None:
+    repository = Path(__file__).resolve().parents[1]
+    attributes = (repository / ".gitattributes").read_text(encoding="utf-8")
+
+    assert "*.py text eol=lf" in attributes
+    assert "*.json text eol=lf" in attributes
+    assert "*.yml text eol=lf" in attributes
+    for path in (repository / "src" / "romverse" / "assets" / "device_packs").glob("*.json"):
+        assert b"\r\n" not in path.read_bytes()

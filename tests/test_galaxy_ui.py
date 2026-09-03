@@ -161,8 +161,14 @@ def test_galaxy_editors_render_with_explicit_dark_theme_surfaces(tmp_path) -> No
 
     center_image = center.comment_input.viewport().grab().toImage()
     dialog_image = dialog.body_input.viewport().grab().toImage()
-    assert center_image.pixelColor(4, 4).lightness() < 40
-    assert dialog_image.pixelColor(4, 4).lightness() < 40
+    assert (
+        center_image.pixelColor(center_image.width() // 2, center_image.height() // 2).lightness()
+        < 40
+    )
+    assert (
+        dialog_image.pixelColor(dialog_image.width() // 2, dialog_image.height() // 2).lightness()
+        < 40
+    )
     assert center.topic_body.palette().color(QPalette.ColorRole.Text).lightness() > 160
     dialog.close()
     center.close()

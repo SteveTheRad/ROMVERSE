@@ -121,6 +121,15 @@ in this report.
   first-boot Device DNA and blockers, then hands the same exact identities into Guardian Core.
   Changed, mismatched or authority-bearing cached context is discarded, and both screens expose no
   execute, flash, consent, transition or reboot control.
+- Guardian live-target check v1 now implements the missing read-only target re-identification boundary.
+  It requires a complete previously reviewed Android build identity, the exact gateway device pseudonym,
+  one Fastboot device and no competing ADB target, three identical discovery passes around two identical
+  product/unlocked/mode probe rounds, and any entry-stage signed slot requirements. Its private receipt
+  expires after two minutes, binds the exact gateway/plan/manifest/artifact/Pack scope, hashes the prior
+  build identity, stores no raw serial/fingerprint/tool output, grants no consent or authority, and is
+  explicitly not cryptographic device attestation. Fixture tests cover target swap, ambiguity, wrong
+  product/unlock/mode, probe failure/drift, incomplete prior build evidence, expiry, tampering, duplicate
+  fields and linked files; real-device validation remains required.
 - A persistent user-supplied firmware responsibility notice and explicit import acknowledgement,
   without attempting to exclude rights or obligations that cannot legally be excluded.
 - Signed Desktop update checking and explicit, cancellable staging with measured progress, strict
@@ -152,8 +161,9 @@ in this report.
   currently carries the required signed schema-two or schema-three contracts. Both gateway variants
   are inert result templates—not execution receipts. A domain-separated Ed25519 result verifier is
   now defined and tested, but it has no signer, runner or execution method and no production runtime
-  trust is enrolled. Live target re-identification, actual independently bound final-consent/result
-  receipts, a governed runtime adapter and independent physical validation remain unavailable.
+  trust is enrolled. The read-only live-target receipt issuer is implemented but not physically
+  validated; actual independently bound final-consent/result receipts, a governed runtime adapter and
+  independent physical validation remain unavailable.
 - Physical-device and broad multi-OEM claims remain limited to the hardware evidence actually
   collected. Samsung Download Mode, Qualcomm EDL, MediaTek preloader, OEM unlock services, recovery
   signing, and other vendor-specific write paths still need separately reviewed adapters and signed

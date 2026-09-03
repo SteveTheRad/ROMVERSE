@@ -367,6 +367,7 @@ def test_guardian_ui_shows_plan_and_result_template_without_execution_control(
     assert any("sys.boot_completed = 1" in text for text in texts)
     assert any("This template did not run anything" in text for text in texts)
     assert any("independently verified live-target" in text for text in texts)
+    assert any("Live-target check v1 is read-only" in text for text in texts)
     assert buttons == ["Return to Genesis", "Open Guardian Core"]
     dialog.close()
 
@@ -379,6 +380,8 @@ def test_guardian_ui_shows_plan_and_result_template_without_execution_control(
     assert "Runtime invoked: no" in detail
     assert "SIGNED RESULT VERIFIER v2" in detail
     assert "Runtime trust: not enrolled" in detail
+    assert "LIVE TARGET CHECK v1" in detail
+    assert "two-minute validity" in detail
     assert "Execution: none" in detail
     center.close()
 
@@ -422,6 +425,7 @@ def test_guardian_ui_shows_signed_transition_and_recovery_contingency_without_co
     assert "Runtime invoked: no" in detail
     assert "SIGNED RESULT VERIFIER v2" in detail
     assert "Runtime trust: not enrolled" in detail
+    assert "LIVE TARGET CHECK v1" in detail
     assert "Execution: none" in detail
     center.close()
 

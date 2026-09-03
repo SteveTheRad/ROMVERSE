@@ -134,7 +134,7 @@ class GuardianExecutionPlanService:
     ORCHESTRATED_CONTRACT_STATUS = "ready-for-inert-transition-aware-gateway-contract"
     ORCHESTRATED_CONTRACT_BLOCKERS = (
         "The signed Device Pack defines exact mode/slot transitions, source-bound stock recovery, readback digests, and post-boot Device DNA. This plan is ready only for a separately regenerated transition-aware inert gateway and result template.",
-        "Live target re-identification, the governed runtime, immutable execution/postcondition receipts, separate final consent, and independent validation of the ROMVERSE runtime remain unavailable.",
+        "A fresh live-target re-identification receipt, the governed runtime, immutable execution/postcondition receipts, separate final consent, and independent validation of the ROMVERSE runtime remain required.",
     )
     PLAN_STATUS = MISSING_VERIFICATION_STATUS
     BLOCKERS = MISSING_VERIFICATION_BLOCKERS

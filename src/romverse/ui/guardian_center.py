@@ -621,6 +621,8 @@ class GuardianCenter(QWidget):
                 f"\nSIGNED RESULT VERIFIER v{gateway_contract.result_receipt_schema_version}  •  "
                 "Ed25519 runtime signature + independent target/consent bindings required  •  "
                 "Runtime trust: not enrolled"
+                "\nLIVE TARGET CHECK v1  •  read-only exact Fastboot re-identification available  •  "
+                "fresh receipt not captured by this review  •  two-minute validity  •  authority none"
                 f"{orchestration}"
             )
         self.studio_review_detail.setText(

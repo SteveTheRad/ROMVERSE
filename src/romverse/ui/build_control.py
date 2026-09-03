@@ -650,7 +650,10 @@ class GuardianManifestReviewDialog(QDialog):
                 "a separately governed runtime, the same phone must match every Device DNA value. "
                 f"Signed result verifier v{contract.result_receipt_schema_version} requires a "
                 "separately trusted runtime signature plus independently verified live-target and "
-                "consent receipts. No runtime trust is enrolled. This template did not run anything."
+                "consent receipts. Live-target check v1 is read-only, samples one exact Fastboot "
+                "device three times around two matching identity rounds, and expires after two "
+                "minutes; no receipt is captured by opening this review. No runtime trust is "
+                "enrolled. This template did not run anything."
             )
             for step in contract.steps:
                 if step.phase is GatewayStepPhase.TRANSITION:

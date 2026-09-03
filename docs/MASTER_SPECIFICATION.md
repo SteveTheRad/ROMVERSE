@@ -464,9 +464,9 @@ data wipe, prohibits automatic wipe and relocking, and requires separate final c
 execution authority `none`. The execution plan binds the complete transition/recovery digest and
 counts but stops at `ready-for-inert-transition-aware-gateway-contract`: it does not turn those typed
 rules into runtime authority. A successful Fastboot response alone must never be presented as a
-verified healthy upgrade. Live target re-identification, immutable execution/postcondition receipts,
-a governed runtime, explicit final consent and independent physical validation remain separate
-unfinished gates.
+verified healthy upgrade. A fresh live-target re-identification receipt, immutable execution/postcondition
+receipts, a governed runtime, explicit final consent and independent physical validation remain separate
+gates.
 
 The next private record is a typed, still-inert execution-gateway contract. It independently reloads
 the current execution plan, rehashes its bound artifacts through that plan, and accepts only a
@@ -506,6 +506,21 @@ file loading and chronological/timeout checks fail closed. The verifier delibera
 private-key API, runner or execution method, and the Desktop has no enrolled runtime trust; therefore
 it can verify future evidence but still cannot execute or fabricate one.
 
+Immediately before any future final-consent or governed-runtime stage, Guardian can now issue one
+short-lived local live-target receipt using only its existing allowlisted discovery and Fastboot
+identity paths. It requires a complete earlier Android build identity bound to the gateway's private
+device pseudonym, exactly one Fastboot target and no simultaneous ADB target, three identical discovery
+passes around two identical probe rounds, exact product, unlocked state and Bootloader/Fastbootd mode,
+every entry-stage signed `has-slot` requirement, and the current A/B slot when the signed recovery
+contract requires prior-slot capture. A disconnect, reconnect token change, target swap, second target,
+timeout, missing value, changed value, wrong product/mode/unlock state or incomplete reviewed build fails
+closed before a receipt is written. The two-minute receipt binds the exact gateway, plan, manifest,
+artifact binding, Device Pack and hashed pre-transition build identity. It stores no raw serial,
+fingerprint, stdout or stderr; uses strict bounded regular-file loading with duplicate-key and link
+rejection; and records no runtime invocation or phone change. It is explicitly local observation,
+not cryptographic device attestation, consent or execution authority. Real-device validation and the
+separately trusted runtime remain required.
+
 ROM Studio's managed Guardian review worker carries this inert chain through the actual Desktop
 journey. It seals the command-free manifest, independently rehashes the same artifacts for the inert
 plan, and, when schema two or schema three is present, rehashes them again before sealing the result template. One
@@ -518,6 +533,8 @@ only while the manifest remains valid. Changed or authority-bearing cached objec
 and neither surface exposes an execute, flash, consent, transition or reboot control. Both surfaces
 state that result-receipt schema two requires an Ed25519 runtime signature plus independently verified
 target/consent bindings and that no runtime trust is enrolled.
+They also expose live-target check v1 as a read-only, two-minute prerequisite while making clear that
+opening a review does not capture a receipt or contact the phone.
 For schema three, the same worker performs all three measured full rehash passes and seals the
 transition-aware gateway only after the artifact-bound manifest and transition/recovery-bound plan
 remain exact. The gateway is still inert and reaches terminal completion only after all fail-closed

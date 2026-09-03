@@ -164,8 +164,13 @@ has current evidence.
    changed authority bindings, missing/reordered/duplicated steps, wrong public keys/adapters,
    overlapping/out-of-time results, malformed/duplicate-field JSON and linked files are rejected. The
    verifier has no signer, runner or execute method; no production runtime trust is enrolled; and the
-   visible Desktop review says so. Actual live-target/final-consent receipt issuers, governed execution,
-   physical validation and built-in schema-three Pack authority remain unfinished.
+   visible Desktop review says so. A separate read-only live-target issuer now binds one reviewed build
+   and private device pseudonym to the exact gateway using three stable discoveries and two identical
+   product/unlocked/mode probe rounds, produces only a two-minute zero-authority local receipt, and
+   rejects target swaps, ambiguity, probe drift, stale/tampered/linked evidence and raw serial/fingerprint
+   persistence in fixture tests. It is not cryptographic device attestation and has not yet passed
+   physical-device validation. Final-consent issuers, governed execution, physical validation and
+   built-in schema-three Pack authority remain unfinished.
 
    Exact application-source commit `fe0f1521f656e0595ddbab855882262109fe37c4` is fully green in
    GitHub Actions run `33790777149`: both Linux versions passed all 1,468 tests and both Ruff gates;

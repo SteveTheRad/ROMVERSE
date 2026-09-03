@@ -54,6 +54,7 @@ class MilestoneOnePolicy:
         ("getvar", "secure"),
         ("getvar", "is-userspace"),
     }
+    _FASTBOOT_PARTITION_VARIABLE = re.compile(r"has-slot:[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
 
     def assess(self, request: OperationRequest) -> GuardianDecision:
         command = ((Path(request.executable).name, *request.arguments),)
@@ -92,10 +93,18 @@ class MilestoneOnePolicy:
                     if len(normalized) == 2 and normalized[0] == "getvar"
                     else ""
                 )
+                known_getvar = bool(
+                    normalized in self._FASTBOOT_DEVICE_COMMANDS
+                    or (
+                        len(normalized) == 2
+                        and normalized[0] == "getvar"
+                        and self._FASTBOOT_PARTITION_VARIABLE.fullmatch(normalized[1])
+                    )
+                )
                 allowed = bool(
                     args[1]
                     and request.target == args[1]
-                    and normalized in self._FASTBOOT_DEVICE_COMMANDS
+                    and known_getvar
                     and request.operation_id == expected_operation
                 )
             else:

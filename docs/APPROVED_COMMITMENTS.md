@@ -676,6 +676,16 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   needs a further wipe-consent binding; canonical bounded JSON, duplicate-field/link rejection,
   timestamps, signed timeouts and exact envelope/body/result digests fail closed; no production runtime
   trust is enrolled and this verifier creates no phone authority;
+  a short-lived Guardian live-target receipt issuer that uses only deny-by-default ADB/Fastboot
+  discovery and allowlisted `getvar` operations, binds one previously reviewed Android build identity
+  and private device pseudonym to one exact gateway/plan/manifest/artifact/Pack scope, requires exactly
+  one Fastboot target with no competing ADB target, three stable discovery passes and two identical
+  product/unlocked/mode/declared-slot probe rounds, records the current A/B slot when signed recovery
+  requires it, and fails closed on ambiguity, swaps, reconnect-token changes, probe drift, timeout,
+  missing build identity, expiry, tampering, links, duplicate fields or extra fields; its private
+  two-minute receipt contains no raw serial, build fingerprint, stdout or stderr, explicitly denies
+  cryptographic-device-attestation, consent, runtime, phone-change and execution-authority claims, and
+  still requires physical-device validation plus a separately trusted runtime;
   end-to-end Desktop presentation of that inert chain through the managed ROM Studio Guardian
   worker, with a single monotonic byte-derived scale across each required artifact rehash, terminal
   100 only after the applicable private records are sealed, readable dark scroll cards for

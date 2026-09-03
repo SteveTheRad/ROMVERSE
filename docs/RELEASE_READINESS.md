@@ -86,9 +86,10 @@ has current evidence.
    `https://github.com/SteveTheRad/ROMVERSE/actions/runs/33750194118`. This remains unsigned build
    evidence and does not replace production signing or physical-device write certification.
 
-   Current Fedora development evidence recorded on 2026-09-04: all 1,388 Desktop tests and both
-   complete Ruff gates pass after the signed-update Settings journey and inert Guardian execution
-   plan were completed. The user must separately confirm download; byte-derived progress remains
+   Current Fedora development evidence recorded on 2026-09-04: all 1,403 Desktop tests and both
+   complete Ruff gates pass after the signed-update Settings journey, inert Guardian execution
+   plan, and exact post-write verification contract were completed. The user must separately
+   confirm download; byte-derived progress remains
    below 100 until the artifact and
    digest-bound private receipt have been independently reloaded and verified; cancellation removes
    incomplete files; a channel change invalidates the prior candidate; and the only post-download
@@ -99,7 +100,7 @@ has current evidence.
    supported Python versions. The stage grants no execution or Android-device authority and never
    launches the artifact. A fresh isolated build produced and verified a 230-member wheel with
    all 21 Device Packs and SHA-256
-   `94a3568b8f013d6b719554cea9439031ed1c9e6dd36f7607c0480e90f8f82d9c`. The exact wheel was then
+   `db95b42cb735283c9813bed22042ddde76012269d28550f23c1c3567f7a8e97c`. The exact wheel was then
    installed locally and its packaged smoke passed with 194 guides, 144 known fixes, all 19 covered
    Desktop routes, a dark Time Machine state, and byte-exact populated-workspace reopening. This is
    local implementation evidence; the production publisher key and signed channels remain intentionally
@@ -108,13 +109,15 @@ has current evidence.
    enables Copy only for a live one-time code, and exposes explicit replacement and reset controls.
    Reset immediately revokes the stored token verifier and clears cached wireless telemetry while
    preserving USB read-only pairing; the old token is rejected in the restart/revocation regression.
-   Exact commit `e4a58fe01062f98ddcf8e911fefdbaf134ca6eff` is fully green in GitHub Actions run
-   `33764853893`: both Linux 1,388-test jobs, both Windows 176-test portability jobs, both native
+   Exact commit `5250fed20e3d3dc7e86d37e56c62132e8b579a81` is fully green in GitHub Actions run
+   `33768842523`: both Linux 1,403-test jobs, both Windows 248-test portability jobs, both native
    installed/frozen/package jobs, Companion tests/build, and the combined unsigned candidate passed.
    The exact downloaded archives and manifest were independently rehashed and CRC-verified on
-   Fedora; the separate and combined archive copies are byte-identical. Guardian's new plan remains
-   command-inert and final consent remains unavailable until a signed exact post-write/readback and
-   post-boot verification contract exists.
+   Fedora; the separate and combined archive copies are byte-identical. Guardian can now bind a
+   signed schema-2 exact SHA-256 readback and allowlisted post-boot verification contract from the
+   same source build and physical attestation. Its plan remains command-inert: no built-in Device
+   Pack currently supplies that signed schema-2 authority, and the typed execution gateway and final
+   consent remain unavailable.
 
    The Desktop release trust layer now prepares a bounded exact-schema artifact manifest, enforces
    user-confirmed non-automatic updates and workspace preservation, represents unavailable rollback

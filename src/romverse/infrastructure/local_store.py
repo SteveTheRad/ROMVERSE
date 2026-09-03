@@ -13,6 +13,10 @@ class LocalStoreError(OSError):
     """A local evidence file failed a bounded filesystem or JSON contract."""
 
 
+class LocalStoreConflictError(LocalStoreError):
+    """An exclusive evidence record already exists and must not be replaced."""
+
+
 def atomic_write_json(
     path: Path,
     payload: dict[str, object],
@@ -76,6 +80,83 @@ def atomic_write_bytes(
     finally:
         with suppress(OSError):
             os.unlink(temporary_name, dir_fd=parent_fd)
+        os.close(parent_fd)
+
+
+def exclusive_create_json(
+    path: Path,
+    payload: dict[str, object],
+    *,
+    boundary: Path,
+    maximum_bytes: int,
+) -> None:
+    """Persist one bounded JSON object exactly once without replacing a prior record."""
+
+    encoded = (
+        json.dumps(
+            payload,
+            ensure_ascii=True,
+            allow_nan=False,
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n"
+    ).encode("utf-8")
+    if not 0 < len(encoded) <= maximum_bytes:
+        raise LocalStoreError("JSON evidence exceeds its size boundary")
+    exclusive_create_bytes(
+        path,
+        encoded,
+        boundary=boundary,
+        maximum_bytes=maximum_bytes,
+    )
+
+
+def exclusive_create_bytes(
+    path: Path,
+    payload: bytes,
+    *,
+    boundary: Path,
+    maximum_bytes: int,
+) -> None:
+    """Create a private regular file once; an existing entry is never replaced."""
+
+    if not isinstance(payload, bytes) or not 0 < len(payload) <= maximum_bytes:
+        raise LocalStoreError("Binary evidence exceeds its size boundary")
+    if os.name == "nt":
+        _exclusive_create_bytes_portable(path, payload, boundary=boundary)
+        return
+    parent_fd = _open_parent(path, boundary=boundary, create=True)
+    created = False
+    try:
+        flags = os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, "O_NOFOLLOW", 0)
+        try:
+            descriptor = os.open(path.name, flags, 0o600, dir_fd=parent_fd)
+        except FileExistsError as exc:
+            raise LocalStoreConflictError("Exclusive local evidence already exists") from exc
+        created = True
+        try:
+            details = os.fstat(descriptor)
+            if not stat.S_ISREG(details.st_mode):
+                raise LocalStoreError("Exclusive local evidence is not a regular file")
+            with os.fdopen(descriptor, "wb", closefd=True) as stream:
+                stream.write(payload)
+                stream.flush()
+                os.fsync(stream.fileno())
+        except Exception:
+            with suppress(OSError):
+                os.close(descriptor)
+            raise
+        os.fsync(parent_fd)
+    except (OSError, TypeError, ValueError) as exc:
+        if created:
+            with suppress(OSError):
+                os.unlink(path.name, dir_fd=parent_fd)
+                os.fsync(parent_fd)
+        if isinstance(exc, LocalStoreError):
+            raise
+        raise LocalStoreError(f"Exclusive local evidence write failed: {exc}") from exc
+    finally:
         os.close(parent_fd)
 
 
@@ -414,6 +495,52 @@ def _atomic_write_bytes_portable(path: Path, payload: bytes, *, boundary: Path) 
     finally:
         with suppress(OSError):
             temporary.unlink(missing_ok=True)
+
+
+def _exclusive_create_bytes_portable(path: Path, payload: bytes, *, boundary: Path) -> None:
+    parent = _validated_directory_path(path.parent, boundary=boundary, create=True)
+    target = parent / path.name
+    created = False
+    try:
+        flags = (
+            os.O_CREAT
+            | os.O_EXCL
+            | os.O_WRONLY
+            | getattr(os, "O_BINARY", 0)
+            | getattr(os, "O_NOFOLLOW", 0)
+        )
+        try:
+            descriptor = os.open(target, flags, 0o600)
+        except FileExistsError as exc:
+            raise LocalStoreConflictError("Exclusive local evidence already exists") from exc
+        created = True
+        try:
+            details = os.fstat(descriptor)
+            if not stat.S_ISREG(details.st_mode):
+                raise LocalStoreError("Exclusive local evidence is not a regular file")
+            with os.fdopen(descriptor, "wb", closefd=True) as stream:
+                stream.write(payload)
+                stream.flush()
+                os.fsync(stream.fileno())
+        except Exception:
+            with suppress(OSError):
+                os.close(descriptor)
+            raise
+        with suppress(PermissionError):
+            target.chmod(0o600)
+        with suppress(OSError):
+            directory_fd = os.open(parent, os.O_RDONLY)
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
+    except (OSError, TypeError, ValueError) as exc:
+        if created:
+            with suppress(OSError):
+                target.unlink(missing_ok=True)
+        if isinstance(exc, LocalStoreError):
+            raise
+        raise LocalStoreError(f"Exclusive local evidence write failed: {exc}") from exc
 
 
 def _read_json_object_portable(

@@ -700,6 +700,17 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   evidence, wrong runtime key and missing token all fail closed; the verifier-only service contains
   no signer, consumer, runner or execute method, and the Desktop shows its state as locked because
   no production runtime trust is enrolled;
+  a verification-only Guardian runtime-session-v1 service that issues a 45-second challenge bound
+  to the current live target, exact gateway/device/Pack/result schema and pinned runtime identity;
+  accepts only a domain-separated Ed25519 response that denies automatic recovery/wipe/relock,
+  opened device access and phone change; reverifies the signed envelope on reload; and uses one
+  boundary-anchored exclusive claim so concurrent or replayed responses cannot both win;
+  a local-only Guardian consent-capability reservation that create-once binds the exact final-consent
+  receipt and memory-only token digest to one verified runtime session, persists no raw token or
+  phone serial, grants no recovery/wipe/relock or execution authority, and explicitly records that
+  runtime consumption is incomplete, device access unopened, runtime uninvoked and phone unchanged;
+  the separately packaged production runtime, runtime-owned atomic consume-and-start operation,
+  result signing, recovery/wipe consent and physical validation remain unavailable;
   end-to-end Desktop presentation of that inert chain through the managed ROM Studio Guardian
   worker, with a single monotonic byte-derived scale across each required artifact rehash, terminal
   100 only after the applicable private records are sealed, readable dark scroll cards for

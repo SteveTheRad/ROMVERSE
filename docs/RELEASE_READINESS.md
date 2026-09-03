@@ -174,9 +174,16 @@ has current evidence.
    and adapter identity, every dynamic consequence acknowledgement, and an exact product/plan/data
    typed phrase. It materializes every forward and recovery consequence, expires with the live
    receipt, persists only the ephemeral-token digest, and grants no execution, recovery or wipe
-   authority. The production runtime trust, atomic one-use consumption, separately consented
-   recovery/wipe paths, governed execution, physical validation and built-in schema-three Pack
-   authority remain unfinished.
+   authority. A subsequent verification-only runtime-session layer now issues an exact 45-second
+   challenge and accepts only a domain-separated Ed25519 response from the pinned runtime key. The
+   first valid response wins a boundary-anchored exclusive claim; concurrent replies, replay,
+   changed context, unsafe assertions, tampering, duplicate fields and links fail closed. A separate
+   create-once consent reservation then binds the raw-token digest and exact final-consent receipt to
+   that verified session without persisting the token. It explicitly leaves runtime consumption
+   incomplete, execution authority unissued, device access unopened and the phone unchanged. No
+   production runtime trust or runtime process is enrolled. Runtime-owned atomic one-use
+   consumption, separately consented recovery/wipe paths, governed execution, physical validation
+   and built-in schema-three Pack authority remain unfinished.
 
    Exact post-candidate source commit `898bd04d87fba52690a330d09eeb61c4275c3649` is fully green in
    GitHub Actions run `33797435368`: both Linux versions passed all 1,489 tests and complete Ruff

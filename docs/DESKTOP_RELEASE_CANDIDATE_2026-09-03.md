@@ -154,6 +154,15 @@ in this report.
   wipe separately unconsented. It grants no execution authority and contains no signer, token
   consumer, runner or device command. The Desktop visibly explains this boundary after the read-only
   target card but offers no consent button because no production runtime trust is enrolled.
+- Guardian runtime-session v1 now defines the next separately identified boundary: a 45-second exact
+  challenge must receive a domain-separated Ed25519 response from the pinned runtime key, with the
+  runtime accepting only the exact forward gateway and explicitly denying automatic recovery, wipe,
+  relock, opened device access and phone change. One boundary-anchored exclusive claim prevents two
+  concurrent responses from winning. A create-once consent-capability reservation can then bind the
+  in-memory grant's digest to that exact verified session; it stores no raw token and explicitly
+  records that runtime consumption and execution authority remain absent. These are verifier/local
+  reservation source boundaries only: no production runtime, signer, launcher, device runner or
+  Android command has been added.
 - A persistent user-supplied firmware responsibility notice and explicit import acknowledgement,
   without attempting to exclude rights or obligations that cannot legally be excluded.
 - Signed Desktop update checking and explicit, cancellable staging with measured progress, strict

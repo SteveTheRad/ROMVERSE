@@ -539,6 +539,27 @@ final consent recorded, execution authority `none`, runtime invoked `false`, pho
 automatic recovery/wipe `false`, and bootloader relock allowed `false`. No production runtime trust
 is enrolled, so the shipping Desktop correctly offers no final-consent control yet.
 
+The next runtime boundary is now defined without pretending that a writing runtime exists. Guardian
+issues a 45-second local challenge only while the same live-target receipt remains current and binds
+it to the exact gateway, private device key, result schema, enrolled runtime public-key digest and
+adapter identity/version/hash. A separate runtime instance must return a domain-separated Ed25519
+attestation accepting that exact forward-only scope while explicitly denying automatic recovery,
+wipe, relock, opened device access and phone change. The first fully valid response wins a
+boundary-anchored exclusive claim; concurrent or replayed answers, wrong keys, stale challenges,
+changed context, re-signed unsafe claims, duplicate fields, links and tampering fail closed. The
+signed envelope is reverified whenever the session is loaded and contains no raw phone serial.
+
+After exact final consent, a second local-only service can exclusively reserve that consent for the
+one verified runtime session. Its create-once filename is derived from the random consent identity;
+concurrent callers cannot replace it, and the record binds the gateway, plan, target, device,
+consent, token digest, session attestation, signer and adapter. It persists no raw token and
+explicitly records runtime consumption incomplete, execution grant unissued, execution authority
+`none`, device access unopened, runtime uninvoked and phone unchanged. This closes the duplicate
+Desktop-side reservation race but is not the future runtime-owned atomic consume-and-start boundary.
+Neither service contains a private key, process launcher, device runner or command. A separately
+packaged and enrolled production runtime, atomic consumption inside that isolated runtime, distinct
+recovery/wipe consent, signed result production and physical-device validation remain required.
+
 ROM Studio's managed Guardian review worker carries this inert chain through the actual Desktop
 journey. It seals the command-free manifest, independently rehashes the same artifacts for the inert
 plan, and, when schema two or schema three is present, rehashes them again before sealing the result template. One

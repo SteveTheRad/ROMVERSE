@@ -43,6 +43,7 @@ jobs:
           tests/test_app_launch_settings.py
           tests/test_parsers.py
           tests/test_workspace.py
+          tests/test_local_store.py
           tests/test_vocabulary.py
           tests/test_release_scripts.py
           tests/test_desktop_release.py
@@ -63,6 +64,7 @@ jobs:
           tests/test_guardian_execution_result_receipt.py
           tests/test_guardian_live_target_receipt.py
           tests/test_guardian_final_consent.py
+          tests/test_guardian_runtime_session.py
           tests/test_optimizer.py
           tests/test_navigation_vocabulary.py
         env:

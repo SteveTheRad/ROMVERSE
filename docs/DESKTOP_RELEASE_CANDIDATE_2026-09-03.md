@@ -8,38 +8,38 @@ installation. This report covers the Windows/Linux PySide6 desktop and its local
 Android Companion and public online services are outside this candidate.
 
 The candidate application source is commit
-`a0ecf1b9266ee8918dc27665ef35f615f9899f59`.
+`5b5b9f6678dff3e9f3f9d7d6aba60ed6432d9f2f`.
 
 ## Release artifacts
 
-All files are in `dist/github-candidate-a0ecf1b/`.
+All files are in `dist/github-candidate-5b5b9f6/`.
 
 | Platform or role | File | Bytes | SHA-256 | Entrypoint |
 | --- | --- | ---: | --- | --- |
-| Linux x86-64 | `ROMVERSE-Desktop-0.1.0-linux-x86_64.zip` | 156,014,440 | `486fc1ce8f18446b61df2891866c5fe216c1dd5cc502be2d27d637914e2e9142` | `ROMVERSE/ROMVERSE` |
-| Windows x86-64 | `ROMVERSE-Desktop-0.1.0-windows-x86_64.zip` | 72,854,967 | `481d95ac2a22b8de569e3a0566caff543a5814fa30863a4f4490129589edb9bd` | `ROMVERSE/ROMVERSE.exe` |
-| Unsigned manifest | `romverse-desktop-0.1.0-unsigned.json` | 1,185 | `b2e6b4de5ebee75c599f68087896c2a854188ff3b1b9e005ffbc973997f108cf` | Not executable |
+| Linux x86-64 | `ROMVERSE-Desktop-0.1.0-linux-x86_64.zip` | 156,027,666 | `6845ae6e94fa85ee6bdff377c4d3dd4bc1984f78f5297ab9bc0f9da598a4237d` | `ROMVERSE/ROMVERSE` |
+| Windows x86-64 | `ROMVERSE-Desktop-0.1.0-windows-x86_64.zip` | 72,869,049 | `b571dc5dc6c3ffdd489e231c9da581432b935a94b46ce16afb5012b36bbbcf7d` | `ROMVERSE/ROMVERSE.exe` |
+| Unsigned manifest | `romverse-desktop-0.1.0-unsigned.json` | 1,185 | `294683367768878a0edeb5ee59bcd8ea5d1ddc97239a43d437efdc6306e9e563` | Not executable |
 
 The manifest release identity is
-`romverse-desktop-0.1.0-a0ecf1b9266ee8918dc27665ef35f615f9899f59`. It binds both archives,
-228,869,407 total artifact bytes, explicit-update consent, workspace preservation, no execution
+`romverse-desktop-0.1.0-5b5b9f6678dff3e9f3f9d7d6aba60ed6432d9f2f`. It binds both archives,
+228,896,715 total artifact bytes, explicit-update consent, workspace preservation, no execution
 authority, and unavailable rollback because no earlier signed public release exists.
 
 ## Passing evidence
 
-GitHub Actions run `33737571344` completed successfully for the exact application-source commit:
+GitHub Actions run `33741631099` completed successfully for the exact application-source commit:
 
-- Linux Python 3.12 and 3.14: 1,331 tests on each version, complete Ruff check, and complete Ruff
+- Linux Python 3.12 and 3.14: 1,347 tests on each version, complete Ruff check, and complete Ruff
   formatting check.
 - Windows Python 3.12 and 3.14: 154 dedicated portability tests on each version, complete Ruff
   check, and complete Ruff formatting check.
-- Both native packaging jobs: verified 225-member wheel, all 21 integrity-indexed Device Packs,
+- Both native packaging jobs: verified 226-member wheel, all 21 integrity-indexed Device Packs,
   installation from the wheel outside the checkout, fresh-workspace launch, populated-workspace
   reopen, frozen-app launch, and complete portable-archive verification.
 - Existing-workspace smoke: the project manifest, protected original, working copy, and Time
   Machine snapshot remained byte-identical across restart on both target operating systems.
-- Linux portable archive: 441 regular files and 385,451,797 expanded bytes.
-- Windows portable archive: 296 regular files and 170,387,944 expanded bytes.
+- Linux portable archive: 441 regular files and 385,465,493 expanded bytes.
+- Windows portable archive: 296 regular files and 170,401,664 expanded bytes.
 - Final CI stage: independently downloaded both platform artifacts, reverified them, and prepared
   the combined unsigned manifest only after both native jobs passed.
 
@@ -47,6 +47,12 @@ The downloaded archives and combined manifest were independently reverified on F
 2026-09-03. The local installed wheel also passed all 19 top-level route checks, loaded 101 packaged
 known fixes and all 21 Device Packs, rendered the Time Machine empty state with the shared dark
 theme, and reopened the populated test workspace without changing tracked bytes.
+The protected Xiaomi 17 Pro Max candidate was also read through the new bounded standard-metadata
+path: target `popsicle`, OTA type `AB`, post SDK 37, security patch `2026-08-01`, post timestamp
+`1787328761`, and post-build incremental
+`17OS4.0.260821.223347094.QCPECN.S` were present. The phone was not connected during this final
+verification, so comparison with a freshly scanned live build timestamp remains a hands-on test and
+no phone-changing command was attempted.
 
 ## Supported desktop behavior
 
@@ -62,6 +68,13 @@ theme, and reopened the populated test workspace without changing tracked bytes.
 - Conservative Xiaomi HyperOS upgrade-candidate identification from live/source codename, region,
   firmware branch, and numeric version evidence. Same-version, downgrade, incompatible, and
   unconfirmed inputs remain distinct, and no relationship label grants installation authority.
+- Generic Android identity passports now include product/vendor device aliases, hardware SKU,
+  build fingerprint/incremental/timestamp, SDK, security, A/B and dynamic-partition evidence. A
+  standards-conforming Android OTA ZIP is checked through its bounded
+  `META-INF/com/android/metadata` target, update-path, post-build, SDK and timestamp records.
+- Multiple detected transports now require one explicit Command Deck selection. Diagnostics,
+  repair, Device Atlas, ROM Studio, APK, backup, terminal and Companion context all bind to that
+  same session-only choice and remain unbound until it is made.
 - A persistent user-supplied firmware responsibility notice and an explicit import acknowledgement,
   while preserving rights and obligations that cannot legally be excluded.
 - Explicit, non-automatic desktop update policy that preserves the existing workspace and grants
@@ -82,10 +95,9 @@ theme, and reopened the populated test workspace without changing tracked bytes.
   independent physical validation genuinely exist.
 - Physical-device and broad multi-OEM claims remain limited to the hardware evidence actually
   collected; passing desktop simulation or CI is not represented as phone-write certification.
-- Device Engine discovers and reads every visible transport, and ROM Studio binds live Device DNA
-  only when exactly one authorized Android phone is connected. Simultaneous multi-device targeting
-  still needs an explicit selection model across every device-facing page; users should connect one
-  intended phone at a time until that work is complete.
+  ADB/standard OTA identification is generic, but Samsung Download Mode, Qualcomm EDL, MediaTek
+  preloader, OEM unlock services, recovery signing and other vendor-specific write paths still need
+  separately reviewed adapters and signed Device Pack contracts.
 - Android Companion, public Synapse, production Members/billing, Galaxy backend, public community
   services, and other hosted services are not part of this desktop candidate.
 

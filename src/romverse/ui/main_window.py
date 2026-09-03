@@ -121,7 +121,7 @@ from romverse.intelligence.synapse import SynapseStore
 from romverse.knowledge.advisor import article_for_key
 from romverse.knowledge.archives import catalog_metrics
 from romverse.knowledge.resolution_memory import ArchivesResolutionMemory
-from romverse.legal import load_terms_document
+from romverse.legal import load_privacy_document, load_terms_document
 from romverse.nexus.compatibility import CompatibilityMatrix, CompatibilityStatus
 from romverse.nexus.events import (
     LiveConsoleEventStore,
@@ -1854,14 +1854,16 @@ class TermsDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 18, 20, 18)
         layout.setSpacing(10)
-        status = QLabel(
-            f"{document.status}\nVersion {document.version}  •  SHA-256 {document.sha256[:16]}…"
+        self.status = QLabel(
+            f"{document.status}\nVersion {document.version}\nSHA-256 {document.sha256}"
         )
-        status.setObjectName("Warning")
-        status.setAccessibleName("Terms document review status and integrity digest")
-        status.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        status.setWordWrap(True)
-        layout.addWidget(status)
+        self.status.setObjectName("Warning")
+        self.status.setAccessibleName("Terms document review status and integrity digest")
+        self.status.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.status.setWordWrap(True)
+        self.status.setMinimumHeight(62)
+        self.status.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        layout.addWidget(self.status)
 
         self.content = QTextBrowser()
         self.content.setObjectName("TermsDocument")
@@ -1873,6 +1875,122 @@ class TermsDialog(QDialog):
         boundary = QLabel(
             "Reading this internal draft records no acceptance and grants no device, build, "
             "account, billing, network, or execution authority."
+        )
+        boundary.setObjectName("Muted")
+        boundary.setWordWrap(True)
+        layout.addWidget(boundary)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        buttons.rejected.connect(self.close)
+        layout.addWidget(buttons)
+
+
+class PrivacyDialog(QDialog):
+    """Layered local Privacy view with the current user-controlled network state."""
+
+    def __init__(
+        self,
+        settings: AppSettings | None = None,
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        document = load_privacy_document()
+        self.document = document
+        self.settings = settings or AppSettings()
+        self.setWindowTitle("ROMVERSE Privacy & Data")
+        self.setModal(False)
+        self.resize(900, 760)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 18, 20, 18)
+        layout.setSpacing(10)
+        self.status = QLabel(
+            f"{document.status}\nVersion {document.version}\nSHA-256 {document.sha256}"
+        )
+        self.status.setObjectName("Warning")
+        self.status.setAccessibleName("Privacy document review status and integrity digest")
+        self.status.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.status.setWordWrap(True)
+        self.status.setMinimumHeight(62)
+        self.status.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        layout.addWidget(self.status)
+
+        summary = QFrame()
+        summary.setObjectName("PrivacySummary")
+        summary_layout = QGridLayout(summary)
+        summary_layout.setContentsMargins(14, 12, 14, 12)
+        summary_layout.setHorizontalSpacing(18)
+        summary_layout.setVerticalSpacing(7)
+        summary_title = QLabel("CURRENT DESKTOP DATA CONTROLS")
+        summary_title.setObjectName("Eyebrow")
+        summary_layout.addWidget(summary_title, 0, 0, 1, 2)
+        community_value = (
+            "ENABLED"
+            if (
+                self.settings.online_intelligence_enabled
+                and self.settings.community_research_enabled
+            )
+            else "PAUSED • LOCAL ONLY"
+            if self.settings.community_research_enabled
+            else "DISABLED"
+        )
+        controls = (
+            ("Device identifiers", "MASKED + LOCAL PSEUDONYM", True),
+            (
+                "Official online research",
+                "ENABLED" if self.settings.online_intelligence_enabled else "LOCAL ONLY",
+                not self.settings.online_intelligence_enabled,
+            ),
+            (
+                "Community research",
+                community_value,
+                not (
+                    self.settings.online_intelligence_enabled
+                    and self.settings.community_research_enabled
+                ),
+            ),
+            (
+                "Synapse contribution",
+                "OPTED IN • SERVICE UNAVAILABLE"
+                if self.settings.synapse_contributions_enabled
+                else "OFF",
+                not self.settings.synapse_contributions_enabled,
+            ),
+            (
+                "Verified tool downloads",
+                "ENABLED" if self.settings.auto_download_verified_tools else "ASK / MANUAL",
+                not self.settings.auto_download_verified_tools,
+            ),
+        )
+        self.control_values: dict[str, QLabel] = {}
+        for row, (label, value, privacy_preferred) in enumerate(controls, start=1):
+            name = QLabel(label)
+            name.setObjectName("Muted")
+            current = QLabel(value)
+            current.setObjectName("Good" if privacy_preferred else "Warning")
+            current.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            current.setAccessibleName(f"{label}: {value}")
+            summary_layout.addWidget(name, row, 0)
+            summary_layout.addWidget(current, row, 1)
+            self.control_values[label] = current
+        summary_note = QLabel(
+            "These are the settings in force when this window opened. This view is read-only: "
+            "it does not scan, upload, contribute, pair, download, or change a setting."
+        )
+        summary_note.setObjectName("Muted")
+        summary_note.setWordWrap(True)
+        summary_layout.addWidget(summary_note, len(controls) + 1, 0, 1, 2)
+        layout.addWidget(summary)
+
+        self.content = QTextBrowser()
+        self.content.setObjectName("PrivacyDocument")
+        self.content.setAccessibleName("ROMVERSE Privacy Notice internal review draft")
+        self.content.setOpenExternalLinks(False)
+        self.content.setMarkdown(document.text)
+        layout.addWidget(self.content, 1)
+
+        boundary = QLabel(
+            "Reading this internal draft records no acceptance, changes no privacy setting, "
+            "starts no network request, and grants no device or execution authority."
         )
         boundary.setObjectName("Muted")
         boundary.setWordWrap(True)
@@ -1894,8 +2012,10 @@ class AboutPage(QWidget):
         app_icon_path: Path | None = None,
         workspace: Path | None = None,
         reduced_motion: bool = False,
+        privacy_settings: AppSettings | None = None,
     ) -> None:
         super().__init__()
+        self._privacy_settings = privacy_settings or AppSettings()
         self._origin_store = OriginDiscoveryStore(workspace) if workspace is not None else None
         self._origin_state_path = (
             self._origin_store.path if self._origin_store is not None else None
@@ -2655,9 +2775,10 @@ class AboutPage(QWidget):
         trust_title = QLabel("Privacy, licences, legal status, and release provenance")
         trust_title.setObjectName("SectionTitle")
         trust_detail = QLabel(
-            "Read the packaged Terms review draft or open one exact ROMVERSE Archives record. "
-            "This internal alpha has not issued effective public terms; legal approval, a privacy "
-            "statement, complete third-party notices, and signed release notes remain release gates."
+            "Read the packaged Terms and Privacy review drafts or open one exact ROMVERSE "
+            "Archives record. This internal alpha has not issued effective public documents; "
+            "legal approval, complete provider/contact details, third-party notices, and signed "
+            "release binding remain release gates."
         )
         trust_detail.setObjectName("Muted")
         trust_detail.setWordWrap(True)
@@ -2665,16 +2786,18 @@ class AboutPage(QWidget):
         trust_copy.addWidget(trust_title)
         trust_copy.addWidget(trust_detail)
         trust_header.addLayout(trust_copy, 1)
-        self.legal_state = QLabel("INTERNAL ALPHA\nDRAFT TERMS • LEGAL REVIEW REQUIRED")
+        self.legal_state = QLabel("INTERNAL ALPHA\nDRAFT TERMS + PRIVACY • LEGAL REVIEW REQUIRED")
         self.legal_state.setObjectName("Warning")
         self.legal_state.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.legal_state.setAccessibleName(
-            "Internal alpha; draft Terms are included but public terms remain unissued"
+            "Internal alpha; draft Terms and Privacy Notice are included but remain unissued"
         )
         self.legal_state.setMinimumWidth(220)
         trust_header.addWidget(self.legal_state)
         trust_dock_layout.addLayout(trust_header)
 
+        legal_actions = QHBoxLayout()
+        legal_actions.setSpacing(10)
         self.terms_button = QPushButton("READ DRAFT TERMS & CONDITIONS  →")
         self.terms_button.setObjectName("AboutTermsAction")
         self.terms_button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -2685,7 +2808,19 @@ class AboutPage(QWidget):
             "Open the local versioned draft. Reading it records no contractual acceptance."
         )
         self.terms_button.clicked.connect(self._show_terms)
-        trust_dock_layout.addWidget(self.terms_button)
+        legal_actions.addWidget(self.terms_button, 1)
+        self.privacy_button = QPushButton("PRIVACY & DATA CONTROLS  →")
+        self.privacy_button.setObjectName("AboutPrivacyAction")
+        self.privacy_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.privacy_button.setAccessibleName(
+            "Read the packaged ROMVERSE Privacy Notice and current data-control state"
+        )
+        self.privacy_button.setToolTip(
+            "Open a local read-only view. It changes no setting and starts no network request."
+        )
+        self.privacy_button.clicked.connect(self._show_privacy)
+        legal_actions.addWidget(self.privacy_button, 1)
+        trust_dock_layout.addLayout(legal_actions)
 
         trust_actions = QGridLayout()
         trust_actions.setContentsMargins(0, 0, 0, 0)
@@ -2769,6 +2904,20 @@ class AboutPage(QWidget):
         self.terms_dialog.show()
         self.terms_dialog.raise_()
         self.terms_dialog.activateWindow()
+
+    def _show_privacy(self) -> None:
+        previous = getattr(self, "privacy_dialog", None)
+        if previous is not None:
+            previous.close()
+        self.privacy_dialog = PrivacyDialog(self._privacy_settings, self)
+        self.privacy_dialog.show()
+        self.privacy_dialog.raise_()
+        self.privacy_dialog.activateWindow()
+
+    def set_privacy_settings(self, settings: AppSettings) -> None:
+        """Refresh the snapshot used by the next read-only Privacy dialog."""
+
+        self._privacy_settings = settings
 
     def set_runtime_evidence(self, evidence: AboutRuntimeEvidence) -> None:
         """Render only the current workspace facts supplied by the owning services."""
@@ -3769,6 +3918,7 @@ class MainWindow(QMainWindow):
             self._about_icon_path,
             workspace=workspace,
             reduced_motion=self.app_settings.reduced_motion,
+            privacy_settings=self.app_settings,
         )
         self.about_page.logo_double_clicked.connect(self._show_thanks)
         self.about_page.route_requested.connect(self._navigate_route)
@@ -6774,6 +6924,7 @@ class MainWindow(QMainWindow):
         self.cosmic_background.set_reduced_motion(settings.reduced_motion)
         self._brand_logo.set_reduced_motion(settings.reduced_motion)
         self.about_page.logo.set_reduced_motion(settings.reduced_motion)
+        self.about_page.set_privacy_settings(settings)
         self.notification_center.set_enabled(settings.desktop_notifications_enabled)
         self.notification_center.set_reduced_motion(settings.reduced_motion)
         self.backup_center.set_default_backup_directory(

@@ -4,14 +4,20 @@ ROMVERSE must not be described as production-ready merely because the desktop sh
 debug APK opens. A public build is eligible for release only when every applicable gate below
 has current evidence.
 
-The current source includes `draft-2026-09-04` Terms & Conditions as a complete readable About-page
-artifact with a visible SHA-256 and explicit internal-review status. It covers authorised use,
-misuse, user-selected firmware, high-risk Android operations, plan-specific warnings, third-party
-inputs, backup/recovery responsibility, liability limitations and non-excludable Australian
-Consumer Law rights. Reading it records no acceptance or authority. Public contractual acceptance
-must remain disabled until qualified legal review completes the contracting provider/contact,
-jurisdiction, effective date, Privacy Policy, notice inventory, fair-standard-terms review, and
-signed-release document binding. This draft is implementation evidence, not legal approval.
+The current source includes `draft-2026-09-04` Terms & Conditions and Privacy Notice as complete
+readable About-page artifacts with visible SHA-256 values and explicit internal-review status. Terms
+covers authorised use, misuse, user-selected firmware, high-risk Android operations, plan-specific
+warnings, third-party inputs, backup/recovery responsibility, liability limitations and
+non-excludable Australian Consumer Law rights. Privacy follows the current OAIC APP 1 subject areas
+and describes the actual local workspace, brief in-memory device addressing, Companion Link,
+backups, research/community/contribution controls, network providers, retention/deletion limitations
+and automated technical classifications. Its layered header renders the validated settings currently
+in force. Reading either records no acceptance or authority, changes no setting and starts no
+network request. Public contractual acceptance and hosted personal-information collection must
+remain disabled until qualified legal/privacy review completes the provider/contact, jurisdiction,
+recipient countries, retention, access/correction/deletion, complaint, collection-notice,
+third-party-notice, effective-date and signed-release binding gates. These drafts are implementation
+evidence, not legal approval.
 
 Current Fedora source evidence recorded on 2026-09-04: all 1,509 Desktop tests pass, complete Ruff
 check/format gates are clean across 366 files, and the focused About/Archives/firmware/Guardian/
@@ -22,6 +28,22 @@ loader and the byte-exact Terms draft; wheel SHA-256 is
 workspace and reopens populated evidence byte-for-byte. A separate self-contained Fedora build
 also launched successfully and contained the Terms asset. The Terms draft SHA-256 is
 `b3a188f94dbc910f218ca368818c031395610313939064edf9e8b0d47881b718`.
+
+The subsequent Privacy transparency increment passes all 1,512 Desktop tests and complete Ruff
+check/format gates across 368 Python files. Visual inspection at 900×760 confirms a dark, readable,
+scrollable document with an unambiguous local control summary. A fresh isolated 239-member wheel
+contains both legal drafts and all 21 Device Packs; its SHA-256 is
+`c03012a3b8f25c75305b0eec3a95be3cdfad02ff5a46e7f933146b90d4cb04e9`. The installed-wheel smoke
+loaded the Privacy draft and preserved the populated workspace byte-for-byte. A separate frozen
+Linux app launched successfully and carries the byte-exact Privacy asset with SHA-256
+`829f94155250f7bfb68252bd3c883d5cddab340f82dc756d5d2a0a54bdeda069`. Windows installed/frozen and
+full cross-platform CI remain required for this new increment.
+
+Exact preceding commit `2eb043b119d3a0986f334738a05189a5065adb60` is fully green in GitHub
+Actions run `33803846046`: both 1,509-test Linux quality jobs, both Windows portability jobs,
+Companion tests/build, Linux and Windows installed/frozen/package jobs, and the combined unsigned
+Desktop candidate passed. This proves the Terms/HyperOS/Guardian milestone before the Privacy
+increment; it does not replace the new increment's pending cross-platform run.
 
 The exact local HyperOS 4 OS4.0.0.25.XPBCNXM package record was reinspected read-only. Its 72-entry
 `SHA256SUMS` manifest (`23bca4405ff47c3c8bd3a3b086d9c7525942347cf3ba43bb8537715e13e16b14`)

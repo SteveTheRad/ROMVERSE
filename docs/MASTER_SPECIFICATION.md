@@ -929,14 +929,19 @@ restyling without an explicit product-owner decision. Discovery is stored only a
 bounded, exact-schema, atomic local record. Malformed, oversized, linked, or extra-field records
 fail visibly; the record has no XP, account, membership, entitlement, or operation authority.
 
-The About Trust Dock includes a complete, scrollable, versioned Terms & Conditions review draft
-with its status and SHA-256 visible. The draft addresses authorised use, misuse, user-supplied
-firmware, third-party dependencies, high-risk Android operations, recovery responsibility,
-plan-specific warning acceptance, fair liability limits, and rights that cannot legally be
-excluded. It remains explicitly ineffective until professional legal review completes the provider,
-contact, jurisdiction, Privacy Policy, notice, effective-date, and signed-release binding gates.
-Opening or reading it is local-only and records no acceptance. Effective general Terms acceptance
-will remain separate from the exact expiring consent required for each device-changing plan.
+The About Trust Dock includes complete, scrollable, versioned Terms & Conditions and Privacy Notice
+review drafts, with each status and SHA-256 visible. The Terms address authorised use, misuse,
+user-supplied firmware, third-party dependencies, high-risk Android operations, recovery
+responsibility, plan-specific warning acceptance, fair liability limits, and rights that cannot
+legally be excluded. The Privacy draft describes the actual local workspace, device probe, brief
+in-memory target addressing, Companion Link, backup, research, community, contribution, retention,
+network-recipient and automated technical-decision boundaries. Its layered header shows the current
+validated online/community/contribution/tool-download settings without modifying them. Both remain
+explicitly ineffective until professional legal/privacy review completes provider/contact,
+jurisdiction, recipient-country, retention, access/correction/deletion, complaint, collection-notice,
+effective-date and signed-release binding gates. Opening or reading either is local-only, starts no
+network request, and records no acceptance. Effective general Terms acceptance remains separate from
+the exact expiring consent required for each device-changing plan.
 
 The core palette moves from purple through blue to cyan on a near-black space-like surface.
 Product-family marks remain related but distinct. Windows, Linux, and Android are planned;

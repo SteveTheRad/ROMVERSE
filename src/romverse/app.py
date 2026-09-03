@@ -29,7 +29,7 @@ from romverse.guardian.gateway import ExecutionGateway
 from romverse.guardian.policy import GuardianPolicy
 from romverse.infrastructure.process import SubprocessRunner
 from romverse.infrastructure.tools import ToolVerifier
-from romverse.legal import load_terms_document
+from romverse.legal import load_privacy_document, load_terms_document
 from romverse.platform.host import current_host
 from romverse.ui.main_window import MainWindow
 from romverse.ui.setup_wizard import SetupWizard
@@ -212,5 +212,6 @@ def main(argv: list[str] | None = None) -> int:
             window.show()
             if args.release_smoke:
                 load_terms_document()
+                load_privacy_document()
                 QTimer.singleShot(250, app.quit)
             return app.exec()

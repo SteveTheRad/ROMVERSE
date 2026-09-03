@@ -282,6 +282,19 @@ QTextEdit, QPlainTextEdit, QTextBrowser {
 QTextEdit:disabled, QPlainTextEdit:disabled, QTextBrowser:disabled {
     color: #65708C; background: #080D18; border-color: #25334E;
 }
+QFrame#PrivacySummary {
+    background: rgba(7, 20, 34, 235);
+    border: 1px solid rgba(73, 221, 237, 125);
+    border-radius: 10px;
+}
+QTextBrowser#PrivacyDocument, QTextBrowser#TermsDocument {
+    color: #DCE9FA;
+    background: rgba(6, 12, 25, 248);
+    border: 1px solid #28426C;
+    border-radius: 10px;
+    padding: 15px;
+    selection-background-color: #5F3AA8;
+}
 QAbstractItemView {
     color: #DCE8F8;
     background: #060B16;

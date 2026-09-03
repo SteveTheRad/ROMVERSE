@@ -194,15 +194,19 @@ the existence of an audit file, a cached count, or a previous render. Only a cur
 verification may display `INTEGRITY VERIFIED`; a revision change retires that claim to
 `REVERIFY REQUIRED`. The lane routes to Guardian Core and starts no approval or device action.
 
-About also packages and displays a versioned Terms & Conditions internal review draft. The draft
-must cover authorised device use, user-supplied firmware and third-party responsibility, flashing/
-wipe/brick/warranty and service risks, backups and recovery, misuse, plan-specific warning consent,
-fair liability limitations, and non-excludable Australian Consumer Law rights. Reading the draft
-records no acceptance and grants no operation authority. Public acceptance remains unavailable
-until qualified legal review completes provider/contact and jurisdiction details, aligns the
-Privacy Policy and third-party notices, assigns an effective version/date, and binds the reviewed
-document digest to a signed release. General Terms acceptance never replaces exact plan-bound
-consent and can never override a hard safety contradiction.
+About also packages and displays versioned Terms & Conditions and Privacy Notice internal review
+drafts. Terms covers authorised device use, user-supplied firmware and third-party responsibility,
+flashing/wipe/brick/warranty and service risks, backups and recovery, misuse, plan-specific warning
+consent, fair liability limitations, and non-excludable Australian Consumer Law rights. Privacy
+describes current local/device/Link/backup/research/community/contribution information flows,
+retention and deletion limitations, likely third-party network exposure, and automated technical
+classifications; a layered read-only header shows the settings currently in force. Reading either
+draft records no acceptance, changes no setting, starts no network request and grants no operation
+authority. Public acceptance or hosted personal-information collection remains unavailable until
+qualified legal/privacy review completes provider/contact, jurisdiction, recipients/countries,
+retention, access/correction/deletion, complaints, collection notices and third-party notices,
+assigns effective versions/dates, and binds both approved digests to a signed release. General Terms
+acceptance never replaces exact plan-bound consent and can never override a hard safety contradiction.
 
 Double-clicking the R on Desktop or double-tapping it on Companion discovers **ROMVERSE: The
 Origin**. Discovery is remembered locally and enables replay. The first genuine discovery records

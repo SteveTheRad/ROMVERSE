@@ -190,11 +190,11 @@ def test_archives_have_an_exact_destination_for_every_top_level_desktop_page() -
         ),
         (
             "terms not published",
-            "About contains draft Terms pending legal review",
+            "About contains Terms and Privacy drafts pending legal review",
         ),
         (
             "privacy policy local workspace",
-            "About Privacy must describe the real local and online data boundary",
+            "About Privacy shows the real local and online data boundary",
         ),
         (
             "third party notices incomplete",

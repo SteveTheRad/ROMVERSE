@@ -2787,30 +2787,31 @@ KNOWN_FIXES = (
     ),
     _fix(
         "desktop-legal-publication-boundary",
-        "About contains draft Terms pending legal review",
+        "About contains Terms and Privacy drafts pending legal review",
         "ROMVERSE WORKFLOWS",
         "ROMVERSE v0.1.0 is an internal development alpha. The source tree contains a "
-        "proprietary development-snapshot licence and now packages a versioned Terms & Conditions "
-        "review draft. The draft assigns firmware/source responsibility, prohibits misuse, "
-        "explains high-risk device operations, and limits liability only to the extent law permits. "
-        "It is not effective public terms and cannot imply legal approval or recorded acceptance.",
+        "proprietary development-snapshot licence and now packages versioned Terms & Conditions "
+        "and Privacy Notice review drafts. The Terms assign firmware/source responsibility, "
+        "prohibit misuse, explain high-risk device operations, and limit liability only to the "
+        "extent law permits. The Privacy draft documents current local, device, Link, research, "
+        "community and future-service data boundaries. Neither is effective or legally approved.",
         checks=(
             "Confirm the installed build identifies itself as internal alpha rather than a public production release.",
             "Inspect the packaged/source LICENSE and distinguish source-use permission from customer terms of service.",
-            "Load the packaged draft by its version and SHA-256 and confirm About labels it INTERNAL REVIEW DRAFT and LEGAL REVIEW REQUIRED.",
-            "Confirm no effective public terms version, provider/contact identity or acceptance record is claimed for this release.",
+            "Load both packaged drafts by version and SHA-256 and confirm About labels them INTERNAL REVIEW DRAFT and LEGAL REVIEW REQUIRED.",
+            "Confirm no effective public document, provider/contact identity or acceptance record is claimed for this release.",
             "Treat membership prices and future-service promises as product direction until production billing and published terms exist.",
         ),
         fix_steps=(
-            "Keep the local draft readable from About while making its review status and integrity digest visible.",
-            "Before public release, obtain qualified legal review, complete provider/contact and jurisdiction details, align the Privacy Policy and third-party notices, then assign an effective version/date.",
-            "Bind the legally approved document digest to the signed release before collecting contractual acceptance.",
+            "Keep both local drafts readable from About while making each review status and integrity digest visible.",
+            "Before public release, obtain qualified legal/privacy review, complete provider/contact, jurisdiction, recipient-country, retention, access/correction/deletion and complaint details, complete third-party notices, then assign effective versions/dates.",
+            "Bind both approved document digests to the signed release before collecting contractual acceptance or personal information for a hosted service.",
             "Keep unavailable purchasing, renewal, cancellation, and public-account actions disabled until the production service and terms agree.",
         ),
         verification=(
-            "About displays DRAFT TERMS • LEGAL REVIEW REQUIRED and opens the complete local draft in a readable dialog.",
-            "Reading or closing the draft records no acceptance and starts no account, browser, billing, network, build or phone action.",
-            "The status record retains a safe Return to About path and no UI claims public terms were accepted, effective, published or legally approved.",
+            "About displays DRAFT TERMS + PRIVACY • LEGAL REVIEW REQUIRED and opens either complete local draft in a readable dialog.",
+            "The Privacy view shows the current online/community/contribution/tool settings without modifying them; reading or closing either draft starts no account, browser, billing, network, build or phone action.",
+            "The status record retains a safe Return to About path and no UI claims either public document was accepted, effective, published or legally approved.",
         ),
         tags=(
             "terms not published",
@@ -2819,21 +2820,25 @@ KNOWN_FIXES = (
             "membership terms unavailable",
             "public legal pack",
             "terms of service missing",
+            "privacy notice draft",
+            "privacy policy missing",
         ),
         route="about",
-        evidence="The packaged draft is versioned draft-2026-09-04 and explicitly preserves non-excludable rights, separates Terms acceptance from plan-specific operation consent, and leaves provider/contact, jurisdiction, Privacy Policy, notices, effective date and legal approval as release gates.",
+        evidence="Both packaged drafts are versioned draft-2026-09-04. Terms preserves non-excludable rights and separates contractual acceptance from plan-specific consent; Privacy follows current OAIC APP 1 topics while leaving provider/contact, overseas-recipient, retention, complaint, notices, effective dates and legal approval as release gates.",
         automation="LOCAL DRAFT DISPLAY AND STATUS GUIDANCE ONLY • NO LEGAL ACCEPTANCE, ACCOUNT, BILLING, NETWORK, PUBLISH, BUILD, OR PHONE ACTION",
         source=ROMVERSE_SOURCE,
     ),
     _fix(
         "desktop-local-privacy-boundary",
-        "About Privacy must describe the real local and online data boundary",
+        "About Privacy shows the real local and online data boundary",
         "ROMVERSE WORKFLOWS",
         "A generic Privacy label is not evidence of a privacy policy. The current Desktop is "
         "local-first: activity, diagnostics, projects, receipts, Galaxy topics, Device Atlas "
         "catalogs, and Synapse memory are stored in the selected workspace under bounded schemas. "
         "Online intelligence, community research, Members sign-in, and wireless Companion each "
-        "have separate settings or explicit flows and must never be implied by opening About.",
+        "have separate settings or explicit flows and must never be implied by opening About. "
+        "About now opens a packaged, versioned Privacy draft plus a read-only snapshot of those "
+        "current controls.",
         checks=(
             "Inspect Settings for online intelligence, community research, Synapse contribution, notifications, backup destination, and Members configuration.",
             "Confirm device serials are masked or pseudonymized in user-facing ledgers, exports, approvals, and repair memory.",
@@ -2844,10 +2849,10 @@ KNOWN_FIXES = (
             "Keep data in the selected local workspace unless one named, enabled workflow explicitly requires a network service.",
             "Scrub paths, full hashes, raw serials, credentials, and unrelated device data before any permitted bounded contribution or export.",
             "Fail closed on malformed, oversized, linked, stale, redirected, or integrity-rejected local and remote evidence.",
-            "Before public release, publish a reviewed privacy statement covering collection, retention, deletion, accounts, backups, diagnostics, research, Companion, and community services.",
+            "Before public release, legally review and complete the draft's provider/contact, recipients/countries, retention/deletion, access/correction, complaints, incidents, accounts and production-service details.",
         ),
         verification=(
-            "Opening the About privacy control performs local navigation only and returns to About without changing settings.",
+            "Opening the About Privacy & Data control loads the integrity-checked packaged draft and current settings locally without changing them.",
             "Private workspace files remain local and integrity-protected; online switches retain their current explicit values.",
             "No phone command, upload, contribution, account request, or public post starts from the About trust dock.",
         ),
@@ -2860,7 +2865,7 @@ KNOWN_FIXES = (
             "community publishing locked",
         ),
         route="about",
-        evidence="ROMVERSE stores typed bounded records in the selected workspace, uses pseudonymous device bindings, and exposes online/community capabilities behind explicit configuration and workflow boundaries.",
+        evidence="ROMVERSE packages draft-2026-09-04 against OAIC APP 1 topics, stores typed bounded records in the selected workspace, uses pseudonymous device bindings, and shows online/community capabilities behind explicit configuration and workflow boundaries.",
         automation="LOCAL GUIDANCE NAVIGATION ONLY • NO SETTING CHANGE, UPLOAD, CONTRIBUTION, ACCOUNT, PUBLISH, OR PHONE ACTION",
         source=ROMVERSE_SOURCE,
     ),

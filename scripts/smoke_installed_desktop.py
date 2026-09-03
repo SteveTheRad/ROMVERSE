@@ -14,7 +14,12 @@ from PySide6.QtWidgets import QApplication
 from romverse import app as romverse_app
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.knowledge.archives import CANONICAL_ROUTES, KNOWN_FIXES
-from romverse.legal import TERMS_STATUS, load_terms_document
+from romverse.legal import (
+    PRIVACY_STATUS,
+    TERMS_STATUS,
+    load_privacy_document,
+    load_terms_document,
+)
 from romverse.rom.projects import RomProjectStore
 from romverse.ui import main_window as main_window_module
 from romverse.ui.backup_center import BackupCenter
@@ -71,6 +76,9 @@ def main() -> int:
     terms = load_terms_document()
     if terms.status != TERMS_STATUS or "Australian Consumer Law" not in terms.text:
         raise RuntimeError("Installed desktop Terms draft is missing or incomplete")
+    privacy = load_privacy_document()
+    if privacy.status != PRIVACY_STATUS or "Privacy Act 1988" not in privacy.text:
+        raise RuntimeError("Installed desktop Privacy draft is missing or incomplete")
     required_handoffs = {
         "time-machine-empty-state-dead-end",
         "command-console-no-trusted-result",

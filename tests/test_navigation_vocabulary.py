@@ -328,10 +328,10 @@ def test_about_recalculates_real_workspace_evidence_and_returns_from_its_exact_g
 
         trust_records = {
             "desktop-legal-publication-boundary": (
-                "About contains draft Terms pending legal review"
+                "About contains Terms and Privacy drafts pending legal review"
             ),
             "desktop-local-privacy-boundary": (
-                "About Privacy must describe the real local and online data boundary"
+                "About Privacy shows the real local and online data boundary"
             ),
             "desktop-licence-notice-inventory": (
                 "Open-source licences or third-party notices are incomplete"

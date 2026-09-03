@@ -626,25 +626,42 @@ class GuardianManifestReviewDialog(QDialog):
         if contract is None:
             result_title = QLabel("VERIFICATION RESULT TEMPLATE • LOCKED")
             result_copy = QLabel(
-                "Guardian has not sealed a current schema-two result template. Exact signed "
-                "partition readbacks and post-boot Device DNA are still required before this stage "
-                "can advance. No command or phone action is available."
+                "Guardian has not sealed a current signed result template. Exact partition "
+                "readbacks, post-boot Device DNA, and—where required—signed mode and recovery "
+                "orchestration must be current. No command or phone action is available."
             )
         else:
+            transition_summary = (
+                f" • {contract.mode_transition_count} SIGNED TRANSITION"
+                f"{'S' if contract.mode_transition_count != 1 else ''}"
+                if contract.mode_transition_count
+                else ""
+            )
             result_title = QLabel(
                 f"VERIFICATION RESULT TEMPLATE • {contract.readback_count} IMMEDIATE READBACK"
                 f"{'S' if contract.readback_count != 1 else ''} • "
-                f"{contract.post_boot_property_count} FIRST-BOOT CHECKS"
+                f"{contract.post_boot_property_count} FIRST-BOOT CHECKS{transition_summary}"
             )
             result_copy = QLabel(
                 f"Contract {contract.contract_digest[:20]}… • "
                 f"{contract.contract_status.replace('-', ' ')}\n"
                 "Each write must be read back immediately and match the signed full-partition "
-                "size and SHA-256. After a separately governed transition, the same phone must "
-                "match every listed Device DNA value. This template did not run anything."
+                "size and SHA-256. Signed transitions below are exact review templates only; after "
+                "a separately governed runtime, the same phone must match every Device DNA value. "
+                "This template did not run anything."
             )
             for step in contract.steps:
-                if step.phase is GatewayStepPhase.READBACK:
+                if step.phase is GatewayStepPhase.TRANSITION:
+                    slot = (
+                        f" • SLOT {step.target_slot.upper()}" if step.target_slot != "none" else ""
+                    )
+                    row = QLabel(
+                        f"{step.order:02d}  •  SIGNED TRANSITION  •  "
+                        f"{step.transition_operation.value.replace('_', ' ').upper()}  •  "
+                        f"{step.from_mode.value.upper()} → {step.to_mode.value.upper()}"
+                        f"{slot}  •  WAIT UP TO {step.timeout_seconds}s"
+                    )
+                elif step.phase is GatewayStepPhase.READBACK:
                     slot = step.target_slot.upper() if step.target_slot != "none" else "NO SLOT"
                     row = QLabel(
                         f"{step.order:02d}  •  READ BACK {step.partition}  •  {slot}  •  "
@@ -665,6 +682,46 @@ class GuardianManifestReviewDialog(QDialog):
                 row.setObjectName("GateCopy")
                 row.setWordWrap(True)
                 result_layout.addWidget(row)
+            if contract.recovery_steps:
+                recovery_heading = QLabel(
+                    f"SIGNED RECOVERY CONTINGENCY • {contract.recovery_strategy.replace('_', ' ').upper()}"
+                )
+                recovery_heading.setObjectName("CardHeading")
+                recovery_heading.setWordWrap(True)
+                result_layout.addWidget(recovery_heading)
+                recovery_copy = QLabel(
+                    f"Adapter • {contract.recovery_adapter_id}  •  Stock package SHA-256 "
+                    f"{contract.recovery_stock_package_sha256[:20]}…\n"
+                    "This is a review-only, adapter-scoped recovery sequence. It contains no raw "
+                    "command and cannot run from this screen."
+                )
+                recovery_copy.setObjectName("GateCopy")
+                recovery_copy.setWordWrap(True)
+                result_layout.addWidget(recovery_copy)
+                for step in contract.recovery_steps:
+                    wipe = " • MAY WIPE USER DATA" if step.may_wipe_user_data else ""
+                    slot = (
+                        " • RECORDED PRE-WRITE SLOT"
+                        if step.target_slot == "recorded_prewrite"
+                        else ""
+                    )
+                    row = QLabel(
+                        f"R{step.order:02d}  •  {step.operation.value.replace('_', ' ').upper()}  •  "
+                        f"{step.from_mode.value.upper()} → {step.to_mode.value.upper()}"
+                        f"{slot}{wipe}  •  WAIT UP TO {step.timeout_seconds}s"
+                    )
+                    row.setObjectName("GateCopy")
+                    row.setWordWrap(True)
+                    result_layout.addWidget(row)
+                if contract.recovery_may_wipe_user_data:
+                    wipe_warning = QLabel(
+                        "RECOVERY WARNING • The signed stock-recovery contingency may erase user "
+                        "data. Automatic wipe is forbidden; a future runtime must stop for a "
+                        "separate explicit decision."
+                    )
+                    wipe_warning.setObjectName("Warning")
+                    wipe_warning.setWordWrap(True)
+                    result_layout.addWidget(wipe_warning)
             blockers = QLabel(
                 "STILL REQUIRED\n" + "\n".join(f"• {item}" for item in contract.blockers)
             )
@@ -672,6 +729,7 @@ class GuardianManifestReviewDialog(QDialog):
             blockers.setWordWrap(True)
             result_layout.addWidget(blockers)
         result_title.setObjectName("CardHeading")
+        result_title.setWordWrap(True)
         result_copy.setObjectName("GateCopy")
         result_copy.setWordWrap(True)
         result_layout.insertWidget(0, result_title)

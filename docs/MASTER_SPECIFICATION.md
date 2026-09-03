@@ -463,38 +463,43 @@ where applicable, requires an external backup and stock-recovery evidence, discl
 data wipe, prohibits automatic wipe and relocking, and requires separate final consent while granting
 execution authority `none`. The execution plan binds the complete transition/recovery digest and
 counts but stops at `ready-for-inert-transition-aware-gateway-contract`: it does not turn those typed
-rules into commands or reuse the schema-two gateway. A successful Fastboot response alone must never
-be presented as a verified healthy upgrade. A transition-aware inert gateway, live target
-re-identification, immutable execution/postcondition receipts, governed runtime, explicit final
-consent and independent physical validation remain separate unfinished gates.
+rules into runtime authority. A successful Fastboot response alone must never be presented as a
+verified healthy upgrade. Live target re-identification, immutable execution/postcondition receipts,
+a governed runtime, explicit final consent and independent physical validation remain separate
+unfinished gates.
 
 The next private record is a typed, still-inert execution-gateway contract. It independently reloads
 the current execution plan, rehashes its bound artifacts through that plan, and accepts only a
-signed schema-two verification contract. It expands the preview into exact typed result obligations:
+signed schema-two or schema-three verification contract. It expands the preview into exact typed result obligations:
 Fastboot variable equality for every precondition, zero exit status for each declared write, one
 bounded private `fastboot fetch` output with exact size and SHA-256 for every write, and allowlisted
-ADB property equality for every post-boot Device DNA fact. Raw serials and concrete host paths remain
+ADB property equality for every post-boot Device DNA fact. For schema three, it also interleaves only
+the signed mode/slot transitions at their exact write boundaries, attaches explicit resulting-mode or
+active-slot evidence and timeout obligations, and binds the exact recovery strategy, source-package
+digest, adapter, wipe policy and ordered typed recovery actions. Recovery actions deliberately contain
+no executable or raw argument vector. Raw serials and concrete host paths remain
 replaced by target, workspace and private-output placeholders. Strict reload regenerates every step
 from current evidence; changed expected values, extra fields, linked records, type confusion, added
 authority, uncontracted options and erase/reboot/unlock/relock substitutions fail closed. This
 contract is not an execution receipt: it records `runtime_invoked: false`, `phone_changed: false`,
-execution authority `none`, and final consent unavailable. It remains
-`blocked-missing-signed-transition-recovery-and-final-consent` until exact signed mode/slot/reboot,
-rollback and recovery orchestration, live target re-identification, explicit final consent, a
-separately governed runtime adapter, and independent physical validation exist.
+execution authority `none`, and final consent unavailable. Schema two remains
+`blocked-missing-signed-transition-recovery-and-final-consent`; schema three advances only to
+`blocked-missing-live-runtime-receipts-and-final-consent`. Neither status authorizes a phone action.
 
 ROM Studio's managed Guardian review worker carries this inert chain through the actual Desktop
 journey. It seals the command-free manifest, independently rehashes the same artifacts for the inert
-plan, and, when schema two is present, rehashes them again before sealing the result template. One
+plan, and, when schema two or schema three is present, rehashes them again before sealing the result template. One
 monotonic byte-derived progress scale covers every required full pass; terminal 100 is withheld until
 the applicable records are validated and saved. The review dialog presents separate dark, scrollable
-cards for exact binding, partition intent, preconditions, immediate readback sizes/digests, post-boot
-Device DNA and unresolved blockers. Guardian Core retains the same exact plan/template identities
+cards for exact binding, partition intent, preconditions, signed transitions, immediate readback
+sizes/digests, typed recovery contingency, wipe disclosure, post-boot Device DNA and unresolved blockers.
+Guardian Core retains the same exact plan/template identities
 only while the manifest remains valid. Changed or authority-bearing cached objects are discarded,
 and neither surface exposes an execute, flash, consent, transition or reboot control.
-For schema three, the same worker seals the artifact-bound manifest and transition/recovery-bound
-plan using two measured full rehash passes, deliberately leaves the schema-two gateway absent, and
-reaches terminal completion only after those fail-closed records exist.
+For schema three, the same worker performs all three measured full rehash passes and seals the
+transition-aware gateway only after the artifact-bound manifest and transition/recovery-bound plan
+remain exact. The gateway is still inert and reaches terminal completion only after all fail-closed
+records exist.
 
 Time Machine registers independently stored phone backups and exact stock-recovery packages without
 copying them into the workspace. Its public-safe evidence and private locator use separate bounded

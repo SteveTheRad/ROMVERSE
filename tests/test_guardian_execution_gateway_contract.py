@@ -13,6 +13,12 @@ import pytest
 from PySide6.QtWidgets import QApplication, QLabel, QPushButton
 
 from romverse.core.settings import AppSettings
+from romverse.device_packs.models import (
+    DeviceMode,
+    DeviceModeTransitionRule,
+    DeviceRecoveryOperation,
+    DeviceTransitionOperation,
+)
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.guardian.artifact_binding import GuardianArtifactBindingService
 from romverse.guardian.audit import GuardianAuditStore
@@ -20,6 +26,7 @@ from romverse.guardian.execution_gateway_contract import (
     GatewayEvidenceKind,
     GatewayStepPhase,
     GuardianExecutionGatewayContractService,
+    gateway_contract_matches_plan,
 )
 from romverse.guardian.manifest_review import GuardianManifestReviewService
 from romverse.rom.models import ProjectError
@@ -53,6 +60,21 @@ def _digest(payload: dict[str, object]) -> str:
     ).hexdigest()
 
 
+def _reseal_contract(contract, *, steps=None, recovery_steps=None, **changes):
+    if steps is not None:
+        changes["steps"] = tuple(steps)
+        changes["steps_digest"] = _digest({"steps": [asdict(step) for step in changes["steps"]]})
+    if recovery_steps is not None:
+        changes["recovery_steps"] = tuple(recovery_steps)
+        changes["recovery_steps_digest"] = _digest(
+            {"recovery_steps": [asdict(step) for step in changes["recovery_steps"]]}
+        )
+    changed = replace(contract, **changes, contract_digest="")
+    payload = asdict(changed)
+    payload.pop("contract_digest")
+    return replace(changed, contract_digest=_digest(payload))
+
+
 def test_gateway_contract_requires_exact_schema_two_verification(tmp_path, monkeypatch):
     plans, project, report, device, _manifest, _binding = _prepared(tmp_path, monkeypatch)
     plans.compile(project.project_id, report, device)
@@ -76,7 +98,8 @@ def test_gateway_contract_compiles_typed_inert_result_template(tmp_path, monkeyp
         contract.post_write_verification_contract_digest
         == plan.post_write_verification_contract_digest
     )
-    assert contract.result_receipt_schema_version == 1
+    assert contract.schema_version == 2
+    assert contract.result_receipt_schema_version == 2
     assert contract.step_count == len(contract.steps)
     assert contract.write_count == 1
     assert contract.readback_count == 1
@@ -195,7 +218,7 @@ def test_guardian_worker_seals_schema_two_plan_and_gateway_contract(tmp_path, mo
     assert terminal_records == [(True, True, True)]
 
 
-def test_guardian_worker_seals_schema_three_plan_without_using_schema_two_gateway(
+def test_guardian_worker_seals_schema_three_transition_aware_gateway(
     tmp_path,
     monkeypatch,
 ):
@@ -231,17 +254,92 @@ def test_guardian_worker_seals_schema_three_plan_without_using_schema_two_gatewa
     assert worker.execution_plan.transition_recovery_contract_id == transition.contract_id
     assert worker.execution_plan.execution_authority == "none"
     assert not worker.execution_plan.phone_changed
-    assert worker.gateway_contract is None
+    assert worker.gateway_contract is not None
+    assert worker.gateway_contract.mode_transition_count == len(transition.transitions)
+    assert worker.gateway_contract.recovery_action_count == len(transition.recovery.actions)
+    assert worker.gateway_contract.transition_recovery_contract_digest == (
+        worker.execution_plan.transition_recovery_contract_digest
+    )
+    assert worker.gateway_contract.execution_authority == "none"
+    assert not worker.gateway_contract.runtime_invoked
+    assert not worker.gateway_contract.phone_changed
     guardian_root = plans.store.projects_root / project.project_id / "guardian"
     assert (guardian_root / "artifact-binding.romverse").is_file()
     assert (guardian_root / "manifest-review.romverse").is_file()
     assert (guardian_root / "execution-plan.romverse").is_file()
-    assert not (guardian_root / "execution-gateway-contract.romverse").exists()
+    assert (guardian_root / "execution-gateway-contract.romverse").is_file()
     assert progress[0] == 0
     assert progress[-1] == 100
     assert progress == sorted(progress)
     assert 90 not in progress
     assert 94 not in progress
+
+
+def test_schema_three_gateway_binds_exact_transitions_and_recovery_without_runtime(
+    tmp_path,
+    monkeypatch,
+):
+    plans, project, report, device, _manifest, _binding, verification, transition = (
+        _prepared_with_transition_recovery(tmp_path, monkeypatch)
+    )
+    plan = plans.compile(project.project_id, report, device)
+    service = _service(plans)
+
+    contract = service.compile(project.project_id, report, device)
+
+    assert contract.write_contract_version == 3
+    assert contract.transition_recovery_contract_id == transition.contract_id
+    assert contract.transition_recovery_contract_digest == plan.transition_recovery_contract_digest
+    assert contract.transition_entry_mode == DeviceMode.BOOTLOADER.value
+    assert contract.transition_final_mode == DeviceMode.ANDROID.value
+    assert contract.mode_transition_count == 2
+    assert contract.recovery_action_count == 3
+    assert contract.recovery_adapter_id == transition.recovery.adapter_id
+    assert contract.recovery_stock_package_sha256 == transition.recovery.stock_package_sha256
+    assert contract.recovery_may_wipe_user_data
+    assert not contract.recovery_automatic_wipe_allowed
+    assert not contract.recovery_bootloader_relock_allowed
+    assert contract.contract_status == ("blocked-missing-live-runtime-receipts-and-final-consent")
+
+    phases = [step.phase for step in contract.steps]
+    assert phases[:7] == [
+        GatewayStepPhase.PRECONDITION,
+        GatewayStepPhase.PRECONDITION,
+        GatewayStepPhase.TRANSITION,
+        GatewayStepPhase.PRECONDITION,
+        GatewayStepPhase.WRITE,
+        GatewayStepPhase.READBACK,
+        GatewayStepPhase.TRANSITION,
+    ]
+    assert all(phase is GatewayStepPhase.POST_BOOT for phase in phases[7:])
+    transitions = tuple(
+        step for step in contract.steps if step.phase is GatewayStepPhase.TRANSITION
+    )
+    assert transitions[0].transition_operation is DeviceTransitionOperation.REBOOT_FASTBOOTD
+    assert transitions[0].arguments == (
+        "-s",
+        service.TARGET_TOKEN,
+        "reboot",
+        "fastboot",
+    )
+    assert transitions[0].evidence_kind is GatewayEvidenceKind.DEVICE_MODE_EQUALS
+    assert transitions[0].expected_value == DeviceMode.FASTBOOTD.value
+    assert transitions[1].transition_operation is DeviceTransitionOperation.REBOOT_SYSTEM
+    assert transitions[1].arguments == ("-s", service.TARGET_TOKEN, "reboot")
+    assert transitions[1].expected_value == DeviceMode.ANDROID.value
+
+    assert [step.operation for step in contract.recovery_steps] == [
+        DeviceRecoveryOperation.RESTORE_STOCK_PACKAGE,
+        DeviceRecoveryOperation.REBOOT_SYSTEM,
+        DeviceRecoveryOperation.VERIFY_POST_BOOT,
+    ]
+    assert contract.recovery_steps[0].may_wipe_user_data
+    assert contract.recovery_steps[0].phone_changes_if_executed
+    assert not contract.recovery_steps[-1].phone_changes_if_executed
+    assert all(not hasattr(step, "executable") for step in contract.recovery_steps)
+    assert len(verification.readbacks) == contract.readback_count
+    assert device.serial not in json.dumps(asdict(contract))
+    assert service.load(project.project_id, report, device) == contract
 
 
 def test_guardian_ui_shows_plan_and_result_template_without_execution_control(
@@ -277,6 +375,47 @@ def test_guardian_ui_shows_plan_and_result_template_without_execution_control(
     assert "INERT EXECUTION PLAN" in detail
     assert "RESULT TEMPLATE" in detail
     assert "immediate readback" in detail
+    assert "Runtime invoked: no" in detail
+    assert "Execution: none" in detail
+    center.close()
+
+
+def test_guardian_ui_shows_signed_transition_and_recovery_contingency_without_controls(
+    tmp_path,
+    monkeypatch,
+):
+    app = QApplication.instance() or QApplication([])
+    plans, project, report, device, manifest, _binding, _verification, _transition = (
+        _prepared_with_transition_recovery(tmp_path, monkeypatch)
+    )
+    plan = plans.compile(project.project_id, report, device)
+    contract = _service(plans).compile(project.project_id, report, device)
+
+    dialog = GuardianManifestReviewDialog(
+        manifest,
+        execution_plan=plan,
+        gateway_contract=contract,
+    )
+    app.processEvents()
+    texts = [label.text() for label in dialog.findChildren(QLabel)]
+    buttons = [button.text() for button in dialog.findChildren(QPushButton)]
+    assert any("SIGNED TRANSITION" in text for text in texts)
+    assert any("BOOTLOADER → FASTBOOTD" in text for text in texts)
+    assert any("SIGNED RECOVERY CONTINGENCY" in text for text in texts)
+    assert any("RESTORE STOCK PACKAGE" in text for text in texts)
+    assert any("MAY WIPE USER DATA" in text for text in texts)
+    assert any("Automatic wipe is forbidden" in text for text in texts)
+    assert buttons == ["Return to Genesis", "Open Guardian Core"]
+    assert all("execute" not in button.casefold() for button in buttons)
+    assert all("flash" not in button.casefold() for button in buttons)
+    dialog.close()
+
+    center = GuardianCenter(GuardianAuditStore(plans.store.workspace), auto_start=False)
+    assert center.open_studio_review(manifest, project.name, plan, contract)
+    detail = center.studio_review_detail.text()
+    assert "SIGNED ORCHESTRATION" in detail
+    assert "2 mode/slot transition(s) / 3 recovery action(s)" in detail
+    assert "recovery may wipe: yes (automatic wipe forbidden)" in detail
     assert "Runtime invoked: no" in detail
     assert "Execution: none" in detail
     center.close()
@@ -396,6 +535,85 @@ def test_gateway_contract_supports_explicit_readback_slot(tmp_path, monkeypatch)
     assert readback.arguments[2:5] == ("--slot", "a", "fetch")
 
 
+def test_schema_three_gateway_places_signed_slot_activation_after_readback(
+    tmp_path,
+    monkeypatch,
+):
+    plans, project, report, device, _manifest, _binding, verification, transition = (
+        _prepared_with_transition_recovery(tmp_path, monkeypatch)
+    )
+    pack = plans.registry.packs[0]
+    assert pack.build_contract is not None
+    write_contract = pack.build_contract.partition_write_contract
+    assert write_contract is not None
+    slotted_transition = replace(
+        transition,
+        transitions=(
+            transition.transitions[0],
+            DeviceModeTransitionRule(
+                2,
+                1,
+                DeviceTransitionOperation.SET_ACTIVE_SLOT,
+                DeviceMode.FASTBOOTD,
+                DeviceMode.FASTBOOTD,
+                "a",
+                30,
+            ),
+            replace(transition.transitions[1], order=3),
+        ),
+    )
+    slotted_write_contract = replace(
+        write_contract,
+        writes=(replace(write_contract.writes[0], target_slot="a"),),
+        post_write_verification_contract=replace(
+            verification,
+            readbacks=(replace(verification.readbacks[0], target_slot="a"),),
+        ),
+        transition_recovery_contract=slotted_transition,
+    )
+    plans.registry = DevicePackRegistry(
+        (
+            replace(
+                pack,
+                build_contract=replace(
+                    pack.build_contract,
+                    partition_write_contract=slotted_write_contract,
+                ),
+            ),
+        )
+    )
+    binding = GuardianArtifactBindingService(plans.store, plans.registry).prepare(
+        project.project_id
+    )
+    GuardianManifestReviewService(plans.store, plans.registry).compile(
+        project.project_id,
+        report,
+        device,
+        binding=binding,
+    )
+    plans.compile(project.project_id, report, device)
+
+    contract = _service(plans).compile(project.project_id, report, device)
+
+    write_index = next(
+        index for index, step in enumerate(contract.steps) if step.phase is GatewayStepPhase.WRITE
+    )
+    assert [step.phase for step in contract.steps[write_index : write_index + 4]] == [
+        GatewayStepPhase.WRITE,
+        GatewayStepPhase.READBACK,
+        GatewayStepPhase.TRANSITION,
+        GatewayStepPhase.TRANSITION,
+    ]
+    activation = contract.steps[write_index + 2]
+    assert activation.transition_operation is DeviceTransitionOperation.SET_ACTIVE_SLOT
+    assert activation.arguments == ("-s", _service(plans).TARGET_TOKEN, "set_active", "a")
+    assert activation.evidence_kind is GatewayEvidenceKind.ACTIVE_SLOT_EQUALS
+    assert activation.expected_value == "a"
+    assert contract.steps[write_index + 3].transition_operation is (
+        DeviceTransitionOperation.REBOOT_SYSTEM
+    )
+
+
 def test_gateway_steps_read_back_each_partition_immediately(tmp_path, monkeypatch):
     plans, project, report, device, _manifest, _binding, verification = (
         _prepared_with_post_write_verification(tmp_path, monkeypatch)
@@ -506,6 +724,106 @@ def test_gateway_contract_rejects_resealed_uncontracted_command(tmp_path, monkey
 
     with pytest.raises(ProjectError, match="safety validation"):
         service.validate(changed)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "transition_arguments",
+        "transition_expected_mode",
+        "transition_from_mode",
+        "recovery_action_id",
+        "recovery_adapter_id",
+        "recovery_stock_sha256",
+        "recovery_wipe_disclosure",
+    ),
+)
+def test_schema_three_gateway_rejects_resealed_orchestration_tampering(
+    tmp_path,
+    monkeypatch,
+    mutation,
+):
+    plans, project, report, device, _manifest, _binding, _verification, _transition = (
+        _prepared_with_transition_recovery(tmp_path, monkeypatch)
+    )
+    plan = plans.compile(project.project_id, report, device)
+    service = _service(plans)
+    contract = service.compile(project.project_id, report, device)
+    changed = contract
+    if mutation.startswith("transition_"):
+        steps = list(contract.steps)
+        index = next(
+            index for index, step in enumerate(steps) if step.phase is GatewayStepPhase.TRANSITION
+        )
+        if mutation == "transition_arguments":
+            steps[index] = replace(
+                steps[index],
+                arguments=("-s", service.TARGET_TOKEN, "reboot", "bootloader"),
+            )
+        elif mutation == "transition_expected_mode":
+            steps[index] = replace(steps[index], expected_value="bootloader")
+        else:
+            steps[index] = replace(steps[index], from_mode=DeviceMode.FASTBOOTD)
+        changed = _reseal_contract(contract, steps=steps)
+    elif mutation == "recovery_action_id":
+        recovery = list(contract.recovery_steps)
+        recovery[0] = replace(recovery[0], adapter_action_id="foreign.adapter.restore")
+        changed = _reseal_contract(contract, recovery_steps=recovery)
+    elif mutation == "recovery_adapter_id":
+        changed = _reseal_contract(contract, recovery_adapter_id="foreign.adapter")
+    elif mutation == "recovery_stock_sha256":
+        changed = _reseal_contract(contract, recovery_stock_package_sha256="f" * 64)
+    else:
+        changed = _reseal_contract(contract, recovery_may_wipe_user_data=False)
+
+    with pytest.raises(ProjectError, match="safety validation"):
+        service.validate(changed)
+    service._write(changed)
+    assert service.load(project.project_id, report, device) is None
+    assert not gateway_contract_matches_plan(changed, plan)
+
+
+def test_schema_three_gateway_expires_when_signed_transition_contract_changes(
+    tmp_path,
+    monkeypatch,
+):
+    plans, project, report, device, _manifest, _binding, _verification, transition = (
+        _prepared_with_transition_recovery(tmp_path, monkeypatch)
+    )
+    plans.compile(project.project_id, report, device)
+    service = _service(plans)
+    service.compile(project.project_id, report, device)
+    pack = plans.registry.packs[0]
+    assert pack.build_contract is not None
+    write_contract = pack.build_contract.partition_write_contract
+    assert write_contract is not None
+    changed_transition = replace(
+        transition,
+        transitions=(
+            replace(
+                transition.transitions[0],
+                timeout_seconds=transition.transitions[0].timeout_seconds + 1,
+            ),
+            *transition.transitions[1:],
+        ),
+    )
+    changed_registry = DevicePackRegistry(
+        (
+            replace(
+                pack,
+                build_contract=replace(
+                    pack.build_contract,
+                    partition_write_contract=replace(
+                        write_contract,
+                        transition_recovery_contract=changed_transition,
+                    ),
+                ),
+            ),
+        )
+    )
+    service.registry = changed_registry
+
+    assert service.load(project.project_id, report, device) is None
 
 
 @pytest.mark.parametrize(

@@ -599,6 +599,18 @@ class GuardianCenter(QWidget):
                 f"\nPlan state  •  {execution_plan.plan_status.replace('-', ' ')}"
             )
         if gateway_contract is not None:
+            orchestration = ""
+            if gateway_contract.mode_transition_count:
+                wipe = (
+                    "  •  recovery may wipe: yes (automatic wipe forbidden)"
+                    if gateway_contract.recovery_may_wipe_user_data
+                    else "  •  recovery may wipe: no"
+                )
+                orchestration = (
+                    f"\nSIGNED ORCHESTRATION  •  {gateway_contract.mode_transition_count} mode/slot "
+                    f"transition(s) / {gateway_contract.recovery_action_count} recovery action(s)"
+                    f"  •  adapter {gateway_contract.recovery_adapter_id}{wipe}"
+                )
             plan_detail += (
                 f"\nRESULT TEMPLATE  •  {gateway_contract.readback_count} immediate readback"
                 f"{'s' if gateway_contract.readback_count != 1 else ''} / "
@@ -606,6 +618,7 @@ class GuardianCenter(QWidget):
                 f"  •  {gateway_contract.contract_digest[:16]}…"
                 f"\nTemplate state  •  {gateway_contract.contract_status.replace('-', ' ')}"
                 "  •  Runtime invoked: no"
+                f"{orchestration}"
             )
         self.studio_review_detail.setText(
             f"Manifest {manifest.manifest_digest[:16]}…  •  handoff "

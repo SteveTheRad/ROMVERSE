@@ -646,14 +646,13 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   only for the separately verified inert gateway/result template, while both records retain zero
   consent or execution authority and cannot advance without signed transitions/recovery, a governed
   runtime, immutable execution/postcondition receipts and physical validation;
-  a strict private execution-gateway contract that accepts only the current schema-two inert plan,
-  regenerates typed Fastboot precondition/write/readback and ADB post-boot steps, binds one exact
+  a strict private execution-gateway contract that accepts only the current schema-two or schema-three
+  inert plan, regenerates typed Fastboot precondition/write/readback and ADB post-boot steps, binds one exact
   size/SHA-256 result obligation per full-partition fetch plus every allowlisted Device DNA value,
   persists only redacted path/target placeholders, and rejects stale evidence, altered expectations,
   extra fields, linked records, unsafe commands, type confusion or fabricated authority; this record
   is explicitly not an execution receipt, invokes no runtime, changes no phone, exposes no final
-  consent, and remains blocked on exact signed transition/recovery orchestration and physical
-  validation;
+  consent, and remains blocked on the next applicable signed/runtime/receipt/physical-validation gate;
   fail-closed partition-write schema three for the next signed orchestration boundary, binding the
   same exact source/attestation to a contiguous transport-correct Bootloader/Fastbootd write-boundary
   sequence, one final system transition, exact final activation for slotted writes, and a bounded
@@ -661,12 +660,16 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   are mandatory, every possible wipe is disclosed while automatic wipe and all relocking remain
   prohibited, separate final consent is required but unavailable, and execution authority is `none`;
   the inert plan binds that complete contract and stops at
-  `ready-for-inert-transition-aware-gateway-contract`, while the managed Desktop worker refuses to
-  reuse or emit the schema-two gateway and performs no phone action;
+  `ready-for-inert-transition-aware-gateway-contract`; the schema-two/schema-three gateway compiler
+  then interleaves only those exact signed transitions at the declared write boundaries, requires
+  resulting-mode or active-slot evidence, binds a command-free ordered recovery contingency and exact
+  wipe disclosure, and stops at `blocked-missing-live-runtime-receipts-and-final-consent`; the managed
+  Desktop worker performs no phone action;
   end-to-end Desktop presentation of that inert chain through the managed ROM Studio Guardian
   worker, with a single monotonic byte-derived scale across each required artifact rehash, terminal
   100 only after the applicable private records are sealed, readable dark scroll cards for
-  preconditions, partition intent, immediate readback hashes, first-boot Device DNA and remaining
+  preconditions, partition intent, exact signed transitions, immediate readback hashes, typed recovery
+  contingency/wipe warnings, first-boot Device DNA and remaining
   blockers, and an exact-identity handoff into Guardian Core that rejects stale, tampered or
   authority-bearing cached context while offering no execute or flash control;
   Forge Control stale-card detachment and natural-height scrolling, two aligned footer action rows,

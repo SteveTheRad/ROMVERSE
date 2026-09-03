@@ -132,11 +132,15 @@ has current evidence.
    final consent is required but not made available. Device Atlas revalidates the same strict
    semantics even for an in-memory Pack, and Guardian refuses a malformed replacement before plan
    compilation. The private inert plan binds the exact transition/recovery digest and summary, then
-   stops at `ready-for-inert-transition-aware-gateway-contract`. ROM Studio performs only the two
-   applicable measured artifact/plan rehash passes and deliberately emits no schema-two gateway,
-   runner call, consent or phone action. No built-in Device Pack carries this schema-three signed
-   authority, and the transition-aware gateway/runtime/receipt/physical-validation stages remain
-   unfinished.
+   stops at `ready-for-inert-transition-aware-gateway-contract`. The generalized gateway now performs
+   the third measured artifact rehash and emits an inert gateway schema-version-two record that binds the exact
+   schema-three transition/recovery digest, interleaves signed mode and slot transitions around each
+   immediate readback, attaches expected-mode/active-slot evidence, and represents recovery as typed
+   adapter actions with no raw command. Its UI exposes the exact contingency and possible-wipe warning
+   without any execute/flash/consent control. It remains
+   `blocked-missing-live-runtime-receipts-and-final-consent`, invokes no runner, grants no authority,
+   and records no phone change. No built-in Device Pack carries this schema-three signed authority;
+   governed runtime, receipt and physical-validation stages remain unfinished.
    Exact source commit `0698778812e697dffe1b6354270e07758e450507` is fully green in GitHub Actions
    run `33781253539`: both Linux 1,433-test jobs, both Windows 278-test portability jobs, Companion
    unit/build, Linux and Windows installed/frozen/package jobs, and the combined unsigned candidate
@@ -503,10 +507,19 @@ has current evidence.
    without this third contract. From valid synthetic schema-three evidence, bind its exact identity,
    digest, transition/recovery counts, adapter, stock digest and wipe disclosure into the private
    execution plan, then alter the current recovery digest and confirm reload fails. Exercise the
-   managed Desktop worker and confirm it completes only the two measured artifact/plan passes,
-   records `phone_changed: false` and execution authority `none`, emits no schema-two gateway file,
-   invokes no runner, and stops at `ready-for-inert-transition-aware-gateway-contract` with no final
-   consent or device control.
+   managed Desktop worker and confirm it completes all three measured artifact/plan/gateway passes,
+   records `phone_changed: false` and execution authority `none`, emits the transition-aware inert
+   gateway, invokes no runner, and stops at
+   `blocked-missing-live-runtime-receipts-and-final-consent` with no final consent or device control.
+   Confirm every signed transition is placed at its declared write boundary after any immediate
+   readback, uses only its exact Fastboot argument vector, binds resulting-mode or active-slot evidence
+   and its timeout, and expires if the current transition contract changes. Confirm the ordered
+   recovery contingency binds the exact adapter, stock package digest, strategy, modes, timeouts,
+   recorded-slot rule and wipe disclosure while containing no executable or raw arguments. Resealed
+   transition arguments/modes/evidence, foreign recovery actions/adapters, inconsistent wipe flags,
+   changed stock digest, fabricated authority/runtime/phone change and stale Pack context must fail
+   validation or exact-plan reload. The review dialog and Guardian Core must show these boundaries and
+   possible-wipe warning but expose no execute, flash, transition, reboot or consent control.
    Refresh Forge Control repeatedly while readiness changes between blocked and attention states at
    its 1040-pixel minimum width. Confirm removed cards are no longer parented or visible, the content
    keeps its natural scroll height, no footer buttons overlap, and blocked/attention totals match the

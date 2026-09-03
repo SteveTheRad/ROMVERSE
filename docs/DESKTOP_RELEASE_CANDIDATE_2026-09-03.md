@@ -9,7 +9,7 @@ Windows/Linux PySide6 app, its local ROM workflows, the Android Companion build,
 offline/Link contracts. Public hosted services remain outside this candidate.
 
 The exact application-source commit is
-`ece96a012eb7270337db6a9f09a1447157d95870`.
+`fe0f1521f656e0595ddbab855882262109fe37c4`.
 
 ## Release artifacts
 
@@ -17,34 +17,34 @@ The CI artifacts were independently downloaded into an isolated temporary verifi
 
 | Platform or role | File | Bytes | SHA-256 | Entrypoint or identity |
 | --- | --- | ---: | --- | --- |
-| Linux x86-64 | `ROMVERSE-Desktop-0.1.0-linux-x86_64.zip` | 156,174,388 | `f7dbc278078db7d7adaf6fbae98796393469fea6b34110701f074729b7cbbafa` | `ROMVERSE/ROMVERSE` |
-| Windows x86-64 | `ROMVERSE-Desktop-0.1.0-windows-x86_64.zip` | 73,016,295 | `5e3f617fea726cb840932cb7c8bb86c8feb0f5a2808ba22b59bcceeec1d9f042` | `ROMVERSE/ROMVERSE.exe` |
-| Unsigned Desktop manifest | `romverse-desktop-0.1.0-unsigned.json` | 1,185 | `0889752a899c98711fef8993a2332f7fd73abb126cafd23ab950378d13d0f632` | Not executable |
-| Android Companion test build | `app-debug.apk` | 8,171,670 | `1883ad7061b668ae007c2a7892e82790891a2498689c1b1db3cfbbb7db2d3162` | `com.radforge.romverse.companion` |
+| Linux x86-64 | `ROMVERSE-Desktop-0.1.0-linux-x86_64.zip` | 156,193,599 | `3e8d1c0d87eb1e714e258f99d3e4428f63eb136d74dda61f9e8a148873bea237` | `ROMVERSE/ROMVERSE` |
+| Windows x86-64 | `ROMVERSE-Desktop-0.1.0-windows-x86_64.zip` | 73,034,151 | `4902a17a47d43f454aaff2b01422e6a84030e773c92653e533e20c6eda1bae14` | `ROMVERSE/ROMVERSE.exe` |
+| Unsigned Desktop manifest | `romverse-desktop-0.1.0-unsigned.json` | 1,185 | `27c5658661a6b81f255b0ff4107a4d9daaa4be7f44a700e6a39ac10baf15d848` | Not executable |
+| Android Companion test build | `app-debug.apk` | 8,171,670 | `c711a4fe69203eb693ee11a4c1c9d26eb9e3315d0956a277fcc5ba6d1c0becc2` | `com.radforge.romverse.companion` |
 
 The Desktop manifest release identity is
-`romverse-desktop-0.1.0-ece96a012eb7270337db6a9f09a1447157d95870`. It binds both archives,
-229,190,683 total artifact bytes, explicit-update consent, workspace preservation, no execution
+`romverse-desktop-0.1.0-fe0f1521f656e0595ddbab855882262109fe37c4`. It binds both archives,
+229,227,750 total artifact bytes, explicit-update consent, workspace preservation, no execution
 authority, and unavailable rollback because no earlier signed public release exists. The separate
 per-platform CI copies are byte-identical to the copies in the combined candidate.
 
 ## Passing evidence
 
-[GitHub Actions run 33786155658](https://github.com/SteveTheRad/ROMVERSE/actions/runs/33786155658)
+[GitHub Actions run 33790777149](https://github.com/SteveTheRad/ROMVERSE/actions/runs/33790777149)
 completed successfully for the exact source commit:
 
-- Linux Python 3.12 and 3.14 each passed all 1,444 tests, complete Ruff checking, and the complete
+- Linux Python 3.12 and 3.14 each passed all 1,468 tests, complete Ruff checking, and the complete
   formatting gate.
-- Windows Python 3.12 and 3.14 each passed all 289 portability tests, including Device Pack schema,
-  build-readiness, Guardian inert execution-plan/gateway contract, and signed Desktop update
+- Windows Python 3.12 and 3.14 each passed all 313 portability tests, including Device Pack schema,
+  build-readiness, Guardian inert execution-plan/gateway/result-verifier contracts, and signed Desktop update
   coverage, plus both complete Ruff gates.
-- Both native packaging jobs built and verified the 231-member wheel and all 21 integrity-indexed
+- Both native packaging jobs built and verified the 232-member wheel and all 21 integrity-indexed
   Device Packs, installed the wheel outside the checkout, launched fresh and populated workspaces,
   launched the frozen app, and verified the complete portable archive.
 - Existing-workspace smoke preserved the project manifest, protected original, working copy, and
   Time Machine snapshot byte-for-byte across restart on both operating systems.
-- The Linux archive contains 442 regular files and 385,610,967 expanded bytes.
-- The Windows archive contains 297 regular files and 170,548,501 expanded bytes.
+- The Linux archive contains 442 regular files and 385,629,855 expanded bytes.
+- The Windows archive contains 297 regular files and 170,567,550 expanded bytes.
 - The final CI stage downloaded both native archives and independently accepted the combined
   unsigned manifest only after both packaging jobs passed.
 - Companion `testDebugUnitTest` and `assembleDebug` completed successfully using Java 17, Gradle
@@ -54,8 +54,8 @@ completed successfully for the exact source commit:
 Independent Fedora verification on 2026-09-04 reproduced the manifest's two artifact sizes and
 SHA-256 values, checked every ZIP member and CRC, and confirmed both duplicate CI copies were
 byte-identical. The Linux bundle has the expected executable, and the Windows bundle has the
-expected `.exe` entrypoint. A fresh isolated local build produced the expected 231-member wheel with
-SHA-256 `4c8116af075072abb10c14c18a3463e5fa761f72b9d08fb85a1c565067b1448b`.
+expected `.exe` entrypoint. A fresh isolated local build produced the expected 232-member wheel with
+SHA-256 `6ac8de9f74345804d5a7a8a7c08e9277d11a1f98440ed7e7a9c92c84c68750cf`.
 That exact wheel passed all 19 top-level route checks, loaded 194 packaged guides with 144 known
 fixes and all 21 Device Packs, rendered the Time Machine empty state with the shared dark theme, and
 reopened a populated test workspace without changing tracked bytes.
@@ -64,7 +64,7 @@ The downloaded Companion APK passed complete ZIP CRC validation. Android Build T
 identified package `com.radforge.romverse.companion`, version code 3/version 0.1.0, minimum API 26,
 and target API 35. `apksigner` independently verified one APK Signature Scheme v2 signer with
 certificate SHA-256
-`0bc2f8cd6706ef62c1ccdcf9b4e6934e9aac544241e3454b93d6403634a169dc`. Its certificate identity is
+`c9d0ab3106a266484a0240545a5765eccdf7f12386c489346dc3038918cd5fb7`. Its certificate identity is
 `Android Debug`, so this proves artifact integrity for testing, not production publisher identity.
 
 The protected Xiaomi 17 Pro Max candidate was previously read through the bounded standard-metadata

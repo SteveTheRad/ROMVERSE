@@ -167,6 +167,26 @@ has current evidence.
    visible Desktop review says so. Actual live-target/final-consent receipt issuers, governed execution,
    physical validation and built-in schema-three Pack authority remain unfinished.
 
+   Exact application-source commit `fe0f1521f656e0595ddbab855882262109fe37c4` is fully green in
+   GitHub Actions run `33790777149`: both Linux versions passed all 1,468 tests and both Ruff gates;
+   both Windows versions passed the expanded 313-test portability selection and both Ruff gates;
+   Companion unit/build, Linux and Windows installed/frozen/package jobs, and the combined unsigned
+   candidate passed. Both CI wheels contain 232 members and 21 Device Packs. Independent Fedora
+   verification found the 442-member Linux and 297-member Windows archives CRC-clean, proved the
+   separate and combined copies byte-identical, and reproduced manifest-bound SHA-256 values
+   `3e8d1c0d87eb1e714e258f99d3e4428f63eb136d74dda61f9e8a148873bea237` and
+   `4902a17a47d43f454aaff2b01422e6a84030e773c92653e533e20c6eda1bae14` for 229,227,750
+   total bytes. The 1,185-byte unsigned manifest SHA-256 is
+   `27c5658661a6b81f255b0ff4107a4d9daaa4be7f44a700e6a39ac10baf15d848` and binds release ID
+   `romverse-desktop-0.1.0-fe0f1521f656e0595ddbab855882262109fe37c4`, explicit confirmation,
+   workspace preservation, no execution authority and unavailable rollback. The 868-member Companion
+   debug APK is CRC-clean, package/version/API exact, v2-signed, 8,171,670 bytes, and SHA-256
+   `c711a4fe69203eb693ee11a4c1c9d26eb9e3315d0956a277fcc5ba6d1c0becc2`; its ephemeral Android
+   Debug signer is test evidence only. The exact local 232-member wheel SHA-256 is
+   `6ac8de9f74345804d5a7a8a7c08e9277d11a1f98440ed7e7a9c92c84c68750cf` and its isolated installed
+   smoke loaded the verifier, 21 Packs, 144 fixes, 19 routes and both fresh/populated dark workspaces
+   without exposing an execution method.
+
    That exact candidate includes both typed execution-gateway boundaries. Given synthetic signed
    schema-two evidence, it regenerates exact Fastboot
    precondition/write/readback steps and exact ADB post-boot property checks from the current plan,

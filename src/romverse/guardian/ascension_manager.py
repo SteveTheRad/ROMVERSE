@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from pathlib import Path
+from pathlib import PurePosixPath
 
 ASCENSION_MANAGER_PACKAGES = frozenset(
     {
@@ -41,7 +41,10 @@ def installed_manager_path(value: str) -> bool:
         return False
     if any(ord(character) < 32 for character in value):
         return False
-    path = Path(value)
+    # This is a path on the Android device, never a host path.  Host-native
+    # ``Path`` would reinterpret it with Windows separators and reject a valid
+    # package path before Guardian review.
+    path = PurePosixPath(value)
     parts = path.parts
     return bool(
         path.is_absolute()

@@ -479,10 +479,13 @@ def write_release_json(path: Path, value: dict[str, Any]) -> None:
     temporary = Path(temporary_name)
     try:
         with os.fdopen(descriptor, "wb") as stream:
-            os.fchmod(stream.fileno(), 0o644)
             stream.write(payload)
             stream.flush()
             os.fsync(stream.fileno())
+        # ``os.fchmod`` is not available on Windows.  Keep the mkstemp file
+        # private while it is being written, then apply the intended public
+        # manifest mode through the portable path API before replacement.
+        temporary.chmod(0o644)
         os.replace(temporary, target)
     finally:
         temporary.unlink(missing_ok=True)

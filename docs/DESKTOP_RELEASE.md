@@ -100,7 +100,8 @@ artifact check fails. Do not substitute a development or CI test key for the pro
 
 Before publishing an update:
 
-1. Pass the full repository quality gate and installed-wheel smoke on Linux and Windows.
+1. Pass the full Linux repository quality gate, the dedicated Windows portability suite, and the
+   installed-wheel plus native frozen-application smoke on Linux and Windows.
 2. Open a fresh workspace and a disposable copy of an existing workspace on each platform; prove
    manifests, immutable originals, working files, and Time Machine snapshots remain byte-identical.
 3. Sign the final manifest offline and independently verify every artifact from the publication

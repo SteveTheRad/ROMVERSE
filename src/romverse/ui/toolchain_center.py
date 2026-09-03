@@ -143,7 +143,9 @@ def install_official_avbtool(
             stream.write(source)
             stream.flush()
             os.fsync(stream.fileno())
-            os.fchmod(stream.fileno(), 0o700)
+        # Windows has no file-descriptor chmod.  The path form is portable and
+        # is applied only after the complete payload has been synced.
+        temporary.chmod(0o700)
         os.replace(temporary, executable)
     finally:
         temporary.unlink(missing_ok=True)

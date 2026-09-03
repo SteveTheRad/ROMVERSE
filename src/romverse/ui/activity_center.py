@@ -491,7 +491,10 @@ class ActivityCenter(QWidget):
 
     def _apply_responsive_layout(self) -> None:
         compact_height = self.height() < 760
-        compact_width = self.width() < 900
+        # Native font metrics make the same nominal width slightly wider on
+        # Windows.  Collapse the secondary copy before it can crowd the ledger
+        # controls on either supported desktop platform.
+        compact_width = self.width() < 1100
         self.metrics_host.setVisible(not compact_height)
         self.compact_summary.setVisible(compact_height)
         self.subtitle.setVisible(not compact_width)

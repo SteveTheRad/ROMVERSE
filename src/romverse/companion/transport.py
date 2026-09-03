@@ -7,6 +7,7 @@ future command APIs must be added as separate, Guardian-reviewed contracts.
 from __future__ import annotations
 
 import json
+import os
 import socket
 import ssl
 import threading
@@ -26,9 +27,19 @@ from romverse.companion.telemetry import CompanionTelemetry, RemoteCompanionSnap
 class CompanionHTTPServer(ThreadingHTTPServer):
     """HTTP server whose request threads cannot hold interpreter shutdown hostage."""
 
-    allow_reuse_address = True
+    # Winsock's SO_REUSEADDR can allow two live servers to claim the same
+    # address, which risks pairing with a different local ROMVERSE instance.
+    # POSIX reuse remains useful for promptly reopening a recently closed port;
+    # Windows instead gets an exclusive bind and falls back to an ephemeral
+    # port when another instance already owns the default.
+    allow_reuse_address = os.name != "nt"
     daemon_threads = True
     block_on_close = False
+
+    def server_bind(self) -> None:
+        if os.name == "nt" and hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()
 
 
 class CompanionTransport:

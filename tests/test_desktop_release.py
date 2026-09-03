@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
+import os
 from copy import deepcopy
 from pathlib import Path
 
@@ -182,4 +183,5 @@ def test_release_json_writer_round_trips_valid_manifest(tmp_path: Path) -> None:
     write_release_json(output, manifest)
 
     assert load_release_json(output) == json.loads(output.read_text(encoding="ascii"))
-    assert output.stat().st_mode & 0o777 == 0o644
+    if os.name != "nt":
+        assert output.stat().st_mode & 0o777 == 0o644

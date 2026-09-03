@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QApplication
 from romverse.core.activity import ActivityStore
 from romverse.galaxy.store import GalaxySort
 from romverse.ui.galaxy_center import GalaxyCenter, NewTopicDialog
-from romverse.ui.theme import STYLESHEET
+from romverse.ui.theme import STYLESHEET, apply_dark_palette
 
 
 def test_galaxy_center_renders_and_updates_real_local_conversations(tmp_path) -> None:
@@ -147,6 +147,9 @@ def test_new_topic_dialog_recovers_private_local_draft(tmp_path) -> None:
 
 def test_galaxy_editors_render_with_explicit_dark_theme_surfaces(tmp_path) -> None:
     app = QApplication.instance() or QApplication([])
+    previous_palette = QPalette(app.palette())
+    previous_stylesheet = app.styleSheet()
+    apply_dark_palette(app)
     app.setStyleSheet(STYLESHEET)
     center = GalaxyCenter(tmp_path)
     dialog = NewTopicDialog(center.store)
@@ -163,3 +166,5 @@ def test_galaxy_editors_render_with_explicit_dark_theme_surfaces(tmp_path) -> No
     assert center.topic_body.palette().color(QPalette.ColorRole.Text).lightness() > 160
     dialog.close()
     center.close()
+    app.setStyleSheet(previous_stylesheet)
+    app.setPalette(previous_palette)

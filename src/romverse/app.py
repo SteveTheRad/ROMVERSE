@@ -95,7 +95,8 @@ def main(argv: list[str] | None = None) -> int:
     app.setStyle("Fusion")
     apply_dark_palette(app)
     app.setStyleSheet(STYLESHEET)
-    instance_lock = QLockFile(str(Path(tempfile.gettempdir()) / "romverse-studio.lock"))
+    lock_name = "romverse-release-smoke.lock" if args.release_smoke else "romverse-studio.lock"
+    instance_lock = QLockFile(str(Path(tempfile.gettempdir()) / lock_name))
     # A killed/aborted GUI can leave lock metadata behind. Qt can safely
     # remove it only when the recorded owner is no longer alive; a live
     # second instance still prevents startup.

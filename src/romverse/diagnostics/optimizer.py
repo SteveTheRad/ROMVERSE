@@ -19,6 +19,7 @@ class CleanupCandidate:
     relative_path: str
     size: int
     modified_ns: int
+    created_ns: int
     device: int
     inode: int
 
@@ -106,6 +107,7 @@ class RomverseCacheOptimizer:
                         relative_path=path.relative_to(self.workspace).as_posix(),
                         size=entry_stat.st_size,
                         modified_ns=entry_stat.st_mtime_ns,
+                        created_ns=getattr(entry_stat, "st_birthtime_ns", entry_stat.st_ctime_ns),
                         device=entry_stat.st_dev,
                         inode=entry_stat.st_ino,
                     )
@@ -249,12 +251,19 @@ class RomverseCacheOptimizer:
 
     @staticmethod
     def _same_regular_file(current: os.stat_result, candidate: CleanupCandidate) -> bool:
+        # Windows file-index/device fields returned by directory enumeration are
+        # not guaranteed to match a later path stat.  Its stable file-creation
+        # timestamp preserves an independent identity check on that platform.
+        identity_matches = (
+            getattr(current, "st_birthtime_ns", current.st_ctime_ns) == candidate.created_ns
+            if os.name == "nt"
+            else current.st_dev == candidate.device and current.st_ino == candidate.inode
+        )
         return (
             stat.S_ISREG(current.st_mode)
             and current.st_size == candidate.size
             and current.st_mtime_ns == candidate.modified_ns
-            and current.st_dev == candidate.device
-            and current.st_ino == candidate.inode
+            and identity_matches
         )
 
     def _prepare_receipt(self, preview: CleanupPreview) -> tuple[str, str, Path]:

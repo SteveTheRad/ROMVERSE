@@ -2,6 +2,7 @@ import base64
 import hashlib
 import io
 import json
+import os
 import zipfile
 
 import pytest
@@ -51,16 +52,18 @@ def test_managed_avbtool_install_validates_hashes_and_records_source(tmp_path):
     )
 
     assert executable.read_bytes() == source
-    assert executable.stat().st_mode & 0o111
+    if os.name != "nt":
+        assert executable.stat().st_mode & 0o111
     assert digest == hashlib.sha256(source).hexdigest()
     receipt = json.loads(
         (tmp_path / "avbtool" / "managed-tool.romverse").read_text(encoding="utf-8")
     )
     assert receipt["sha256"] == digest
     assert "android.googlesource.com" in receipt["source"]
-    assert executable.parent.stat().st_mode & 0o077 == 0
-    assert executable.stat().st_mode & 0o077 == 0
-    assert (executable.parent / "managed-tool.romverse").stat().st_mode & 0o077 == 0
+    if os.name != "nt":
+        assert executable.parent.stat().st_mode & 0o077 == 0
+        assert executable.stat().st_mode & 0o077 == 0
+        assert (executable.parent / "managed-tool.romverse").stat().st_mode & 0o077 == 0
     assert progress == [(len(base64.b64encode(source)), len(base64.b64encode(source))), (0, 0)]
 
 
@@ -80,11 +83,11 @@ def test_verified_managed_tool_is_activated_once_and_tamper_fails_closed(
 
     assert first == (executable.parent,)
     assert second == first
-    assert __import__("os").environ["PATH"].split(":").count(str(executable.parent)) == 1
+    assert os.environ["PATH"].split(os.pathsep).count(str(executable.parent)) == 1
 
     executable.write_bytes(b"tampered")
     assert activate_verified_managed_tools(tmp_path / "workspace") == ()
-    assert str(executable.parent) not in __import__("os").environ["PATH"].split(":")
+    assert str(executable.parent) not in os.environ["PATH"].split(os.pathsep)
 
 
 def test_managed_avbtool_rejects_unexpected_download(tmp_path):
@@ -175,7 +178,8 @@ def test_pinned_google_maven_aapt2_install_is_receipted_and_tamper_closes(
     receipt = json.loads((installed / "managed-package.romverse").read_text())
     assert archive_digest == digest
     assert executable.read_bytes().startswith(b"\x7fELF")
-    assert executable.stat().st_mode & 0o111
+    if os.name != "nt":
+        assert executable.stat().st_mode & 0o111
     assert receipt["archive_sha256"] == digest
     assert receipt["license"] == "Apache-2.0"
     assert set(receipt["files"]) == {"aapt2", "NOTICE", "aapt2.romverse"}
@@ -202,7 +206,8 @@ def test_pinned_official_apksig_verifier_is_bounded_and_verification_only(
     installed = tmp_path / APK_VERIFIER_PACKAGE_DIRECTORY
     receipt = json.loads((installed / "managed-package.romverse").read_text())
     assert artifact_digest == digest
-    assert launcher.stat().st_mode & 0o111
+    if os.name != "nt":
+        assert launcher.stat().st_mode & 0o111
     assert b"os.execvp" in launcher.read_bytes()
     assert receipt["artifact_sha256"] == digest
     assert receipt["capability"] == "verification-only"
@@ -252,8 +257,9 @@ def test_official_archive_is_content_addressed_and_only_activates_while_unchange
     receipt = json.loads((installed / "managed-package.romverse").read_text())
     assert receipt["archive_sha256"] == digest
     assert verified_managed_directories(tmp_path) == (installed / "platform-tools",)
-    assert installed.stat().st_mode & 0o077 == 0
-    assert (installed / "managed-package.romverse").stat().st_mode & 0o077 == 0
+    if os.name != "nt":
+        assert installed.stat().st_mode & 0o077 == 0
+        assert (installed / "managed-package.romverse").stat().st_mode & 0o077 == 0
     assert progress == [(0, len(payload)), (len(payload), len(payload)), (0, 0)]
 
     (installed / "platform-tools" / "adb").write_bytes(b"tampered")

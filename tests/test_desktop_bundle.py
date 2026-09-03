@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import zipfile
 from pathlib import Path
 from subprocess import CompletedProcess
@@ -32,7 +33,8 @@ def test_desktop_bundle_packages_and_verifies_exact_tree(tmp_path: Path) -> None
     assert count == 2
     assert total == len(b"executable") + len(b"brand")
     assert verify_bundle_archive(output, "linux-x86_64") == (digest, count, total)
-    assert output.stat().st_mode & 0o777 == 0o644
+    if os.name != "nt":
+        assert output.stat().st_mode & 0o777 == 0o644
 
 
 def test_desktop_bundle_materializes_internal_file_link(tmp_path: Path) -> None:

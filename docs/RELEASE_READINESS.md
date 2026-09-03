@@ -6,8 +6,12 @@ has current evidence.
 
 ## Required gates
 
-1. Run `pytest`, `ruff check .`, and `ruff format --check .` on supported Linux and Windows
-   Python versions. Stress every byte-reporting worker with thousands of duplicate and late
+1. Run the complete `pytest`, `ruff check .`, and `ruff format --check .` gates on supported Linux
+   Python versions. On Windows, run the dedicated portability suite on every supported Python
+   version, then require the installed-wheel and frozen-application smoke gates below. POSIX-only
+   file-mode, Linux package-manager, ELF-tool, and fakeroot contracts are not Windows tests; private
+   Windows storage relies on the user's workspace ACL rather than simulated Unix mode bits.
+   Stress every byte-reporting worker with thousands of duplicate and late
    backwards callbacks; only new bounded integer percentages may reach Qt, and the operation must
    still publish its truthful terminal state.
 2. Run Companion `testDebugUnitTest` and `assembleDebug` with Java 17, Gradle 8.11.1, and the
@@ -19,6 +23,8 @@ has current evidence.
    modules, branding art, phone art, and integrity-indexed Device Packs. CI runs
    `scripts/verify_wheel.py`, installs that wheel, opens its packaged desktop shell offscreen, and
    initializes a fresh workspace with `scripts/smoke_installed_desktop.py` on Linux and Windows.
+   That smoke also creates a real project, protected original, working copy, and Time Machine
+   snapshot, reopens the same populated workspace, and requires every tracked byte to remain exact.
    Each target host then builds a self-contained one-folder executable, launches it through the
    bounded release-smoke mode, packages its full directory as a verified ZIP, and uploads the native
    bundle. Only after both target-host jobs pass does CI combine the exact Linux and Windows ZIPs in

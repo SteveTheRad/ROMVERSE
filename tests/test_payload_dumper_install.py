@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import os
 import tarfile
 from pathlib import Path
 
@@ -51,7 +52,7 @@ def _release_metadata(archive_digest: str, *, url: str | None = None) -> bytes:
 def _archive(*, unsafe_name: str | None = None, symlink: bool = False) -> bytes:
     output = io.BytesIO()
     with tarfile.open(fileobj=output, mode="w:gz") as archive:
-        name = unsafe_name or "payload-dumper-go"
+        name = unsafe_name or ("payload-dumper-go.exe" if os.name == "nt" else "payload-dumper-go")
         info = tarfile.TarInfo(name)
         if symlink:
             info.type = tarfile.SYMTYPE
@@ -115,13 +116,15 @@ def test_installer_hashes_extracts_and_activates_managed_tool(tmp_path: Path) ->
     )
 
     assert executable.read_bytes() == b"payload dumper executable"
-    assert executable.stat().st_mode & 0o111
+    if os.name != "nt":
+        assert executable.stat().st_mode & 0o111
     receipt = json.loads((executable.parent / "managed-tool.romverse").read_text())
     assert receipt["version"] == "2.0.2"
     assert receipt["sha256"] == binary_digest
-    assert executable.parent.stat().st_mode & 0o077 == 0
-    assert executable.stat().st_mode & 0o077 == 0
-    assert (executable.parent / "managed-tool.romverse").stat().st_mode & 0o077 == 0
+    if os.name != "nt":
+        assert executable.parent.stat().st_mode & 0o077 == 0
+        assert executable.stat().st_mode & 0o077 == 0
+        assert (executable.parent / "managed-tool.romverse").stat().st_mode & 0o077 == 0
     assert verified_managed_directories(tmp_path) == (executable.parent,)
     assert progress == [(0, len(archive)), (len(archive), len(archive)), (0, 0)]
 

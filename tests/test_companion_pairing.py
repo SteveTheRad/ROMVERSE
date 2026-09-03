@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 import stat
 from datetime import UTC, datetime
 
@@ -109,8 +110,9 @@ def test_session_broker_remembers_only_a_token_digest_across_restart(tmp_path) -
 
     state_text = state_path.read_text(encoding="utf-8")
     assert token not in state_text
-    assert state_path.stat().st_mode & 0o777 == 0o600
-    assert stat.S_IMODE(state_path.parent.stat().st_mode) == 0o700
+    if os.name != "nt":
+        assert state_path.stat().st_mode & 0o777 == 0o600
+        assert stat.S_IMODE(state_path.parent.stat().st_mode) == 0o700
     document = json.loads(state_text)
     assert document["schema_version"] == broker.STATE_SCHEMA_VERSION
     unsigned = {key: value for key, value in document.items() if key != "record_digest"}
@@ -275,7 +277,8 @@ def test_legacy_remembered_session_migrates_to_private_strict_schema_two(tmp_pat
         "record_digest",
     }
     assert migrated["schema_version"] == 2
-    assert stat.S_IMODE(state_path.stat().st_mode) == 0o600
+    if os.name != "nt":
+        assert stat.S_IMODE(state_path.stat().st_mode) == 0o600
 
 
 def test_linked_remembered_session_target_cannot_capture_new_approval(tmp_path) -> None:

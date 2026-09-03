@@ -480,11 +480,15 @@ class GalaxyCommunityStore:
                 stream.flush()
                 os.fsync(stream.fileno())
             os.replace(temporary, path)
-            directory_fd = os.open(path.parent, os.O_RDONLY)
-            try:
-                os.fsync(directory_fd)
-            finally:
-                os.close(directory_fd)
+            # Windows does not permit opening a directory with this POSIX
+            # durability pattern.  The file itself is still flushed above;
+            # directory metadata syncing remains enabled where supported.
+            if os.name != "nt":
+                directory_fd = os.open(path.parent, os.O_RDONLY)
+                try:
+                    os.fsync(directory_fd)
+                finally:
+                    os.close(directory_fd)
         finally:
             with suppress(OSError):
                 temporary.unlink(missing_ok=True)

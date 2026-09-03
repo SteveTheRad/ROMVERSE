@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import sys
 from dataclasses import replace
 from datetime import UTC, datetime
 from importlib.resources import files
@@ -2599,7 +2600,8 @@ def test_adb_tool_refresh_activates_and_revokes_every_dependent_runtime(
     window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
     scans: list[bool] = []
     monkeypatch.setattr(window, "scan", lambda: scans.append(True))
-    available = (ToolStatus("ADB", True, "/bin/true", "test", "Ready"),)
+    runtime = Path(sys.executable).resolve()
+    available = (ToolStatus("ADB", True, str(runtime), "test", "Ready"),)
     missing = (ToolStatus("ADB", False, detail="Missing"),)
     device = AndroidDevice("device-serial", DeviceState.DEVICE, model="Test phone")
     runtime_requests = []
@@ -2632,7 +2634,7 @@ def test_adb_tool_refresh_activates_and_revokes_every_dependent_runtime(
         assert window.engine is not None
         assert window.timer.isActive()
         assert scans == [True]
-        resolved_adb = Path("/bin/true").resolve()
+        resolved_adb = runtime
         assert window.rom_studio.adb_executable == resolved_adb
         assert window.rom_studio.device_scan_available
         assert window.apk_installer.install_service is not None
@@ -2675,7 +2677,7 @@ def test_fastboot_only_tool_refresh_keeps_read_only_identity_scanning_available(
     monkeypatch.setattr(window, "scan", lambda: scans.append(True))
     available = (
         ToolStatus("ADB", False, detail="Missing"),
-        ToolStatus("Fastboot", True, "/bin/true", "test", "Ready"),
+        ToolStatus("Fastboot", True, str(Path(sys.executable).resolve()), "test", "Ready"),
     )
 
     try:

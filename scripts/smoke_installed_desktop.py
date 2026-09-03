@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import subprocess
+import sys
 from importlib.resources import files
 from pathlib import Path
 from unittest.mock import patch
@@ -11,6 +14,7 @@ from PySide6.QtWidgets import QApplication
 from romverse import app as romverse_app
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.knowledge.archives import CANONICAL_ROUTES, KNOWN_FIXES
+from romverse.rom.projects import RomProjectStore
 from romverse.ui import main_window as main_window_module
 from romverse.ui.backup_center import BackupCenter
 from romverse.ui.knowledge_center import ARCHIVE_ARTICLES
@@ -26,28 +30,33 @@ def main() -> int:
     smoke_lock = workspace.parent / f".{workspace.name}.romverse-smoke.lock"
 
     QApplication.exec = lambda _self: 0  # type: ignore[method-assign]
-    # A developer may be exercising the real Desktop while CI validates an installed
-    # wheel. Preserve production's single-instance lock and redirect only this in-process
-    # smoke launch to a unique temporary lock beside its disposable workspace.
-    with (
-        patch.object(
-            romverse_app,
-            "QLockFile",
-            side_effect=lambda _production_path: QLockFile(str(smoke_lock)),
-        ),
-        # The smoke replaces QApplication.exec, so a real asynchronous device scan
-        # would outlive the temporary MainWindow. Production launches retain the
-        # normal managed worker; this harness validates startup without orphaning it.
-        patch.object(main_window_module, "start_background"),
-    ):
-        result = romverse_app.main(
-            ["--workspace", str(workspace), "--skip-onboarding"],
-        )
-        launched_app = QApplication.instance()
-        if launched_app is not None:
-            for widget in launched_app.topLevelWidgets():
-                widget.close()
-            launched_app.processEvents()
+
+    def launch() -> int:
+        # A developer may be exercising the real Desktop while CI validates an installed
+        # wheel. Preserve production's single-instance lock and redirect only this
+        # in-process smoke launch to a unique lock beside its disposable workspace.
+        with (
+            patch.object(
+                romverse_app,
+                "QLockFile",
+                side_effect=lambda _production_path: QLockFile(str(smoke_lock)),
+            ),
+            # The smoke replaces QApplication.exec, so a real asynchronous device scan
+            # would outlive the temporary MainWindow. Production launches retain the
+            # managed worker; this harness validates startup without orphaning it.
+            patch.object(main_window_module, "start_background"),
+        ):
+            result = romverse_app.main(
+                ["--workspace", str(workspace), "--skip-onboarding"],
+            )
+            launched_app = QApplication.instance()
+            if launched_app is not None:
+                for widget in launched_app.topLevelWidgets():
+                    widget.close()
+                launched_app.processEvents()
+        return result
+
+    result = launch()
     if result != 0 or not (workspace / ".romverse-workspace.json").is_file():
         raise RuntimeError("Installed desktop did not initialize a fresh workspace")
 
@@ -106,10 +115,52 @@ def main() -> int:
             raise RuntimeError("Installed Time Machine inherited a light host viewport")
     finally:
         time_machine.close()
+
+    # Reopen a real populated workspace and prove startup preserves the exact
+    # project, immutable original, working copy, and Time Machine snapshot.
+    source = workspace.parent / "romverse-installed-smoke-source.bin"
+    source.write_bytes(b"ROMVERSE installed desktop preservation evidence\n" * 32)
+    store = RomProjectStore(workspace)
+    project = store.import_original(store.create("Installed smoke project").project_id, source)
+    working = store.create_working_copy(project.project_id)
+    snapshot = store.create_snapshot(project.project_id)
+    tracked = (
+        workspace / ".romverse-workspace.json",
+        store.projects_root / project.project_id / store.MANIFEST_NAME,
+        workspace / project.original.workspace_path,
+        store.projects_root / project.project_id / "working-copy.romverse",
+        workspace / working.workspace_path,
+        store.snapshots_root / project.project_id / f"{snapshot.snapshot_id}.romverse",
+        workspace / snapshot.workspace_path,
+    )
+    before = {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in tracked}
+    reopened = subprocess.run(
+        (
+            sys.executable,
+            "-m",
+            "romverse",
+            "--workspace",
+            str(workspace),
+            "--skip-onboarding",
+            "--release-smoke",
+        ),
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    if reopened.returncode != 0:
+        detail = (reopened.stderr or reopened.stdout).strip()[-1_000:]
+        raise RuntimeError(
+            f"Installed desktop did not reopen an existing workspace: {detail or reopened.returncode}"
+        )
+    after = {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in tracked}
+    if after != before or not store.verify_original(project.project_id).valid:
+        raise RuntimeError("Installed desktop changed protected existing-workspace evidence")
     print(
         f"Installed ROMVERSE desktop smoke passed with {len(registry.packs)} Device Packs, "
         f"{len(KNOWN_FIXES)} known fixes, {len(desktop_routes)} covered desktop routes, "
-        "and a connected dark Time Machine empty state"
+        "a connected dark Time Machine empty state, and byte-exact populated-workspace reopening"
     )
     return 0
 

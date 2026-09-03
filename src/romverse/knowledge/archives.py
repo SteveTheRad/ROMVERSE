@@ -1693,24 +1693,31 @@ KNOWN_FIXES = (
         "identity, an exact protected-firmware build contract, the contract's ordered host "
         "toolchain, and physical flash/recovery evidence. The Requirements Blueprint keeps "
         "those four lanes separate so an official identity or installed compiler can never be "
-        "mistaken for permission to build or write a phone.",
+        "mistaken for permission to build or write a phone. When ROM Studio opens Device Atlas, "
+        "the blueprint must also bind the exact active project and protected source; an older "
+        "phone-matched Pack must not overwrite the current project's build or compile facts.",
         checks=(
             "Confirm the blueprint is bound to the current model/codename, Device Pack id and SHA-256, and readiness-report digest.",
             "Read all four lane badges: Identity, Build Contract, Compile Toolchain, and Flash Contract can have different states.",
             "For a generic/OEM Pack, expect build, toolchain, and flash requirements to remain explicit unknowns even when Google's retail identity is verified.",
             "For an exact build Pack, compare declared tools and outputs with the Pack contract; the Compile lane must report the current verified/missing host subset while flash readiness remains independently gated.",
+            "For a ROM Studio handoff, confirm the project id, protected source SHA-256, source kind, build id, blueprint digest, source-plan digest, and partition count are shown before trusting local build or tool requirements.",
+            "If the phone's exact Pack is for a different source build, expect the project-local source blueprint to supply build preparation and its narrow tool profile while the Flash lane remains locked.",
         ),
         fix_steps=(
             "Use the Identity lane to sync or review exact Build.BRAND / Build.DEVICE evidence without granting compatibility.",
             "Use the Build lane to resolve model scope, protected source hashes, partitions, editable images, and bounded allowed outputs.",
             "Use the Compile lane only after an exact contract exists; it consumes Forge Arsenal's current verification and routes the exact missing subset back for resolution rather than guessing a generic bundle.",
             "Use the Flash lane to prepare stock recovery and obtain signed exact-build AVB, physical-test, publisher, and partition-write evidence before Guardian review.",
+            "If Device Atlas shows tools or a build id from another Pack after a Studio handoff, reopen the exact project and reload its strict source-intelligence receipt; do not continue from retained cards.",
         ),
         verification=(
             "Every lane route re-derives the same current blueprint before navigating and refuses a stale or substituted report.",
             "An exact build-ready Pack can open ROM Studio while a separate flash-locked lane remains visibly locked.",
             "Installing or losing one declared host tool immediately changes only the Compile lane after Forge Arsenal refreshes; it never changes identity, build-contract, or flash authority.",
             "An official generic identity names the phone but never creates required tools, allowed images, partition writes, approval, or flash authority.",
+            "A Studio-scoped blueprint revalidates the project manifest and source receipt on every button press, routes its exact tools to Forge Arsenal, and returns Build & Proof to the same project.",
+            "Changing the protected tree or source receipt makes the retained project route stop visibly instead of falling back to the phone's older Device Pack requirements.",
             "No blueprint button starts an approval, build worker, flash command, or device-changing operation.",
         ),
         tags=(
@@ -1721,9 +1728,12 @@ KNOWN_FIXES = (
             "device build contract missing",
             "flash requirements unknown",
             "identity build toolchain flash",
+            "device atlas shows wrong build pack for project",
+            "rom studio device atlas stale requirements",
+            "phone pack differs from current project source",
         ),
         route="device_atlas",
-        evidence="ROMVERSE derives each lane only from the current official identity match, integrity-checked Device Pack, deterministic validation rows, exact report digest, and Forge Arsenal's current host-tool evidence.",
+        evidence="ROMVERSE derives each lane from the current official identity, integrity-checked Device Pack, validation report, host tools, and—when opened from ROM Studio—the freshly reloaded exact project/source blueprint. Project-local evidence can prove local build preparation but never flash authority.",
         automation="DETERMINISTIC REQUIREMENTS AND SAFE ROUTING ONLY • NO APPROVAL, BUILD, FLASH, OR DEVICE-CHANGING AUTHORITY",
         source=ROMVERSE_SOURCE,
     ),

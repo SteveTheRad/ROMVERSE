@@ -96,6 +96,7 @@ from romverse.rom.recipes import (
     save_run_receipt,
 )
 from romverse.rom.source_identity import identify_firmware_source
+from romverse.rom.source_intelligence import FirmwareSourceIntelligenceService
 from romverse.rom.workspace_recovery import WorkspaceRecoveryReport, WorkspaceRecoveryService
 from romverse.ui.background import (
     CoalescedProgress,
@@ -1497,6 +1498,91 @@ class RomStudio(QWidget):
         focus.setFocus(Qt.FocusReason.OtherFocusReason)
         if intent == "genesis" and launch_genesis:
             self._open_guided_setup()
+        return True
+
+    def open_device_atlas_source_handoff(
+        self,
+        project_id: str,
+        source_sha256: str,
+        blueprint_digest: str,
+        plan_digest: str,
+        source_kind: str,
+        intent: str,
+    ) -> bool:
+        """Reopen one exact project-local source blueprint without inheriting authority."""
+
+        if (
+            self.worker is not None
+            or self.current_project is None
+            or self.current_project.project_id != project_id
+            or intent not in {"build", "artifact"}
+            or source_kind not in {"ota-payload", "fastboot-super", "partition-bundle"}
+            or re.fullmatch(r"[0-9a-f]{64}", source_sha256) is None
+            or re.fullmatch(r"[0-9a-f]{64}", blueprint_digest) is None
+            or re.fullmatch(r"[0-9a-f]{64}", plan_digest) is None
+        ):
+            return False
+        try:
+            project = self.store.get(project_id)
+            blueprint = FirmwareSourceIntelligenceService(
+                self.store,
+                self.tool_statuses,
+                SubprocessRunner(),
+            ).load(project_id)
+        except (OSError, ProjectError, TypeError, ValueError):
+            return False
+        expected_authority = {
+            "ota-payload": "project-local-build-evidence-only",
+            "fastboot-super": "project-local-build-evidence-only",
+            "partition-bundle": "project-local-inventory-evidence-only",
+        }[source_kind]
+        if (
+            project.original is None
+            or project.original.sha256 != source_sha256
+            or blueprint is None
+            or blueprint.project_id != project.project_id
+            or blueprint.source_archive_sha256 != source_sha256
+            or blueprint.source_kind != source_kind
+            or blueprint.blueprint_digest != blueprint_digest
+            or blueprint.plan_digest != plan_digest
+            or blueprint.authority != expected_authority
+            or blueprint.phone_changed
+            or not blueprint.baseline_candidate_ready
+        ):
+            return False
+        self.refresh(project_id)
+        if self.current_project is None or self.current_project.project_id != project_id:
+            return False
+        self.command_tabs.setCurrentIndex(1)
+        title = (
+            "Device Atlas → exact artifact review"
+            if intent == "artifact"
+            else "Device Atlas → project Build & Proof"
+        )
+        next_step = (
+            "Build & Proof will independently revalidate the artifact, Device Pack, recovery, "
+            "AVB, partition-write, and Guardian gates."
+            if intent == "artifact"
+            else "Build & Proof can continue from the verified local source baseline; it will "
+            "independently revalidate every later build and Guardian gate."
+        )
+        self._show_dashboard_handoff(
+            title,
+            f"Exact project {project.project_id}  •  {blueprint.manufacturer} / "
+            f"{blueprint.codename} / {blueprint.build_id}  •  protected source "
+            f"{source_sha256[:16]}…  •  strict {source_kind} blueprint "
+            f"{blueprint_digest[:16]}…  •  source plan {plan_digest[:16]}…  •  "
+            f"{len(blueprint.partitions)} partition records. Local baseline READY; flash "
+            f"authority NONE. {next_step} NO PROJECT WORKER, PLAN, BUILD, APPROVAL, FLASH, "
+            "WIPE, RELOCK, OR PHONE ACTION STARTED.",
+            "PROJECT SOURCE VERIFIED • FLASH LOCKED",
+            ready=True,
+            eyebrow="DEVICE ATLAS HANDOFF  •  EXACT PROJECT / SOURCE BLUEPRINT",
+        )
+        self.detail_scroll.ensureWidgetVisible(self.command_tabs, 0, 24)
+        (self.build_control_button if intent == "artifact" else self.plan_button).setFocus(
+            Qt.FocusReason.OtherFocusReason
+        )
         return True
 
     def open_nexus_handoff(self, project_id: str, plan_digest: str = "") -> bool:

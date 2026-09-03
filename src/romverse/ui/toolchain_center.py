@@ -749,6 +749,9 @@ class StudioProjectToolchainContext:
     inspection_digest: str
     required_tools: tuple[str, ...]
     build_contract_bound: bool
+    source_kind: str = ""
+    source_blueprint_digest: str = ""
+    source_plan_digest: str = ""
 
 
 class ToolchainCenter(QWidget):
@@ -1150,6 +1153,19 @@ class ToolchainCenter(QWidget):
 
     @staticmethod
     def _valid_studio_project_context(context: StudioProjectToolchainContext) -> bool:
+        source_blueprint_valid = bool(
+            context.source_kind
+            and context.source_kind in {"ota-payload", "fastboot-super", "partition-bundle"}
+            and re.fullmatch(r"[0-9a-f]{64}", context.source_blueprint_digest)
+            and re.fullmatch(r"[0-9a-f]{64}", context.source_plan_digest)
+        )
+        source_blueprint_empty = not any(
+            (
+                context.source_kind,
+                context.source_blueprint_digest,
+                context.source_plan_digest,
+            )
+        )
         return bool(
             re.fullmatch(r"[0-9a-f]{64}", context.context_digest)
             and re.fullmatch(r"[0-9a-f]{64}", context.source_sha256)
@@ -1163,6 +1179,7 @@ class ToolchainCenter(QWidget):
             and context.required_tools
             and len(context.required_tools) == len(set(context.required_tools))
             and all(name in ROM_STUDIO_TOOL_CATALOG for name in context.required_tools)
+            and (source_blueprint_valid or source_blueprint_empty)
             and (
                 not context.build_contract_bound
                 or bool(context.device_pack_id and context.pack_sha256)
@@ -1185,11 +1202,21 @@ class ToolchainCenter(QWidget):
             if name not in statuses or not statuses[name].available
         )
         ready = len(context.required_tools) - len(missing)
-        pack_copy = (
-            f"Pack {context.device_pack_id} • SHA-256 {context.pack_sha256[:16]}… • exact build contract"
-            if context.build_contract_bound
-            else "No source-matched Device Pack build contract • structural/default tools only"
-        )
+        if context.build_contract_bound:
+            pack_copy = (
+                f"Pack {context.device_pack_id} • SHA-256 {context.pack_sha256[:16]}… • "
+                "exact build contract"
+            )
+        elif context.source_blueprint_digest:
+            pack_copy = (
+                f"Project-local {context.source_kind} blueprint "
+                f"{context.source_blueprint_digest[:16]}… • source plan "
+                f"{context.source_plan_digest[:16]}… • no source-matched flash contract"
+            )
+        else:
+            pack_copy = (
+                "No source-matched Device Pack build contract • structural/default tools only"
+            )
         inspection_copy = (
             f"inspection {context.inspection_digest[:16]}…"
             if context.inspection_digest

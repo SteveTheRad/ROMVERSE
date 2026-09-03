@@ -134,6 +134,7 @@ from romverse.repair.templates import RepairAssessmentTemplates, actionable_repa
 from romverse.rom.models import ProjectError
 from romverse.rom.projects import RomProjectStore
 from romverse.rom.readiness import BuildReadinessService
+from romverse.rom.source_intelligence import FirmwareSourceIntelligenceService
 from romverse.ui.about_state import OriginDiscoveryError, OriginDiscoveryStore
 from romverse.ui.activity_center import ActivityCenter
 from romverse.ui.apk_center import ApkCenter
@@ -4582,6 +4583,25 @@ class MainWindow(QMainWindow):
                     "Forge Arsenal rejected requirements that are not bound to the current exact Pack",
                 )
             return
+        if route == "forge_arsenal_project":
+            context = self._current_studio_toolchain_context(blueprint.project_id)
+            if (
+                not blueprint.project_scoped
+                or context is None
+                or context.source_sha256 != blueprint.project_source_sha256
+                or context.source_kind != blueprint.source_kind
+                or context.source_blueprint_digest != blueprint.source_blueprint_digest
+                or context.source_plan_digest != blueprint.source_plan_digest
+                or context.required_tools != blueprint.source_required_tools
+                or not self.toolchain_center.open_studio_project_context(context)
+            ):
+                self.device_packs_center.requirement_handoff_stopped(
+                    lane_id,
+                    "Forge Arsenal rejected changed project, source-blueprint, or tool evidence",
+                )
+                return
+            self._navigate_route("forge_arsenal")
+            return
         if route == "time_machine":
             if not self.backup_center.open_device_atlas_readiness(report):
                 self.device_packs_center.requirement_handoff_stopped(
@@ -4597,6 +4617,23 @@ class MainWindow(QMainWindow):
                 self.device_packs_center.requirement_handoff_stopped(
                     lane_id,
                     "ROM Studio rejected a changed or incomplete exact requirements contract",
+                )
+                return
+            self._navigate_route("rom_studio")
+            return
+        if route == "rom_studio_project":
+            intent = "artifact" if lane_id == "flash" else "build"
+            if not self.rom_studio.open_device_atlas_source_handoff(
+                blueprint.project_id,
+                blueprint.project_source_sha256,
+                blueprint.source_blueprint_digest,
+                blueprint.source_plan_digest,
+                blueprint.source_kind,
+                intent,
+            ):
+                self.device_packs_center.requirement_handoff_stopped(
+                    lane_id,
+                    "ROM Studio rejected changed project or source-blueprint evidence",
                 )
                 return
             self._navigate_route("rom_studio")
@@ -5719,7 +5756,28 @@ class MainWindow(QMainWindow):
             and pack.build_contract.source.archive_sha256 == project.original.sha256
             else None
         )
-        partition_signals = inspection.partition_signals if inspection is not None else ()
+        source_blueprint = FirmwareSourceIntelligenceService(
+            self.rom_studio.store,
+            self.rom_studio.tool_statuses,
+            SubprocessRunner(),
+        ).load(project.project_id)
+        if (
+            source_blueprint is not None
+            and source_blueprint.source_archive_sha256 != project.original.sha256
+        ):
+            source_blueprint = None
+        source_signals = (
+            {
+                "ota-payload": ("ota_payload",),
+                "fastboot-super": ("super",),
+                "partition-bundle": ("partition_bundle",),
+            }.get(source_blueprint.source_kind, ())
+            if source_blueprint is not None
+            else ()
+        )
+        partition_signals = source_signals or (
+            inspection.partition_signals if inspection is not None else ()
+        )
         required_tools = required_tools_for_source(contract, partition_signals)
         payload = {
             "project_id": project.project_id,
@@ -5728,6 +5786,13 @@ class MainWindow(QMainWindow):
             "device_pack_id": project.device_pack_id,
             "pack_sha256": pack.sha256 if pack is not None else "",
             "inspection_digest": inspection.record_digest if inspection is not None else "",
+            "source_kind": source_blueprint.source_kind if source_blueprint is not None else "",
+            "source_blueprint_digest": (
+                source_blueprint.blueprint_digest if source_blueprint is not None else ""
+            ),
+            "source_plan_digest": (
+                source_blueprint.plan_digest if source_blueprint is not None else ""
+            ),
             "partition_signals": partition_signals,
             "required_tools": required_tools,
             "build_contract_bound": contract is not None,
@@ -5747,6 +5812,13 @@ class MainWindow(QMainWindow):
             inspection_digest=inspection.record_digest if inspection is not None else "",
             required_tools=required_tools,
             build_contract_bound=contract is not None,
+            source_kind=source_blueprint.source_kind if source_blueprint is not None else "",
+            source_blueprint_digest=(
+                source_blueprint.blueprint_digest if source_blueprint is not None else ""
+            ),
+            source_plan_digest=(
+                source_blueprint.plan_digest if source_blueprint is not None else ""
+            ),
         )
 
     @Slot(str, str)

@@ -71,6 +71,7 @@ def main() -> int:
         "nexus-intelligence-feature-opens-generic-page",
         "architect-mode-does-not-change-desktop",
         "fastboot-identity-only",
+        "device-build-requirements-blueprint",
         "device-dna-source-blueprint-disagreement",
     }
     installed_handoffs = {item.key for item in KNOWN_FIXES}

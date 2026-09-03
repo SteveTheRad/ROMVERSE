@@ -237,6 +237,16 @@ evidence can be enabled and otherwise routes visibly back to ROM Studio. Readine
 deduplicated genuine Live Console evidence with Device Atlas as the canonical source. Navigation
 grants no build, flash, approval, worker, or execution authority.
 
+A ROM Studio → Device Atlas handoff scopes the Automatic Requirements Blueprint to the exact
+selected project when a strict source-intelligence receipt is current and its manufacturer/codename
+matches the connected phone. The Build lane may then report a verified project-local OTA,
+fastboot-super, or partition-bundle baseline, and Compile derives the narrow ordered tools for that
+same source. Both routes revalidate and return to the exact project/source/blueprint/plan identity.
+This does not upgrade the phone's Device Pack: without an independently source-matched recovery,
+AVB, physical-test, publisher, and partition-write contract, Flash remains locked. If the manifest,
+source tree, receipt, build identity, or phone target changes, the retained route fails closed and
+must not fall back to requirements from a different Pack build.
+
 ### ROM project provenance increment
 
 ROM Studio creates project directories containing a private atomic, versioned `project.romverse`

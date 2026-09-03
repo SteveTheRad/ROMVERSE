@@ -28,19 +28,23 @@ has current evidence.
    Repository tests also prove a changed packaged runtime module is rejected. This does not replace
    the required Windows installed-wheel pass or signed release-artifact validation.
 
-   Current Fedora development evidence recorded on 2026-09-02: all 1,294 Desktop tests and both
-   complete Ruff gates passed after producer-aware deep links and strict Device DNA/Forge source-
-   blueprint reconciliation were connected to exact nested features. Regression coverage verifies
-   exact project restoration, stale-project refusal, unknown-source refusal, Guided-mode
-   persistence, strict current project/source/authority/digest/no-phone-change blueprint binding,
-   visible local-build evidence, and zero scan/dialog/worker/build/flash authority from evidence
-   navigation. ROMVERSE Archives contains 151 validated guides, 101 structured known fixes, and 38
-   official-source-backed records. A fresh isolated wheel build produced 223 members and revalidated
-   all 21 Device Packs; its SHA-256 is
-   `a466909e95591f5dc2e2a371af8ce9d5ed1a66ddc15af3b5fd85d101307550ac`. The installed-wheel smoke
-   opened a fresh dark Desktop workspace and verified 101 packaged fixes plus all 19 top-level route
-   coverage. This remains local Fedora evidence, not Windows validation, signing, publication, or
-   physical-device write certification.
+   Current Fedora development evidence recorded on 2026-09-03: all 1,302 Desktop tests and both
+   complete Ruff gates passed after the exact ROM Studio → Device Atlas → Forge Arsenal
+   project/source handoff was completed. Regression coverage verifies strict current
+   project/source/authority/blueprint/plan/no-phone-change binding; replacement of an unrelated
+   phone-Pack build/tool path with the current source-specific requirements; exact Studio and Forge
+   return routes; visible stale-source refusal; suppression of the wrong Pack's Next Safe Action;
+   and zero scan/dialog/worker/build/flash authority from evidence navigation. ROMVERSE Archives
+   contains 151 validated guides, 101 structured known fixes, and 38 official-source-backed records,
+   including the wrong-project-Pack diagnosis. A fresh isolated wheel build produced 223 members
+   and revalidated all 21 Device Packs; its SHA-256 is
+   `74f4da7fc4ff8ab478de6943274275abcd7434cec9f4e0b7577f2b8a104680ce`. A separate temporary Python
+   3.14 environment installed the wheel and all declared dependencies from outside the checkout.
+   Its installed Desktop smoke passed twice against the same clean workspace with 101 packaged
+   fixes and all 19 top-level routes. A populated-workspace launch separately preserved the project
+   manifest, immutable original, working copy, and Time Machine snapshot byte-for-byte and
+   revalidated the original afterward. This remains local Fedora evidence, not Windows validation,
+   production signing, publication, or physical-device write certification.
 
    Current Fedora development evidence recorded on 2026-09-01: 1,149 Desktop tests and the complete
    Ruff check/format gate pass after the Ctrl+K navigation-only palette, canonical Activity Center,

@@ -8,8 +8,11 @@ from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.device_packs.requirements import RequirementState
 from romverse.infrastructure.tools import ToolStatus
+from romverse.rom.projects import RomProjectStore
+from romverse.rom.source_intelligence import FirmwareSourceIntelligenceService
 from romverse.ui.device_packs_center import DevicePacksCenter
 from tests.test_device_catalog import _payload, _sync
+from tests.test_source_intelligence import SourceRunner
 
 
 def test_device_atlas_distinguishes_local_build_readiness_from_flash_lock(tmp_path) -> None:
@@ -90,6 +93,91 @@ def test_device_atlas_distinguishes_local_build_readiness_from_flash_lock(tmp_pa
     center._export_source_audit()
     assert "execution authority: none" in center.match_reason.text()
     assert list((tmp_path / "device_atlas_audits").glob("*.json"))
+    center.close()
+
+
+def test_studio_handoff_scopes_requirements_to_current_strict_source_blueprint(
+    tmp_path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.create("Current HyperOS source", "xiaomi.hyperos")
+    source = tmp_path / "popsicle-ota_full-OS4.0.0.25.XPBCNXM-user-17.0-test.zip"
+    source.write_bytes(b"protected-current-source")
+    project = store.import_original(project.project_id, source)
+    tree = store.working_root / project.project_id / "tree"
+    tree.mkdir(parents=True)
+    (tree / "payload.bin").write_bytes(b"CrAU current payload")
+    payload_dumper = tmp_path / "payload-dumper-go"
+    payload_dumper.write_bytes(b"verified tool fixture")
+    statuses = (
+        ToolStatus("Python", True, "/verified/python", "test", "Ready"),
+        ToolStatus("Payload Dumper", True, str(payload_dumper), "test", "Ready"),
+        ToolStatus("AVBTool", True, "/verified/avbtool", "test", "Ready"),
+    )
+    source_blueprint = FirmwareSourceIntelligenceService(
+        store,
+        statuses,
+        SourceRunner(),
+    ).prepare(project.project_id)
+    center = DevicePacksCenter(registry, store.workspace, tool_statuses=statuses)
+    center.set_devices(
+        [
+            AndroidDevice(
+                "private-current-source",
+                DeviceState.DEVICE,
+                brand="Xiaomi",
+                manufacturer="Xiaomi",
+                model="2509FPN0BC",
+                product="popsicle_global",
+                codename="popsicle",
+            )
+        ]
+    )
+
+    assert center.open_rom_studio_project(
+        project.project_id,
+        project.name,
+        project.device_pack_id,
+        project.original.sha256,
+    )
+    app.processEvents()
+
+    blueprint = center.current_requirements()
+    assert blueprint is not None and blueprint.project_scoped
+    assert blueprint.project_id == project.project_id
+    assert blueprint.project_source_sha256 == project.original.sha256
+    assert blueprint.source_blueprint_digest == source_blueprint.blueprint_digest
+    assert blueprint.source_required_tools == ("Python", "Payload Dumper", "AVBTool")
+    assert blueprint.lane("build").badge == "PROJECT SOURCE • LOCAL BASELINE READY"
+    assert blueprint.lane("compile").badge == "3/3 TOOLS VERIFIED • HOST READY"
+    assert blueprint.lane("flash").state is RequirementState.LOCKED
+    assert center.dashboard_handoff_badge.text() == "PROJECT SOURCE BOUND"
+    assert "OS4.0.0.25" in center.dashboard_handoff_detail.text()
+    assert "3 HOST TOOLS" in center.dashboard_handoff_detail.text()
+    assert "project source recognized" in center.guidance_title.text().casefold()
+    assert center.continue_button.isHidden()
+    assert center.pack_name.text().startswith("Phone Pack reference")
+    assert "is for a different source" in center.match_reason.text()
+    assert center.pack_badge.text() == "REFERENCE ONLY • PROJECT SOURCE ACTIVE"
+    assert center.active_next_action is None
+    assert center.next_action_title.text() == "Use the exact project requirements below"
+    assert center.next_action_badge.text() == "PROJECT ROUTES ONLY"
+    assert not center.next_action_button.isEnabled()
+    labels = [label.text() for label in center.findChildren(QLabel)]
+    assert any("Current HyperOS source" in label and "ota-payload" in label for label in labels)
+
+    requests: list[tuple[str, str, str, str]] = []
+    center.requirement_requested.connect(lambda *values: requests.append(values))
+    center.requirement_buttons["compile"].click()
+    assert requests == [("compile", "forge_arsenal_project", "", blueprint.report_digest)]
+
+    (tree / "payload.bin").write_bytes(b"changed payload")
+    center.requirement_buttons["build"].click()
+    assert requests == [("compile", "forge_arsenal_project", "", blueprint.report_digest)]
+    assert "BUILD HANDOFF STOPPED" in center.requirements_feedback.text()
+    assert "source blueprint changed" in center.requirements_feedback.text()
     center.close()
 
 

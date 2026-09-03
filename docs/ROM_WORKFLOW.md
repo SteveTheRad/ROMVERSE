@@ -295,6 +295,16 @@ flashing remain locked. The protected original is never used as an edit target.
 
 ## Device Atlas expansion after ROM Studio
 
+Before expanding Pack coverage, Device Atlas preserves the exact ROM Studio mission that opened
+it. A valid project-local source blueprint replaces stale build/tool cards from a phone-matched but
+different firmware Pack: the UI names the active project, protected source hash, build ID, source
+kind, plan digest, and observed partition count; Build returns to that project's Build & Proof tab;
+Compile opens Forge Arsenal with only the source-derived ordered tools. Every button reloads the
+manifest and source receipt. Changed bytes, digests, authority, source identity, or phone codename
+stop the handoff visibly. This project-local build evidence never supplies flash authority, so the
+Flash lane remains locked unless the exact source also has the separate reviewed Device Pack and
+Guardian write evidence.
+
 ROMVERSE will expand to another phone only through a versioned Device Pack. Each accepted model,
 region, carrier and firmware build must include authoritative source URLs, immutable archive and
 payload hashes, exact product/codename identifiers, partition and slot topology, filesystem and

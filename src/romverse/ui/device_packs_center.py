@@ -32,6 +32,7 @@ from romverse.device_packs.registry import DevicePackRegistry
 from romverse.device_packs.requirements import (
     DeviceRequirementsBlueprint,
     DeviceRequirementsService,
+    ProjectSourceRequirements,
     RequirementState,
 )
 from romverse.device_packs.source_audit import export_source_audit, summarize_sources
@@ -41,7 +42,12 @@ from romverse.device_packs.validation import (
     DevicePackValidationService,
     ValidationState,
 )
+from romverse.infrastructure.process import SubprocessRunner
+from romverse.infrastructure.provisioning import required_tools_for_source
 from romverse.infrastructure.tools import ToolStatus
+from romverse.rom.models import ProjectError
+from romverse.rom.projects import RomProjectStore
+from romverse.rom.source_intelligence import FirmwareSourceIntelligenceService
 
 
 class DevicePacksCenter(QWidget):
@@ -74,6 +80,7 @@ class DevicePacksCenter(QWidget):
         self.active_report: DevicePackValidationReport | None = None
         self.active_next_action: DevicePackNextAction | None = None
         self.active_requirements: DeviceRequirementsBlueprint | None = None
+        self.active_project_source: ProjectSourceRequirements | None = None
         self.active_catalog_match: DeviceCatalogMatch | None = None
         self.active_pack: DevicePack | None = None
         self.active_device: AndroidDevice | None = None
@@ -155,6 +162,7 @@ class DevicePacksCenter(QWidget):
         self.dashboard_handoff_detail = QLabel()
         self.dashboard_handoff_detail.setObjectName("Muted")
         self.dashboard_handoff_detail.setWordWrap(True)
+        self.dashboard_handoff_detail.setMinimumHeight(20)
         self.dashboard_handoff_detail.setTextInteractionFlags(
             Qt.TextInteractionFlag.TextSelectableByMouse
         )
@@ -203,6 +211,7 @@ class DevicePacksCenter(QWidget):
             f"{len(registry.packs)} integrity-checked built-in packs are available."
         )
         self.match_reason.setObjectName("Muted")
+        self.match_reason.setWordWrap(True)
         state.addWidget(self.pack_name)
         state.addWidget(self.match_reason)
         hero_layout.addLayout(state, 1)
@@ -409,6 +418,7 @@ class DevicePacksCenter(QWidget):
 
     def set_devices(self, devices: list[AndroidDevice]) -> None:
         self.dashboard_handoff.setVisible(False)
+        self.active_project_source = None
         self.devices = devices
         self.selector.blockSignals(True)
         self.selector.clear()
@@ -447,6 +457,10 @@ class DevicePacksCenter(QWidget):
 
         if str(action).strip() != "Device DNA":
             return False
+        if self.active_project_source is not None:
+            self.active_project_source = None
+            if self.active_pack is not None and self.active_report is not None:
+                self._render_pack(self.active_pack, self.active_report)
         device = self.active_device
         report = self.active_report
         pack = self.active_pack
@@ -500,7 +514,7 @@ class DevicePacksCenter(QWidget):
         pack_id: str,
         source_sha256: str,
     ) -> bool:
-        """Explain the exact Studio project's Pack relationship without guessing a phone."""
+        """Bind one exact Studio source blueprint to the current phone requirements."""
 
         normalized_id = str(project_id).strip()
         clean_name = " ".join(str(project_name).replace("\x00", "").split())[:100]
@@ -509,6 +523,12 @@ class DevicePacksCenter(QWidget):
         source_label = source[:16] + "…" if source else "not imported"
         if not normalized_id or not clean_name:
             return False
+        project_source = self._load_project_source_requirements(
+            normalized_id,
+            str(project_name),
+            normalized_pack,
+            source,
+        )
         expected = next(
             (item for item in self.registry.packs if item.pack_id == normalized_pack),
             None,
@@ -534,7 +554,102 @@ class DevicePacksCenter(QWidget):
             and self.active_report is not None
             and self.active_report.build_contract_ready
         )
-        if not normalized_pack:
+        project_phone_bound = False
+        if (
+            project_source is not None
+            and self.active_pack is not None
+            and self.active_report is not None
+        ):
+            try:
+                self.requirements_service.assess(
+                    self.active_pack,
+                    self.active_report,
+                    self.active_catalog_match,
+                    self.tool_statuses,
+                    project_source,
+                )
+            except ValueError:
+                pass
+            else:
+                project_phone_bound = True
+        self.active_project_source = project_source if project_phone_bound else None
+        if project_phone_bound and self.active_pack is not None and self.active_report is not None:
+            self._render_pack(self.active_pack, self.active_report)
+
+        if project_phone_bound and project_source is not None:
+            source_pack_bound = bool(
+                expected is not None
+                and expected.build_contract is not None
+                and expected.build_contract.source.archive_sha256 == project_source.source_sha256
+                and active_matches
+            )
+            effective_tools = (
+                expected.build_contract.required_tools
+                if source_pack_bound
+                and expected is not None
+                and expected.build_contract is not None
+                else project_source.required_tools
+            )
+            exact_pack_ready = bool(
+                source_pack_bound
+                and self.active_report is not None
+                and self.active_report.build_contract_ready
+            )
+            self._set_guidance(
+                (
+                    "✓ Phone and exact project source recognized — build planning is ready"
+                    if exact_pack_ready
+                    else "✓ Phone and project source recognized — local build preparation is ready"
+                ),
+                (
+                    "The strict project source blueprint and this phone's exact Device Pack "
+                    "agree. Build planning may continue; Guardian still revalidates every "
+                    "artifact and phone-writing gate."
+                    if exact_pack_ready
+                    else "The strict project source blueprint matches this phone, but no exact "
+                    "source-matched Device Pack contract is present. Use the project Build or "
+                    "Compile lane below; flash remains locked."
+                ),
+                "Good" if exact_pack_ready else "Warning",
+                exact_pack_ready,
+            )
+            if not source_pack_bound and self.active_pack is not None:
+                self.pack_name.setText(f"Phone Pack reference • {self.active_pack.display_name}")
+                self.match_reason.setText(
+                    f"Phone Pack {self.active_pack.pack_id} is for a different source; project "
+                    f"{project_source.build_id} controls Build and Compile."
+                )
+                self.pack_badge.setText("REFERENCE ONLY • PROJECT SOURCE ACTIVE")
+                self.pack_badge.setObjectName("Warning")
+                self._repolish(self.pack_badge)
+            detail = (
+                f"{clean_name}  •  {project_source.build_id}  •  "
+                f"LOCAL BUILD READY  •  FLASH "
+                f"{'READY' if source_pack_bound and self.active_report is not None and self.active_report.flash_contract_ready else 'LOCKED'}  •  "
+                f"EXACT PACK {'READY' if source_pack_bound else 'ABSENT'}  •  "
+                f"{project_source.source_kind.upper()} VERIFIED  •  "
+                f"{project_source.partition_count} PARTITIONS  •  "
+                f"{project_source.codename.upper()} MATCHED  •  "
+                f"{len(effective_tools)} HOST TOOLS."
+            )
+            badge = "PROJECT SOURCE BOUND"
+            ready = True
+        elif project_source is not None:
+            current_target = (
+                f"{self.active_report.manufacturer} / {self.active_report.codename}"
+                if self.active_report is not None
+                else "no current phone"
+            )
+            detail = (
+                f"Exact project {normalized_id} has a strict {project_source.source_kind} "
+                f"blueprint for {project_source.manufacturer} / {project_source.codename} / "
+                f"{project_source.build_id} and protected source {source_label}, but Device Atlas "
+                f"currently has {current_target}. Reconnect and scan the exact target; ROMVERSE "
+                "will not apply this project's build or compile requirements to another phone."
+            )
+            badge = "TARGET REVALIDATION"
+            ready = False
+        elif not normalized_pack:
             detail = (
                 f"Exact project {normalized_id} has protected source {source_label} and no Device "
                 "Pack binding. Connect and scan the intended phone, then bind only an "
@@ -582,14 +697,93 @@ class DevicePacksCenter(QWidget):
             badge = "REVALIDATE DEVICE"
         self._show_dashboard_handoff(
             f"ROM Studio → {clean_name}",
-            detail + " NO SCAN, BUILD, APPROVAL, FLASH, OR PHONE ACTION STARTED.",
+            detail
+            + (
+                " NO ACTION STARTED."
+                if project_phone_bound
+                else " NO SCAN, BUILD, APPROVAL, FLASH, OR PHONE ACTION STARTED."
+            ),
             badge,
             ready=ready,
-            eyebrow="ROM STUDIO HANDOFF  •  EXACT PROJECT / DEVICE PACK CONTRACT",
+            eyebrow="ROM STUDIO HANDOFF  •  EXACT PROJECT / SOURCE REQUIREMENTS",
         )
-        if ready and hasattr(self, "requirements_blueprint_frame"):
+        if project_phone_bound and hasattr(self, "requirements_blueprint_frame"):
             self.body.ensureWidgetVisible(self.requirements_blueprint_frame, 0, 24)
         return True
+
+    def _load_project_source_requirements(
+        self,
+        project_id: str,
+        project_name: str,
+        device_pack_id: str,
+        source_sha256: str,
+    ) -> ProjectSourceRequirements | None:
+        """Reload one strict source receipt; retained UI text is never trusted."""
+
+        if self.workspace is None:
+            return None
+        try:
+            store = RomProjectStore(self.workspace)
+            project = store.get(project_id)
+            if (
+                project.name != project_name
+                or project.device_pack_id != device_pack_id
+                or project.original is None
+                or project.original.sha256 != source_sha256
+            ):
+                return None
+            blueprint = FirmwareSourceIntelligenceService(
+                store,
+                self.tool_statuses or (),
+                SubprocessRunner(),
+            ).load(project_id)
+            if (
+                blueprint is None
+                or blueprint.project_id != project_id
+                or blueprint.source_archive_sha256 != source_sha256
+                or not blueprint.baseline_candidate_ready
+                or blueprint.phone_changed
+                or not blueprint.manufacturer.strip()
+                or not blueprint.codename.strip()
+                or not blueprint.build_id.strip()
+            ):
+                return None
+            signals = {
+                "ota-payload": ("ota_payload",),
+                "fastboot-super": ("super",),
+                "partition-bundle": ("partition_bundle",),
+            }.get(blueprint.source_kind)
+            if signals is None:
+                return None
+            return ProjectSourceRequirements(
+                project_id=project.project_id,
+                project_name=project.name,
+                source_sha256=project.original.sha256,
+                device_pack_id=project.device_pack_id,
+                source_kind=blueprint.source_kind,
+                blueprint_digest=blueprint.blueprint_digest,
+                plan_digest=blueprint.plan_digest,
+                authority=blueprint.authority,
+                manufacturer=blueprint.manufacturer,
+                codename=blueprint.codename,
+                build_id=blueprint.build_id,
+                partition_count=len(blueprint.partitions),
+                required_tools=required_tools_for_source(None, signals),
+            )
+        except (OSError, ProjectError, TypeError, ValueError):
+            return None
+
+    def _validated_active_project_source(self) -> ProjectSourceRequirements | None:
+        source = self.active_project_source
+        if source is None:
+            return None
+        current = self._load_project_source_requirements(
+            source.project_id,
+            source.project_name,
+            source.device_pack_id,
+            source.source_sha256,
+        )
+        return current if current == source else None
 
     def open_forge_return(
         self,
@@ -612,6 +806,9 @@ class DevicePacksCenter(QWidget):
             or report.report_digest != report_digest
         ):
             return False
+        if self.active_project_source is not None:
+            self.active_project_source = None
+            self._render_pack(pack, report)
         build = "READY" if report.build_contract_ready else "LOCKED"
         flash = "READY" if report.flash_contract_ready else "LOCKED"
         self._show_dashboard_handoff(
@@ -646,6 +843,7 @@ class DevicePacksCenter(QWidget):
 
     def _select(self, index: int) -> None:
         if 0 <= index < len(self.devices):
+            self.active_project_source = None
             self._render_device(self.devices[index])
 
     def _render_device(self, device: AndroidDevice) -> None:
@@ -749,7 +947,21 @@ class DevicePacksCenter(QWidget):
     def _render_pack(self, pack: DevicePack, report: DevicePackValidationReport) -> None:
         self._clear()
         self.validation_rows.clear()
-        self.active_next_action = self.validation_service.next_safe_action(report)
+        self.requirement_buttons.clear()
+        self.requirement_badges.clear()
+        project_source = self._validated_active_project_source()
+        project_source_stale = self.active_project_source is not None and project_source is None
+        project_contract_bound = bool(
+            project_source is not None
+            and pack.build_contract is not None
+            and report.build_contract_ready
+            and pack.build_contract.source.archive_sha256 == project_source.source_sha256
+        )
+        project_override = project_source is not None and not project_contract_bound
+        project_routes_suppressed = project_source_stale or project_override
+        self.active_next_action = (
+            None if project_routes_suppressed else self.validation_service.next_safe_action(report)
+        )
         roadmap = QFrame()
         roadmap.setObjectName("Card")
         roadmap_layout = QVBoxLayout(roadmap)
@@ -757,11 +969,24 @@ class DevicePacksCenter(QWidget):
         roadmap_layout.setSpacing(10)
         roadmap_header = QHBoxLayout()
         roadmap_copy = QVBoxLayout()
-        roadmap_title = QLabel("MODEL-SPECIFIC VALIDATION ROADMAP")
+        roadmap_title = QLabel(
+            "PROJECT SOURCE CHANGED  •  REOPEN FROM ROM STUDIO"
+            if project_source_stale
+            else "PHONE PACK REFERENCE  •  PROJECT SOURCE DIFFERS"
+            if project_override
+            else "MODEL-SPECIFIC VALIDATION ROADMAP"
+        )
         roadmap_title.setObjectName("Eyebrow")
         roadmap_description = QLabel(
-            f"Evidence contract for {report.model} / {report.codename}. "
-            "Checks measure readiness; they never grant execution authority."
+            "The retained project source receipt no longer revalidates. All project routes "
+            "are locked until the exact project is reopened from ROM Studio."
+            if project_source_stale
+            else f"The phone matched Pack {pack.pack_id}, but its source contract is not the "
+            f"current project {project_source.source_kind} baseline. Use the project-scoped "
+            "Requirements Blueprint below; these Pack rows remain reference evidence only."
+            if project_override and project_source is not None
+            else f"Evidence contract for {report.model} / {report.codename}. Checks measure "
+            "readiness; they never grant execution authority."
         )
         roadmap_description.setObjectName("Muted")
         roadmap_description.setWordWrap(True)
@@ -769,13 +994,20 @@ class DevicePacksCenter(QWidget):
         roadmap_copy.addWidget(roadmap_description)
         roadmap_header.addLayout(roadmap_copy, 1)
         build_state = QLabel(
-            f"{report.passed_count} / {len(report.checks)} VERIFIED  •  "
+            "PROJECT BLUEPRINT STALE  •  ROUTES LOCKED"
+            if project_source_stale
+            else f"PHONE PACK {report.passed_count}/{len(report.checks)}  •  "
+            "PROJECT BLUEPRINT ACTIVE  •  FLASH LOCKED"
+            if project_override
+            else f"{report.passed_count} / {len(report.checks)} VERIFIED  •  "
             + ("BUILD READY" if report.build_contract_ready else "BUILD LOCKED")
             + "  •  "
             + ("FLASH CONTRACT READY" if report.flash_contract_ready else "FLASH LOCKED")
         )
         build_state.setObjectName(
-            "Good"
+            "Warning"
+            if project_routes_suppressed
+            else "Good"
             if report.flash_contract_ready
             else "Warning"
             if report.build_contract_ready
@@ -791,18 +1023,41 @@ class DevicePacksCenter(QWidget):
         next_copy = QVBoxLayout()
         next_eyebrow = QLabel("NEXT SAFE ACTION  •  DETERMINISTIC FROM CURRENT EVIDENCE")
         next_eyebrow.setObjectName("Eyebrow")
-        self.next_action_title = QLabel(self.active_next_action.title)
+        self.next_action_title = QLabel(
+            "Reopen the exact project from ROM Studio"
+            if project_source_stale
+            else "Use the exact project requirements below"
+            if project_override
+            else self.active_next_action.title
+        )
         self.next_action_title.setObjectName("SectionTitle")
-        self.next_action_detail = QLabel(self.active_next_action.detail)
+        self.next_action_detail = QLabel(
+            "The retained source receipt changed, so ROMVERSE removed every project action."
+            if project_source_stale
+            else "The phone Pack's next action is suppressed because it describes another source "
+            "build. Choose the project-scoped Build or Compile lane; Flash stays locked."
+            if project_override
+            else self.active_next_action.detail
+        )
         self.next_action_detail.setObjectName("Muted")
         self.next_action_detail.setWordWrap(True)
         next_copy.addWidget(next_eyebrow)
         next_copy.addWidget(self.next_action_title)
         next_copy.addWidget(self.next_action_detail)
         next_layout.addLayout(next_copy, 1)
-        scope = self.active_next_action.scope
+        scope = (
+            "stale"
+            if project_source_stale
+            else "project"
+            if project_override
+            else self.active_next_action.scope
+        )
         self.next_action_badge = QLabel(
-            "READY • GUARDIAN ACTIVE"
+            "ROUTES LOCKED"
+            if project_source_stale
+            else "PROJECT ROUTES ONLY"
+            if project_override
+            else "READY • GUARDIAN ACTIVE"
             if scope == "ready"
             else f"{scope.upper()} GATE • ZERO AUTHORITY"
         )
@@ -810,13 +1065,21 @@ class DevicePacksCenter(QWidget):
             "Good" if scope == "ready" else "Danger" if scope == "build" else "Warning"
         )
         next_layout.addWidget(self.next_action_badge)
-        self.next_action_button = QPushButton(self.active_next_action.button_label)
+        self.next_action_button = QPushButton(
+            "Reopen from ROM Studio"
+            if project_source_stale
+            else "Use project blueprint below"
+            if project_override
+            else self.active_next_action.button_label
+        )
         self.next_action_button.setObjectName("Primary")
         self.next_action_button.setToolTip(
             "Opens the exact ROMVERSE page or verified guide selected from this current "
             "readiness report. It starts no worker, approval, build, or phone action."
         )
-        self.next_action_button.clicked.connect(self._request_next_action)
+        self.next_action_button.setEnabled(not project_routes_suppressed)
+        if not project_routes_suppressed:
+            self.next_action_button.clicked.connect(self._request_next_action)
         next_layout.addWidget(self.next_action_button)
         roadmap_layout.addWidget(next_action)
         self.next_action_feedback = QLabel("")
@@ -824,12 +1087,16 @@ class DevicePacksCenter(QWidget):
         self.next_action_feedback.setWordWrap(True)
         roadmap_layout.addWidget(self.next_action_feedback)
 
-        self.active_requirements = self.requirements_service.assess(
-            pack,
-            report,
-            self.active_catalog_match,
-            self.tool_statuses,
-        )
+        if project_source_stale:
+            self.active_requirements = None
+        else:
+            self.active_requirements = self.requirements_service.assess(
+                pack,
+                report,
+                self.active_catalog_match,
+                self.tool_statuses,
+                project_source,
+            )
         self._render_requirements_blueprint(roadmap_layout)
 
         for check in report.checks:
@@ -1049,17 +1316,29 @@ class DevicePacksCenter(QWidget):
         eyebrow.setObjectName("Eyebrow")
         title = QLabel("What this phone needs to identify, build, compile, and flash")
         title.setObjectName("SectionTitle")
-        detail = QLabel(
-            f"Bound to {blueprint.model} / {blueprint.codename}  •  Pack "
-            f"{blueprint.pack_id}  •  SHA-256 {blueprint.pack_sha256[:12]}…"
-        )
+        if blueprint.project_scoped:
+            detail_text = (
+                f"Project {blueprint.project_name}  •  {blueprint.model} / "
+                f"{blueprint.codename}  •  source {blueprint.project_source_sha256[:12]}…  •  "
+                f"{blueprint.source_kind} / {blueprint.source_build_id}  •  "
+                f"{blueprint.source_partition_count} partition records"
+            )
+        else:
+            detail_text = (
+                f"Bound to {blueprint.model} / {blueprint.codename}  •  Pack "
+                f"{blueprint.pack_id}  •  SHA-256 {blueprint.pack_sha256[:12]}…"
+            )
+        detail = QLabel(detail_text)
         detail.setObjectName("Muted")
         detail.setWordWrap(True)
         copy.addWidget(eyebrow)
         copy.addWidget(title)
         copy.addWidget(detail)
         header.addLayout(copy, 1)
-        digest = QLabel(f"REPORT {blueprint.report_digest[:12]}…  •  ZERO AUTHORITY")
+        digest_text = f"REPORT {blueprint.report_digest[:12]}…"
+        if blueprint.project_scoped:
+            digest_text += f"  •  SOURCE PLAN {blueprint.source_plan_digest[:12]}…"
+        digest = QLabel(digest_text + "  •  ZERO AUTHORITY")
         digest.setObjectName("Warning")
         header.addWidget(digest)
         layout.addLayout(header)
@@ -1154,15 +1433,21 @@ class DevicePacksCenter(QWidget):
         pack = self.active_pack
         if report is None or pack is None:
             return None
+        project_source = self._validated_active_project_source()
+        if self.active_project_source is not None and project_source is None:
+            return None
         try:
-            return self.requirements_service.assess(
+            blueprint = self.requirements_service.assess(
                 pack,
                 report,
                 self.active_catalog_match,
                 self.tool_statuses,
+                project_source,
             )
         except ValueError:
             return None
+        self.active_requirements = blueprint
+        return blueprint
 
     def set_tool_statuses(self, statuses: tuple[ToolStatus, ...]) -> None:
         """Refresh the visible compile lane from Forge Arsenal's current evidence."""
@@ -1179,6 +1464,10 @@ class DevicePacksCenter(QWidget):
     def _request_requirement(self, lane_id: str) -> None:
         blueprint = self.current_requirements()
         if blueprint is None:
+            self.requirement_handoff_stopped(
+                lane_id,
+                "The project, protected source, or source blueprint changed",
+            )
             return
         lane = blueprint.lane(lane_id)
         if lane is None:

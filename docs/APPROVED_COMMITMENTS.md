@@ -432,7 +432,11 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   ROM Studio, fails stale or unknown handoffs visibly, and publishes one deduplicated genuine Live
   Console readiness event whose source returns to Device Atlas; Time Machine refuses to invent a
   missing protected-firmware project and connects back to ROM Studio without starting a worker or
-  phone action; shared dark item-view styling prevents native light list/tree/table viewports from
+  phone action; a ROM Studio → Device Atlas handoff replaces unrelated phone-Pack build/tool cards
+  with a freshly reloaded exact project/source blueprint, routes Build and Compile back to that
+  project and its narrow Forge tool context, visibly refuses changed source evidence, and keeps
+  Flash locked without the independent exact recovery/AVB/physical/write contracts; shared dark
+  item-view styling prevents native light list/tree/table viewports from
   breaking Desktop readability, while explicit text-editor and scroll-viewport styling closes the
   same host-theme leak across Galaxy, Nexus, and Forge Arsenal; Nexus also exposes an exact
   no-project/Device-DNA/Compatibility-Matrix evidence path into the verified Archives guide or ROM

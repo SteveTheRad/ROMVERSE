@@ -6,7 +6,11 @@ import pytest
 from romverse.device.catalog import DeviceCatalogMatch
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device_packs.registry import DevicePackRegistry
-from romverse.device_packs.requirements import DeviceRequirementsService, RequirementState
+from romverse.device_packs.requirements import (
+    DeviceRequirementsService,
+    ProjectSourceRequirements,
+    RequirementState,
+)
 from romverse.device_packs.validation import DevicePackValidationService
 from romverse.infrastructure.tools import ToolStatus
 
@@ -143,3 +147,122 @@ def test_exact_compile_lane_consumes_current_host_tool_evidence() -> None:
     assert contradictory is not None
     assert contradictory.state is RequirementState.NEEDS_EVIDENCE
     assert contradictory.requirements == (pack.build_contract.required_tools[-1],)
+
+
+def test_project_source_blueprint_replaces_stale_pack_build_and_tool_requirements() -> None:
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    pack = registry.resolve(_xiaomi()).pack
+    assert pack is not None and pack.build_contract is not None
+    report = DevicePackValidationService().assess(pack, _xiaomi())
+    source = ProjectSourceRequirements(
+        project_id="hyperos-current-1234",
+        project_name="HyperOS current",
+        source_sha256="a" * 64,
+        device_pack_id="xiaomi.hyperos",
+        source_kind="ota-payload",
+        blueprint_digest="b" * 64,
+        plan_digest="c" * 64,
+        authority="project-local-build-evidence-only",
+        manufacturer="Xiaomi",
+        codename="popsicle",
+        build_id="OS4.0.0.25.XPBCNXM",
+        partition_count=58,
+        required_tools=("Python", "Payload Dumper", "AVBTool"),
+    )
+    statuses = tuple(
+        ToolStatus(name, True, f"/verified/{index}", "test", "Ready")
+        for index, name in enumerate(source.required_tools)
+    )
+
+    blueprint = DeviceRequirementsService().assess(
+        pack,
+        report,
+        tool_statuses=statuses,
+        project_source=source,
+    )
+
+    assert blueprint.project_scoped
+    assert blueprint.project_id == source.project_id
+    assert blueprint.project_source_sha256 == source.source_sha256
+    assert blueprint.source_required_tools == source.required_tools
+    build = blueprint.lane("build")
+    compile_lane = blueprint.lane("compile")
+    flash = blueprint.lane("flash")
+    assert build is not None and build.state is RequirementState.VERIFIED
+    assert build.badge == "PROJECT SOURCE • LOCAL BASELINE READY"
+    assert build.route == "rom_studio_project"
+    assert "OS4.0.0.25" in build.summary
+    assert compile_lane is not None and compile_lane.state is RequirementState.VERIFIED
+    assert compile_lane.requirements == source.required_tools
+    assert compile_lane.route == "forge_arsenal_project"
+    assert flash is not None and flash.state is RequirementState.LOCKED
+    assert flash.route == "archives"
+    assert "cannot authorize writes" in flash.summary
+
+
+def test_project_source_blueprint_keeps_exact_source_pack_tool_contract() -> None:
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    pack = registry.resolve(_xiaomi()).pack
+    assert pack is not None and pack.build_contract is not None
+    report = DevicePackValidationService().assess(pack, _xiaomi())
+    source = ProjectSourceRequirements(
+        "exact-project-1234",
+        "Exact project",
+        pack.build_contract.source.archive_sha256,
+        pack.pack_id,
+        "ota-payload",
+        "b" * 64,
+        "c" * 64,
+        "project-local-build-evidence-only",
+        "Xiaomi",
+        "popsicle",
+        "OS4.0.0.23.XPBCNXM",
+        58,
+        ("Python", "Payload Dumper", "AVBTool"),
+    )
+
+    blueprint = DeviceRequirementsService().assess(pack, report, project_source=source)
+
+    build = blueprint.lane("build")
+    compile_lane = blueprint.lane("compile")
+    assert build is not None and build.badge == "PROJECT + EXACT PACK • BUILD READY"
+    assert compile_lane is not None
+    assert compile_lane.requirements == pack.build_contract.required_tools
+    assert blueprint.source_required_tools == pack.build_contract.required_tools
+
+
+@pytest.mark.parametrize(
+    ("change", "value"),
+    [
+        ("codename", "different-device"),
+        ("authority", "flash-authority"),
+        ("blueprint_digest", "not-a-digest"),
+    ],
+)
+def test_project_source_blueprint_rejects_changed_or_foreign_evidence(change, value) -> None:
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    pack = registry.resolve(_xiaomi()).pack
+    assert pack is not None
+    report = DevicePackValidationService().assess(pack, _xiaomi())
+    source = ProjectSourceRequirements(
+        "project-1234",
+        "Project",
+        "a" * 64,
+        "xiaomi.hyperos",
+        "ota-payload",
+        "b" * 64,
+        "c" * 64,
+        "project-local-build-evidence-only",
+        "Xiaomi",
+        "popsicle",
+        "OS4.0.0.25.XPBCNXM",
+        58,
+        ("Python", "Payload Dumper", "AVBTool"),
+    )
+
+    with pytest.raises(ValueError, match="exact current source blueprint"):
+        DeviceRequirementsService().assess(
+            pack,
+            report,
+            project_source=replace(source, **{change: value}),
+        )

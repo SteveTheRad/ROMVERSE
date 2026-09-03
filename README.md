@@ -174,6 +174,16 @@ shows the verified count and exact missing subset, updates when the tool invento
 routes that same contract-scoped subset back to Forge Arsenal. A complete host toolchain changes
 only Compile to verified; it cannot strengthen identity, source/build, physical recovery, Guardian,
 or flash authority. Contradictory duplicate tool evidence fails closed as missing.
+When ROM Studio opens Device Atlas, the four lanes are scoped to that exact project rather than
+left on an unrelated phone-matched Pack. Device Atlas reloads the current private project manifest
+and strict OTA, fastboot-super, or partition-bundle source receipt; requires the protected source,
+build identity, authority, blueprint digest, plan digest, and phone codename to agree; and displays
+the project build ID, partition count, and narrow source-specific tool profile. Build and Compile
+route back to that same ROM Studio project and its exact Forge Arsenal context. Any changed receipt
+or extracted source stops the retained route instead of silently falling back to an older Pack. A
+verified project-local baseline can mark local build preparation ready, but its Flash lane stays
+locked until the independent source-matched recovery, AVB, publisher, physical-test,
+partition-write, artifact-binding, and approval gates pass.
 Downloads are parsed and verified in memory before activation. Switching off online diagnostics
 and sources cancels a pending refresh and prevents a late response from replacing the active local
 mirror; any previously activated receipt-checked catalog remains available for local read-only

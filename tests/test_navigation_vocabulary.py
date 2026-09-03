@@ -36,6 +36,8 @@ from romverse.intelligence.synapse import (
 from romverse.nexus.events import MissionConfidence
 from romverse.nexus.planning import NexusObjective, NexusPlanner
 from romverse.repair.templates import RepairConcern
+from romverse.rom.projects import RomProjectStore
+from romverse.rom.source_intelligence import FirmwareSourceIntelligenceService
 from romverse.ui.main_window import (
     MainWindow,
     _device_scan_failure_copy,
@@ -47,8 +49,9 @@ from romverse.ui.theme import STYLESHEET
 from tests.test_apk_center_ui import _device as _apk_device
 from tests.test_apk_center_ui import _ready_plan as _apk_ready_plan
 from tests.test_device_catalog import _payload, _sync
-from tests.test_device_dna import _device, _project
+from tests.test_device_dna import _device, _project, _source
 from tests.test_guardian_manifest_review import _prepared as _prepared_guardian_manifest
+from tests.test_source_intelligence import SourceRunner
 
 
 def test_every_desktop_navigation_label_opens_and_highlights_its_own_page(
@@ -818,6 +821,94 @@ def test_rom_studio_preserves_exact_project_into_time_machine_and_device_atlas(
         window._open_device_atlas_from_studio("missing-project")
         assert window.stack.currentWidget() is window.rom_studio
         assert "DEVICE ATLAS HANDOFF STOPPED" in window.rom_studio.operation_status.text()
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_device_atlas_project_requirements_connect_back_to_exact_studio_and_forge(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.create("Current HyperOS project", "xiaomi.hyperos")
+    source = _source(
+        tmp_path,
+        "popsicle-ota_full-OS4.0.0.25.XPBCNXM-user-17.0-test.zip",
+    )
+    project = store.import_original(project.project_id, source)
+    tree = store.working_root / project.project_id / "tree"
+    tree.mkdir(parents=True)
+    (tree / "payload.bin").write_bytes(b"CrAU current payload")
+    payload_dumper = tmp_path / "payload-dumper-go"
+    payload_dumper.write_bytes(b"verified test executable")
+    statuses = (
+        ToolStatus("Python", True, "/verified/python", "test", "Ready"),
+        ToolStatus("Payload Dumper", True, str(payload_dumper), "test", "Ready"),
+        ToolStatus("AVBTool", True, "/verified/avbtool", "test", "Ready"),
+    )
+    source_blueprint = FirmwareSourceIntelligenceService(
+        store,
+        statuses,
+        SourceRunner(),
+    ).prepare(project.project_id)
+    window = MainWindow(
+        None,
+        logo,
+        store.workspace,
+        app_icon_path=logo,
+        pack_registry=registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    try:
+        window.rom_studio.set_tool_statuses(statuses)
+        window.device_packs_center.set_tool_statuses(statuses)
+        window._scan_complete([_device()])
+        window.rom_studio.refresh(project.project_id)
+        app.processEvents()
+
+        assert window.rom_studio.request_device_atlas()
+        app.processEvents()
+        blueprint = window.device_packs_center.current_requirements()
+        assert blueprint is not None and blueprint.project_scoped
+        assert blueprint.project_id == project.project_id
+        assert blueprint.source_blueprint_digest == source_blueprint.blueprint_digest
+        assert blueprint.source_required_tools == ("Python", "Payload Dumper", "AVBTool")
+        compile_lane = blueprint.lane("compile")
+        assert compile_lane is not None and compile_lane.route == "forge_arsenal_project"
+
+        window.device_packs_center.requirement_buttons["compile"].click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.toolchain_center
+        context = window.toolchain_center._studio_project_context
+        assert context is not None
+        assert context.project_id == project.project_id
+        assert context.source_sha256 == project.original.sha256
+        assert context.source_blueprint_digest == source_blueprint.blueprint_digest
+        assert context.required_tools == ("Python", "Payload Dumper", "AVBTool")
+        assert not context.build_contract_bound
+        assert "project-local ota-payload blueprint" in (
+            window.toolchain_center.device_pack_handoff_detail.text().casefold()
+        )
+
+        window._navigate_route("rom_studio")
+        assert window.rom_studio.request_device_atlas()
+        app.processEvents()
+        window.device_packs_center.requirement_buttons["build"].click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.rom_studio
+        assert window.rom_studio.current_project is not None
+        assert window.rom_studio.current_project.project_id == project.project_id
+        assert window.rom_studio.dashboard_handoff_title.text() == (
+            "Device Atlas → project Build & Proof"
+        )
+        assert source_blueprint.blueprint_digest[:16] in (
+            window.rom_studio.dashboard_handoff_detail.text()
+        )
+        assert "flash authority NONE" in window.rom_studio.dashboard_handoff_detail.text()
+        assert window.rom_studio.worker is None
     finally:
         window.companion_center.transport.close()
         window.close()

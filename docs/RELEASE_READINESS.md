@@ -119,6 +119,19 @@ has current evidence.
    Pack currently supplies that signed schema-2 authority, and the typed execution gateway and final
    consent remain unavailable.
 
+   Subsequent Desktop development adds the first typed execution-gateway boundary without weakening
+   that candidate. Given synthetic signed schema-two evidence, it regenerates exact Fastboot
+   precondition/write/readback steps and exact ADB post-boot property checks from the current plan,
+   binds every required output size and SHA-256 into a private tamper-evident contract, retains only
+   redacted target/workspace/output placeholders, and independently rejects resealed substitutions,
+   extra fields, links, stale evidence, Boolean/schema confusion, fabricated consent or authority,
+   and any claimed runtime or phone change. It deliberately does not execute: the contract status is
+   `blocked-missing-signed-transition-recovery-and-final-consent`, with runtime not invoked,
+   execution authority `none`, final consent unavailable and phone changed `false`.
+   The complete Fedora suite passes all 1,417 tests with both Ruff gates clean across 353 files;
+   the exact Windows portability selection passes all 262 tests locally and is included for both
+   supported Windows Python versions in CI.
+
    The Desktop release trust layer now prepares a bounded exact-schema artifact manifest, enforces
    user-confirmed non-automatic updates and workspace preservation, represents unavailable rollback
    honestly, signs only through an externally held Ed25519 key, and independently verifies the
@@ -431,6 +444,17 @@ has current evidence.
    stop at `blocked-missing-typed-execution-gateway`. Both paths must contain no inferred transition,
    activation, reboot, wipe, rollback or recovery command, expose no final consent, grant execution
    authority `none`, and record `phone_changed: false`.
+   From a current schema-two plan, compile the separate execution-gateway contract without invoking
+   a runner. Confirm every precondition has an exact variable-equality obligation, every write has a
+   zero-exit obligation, every declared write has exactly one ordered `fastboot fetch` result with
+   its signed size and SHA-256, and every allowlisted post-boot Device DNA property has an exact ADB
+   equality check. The private record must use only target/workspace/output placeholders, preserve
+   explicit slots, regenerate identically from current evidence, and reject a resealed expected-value
+   substitution, extra field, linked path, stale phone/plan/artifact, Boolean/schema confusion,
+   fabricated final consent or execution authority, claimed runtime invocation, phone-change claim,
+   and any erase, reboot, unlock or relock command. Confirm it stops at
+   `blocked-missing-signed-transition-recovery-and-final-consent` and is visibly identified as an
+   inert result template rather than an execution receipt.
    Refresh Forge Control repeatedly while readiness changes between blocked and attention states at
    its 1040-pixel minimum width. Confirm removed cards are no longer parented or visible, the content
    keeps its natural scroll height, no footer buttons overlap, and blocked/attention totals match the

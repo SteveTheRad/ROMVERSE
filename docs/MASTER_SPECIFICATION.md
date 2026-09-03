@@ -457,6 +457,21 @@ execution/postcondition receipt exist. A successful Fastboot response alone must
 as a verified healthy upgrade. Neither schema authorizes or infers mode transitions, slot
 activation, reboot, wipe, rollback or recovery.
 
+The next private record is a typed, still-inert execution-gateway contract. It independently reloads
+the current execution plan, rehashes its bound artifacts through that plan, and accepts only a
+signed schema-two verification contract. It expands the preview into exact typed result obligations:
+Fastboot variable equality for every precondition, zero exit status for each declared write, one
+bounded private `fastboot fetch` output with exact size and SHA-256 for every write, and allowlisted
+ADB property equality for every post-boot Device DNA fact. Raw serials and concrete host paths remain
+replaced by target, workspace and private-output placeholders. Strict reload regenerates every step
+from current evidence; changed expected values, extra fields, linked records, type confusion, added
+authority, uncontracted options and erase/reboot/unlock/relock substitutions fail closed. This
+contract is not an execution receipt: it records `runtime_invoked: false`, `phone_changed: false`,
+execution authority `none`, and final consent unavailable. It remains
+`blocked-missing-signed-transition-recovery-and-final-consent` until exact signed mode/slot/reboot,
+rollback and recovery orchestration, live target re-identification, explicit final consent, a
+separately governed runtime adapter, and independent physical validation exist.
+
 Time Machine registers independently stored phone backups and exact stock-recovery packages without
 copying them into the workspace. Its public-safe evidence and private locator use separate bounded
 atomic exact-schema records bound to the project, protected source, Pack, role, size, mtime, and

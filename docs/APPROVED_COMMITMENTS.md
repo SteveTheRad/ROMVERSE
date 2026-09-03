@@ -645,6 +645,14 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   non-flash-ready; the inert plan binds the complete verification-contract digest but remains blocked
   with zero consent or execution authority until a separately verified execution gateway and
   immutable execution/postcondition receipt exist;
+  a strict private execution-gateway contract that accepts only the current schema-two inert plan,
+  regenerates typed Fastboot precondition/write/readback and ADB post-boot steps, binds one exact
+  size/SHA-256 result obligation per full-partition fetch plus every allowlisted Device DNA value,
+  persists only redacted path/target placeholders, and rejects stale evidence, altered expectations,
+  extra fields, linked records, unsafe commands, type confusion or fabricated authority; this record
+  is explicitly not an execution receipt, invokes no runtime, changes no phone, exposes no final
+  consent, and remains blocked on exact signed transition/recovery orchestration and physical
+  validation;
   Forge Control stale-card detachment and natural-height scrolling, two aligned footer action rows,
   and separate blocked/attention counts so repeated evidence refreshes cannot jumble controls or
   make an amber certification requirement appear complete;

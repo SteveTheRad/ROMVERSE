@@ -840,12 +840,37 @@ class GuidedBuildMission(QDialog):
 
     def _open_stage_learning(self) -> None:
         stage = self.assessments[self.selected_index].stage
-        query = _STAGE_LEARNING_QUERIES[stage.stage_id]
+        query = self._stage_learning_query(stage.stage_id)
         if not self._save_state():
             self._render_stage()
             return
         self.accept()
         self.studio.knowledge_requested.emit(query)
+
+    def _stage_learning_query(self, stage_id: str) -> str:
+        """Route Device DNA blockers to the matching recovery guide, not a generic page."""
+
+        if stage_id != "device":
+            return _STAGE_LEARNING_QUERIES[stage_id]
+        context = self._context()
+        device = context.device
+        if device is not None:
+            if device.state is DeviceState.UNAUTHORIZED:
+                return "adb unauthorized"
+            if device.state is DeviceState.OFFLINE:
+                return "adb device offline"
+            if device.is_fastboot:
+                return "fastboot identity only"
+            if device.state in {DeviceState.RECOVERY, DeviceState.SIDELOAD}:
+                return "Android recovery sideload"
+            if device.state is DeviceState.UNKNOWN:
+                return "Android device connection"
+            return "Device DNA"
+        if len(context.observed_devices) > 1:
+            return "multiple devices"
+        if context.device_scan_error:
+            return "ADB transport failure"
+        return "USB debugging Android connection"
 
     def _skip_customization(self) -> None:
         self.state = replace(
@@ -1390,15 +1415,17 @@ class GuidedBuildMission(QDialog):
         self._refresh(select_current=True)
         current = self.assessments[self.selected_index]
         if current.stage.stage_id == "device":
-            blockers = " ".join(current.blockers).strip()
+            blocker = current.blockers[0].strip() if current.blockers else ""
             if self.autopilot_active:
                 self._finish_autopilot(
-                    blockers
+                    blocker
                     or "The fresh scan completed, but exact device evidence still needs attention."
                 )
             else:
                 self.status_text.setText(
-                    message or "Fresh device scan completed; review the evidence shown here."
+                    blocker
+                    or message
+                    or "Fresh device scan completed; review the evidence shown here."
                 )
             return
         if self.autopilot_active:

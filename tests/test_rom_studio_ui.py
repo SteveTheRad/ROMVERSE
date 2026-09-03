@@ -1039,6 +1039,44 @@ def test_genesis_opens_the_exact_stage_learning_guide_and_saves_place(tmp_path):
     studio.close()
 
 
+def test_genesis_device_learning_routes_each_detected_state_to_its_exact_fix(tmp_path):
+    QApplication.instance() or QApplication([])
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.create("Connection learning")
+    studio = RomStudio(store, DevicePackRegistry(()))
+    studio.refresh(project.project_id)
+    mission = GuidedBuildMission(studio)
+    mission.selected_index = 4
+
+    cases = (
+        (DeviceState.UNAUTHORIZED, "adb unauthorized"),
+        (DeviceState.OFFLINE, "adb device offline"),
+        (DeviceState.FASTBOOT, "fastboot identity only"),
+        (DeviceState.RECOVERY, "Android recovery sideload"),
+        (DeviceState.SIDELOAD, "Android recovery sideload"),
+        (DeviceState.UNKNOWN, "Android device connection"),
+        (DeviceState.DEVICE, "Device DNA"),
+    )
+    for state, expected in cases:
+        device = AndroidDevice("serial", state, model="Visible Phone")
+        studio.set_devices([device])
+        assert mission._stage_learning_query("device") == expected
+
+    first = AndroidDevice("one", DeviceState.DEVICE, model="First Phone")
+    second = AndroidDevice("two", DeviceState.DEVICE, model="Second Phone")
+    studio.set_devices([], observed_devices=[first, second])
+    assert mission._stage_learning_query("device") == "multiple devices"
+
+    studio.set_devices([], scan_error="ADB transport failed")
+    assert mission._stage_learning_query("device") == "ADB transport failure"
+
+    studio.set_devices([])
+    assert mission._stage_learning_query("device") == "USB debugging Android connection"
+    assert mission._stage_learning_query("debloat") == "Incremental debloat safety"
+    mission.close()
+    studio.close()
+
+
 def test_genesis_root_choice_explains_the_evidence_route_before_consent(tmp_path) -> None:
     QApplication.instance() or QApplication([])
     store = RomProjectStore(tmp_path / "workspace")
@@ -1296,6 +1334,46 @@ def test_genesis_device_stage_requests_a_fresh_scan_and_rebuilds_device_dna(tmp_
     assert mission.process_frame.isHidden()
     assert mission.assessments[4].status is GuidedStageStatus.COMPLETE
     assert mission.stage_buttons[4].text().endswith("Device DNA")
+    mission.close()
+    studio.close()
+
+
+def test_genesis_keeps_the_exact_connection_blocker_visible_after_a_successful_scan(
+    tmp_path,
+):
+    app = QApplication.instance() or QApplication([])
+    source = tmp_path / "rom.zip"
+    with zipfile.ZipFile(source, "w") as archive:
+        archive.writestr("system/build.prop", "ro.romverse=verified\n")
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.create("Connection truth", "fixture-device-pack")
+    store.import_original(project.project_id, source)
+    inspection = RomInspectionService(store)
+    inspection.inspect_project(project.project_id)
+    store.create_working_copy(project.project_id)
+    inspection.extract_project_tree(project.project_id)
+    studio = RomStudio(store, DevicePackRegistry(()))
+    studio.refresh(project.project_id)
+    studio.device_scan_available = True
+    mission = GuidedBuildMission(studio)
+    mission.selected_index = 4
+
+    mission._run_stage()
+    unauthorized = AndroidDevice(
+        "serial-1",
+        DeviceState.UNAUTHORIZED,
+        manufacturer="ROMVERSE",
+        model="Visible Phone",
+    )
+    studio.set_devices([unauthorized])
+    studio.device_scan_finished.emit(True, "Fresh device scan completed.")
+    app.processEvents()
+
+    assert mission.active_operation == ""
+    assert mission.assessments[4].status is GuidedStageStatus.ATTENTION
+    assert "USB phone detected" in mission.status_text.text()
+    assert "approve" in mission.status_text.text()
+    assert mission.status_text.text() != "Fresh device scan completed."
     mission.close()
     studio.close()
 

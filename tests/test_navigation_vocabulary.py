@@ -2070,25 +2070,115 @@ def test_fresh_scan_immediately_refreshes_the_command_deck_genesis_device_stage(
         window.rom_studio.refresh(project.project_id)
         window._sync_command_deck_context()
         assert window.device_center._flight_plan is not None
-        assert "Connect the target Android phone by USB." in (
-            window.device_center._flight_plan.blockers
+        assert any(
+            "No Android device is currently visible" in blocker
+            for blocker in window.device_center._flight_plan.blockers
         )
 
         window._scan_complete([_device()])
         app.processEvents()
 
         assert window.device_center._flight_plan == window.rom_studio.genesis_flight_plan()
-        assert "Connect the target Android phone by USB." not in (
-            window.device_center._flight_plan.blockers
+        assert not any(
+            "No Android device is currently visible" in blocker
+            for blocker in window.device_center._flight_plan.blockers
         )
 
         window._scan_failed("ADB transport failed during refresh")
         app.processEvents()
 
         assert window.device_center._flight_plan == window.rom_studio.genesis_flight_plan()
-        assert "Connect the target Android phone by USB." in (
-            window.device_center._flight_plan.blockers
+        assert any(
+            "latest USB device scan failed" in blocker
+            for blocker in window.device_center._flight_plan.blockers
         )
+        assert not any(
+            "phone is disconnected" in blocker and "not treating" not in blocker
+            for blocker in window.device_center._flight_plan.blockers
+        )
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_desktop_preserves_detection_truth_without_granting_action_authority(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    store, registry, project, _report = _project(tmp_path)
+    store.create_working_copy(project.project_id)
+    RomInspectionService(store).extract_project_tree(project.project_id)
+    window = MainWindow(
+        None,
+        logo,
+        store.workspace,
+        app_icon_path=logo,
+        pack_registry=registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    try:
+        window.rom_studio.refresh(project.project_id)
+
+        unauthorized = AndroidDevice(
+            "needs-approval",
+            DeviceState.UNAUTHORIZED,
+            manufacturer="Example",
+            model="Visible Phone",
+        )
+        window._scan_complete([unauthorized])
+        app.processEvents()
+
+        assert window.rom_studio.devices == [unauthorized]
+        assert window.rom_studio.observed_devices == [unauthorized]
+        assert any(
+            "USB phone detected" in blocker and "approve" in blocker
+            for blocker in window.device_center._flight_plan.blockers
+        )
+        assert "authorization required" in window.companion_center.device_status.text()
+
+        offline = AndroidDevice(
+            "offline-phone",
+            DeviceState.OFFLINE,
+            manufacturer="Example",
+            model="Visible Phone",
+        )
+        window._scan_complete([offline])
+        app.processEvents()
+
+        assert any(
+            "ADB detected the phone, but it is offline" in blocker
+            for blocker in window.device_center._flight_plan.blockers
+        )
+        assert "ADB offline" in window.companion_center.device_status.text()
+
+        fastboot = AndroidDevice(
+            "bootloader-phone",
+            DeviceState.FASTBOOT,
+            manufacturer="Example",
+            model="Visible Phone",
+        )
+        window._scan_complete([fastboot])
+        app.processEvents()
+
+        assert any(
+            "Phone detected in fastboot mode" in blocker
+            for blocker in window.device_center._flight_plan.blockers
+        )
+        assert "fastboot mode" in window.companion_center.device_status.text()
+
+        first = AndroidDevice("first", DeviceState.DEVICE, model="First Phone")
+        second = AndroidDevice("second", DeviceState.DEVICE, model="Second Phone")
+        window._scan_complete([first, second])
+        app.processEvents()
+
+        assert window.rom_studio.devices == []
+        assert window.rom_studio.observed_devices == [first, second]
+        assert any(
+            "Choose one of the 2 detected Android devices" in blocker
+            for blocker in window.device_center._flight_plan.blockers
+        )
+        assert "2 USB devices detected" in window.companion_center.device_status.text()
     finally:
         window.companion_center.transport.close()
         window.close()

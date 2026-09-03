@@ -1243,7 +1243,7 @@ def test_genesis_autopilot_runs_safe_local_stages_then_pauses_for_device(tmp_pat
     assert store.working_copy(project.project_id) is not None
     assert studio.inspection.summarize_working_tree(project.project_id) is not None
     assert mission.assessments[mission.selected_index].stage.stage_id == "device"
-    assert "Connect the target Android phone" in mission.status_text.text()
+    assert "No Android device is currently visible" in mission.status_text.text()
     mission.close()
     studio.close()
 

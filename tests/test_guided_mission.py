@@ -45,6 +45,77 @@ def test_mission_reports_unauthorized_device_with_actionable_blocker():
     assert "approve" in " ".join(device_stage.blockers).casefold()
 
 
+def test_device_stage_distinguishes_every_detected_non_android_connection_mode():
+    cases = (
+        (DeviceState.OFFLINE, "ADB detected the phone, but it is offline"),
+        (DeviceState.FASTBOOT, "Phone detected in fastboot mode"),
+        (DeviceState.BOOTLOADER, "Phone detected in bootloader mode"),
+        (DeviceState.FASTBOOTD, "Phone detected in fastbootd mode"),
+        (DeviceState.RECOVERY, "Phone detected in recovery mode"),
+        (DeviceState.SIDELOAD, "Phone detected in sideload mode"),
+        (DeviceState.UNKNOWN, "connection mode is unknown"),
+    )
+
+    for state, expected in cases:
+        device = AndroidDevice("serial", state, model="Visible Phone")
+        context = GuidedContext(
+            project_exists=True,
+            original_imported=True,
+            inspection_saved=True,
+            working_copy_ready=True,
+            working_tree_ready=True,
+            device=device,
+            observed_devices=(device,),
+            device_pack_id="generic-android",
+            device_dna_ready=True,
+            capability_map_ready=True,
+        )
+
+        device_stage = GuidedMissionEngine().assess(context)[4]
+        blockers = " ".join(device_stage.blockers)
+
+        assert device_stage.status is GuidedStageStatus.ATTENTION
+        assert expected in blockers
+        assert "Connect the target Android phone by USB." not in blockers
+
+
+def test_device_stage_distinguishes_selection_required_from_nothing_detected():
+    first = AndroidDevice("one", DeviceState.DEVICE, model="First Phone")
+    second = AndroidDevice("two", DeviceState.DEVICE, model="Second Phone")
+    context = GuidedContext(
+        project_exists=True,
+        original_imported=True,
+        inspection_saved=True,
+        working_copy_ready=True,
+        working_tree_ready=True,
+        observed_devices=(first, second),
+    )
+
+    device_stage = GuidedMissionEngine().assess(context)[4]
+    blockers = " ".join(device_stage.blockers)
+
+    assert "Choose one of the 2 detected Android devices" in blockers
+    assert "Connect the target Android phone by USB." not in blockers
+
+
+def test_device_stage_does_not_treat_a_failed_scan_as_proof_of_disconnection():
+    context = GuidedContext(
+        project_exists=True,
+        original_imported=True,
+        inspection_saved=True,
+        working_copy_ready=True,
+        working_tree_ready=True,
+        device_scan_error="ADB transport failed during refresh",
+    )
+
+    device_stage = GuidedMissionEngine().assess(context)[4]
+    blockers = " ".join(device_stage.blockers)
+
+    assert "latest USB device scan failed" in blockers
+    assert "not treating this as proof that the phone is disconnected" in blockers
+    assert "ADB transport failed during refresh" in blockers
+
+
 def test_device_stage_cannot_complete_without_current_device_dna_and_capability_map():
     context = GuidedContext(
         project_exists=True,

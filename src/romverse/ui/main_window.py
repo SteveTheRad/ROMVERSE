@@ -4264,13 +4264,19 @@ class MainWindow(QMainWindow):
     def _set_active_device_context(self, devices: list[AndroidDevice]) -> None:
         """Bind all action surfaces to the same explicitly selected device."""
 
-        self.companion_center.set_device_snapshot(devices)
+        self.companion_center.set_device_snapshot(
+            devices,
+            observed_devices=self._observed_devices,
+        )
         self._update_companion_ascension_status()
         self.diagnostics_center.set_devices(devices)
         self.guardian_center.request_refresh()
         self.repair_center.set_devices(devices)
         self.device_packs_center.set_devices(devices)
-        self.rom_studio.set_devices(devices)
+        self.rom_studio.set_devices(
+            devices,
+            observed_devices=self._observed_devices,
+        )
         self.apk_installer.set_devices(devices)
         self.backup_center.set_devices(devices)
         self.terminal_center.set_devices(devices)
@@ -4483,7 +4489,7 @@ class MainWindow(QMainWindow):
         self.device_center.set_scanning(False)
         self.device_center.set_devices([])
         self.device_center.show_error(message)
-        self.companion_center.set_device_snapshot([])
+        self.companion_center.set_device_snapshot([], scan_error=message)
         self.diagnostics_center.set_scanning(False)
         self.diagnostics_center.set_devices([])
         self.diagnostics_center.show_error(message)
@@ -4491,7 +4497,7 @@ class MainWindow(QMainWindow):
         self.repair_center.set_devices([])
         self.repair_center.show_error(message)
         self.device_packs_center.set_devices([])
-        self.rom_studio.set_devices([])
+        self.rom_studio.set_devices([], scan_error=message)
         self.apk_installer.set_devices([])
         self.backup_center.set_devices([])
         self.terminal_center.set_devices([])

@@ -47,6 +47,8 @@ class GuidedContext:
     extraction_budget_safe: bool = False
     extraction_budget_detail: str = ""
     device: AndroidDevice | None = None
+    observed_devices: tuple[AndroidDevice, ...] = ()
+    device_scan_error: str = ""
     device_pack_id: str = ""
     device_dna_ready: bool = False
     capability_map_ready: bool = False
@@ -435,10 +437,19 @@ class GuidedMissionEngine:
     ) -> dict[str, tuple[bool, tuple[str, ...], tuple[str, ...]]]:
         device = context.device
         authorized = device is not None and device.state is DeviceState.DEVICE
+        observed = context.observed_devices
         device_evidence = (
             (
                 f"Authorized {device.display_name} ({device.codename or 'codename unknown'})"
                 if authorized and device is not None
+                else f"Detected {device.display_name} in {device.state.value} mode"
+                if device is not None
+                else f"Detected {len(observed)} Android devices; target selection required"
+                if len(observed) > 1
+                else f"Detected {observed[0].display_name}; target selection required"
+                if observed
+                else "Latest Android device scan failed"
+                if context.device_scan_error
                 else "No authorized Android device detected"
             ),
             (
@@ -449,11 +460,55 @@ class GuidedMissionEngine:
         ) + context.device_dna_evidence
         device_blockers: list[str] = []
         if device is None:
-            device_blockers.append("Connect the target Android phone by USB.")
+            if len(observed) > 1:
+                device_blockers.append(
+                    f"Choose one of the {len(observed)} detected Android devices in Device Center "
+                    "before continuing."
+                )
+            elif observed:
+                device_blockers.append(
+                    "Select the detected Android device in Device Center before continuing."
+                )
+            elif context.device_scan_error:
+                detail = " ".join(context.device_scan_error.split())
+                if len(detail) > 180:
+                    detail = f"{detail[:179].rstrip()}…"
+                device_blockers.append(
+                    "The latest USB device scan failed"
+                    + (f": {detail}" if detail else "")
+                    + ". ROMVERSE is not treating this as proof that the phone is disconnected; "
+                    "retry the read-only scan."
+                )
+            else:
+                device_blockers.append(
+                    "No Android device is currently visible. Connect the target phone by USB, "
+                    "enable USB debugging, then refresh the scan."
+                )
         elif device.state is DeviceState.UNAUTHORIZED:
-            device_blockers.append("Unlock the phone and approve the USB debugging fingerprint.")
+            device_blockers.append(
+                "USB phone detected. Unlock it and approve this computer's USB debugging "
+                "fingerprint, then refresh the scan."
+            )
+        elif device.state is DeviceState.OFFLINE:
+            device_blockers.append(
+                "ADB detected the phone, but it is offline. Reconnect USB or restart ADB, then "
+                "refresh the scan."
+            )
+        elif device.is_fastboot:
+            device_blockers.append(
+                f"Phone detected in {device.state.value} mode. Boot normal Android with USB "
+                "debugging enabled, then refresh to compile complete Device DNA."
+            )
+        elif device.state in {DeviceState.RECOVERY, DeviceState.SIDELOAD}:
+            device_blockers.append(
+                f"Phone detected in {device.state.value} mode. Return to normal Android with USB "
+                "debugging enabled, then refresh to compile complete Device DNA."
+            )
         elif device.state is not DeviceState.DEVICE:
-            device_blockers.append(f"Device state is {device.state.value}; reconnect in Android.")
+            device_blockers.append(
+                "ROMVERSE detected the phone, but its connection mode is unknown. Reconnect in "
+                "normal Android with USB debugging enabled, then refresh the scan."
+            )
         if not context.device_pack_id:
             device_blockers.append("A compatible Device Pack must identify the exact target.")
         if not context.device_dna_ready:

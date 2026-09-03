@@ -492,6 +492,8 @@ class RomStudio(QWidget):
         self.current_project: RomProject | None = None
         self.suggested_pack_id = ""
         self.devices: list[AndroidDevice] = []
+        self.observed_devices: list[AndroidDevice] = []
+        self.device_scan_error = ""
         self.companion_snapshot = None
         self.device_scan_available = False
         self.tool_statuses: tuple[ToolStatus, ...] = ()
@@ -1680,7 +1682,12 @@ class RomStudio(QWidget):
 
         project = self.current_project
         if project is None:
-            return GuidedContext(tool_statuses=self.tool_statuses)
+            return GuidedContext(
+                device=self.devices[0] if self.devices else None,
+                observed_devices=tuple(self.observed_devices),
+                device_scan_error=self.device_scan_error,
+                tool_statuses=self.tool_statuses,
+            )
         project_id = project.project_id
         state = state or GuidedMissionStore(self.store.projects_root / project_id).load()
         report = self.inspection.load_report(project_id)
@@ -1802,6 +1809,8 @@ class RomStudio(QWidget):
             extraction_budget_safe=budget_safe,
             extraction_budget_detail=budget_detail,
             device=device,
+            observed_devices=tuple(self.observed_devices),
+            device_scan_error=self.device_scan_error,
             device_pack_id=pack_id or project.device_pack_id,
             device_dna_ready=dna is not None,
             capability_map_ready=bool(dna and dna.capabilities),
@@ -2409,20 +2418,37 @@ class RomStudio(QWidget):
         if changed:
             self.device_context_changed.emit()
 
-    def set_devices(self, devices: list[AndroidDevice]) -> None:
-        changed = self.devices != devices
-        self.devices = list(devices)
+    def set_devices(
+        self,
+        devices: list[AndroidDevice],
+        *,
+        observed_devices: list[AndroidDevice] | None = None,
+        scan_error: str = "",
+    ) -> None:
+        """Bind actions to one target while retaining truthful detection-only context."""
+
+        active = list(devices)
+        observed = list(active if observed_devices is None else observed_devices)
+        normalized_error = scan_error.strip()
+        changed = (
+            self.devices != active
+            or self.observed_devices != observed
+            or self.device_scan_error != normalized_error
+        )
+        self.devices = active
+        self.observed_devices = observed
+        self.device_scan_error = normalized_error
         self.suggested_pack_id = ""
-        if devices:
-            resolution = self.pack_registry.resolve(devices[0])
+        if active:
+            resolution = self.pack_registry.resolve(active[0])
             if resolution.pack is not None:
                 self.suggested_pack_id = resolution.pack.pack_id
-        if self.current_project is not None and devices:
+        if self.current_project is not None and active:
             # Boot evidence is optional and must never interfere with device discovery.
             with suppress(OSError, ProjectError):
                 BootObservationService(self.store, self.pack_registry).observe(
                     self.current_project.project_id,
-                    devices[0],
+                    active[0],
                 )
         if changed:
             self.device_context_changed.emit()

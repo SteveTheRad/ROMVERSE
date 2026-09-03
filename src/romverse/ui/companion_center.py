@@ -222,23 +222,86 @@ class CompanionCenter(QWidget):
         if self._approved:
             self._render_approved_state(restored=True)
 
-    def set_device_snapshot(self, devices: list[AndroidDevice]) -> None:
-        """Reflect the latest read-only Device Engine result in Companion."""
+    def set_device_snapshot(
+        self,
+        devices: list[AndroidDevice],
+        *,
+        observed_devices: list[AndroidDevice] | None = None,
+        scan_error: str = "",
+    ) -> None:
+        """Reflect selected authority separately from read-only USB detection."""
 
         self._sync_approved_state()
-        device = next((item for item in devices if item.state is DeviceState.DEVICE), None)
+        observed = list(devices if observed_devices is None else observed_devices)
+        device = devices[0] if devices else None
         if device is None:
-            if self._approved:
+            if scan_error.strip():
+                self.device_status.setText(
+                    "Desktop device link: USB scan unavailable  •  Device Engine is retrying"
+                )
+            elif len(observed) > 1:
+                self.device_status.setText(
+                    f"Desktop device link: {len(observed)} USB devices detected  •  choose one in Device Center"
+                )
+            elif observed:
+                self.device_status.setText(
+                    "Desktop device link: USB device detected  •  select it in Device Center"
+                )
+            elif self._approved:
                 self.device_status.setText(
                     "Desktop device link: wireless Companion active  •  USB is disconnected"
                 )
-                self._render_approved_state(restored=True)
             else:
                 self.device_status.setText(
                     "Desktop device link: no USB device detected  •  wireless pairing remains available"
                 )
             self._usb_paired = False
-            self.generate.setEnabled(self.transport.available)
+            if self._approved:
+                self._render_approved_state(restored=True)
+            else:
+                self.generate.setEnabled(self.transport.available)
+            return
+        if device.state is not DeviceState.DEVICE:
+            if device.state is DeviceState.UNAUTHORIZED:
+                state = "authorization required"
+                instruction = (
+                    "Unlock the phone and approve this computer's USB debugging fingerprint, "
+                    "then refresh the read-only scan."
+                )
+            elif device.state is DeviceState.OFFLINE:
+                state = "ADB offline"
+                instruction = (
+                    "ADB can see the phone but cannot read it. Reconnect USB or restart ADB, then "
+                    "refresh the scan."
+                )
+            elif device.is_fastboot:
+                state = f"{device.state.value} mode"
+                instruction = (
+                    "The phone is detected outside normal Android. Start Android before using "
+                    "Companion telemetry."
+                )
+            elif device.state in {DeviceState.RECOVERY, DeviceState.SIDELOAD}:
+                state = f"{device.state.value} mode"
+                instruction = (
+                    "The phone is detected outside normal Android. Return to Android before using "
+                    "Companion telemetry."
+                )
+            else:
+                state = "connection mode unknown"
+                instruction = (
+                    "Reconnect the phone in normal Android with USB debugging enabled, then "
+                    "refresh the scan."
+                )
+            self.device_status.setText(
+                f"Desktop device link: {device.display_name} detected  •  {state}"
+            )
+            self._usb_paired = False
+            if self._approved:
+                self._render_approved_state(restored=True)
+            else:
+                self.state.setText(f"USB detected • {state}")
+                self.instructions.setText(instruction)
+                self.generate.setEnabled(self.transport.available)
             return
         companion = "installed" if device.companion_installed else "not installed"
         self.device_status.setText(

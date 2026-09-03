@@ -648,7 +648,9 @@ class GuardianManifestReviewDialog(QDialog):
                 "Each write must be read back immediately and match the signed full-partition "
                 "size and SHA-256. Signed transitions below are exact review templates only; after "
                 "a separately governed runtime, the same phone must match every Device DNA value. "
-                "This template did not run anything."
+                f"Signed result verifier v{contract.result_receipt_schema_version} requires a "
+                "separately trusted runtime signature plus independently verified live-target and "
+                "consent receipts. No runtime trust is enrolled. This template did not run anything."
             )
             for step in contract.steps:
                 if step.phase is GatewayStepPhase.TRANSITION:

@@ -60,6 +60,7 @@ jobs:
           tests/test_companion_transport.py
           tests/test_guardian_execution_plan.py
           tests/test_guardian_execution_gateway_contract.py
+          tests/test_guardian_execution_result_receipt.py
           tests/test_optimizer.py
           tests/test_navigation_vocabulary.py
         env:

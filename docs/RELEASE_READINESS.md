@@ -152,6 +152,21 @@ has current evidence.
    explicit confirmation, workspace preservation, no execution authority and explicitly unavailable
    rollback. This remains unsigned/debug candidate evidence and grants no public-update or phone authority.
 
+   The next Desktop source milestone now defines and adversarially tests execution-result receipt
+   schema two as verification-only code. A result must carry a domain-separated Ed25519 signature from
+   an externally pinned runtime public key and exact adapter identity scoped to the exact Pack/write/
+   attestation/transition authority; exact gateway/plan/manifest/artifact/device/Pack bindings; and
+   independently supplied live-target and final-consent receipt digests scoped to the same gateway and
+   device. Ordered step evidence must match every signed value, partition size/SHA-256, mode, slot and
+   post-boot condition before `succeeded` is accepted. Strict failure/abort/recovery states derive the
+   phone-change uncertainty instead of trusting it. Recovery requires its own consent binding and an
+   observed wipe requires a further wipe-consent binding. Altered bytes, re-signed false success,
+   changed authority bindings, missing/reordered/duplicated steps, wrong public keys/adapters,
+   overlapping/out-of-time results, malformed/duplicate-field JSON and linked files are rejected. The
+   verifier has no signer, runner or execute method; no production runtime trust is enrolled; and the
+   visible Desktop review says so. Actual live-target/final-consent receipt issuers, governed execution,
+   physical validation and built-in schema-three Pack authority remain unfinished.
+
    That exact candidate includes both typed execution-gateway boundaries. Given synthetic signed
    schema-two evidence, it regenerates exact Fastboot
    precondition/write/readback steps and exact ADB post-boot property checks from the current plan,

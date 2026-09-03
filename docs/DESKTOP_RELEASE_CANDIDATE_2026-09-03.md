@@ -150,9 +150,10 @@ in this report.
   inert: it never infers mode transitions, slot activation, reboot, wipe, rollback or recovery; it
   represents them only when an exact signed schema-three Pack declares them. No built-in Device Pack
   currently carries the required signed schema-two or schema-three contracts. Both gateway variants
-  are inert result templates—not execution receipts. Live target re-identification, a governed
-  runtime adapter, immutable result receipts, the separate final-consent journey and independent
-  physical validation remain unavailable.
+  are inert result templates—not execution receipts. A domain-separated Ed25519 result verifier is
+  now defined and tested, but it has no signer, runner or execution method and no production runtime
+  trust is enrolled. Live target re-identification, actual independently bound final-consent/result
+  receipts, a governed runtime adapter and independent physical validation remain unavailable.
 - Physical-device and broad multi-OEM claims remain limited to the hardware evidence actually
   collected. Samsung Download Mode, Qualcomm EDL, MediaTek preloader, OEM unlock services, recovery
   signing, and other vendor-specific write paths still need separately reviewed adapters and signed

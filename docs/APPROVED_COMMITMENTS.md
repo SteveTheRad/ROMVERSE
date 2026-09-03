@@ -665,13 +665,25 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   resulting-mode or active-slot evidence, binds a command-free ordered recovery contingency and exact
   wipe disclosure, and stops at `blocked-missing-live-runtime-receipts-and-final-consent`; the managed
   Desktop worker performs no phone action;
+  a domain-separated Ed25519 execution-result schema/verifier with no signer, private key, runner or
+  execution method: it pins the externally supplied runtime public-key digest and exact adapter,
+  scopes that trust to the exact Pack/write/attestation/transition contract, requires independently
+  verified live-target/final-consent bindings scoped to the gateway and device in addition to their
+  signed receipt copies, validates exact ordered gateway-step prefixes and per-step result digests, derives
+  phone-change attempted/verified/uncertain state, and accepts success only after every exact readback
+  and post-boot obligation passes; failure, abort, recovered and recovery-failed states have strict
+  prefix/terminal semantics; recovery needs a distinct recovery-consent binding and any recorded wipe
+  needs a further wipe-consent binding; canonical bounded JSON, duplicate-field/link rejection,
+  timestamps, signed timeouts and exact envelope/body/result digests fail closed; no production runtime
+  trust is enrolled and this verifier creates no phone authority;
   end-to-end Desktop presentation of that inert chain through the managed ROM Studio Guardian
   worker, with a single monotonic byte-derived scale across each required artifact rehash, terminal
   100 only after the applicable private records are sealed, readable dark scroll cards for
   preconditions, partition intent, exact signed transitions, immediate readback hashes, typed recovery
   contingency/wipe warnings, first-boot Device DNA and remaining
   blockers, and an exact-identity handoff into Guardian Core that rejects stale, tampered or
-  authority-bearing cached context while offering no execute or flash control;
+  authority-bearing cached context while offering no execute or flash control; both surfaces expose
+  the signed-result-verifier requirement and the absence of enrolled runtime trust;
   Forge Control stale-card detachment and natural-height scrolling, two aligned footer action rows,
   and separate blocked/attention counts so repeated evidence refreshes cannot jumble controls or
   make an amber certification requirement appear complete;

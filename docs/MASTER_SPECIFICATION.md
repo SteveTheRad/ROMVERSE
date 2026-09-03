@@ -486,6 +486,26 @@ execution authority `none`, and final consent unavailable. Schema two remains
 `blocked-missing-signed-transition-recovery-and-final-consent`; schema three advances only to
 `blocked-missing-live-runtime-receipts-and-final-consent`. Neither status authorizes a phone action.
 
+The result side of that boundary is now specified by a strict Ed25519 execution-result verifier.
+It accepts no locally asserted success: every imported envelope must be signed by an externally
+trusted runtime identity whose raw public-key digest and exact adapter identity/version/digest are
+pinned by the caller and scoped to the exact Device Pack, write contract, write attestation and
+transition/recovery digest. The signed receipt is bound to the complete gateway, plan, manifest,
+artifact, device, Pack, live-target and final-consent digests. The prerequisite record itself must
+match the exact gateway and private device key; live-target and consent digests must also equal
+independently supplied, pre-verified prerequisite bindings, so the runtime signer cannot invent its
+own target or consent authority. Ordered results form an exact gateway prefix and bind each gateway
+step digest, bounded timing, exit state, privacy-safe evidence digest and the expected value or full
+readback size/SHA-256. A success state requires every step and every postcondition; failure and abort
+states cannot skip or reorder evidence. Recovery results are separately bound to the exact typed
+adapter actions and a separate recovery-consent digest, while a recorded wipe additionally requires
+a distinct wipe-consent digest. Phone-change attempted/verified/uncertain states are derived from the
+attempted signed steps rather than trusted as runtime assertions. Canonical JSON, a domain-separated
+signature, whole-receipt and per-result digests, exact fields, duplicate-key rejection, bounded regular-
+file loading and chronological/timeout checks fail closed. The verifier deliberately contains no
+private-key API, runner or execution method, and the Desktop has no enrolled runtime trust; therefore
+it can verify future evidence but still cannot execute or fabricate one.
+
 ROM Studio's managed Guardian review worker carries this inert chain through the actual Desktop
 journey. It seals the command-free manifest, independently rehashes the same artifacts for the inert
 plan, and, when schema two or schema three is present, rehashes them again before sealing the result template. One
@@ -495,7 +515,9 @@ cards for exact binding, partition intent, preconditions, signed transitions, im
 sizes/digests, typed recovery contingency, wipe disclosure, post-boot Device DNA and unresolved blockers.
 Guardian Core retains the same exact plan/template identities
 only while the manifest remains valid. Changed or authority-bearing cached objects are discarded,
-and neither surface exposes an execute, flash, consent, transition or reboot control.
+and neither surface exposes an execute, flash, consent, transition or reboot control. Both surfaces
+state that result-receipt schema two requires an Ed25519 runtime signature plus independently verified
+target/consent bindings and that no runtime trust is enrolled.
 For schema three, the same worker performs all three measured full rehash passes and seals the
 transition-aware gateway only after the artifact-bound manifest and transition/recovery-bound plan
 remain exact. The gateway is still inert and reaches terminal completion only after all fail-closed

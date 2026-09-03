@@ -618,6 +618,9 @@ class GuardianCenter(QWidget):
                 f"  •  {gateway_contract.contract_digest[:16]}…"
                 f"\nTemplate state  •  {gateway_contract.contract_status.replace('-', ' ')}"
                 "  •  Runtime invoked: no"
+                f"\nSIGNED RESULT VERIFIER v{gateway_contract.result_receipt_schema_version}  •  "
+                "Ed25519 runtime signature + independent target/consent bindings required  •  "
+                "Runtime trust: not enrolled"
                 f"{orchestration}"
             )
         self.studio_review_detail.setText(

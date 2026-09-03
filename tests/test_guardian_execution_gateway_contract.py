@@ -366,6 +366,7 @@ def test_guardian_ui_shows_plan_and_result_template_without_execution_control(
     assert any("READ BACK super" in text for text in texts)
     assert any("sys.boot_completed = 1" in text for text in texts)
     assert any("This template did not run anything" in text for text in texts)
+    assert any("independently verified live-target" in text for text in texts)
     assert buttons == ["Return to Genesis", "Open Guardian Core"]
     dialog.close()
 
@@ -376,6 +377,8 @@ def test_guardian_ui_shows_plan_and_result_template_without_execution_control(
     assert "RESULT TEMPLATE" in detail
     assert "immediate readback" in detail
     assert "Runtime invoked: no" in detail
+    assert "SIGNED RESULT VERIFIER v2" in detail
+    assert "Runtime trust: not enrolled" in detail
     assert "Execution: none" in detail
     center.close()
 
@@ -417,6 +420,8 @@ def test_guardian_ui_shows_signed_transition_and_recovery_contingency_without_co
     assert "2 mode/slot transition(s) / 3 recovery action(s)" in detail
     assert "recovery may wipe: yes (automatic wipe forbidden)" in detail
     assert "Runtime invoked: no" in detail
+    assert "SIGNED RESULT VERIFIER v2" in detail
+    assert "Runtime trust: not enrolled" in detail
     assert "Execution: none" in detail
     center.close()
 
@@ -487,6 +492,8 @@ def test_main_window_carries_exact_gateway_context_into_guardian_core(
         assert "1 immediate readback" in detail
         assert "7 first-boot checks" in detail
         assert "Runtime invoked: no" in detail
+        assert "SIGNED RESULT VERIFIER v2" in detail
+        assert "Runtime trust: not enrolled" in detail
         assert "Execution: none" in detail
     finally:
         window.companion_center.transport.close()

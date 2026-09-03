@@ -27,13 +27,16 @@ def test_settings_dialog_exposes_only_runtime_backed_controls(tmp_path) -> None:
 
     assert "no public AI provider or client-side usage service" in labels
     assert "foreground alerts stay inside ROMVERSE" in labels
-    assert "signed automatic update infrastructure is not yet implemented" in labels
+    assert "Verification and safe staging are ready" in labels
+    assert "Publisher trust is unavailable" in labels
     assert "Show milestone and attention notifications" in checks
     assert " tokens/day" not in spin_suffixes
     assert "Guided Mode · ROMVERSE Arcana" in combo_text
     assert "Expert Mode · Architect workspace" in combo_text
     assert "Nebula Rose" in combo_text
     assert "Quantum Mint" in combo_text
+    assert "Stable releases" in combo_text
+    assert "Preview release candidates" in combo_text
     assert "header reachability monitor" in dialog.online_intelligence.toolTip()
     assert "official Android ID refresh" in dialog.online_intelligence.toolTip()
 

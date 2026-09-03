@@ -11,6 +11,7 @@ from PySide6.QtCore import QLockFile, Qt, QTimer
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QDialog
 
+from romverse import __version__
 from romverse.core.runtime_stability import GuiThreadGarbageCollector, RuntimeCrashGuard
 from romverse.core.settings import AppSettings, SettingsStore
 from romverse.core.workspace import WorkspaceInitializer
@@ -33,6 +34,7 @@ from romverse.ui.main_window import MainWindow
 from romverse.ui.setup_wizard import SetupWizard
 from romverse.ui.theme import STYLESHEET, apply_dark_palette
 from romverse.ui.toolchain_center import activate_verified_managed_tools
+from romverse.updates import DesktopUpdateService, load_desktop_update_trust
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -120,6 +122,9 @@ def main(argv: list[str] | None = None) -> int:
         as_file(files("romverse.assets").joinpath("romverse-r.png")) as r_path,
         as_file(files("romverse.assets").joinpath("romverse-app-icon.png")) as app_icon_path,
         as_file(files("romverse.assets").joinpath("device_pack_trust")) as trust_root,
+        as_file(
+            files("romverse.assets").joinpath("desktop_update_trust.json")
+        ) as update_trust_path,
     ):
         app.setWindowIcon(QIcon(str(app_icon_path)))
         if not settings.onboarding_complete and not args.skip_onboarding:
@@ -175,6 +180,12 @@ def main(argv: list[str] | None = None) -> int:
                 if fastboot_executable is not None
                 else None,
             )
+        update_platform = "windows-x86_64" if host.name == "Windows" else "linux-x86_64"
+        desktop_update_service = DesktopUpdateService(
+            load_desktop_update_trust(update_trust_path),
+            current_version=__version__,
+            platform=update_platform,
+        )
         with GuiThreadGarbageCollector(app), RuntimeCrashGuard(workspace):
             window = MainWindow(
                 engine,
@@ -194,6 +205,7 @@ def main(argv: list[str] | None = None) -> int:
                 fastboot_executable=fastboot_executable,
                 attestation_store=attestation_store,
                 app_settings=settings,
+                desktop_update_service=desktop_update_service,
             )
             window.settings_changed.connect(store.save)
             window.show()

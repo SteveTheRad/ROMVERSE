@@ -67,6 +67,8 @@ def assess_firmware_upgrade(
     current_incremental: str = "",
     current_sdk_level: str = "",
     current_build_timestamp: int | None = None,
+    current_build_fingerprints: tuple[str, ...] = (),
+    current_build_incrementals: tuple[str, ...] = (),
     device_aliases: tuple[str, ...] = (),
     ota_metadata: AndroidOtaMetadata | None = None,
 ) -> FirmwareUpgradeAssessment:
@@ -82,6 +84,8 @@ def assess_firmware_upgrade(
             current_incremental=current_incremental,
             current_sdk_level=current_sdk_level,
             current_build_timestamp=current_build_timestamp,
+            current_build_fingerprints=current_build_fingerprints,
+            current_build_incrementals=current_build_incrementals,
             device_aliases=device_aliases,
             metadata=ota_metadata,
         )
@@ -209,6 +213,8 @@ def _assess_android_ota(
     current_incremental: str,
     current_sdk_level: str,
     current_build_timestamp: int | None,
+    current_build_fingerprints: tuple[str, ...],
+    current_build_incrementals: tuple[str, ...],
     device_aliases: tuple[str, ...],
     metadata: AndroidOtaMetadata,
 ) -> FirmwareUpgradeAssessment:
@@ -225,10 +231,23 @@ def _assess_android_ota(
     current_label = (
         current_build.strip() or current_incremental.strip() or current_fingerprint.strip()
     )
+    supplied_candidate = candidate_build.strip()
+    metadata_candidate = metadata.post_build_incremental or (
+        metadata.post_builds[0] if metadata.post_builds else ""
+    )
+    # OEM filenames and marketing versions can stay unchanged while the signed OTA
+    # metadata names a distinct internal build. When that happens, displaying only
+    # ``4.0.0.25 -> 4.0.0.25`` hides the evidence that caused the decision.
+    same_marketing_label = bool(
+        supplied_candidate
+        and current_build.strip()
+        and supplied_candidate.casefold() == current_build.strip().casefold()
+        and metadata_candidate
+        and metadata_candidate.casefold()
+        not in {current_incremental.strip().casefold(), current_fingerprint.strip().casefold()}
+    )
     candidate_label = (
-        candidate_build.strip()
-        or metadata.post_build_incremental
-        or (metadata.post_builds[0] if metadata.post_builds else "")
+        metadata_candidate if same_marketing_label else supplied_candidate or metadata_candidate
     )
 
     if live_devices and target_devices and live_devices.isdisjoint(target_devices):
@@ -260,6 +279,8 @@ def _assess_android_ota(
         metadata,
         current_fingerprint=current_fingerprint,
         current_incremental=current_incremental,
+        current_build_fingerprints=current_build_fingerprints,
+        current_build_incrementals=current_build_incrementals,
     )
     if precondition_error:
         relationship = (
@@ -300,6 +321,38 @@ def _assess_android_ota(
             "",
             f"DOWNGRADE CANDIDATE • {current_label} → {candidate_label}",
             (f"OTA post SDK {metadata.post_sdk_level} is below live SDK {current_sdk}.",),
+        )
+
+    live_fingerprints = {
+        value.strip()
+        for value in (current_fingerprint, *current_build_fingerprints)
+        if value.strip()
+    }
+    live_incrementals = {
+        value.strip()
+        for value in (current_incremental, *current_build_incrementals)
+        if value.strip()
+    }
+    matching_fingerprints = live_fingerprints.intersection(metadata.post_builds)
+    matching_incremental = bool(
+        metadata.post_build_incremental and metadata.post_build_incremental in live_incrementals
+    )
+    if matching_fingerprints or matching_incremental:
+        installed_identity = metadata.post_build_incremental or next(iter(matching_fingerprints))
+        return _assessment(
+            FirmwareRelationship.SAME,
+            current_label,
+            installed_identity,
+            display_device,
+            display_target,
+            "",
+            "",
+            f"SAME INSTALLED OTA BUILD • {installed_identity}",
+            (
+                "The OTA target matched the connected device.",
+                "The package's internal post-build identity is already reported by the live phone.",
+                "A marketing version or partition timestamp difference cannot override this exact identity match.",
+            ),
         )
 
     if metadata.post_timestamp is None or current_build_timestamp is None:
@@ -346,11 +399,18 @@ def _assess_android_ota(
         FirmwareRelationship.DOWNGRADE: "DOWNGRADE CANDIDATE",
         FirmwareRelationship.SAME: "SAME FIRMWARE TIMESTAMP",
     }[relationship]
+    if relationship is FirmwareRelationship.UPGRADE and same_marketing_label:
+        label = "NEWER OTA BUILD CANDIDATE"
     reasons = [
         f"OTA target matched the connected device: {display_target}.",
         "Any OTA pre-build requirements matched the live build evidence.",
         "Version order was derived from Android OTA post-timestamp and the live build timestamp.",
     ]
+    if same_marketing_label:
+        reasons.append(
+            "The package marketing version matches the phone, but its signed OTA metadata names "
+            "a different internal target build; ROMVERSE therefore shows the internal identity."
+        )
     if metadata.post_sdk_level is not None and current_sdk is not None:
         reasons.append(
             f"OTA post SDK {metadata.post_sdk_level} was checked against live SDK {current_sdk}."
@@ -373,16 +433,28 @@ def _ota_precondition_error(
     *,
     current_fingerprint: str,
     current_incremental: str,
+    current_build_fingerprints: tuple[str, ...] = (),
+    current_build_incrementals: tuple[str, ...] = (),
 ) -> str:
+    fingerprints = {
+        value.strip()
+        for value in (current_fingerprint, *current_build_fingerprints)
+        if value.strip()
+    }
+    incrementals = {
+        value.strip()
+        for value in (current_incremental, *current_build_incrementals)
+        if value.strip()
+    }
     if metadata.pre_builds:
-        if not current_fingerprint.strip():
+        if not fingerprints:
             return "Live build fingerprint is unavailable for the OTA pre-build check."
-        if current_fingerprint.strip() not in metadata.pre_builds:
+        if fingerprints.isdisjoint(metadata.pre_builds):
             return "Live build fingerprint does not satisfy the OTA pre-build requirement."
     if metadata.pre_build_incrementals:
-        if not current_incremental.strip():
+        if not incrementals:
             return "Live incremental build is unavailable for the OTA update-path check."
-        if current_incremental.strip() not in metadata.pre_build_incrementals:
+        if incrementals.isdisjoint(metadata.pre_build_incrementals):
             return "Live incremental build does not satisfy the OTA update-path requirement."
     return ""
 

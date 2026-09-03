@@ -95,10 +95,22 @@ def load_release_json(path: Path) -> dict[str, Any]:
     if details.st_size < 2 or details.st_size > MAX_RELEASE_DOCUMENT_BYTES:
         raise ReleaseValidationError("Release document size is outside the safe limit")
     try:
-        value = json.loads(resolved.read_bytes(), object_pairs_hook=_strict_object)
+        payload = resolved.read_bytes()
+    except OSError as exc:
+        raise ReleaseValidationError("Release document is unavailable") from exc
+    return parse_release_json_bytes(payload)
+
+
+def parse_release_json_bytes(payload: bytes) -> dict[str, Any]:
+    """Parse one bounded release JSON object without accepting duplicate fields."""
+
+    if not isinstance(payload, bytes) or not 2 <= len(payload) <= MAX_RELEASE_DOCUMENT_BYTES:
+        raise ReleaseValidationError("Release document size is outside the safe limit")
+    try:
+        value = json.loads(payload, object_pairs_hook=_strict_object)
     except ReleaseValidationError:
         raise
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ReleaseValidationError("Release document is not valid bounded JSON") from exc
     if not isinstance(value, dict):
         raise ReleaseValidationError("Release document must be one JSON object")
@@ -150,6 +162,12 @@ def _version_order(version: str) -> tuple[int, int, int, int, str]:
     core, separator, prerelease = version.partition("-")
     major, minor, patch = (int(part) for part in core.split("."))
     return major, minor, patch, 0 if separator else 1, prerelease
+
+
+def release_version_order(version: str) -> tuple[int, int, int, int, str]:
+    """Return the validated ordering key used by release and update policy."""
+
+    return _version_order(_valid_version(version))
 
 
 def validate_release_manifest(value: dict[str, Any]) -> DesktopReleaseManifest:

@@ -259,8 +259,17 @@ QPushButton#StudioAction:disabled {
     background: rgba(9, 14, 27, 170);
     border: 1px solid rgba(47, 65, 100, 115);
 }
-QComboBox, QLineEdit { background: #0B1022; border: 1px solid #2B3C70; border-radius: 8px; padding: 8px; }
+QComboBox, QLineEdit, QSpinBox {
+    color: #EDF4FF; background: #0B1022; border: 1px solid #2B3C70;
+    border-radius: 8px; padding: 8px;
+    selection-color: #FFFFFF; selection-background-color: #523B9B;
+}
 QComboBox::drop-down { border: 0; }
+QSpinBox::up-button, QSpinBox::down-button {
+    width: 18px; background: #121A31; border-left: 1px solid #2B3C70;
+}
+QSpinBox::up-button { border-top-right-radius: 7px; }
+QSpinBox::down-button { border-bottom-right-radius: 7px; }
 QTextEdit, QPlainTextEdit, QTextBrowser {
     color: #DCE8F8;
     background: #060B16;

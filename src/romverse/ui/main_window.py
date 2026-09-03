@@ -177,6 +177,7 @@ from romverse.ui.workspace_shell import (
     WorkspaceShellState,
     navigation_section,
 )
+from romverse.updates import DesktopUpdateCandidate, DesktopUpdateService
 
 ROMVERSE_WEBSITE_URL = "https://romverse.app/"
 RADFORGE_LABS_URL = "https://radforgelabs.com/"
@@ -1255,17 +1256,40 @@ class PlaceholderPage(QWidget):
         layout.addStretch(2)
 
 
+class UpdateCheckSignals(QObject):
+    completed = Signal(object)
+    failed = Signal(str)
+
+
+class UpdateCheckWorker(ManagedRunnable):
+    def __init__(self, service: DesktopUpdateService, channel: str) -> None:
+        super().__init__()
+        self.service = service
+        self.channel = channel
+        self.signals = UpdateCheckSignals()
+
+    def execute(self) -> None:
+        try:
+            self.signals.completed.emit(self.service.check(self.channel))
+        except Exception as exc:  # surfaced as a bounded, non-authorizing status
+            self.signals.failed.emit(str(exc))
+
+
 class SettingsDialog(QDialog):
     def __init__(
         self,
         workspace: Path,
         settings: AppSettings,
         parent: QWidget | None = None,
+        update_service: DesktopUpdateService | None = None,
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle("ROMVERSE Settings")
-        self.setMinimumWidth(620)
+        self.setMinimumWidth(680)
+        self.resize(780, 760)
         self._settings = settings
+        self._update_service = update_service
+        self._update_worker: UpdateCheckWorker | None = None
         layout = QVBoxLayout(self)
         title = QLabel("Command Deck Settings")
         title.setObjectName("Title")
@@ -1274,7 +1298,9 @@ class SettingsDialog(QDialog):
         subtitle.setObjectName("Muted")
         subtitle.setWordWrap(True)
         layout.addWidget(subtitle)
-        form = QFormLayout()
+        form_host = QWidget()
+        form = QFormLayout(form_host)
+        form.setContentsMargins(0, 0, 10, 0)
         self.experience_mode = QComboBox()
         self.experience_mode.addItem(
             "Guided Mode · ROMVERSE Arcana",
@@ -1375,16 +1401,55 @@ class SettingsDialog(QDialog):
         notifications.setObjectName("Muted")
         notifications.setWordWrap(True)
         form.addRow("Notification delivery", notifications)
-        signed_updates = QLabel(
-            "Unavailable · signed automatic update infrastructure is not yet implemented"
+        self.update_channel = QComboBox()
+        self.update_channel.addItem("Stable releases", "stable")
+        self.update_channel.addItem("Preview release candidates", "preview")
+        selected_channel = self.update_channel.findData(settings.update_channel)
+        self.update_channel.setCurrentIndex(max(0, selected_channel))
+        form.addRow("Update channel", self.update_channel)
+        update_row = QVBoxLayout()
+        self.update_status = QLabel()
+        self.update_status.setObjectName("Muted")
+        self.update_status.setWordWrap(True)
+        self.check_updates_button = QPushButton("Check for signed update")
+        configured = bool(update_service is not None and update_service.trust.configured)
+        self.check_updates_button.setEnabled(configured)
+        self.check_updates_button.setToolTip(
+            "Checks signed metadata only. ROMVERSE never installs an update automatically."
+            if configured
+            else "A production publisher key and signed release channel have not been packaged yet."
         )
-        signed_updates.setObjectName("Muted")
-        signed_updates.setWordWrap(True)
-        form.addRow("Application updates", signed_updates)
+        self.check_updates_button.clicked.connect(self._check_for_update)
+        if configured:
+            self.update_status.setText(
+                "Ready · checks require the packaged publisher key, an exact signed channel, "
+                "a newer compatible version, and one matching platform artifact. Installation "
+                "is never automatic."
+            )
+        else:
+            reason = (
+                update_service.trust.reason
+                if update_service is not None
+                else "Publisher trust is unavailable in this build."
+            )
+            self.update_status.setText(
+                f"Verification and safe staging are ready · {reason} No update will be trusted "
+                "until the production public key and signed channel are packaged by RadForge Labs."
+            )
+        update_row.addWidget(self.update_status)
+        update_row.addWidget(self.check_updates_button, 0, Qt.AlignmentFlag.AlignLeft)
+        form.addRow("Application updates", update_row)
         destructive = QLabel("Locked · explicit approval required; bootloader relock forbidden")
         destructive.setObjectName("Good")
         form.addRow("Guardian invariants", destructive)
-        layout.addLayout(form)
+        form_scroll = QScrollArea()
+        form_scroll.setObjectName("SettingsScroll")
+        form_scroll.setWidgetResizable(True)
+        form_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        form_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        form_scroll.setWidget(form_host)
+        layout.addWidget(form_scroll, 1)
+        self.form_scroll = form_scroll
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel
         )
@@ -1415,6 +1480,47 @@ class SettingsDialog(QDialog):
             )
         self.experience_note.setText(message)
 
+    @Slot()
+    def _check_for_update(self) -> None:
+        if self._update_service is None or self._update_worker is not None:
+            return
+        self.check_updates_button.setEnabled(False)
+        self.update_status.setText(
+            "Checking the signed release channel without downloading or installing an update…"
+        )
+        worker = UpdateCheckWorker(
+            self._update_service,
+            str(self.update_channel.currentData()),
+        )
+        self._update_worker = worker
+        worker.signals.completed.connect(self._update_check_completed)
+        worker.signals.failed.connect(self._update_check_failed)
+        start_background(worker)
+
+    @Slot(object)
+    def _update_check_completed(self, candidate: DesktopUpdateCandidate) -> None:
+        self._update_worker = None
+        self.check_updates_button.setEnabled(True)
+        if candidate.available and candidate.artifact is not None:
+            self.update_status.setText(
+                f"Verified signed update available · ROMVERSE {candidate.manifest.version} · "
+                f"{candidate.artifact.platform}. Download and installation still require "
+                "explicit confirmation and cannot change Android-device authority."
+            )
+        else:
+            self.update_status.setText(
+                f"ROMVERSE {candidate.current_version} is current on this signed channel."
+            )
+
+    @Slot(str)
+    def _update_check_failed(self, message: str) -> None:
+        self._update_worker = None
+        self.check_updates_button.setEnabled(True)
+        detail = " ".join(str(message).replace("\x00", " ").split())[:400]
+        self.update_status.setText(
+            f"Update check stopped safely · {detail or 'signed release evidence was unavailable'}"
+        )
+
     def values(self) -> AppSettings:
         return AppSettings(
             schema_version=5,
@@ -1433,7 +1539,7 @@ class SettingsDialog(QDialog):
             desktop_notifications_enabled=self.desktop_notifications.isChecked(),
             reduced_motion=self.reduced_motion.isChecked(),
             backup_directory=self.backup_directory.text().strip(),
-            update_channel=self._settings.update_channel,
+            update_channel=str(self.update_channel.currentData()),
             members_issuer=self.members_issuer.text().strip(),
             members_client_id=self.members_client_id.text().strip(),
         )
@@ -2975,6 +3081,7 @@ class MainWindow(QMainWindow):
         fastboot_executable: Path | None = None,
         attestation_store: DevicePackAttestationStore | None = None,
         app_settings: AppSettings | None = None,
+        desktop_update_service: DesktopUpdateService | None = None,
     ) -> None:
         super().__init__()
         self.engine = engine
@@ -2990,6 +3097,7 @@ class MainWindow(QMainWindow):
             workspace_path=str(workspace),
             scan_interval_seconds=self.scan_interval_seconds,
         )
+        self.desktop_update_service = desktop_update_service
         self.scanning = False
         self.active_worker: ScanWorker | None = None
         self.device_catalog_worker: DeviceCatalogWorker | None = None
@@ -3873,6 +3981,11 @@ class MainWindow(QMainWindow):
         self.apk_installer.set_devices(devices)
         self.backup_center.set_devices(devices)
         self.terminal_center.set_devices(devices)
+        # Genesis derives its device stage from ROM Studio. Refresh the Command
+        # Deck only after every consumer has received the newly selected device,
+        # otherwise its cached flight plan can continue to claim no phone is
+        # connected while the live device card already shows one.
+        self._sync_command_deck_context()
 
     def _render_active_device(self, device: AndroidDevice | None, observed_count: int) -> None:
         if device is not None:
@@ -4089,6 +4202,7 @@ class MainWindow(QMainWindow):
         self.apk_installer.set_devices([])
         self.backup_center.set_devices([])
         self.terminal_center.set_devices([])
+        self._sync_command_deck_context()
         self.rom_studio.device_scan_finished.emit(False, message)
         connection_copy, sidebar_copy, detail_copy = _device_scan_failure_copy(message)
         recovering = _device_scan_failure_is_transient(message) and self._scan_failure_count < 3
@@ -6252,7 +6366,12 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def _open_settings(self) -> None:
-        dialog = SettingsDialog(self.device_center.workspace, self.app_settings, self)
+        dialog = SettingsDialog(
+            self.device_center.workspace,
+            self.app_settings,
+            self,
+            self.desktop_update_service,
+        )
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
         settings = dialog.values()
@@ -6292,8 +6411,8 @@ class MainWindow(QMainWindow):
         self.device_center.device_note.setText(
             "Settings saved securely. Device timing, online research, verified tool acquisition, "
             "experience mode, Desktop theme, notifications, backup destination, accessibility, and Members "
-            "configuration are active and persist after restart. Future AI and signed-update "
-            "controls remain locked."
+            "configuration are active and persist after restart. Signed updates remain locked "
+            "unless the packaged publisher identity verifies the selected release channel."
         )
 
     def _show_theme_menu(self) -> None:

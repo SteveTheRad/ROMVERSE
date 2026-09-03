@@ -646,6 +646,13 @@ def _facts(
             live_evidence,
         ),
         _fact(
+            "software.live_system_incremental",
+            "Live system build",
+            device.system_build_incremental if device else "",
+            live_confidence,
+            live_evidence,
+        ),
+        _fact(
             "firmware.ota_post_incremental",
             "OTA post-build incremental",
             ota_metadata.post_build_incremental if ota_metadata else "",
@@ -884,6 +891,8 @@ def _assess_upgrade(
         current_incremental=device.build_incremental if device is not None else "",
         current_sdk_level=device.api_level if device is not None else "",
         current_build_timestamp=device.build_timestamp_utc if device is not None else None,
+        current_build_fingerprints=(device.system_build_fingerprint,) if device is not None else (),
+        current_build_incrementals=(device.system_build_incremental,) if device is not None else (),
         device_aliases=(device.product, device.vendor_device) if device is not None else (),
         ota_metadata=(
             ota_metadata if ota_metadata is not None and ota_metadata.target_devices else None

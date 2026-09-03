@@ -193,6 +193,21 @@ has current evidence.
    Matrix, build plan or Recipe. Confirm loaders re-derive current evidence, stale records vanish,
    private `0600` storage holds, and genuine schema-one records upgrade only through replanning or
    a verified ROM DNA save.
+
+   Current physical Xiaomi evidence recorded on 2026-09-03: ROMVERSE's production Device Engine
+   completed its Guardian-allowlisted read-only probe sequence against one authorized USB-connected
+   Xiaomi 17 Pro Max (`2509FPN0BC`, `popsicle`) with zero probe errors. The verified Google Play
+   catalog produced one exact retail-name match. Android reported API 37, A/B, Virtual A/B, dynamic
+   partitions, slot A, unlocked/orange Verified Boot, no observed shell-root signal, and no installed
+   Companion. The protected `OS4.0.0.25.XPBCNXM` full OTA passed its existing immutable-original
+   verification. A physical regression then found that Xiaomi's marketing incremental and the
+   system-partition incremental differ: the OTA's internal post-build identity exactly matches the
+   live `ro.system.build.version.incremental`. Device Engine and Device DNA now preserve that second
+   identity and correctly classify this source as **Same installed OTA build**, rather than treating
+   a partition timestamp difference as a newer upgrade. The refreshed profile retained
+   `guardian_flash: UNSUPPORTED`, `bootloader_relock_permitted: false`, zero phone changes, and no
+   persisted raw serial. Disconnect/reconnect, multi-device, physical write, and physical recovery
+   tests remain separate required gates.
 5. Exercise ROMVERSE Link over USB and a trusted local Wi-Fi network. If local networking is
    unavailable, ROMVERSE must remain usable and visibly mark only wireless pairing unavailable.
    Verify unauthenticated telemetry is rejected, request identities cannot be exchanged, expired

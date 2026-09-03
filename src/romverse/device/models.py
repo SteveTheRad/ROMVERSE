@@ -81,6 +81,9 @@ class AndroidDevice:
     hardware_sku: str = ""
     build_incremental: str = ""
     build_timestamp_utc: int | None = None
+    system_build_fingerprint: str = ""
+    system_build_incremental: str = ""
+    system_build_timestamp_utc: int | None = None
 
     @property
     def display_name(self) -> str:

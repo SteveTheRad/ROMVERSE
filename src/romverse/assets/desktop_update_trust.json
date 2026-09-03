@@ -1,0 +1,12 @@
+{
+  "channels": {
+    "preview": "",
+    "stable": ""
+  },
+  "configured": false,
+  "key_id": "",
+  "product": "ROMVERSE Desktop",
+  "public_key_base64": "",
+  "reason": "No production-signed public ROMVERSE Desktop release has been published yet.",
+  "schema_version": 1
+}

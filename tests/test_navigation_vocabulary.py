@@ -37,6 +37,7 @@ from romverse.intelligence.synapse import (
 from romverse.nexus.events import MissionConfidence
 from romverse.nexus.planning import NexusObjective, NexusPlanner
 from romverse.repair.templates import RepairConcern
+from romverse.rom.inspection import RomInspectionService
 from romverse.rom.projects import RomProjectStore
 from romverse.rom.source_intelligence import FirmwareSourceIntelligenceService
 from romverse.ui.main_window import (
@@ -2044,6 +2045,50 @@ def test_fresh_scan_connects_exact_official_device_identity_to_every_desktop_con
             "Determine what a recognized Android device needs to build, compile, and flash"
         )
         assert window.knowledge_center.source_return.text() == "Return to Device Atlas"
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_fresh_scan_immediately_refreshes_the_command_deck_genesis_device_stage(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    store, registry, project, _report = _project(tmp_path)
+    store.create_working_copy(project.project_id)
+    RomInspectionService(store).extract_project_tree(project.project_id)
+    window = MainWindow(
+        None,
+        logo,
+        store.workspace,
+        app_icon_path=logo,
+        pack_registry=registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    try:
+        window.rom_studio.refresh(project.project_id)
+        window._sync_command_deck_context()
+        assert window.device_center._flight_plan is not None
+        assert "Connect the target Android phone by USB." in (
+            window.device_center._flight_plan.blockers
+        )
+
+        window._scan_complete([_device()])
+        app.processEvents()
+
+        assert window.device_center._flight_plan == window.rom_studio.genesis_flight_plan()
+        assert "Connect the target Android phone by USB." not in (
+            window.device_center._flight_plan.blockers
+        )
+
+        window._scan_failed("ADB transport failed during refresh")
+        app.processEvents()
+
+        assert window.device_center._flight_plan == window.rom_studio.genesis_flight_plan()
+        assert "Connect the target Android phone by USB." in (
+            window.device_center._flight_plan.blockers
+        )
     finally:
         window.companion_center.transport.close()
         window.close()

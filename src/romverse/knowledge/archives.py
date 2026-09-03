@@ -2969,7 +2969,7 @@ KNOWN_FIXES = (
             "signed update missing",
         ),
         route="about",
-        evidence="ROMVERSE release gates already require source tests, wheel integrity, installed import verification, protected asset hashes, launcher identity, and a live runtime; signed update metadata is not implemented in this alpha.",
+        evidence="ROMVERSE release gates require source tests, wheel integrity, installed import verification, protected asset hashes, launcher identity, and a live runtime. The signed update checker and staging verifier are implemented; the alpha keeps its packaged production publisher key and public channel deliberately unconfigured until the first offline signing ceremony.",
         automation="LOCAL EVIDENCE REVIEW ONLY • NO BUILD, INSTALL, UPDATE, SIGNING, PUBLISH, OR PROCESS ACTION",
         source=ROMVERSE_SOURCE,
     ),

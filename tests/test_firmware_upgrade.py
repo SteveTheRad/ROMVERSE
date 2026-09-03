@@ -91,6 +91,78 @@ def test_generic_android_ota_metadata_identifies_an_upgrade_without_flash_author
     assert not result.phone_changed
 
 
+def test_same_oem_marketing_version_surfaces_newer_internal_ota_build_when_unmatched() -> None:
+    metadata = parse_android_ota_metadata(
+        b"pre-device=popsicle\n"
+        b"post-build=Xiaomi/popsicle/popsicle:17/CP2A.260605.016/"
+        b"17OS4.0.260821.223347094.QCPECN.S:user/release-keys\n"
+        b"post-build-incremental=17OS4.0.260821.223347094.QCPECN.S\n"
+        b"post-sdk-level=37\n"
+        b"post-timestamp=1787328761\n"
+    )
+
+    result = assess_firmware_upgrade(
+        current_build="OS4.0.0.25.XPBCNXM",
+        candidate_build="OS4.0.0.25.XPBCNXM",
+        device_codename="popsicle",
+        candidate_codename="popsicle",
+        current_fingerprint=(
+            "Xiaomi/popsicle/popsicle:17/CP2A.260605.016/OS4.0.0.25.XPBCNXM:user/release-keys"
+        ),
+        current_incremental="OS4.0.0.25.XPBCNXM",
+        current_sdk_level="37",
+        current_build_timestamp=1787323440,
+        ota_metadata=metadata,
+    )
+
+    assert result.relationship is FirmwareRelationship.UPGRADE
+    assert result.summary == (
+        "NEWER OTA BUILD CANDIDATE • OS4.0.0.25.XPBCNXM → 17OS4.0.260821.223347094.QCPECN.S"
+    )
+    assert any("marketing version matches" in reason for reason in result.reasons)
+    assert not result.install_authority
+    assert not result.phone_changed
+
+
+def test_live_system_partition_identity_proves_the_ota_is_already_installed() -> None:
+    internal = "17OS4.0.260821.223347094.QCPECN.S"
+    system_fingerprint = (
+        f"Android/generic_system/generic:17/CP2A.260605.016/{internal}:user/release-keys"
+    )
+    ota_fingerprint = f"Xiaomi/popsicle/popsicle:17/CP2A.260605.016/{internal}:user/release-keys"
+    metadata = parse_android_ota_metadata(
+        (
+            "pre-device=popsicle\n"
+            f"post-build={ota_fingerprint}\n"
+            f"post-build-incremental={internal}\n"
+            "post-sdk-level=37\n"
+            "post-timestamp=1787328761\n"
+        ).encode()
+    )
+
+    result = assess_firmware_upgrade(
+        current_build="OS4.0.0.25.XPBCNXM",
+        candidate_build="OS4.0.0.25.XPBCNXM",
+        device_codename="popsicle",
+        candidate_codename="popsicle",
+        current_fingerprint=(
+            "Xiaomi/popsicle/popsicle:17/CP2A.260605.016/OS4.0.0.25.XPBCNXM:user/release-keys"
+        ),
+        current_incremental="OS4.0.0.25.XPBCNXM",
+        current_sdk_level="37",
+        current_build_timestamp=1787323440,
+        current_build_fingerprints=(system_fingerprint,),
+        current_build_incrementals=(internal,),
+        ota_metadata=metadata,
+    )
+
+    assert result.relationship is FirmwareRelationship.SAME
+    assert result.summary == f"SAME INSTALLED OTA BUILD • {internal}"
+    assert any("already reported" in reason for reason in result.reasons)
+    assert not result.install_authority
+    assert not result.phone_changed
+
+
 def test_generic_android_ota_rejects_wrong_device_or_update_path() -> None:
     wrong_device = assess_firmware_upgrade(
         current_build="100",

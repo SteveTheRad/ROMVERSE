@@ -800,4 +800,8 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   encrypted remote Link, full multi-OEM device coverage, and production disaster recovery. The
   Desktop release trust layer now supports strict artifact manifests, external-key Ed25519 signing,
   independent verification, explicit-update consent, and exact rollback declarations; no production
-  key is stored and no unsigned candidate is represented as trusted.
+  key is stored and no unsigned candidate is represented as trusted. The runtime signed-update checker
+  and private artifact-staging layer are implemented with exact channel/version/platform binding,
+  direct HTTPS, size/hash verification, zero automatic installation, and zero device authority. The
+  alpha publisher configuration remains deliberately disabled until the offline production-key
+  ceremony and signed public channel exist.

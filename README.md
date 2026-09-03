@@ -959,14 +959,20 @@ overwritten; an Activity Center handoff navigates only and grants no operation a
 Desktop **Command Deck Settings** now exposes only controls with current runtime consumers: device
 scan cadence, verified online/community research, Synapse contribution policy, Forge Arsenal tool
 acquisition, meaningful Desktop notifications, reduced motion, local backup destination, and Members
-endpoints. Foreground milestones and attention states use a non-blocking glass alert inside ROMVERSE;
+endpoints. It also exposes the persisted Stable/Preview release channel and a background signed-update
+check. That checker accepts only the immutable publisher key packaged with ROMVERSE, a direct HTTPS
+channel, a newer compatible version, and exactly one native artifact for the current platform. The
+download/staging engine rechecks the signed byte length and SHA-256 into a private receipt and retains
+`automatic_install: false`, explicit confirmation, workspace preservation, and zero execution or
+Android-device authority. This alpha intentionally ships with publisher trust unconfigured until the
+first production key ceremony and signed public release; partial or user-supplied trust never activates
+the control. Foreground milestones and attention states use a non-blocking glass alert inside ROMVERSE;
 when ROMVERSE is in the background and the platform supports it, the same bounded alert uses the
 desktop notification area instead of being duplicated in both places. Repeated identical events are
 temporarily deduplicated, and notifications can be disabled without affecting Live Console or
-operation evidence. Historical AI budget and update-channel values remain readable and preserved for
-settings-file compatibility but are not presented as working switches. The dialog states that public
-AI provider policy and signed automatic updates remain unavailable until their production services
-exist.
+operation evidence. Historical AI budget values remain readable and preserved for settings-file
+compatibility but are not presented as working switches. The dialog distinguishes a ready signed
+verification/staging implementation from the still-missing production publisher key and public channel.
 
 Desktop **Members** browser authorization and polling now use the same honest background-operation
 language: the card displays an indeterminate bar only while contacting the configured HTTPS service,

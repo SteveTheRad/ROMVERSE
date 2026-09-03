@@ -25,6 +25,20 @@ application workspace. The release owner supplies an externally held Ed25519 key
 offline signing ceremony. The corresponding public key and stable key identity must be pinned in
 the distribution channel before any update can be described as trusted.
 
+The installed application now contains the matching runtime update verifier and safe staging layer.
+Stable and Preview channels are explicit settings. A check accepts only the packaged publisher key,
+the exact direct HTTPS channel, a non-future signed manifest, a newer semantic version, and exactly
+one archive or installer for the running platform. Staging streams no more than the signed size,
+recomputes SHA-256, writes a private digest-bound receipt, preserves the workspace, and grants no
+installation or Android-device authority. Redirects, partial trust configuration, wrong channels,
+ambiguous platform artifacts, changed bytes, links, and forged in-memory candidates fail closed.
+
+`romverse/assets/desktop_update_trust.json` deliberately remains unconfigured in the alpha source.
+During the first production signing ceremony, replace it with the stable key identity, raw public key
+and final Stable/Preview manifest URLs before building the public binaries. Never place the private
+key in that file. Until that happens, Settings truthfully disables online update checks while keeping
+the local verification/staging implementation testable.
+
 ## Build the self-contained platform bundles
 
 Build each bundle on its target operating system; do not cross-label one host's executable as the

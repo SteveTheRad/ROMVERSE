@@ -562,8 +562,13 @@ class DeviceCenter(QWidget):
         self._flight_plan = flight_plan
         if not changed:
             return
-        if self.devices:
+        if 0 <= self._selected_index < len(self.devices):
             self.render_device(self.devices[self._selected_index])
+        elif self.devices:
+            self.show_empty(
+                "Choose one connected device above. ROMVERSE has not bound any "
+                "device-changing workflow to a phone."
+            )
         else:
             self.show_empty(
                 "No Android device is connected. ROM Studio remains available for safe local firmware work."

@@ -33,6 +33,9 @@ class FakeAdbRunner:
                     "[ro.build.id]: [AP4A]",
                     "[ro.build.version.incremental]: [123456]",
                     "[ro.build.date.utc]: [1788220800]",
+                    "[ro.system.build.fingerprint]: [RadForge/rad/system:15/AP4A/789:user/release-keys]",
+                    "[ro.system.build.version.incremental]: [789]",
+                    "[ro.system.build.date.utc]: [1788220700]",
                     "[ro.build.version.security_patch]: [2026-08-01]",
                     "[ro.product.cpu.abi]: [arm64-v8a]",
                     "[ro.boot.flash.locked]: [1]",
@@ -98,6 +101,9 @@ def test_device_engine_builds_real_snapshot_and_preserves_unauthorized():
     assert phone.hardware_sku == "pro"
     assert phone.build_incremental == "123456"
     assert phone.build_timestamp_utc == 1788220800
+    assert phone.system_build_fingerprint == "RadForge/rad/system:15/AP4A/789:user/release-keys"
+    assert phone.system_build_incremental == "789"
+    assert phone.system_build_timestamp_utc == 1788220700
     assert phone.battery_percent == 77
     assert phone.memory.percent_used == 25
     assert phone.bootloader_locked is True

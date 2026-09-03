@@ -1182,4 +1182,6 @@ The default data root follows each OS convention:
 Override it for development with `ROMVERSE_HOME=/some/path` or `--workspace /some/path`.
 See [docs/MASTER_SPECIFICATION.md](docs/MASTER_SPECIFICATION.md) and
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Public builds must also satisfy the explicit
-[release-readiness gates](docs/RELEASE_READINESS.md).
+[release-readiness gates](docs/RELEASE_READINESS.md) and the fail-closed
+[Desktop release process](docs/DESKTOP_RELEASE.md). CI candidates are deliberately unsigned;
+production Ed25519 keys remain outside the repository and application workspace.

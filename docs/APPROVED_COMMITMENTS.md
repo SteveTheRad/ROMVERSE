@@ -787,5 +787,8 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   two-screen safety-code pairing, 30-day expiry lifecycle, DHCP-change recovery, and hostile-network
   behavior still require physical runtime validation before a public safety claim.
 - **NOT YET IMPLEMENTED OR VERIFIED:** public Synapse and AI services, production Members/billing,
-  public forum/community backend, signed release infrastructure, encrypted remote Link, full
-  multi-OEM device coverage, and production disaster recovery.
+  public forum/community backend, production release-key ceremony and signed publication,
+  encrypted remote Link, full multi-OEM device coverage, and production disaster recovery. The
+  Desktop release trust layer now supports strict artifact manifests, external-key Ed25519 signing,
+  independent verification, explicit-update consent, and exact rollback declarations; no production
+  key is stored and no unsigned candidate is represented as trusted.

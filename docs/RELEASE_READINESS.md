@@ -18,7 +18,9 @@ has current evidence.
 3. Build the desktop wheel in an isolated environment and inspect it for all runtime Python
    modules, branding art, phone art, and integrity-indexed Device Packs. CI runs
    `scripts/verify_wheel.py`, installs that wheel, opens its packaged desktop shell offscreen, and
-   initializes a fresh workspace with `scripts/smoke_installed_desktop.py`.
+   initializes a fresh workspace with `scripts/smoke_installed_desktop.py` on Linux and Windows.
+   Each CI host also emits and re-verifies an explicitly unsigned exact-artifact release manifest;
+   the result is build evidence, not signing trust.
 
    Current Ubuntu development evidence recorded on 2026-08-31: a fresh isolated Hatch build
    produced a 211-member wheel; the strengthened verifier byte-compared every current Python module
@@ -28,7 +30,7 @@ has current evidence.
    Repository tests also prove a changed packaged runtime module is rejected. This does not replace
    the required Windows installed-wheel pass or signed release-artifact validation.
 
-   Current Fedora development evidence recorded on 2026-09-03: all 1,302 Desktop tests and both
+   Current Fedora development evidence recorded on 2026-09-03: all 1,315 Desktop tests and both
    complete Ruff gates passed after the exact ROM Studio → Device Atlas → Forge Arsenal
    project/source handoff was completed. Regression coverage verifies strict current
    project/source/authority/blueprint/plan/no-phone-change binding; replacement of an unrelated
@@ -36,15 +38,25 @@ has current evidence.
    return routes; visible stale-source refusal; suppression of the wrong Pack's Next Safe Action;
    and zero scan/dialog/worker/build/flash authority from evidence navigation. ROMVERSE Archives
    contains 151 validated guides, 101 structured known fixes, and 38 official-source-backed records,
-   including the wrong-project-Pack diagnosis. A fresh isolated wheel build produced 223 members
-   and revalidated all 21 Device Packs; its SHA-256 is
-   `74f4da7fc4ff8ab478de6943274275abcd7434cec9f4e0b7577f2b8a104680ce`. A separate temporary Python
+   including the wrong-project-Pack diagnosis. The current fresh isolated wheel build produced 224
+   members, includes the Desktop release trust layer, and revalidated all 21 Device Packs; its
+   SHA-256 is `f1d5c8630982bfeabf940646acacb8c4bf5f59216bc8c57a0734e722984a6fc5`. A separate temporary Python
    3.14 environment installed the wheel and all declared dependencies from outside the checkout.
    Its installed Desktop smoke passed twice against the same clean workspace with 101 packaged
    fixes and all 19 top-level routes. A populated-workspace launch separately preserved the project
    manifest, immutable original, working copy, and Time Machine snapshot byte-for-byte and
    revalidated the original afterward. This remains local Fedora evidence, not Windows validation,
    production signing, publication, or physical-device write certification.
+
+   The Desktop release trust layer now prepares a bounded exact-schema artifact manifest, enforces
+   user-confirmed non-automatic updates and workspace preservation, represents unavailable rollback
+   honestly, signs only through an externally held Ed25519 key, and independently verifies the
+   expected key identity, signature, canonical manifest digest, artifact size, and SHA-256. Hostile
+   tests cover changed manifests/artifacts, wrong keys, malformed signatures, duplicate fields,
+   linked files, unsafe paths, Boolean/number confusion, extra authority, and false rollback claims.
+   The production private key and pinned distribution public key are intentionally absent. Therefore
+   this is complete release-signing infrastructure and ceremony preparation, not a production-signed
+   or published release. Follow `docs/DESKTOP_RELEASE.md` before publishing anything.
 
    Current Fedora development evidence recorded on 2026-09-01: 1,149 Desktop tests and the complete
    Ruff check/format gate pass after the Ctrl+K navigation-only palette, canonical Activity Center,

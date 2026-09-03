@@ -137,6 +137,14 @@ has current evidence.
    runner call, consent or phone action. No built-in Device Pack carries this schema-three signed
    authority, and the transition-aware gateway/runtime/receipt/physical-validation stages remain
    unfinished.
+   Exact source commit `0698778812e697dffe1b6354270e07758e450507` is fully green in GitHub Actions
+   run `33781253539`: both Linux 1,433-test jobs, both Windows 278-test portability jobs, Companion
+   unit/build, Linux and Windows installed/frozen/package jobs, and the combined unsigned candidate
+   passed. Independent Fedora download verification reproduced both manifest-bound archive hashes
+   and sizes, found 442/297 CRC-clean Linux/Windows members, proved the separate and combined copies
+   byte-identical, and verified the 868-member debug APK structure, package identity and v2 debug
+   signature. This remains unsigned/debug candidate evidence and grants no public-update or phone
+   authority.
 
    That exact candidate adds the first typed execution-gateway boundary. Given synthetic signed
    schema-two evidence, it regenerates exact Fastboot

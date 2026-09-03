@@ -46,6 +46,7 @@ jobs:
           tests/test_vocabulary.py
           tests/test_release_scripts.py
           tests/test_desktop_release.py
+          tests/test_desktop_updates.py
           tests/test_desktop_bundle.py
           tests/test_release_assets.py
           tests/test_device_requirements.py

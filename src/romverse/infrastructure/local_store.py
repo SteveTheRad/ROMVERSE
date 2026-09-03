@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import stat
@@ -171,6 +172,65 @@ def read_regular_bytes(
         os.close(parent_fd)
 
 
+def sha256_regular_file(
+    path: Path,
+    *,
+    boundary: Path,
+    maximum_bytes: int,
+) -> tuple[str, int]:
+    """Hash one stable regular file through a boundary-anchored descriptor."""
+
+    if maximum_bytes < 1:
+        raise ValueError("maximum_bytes must be positive")
+    if os.name == "nt":
+        parent = _validated_directory_path(path.parent, boundary=boundary, create=False)
+        target: str | Path = parent / path.name
+        directory_descriptor: int | None = None
+    else:
+        directory_descriptor = _open_parent(path, boundary=boundary, create=False)
+        target = path.name
+    try:
+        flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
+        if directory_descriptor is None:
+            descriptor = os.open(target, flags)
+        else:
+            descriptor = os.open(target, flags, dir_fd=directory_descriptor)
+        try:
+            with os.fdopen(descriptor, "rb", closefd=True) as stream:
+                opened = os.fstat(stream.fileno())
+                current = _stat_without_links(target, directory_descriptor)
+                _validate_opened_regular_file(opened, current, maximum_bytes)
+                digest = hashlib.sha256()
+                read_bytes = 0
+                while chunk := stream.read(1024 * 1024):
+                    read_bytes += len(chunk)
+                    if read_bytes > maximum_bytes:
+                        raise LocalStoreError("Binary evidence exceeds its size boundary")
+                    digest.update(chunk)
+                final = os.fstat(stream.fileno())
+                current = _stat_without_links(target, directory_descriptor)
+                if (
+                    read_bytes != opened.st_size
+                    or final.st_size != opened.st_size
+                    or final.st_mtime_ns != opened.st_mtime_ns
+                    or not os.path.samestat(opened, final)
+                    or not os.path.samestat(opened, current)
+                ):
+                    raise LocalStoreError("Binary evidence changed while it was being verified")
+        except Exception:
+            with suppress(OSError):
+                os.close(descriptor)
+            raise
+        return digest.hexdigest(), read_bytes
+    except OSError as exc:
+        if isinstance(exc, LocalStoreError):
+            raise
+        raise LocalStoreError(f"Local evidence hash failed: {exc}") from exc
+    finally:
+        if directory_descriptor is not None:
+            os.close(directory_descriptor)
+
+
 def bounded_regular_files(
     directory: Path,
     pattern_suffix: str,
@@ -286,6 +346,31 @@ def _reject_non_regular_target(parent_fd: int, name: str) -> None:
         return
     if not stat.S_ISREG(details.st_mode):
         raise LocalStoreError("Local evidence target is not a regular file")
+
+
+def _stat_without_links(target: str | Path, directory_descriptor: int | None) -> os.stat_result:
+    if directory_descriptor is None:
+        return os.stat(target, follow_symlinks=False)
+    return os.stat(
+        target,
+        dir_fd=directory_descriptor,
+        follow_symlinks=False,
+    )
+
+
+def _validate_opened_regular_file(
+    opened: os.stat_result,
+    current: os.stat_result,
+    maximum_bytes: int,
+) -> None:
+    if (
+        not stat.S_ISREG(opened.st_mode)
+        or not stat.S_ISREG(current.st_mode)
+        or not os.path.samestat(opened, current)
+    ):
+        raise LocalStoreError("Binary evidence is not a stable regular file")
+    if not 0 < opened.st_size <= maximum_bytes:
+        raise LocalStoreError("Binary evidence exceeds its size boundary")
 
 
 def _atomic_write_bytes_portable(path: Path, payload: bytes, *, boundary: Path) -> None:

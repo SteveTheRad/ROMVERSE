@@ -964,9 +964,11 @@ check. That checker accepts only the immutable publisher key packaged with ROMVE
 channel, a newer compatible version, and exactly one native artifact for the current platform. The
 Settings path then requires a second explicit confirmation before a cancellable background download,
 shows only measured byte progress below completion, rechecks the signed byte length and SHA-256, and
-reloads the private digest-bound staging receipt before success. It can open the verified download
-folder but never runs the package. The stage retains `automatic_install: false`, workspace
-preservation, and zero execution or Android-device authority; incomplete downloads are removed. This
+reloads the private digest-bound staging receipt before success. Artifact verification uses a stable,
+boundary-anchored file identity, so linked staging paths or a file replaced during hashing fail
+closed. It can open the verified download folder but never runs the package. The stage retains
+`automatic_install: false`, workspace preservation, and zero execution or Android-device authority;
+incomplete downloads are removed. This
 alpha intentionally ships with publisher trust unconfigured until the first production key ceremony
 and signed public release, so partial or user-supplied trust never activates the control. Foreground
 milestones and attention states use a non-blocking glass alert inside ROMVERSE;

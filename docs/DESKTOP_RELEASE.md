@@ -30,12 +30,15 @@ Stable and Preview channels are explicit settings. A check accepts only the pack
 the exact direct HTTPS channel, a non-future signed manifest, a newer semantic version, and exactly
 one archive or installer for the running platform. Staging streams no more than the signed size,
 recomputes SHA-256, writes and independently reloads a private digest-bound receipt, preserves the
-workspace, and grants no installation or Android-device authority. Settings requires explicit
-confirmation before that cancellable background download, reports byte-derived progress below 100
+workspace, and grants no installation or Android-device authority. The final artifact hash uses a
+boundary-anchored descriptor and requires the staged path to retain that exact file identity through
+verification. Settings requires explicit confirmation before that cancellable background download,
+reports byte-derived progress below 100
 until the receipt is verified, removes incomplete files, and exposes only an **Open verified download
 folder** action afterward. It never launches the artifact. Redirects, partial trust configuration,
-wrong channels, ambiguous platform artifacts, changed bytes, links, forged in-memory completions,
-cancelled transfers, and re-digested authority-bearing receipts fail closed.
+wrong channels, ambiguous platform artifacts, changed bytes, linked roots/intermediates/files,
+replacement during hashing, forged in-memory completions, cancelled transfers, and re-digested
+authority-bearing receipts fail closed. The same updater suite runs in both Windows portability jobs.
 
 `romverse/assets/desktop_update_trust.json` deliberately remains unconfigured in the alpha source.
 During the first production signing ceremony, replace it with the stable key identity, raw public key

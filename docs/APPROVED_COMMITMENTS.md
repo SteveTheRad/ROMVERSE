@@ -805,5 +805,6 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   direct HTTPS, size/hash verification, strict receipt reload, zero automatic installation, and zero
   device authority. Settings requires a separate explicit confirmation, provides cancellable measured
   download progress, removes partial files, and opens only the verified staging folder; it cannot run
-  an installer. The alpha publisher configuration remains deliberately disabled until the offline
-  production-key ceremony and signed public channel exist.
+  an installer. Boundary-anchored descriptor verification rejects linked staging paths and replacement
+  of an artifact during hashing. The alpha publisher configuration remains deliberately disabled until
+  the offline production-key ceremony and signed public channel exist.

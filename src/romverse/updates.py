@@ -25,6 +25,7 @@ from romverse.infrastructure.local_store import (
     ensure_private_directory,
     read_regular_bytes,
     remove_regular_file,
+    sha256_regular_file,
 )
 from romverse.release import (
     MAX_RELEASE_ARTIFACT_BYTES,
@@ -277,18 +278,18 @@ class DesktopUpdateService:
             raise DesktopUpdateError("No newer desktop update is available to download")
         root = Path(os.path.abspath(destination))
         boundary = root.parent
-        ensure_private_directory(root, boundary=boundary)
         release_directory = root / candidate.manifest.release_id
-        ensure_private_directory(release_directory, boundary=root)
         target = release_directory / artifact.file_name
         receipt = release_directory / "staged-update.romverse"
         temporary = release_directory / f".{artifact.file_name}.{uuid4().hex}.part"
         published_new_target = False
         wrote_receipt = False
         try:
+            ensure_private_directory(root, boundary=boundary)
+            ensure_private_directory(release_directory, boundary=boundary)
             _raise_if_update_cancelled(should_cancel)
             if target.exists() or target.is_symlink():
-                _verify_regular_artifact(target, artifact)
+                _verify_regular_artifact(target, artifact, boundary=boundary)
             else:
                 self._download_artifact(
                     candidate.artifact_url,
@@ -327,7 +328,7 @@ class DesktopUpdateService:
             atomic_write_json(
                 receipt,
                 receipt_payload,
-                boundary=root,
+                boundary=boundary,
                 maximum_bytes=MAX_UPDATE_RECEIPT_BYTES,
             )
             wrote_receipt = True
@@ -335,16 +336,16 @@ class DesktopUpdateService:
         except (OSError, urllib.error.URLError, LocalStoreError, DesktopUpdateError) as exc:
             if wrote_receipt:
                 with suppress(LocalStoreError):
-                    remove_regular_file(receipt, boundary=root)
+                    remove_regular_file(receipt, boundary=boundary)
             if published_new_target:
                 with suppress(LocalStoreError):
-                    remove_regular_file(target, boundary=root)
+                    remove_regular_file(target, boundary=boundary)
             if isinstance(exc, DesktopUpdateError):
                 raise
             raise DesktopUpdateError(f"Desktop update staging failed: {exc}") from exc
         finally:
-            with suppress(OSError):
-                temporary.unlink(missing_ok=True)
+            with suppress(LocalStoreError):
+                remove_regular_file(temporary, boundary=boundary)
 
     def verify_staged(
         self,
@@ -358,20 +359,21 @@ class DesktopUpdateService:
         if artifact is None:
             raise DesktopUpdateError("No newer desktop update is available to verify")
         root = Path(os.path.abspath(destination))
+        boundary = root.parent
         release_directory = root / candidate.manifest.release_id
         target = release_directory / artifact.file_name
         receipt = release_directory / "staged-update.romverse"
         try:
             encoded = read_regular_bytes(
                 receipt,
-                boundary=root,
+                boundary=boundary,
                 maximum_bytes=MAX_UPDATE_RECEIPT_BYTES,
             )
             payload = json.loads(encoded, object_pairs_hook=_strict_object)
             if not isinstance(payload, dict):
                 raise DesktopUpdateError("Desktop update receipt must be one JSON object")
             _validate_staged_receipt(payload, candidate, artifact, self.trust.key_id)
-            _verify_regular_artifact(target, artifact)
+            _verify_regular_artifact(target, artifact, boundary=boundary)
         except DesktopUpdateError:
             raise
         except (OSError, UnicodeDecodeError, json.JSONDecodeError, LocalStoreError) as exc:
@@ -576,15 +578,18 @@ def _validate_content_length(headers: object, maximum: int) -> int:
     return length
 
 
-def _verify_regular_artifact(path: Path, artifact: DesktopReleaseArtifact) -> None:
-    details = path.lstat()
-    if stat.S_ISLNK(details.st_mode) or not stat.S_ISREG(details.st_mode):
-        raise DesktopUpdateError("Staged desktop update must be a regular file")
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(chunk)
-    if details.st_size != artifact.size_bytes or digest.hexdigest() != artifact.sha256:
+def _verify_regular_artifact(
+    path: Path,
+    artifact: DesktopReleaseArtifact,
+    *,
+    boundary: Path,
+) -> None:
+    digest, size_bytes = sha256_regular_file(
+        path,
+        boundary=boundary,
+        maximum_bytes=MAX_RELEASE_ARTIFACT_BYTES,
+    )
+    if size_bytes != artifact.size_bytes or digest != artifact.sha256:
         raise DesktopUpdateError("Existing staged update failed signed size or SHA-256 checks")
 
 

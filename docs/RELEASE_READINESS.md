@@ -86,16 +86,19 @@ has current evidence.
    `https://github.com/SteveTheRad/ROMVERSE/actions/runs/33750194118`. This remains unsigned build
    evidence and does not replace production signing or physical-device write certification.
 
-   Current Fedora development evidence recorded on 2026-09-03: all 1,366 Desktop tests and both
+   Current Fedora development evidence recorded on 2026-09-03: all 1,367 Desktop tests and both
    complete Ruff gates pass after the signed-update Settings journey was completed. The user must
    separately confirm download; byte-derived progress remains below 100 until the artifact and
    digest-bound private receipt have been independently reloaded and verified; cancellation removes
    incomplete files; a channel change invalidates the prior candidate; and the only post-download
    action opens the verified folder. Tests also reject forged UI completions and re-digested receipts
-   that claim automatic installation. The stage grants no execution or Android-device authority and
-   never launches the artifact. A fresh isolated build produced and verified a 229-member wheel with
+   that claim automatic installation. Linked staging roots, release directories, receipts and
+   artifacts fail closed, and replacing an artifact with byte-identical content after hashing is
+   detected through its changed file identity. Windows CI now runs this updater suite on both
+   supported Python versions. The stage grants no execution or Android-device authority and never
+   launches the artifact. A fresh isolated build produced and verified a 229-member wheel with
    all 21 Device Packs and SHA-256
-   `998cd97f6b29a571f5f88139ed2189998b5d3ea8209afb22c8171288c3f6a787`. The exact wheel was then
+   `ad9644f90940073f3f23afb2bb4d0774457f9df5c52e1f83191c8560b704a5e2`. The exact wheel was then
    installed locally and its packaged smoke passed with 143 known fixes, all 19 covered Desktop
    routes, a dark Time Machine state, and byte-exact populated-workspace reopening. This is local
    implementation evidence; the production publisher key and signed channels remain intentionally

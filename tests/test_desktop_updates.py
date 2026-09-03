@@ -17,6 +17,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from romverse.core.settings import AppSettings
+from romverse.infrastructure import local_store as local_store_module
 from romverse.release import build_release_manifest, create_signed_release_envelope
 from romverse.ui import main_window as main_window_module
 from romverse.ui.main_window import SettingsDialog, UpdateStageWorker
@@ -202,6 +203,77 @@ def test_staged_receipt_is_reloaded_and_cancelled_download_leaves_no_partial_fil
     assert not tuple(cancelled_root.rglob("*.part"))
     assert not tuple(cancelled_root.rglob("*.zip"))
     assert not tuple(cancelled_root.rglob("*.romverse"))
+
+
+def test_update_staging_rejects_linked_or_replaced_roots_receipts_and_artifacts(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    private_key = Ed25519PrivateKey.generate()
+    metadata, artifact_bytes, artifact_name = _release(tmp_path, private_key)
+    manifest_url = "https://updates.romverse.app/stable/release.json"
+    artifact_url = f"https://updates.romverse.app/stable/{artifact_name}"
+    service = DesktopUpdateService(
+        _trust(private_key),
+        current_version="0.1.0",
+        platform="linux-x86_64",
+        opener=Opener(
+            {
+                manifest_url: (metadata, manifest_url, len(metadata)),
+                artifact_url: (artifact_bytes, artifact_url, len(artifact_bytes)),
+            }
+        ),
+        now=lambda: datetime(2026, 9, 3, 12, tzinfo=UTC),
+    )
+    candidate = service.check("stable")
+
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    linked_root = tmp_path / "linked-root"
+    linked_root.symlink_to(outside, target_is_directory=True)
+    with pytest.raises(DesktopUpdateError, match="staging failed"):
+        service.stage(candidate, linked_root)
+    assert not tuple(outside.iterdir())
+
+    staged_root = tmp_path / "verified-stage"
+    staged = service.stage(candidate, staged_root)
+    linked_intermediate_root = tmp_path / "linked-intermediate"
+    linked_intermediate_root.mkdir()
+    (linked_intermediate_root / candidate.manifest.release_id).symlink_to(
+        staged.artifact_path.parent,
+        target_is_directory=True,
+    )
+    with pytest.raises(DesktopUpdateError, match="stage evidence is unreadable"):
+        service.verify_staged(candidate, linked_intermediate_root)
+
+    original_stat = local_store_module._stat_without_links
+    stat_calls = {"count": 0}
+
+    def replace_after_hash(target, directory_descriptor):
+        stat_calls["count"] += 1
+        if stat_calls["count"] == 2:
+            staged.artifact_path.unlink()
+            staged.artifact_path.write_bytes(artifact_bytes)
+        return original_stat(target, directory_descriptor)
+
+    monkeypatch.setattr(local_store_module, "_stat_without_links", replace_after_hash)
+    with pytest.raises(DesktopUpdateError, match="stage evidence is unreadable"):
+        service.verify_staged(candidate, staged_root)
+    monkeypatch.setattr(local_store_module, "_stat_without_links", original_stat)
+
+    outside_artifact = outside / artifact_name
+    outside_artifact.write_bytes(artifact_bytes)
+    staged.artifact_path.unlink()
+    staged.artifact_path.symlink_to(outside_artifact)
+    with pytest.raises(DesktopUpdateError, match="stage evidence is unreadable"):
+        service.verify_staged(candidate, staged_root)
+
+    outside_receipt = outside / "staged-update.romverse"
+    outside_receipt.write_bytes(staged.receipt_path.read_bytes())
+    staged.receipt_path.unlink()
+    staged.receipt_path.symlink_to(outside_receipt)
+    with pytest.raises(DesktopUpdateError, match="stage evidence is unreadable"):
+        service.verify_staged(candidate, staged_root)
 
 
 def test_update_stage_worker_reserves_completion_for_verified_evidence(

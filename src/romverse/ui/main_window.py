@@ -4065,6 +4065,8 @@ class MainWindow(QMainWindow):
     def _scan_failed(self, message: str) -> None:
         self.scanning = False
         self.active_worker = None
+        self._observed_devices = []
+        self._selected_device_serial = ""
         self._scan_failure_count += 1
         self._reconnect_retry_ms = min(30_000, max(3_000, self._reconnect_retry_ms * 2))
         self.timer.setInterval(max(self.scan_interval_seconds * 1000, self._reconnect_retry_ms))

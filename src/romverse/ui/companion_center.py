@@ -28,6 +28,7 @@ from romverse.companion.telemetry import (
     RawTerminalTelemetryRecord,
 )
 from romverse.companion.transport import CompanionTransport
+from romverse.companion.usb_assist import UsbPairingAssistPlan, UsbPairingAssistService
 from romverse.device.dna import CapabilityState, DeviceDnaProfile
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.nexus.events import (
@@ -47,11 +48,18 @@ class CompanionCenter(QWidget):
         live_console_store: LiveConsoleEventStore | None = None,
         raw_terminal_feed: RawTerminalFeed | None = None,
         workspace: Path | None = None,
+        usb_pairing_service: UsbPairingAssistService | None = None,
     ) -> None:
         super().__init__()
         self._pairing: PairingCode | None = None
         self._approved = False
-        self._usb_paired = False
+        self._approved_restored = False
+        self._usb_ready = False
+        self._usb_serial = ""
+        self._usb_companion_installed = False
+        self._usb_auto_approve = False
+        self._usb_assist_plan: UsbPairingAssistPlan | None = None
+        self._usb_pairing_service = usb_pairing_service
         self._last_remote_capture = 0
         self._pending_announced = False
         self._telemetry = CompanionTelemetry()
@@ -66,6 +74,7 @@ class CompanionCenter(QWidget):
         )
         self.transport.start()
         self._approved = self.transport.approved
+        self._approved_restored = self._approved
         self._record_link_availability()
         application = QApplication.instance()
         if application is not None:
@@ -167,6 +176,13 @@ class CompanionCenter(QWidget):
         )
         layout.addWidget(self.remote_summary)
         buttons = QVBoxLayout()
+        self.usb_pair = QPushButton("Pair connected phone with USB assist")
+        self.usb_pair.setObjectName("Primary")
+        self.usb_pair.setEnabled(False)
+        self.usb_pair.setToolTip(
+            "Connect and authorize one phone by USB. The phone must still confirm the matching safety code."
+        )
+        self.usb_pair.clicked.connect(self.pair_connected_usb)
         self.generate = QPushButton("Generate wireless code")
         self.generate.setObjectName("Primary")
         self.generate.setEnabled(self.transport.available)
@@ -196,7 +212,7 @@ class CompanionCenter(QWidget):
         self.reset_link = QPushButton("Reset wireless pairing")
         self.reset_link.setEnabled(False)
         self.reset_link.setToolTip(
-            "Immediately revoke the remembered wireless session on this computer. USB pairing is not changed."
+            "Immediately revoke the remembered wireless session on this computer. USB evidence is not changed."
         )
         self.reset_link.clicked.connect(self.reset_pairing)
         import_summary = QPushButton("Import phone summary")
@@ -204,6 +220,7 @@ class CompanionCenter(QWidget):
             "Read a ROMVERSE health summary from the clipboard. This is display-only and never executes commands."
         )
         import_summary.clicked.connect(self.import_summary)
+        buttons.addWidget(self.usb_pair)
         buttons.addWidget(self.generate)
         buttons.addWidget(self.copy_button)
         buttons.addWidget(self.safety_confirm)
@@ -255,10 +272,17 @@ class CompanionCenter(QWidget):
                 self.device_status.setText(
                     "Desktop device link: no USB device detected  •  wireless pairing remains available"
                 )
-            self._usb_paired = False
+            self._usb_ready = False
+            self._usb_serial = ""
+            self._usb_companion_installed = False
+            self._update_usb_assist_button()
             if self._approved:
-                self._render_approved_state(restored=True)
-            else:
+                self._render_approved_state(restored=self._approved_restored)
+            elif not self._pairing_code_active():
+                self.state.setText("Not paired")
+                self.instructions.setText(
+                    "Generate a code, then enter it in ROMVERSE Companion on your Android phone."
+                )
                 self.generate.setEnabled(self.transport.available)
             return
         if device.state is not DeviceState.DEVICE:
@@ -295,10 +319,13 @@ class CompanionCenter(QWidget):
             self.device_status.setText(
                 f"Desktop device link: {device.display_name} detected  •  {state}"
             )
-            self._usb_paired = False
+            self._usb_ready = False
+            self._usb_serial = ""
+            self._usb_companion_installed = False
+            self._update_usb_assist_button()
             if self._approved:
-                self._render_approved_state(restored=True)
-            else:
+                self._render_approved_state(restored=self._approved_restored)
+            elif not self._pairing_code_active():
                 self.state.setText(f"USB detected • {state}")
                 self.instructions.setText(instruction)
                 self.generate.setEnabled(self.transport.available)
@@ -315,14 +342,18 @@ class CompanionCenter(QWidget):
             storage_total_bytes=device.storage.total_bytes,
             guardian_active=True,
         )
-        self._usb_paired = bool(device.companion_installed)
-        if self._usb_paired:
-            self.state.setText("USB paired • read-only telemetry enabled")
+        self._usb_ready = True
+        self._usb_serial = device.serial
+        self._usb_companion_installed = device.companion_installed
+        self._update_usb_assist_button()
+        if self._approved:
+            self._render_approved_state(restored=self._approved_restored)
+        elif not self._pairing_code_active():
+            self.state.setText("USB connected • wireless Link not paired")
             self.instructions.setText(
-                "This authorized phone was paired automatically over USB. Generate a wireless code only when using Wi‑Fi."
+                "USB supplies Desktop with read-only device evidence. Encrypted Companion Link is separate; "
+                "generate a wireless code for the phone's live view."
             )
-            self.generate.setEnabled(False)
-        else:
             self.generate.setEnabled(self.transport.available)
 
     def set_ascension_status(self, status: AscensionCompanionStatus) -> None:
@@ -490,7 +521,39 @@ class CompanionCenter(QWidget):
         clean = re.sub(r"\b[A-Za-z]:\\[^\s,;]+", "<local-path>", clean)
         return re.sub(r"\b[0-9a-fA-F]{64}\b", "<sha256>", clean)
 
+    def _pairing_code_active(self) -> bool:
+        return self._pairing is not None and not self._pairing.expired
+
+    def _update_usb_assist_button(self) -> None:
+        available = bool(
+            self._usb_pairing_service is not None
+            and self.transport.available
+            and self._usb_ready
+            and self._usb_serial
+            and self._usb_companion_installed
+            and not self._approved
+            and not self._pairing_code_active()
+        )
+        self.usb_pair.setEnabled(available)
+        if available:
+            self.usb_pair.setToolTip(
+                "Open a one-use safety-code confirmation on this exact authorized USB phone."
+            )
+        elif self._usb_ready and not self._usb_companion_installed:
+            self.usb_pair.setToolTip(
+                "Install ROMVERSE Companion on the selected phone before using USB assist."
+            )
+        elif self._approved:
+            self.usb_pair.setToolTip("This Companion Link is already paired.")
+        else:
+            self.usb_pair.setToolTip(
+                "Connect and authorize one phone by USB. The phone must still confirm the matching safety code."
+            )
+
     def generate_code(self) -> None:
+        self._begin_pairing(usb_auto_approve=False)
+
+    def _begin_pairing(self, *, usb_auto_approve: bool) -> None:
         if not self.transport.available:
             self.state.setText("Wireless pairing unavailable")
             self.instructions.setText(
@@ -500,6 +563,9 @@ class CompanionCenter(QWidget):
         self.transport.reset()
         self._pairing = create_pairing_code()
         self._approved = False
+        self._approved_restored = False
+        self._usb_auto_approve = usb_auto_approve
+        self._usb_assist_plan = None
         self._pending_announced = False
         self.safety_confirm.setChecked(False)
         self.safety_confirm.setEnabled(False)
@@ -516,6 +582,7 @@ class CompanionCenter(QWidget):
             "Enter this code in Companion. When the request arrives, compare the Link safety code on both screens before approving."
         )
         self.approve.setEnabled(False)
+        self._update_usb_assist_button()
         self._expiry_timer.start()
         self._record_link_note(
             title="Encrypted Companion pairing opened",
@@ -524,6 +591,68 @@ class CompanionCenter(QWidget):
             next_action="Enter the code in Companion, compare the Link safety code, then approve the request here.",
             state=MissionState.INFORMATION,
             confidence=MissionConfidence.VERIFIED,
+            dedupe_key="",
+        )
+
+    @Slot()
+    def pair_connected_usb(self) -> None:
+        service = self._usb_pairing_service
+        if (
+            service is None
+            or not self._usb_ready
+            or not self._usb_serial
+            or not self._usb_companion_installed
+            or not self.transport.available
+        ):
+            self.state.setText("USB-assisted pairing is not ready")
+            self.instructions.setText(
+                "Connect one authorized Android phone with ROMVERSE Companion installed, then let the read-only scan finish."
+            )
+            self._update_usb_assist_button()
+            return
+        self._begin_pairing(usb_auto_approve=True)
+        pairing = self._pairing
+        if pairing is None:
+            return
+        try:
+            plan = service.prepare(
+                serial=self._usb_serial,
+                port=self.transport.port,
+                certificate_sha256=self.transport.certificate_sha256,
+                pairing_code=pairing.code,
+                expires_at=pairing.expires_at,
+            )
+            service.approve(plan)
+            result = service.launch(plan)
+        except Exception:
+            self._usb_auto_approve = False
+            self.state.setText("USB-assisted pairing stopped safely")
+            self.instructions.setText(
+                "ROMVERSE could not open the phone confirmation. The wireless code remains available for manual pairing."
+            )
+            self._update_usb_assist_button()
+            return
+        if not result.ok:
+            self._usb_auto_approve = False
+            self.state.setText("USB-assisted pairing needs attention")
+            self.instructions.setText(
+                f"{result.detail} The wireless code remains available for manual pairing."
+            )
+            self._update_usb_assist_button()
+            return
+        self._usb_assist_plan = plan
+        self.state.setText("Check the safety code on your phone")
+        self.instructions.setText(
+            "USB delivered this one-use request to the selected phone. Choose Yes only if its safety code matches the Desktop code above; confirmation then completes read-only Link automatically."
+        )
+        self.copy_button.setEnabled(False)
+        self._record_link_note(
+            title="USB-assisted Companion confirmation opened",
+            summary="ROMVERSE opened one safety-code prompt on the selected authorized USB phone.",
+            explanation="The phone is not trusted yet. Link completes only if the user confirms the matching Desktop certificate code on that phone.",
+            next_action="Compare the phone and Desktop safety codes, then choose Yes or No on the phone.",
+            state=MissionState.ATTENTION,
+            confidence=MissionConfidence.UNCONFIRMED,
             dedupe_key="",
         )
 
@@ -614,6 +743,20 @@ class CompanionCenter(QWidget):
 
     def _update_expiry(self) -> None:
         if self.transport.pending and not self.transport.approved and not self._approved:
+            if self._usb_auto_approve:
+                if self.transport.approve():
+                    self._render_approved_state(restored=False)
+                    self._record_link_note(
+                        title="USB-confirmed Companion Link approved",
+                        summary="The selected phone confirmed the matching safety code and completed its one-use request.",
+                        explanation="Desktop received the exact code delivered to that authorized USB phone. The resulting encrypted Link carries read-only telemetry only.",
+                        next_action="Use Companion health and Live Console telemetry; Guardian still reviews every changing action.",
+                        state=MissionState.INFORMATION,
+                        confidence=MissionConfidence.VERIFIED,
+                        dedupe_key="",
+                    )
+                    return
+                self._usb_auto_approve = False
             self.state.setText("Wireless request received • approve device")
             self.safety_confirm.setEnabled(True)
             self.approve.setEnabled(self.safety_confirm.isChecked())
@@ -637,15 +780,28 @@ class CompanionCenter(QWidget):
             self._expiry_timer.stop()
             self.transport.reset()
             self._pairing = None
+            self._usb_auto_approve = False
+            self._usb_assist_plan = None
             self.code.setText("------")
             self.copy_button.setEnabled(False)
             self.reset_link.setEnabled(False)
             self.expiry.setText("Pairing code expired. Generate a new code.")
-            self.state.setText("Not paired")
+            self.state.setText(
+                "Wireless Link not paired • USB read-only evidence remains available"
+                if self._usb_ready
+                else "Not paired"
+            )
+            self.instructions.setText(
+                "Generate a new wireless code for the phone's live Companion view. "
+                "The USB scan remains separate and read-only."
+                if self._usb_ready
+                else "Generate a new code, then enter it in ROMVERSE Companion on your Android phone."
+            )
             self.generate.setText("Generate wireless code")
             self.approve.setEnabled(False)
             self.safety_confirm.setChecked(False)
             self.safety_confirm.setEnabled(False)
+            self._update_usb_assist_button()
             return
         minutes, seconds = divmod(remaining, 60)
         self.expiry.setText(f"Expires in {minutes:02d}:{seconds:02d}")
@@ -658,15 +814,21 @@ class CompanionCenter(QWidget):
 
     def _render_approved_state(self, *, restored: bool) -> None:
         self._approved = True
-        if not self._usb_paired:
-            self.state.setText(
-                "Remembered pairing active • read-only telemetry enabled"
-                if restored
-                else "Paired • read-only telemetry enabled"
-            )
-            self.instructions.setText(
-                "This workspace remembers the approved Companion for read-only health and activity telemetry. Guardian still blocks device-changing actions."
-            )
+        self._approved_restored = restored
+        self._usb_auto_approve = False
+        self._usb_assist_plan = None
+        state = (
+            "Remembered pairing active • read-only wireless telemetry enabled"
+            if restored
+            else "Paired • read-only wireless telemetry enabled"
+        )
+        if self._usb_ready:
+            state += " • USB also connected"
+        self.state.setText(state)
+        self.instructions.setText(
+            "This workspace remembers the approved Companion for read-only health and activity telemetry. "
+            "USB evidence remains a separate input. Guardian still blocks device-changing actions."
+        )
         self._expiry_timer.stop()
         self._pairing = None
         self.code.setText("••• •••")
@@ -679,7 +841,8 @@ class CompanionCenter(QWidget):
         self.generate.setToolTip(
             "Revoke the remembered wireless session and create a new short-lived pairing code."
         )
-        self.generate.setEnabled(self.transport.available and not self._usb_paired)
+        self.generate.setEnabled(self.transport.available)
+        self._update_usb_assist_button()
         self.expiry.setText(self._approved_expiry_text())
 
     def _approved_expiry_text(self) -> str:
@@ -708,10 +871,14 @@ class CompanionCenter(QWidget):
             return
         self.transport.reset()
         self._approved = False
+        self._approved_restored = False
+        self._usb_auto_approve = False
+        self._usb_assist_plan = None
         self.reset_link.setEnabled(False)
         self.generate.setText("Generate wireless code")
         self.generate.setToolTip("")
-        self.generate.setEnabled(self.transport.available and not self._usb_paired)
+        self.generate.setEnabled(self.transport.available)
+        self._update_usb_assist_button()
         self.code.setText("------")
         self.copy_button.setEnabled(False)
         self.expiry.setText(
@@ -721,7 +888,13 @@ class CompanionCenter(QWidget):
             "LIVE COMPANION HEALTH\nWaiting for an authenticated phone snapshot."
         )
         self._last_remote_capture = 0
-        if not self._usb_paired:
+        if self._usb_ready:
+            self.state.setText("Wireless Link expired • USB read-only evidence remains available")
+            self.instructions.setText(
+                "Generate a new wireless code to restore the phone's live Companion view. "
+                "The USB scan remains separate and read-only."
+            )
+        else:
             self.state.setText("Not paired")
             self.instructions.setText(
                 "Generate a code, then enter it in ROMVERSE Companion on your Android phone."
@@ -732,6 +905,9 @@ class CompanionCenter(QWidget):
         self.transport.reset()
         self._pairing = None
         self._approved = False
+        self._approved_restored = False
+        self._usb_auto_approve = False
+        self._usb_assist_plan = None
         self._pending_announced = False
         self._last_remote_capture = 0
         self._expiry_timer.stop()
@@ -743,16 +919,20 @@ class CompanionCenter(QWidget):
         self.reset_link.setEnabled(False)
         self.generate.setText("Generate wireless code")
         self.generate.setToolTip("")
-        self.generate.setEnabled(self.transport.available and not self._usb_paired)
+        self.generate.setEnabled(self.transport.available)
+        self._update_usb_assist_button()
         self.remote_summary.setText(
             "LIVE COMPANION HEALTH\nWaiting for an authenticated phone snapshot."
         )
-        if self._usb_paired:
-            self.state.setText("USB paired • read-only telemetry enabled")
-            self.instructions.setText(
-                "Wireless pairing was reset. This authorized phone remains connected through USB read-only mode."
+        if self._usb_ready:
+            self.state.setText(
+                "Wireless Link not paired • USB read-only evidence remains available"
             )
-            self.expiry.setText("Wireless pairing reset. USB pairing was not changed.")
+            self.instructions.setText(
+                "Wireless authorization was revoked. USB continues supplying Desktop's read-only "
+                "device scan; generate a new code whenever you want the phone's live view."
+            )
+            self.expiry.setText("Wireless pairing reset. USB evidence was not changed.")
         else:
             self.state.setText("Not paired")
             self.instructions.setText(
@@ -764,7 +944,7 @@ class CompanionCenter(QWidget):
         self._record_link_note(
             title="Companion Link pairing reset",
             summary="The remembered wireless Companion authorization was revoked locally.",
-            explanation="ROMVERSE cleared the pending request, stored session digest, and cached wireless telemetry. USB read-only pairing was not changed.",
+            explanation="ROMVERSE cleared the pending request, stored session digest, and cached wireless telemetry. USB read-only evidence was not changed.",
             next_action="Generate a new wireless code only when you want to pair Companion again.",
             state=MissionState.INFORMATION,
             confidence=MissionConfidence.VERIFIED,

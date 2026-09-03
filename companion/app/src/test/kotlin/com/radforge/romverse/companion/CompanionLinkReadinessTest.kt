@@ -14,6 +14,8 @@ class CompanionLinkReadinessTest {
         endpoint: Boolean = false,
         certificate: Boolean = false,
         safety: Boolean = false,
+        rejected: Boolean = false,
+        usbAssist: Boolean = false,
         remembered: Boolean = false,
         secure: Boolean = false,
         discovering: Boolean = false,
@@ -25,6 +27,8 @@ class CompanionLinkReadinessTest {
         endpointPresent = endpoint,
         certificateValid = certificate,
         safetyConfirmed = safety,
+        safetyRejected = rejected,
+        usbAssistActive = usbAssist,
         desktopRemembered = remembered,
         secureSession = secure,
         discoveryInFlight = discovering,
@@ -100,6 +104,17 @@ class CompanionLinkReadinessTest {
     }
 
     @Test
+    fun `rejected safety code blocks identity and offers fresh discovery`() {
+        val result = readiness(endpoint = true, certificate = true, rejected = true)
+
+        assertEquals(CompanionLinkJourneyState.IDENTITY_REJECTED, result.state)
+        assertEquals(40, result.progressPercent)
+        assertEquals("MISMATCH", result.steps[2].status)
+        assertEquals(CompanionLinkStepState.ATTENTION, result.steps[2].state)
+        assertEquals("SEARCH AGAIN", result.nextAction)
+    }
+
+    @Test
     fun `usb does not masquerade as encrypted Companion Link`() {
         val result = readiness(localNetwork = false, usb = true)
 
@@ -107,6 +122,20 @@ class CompanionLinkReadinessTest {
         assertEquals(20, result.progressPercent)
         assertEquals("NEEDS WI-FI", result.steps[1].status)
         assertTrue(result.detail.contains("Link not paired", ignoreCase = true))
+    }
+
+    @Test
+    fun `explicit usb assist can reach identity confirmation without wifi`() {
+        val result = readiness(
+            localNetwork = false,
+            usb = true,
+            endpoint = true,
+            certificate = true,
+            usbAssist = true,
+        )
+
+        assertEquals(CompanionLinkJourneyState.CONFIRM_IDENTITY, result.state)
+        assertEquals("REVIEW SAFETY CODE", result.nextAction)
     }
 
     @Test

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -10,8 +11,28 @@ from romverse.ascension.companion import AscensionCompanionStatus
 from romverse.companion.raw_terminal import RawTerminalFeed
 from romverse.companion.telemetry import RemoteCompanionSnapshot
 from romverse.device.dna import CapabilityMapEntry, CapabilityState, DeviceDnaProfile
+from romverse.device.models import AndroidDevice, DeviceState, StorageInfo
 from romverse.nexus.events import LiveConsoleEventStore, MissionState
 from romverse.ui.companion_center import CompanionCenter
+
+
+class FakeUsbPairingService:
+    def __init__(self) -> None:
+        self.prepared: dict[str, object] | None = None
+        self.approved = False
+        self.launched = False
+
+    def prepare(self, **values):
+        self.prepared = values
+        return SimpleNamespace(values=values)
+
+    def approve(self, _plan):
+        self.approved = True
+        return ()
+
+    def launch(self, _plan):
+        self.launched = True
+        return SimpleNamespace(ok=True, detail="confirmation opened")
 
 
 def test_companion_center_renders_authenticated_remote_health_snapshot() -> None:
@@ -246,6 +267,129 @@ def test_companion_center_restores_and_can_revoke_remembered_pairing(tmp_path) -
     assert not restarted.reset_link.isEnabled()
     assert "revoked" in restarted.expiry.text()
     restarted.shutdown()
+
+
+def test_usb_evidence_never_masquerades_as_encrypted_companion_pairing(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    center = CompanionCenter(workspace=tmp_path)
+    phone = AndroidDevice(
+        "private-serial",
+        DeviceState.DEVICE,
+        manufacturer="Xiaomi",
+        model="2509FPN0BC",
+        marketing_name="Xiaomi 17 Pro Max",
+        battery_percent=88,
+        storage=StorageInfo(total_bytes=200, used_bytes=50),
+        companion_installed=True,
+        companion_version="0.2.0-alpha.1",
+    )
+
+    center.set_device_snapshot([phone])
+
+    assert center._usb_ready
+    assert "Companion installed" in center.device_status.text()
+    assert center.state.text() == "USB connected • wireless Link not paired"
+    assert "Encrypted Companion Link is separate" in center.instructions.text()
+    assert center.generate.isEnabled()
+
+    center.generate_code()
+    assert center.state.text() == "Awaiting device approval"
+    center.set_device_snapshot([phone])
+    assert center.state.text() == "Awaiting device approval"
+    pairing = center._pairing
+    assert pairing is not None
+    request_id = center.transport._sessions.request(pairing, pairing.code, "127.0.0.1")
+    assert request_id
+    center._update_expiry()
+    center.safety_confirm.setChecked(True)
+    center.approve_device()
+
+    assert "Paired • read-only wireless telemetry enabled" in center.state.text()
+    assert "USB also connected" in center.state.text()
+    assert center.generate.isEnabled()
+
+    center.reset_pairing()
+
+    assert center.state.text() == (
+        "Wireless Link not paired • USB read-only evidence remains available"
+    )
+    assert "USB continues supplying Desktop's read-only device scan" in center.instructions.text()
+    assert center.generate.isEnabled()
+    center.shutdown()
+
+
+def test_disconnected_usb_state_does_not_linger_as_connected(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    center = CompanionCenter(workspace=tmp_path)
+    phone = AndroidDevice(
+        "private-serial",
+        DeviceState.DEVICE,
+        model="Test phone",
+        companion_installed=True,
+    )
+    center.set_device_snapshot([phone])
+    assert center._usb_ready
+
+    center.set_device_snapshot([])
+
+    assert not center._usb_ready
+    assert center.state.text() == "Not paired"
+    assert "no USB device detected" in center.device_status.text()
+    assert center.generate.isEnabled()
+    center.shutdown()
+
+
+def test_usb_assist_waits_for_phone_confirmation_then_approves_automatically(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    service = FakeUsbPairingService()
+    center = CompanionCenter(workspace=tmp_path, usb_pairing_service=service)
+    phone = AndroidDevice(
+        "private-serial",
+        DeviceState.DEVICE,
+        model="Test phone",
+        companion_installed=True,
+    )
+    center.set_device_snapshot([phone])
+
+    assert center.usb_pair.isEnabled()
+    center.pair_connected_usb()
+
+    assert service.prepared is not None
+    assert service.prepared["serial"] == "private-serial"
+    assert service.approved
+    assert service.launched
+    assert "safety code on your phone" in center.state.text()
+    assert not center.transport.approved
+    pairing = center._pairing
+    assert pairing is not None
+
+    request_id = center.transport._sessions.request(pairing, pairing.code, "127.0.0.1")
+    assert request_id
+    center._update_expiry()
+
+    assert center.transport.approved
+    assert "Paired • read-only wireless telemetry enabled" in center.state.text()
+    assert not center.safety_confirm.isEnabled()
+    assert not center.usb_pair.isEnabled()
+    center.shutdown()
+
+
+def test_usb_assist_requires_companion_on_the_selected_authorized_phone(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    service = FakeUsbPairingService()
+    center = CompanionCenter(workspace=tmp_path, usb_pairing_service=service)
+    phone = AndroidDevice(
+        "private-serial",
+        DeviceState.DEVICE,
+        model="Test phone",
+        companion_installed=False,
+    )
+
+    center.set_device_snapshot([phone])
+
+    assert not center.usb_pair.isEnabled()
+    assert "Install ROMVERSE Companion" in center.usb_pair.toolTip()
+    center.shutdown()
 
 
 def test_companion_center_relays_only_verified_raw_terminal_feed(tmp_path) -> None:

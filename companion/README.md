@@ -13,7 +13,11 @@ SYNC. Its five evidence-derived stages, deterministic progress, freshness label,
 action distinguish discovery, safety-code comparison, authorization, expiry, refresh, and a genuinely
 fresh two-way sync. USB detection never masquerades as encrypted Companion pairing and no longer
 disables wireless setup; it remains useful for Desktop-side read-only identity while Companion can
-pair independently over trusted local Wi-Fi. The animated active-stage pulse is purposeful, stops
+pair independently over trusted local Wi-Fi. USB assist can also deliver an exact one-use request
+through a loopback tunnel to the selected authorized phone. Companion then shows the Desktop safety
+code in a dark, accessible Yes/No dialog; Yes submits and completes read-only Link automatically,
+while No blocks the attempt. USB presence by itself never establishes trust. The animated
+active-stage pulse is purposeful, stops
 off-screen, and respects Reduced Effects and Android's disabled-animation setting. The entire route
 has a concise accessibility description and permanently states that it grants no flash, root, wipe,
 unlock, relock, or command authority.
@@ -207,7 +211,15 @@ candidate on representative physical devices.
 Keep the PC and phone on the same trusted Wi-Fi network. ROMVERSE Studio advertises
 its local endpoint automatically (default TCP port `8765`). In Companion, let the PC
 address fill by discovery, enter the short-lived code generated on the desktop, and
-approve the request on the PC. USB/ADB pairing remains automatic when authorized.
+approve the request on the PC. Authorized USB/ADB remains a separate read-only Desktop evidence
+path: detecting the APK over USB never claims that encrypted Link is paired and never disables
+wireless code generation. A generated or pending wireless request also survives periodic USB scans.
+As an optional convenience, **Pair connected phone with USB assist** creates a private loopback-only
+tunnel for the one selected authorized phone and opens the same certificate-identity checkpoint in
+Companion. The six-digit code is delivered in memory, the user must still choose Yes on the matching
+safety-code dialog, and only then does Desktop approve that exact request automatically. Choosing No
+blocks it. The tunnel handoff is reversible, Guardian-approved, and grants no general ADB command or
+device-changing authority; the serial and one-time code are redacted from the Guardian ledger.
 Wireless pairing currently grants read-only Companion visibility; Guardian does not
 allow flashing, wiping, unlocking, or other device-changing actions.
 

@@ -206,7 +206,7 @@ policy evidence, not universal device assurance or a live flashing runtime.
    after restart, reports its actual remaining lifetime instead of the obsolete 12-hour/close copy,
    enables Copy only for a live one-time code, and exposes explicit replacement and reset controls.
    Reset immediately revokes the stored token verifier and clears cached wireless telemetry while
-   preserving USB read-only pairing; the old token is rejected in the restart/revocation regression.
+   preserving USB read-only evidence; the old token is rejected in the restart/revocation regression.
    Exact commit `220a0a24c2346287220f79e692c82d92236f872b` is fully green in GitHub Actions run
    `33772226324`: both Linux 1,417-test jobs, both Windows 262-test portability jobs, both native
    installed/frozen/package jobs, Companion tests/build, and the combined unsigned candidate passed.
@@ -470,6 +470,13 @@ policy evidence, not universal device assurance or a live flashing runtime.
    tests remain separate required gates.
 5. Exercise ROMVERSE Link over USB and a trusted local Wi-Fi network. If local networking is
    unavailable, ROMVERSE must remain usable and visibly mark only wireless pairing unavailable.
+   With one selected authorized phone and Companion installed, exercise USB assist: Desktop must
+   create only an exact loopback reverse rule and explicit Companion handoff, the phone must show
+   the full matching safety code in a Yes/No dialog, No must block without submitting, and Yes must
+   submit and complete only that read-only Link request. Confirm the Guardian ledger contains
+   neither the device serial nor the six-digit code, and that altered action, package, host, port,
+   fingerprint, code, target, or approval digest fails closed. Disconnect USB and repeat the normal
+   trusted-Wi-Fi pairing path to prove it remains independent.
    Verify unauthenticated telemetry is rejected, request identities cannot be exchanged, expired
    and reset tokens fail, code throttling is per client, oversized/malformed phone snapshots fail,
    capability-bearing and private identifier fields are rejected, and a valid authenticated phone

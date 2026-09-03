@@ -1003,7 +1003,11 @@ Companion Home now leads with a five-stage **ROMVERSE Link Flight Path** from ph
 Desktop discovery, pinned identity, authorized session, and fresh two-way sync. Every stage is
 derived from current Link evidence, carries a freshness-aware status, and supplies one contextual
 next action. USB remains useful read-only evidence but never pretends to be the encrypted Companion
-session and does not disable wireless pairing. The compact active-stage animation respects Reduced
+session and does not disable wireless pairing. A selected, authorized USB phone with Companion
+installed can use **USB assist**: Desktop creates an exact loopback-only Link tunnel, delivers one
+short-lived request to that phone, and the phone presents the full safety code in a Yes/No identity
+dialog. Only Yes submits the request and completes read-only Link automatically; No blocks it. The
+cable alone never establishes trust. The compact active-stage animation respects Reduced
 Effects and Android animation policy, and the route exposes a complete accessibility description.
 Companion app-private state is explicitly excluded from Android cloud backup and device transfer so
 pairing tokens, certificate pins, and private evidence cannot migrate to an unverified phone.
@@ -1085,7 +1089,14 @@ hash and lifetime validation. Reset and expiry remove only a contained regular r
 The Link screen now restores that genuine remembered state after a Desktop restart, shows its
 remaining lifetime, disables code copying when no live one-time code exists, labels replacement as
 revoking the prior session, and provides a separate Reset wireless pairing control. Reset clears
-pending authorization and cached wireless telemetry without changing USB read-only pairing.
+pending authorization and cached wireless telemetry without changing USB read-only evidence.
+Desktop never treats an installed Companion APK or an authorized ADB connection as proof of an
+encrypted Companion session: wireless Link remains available alongside USB, periodic device scans
+cannot overwrite a pending pairing journey, and the interface labels both channels separately.
+USB assist uses an exact selected-device ADB reverse rule and explicit Companion Activity handoff;
+Guardian binds all three reversible operations to short-lived digests and redacts both the serial
+and one-time Link code from its ledger. It grants no flash, root, wipe, bootloader, or generic shell
+authority.
 
 Live Console records genuine pairing-opened, pending-safety-check, and approved states. These events
 explain what happened and what the user should do next, expose no certificate private key or bearer

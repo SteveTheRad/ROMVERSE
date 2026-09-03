@@ -235,6 +235,9 @@ class MainActivity : ComponentActivity() {
     private var linkFingerprintField: EditText? = null
     private var linkSafetyLabel: TextView? = null
     private var linkSafetyConfirmation: CheckBox? = null
+    private var linkSafetyRejected = false
+    private var linkSafetyDialog: AlertDialog? = null
+    private var pendingUsbPairingAssist: CompanionUsbPairingAssist? = null
     private var linkCodeField: EditText? = null
     private var linkConnectButton: Button? = null
     private var linkFlightPathView: LinkFlightPathView? = null
@@ -336,6 +339,7 @@ class MainActivity : ComponentActivity() {
                 savedInstanceState?.getString(ACTIVITY_ROUTE_KEY),
             ),
         )
+        window.decorView.post { handleUsbPairingIntent(intent) }
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 val drawer = navigationDrawer
@@ -356,6 +360,12 @@ class MainActivity : ComponentActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putString(ACTIVITY_ROUTE_KEY, currentRoute.name)
         super.onSaveInstanceState(outState)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        window.decorView.post { handleUsbPairingIntent(intent) }
     }
 
     override fun onResume() {
@@ -949,21 +959,30 @@ class MainActivity : ComponentActivity() {
         linkSafetyLabel = linkSafety
         pcAddress.doAfterTextChanged { refreshLinkFlightPath() }
         val safetyConfirm = CheckBox(this).apply {
-            text = "I confirmed the Link safety code matches on the PC and phone"
+            text = if (rememberedDesktop) {
+                "Desktop identity was confirmed previously"
+            } else {
+                "Safety code confirmation is waiting"
+            }
             setTextColor(muted)
             buttonTintList = ColorStateList.valueOf(cyan)
             isChecked = rememberedDesktop
-            isEnabled = !rememberedDesktop
+            isEnabled = false
+            isClickable = false
             setPadding(0, dp(8), 0, dp(8))
         }
         linkSafetyConfirmation = safetyConfirm
         connection.addView(safetyConfirm)
         pcFingerprint.doAfterTextChanged { value ->
+            linkSafetyRejected = false
             val safetyCode = DesktopLinkSecurity.safetyCode(value?.toString().orEmpty())
             linkSafety.text = safetyCode?.let {
                 "LINK SAFETY CODE  •  $it\nCompare this exact code with ROMVERSE Desktop."
             } ?: "LINK SAFETY CODE  •  invalid or incomplete PC identity"
-            if (!rememberedDesktop) safetyConfirm.isChecked = false
+            if (!rememberedDesktop) {
+                safetyConfirm.isChecked = false
+                safetyConfirm.text = "Safety code confirmation is waiting"
+            }
             refreshLinkFlightPath()
         }
         safetyConfirm.setOnCheckedChangeListener { button, checked ->
@@ -1013,8 +1032,11 @@ class MainActivity : ComponentActivity() {
                 code.text?.clear()
                 pcFingerprint.text?.clear()
                 pcFingerprint.isEnabled = true
+                linkSafetyRejected = false
+                pendingUsbPairingAssist = null
                 safetyConfirm.isChecked = false
-                safetyConfirm.isEnabled = true
+                safetyConfirm.isEnabled = false
+                safetyConfirm.text = "Safety code confirmation is waiting"
                 discoverPc(pcAddress, pcFingerprint, linkSafety)
                 logActivity("Pairing session cleared")
                 refreshLinkFlightPath()
@@ -1050,7 +1072,7 @@ class MainActivity : ComponentActivity() {
                     return@setOnClickListener
                 }
                 if (!safetyConfirm.isChecked) {
-                    safetyConfirm.error = "Compare and confirm the Link safety code first"
+                    showLinkSafetyConfirmation(autoConnect = true)
                     return@setOnClickListener
                 }
                 if (candidate.length != 6 || !candidate.all(Char::isDigit)) {
@@ -1123,6 +1145,8 @@ class MainActivity : ComponentActivity() {
                                         .putBoolean("desktop_trusted", true)
                                         .apply()
                                     telemetryRetryAttempt = 0
+                                    pendingUsbPairingAssist = null
+                                    code.text?.clear()
                                     refreshHomeHero()
                                     if (phoneSync.accepted) {
                                         pairingPrefs.edit()
@@ -1140,6 +1164,7 @@ class MainActivity : ComponentActivity() {
                         }
                         if (!approved) {
                             runOnUiThread {
+                                pendingUsbPairingAssist = null
                                 text = "APPROVAL TIMEOUT • TRY AGAIN"
                                 refreshLinkFlightPath()
                             }
@@ -1793,6 +1818,8 @@ class MainActivity : ComponentActivity() {
             linkFingerprintField?.text?.toString().orEmpty(),
         ) != null,
         safetyConfirmed = linkSafetyConfirmation?.isChecked == true,
+        safetyRejected = linkSafetyRejected,
+        usbAssistActive = pendingUsbPairingAssist != null,
         desktopRemembered = hasRememberedDesktop(),
         secureSession = hasSecureWirelessSession(),
         discoveryInFlight = linkDiscoveryInFlight,
@@ -1814,6 +1841,7 @@ class MainActivity : ComponentActivity() {
             CompanionLinkJourneyState.STALE,
             CompanionLinkJourneyState.REAUTHORIZE,
             CompanionLinkJourneyState.CONFIRM_IDENTITY,
+            CompanionLinkJourneyState.IDENTITY_REJECTED,
             -> "#FFB454".toColorInt()
             else -> cyan
         }
@@ -1867,14 +1895,25 @@ class MainActivity : ComponentActivity() {
                 }
             }
             CompanionLinkJourneyState.CONFIRM_IDENTITY -> {
+                showLinkSafetyConfirmation()
+            }
+            CompanionLinkJourneyState.IDENTITY_REJECTED -> {
+                linkSafetyRejected = false
+                pendingUsbPairingAssist = null
+                linkAddressField?.text?.clear()
+                linkFingerprintField?.text?.clear()
+                linkCodeField?.text?.clear()
                 linkSafetyConfirmation?.apply {
-                    error = "Compare this code with Desktop, then confirm it here"
-                    buttonTintList = ColorStateList.valueOf("#FFB454".toColorInt())
-                    revealPairingControl(
-                        this,
-                        "Compare the safety code, then tick this confirmation box.",
-                    )
+                    isChecked = false
+                    text = "Safety code confirmation is waiting"
                 }
+                val address = linkAddressField
+                val fingerprint = linkFingerprintField
+                val safety = linkSafetyLabel
+                if (address != null && fingerprint != null && safety != null) {
+                    discoverPc(address, fingerprint, safety)
+                }
+                refreshLinkFlightPath()
             }
             CompanionLinkJourneyState.REAUTHORIZE,
             CompanionLinkJourneyState.ENTER_CODE,
@@ -1903,6 +1942,122 @@ class MainActivity : ComponentActivity() {
                 (cardTop + target.top - dp(88)).coerceAtLeast(0),
             )
         }
+    }
+
+    private fun handleUsbPairingIntent(source: Intent?) {
+        val assist = CompanionUsbPairingAssistPolicy.parse(
+            source?.action,
+            source?.getStringExtra(CompanionUsbPairingAssistPolicy.HOST_EXTRA),
+            source?.getStringExtra(CompanionUsbPairingAssistPolicy.FINGERPRINT_EXTRA),
+            source?.getStringExtra(CompanionUsbPairingAssistPolicy.CODE_EXTRA),
+        ) ?: return
+        source?.action = null
+        source?.removeExtra(CompanionUsbPairingAssistPolicy.HOST_EXTRA)
+        source?.removeExtra(CompanionUsbPairingAssistPolicy.FINGERPRINT_EXTRA)
+        source?.removeExtra(CompanionUsbPairingAssistPolicy.CODE_EXTRA)
+        pendingUsbPairingAssist = assist
+        linkSafetyRejected = false
+        openDestination(CompanionDestination.LINK)
+        linkAddressField?.setText(assist.host)
+        linkFingerprintField?.setText(assist.certificateSha256)
+        linkCodeField?.setText(assist.pairingCode)
+        linkSafetyConfirmation?.apply {
+            isChecked = false
+            text = "USB found Desktop • safety confirmation required"
+        }
+        linkSafetyLabel?.text =
+            "USB-ASSISTED LINK  •  ${DesktopLinkSecurity.safetyCode(assist.certificateSha256)}\n" +
+            "Compare this exact code with ROMVERSE Desktop."
+        refreshLinkFlightPath()
+        showLinkSafetyConfirmation(autoConnect = true)
+    }
+
+    private fun showLinkSafetyConfirmation(autoConnect: Boolean = false) {
+        if (linkSafetyDialog?.isShowing == true) return
+        val fingerprint = DesktopLinkSecurity.normalizeFingerprint(
+            linkFingerprintField?.text?.toString().orEmpty(),
+        ) ?: run {
+            linkFingerprintField?.error = "Find ROMVERSE Desktop before confirming its identity"
+            return
+        }
+        val safetyCode = DesktopLinkSecurity.safetyCode(fingerprint) ?: return
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(24), dp(22), dp(24), dp(10))
+            background = GradientDrawable().apply {
+                setColor("#07101F".toColorInt())
+                cornerRadius = dp(18).toFloat()
+                setStroke(dp(1), cyan)
+            }
+        }
+        content.addView(text("CONFIRM DESKTOP IDENTITY", 12f, cyan, true))
+        content.addView(text("Does this code match ROMVERSE Desktop?", 22f, Color.WHITE, true))
+        content.addView(TextView(this).apply {
+            text = safetyCode
+            textSize = 38f
+            setTextColor("#D8B5FF".toColorInt())
+            gravity = Gravity.CENTER
+            contentDescription = "ROMVERSE Link safety code $safetyCode"
+            setPadding(0, dp(22), 0, dp(22))
+        })
+        content.addView(text(
+            "Choose YES only if Desktop shows this exact code. This approves a read-only " +
+                "encrypted Link; it grants no flash, root, wipe, unlock, relock, or command authority.",
+            14f,
+            muted,
+            false,
+        ))
+        val dialog = AlertDialog.Builder(this)
+            .setView(content)
+            .setNegativeButton("NO • DOESN'T MATCH") { _, _ ->
+                linkSafetyRejected = true
+                pendingUsbPairingAssist = null
+                linkCodeField?.text?.clear()
+                linkSafetyConfirmation?.apply {
+                    isChecked = false
+                    text = "Safety code rejected • pairing blocked"
+                }
+                logActivity("Link safety code rejected • pairing stayed blocked")
+                refreshLinkFlightPath()
+            }
+            .setPositiveButton("YES • CODE MATCHES") { _, _ ->
+                linkSafetyRejected = false
+                linkSafetyConfirmation?.apply {
+                    isChecked = true
+                    text = "Safety code confirmed on this phone"
+                }
+                logActivity("Link safety code confirmed on this phone")
+                refreshLinkFlightPath()
+                val codeReady = linkCodeField?.text
+                    ?.toString()
+                    ?.replace(" ", "")
+                    ?.let { it.length == 6 && it.all(Char::isDigit) } == true
+                if (autoConnect && codeReady) {
+                    linkConnectButton?.performClick()
+                } else {
+                    linkCodeField?.let {
+                        revealPairingControl(it, "Identity confirmed. Enter the Desktop Link code.")
+                    }
+                }
+            }
+            .setOnCancelListener {
+                linkSafetyConfirmation?.apply {
+                    isChecked = false
+                    text = "Safety code confirmation is waiting"
+                }
+                refreshLinkFlightPath()
+            }
+            .create()
+        linkSafetyDialog = dialog
+        dialog.setOnDismissListener {
+            if (linkSafetyDialog === dialog) linkSafetyDialog = null
+        }
+        dialog.setOnShowListener {
+            dialog.window?.setBackgroundDrawable(ColorDrawable("#07101F".toColorInt()))
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor("#72FFB2".toColorInt())
+            dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor("#FFB454".toColorInt())
+        }
+        dialog.show()
     }
 
     private fun showSection(title: String, detail: String) {
@@ -5969,6 +6124,8 @@ Guardian: ACTIVE (read-only)
     } else null
 
     private fun clearWirelessSession(forgetTrustedDesktop: Boolean) {
+        pendingUsbPairingAssist = null
+        linkSafetyRejected = false
         if (forgetTrustedDesktop) telemetryHost = null
         telemetryToken = null
         if (forgetTrustedDesktop) telemetryCertificateSha256 = null
@@ -6017,6 +6174,9 @@ Guardian: ACTIVE (read-only)
     }
 
     override fun onDestroy() {
+        linkSafetyDialog?.dismiss()
+        linkSafetyDialog = null
+        pendingUsbPairingAssist = null
         supporterTick?.let(supporterHandler::removeCallbacks)
         supporterTick = null
         supporterMediaPlayer?.release()

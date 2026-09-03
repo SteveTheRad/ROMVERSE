@@ -79,6 +79,7 @@ from romverse.ascension.companion import AscensionCompanionStatusService
 from romverse.ascension.releases import OfficialRootReleaseService
 from romverse.backup.media import PhoneMediaBackupService
 from romverse.companion.raw_terminal import RawTerminalFeed
+from romverse.companion.usb_assist import UsbPairingAssistService
 from romverse.core.activity import (
     ActivityStore,
     ActivityStoreError,
@@ -3887,10 +3888,21 @@ class MainWindow(QMainWindow):
             self._continue_device_atlas_rom_studio
         )
         self.rom_studio.ascension_status_changed.connect(self._update_companion_ascension_status)
+        usb_pairing_service = (
+            UsbPairingAssistService(
+                self._device_adb_executable,
+                self._runtime_gateway,
+                ApprovalStore(workspace),
+                workspace,
+            )
+            if self._device_adb_executable is not None and self._runtime_gateway is not None
+            else None
+        )
         self.companion_center = CompanionCenter(
             self.nexus_events,
             self.raw_terminal_feed,
             workspace,
+            usb_pairing_service=usb_pairing_service,
         )
         self.companion_center.set_nexus_plan(self.nexus_center.current_plan)
         current_project = self.rom_studio.current_project

@@ -3,6 +3,17 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from romverse.companion.usb_contract import (
+    USB_PAIRING_ACTION,
+    USB_PAIRING_CODE_EXTRA,
+    USB_PAIRING_COMPONENT,
+    USB_PAIRING_FINGERPRINT_EXTRA,
+    USB_PAIRING_HOST_EXTRA,
+    usb_launch_arguments,
+    usb_operation_digest,
+    usb_reverse_arguments,
+    usb_reverse_remove_arguments,
+)
 from romverse.core.privacy import WorkspacePrivacy
 from romverse.guardian.approval import ApprovalStore
 from romverse.guardian.ascension_manager import (
@@ -159,7 +170,83 @@ class GuardianPolicy(MilestoneOnePolicy):
             return self._assess_ascension_transfer(request)
         if request.operation_id == "ascension.launch_manager":
             return self._assess_ascension_manager_launch(request)
+        if request.operation_id in {
+            "companion.usb_reverse",
+            "companion.usb_launch",
+            "companion.usb_reverse_remove",
+        }:
+            return self._assess_companion_usb(request)
         return super().assess(request)
+
+    def _assess_companion_usb(self, request: OperationRequest) -> GuardianDecision:
+        args = request.arguments
+        if (
+            Path(request.executable).name.casefold() not in {"adb", "adb.exe"}
+            or len(args) < 2
+            or args[0] != "-s"
+            or not args[1]
+            or request.target != args[1]
+        ):
+            return self._deny_install(
+                "USB-assisted Companion pairing is outside its exact selected-phone form"
+            )
+        serial = args[1]
+        try:
+            if request.operation_id == "companion.usb_reverse":
+                if len(args) != 5 or args[2] != "reverse" or args[3] != args[4]:
+                    raise ValueError
+                port = int(args[3].removeprefix("tcp:"))
+                expected = usb_reverse_arguments(serial, port)
+            elif request.operation_id == "companion.usb_reverse_remove":
+                if len(args) != 5 or args[2:4] != ("reverse", "--remove"):
+                    raise ValueError
+                port = int(args[4].removeprefix("tcp:"))
+                expected = usb_reverse_remove_arguments(serial, port)
+            else:
+                if (
+                    len(args) != 21
+                    or args[2:12]
+                    != (
+                        "shell",
+                        "am",
+                        "start",
+                        "-W",
+                        "-f",
+                        "0x20000000",
+                        "-a",
+                        USB_PAIRING_ACTION,
+                        "-n",
+                        USB_PAIRING_COMPONENT,
+                    )
+                    or args[12:14] != ("--es", USB_PAIRING_HOST_EXTRA)
+                    or args[15:17] != ("--es", USB_PAIRING_FINGERPRINT_EXTRA)
+                    or args[18:20] != ("--es", USB_PAIRING_CODE_EXTRA)
+                    or not args[14].startswith("127.0.0.1:")
+                ):
+                    raise ValueError
+                port = int(args[14].removeprefix("127.0.0.1:"))
+                expected = usb_launch_arguments(serial, port, args[17], args[20])
+        except (TypeError, ValueError):
+            return self._deny_install(
+                "USB-assisted Companion pairing command or identity evidence was rejected"
+            )
+        digest = usb_operation_digest(request.operation_id, expected)
+        if args != expected or request.approval_digest != digest:
+            return self._deny_install(
+                "USB-assisted Companion pairing differs from the approved exact request"
+            )
+        if not self._approved_for_serial(request, serial):
+            return self._deny_install(
+                "USB-assisted Companion pairing lacks exact short-lived user approval"
+            )
+        return GuardianDecision(
+            True,
+            RiskLevel.LOW,
+            (
+                "Exact selected-phone USB tunnel and Companion confirmation handoff approved; no device-control authority granted",
+            ),
+            user_approval_required=True,
+        )
 
     def _assess_adb_host_repair(self, request: OperationRequest) -> GuardianDecision:
         expected_arguments = {

@@ -7,6 +7,7 @@ internal enum class CompanionLinkJourneyState {
     REAUTHORIZE,
     ENTER_CODE,
     CONFIRM_IDENTITY,
+    IDENTITY_REJECTED,
     DISCOVERING,
     DISCOVER,
     USB_ONLY,
@@ -51,6 +52,8 @@ internal object CompanionLinkReadinessPolicy {
         endpointPresent: Boolean,
         certificateValid: Boolean,
         safetyConfirmed: Boolean,
+        safetyRejected: Boolean,
+        usbAssistActive: Boolean,
         desktopRemembered: Boolean,
         secureSession: Boolean,
         discoveryInFlight: Boolean,
@@ -74,8 +77,10 @@ internal object CompanionLinkReadinessPolicy {
             syncFresh -> CompanionLinkJourneyState.LIVE
             sessionVerified -> CompanionLinkJourneyState.STALE
             desktopRemembered -> CompanionLinkJourneyState.REAUTHORIZE
-            !localNetworkAvailable && usbConnected -> CompanionLinkJourneyState.USB_ONLY
-            !localNetworkAvailable -> CompanionLinkJourneyState.NETWORK_NEEDED
+            desktopFound && safetyRejected -> CompanionLinkJourneyState.IDENTITY_REJECTED
+            !localNetworkAvailable && !usbAssistActive && usbConnected ->
+                CompanionLinkJourneyState.USB_ONLY
+            !localNetworkAvailable && !usbAssistActive -> CompanionLinkJourneyState.NETWORK_NEEDED
             !desktopFound && discoveryInFlight -> CompanionLinkJourneyState.DISCOVERING
             !desktopFound -> CompanionLinkJourneyState.DISCOVER
             !identityConfirmed -> CompanionLinkJourneyState.CONFIRM_IDENTITY
@@ -91,6 +96,7 @@ internal object CompanionLinkReadinessPolicy {
                 complete[index] -> CompanionLinkStepState.COMPLETE
                 index != firstIncomplete -> CompanionLinkStepState.WAITING
                 index == 1 && !localNetworkAvailable -> CompanionLinkStepState.ATTENTION
+                index == 2 && safetyRejected -> CompanionLinkStepState.ATTENTION
                 else -> CompanionLinkStepState.ACTIVE
             }
             val status = when {
@@ -99,6 +105,7 @@ internal object CompanionLinkReadinessPolicy {
                 index == 1 && !localNetworkAvailable -> "NEEDS WI-FI"
                 index == 1 && discoveryInFlight -> "FINDING"
                 index == 1 -> "FIND PC"
+                index == 2 && safetyRejected -> "MISMATCH"
                 index == 2 -> "CONFIRM"
                 index == 3 -> "AUTHORIZE"
                 index == 4 && syncInFlight -> "SYNCING"
@@ -153,6 +160,11 @@ internal object CompanionLinkReadinessPolicy {
             "Compare the Link safety code",
             "Confirm the same code is visible on Desktop before requesting approval.",
             "REVIEW SAFETY CODE",
+        )
+        CompanionLinkJourneyState.IDENTITY_REJECTED -> Triple(
+            "Safety code did not match",
+            "Pairing stays blocked. Check that the intended ROMVERSE Desktop is open, then search again.",
+            "SEARCH AGAIN",
         )
         CompanionLinkJourneyState.DISCOVERING -> Triple(
             "Searching the local galaxy",

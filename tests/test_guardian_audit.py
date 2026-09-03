@@ -49,6 +49,26 @@ def test_audit_chain_records_result_and_redacts_device_identifier(tmp_path):
     assert record["executable"] == "adb"
 
 
+def test_audit_redacts_usb_link_one_time_code() -> None:
+    arguments = (
+        "-s",
+        "PRIVATE-SERIAL",
+        "shell",
+        "am",
+        "start",
+        "--es",
+        "romverse_link_code",
+        "123456",
+    )
+
+    redacted = GuardianAuditStore._redacted_arguments(arguments)
+
+    assert "PRIVATE-SERIAL" not in redacted
+    assert "123456" not in redacted
+    assert "<redacted-device>" in redacted
+    assert "<redacted-one-time-code>" in redacted
+
+
 def test_denied_operation_is_audited_without_execution(tmp_path):
     runner = RecordingRunner()
     audit = GuardianAuditStore(tmp_path)

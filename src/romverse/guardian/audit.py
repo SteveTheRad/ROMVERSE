@@ -558,14 +558,17 @@ class GuardianAuditStore:
     @staticmethod
     def _redacted_arguments(arguments: tuple[str, ...]) -> list[str]:
         redacted: list[str] = []
-        hide_next = False
+        replacement = ""
         for argument in arguments:
-            if hide_next:
-                redacted.append("<redacted-device>")
-                hide_next = False
+            if replacement:
+                redacted.append(replacement)
+                replacement = ""
                 continue
             redacted.append(argument)
-            hide_next = argument == "-s"
+            if argument == "-s":
+                replacement = "<redacted-device>"
+            elif argument == "romverse_link_code":
+                replacement = "<redacted-one-time-code>"
         return redacted
 
     @staticmethod

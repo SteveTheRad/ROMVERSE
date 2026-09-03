@@ -9,7 +9,7 @@ Windows/Linux PySide6 app, its local ROM workflows, the Android Companion build,
 offline/Link contracts. Public hosted services remain outside this candidate.
 
 The exact application-source commit is
-`0698778812e697dffe1b6354270e07758e450507`.
+`ece96a012eb7270337db6a9f09a1447157d95870`.
 
 ## Release artifacts
 
@@ -17,25 +17,25 @@ The CI artifacts were independently downloaded into an isolated temporary verifi
 
 | Platform or role | File | Bytes | SHA-256 | Entrypoint or identity |
 | --- | --- | ---: | --- | --- |
-| Linux x86-64 | `ROMVERSE-Desktop-0.1.0-linux-x86_64.zip` | 156,157,550 | `4310e9dfa81c0ce24cd77f8fa8b0c1720389507c1a107524f31c642deee38fb9` | `ROMVERSE/ROMVERSE` |
-| Windows x86-64 | `ROMVERSE-Desktop-0.1.0-windows-x86_64.zip` | 72,997,680 | `248ba0d2007de210874244320aea536ebfe2b3e543ed21109f3ba8e03261367e` | `ROMVERSE/ROMVERSE.exe` |
-| Unsigned Desktop manifest | `romverse-desktop-0.1.0-unsigned.json` | 1,185 | `5cc19ddb1670d37d6ae6187c828344a526b95038d0a6401f6b34ce33436f9909` | Not executable |
-| Android Companion test build | `app-debug.apk` | 8,171,670 | `0b27b9ea656fa42f562615bfafa54e6d82424d80b70f28c297fba08d2bdf0b30` | `com.radforge.romverse.companion` |
+| Linux x86-64 | `ROMVERSE-Desktop-0.1.0-linux-x86_64.zip` | 156,174,388 | `f7dbc278078db7d7adaf6fbae98796393469fea6b34110701f074729b7cbbafa` | `ROMVERSE/ROMVERSE` |
+| Windows x86-64 | `ROMVERSE-Desktop-0.1.0-windows-x86_64.zip` | 73,016,295 | `5e3f617fea726cb840932cb7c8bb86c8feb0f5a2808ba22b59bcceeec1d9f042` | `ROMVERSE/ROMVERSE.exe` |
+| Unsigned Desktop manifest | `romverse-desktop-0.1.0-unsigned.json` | 1,185 | `0889752a899c98711fef8993a2332f7fd73abb126cafd23ab950378d13d0f632` | Not executable |
+| Android Companion test build | `app-debug.apk` | 8,171,670 | `1883ad7061b668ae007c2a7892e82790891a2498689c1b1db3cfbbb7db2d3162` | `com.radforge.romverse.companion` |
 
 The Desktop manifest release identity is
-`romverse-desktop-0.1.0-0698778812e697dffe1b6354270e07758e450507`. It binds both archives,
-229,155,230 total artifact bytes, explicit-update consent, workspace preservation, no execution
+`romverse-desktop-0.1.0-ece96a012eb7270337db6a9f09a1447157d95870`. It binds both archives,
+229,190,683 total artifact bytes, explicit-update consent, workspace preservation, no execution
 authority, and unavailable rollback because no earlier signed public release exists. The separate
 per-platform CI copies are byte-identical to the copies in the combined candidate.
 
 ## Passing evidence
 
-[GitHub Actions run 33781253539](https://github.com/SteveTheRad/ROMVERSE/actions/runs/33781253539)
+[GitHub Actions run 33786155658](https://github.com/SteveTheRad/ROMVERSE/actions/runs/33786155658)
 completed successfully for the exact source commit:
 
-- Linux Python 3.12 and 3.14 each passed all 1,433 tests, complete Ruff checking, and the complete
+- Linux Python 3.12 and 3.14 each passed all 1,444 tests, complete Ruff checking, and the complete
   formatting gate.
-- Windows Python 3.12 and 3.14 each passed all 278 portability tests, including Device Pack schema,
+- Windows Python 3.12 and 3.14 each passed all 289 portability tests, including Device Pack schema,
   build-readiness, Guardian inert execution-plan/gateway contract, and signed Desktop update
   coverage, plus both complete Ruff gates.
 - Both native packaging jobs built and verified the 231-member wheel and all 21 integrity-indexed
@@ -43,8 +43,8 @@ completed successfully for the exact source commit:
   launched the frozen app, and verified the complete portable archive.
 - Existing-workspace smoke preserved the project manifest, protected original, working copy, and
   Time Machine snapshot byte-for-byte across restart on both operating systems.
-- The Linux archive contains 442 regular files and 385,593,751 expanded bytes.
-- The Windows archive contains 297 regular files and 170,531,153 expanded bytes.
+- The Linux archive contains 442 regular files and 385,610,967 expanded bytes.
+- The Windows archive contains 297 regular files and 170,548,501 expanded bytes.
 - The final CI stage downloaded both native archives and independently accepted the combined
   unsigned manifest only after both packaging jobs passed.
 - Companion `testDebugUnitTest` and `assembleDebug` completed successfully using Java 17, Gradle
@@ -55,7 +55,7 @@ Independent Fedora verification on 2026-09-04 reproduced the manifest's two arti
 SHA-256 values, checked every ZIP member and CRC, and confirmed both duplicate CI copies were
 byte-identical. The Linux bundle has the expected executable, and the Windows bundle has the
 expected `.exe` entrypoint. A fresh isolated local build produced the expected 231-member wheel with
-SHA-256 `d578d804836c62dda46f876eda2feaa6331e8b18af03b3192a9855b89b2cb721`.
+SHA-256 `4c8116af075072abb10c14c18a3463e5fa761f72b9d08fb85a1c565067b1448b`.
 That exact wheel passed all 19 top-level route checks, loaded 194 packaged guides with 144 known
 fixes and all 21 Device Packs, rendered the Time Machine empty state with the shared dark theme, and
 reopened a populated test workspace without changing tracked bytes.
@@ -64,7 +64,7 @@ The downloaded Companion APK passed complete ZIP CRC validation. Android Build T
 identified package `com.radforge.romverse.companion`, version code 3/version 0.1.0, minimum API 26,
 and target API 35. `apksigner` independently verified one APK Signature Scheme v2 signer with
 certificate SHA-256
-`7fc7082b966422e6a830d3a7983edb197c42e60d5a9d09cc921f2527904bec83`. Its certificate identity is
+`0bc2f8cd6706ef62c1ccdcf9b4e6934e9aac544241e3454b93d6403634a169dc`. Its certificate identity is
 `Android Debug`, so this proves artifact integrity for testing, not production publisher identity.
 
 The protected Xiaomi 17 Pro Max candidate was previously read through the bounded standard-metadata
@@ -111,13 +111,16 @@ in this report.
   one final system transition, a bounded stock-recovery adapter/action chain bound to the exact stock
   package digest, external backup, explicit wipe disclosure, separate final consent, no automatic
   wipe, no relock and zero execution authority. Guardian binds that evidence into its inert plan and
-  deliberately stops before creating a transition-aware gateway or invoking any runner.
+  a separate transition-aware gateway/result template. The gateway interleaves only signed
+  mode/slot transitions at their exact write boundaries, requires resulting-mode or active-slot
+  evidence, and binds the exact command-free recovery contingency. It invokes no runner.
 - ROM Studio now carries that entire inert chain through its managed Guardian review operation with
   one monotonic byte-derived progress scale across each required artifact rehash. The review dialog
   presents readable dark scroll cards for the exact binding, partition intent, preconditions,
-  immediate readback hashes, first-boot Device DNA and blockers, then hands the same exact identities
-  into Guardian Core. Changed, mismatched or authority-bearing cached context is discarded, and both
-  screens expose no execute, flash, consent, transition or reboot control.
+  signed transitions, immediate readback hashes, recovery actions and possible-wipe warning,
+  first-boot Device DNA and blockers, then hands the same exact identities into Guardian Core.
+  Changed, mismatched or authority-bearing cached context is discarded, and both screens expose no
+  execute, flash, consent, transition or reboot control.
 - A persistent user-supplied firmware responsibility notice and explicit import acknowledgement,
   without attempting to exclude rights or obligations that cannot legally be excluded.
 - Signed Desktop update checking and explicit, cancellable staging with measured progress, strict
@@ -144,13 +147,12 @@ in this report.
 - Flashing, rooting, bootloader unlocking, wiping, relocking, and other phone-changing operations
   remain locked unless their exact typed contract, recovery evidence, explicit user consent, and
   independent physical validation genuinely exist. The current Guardian preview is intentionally
-  command-inert: it does not infer mode transitions, slot activation, reboot, wipe, rollback or
-  recovery. The exact post-write verification and transition/recovery contract schemas are now
-  defined and independently validated, but no built-in Device Pack currently carries the required
-  signed schema-2 or schema-3 contracts. The schema-2 gateway contract is an inert result
-  template—not an execution receipt. Schema 3 is bound only into an inert plan: the transition-aware
-  gateway, live target re-identification, governed runtime adapter, immutable result receipt, final
-  consent journey and independent physical validation remain unavailable.
+  inert: it never infers mode transitions, slot activation, reboot, wipe, rollback or recovery; it
+  represents them only when an exact signed schema-three Pack declares them. No built-in Device Pack
+  currently carries the required signed schema-two or schema-three contracts. Both gateway variants
+  are inert result templates—not execution receipts. Live target re-identification, a governed
+  runtime adapter, immutable result receipts, the separate final-consent journey and independent
+  physical validation remain unavailable.
 - Physical-device and broad multi-OEM claims remain limited to the hardware evidence actually
   collected. Samsung Download Mode, Qualcomm EDL, MediaTek preloader, OEM unlock services, recovery
   signing, and other vendor-specific write paths still need separately reviewed adapters and signed

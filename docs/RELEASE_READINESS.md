@@ -86,11 +86,11 @@ has current evidence.
    `https://github.com/SteveTheRad/ROMVERSE/actions/runs/33750194118`. This remains unsigned build
    evidence and does not replace production signing or physical-device write certification.
 
-   Current Fedora development evidence recorded on 2026-09-04: all 1,433 Desktop tests and both
+   Current Fedora development evidence recorded on 2026-09-04: all 1,444 Desktop tests and both
    complete Ruff gates pass after the signed-update Settings journey, inert Guardian execution
-   plan, exact post-write verification contract, inert typed gateway contract, signed schema-three
-   transition/recovery boundary, and their managed ROM Studio/Guardian Core review journeys were
-   completed.
+   plan, exact post-write verification contract, inert typed schema-two/schema-three gateway,
+   signed transition/recovery boundary, and their managed ROM Studio/Guardian Core review journeys
+   were completed.
    The user must separately
    confirm download; byte-derived progress remains
    below 100 until the artifact and
@@ -100,11 +100,11 @@ has current evidence.
    that claim automatic installation. Linked staging roots, release directories, receipts and
    artifacts fail closed, and replacing an artifact with byte-identical content after hashing is
    detected through its changed file identity. The exact current Windows portability selection
-   passes all 278 tests locally and runs on both supported Python versions in CI. The stage grants no
+   passes all 289 tests locally and runs on both supported Python versions in CI. The stage grants no
    execution or Android-device authority and never launches the artifact. A fresh isolated build
    produced and verified a 231-member wheel with
    all 21 Device Packs and SHA-256
-   `d578d804836c62dda46f876eda2feaa6331e8b18af03b3192a9855b89b2cb721`. That exact wheel was installed
+   `4c8116af075072abb10c14c18a3463e5fa761f72b9d08fb85a1c565067b1448b`. That exact wheel was installed
    into an isolated target and its packaged smoke passed with 194 guides, 144 known fixes, all 19
    covered Desktop routes, a dark Time Machine state, and byte-exact populated-workspace reopening. This is
    local implementation evidence; the production publisher key and signed channels remain intentionally
@@ -141,16 +141,18 @@ has current evidence.
    `blocked-missing-live-runtime-receipts-and-final-consent`, invokes no runner, grants no authority,
    and records no phone change. No built-in Device Pack carries this schema-three signed authority;
    governed runtime, receipt and physical-validation stages remain unfinished.
-   Exact source commit `0698778812e697dffe1b6354270e07758e450507` is fully green in GitHub Actions
-   run `33781253539`: both Linux 1,433-test jobs, both Windows 278-test portability jobs, Companion
+   Exact source commit `ece96a012eb7270337db6a9f09a1447157d95870` is fully green in GitHub Actions
+   run `33786155658`: both Linux 1,444-test jobs, both Windows 289-test portability jobs, Companion
    unit/build, Linux and Windows installed/frozen/package jobs, and the combined unsigned candidate
    passed. Independent Fedora download verification reproduced both manifest-bound archive hashes
    and sizes, found 442/297 CRC-clean Linux/Windows members, proved the separate and combined copies
    byte-identical, and verified the 868-member debug APK structure, package identity and v2 debug
-   signature. This remains unsigned/debug candidate evidence and grants no public-update or phone
-   authority.
+   signature. The exact candidate manifest binds release ID
+   `romverse-desktop-0.1.0-ece96a012eb7270337db6a9f09a1447157d95870`, 229,190,683 total bytes,
+   explicit confirmation, workspace preservation, no execution authority and explicitly unavailable
+   rollback. This remains unsigned/debug candidate evidence and grants no public-update or phone authority.
 
-   That exact candidate adds the first typed execution-gateway boundary. Given synthetic signed
+   That exact candidate includes both typed execution-gateway boundaries. Given synthetic signed
    schema-two evidence, it regenerates exact Fastboot
    precondition/write/readback steps and exact ADB post-boot property checks from the current plan,
    binds every required output size and SHA-256 into a private tamper-evident contract, retains only
@@ -158,9 +160,12 @@ has current evidence.
    extra fields, links, stale evidence, Boolean/schema confusion, fabricated consent or authority,
    and any claimed runtime or phone change. It deliberately does not execute: the contract status is
    `blocked-missing-signed-transition-recovery-and-final-consent`, with runtime not invoked,
-   execution authority `none`, final consent unavailable and phone changed `false`.
-   The complete Fedora suite passes all 1,417 tests with both Ruff gates clean across 353 files;
-   the exact Windows portability selection passes all 262 tests locally and is included for both
+   execution authority `none`, final consent unavailable and phone changed `false`. Given synthetic
+   schema-three evidence, the same strict record adds only the digest-reconstructible signed
+   transitions and command-free recovery actions described above, then stops at
+   `blocked-missing-live-runtime-receipts-and-final-consent` with the same zero-authority flags.
+   The complete Fedora suite passes all 1,444 tests with both Ruff gates clean across 353 files;
+   the exact Windows portability selection passes all 289 tests locally and is included for both
    supported Windows Python versions in CI.
 
    The Desktop release trust layer now prepares a bounded exact-schema artifact manifest, enforces

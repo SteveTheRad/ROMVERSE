@@ -1,18 +1,27 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
+import os
 from copy import deepcopy
 from datetime import UTC, datetime
 from io import BytesIO
 from pathlib import Path
 
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
 import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from PySide6.QtWidgets import QApplication, QMessageBox
 
+from romverse.core.settings import AppSettings
 from romverse.release import build_release_manifest, create_signed_release_envelope
+from romverse.ui import main_window as main_window_module
+from romverse.ui.main_window import SettingsDialog, UpdateStageWorker
 from romverse.updates import (
+    DesktopUpdateCancelled,
     DesktopUpdateError,
     DesktopUpdateService,
     DesktopUpdateTrust,
@@ -139,6 +148,195 @@ def test_signed_update_check_and_staging_remain_confirmation_only(tmp_path: Path
     assert progress[0] == (0, len(artifact_bytes))
     assert progress[-2] == (len(artifact_bytes), len(artifact_bytes))
     assert progress[-1] == (0, 0)
+
+
+def test_staged_receipt_is_reloaded_and_cancelled_download_leaves_no_partial_file(
+    tmp_path: Path,
+) -> None:
+    private_key = Ed25519PrivateKey.generate()
+    metadata, artifact_bytes, artifact_name = _release(tmp_path, private_key)
+    manifest_url = "https://updates.romverse.app/stable/release.json"
+    artifact_url = f"https://updates.romverse.app/stable/{artifact_name}"
+    opener = Opener(
+        {
+            manifest_url: (metadata, manifest_url, len(metadata)),
+            artifact_url: (artifact_bytes, artifact_url, len(artifact_bytes)),
+        }
+    )
+    service = DesktopUpdateService(
+        _trust(private_key),
+        current_version="0.1.0",
+        platform="linux-x86_64",
+        opener=opener,
+        now=lambda: datetime(2026, 9, 3, 12, tzinfo=UTC),
+    )
+    candidate = service.check("stable")
+    staged = service.stage(candidate, tmp_path / "verified-stage")
+
+    assert service.verify_staged(candidate, tmp_path / "verified-stage") == staged
+    receipt = json.loads(staged.receipt_path.read_text(encoding="utf-8"))
+    receipt["automatic_install"] = True
+    digest_payload = dict(receipt)
+    del digest_payload["receipt_sha256"]
+    receipt["receipt_sha256"] = hashlib.sha256(
+        json.dumps(digest_payload, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    staged.receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+    with pytest.raises(DesktopUpdateError, match="automatic_install"):
+        service.verify_staged(candidate, tmp_path / "verified-stage")
+
+    cancelled = {"requested": False}
+
+    def request_cancel(_done: int, total: int) -> None:
+        if total:
+            cancelled["requested"] = True
+
+    with pytest.raises(DesktopUpdateCancelled):
+        service.stage(
+            candidate,
+            tmp_path / "cancelled-stage",
+            progress=request_cancel,
+            should_cancel=lambda: cancelled["requested"],
+        )
+    cancelled_root = tmp_path / "cancelled-stage"
+    assert not tuple(cancelled_root.rglob("*.part"))
+    assert not tuple(cancelled_root.rglob("*.zip"))
+    assert not tuple(cancelled_root.rglob("*.romverse"))
+
+
+def test_update_stage_worker_reserves_completion_for_verified_evidence(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    private_key = Ed25519PrivateKey.generate()
+    metadata, artifact_bytes, artifact_name = _release(tmp_path, private_key)
+    manifest_url = "https://updates.romverse.app/stable/release.json"
+    artifact_url = f"https://updates.romverse.app/stable/{artifact_name}"
+    service = DesktopUpdateService(
+        _trust(private_key),
+        current_version="0.1.0",
+        platform="linux-x86_64",
+        opener=Opener(
+            {
+                manifest_url: (metadata, manifest_url, len(metadata)),
+                artifact_url: (artifact_bytes, artifact_url, len(artifact_bytes)),
+            }
+        ),
+        now=lambda: datetime(2026, 9, 3, 12, tzinfo=UTC),
+    )
+    candidate = service.check("stable")
+    worker = UpdateStageWorker(service, candidate, tmp_path / "worker-stage")
+    verified = {"complete": False}
+    events: list[tuple[str, object]] = []
+    original_verify = service.verify_staged
+
+    def observed_verify(candidate_to_verify, destination):
+        result = original_verify(candidate_to_verify, destination)
+        verified["complete"] = True
+        return result
+
+    monkeypatch.setattr(service, "verify_staged", observed_verify)
+    worker.signals.progress.connect(
+        lambda value: events.append(("progress", (value, verified["complete"])))
+    )
+    worker.signals.completed.connect(lambda result: events.append(("completed", result)))
+
+    worker.execute()
+
+    progress_events = [value for event, value in events if event == "progress"]
+    assert progress_events[-2:] == [(99, False), (100, True)]
+    assert events[-1][0] == "completed"
+
+    failed_worker = UpdateStageWorker(service, candidate, tmp_path / "failed-stage")
+    failed_progress: list[int] = []
+    failures: list[str] = []
+    monkeypatch.setattr(
+        service,
+        "verify_staged",
+        lambda *_args: (_ for _ in ()).throw(DesktopUpdateError("receipt rejected")),
+    )
+    failed_worker.signals.progress.connect(failed_progress.append)
+    failed_worker.signals.failed.connect(failures.append)
+
+    failed_worker.execute()
+
+    assert 100 not in failed_progress
+    assert failures == ["receipt rejected"]
+
+
+def test_settings_requires_confirmation_before_staging_a_verified_update(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    private_key = Ed25519PrivateKey.generate()
+    metadata, artifact_bytes, artifact_name = _release(tmp_path, private_key)
+    manifest_url = "https://updates.romverse.app/stable/release.json"
+    artifact_url = f"https://updates.romverse.app/stable/{artifact_name}"
+    opener = Opener(
+        {
+            manifest_url: (metadata, manifest_url, len(metadata)),
+            artifact_url: (artifact_bytes, artifact_url, len(artifact_bytes)),
+        }
+    )
+    service = DesktopUpdateService(
+        _trust(private_key),
+        current_version="0.1.0",
+        platform="linux-x86_64",
+        opener=opener,
+        now=lambda: datetime(2026, 9, 3, 12, tzinfo=UTC),
+    )
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    dialog = SettingsDialog(workspace, AppSettings(), update_service=service)
+    monkeypatch.setattr(main_window_module, "start_background", lambda worker: worker.execute())
+    try:
+        dialog.check_updates_button.click()
+        app.processEvents()
+
+        assert dialog.stage_update_button.isVisibleTo(dialog)
+        assert "installation remains a separate manual step" in dialog.update_status.text()
+        assert opener.requests == [manifest_url]
+
+        monkeypatch.setattr(
+            main_window_module.QMessageBox,
+            "question",
+            lambda *_args, **_kwargs: QMessageBox.StandardButton.Cancel,
+        )
+        dialog.stage_update_button.click()
+        assert opener.requests == [manifest_url]
+        assert "cancelled before it started" in dialog.update_status.text()
+
+        candidate = dialog._update_candidate
+        assert candidate is not None
+        forged_worker = UpdateStageWorker(service, candidate, dialog._update_destination)
+        dialog._update_stage_worker = forged_worker
+        dialog._update_stage_completed(forged_worker, object())
+        assert dialog._staged_update is None
+        assert "stopped safely" in dialog.update_status.text()
+
+        monkeypatch.setattr(
+            main_window_module.QMessageBox,
+            "question",
+            lambda *_args, **_kwargs: QMessageBox.StandardButton.Yes,
+        )
+        dialog.stage_update_button.click()
+        app.processEvents()
+
+        assert dialog._staged_update is not None
+        assert dialog.update_progress.value() == 100
+        assert dialog.open_staged_update_button.isVisibleTo(dialog)
+        assert "Installation has not run" in dialog.update_status.text()
+        assert dialog._staged_update.artifact_path.read_bytes() == artifact_bytes
+
+        dialog.update_channel.setCurrentIndex(1)
+        assert dialog._update_candidate is None
+        assert dialog._staged_update is None
+        assert not dialog.stage_update_button.isVisibleTo(dialog)
+        assert not dialog.open_staged_update_button.isVisibleTo(dialog)
+        assert "Release channel changed" in dialog.update_status.text()
+    finally:
+        dialog.close()
 
 
 def test_update_check_rejects_signature_channel_redirect_and_future_time(tmp_path: Path) -> None:

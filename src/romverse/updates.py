@@ -23,6 +23,8 @@ from romverse.infrastructure.local_store import (
     LocalStoreError,
     atomic_write_json,
     ensure_private_directory,
+    read_regular_bytes,
+    remove_regular_file,
 )
 from romverse.release import (
     MAX_RELEASE_ARTIFACT_BYTES,
@@ -51,6 +53,10 @@ DownloadProgress = Callable[[int, int], None]
 
 class DesktopUpdateError(ValueError):
     """A desktop update failed its network, signature, or local-storage boundary."""
+
+
+class DesktopUpdateCancelled(DesktopUpdateError):
+    """The user withdrew a signed-update download before it was committed."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -262,8 +268,10 @@ class DesktopUpdateService:
         destination: Path,
         *,
         progress: DownloadProgress | None = None,
+        should_cancel: Callable[[], bool] | None = None,
     ) -> StagedDesktopUpdate:
         self._validate_candidate(candidate)
+        _raise_if_update_cancelled(should_cancel)
         artifact = candidate.artifact
         if artifact is None:
             raise DesktopUpdateError("No newer desktop update is available to download")
@@ -275,16 +283,28 @@ class DesktopUpdateService:
         target = release_directory / artifact.file_name
         receipt = release_directory / "staged-update.romverse"
         temporary = release_directory / f".{artifact.file_name}.{uuid4().hex}.part"
+        published_new_target = False
+        wrote_receipt = False
         try:
+            _raise_if_update_cancelled(should_cancel)
             if target.exists() or target.is_symlink():
                 _verify_regular_artifact(target, artifact)
             else:
-                self._download_artifact(candidate.artifact_url, temporary, artifact, progress)
+                self._download_artifact(
+                    candidate.artifact_url,
+                    temporary,
+                    artifact,
+                    progress,
+                    should_cancel,
+                )
+                _raise_if_update_cancelled(should_cancel)
                 if target.exists() or target.is_symlink():
                     raise DesktopUpdateError("Desktop update target changed during staging")
                 os.replace(temporary, target)
+                published_new_target = True
                 with suppress(PermissionError):
                     target.chmod(0o600)
+            _raise_if_update_cancelled(should_cancel)
             receipt_payload: dict[str, object] = {
                 "format": "romverse.desktop-update-stage",
                 "schema_version": 1,
@@ -310,22 +330,62 @@ class DesktopUpdateService:
                 boundary=root,
                 maximum_bytes=MAX_UPDATE_RECEIPT_BYTES,
             )
-            return StagedDesktopUpdate(
-                candidate.manifest.release_id,
-                candidate.manifest.version,
-                candidate.manifest.channel,
-                artifact.platform,
-                target,
-                receipt,
-                artifact.sha256,
-                artifact.size_bytes,
-            )
+            wrote_receipt = True
+            return self.verify_staged(candidate, root)
         except (OSError, urllib.error.URLError, LocalStoreError, DesktopUpdateError) as exc:
+            if wrote_receipt:
+                with suppress(LocalStoreError):
+                    remove_regular_file(receipt, boundary=root)
+            if published_new_target:
+                with suppress(LocalStoreError):
+                    remove_regular_file(target, boundary=root)
             if isinstance(exc, DesktopUpdateError):
                 raise
             raise DesktopUpdateError(f"Desktop update staging failed: {exc}") from exc
         finally:
-            temporary.unlink(missing_ok=True)
+            with suppress(OSError):
+                temporary.unlink(missing_ok=True)
+
+    def verify_staged(
+        self,
+        candidate: DesktopUpdateCandidate,
+        destination: Path,
+    ) -> StagedDesktopUpdate:
+        """Reload and independently verify one staged artifact and its private receipt."""
+
+        self._validate_candidate(candidate)
+        artifact = candidate.artifact
+        if artifact is None:
+            raise DesktopUpdateError("No newer desktop update is available to verify")
+        root = Path(os.path.abspath(destination))
+        release_directory = root / candidate.manifest.release_id
+        target = release_directory / artifact.file_name
+        receipt = release_directory / "staged-update.romverse"
+        try:
+            encoded = read_regular_bytes(
+                receipt,
+                boundary=root,
+                maximum_bytes=MAX_UPDATE_RECEIPT_BYTES,
+            )
+            payload = json.loads(encoded, object_pairs_hook=_strict_object)
+            if not isinstance(payload, dict):
+                raise DesktopUpdateError("Desktop update receipt must be one JSON object")
+            _validate_staged_receipt(payload, candidate, artifact, self.trust.key_id)
+            _verify_regular_artifact(target, artifact)
+        except DesktopUpdateError:
+            raise
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError, LocalStoreError) as exc:
+            raise DesktopUpdateError("Desktop update stage evidence is unreadable") from exc
+        return StagedDesktopUpdate(
+            candidate.manifest.release_id,
+            candidate.manifest.version,
+            candidate.manifest.channel,
+            artifact.platform,
+            target,
+            receipt,
+            artifact.sha256,
+            artifact.size_bytes,
+        )
 
     def _read_metadata(self, url: str) -> bytes:
         _validate_https_url(url)
@@ -353,7 +413,9 @@ class DesktopUpdateService:
         temporary: Path,
         artifact: DesktopReleaseArtifact,
         progress: DownloadProgress | None,
+        should_cancel: Callable[[], bool] | None,
     ) -> None:
+        _raise_if_update_cancelled(should_cancel)
         _validate_https_url(url)
         request = urllib.request.Request(url, headers={"User-Agent": "ROMVERSE/0.1"})
         digest = hashlib.sha256()
@@ -373,6 +435,7 @@ class DesktopUpdateService:
                     if progress is not None:
                         progress(0, artifact.size_bytes)
                     while chunk := response.read(1024 * 1024):
+                        _raise_if_update_cancelled(should_cancel)
                         written += len(chunk)
                         if written > artifact.size_bytes or written > MAX_RELEASE_ARTIFACT_BYTES:
                             raise DesktopUpdateError(
@@ -382,6 +445,7 @@ class DesktopUpdateService:
                         stream.write(chunk)
                         if progress is not None:
                             progress(written, artifact.size_bytes)
+                    _raise_if_update_cancelled(should_cancel)
                     stream.flush()
                     os.fsync(stream.fileno())
         except DesktopUpdateError:
@@ -413,6 +477,62 @@ class DesktopUpdateService:
             <= release_version_order(self.current_version)
         ):
             raise DesktopUpdateError("Desktop update candidate is stale or invalid")
+
+
+def _validate_staged_receipt(
+    payload: dict[str, Any],
+    candidate: DesktopUpdateCandidate,
+    artifact: DesktopReleaseArtifact,
+    key_id: str,
+) -> None:
+    expected: dict[str, object] = {
+        "format": "romverse.desktop-update-stage",
+        "schema_version": 1,
+        "release_id": candidate.manifest.release_id,
+        "version": candidate.manifest.version,
+        "channel": candidate.manifest.channel,
+        "platform": artifact.platform,
+        "artifact_file": artifact.file_name,
+        "artifact_sha256": artifact.sha256,
+        "artifact_size_bytes": artifact.size_bytes,
+        "manifest_sha256": candidate.manifest_sha256,
+        "key_id": key_id,
+        "workspace_preserved": True,
+        "requires_explicit_confirmation": True,
+        "automatic_install": False,
+        "execution_authority": "none",
+    }
+    if set(payload) != set(expected) | {"staged_at", "receipt_sha256"}:
+        raise DesktopUpdateError("Desktop update receipt fields do not match schema 1")
+    for field, expected_value in expected.items():
+        value = payload[field]
+        if type(value) is not type(expected_value) or value != expected_value:
+            raise DesktopUpdateError(f"Desktop update receipt {field} is invalid")
+    staged_at = payload["staged_at"]
+    receipt_digest = payload["receipt_sha256"]
+    if (
+        not isinstance(staged_at, str)
+        or not 1 <= len(staged_at) <= 64
+        or not isinstance(receipt_digest, str)
+        or len(receipt_digest) != 64
+        or any(character not in "0123456789abcdef" for character in receipt_digest)
+    ):
+        raise DesktopUpdateError("Desktop update receipt timestamp or digest is invalid")
+    try:
+        parsed = datetime.fromisoformat(staged_at)
+    except ValueError as exc:
+        raise DesktopUpdateError("Desktop update receipt timestamp is invalid") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise DesktopUpdateError("Desktop update receipt timestamp must include its timezone")
+    digest_payload = dict(payload)
+    del digest_payload["receipt_sha256"]
+    if receipt_digest != _payload_digest(digest_payload):
+        raise DesktopUpdateError("Desktop update receipt digest does not match")
+
+
+def _raise_if_update_cancelled(should_cancel: Callable[[], bool] | None) -> None:
+    if should_cancel is not None and should_cancel():
+        raise DesktopUpdateCancelled("Desktop update download was cancelled")
 
 
 def _validate_https_url(url: str) -> str:

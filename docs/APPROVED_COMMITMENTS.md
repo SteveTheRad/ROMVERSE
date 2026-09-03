@@ -802,6 +802,8 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   independent verification, explicit-update consent, and exact rollback declarations; no production
   key is stored and no unsigned candidate is represented as trusted. The runtime signed-update checker
   and private artifact-staging layer are implemented with exact channel/version/platform binding,
-  direct HTTPS, size/hash verification, zero automatic installation, and zero device authority. The
-  alpha publisher configuration remains deliberately disabled until the offline production-key
-  ceremony and signed public channel exist.
+  direct HTTPS, size/hash verification, strict receipt reload, zero automatic installation, and zero
+  device authority. Settings requires a separate explicit confirmation, provides cancellable measured
+  download progress, removes partial files, and opens only the verified staging folder; it cannot run
+  an installer. The alpha publisher configuration remains deliberately disabled until the offline
+  production-key ceremony and signed public channel exist.

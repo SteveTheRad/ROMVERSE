@@ -62,6 +62,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMainWindow,
     QMenu,
+    QMessageBox,
     QProgressBar,
     QPushButton,
     QScrollArea,
@@ -138,7 +139,13 @@ from romverse.rom.source_intelligence import FirmwareSourceIntelligenceService
 from romverse.ui.about_state import OriginDiscoveryError, OriginDiscoveryStore
 from romverse.ui.activity_center import ActivityCenter
 from romverse.ui.apk_center import ApkCenter
-from romverse.ui.background import ManagedRunnable, shutdown_background_tasks, start_background
+from romverse.ui.background import (
+    CoalescedProgress,
+    ManagedRunnable,
+    measured_percent,
+    shutdown_background_tasks,
+    start_background,
+)
 from romverse.ui.backup_center import BackupCenter
 from romverse.ui.command_palette import CommandPaletteDialog, NavigationCommand
 from romverse.ui.companion_center import CompanionCenter
@@ -147,6 +154,7 @@ from romverse.ui.cosmic_icons import sidebar_icon
 from romverse.ui.device_center import DeviceCenter, RomStudioDeviceContext
 from romverse.ui.device_packs_center import DevicePacksCenter
 from romverse.ui.diagnostics_center import DiagnosticsCenter
+from romverse.ui.formatters import human_bytes
 from romverse.ui.galaxy_center import GalaxyCenter
 from romverse.ui.guardian_center import GuardianCenter
 from romverse.ui.history_center import HistoryCenter
@@ -177,7 +185,12 @@ from romverse.ui.workspace_shell import (
     WorkspaceShellState,
     navigation_section,
 )
-from romverse.updates import DesktopUpdateCandidate, DesktopUpdateService
+from romverse.updates import (
+    DesktopUpdateCancelled,
+    DesktopUpdateCandidate,
+    DesktopUpdateService,
+    StagedDesktopUpdate,
+)
 
 ROMVERSE_WEBSITE_URL = "https://romverse.app/"
 RADFORGE_LABS_URL = "https://radforgelabs.com/"
@@ -1275,6 +1288,55 @@ class UpdateCheckWorker(ManagedRunnable):
             self.signals.failed.emit(str(exc))
 
 
+class UpdateStageSignals(QObject):
+    completed = Signal(object)
+    failed = Signal(str)
+    cancelled = Signal()
+    progress = Signal(int)
+
+
+class UpdateStageWorker(ManagedRunnable):
+    def __init__(
+        self,
+        service: DesktopUpdateService,
+        candidate: DesktopUpdateCandidate,
+        destination: Path,
+    ) -> None:
+        super().__init__()
+        self.service = service
+        self.candidate = candidate
+        self.destination = destination
+        self.signals = UpdateStageSignals()
+        self._cancel_requested = Event()
+
+    def cancel(self) -> None:
+        self._cancel_requested.set()
+
+    def execute(self) -> None:
+        progress = CoalescedProgress(self.signals.progress.emit)
+
+        def publish(done: int, total: int) -> None:
+            value = measured_percent(done, total)
+            if value is not None:
+                # Transfer completion is not operation completion: the signed
+                # receipt must still be persisted and reloaded successfully.
+                progress(min(99, value))
+
+        try:
+            staged = self.service.stage(
+                self.candidate,
+                self.destination,
+                progress=publish,
+                should_cancel=self._cancel_requested.is_set,
+            )
+            progress(100)
+            self.signals.completed.emit(staged)
+        except DesktopUpdateCancelled:
+            self.signals.cancelled.emit()
+        except Exception as exc:  # surfaced without granting install authority
+            self.signals.failed.emit(str(exc))
+
+
 class SettingsDialog(QDialog):
     def __init__(
         self,
@@ -1290,6 +1352,11 @@ class SettingsDialog(QDialog):
         self._settings = settings
         self._update_service = update_service
         self._update_worker: UpdateCheckWorker | None = None
+        self._update_stage_worker: UpdateStageWorker | None = None
+        self._update_candidate: DesktopUpdateCandidate | None = None
+        self._staged_update: StagedDesktopUpdate | None = None
+        self._update_destination = workspace / "desktop-updates"
+        self._close_after_update_cancel = False
         layout = QVBoxLayout(self)
         title = QLabel("Command Deck Settings")
         title.setObjectName("Title")
@@ -1406,6 +1473,7 @@ class SettingsDialog(QDialog):
         self.update_channel.addItem("Preview release candidates", "preview")
         selected_channel = self.update_channel.findData(settings.update_channel)
         self.update_channel.setCurrentIndex(max(0, selected_channel))
+        self.update_channel.currentIndexChanged.connect(self._update_channel_changed)
         form.addRow("Update channel", self.update_channel)
         update_row = QVBoxLayout()
         self.update_status = QLabel()
@@ -1438,6 +1506,24 @@ class SettingsDialog(QDialog):
             )
         update_row.addWidget(self.update_status)
         update_row.addWidget(self.check_updates_button, 0, Qt.AlignmentFlag.AlignLeft)
+        self.update_progress = QProgressBar()
+        self.update_progress.setRange(0, 100)
+        self.update_progress.setValue(0)
+        self.update_progress.setFormat("%p% downloaded and verified")
+        self.update_progress.setAccessibleName("Signed desktop update progress")
+        self.update_progress.setVisible(False)
+        update_row.addWidget(self.update_progress)
+        update_actions = QHBoxLayout()
+        self.stage_update_button = QPushButton("Download & verify signed update")
+        self.stage_update_button.setVisible(False)
+        self.stage_update_button.clicked.connect(self._stage_update)
+        update_actions.addWidget(self.stage_update_button)
+        self.open_staged_update_button = QPushButton("Open verified download folder")
+        self.open_staged_update_button.setVisible(False)
+        self.open_staged_update_button.clicked.connect(self._open_staged_update)
+        update_actions.addWidget(self.open_staged_update_button)
+        update_actions.addStretch(1)
+        update_row.addLayout(update_actions)
         form.addRow("Application updates", update_row)
         destructive = QLabel("Locked · explicit approval required; bootloader relock forbidden")
         destructive.setObjectName("Good")
@@ -1484,6 +1570,12 @@ class SettingsDialog(QDialog):
     def _check_for_update(self) -> None:
         if self._update_service is None or self._update_worker is not None:
             return
+        self._update_candidate = None
+        self._staged_update = None
+        self.stage_update_button.setVisible(False)
+        self.open_staged_update_button.setVisible(False)
+        self.update_progress.setVisible(False)
+        self.update_channel.setEnabled(False)
         self.check_updates_button.setEnabled(False)
         self.update_status.setText(
             "Checking the signed release channel without downloading or installing an update…"
@@ -1500,14 +1592,21 @@ class SettingsDialog(QDialog):
     @Slot(object)
     def _update_check_completed(self, candidate: DesktopUpdateCandidate) -> None:
         self._update_worker = None
+        self.update_channel.setEnabled(True)
         self.check_updates_button.setEnabled(True)
         if candidate.available and candidate.artifact is not None:
+            self._update_candidate = candidate
             self.update_status.setText(
                 f"Verified signed update available · ROMVERSE {candidate.manifest.version} · "
-                f"{candidate.artifact.platform}. Download and installation still require "
-                "explicit confirmation and cannot change Android-device authority."
+                f"{candidate.artifact.platform} · {human_bytes(candidate.artifact.size_bytes)}. "
+                "Downloading requires confirmation; installation remains a separate manual step "
+                "and cannot change Android-device authority."
             )
+            self.stage_update_button.setText("Download & verify signed update")
+            self.stage_update_button.setEnabled(True)
+            self.stage_update_button.setVisible(True)
         else:
+            self._update_candidate = None
             self.update_status.setText(
                 f"ROMVERSE {candidate.current_version} is current on this signed channel."
             )
@@ -1515,11 +1614,205 @@ class SettingsDialog(QDialog):
     @Slot(str)
     def _update_check_failed(self, message: str) -> None:
         self._update_worker = None
+        self._update_candidate = None
+        self.update_channel.setEnabled(True)
         self.check_updates_button.setEnabled(True)
         detail = " ".join(str(message).replace("\x00", " ").split())[:400]
         self.update_status.setText(
             f"Update check stopped safely · {detail or 'signed release evidence was unavailable'}"
         )
+
+    @Slot()
+    def _stage_update(self) -> None:
+        if self._update_stage_worker is not None:
+            self._cancel_update_stage()
+            return
+        candidate = self._update_candidate
+        service = self._update_service
+        if service is None or candidate is None or candidate.artifact is None:
+            self.update_status.setText(
+                "Download stopped safely · check the signed release channel again first."
+            )
+            return
+        artifact = candidate.artifact
+        answer = QMessageBox.question(
+            self,
+            "Download verified ROMVERSE update?",
+            f"ROMVERSE {candidate.manifest.version}\n"
+            f"{artifact.platform} · {human_bytes(artifact.size_bytes)}\n\n"
+            f"Save to:\n{self._update_destination}\n\n"
+            "ROMVERSE will download and verify the signed size, SHA-256, publisher identity, "
+            "and private staging receipt. It will not run an installer, replace this app, "
+            "change the workspace, or communicate with an Android device.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel,
+        )
+        if answer is not QMessageBox.StandardButton.Yes:
+            self.update_status.setText(
+                "Download cancelled before it started · no update files were created."
+            )
+            return
+        self._staged_update = None
+        self.update_channel.setEnabled(False)
+        self.check_updates_button.setEnabled(False)
+        self.open_staged_update_button.setVisible(False)
+        self.stage_update_button.setText("Cancel download")
+        self.stage_update_button.setEnabled(True)
+        self.update_progress.setRange(0, 0)
+        self.update_progress.setVisible(True)
+        self.update_status.setText(
+            "Downloading into private staging storage and verifying every byte… "
+            "No installer or Android-device action can start from this step."
+        )
+        worker = UpdateStageWorker(service, candidate, self._update_destination)
+        self._update_stage_worker = worker
+        worker.signals.progress.connect(self._update_stage_progress)
+        worker.signals.completed.connect(
+            lambda result, active=worker: self._update_stage_completed(active, result)
+        )
+        worker.signals.failed.connect(
+            lambda message, active=worker: self._update_stage_failed(active, message)
+        )
+        worker.signals.cancelled.connect(lambda active=worker: self._update_stage_cancelled(active))
+        start_background(worker)
+
+    @Slot(int)
+    def _update_stage_progress(self, percent: int) -> None:
+        if self._update_stage_worker is None:
+            return
+        self.update_progress.setRange(0, 100)
+        self.update_progress.setValue(max(0, min(100, int(percent))))
+
+    def _update_stage_completed(
+        self,
+        worker: UpdateStageWorker,
+        result: object,
+    ) -> None:
+        if self._update_stage_worker is not worker:
+            return
+        candidate = self._update_candidate
+        artifact = candidate.artifact if candidate is not None else None
+        expected_root = self._update_destination.absolute()
+        expected_release = expected_root / candidate.manifest.release_id if candidate else None
+        valid = bool(
+            isinstance(result, StagedDesktopUpdate)
+            and candidate is not None
+            and artifact is not None
+            and result.release_id == candidate.manifest.release_id
+            and result.version == candidate.manifest.version
+            and result.channel == candidate.manifest.channel
+            and result.platform == artifact.platform
+            and result.sha256 == artifact.sha256
+            and result.size_bytes == artifact.size_bytes
+            and result.execution_authority == "none"
+            and result.automatic_install is False
+            and result.artifact_path == expected_release / artifact.file_name
+            and result.receipt_path == expected_release / "staged-update.romverse"
+            and result.artifact_path.is_file()
+            and result.receipt_path.is_file()
+        )
+        self._update_stage_worker = None
+        if not valid:
+            self._finish_update_stage_failure(
+                "verified staging did not return the exact expected evidence"
+            )
+            return
+        self._staged_update = result
+        self.update_progress.setRange(0, 100)
+        self.update_progress.setValue(100)
+        self.update_channel.setEnabled(True)
+        self.check_updates_button.setEnabled(True)
+        self.stage_update_button.setText("Verified update staged")
+        self.stage_update_button.setEnabled(False)
+        self.open_staged_update_button.setVisible(True)
+        self.update_status.setText(
+            f"Signed update downloaded and verified · {result.artifact_path.name} · SHA-256 "
+            f"{result.sha256[:16]}… · private receipt saved. Installation has not run."
+        )
+        if self._close_after_update_cancel:
+            self._close_after_update_cancel = False
+            super().reject()
+
+    def _update_stage_failed(self, worker: UpdateStageWorker, message: str) -> None:
+        if self._update_stage_worker is not worker:
+            return
+        self._update_stage_worker = None
+        detail = " ".join(str(message).replace("\x00", " ").split())[:400]
+        self._finish_update_stage_failure(
+            detail or "signed artifact or staging evidence was unavailable"
+        )
+
+    def _finish_update_stage_failure(self, detail: str) -> None:
+        self._staged_update = None
+        self.update_progress.setVisible(False)
+        self.update_channel.setEnabled(True)
+        self.check_updates_button.setEnabled(True)
+        self.stage_update_button.setText("Download & verify signed update")
+        self.stage_update_button.setEnabled(self._update_candidate is not None)
+        self.update_status.setText(f"Update download stopped safely · {detail}")
+        if self._close_after_update_cancel:
+            self._close_after_update_cancel = False
+            super().reject()
+
+    def _cancel_update_stage(self) -> None:
+        worker = self._update_stage_worker
+        if worker is None:
+            return
+        worker.cancel()
+        self.stage_update_button.setText("Cancelling download…")
+        self.stage_update_button.setEnabled(False)
+        self.update_status.setText(
+            "Cancelling safely and removing any incomplete private download…"
+        )
+
+    def _update_stage_cancelled(self, worker: UpdateStageWorker) -> None:
+        if self._update_stage_worker is not worker:
+            return
+        self._update_stage_worker = None
+        self._staged_update = None
+        self.update_progress.setVisible(False)
+        self.update_channel.setEnabled(True)
+        self.check_updates_button.setEnabled(True)
+        self.stage_update_button.setText("Download & verify signed update")
+        self.stage_update_button.setEnabled(self._update_candidate is not None)
+        self.update_status.setText(
+            "Update download cancelled safely · no incomplete artifact or receipt was retained."
+        )
+        if self._close_after_update_cancel:
+            self._close_after_update_cancel = False
+            super().reject()
+
+    @Slot()
+    def _open_staged_update(self) -> None:
+        staged = self._staged_update
+        if staged is None:
+            return
+        if not QDesktopServices.openUrl(QUrl.fromLocalFile(str(staged.artifact_path.parent))):
+            self.update_status.setText(
+                f"The verified update remains staged at {staged.artifact_path.parent}, but the "
+                "desktop could not open that folder automatically. Installation has not run."
+            )
+
+    @Slot()
+    def _update_channel_changed(self) -> None:
+        if self._update_worker is not None or self._update_stage_worker is not None:
+            return
+        self._update_candidate = None
+        self._staged_update = None
+        self.stage_update_button.setVisible(False)
+        self.open_staged_update_button.setVisible(False)
+        self.update_progress.setVisible(False)
+        if self._update_service is not None and self._update_service.trust.configured:
+            self.update_status.setText(
+                "Release channel changed · check its signed metadata before downloading anything."
+            )
+
+    def reject(self) -> None:
+        if self._update_stage_worker is not None:
+            self._close_after_update_cancel = True
+            self._cancel_update_stage()
+            return
+        super().reject()
 
     def values(self) -> AppSettings:
         return AppSettings(

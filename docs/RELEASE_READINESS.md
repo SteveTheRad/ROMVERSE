@@ -77,6 +77,30 @@ has current evidence.
    `https://github.com/SteveTheRad/ROMVERSE/actions/runs/33729703131`. This is verified unsigned
    release-candidate evidence, not a production signature or publication authorization.
 
+   A newer cross-platform candidate for commit `cd1e5d1` is fully green in GitHub Actions run
+   `33750194118`. Both Linux quality jobs, both Windows portability jobs, the Linux and Windows
+   installed/frozen/package jobs, the Companion unit/build job, and the combined unsigned
+   release-candidate job completed successfully. Those jobs verified the 229-member wheel and all
+   21 Device Packs, reopened a populated workspace byte-for-byte, and produced both native portable
+   archives before the combined manifest was accepted. See
+   `https://github.com/SteveTheRad/ROMVERSE/actions/runs/33750194118`. This remains unsigned build
+   evidence and does not replace production signing or physical-device write certification.
+
+   Current Fedora development evidence recorded on 2026-09-03: all 1,366 Desktop tests and both
+   complete Ruff gates pass after the signed-update Settings journey was completed. The user must
+   separately confirm download; byte-derived progress remains below 100 until the artifact and
+   digest-bound private receipt have been independently reloaded and verified; cancellation removes
+   incomplete files; a channel change invalidates the prior candidate; and the only post-download
+   action opens the verified folder. Tests also reject forged UI completions and re-digested receipts
+   that claim automatic installation. The stage grants no execution or Android-device authority and
+   never launches the artifact. A fresh isolated build produced and verified a 229-member wheel with
+   all 21 Device Packs and SHA-256
+   `998cd97f6b29a571f5f88139ed2189998b5d3ea8209afb22c8171288c3f6a787`. The exact wheel was then
+   installed locally and its packaged smoke passed with 143 known fixes, all 19 covered Desktop
+   routes, a dark Time Machine state, and byte-exact populated-workspace reopening. This is local
+   implementation evidence; the production publisher key and signed channels remain intentionally
+   unconfigured.
+
    The Desktop release trust layer now prepares a bounded exact-schema artifact manifest, enforces
    user-confirmed non-automatic updates and workspace preservation, represents unavailable rollback
    honestly, signs only through an externally held Ed25519 key, and independently verifies the

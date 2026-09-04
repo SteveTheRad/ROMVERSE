@@ -174,6 +174,126 @@ SOURCES = {
         "OFFICIAL MOTOROLA • MODEL-SCOPED",
         "https://en-ca.support.motorola.com/app/answers/detail/a_id/167770/",
     ),
+    "samsung_update": ReferenceSourceSeed(
+        "Update and recover a Samsung Galaxy with Smart Switch",
+        "OFFICIAL SAMSUNG • MODEL/CARRIER-SCOPED",
+        "https://www.samsung.com/us/support/answer/ANS10002027/",
+        "2026-09-04",
+    ),
+    "sony_repair": ReferenceSourceSeed(
+        "Repair Xperia software with Xperia Companion",
+        "OFFICIAL SONY • MODEL-SCOPED",
+        "https://www.sony.com/electronics/support/articles/SX604601",
+        "2026-09-04",
+    ),
+    "oneplus_update": ReferenceSourceSeed(
+        "OxygenOS 14 official user manual: local install",
+        "OFFICIAL ONEPLUS • OS-VERSION-SCOPED",
+        "https://service.oneplus.com/content/dam/support/user-manuals/common/OxygenOS_14.0_User_Manual.pdf",
+        "2026-09-04",
+    ),
+    "asus_update": ReferenceSourceSeed(
+        "ASUS phone automatic and manual firmware updates",
+        "OFFICIAL ASUS • MODEL/SKU-SCOPED",
+        "https://www.asus.com/uk/support/faq/1009748/",
+        "2026-09-04",
+    ),
+    "nothing_update": ReferenceSourceSeed(
+        "Nothing OTA upgrade failure troubleshooting",
+        "OFFICIAL NOTHING • DEVICE-SCOPED",
+        "https://support.nothing.tech/hc/en-us/articles/16770339678225-What-do-I-do-if-there-is-an-OTA-upgrade-failure",
+        "2026-09-04",
+    ),
+    "oppo_update": ReferenceSourceSeed(
+        "OPPO ColorOS Assistant and system upgrade tool",
+        "OFFICIAL OPPO • MODEL/COLOROS-SCOPED",
+        "https://www.oppo.com/en/rom/",
+        "2026-09-04",
+    ),
+    "realme_recovery": ReferenceSourceSeed(
+        "realme recovery mode and update troubleshooting",
+        "OFFICIAL REALME • MODEL/UI-SCOPED",
+        "https://www.realme.com/global/support/troubleshooting",
+        "2026-09-04",
+    ),
+    "vivo_update": ReferenceSourceSeed(
+        "vivo official firmware installation course",
+        "OFFICIAL VIVO • MODEL/ANDROID-SCOPED",
+        "https://www.vivo.com/in/support/upgradeCourse",
+        "2026-09-04",
+    ),
+    "huawei_recovery": ReferenceSourceSeed(
+        "HUAWEI HiSuite and eRecovery system restoration",
+        "OFFICIAL HUAWEI • DEVICE-SUPPORT-SCOPED",
+        "https://consumer.huawei.com/en/support/content/en-us00406898/",
+        "2026-09-04",
+    ),
+    "honor_update": ReferenceSourceSeed(
+        "HONOR system update troubleshooting",
+        "OFFICIAL HONOR • DEVICE/ROLLOUT-SCOPED",
+        "https://www.honor.com/global/support/content/en-us00434519/",
+        "2026-09-04",
+    ),
+    "hmd_update": ReferenceSourceSeed(
+        "HMD and Nokia smartphone update delivery",
+        "OFFICIAL HMD • MODEL/OPERATOR/REGION-SCOPED",
+        "https://www.hmd.com/en_ke/support/topics/software-and-updates/how-are-software-updates-delivered-to-my-nokia-smartphone",
+        "2026-09-04",
+    ),
+    "fairphone_update": ReferenceSourceSeed(
+        "Fairphone software update problem fixes",
+        "OFFICIAL FAIRPHONE • MODEL/ROLLOUT-SCOPED",
+        "https://support.fairphone.com/hc/en-us/articles/27581562949522-Fix-software-update-problems",
+        "2026-09-04",
+    ),
+    "tecno_updates": ReferenceSourceSeed(
+        "TECNO model security and firmware update coverage",
+        "OFFICIAL TECNO • MODEL/COUNTRY-SCOPED",
+        "https://security.tecno.com/SRC/securityUpdates",
+        "2026-09-04",
+    ),
+    "infinix_support": ReferenceSourceSeed(
+        "Infinix official support and model update commitments",
+        "OFFICIAL INFINIX • MODEL-SCOPED",
+        "https://www.infinixmobility.com/care/support",
+        "2026-09-04",
+    ),
+    "itel_support": ReferenceSourceSeed(
+        "itel official OTA, firmware, and troubleshooting FAQs",
+        "OFFICIAL ITEL • MODEL/MARKET-SCOPED",
+        "https://www.itel-life.com/ph/support/faqs",
+        "2026-09-04",
+    ),
+    "zte_update": ReferenceSourceSeed(
+        "ZTE online and offline system update guidance",
+        "OFFICIAL ZTE • PRODUCT/REGION-SCOPED",
+        "https://support.ztedevices.com/en-gl/how-to-update-the-system/",
+        "2026-09-04",
+    ),
+    "nubia_updates": ReferenceSourceSeed(
+        "nubia MyOS update and issue-feedback center",
+        "OFFICIAL NUBIA • MODEL/REGION-SCOPED",
+        "https://eu.nubia.com/pages/software-feedback",
+        "2026-09-04",
+    ),
+    "lineage_install": ReferenceSourceSeed(
+        "LineageOS device installation guide example",
+        "MAINTAINER/COMMUNITY • EXACT DEVICE-SCOPED",
+        "https://wiki.lineageos.org/devices/G/install/",
+        "2026-09-04",
+    ),
+    "xda_fastbootd_report": ReferenceSourceSeed(
+        "XDA fastboot versus fastbootd failure report",
+        "COMMUNITY • SINGLE THREAD/DEVICE-SCOPED",
+        "https://xdaforums.com/t/i-tried-to-flash-stock-rom-via-fastboot-and-this-happened.4670589/",
+        "2026-09-04",
+    ),
+    "xda_slot_report": ReferenceSourceSeed(
+        "XDA OnePlus slot-switch working/not-working reports",
+        "COMMUNITY • SINGLE THREAD/BUILD-SCOPED",
+        "https://xdaforums.com/t/is-it-possible-to-change-the-active-partition-slot-while-still-maintaining-the-current-oos-version-if-the-op12-has-a-virtual-a-b-partition-setup.4750416/",
+        "2026-09-04",
+    ),
     "reddit": ReferenceSourceSeed(
         "Reddit Android community reports",
         "COMMUNITY • REPORTS REQUIRE CORROBORATION",
@@ -929,18 +1049,18 @@ ANDROID_REFERENCE_SEEDS = (
         "Xiaomi HyperOS updates can be model-, region-, and rollout-phase-specific",
         "DEVICE IDENTITY & COMPATIBILITY",
         "xiaomi",
-        "Xiaomi states that update availability can depend on the exact model, region, and release phase. A package that is newer for one channel must not be treated as an upgrade for another channel from its version label alone.",
+        "Xiaomi states that update availability can depend on the exact model, firmware channel, and release phase. The phone's physical country of use is not a compatibility lock: channel metadata is evidence to inspect, not a reason to reject a package by geography alone. A newer version label still cannot prove a cross-channel package is compatible without its exact device, partition, signer, rollback, and recovery evidence.",
         checks=(
             "Match exact model/codename, region/channel, current build, and package metadata.",
             "Check the current Xiaomi support notice for that model and region.",
         ),
         fix_steps=(
-            "Wait for the correct channel or obtain the exact official package without altering its contents.",
+            "Use the exact official package whose device/build contract is supported; when channels differ, require evidence instead of either automatically blocking or automatically accepting it.",
         ),
         verification=("The update assessment names the matched Xiaomi region/channel evidence.",),
         tags=("xiaomi hyperos update region rollout", "miui cn global eea firmware"),
         route="device_atlas",
-        evidence="Xiaomi's official support guidance says HyperOS update eligibility and timing can vary by model and region.",
+        evidence="Xiaomi's official support guidance says HyperOS update eligibility and timing can vary by model and release market; ROMVERSE treats that as availability context, not a physical-location lock.",
     ),
     _article(
         "motorola-rescue-identity-and-wipe",
@@ -1040,5 +1160,480 @@ ANDROID_REFERENCE_SEEDS = (
         tags=("github issue maintainer bug fixed version", "tool regression workaround"),
         route="forge_arsenal",
         evidence="Repository issue trackers provide version-scoped maintainer/community evidence; ROMVERSE still verifies installed artifacts locally.",
+    ),
+    _article(
+        "samsung-smart-switch-update-recovery",
+        "Samsung Galaxy update failure: Smart Switch and emergency recovery boundaries",
+        "RECOVERY & GUARDIAN",
+        "samsung_update",
+        "Samsung documents normal Galaxy updates on-device or through Smart Switch. If an interrupted update needs Emergency Software Recovery and Reset, that recovery includes a factory data reset; Odin, patched packages, and Download Mode are not covered by this official consumer guide.",
+        checks=(
+            "Capture the exact Galaxy model, CSC/carrier software identity, current build, battery state, backup status, and Smart Switch version.",
+            "Distinguish a network download failure from an interrupted installation or a phone that no longer boots.",
+        ),
+        fix_steps=(
+            "For a reachable phone, retry the official on-device or Smart Switch update after restoring network and storage readiness.",
+            "For an interrupted Smart Switch update, use only its documented emergency-recovery path after accepting the factory-reset consequence.",
+        ),
+        verification=(
+            "Confirm the expected Samsung build/CSC after boot and retest calls, data, Wi-Fi, camera, biometrics, and account restoration.",
+        ),
+        tags=(
+            "samsung galaxy one ui smart switch update failed emergency recovery reset",
+            "odin fail download mode not official consumer recovery",
+        ),
+        route="recovery_bay",
+        evidence="Samsung's current support article describes device and Smart Switch updates, network-failure retry, and emergency recovery with an explicit factory reset.",
+        automation="SAMSUNG OEM GUIDANCE ONLY • NO ODIN, DOWNLOAD-MODE, RESET, OR DEVICE COMMAND AUTHORITY",
+    ),
+    _article(
+        "sony-xperia-companion-software-repair",
+        "Sony Xperia boot loop or failed update: Xperia Companion software repair",
+        "RECOVERY & GUARDIAN",
+        "sony_repair",
+        "Sony's current recovery route is Xperia Companion Software repair. It can repair a phone that does not start, but it deletes internal-storage data and can require the previously registered Google account afterward.",
+        checks=(
+            "Confirm the exact Xperia model is covered, install a currently supported Xperia Companion, and record whether internal data is backed up.",
+            "Verify the user knows the existing Google account credentials before a destructive repair.",
+        ),
+        fix_steps=(
+            "Try restart and an ordinary software update first; choose official Software repair only when those do not resolve the fault.",
+        ),
+        verification=(
+            "Allow the documented first boot to finish before diagnosing a boot loop, then confirm the build and core hardware functions.",
+        ),
+        tags=(
+            "sony xperia companion software repair boot loop update failed phone will not start",
+            "xperia repair wipes internal storage google account",
+        ),
+        route="recovery_bay",
+        evidence="Sony documents Xperia Companion as its software-repair route, including internal-data deletion and post-repair account requirements.",
+        automation="SONY OEM GUIDANCE ONLY • NO SOFTWARE-REPAIR, RESET, OR DEVICE COMMAND AUTHORITY",
+    ),
+    _article(
+        "oneplus-oxygenos-local-install",
+        "OnePlus OxygenOS local install: official package and version scope",
+        "FIRMWARE INTAKE",
+        "oneplus_update",
+        "OnePlus documents Local install for an update package obtained from an official channel. The referenced manual is OxygenOS 14-specific, so menu names and availability are evidence for that OS family rather than a promise for every OnePlus release or carrier variant.",
+        checks=(
+            "Match exact model, product, region/carrier channel, current OxygenOS build, target build, package type, signer, and digest.",
+            "Confirm the selected package is a valid forward update for the installed base rather than a rollback or cross-model conversion.",
+        ),
+        fix_steps=(
+            "Use the current model's official software-update route; if Local install is absent or rejects the package, preserve the error and use OnePlus support instead of forcing it.",
+        ),
+        verification=(
+            "After the update, compare build identity and security patch, then test radio, camera, fingerprint, NFC, Wi-Fi, Bluetooth, and Android Auto.",
+        ),
+        tags=(
+            "oneplus oxygenos local install package verification update failed",
+            "oneplus region carrier rollback crossflash not working",
+        ),
+        route="device_atlas",
+        evidence="The official OxygenOS 14 manual requires a package from an official channel and sends failed updates to backup and official support.",
+        automation="ONEPLUS-SCOPED GUIDANCE ONLY • NO LOCAL-INSTALL, ROLLBACK, CROSSFLASH, OR DEVICE AUTHORITY",
+    ),
+    _article(
+        "asus-firmware-sku-mismatch",
+        "ASUS Zenfone or ROG Phone update fails: firmware SKU must match",
+        "DEVICE IDENTITY & COMPATIBILITY",
+        "asus_update",
+        "ASUS states that manual firmware uses model-specific packages and the firmware SKU prefix must match the phone, such as WW to WW, CN to CN, or TW to TW. Its guide rejects cross-SKU changes and downgrade assumptions.",
+        checks=(
+            "Read the exact ASUS model and current build/SKU before downloading anything.",
+            "Compare the package model, SKU, version ordering, published instructions, size, and digest where available.",
+        ),
+        fix_steps=(
+            "Use the exact newer package from ASUS Download Center and follow that model's documented update method.",
+        ),
+        verification=(
+            "Confirm the detected firmware notification names the expected upgrade and verify the resulting build/SKU after reboot.",
+        ),
+        tags=(
+            "asus zenfone rog phone firmware update failed incorrect sku WW CN TW",
+            "asus manual update cannot downgrade cross sku",
+        ),
+        route="device_atlas",
+        evidence="ASUS's current firmware guide explicitly requires a matching firmware SKU and says an incorrect SKU fails; it also prohibits the documented downgrade path.",
+        automation="ASUS-SCOPED GUIDANCE ONLY • NO PACKAGE COPY, REBOOT, DOWNGRADE, OR DEVICE AUTHORITY",
+    ),
+    _article(
+        "nothing-os-ota-failure",
+        "Nothing OS OTA will not download or install",
+        "DIAGNOSTICS & HEALTH",
+        "nothing_update",
+        "Nothing attributes common OTA failures to unstable connectivity, incomplete downloads, insufficient storage, low battery, or interruption during installation. A similar symptom does not prove the package or partition layout is faulty.",
+        checks=(
+            "Record the exact Nothing/CMF model, current and offered builds, error text, free storage, battery level, and network validation.",
+        ),
+        fix_steps=(
+            "Use a stable network, free the required storage, charge above the OEM threshold, leave the phone undisturbed, and retry the official OTA once.",
+            "If the same scoped failure remains, preserve the error and contact Nothing support rather than sourcing an unverified package.",
+        ),
+        verification=(
+            "Confirm the new build and security patch only after a completed reboot; test the originally failing function separately.",
+        ),
+        tags=(
+            "nothing os cmf ota system update failed download install battery storage network",
+            "nothing phone software update not working",
+        ),
+        route="recovery_bay",
+        evidence="Nothing's official OTA troubleshooting names network quality, package completeness, storage, battery, and interruption as distinct checks.",
+    ),
+    _article(
+        "oppo-coloros-assistant-update",
+        "OPPO ColorOS update: phone route versus ColorOS Assistant",
+        "RECOVERY & GUARDIAN",
+        "oppo_update",
+        "OPPO publishes an on-phone software-update route and a Windows ColorOS Assistant route for supported ColorOS versions. Tool availability does not prove that a package for one OPPO model, market, or ColorOS base is compatible with another.",
+        checks=(
+            "Collect exact OPPO model/product, market, ColorOS base, current build, target build, and the official tool's detected-device result.",
+            "Treat a missing update as rollout or eligibility evidence, not permission to rename or force a package.",
+        ),
+        fix_steps=(
+            "Use the official on-phone update first, or the current official ColorOS Assistant only when it lists the exact phone and offered update.",
+        ),
+        verification=(
+            "Confirm the post-update ColorOS/build identity and retest calls, data, camera, biometrics, NFC, Wi-Fi, Bluetooth, and charging.",
+        ),
+        tags=(
+            "oppo coloros assistant system upgrade tool update failed",
+            "oppo find reno a series model market package compatibility",
+        ),
+        route="recovery_bay",
+        evidence="OPPO's current software page separates on-phone updating from the ColorOS Assistant PC workflow and scopes the tool by ColorOS support.",
+        automation="OPPO OEM GUIDANCE ONLY • NO ASSISTANT INSTALL, PACKAGE DOWNLOAD, UPDATE, OR DEVICE AUTHORITY",
+    ),
+    _article(
+        "realme-recovery-local-update",
+        "realme UI update failure and official Recovery Mode install",
+        "RECOVERY & GUARDIAN",
+        "realme_recovery",
+        "realme documents Recovery Mode as a repair route for some phones that cannot restart, shut down, or update normally. Its install-from-storage path requires matching official firmware and is model/UI-version-dependent.",
+        checks=(
+            "Match RMX model, region, realme UI version, current build, package target, battery, storage, and backup state.",
+            "Confirm the exact phone exposes the documented Recovery menu before treating the route as available.",
+        ),
+        fix_steps=(
+            "Try the official system update first; use realme's documented Recovery Mode only with the corresponding official model package.",
+        ),
+        verification=(
+            "Confirm boot completion and resulting RMX/build identity, then retest the original fault and essential hardware.",
+        ),
+        tags=(
+            "realme ui recovery mode install from storage update failed RMX ozip",
+            "realme boot loop official firmware repair",
+        ),
+        route="recovery_bay",
+        evidence="realme's official troubleshooting page documents the recovery entry, install-from-storage route, backup warning, power threshold, and non-interruption requirement.",
+        automation="REALME OEM GUIDANCE ONLY • NO RECOVERY ENTRY, PACKAGE INSTALL, WIPE, OR DEVICE AUTHORITY",
+    ),
+    _article(
+        "vivo-funtouch-local-firmware",
+        "vivo or iQOO local firmware update and downgrade boundary",
+        "DEVICE IDENTITY & COMPATIBILITY",
+        "vivo_update",
+        "vivo's official course distinguishes installation from Android or Recovery and states that devices on Android 8 or later cannot use that path to flash a lower version. Recovery entry and package handling vary by display/device generation.",
+        checks=(
+            "Match exact vivo/iQOO model, region, Funtouch OS or OriginOS build, Android version, package target, and published checksum where available.",
+            "Determine whether the proposal is an upgrade, reinstall, or downgrade before presenting any route.",
+        ),
+        fix_steps=(
+            "Use only the exact official package and the model-specific update instructions; send unsupported downgrade or missing-package cases to official service.",
+        ),
+        verification=(
+            "Confirm the installed build and security patch, then test mobile service, camera, biometrics, Wi-Fi, Bluetooth, charging, and media.",
+        ),
+        tags=(
+            "vivo iqoo funtouch originos firmware update recovery install downgrade android 8",
+            "vivo local update not working exact model",
+        ),
+        route="device_atlas",
+        evidence="vivo's official install course documents device-generation recovery paths and an Android 8-or-later downgrade restriction.",
+        automation="VIVO-SCOPED GUIDANCE ONLY • NO PACKAGE INSTALL, DOWNGRADE, RECOVERY, OR DEVICE AUTHORITY",
+    ),
+    _article(
+        "huawei-hisuite-erecovery-restore",
+        "HUAWEI HiSuite or eRecovery restoration may erase data and may be unsupported",
+        "RECOVERY & GUARDIAN",
+        "huawei_recovery",
+        "HUAWEI documents HiSuite System restoration and on-device eRecovery/eUpdate, while warning that some devices do not support HiSuite restoration and that recovery may erase personal data. The restored version is selected by the service, not freely chosen by the user.",
+        checks=(
+            "Confirm exact HUAWEI model/region, whether HiSuite reports System restoration support, account credentials, battery/power, network, and backup status.",
+            "Preserve any 'device not supported' or package-retrieval error as a scoped result instead of retrying arbitrary firmware.",
+        ),
+        fix_steps=(
+            "Use the latest official HiSuite or the phone's documented eRecovery route; if support detection fails, stop and use an authorized service centre.",
+        ),
+        verification=(
+            "Confirm the service-selected build boots and the previously registered account can complete activation; retest essential hardware.",
+        ),
+        tags=(
+            "huawei hisuite system recovery erecovery package info failed device not supported",
+            "emui harmonyos restore rooted boot loop data wipe",
+        ),
+        route="recovery_bay",
+        evidence="HUAWEI's official recovery article describes both routes, device support limits, possible data erasure, and the non-user-selectable restored version.",
+        automation="HUAWEI OEM GUIDANCE ONLY • NO FASTBOOT ENTRY, RESTORE, ERECOVERY, WIPE, OR DEVICE AUTHORITY",
+    ),
+    _article(
+        "honor-magicos-update-not-offered",
+        "HONOR MagicOS update not offered: network, SIM, cache, and staged rollout",
+        "DIAGNOSTICS & HEALTH",
+        "honor_update",
+        "HONOR lists several distinct causes for a missing update: poor connectivity, a required SIM in some cases, updater state, or a release that has not yet reached that phone. Rooted phones are directed to authorized support rather than the standard fix path.",
+        checks=(
+            "Record exact HONOR model/region, MagicOS build, root state, SIM presence, network validation, updater state, and rollout notice.",
+        ),
+        fix_steps=(
+            "On an unmodified phone, restore network readiness, check SIM requirements, clear only the documented updater data, and check once more.",
+            "If rollout is pending, wait; if the phone is rooted or the failure persists, use authorized HONOR support.",
+        ),
+        verification=(
+            "A successful update must report the expected build after reboot; a still-missing offer remains pending, not failed compatibility.",
+        ),
+        tags=(
+            "honor magicos unable receive system update sim cache staged rollout rooted",
+            "honor update not showing not working",
+        ),
+        route="recovery_bay",
+        evidence="HONOR's current support article separates connectivity, SIM, updater-data, staged-rollout, and rooted-device cases.",
+    ),
+    _article(
+        "hmd-nokia-staged-update-delivery",
+        "HMD or Nokia update availability depends on model, operator, market, and rollout",
+        "DEVICE IDENTITY & COMPATIBILITY",
+        "hmd_update",
+        "HMD explains software delivery through model- and rollout-specific support. A newer package or screenshot from another Nokia/HMD phone is not compatibility proof for a similar retail name.",
+        checks=(
+            "Collect exact TA/model, product, sales region, operator/carrier state, current build, security patch, and official availability for that combination.",
+        ),
+        fix_steps=(
+            "Use the on-device official update when offered; otherwise wait for the applicable staged release or contact HMD support.",
+        ),
+        verification=(
+            "Confirm the expected build/security patch after reboot and keep an absent offer labelled pending or unavailable.",
+        ),
+        tags=(
+            "hmd nokia android update not available TA model operator region staged rollout",
+            "nokia firmware compatibility similar model",
+        ),
+        route="device_atlas",
+        evidence="HMD's official support route describes software-update delivery rather than publishing a universal package for every Nokia/HMD identity.",
+    ),
+    _article(
+        "fairphone-update-problem-triage",
+        "Fairphone update problem: rollout, storage, download, restart, and safe mode",
+        "DIAGNOSTICS & HEALTH",
+        "fairphone_update",
+        "Fairphone separates an update that is not yet available from insufficient space, download failure, install failure, a frozen phone, app optimization, and 'issue while preparing to restart'. These states need different responses.",
+        checks=(
+            "Record the exact Fairphone generation, current build, offered build, country/operator, error text, storage, network, and backup state.",
+        ),
+        fix_steps=(
+            "Follow the matching official branch: wait for rollout, free storage, restore reliable Wi-Fi, reboot a stuck update, or retry from Safe Mode when app optimization is involved.",
+            "If the same failure remains, use Fairphone support rather than an unverified factory package.",
+        ),
+        verification=(
+            "Confirm the resulting Fairphone build and security patch after reboot; otherwise preserve the exact unresolved branch.",
+        ),
+        tags=(
+            "fairphone software update failed not enough space optimizing apps preparing restart",
+            "fairphone OTA not available country operator safe mode",
+        ),
+        route="recovery_bay",
+        evidence="Fairphone's official troubleshooting guide maps each update symptom to a separate bounded fix and escalates persistent failure.",
+    ),
+    _article(
+        "tecno-transsion-update-scope",
+        "TECNO update coverage is model-, month-, region-, and country-specific",
+        "DEVICE IDENTITY & COMPATIBILITY",
+        "tecno_updates",
+        "TECNO publishes model lists for firmware/security updates and warns that timing and support vary by model, region, and country. This evidence cannot be transferred to Infinix or itel merely because all belong to the Transsion family.",
+        checks=(
+            "Match exact TECNO model/product, country, current build, security patch, and the dated official coverage row.",
+            "For Infinix or itel, require that brand's own model-selected source instead of borrowing TECNO evidence.",
+        ),
+        fix_steps=(
+            "Use the device's official updater or brand service route and keep an absent model row explicitly unconfirmed.",
+        ),
+        verification=(
+            "Confirm the resulting build and security patch; do not equate a listed monthly patch with full firmware-package availability.",
+        ),
+        tags=(
+            "tecno camon spark pova phantom security firmware update model country region",
+            "transsion infinix itel separate brand evidence",
+        ),
+        route="device_atlas",
+        evidence="TECNO's official security-update center publishes dated model lists and explicitly states model, region, and country variability.",
+    ),
+    _article(
+        "infinix-model-update-support",
+        "Infinix updates and support promises are exact-model evidence",
+        "DEVICE IDENTITY & COMPATIBILITY",
+        "infinix_support",
+        "Infinix provides a model-oriented support and System Update entry point, while published Android-version and security-patch commitments apply to the named product. A promise for one Infinix model is not firmware compatibility evidence for another.",
+        checks=(
+            "Match exact Infinix model/product, sales market, XOS build, Android version, security patch, and the model-specific support or commitment page.",
+            "Treat a missing package, different update promise, or reused retail-family name as unresolved rather than compatible.",
+        ),
+        fix_steps=(
+            "Use the phone's official System Update or Infinix support route for that exact model; preserve the offered build and error text.",
+        ),
+        verification=(
+            "Confirm the resulting build and security patch after reboot, then retest the reported fault and core hardware.",
+        ),
+        tags=(
+            "infinix xos system update support hot note zero model security patch",
+            "infinix update commitment exact model not universal",
+        ),
+        route="device_atlas",
+        evidence="Infinix's official support exposes model help and System Update, while its published update commitments are attached to named products.",
+        automation="INFINIX-SCOPED GUIDANCE ONLY • NO PACKAGE DOWNLOAD, INSTALL, REBOOT, OR DEVICE AUTHORITY",
+    ),
+    _article(
+        "itel-ota-firmware-troubleshooting",
+        "itel OTA, boot crash, and firmware troubleshooting boundaries",
+        "RECOVERY & GUARDIAN",
+        "itel_support",
+        "itel documents ordinary OTA updating plus checks for low battery, SIM/TF-card faults, storage, network, and firmware problems. Its FAQ warns that forced updating when a phone cannot boot may lose data and refers unresolved cases to service.",
+        checks=(
+            "Capture exact itel model/product, market, current build, offered build, battery, free storage, network, boot state, and backup status.",
+            "Separate an ordinary OTA failure from a boot crash or a phone that cannot power on.",
+        ),
+        fix_steps=(
+            "Use the official on-device update for a reachable phone after battery, storage, and network checks; use itel support or service for an unbootable or repeatedly failing phone.",
+        ),
+        verification=(
+            "Confirm the expected itel build after reboot and retest the original fault; record unresolved boot or update states without claiming repair.",
+        ),
+        tags=(
+            "itel ota system update phone firmware crash stuck logo cannot boot",
+            "itel forced update data loss battery storage network sim tf card",
+        ),
+        route="recovery_bay",
+        evidence="itel's official FAQ separates normal OTA, system-crash, app, connectivity, and no-power cases and warns about data loss during forced updating.",
+        automation="ITEL-SCOPED GUIDANCE ONLY • NO FORCED UPDATE, FACTORY RESET, REBOOT, OR DEVICE AUTHORITY",
+    ),
+    _article(
+        "zte-online-offline-system-update",
+        "ZTE system update: online offer or exact official offline package",
+        "FIRMWARE INTAKE",
+        "zte_update",
+        "ZTE documents online updates and an offline package route from its official device-support site. An offline ZIP remains product/region-specific and does not establish compatibility for nubia or REDMAGIC devices with a related manufacturer string.",
+        checks=(
+            "Match exact ZTE model/product, sales region/operator, current and target builds, package source, signer, size, and digest.",
+            "Verify a complete backup before any offline update attempt.",
+        ),
+        fix_steps=(
+            "Prefer the official online offer; use offline update only when ZTE publishes the package for the exact selected product and region.",
+        ),
+        verification=(
+            "Confirm the expected ZTE build after reboot and retest radio, camera, biometrics, Wi-Fi, Bluetooth, and charging.",
+        ),
+        tags=(
+            "zte zteos online offline system update package failed blade axon",
+            "nubia redmagic separate firmware compatibility",
+        ),
+        route="device_atlas",
+        evidence="ZTE's official support article separates online and official offline package updates and recommends backing up first.",
+        automation="ZTE-SCOPED GUIDANCE ONLY • NO PACKAGE DOWNLOAD, COPY, INSTALL, REBOOT, OR DEVICE AUTHORITY",
+    ),
+    _article(
+        "nubia-redmagic-myos-update-scope",
+        "nubia or REDMAGIC MyOS updates and bug reports require exact model scope",
+        "DEVICE IDENTITY & COMPATIBILITY",
+        "nubia_updates",
+        "nubia publishes MyOS update details and accepts software feedback with country and installed-version context. A ZTE package or a changelog for another nubia/REDMAGIC model is not compatibility evidence for the connected phone.",
+        checks=(
+            "Record exact nubia or REDMAGIC model/product, country, MyOS/REDMAGIC OS version, current build, offered target, and the model's published update page.",
+            "For a bug, capture the category, reproduction steps, affected build, and whether the latest exact-model update changes it.",
+        ),
+        fix_steps=(
+            "Use the exact model's official updater and support route; submit a scoped software report when the fault persists instead of borrowing ZTE or another model's package.",
+        ),
+        verification=(
+            "Confirm the post-update build and repeat the same bug reproduction and core hardware checks.",
+        ),
+        tags=(
+            "nubia redmagic myos redmagic os update bug software feedback region model",
+            "nubia update not zte firmware exact model compatibility",
+        ),
+        route="device_atlas",
+        evidence="nubia's official MyOS page publishes version-specific resolved issues, requests country and software-version context, and notes regional timing differences.",
+        automation="NUBIA/REDMAGIC-SCOPED GUIDANCE ONLY • NO PACKAGE DOWNLOAD, INSTALL, REBOOT, OR DEVICE AUTHORITY",
+    ),
+    _article(
+        "lineageos-exact-device-install-evidence",
+        "LineageOS maintainer guides require an exact supported model and stop on failure",
+        "ROMVERSE WORKFLOWS",
+        "lineage_install",
+        "A LineageOS device guide is useful maintainer evidence only for the device and release named on that page. The guide explicitly requires an exact model match, known-working stock functions, the prescribed recovery, and stopping when a step fails.",
+        checks=(
+            "Match the guide's device page, exact model list, LineageOS version, firmware prerequisite, recovery artifact, and publication state.",
+            "Read warnings, known quirks, linked downloads, and every step before adapting anything into a ROMVERSE plan.",
+        ),
+        fix_steps=(
+            "Use the guide to build a typed device-specific hypothesis; never generalize its commands to another codename or recovery.",
+        ),
+        verification=(
+            "Record each stated working function before modification and retest it after first boot; preserve any deviation as not working.",
+        ),
+        tags=(
+            "lineageos wiki exact model codename firmware recovery installation known working",
+            "custom rom maintainer guide stop after failure adb sideload 47 percent",
+        ),
+        route="archives",
+        evidence="The cited LineageOS guide is an exact-device example whose maintainer instructions require precise model matching and prohibit continuing after failure.",
+        automation="MAINTAINER GUIDANCE INGESTION ONLY • NO RECOVERY FLASH, SIDELOAD, WIPE, OR DEVICE AUTHORITY",
+    ),
+    _article(
+        "community-fastbootd-mode-conflict",
+        "Community report: a Fastboot command failed because the phone was in fastbootd",
+        "ROMVERSE WORKFLOWS",
+        "xda_fastbootd_report",
+        "An XDA thread reports that a wipe-style Fastboot command did not work in userspace fastbootd and participants distinguished its logical-partition role from bootloader Fastboot. The report is useful diagnostic evidence, but the thread does not prove a universal command or safe recovery route.",
+        checks=(
+            "Capture the exact device, Android/build, bootloader implementation, current mode, command, stderr, partition inventory, and prior writes.",
+            "Compare the hypothesis with AOSP fastbootd documentation and the exact Device Pack before doing anything.",
+        ),
+        fix_steps=(
+            "Correct only the evidenced mode mismatch inside a reviewed device-specific plan; do not repeat or relocate a wipe command automatically.",
+        ),
+        verification=(
+            "Re-run read-only mode and partition probes; a matching mode explains the error but does not prove that a write is safe.",
+        ),
+        tags=(
+            "xda fastboot -w not working fastbootd mode wipe task partition not found",
+            "community solved report bootloader fastboot userspace fastboot",
+        ),
+        route="archives",
+        evidence="This is one community thread with a reported explanation and follow-up, preserved as a hypothesis pending exact-device corroboration.",
+        automation="COMMUNITY DIAGNOSIS ONLY • NO MODE CHANGE, WIPE, FLASH, ERASE, OR DEVICE AUTHORITY",
+    ),
+    _article(
+        "community-slot-switch-bootloop-caution",
+        "Community working/not-working report: manual A/B slot switching caused a boot loop",
+        "ROMVERSE WORKFLOWS",
+        "xda_slot_report",
+        "In one OnePlus 12 XDA discussion, a suggested manual slot switch was followed by a reported boot loop and was reversed by switching back. This is valuable negative evidence: a slot can contain an incomplete or unbootable set even when the command itself succeeds.",
+        checks=(
+            "Record exact device/build, current slot, slot-successful flags, retry counts, bootable state, update state, and which partitions exist in each slot.",
+            "Require an exact signed transition/recovery contract before any slot activation.",
+        ),
+        fix_steps=(
+            "Treat a community slot-switch suggestion as unverified; use read-only slot evidence and the OEM/maintainer recovery route for that exact build.",
+        ),
+        verification=(
+            "A command exit is not success: require boot, post-boot Device DNA, core function tests, and an independently verified recovery path.",
+        ),
+        tags=(
+            "oneplus 12 manual slot switch bootloop xda working not working report",
+            "a b virtual ab active slot incomplete partitions community caution",
+        ),
+        route="guardian_core",
+        evidence="The cited XDA thread contains both a proposed slot-switch method and a participant's contrary boot-loop result, so ROMVERSE preserves it as scoped negative evidence.",
+        automation="COMMUNITY NEGATIVE EVIDENCE ONLY • NO SLOT SWITCH, REBOOT, FLASH, OR DEVICE AUTHORITY",
     ),
 )

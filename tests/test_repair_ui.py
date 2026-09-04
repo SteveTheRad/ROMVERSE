@@ -306,6 +306,7 @@ def test_recovery_bay_advisor_opens_exact_symptom_fix_and_exports_reason(tmp_pat
     assert isinstance(recommendations, list)
     assert recommendations[0]["article_key"] == "apk-version-downgrade"
     assert recommendations[0]["source_authority"] == "AOSP SOURCE"
+    assert recommendations[0]["source_url"].startswith("https://android.googlesource.com/")
     assert center.active_session is None
     assert center.host_repair_worker is None
     center.close()

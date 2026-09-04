@@ -185,6 +185,57 @@ def test_archives_category_filter_and_source_evidence_stay_connected() -> None:
     center.close()
 
 
+def test_archives_labels_and_filters_official_maintainer_and_community_sources() -> None:
+    app = QApplication.instance() or QApplication([])
+    center = KnowledgeCenter()
+    center.show()
+
+    community_index = center.evidence_lane.findData("community")
+    center.evidence_lane.setCurrentIndex(community_index)
+    center.search.setText("community slot switch bootloop")
+    app.processEvents()
+    assert center.list.currentItem().data(Qt.ItemDataRole.UserRole) == (
+        "community-slot-switch-bootloop-caution"
+    )
+    assert center.open_source.text() == "Open community report"
+    assert center.open_source.accessibleName() == "Open community report"
+    assert "COMMUNITY" in center.detail.toPlainText()
+
+    center.search.setText("lineageos exact device install evidence")
+    app.processEvents()
+    assert center.open_source.text() == "Open maintainer source"
+
+    official_index = center.evidence_lane.findData("official")
+    center.evidence_lane.setCurrentIndex(official_index)
+    center.search.setText("samsung smart switch emergency recovery")
+    app.processEvents()
+    assert center.list.count() == 1
+    assert center.open_source.text() == "Open official source"
+    assert "OFFICIAL SAMSUNG" in center.detail.toPlainText()
+
+    center.evidence_lane.setCurrentIndex(community_index)
+    app.processEvents()
+    assert center.list.count() == 0
+    assert "will not invent a fix" in center.detail.toPlainText().casefold()
+    center.close()
+
+
+def test_exact_archive_handoff_resets_a_previous_evidence_filter() -> None:
+    app = QApplication.instance() or QApplication([])
+    center = KnowledgeCenter()
+    center.show()
+    center.evidence_lane.setCurrentIndex(center.evidence_lane.findData("community"))
+
+    assert center.open_article("samsung-smart-switch-update-recovery")
+    app.processEvents()
+
+    assert center.evidence_lane.currentData() == "all"
+    assert center.list.currentItem().data(Qt.ItemDataRole.UserRole) == (
+        "samsung-smart-switch-update-recovery"
+    )
+    center.close()
+
+
 def test_archives_displays_integrity_verified_local_resolution_memory(tmp_path) -> None:
     app = QApplication.instance() or QApplication([])
     analyzer = DiagnosticAnalyzer()

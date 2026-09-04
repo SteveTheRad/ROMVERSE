@@ -67,6 +67,45 @@ def test_official_guidance_is_content_addressed_and_remote_text_has_no_authority
     ).is_file()
 
 
+@pytest.mark.parametrize(
+    ("manufacturer", "source_id"),
+    (
+        ("Samsung", "samsung.smart-switch"),
+        ("Sony", "sony.xperia-companion"),
+        ("OnePlus", "oneplus.oxygenos-update"),
+        ("ASUS", "asus.firmware-update"),
+        ("Nothing", "nothing.ota-troubleshooting"),
+        ("OPPO", "oppo.coloros-assistant"),
+        ("realme", "realme.recovery-update"),
+        ("vivo", "vivo.firmware-update"),
+        ("iQOO", "vivo.firmware-update"),
+        ("HUAWEI", "huawei.system-recovery"),
+        ("HONOR", "honor.system-update"),
+        ("HMD Global", "hmd.update-delivery"),
+        ("Nokia", "hmd.update-delivery"),
+        ("Fairphone", "fairphone.update-troubleshooting"),
+        ("TECNO", "tecno.update-scope"),
+        ("Infinix", "infinix.update-support"),
+        ("itel", "itel.ota-support"),
+        ("ZTE", "zte.system-update"),
+        ("nubia", "nubia.myos-update"),
+        ("REDMAGIC", "nubia.myos-update"),
+    ),
+)
+def test_device_dna_selects_the_matching_official_oem_evidence(
+    manufacturer: str, source_id: str
+) -> None:
+    candidates = OfficialCatalogProvider().search(
+        ErrorFingerprint.create("system update failed", manufacturer=manufacturer)
+    )
+    candidate = next(item for item in candidates if item.source_id == source_id)
+
+    assert candidate.authority is SourceAuthority.OFFICIAL
+    assert candidate.url.startswith("https://")
+    assert not candidate.local_action_id
+    assert not candidate.confirmed_working
+
+
 def test_error_fingerprint_scrubs_paths_contacts_credentials_ips_and_serials() -> None:
     fingerprint = ErrorFingerprint.create(
         "Failure at /home/steve/private/file.img for person@example.com "

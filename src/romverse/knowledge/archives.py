@@ -116,6 +116,19 @@ class ArchiveMatch:
     score: int
 
 
+def source_lane(source: ArchiveSource) -> str:
+    """Classify provenance for presentation without changing evidence authority."""
+
+    authority = source.authority.upper()
+    if source.url and ("OFFICIAL" in authority or authority == "AOSP SOURCE"):
+        return "official"
+    if source.url and ("COMMUNITY" in authority or authority.startswith("MAINTAINER/")):
+        return "community"
+    if authority.startswith(("FIELD VERIFIED", "ROMVERSE VERIFIED")):
+        return "field"
+    return "local"
+
+
 ADB_SOURCE = ArchiveSource(
     "Android Debug Bridge (adb)",
     "OFFICIAL ANDROID",
@@ -3660,20 +3673,7 @@ def catalog_metrics(catalog: tuple[ArchiveArticle, ...]) -> dict[str, int]:
         "guides": len(catalog),
         "categories": len({article.category for article in catalog}),
         "sourced_guides": sum(bool(article.source.url) for article in catalog),
-        "official_sources": sum(
-            bool(article.source.url)
-            and (
-                "OFFICIAL" in article.source.authority or article.source.authority == "AOSP SOURCE"
-            )
-            for article in catalog
-        ),
-        "community_sources": sum(
-            bool(article.source.url)
-            and (
-                "COMMUNITY" in article.source.authority
-                or article.source.authority.startswith("MAINTAINER/")
-            )
-            for article in catalog
-        ),
+        "official_sources": sum(source_lane(article.source) == "official" for article in catalog),
+        "community_sources": sum(source_lane(article.source) == "community" for article in catalog),
         "known_fixes": len(KNOWN_FIXES),
     }

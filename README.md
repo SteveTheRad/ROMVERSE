@@ -79,8 +79,10 @@ remain valid. Schema-one guidance receipts remain readable with their newer evid
 unconfirmed.
 
 Recovery Bay now also offers **Search local Archives** beside the exact symptom field. Its deterministic
-Archives Advisor prioritizes an exact error-code match, then the selected typed repair concern and
-current diagnostic finding IDs. The assessment displays the primary source authority and automation
+Archives Advisor prioritizes an exact error-code match, then current diagnostic findings, the
+connected phone's Device DNA manufacturer, and the selected typed repair concern. The assessment
+therefore surfaces the matching official OEM update/recovery boundary automatically without treating
+a brand match as package compatibility. It displays the primary source authority and automation
 boundary, records every recommendation in the privacy-safe exported report, and opens the selected
 stable article identity directly. Quantum Optimizer also carries its highest-priority actionable
 finding ID into Recovery Bay, which selects the deterministic matching concern only when that same
@@ -96,15 +98,21 @@ When online research is off, its secondary panel folds into a compact, accessibl
 preconditions and the Advisor stay prominent. Active, returned, or failed research expands its full
 evidence automatically, and the user can fold only those details without changing assessment state.
 
-The Desktop **ROMVERSE Archives** catalog now contains 193 validated local guides across eleven
-categories, including 143 structured known-fix records, 76 official-source-backed records, and four
-community/maintainer evidence guides. The dedicated **Device Identity & Compatibility** category
+The Desktop **ROMVERSE Archives** catalog now contains 218 validated local guides across eleven
+categories, including 168 structured known-fix records, 94 official-source-backed records, and seven
+community/maintainer evidence guides. Its evidence selector can isolate official/OEM/AOSP,
+maintainer/community, or ROMVERSE field records, and every outbound button names the evidence lane
+instead of presenting a community report as an official source. The dedicated **Device Identity & Compatibility** category
 explains Android identity fields, the official device-name catalog, firmware target/region matching,
 compatibility and incompatibility states, CTS/VTS/GSI scope, full and incremental OTA rules,
 `update_engine` errors, partitions, slots, AVB, bootloader, APK, backup, Pixel, Xiaomi, and Motorola
-boundaries. Official-source-labelled device triage also covers battery/heat, storage, Android updates,
-app crashes, screen/touch, network, and performance, while camera/audio guidance remains explicitly
-ROMVERSE-scoped until exact OEM evidence is available. Ranked punctuation-tolerant retrieval covers
+boundaries. Source-attributed update, recovery, error, and working/not-working guidance now covers
+every OEM family recognized by the bundled Device Packs: Samsung, Sony, OnePlus, ASUS, Nothing,
+OPPO, realme, vivo/iQOO, HUAWEI, HONOR, HMD/Nokia, Fairphone, TECNO, Infinix, itel, ZTE,
+nubia/REDMAGIC, Google Pixel, Xiaomi/Redmi/POCO, and Motorola/Lenovo. Official-source-labelled device
+triage also covers battery/heat, storage, Android updates, app crashes, screen/touch, network, and
+performance, while camera/audio guidance remains explicitly ROMVERSE-scoped until exact OEM evidence
+is available. Ranked punctuation-tolerant retrieval covers
 ADB/USB, host tools, firmware intake, dynamic
 partitions and filesystems, AVB/boot, SELinux/build failures, APK install status, Guardian/recovery,
 and evidence integrity. Every structured fix separates meaning, checks, safe steps, verification,

@@ -187,7 +187,10 @@ execute device-changing operations.
 Recovery Bay exact-symptom input and Quantum Optimizer findings hand off to ROMVERSE Archives through
 stable structured article identities. The deterministic Advisor maps typed repair concerns and exact
 diagnostic finding IDs, distinguishes unauthorized/offline/no-device ADB states, and permits a symptom
-to outrank a generic concern only when the complete bounded phrase matches a structured article.
+to outrank a generic concern only when the complete bounded phrase matches a structured article. When
+Device DNA identifies a supported manufacturer family, the Advisor must add that family's exact
+source-backed OEM guide before the generic concern fallback. That match improves diagnosis and route
+selection only: it cannot prove firmware compatibility, select an artifact, or grant repair authority.
 Recovery reports retain article key, title, selection reason, source authority, and automation
 boundary without retaining extra raw symptom data. Manual and ROM Studio stage searches remain
 bounded, local, ranked, category-aware, and fail closed for weak or unknown queries while preserving
@@ -196,6 +199,14 @@ verification, evidence basis, automation boundary, canonical Desktop destination
 authority. A recommendation, source link, or historical field result is guidance evidence only and
 never provides Guardian approval, device identity, compatibility, build readiness, or execution
 authority.
+
+Archives must visibly separate official/OEM/AOSP sources, maintainer/community reports, ROMVERSE
+field evidence, and local-only guidance. Outbound controls must name the actual lane—official source,
+maintainer source, or community report—and exact workflow handoffs must reset stale manual filters
+before selecting the requested article. Maintainer and community reports may contribute diagnoses,
+negative results, and candidate verification steps, but remote instructions cannot become commands or
+set a solution to verified working. Only a matching typed local action plus integrity-verified outcome
+may promote a fix, and it remains bound to that exact error and device/build scope.
 
 Companion implements the same pattern using Android app-private storage: a real local safe
 diagnostic becomes the baseline, safety checkpoints persist across restarts, and verification

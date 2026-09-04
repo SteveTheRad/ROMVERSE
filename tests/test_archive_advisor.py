@@ -9,6 +9,7 @@ from romverse.diagnostics.analyzer import DiagnosticAnalyzer
 from romverse.diagnostics.models import Finding, Severity
 from romverse.knowledge.advisor import (
     DIAGNOSTIC_ARTICLE_KEYS,
+    OEM_ARTICLE_KEYS,
     REPAIR_CONCERN_ARTICLE_KEYS,
     article_for_key,
     article_key_for_apk_failure,
@@ -124,6 +125,21 @@ def test_each_repair_concern_has_one_exact_primary_guide() -> None:
         recommendation = recommend_for_repair(concern, limit=1)
         assert len(recommendation) == 1
         assert recommendation[0].article.key == REPAIR_CONCERN_ARTICLE_KEYS[concern]
+
+
+@pytest.mark.parametrize(
+    ("manufacturer", "article_key"),
+    tuple(OEM_ARTICLE_KEYS.items()),
+)
+def test_device_dna_adds_a_scoped_oem_recommendation(manufacturer: str, article_key: str) -> None:
+    recommendation = recommend_for_repair(
+        RepairConcern.BOOT_UPDATE,
+        manufacturer=manufacturer.upper(),
+        limit=1,
+    )
+
+    assert recommendation[0].article.key == article_key
+    assert recommendation[0].reason.startswith("Device DNA manufacturer:")
 
 
 def test_unauthorized_analyzer_report_reaches_authorization_guide() -> None:

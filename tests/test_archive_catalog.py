@@ -12,6 +12,7 @@ from romverse.knowledge.archives import (
     ArchiveSource,
     catalog_metrics,
     search_catalog,
+    source_lane,
     validate_catalog,
 )
 from romverse.ui.knowledge_center import ARCHIVE_ARTICLES
@@ -22,14 +23,14 @@ def test_archives_catalog_is_large_unique_classified_and_evidence_labelled() -> 
     validate_catalog(ARCHIVE_ARTICLES)
     metrics = catalog_metrics(ARCHIVE_ARTICLES)
 
-    assert len(ARCHIVE_ARTICLES) == 198
-    assert len(KNOWN_FIXES) == 148
+    assert len(ARCHIVE_ARTICLES) == 218
+    assert len(KNOWN_FIXES) == 168
     assert metrics == {
         "guides": len(ARCHIVE_ARTICLES),
         "categories": len(CATEGORIES),
-        "sourced_guides": 81,
-        "official_sources": 77,
-        "community_sources": 4,
+        "sourced_guides": 101,
+        "official_sources": 94,
+        "community_sources": 7,
         "known_fixes": len(KNOWN_FIXES),
     }
     assert len({article.key for article in ARCHIVE_ARTICLES}) == len(ARCHIVE_ARTICLES)
@@ -241,7 +242,7 @@ def test_archives_rank_verified_known_fixes_for_real_failure_language(
 
 def test_archives_reject_weak_matches_and_bound_results() -> None:
     assert not search_catalog(ARCHIVE_ARTICLES, "definitely not a real ROMVERSE topic")
-    assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=1_000)) == 198
+    assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=1_000)) == 218
     assert len(search_catalog(ARCHIVE_ARTICLES, "", limit=0)) == 1
     connectivity = search_catalog(
         ARCHIVE_ARTICLES,
@@ -283,6 +284,100 @@ def test_archives_rank_android_identity_compatibility_and_community_knowledge(
 
     assert matches
     assert matches[0].article.title == expected_title
+
+
+@pytest.mark.parametrize(
+    ("query", "expected_title"),
+    (
+        (
+            "samsung smart switch emergency recovery",
+            "Samsung Galaxy update failure: Smart Switch and emergency recovery boundaries",
+        ),
+        (
+            "sony xperia companion software repair",
+            "Sony Xperia boot loop or failed update: Xperia Companion software repair",
+        ),
+        (
+            "oneplus oxygenos local install",
+            "OnePlus OxygenOS local install: official package and version scope",
+        ),
+        (
+            "asus incorrect firmware sku",
+            "ASUS Zenfone or ROG Phone update fails: firmware SKU must match",
+        ),
+        ("nothing ota failed", "Nothing OS OTA will not download or install"),
+        (
+            "oppo coloros assistant",
+            "OPPO ColorOS update: phone route versus ColorOS Assistant",
+        ),
+        (
+            "realme recovery install from storage",
+            "realme UI update failure and official Recovery Mode install",
+        ),
+        (
+            "vivo iqoo downgrade android 8",
+            "vivo or iQOO local firmware update and downgrade boundary",
+        ),
+        (
+            "huawei hisuite erecovery",
+            "HUAWEI HiSuite or eRecovery restoration may erase data and may be unsupported",
+        ),
+        (
+            "honor update not showing",
+            "HONOR MagicOS update not offered: network, SIM, cache, and staged rollout",
+        ),
+        (
+            "hmd nokia operator rollout",
+            "HMD or Nokia update availability depends on model, operator, market, and rollout",
+        ),
+        (
+            "fairphone preparing to restart",
+            "Fairphone update problem: rollout, storage, download, restart, and safe mode",
+        ),
+        (
+            "tecno model country update",
+            "TECNO update coverage is model-, month-, region-, and country-specific",
+        ),
+        (
+            "infinix update support",
+            "Infinix updates and support promises are exact-model evidence",
+        ),
+        (
+            "itel forced update data loss",
+            "itel OTA, boot crash, and firmware troubleshooting boundaries",
+        ),
+        (
+            "zte offline system update",
+            "ZTE system update: online offer or exact official offline package",
+        ),
+        (
+            "nubia redmagic myos bug",
+            "nubia or REDMAGIC MyOS updates and bug reports require exact model scope",
+        ),
+    ),
+)
+def test_archives_cover_each_supported_oem_family(query: str, expected_title: str) -> None:
+    matches = search_catalog(ARCHIVE_ARTICLES, query, limit=1)
+
+    assert matches[0].article.title == expected_title
+    assert source_lane(matches[0].article.source) == "official"
+
+
+@pytest.mark.parametrize(
+    ("key", "lane"),
+    (
+        ("samsung-smart-switch-update-recovery", "official"),
+        ("lineageos-exact-device-install-evidence", "community"),
+        ("community-slot-switch-bootloop-caution", "community"),
+        ("popsicle-os40025-android-auto-integration", "field"),
+    ),
+)
+def test_archives_classify_evidence_without_granting_authority(key: str, lane: str) -> None:
+    article = next(item for item in KNOWN_FIXES if item.key == key)
+
+    assert source_lane(article.source) == lane
+    if lane == "community":
+        assert "NO " in article.automation
 
 
 @pytest.mark.parametrize(

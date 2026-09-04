@@ -61,6 +61,36 @@ REPAIR_CONCERN_FINDING_IDS = {
     ),
 }
 
+OEM_ARTICLE_KEYS = {
+    "asus": "asus-firmware-sku-mismatch",
+    "fairphone": "fairphone-update-problem-triage",
+    "google": "pixel-ota-versus-factory",
+    "hmd": "hmd-nokia-staged-update-delivery",
+    "hmd global": "hmd-nokia-staged-update-delivery",
+    "honor": "honor-magicos-update-not-offered",
+    "huawei": "huawei-hisuite-erecovery-restore",
+    "infinix": "infinix-model-update-support",
+    "iqoo": "vivo-funtouch-local-firmware",
+    "itel": "itel-ota-firmware-troubleshooting",
+    "motorola": "motorola-rescue-identity-and-wipe",
+    "lenovo": "motorola-rescue-identity-and-wipe",
+    "nothing": "nothing-os-ota-failure",
+    "nokia": "hmd-nokia-staged-update-delivery",
+    "nubia": "nubia-redmagic-myos-update-scope",
+    "oneplus": "oneplus-oxygenos-local-install",
+    "oppo": "oppo-coloros-assistant-update",
+    "poco": "xiaomi-phased-regional-updates",
+    "realme": "realme-recovery-local-update",
+    "redmagic": "nubia-redmagic-myos-update-scope",
+    "redmi": "xiaomi-phased-regional-updates",
+    "samsung": "samsung-smart-switch-update-recovery",
+    "sony": "sony-xperia-companion-software-repair",
+    "tecno": "tecno-transsion-update-scope",
+    "vivo": "vivo-funtouch-local-firmware",
+    "xiaomi": "xiaomi-phased-regional-updates",
+    "zte": "zte-online-offline-system-update",
+}
+
 APK_FAILURE_ARTICLE_KEYS = {
     "INSTALL_FAILED_INVALID_APK": "apk-invalid",
     "INSTALL_FAILED_UPDATE_INCOMPATIBLE": "apk-signature-conflict",
@@ -79,6 +109,7 @@ _REQUIRED_KEYS = (
     | frozenset(REPAIR_CONCERN_ARTICLE_KEYS.values())
     | _DYNAMIC_DIAGNOSTIC_KEYS
     | frozenset(APK_FAILURE_ARTICLE_KEYS.values())
+    | frozenset(OEM_ARTICLE_KEYS.values())
 )
 if missing := _REQUIRED_KEYS.difference(_ARTICLE_BY_KEY):
     raise RuntimeError(f"Archives Advisor references missing guides: {', '.join(sorted(missing))}")
@@ -162,6 +193,7 @@ def recommend_for_repair(
     symptom: str = "",
     findings: tuple[Finding, ...] = (),
     *,
+    manufacturer: str = "",
     limit: int = 3,
 ) -> tuple[ArchiveRecommendation, ...]:
     """Combine exact symptom, concern, and finding rules without inventing a fix."""
@@ -198,6 +230,21 @@ def recommend_for_repair(
             continue
         seen.add(recommendation.article.key)
         recommendations.append(recommendation)
+        if len(recommendations) >= bounded_limit:
+            return tuple(recommendations)
+
+    normalized_manufacturer = " ".join(
+        manufacturer.replace("\x00", " ").casefold().strip().split()
+    )[:80]
+    oem_article = _ARTICLE_BY_KEY.get(OEM_ARTICLE_KEYS.get(normalized_manufacturer, ""))
+    if oem_article is not None and oem_article.key not in seen:
+        seen.add(oem_article.key)
+        recommendations.append(
+            ArchiveRecommendation(
+                oem_article,
+                f"Device DNA manufacturer: {manufacturer.strip()[:80]}",
+            )
+        )
         if len(recommendations) >= bounded_limit:
             return tuple(recommendations)
 

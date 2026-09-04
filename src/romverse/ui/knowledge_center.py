@@ -32,6 +32,7 @@ from romverse.knowledge.archives import (
     build_catalog,
     catalog_metrics,
     search_catalog,
+    source_lane,
 )
 from romverse.knowledge.resolution_memory import (
     ArchivesResolutionMemory,
@@ -611,6 +612,14 @@ class KnowledgeCenter(QWidget):
             self.category.addItem(category.title(), category)
         self.category.currentIndexChanged.connect(self._filter)
         controls.addWidget(self.category)
+        self.evidence_lane = QComboBox()
+        self.evidence_lane.setAccessibleName("Archives evidence lane")
+        self.evidence_lane.addItem("All evidence", "all")
+        self.evidence_lane.addItem("Official / OEM / AOSP", "official")
+        self.evidence_lane.addItem("Maintainer & community", "community")
+        self.evidence_lane.addItem("ROMVERSE field evidence", "field")
+        self.evidence_lane.currentIndexChanged.connect(self._filter)
+        controls.addWidget(self.evidence_lane)
         layout.addLayout(controls)
 
         quick = QHBoxLayout()
@@ -730,6 +739,7 @@ class KnowledgeCenter(QWidget):
         self.set_source_context(source_route)
         normalized = query.strip()[:160]
         self.category.setCurrentIndex(0)
+        self.evidence_lane.setCurrentIndex(0)
         if self.search.text() == normalized:
             self._filter(normalized)
         else:
@@ -779,6 +789,7 @@ class KnowledgeCenter(QWidget):
             self.search_status.style().polish(self.search_status)
             return False
         self.category.setCurrentIndex(0)
+        self.evidence_lane.setCurrentIndex(0)
         if self.search.text() == article.title:
             self._filter(article.title)
         else:
@@ -818,6 +829,11 @@ class KnowledgeCenter(QWidget):
         query = self.search.text().strip()[:160]
         category = str(self.category.currentData() or ALL_CATEGORIES)
         matches = search_catalog(ARCHIVE_ARTICLES, query, category, limit=256)
+        evidence_lane = str(self.evidence_lane.currentData() or "all")
+        if evidence_lane != "all":
+            matches = tuple(
+                match for match in matches if source_lane(match.article.source) == evidence_lane
+            )
 
         self.list.blockSignals(True)
         self.list.clear()
@@ -874,6 +890,17 @@ class KnowledgeCenter(QWidget):
         self.open_route.setVisible(bool(route and route != "archives"))
         source_url = article.source.url if article is not None else ""
         self.open_source.setProperty("source_url", source_url)
+        lane = source_lane(article.source) if article is not None else "local"
+        if lane == "community":
+            source_label = (
+                "Open maintainer source"
+                if article is not None and article.source.authority.startswith("MAINTAINER/")
+                else "Open community report"
+            )
+        else:
+            source_label = "Open official source"
+        self.open_source.setText(source_label)
+        self.open_source.setAccessibleName(source_label)
         self.open_source.setVisible(bool(source_url))
 
     def refresh_resolution_memory(self) -> None:

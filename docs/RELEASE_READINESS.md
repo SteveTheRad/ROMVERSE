@@ -98,6 +98,19 @@ failed required check; advisory, privileged and destructive consequences enter R
 advance only through a supported gateway with fresh exact-plan acceptance. This is useful build and
 policy evidence, not universal device assurance or a live flashing runtime.
 
+The subsequent source-attributed Android knowledge increment passes all 1,617 Desktop tests and the
+complete Ruff check/format gates across 378 Python files. Archives now contains 218 validated guides,
+168 structured known fixes, 94 official-source-backed records, and seven maintainer/community records.
+It adds current official update, recovery, error-triage, compatibility, and working/not-working context
+for every manufacturer family represented by the 21 bundled Device Packs, including separate TECNO,
+Infinix, and itel evidence and separate ZTE and nubia/REDMAGIC evidence. Archives can visibly filter
+official/OEM/AOSP, maintainer/community, and ROMVERSE field lanes; outbound source controls name the
+actual lane. Recovery Bay now uses Device DNA manufacturer evidence to add the matching local OEM
+guide and its source URL to the privacy-safe report, and the connected official provider selects the
+same OEM family for a live scrubbed error fingerprint. Community and maintainer material remains
+guidance-only and cannot inject a command, become verified working by assertion, or grant repair,
+package, flash, wipe, reset, reboot, or bootloader authority. This increment performed no phone action.
+
 ## Required gates
 
 1. Run the complete `pytest`, `ruff check .`, and `ruff format --check .` gates on supported Linux

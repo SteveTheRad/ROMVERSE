@@ -813,6 +813,9 @@ class RepairCenter(QWidget):
                 concern,
                 self.symptom_input.text(),
                 report.findings if report is not None else (),
+                manufacturer=(
+                    self.current_device.manufacturer if self.current_device is not None else ""
+                ),
                 limit=3,
             )
             if concern is not None
@@ -858,6 +861,7 @@ class RepairCenter(QWidget):
                     "reason": recommendation.reason,
                     "source": recommendation.article.source.label,
                     "source_authority": recommendation.article.source.authority,
+                    "source_url": recommendation.article.source.url,
                     "automation_boundary": recommendation.article.automation,
                 }
                 for recommendation in archive_recommendations
@@ -1366,6 +1370,9 @@ class RepairCenter(QWidget):
                 self.current_concern,
                 query,
                 self.current_report.findings if self.current_report is not None else (),
+                manufacturer=(
+                    self.current_device.manufacturer if self.current_device is not None else ""
+                ),
                 limit=1,
             )
             if recommendations:
@@ -1823,6 +1830,7 @@ class RepairCenter(QWidget):
             self.current_concern,
             self.symptom_input.text(),
             self.current_report.findings,
+            manufacturer=self.current_device.manufacturer,
             limit=1,
         )
         try:

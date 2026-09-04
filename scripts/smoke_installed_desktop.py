@@ -135,7 +135,7 @@ def main() -> int:
     app.setStyleSheet(STYLESHEET)
     offline = OfflineKnowledgeService(workspace)
     archive = offline.store.ensure_seeded()
-    if len(archive.records) < 199 or len(archive.sources) < 111:
+    if len(archive.records) < 280 or len(archive.sources) < 180:
         raise RuntimeError("Installed offline Archives corpus is missing packaged evidence")
     failure_lookup = offline.lookup(
         KnowledgeQuery(

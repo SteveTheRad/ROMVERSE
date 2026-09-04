@@ -59,7 +59,9 @@ def read_android_ota_metadata(path: Path) -> AndroidOtaMetadata | None:
                 raise OtaMetadataError("Android OTA metadata exceeds the bounded read limit")
             with archive.open(entry, "r") as stream:
                 payload = stream.read(MAX_METADATA_BYTES + 1)
-    except zipfile.BadZipFile:
+    except zipfile.BadZipFile as exc:
+        if path.suffix.casefold() == ".zip":
+            raise OtaMetadataError("Android OTA ZIP container is malformed") from exc
         return None
     except (NotImplementedError, OSError, RuntimeError, zipfile.LargeZipFile) as exc:
         raise OtaMetadataError(f"Android OTA metadata could not be read: {exc}") from exc

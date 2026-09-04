@@ -76,3 +76,11 @@ def test_non_zip_or_zip_without_metadata_is_not_claimed_as_an_ota(tmp_path: Path
 
     assert read_android_ota_metadata(raw) is None
     assert read_android_ota_metadata(empty_zip) is None
+
+
+def test_malformed_zip_is_rejected_instead_of_becoming_filename_evidence(tmp_path: Path) -> None:
+    broken = tmp_path / "device-ota_full-OS9.9.9.9.TEST.zip"
+    broken.write_bytes(b"PK\x03\x04truncated")
+
+    with pytest.raises(OtaMetadataError, match="ZIP container is malformed"):
+        read_android_ota_metadata(broken)

@@ -846,8 +846,11 @@ hardware and hardware SKU, build ID/fingerprint/incremental/timestamp, Android/S
 ABI, verified boot, slot, dynamic/A/B state, encryption, kernel, platform and health observations
 that the device actually reports. Vendor-neutral OTA intake reads only the bounded standard
 `META-INF/com/android/metadata` ZIP entry and validates its target, current-build preconditions,
-post-build identity, SDK and timestamp against that live passport. The comparison may label upgrade,
-same timestamp, downgrade, incompatible, or unconfirmed, but it grants no installation authority.
+post-build identity, SDK, build timestamp and security-patch date against that live passport.
+Exact post-build identity is the only generic `same installed build` proof. For a different build,
+all available SDK/timestamp/security-patch directions must agree before the comparison may label an
+upgrade or downgrade; malformed dates are rejected and conflicting or missing evidence remains
+unconfirmed. The comparison grants no installation authority.
 OEM-specific transport and write protocols remain separate signed adapter/Device Pack work.
 
 Schema-two profiles use a strict nested shape, bounded collections and text, private atomic storage,

@@ -40,6 +40,12 @@ approve a plan, or grant phone-write authority.
    while missing evidence stays Attention. Cross-channel upgrades remain reviewable
    and become relationship-ready only with the separate exact flash-certified Device Pack contract;
    physical country of use is never used as a compatibility signal.
+   Standards-conforming Android OTA metadata is compared across exact post-build identity, SDK,
+   build timestamp, and security-patch date after target and update-path checks. Exact live
+   post-build identity means already installed; all available directional signals must agree before
+   Upgrade or Downgrade is shown. A conflict remains visibly Unconfirmed instead of being resolved
+   from a filename, marketing version, or a preferred signal. This classification still grants no
+   phone-changing authority.
    Schema-one Device DNA remains readable and refreshes forward automatically.
    Genesis requests a fresh read-only device scan at this stage, shows the current identity and
    Capability Map states, and refuses to advance if either the profile or map is missing. A failed

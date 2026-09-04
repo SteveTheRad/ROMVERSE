@@ -326,15 +326,18 @@ the result Upgrade Candidate, Same Firmware Version, Downgrade Candidate, Incomp
 Unconfirmed; this relationship never grants installation or flash authority. ROM Studio also keeps
 the user-supplied firmware responsibility and risk notice visible and requires acknowledgement
 before import. Users must obtain the correct package from a trusted official source for their exact
-model, region, and current update path. The notice does not purport to exclude any right or
+model, firmware channel, and current update path. The phone's physical country of use is not treated
+as its firmware channel. The notice does not purport to exclude any right or
 obligation that cannot legally be excluded.
 For vendor-neutral Android OTA ZIPs, Device DNA also reads the standard bounded
 `META-INF/com/android/metadata` record without extracting the archive. It compares `pre-device`,
-`pre-build`, `pre-build-incremental`, `post-build`, `post-build-incremental`, `post-sdk-level`, and
-`post-timestamp` with the live product/device aliases, fingerprint, incremental build, SDK, and
-build timestamp. Contradictory targets, duplicate keys, malformed values, wrong-device packages,
-and wrong incremental paths fail closed. An Upgrade Candidate requires matching identity/update
-preconditions and a newer package timestamp; missing comparable evidence remains Unconfirmed.
+`pre-build`, `pre-build-incremental`, `post-build`, `post-build-incremental`, `post-sdk-level`,
+`post-security-patch-level`, and `post-timestamp` with the live product/device aliases, fingerprint,
+incremental build, SDK, security patch, and build timestamp. Contradictory targets, duplicate keys,
+impossible dates, malformed values, wrong-device packages, and wrong incremental paths fail closed.
+Exact post-build identity proves that the package is already installed. Otherwise, every available
+SDK, timestamp, and security-patch direction must agree before ROMVERSE labels an Upgrade or
+Downgrade Candidate; conflicting or missing comparable evidence remains Unconfirmed.
 This covers standards-conforming Android OTAs without pretending that OEM-specific Download Mode,
 EDL, preloader, unlock, signing, recovery, or flashing protocols are interchangeable.
 ROM Studio now raises that relationship into a prominent **Firmware Upgrade Passport** bound to

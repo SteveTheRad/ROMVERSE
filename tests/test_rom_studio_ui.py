@@ -13,6 +13,7 @@ from PySide6.QtWidgets import QApplication
 
 from romverse.ascension.entry import AscensionEntryBrief, AscensionEntryState
 from romverse.ascension.models import AscensionMethod
+from romverse.core.settings import AppSettings, ExperienceMode
 from romverse.device.dna import CapabilityState
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device_packs.registry import DevicePackRegistry
@@ -1043,6 +1044,62 @@ def test_guided_build_mission_is_full_size_and_evidence_driven(tmp_path):
 
     mission._operation_completed("snapshot", object())
     assert "rejected unexpected or stale" in mission.state.last_error
+
+    mission.close()
+    studio.close()
+
+
+def test_genesis_uses_task_evidence_action_hierarchy_and_responsive_layout(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    store = RomProjectStore(tmp_path / "workspace")
+    studio = RomStudio(store, DevicePackRegistry(()))
+    mission = GuidedBuildMission(studio)
+    mission.resize(1000, 700)
+    mission.show()
+    app.processEvents()
+
+    assert mission.task_card.objectName() == "MissionTaskCard"
+    assert mission.action_button.property("primary") is True
+    assert mission.next_button.property("primary") is False
+    assert mission.auto_button.objectName() == "MissionAutopilot"
+    assert mission.supporting_panel.isHidden()
+    assert mission.details_button.text() == "Show evidence & guidance"
+    assert mission.rail_scroll.width() == 238
+    recommendation_index = mission.supporting_grid.indexOf(mission.recommendation_card)
+    recommendation_position = mission.supporting_grid.getItemPosition(recommendation_index)
+    assert recommendation_position[:2] == (1, 0)
+
+    mission.details_button.click()
+    assert not mission.supporting_panel.isHidden()
+    assert mission.details_button.text() == "Hide evidence & guidance"
+
+    mission.resize(1200, 790)
+    app.processEvents()
+    assert mission.rail_scroll.width() == 285
+    recommendation_index = mission.supporting_grid.indexOf(mission.recommendation_card)
+    recommendation_position = mission.supporting_grid.getItemPosition(recommendation_index)
+    assert recommendation_position[:2] == (0, 1)
+
+    mission.close()
+    studio.close()
+
+
+def test_genesis_expert_view_expands_evidence_and_reduced_motion_stays_static(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    store = RomProjectStore(tmp_path / "workspace")
+    settings = AppSettings(
+        experience_mode=ExperienceMode.EXPERT,
+        reduced_motion=True,
+    )
+    studio = RomStudio(store, DevicePackRegistry(()), app_settings=settings)
+    mission = GuidedBuildMission(studio)
+    mission.show()
+    app.processEvents()
+
+    assert mission.mode_badge.text() == "ARCHITECT  •  DEEP VIEW"
+    assert not mission.supporting_panel.isHidden()
+    mission._select_stage(1)
+    assert mission.task_effect.opacity() == 1.0
 
     mission.close()
     studio.close()

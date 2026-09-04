@@ -69,6 +69,8 @@ projects.
 The first usable slice proves the foundation end-to-end:
 
 - branded PySide6 desktop shell with dark purple/blue/cyan visual language;
+- a premium mission-control hierarchy with layered neutral surfaces, semantic status color,
+  consistent keyboard focus, restrained brand accents, and reduced-motion-aware transitions;
 - first-run setup and non-invasive tool verification;
 - deterministic workspace initialization;
 - platform abstraction for Linux and Windows paths/tool discovery;
@@ -474,6 +476,21 @@ deterministic build planning, recovery, toolchain, build/sign, Guardian flash, a
 Every stage explains its purpose, recommended choice, observed evidence, blockers, and the outcome
 that unlocks next. Safe multi-operation stages run sequentially on background workers and
 acknowledge loading before allowing navigation.
+
+Genesis uses a three-zone mission-control hierarchy: current task, supporting evidence/guidance,
+and next safe action. Supporting detail is folded by default for an ordinary ready/verified Guided
+stage, automatically exposed for attention/locked/future states and always exposed in Architect
+deep view. Exactly one available advancing control receives primary visual emphasis. At compact
+desktop width the stage rail narrows and the evidence/guidance pair stacks vertically; neither the
+content surface nor its action dock may require horizontal scrolling. Stage-change motion is short,
+informational, and disabled by the persisted Reduced Motion setting.
+
+Forge Control applies the same hierarchy. It begins with verified/attention/blocked counts and one
+ranked next resolution, collapses pass-only phases in Guided Mode, expands unresolved phases, and
+places specialist build controls behind an explicit reveal. Architect Mode exposes all phase and
+tool detail. Local-build completion demotes automatic resolution so flash-only evidence cannot be
+mistaken for another build failure. Semantic color is strict: green means a verified milestone,
+cyan means active progress, amber means user/evidence attention, and red means a blocked gate.
 
 When the first thirteen stages are verified, Genesis reports the local ROM build as 100% complete
 and offers **Finish local build**. It does not send the user back through Device Atlas or Forge for

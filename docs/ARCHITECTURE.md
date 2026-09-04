@@ -31,7 +31,7 @@ src/romverse/
   device_packs/          validated multi-OEM metadata and matching
   repair/                guided assessment plus typed, receipt-bound safe repair services
   rom/                   provenance, payload/filesystem services, Recipes, build gates
-  ui/                    PySide6 shell, setup wizard, Device Portal, theme
+  ui/                    PySide6 shell, responsive task/evidence/action surfaces, Device Portal, theme
   assets/                scalable brand assets
 tests/                    hardware-free unit tests
 docs/                     product and engineering specifications

@@ -1139,6 +1139,8 @@ class BuildControlCenter(QDialog):
         self.report: BuildReadinessReport | None = None
         self.gate_rows: dict[str, QFrame] = {}
         self.resolve_buttons: dict[str, QPushButton] = {}
+        self.phase_toggles: dict[str, QPushButton] = {}
+        self.phase_bodies: dict[str, QWidget] = {}
         self.metadata_worker: RebuildMetadataWorker | None = None
         self.blueprint_worker: SourceBlueprintWorker | None = None
         self.build_worker: LocalBuildWorker | None = None
@@ -1185,11 +1187,12 @@ class BuildControlCenter(QDialog):
         solution_copy.addWidget(self.solution_review_detail)
         solution_layout.addLayout(solution_copy, 1)
         self.solution_review_badge = QLabel("REVIEW ONLY")
-        self.solution_review_badge.setObjectName("GuardianBadge")
+        self.solution_review_badge.setObjectName("ReviewBadge")
         solution_layout.addWidget(self.solution_review_badge)
         self.solution_review.setVisible(False)
         root.addWidget(self.solution_review)
         scroll = QScrollArea()
+        self.content_scroll = scroll
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.host = QWidget()
@@ -1291,7 +1294,7 @@ class BuildControlCenter(QDialog):
         labels.addWidget(title)
         layout.addLayout(labels, 1)
         self.overall_badge = QLabel()
-        self.overall_badge.setObjectName("GuardianBadge")
+        self.overall_badge.setObjectName("ForgeOverallBadge")
         layout.addWidget(self.overall_badge)
         return frame
 
@@ -1312,15 +1315,15 @@ class BuildControlCenter(QDialog):
         self.process_progress.setFixedWidth(180)
         status_row.addWidget(self.process_progress)
         layout.addLayout(status_row)
-        refresh = QPushButton("Refresh evidence")
-        refresh.clicked.connect(self.refresh)
-        export = QPushButton("Export evidence bundle")
-        export.clicked.connect(self._export_bundle)
-        prepare = QPushButton("Prepare local build plan")
-        prepare.setToolTip(
+        self.refresh_button = QPushButton("Refresh evidence")
+        self.refresh_button.clicked.connect(self.refresh)
+        self.export_button = QPushButton("Export evidence bundle")
+        self.export_button.clicked.connect(self._export_bundle)
+        self.build_plan_button = QPushButton("Prepare local build plan")
+        self.build_plan_button.setToolTip(
             "Verify the exact contract inputs and save a locked deterministic execution plan. This does not compile, sign, or touch a phone."
         )
-        prepare.clicked.connect(self._prepare_build_plan)
+        self.build_plan_button.clicked.connect(self._prepare_build_plan)
         self.source_button = QPushButton("Inspect firmware source")
         self.source_button.setToolTip(
             "Classify the exact protected firmware and create a source-bound blueprint receipt. "
@@ -1353,23 +1356,31 @@ class BuildControlCenter(QDialog):
         )
         self.signing_button.clicked.connect(self._signing_ceremony)
         self.simulate_button = QPushButton("Run safe pipeline simulation")
-        self.simulate_button.setObjectName("MissionNext")
+        self.simulate_button.setObjectName("ForgeSecondaryAction")
         self.simulate_button.clicked.connect(self._simulate)
         self.autopilot_button = QPushButton("Auto-resolve && continue")
-        self.autopilot_button.setObjectName("MissionNext")
+        self.autopilot_button.setObjectName("ForgePrimaryAction")
         self.autopilot_button.setToolTip(
             "Resolve every safe local prerequisite in dependency order. ROMVERSE pauses only for authoritative input that software cannot create."
         )
         self.autopilot_button.clicked.connect(self._start_autopilot)
         self.close_button = QPushButton("Close")
         self.close_button.clicked.connect(self.accept)
-        build_actions = QGridLayout()
+        self.build_tools_toggle = QPushButton()
+        self.build_tools_toggle.setObjectName("DetailToggle")
+        self.build_tools_toggle.setCheckable(True)
+        self.build_tools_toggle.setAccessibleName("Show specialist Forge Control build tools")
+        self.build_tools_toggle.toggled.connect(self._set_build_tools_visible)
+        self.build_tools_panel = QFrame()
+        self.build_tools_panel.setObjectName("ForgeToolsPanel")
+        build_actions = QGridLayout(self.build_tools_panel)
+        build_actions.setContentsMargins(10, 10, 10, 10)
         build_actions.setSpacing(8)
         for index, button in enumerate(
             (
                 self.source_button,
                 self.metadata_button,
-                prepare,
+                self.build_plan_button,
                 self.build_button,
                 self.avb_button,
                 self.signing_button,
@@ -1377,17 +1388,56 @@ class BuildControlCenter(QDialog):
         ):
             build_actions.addWidget(button, index // 3, index % 3)
             build_actions.setColumnStretch(index % 3, 1)
-        layout.addLayout(build_actions)
-        workflow_actions = QHBoxLayout()
-        workflow_actions.setSpacing(8)
-        workflow_actions.addWidget(refresh)
-        workflow_actions.addWidget(export)
-        workflow_actions.addStretch(1)
-        workflow_actions.addWidget(self.autopilot_button)
-        workflow_actions.addWidget(self.simulate_button)
-        workflow_actions.addWidget(self.close_button)
-        layout.addLayout(workflow_actions)
+        layout.addWidget(self.build_tools_panel)
+
+        utility_actions = QHBoxLayout()
+        utility_actions.setSpacing(8)
+        utility_actions.addWidget(self.refresh_button)
+        utility_actions.addWidget(self.export_button)
+        utility_actions.addWidget(self.build_tools_toggle)
+        utility_actions.addStretch(1)
+        utility_actions.addWidget(self.close_button)
+        layout.addLayout(utility_actions)
+
+        primary_actions = QHBoxLayout()
+        primary_actions.setSpacing(8)
+        primary_copy = QVBoxLayout()
+        primary_copy.setSpacing(0)
+        action_label = QLabel("NEXT SAFE ACTION")
+        action_label.setObjectName("ActionEyebrow")
+        self.footer_action_hint = QLabel(
+            "Resolve the first unfinished evidence gate, then reassess automatically."
+        )
+        self.footer_action_hint.setObjectName("ActionContext")
+        self.footer_action_hint.setWordWrap(True)
+        primary_copy.addWidget(action_label)
+        primary_copy.addWidget(self.footer_action_hint)
+        primary_actions.addLayout(primary_copy, 1)
+        primary_actions.addWidget(self.simulate_button)
+        primary_actions.addWidget(self.autopilot_button)
+        layout.addLayout(primary_actions)
+        self._set_build_tools_visible(self.studio.app_settings.experience_mode.value == "expert")
         return frame
+
+    def _set_build_tools_visible(self, visible: bool) -> None:
+        self.build_tools_panel.setVisible(visible)
+        self.build_tools_toggle.blockSignals(True)
+        self.build_tools_toggle.setChecked(visible)
+        self.build_tools_toggle.setText("Hide build tools" if visible else "Show build tools")
+        self.build_tools_toggle.setAccessibleName(
+            ("Hide" if visible else "Show") + " specialist Forge Control build tools"
+        )
+        self.build_tools_toggle.blockSignals(False)
+
+    @staticmethod
+    def _set_phase_visible(body: QWidget, toggle: QPushButton, visible: bool) -> None:
+        body.setVisible(visible)
+        toggle.blockSignals(True)
+        toggle.setChecked(visible)
+        toggle.setText("Hide details" if visible else "Show details")
+        phase = str(toggle.property("phaseName") or "phase")
+        toggle.setAccessibleName(("Hide" if visible else "Show") + f" {phase} evidence details")
+        toggle.blockSignals(False)
 
     def open_solution_review(
         self,
@@ -1498,7 +1548,44 @@ class BuildControlCenter(QDialog):
                 widget.deleteLater()
         self.gate_rows.clear()
         self.resolve_buttons.clear()
+        self.phase_toggles.clear()
+        self.phase_bodies.clear()
         unresolved = tuple(gate for gate in self.report.gates if gate.status is not GateStatus.PASS)
+        verified_count = sum(gate.status is GateStatus.PASS for gate in self.report.gates)
+        blocked_count = sum(gate.status is GateStatus.BLOCKED for gate in self.report.gates)
+        attention_count = sum(gate.status is GateStatus.ATTENTION for gate in self.report.gates)
+        summary = QFrame()
+        summary.setObjectName("ReadinessSummary")
+        summary.setProperty(
+            "readinessState",
+            "ready" if self.report.signing_ready else "attention" if unresolved else "neutral",
+        )
+        summary_layout = QHBoxLayout(summary)
+        summary_layout.setContentsMargins(18, 12, 18, 12)
+        summary_copy = QVBoxLayout()
+        summary_copy.setSpacing(3)
+        summary_title = QLabel("READINESS AT A GLANCE")
+        summary_title.setObjectName("CardHeading")
+        summary_detail = QLabel(
+            f"{verified_count} verified  •  {attention_count} need attention  •  "
+            f"{blocked_count} blocked"
+        )
+        summary_detail.setObjectName("ReadinessCounts")
+        summary_copy.addWidget(summary_title)
+        summary_copy.addWidget(summary_detail)
+        summary_layout.addLayout(summary_copy, 1)
+        summary_scope = QLabel(
+            "LOCAL BUILD COMPLETE"
+            if self.report.signing_ready
+            else "BUILD READY"
+            if self.report.build_ready
+            else "WORKSPACE READY"
+            if self.report.workspace_ready
+            else "EVIDENCE REQUIRED"
+        )
+        summary_scope.setObjectName("ReadinessScope")
+        summary_layout.addWidget(summary_scope)
+        self.content.addWidget(summary)
         if self.report.guardian_handoff_ready:
             banner = QFrame()
             banner.setObjectName("ReadyBanner")
@@ -1611,9 +1698,34 @@ class BuildControlCenter(QDialog):
             card.setObjectName("BuildPhase")
             layout = QVBoxLayout(card)
             layout.setContentsMargins(18, 15, 18, 15)
+            layout.setSpacing(9)
+            phase_header = QHBoxLayout()
+            phase_header.setSpacing(10)
+            phase_copy = QVBoxLayout()
+            phase_copy.setSpacing(2)
             heading = QLabel(f"{phase.upper()}  •  {detail}")
             heading.setObjectName("CardHeading")
-            layout.addWidget(heading)
+            passed = sum(gate.status is GateStatus.PASS for gate in gates)
+            phase_summary = QLabel(
+                f"{passed} of {len(gates)} verified"
+                + (f"  •  {len(gates) - passed} unresolved" if passed != len(gates) else "")
+            )
+            phase_summary.setObjectName("PhaseSummary")
+            phase_copy.addWidget(heading)
+            phase_copy.addWidget(phase_summary)
+            phase_header.addLayout(phase_copy, 1)
+            toggle = QPushButton()
+            toggle.setObjectName("PhaseToggle")
+            toggle.setCheckable(True)
+            toggle.setProperty("phaseName", phase)
+            toggle.setAccessibleName(f"Show {phase} evidence details")
+            phase_header.addWidget(toggle)
+            layout.addLayout(phase_header)
+            body = QWidget()
+            body.setObjectName("PhaseBody")
+            body_layout = QVBoxLayout(body)
+            body_layout.setContentsMargins(0, 0, 0, 0)
+            body_layout.setSpacing(7)
             for gate in gates:
                 remediation = remediation_for(gate)
                 row = QFrame()
@@ -1663,25 +1775,44 @@ class BuildControlCenter(QDialog):
                     row_layout.addWidget(resolve)
                     self.resolve_buttons[gate.gate_id] = resolve
                 row_layout.addWidget(badge)
-                layout.addWidget(row)
+                body_layout.addWidget(row)
                 self.gate_rows[gate.gate_id] = row
+            layout.addWidget(body)
+            expanded = (
+                passed != len(gates) or self.studio.app_settings.experience_mode.value == "expert"
+            )
+            toggle.toggled.connect(
+                lambda visible, current_body=body, current_toggle=toggle: self._set_phase_visible(
+                    current_body, current_toggle, visible
+                )
+            )
+            self._set_phase_visible(body, toggle, expanded)
+            self.phase_toggles[phase] = toggle
+            self.phase_bodies[phase] = body
             self.content.addWidget(card)
         self.content.addStretch()
         if self.report.flash_ready:
             self.overall_badge.setText("✓  FLASH EVIDENCE READY")
+            overall_state = "verified"
         elif self.report.guardian_handoff_ready:
             self.overall_badge.setText("✓  PROJECT READY / GUARDIAN HANDOFF")
+            overall_state = "verified"
         elif self.report.signing_ready:
             self.overall_badge.setText("✓  LOCAL BUILD COMPLETE / FLASH NOT AUTHORIZED")
+            overall_state = "verified"
         elif self.report.build_ready:
             self.overall_badge.setText("◆  BUILD READY / FLASH LOCKED")
+            overall_state = "progress"
         elif self.report.workspace_ready:
             self.overall_badge.setText("◆  WORKSPACE READY / BUILD LOCKED")
+            overall_state = "progress"
         else:
             self.overall_badge.setText("!  EVIDENCE INCOMPLETE")
+            overall_state = "attention"
+        self.overall_badge.setProperty("readinessState", overall_state)
+        self.overall_badge.style().unpolish(self.overall_badge)
+        self.overall_badge.style().polish(self.overall_badge)
         if not self.autopilot_active:
-            blocked_count = sum(gate.status is GateStatus.BLOCKED for gate in self.report.gates)
-            attention_count = sum(gate.status is GateStatus.ATTENTION for gate in self.report.gates)
             self.status.setText(
                 (
                     "Your project is ready for Guardian-controlled flash review  •  "
@@ -1704,6 +1835,15 @@ class BuildControlCenter(QDialog):
                 if self.report.guardian_handoff_ready
                 else "Auto-resolve && continue"
             )
+        footer_primary = not self.report.signing_ready
+        self.autopilot_button.setProperty("primary", footer_primary)
+        self.autopilot_button.style().unpolish(self.autopilot_button)
+        self.autopilot_button.style().polish(self.autopilot_button)
+        self.footer_action_hint.setText(
+            "The local ROM is complete. Finish here, or deliberately review optional phone-installation requirements above."
+            if self.report.signing_ready
+            else "Resolve the first unfinished evidence gate, then reassess automatically."
+        )
 
     @staticmethod
     def _resolution_button_label(remediation) -> str:
@@ -3988,6 +4128,49 @@ class BuildControlCenter(QDialog):
             QFrame#BuildPhase {
                 background: #050A12; border: 1px solid #203553; border-radius: 12px;
             }
+            QFrame#ReadinessSummary {
+                background: qlineargradient(x1:0,y1:0,x2:1,y2:0,
+                    stop:0 rgba(16,12,34,248), stop:.55 rgba(6,18,33,246),
+                    stop:1 rgba(5,31,35,242));
+                border: 1px solid #30476B; border-left: 3px solid #60759B;
+                border-radius: 11px;
+            }
+            QFrame#ReadinessSummary[readinessState="ready"] { border-left-color: #44E39A; }
+            QFrame#ReadinessSummary[readinessState="attention"] { border-left-color: #FFB454; }
+            QLabel#ForgeOverallBadge {
+                color: #BFCFE7; background: #0A1220; border: 1px solid #344C70;
+                border-radius: 11px; padding: 8px 12px; font-size: 10px;
+                font-weight: 850; letter-spacing: .6px;
+            }
+            QLabel#ForgeOverallBadge[readinessState="verified"] {
+                color: #59E9AC; background: #071A18; border-color: #147A5B;
+            }
+            QLabel#ForgeOverallBadge[readinessState="progress"] {
+                color: #67DEED; background: #071720; border-color: #24647A;
+            }
+            QLabel#ForgeOverallBadge[readinessState="attention"] {
+                color: #FFC36B; background: #1B1307; border-color: #7B5720;
+            }
+            QLabel#ReviewBadge {
+                color: #DCC8F5; background: #160F28; border: 1px solid #604182;
+                border-radius: 9px; padding: 7px 10px; font-size: 10px;
+                font-weight: 850; letter-spacing: .7px;
+            }
+            QLabel#ReadinessCounts { color: #D7E3F5; font-size: 13px; font-weight: 750; background: transparent; }
+            QLabel#ReadinessScope {
+                color: #D6C3F3; background: #160F28; border: 1px solid #574078;
+                border-radius: 9px; padding: 7px 11px; font-size: 10px;
+                font-weight: 850; letter-spacing: .8px;
+            }
+            QLabel#PhaseSummary { color: #8292AD; font-size: 11px; background: transparent; }
+            QWidget#PhaseBody { background: transparent; }
+            QPushButton#PhaseToggle {
+                color: #B8C6DC; background: #090F19; border: 1px solid #2C405E;
+                border-radius: 7px; padding: 6px 10px; font-size: 10px;
+            }
+            QPushButton#PhaseToggle:hover, QPushButton#PhaseToggle:checked {
+                color: #FFFFFF; background: #111D2D; border-color: #4CAFC1;
+            }
             QFrame#ResolutionBanner {
                 background: #071722; border: 1px solid #24BFD2; border-radius: 12px;
             }
@@ -4022,11 +4205,31 @@ class BuildControlCenter(QDialog):
             QLabel#GateCopy { color: #DCE8FA; font-size: 13px; background: transparent; }
             QLabel#GateSymbol { color: #5CEBB0; font-size: 20px; font-weight: 900; background: transparent; }
             QLabel#GateBadge { color: #9EDFF5; font-weight: 900; font-size: 11px; background: transparent; }
+            QFrame[gateStatus="attention"] QLabel#GateSymbol,
+            QFrame[gateStatus="attention"] QLabel#GateBadge { color: #FFCB73; }
+            QFrame[gateStatus="blocked"] QLabel#GateSymbol,
+            QFrame[gateStatus="blocked"] QLabel#GateBadge { color: #FF7894; }
             QPushButton#GateResolve {
                 color: #DDF7FF; background: #0B2431; border: 1px solid #2CC8DB;
                 border-radius: 7px; padding: 7px 11px; font-weight: 700;
             }
             QPushButton#GateResolve:hover { background: #12394A; border-color: #62EBF6; }
+            QFrame#ForgeToolsPanel {
+                background: #050A12; border: 1px solid #1E2D44; border-radius: 10px;
+            }
+            QPushButton#ForgePrimaryAction {
+                color: #AECAC1; background: #091511; border: 1px solid #2A5847;
+                border-radius: 9px; padding: 11px 18px; font-weight: 800;
+            }
+            QPushButton#ForgePrimaryAction[primary="true"] {
+                color: #04140F; background: #35D69C; border-color: #71F1BE;
+            }
+            QPushButton#ForgePrimaryAction:hover { color: #FFFFFF; border-color: #71F1BE; }
+            QPushButton#ForgeSecondaryAction {
+                color: #CBB6E5; background: #100C1C; border: 1px solid #513471;
+                border-radius: 9px; padding: 10px 15px; font-weight: 750;
+            }
+            QPushButton#ForgeSecondaryAction:hover { color: #FFFFFF; border-color: #A45DE3; }
         """
 
 

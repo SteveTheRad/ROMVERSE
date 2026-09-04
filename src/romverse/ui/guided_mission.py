@@ -4,10 +4,12 @@ from contextlib import suppress
 from dataclasses import replace
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QObject, Qt, QTimer, Signal, Slot
+from PySide6.QtCore import QEasingCurve, QObject, QPropertyAnimation, Qt, QTimer, Signal, Slot
 from PySide6.QtWidgets import (
     QDialog,
     QFrame,
+    QGraphicsOpacityEffect,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QMessageBox,
@@ -213,6 +215,8 @@ class GuidedBuildMission(QDialog):
         self.root_preview_active = False
         self.root_preview_attempted = False
         self.root_preview_generation = 0
+        self._details_user_choice: bool | None = None
+        self._supporting_compact: bool | None = None
 
         self.setWindowTitle("ROMVERSE • Genesis Sequence")
         self.setModal(True)
@@ -228,6 +232,7 @@ class GuidedBuildMission(QDialog):
         header.setObjectName("MissionHeader")
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(28, 18, 28, 18)
+        header_layout.setSpacing(10)
         heading = QVBoxLayout()
         eyebrow = QLabel("ROM STUDIO  /  GENESIS SEQUENCE")
         eyebrow.setObjectName("MissionEyebrow")
@@ -236,8 +241,17 @@ class GuidedBuildMission(QDialog):
         heading.addWidget(eyebrow)
         heading.addWidget(title)
         header_layout.addLayout(heading, 1)
-        self.guardian_badge = QLabel("◆  GUARDIAN ACTIVE")
+        self.mode_badge = QLabel("GUIDED  •  ARCANA")
+        self.mode_badge.setObjectName("ModeBadge")
+        self.mode_badge.setToolTip(
+            "Genesis keeps the current task prominent and reveals supporting evidence on demand."
+        )
+        header_layout.addWidget(self.mode_badge)
+        self.guardian_badge = QLabel("◆  CORE CHECKS ACTIVE")
         self.guardian_badge.setObjectName("GuardianBadge")
+        self.guardian_badge.setToolTip(
+            "Target identity, artifact integrity, command validity, and bootloader-relock prohibitions remain active."
+        )
         header_layout.addWidget(self.guardian_badge)
         root.addWidget(header)
 
@@ -263,6 +277,7 @@ class GuidedBuildMission(QDialog):
         rail_scroll.setWidgetResizable(True)
         rail_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         rail_scroll.setFixedWidth(285)
+        self.rail_scroll = rail_scroll
         rail_host = QWidget()
         self.rail_layout = QVBoxLayout(rail_host)
         self.rail_layout.setContentsMargins(14, 18, 14, 18)
@@ -289,7 +304,13 @@ class GuidedBuildMission(QDialog):
         main = QVBoxLayout(main_host)
         main.setContentsMargins(34, 28, 34, 24)
         main.setSpacing(14)
+        self.main_layout = main
 
+        self.task_card = QFrame()
+        self.task_card.setObjectName("MissionTaskCard")
+        task_layout = QVBoxLayout(self.task_card)
+        task_layout.setContentsMargins(22, 19, 22, 18)
+        task_layout.setSpacing(8)
         self.step_label = QLabel()
         self.step_label.setObjectName("MissionEyebrow")
         self.stage_title = QLabel()
@@ -298,9 +319,9 @@ class GuidedBuildMission(QDialog):
         self.stage_detail = QLabel()
         self.stage_detail.setObjectName("MissionBody")
         self.stage_detail.setWordWrap(True)
-        main.addWidget(self.step_label)
-        main.addWidget(self.stage_title)
-        main.addWidget(self.stage_detail)
+        task_layout.addWidget(self.step_label)
+        task_layout.addWidget(self.stage_title)
+        task_layout.addWidget(self.stage_detail)
 
         self.status_banner = QFrame()
         self.status_banner.setObjectName("StatusBanner")
@@ -313,7 +334,17 @@ class GuidedBuildMission(QDialog):
         self.status_text.setWordWrap(True)
         status_layout.addWidget(self.status_icon)
         status_layout.addWidget(self.status_text, 1)
-        main.addWidget(self.status_banner)
+        task_layout.addWidget(self.status_banner)
+        main.addWidget(self.task_card)
+
+        self.task_effect = QGraphicsOpacityEffect(self.task_card)
+        self.task_effect.setOpacity(1.0)
+        self.task_card.setGraphicsEffect(self.task_effect)
+        self.stage_transition = QPropertyAnimation(self.task_effect, b"opacity", self)
+        self.stage_transition.setDuration(170)
+        self.stage_transition.setStartValue(0.72)
+        self.stage_transition.setEndValue(1.0)
+        self.stage_transition.setEasingCurve(QEasingCurve.Type.OutCubic)
 
         self.process_frame = QFrame()
         self.process_frame.setObjectName("ProcessCard")
@@ -328,15 +359,49 @@ class GuidedBuildMission(QDialog):
         self.process_frame.setVisible(False)
         main.addWidget(self.process_frame)
 
-        cards = QHBoxLayout()
-        cards.setSpacing(12)
-        evidence_card, self.evidence = self._card("WHAT ROMVERSE FOUND")
-        recommendation_card, self.recommendation = self._card("RECOMMENDATION")
-        cards.addWidget(evidence_card, 1)
-        cards.addWidget(recommendation_card, 1)
-        main.addLayout(cards)
+        supporting_header = QFrame()
+        supporting_header.setObjectName("SupportingHeader")
+        supporting_header_layout = QHBoxLayout(supporting_header)
+        supporting_header_layout.setContentsMargins(14, 8, 10, 8)
+        supporting_header_layout.setSpacing(10)
+        supporting_copy = QVBoxLayout()
+        supporting_copy.setSpacing(1)
+        supporting_title = QLabel("SUPPORTING EVIDENCE")
+        supporting_title.setObjectName("CardHeading")
+        self.supporting_summary = QLabel()
+        self.supporting_summary.setObjectName("SupportingSummary")
+        self.supporting_summary.setWordWrap(True)
+        supporting_copy.addWidget(supporting_title)
+        supporting_copy.addWidget(self.supporting_summary)
+        supporting_header_layout.addLayout(supporting_copy, 1)
+        self.details_button = QPushButton("Show evidence & guidance")
+        self.details_button.setObjectName("DetailToggle")
+        self.details_button.setCheckable(True)
+        self.details_button.setAccessibleName("Show Genesis supporting evidence and guidance")
+        self.details_button.toggled.connect(self._toggle_supporting_details)
+        supporting_header_layout.addWidget(self.details_button)
+        main.addWidget(supporting_header)
+
+        self.supporting_panel = QFrame()
+        self.supporting_panel.setObjectName("SupportingPanel")
+        supporting_panel_layout = QVBoxLayout(self.supporting_panel)
+        supporting_panel_layout.setContentsMargins(0, 0, 0, 0)
+        supporting_panel_layout.setSpacing(0)
+        self.supporting_grid = QGridLayout()
+        self.supporting_grid.setContentsMargins(0, 0, 0, 0)
+        self.supporting_grid.setHorizontalSpacing(12)
+        self.supporting_grid.setVerticalSpacing(12)
+        self.evidence_card, self.evidence = self._card("WHAT ROMVERSE FOUND")
+        self.recommendation_card, self.recommendation = self._card("ROMVERSE GUIDANCE")
+        self.supporting_grid.addWidget(self.evidence_card, 0, 0)
+        self.supporting_grid.addWidget(self.recommendation_card, 0, 1)
+        self.supporting_grid.setColumnStretch(0, 1)
+        self.supporting_grid.setColumnStretch(1, 1)
+        supporting_panel_layout.addLayout(self.supporting_grid)
+        main.addWidget(self.supporting_panel)
 
         next_card, self.next_outcome = self._card("WHAT HAPPENS NEXT")
+        next_card.setObjectName("OutcomeCard")
         main.addWidget(next_card)
 
         self.diagnostic_card, diagnostic_body = self._card("ROMVERSE DIAGNOSIS")
@@ -356,9 +421,11 @@ class GuidedBuildMission(QDialog):
 
         footer = QFrame()
         footer.setObjectName("MissionFooter")
-        footer_layout = QHBoxLayout(footer)
-        footer_layout.setContentsMargins(24, 14, 24, 14)
-        footer_layout.setSpacing(10)
+        footer_layout = QVBoxLayout(footer)
+        footer_layout.setContentsMargins(24, 11, 24, 13)
+        footer_layout.setSpacing(8)
+        utility_row = QHBoxLayout()
+        utility_row.setSpacing(8)
         self.back_button = QPushButton("←  Back")
         self.back_button.clicked.connect(self._back)
         self.learn_button = QPushButton("Learn this stage")
@@ -376,7 +443,7 @@ class GuidedBuildMission(QDialog):
         self.action_button.setObjectName("MissionAction")
         self.action_button.clicked.connect(self._run_stage)
         self.auto_button = QPushButton("Auto-resolve && continue")
-        self.auto_button.setObjectName("MissionNext")
+        self.auto_button.setObjectName("MissionAutopilot")
         self.auto_button.setToolTip(
             "Run consecutive safe local stages automatically. ROMVERSE pauses for firmware "
             "selection, customization choices, device authorization, backups, wipes, and final consent."
@@ -385,14 +452,29 @@ class GuidedBuildMission(QDialog):
         self.next_button = QPushButton("Next  →")
         self.next_button.setObjectName("MissionNext")
         self.next_button.clicked.connect(self._next)
-        footer_layout.addWidget(self.back_button)
-        footer_layout.addWidget(self.learn_button)
-        footer_layout.addWidget(self.save_button)
-        footer_layout.addStretch()
-        footer_layout.addWidget(self.skip_button)
-        footer_layout.addWidget(self.auto_button)
-        footer_layout.addWidget(self.action_button)
-        footer_layout.addWidget(self.next_button)
+        utility_row.addWidget(self.back_button)
+        utility_row.addWidget(self.learn_button)
+        utility_row.addWidget(self.save_button)
+        utility_row.addStretch()
+        utility_row.addWidget(self.auto_button)
+        footer_layout.addLayout(utility_row)
+
+        primary_row = QHBoxLayout()
+        primary_row.setSpacing(8)
+        primary_copy = QVBoxLayout()
+        primary_copy.setSpacing(0)
+        primary_label = QLabel("NEXT SAFE ACTION")
+        primary_label.setObjectName("ActionEyebrow")
+        self.action_context = QLabel()
+        self.action_context.setObjectName("ActionContext")
+        self.action_context.setWordWrap(True)
+        primary_copy.addWidget(primary_label)
+        primary_copy.addWidget(self.action_context)
+        primary_row.addLayout(primary_copy, 1)
+        primary_row.addWidget(self.skip_button)
+        primary_row.addWidget(self.action_button)
+        primary_row.addWidget(self.next_button)
+        footer_layout.addLayout(primary_row)
         root.addWidget(footer)
 
         self.studio.operation_started.connect(self._operation_started)
@@ -402,6 +484,7 @@ class GuidedBuildMission(QDialog):
         self.studio.device_context_changed.connect(self._root_device_context_changed)
         self.studio.device_scan_finished.connect(self._device_scan_finished)
         self._refresh(select_current=True)
+        self._apply_responsive_layout()
 
     def showEvent(self, event) -> None:
         super().showEvent(event)
@@ -415,6 +498,11 @@ class GuidedBuildMission(QDialog):
             frame = self.frameGeometry()
             frame.moveCenter(parent.window().frameGeometry().center())
             self.move(frame.topLeft())
+        self._apply_responsive_layout()
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._apply_responsive_layout()
 
     def closeEvent(self, event) -> None:
         self._save_state()
@@ -580,6 +668,60 @@ class GuidedBuildMission(QDialog):
         layout.addWidget(body)
         return card, body
 
+    def _apply_responsive_layout(self) -> None:
+        """Keep the mission readable without hiding controls at the minimum window size."""
+
+        if not hasattr(self, "supporting_grid"):
+            return
+        compact = self.width() < 1120
+        if compact == self._supporting_compact:
+            return
+        self._supporting_compact = compact
+        self.rail_scroll.setFixedWidth(238 if compact else 285)
+        for button in self.stage_buttons:
+            button.setMinimumHeight(50 if compact else 58)
+        self.main_layout.setContentsMargins(
+            22 if compact else 34,
+            20 if compact else 28,
+            22 if compact else 34,
+            20 if compact else 24,
+        )
+        self.supporting_grid.removeWidget(self.evidence_card)
+        self.supporting_grid.removeWidget(self.recommendation_card)
+        if compact:
+            self.supporting_grid.addWidget(self.evidence_card, 0, 0)
+            self.supporting_grid.addWidget(self.recommendation_card, 1, 0)
+            self.supporting_grid.setColumnStretch(0, 1)
+            self.supporting_grid.setColumnStretch(1, 0)
+        else:
+            self.supporting_grid.addWidget(self.evidence_card, 0, 0)
+            self.supporting_grid.addWidget(self.recommendation_card, 0, 1)
+            self.supporting_grid.setColumnStretch(0, 1)
+            self.supporting_grid.setColumnStretch(1, 1)
+
+    def _toggle_supporting_details(self, visible: bool) -> None:
+        self._details_user_choice = bool(visible)
+        self._set_supporting_details(bool(visible))
+
+    def _set_supporting_details(self, visible: bool) -> None:
+        self.supporting_panel.setVisible(visible)
+        self.details_button.blockSignals(True)
+        self.details_button.setChecked(visible)
+        self.details_button.setText(
+            "Hide evidence & guidance" if visible else "Show evidence & guidance"
+        )
+        self.details_button.setAccessibleName(
+            ("Hide" if visible else "Show") + " Genesis supporting evidence and guidance"
+        )
+        self.details_button.blockSignals(False)
+
+    def _animate_stage_transition(self) -> None:
+        self.stage_transition.stop()
+        if self.studio.app_settings.reduced_motion or not self.isVisible():
+            self.task_effect.setOpacity(1.0)
+            return
+        self.stage_transition.start()
+
     def _load_state(self) -> GuidedMissionState:
         if self.studio.current_project is None:
             return GuidedMissionState()
@@ -743,9 +885,10 @@ class GuidedBuildMission(QDialog):
         stage = assessment.stage
         if stage.stage_id == "root_choice" and assessment.status is not GuidedStageStatus.LOCKED:
             self._ensure_root_entry_preview()
-        self.step_label.setText(
-            f"STAGE {stage.number:02d} OF {len(STAGES):02d}  •  {assessment.status.value.upper()}"
-        )
+        status_label = assessment.status.value.upper()
+        expert = self.studio.app_settings.experience_mode.value == "expert"
+        self.mode_badge.setText("ARCHITECT  •  DEEP VIEW" if expert else "GUIDED  •  ARCANA")
+        self.step_label.setText(f"CURRENT TASK  •  STAGE {stage.number:02d} OF {len(STAGES):02d}")
         self.stage_title.setText(stage.title)
         self.stage_detail.setText(stage.explanation)
         self.evidence.setText(
@@ -762,6 +905,27 @@ class GuidedBuildMission(QDialog):
             )
         self.recommendation.setText(recommendation)
         self.next_outcome.setText(assessment.next_outcome)
+        evidence_count = len(assessment.evidence)
+        blocker_count = len(assessment.blockers)
+        self.supporting_summary.setText(
+            f"{evidence_count} verified item{'s' if evidence_count != 1 else ''}"
+            + (
+                f"  •  {blocker_count} item{'s' if blocker_count != 1 else ''} need attention"
+                if blocker_count
+                else "  •  no reported blocker"
+            )
+        )
+        if self._details_user_choice is None:
+            self._set_supporting_details(
+                assessment.status
+                in {
+                    GuidedStageStatus.ATTENTION,
+                    GuidedStageStatus.LOCKED,
+                    GuidedStageStatus.FUTURE,
+                }
+                or self.failure is not None
+                or expert
+            )
 
         status_copy = {
             GuidedStageStatus.COMPLETE: "Verified — this stage is backed by project evidence.",
@@ -777,9 +941,25 @@ class GuidedBuildMission(QDialog):
             ),
         }[assessment.status]
         self.status_text.setText(status_copy)
+        self.status_icon.setText(
+            {
+                GuidedStageStatus.COMPLETE: "✓",
+                GuidedStageStatus.READY: "◆",
+                GuidedStageStatus.ATTENTION: "!",
+                GuidedStageStatus.LOCKED: "•",
+                GuidedStageStatus.FUTURE: "◇",
+            }[assessment.status]
+        )
+        self.status_icon.setProperty("stageStatus", assessment.status.value)
+        self.status_icon.style().unpolish(self.status_icon)
+        self.status_icon.style().polish(self.status_icon)
+        self.status_text.setAccessibleName(f"Stage status {status_label}: {status_copy}")
         self.status_banner.setProperty("stageStatus", assessment.status.value)
         self.status_banner.style().unpolish(self.status_banner)
         self.status_banner.style().polish(self.status_banner)
+        self.task_card.setProperty("stageStatus", assessment.status.value)
+        self.task_card.style().unpolish(self.task_card)
+        self.task_card.style().polish(self.task_card)
 
         busy = bool(self.studio.worker or self.active_operation)
         self.action_button.setText("Processing stage …" if busy else stage.action_label)
@@ -817,6 +997,30 @@ class GuidedBuildMission(QDialog):
             and self.selected_index < len(self.assessments) - 1
             and not busy
         )
+        action_is_primary = self.action_button.isEnabled() and assessment.status not in {
+            GuidedStageStatus.COMPLETE,
+            GuidedStageStatus.LOCKED,
+        }
+        next_is_primary = self.next_button.isEnabled()
+        self.action_button.setProperty("primary", action_is_primary)
+        self.next_button.setProperty("primary", next_is_primary)
+        for button in (self.action_button, self.next_button):
+            button.style().unpolish(button)
+            button.style().polish(button)
+        if busy:
+            self.action_context.setText("ROMVERSE is completing the current verified local task.")
+        elif next_is_primary:
+            self.action_context.setText("This task is verified. Continue to the next stage.")
+        elif action_is_primary:
+            self.action_context.setText(
+                f"Choose “{self.action_button.text()}” to resolve this stage."
+            )
+        elif assessment.status is GuidedStageStatus.LOCKED:
+            self.action_context.setText("Return to the highlighted prerequisite before continuing.")
+        else:
+            self.action_context.setText(
+                "Review the visible evidence and choose the available route."
+            )
         self.back_button.setEnabled(self.selected_index > 0 and not busy)
         self.save_button.setText(
             "Finish local build"
@@ -856,8 +1060,10 @@ class GuidedBuildMission(QDialog):
     def _select_stage(self, index: int) -> None:
         self.selected_index = index
         self.failure = None
+        self._details_user_choice = None
         self._save_state()
         self._refresh()
+        self._animate_stage_transition()
 
     def _back(self) -> None:
         if self.selected_index > 0:
@@ -1665,9 +1871,15 @@ class GuidedBuildMission(QDialog):
                 color: #40DDF2; font-size: 11px; font-weight: 800; letter-spacing: 2px;
             }
             QLabel#MissionTitle { color: #FFFFFF; font-size: 22px; font-weight: 800; }
+            QLabel#ModeBadge {
+                color: #E4D5FF; background: #170E29; border: 1px solid #5E3B84;
+                border-radius: 11px; padding: 7px 11px; font-size: 10px;
+                font-weight: 850; letter-spacing: 1px;
+            }
             QLabel#GuardianBadge {
                 color: #42F0AD; background: #071A18; border: 1px solid #147A5B;
-                border-radius: 12px; padding: 8px 13px; font-weight: 800;
+                border-radius: 11px; padding: 7px 11px; font-size: 10px; font-weight: 850;
+                letter-spacing: .6px;
             }
             QLabel#MissionMuted { color: #91A2C4; font-size: 11px; font-weight: 700; }
             QProgressBar { background: #0C1321; border: 1px solid #1C2D48; border-radius: 3px; }
@@ -1700,6 +1912,18 @@ class GuidedBuildMission(QDialog):
                 color: #FFFFFF; background: qlineargradient(x1:0,y1:0,x2:1,y2:0,
                 stop:0 #24113A, stop:1 #0B1A32); border: 1px solid #A149EC;
             }
+            QFrame#MissionTaskCard {
+                background: qlineargradient(x1:0,y1:0,x2:1,y2:1,
+                    stop:0 rgba(12,18,34,252), stop:.62 rgba(6,13,25,252),
+                    stop:1 rgba(12,9,27,248));
+                border: 1px solid #2B3C58; border-left: 3px solid #536C96;
+                border-radius: 14px;
+            }
+            QFrame#MissionTaskCard[stageStatus="complete"] { border-left-color: #44E39A; }
+            QFrame#MissionTaskCard[stageStatus="ready"] { border-left-color: #36DCEA; }
+            QFrame#MissionTaskCard[stageStatus="attention"] { border-left-color: #FFB454; }
+            QFrame#MissionTaskCard[stageStatus="locked"] { border-left-color: #66758E; }
+            QFrame#MissionTaskCard[stageStatus="future"] { border-left-color: #A855F7; }
             QLabel#StageTitle { color: #FFFFFF; font-size: 28px; font-weight: 800; }
             QLabel#MissionBody { color: #BAC7DE; font-size: 14px; }
             QFrame#StatusBanner {
@@ -1707,28 +1931,75 @@ class GuidedBuildMission(QDialog):
             }
             QFrame#StatusBanner[stageStatus="complete"] { border-color: #177657; background: #061712; }
             QFrame#StatusBanner[stageStatus="attention"] { border-color: #7A5720; background: #171207; }
+            QFrame#StatusBanner[stageStatus="locked"] { border-color: #34425A; background: #090E17; }
             QFrame#StatusBanner[stageStatus="future"] { border-color: #58377B; background: #11091B; }
             QFrame#ProcessCard {
                 background: #07111E; border: 1px solid #29486A; border-radius: 10px;
             }
             QLabel#StatusIcon { color: #42DFF0; font-size: 18px; }
+            QLabel#StatusIcon[stageStatus="complete"] { color: #44E39A; }
+            QLabel#StatusIcon[stageStatus="attention"] { color: #FFB454; }
+            QLabel#StatusIcon[stageStatus="locked"] { color: #74829D; }
+            QLabel#StatusIcon[stageStatus="future"] { color: #C58AFF; }
             QLabel#StatusText { color: #D9E5F7; font-weight: 700; }
             QFrame#MissionCard {
                 background: #050A12; border: 1px solid #1B2B43; border-radius: 12px;
             }
+            QFrame#SupportingHeader {
+                background: rgba(6,12,23,235); border: 1px solid #1D2C43;
+                border-radius: 10px;
+            }
+            QFrame#SupportingPanel { background: transparent; border: 0; }
+            QLabel#SupportingSummary { color: #8999B7; font-size: 11px; }
+            QPushButton#DetailToggle {
+                color: #D8C4F4; background: #110D1C; border-color: #513874;
+                padding: 7px 11px; font-size: 11px;
+            }
+            QPushButton#DetailToggle:hover, QPushButton#DetailToggle:checked {
+                color: #FFFFFF; background: #1D1231; border-color: #9660C8;
+            }
+            QFrame#OutcomeCard {
+                background: rgba(5,16,25,245); border: 1px solid #214659;
+                border-left: 3px solid #35D7E7; border-radius: 11px;
+            }
             QLabel#CardBody { color: #AEBBD2; font-size: 13px; }
             QFrame#DiagnosticCard { background: #170A11; border: 1px solid #8C304D; border-radius: 12px; }
             QLabel#DiagnosticTitle { color: #FF789A; font-size: 17px; font-weight: 800; }
-            QFrame#MissionFooter { background: #040812; border-top: 1px solid #1C2E48; }
+            QFrame#MissionFooter {
+                background: qlineargradient(x1:0,y1:0,x2:1,y2:0,
+                    stop:0 #040812, stop:.58 #060B16, stop:1 #0B0816);
+                border-top: 1px solid #263958;
+            }
+            QLabel#ActionEyebrow {
+                color: #42DDEA; font-size: 9px; font-weight: 850; letter-spacing: 1.5px;
+            }
+            QLabel#ActionContext { color: #98A8C3; font-size: 11px; }
             QPushButton#MissionAction {
-                color: #061019; background: #39D9EF; border-color: #7DEFFF; padding: 11px 18px;
+                color: #B8DCE4; background: #09131C; border-color: #315865;
+                padding: 11px 18px; min-height: 20px;
             }
-            QPushButton#MissionAction:hover { background: #79EAF7; }
+            QPushButton#MissionAction:hover { color: #FFFFFF; background: #10242E; border-color: #62DBE8; }
+            QPushButton#MissionAction[primary="true"] {
+                color: #031116; background: qlineargradient(x1:0,y1:0,x2:1,y2:0,
+                    stop:0 #49DCE9, stop:1 #34BDD8); border-color: #8AF3FA;
+            }
+            QPushButton#MissionAction[primary="true"]:hover { background: #78E8F2; }
             QPushButton#MissionNext {
-                color: #04140F; background: #35D69C; border-color: #71F1BE; padding: 11px 18px;
+                color: #8AAFA1; background: #091511; border-color: #285443;
+                padding: 11px 18px; min-height: 20px;
             }
+            QPushButton#MissionNext[primary="true"] {
+                color: #04140F; background: #35D69C; border-color: #71F1BE;
+            }
+            QPushButton#MissionNext[primary="true"]:hover { background: #68E6B7; }
             QPushButton#MissionNext:disabled { color: #506078; background: #09101A; border-color: #1D2B40; }
+            QPushButton#MissionAutopilot {
+                color: #D9C6F2; background: #100C1C; border-color: #513471;
+                padding: 9px 14px;
+            }
+            QPushButton#MissionAutopilot:hover { color: #FFFFFF; background: #211337; border-color: #A45DE3; }
             QPushButton#SecondaryAction { color: #DFC2FF; border-color: #6E3D9B; }
+            QPushButton:focus { border: 2px solid #FFFFFF; }
         """
 
 

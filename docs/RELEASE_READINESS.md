@@ -412,6 +412,20 @@ bundle contains 458 files and expands to 356,235,234 bytes; its 146,942,730-byte
 SHA-256 `2b8a480e6360cd2f35c2e59d6e6df4712933d32872d7b29d8a3c7f30bbe334c1`, and a fresh
 frozen-application first-launch smoke passed.
 
+The subsequent Desktop mission-control polish increment passes all 1,725 Desktop tests and complete
+Ruff check/format gates across 389 Python and release-script files. Genesis now has a current-task,
+expandable-evidence, next-safe-action hierarchy; a single advancing action owns primary emphasis;
+compact width stacks supporting cards; and its 170 ms stage transition remains static when Reduced
+Motion is enabled. Forge Control now opens with exact verified/attention/blocked counts and one
+ranked resolution, collapses pass-only phases in Guided Mode, expands every unresolved phase, and
+keeps specialist build controls behind an explicit reveal while Architect Mode exposes the full
+surface. Local-build completion demotes automatic resolution so optional flash evidence cannot look
+like a repeated build failure. Shared cards, menus, fields, focus rings, and both scrollbar axes use
+one high-contrast layered theme with semantic green/cyan/amber/red states. Offscreen visual review at
+1200×790 and 980×680 for Genesis and 1240×820 and 1040×700 for Forge Control confirmed readable
+copy, unclipped actions, and zero horizontal content overflow. This work changed presentation only;
+it added no flash authority and performed no phone or firmware operation.
+
 ## Required gates
 
 1. Run the complete `pytest`, `ruff check .`, and `ruff format --check .` gates on supported Linux

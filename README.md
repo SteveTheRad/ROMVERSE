@@ -437,6 +437,10 @@ phone. Native tables, lists, trees, text editors, and scrolling surfaces use exp
 styling so the Desktop remains readable under host themes. The genuine
 **Live Console** records tamper-detecting ROM Studio, Device DNA, Compatibility Matrix, and Nexus
 events with real progress and explicit success/failure states instead of decorative activity.
+The shared Desktop theme uses layered graphite/blue-black surfaces, restrained violet/cyan brand
+accents, consistent field hover/focus rings, polished popup menus, explicit disabled controls, and
+matched vertical/horizontal scrollbars. Status colors are semantic rather than decorative, so the
+interface can remain cinematic without turning every control into a competing neon signal.
 Nexus Plans are private bounded strict schema-two records. Every load re-derives understanding,
 research gaps, Pathfinder stages, Foresight predictions, Insight decisions, and Guardian
 requirements from the exact current Device DNA and Compatibility Matrix; a re-digested edit cannot
@@ -555,6 +559,14 @@ Forge Control refreshes detach stale cards immediately, preserve the scroll cont
 height, and group build preparation separately from workflow actions. This prevents old evidence
 rows or compressed footer buttons from overlapping after automatic refresh. The footer reports
 blocked and attention counts separately so an amber contract cannot look complete.
+Its mission-control presentation now starts with one readiness summary and one next safe resolution.
+Guided Mode collapses phases whose rows are already fully verified and keeps the six specialist
+build controls behind **Show build tools**; unresolved phases remain expanded. Architect Mode opens
+both without discarding evidence. The footer gives Auto-resolve the only prominent action treatment
+while local preparation is incomplete, and makes it secondary after the local ROM is complete so
+optional phone-installation requirements cannot look like another failed build loop. Green is used
+only for a verified milestone; workspace/build progress is cyan, attention is amber, and blocking
+evidence is red.
 For an exact flash-validated custom AVB re-chain, Forge Control can export a content-addressed
 offline signing request and import the resulting `product.img` and `vbmeta_system.img`.
 ROMVERSE verifies the Pack-authorized public-key fingerprint, algorithm, rollback fields,
@@ -798,6 +810,13 @@ shows plain-language instruction, live evidence, recommendations, blockers, and 
 next outcome. Safe local stages invoke the real ROM Studio workers and resume from saved
 project evidence. Failures are classified into actionable diagnoses; known incomplete
 transaction files can be cleaned automatically inside tightly bounded workspace paths.
+Genesis now presents those facts in three deliberate zones: the current task, expandable supporting
+evidence/guidance, and a fixed next-safe-action dock. Only the action that can advance the current
+stage receives primary emphasis; verified stages promote **Next**, while Auto-resolve, learning,
+save, and review controls remain visibly secondary. Guided Mode folds the evidence section until it
+is needed; Attention, Locked, Future, and Architect deep-view states expand it automatically. The
+stage rail and evidence cards reflow at compact desktop widths without horizontal scrolling, and a
+brief task transition is disabled when Reduced Motion is enabled.
 Every stage also offers **Learn this stage**, which opens ROMVERSE Archives on a bounded,
 stage-specific verified guide instead of leaving a beginner to translate a technical blocker or
 search the knowledge library manually. Returning to Genesis preserves the selected stage and

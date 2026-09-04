@@ -11,7 +11,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtWidgets import QApplication, QLabel, QMessageBox, QPushButton
 
 from romverse.backup.handoff import BackupHandoffService, CloudBackupProvider
-from romverse.core.settings import AppSettings
+from romverse.core.settings import AppSettings, ExperienceMode
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device_packs.models import (
     CapabilityStatus,
@@ -443,6 +443,8 @@ def test_build_control_cards_explain_and_route_blocked_gates(tmp_path) -> None:
     app = QApplication.instance() or QApplication([])
     studio = _studio(tmp_path)
     control = BuildControlCenter(studio, auto_start=False)
+    control.show()
+    control.resize(1040, 700)
     app.processEvents()
 
     blocked = control.gate_rows["device-pack-build"]
@@ -460,6 +462,21 @@ def test_build_control_cards_explain_and_route_blocked_gates(tmp_path) -> None:
     assert any("Root is optional" in label.text() for label in control.findChildren(QLabel))
     assert control.autopilot_button.text() == "Auto-resolve && continue"
     assert "authoritative input" in control.autopilot_button.toolTip()
+    assert control.autopilot_button.property("primary") is True
+    assert control.overall_badge.property("readinessState") == "progress"
+    assert any(
+        label.text() == "5 verified  •  4 need attention  •  9 blocked"
+        for label in control.findChildren(QLabel)
+    )
+    assert control.phase_bodies["Workspace"].isHidden()
+    assert control.phase_toggles["Workspace"].text() == "Show details"
+    assert not control.phase_bodies["Build"].isHidden()
+    assert control.phase_toggles["Build"].text() == "Hide details"
+    assert control.content_scroll.horizontalScrollBar().maximum() == 0
+
+    control.phase_toggles["Workspace"].click()
+    assert not control.phase_bodies["Workspace"].isHidden()
+    assert control.phase_toggles["Workspace"].accessibleName().startswith("Hide Workspace")
 
     opened: list[str] = []
     studio.device_packs_requested.connect(opened.append)
@@ -540,6 +557,21 @@ def test_refresh_removes_stale_cards_and_footer_actions_remain_aligned(tmp_path)
         "Verify local build completion",
         "Close",
     }
+    visible_footer_buttons = tuple(
+        button
+        for button in control.findChildren(QPushButton)
+        if button.text() in footer_labels and button.isVisible()
+    )
+    assert {button.text() for button in visible_footer_buttons} == {
+        "Refresh evidence",
+        "Export evidence bundle",
+        "Review optional flash requirements",
+        "Verify local build completion",
+        "Close",
+    }
+    assert control.build_tools_toggle.text() == "Show build tools"
+    control.build_tools_toggle.click()
+    app.processEvents()
     footer_buttons = tuple(
         button
         for button in control.findChildren(QPushButton)
@@ -552,6 +584,23 @@ def test_refresh_removes_stale_cards_and_footer_actions_remain_aligned(tmp_path)
         for right in footer_buttons[index + 1 :]
     )
     assert all(button.width() >= button.sizeHint().width() for button in footer_buttons)
+    control.close()
+    studio.close()
+
+
+def test_forge_expert_view_reveals_verified_phases_and_specialist_tools(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    studio = _studio(tmp_path)
+    studio.app_settings = replace(
+        studio.app_settings,
+        experience_mode=ExperienceMode.EXPERT,
+    )
+    control = BuildControlCenter(studio, auto_start=False)
+
+    assert not control.build_tools_panel.isHidden()
+    assert control.build_tools_toggle.text() == "Hide build tools"
+    assert all(not body.isHidden() for body in control.phase_bodies.values())
+
     control.close()
     studio.close()
 

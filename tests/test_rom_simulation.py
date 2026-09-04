@@ -279,6 +279,7 @@ def test_digital_twin_rehearses_exact_plan_and_creates_inert_mission(tmp_path, m
     assert mission.status == "prepared-for-rom-studio-review"
     assert not mission.phone_changed
     assert mission.execution_authority == "none"
+    assert service.load_mission(project.project_id) == mission
 
 
 def test_digital_twin_blocks_missing_dna_write_contract_and_rollback(tmp_path):

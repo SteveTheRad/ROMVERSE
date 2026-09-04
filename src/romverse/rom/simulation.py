@@ -467,6 +467,47 @@ class RomSimulationService:
         )
         return mission
 
+    def load_mission(self, project_id: str) -> SimulationMission | None:
+        try:
+            data = read_json_object(
+                self.store.projects_root / project_id / self.MISSION_NAME,
+                boundary=self.store.workspace,
+                maximum_bytes=self.MAX_BYTES,
+            )
+            if data.pop("format") != self.MISSION_FORMAT:
+                return None
+            data["operation_ids"] = tuple(data["operation_ids"])
+            mission = SimulationMission(**data)
+            payload = asdict(mission)
+            digest = payload.pop("mission_digest", "")
+            receipt = self.load(project_id)
+            if (
+                mission.schema_version != 1
+                or not re.fullmatch(r"[0-9a-f]{32}", mission.mission_id)
+                or mission.project_id != project_id
+                or receipt is None
+                or not receipt.successful
+                or receipt.expert_edits
+                or mission.simulation_id != receipt.simulation_id
+                or mission.simulation_digest != receipt.receipt_digest
+                or mission.operation_ids != tuple(item.operation_id for item in receipt.operations)
+                or mission.status != "prepared-for-rom-studio-review"
+                or mission.phone_changed
+                or mission.execution_authority != "none"
+                or digest != _digest(payload)
+            ):
+                return None
+            return mission
+        except (
+            OSError,
+            ValueError,
+            TypeError,
+            KeyError,
+            json.JSONDecodeError,
+            ProjectError,
+        ):
+            return None
+
     def load(self, project_id: str) -> RomSimulationReceipt | None:
         path = self.store.projects_root / project_id / self.RECEIPT_NAME
         try:

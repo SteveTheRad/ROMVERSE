@@ -1339,6 +1339,20 @@ and cannot become a mission. Only an unmodified successful rehearsal can create 
 mission receipt; simulation and mission creation both retain execution authority none, send no
 device command and change no phone.
 
+**Release Forge** now turns that current build and unmodified Digital Twin mission into a
+content-addressed local release plan. It distinguishes development, testing and public tiers;
+creates full, incremental and recovery capsules; replaces eligible outputs with the exact verified
+offline-signed artifacts; and refuses to imply that a pre-signing `super.img` became signed. Its
+signed-final-assembly action reruns the Device Pack's exact `lpmake` geometry using the externally
+signed child partition, unpacks the new container and byte-compares every logical partition before
+recording authority. Each deterministic ZIP contains the exact artifacts, a strict manifest,
+`SHA256SUMS`, changelog, installation guide and release-certificate payload, then is reopened and
+fully verified before it is offered for external export. Public certificate signatures use
+Ed25519 outside ROMVERSE; only the public key and signature are imported and reverified. Private
+keys are never requested or stored. Built-in secret and unexpected-file screening states its
+opaque-image limitation, public releases remain dependent on genuine First Light hardware evidence,
+and Release Forge never publishes, flashes or sends a device command.
+
 ## Linux quick start
 
 Ubuntu 24.04+, Fedora 44, and Python 3.11–3.14 are supported for development.

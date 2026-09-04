@@ -141,6 +141,10 @@ class ProjectVaultService:
         "device-build-plan": "device-build-plan.romverse",
         "digital-twin": "device-digital-twin.romverse",
         "simulation-mission": "simulation-mission.romverse",
+        "signed-super-assembly": "signed-super-assembly-receipt.romverse",
+        "release-forge-plan": "release-forge-plan.romverse",
+        "release-certificate": "release-certificate-signature.romverse",
+        "release-bundle": "release-bundle-receipt.romverse",
     }
 
     def __init__(self, store: RomProjectStore) -> None:

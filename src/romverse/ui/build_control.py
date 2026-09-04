@@ -113,6 +113,7 @@ from romverse.rom.readiness import (
 )
 from romverse.rom.rebuild_metadata import RebuildMetadataService
 from romverse.rom.recovery_evidence import RecoveryEvidenceService
+from romverse.rom.release_forge import ReleaseForgeService
 from romverse.rom.signing_ceremony import (
     OfflineSigningCeremonyService,
     OfflineSigningReceipt,
@@ -131,6 +132,7 @@ from romverse.ui.backup_center import RecoveryEvidenceWorker
 from romverse.ui.guided_mission import GuidedBuildMission
 from romverse.ui.phone_backup import PhoneMediaBackupDialog, PhoneMediaBackupWorker
 from romverse.ui.process_progress import ProcessProgressBar
+from romverse.ui.release_forge import ReleaseForgeDialog
 from romverse.ui.simulation_lab import DigitalTwinDialog
 
 
@@ -1403,6 +1405,13 @@ class BuildControlCenter(QDialog):
             "verification and rollback without sending any command to a phone."
         )
         self.simulate_button.clicked.connect(self._simulate)
+        self.release_button = QPushButton("Open Release Forge")
+        self.release_button.setObjectName("ForgeSecondaryAction")
+        self.release_button.setToolTip(
+            "Create full, incremental or recovery release capsules from exact build, "
+            "signing and Simulation Lab evidence. Release Forge cannot publish or touch a phone."
+        )
+        self.release_button.clicked.connect(self._release_forge)
         self.autopilot_button = QPushButton("Auto-resolve && continue")
         self.autopilot_button.setObjectName("ForgePrimaryAction")
         self.autopilot_button.setToolTip(
@@ -1429,6 +1438,7 @@ class BuildControlCenter(QDialog):
                 self.build_button,
                 self.avb_button,
                 self.signing_button,
+                self.release_button,
             )
         ):
             build_actions.addWidget(button, index // 3, index % 3)
@@ -3215,6 +3225,7 @@ class BuildControlCenter(QDialog):
             self.build_button,
             self.avb_button,
             self.signing_button,
+            self.release_button,
             self.close_button,
         ):
             button.setEnabled(enabled)
@@ -3255,6 +3266,25 @@ class BuildControlCenter(QDialog):
             + f"  •  confidence {final_receipt.confidence_percent}% "
             f"{final_receipt.confidence_label}  •  phone changed: NO  •  "
             f"receipt: {simulator.RECEIPT_NAME}"
+        )
+
+    def _release_forge(self) -> None:
+        service = ReleaseForgeService(
+            self.studio.store,
+            self.studio.pack_registry,
+            self.studio.tool_statuses,
+        )
+        dialog = ReleaseForgeDialog(
+            service,
+            self.project.project_id,
+            self,
+            reduced_motion=self.studio.app_settings.reduced_motion,
+        )
+        dialog.exec()
+        self.refresh()
+        self.status.setText(
+            "Release Forge closed  •  local release evidence refreshed  •  "
+            "publishing authority: NONE  •  phone changed: NO"
         )
 
     def _prepare_build_plan(self) -> None:

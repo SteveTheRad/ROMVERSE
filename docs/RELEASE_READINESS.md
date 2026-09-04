@@ -1418,6 +1418,35 @@ The product-wide continuation target and definition of done are recorded in
   suites pass, as does the complete Desktop regression suite.
 - Approved ROMVERSE and RadForge Labs logo files were not edited.
 
+## 2026-09-05 Release Forge checkpoint
+
+- Forge Control now opens a dedicated large-format Release Forge for development, testing and
+  public full, incremental and recovery packages. Every gate explains its current evidence and the
+  direct next action; the interface exposes no publish control and reports `PHONE CHANGED: NO`.
+- Release plans bind the protected source, Device Pack, current local-build receipt, successful
+  unmodified Digital Twin mission, signing receipt, security-screen digest and exact artifact hashes.
+  Changed inputs invalidate planning or packaging instead of silently producing another result.
+- A signed `product.img` no longer causes an older `super.img` to appear signed. The signed-final-
+  assembly path reruns exact Device Pack geometry, unpacks the resulting sparse image, byte-compares
+  every logical partition and saves a strict current-evidence receipt. Testing/public tiers block
+  until this exists whenever the build includes `super.img`.
+- Release certificate requests leave the workspace for an external Ed25519 signer. ROMVERSE imports
+  and cryptographically verifies the signature and public key, never accepts or stores private-key
+  material, and rechecks the signature when loading evidence and verifying a capsule.
+- Deterministic capsules contain only the planned Android artifacts plus a strict manifest,
+  certificate, checksums, changelog and installation guide. Archive paths, member types, storage
+  method, sizes, hashes, manifest identity, checksum ledger and safety boundary are all revalidated.
+  Incremental plans require a complete locally reverified full capsule and contain only changed
+  artifacts while recording unchanged hashes.
+- Accidental-secret and unexpected executable-surface checks are bounded and fail closed. The UI
+  explicitly states that opaque partition images still require trusted extraction or an external
+  scanner for a content-level malware claim. Public packaging remains blocked until Stage 9 supplies
+  genuine current First Light hardware evidence.
+- Release Forge plan, certificate, signed-assembly and bundle receipts are included in readiness
+  evidence exports and Project Vault fingerprints. Focused service/UI, Simulation Lab, Forge Control,
+  readiness and Project Vault regression suites pass. Approved ROMVERSE and RadForge Labs logo files
+  were not edited.
+
 ## Honest feature boundary
 
 The current safe milestone supports read-only Android evidence, local diagnostics, guarded APK

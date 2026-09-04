@@ -36,6 +36,7 @@ from romverse.rom.payloads import PayloadService
 from romverse.rom.projects import RomProjectStore
 from romverse.rom.recipes import RecipeStore, load_run_receipt
 from romverse.rom.recovery_evidence import RecoveryEvidenceService
+from romverse.rom.release_forge import ReleaseForgeService
 from romverse.rom.signing_ceremony import OfflineSigningCeremonyService
 from romverse.rom.simulation import RomSimulationService
 from romverse.rom.source_blueprint import FastbootSourceBlueprintService
@@ -1077,6 +1078,13 @@ class BuildReadinessService:
             ("avb-topology", project_dir / AvbEvidenceService.RECEIPT_NAME),
             ("device-digital-twin", project_dir / RomSimulationService.RECEIPT_NAME),
             ("simulation-mission", project_dir / RomSimulationService.MISSION_NAME),
+            ("signed-super-assembly", project_dir / ReleaseForgeService.ASSEMBLY_NAME),
+            ("release-forge-plan", project_dir / ReleaseForgeService.PLAN_NAME),
+            (
+                "release-certificate",
+                project_dir / ReleaseForgeService.SIGNATURE_NAME,
+            ),
+            ("release-bundle", project_dir / ReleaseForgeService.RECEIPT_NAME),
         )
         artifacts: list[tuple[str, str, str]] = []
         for label, path in candidates:

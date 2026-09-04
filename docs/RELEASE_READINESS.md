@@ -361,6 +361,36 @@ artifacts include no production runtime binary or private key and grant no flash
 GitHub CI, production enrollment/process isolation, cross-transport identity and physical-device
 validation remain outstanding. No phone action was performed.
 
+The exact Samsung discovery and Guardian candidate-inspection checkpoint at application commit
+`d8b123245bab890d5556c5a24ac07d359a052848` passes all 1,718 Desktop tests plus complete Ruff
+check/format gates across 389 Python and release-script files. A physically connected Samsung
+`SM-S928B` reported `e3q`; every bounded read-only identity/health probe completed without timeout,
+and the tamper-evident identity receipt resolved Galaxy S24 Ultra through the verified local Google
+Play supported-devices catalog. The new exact Pack requires both identifiers, so an unobserved
+regional sibling or different codename remains on the family Samsung Pack. This is discovery and
+diagnostic evidence only: firmware layout, download mode, Knox state, recovery, build, signing and
+flash remain unvalidated and locked. Audit logs retain operation/result metadata but no ADB stdout or
+raw serial, and the local identity receipt retains no personal phone content.
+
+Guardian Core now includes an off-interface-thread Runtime Candidate Inspector. It verifies one
+selected release-signed package, independently supplied Ed25519 release public key and expected key
+ID, exposes exact release/runtime/adapter/manifest/artifact fingerprints, and labels a pass
+`CHECK PASSED • NOT ENROLLED`. Tests prove altered bytes are rejected and neither success nor
+failure launches a runtime, retains selected paths, enrolls trust, opens device access, creates final
+consent, or changes a phone. The Companion Atlas is regenerated from the same Pack registry and its
+unit tests prove exact `SM-S928B`/`e3q` recognition plus sibling fallback; Companion unit tests,
+debug assembly and Android lint all pass with Java 17 and Gradle 8.11.1.
+
+The fresh isolated 255-member wheel contains all 22 Device Packs. It is 7,956,045 bytes with
+SHA-256 `ccc180ae326e0663059ccd29f9facad227f06482cce3ed283ba81373514af2d6` and passes
+fresh/populated installed smoke with all 280 offline evidence records, 169 known fixes and 19 Desktop
+routes. The self-contained Fedora app launches successfully; its verified 458-file,
+356,228,074-expanded-byte portable ZIP is 146,936,259 bytes with SHA-256
+`25be8f51974aac20ebe88c2a682eef7ea5ba899705d1d4aa896e4c51f716f5b3`. The locally built,
+development-signed Companion debug APK is 9,387,722 bytes with SHA-256
+`759a778967eaf22a0357b58b23e3dc3dfb5ea43c3f591cf0859390aefce88020`; it is test evidence,
+not a public release artifact. No phone action was performed during this checkpoint.
+
 ## Required gates
 
 1. Run the complete `pytest`, `ruff check .`, and `ruff format --check .` gates on supported Linux

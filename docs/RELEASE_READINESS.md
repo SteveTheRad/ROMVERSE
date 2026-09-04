@@ -1383,6 +1383,14 @@ first-launch smoke passed.
   opt-in sound, complete navigation controls, and an existing reduced-motion path.
 - Ruff format/check and the complete Desktop test suite pass at this checkpoint. These presentation
   and read-only orchestration improvements add no phone-changing or public-release authority.
+- Source commit `5d5a82c` produced a verified 255-member wheel containing all 22 Device Packs:
+  `romverse-0.1.0-py3-none-any.whl`, 7,972,248 bytes, SHA-256
+  `c8f664731d953daf912a8f343261169f41b220fff9bb3f721ebcfee7dc6b9289`. Its isolated installed
+  smoke passed with 169 known fixes, 280 offline evidence records, and all 19 Desktop routes.
+- The same commit produced a self-contained Fedora/Linux x86-64 candidate with a passing frozen
+  launch smoke: `ROMVERSE-Desktop-linux-x86_64.zip`, 146,968,373 bytes, 458 verified files,
+  356,259,890 expanded bytes, SHA-256
+  `d2e51fdb3d0d432628ad36ec26b519c95bf03c6751371892aba2695baab4e000`.
 
 The product-wide continuation target and definition of done are recorded in
 `docs/DESIGN_VISION_AND_POLISH_GOAL.md`.

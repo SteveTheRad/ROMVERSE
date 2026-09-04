@@ -5348,6 +5348,13 @@ class MainWindow(QMainWindow):
                     "The event's exact Time Machine snapshot is missing, legacy, or failed record verification"
                 )
                 return
+        elif clean_type == "project-vault-entry":
+            project_id, entry_id = clean_id.rsplit(".", 1)
+            if not self.backup_center.open_vault_entry(project_id, entry_id):
+                self.activity_center.source_handoff_stopped(
+                    "The event's exact Project Vault entry is missing or failed integrity validation"
+                )
+                return
         elif clean_type == "repair-session":
             if not self.repair_center.open_session(clean_id):
                 self.activity_center.source_handoff_stopped(
@@ -6283,6 +6290,8 @@ class MainWindow(QMainWindow):
             context_type="rom-project" if project_id else "",
             context_id=project_id,
         )
+        if project_id:
+            self.backup_center.capture_operation_checkpoint(project_id, operation)
         self._update_companion_ascension_status()
         self._sync_command_deck_context()
 
@@ -6614,6 +6623,8 @@ class MainWindow(QMainWindow):
             context_type="rom-project" if project_id else "",
             context_id=project_id,
         )
+        if project_id:
+            self.backup_center.capture_failure_checkpoint(project_id, operation)
         self._update_companion_ascension_status()
 
     @Slot(str, str)

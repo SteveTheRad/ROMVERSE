@@ -4,7 +4,8 @@ from contextlib import suppress
 from datetime import datetime
 from pathlib import Path
 
-from PySide6.QtCore import QObject, Qt, Signal, Slot
+from PySide6.QtCore import QObject, QPointF, QRectF, Qt, Signal, Slot
+from PySide6.QtGui import QColor, QLinearGradient, QPainter, QPen
 from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
@@ -16,6 +17,7 @@ from PySide6.QtWidgets import (
     QListWidgetItem,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
@@ -34,6 +36,14 @@ from romverse.nexus.events import (
 from romverse.rom.models import ProjectError, TimeMachineSnapshot
 from romverse.rom.projects import RomProjectStore
 from romverse.rom.recovery_evidence import RecoveryEvidenceService
+from romverse.rom.vault import (
+    ProjectVaultService,
+    RecoveryCapsuleReceipt,
+    VaultBranch,
+    VaultComparison,
+    VaultEntry,
+    VaultVerification,
+)
 from romverse.ui.background import (
     CoalescedProgress,
     ManagedRunnable,
@@ -140,6 +150,161 @@ class RecoveryEvidenceWorker(ManagedRunnable):
             self.signals.failed.emit(str(exc))
 
 
+class ProjectVaultTimeline(QWidget):
+    """Compact illuminated branch map backed only by recorded Vault entries."""
+
+    KIND_COLORS = {
+        "checkpoint": QColor("#42DDEA"),
+        "pre-flash": QColor("#5AF2A4"),
+        "operation": QColor("#6994FF"),
+        "verified-build": QColor("#5AF2A4"),
+        "experiment": QColor("#B45CFF"),
+        "warning": QColor("#FFB74D"),
+        "failure": QColor("#FF667F"),
+    }
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.entries: tuple[VaultEntry, ...] = ()
+        self.branches: tuple[VaultBranch, ...] = ()
+        self.setMinimumHeight(106)
+        self.setAccessibleName("Project Vault illuminated timeline branches")
+
+    def set_history(
+        self,
+        entries: tuple[VaultEntry, ...],
+        branches: tuple[VaultBranch, ...],
+    ) -> None:
+        self.entries = entries[:10]
+        self.branches = branches[:6]
+        self.setAccessibleDescription(
+            f"{len(entries)} checkpoint entries and {len(branches)} isolated experiment branches"
+        )
+        self.update()
+
+    def paintEvent(self, _event) -> None:
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        panel = QRectF(1, 1, self.width() - 2, self.height() - 2)
+        gradient = QLinearGradient(panel.topLeft(), panel.bottomRight())
+        gradient.setColorAt(0.0, QColor(5, 12, 26, 244))
+        gradient.setColorAt(0.55, QColor(9, 21, 42, 242))
+        gradient.setColorAt(1.0, QColor(27, 10, 43, 238))
+        painter.setBrush(gradient)
+        painter.setPen(QPen(QColor(62, 100, 158, 170), 1))
+        painter.drawRoundedRect(panel, 10, 10)
+        if not self.entries:
+            painter.setPen(QColor("#8190AA"))
+            painter.drawText(panel, Qt.AlignmentFlag.AlignCenter, "NO PROJECT CHECKPOINTS RECORDED")
+            return
+
+        left = 26.0
+        right = max(left + 1.0, self.width() - 26.0)
+        y = self.height() * 0.53
+        count = len(self.entries)
+        spacing = (right - left) / max(1, count - 1)
+        points = [QPointF(left + index * spacing, y) for index in range(count)]
+        painter.setPen(QPen(QColor(66, 221, 234, 120), 2))
+        for first, second in zip(points, points[1:], strict=False):
+            painter.drawLine(first, second)
+        for index, (entry, point) in enumerate(zip(reversed(self.entries), points, strict=False)):
+            color = self.KIND_COLORS.get(entry.kind, QColor("#42DDEA"))
+            if entry.branch != "main":
+                branch_point = QPointF(point.x(), max(18.0, y - 28.0))
+                painter.setPen(QPen(QColor(180, 92, 255, 135), 2))
+                painter.drawLine(point, branch_point)
+                point = branch_point
+            painter.setPen(QPen(QColor(color.red(), color.green(), color.blue(), 70), 8))
+            painter.drawPoint(point)
+            painter.setPen(QPen(color, 3))
+            painter.drawPoint(point)
+            if index == len(points) - 1:
+                painter.setPen(QColor("#EAF6FF"))
+                label = entry.label[:28]
+                painter.drawText(
+                    QRectF(max(8.0, point.x() - 130), point.y() + 9, 138, 24),
+                    Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
+                    label,
+                )
+        painter.setPen(QColor("#7486A5"))
+        painter.drawText(14, 19, f"MAIN TIMELINE  •  {len(self.entries)} SHOWN")
+        if self.branches:
+            painter.setPen(QColor("#C594FF"))
+            painter.drawText(14, self.height() - 10, f"{len(self.branches)} ISOLATED EXPERIMENT BRANCH(ES)")
+
+
+class ProjectVaultWorker(ManagedRunnable):
+    def __init__(
+        self,
+        service: ProjectVaultService,
+        operation: str,
+        project_id: str,
+        *,
+        entry: VaultEntry | None = None,
+        label: str = "",
+        reason: str = "",
+        branch_name: str = "",
+        destination: Path | None = None,
+        relative_path: str = "",
+        approval_digest: str = "",
+        kind: str = "checkpoint",
+    ) -> None:
+        super().__init__()
+        self.service = service
+        self.operation = operation
+        self.project_id = project_id
+        self.entry = entry
+        self.label = label
+        self.reason = reason
+        self.branch_name = branch_name
+        self.destination = destination
+        self.relative_path = relative_path
+        self.approval_digest = approval_digest
+        self.kind = kind
+        self.signals = TimeMachineSignals()
+
+    @Slot()
+    def execute(self) -> None:
+        self.signals.progress.emit(0)
+        try:
+            if self.operation == "capture":
+                result = self.service.capture(
+                    self.project_id,
+                    label=self.label,
+                    reason=self.reason,
+                    kind=self.kind,
+                )
+            elif self.operation == "verify" and self.entry is not None:
+                result = self.service.verify(self.entry)
+            elif self.operation == "branch" and self.entry is not None:
+                result = self.service.create_branch(self.entry, self.branch_name)
+            elif (
+                self.operation == "export"
+                and self.entry is not None
+                and self.destination is not None
+            ):
+                result = self.service.export_capsule(self.entry, self.destination)
+            elif self.operation == "restore-file" and self.entry is not None:
+                result = self.service.restore_file(
+                    self.entry,
+                    self.relative_path,
+                    self.approval_digest,
+                )
+            elif self.operation == "restore-state" and self.entry is not None:
+                result = self.service.restore_state(self.entry, self.approval_digest)
+            elif self.operation == "cleanup":
+                result = self.service.clean_unreferenced_objects(
+                    self.project_id,
+                    self.approval_digest,
+                )
+            else:
+                raise ProjectError("Unknown Project Vault operation")
+            self.signals.progress.emit(100)
+            self.signals.complete.emit(result)
+        except Exception as exc:
+            self.signals.failed.emit(str(exc))
+
+
 class BackupCenter(QWidget):
     """Prepare a recovery-aware backup plan without running device-changing commands."""
 
@@ -165,6 +330,7 @@ class BackupCenter(QWidget):
         self.live_console_store = live_console_store
         self._live_missions: dict[str, str] = {}
         self.rom_store = RomProjectStore(workspace)
+        self.project_vault = ProjectVaultService(self.rom_store)
         self.recovery_evidence = RecoveryEvidenceService(self.rom_store)
         self.plan_store = GuardianBackupPlanStore(workspace)
         self._selected_plan_id = ""
@@ -172,12 +338,27 @@ class BackupCenter(QWidget):
         self.device: AndroidDevice | None = None
         self.projects = ()
         self.snapshots: tuple[TimeMachineSnapshot, ...] = ()
+        self.vault_entries: tuple[VaultEntry, ...] = ()
+        self.vault_branches: tuple[VaultBranch, ...] = ()
         self.worker: TimeMachineWorker | None = None
+        self.vault_worker: ProjectVaultWorker | None = None
+        self._vault_capture_queue: list[tuple[str, str, str]] = []
         self.evidence_worker: RecoveryEvidenceWorker | None = None
         self.media_backup_worker: PhoneMediaBackupWorker | None = None
-        layout = QVBoxLayout(self)
+        shell = QVBoxLayout(self)
+        shell.setContentsMargins(0, 0, 0, 0)
+        self.page_scroll = QScrollArea()
+        self.page_scroll.setObjectName("PageScroll")
+        self.page_scroll.setWidgetResizable(True)
+        self.page_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.page_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        page_content = QWidget()
+        page_content.setObjectName("PageScrollContent")
+        layout = QVBoxLayout(page_content)
         layout.setContentsMargins(30, 26, 30, 26)
         layout.setSpacing(12)
+        self.page_scroll.setWidget(page_content)
+        shell.addWidget(self.page_scroll)
         eyebrow = QLabel("TIME MACHINE  •  GUARDIAN READINESS")
         eyebrow.setObjectName("Eyebrow")
         layout.addWidget(eyebrow)
@@ -364,6 +545,93 @@ class BackupCenter(QWidget):
         self.project_selector.setToolTip("Choose a ROM Studio project with local snapshots.")
         self.project_selector.currentIndexChanged.connect(self._project_selected)
         recovery_layout.addWidget(self.project_selector)
+        vault_heading_row = QHBoxLayout()
+        vault_title = QLabel("PROJECT VAULT  •  RECOVERABLE PROJECT HISTORY")
+        vault_title.setObjectName("SectionTitle")
+        vault_heading_row.addWidget(vault_title, 1)
+        vault_boundary = QLabel("LOCAL PROJECT • NOT PHONE BACKUP")
+        vault_boundary.setObjectName("Good")
+        vault_heading_row.addWidget(vault_boundary)
+        recovery_layout.addLayout(vault_heading_row)
+        self.vault_timeline = ProjectVaultTimeline()
+        recovery_layout.addWidget(self.vault_timeline)
+        self.vault_selector = QComboBox()
+        self.vault_selector.setToolTip(
+            "Choose a sealed project checkpoint. Selection alone starts no restore or device action."
+        )
+        self.vault_selector.currentIndexChanged.connect(self._vault_entry_selected)
+        recovery_layout.addWidget(self.vault_selector)
+        self.vault_detail = QLabel(
+            "No Project Vault checkpoint yet. Existing Time Machine baseline snapshots remain available below."
+        )
+        self.vault_detail.setObjectName("Muted")
+        self.vault_detail.setWordWrap(True)
+        self.vault_detail.setMinimumHeight(92)
+        self.vault_detail.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        recovery_layout.addWidget(self.vault_detail)
+        vault_actions = QHBoxLayout()
+        self.capture_vault_button = QPushButton("Capture checkpoint")
+        self.capture_vault_button.setObjectName("Primary")
+        self.capture_vault_button.setToolTip(
+            "Preserve the local baseline, extracted-tree objects, and hash-only project context. The phone is never a target."
+        )
+        self.capture_vault_button.clicked.connect(self._prepare_vault_capture)
+        self.verify_vault_button = QPushButton("Verify checkpoint")
+        self.verify_vault_button.clicked.connect(
+            lambda _checked=False: self._start_vault_worker("verify")
+        )
+        self.compare_vault_button = QPushButton("Compare previous")
+        self.compare_vault_button.clicked.connect(self._compare_vault_entry)
+        self.branch_vault_button = QPushButton("Branch experiment")
+        self.branch_vault_button.clicked.connect(self._prepare_vault_branch)
+        vault_actions.addWidget(self.capture_vault_button)
+        vault_actions.addWidget(self.verify_vault_button)
+        vault_actions.addWidget(self.compare_vault_button)
+        vault_actions.addWidget(self.branch_vault_button)
+        recovery_layout.addLayout(vault_actions)
+        capsule_actions = QHBoxLayout()
+        self.restore_vault_file_button = QPushButton("Restore one file…")
+        self.restore_vault_file_button.setToolTip(
+            "Restore one contained extracted-tree file after exact digest-bound approval."
+        )
+        self.restore_vault_file_button.clicked.connect(self._prepare_vault_file_restore)
+        self.restore_vault_state_button = QPushButton("Restore full state…")
+        self.restore_vault_state_button.setObjectName("Primary")
+        self.restore_vault_state_button.setToolTip(
+            "Preserve the current project, then restore and verify the selected baseline, tree, and context records."
+        )
+        self.restore_vault_state_button.clicked.connect(self._prepare_vault_state_restore)
+        self.export_vault_button = QPushButton("Export recovery capsule…")
+        self.export_vault_button.setToolTip(
+            "Export and immediately reverify a portable project recovery capsule. Nothing is published."
+        )
+        self.export_vault_button.clicked.connect(self._prepare_vault_export)
+        self.storage_vault_button = QPushButton("Explain storage")
+        self.storage_vault_button.clicked.connect(self._show_vault_storage)
+        self.clean_vault_button = QPushButton("Clean unreferenced…")
+        self.clean_vault_button.setToolTip(
+            "After exact approval, remove only object bytes referenced by no valid Project Vault checkpoint."
+        )
+        self.clean_vault_button.clicked.connect(self._prepare_vault_cleanup)
+        capsule_actions.addWidget(self.restore_vault_file_button)
+        capsule_actions.addWidget(self.restore_vault_state_button)
+        capsule_actions.addWidget(self.export_vault_button)
+        recovery_layout.addLayout(capsule_actions)
+        storage_actions = QHBoxLayout()
+        storage_actions.addWidget(self.storage_vault_button)
+        storage_actions.addWidget(self.clean_vault_button)
+        recovery_layout.addLayout(storage_actions)
+        self.vault_progress = ProcessProgressBar()
+        recovery_layout.addWidget(self.vault_progress)
+        self.vault_result = QLabel(
+            "Project checkpoints are separate from phone backups and never grant flash authority."
+        )
+        self.vault_result.setObjectName("Muted")
+        self.vault_result.setWordWrap(True)
+        recovery_layout.addWidget(self.vault_result)
+        raw_snapshot_title = QLabel("BASELINE SNAPSHOTS  •  LOW-LEVEL TIME MACHINE")
+        raw_snapshot_title.setObjectName("SectionTitle")
+        recovery_layout.addWidget(raw_snapshot_title)
         self.snapshot_list = QListWidget()
         self.snapshot_list.setMinimumHeight(135)
         self.snapshot_list.currentItemChanged.connect(self._snapshot_selected)
@@ -610,6 +878,34 @@ class BackupCenter(QWidget):
             "integrity-sealed record selected  •  no restore or phone action started"
         )
         self._repolish(self.local_result)
+        return True
+
+    def open_vault_entry(self, project_id: str, entry_id: str) -> bool:
+        """Revalidate and select an exact Project Vault activity source."""
+
+        try:
+            entry = self.project_vault.load_entry(project_id, entry_id)
+        except ProjectError:
+            return False
+        self.refresh_local_snapshots(project_id)
+        index = next(
+            (
+                item_index
+                for item_index, item in enumerate(self.vault_entries)
+                if item.entry_id == entry.entry_id
+            ),
+            -1,
+        )
+        if index < 0:
+            return False
+        self.vault_selector.setCurrentIndex(index)
+        self.vault_result.setObjectName("Good")
+        self.vault_result.setText(
+            f"EXACT ACTIVITY EVIDENCE  •  Project Vault entry {entry.entry_id}  •  "
+            "sealed record selected  •  choose Verify checkpoint for fresh full-byte evidence  •  "
+            "no restore or phone action started"
+        )
+        self._repolish(self.vault_result)
         return True
 
     def set_media_backup_service(self, service: PhoneMediaBackupService | None) -> None:
@@ -1052,7 +1348,15 @@ class BackupCenter(QWidget):
             self._project_selected(self.project_selector.currentIndex())
         else:
             self.snapshots = ()
+            self.vault_entries = ()
+            self.vault_branches = ()
             self.snapshot_list.clear()
+            self.vault_selector.clear()
+            self.vault_timeline.set_history((), ())
+            self.vault_detail.setText(
+                "Create a ROM project and isolated working baseline before recording recoverable project history."
+            )
+            self._set_vault_controls(False)
             self.snapshot_detail.setText(
                 "No ROM Studio projects yet. Create a project and working copy, then take a Time Machine snapshot."
             )
@@ -1070,6 +1374,7 @@ class BackupCenter(QWidget):
             return
         project = self.projects[index]
         self.snapshots = self.rom_store.list_snapshots(project.project_id)
+        self._refresh_project_vault(project.project_id)
         self.snapshot_list.clear()
         for snapshot in self.snapshots:
             state = "CURRENT • READY" if snapshot.schema_version == 2 else "LEGACY • VERIFY"
@@ -1101,6 +1406,517 @@ class BackupCenter(QWidget):
             )
         self._refresh_recovery_evidence(project.project_id)
         self._set_evidence_controls(self.evidence_worker is None)
+
+    def _refresh_project_vault(self, project_id: str) -> None:
+        current_id = str(self.vault_selector.currentData() or "")
+        self.vault_entries = self.project_vault.list_entries(project_id)
+        self.vault_branches = self.project_vault.list_branches(project_id)
+        ledger_issues = self.project_vault.entry_issues(project_id)
+        self.vault_timeline.set_history(self.vault_entries, self.vault_branches)
+        self.vault_selector.blockSignals(True)
+        self.vault_selector.clear()
+        selected_index = 0
+        for index, entry in enumerate(self.vault_entries):
+            state = {
+                "pre-flash": "RECOVERY",
+                "verified-build": "VERIFIED BUILD",
+                "experiment": "EXPERIMENT",
+                "warning": "WARNING",
+                "failure": "FAILED",
+            }.get(entry.kind, "CHECKPOINT")
+            self.vault_selector.addItem(
+                f"{entry.label}  •  {entry.branch.upper()}  •  {state}",
+                entry.entry_id,
+            )
+            if entry.entry_id == current_id:
+                selected_index = index
+        self.vault_selector.blockSignals(False)
+        if self.vault_entries:
+            self.vault_selector.setCurrentIndex(selected_index)
+            self._vault_entry_selected(selected_index)
+        else:
+            working = self.rom_store.working_copy(project_id)
+            self.vault_detail.setText(
+                "No Project Vault checkpoint is recorded. Capture the current project state to "
+                "preserve its baseline, extracted-tree objects, recipe/partition/Device-DNA "
+                "fingerprints, reason, and branch ancestry."
+            )
+            self._set_vault_controls(working is not None)
+        report = self.project_vault.storage_report(project_id)
+        self.storage_vault_button.setText(f"Storage • {_human_bytes(report.total_bytes)}")
+        if ledger_issues:
+            self.vault_result.setObjectName("Danger")
+            self.vault_result.setText(
+                f"PROJECT VAULT HISTORY NEEDS ATTENTION  •  {len(ledger_issues)} rejected "
+                f"entry path(s)  •  {ledger_issues[0]}  •  capture, restore, export, and cleanup "
+                "must remain stopped until the local ledger is repaired"
+            )
+            self._repolish(self.vault_result)
+            self._set_vault_controls(False)
+            self.capture_vault_button.setEnabled(False)
+            self.clean_vault_button.setEnabled(False)
+            self.storage_vault_button.setEnabled(True)
+
+    def _vault_entry_selected(self, index: int) -> None:
+        if not 0 <= index < len(self.vault_entries):
+            self._set_vault_controls(False)
+            return
+        entry = self.vault_entries[index]
+        changed_context = [role for role, digest in entry.source_fingerprints if digest]
+        parent = entry.parent_entry_id or "first checkpoint on branch"
+        self.vault_detail.setText(
+            f"{entry.kind.replace('-', ' ').upper()}  •  {entry.created_at}\n"
+            f"Branch  •  {entry.branch}  |  Parent  •  {parent}\n"
+            f"Reason  •  {entry.reason}\n"
+            f"Baseline  •  {entry.snapshot_id}  |  Extracted tree  •  "
+            f"{len(entry.files):,} file(s), {_human_bytes(entry.tree_bytes)}\n"
+            f"Fingerprint evidence  •  {', '.join(changed_context) or 'baseline only'}\n"
+            "State  •  sealed metadata; choose Verify checkpoint for a fresh full-byte result."
+        )
+        self._set_vault_controls(self.vault_worker is None)
+
+    def _selected_vault_entry(self) -> VaultEntry | None:
+        entry_id = str(self.vault_selector.currentData() or "")
+        return next((entry for entry in self.vault_entries if entry.entry_id == entry_id), None)
+
+    def _set_vault_controls(self, enabled: bool) -> None:
+        project_id = str(self.project_selector.currentData() or "")
+        working_ready = bool(project_id and self.rom_store.working_copy(project_id) is not None)
+        entry = self._selected_vault_entry() if enabled else None
+        self.capture_vault_button.setEnabled(
+            working_ready and self.vault_worker is None and self.worker is None
+        )
+        self.verify_vault_button.setEnabled(entry is not None and self.vault_worker is None)
+        self.export_vault_button.setEnabled(entry is not None and self.vault_worker is None)
+        self.branch_vault_button.setEnabled(entry is not None and self.vault_worker is None)
+        self.restore_vault_file_button.setEnabled(
+            bool(entry is not None and entry.files and self.vault_worker is None)
+        )
+        self.restore_vault_state_button.setEnabled(entry is not None and self.vault_worker is None)
+        same_branch = (
+            tuple(item for item in self.vault_entries if item.branch == entry.branch)
+            if entry is not None
+            else ()
+        )
+        self.compare_vault_button.setEnabled(len(same_branch) >= 2 and self.vault_worker is None)
+        self.storage_vault_button.setEnabled(bool(project_id))
+        unreferenced = (
+            self.project_vault.storage_report(project_id).unreferenced_object_bytes
+            if project_id
+            else 0
+        )
+        self.clean_vault_button.setEnabled(
+            bool(unreferenced and self.vault_worker is None and self.worker is None)
+        )
+
+    def _prepare_vault_capture(self) -> None:
+        project_id = str(self.project_selector.currentData() or "")
+        if not project_id or self.vault_worker is not None:
+            return
+        label, accepted = QInputDialog.getText(
+            self,
+            "Capture Project Vault checkpoint",
+            "Short checkpoint name",
+            text="Known working checkpoint",
+        )
+        if not accepted or not label.strip():
+            return
+        reason, accepted = QInputDialog.getText(
+            self,
+            "Why preserve this state?",
+            "Reason for this checkpoint",
+            text="Manual checkpoint before local project work",
+        )
+        if not accepted or not reason.strip():
+            return
+        self._start_vault_worker("capture", label=label, reason=reason)
+
+    def capture_operation_checkpoint(self, project_id: str, operation: str) -> bool:
+        """Queue automatic recoverable history after a genuine ROM Studio completion."""
+
+        if self.rom_store.working_copy(project_id) is None:
+            return False
+        labels = {
+            "working-copy": "Protected working baseline",
+            "snapshot": "Verified Time Machine baseline",
+            "extract": "Extracted project tree",
+            "execute-recipe": "Recipe result",
+            "rollback-recipe": "Recipe rollback result",
+            "replace-file": "File replacement result",
+            "set-property": "Property edit result",
+            "forge-bundle": "Verified local build candidate",
+            "verify-forge": "Reverified local build candidate",
+        }
+        label = labels.get(operation)
+        if label is None:
+            return False
+        reason = (
+            f"Automatically preserved after ROM Studio reported {operation.replace('-', ' ')} "
+            "complete with producing-service evidence"
+        )
+        kind = "verified-build" if operation in {"forge-bundle", "verify-forge"} else "operation"
+        if self.vault_worker is not None:
+            queued = (project_id, label, f"{reason}\x1f{kind}")
+            if queued not in self._vault_capture_queue:
+                self._vault_capture_queue.append(queued)
+            return True
+        self.refresh_local_snapshots(project_id)
+        self._start_vault_worker(
+            "capture",
+            project_id=project_id,
+            label=label,
+            reason=reason,
+            kind=kind,
+        )
+        return True
+
+    def capture_failure_checkpoint(self, project_id: str, operation: str) -> bool:
+        """Preserve measurable local state after a failed project operation."""
+
+        if self.rom_store.working_copy(project_id) is None:
+            return False
+        label = f"Stopped • {operation.replace('-', ' ').title()}"
+        reason = (
+            "Automatically preserved after the producing ROM Studio operation stopped without "
+            "a success result"
+        )
+        if self.vault_worker is not None:
+            queued = (project_id, label, f"{reason}\x1ffailure")
+            if queued not in self._vault_capture_queue:
+                self._vault_capture_queue.append(queued)
+            return True
+        self.refresh_local_snapshots(project_id)
+        self._start_vault_worker(
+            "capture",
+            project_id=project_id,
+            label=label,
+            reason=reason,
+            kind="failure",
+        )
+        return True
+
+    def _compare_vault_entry(self) -> None:
+        entry = self._selected_vault_entry()
+        if entry is None:
+            return
+        branch_entries = tuple(item for item in self.vault_entries if item.branch == entry.branch)
+        try:
+            index = branch_entries.index(entry)
+        except ValueError:
+            return
+        previous = branch_entries[index + 1] if index + 1 < len(branch_entries) else None
+        if previous is None:
+            return
+        comparison = self.project_vault.compare(previous, entry)
+        self._show_vault_comparison(comparison, previous, entry)
+
+    def _show_vault_comparison(
+        self,
+        comparison: VaultComparison,
+        left: VaultEntry,
+        right: VaultEntry,
+    ) -> None:
+        def preview(values: tuple[str, ...]) -> str:
+            if not values:
+                return "none"
+            shown = ", ".join(values[:5])
+            return shown + (f" +{len(values) - 5} more" if len(values) > 5 else "")
+
+        self.vault_result.setObjectName(
+            "Warning"
+            if comparison.added or comparison.removed or comparison.changed
+            else "Good"
+        )
+        self.vault_result.setText(
+            f"VISUAL COMPARISON  •  {left.label} → {right.label}\n"
+            f"Added ({len(comparison.added)})  •  {preview(comparison.added)}\n"
+            f"Changed ({len(comparison.changed)})  •  {preview(comparison.changed)}\n"
+            f"Removed ({len(comparison.removed)})  •  {preview(comparison.removed)}\n"
+            f"Unchanged  •  {comparison.unchanged_count:,} file(s)  |  Context changes  •  "
+            f"{preview(comparison.fingerprint_changes)}\n"
+            "Comparison only; no project file or phone was changed."
+        )
+        self._repolish(self.vault_result)
+
+    def _prepare_vault_branch(self) -> None:
+        entry = self._selected_vault_entry()
+        if entry is None:
+            return
+        name, accepted = QInputDialog.getText(
+            self,
+            "Create isolated experiment branch",
+            "Experiment branch name",
+            text="New experiment",
+        )
+        if not accepted or not name.strip():
+            return
+        self._start_vault_worker("branch", entry=entry, branch_name=name)
+
+    def _prepare_vault_export(self) -> None:
+        entry = self._selected_vault_entry()
+        if entry is None:
+            return
+        project = self.rom_store.get(entry.project_id)
+        default = self.workspace / "exports" / f"{project.project_id}-{entry.entry_id}.romverse.zip"
+        selected, _filter = QFileDialog.getSaveFileName(
+            self,
+            "Export verified project recovery capsule",
+            str(default),
+            "ROMVERSE recovery capsule (*.romverse.zip);;ZIP archive (*.zip)",
+        )
+        if not selected:
+            return
+        self._start_vault_worker("export", entry=entry, destination=Path(selected))
+
+    def _prepare_vault_file_restore(self) -> None:
+        entry = self._selected_vault_entry()
+        if entry is None or not entry.files:
+            return
+        paths = [item.relative_path for item in entry.files]
+        selected, accepted = QInputDialog.getItem(
+            self,
+            "Restore one project file",
+            "Checkpoint file",
+            paths,
+            0,
+            False,
+        )
+        if not accepted:
+            return
+        file = entry.files[paths.index(selected)]
+        phrase = f"RESTORE FILE {file.sha256[:8].upper()}"
+        entered, accepted = QInputDialog.getText(
+            self,
+            "Confirm local file restore",
+            f"This changes only {file.relative_path} in the isolated project tree.\n"
+            "The protected firmware and connected phone are never targets.\n\n"
+            f"Type {phrase} to continue:",
+        )
+        if not accepted or entered.strip() != phrase:
+            return
+        self._start_vault_worker(
+            "restore-file",
+            entry=entry,
+            relative_path=file.relative_path,
+            approval_digest=file.sha256,
+        )
+
+    def _prepare_vault_state_restore(self) -> None:
+        entry = self._selected_vault_entry()
+        if entry is None:
+            return
+        phrase = f"RESTORE PROJECT {entry.record_digest[:8].upper()}"
+        entered, accepted = QInputDialog.getText(
+            self,
+            "Confirm full local project restore",
+            "Project Vault will first capture the current state, then restore the selected "
+            "baseline, extracted tree, recipe, partition map, Device DNA, ROM DNA, and build-plan records.\n"
+            "Protected firmware originals and the connected phone are never targets.\n\n"
+            f"Type {phrase} to continue:",
+        )
+        if not accepted or entered.strip() != phrase:
+            return
+        self._start_vault_worker(
+            "restore-state",
+            entry=entry,
+            approval_digest=entry.record_digest,
+        )
+
+    def _show_vault_storage(self) -> None:
+        project_id = str(self.project_selector.currentData() or "")
+        if not project_id:
+            return
+        report = self.project_vault.storage_report(project_id)
+        self.vault_result.setObjectName("Warning" if report.unreferenced_object_bytes else "Good")
+        self.vault_result.setText(
+            "PROJECT STORAGE MAP\n"
+            f"Baseline snapshots  •  {_human_bytes(report.snapshot_bytes)}\n"
+            f"Deduplicated tree objects  •  {_human_bytes(report.tree_object_bytes)}\n"
+            f"Isolated experiment branches  •  {_human_bytes(report.branch_bytes)}\n"
+            f"Integrity records  •  {_human_bytes(report.record_bytes)}\n"
+            f"Total recoverable project history  •  {_human_bytes(report.total_bytes)}\n"
+            f"Unreferenced objects safe to review for cleanup  •  {_human_bytes(report.unreferenced_object_bytes)}\n"
+            + "\n".join(f"• {line}" for line in report.explanation)
+        )
+        self._repolish(self.vault_result)
+
+    def _prepare_vault_cleanup(self) -> None:
+        project_id = str(self.project_selector.currentData() or "")
+        if not project_id:
+            return
+        report = self.project_vault.storage_report(project_id)
+        if not report.unreferenced_object_bytes:
+            self._show_vault_storage()
+            return
+        phrase = f"CLEAN {project_id}"
+        entered, accepted = QInputDialog.getText(
+            self,
+            "Clean unreferenced Project Vault objects",
+            f"ROMVERSE found {_human_bytes(report.unreferenced_object_bytes)} referenced by no valid checkpoint.\n"
+            "This permanently removes only those orphan objects. Protected firmware, valid history, "
+            "branches, capsules, and phone backups remain untouched.\n\n"
+            f"Type {phrase} to continue:",
+        )
+        if not accepted or entered.strip() != phrase:
+            return
+        self._start_vault_worker("cleanup", approval_digest=project_id)
+
+    def _start_vault_worker(
+        self,
+        operation: str,
+        *,
+        project_id: str = "",
+        entry: VaultEntry | None = None,
+        label: str = "",
+        reason: str = "",
+        branch_name: str = "",
+        destination: Path | None = None,
+        relative_path: str = "",
+        approval_digest: str = "",
+        kind: str = "checkpoint",
+    ) -> None:
+        resolved_project = project_id or str(self.project_selector.currentData() or "")
+        selected_entry = entry or self._selected_vault_entry()
+        if not resolved_project or self.vault_worker is not None:
+            return
+        self.vault_worker = ProjectVaultWorker(
+            self.project_vault,
+            operation,
+            resolved_project,
+            entry=selected_entry,
+            label=label,
+            reason=reason,
+            branch_name=branch_name,
+            destination=destination,
+            relative_path=relative_path,
+            approval_digest=approval_digest,
+            kind=kind,
+        )
+        self.vault_worker.signals.complete.connect(self._vault_complete)
+        self.vault_worker.signals.failed.connect(self._vault_failed)
+        self.vault_worker.signals.progress.connect(self.vault_progress.report)
+        self.vault_progress.begin(determinate=False)
+        self.vault_result.setObjectName("Muted")
+        self.vault_result.setText(
+            {
+                "capture": "Hashing and preserving the local project state…",
+                "verify": "Rehashing the checkpoint baseline and every tree object…",
+                "branch": "Creating an isolated experiment baseline…",
+                "export": "Building and independently reverifying the recovery capsule…",
+                "restore-file": "Restoring and verifying the exact approved project file…",
+                "restore-state": "Capturing safety evidence, then restoring and verifying the complete local project state…",
+                "cleanup": "Revalidating every checkpoint reference before removing orphan object bytes…",
+            }.get(operation, "Project Vault operation running…")
+        )
+        self._repolish(self.vault_result)
+        self._set_vault_controls(False)
+        self._start_live_mission(f"project-vault-{operation}", resolved_project)
+        start_background(self.vault_worker)
+
+    @Slot(object)
+    def _vault_complete(self, result: object) -> None:
+        worker = self.vault_worker
+        operation = worker.operation if worker is not None else "operation"
+        project_id = worker.project_id if worker is not None else ""
+        self.vault_worker = None
+        self.vault_progress.finish()
+        self.vault_result.setObjectName("Good")
+        selected_entry_id = ""
+        if isinstance(result, VaultEntry):
+            selected_entry_id = result.entry_id
+            self.vault_result.setText(
+                f"PROJECT CHECKPOINT RECORDED  •  {result.label}  •  {len(result.files):,} tree file(s)  •  "
+                f"baseline {result.snapshot_id}  •  reason and ancestry sealed  •  phone untouched"
+            )
+            self._record_activity(
+                "Project Vault checkpoint recorded",
+                f"{result.label} • {result.kind} • local project only • phone untouched",
+                "success",
+                context_type="project-vault-entry",
+                context_id=f"{result.project_id}.{result.entry_id}",
+            )
+        elif isinstance(result, VaultVerification):
+            self.vault_result.setObjectName("Good" if result.valid else "Danger")
+            self.vault_result.setText(
+                f"{'CHECKPOINT VERIFIED' if result.valid else 'CHECKPOINT VERIFICATION FAILED'}  •  "
+                f"{result.status}  •  {result.verified_files:,} file(s), "
+                f"{_human_bytes(result.verified_bytes)} rehashed"
+            )
+        elif isinstance(result, VaultBranch):
+            self.vault_result.setText(
+                f"ISOLATED EXPERIMENT READY  •  {result.name}  •  branch {result.branch_id}  •  "
+                "known-working project baseline not overwritten  •  phone untouched"
+            )
+        elif isinstance(result, RecoveryCapsuleReceipt):
+            self.vault_result.setText(
+                f"RECOVERY CAPSULE EXPORTED AND REVERIFIED  •  {Path(result.path).name}  •  "
+                f"{result.file_count:,} artifact(s)  •  {_human_bytes(result.size_bytes)}  •  "
+                f"SHA-256 {result.sha256[:20]}…  •  nothing published"
+            )
+        elif isinstance(result, dict):
+            if result.get("format") == "romverse.vault-state-restore":
+                self.vault_result.setText(
+                    f"FULL PROJECT STATE RESTORED AND VERIFIED  •  {result.get('tree_file_count')} tree file(s)  •  "
+                    f"{result.get('context_file_count')} context record(s)  •  safety checkpoint "
+                    f"{result.get('safety_entry_id')}  •  phone untouched"
+                )
+            elif result.get("format") == "romverse.vault-storage-cleanup":
+                self.vault_result.setText(
+                    f"PROJECT VAULT CLEANUP VERIFIED  •  {result.get('removed_files')} orphan object(s)  •  "
+                    f"{_human_bytes(int(result.get('removed_bytes', 0)))} recovered  •  protected firmware, "
+                    "valid history, branches, capsules, and phone backups untouched"
+                )
+            else:
+                self.vault_result.setText(
+                    f"PROJECT FILE RESTORED AND VERIFIED  •  {result.get('relative_path')}  •  "
+                    f"receipt {str(result.get('receipt_id', ''))[:12]}…  •  phone untouched"
+                )
+        self._repolish(self.vault_result)
+        self._finish_live_mission(f"project-vault-{operation}", MissionState.SUCCEEDED)
+        if project_id:
+            self.refresh_local_snapshots(project_id)
+            if selected_entry_id:
+                selected_index = next(
+                    (
+                        index
+                        for index, entry in enumerate(self.vault_entries)
+                        if entry.entry_id == selected_entry_id
+                    ),
+                    -1,
+                )
+                if selected_index >= 0:
+                    self.vault_selector.setCurrentIndex(selected_index)
+        self._run_next_vault_capture()
+
+    @Slot(str)
+    def _vault_failed(self, message: str) -> None:
+        worker = self.vault_worker
+        operation = worker.operation if worker is not None else "operation"
+        project_id = worker.project_id if worker is not None else ""
+        self.vault_worker = None
+        self.vault_progress.stop()
+        self.vault_result.setObjectName("Danger")
+        self.vault_result.setText(
+            f"PROJECT VAULT STOPPED SAFELY  •  {message}  •  no phone operation was attempted"
+        )
+        self._repolish(self.vault_result)
+        self._finish_live_mission(f"project-vault-{operation}", MissionState.FAILED)
+        if project_id:
+            self.refresh_local_snapshots(project_id)
+        self._run_next_vault_capture()
+
+    def _run_next_vault_capture(self) -> None:
+        if self.vault_worker is not None or not self._vault_capture_queue:
+            return
+        project_id, label, packed = self._vault_capture_queue.pop(0)
+        reason, kind = packed.rsplit("\x1f", 1)
+        self._start_vault_worker(
+            "capture",
+            project_id=project_id,
+            label=label,
+            reason=reason,
+            kind=kind,
+        )
 
     def _snapshot_selected(self, current: QListWidgetItem | None, _previous) -> None:
         if current is None:
@@ -1268,13 +2084,15 @@ class BackupCenter(QWidget):
         self._finish_live_mission(f"time-machine-{operation}", MissionState.FAILED)
 
     def _set_local_controls(self, enabled: bool) -> None:
-        self.verify_snapshot_button.setEnabled(enabled)
-        selected = self._selected_local_snapshot() if enabled else None
+        available = enabled and self.vault_worker is None
+        self.verify_snapshot_button.setEnabled(available)
+        selected = self._selected_local_snapshot() if available else None
         self.restore_snapshot_button.setEnabled(
             bool(selected is not None and selected[1].schema_version == 2)
         )
 
     def _set_evidence_controls(self, enabled: bool) -> None:
+        enabled = enabled and self.vault_worker is None
         self.backup_evidence_button.setEnabled(enabled)
         self.stock_evidence_button.setEnabled(enabled)
         project_id = str(self.project_selector.currentData() or "")
@@ -1496,6 +2314,14 @@ class BackupCenter(QWidget):
 
     @staticmethod
     def _live_mission_copy(stage: str) -> tuple[str, str, str, str]:
+        if stage.startswith("project-vault-"):
+            action = stage.removeprefix("project-vault-").replace("-", " ")
+            return (
+                f"Project Vault {action}",
+                f"A local Project Vault {action} operation started.",
+                "Only protected project history is read or changed; phone backups, connected devices, and publishing are outside this operation.",
+                "Wait for the producing service to commit and verify its integrity evidence.",
+            )
         if stage == "phone-media-backup":
             return (
                 "Create verified local phone backup",

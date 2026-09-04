@@ -278,6 +278,7 @@ QPushButton#KnowledgeBrainAction {
 }
 QPushButton#KnowledgeBrainAction:hover { color: #FFFFFF; border-color: #55E8F5; background: rgba(20, 55, 76, 235); }
 QScrollArea#CompanionScroll, QScrollArea#CompanionScroll::viewport { background: transparent; border: 0; }
+QScrollArea#PageScroll, QScrollArea#PageScroll::viewport, QWidget#PageScrollContent { background: #02050A; border: 0; }
 QLabel#LinkIdentityStatus {
     color: #C8D7ED; background: rgba(5, 13, 27, 235); border: 1px solid rgba(59, 94, 148, 175);
     border-left: 3px solid #42DDEA; border-radius: 10px; padding: 12px 15px; font-size: 11px;

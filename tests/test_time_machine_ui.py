@@ -481,3 +481,189 @@ def test_time_machine_resolves_runtime_in_place_before_real_local_backup(
     assert "resolve platform tools" in center.phone_backup_button.text().casefold()
     assert "continue directly" in center.phone_backup_result.text().casefold()
     center.close()
+
+
+def test_project_vault_ui_captures_compares_branches_and_exports_without_phone_action(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    source = tmp_path / "vault-firmware.img"
+    source.write_bytes(b"vault firmware" * 100)
+    workspace = tmp_path / "workspace"
+    store = RomProjectStore(workspace)
+    project = store.import_original(store.create("Vault UI").project_id, source)
+    store.create_working_copy(project.project_id)
+    tree = store.working_root / project.project_id / "tree"
+    tree.mkdir(parents=True)
+    (tree / "build.prop").write_text("ro.test=one\n", encoding="utf-8")
+    activity = ActivityStore(workspace)
+    center = BackupCenter(workspace, activity)
+    queued = []
+    monkeypatch.setattr("romverse.ui.backup_center.start_background", queued.append)
+
+    center._start_vault_worker(
+        "capture",
+        label="Known working",
+        reason="Before the local experiment",
+    )
+    queued.pop(0).run()
+    app.processEvents()
+    assert center.vault_selector.count() == 1
+    assert "Known working" in center.vault_selector.currentText()
+    assert "phone untouched" in center.vault_result.text()
+    assert center.vault_timeline.accessibleDescription().startswith("1 checkpoint")
+    event = activity.list_recent()[0]
+    assert event.context_type == "project-vault-entry"
+    assert center.open_vault_entry(project.project_id, event.context_id.rsplit(".", 1)[1])
+    assert "no restore or phone action started" in center.vault_result.text()
+
+    (tree / "build.prop").write_text("ro.test=two\n", encoding="utf-8")
+    center._start_vault_worker(
+        "capture",
+        label="Property experiment",
+        reason="After a measured local property change",
+        kind="experiment",
+    )
+    queued.pop(0).run()
+    app.processEvents()
+    assert center.vault_selector.count() == 2
+    assert center.restore_vault_state_button.isEnabled()
+    center._compare_vault_entry()
+    assert "Changed (1)" in center.vault_result.text()
+    assert "no project file or phone was changed" in center.vault_result.text()
+
+    selected = center._selected_vault_entry()
+    assert selected is not None
+    center._start_vault_worker("branch", entry=selected, branch_name="Safe branch")
+    queued.pop(0).run()
+    app.processEvents()
+    assert len(center.vault_branches) == 1
+    assert "known-working project baseline not overwritten" in center.vault_result.text()
+
+    capsule = tmp_path / "vault-ui.romverse.zip"
+    selected = center._selected_vault_entry()
+    assert selected is not None
+    center._start_vault_worker("export", entry=selected, destination=capsule)
+    queued.pop(0).run()
+    app.processEvents()
+    assert capsule.is_file()
+    assert "EXPORTED AND REVERIFIED" in center.vault_result.text()
+    assert "nothing published" in center.vault_result.text()
+    assert any("LOCAL PROJECT • NOT PHONE BACKUP" in label.text() for label in center.findChildren(QLabel))
+    center.close()
+
+
+def test_main_window_records_supported_rom_operations_into_automatic_vault_history(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    project = window.rom_studio.store.create("Automatic main history")
+    window.rom_studio.current_project = project
+    recorded = []
+    failures = []
+    monkeypatch.setattr(
+        window.backup_center,
+        "capture_operation_checkpoint",
+        lambda project_id, operation: recorded.append((project_id, operation)) or True,
+    )
+    monkeypatch.setattr(
+        window.backup_center,
+        "capture_failure_checkpoint",
+        lambda project_id, operation: failures.append((project_id, operation)) or True,
+    )
+    try:
+        window._record_rom_operation("snapshot", object())
+        window._record_rom_failure("execute-recipe", "fixture failure")
+        app.processEvents()
+
+        assert recorded == [(project.project_id, "snapshot")]
+        assert failures == [(project.project_id, "execute-recipe")]
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_activity_handoff_reopens_the_exact_project_vault_checkpoint(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    source = tmp_path / "activity-vault.img"
+    source.write_bytes(b"activity vault")
+    project = window.rom_studio.store.import_original(
+        window.rom_studio.store.create("Activity Vault").project_id,
+        source,
+    )
+    window.rom_studio.store.create_working_copy(project.project_id)
+    entry = window.backup_center.project_vault.capture(
+        project.project_id,
+        label="Activity-linked checkpoint",
+        reason="Exact Time Machine handoff fixture",
+    )
+    try:
+        window._open_activity_source(
+            "time_machine",
+            "project-vault-entry",
+            f"{project.project_id}.{entry.entry_id}",
+        )
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.backup_center
+        assert window.backup_center.vault_selector.currentData() == entry.entry_id
+        assert "no restore or phone action started" in window.backup_center.vault_result.text()
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_project_vault_queues_automatic_history_after_real_rom_studio_completions(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    source = tmp_path / "automatic-history.img"
+    source.write_bytes(b"automatic history")
+    workspace = tmp_path / "workspace"
+    store = RomProjectStore(workspace)
+    project = store.import_original(store.create("Automatic history").project_id, source)
+    store.create_working_copy(project.project_id)
+    center = BackupCenter(workspace)
+    queued = []
+    monkeypatch.setattr("romverse.ui.backup_center.start_background", queued.append)
+
+    assert center.capture_operation_checkpoint(project.project_id, "working-copy")
+    assert center.capture_operation_checkpoint(project.project_id, "snapshot")
+    assert len(queued) == 1
+    assert len(center._vault_capture_queue) == 1
+
+    queued.pop(0).run()
+    app.processEvents()
+    assert len(queued) == 1
+    queued.pop(0).run()
+    app.processEvents()
+
+    entries = center.project_vault.list_entries(project.project_id)
+    assert len(entries) == 2
+    assert entries[0].parent_entry_id == entries[1].entry_id
+    assert {entry.label for entry in entries} == {
+        "Protected working baseline",
+        "Verified Time Machine baseline",
+    }
+    assert center.vault_worker is None
+    assert center._vault_capture_queue == []
+    center.close()

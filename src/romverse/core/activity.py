@@ -36,6 +36,7 @@ ACTIVITY_CONTEXT_ROUTES = {
     "diagnostic-snapshot": "health_timeline",
     "backup-plan": "time_machine",
     "time-machine-snapshot": "time_machine",
+    "project-vault-entry": "time_machine",
     "repair-session": "recovery_bay",
     "apk-install-receipt": "app_launchpad",
     "galaxy-topic": "galaxy",
@@ -46,6 +47,9 @@ _CONTEXT_IDENTIFIERS = {
     "backup-plan": re.compile(r"[0-9a-f]{24}"),
     "time-machine-snapshot": re.compile(
         r"[a-z0-9][a-z0-9-]{0,39}-[0-9a-f]{8}\.[0-9]{8}T[0-9]{6}-[0-9a-f]{6}"
+    ),
+    "project-vault-entry": re.compile(
+        r"[a-z0-9][a-z0-9-]{0,39}-[0-9a-f]{8}\.[0-9]{8}T[0-9]{6}-[0-9a-f]{8}"
     ),
     "repair-session": re.compile(r"[0-9a-f]{32}"),
     "apk-install-receipt": re.compile(r"[0-9a-f]{24}"),

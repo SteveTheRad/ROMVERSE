@@ -124,6 +124,7 @@ from romverse.rom.source_intelligence import (
     OtaPayloadBlueprint,
     PartitionBundleBlueprint,
 )
+from romverse.rom.vault import ProjectVaultService
 from romverse.ui.background import CoalescedProgress, ManagedRunnable, start_background
 from romverse.ui.backup_center import RecoveryEvidenceWorker
 from romverse.ui.guided_mission import GuidedBuildMission
@@ -2238,6 +2239,22 @@ class BuildControlCenter(QDialog):
         if mode is None:
             return
         try:
+            vault = ProjectVaultService(self.studio.store)
+            checkpoint = vault.capture(
+                self.project.project_id,
+                label=f"Pre-flash recovery • {device.display_name}",
+                reason=(
+                    "Automatically preserved before Guardian prepared the exact device-bound "
+                    f"{mode.display_name.casefold()} review"
+                ),
+                kind="pre-flash",
+            )
+            checkpoint_verification = vault.verify(checkpoint)
+            if not checkpoint_verification.valid:
+                raise ProjectError(
+                    f"Pre-flash Project Vault checkpoint failed verification: "
+                    f"{checkpoint_verification.status}"
+                )
             handoff = GuardianFlashHandoffService(self.studio.store).prepare(
                 self.project.project_id,
                 self.report,
@@ -2272,6 +2289,7 @@ class BuildControlCenter(QDialog):
         )
         self.status.setText(
             f"Guardian handoff prepared  •  {action}  •  {handoff.handoff_digest[:16]}…  •  "
+            f"pre-flash checkpoint {checkpoint.entry_id}  •  "
             "bootloader relock: PROHIBITED  •  phone changed: NO"
         )
         complete = QMessageBox(self)
@@ -2283,6 +2301,7 @@ class BuildControlCenter(QDialog):
             f"Mode: {handoff.mode.display_name}\n"
             f"Source: {handoff.source_sha256[:20]}…\n"
             f"Guardian receipt: {handoff.handoff_digest[:20]}…\n\n"
+            f"Project Vault checkpoint: {checkpoint.entry_id} (fully reverified)\n\n"
             "ROMVERSE recorded this exact project, source, phone, and data-handling choice. "
             "No device command has run. Guardian will now show the real manifest review and the "
             "exact evidence still required before any partition write or final consent can exist. "

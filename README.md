@@ -1353,6 +1353,19 @@ create a new slot without replacing the earlier bytes, allowing the earlier mani
 original version. Changed receipts, altered slot bytes, unexpected slot files and redirected version
 storage all fail closed.
 
+Forge Arsenal's **Host Connection Doctor** separates four conditions that previously looked like
+one generic setup failure: a missing Platform Tools executable, an executable below ROMVERSE's
+36.0.2 compatibility floor, a mixed ADB/Fastboot installation, and an unproven host USB route. It
+prefers the actual Platform Tools release over ADB's separate 1.0.41 protocol number, compares the
+ADB and Fastboot origin plus release as one pair, and also reports the Python 3.12 and Java 17
+project floors. On Linux it performs a bounded read-only inspection for Android-capable udev/uaccess
+rules and applies Ubuntu's `plugdev` requirement only to the distributions where it is relevant. On
+Windows it routes to the exact phone maker's signed OEM driver guidance; ROMVERSE neither labels the
+Google-only driver as universal nor installs a generic driver bundle. A genuine Device Engine ADB,
+recovery, sideload or Fastboot observation is stronger than the static host guess. The repair action
+opens one explicit current-official Platform Tools pair setup, while driver changes remain under the
+operating system's own visible control. The doctor itself runs no phone command.
+
 Payload Dumper uses a stricter release flow: ROMVERSE resolves the current host asset only from
 the official `ssut/payload-dumper-go` GitHub API, requires GitHub's asset SHA-256, restricts the
 download URL to the official release path, rejects unsafe TAR members and links, extracts only

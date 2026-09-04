@@ -45,12 +45,30 @@ class ToolVerifier:
             )
         else:
             result = self.runner.run((str(adb_path), "version"), timeout=5)
-            match = re.search(r"version\s+([\w.\-]+)", result.stdout, re.IGNORECASE)
+            output = result.stdout + "\n" + result.stderr
+            release = re.search(
+                r"(?im)^\s*Version\s+(\d+(?:\.\d+){2,3}(?:[-+][\w.\-]+)?)",
+                output,
+            )
+            protocol = re.search(
+                r"Android Debug Bridge version\s+([\w.\-]+)",
+                output,
+                re.IGNORECASE,
+            )
+            version = (
+                f"{release.group(1)} (ADB protocol {protocol.group(1)})"
+                if release is not None and protocol is not None
+                else release.group(1)
+                if release is not None
+                else protocol.group(1)
+                if protocol is not None
+                else "unknown"
+            )
             adb = ToolStatus(
                 "ADB",
                 result.ok,
                 str(adb_path),
-                match.group(1) if match else "unknown",
+                version,
                 "Ready" if result.ok else "ADB did not start correctly",
             )
         return python, adb
@@ -148,11 +166,11 @@ class ToolVerifier:
         if self.host.name.lower() == "windows":
             requirements += (
                 (
-                    "Google USB Driver",
+                    "OEM USB Driver",
                     "androidwinusb.inf",
                     (),
                     frozenset({0}),
-                    "Install the OEM USB driver for your phone",
+                    "Install the signed USB driver for the exact phone maker",
                 ),
             )
         for name, executable, arguments, accepted_codes, hint in requirements:

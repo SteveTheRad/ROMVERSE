@@ -314,6 +314,10 @@ QLabel#ToolchainManifestStatus {
 QFrame#ToolCommunicationCard {
     background: rgba(5, 16, 30, 238); border: 1px solid rgba(46, 122, 164, 145); border-radius: 11px;
 }
+QFrame#ToolHostDoctorCard {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 rgba(6,21,31,244),stop:0.56 rgba(7,17,34,244),stop:1 rgba(22,12,41,242));
+    border: 1px solid rgba(58, 142, 178, 160); border-left: 3px solid rgba(52, 222, 235, 205); border-radius: 11px;
+}
 QFrame#ToolBaySlot {
     background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 rgba(7,20,34,242),stop:1 rgba(14,11,34,240));
     border: 1px solid rgba(61, 99, 147, 145); border-left: 3px solid rgba(51, 215, 232, 190); border-radius: 10px;

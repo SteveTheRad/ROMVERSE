@@ -25,6 +25,24 @@ def test_tool_verifier_reads_adb_version():
     assert adb.version == "1.0.41"
 
 
+def test_tool_verifier_prefers_platform_tools_release_over_adb_protocol():
+    class ReleaseRunner:
+        def run(self, args, timeout=10):
+            return CommandResult(
+                tuple(args),
+                0,
+                "Android Debug Bridge version 1.0.41\n"
+                "Version 37.0.0-android-tools\n"
+                "Installed as /usr/bin/adb\n",
+                "",
+            )
+
+    statuses = ToolVerifier(Host(), ReleaseRunner()).verify()
+    adb = next(status for status in statuses if status.name == "ADB")
+
+    assert adb.version == "37.0.0-android-tools (ADB protocol 1.0.41)"
+
+
 def test_extended_verifier_uses_each_tools_real_version_interface(monkeypatch, tmp_path):
     tools = tmp_path / "tools"
     tools.mkdir()

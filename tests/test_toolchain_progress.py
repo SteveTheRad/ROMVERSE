@@ -154,6 +154,123 @@ def test_forge_arsenal_requires_explicit_target_when_multiple_transports_are_vis
         center.close()
 
 
+def test_forge_arsenal_host_doctor_exposes_outdated_pair_and_exact_linux_guide(
+    tmp_path, monkeypatch
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    tools = tmp_path / "platform-tools"
+    tools.mkdir()
+    adb = tools / "adb"
+    fastboot = tools / "fastboot"
+    adb.write_bytes(b"adb")
+    fastboot.write_bytes(b"fastboot")
+    monkeypatch.setattr(
+        "romverse.ui.toolchain_center.ToolVerifier.verify_extended",
+        lambda _verifier: (
+            ToolStatus("ADB", True, str(adb), "35.0.2", "Ready"),
+            ToolStatus(
+                "Fastboot", True, str(fastboot), "fastboot version 35.0.2", "Ready"
+            ),
+        ),
+    )
+    center = ToolchainCenter(
+        LinuxHost(distribution_id="fedora"),
+        _NoCommandRunner(),
+        workspace=tmp_path,
+    )
+    center.show()
+    app.processEvents()
+    requested = []
+    center.knowledge_article_requested.connect(requested.append)
+    try:
+        visible = " ".join(label.text() for label in center.findChildren(QLabel))
+        assert "HOST CONNECTION DOCTOR" in visible
+        assert "Platform Tools update required" in visible
+        assert "36.0.2" in visible
+        assert center.platform_tools_repair_button.isVisible()
+        assert center.platform_tools_repair_button.isEnabled()
+        assert center.host_usb_guide_button.text() == "Open Linux USB permission guide"
+
+        center.host_usb_guide_button.click()
+        assert requested == ["linux-udev-permission"]
+    finally:
+        center.close()
+
+
+def test_forge_arsenal_marks_real_device_communication_as_stronger_usb_evidence(
+    tmp_path, monkeypatch
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    monkeypatch.setattr(
+        "romverse.ui.toolchain_center.ToolVerifier.verify_extended",
+        lambda _verifier: (
+            ToolStatus("ADB", True, "/bin/true", "37.0.0", "Ready"),
+            ToolStatus("Fastboot", True, "/bin/false", "37.0.0", "Ready"),
+        ),
+    )
+    center = ToolchainCenter(
+        LinuxHost(distribution_id="fedora"),
+        _NoCommandRunner(),
+        workspace=tmp_path,
+    )
+    center.show()
+    app.processEvents()
+    try:
+        center.set_device_communication_evidence(
+            [AndroidDevice("private-serial", DeviceState.DEVICE, model="Test Phone")]
+        )
+        visible = " ".join(label.text() for label in center.findChildren(QLabel))
+        assert "Genuine Android communication verified" in visible
+        assert "No driver or permission change is recommended" in visible
+        assert "private-serial" not in visible
+    finally:
+        center.close()
+
+
+def test_platform_tools_doctor_opens_one_pair_repair_without_running_it(
+    tmp_path, monkeypatch
+) -> None:
+    QApplication.instance() or QApplication([])
+    tools = tmp_path / "platform-tools"
+    tools.mkdir()
+    adb = tools / "adb"
+    fastboot = tools / "fastboot"
+    adb.write_bytes(b"adb")
+    fastboot.write_bytes(b"fastboot")
+    statuses = (
+        ToolStatus("ADB", True, str(adb), "35.0.2", "Ready"),
+        ToolStatus("Fastboot", True, str(fastboot), "35.0.2", "Ready"),
+    )
+    monkeypatch.setattr(
+        "romverse.ui.toolchain_center.ToolVerifier.verify_extended",
+        lambda _verifier: statuses,
+    )
+    opened = []
+
+    def inspect_dialog(dialog):
+        opened.append(dialog)
+        assert dialog.required_names == ("ADB", "Fastboot")
+        assert [item.name for item in dialog.provision_plan.managed] == ["ADB", "Fastboot"]
+        assert dialog._worker is None
+        return dialog.DialogCode.Rejected
+
+    monkeypatch.setattr(
+        "romverse.ui.toolchain_center.ToolchainSetupDialog.exec",
+        inspect_dialog,
+    )
+    center = ToolchainCenter(
+        LinuxHost(distribution_id="fedora"),
+        _NoCommandRunner(),
+        workspace=tmp_path,
+    )
+    try:
+        center._repair_platform_tools()
+        assert len(opened) == 1
+        assert center.statuses == statuses
+    finally:
+        center.close()
+
+
 def test_forge_arsenal_explains_offline_signer_boundary_and_requires_confirmation(
     tmp_path, monkeypatch
 ) -> None:

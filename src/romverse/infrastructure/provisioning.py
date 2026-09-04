@@ -136,7 +136,7 @@ ROM_STUDIO_TOOL_CATALOG = frozenset(GENESIS_REQUIRED_TOOLS)
 _SOURCES = {
     "ADB": "https://developer.android.com/tools/releases/platform-tools",
     "Fastboot": "https://developer.android.com/tools/releases/platform-tools",
-    "Google USB Driver": "https://developer.android.com/studio/run/win-usb",
+    "OEM USB Driver": "https://developer.android.com/studio/run/oem-usb",
     "Git": "https://git-scm.com/downloads",
     "7-Zip": "https://www.7-zip.org/download.html",
     "Unzip": "https://infozip.sourceforge.net/UnZip.html",

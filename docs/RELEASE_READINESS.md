@@ -1590,6 +1590,21 @@ The product-wide continuation target and definition of done are recorded in
   altered version bytes, unreceipted managed inputs, linked workspaces, linked slots, redirected version
   roots and private modes. Physical multi-host/USB-driver exercises are still required before Stage 12
   can be marked complete.
+- The new read-only Host Connection Doctor identifies incomplete, below-floor, release-mismatched and
+  origin-mixed ADB/Fastboot pairs. It reads the real Platform Tools release when ADB also reports its
+  independent 1.0.41 protocol version, uses 36.0.2 as a stable compatibility floor because that
+  official release fixes Linux USB instability plus Samsung and older-device discovery, and reports
+  Python 3.12 and Java 17 project floors separately. Linux inspection is bounded to standard udev
+  rule directories, recognises modern `uaccess` rules, and applies `plugdev` only to Ubuntu/Debian;
+  disconnected state is never presented as proof of a broken phone. Windows exposes the exact OEM
+  driver route and cannot auto-select a generic or Google-only bundle. A genuine existing Device
+  Engine communication result supersedes static host heuristics. The only automatic repair offered
+  is an explicitly confirmed, current-official ADB/Fastboot pair; driver installation stays under the
+  operating system's visible control. Unit/UI coverage verifies the compatibility parser, mixed
+  origin detection, distro-specific permissions, OEM boundary, exact Archives handoff, no serial
+  exposure and no phone-command side effect. A themed 1360-by-900 render confirms the new doctor
+  chamber is aligned and readable inside the existing scroll surface. All 1,875 Desktop/Python tests
+  and the complete Ruff check gate pass for this checkpoint.
 - The approved ROMVERSE application logo and approved RadForge Labs company logo were not edited or
   replaced; their byte-exact regression checks remain green.
 

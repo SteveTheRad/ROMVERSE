@@ -74,7 +74,7 @@ def test_plan_separates_managed_system_and_manual_requirements() -> None:
         ToolStatus("ADB", False),
         ToolStatus("EROFS Builder", False),
         ToolStatus("LP Make", False),
-        ToolStatus("Google USB Driver", False),
+        ToolStatus("OEM USB Driver", False),
         ToolStatus("Git", True),
     )
 
@@ -82,7 +82,7 @@ def test_plan_separates_managed_system_and_manual_requirements() -> None:
 
     assert [item.name for item in plan.managed] == ["ADB", "LP Make"]
     assert [item.name for item in plan.system] == ["EROFS Builder"]
-    assert [item.name for item in plan.manual] == ["Google USB Driver"]
+    assert [item.name for item in plan.manual] == ["OEM USB Driver"]
 
 
 def test_fedora_plan_uses_only_available_distro_packages() -> None:

@@ -982,7 +982,12 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   an official ROMVERSE release signature. Local builds copy each source-receipted managed executable
   into an immutable content-addressed version slot and execute that copy; later managed updates create
   new slots without replacing older build inputs. Host-installed tools remain hash-locked in place and
-  are never copied. The approved application and company logo bytes remain locked and unchanged.
+  are never copied. A read-only Host Connection Doctor now detects missing, below-floor and mixed
+  ADB/Fastboot pairs, distinguishes ADB's protocol number from the actual Platform Tools release,
+  reports the project Python/Java floors, inspects bounded Linux udev/uaccess and Ubuntu `plugdev`
+  evidence, and routes Windows to the exact OEM driver instead of a generic or Google-only bundle.
+  Its one repair action opens an explicit official Platform Tools pair setup; OS driver changes remain
+  manual and visible. The approved application and company logo bytes remain locked and unchanged.
 - **PARTIAL:** Genesis/Ascension/Guardian integration, Companion Vitalis/Lifeline, connected online
   remediation, and local Link are functional foundations but still need broader hardware testing.
   Connected remediation V2 preserves tamper-detecting receipts and presents source, explicit

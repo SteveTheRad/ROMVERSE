@@ -51,6 +51,11 @@ from romverse.infrastructure.android_apk_tools import (
     install_pinned_aapt2,
     install_pinned_apk_verifier,
 )
+from romverse.infrastructure.host_toolchain_health import (
+    HostToolchainHealth,
+    ToolHealthState,
+    assess_host_toolchain,
+)
 from romverse.infrastructure.local_store import (
     LocalStoreError,
     atomic_write_json,
@@ -960,6 +965,7 @@ class ToolchainCenter(QWidget):
         self._communication_devices: tuple[AndroidDevice, ...] = ()
         self._observed_communication_devices: tuple[AndroidDevice, ...] = ()
         self._communication_error = ""
+        self.host_health: HostToolchainHealth | None = None
         self._manifest_worker: _ToolchainManifestWorker | None = None
         self._manifest_error = ""
         self._offline_worker: _OfflineToolchainWorker | None = None
@@ -1461,6 +1467,37 @@ class ToolchainCenter(QWidget):
             self.workspace,
             self,
             required_names=ROM_STUDIO_DEFAULT_REQUIRED_TOOLS,
+        )
+        dialog.exec()
+        self.refresh()
+
+    def _repair_platform_tools(self) -> None:
+        health = self.host_health or self._assess_host_health()
+        if not health.needs_platform_tools_repair or self.workspace is None:
+            return
+        repair_statuses = tuple(
+            ToolStatus(
+                status.name,
+                False,
+                status.path,
+                status.version,
+                "Replace ADB and Fastboot together with the current official Platform Tools pair",
+            )
+            if status.name in {"ADB", "Fastboot"}
+            else status
+            for status in self.statuses
+        )
+        dialog = ToolchainSetupDialog(
+            self.host,
+            repair_statuses,
+            self.workspace,
+            self,
+            required_names=("ADB", "Fastboot"),
+        )
+        dialog.setWindowTitle("ROMVERSE • Repair Android Platform Tools pair")
+        dialog.status.setText(
+            "This replaces only ROMVERSE's managed ADB and Fastboot pair after your explicit "
+            "confirmation, then verifies both again. No phone command or driver change runs."
         )
         dialog.exec()
         self.refresh()
@@ -2123,6 +2160,95 @@ class ToolchainCenter(QWidget):
         communication_layout.addWidget(communication_heading)
         communication_layout.addWidget(communication_body)
         self.layout.addWidget(communication)
+        self.host_health = self._assess_host_health()
+        doctor = QFrame()
+        doctor.setObjectName("ToolHostDoctorCard")
+        doctor_layout = QVBoxLayout(doctor)
+        doctor_layout.setContentsMargins(16, 13, 16, 13)
+        doctor_layout.setSpacing(7)
+        doctor_top = QHBoxLayout()
+        doctor_copy = QVBoxLayout()
+        doctor_eyebrow = QLabel("HOST CONNECTION DOCTOR  •  READ-ONLY ASSESSMENT")
+        doctor_eyebrow.setObjectName("Eyebrow")
+        doctor_title = QLabel(self.host_health.platform_tools_title)
+        doctor_title.setObjectName("SectionTitle")
+        doctor_copy.addWidget(doctor_eyebrow)
+        doctor_copy.addWidget(doctor_title)
+        doctor_top.addLayout(doctor_copy, 1)
+        doctor_badge = QLabel(self.host_health.overall_state.value.upper())
+        doctor_badge.setObjectName(
+            "Good"
+            if self.host_health.overall_state is ToolHealthState.VERIFIED
+            else "Danger"
+            if self.host_health.overall_state
+            in {ToolHealthState.MISSING, ToolHealthState.CONFLICT}
+            else "Warning"
+        )
+        doctor_top.addWidget(doctor_badge)
+        doctor_layout.addLayout(doctor_top)
+        platform_detail = QLabel(self.host_health.platform_tools_detail)
+        platform_detail.setObjectName(
+            "Good"
+            if self.host_health.platform_tools_state is ToolHealthState.VERIFIED
+            else "Warning"
+        )
+        platform_detail.setWordWrap(True)
+        doctor_layout.addWidget(platform_detail)
+        version_copy = "  •  ".join(
+            f"{check.name} {check.detected} (floor {check.minimum}) — {check.state.value}"
+            for check in self.host_health.version_checks
+        )
+        versions = QLabel(version_copy)
+        versions.setObjectName("Muted")
+        versions.setWordWrap(True)
+        doctor_layout.addWidget(versions)
+        usb_title = QLabel(self.host_health.usb.title)
+        usb_title.setObjectName(
+            "Good" if self.host_health.usb.state is ToolHealthState.VERIFIED else "Warning"
+        )
+        usb_detail = QLabel(self.host_health.usb.detail)
+        usb_detail.setObjectName("Muted")
+        usb_detail.setWordWrap(True)
+        doctor_layout.addWidget(usb_title)
+        doctor_layout.addWidget(usb_detail)
+        doctor_actions = QHBoxLayout()
+        self.platform_tools_repair_button = QPushButton("Install one verified Platform Tools pair")
+        self.platform_tools_repair_button.setObjectName("Primary")
+        self.platform_tools_repair_button.setVisible(
+            self.host_health.needs_platform_tools_repair
+        )
+        self.platform_tools_repair_button.setEnabled(
+            self.host_health.needs_platform_tools_repair and self.workspace is not None
+        )
+        self.platform_tools_repair_button.setToolTip(
+            "Open an explicit host-only setup. No phone or driver command runs."
+        )
+        self.platform_tools_repair_button.clicked.connect(self._repair_platform_tools)
+        self.host_usb_guide_button = QPushButton(
+            "Open exact OEM driver guide"
+            if self.host.name.casefold() == "windows"
+            else "Open Linux USB permission guide"
+            if self.host.name.casefold() == "linux"
+            else "Open Android USB guide"
+        )
+        guide_article = self.host_health.usb.guide_article_id
+        self.host_usb_guide_button.clicked.connect(
+            lambda _checked=False, article=guide_article: self.knowledge_article_requested.emit(
+                article
+            )
+        )
+        doctor_actions.addWidget(self.platform_tools_repair_button)
+        doctor_actions.addWidget(self.host_usb_guide_button)
+        doctor_actions.addStretch()
+        doctor_layout.addLayout(doctor_actions)
+        authority = QLabel(
+            "HOST CHECK ONLY  •  DRIVER INSTALLATION REMAINS OPERATING-SYSTEM CONTROLLED  •  "
+            "PHONE AUTHORITY: NONE"
+        )
+        authority.setObjectName("Muted")
+        authority.setWordWrap(True)
+        doctor_layout.addWidget(authority)
+        self.layout.addWidget(doctor)
         summary = QLabel(
             f"EQUIPMENT BAY  •  {ready} of {len(ordered_statuses)} slots verified on {self.host.name}"
         )
@@ -2175,6 +2301,23 @@ class ToolchainCenter(QWidget):
             self._render_studio_project_context()
         else:
             self._render_device_pack_context()
+
+    def _assess_host_health(self) -> HostToolchainHealth:
+        selected = self._communication_devices
+        observed = self._observed_communication_devices
+        communication_verified = any(
+            device.state
+            in {DeviceState.DEVICE, DeviceState.RECOVERY, DeviceState.SIDELOAD}
+            or device.is_fastboot
+            for device in selected
+        )
+        return assess_host_toolchain(
+            self.host,
+            tuple(self.statuses),
+            communication_verified=communication_verified,
+            transport_visible=bool(selected or observed),
+            scan_failed=bool(self._communication_error),
+        )
 
     def _communication_copy(self) -> tuple[str, str, str]:
         if self._communication_error:
@@ -2311,11 +2454,6 @@ class ToolchainDownloadWorker(ManagedRunnable):
             packages["platform-tools"] = (
                 f"https://dl.google.com/android/repository/platform-tools-latest-{platform_name}.zip",
                 executables,
-            )
-        if self.host.name.lower() == "windows" and "Google USB Driver" in self.selected:
-            packages["google-usb-driver"] = (
-                "https://dl.google.com/android/repository/latest_usb_driver_windows.zip",
-                ("android_winusb.inf",),
             )
         managed: list[str] = []
         partition_names = {"simg2img", "LP Make", "LP Unpack", "LP Dump"}

@@ -38,7 +38,10 @@ from romverse.intelligence.online_remediation import (
     ErrorFingerprint,
     OnlineFixReceipt,
     OnlineRemediationService,
+    RemediationDecision,
     SourceAuthority,
+    candidate_evidence_signal,
+    synthesize_remediation,
 )
 from romverse.knowledge.advisor import ArchiveRecommendation, recommend_for_repair
 from romverse.nexus.events import (
@@ -159,7 +162,6 @@ class RepairCenter(QWidget):
         self._online_pending: ErrorFingerprint | None = None
         self._online_attempted: set[str] = set()
         self._online_receipts: dict[str, OnlineFixReceipt] = {}
-        self._online_verified: set[tuple[str, str, str]] = set()
         self._online_mission = ""
 
         page = QVBoxLayout(self)
@@ -360,8 +362,13 @@ class RepairCenter(QWidget):
         self.intelligence_detail = QLabel("")
         self.intelligence_detail.setObjectName("Muted")
         self.intelligence_detail.setWordWrap(True)
+        self.intelligence_decision = QLabel("")
+        self.intelligence_decision.setObjectName("Good")
+        self.intelligence_decision.setAccessibleName("ROMVERSE Smart Solution Brief")
+        self.intelligence_decision.setWordWrap(True)
         self.intelligence_source = QLabel("")
         self.intelligence_source.setObjectName("Muted")
+        self.intelligence_source.setAccessibleName("Ranked remediation evidence sources")
         self.intelligence_source.setWordWrap(True)
         self.intelligence_source.setOpenExternalLinks(True)
         self.intelligence_boundary = QLabel(
@@ -375,6 +382,7 @@ class RepairCenter(QWidget):
         self.intelligence_retry.setVisible(False)
         intelligence_layout.addLayout(intelligence_header)
         intelligence_layout.addWidget(self.intelligence_status)
+        intelligence_details_layout.addWidget(self.intelligence_decision)
         intelligence_details_layout.addWidget(self.intelligence_detail)
         intelligence_details_layout.addWidget(self.intelligence_source)
         intelligence_details_layout.addWidget(self.intelligence_boundary)
@@ -1354,7 +1362,6 @@ class RepairCenter(QWidget):
         self.online_service = service
         self._online_attempted.clear()
         self._online_receipts.clear()
-        self._online_verified.clear()
         if service is None:
             self._online_pending = None
             self.intelligence_card.setVisible(False)
@@ -1435,6 +1442,11 @@ class RepairCenter(QWidget):
                 "Warning",
             )
             self.intelligence_source.clear()
+            self.intelligence_decision.setText(
+                "SMART SOLUTION BRIEF • LOCAL EVIDENCE ONLY\n"
+                "NEXT SAFE MOVE • Use the matching Archives guide or enable verified online "
+                "diagnostics; no phone action is inferred."
+            )
             self._set_intelligence_expanded(False)
             return
         cached = self._online_receipts.get(fingerprint.fingerprint_id) or service.load(fingerprint)
@@ -1457,6 +1469,10 @@ class RepairCenter(QWidget):
         self._set_intelligence_expanded(True)
         self.intelligence_retry.setVisible(False)
         self.intelligence_source.clear()
+        self.intelligence_decision.setText(
+            "SMART SOLUTION BRIEF • EVIDENCE SYNTHESIS PENDING\n"
+            "NEXT SAFE MOVE • Wait for vetted sources; no repair has started."
+        )
         self.intelligence_progress.begin(determinate=False)
         self._set_intelligence_status(
             "CHECKING VERIFIED SOURCES…",
@@ -1520,6 +1536,11 @@ class RepairCenter(QWidget):
                 f"{safe}. Local evidence was preserved; no remote instruction executed and Guardian policy did not change.",
                 "Warning",
             )
+            self.intelligence_decision.setText(
+                "SMART SOLUTION BRIEF • RESEARCH STOPPED SAFELY\n"
+                "NEXT SAFE MOVE • Keep the current local evidence and use the matching Archives "
+                "guide, or retry verified research when the connection is available."
+            )
             self.intelligence_source.clear()
         self._fail_online_research_console(safe)
         pending = self._online_pending
@@ -1531,9 +1552,28 @@ class RepairCenter(QWidget):
         self.intelligence_card.setVisible(True)
         self._set_intelligence_expanded(True)
         self.intelligence_progress.stop()
+        try:
+            decision = self._synthesize_intelligence(receipt)
+        except (OSError, TypeError, ValueError):
+            self.intelligence_retry.setVisible(True)
+            self.intelligence_source.clear()
+            self.intelligence_decision.setText(
+                "SMART SOLUTION BRIEF • EVIDENCE REVALIDATION FAILED\n"
+                "NEXT SAFE MOVE • Preserve the current local assessment and retry verified "
+                "research; no source recommendation or phone action was accepted."
+            )
+            self._set_intelligence_status(
+                "ONLINE EVIDENCE NEEDS ATTENTION",
+                "The research receipt changed or could not be revalidated. ROMVERSE discarded "
+                "its proposed solution instead of trusting stale evidence.",
+                "Warning",
+            )
+            return
         if not receipt.candidates:
             self.intelligence_retry.setVisible(True)
             self.intelligence_source.clear()
+            self._show_intelligence_decision(decision)
+            self._record_intelligence_decision(decision)
             self._set_intelligence_status(
                 "NO VERIFIED MATCH FOUND",
                 receipt.diagnosis,
@@ -1542,15 +1582,9 @@ class RepairCenter(QWidget):
             return
         self.intelligence_retry.setVisible(False)
         top = receipt.candidates[0]
-        locally_verified = (
-            top.confirmed_working
-            or (
-                receipt.fingerprint.fingerprint_id,
-                top.source_id,
-                top.local_action_id,
-            )
-            in self._online_verified
-        )
+        self._show_intelligence_decision(decision)
+        self._record_intelligence_decision(decision)
+        locally_verified = top.source_id in decision.locally_verified_source_ids
         confidence = "LOCALLY VERIFIED WORKING" if locally_verified else "GUIDANCE • REVIEW"
         self._set_intelligence_status(
             f"{confidence} • {top.authority.value.upper()} • {top.confidence}%",
@@ -1561,20 +1595,76 @@ class RepairCenter(QWidget):
             ),
             "Good" if locally_verified else "Warning",
         )
-        title = html.escape(top.title)
-        url = html.escape(top.url, quote=True)
-        typed = (
-            " • matching built-in action available below"
-            if top.local_action_id == "refresh-adb-evidence" and self.host_repair_plan is not None
-            else ""
-        )
-        self.intelligence_source.setText(
-            f'<a style="color:#43DDF2" href="{url}">{title}</a>'
-            f" • source date {html.escape(top.published_at or 'unconfirmed')}"
-            f" • local action {html.escape(top.local_action_id or 'none')}{typed}"
-        )
+        sources = []
+        for index, candidate in enumerate(receipt.candidates[:5]):
+            title = html.escape(candidate.title)
+            url = html.escape(candidate.url, quote=True)
+            role = "LEAD" if index == 0 else f"ALTERNATIVE {index}"
+            verified = (
+                " • LOCALLY VERIFIED"
+                if candidate.source_id in decision.locally_verified_source_ids
+                else ""
+            )
+            signal = candidate_evidence_signal(
+                candidate,
+                locally_verified=candidate.source_id in decision.locally_verified_source_ids,
+            )
+            typed = (
+                " • MATCHING BUILT-IN ACTION"
+                if candidate.local_action_id == "refresh-adb-evidence"
+                and self.host_repair_plan is not None
+                else ""
+            )
+            sources.append(
+                f'{role} • <a style="color:#43DDF2" href="{url}">{title}</a> • '
+                f"{candidate.authority.value.upper()} • {candidate.confidence}% • "
+                f"{signal.replace('-', ' ').upper()} • "
+                f"{html.escape(candidate.freshness.value)} • "
+                f"{html.escape(candidate.scope_match)}{verified}{typed}"
+            )
+        self.intelligence_source.setText("<br/>".join(sources))
         self.intelligence_source.setToolTip(
             "Opening a source is a user review action. Web content cannot become a ROMVERSE command."
+        )
+
+    def _synthesize_intelligence(self, receipt: OnlineFixReceipt) -> RemediationDecision:
+        service = self.online_service
+        if service is None:
+            return synthesize_remediation(receipt)
+        return service.synthesize(receipt)
+
+    def _show_intelligence_decision(self, decision: RemediationDecision) -> None:
+        self.intelligence_decision.setText(
+            f"SMART SOLUTION BRIEF • {decision.state.value.replace('-', ' ').upper()}\n"
+            f"{decision.headline}\nWHY • {decision.rationale}\n"
+            f"NEXT SAFE MOVE • {decision.next_safe_action}"
+        )
+        self.intelligence_decision.setObjectName(
+            "Good" if decision.state.value == "locally-verified" else "Warning"
+        )
+        self.intelligence_decision.style().unpolish(self.intelligence_decision)
+        self.intelligence_decision.style().polish(self.intelligence_decision)
+
+    def _record_intelligence_decision(self, decision: RemediationDecision) -> None:
+        if self._report_payload is None:
+            return
+        current = self._report_payload.get("online_research")
+        if not isinstance(current, dict):
+            return
+        current.update(
+            {
+                "decision_state": decision.state.value,
+                "headline": decision.headline,
+                "rationale": decision.rationale,
+                "next_safe_action": decision.next_safe_action,
+                "lead_signal": decision.lead_signal,
+                "lead_source_id": decision.lead_source_id,
+                "evidence_source_ids": list(decision.evidence_source_ids),
+                "locally_verified_source_ids": list(decision.locally_verified_source_ids),
+                "candidate_count": decision.candidate_count,
+                "execution_authority": decision.execution_authority,
+                "phone_action_allowed": decision.phone_action_allowed,
+            }
         )
 
     def _set_intelligence_status(self, status: str, detail: str, style: str) -> None:
@@ -1639,9 +1729,6 @@ class RepairCenter(QWidget):
             )
         except (OSError, ValueError):
             return
-        self._online_verified.add(
-            (receipt.fingerprint.fingerprint_id, candidate.source_id, candidate.local_action_id)
-        )
         self._show_online_receipt(receipt)
         if self.live_console_store is not None:
             with suppress(LiveConsoleStoreError):

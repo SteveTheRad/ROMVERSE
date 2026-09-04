@@ -67,7 +67,14 @@ IP addresses, serial-like identifiers, and long digests are removed before offic
 enabled community providers are queried. Built-in connected research covers Reddit and accepted-answer
 Android Enthusiasts threads; optional configured web discovery can also surface official OEM pages,
 maintainer issue trackers, and XDA discussions. The result card exposes authority, source date/freshness,
-scope, corroboration, confidence, and the confidence reason. Remote text remains guidance-only.
+scope, corroboration, confidence, and the confidence reason. A deterministic **Smart Solution Brief**
+now classifies the result as locally verified, a typed action available, official guidance,
+corroborated hypothesis, reported risk, community hypothesis, discovery-only, or no match. It explains
+why the lead source ranks first, gives one plain-language next safe move, and displays up to five
+ranked official/maintainer/community alternatives instead of hiding every result after the first.
+Community wording that reports a boot loop, bricking, data loss, or a failed action is promoted as a
+caution signal—never as a recipe to repeat. The same decision, source identities, and permanent
+`phone_action_allowed: false` boundary enter the privacy-safe Recovery Bay report. Remote text remains guidance-only.
 Only a matching built-in typed action with a successful local receipt can be recorded as locally
 verified working; disabling online intelligence while a lookup is running discards that result.
 Research receipts and verified-outcome records now use size-bounded, private `0600`, uniquely

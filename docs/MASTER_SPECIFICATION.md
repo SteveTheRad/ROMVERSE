@@ -1,6 +1,6 @@
 # ROMVERSE Master Specification v1.0
 
-Status: foundation approved; v0.1 vertical slice implemented; read-only diagnostics underway  
+Status: active release-candidate development; Desktop and Companion vertical slices implemented
 Product owner/creator: SteveTheRad  
 Studio: RadForge Labs  
 Tagline: **Build. Optimize. Perfect.**
@@ -27,8 +27,9 @@ safety bypass.
   repair, ROM tooling, backups, and build orchestration.
 - **Guardian**: independent policy and evidence layer for compatibility, risk, battery,
   partitions, hashes, boot state, backups, recovery readiness, approvals, and verification.
-- **Companion**: future Android client for device status, diagnostics, secure pairing,
-  build monitoring, notifications, and approved APK transfer/install flows.
+- **Companion**: Android client for local device status/diagnostics, secure Desktop pairing,
+  integrity-checked build monitoring, notifications, and approved APK transfer/install flows;
+  broader production services remain gated by their exact evidence and backend contracts.
 - **Galaxy**: optional online services for updates, firmware discovery, compatibility
   intelligence, Device Packs, Recipes, plugins, sync, and community. Never required for
   basic local operation.
@@ -169,6 +170,15 @@ creation and load. A digest-shaped value or legacy schema-one outcome is never s
 The online-research surface is secondary to local assessment: its disabled state remains a compact
 discoverable row, while active, returned, or failed evidence expands automatically. Folding research
 details is presentation-only and cannot clear, accept, retry, promote, or otherwise mutate evidence.
+
+The ranked receipt must also produce a deterministic Smart Solution Brief. It must distinguish no
+match, locally verified typed outcomes, an available built-in typed action, official guidance,
+reported community/maintainer risk, independently corroborated hypotheses, single-source community
+hypotheses, and discovery-only results. The brief must explain the lead evidence and one next safe
+move in plain language, display the strongest alternatives, and enter the privacy-safe report. A
+reported harmful result can only increase caution. Receipt revalidation and current typed-outcome
+verification are required immediately before display; failed revalidation must remove the proposed
+solution. Every state retains guidance-only authority and `phone_action_allowed: false`.
 
 Guided repair sessions persist a pseudonymous initial evidence digest, health signal score,
 finding IDs, and the user's reviewed checkpoints. Checkpoints record review only and never

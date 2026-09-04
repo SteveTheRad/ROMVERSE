@@ -111,6 +111,17 @@ same OEM family for a live scrubbed error fingerprint. Community and maintainer 
 guidance-only and cannot inject a command, become verified working by assertion, or grant repair,
 package, flash, wipe, reset, reboot, or bootloader authority. This increment performed no phone action.
 
+The subsequent Smart Solution Brief increment collects 1,624 Desktop tests. Recovery Bay now derives
+one explainable next-step state from the exact persisted remediation receipt, revalidates the receipt
+and any typed local outcome before display, records its decision and source identities in the
+privacy-safe report, and shows up to five ranked source alternatives. Official guidance, typed local
+actions, independently corroborated reports, single-source community hypotheses, discovery-only
+results, no matches, locally verified outcomes, and reported harmful outcomes remain visibly
+different. Community/maintainer text describing a boot loop, bricking, data loss, or failed action
+can only produce a reported-risk caution with a do-not-reproduce next step. Focused remediation and
+Recovery Bay tests, all 1,624 Desktop tests, and the complete Ruff check/format gates across 378
+Python files pass for this exact increment. No phone operation is part of this feature.
+
 ## Required gates
 
 1. Run the complete `pytest`, `ruff check .`, and `ruff format --check .` gates on supported Linux

@@ -15,8 +15,10 @@ from romverse.intelligence.online_remediation import (
     OnlineFixCandidate,
     OnlineRemediationService,
     RedditSearchProvider,
+    RemediationDecisionState,
     SourceAuthority,
     StackExchangeSearchProvider,
+    synthesize_remediation,
 )
 
 
@@ -65,6 +67,138 @@ def test_official_guidance_is_content_addressed_and_remote_text_has_no_authority
     assert (
         tmp_path / "knowledge" / "online-remediation" / f"{fingerprint.fingerprint_id}.romverse"
     ).is_file()
+
+
+def test_remediation_synthesis_stops_without_a_vetted_match(tmp_path) -> None:
+    receipt = OnlineRemediationService(tmp_path).lookup(
+        ErrorFingerprint.create("unclassified condition with no catalog token")
+    )
+
+    decision = synthesize_remediation(receipt)
+
+    assert decision.state is RemediationDecisionState.NO_MATCH
+    assert decision.candidate_count == 0
+    assert decision.evidence_source_ids == ()
+    assert decision.execution_authority == "guidance-only"
+    assert not decision.phone_action_allowed
+
+
+def test_remediation_synthesis_revalidates_the_persisted_receipt(tmp_path) -> None:
+    service = OnlineRemediationService(tmp_path)
+    receipt = service.lookup(ErrorFingerprint.create("ADB device offline"))
+    path = (
+        tmp_path
+        / "knowledge"
+        / "online-remediation"
+        / f"{receipt.fingerprint.fingerprint_id}.romverse"
+    )
+    payload = json.loads(path.read_text())
+    payload["diagnosis"] = "changed after the receipt was accepted"
+    path.write_text(json.dumps(payload))
+
+    with pytest.raises(ValueError, match="stale or invalid"):
+        service.synthesize(receipt)
+
+
+def test_remediation_synthesis_prefers_scoped_official_guidance(tmp_path) -> None:
+    receipt = OnlineRemediationService(tmp_path).lookup(
+        ErrorFingerprint.create("system update failed", manufacturer="Samsung")
+    )
+
+    decision = synthesize_remediation(receipt)
+
+    assert decision.state is RemediationDecisionState.OFFICIAL_GUIDANCE
+    assert decision.lead_source_id == "samsung.smart-switch"
+    assert decision.candidate_count == 1
+    assert "exact model/build/package scope" in decision.next_safe_action
+
+
+def test_remediation_synthesis_marks_only_a_builtin_official_action_as_available(
+    tmp_path,
+) -> None:
+    class Provider:
+        @staticmethod
+        def search(_fingerprint):
+            return (
+                OnlineFixCandidate(
+                    "official.adb",
+                    SourceAuthority.OFFICIAL,
+                    "Official ADB recovery",
+                    "https://developer.android.com/tools/adb",
+                    "Refresh the host ADB evidence through the bounded local workflow.",
+                    local_action_id="refresh-adb-evidence",
+                    confidence=90,
+                ),
+            )
+
+    receipt = OnlineRemediationService(tmp_path, (Provider(),)).lookup(
+        ErrorFingerprint.create("ADB device offline")
+    )
+
+    decision = synthesize_remediation(receipt)
+
+    assert decision.state is RemediationDecisionState.TYPED_ACTION_AVAILABLE
+    assert "typed Guardian boundary" in decision.next_safe_action
+    assert not decision.phone_action_allowed
+
+
+def test_remediation_synthesis_distinguishes_corroborated_community_hypothesis(
+    tmp_path,
+) -> None:
+    class Provider:
+        @staticmethod
+        def search(_fingerprint):
+            return tuple(
+                OnlineFixCandidate(
+                    f"community.report-{index}",
+                    SourceAuthority.COMMUNITY,
+                    f"Device report {index}",
+                    f"https://example{index}.com/report",
+                    "The same scoped symptom was reported and investigated.",
+                    corroboration_key="same-device-symptom",
+                    confidence=70,
+                )
+                for index in (1, 2)
+            )
+
+    receipt = OnlineRemediationService(tmp_path, (Provider(),)).lookup(
+        ErrorFingerprint.create("device update symptom")
+    )
+
+    decision = synthesize_remediation(receipt)
+
+    assert decision.state is RemediationDecisionState.CORROBORATED_HYPOTHESIS
+    assert decision.candidate_count == 2
+    assert len(decision.evidence_source_ids) == 2
+    assert "validate the hypothesis read-only" in decision.next_safe_action
+
+
+def test_remediation_synthesis_turns_a_community_failure_report_into_caution(
+    tmp_path,
+) -> None:
+    class Provider:
+        @staticmethod
+        def search(_fingerprint):
+            return (
+                OnlineFixCandidate(
+                    "community.slot-risk",
+                    SourceAuthority.COMMUNITY,
+                    "Manual slot switch caused a boot loop",
+                    "https://xdaforums.com/t/example-slot-report.1234567/",
+                    "The phone was not working after switching to the incomplete slot.",
+                    confidence=76,
+                ),
+            )
+
+    service = OnlineRemediationService(tmp_path, (Provider(),))
+    receipt = service.lookup(ErrorFingerprint.create("manual slot switch result"))
+
+    decision = service.synthesize(receipt)
+
+    assert decision.state is RemediationDecisionState.REPORTED_RISK
+    assert decision.lead_signal == "reported-risk"
+    assert decision.next_safe_action.startswith("Do not reproduce")
+    assert not decision.phone_action_allowed
 
 
 @pytest.mark.parametrize(
@@ -226,12 +360,14 @@ def test_provider_cannot_self_confirm_a_fix_or_inject_an_action_identifier(tmp_p
                 ),
             )
 
-    receipt = OnlineRemediationService(tmp_path, (Provider(),)).lookup(fingerprint)
+    service = OnlineRemediationService(tmp_path, (Provider(),))
+    receipt = service.lookup(fingerprint)
 
     assert len(receipt.candidates) == 1
     assert receipt.candidates[0].source_id == "official.claim"
     assert not receipt.candidates[0].confirmed_working
-    assert OnlineRemediationService(tmp_path).load(fingerprint) == receipt
+    assert service.synthesize(receipt).state is not RemediationDecisionState.LOCALLY_VERIFIED
+    assert service.load(fingerprint) == receipt
 
 
 def test_invalid_remote_source_identity_cannot_control_outcome_path(tmp_path):
@@ -363,6 +499,7 @@ def test_only_successful_typed_local_outcome_promotes_fix_to_confirmed(tmp_path)
         action_evidence(candidate.local_action_id, "a" * 64),
         "Typed AVB inspection completed and its descriptor receipt verified.",
     )
+    assert service.synthesize(first).state is RemediationDecisionState.LOCALLY_VERIFIED
     second = service.lookup(fingerprint)
 
     assert outcome.success
@@ -372,6 +509,7 @@ def test_only_successful_typed_local_outcome_promotes_fix_to_confirmed(tmp_path)
     assert next(
         item for item in second.candidates if item.source_id == candidate.source_id
     ).confirmed_working
+    assert synthesize_remediation(second).state is RemediationDecisionState.LOCALLY_VERIFIED
 
 
 def test_outcome_candidate_must_belong_to_the_exact_persisted_fingerprint(tmp_path):

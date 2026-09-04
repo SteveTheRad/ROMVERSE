@@ -69,6 +69,36 @@ class OfficialAdbResearchProvider:
         )
 
 
+class MultiSourceResearchProvider:
+    def search(self, _fingerprint):
+        return (
+            OnlineFixCandidate(
+                "official.samsung.update",
+                SourceAuthority.OFFICIAL,
+                "Samsung official update guidance",
+                "https://www.samsung.com/us/support/answer/ANS10002027/",
+                "Check the exact Galaxy model and current update state.",
+                confidence=90,
+            ),
+            OnlineFixCandidate(
+                "maintainer.android.update",
+                SourceAuthority.MAINTAINER,
+                "Maintainer update diagnosis",
+                "https://github.com/android/platform_system_update_engine/issues/1",
+                "Compare the exact update error with the maintained implementation.",
+                confidence=78,
+            ),
+            OnlineFixCandidate(
+                "community.android.update",
+                SourceAuthority.COMMUNITY,
+                "Community update report",
+                "https://xdaforums.com/t/example-update-report.1234567/",
+                "One device owner reported the same symptom.",
+                confidence=68,
+            ),
+        )
+
+
 def test_guided_repair_ui_saves_checkpoints_then_requires_fresh_scan(tmp_path) -> None:
     app = QApplication.instance() or QApplication([])
     activity = ActivityStore(tmp_path)
@@ -510,6 +540,51 @@ def test_recovery_bay_automatically_researches_exact_error_without_executing_rem
     assert "execution authority: none" in center.intelligence_boundary.text().casefold()
     assert center.host_repair_worker is None
     assert not list((tmp_path / "diagnostics" / "host-repair-receipts").glob("*"))
+    center.close()
+
+
+def test_recovery_bay_synthesizes_and_displays_ranked_solution_evidence(
+    tmp_path, monkeypatch
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    online = OnlineRemediationService(tmp_path, (MultiSourceResearchProvider(),))
+    monkeypatch.setattr(
+        "romverse.ui.repair_center.start_background",
+        lambda worker: worker.execute(),
+    )
+    center = RepairCenter(
+        DiagnosticAnalyzer(),
+        RepairAssessmentTemplates(),
+        GuardianPreflight(),
+        tmp_path,
+        ActivityStore(tmp_path),
+        online_service=online,
+    )
+    center.symptom_input.setText("system update failed after download")
+    center.set_devices([device(manufacturer="Samsung")])
+    app.processEvents()
+
+    assert "SMART SOLUTION BRIEF • OFFICIAL GUIDANCE" in center.intelligence_decision.text()
+    assert "NEXT SAFE MOVE" in center.intelligence_decision.text()
+    ranked_sources = center.intelligence_source.text()
+    assert ranked_sources.count("href=") == 3
+    assert "LEAD" in ranked_sources
+    assert "ALTERNATIVE 1" in ranked_sources
+    assert "Samsung official update guidance" in ranked_sources
+    assert "Maintainer update diagnosis" in ranked_sources
+    assert "Community update report" in ranked_sources
+    assert "OFFICIAL GUIDANCE" in ranked_sources
+    assert "MAINTAINER GUIDANCE" in ranked_sources
+    assert "COMMUNITY REPORT" in ranked_sources
+    assert center._report_payload is not None
+    research = center._report_payload["online_research"]
+    assert isinstance(research, dict)
+    assert research["decision_state"] == "official-guidance"
+    assert research["candidate_count"] == 3
+    assert research["lead_signal"] == "official-guidance"
+    assert research["execution_authority"] == "guidance-only"
+    assert not research["phone_action_allowed"]
+    assert center.host_repair_worker is None
     center.close()
 
 

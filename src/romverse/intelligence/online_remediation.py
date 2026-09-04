@@ -45,6 +45,17 @@ class EvidenceFreshness(StrEnum):
     UNCONFIRMED = "unconfirmed"
 
 
+class RemediationDecisionState(StrEnum):
+    NO_MATCH = "no-match"
+    LOCALLY_VERIFIED = "locally-verified"
+    TYPED_ACTION_AVAILABLE = "typed-action-available"
+    OFFICIAL_GUIDANCE = "official-guidance"
+    REPORTED_RISK = "reported-risk"
+    CORROBORATED_HYPOTHESIS = "corroborated-hypothesis"
+    COMMUNITY_HYPOTHESIS = "community-hypothesis"
+    DISCOVERY_REVIEW = "discovery-review"
+
+
 @dataclass(frozen=True, slots=True)
 class ErrorFingerprint:
     fingerprint_id: str
@@ -137,6 +148,178 @@ class OnlineFixReceipt:
     cache_path: str
     receipt_digest: str
     execution_authority: str = "guidance-only"
+
+
+@dataclass(frozen=True, slots=True)
+class RemediationDecision:
+    """A deterministic, explainable next-step synthesis with no device authority."""
+
+    state: RemediationDecisionState
+    headline: str
+    rationale: str
+    next_safe_action: str
+    lead_signal: str
+    lead_source_id: str
+    evidence_source_ids: tuple[str, ...]
+    locally_verified_source_ids: tuple[str, ...]
+    candidate_count: int
+    execution_authority: str = "guidance-only"
+    phone_action_allowed: bool = False
+
+
+_TYPED_ACTION_LABELS = {
+    "refresh-adb-evidence": "refresh the USB and ADB connection evidence",
+    "verify-platform-tools": "verify Android Platform Tools",
+    "inspect-payload-source": "inspect the OTA payload source",
+    "inspect-avb-topology": "inspect the Verified Boot layout",
+    "classify-ota-source": "classify the OTA source",
+}
+
+_REPORTED_RISK_PATTERNS = (
+    "boot loop",
+    "bootloop",
+    "bricked",
+    "caused data loss",
+    "caused a wipe",
+    "failed after",
+    "not working after",
+    "was not working",
+)
+
+
+def candidate_evidence_signal(
+    candidate: OnlineFixCandidate,
+    *,
+    locally_verified: bool = False,
+) -> str:
+    """Label evidence conservatively; report wording can add caution, never authority."""
+
+    if locally_verified or candidate.confirmed_working:
+        return "locally-verified"
+    if candidate.local_action_id and candidate.authority in {
+        SourceAuthority.OFFICIAL,
+        SourceAuthority.MAINTAINER,
+    }:
+        return "typed-local-action"
+    evidence_text = f"{candidate.title} {candidate.summary}".casefold()
+    if candidate.authority in {SourceAuthority.MAINTAINER, SourceAuthority.COMMUNITY} and any(
+        pattern in evidence_text for pattern in _REPORTED_RISK_PATTERNS
+    ):
+        return "reported-risk"
+    if candidate.authority is SourceAuthority.OFFICIAL:
+        return "official-guidance"
+    if candidate.authority is SourceAuthority.MAINTAINER:
+        return "maintainer-guidance"
+    if candidate.authority is SourceAuthority.COMMUNITY:
+        return "community-report"
+    return "discovery-only"
+
+
+def synthesize_remediation(
+    receipt: OnlineFixReceipt,
+    *,
+    verified_candidate_keys: frozenset[tuple[str, str, str]] = frozenset(),
+) -> RemediationDecision:
+    """Turn vetted candidates into one bounded review path without interpreting commands."""
+
+    candidates = receipt.candidates
+    if not candidates:
+        return RemediationDecision(
+            RemediationDecisionState.NO_MATCH,
+            "No evidence-backed solution identified",
+            "No vetted source matched this exact privacy-scrubbed error fingerprint.",
+            "Keep the current evidence unchanged, collect the exact error and Device DNA, then retry or use the matching local Archives guide.",
+            "no-match",
+            "",
+            (),
+            (),
+            0,
+        )
+
+    lead = candidates[0]
+    evidence_ids = tuple(dict.fromkeys(item.source_id for item in candidates[:5]))
+    verified_source_ids = tuple(
+        dict.fromkeys(
+            item.source_id
+            for item in candidates
+            if item.confirmed_working
+            or (item.source_id, item.url, item.local_action_id) in verified_candidate_keys
+        )
+    )
+    lead_locally_verified = (
+        lead.confirmed_working
+        or (lead.source_id, lead.url, lead.local_action_id) in verified_candidate_keys
+    )
+    lead_signal = candidate_evidence_signal(lead, locally_verified=lead_locally_verified)
+    rationale = (
+        f"Lead evidence is {lead.authority.value}; scope is {lead.scope_match}; freshness is "
+        f"{lead.freshness.value}; corroboration is {lead.corroboration_count} source(s); "
+        f"confidence is {lead.confidence}%."
+    )
+    if lead_locally_verified:
+        state = RemediationDecisionState.LOCALLY_VERIFIED
+        headline = "A matching typed fix was verified locally"
+        next_action = (
+            "Review the current evidence and rerun only the same built-in typed action after "
+            "Guardian revalidates its exact target and receipt requirements."
+        )
+    elif lead.local_action_id and lead.authority in {
+        SourceAuthority.OFFICIAL,
+        SourceAuthority.MAINTAINER,
+    }:
+        state = RemediationDecisionState.TYPED_ACTION_AVAILABLE
+        headline = "A bounded ROMVERSE action can test the leading hypothesis"
+        action_label = _TYPED_ACTION_LABELS[lead.local_action_id]
+        next_action = (
+            f"Open the matching ROMVERSE workflow to {action_label}, review its current "
+            "preconditions, and run it only through its typed Guardian boundary."
+        )
+    elif lead.authority is SourceAuthority.OFFICIAL:
+        state = RemediationDecisionState.OFFICIAL_GUIDANCE
+        headline = "Official guidance is the strongest current path"
+        next_action = (
+            "Open the lead official source, confirm its exact model/build/package scope, and "
+            "collect the stated evidence before proposing any repair or firmware action."
+        )
+    elif lead_signal == "reported-risk":
+        state = RemediationDecisionState.REPORTED_RISK
+        headline = "The leading community evidence reports a failed or harmful outcome"
+        next_action = (
+            "Do not reproduce the reported action. Compare the failure with official and exact-"
+            "device recovery evidence, then use read-only checks to determine whether it applies."
+        )
+    elif lead.corroboration_count > 1:
+        state = RemediationDecisionState.CORROBORATED_HYPOTHESIS
+        headline = "Multiple sources support a reviewable hypothesis"
+        next_action = (
+            "Compare the independent reports with official documentation and the exact Device "
+            "Pack, then validate the hypothesis read-only before considering an action."
+        )
+    elif lead.authority in {SourceAuthority.MAINTAINER, SourceAuthority.COMMUNITY}:
+        state = RemediationDecisionState.COMMUNITY_HYPOTHESIS
+        headline = "Community or maintainer evidence suggests a hypothesis"
+        next_action = (
+            "Treat the report as unconfirmed, seek exact-device corroboration, and validate only "
+            "with read-only evidence; do not copy its commands into a device workflow."
+        )
+    else:
+        state = RemediationDecisionState.DISCOVERY_REVIEW
+        headline = "A discovery result needs authoritative confirmation"
+        next_action = (
+            "Find an official or recognized maintainer source for the exact device and build "
+            "before ROMVERSE treats this as a repair candidate."
+        )
+    return RemediationDecision(
+        state,
+        headline,
+        rationale,
+        next_action,
+        lead_signal,
+        lead.source_id,
+        evidence_ids,
+        verified_source_ids,
+        len(candidates),
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -742,6 +925,20 @@ class OnlineRemediationService:
             maximum_bytes=self.MAX_RECEIPT_BYTES,
         )
         return receipt
+
+    def synthesize(self, receipt: OnlineFixReceipt) -> RemediationDecision:
+        """Revalidate persisted evidence and derive its current no-authority decision."""
+
+        if not isinstance(receipt, OnlineFixReceipt):
+            raise TypeError("Online remediation decision needs a validated receipt")
+        persisted = self.load(receipt.fingerprint)
+        if persisted is None or persisted.receipt_digest != receipt.receipt_digest:
+            raise ValueError("Online remediation decision receipt is stale or invalid")
+        verified = frozenset(
+            (outcome.source_id, outcome.source_url, outcome.local_action_id)
+            for outcome in self._load_verified_outcomes(receipt.fingerprint)
+        )
+        return synthesize_remediation(receipt, verified_candidate_keys=verified)
 
     def load(self, fingerprint: ErrorFingerprint) -> OnlineFixReceipt | None:
         path = self.cache_root / f"{fingerprint.fingerprint_id}.romverse"

@@ -32,6 +32,22 @@ unverified operations remain tool-unconfirmed rather than guessing. ROMVERSE dis
 - independent-source corroboration count and authority families;
 - numeric confidence and a plain-language explanation of that confidence.
 
+Recovery Bay derives a deterministic Smart Solution Brief from the persisted, revalidated receipt.
+It chooses one of eight honest states: no match, locally verified, typed action available, official
+guidance, reported risk, corroborated hypothesis, community hypothesis, or discovery review. The brief
+names why the lead ranks first and one next safe move; the UI shows up to five ranked evidence links
+with authority, confidence, freshness, scope, and evidence signal. A maintainer/community report that
+describes a boot loop, bricking, data loss, or a failed post-action result is labelled reported risk
+and the next move explicitly says not to reproduce it. This text classification may add caution but
+can never add authority.
+
+Before presenting the brief, the service reopens the exact persisted research receipt. Any stale,
+changed, missing, or malformed record discards the proposed solution. A locally verified label is
+derived again from the exact source URL/action tuple and a currently valid typed outcome receipt; an
+in-memory or provider-supplied claim is insufficient. The exported Recovery Bay report contains only
+the bounded derived decision and source identifiers, plus `execution_authority: guidance-only` and
+`phone_action_allowed: false`.
+
 The connected provider set always begins with ROMVERSE's curated official Android/AOSP/OEM index.
 When community research is enabled it also searches Reddit reports and accepted-answer Android
 Enthusiasts threads. A configured Google Programmable Search connection may add official OEM pages,

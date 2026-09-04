@@ -48,6 +48,10 @@ from romverse.device_packs.foundry import (
     FoundryEvidenceState,
 )
 from romverse.device_packs.models import CapabilityStatus, DevicePack
+from romverse.device_packs.promotion import (
+    DevicePackPromotionReview,
+    DevicePackPromotionService,
+)
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.device_packs.requirements import (
     DeviceRequirementsBlueprint,
@@ -118,6 +122,7 @@ class DevicePacksCenter(QWidget):
         self.requirements_service = DeviceRequirementsService()
         self.draft_service = DevicePackDraftService()
         self.foundry_service = DevicePackFoundryService()
+        self.promotion_service = DevicePackPromotionService()
         self.active_report: DevicePackValidationReport | None = None
         self.active_next_action: DevicePackNextAction | None = None
         self.active_requirements: DeviceRequirementsBlueprint | None = None
@@ -125,7 +130,9 @@ class DevicePacksCenter(QWidget):
         self.active_project_draft: DevicePackDraftReview | None = None
         self.active_foundry_revision: FoundryDraftRevision | None = None
         self.foundry_inventory: DevicePackFoundryInventory | None = None
+        self.active_promotion_review: DevicePackPromotionReview | None = None
         self.import_contribution_button: QPushButton | None = None
+        self.export_promotion_review_button: QPushButton | None = None
         self.foundry_contribution_status: QLabel | None = None
         self.active_catalog_match: DeviceCatalogMatch | None = None
         self.active_pack: DevicePack | None = None
@@ -2240,7 +2247,9 @@ class DevicePacksCenter(QWidget):
     def _render_foundry_blueprint(self, parent: QVBoxLayout) -> None:
         self.active_foundry_revision = None
         self.foundry_inventory = None
+        self.active_promotion_review = None
         self.import_contribution_button = None
+        self.export_promotion_review_button = None
         self.foundry_contribution_status = None
         card = QFrame()
         card.setObjectName("DevicePackFoundryCard")
@@ -2408,6 +2417,35 @@ class DevicePacksCenter(QWidget):
         self.import_contribution_button.clicked.connect(self._import_foundry_contribution)
         contribution_row.addWidget(self.import_contribution_button)
         layout.addLayout(contribution_row)
+        if revision is not None:
+            promotion_review = self.promotion_service.assess(
+                revision,
+                inventory,
+                contributions,
+            )
+            self.active_promotion_review = promotion_review
+            promotion_row = QHBoxLayout()
+            promotion_copy = QLabel(
+                f"PROMOTION REVIEW  •  {promotion_review.passed_count}/{len(promotion_review.checks)} "
+                f"CHECKS  •  {promotion_review.blocker_count} BLOCKER(S)  •  "
+                f"{'ELIGIBLE FOR GOVERNED REVIEW' if promotion_review.eligible_for_governed_review else 'BLOCKED'}"
+            )
+            promotion_copy.setObjectName(
+                "Good" if promotion_review.eligible_for_governed_review else "Warning"
+            )
+            promotion_copy.setWordWrap(True)
+            promotion_row.addWidget(promotion_copy, 1)
+            self.export_promotion_review_button = QPushButton("Export promotion review…")
+            self.export_promotion_review_button.setEnabled(self.workspace is not None)
+            self.export_promotion_review_button.setToolTip(
+                "Exports the exact passed and blocked release-review checks. The app cannot "
+                "promote a Pack or modify the installed production registry."
+            )
+            self.export_promotion_review_button.clicked.connect(
+                self._export_foundry_promotion_review
+            )
+            promotion_row.addWidget(self.export_promotion_review_button)
+            layout.addLayout(promotion_row)
         self.foundry_contribution_status = QLabel("")
         self.foundry_contribution_status.setObjectName("Muted")
         self.foundry_contribution_status.setWordWrap(True)
@@ -2451,6 +2489,33 @@ class DevicePacksCenter(QWidget):
                 f"Contribution rejected: {result.report.reason}. Nothing was published or enabled."
             )
             self.foundry_contribution_status.setObjectName("Danger")
+        if self.foundry_contribution_status is not None:
+            self._repolish(self.foundry_contribution_status)
+
+    def _export_foundry_promotion_review(self) -> None:
+        review = self.active_promotion_review
+        if self.workspace is None or review is None:
+            return
+        try:
+            exported = self.promotion_service.export(
+                review,
+                self.workspace / "device_pack_promotion_reviews",
+                boundary=self.workspace,
+            )
+        except OSError as exc:
+            if self.foundry_contribution_status is not None:
+                self.foundry_contribution_status.setText(
+                    f"Promotion review export stopped safely: {exc}. The production registry was not changed."
+                )
+                self.foundry_contribution_status.setObjectName("Danger")
+        else:
+            if self.foundry_contribution_status is not None:
+                self.foundry_contribution_status.setText(
+                    f"Saved {exported.output_path}  •  SHA-256 {exported.sha256[:16]}…  •  "
+                    f"{review.blocker_count} blocker(s) recorded  •  publication authority: NONE  •  "
+                    "production registry changed: NO."
+                )
+                self.foundry_contribution_status.setObjectName("Good")
         if self.foundry_contribution_status is not None:
             self._repolish(self.foundry_contribution_status)
 

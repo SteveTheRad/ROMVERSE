@@ -460,6 +460,10 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   revocation, expiry and bounded evidence scopes, stores only verified files in a private
   content-addressed vault, and never changes the production registry or grants publication/build/
   flash/phone authority;
+  deterministic Device Pack promotion review across exact revision, conflict, source/DNA,
+  partition/AVB, flash/rollback, simulation, manufacturer, independent-expert and physical-test
+  gates, with private content-addressed blocker dossiers and no runtime method capable of changing
+  the production Pack registry even when every prerequisite is present;
   Partition Atlas source-AVB inspection that rehashes the exact OTA `vbmeta` pair, distinguishes
   actual chain partitions from other descriptors, binds a strict private receipt to the payload and
   protected source, and carries it into that draft without creating signing or flash authority;

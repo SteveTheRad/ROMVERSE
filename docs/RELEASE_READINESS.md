@@ -1657,7 +1657,16 @@ The product-wide continuation target and definition of done are recorded in
   signer, role and scopes while retaining mandatory review and zero publication, production-registry,
   build, flash or phone authority. The bundled catalog still contains no trusted signer, so this
   checkpoint invents no publisher identity.
-- All 1,886 Desktop/Python tests and the complete Ruff check gate pass, including core draft,
+- Every exact Foundry revision now receives a deterministic nine-check promotion review covering
+  immutable revision membership, identity conflicts, protected-source/sealed-DNA binding, measured
+  partitions and OEM AVB, exact flash/rollback/recovery contracts, successful exact-bound simulation,
+  separately role-verified manufacturer and qualified-expert contributions, and independent physical
+  recovery/first-boot evidence. Device Atlas shows passed and blocked totals and can export the exact
+  private content-addressed dossier. Even the fully evidenced synthetic contract reaches only
+  `eligible-for-governed-review`: runtime promotion is explicitly unsupported, publication authority
+  is `none`, and the production registry remains unchanged. Current real drafts stay blocked where
+  evidence is genuinely absent.
+- All 1,889 Desktop/Python tests and the complete Ruff check gate pass, including core draft,
   Foundry inventory, Device Atlas UI, validation, requirements, Companion parity and navigation
   coverage. A themed 1200-by-600 direct panel
   render confirms the cyan-violet blueprint, two rows of evidence lanes, long identity text, state

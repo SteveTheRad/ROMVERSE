@@ -326,6 +326,15 @@ publication, production-registry, build, flash, or phone authority. The release 
 empty until genuine governed contributor keys are approved; ROMVERSE does not ship a placeholder
 identity.
 
+An exact revision also receives a deterministic nine-check **Promotion Review** covering immutable
+draft identity, unresolved identity conflicts, protected source plus sealed DNA, measured
+partitions/AVB, the flash/rollback/recovery contract, a successful exact-bound simulation, separately
+role-verified manufacturer and qualified-expert evidence, and real physical recovery/first-boot
+testing. Device Atlas displays the honest passed/blocker totals and exports a private
+content-addressed review dossier. Even a complete dossier means only “eligible for governed review”:
+the runtime deliberately has no promotion operation, publication authority remains none, and the
+installed production registry cannot be modified by this workflow.
+
 Device Atlas can export an exact physical-test challenge and import the resulting detached
 Ed25519 envelope. Accepted evidence is stored in a bounded workspace vault, reverified on every
 read, and shared consistently with Genesis Sequence and Forge Control. The release trust catalog

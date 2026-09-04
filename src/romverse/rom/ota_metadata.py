@@ -4,6 +4,7 @@ import hashlib
 import re
 import zipfile
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 
 
@@ -96,6 +97,11 @@ def parse_android_ota_metadata(payload: bytes) -> AndroidOtaMetadata:
     security_patch = values.get("post-security-patch-level", "").strip()
     if security_patch and not _SECURITY_PATCH.fullmatch(security_patch):
         raise OtaMetadataError("Android OTA security patch level is malformed")
+    if security_patch:
+        try:
+            date.fromisoformat(security_patch)
+        except ValueError as exc:
+            raise OtaMetadataError("Android OTA security patch level is not a valid date") from exc
 
     pre_devices = _alternatives(values.get("pre-device", ""))
     post_builds = _alternatives(values.get("post-build", ""))

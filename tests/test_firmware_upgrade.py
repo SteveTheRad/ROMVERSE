@@ -214,6 +214,95 @@ def test_generic_android_ota_stays_unconfirmed_without_comparable_timestamp() ->
     assert result.relationship is FirmwareRelationship.UNCONFIRMED
 
 
+def test_generic_android_ota_uses_newer_sdk_without_a_timestamp() -> None:
+    result = assess_firmware_upgrade(
+        current_build="AP4A.250801.001",
+        candidate_build="BP1A.260101.001",
+        device_codename="komodo",
+        candidate_codename="",
+        current_incremental="100",
+        current_sdk_level="35",
+        ota_metadata=_android_ota(),
+    )
+
+    assert result.relationship is FirmwareRelationship.UPGRADE
+    assert any("Android SDK: live 35; OTA 36 (newer)" in reason for reason in result.reasons)
+    assert not result.install_authority
+
+
+def test_generic_android_ota_uses_security_patch_without_a_timestamp() -> None:
+    metadata = parse_android_ota_metadata(
+        b"pre-device=komodo\n"
+        b"pre-build-incremental=100\n"
+        b"post-build-incremental=200\n"
+        b"post-sdk-level=36\n"
+        b"post-security-patch-level=2026-09-01\n"
+    )
+    result = assess_firmware_upgrade(
+        current_build="BP2A.260801.001",
+        candidate_build="BP2A.260901.001",
+        device_codename="komodo",
+        candidate_codename="",
+        current_incremental="100",
+        current_sdk_level="36",
+        current_security_patch="2026-08-01",
+        ota_metadata=metadata,
+    )
+
+    assert result.relationship is FirmwareRelationship.UPGRADE
+    assert any(
+        "Security patch: live 2026-08-01; OTA 2026-09-01 (newer)" in reason
+        for reason in result.reasons
+    )
+    assert not result.install_authority
+
+
+def test_generic_android_ota_refuses_conflicting_version_signals() -> None:
+    metadata = parse_android_ota_metadata(
+        b"pre-device=komodo\n"
+        b"pre-build-incremental=100\n"
+        b"post-build-incremental=200\n"
+        b"post-sdk-level=35\n"
+        b"post-security-patch-level=2026-09-01\n"
+        b"post-timestamp=300\n"
+    )
+    result = assess_firmware_upgrade(
+        current_build="BP2A.260801.001",
+        candidate_build="BP2A.260901.001",
+        device_codename="komodo",
+        candidate_codename="",
+        current_incremental="100",
+        current_sdk_level="36",
+        current_security_patch="2026-08-01",
+        current_build_timestamp=200,
+        ota_metadata=metadata,
+    )
+
+    assert result.relationship is FirmwareRelationship.UNCONFIRMED
+    assert "VERSION EVIDENCE CONFLICT" in result.summary
+    assert any("will not guess" in reason for reason in result.reasons)
+    assert not result.install_authority
+    assert not result.phone_changed
+
+
+def test_generic_android_ota_surfaces_invalid_live_comparison_evidence() -> None:
+    result = assess_firmware_upgrade(
+        current_build="BP2A.260801.001",
+        candidate_build="BP2A.260901.001",
+        device_codename="komodo",
+        candidate_codename="",
+        current_incremental="100",
+        current_sdk_level="unknown",
+        current_security_patch="2026-99-99",
+        ota_metadata=_android_ota(),
+    )
+
+    assert result.relationship is FirmwareRelationship.UNCONFIRMED
+    assert any("Live Android SDK value" in reason for reason in result.reasons)
+    assert any("Live security-patch value" in reason for reason in result.reasons)
+    assert not result.install_authority
+
+
 def test_project_review_binds_upgrade_classification_to_the_protected_source(tmp_path) -> None:
     source = tmp_path / "popsicle-ota_full-OS4.0.0.25.XPBCNXM-user-17.0-test.zip"
     with zipfile.ZipFile(source, "w") as archive:
@@ -241,6 +330,40 @@ def test_project_review_binds_upgrade_classification_to_the_protected_source(tmp
     )
     assert review.evidence_kind == "bounded vendor build identity"
     assert review.authority == "firmware-relationship-classification-only"
+    assert not review.install_authority
+    assert not review.phone_changed
+
+
+def test_project_review_uses_live_security_patch_when_ota_timestamp_is_absent(tmp_path) -> None:
+    source = tmp_path / "generic-full-ota.zip"
+    with zipfile.ZipFile(source, "w") as archive:
+        archive.writestr("payload.bin", b"CrAU test")
+        archive.writestr(
+            "META-INF/com/android/metadata",
+            "pre-device=komodo\n"
+            "pre-build-incremental=100\n"
+            "post-build-incremental=200\n"
+            "post-sdk-level=36\n"
+            "post-security-patch-level=2026-09-01\n",
+        )
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.import_original(store.create("Patch review").project_id, source)
+    device = AndroidDevice(
+        "private-serial",
+        DeviceState.DEVICE,
+        codename="komodo",
+        product="komodo",
+        api_level="36",
+        build_id="BP2A.260801.001",
+        build_incremental="100",
+        security_patch="2026-08-01",
+    )
+
+    review = assess_project_firmware_upgrade(store, project.project_id, device)
+
+    assert review.assessment.relationship is FirmwareRelationship.UPGRADE
+    assert review.evidence_kind == "Android OTA package metadata"
+    assert any("Security patch" in reason for reason in review.assessment.reasons)
     assert not review.install_authority
     assert not review.phone_changed
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from datetime import date
 from enum import StrEnum
 from typing import TYPE_CHECKING, Protocol
 
@@ -112,6 +113,7 @@ def assess_firmware_upgrade(
     current_fingerprint: str = "",
     current_incremental: str = "",
     current_sdk_level: str = "",
+    current_security_patch: str = "",
     current_build_timestamp: int | None = None,
     current_build_fingerprints: tuple[str, ...] = (),
     current_build_incrementals: tuple[str, ...] = (),
@@ -129,6 +131,7 @@ def assess_firmware_upgrade(
             current_fingerprint=current_fingerprint,
             current_incremental=current_incremental,
             current_sdk_level=current_sdk_level,
+            current_security_patch=current_security_patch,
             current_build_timestamp=current_build_timestamp,
             current_build_fingerprints=current_build_fingerprints,
             current_build_incrementals=current_build_incrementals,
@@ -314,6 +317,7 @@ def assess_device_firmware_upgrade(
         current_fingerprint=device.build_fingerprint if device is not None else "",
         current_incremental=device.build_incremental if device is not None else "",
         current_sdk_level=device.api_level if device is not None else "",
+        current_security_patch=device.security_patch if device is not None else "",
         current_build_timestamp=device.build_timestamp_utc if device is not None else None,
         current_build_fingerprints=(device.system_build_fingerprint,) if device is not None else (),
         current_build_incrementals=(device.system_build_incremental,) if device is not None else (),
@@ -392,6 +396,7 @@ def _assess_android_ota(
     current_fingerprint: str,
     current_incremental: str,
     current_sdk_level: str,
+    current_security_patch: str,
     current_build_timestamp: int | None,
     current_build_fingerprints: tuple[str, ...],
     current_build_incrementals: tuple[str, ...],
@@ -482,27 +487,17 @@ def _assess_android_ota(
             (precondition_error,),
         )
 
+    evidence_notes: list[str] = []
     try:
         current_sdk = int(current_sdk_level) if current_sdk_level else None
     except ValueError:
         current_sdk = None
-    if (
-        metadata.post_sdk_level is not None
-        and current_sdk is not None
-        and metadata.post_sdk_level < current_sdk
-    ):
-        return _assessment(
-            FirmwareRelationship.DOWNGRADE,
-            current_label,
-            candidate_label,
-            display_device,
-            display_target,
-            "",
-            "",
-            f"DOWNGRADE CANDIDATE • {current_label} → {candidate_label}",
-            (f"OTA post SDK {metadata.post_sdk_level} is below live SDK {current_sdk}.",),
+    if current_sdk is not None and current_sdk <= 0:
+        current_sdk = None
+    if current_sdk_level and current_sdk is None:
+        evidence_notes.append(
+            f"Live Android SDK value {current_sdk_level!r} is invalid and was not used."
         )
-
     live_fingerprints = {
         value.strip()
         for value in (current_fingerprint, *current_build_fingerprints)
@@ -535,7 +530,82 @@ def _assess_android_ota(
             ),
         )
 
-    if metadata.post_timestamp is None or current_build_timestamp is None:
+    version_signals: list[tuple[str, int, str]] = []
+    if metadata.post_sdk_level is not None and current_sdk is not None:
+        direction = _compare(metadata.post_sdk_level, current_sdk)
+        version_signals.append(
+            (
+                "Android SDK",
+                direction,
+                _comparison_reason(
+                    "Android SDK",
+                    current_sdk,
+                    metadata.post_sdk_level,
+                    direction,
+                ),
+            )
+        )
+    if metadata.post_timestamp is not None and current_build_timestamp is not None:
+        direction = _compare(metadata.post_timestamp, current_build_timestamp)
+        version_signals.append(
+            (
+                "build timestamp",
+                direction,
+                _comparison_reason(
+                    "Build timestamp",
+                    current_build_timestamp,
+                    metadata.post_timestamp,
+                    direction,
+                ),
+            )
+        )
+    current_patch = _parse_security_patch(current_security_patch)
+    candidate_patch = _parse_security_patch(metadata.post_security_patch_level)
+    if current_security_patch and current_patch is None:
+        evidence_notes.append(
+            f"Live security-patch value {current_security_patch!r} is invalid and was not used."
+        )
+    if current_patch is not None and candidate_patch is not None:
+        direction = _compare(candidate_patch, current_patch)
+        version_signals.append(
+            (
+                "security patch",
+                direction,
+                _comparison_reason(
+                    "Security patch",
+                    current_patch.isoformat(),
+                    candidate_patch.isoformat(),
+                    direction,
+                ),
+            )
+        )
+
+    directional = {direction for _, direction, _ in version_signals if direction}
+    if directional == {-1, 1}:
+        reasons = [
+            f"OTA target matched the connected device: {display_target}.",
+            "Any OTA pre-build requirements matched the live build evidence.",
+            "Comparable version evidence conflicts, so ROMVERSE will not guess whether this is an upgrade or downgrade.",
+        ]
+        reasons.extend(reason for _, _, reason in version_signals)
+        reasons.extend(evidence_notes)
+        return _assessment(
+            FirmwareRelationship.UNCONFIRMED,
+            current_label,
+            candidate_label,
+            display_device,
+            display_target,
+            "",
+            "",
+            "UPGRADE STATUS UNCONFIRMED • VERSION EVIDENCE CONFLICT",
+            tuple(reasons),
+        )
+    if not directional:
+        detail = (
+            "Comparable SDK, build-timestamp, or security-patch evidence was not available."
+            if not version_signals
+            else "Comparable version fields match, but the candidate build identity is different."
+        )
         return _assessment(
             FirmwareRelationship.UNCONFIRMED,
             current_label,
@@ -546,55 +616,33 @@ def _assess_android_ota(
             "",
             "UPGRADE STATUS UNCONFIRMED",
             (
-                "Device target and OTA update path matched, but comparable build timestamps "
-                "were not available.",
+                "The device target and any OTA update-path requirements matched.",
+                detail,
+                *evidence_notes,
+                "ROMVERSE requires exact post-build identity or at least one newer/older package-metadata signal before classifying the relationship.",
             ),
         )
-
     relationship = (
-        FirmwareRelationship.UPGRADE
-        if metadata.post_timestamp > current_build_timestamp
-        else FirmwareRelationship.DOWNGRADE
-        if metadata.post_timestamp < current_build_timestamp
-        else FirmwareRelationship.SAME
+        FirmwareRelationship.UPGRADE if directional == {1} else FirmwareRelationship.DOWNGRADE
     )
-    if (
-        relationship is FirmwareRelationship.SAME
-        and candidate_label
-        and candidate_label not in {current_incremental.strip(), current_fingerprint.strip()}
-    ):
-        return _assessment(
-            FirmwareRelationship.UNCONFIRMED,
-            current_label,
-            candidate_label,
-            display_device,
-            display_target,
-            "",
-            "",
-            "UPGRADE STATUS UNCONFIRMED",
-            ("Build timestamps match but the candidate build identity is different.",),
-        )
     label = {
         FirmwareRelationship.UPGRADE: "UPGRADE CANDIDATE",
         FirmwareRelationship.DOWNGRADE: "DOWNGRADE CANDIDATE",
-        FirmwareRelationship.SAME: "SAME FIRMWARE TIMESTAMP",
     }[relationship]
     if relationship is FirmwareRelationship.UPGRADE and same_marketing_label:
         label = "NEWER OTA BUILD CANDIDATE"
     reasons = [
         f"OTA target matched the connected device: {display_target}.",
         "Any OTA pre-build requirements matched the live build evidence.",
-        "Version order was derived from Android OTA post-timestamp and the live build timestamp.",
+        "Every comparable Android version signal agreed or was neutral.",
     ]
     if same_marketing_label:
         reasons.append(
-            "The package marketing version matches the phone, but its signed OTA metadata names "
+            "The package marketing version matches the phone, but its internal OTA metadata names "
             "a different internal target build; ROMVERSE therefore shows the internal identity."
         )
-    if metadata.post_sdk_level is not None and current_sdk is not None:
-        reasons.append(
-            f"OTA post SDK {metadata.post_sdk_level} was checked against live SDK {current_sdk}."
-        )
+    reasons.extend(reason for _, _, reason in version_signals)
+    reasons.extend(evidence_notes)
     return _assessment(
         relationship,
         current_label,
@@ -606,6 +654,26 @@ def _assess_android_ota(
         f"{label} • {current_label} → {candidate_label}",
         tuple(reasons),
     )
+
+
+def _compare(candidate: int | date, current: int | date) -> int:
+    if candidate > current:
+        return 1
+    if candidate < current:
+        return -1
+    return 0
+
+
+def _comparison_reason(label: str, current: object, candidate: object, direction: int) -> str:
+    relationship = "newer" if direction > 0 else "older" if direction < 0 else "unchanged"
+    return f"{label}: live {current}; OTA {candidate} ({relationship})."
+
+
+def _parse_security_patch(value: str) -> date | None:
+    try:
+        return date.fromisoformat(value.strip()) if value.strip() else None
+    except ValueError:
+        return None
 
 
 def _ota_precondition_error(

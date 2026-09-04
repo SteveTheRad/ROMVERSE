@@ -56,6 +56,7 @@ def test_reads_only_the_standard_metadata_entry_from_zip(tmp_path: Path) -> None
         b"pre-device=komodo\x00\n",
         b"post-sdk-level=not-a-number\n",
         b"post-security-patch-level=September\n",
+        b"post-security-patch-level=2026-13-40\n",
         (b"pre-device=komodo\npost-build=google/husky/husky:16/BP2A/456:user/release-keys\n"),
         b"missing-separator\n",
         b"x" * (MAX_METADATA_BYTES + 1),

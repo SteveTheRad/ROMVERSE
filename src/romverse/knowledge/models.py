@@ -169,10 +169,7 @@ class KnowledgeMatch:
             if self.missing_evidence
             else ""
         )
-        return (
-            f"{self.confidence.value.upper()} MATCH • {matched}.{missing} "
-            f"{self.safety}"
-        )
+        return f"{self.confidence.value.upper()} MATCH • {matched}.{missing} {self.safety}"
 
 
 @dataclass(frozen=True, slots=True)
@@ -216,17 +213,12 @@ class KnowledgeLookupReport:
                         + "\n".join(f"   • {step}" for step in match.record.fix_steps)
                     )
                 if match.record.prerequisites:
-                    playbook.append(
-                        "   Prerequisites: " + "; ".join(match.record.prerequisites)
-                    )
+                    playbook.append("   Prerequisites: " + "; ".join(match.record.prerequisites))
                 if match.record.expected_outcomes:
-                    playbook.append(
-                        "   Expected: " + "; ".join(match.record.expected_outcomes)
-                    )
+                    playbook.append("   Expected: " + "; ".join(match.record.expected_outcomes))
                 if match.record.known_incompatibility:
                     playbook.append(
-                        "   Known incompatibility: "
-                        + "; ".join(match.record.known_incompatibility)
+                        "   Known incompatibility: " + "; ".join(match.record.known_incompatibility)
                     )
                 rows.append(
                     f"{index}. {match.record.title}\n"

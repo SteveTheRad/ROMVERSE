@@ -154,7 +154,9 @@ class KnowledgeArchiveStore:
                 maximum_bytes=MAX_ARCHIVE_BYTES,
             )
         except LocalStoreError as exc:
-            raise KnowledgeArchiveError(f"Offline knowledge archive could not be saved: {exc}") from exc
+            raise KnowledgeArchiveError(
+                f"Offline knowledge archive could not be saved: {exc}"
+            ) from exc
         return sealed
 
     def import_bundle(self, source: Path) -> KnowledgeImportResult:
@@ -273,14 +275,14 @@ def validate_archive(archive: KnowledgeArchive) -> None:
     source_by_id = {source.source_id: source for source in archive.sources}
     for record in archive.records:
         if not record.source_ids or not set(record.source_ids) <= known_sources:
-            raise KnowledgeArchiveError(f"Knowledge record has unknown provenance: {record.record_id}")
+            raise KnowledgeArchiveError(
+                f"Knowledge record has unknown provenance: {record.record_id}"
+            )
         community_only = all(
             source_by_id[source_id].tier is KnowledgeSourceTier.COMMUNITY
             for source_id in record.source_ids
         )
-        if community_only and (
-            record.corroboration_count < 1 or not record.scope.scope_note
-        ):
+        if community_only and (record.corroboration_count < 1 or not record.scope.scope_note):
             raise KnowledgeArchiveError(
                 f"Community knowledge lacks scope or corroboration: {record.record_id}"
             )
@@ -351,12 +353,7 @@ def _parse_source(raw: dict[str, object]) -> KnowledgeSource:
     url = _optional_text(raw["url"], "source URL", 500)
     if url:
         parsed = urlsplit(url)
-        if (
-            parsed.scheme != "https"
-            or not parsed.hostname
-            or parsed.username
-            or parsed.password
-        ):
+        if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
             raise KnowledgeArchiveError("Knowledge source URL must be a public HTTPS document")
     elif tier is not KnowledgeSourceTier.ROMVERSE_VERIFIED:
         raise KnowledgeArchiveError("External knowledge provenance requires an HTTPS source URL")
@@ -628,9 +625,7 @@ def _existing_catalog_archive() -> KnowledgeArchive:
                 summary=article.meaning,
                 symptoms=article.tags,
                 error_codes=tuple(
-                    tag
-                    for tag in article.tags
-                    if re.fullmatch(r"[A-Z][A-Z0-9_ -]{3,100}", tag)
+                    tag for tag in article.tags if re.fullmatch(r"[A-Z][A-Z0-9_ -]{3,100}", tag)
                 ),
                 finding_ids=(),
                 diagnostic_steps=article.checks,
@@ -693,7 +688,11 @@ def _manufacturer_scope(record_id: str) -> str:
         "zte-": "zte",
     }
     return next(
-        (manufacturer for prefix, manufacturer in manufacturers.items() if record_id.startswith(prefix)),
+        (
+            manufacturer
+            for prefix, manufacturer in manufacturers.items()
+            if record_id.startswith(prefix)
+        ),
         "",
     )
 

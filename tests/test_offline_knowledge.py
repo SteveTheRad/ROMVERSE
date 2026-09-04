@@ -111,11 +111,7 @@ def _write_bundle(path, archive: KnowledgeArchive) -> None:
 
 def test_packaged_archive_promotes_the_existing_broad_multi_oem_brain() -> None:
     archive = load_packaged_archive()
-    manufacturers = {
-        value
-        for record in archive.records
-        for value in record.scope.manufacturers
-    }
+    manufacturers = {value for record in archive.records for value in record.scope.manufacturers}
 
     assert len(archive.records) >= 199
     assert len(archive.sources) >= 111

@@ -245,9 +245,13 @@ def _score_record(
     score += _embedded_error_match(query.symptoms, record.error_codes, matched)
     score += _match_values(query.finding_ids, record.finding_ids, 1_300, "finding", matched)
     score += _scope_score(record.scope.build_ids, query.build_ids, 1_000, "build", matched, missing)
-    score += _scope_score(record.scope.codenames, query.codenames, 850, "codename", matched, missing)
+    score += _scope_score(
+        record.scope.codenames, query.codenames, 850, "codename", matched, missing
+    )
     score += _scope_score(record.scope.models, query.models, 750, "model", matched, missing)
-    score += _scope_score(record.scope.partitions, query.partitions, 500, "partition", matched, missing)
+    score += _scope_score(
+        record.scope.partitions, query.partitions, 500, "partition", matched, missing
+    )
     score += _scope_score(
         record.scope.android_versions,
         query.android_versions,
@@ -360,9 +364,7 @@ def _text_score(query_text: str, record_text: str) -> tuple[int, str]:
     if exact_phrase:
         return 650, f"failure phrase: {exact_phrase[:120]}"
     query_tokens = {
-        token
-        for token in query_normalized.split()
-        if token not in _STOP_WORDS and len(token) >= 3
+        token for token in query_normalized.split() if token not in _STOP_WORDS and len(token) >= 3
     }
     document_tokens = set(document.split())
     common = sorted(query_tokens & document_tokens)
@@ -420,7 +422,9 @@ def _safety(
     if not changing:
         return "GUIDANCE ONLY • no automatic device-changing operation is declared."
     eligible = tuple(
-        operation for operation in changing if _operation_evidence_complete(operation, record, query)
+        operation
+        for operation in changing
+        if _operation_evidence_complete(operation, record, query)
     )
     if len(eligible) == len(changing):
         return (

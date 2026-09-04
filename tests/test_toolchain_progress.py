@@ -4,11 +4,15 @@ import os
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QLabel, QPushButton
+from PySide6.QtWidgets import QApplication, QLabel, QMessageBox, QPushButton
 
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.infrastructure.payload_dumper import PayloadDumperRelease
 from romverse.infrastructure.provisioning import ProvisionStrategy, ToolProvisionItem
+from romverse.infrastructure.toolchain_offline import (
+    OfflineToolchainInspection,
+    OfflineToolFile,
+)
 from romverse.infrastructure.tools import ToolStatus
 from romverse.platform.host import LinuxHost
 from romverse.ui.toolchain_center import (
@@ -146,6 +150,72 @@ def test_forge_arsenal_requires_explicit_target_when_multiple_transports_are_vis
         ]
         assert len(manifest_buttons) == 1
         assert manifest_buttons[0].isEnabled()
+    finally:
+        center.close()
+
+
+def test_forge_arsenal_explains_offline_signer_boundary_and_requires_confirmation(
+    tmp_path, monkeypatch
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    monkeypatch.setattr(
+        "romverse.ui.toolchain_center.ToolVerifier.verify_extended",
+        lambda _verifier: (ToolStatus("ADB", False, detail="Not ready"),),
+    )
+    center = ToolchainCenter(
+        LinuxHost(distribution_id="fedora"),
+        _NoCommandRunner(),
+        workspace=tmp_path,
+    )
+    center.show()
+    app.processEvents()
+    inspection = OfflineToolchainInspection(
+        1,
+        "a" * 64,
+        "b" * 64,
+        "c" * 64,
+        ("platform-tools",),
+        (OfflineToolFile("platform-tools", "platform-tools/adb", 3, "d" * 64, True),),
+        3,
+        False,
+        "none",
+    )
+    try:
+        visible = " ".join(label.text() for label in center.findChildren(QLabel))
+        assert "Signed offline equipment kit" in visible
+        assert "not a ROMVERSE release signature" in visible
+        assert not center.offline_export_button.isEnabled()
+        assert center.offline_import_button.isEnabled()
+
+        monkeypatch.setattr(
+            "romverse.ui.toolchain_center.QMessageBox.question",
+            lambda *_args, **_kwargs: QMessageBox.StandardButton.No,
+        )
+        center._offline_operation = "inspect"
+        center._offline_bundle = tmp_path / "fixture.rvtools"
+        center._offline_complete(inspection)
+        assert "verified but not imported" in center.offline_status.text()
+
+        started = []
+        monkeypatch.setattr(
+            "romverse.ui.toolchain_center.QMessageBox.question",
+            lambda *_args, **_kwargs: QMessageBox.StandardButton.Yes,
+        )
+        monkeypatch.setattr(
+            center,
+            "_start_offline_worker",
+            lambda worker, operation, message, *, determinate: started.append(
+                (worker, operation, message, determinate)
+            ),
+        )
+        center._offline_operation = "inspect"
+        center._offline_complete(inspection)
+        assert len(started) == 1
+        worker, operation, _message, determinate = started[0]
+        assert operation == "import"
+        assert determinate
+        assert worker.accepted_bundle_sha256 == inspection.bundle_sha256
+        assert worker.accepted_signer_fingerprint == inspection.signer_fingerprint
     finally:
         center.close()
 

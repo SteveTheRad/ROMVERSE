@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
+    QMessageBox,
     QPushButton,
     QScrollArea,
     QVBoxLayout,
@@ -74,6 +75,12 @@ from romverse.infrastructure.toolchain_evidence import (
     ToolchainEvidenceError,
     ToolchainEvidenceManifest,
     ToolchainEvidenceService,
+)
+from romverse.infrastructure.toolchain_offline import (
+    OfflineToolchainBundleService,
+    OfflineToolchainError,
+    OfflineToolchainImportReceipt,
+    OfflineToolchainInspection,
 )
 from romverse.infrastructure.tools import ToolStatus, ToolVerifier
 from romverse.intelligence.action_evidence import (
@@ -427,6 +434,44 @@ def verified_managed_directories(
         except (LocalStoreError, OSError, KeyError, TypeError, ValueError):
             pass
     return tuple(sorted(directories))
+
+
+def verified_managed_package_roots(workspace: Path) -> tuple[Path, ...]:
+    """Return exact first-level packages accepted by the production receipt verifier."""
+
+    root = workspace / "tools" / "downloads"
+    directories = verified_managed_directories(root, boundary=workspace)
+    try:
+        resolved_root = root.resolve(strict=True)
+        names = {
+            directory.resolve(strict=True).relative_to(resolved_root).parts[0]
+            for directory in directories
+        }
+        packages = tuple(resolved_root / name for name in sorted(names))
+    except (OSError, ValueError, IndexError):
+        return ()
+    return tuple(
+        package
+        for package in packages
+        if package.is_dir() and not package.is_symlink() and package.parent == resolved_root
+    )
+
+
+def validate_offline_managed_packages(root: Path, packages: tuple[str, ...]) -> bool:
+    """Require every declared offline package to pass the normal managed receipt gate."""
+
+    if not packages or len(packages) != len(set(packages)):
+        return False
+    directories = verified_managed_directories(root, boundary=root)
+    try:
+        resolved_root = root.resolve(strict=True)
+        verified = {
+            directory.resolve(strict=True).relative_to(resolved_root).parts[0]
+            for directory in directories
+        }
+    except (OSError, ValueError, IndexError):
+        return False
+    return verified == set(packages)
 
 
 def _contained_receipt_file(directory: Path, relative: str) -> Path:
@@ -822,6 +867,67 @@ class _ToolchainManifestWorker(ManagedRunnable):
         self.signals.complete.emit(manifest)
 
 
+class _OfflineToolchainSignals(QObject):
+    complete = Signal(object)
+    failed = Signal(str)
+    progress = Signal(int)
+
+
+class _OfflineToolchainWorker(ManagedRunnable):
+    def __init__(
+        self,
+        service: OfflineToolchainBundleService,
+        operation: str,
+        bundle: Path,
+        *,
+        package_roots: tuple[Path, ...] = (),
+        accepted_bundle_sha256: str = "",
+        accepted_signer_fingerprint: str = "",
+    ) -> None:
+        super().__init__()
+        self.service = service
+        self.operation = operation
+        self.bundle = bundle
+        self.package_roots = package_roots
+        self.accepted_bundle_sha256 = accepted_bundle_sha256
+        self.accepted_signer_fingerprint = accepted_signer_fingerprint
+        self.signals = _OfflineToolchainSignals()
+
+    @Slot()
+    def execute(self) -> None:
+        publish = CoalescedProgress(self.signals.progress.emit)
+
+        def progress(done: int, total: int) -> None:
+            percent = measured_percent(done, total)
+            if percent is not None:
+                publish(percent)
+
+        try:
+            if self.operation == "export":
+                result = self.service.create(
+                    self.package_roots,
+                    self.bundle,
+                    validate_packages=validate_offline_managed_packages,
+                    progress=progress,
+                )
+            elif self.operation == "inspect":
+                result = self.service.inspect(self.bundle)
+            elif self.operation == "import":
+                result = self.service.import_bundle(
+                    self.bundle,
+                    accepted_bundle_sha256=self.accepted_bundle_sha256,
+                    accepted_signer_fingerprint=self.accepted_signer_fingerprint,
+                    validate_staging=validate_offline_managed_packages,
+                    progress=progress,
+                )
+            else:
+                raise OfflineToolchainError("The offline toolchain operation is unsupported")
+        except (OSError, ValueError, OfflineToolchainError) as exc:
+            self.signals.failed.emit(str(exc)[:800])
+            return
+        self.signals.complete.emit(result)
+
+
 class ToolchainCenter(QWidget):
     """Inventory and guidance for the local ROM and diagnostics toolchain."""
 
@@ -856,7 +962,11 @@ class ToolchainCenter(QWidget):
         self._communication_error = ""
         self._manifest_worker: _ToolchainManifestWorker | None = None
         self._manifest_error = ""
+        self._offline_worker: _OfflineToolchainWorker | None = None
+        self._offline_operation = ""
+        self._offline_bundle = Path()
         self.manifest_service: ToolchainEvidenceService | None = None
+        self.offline_service: OfflineToolchainBundleService | None = None
         if workspace is not None:
             try:
                 self.manifest_service = ToolchainEvidenceService(
@@ -864,7 +974,10 @@ class ToolchainCenter(QWidget):
                     host.name,
                     getattr(host, "distribution_id", ""),
                 )
+                self.offline_service = OfflineToolchainBundleService(workspace)
             except ToolchainEvidenceError as exc:
+                self._manifest_error = str(exc)
+            except OfflineToolchainError as exc:
                 self._manifest_error = str(exc)
         self._activate_managed_tools()
         self.statuses = ToolVerifier(host, runner).verify_extended()
@@ -992,17 +1105,61 @@ class ToolchainCenter(QWidget):
         self.manifest_button.setMinimumHeight(38)
         self.manifest_button.setEnabled(self.manifest_service is not None)
         self.manifest_button.clicked.connect(self.export_toolchain_manifest)
+        offline_title = QLabel("Signed offline equipment kit")
+        offline_title.setObjectName("SectionTitle")
+        offline_copy = QLabel(
+            "Move only receipt-verified ROMVERSE-managed tools between offline computers. Each kit "
+            "is hash-bound and signed by this workspace's local transfer identity; compare the full "
+            "signer fingerprint before importing. This is not a ROMVERSE release signature."
+        )
+        offline_copy.setObjectName("Muted")
+        offline_copy.setWordWrap(True)
+        self.offline_status = QLabel(
+            "No offline kit operation has run. A local transfer identity is created only on export."
+        )
+        self.offline_status.setObjectName("ToolchainManifestStatus")
+        self.offline_status.setWordWrap(True)
+        self.offline_status.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        self.offline_progress = ProcessProgressBar()
+        offline_actions = QHBoxLayout()
+        self.offline_export_button = QPushButton("Export verified offline kit")
+        self.offline_export_button.setEnabled(
+            self.offline_service is not None
+            and workspace is not None
+            and bool(verified_managed_package_roots(workspace))
+        )
+        self.offline_export_button.clicked.connect(self.export_offline_toolchain)
+        self.offline_import_button = QPushButton("Inspect offline kit")
+        self.offline_import_button.setEnabled(self.offline_service is not None)
+        self.offline_import_button.clicked.connect(self.inspect_offline_toolchain)
+        offline_actions.addWidget(self.offline_export_button)
+        offline_actions.addWidget(self.offline_import_button)
+        offline_actions.addStretch()
         manifest_layout.addWidget(manifest_eyebrow)
         manifest_layout.addWidget(manifest_title)
         manifest_layout.addWidget(manifest_copy)
         manifest_layout.addWidget(self.manifest_status)
         manifest_layout.addWidget(self.manifest_button, 0, Qt.AlignmentFlag.AlignLeft)
-        page.addWidget(manifest_card)
+        manifest_layout.addSpacing(5)
+        manifest_layout.addWidget(offline_title)
+        manifest_layout.addWidget(offline_copy)
+        manifest_layout.addWidget(self.offline_status)
+        manifest_layout.addWidget(self.offline_progress)
+        manifest_layout.addLayout(offline_actions)
         self.body = QScrollArea()
         self.body.setWidgetResizable(True)
         self.content = QWidget()
-        self.layout = QVBoxLayout(self.content)
+        content_layout = QVBoxLayout(self.content)
+        content_layout.setContentsMargins(0, 0, 8, 0)
+        content_layout.setSpacing(14)
+        content_layout.addWidget(manifest_card)
+        inventory = QWidget()
+        self.layout = QVBoxLayout(inventory)
+        self.layout.setContentsMargins(8, 0, 0, 0)
         self.layout.setSpacing(10)
+        content_layout.addWidget(inventory)
         self.body.setWidget(self.content)
         page.addWidget(self.body, 1)
         self._render()
@@ -1109,9 +1266,185 @@ class ToolchainCenter(QWidget):
         self.manifest_status.setObjectName(state)
         self._repolish(self.manifest_status)
 
+    @Slot()
+    def export_offline_toolchain(self) -> None:
+        service = self.offline_service
+        if service is None or self.workspace is None or self._offline_worker is not None:
+            return
+        packages = verified_managed_package_roots(self.workspace)
+        if not packages:
+            self._set_offline_status(
+                "No receipt-verified ROMVERSE-managed packages are available to export.",
+                "Warning",
+            )
+            return
+        filename, _selected_filter = QFileDialog.getSaveFileName(
+            self,
+            "Export signed ROMVERSE offline equipment kit",
+            str(self.workspace / "ROMVERSE-Offline-Toolchain.rvtools"),
+            "ROMVERSE offline toolchain (*.rvtools)",
+        )
+        if not filename:
+            return
+        if not filename.casefold().endswith(".rvtools"):
+            filename += ".rvtools"
+        self._start_offline_worker(
+            _OfflineToolchainWorker(
+                service,
+                "export",
+                Path(filename),
+                package_roots=packages,
+            ),
+            "export",
+            "Hashing, signing and packaging the verified managed equipment…",
+            determinate=True,
+        )
+
+    @Slot()
+    def inspect_offline_toolchain(self) -> None:
+        service = self.offline_service
+        if service is None or self.workspace is None or self._offline_worker is not None:
+            return
+        filename, _selected_filter = QFileDialog.getOpenFileName(
+            self,
+            "Inspect a ROMVERSE offline equipment kit",
+            str(self.workspace),
+            "ROMVERSE offline toolchain (*.rvtools)",
+        )
+        if not filename:
+            return
+        self._offline_bundle = Path(filename)
+        self._start_offline_worker(
+            _OfflineToolchainWorker(service, "inspect", self._offline_bundle),
+            "inspect",
+            "Verifying every kit member and its local Ed25519 transfer signature…",
+            determinate=False,
+        )
+
+    def _start_offline_worker(
+        self,
+        worker: _OfflineToolchainWorker,
+        operation: str,
+        message: str,
+        *,
+        determinate: bool,
+    ) -> None:
+        self._offline_worker = worker
+        self._offline_operation = operation
+        self._set_offline_busy(True)
+        self._set_offline_status(message, "ToolchainManifestStatus")
+        self.offline_progress.begin(determinate=determinate)
+        worker.signals.progress.connect(self.offline_progress.report)
+        worker.signals.complete.connect(self._offline_complete)
+        worker.signals.failed.connect(self._offline_failed)
+        start_background(worker)
+
+    @Slot(object)
+    def _offline_complete(self, value: object) -> None:
+        operation = self._offline_operation
+        self._offline_worker = None
+        self._offline_operation = ""
+        self._set_offline_busy(False)
+        self.offline_progress.finish()
+        if operation == "inspect":
+            if not isinstance(value, OfflineToolchainInspection):
+                self._offline_failed("ROMVERSE returned invalid offline kit evidence")
+                return
+            package_copy = ", ".join(value.packages)
+            self._set_offline_status(
+                f"SIGNED KIT VERIFIED  •  {len(value.files)} file(s)  •  {package_copy}\n"
+                f"Signer {value.signer_fingerprint}  •  Kit SHA-256 {value.bundle_sha256}\n"
+                "Not imported. Compare the full signer fingerprint with the exporting computer.",
+                "Good",
+            )
+            answer = QMessageBox.question(
+                self,
+                "Trust this offline equipment signer?",
+                "The kit's file hashes and local Ed25519 transfer signature are valid.\n\n"
+                f"Packages: {package_copy}\n"
+                f"Signer fingerprint:\n{value.signer_fingerprint}\n\n"
+                f"Kit SHA-256:\n{value.bundle_sha256}\n\n"
+                "Import only if the complete signer fingerprint matches the value shown on the "
+                "trusted exporting computer. This local transfer signature is not an official "
+                "ROMVERSE release signature. Import replaces only the named managed packages, "
+                "then Forge Arsenal verifies them again. No phone command will run.\n\n"
+                "Import this exact kit?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                self._set_offline_status(
+                    "Kit verified but not imported. No managed package or phone was changed.",
+                    "Warning",
+                )
+                return
+            service = self.offline_service
+            if service is None:
+                self._offline_failed("The offline toolchain service is unavailable")
+                return
+            self._start_offline_worker(
+                _OfflineToolchainWorker(
+                    service,
+                    "import",
+                    self._offline_bundle,
+                    accepted_bundle_sha256=value.bundle_sha256,
+                    accepted_signer_fingerprint=value.signer_fingerprint,
+                ),
+                "import",
+                "Installing the exact confirmed kit with rollback protection…",
+                determinate=True,
+            )
+            return
+        if operation == "export" and isinstance(value, OfflineToolchainInspection):
+            self._set_offline_status(
+                f"OFFLINE KIT EXPORTED  •  {len(value.files)} file(s)  •  "
+                f"{len(value.packages)} package(s)\n"
+                f"Signer {value.signer_fingerprint}  •  Kit SHA-256 {value.bundle_sha256}\n"
+                "Record the full signer fingerprint separately for the importing computer. "
+                "Phone changed: no. Authority: none.",
+                "Good",
+            )
+            return
+        if operation == "import" and isinstance(value, OfflineToolchainImportReceipt):
+            self._activate_managed_tools()
+            self._verify_local_tools(emit=True)
+            self._set_offline_status(
+                f"OFFLINE KIT IMPORTED  •  {value.file_count} file(s)  •  "
+                f"{len(value.packages)} package(s)  •  receipt {value.receipt_digest}\n"
+                "Managed receipts and current executables were rechecked. Phone changed: no. "
+                "Authority: none.",
+                "Good",
+            )
+            return
+        self._offline_failed("ROMVERSE returned an invalid offline toolchain result")
+
+    @Slot(str)
+    def _offline_failed(self, message: str) -> None:
+        self._offline_worker = None
+        self._offline_operation = ""
+        self._set_offline_busy(False)
+        self.offline_progress.stop()
+        self._set_offline_status(f"Offline kit stopped safely: {message}", "Danger")
+
+    def _set_offline_busy(self, busy: bool) -> None:
+        enabled = self.offline_service is not None and not busy
+        self.offline_import_button.setEnabled(enabled)
+        self.offline_export_button.setEnabled(
+            enabled
+            and self.workspace is not None
+            and bool(verified_managed_package_roots(self.workspace))
+        )
+
+    def _set_offline_status(self, message: str, state: str) -> None:
+        self.offline_status.setText(message)
+        self.offline_status.setObjectName(state)
+        self._repolish(self.offline_status)
+
     def _verify_local_tools(self, *, emit: bool) -> None:
         self._activate_managed_tools()
         self.statuses = ToolVerifier(self.host, self.runner).verify_extended()
+        if hasattr(self, "offline_export_button"):
+            self._set_offline_busy(self._offline_worker is not None)
         self._render()
         if emit:
             self.statuses_changed.emit(self.statuses)

@@ -1569,9 +1569,20 @@ The product-wide continuation target and definition of done are recorded in
   replacement is rejected and produces only a failed attempt receipt. Historical strict schema-one
   build receipts remain readable without inventing newer evidence. Focused infrastructure, Forge
   UI/provisioning/download, build, readiness, AVB, Guardian artifact-binding, Simulation Lab, offline-
-  signing, Release Forge, navigation and approved-brand tests pass. Content-addressed managed-version
-  isolation, verified offline toolchain bundles and physical multi-host/USB-driver exercises are still
-  required before Stage 12 can be marked complete.
+  signing, Release Forge, navigation and approved-brand tests pass.
+- Signed offline toolchain kits now contain only packages accepted by the production managed-receipt
+  validator. A workspace-local Ed25519 identity binds the complete ordered manifest; import displays
+  the full signer fingerprint and archive SHA-256, requires explicit confirmation, rechecks every
+  member and the unchanged archive, validates the ordinary managed-source receipts in staging, and
+  atomically replaces only declared packages. A simulated evidence-write failure restores the prior
+  package bytes. Linked inputs, altered signatures/safety claims, wrong accepted identities, unsafe
+  members, duplicate paths and unbounded archives are rejected. The UI labels the signer as local
+  transfer integrity rather than an official ROMVERSE release signature and runs no phone command.
+  The Environment Proof card now lives inside the scroll surface; a fresh 1360-by-900 render confirms
+  the title, actions, proof controls, communication evidence and first equipment slot remain visible
+  and aligned without forcing the window beyond the viewport. Content-addressed managed-version
+  isolation plus physical multi-host/USB-driver exercises are still required before Stage 12 can be
+  marked complete.
 - The approved ROMVERSE application logo and approved RadForge Labs company logo were not edited or
   replaced; their byte-exact regression checks remain green.
 

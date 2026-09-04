@@ -1335,8 +1335,18 @@ output directory. The build receipt records that manifest identity, and each ste
 required executables before and after use. A tool replaced during the build stops the operation and
 cannot produce a successful receipt; historical schema-one receipts remain readable under their
 original strict contract. This binds a completed build to its exact tool versions without requiring
-the current host tools to remain unchanged forever. Content-addressed managed versions and signed,
-verified offline toolchain exchange remain active Stage 12 work and are not claimed here.
+the current host tools to remain unchanged forever.
+
+Forge Arsenal can export the current receipt-verified managed packages as a `.rvtools` offline
+equipment kit. A workspace-local Ed25519 transfer identity signs the exact manifest; the interface
+shows its full fingerprint and the complete kit SHA-256, clearly distinguishes it from an official
+ROMVERSE release signature, and tells the user to compare the fingerprint with the exporting
+computer. Import re-verifies the signature, member inventory, sizes, hashes, archive boundaries and
+normal managed-source receipts before asking for exact confirmation. It extracts without following
+links, applies private executable/data modes, replaces only named managed packages, records a private
+receipt and transactionally restores the previous packages if installation or evidence persistence
+fails. Neither export nor import can run a phone command or grant build/flash authority. Automatic
+content-addressed managed-version selection remains active Stage 12 work.
 
 Payload Dumper uses a stricter release flow: ROMVERSE resolves the current host asset only from
 the official `ssut/payload-dumper-go` GitHub API, requires GitHub's asset SHA-256, restricts the

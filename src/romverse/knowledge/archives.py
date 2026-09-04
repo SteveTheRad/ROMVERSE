@@ -246,6 +246,11 @@ ROMVERSE_SOURCE = ArchiveSource(
     "ROMVERSE tested safety and evidence contracts",
     "ROMVERSE VERIFIED",
 )
+EXPERT_IMAGE_SOURCE = ArchiveSource(
+    "ROMVERSE Expert image workflow and local execution tests",
+    "ROMVERSE IMPLEMENTATION • LOCAL GUIDANCE",
+    reviewed_on="2026-09-05",
+)
 FIELD_SOURCE = ArchiveSource(
     "Recorded ROMVERSE HyperOS reference workflow",
     "FIELD VERIFIED • MODEL/BUILD SCOPED",
@@ -383,13 +388,14 @@ KNOWN_FIXES = (
         ),
         fix_steps=(
             "If this mode is intentional, keep the phone where it is and review Device Atlas build and tool requirements; identity review does not require a reboot.",
+            "For deliberate image writes or a manual stock-image restore, open ROM Studio, enter Expert / Architect Mode, and choose Build & Proof → Flash / restore images. Review the separate exact plan and risk confirmation before any write.",
             "If Android health telemetry is needed, use the phone's own hardware/menu controls to boot Android normally, authorize USB debugging, and run a fresh scan.",
             "If Fastboot cannot see the phone, verify current Android Platform Tools plus the host USB driver or udev permissions before reconnecting once.",
         ),
         verification=(
             "Device Engine detects the same masked serial and product across consecutive read-only scans.",
             "Device Atlas shows an exact Pack match or an explicit identity gap without granting flash authority.",
-            "Guardian audit contains only fastboot devices -l and the five allowlisted getvar identity probes; no reboot, flash, erase, unlock, wipe, or relock command appears.",
+            "The automatic discovery audit contains only its allowlisted identity probes. A separately confirmed Expert image operation has its own write records; discovery alone starts no phone changes.",
         ),
         tags=(
             "fastboot device detected",
@@ -399,8 +405,8 @@ KNOWN_FIXES = (
             "getvar is-userspace",
         ),
         route="device_atlas",
-        evidence="AOSP defines getvar as the Fastboot variable-reading command and defines getvar is-userspace as yes for fastbootd and no for bootloader Fastboot. ROMVERSE allows only a fixed identity subset through Guardian.",
-        automation="AUTOMATIC READ-ONLY DISCOVERY AND DEVICE ATLAS HANDOFF • NO REBOOT OR WRITE AUTHORITY",
+        evidence="AOSP defines getvar as the Fastboot variable-reading command and defines getvar is-userspace as yes for fastbootd and no for bootloader Fastboot. ROMVERSE automatic discovery uses a fixed identity subset; the local Expert image guide describes the separate confirmed write workflow.",
+        automation="AUTOMATIC DISCOVERY IS READ-ONLY • EXPERT IMAGE WRITES REQUIRE A SEPARATE EXACT-PLAN CONFIRMATION",
         source=FASTBOOT_SOURCE,
     ),
     _fix(
@@ -2564,24 +2570,26 @@ KNOWN_FIXES = (
         "Architect Mode is a real Desktop experience setting, not a decorative ROM Studio "
         "message. A deliberate toggle must update the persistent Guided or Expert selection, "
         "reveal or fold specialist navigation consistently, synchronize the Studio control, and "
-        "retain the exact project, evidence, active page, and Guardian policy.",
+        "retain the exact project and evidence. Entering Expert Mode requires risk acceptance, "
+        "reduces Guided sequencing, and reveals deliberate image writing with exact target and file checks.",
         checks=(
             "Read the sidebar experience badge and the ROM Studio Architect control; both must describe the same current mode.",
             "In Expert Architect, confirm Command Console, ROMVERSE Nexus, Forge Arsenal, and Architect-only Find Anything destinations are visible.",
+            "In ROM Studio → Build & Proof, confirm Flash / restore images is visible in Expert Mode; it opens a separate target, image-mapping, and final-confirmation workflow.",
             "In Guided Arcana, confirm those specialist destinations are folded while Guardian Core, Live Console, projects, and evidence remain available.",
             "Confirm the Studio handoff states that the transition started no worker, build, flash, or phone action.",
         ),
         fix_steps=(
-            "Use Enter Architect Mode inside ROM Studio to deliberately switch the authoritative Desktop experience and reveal Build & Proof.",
+            "Use Enter Architect Mode inside ROM Studio and accept the risk dialog to switch the authoritative Desktop experience and reveal Build & Proof. Decline keeps Guided Mode.",
             "Use Return to Guided Mode to restore Source Lab and fold specialist navigation without deleting or downgrading project evidence.",
             "If the two controls disagree, reopen ROM Studio from the current sidebar and use the in-page toggle once so the persisted setting is reapplied.",
-            "Continue through the exact focused prerequisite; changing experience never clicks or enables an otherwise unsafe operation.",
+            "For an image write or manual stock-image restore, choose Flash / restore images and review the exact phone, partitions, images, and warnings. The separate Flash images confirmation starts the approved writes.",
         ),
         verification=(
             "The sidebar badge, specialist route visibility, ROM Studio button text/check state, command group, and stored setting change together.",
             "A restart restores the selected experience through the normal settings record.",
-            "Switching either direction retains the active ROM Studio page, selected project, evidence files, and all Guardian boundaries.",
-            "No modal dialog, device scan, project worker, approval, build, signing, flash, or phone action starts during the transition.",
+            "Switching either direction retains the selected project and evidence files. Known target mismatches, changed files, and invalid destinations still stop execution.",
+            "Accepting the Expert risk dialog changes the experience only; it starts no scan, build, signing, flash, or phone action and does not confirm a later image plan.",
         ),
         tags=(
             "architect mode does nothing",
@@ -2592,9 +2600,54 @@ KNOWN_FIXES = (
             "persist desktop experience",
         ),
         route="rom_studio",
-        evidence="ROMVERSE tests both in-page mode transitions against the authoritative Desktop setting, specialist sidebar and palette disclosure, Studio focus state, persistence signal, and idle worker/Guardian boundaries.",
-        automation="PRESENTATION STATE, PERSISTED EXPERIENCE, ROUTE DISCLOSURE, AND CONTROL FOCUS ONLY • NO DIALOG, SCAN, WORKER, APPROVAL, BUILD, SIGNING, FLASH, OR PHONE ACTION",
+        evidence="ROMVERSE tests in-page mode transitions, specialist route disclosure, persistence, and the Expert-only image-writing entry. Mode risk acceptance and final image-plan confirmation are separate actions; local execution tests do not establish physical-phone validation.",
+        automation="MODE RISK ACCEPTANCE REVEALS EXPERT CONTROLS • IMAGE WRITES START ONLY AFTER SEPARATE EXACT-PLAN CONFIRMATION",
         source=ROMVERSE_SOURCE,
+    ),
+    _fix(
+        "expert-image-flash-and-manual-restore",
+        "Expert image flashing and manual stock-image restore",
+        "ROMVERSE WORKFLOWS",
+        "ROM Studio can write user-selected partition images through Fastboot after an exact "
+        "Expert plan confirmation. This manual route does not require a production-certified "
+        "Device Pack. You choose which images belong to the phone, their destination partitions, "
+        "and write order. Choosing the appropriate stock images uses the same workflow for a "
+        "manual restore; it does not establish that the phone is repaired.",
+        checks=(
+            "Prepare Android Platform Tools in Forge Arsenal. Select the intended Fastboot or fastbootd phone and compare its masked serial, product, and mode with your intended target; an absent, ambiguous, or known wrong target stops review.",
+            "Use the exact device's image mapping and explicit slot names, such as boot_a or boot_b where applicable. ROMVERSE does not choose an A/B slot from an image filename.",
+            "Review each full SHA-256, image size, expanded sparse-image size, and warning. A known oversized image or reported locked bootloader blocks this route; unsupported optional device facts remain visible warnings rather than proof of compatibility.",
+            "Use fastbootd for a partition measured as logical. A known logical partition in bootloader Fastboot must be reviewed again in the appropriate mode.",
+            "Keep your own user-data backup and appropriate stock recovery images. The private image snapshots preserve selected host files; they are not a backup of the phone's current partitions or data.",
+            "Leave workspace-drive space for copies of the selected unique images and operation records. Verified private image snapshots are retained with the operation journal for later inspection and use storage space.",
+            "This dialog uses Fastboot image writes. It does not provide a Samsung Download Mode or Odin protocol workflow.",
+        ),
+        fix_steps=(
+            "Open ROM Studio → Enter Architect Mode, accept the Expert risk dialog, then open Build & Proof → Flash / restore images.",
+            "Refresh phones and select the exact target. Use Add image for extracted .img files and enter each destination partition. Writes run from the top row down; select your appropriate stock images when doing a manual restore.",
+            "Choose Review images and target. Compare the complete plan, image hashes, partition names, slot suffixes, and warnings before choosing Flash reviewed images.",
+            "Read the final exact-plan risk dialog and choose Flash images only when ready. ROMVERSE preserves verified private copies and rechecks the target and files before writing; changed plans require a fresh review.",
+            "Use Stop after current write to stop the remaining sequence. Allow an in-progress write to finish; cancellation does not undo earlier writes.",
+            "After a failed or interrupted attempt, use Open diagnosis and recovery or close the result dialog to continue in Recovery Bay. The incident is bound to the phone used in that attempt; a disconnected phone remains explicitly unknown. Review its current state before retrying.",
+        ),
+        verification=(
+            "Read the recorded result for every attempted partition, its reviewed image digest, Fastboot output, and the saved operation receipt. Earlier completed writes may remain after a later failure or cancellation.",
+            "A completed result means Fastboot completed the selected writes. It does not verify image readback, successful Android boot, subsystem health, or a repaired phone; those need separate observations.",
+            "The workflow leaves rebooting and post-write diagnosis as separate steps. A failed write, timeout, changed target, or inability to preserve the final record must not become a successful boot claim.",
+        ),
+        tags=(
+            "flash restore images",
+            "expert flash",
+            "manual stock image restore",
+            "image flash failed",
+            "fastboot image write",
+            "private image snapshots space",
+            "stop after current write",
+        ),
+        route="rom_studio",
+        evidence="The local Fastboot executor, Expert confirmation dialog, private snapshot checks, and exact-phone Recovery Bay handoff implement this workflow. Automated runner and UI tests cover its software behavior; this guide makes no physical-phone validation, universal compatibility, or production-certification claim.",
+        automation="GUIDANCE ONLY • EXPERT RISK AND EXACT-PLAN CONFIRMATION REQUIRED FOR WRITES • NO AUTOMATIC REBOOT, READBACK PROOF, OR REPAIRED-PHONE CLAIM",
+        source=EXPERT_IMAGE_SOURCE,
     ),
     _fix(
         "archives-local-learning-boundary",

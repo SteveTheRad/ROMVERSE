@@ -3919,6 +3919,9 @@ class MainWindow(QMainWindow):
         self._runtime_runner = runner or SubprocessRunner()
         self._audit_store = audit_store or GuardianAuditStore(workspace)
         self._runtime_gateway = gateway
+        self._local_flash_dialog = None
+        self._expert_flash_pending = False
+        self._pending_local_flash_recovery: tuple[AndroidDevice, str] | None = None
         self._device_adb_executable = adb_executable
         self._device_fastboot_executable = fastboot_executable
         self.scan_interval_seconds = max(scan_interval, 3)
@@ -4247,6 +4250,7 @@ class MainWindow(QMainWindow):
         self.rom_studio.device_center_requested.connect(self._open_device_center_from_studio)
         self.rom_studio.knowledge_requested.connect(self._open_knowledge_query)
         self.rom_studio.experience_mode_requested.connect(self._set_experience_mode_from_studio)
+        self.rom_studio.expert_flash_requested.connect(self._open_expert_flash)
         self.device_packs_center.rom_studio_requested.connect(
             self._continue_device_atlas_rom_studio
         )
@@ -4772,6 +4776,10 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event) -> None:  # noqa: N802
         """Stop producers before Qt begins destroying their receiving widgets."""
 
+        if self._local_flash_dialog is not None and self._local_flash_dialog.worker is not None:
+            event.ignore()
+            self._local_flash_dialog.raise_()
+            return
         self.timer.stop()
         self._reconnect_timer.stop()
         self._clock_timer.stop()
@@ -4792,7 +4800,7 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def scan(self) -> None:
-        if self.engine is None or self.scanning:
+        if self.engine is None or self.scanning or self._local_flash_dialog is not None or self._expert_flash_pending:
             return
         self._reconnect_timer.stop()
         self.scanning = True
@@ -4867,6 +4875,7 @@ class MainWindow(QMainWindow):
                 "ROMVERSE can read the connected device again and refreshed its current evidence.",
                 NotificationKind.SUCCESS,
             )
+        self._finish_local_flash_recovery(devices)
 
     @Slot(str)
     def _select_observed_device(self, serial: str) -> None:
@@ -5187,6 +5196,7 @@ class MainWindow(QMainWindow):
                 message,
                 NotificationKind.ATTENTION,
             )
+        self._finish_local_flash_recovery([])
 
     def _navigate(self, index: int) -> None:
         if index < 0 or index >= self.stack.count():
@@ -6701,6 +6711,119 @@ class MainWindow(QMainWindow):
         )
         if created:
             self._navigate_route("recovery_bay")
+
+    @Slot()
+    def _open_expert_flash(self) -> None:
+        from romverse.guardian.local_flash import LocalFlashService
+        from romverse.ui.local_flash import LocalFlashDialog
+
+        if self._experience_mode is not ExperienceMode.EXPERT or self._local_flash_dialog is not None:
+            self._expert_flash_pending = False
+            return
+        if self.scanning:
+            if not self._expert_flash_pending:
+                self._expert_flash_pending = True
+                self.rom_studio.operation_status.setText("Waiting for the current phone scan to finish…")
+                QTimer.singleShot(200, self._continue_expert_flash_open)
+            return
+        self._expert_flash_pending = False
+        if any((
+            self.rom_studio.worker,
+            self.apk_installer.active_worker,
+            self.backup_center.media_backup_worker,
+            self.repair_center.host_repair_worker,
+            self.terminal_center._worker,
+        )):
+            QMessageBox.information(
+                self, "Finish the current operation",
+                "A device or project operation is running. Wait for its result before opening image flashing.",
+            )
+            return
+        fastboot = self._device_fastboot_executable
+        if fastboot is None:
+            QMessageBox.information(
+                self, "Fastboot is required",
+                "Open Forge Arsenal to install or locate Android Platform Tools, then return to image flashing.",
+            )
+            self._navigate_route("forge_arsenal")
+            return
+        try:
+            service = LocalFlashService(self._workspace, self._runtime_runner, fastboot, audit=self._audit_store)
+        except (OSError, ValueError) as exc:
+            QMessageBox.warning(self, "Image flashing could not open", str(exc))
+            return
+        dialog = LocalFlashDialog(
+            service, tuple(self._observed_devices), self,
+            discover=self.engine.scan if self.engine is not None else None,
+        )
+        dialog.operation_finished.connect(self._record_local_flash_result)
+        self._local_flash_dialog = dialog
+        self._reconnect_timer.stop()
+        try:
+            dialog.exec()
+        finally:
+            self._local_flash_dialog = None
+        result = dialog.result
+        failure_message = ""
+        if result is not None and result.phone_change_attempted and result.state != "completed":
+            # An interrupted sequence can leave only some partitions written. Feed
+            # the measured outcome into the existing recovery incident workflow.
+            failure_message = result.summary
+        elif dialog.execution_error:
+            failure_message = (
+                "The image-writing service did not return a complete result. Recheck the phone state. "
+                + dialog.execution_error
+            )
+        elif dialog.recovery_requested:
+            self._navigate_route("recovery_bay")
+        if failure_message and dialog.last_attempt_device is not None:
+            self._pending_local_flash_recovery = (dialog.last_attempt_device, failure_message)
+            self._selected_device_serial = dialog.last_attempt_device.serial
+        if self.engine is not None:
+            self.scan()
+        else:
+            self._finish_local_flash_recovery([])
+
+    def _finish_local_flash_recovery(self, devices: list[AndroidDevice]) -> None:
+        pending = self._pending_local_flash_recovery
+        if pending is None:
+            return
+        self._pending_local_flash_recovery = None
+        attempted, message = pending
+        fresh = next((item for item in devices if item.serial == attempted.serial), None)
+        target = fresh or AndroidDevice(
+            attempted.serial, DeviceState.UNKNOWN,
+            manufacturer=attempted.manufacturer, model=attempted.model,
+            product=attempted.product, codename=attempted.codename,
+            connection_note="Last attempted image-write target; current connection state is unknown.",
+        )
+        self.repair_center.open_recovery_incident(
+            RecoveryTrigger.FLASH_FAILURE,
+            project_id="", message=message, target_device=target,
+        )
+        self._navigate_route("recovery_bay")
+
+    def _continue_expert_flash_open(self) -> None:
+        if not self._expert_flash_pending:
+            return
+        if self.scanning:
+            QTimer.singleShot(200, self._continue_expert_flash_open)
+        else:
+            self._expert_flash_pending = False
+            self._open_expert_flash()
+
+    @Slot(object)
+    def _record_local_flash_result(self, result: object) -> None:
+        from romverse.guardian.local_flash import LocalFlashResult
+
+        if not isinstance(result, LocalFlashResult):
+            return
+        title = "Image writes completed · boot unverified" if result.state == "completed" else "Image writing stopped"
+        self._record_activity(
+            "rom-studio", title, result.summary, "attention", "ROM Studio",
+            source_route="rom_studio",
+        )
+        self.rom_studio.operation_status.setText(result.summary)
 
     def _update_companion_ascension_status(self) -> None:
         project_id = (

@@ -1660,7 +1660,7 @@ The product-wide continuation target and definition of done are recorded in
 - Every exact Foundry revision now receives a deterministic nine-check promotion review covering
   immutable revision membership, identity conflicts, protected-source/sealed-DNA binding, measured
   partitions and OEM AVB, exact flash/rollback/recovery contracts, successful exact-bound simulation,
-  separately role-verified manufacturer and qualified-expert contributions, and independent physical
+  role-verified manufacturer-or-expert factual contributions, qualified-expert validation, and independent physical
   recovery/first-boot evidence. Device Atlas shows passed and blocked totals and can export the exact
   private content-addressed dossier. Even the fully evidenced synthetic contract reaches only
   `eligible-for-governed-review`: runtime promotion is explicitly unsupported, publication authority
@@ -1679,9 +1679,57 @@ The product-wide continuation target and definition of done are recorded in
   Foundry inventory, Device Atlas UI, validation, requirements, Companion parity and navigation
   coverage. A themed 1200-by-600 direct panel
   render confirms the cyan-violet blueprint, two rows of evidence lanes, long identity text, state
-  contrast and authority boundary are readable. Physical validation, Simulation Lab attachment,
+  contrast and authority boundary are readable. Physical validation,
   governed real-signer enrolment, signed physical validation and controlled production promotion
   remain required before Stage 13 is complete.
+
+## 2026-09-05 Direct Expert image execution and Foundry corrections
+
+- The shipping UI now constructs a local Expert image-writing service from ROM Studio's
+  **Build & Proof → Flash / restore images…** action and the matching Forge Control action.
+  It accepts explicit image-to-partition mappings and runs real Fastboot writes only after
+  the exact current preview receives final confirmation. This local workflow does not invent an
+  enrolled production runtime or a manufacturer certificate. The certified-pack runtime path
+  remains separate and incomplete.
+- Inspection binds the selected serial/product, mode, slot, Fastboot executable and each image's
+  SHA-256 and expanded sparse geometry. Execution preserves private approved-byte snapshots and
+  rechecks current target/tool/partition facts. Known incompatibility stops the operation;
+  unreported optional facts appear as warnings. A/B targets are explicit, and unrelated connected
+  phones do not prevent operations on an unambiguous selected serial.
+- The service records consent and an in-flight checkpoint before each write, uses process/device
+  exclusion, stops on failed commands and honours cancellation before the next write. It retains
+  snapshots and scrubbed per-command results. It never automatically erases, unlocks, relocks,
+  changes slots, changes device mode or reboots. Completion means Fastboot returned success;
+  independent readback, successful boot, recovery and subsystem health remain unverified.
+- The desktop pauses its periodic probes during the modal workflow and rejects overlapping
+  device/project operations. A failed attempted write triggers a fresh scan and a Recovery Bay
+  incident for that exact phone. An absent target is unknown, and unrelated projects/phones
+  cannot supply the incident's source or identity evidence.
+- Historical immutable 0.3.0 Device DNA drafts now reopen against their unchanged sealed profile
+  using the exact original projection; arbitrary missing/modified facts remain rejected. Foundry
+  factual review accepts qualified-expert contributions without compulsory manufacturer
+  participation. Physical validation and production promotion requirements remain unfulfilled.
+- Verification uses inert transport fixtures for success, target changes, image/tool changes,
+  sparse sizes, failed writes, replay, cancellation, concurrent access and interruption journals.
+  UI checks exercise declined/changed confirmation, worker lifecycle, the real dark stylesheet
+  on a small screen, Expert-only dispatch and exact-target recovery handoff. No physical-phone
+  flash or repair has been performed for this increment. Hardware testing, Guided integration,
+  first-boot linkage and the remaining master-goal requirements are still outstanding.
+- The 1,984-test Desktop/Python run completed with 1,981 passes and three outdated count
+  assertions after the new offline guide was added. All three corrected assertions passed on
+  rerun; the dedicated 98-test build-control/image-workflow regression and Ruff check also pass.
+  The offline catalog now contains 220 guides, 170 known fixes, 281 structured records and
+  181 attributed sources. Its installed corpus digest is
+  `5ee67fa59c07e21f28944ed21398231e728ad9e9cfff838a46915c9260efa3e3`.
+- A fresh 281-member wheel byte-matches all current runtime sources and the 22 packaged Device
+  Packs. Installed startup and populated-workspace reopening pass without altering protected
+  fixture bytes. The self-contained Fedora build launches successfully; its verified archive
+  contains 460 files and 359,712,874 expanded bytes, with SHA-256
+  `4d9a0d3e3441b556efcf4a807be61c85cfc20efed4b4cb7133a7988540b5c017`.
+  The wheel SHA-256 is `82c1355b3d14eb949b254562eabb381336d28cd0a3a7b3244a138931a939c9cb`.
+  Both test artifacts are retained under `dist/expert-images-2026-09-05/` on the data drive.
+  No remote publication, phone operation, Companion binary change or production-logo modification
+  occurred. The running user app was not restarted.
 
 ## Honest feature boundary
 
@@ -1689,7 +1737,8 @@ The current safe milestone supports read-only Android evidence, local diagnostic
 installation, contained ROM workspace operations, exact-contract local ROM candidate builds,
 local recovery snapshots, offline Galaxy data, and read-only Companion telemetry. Public release
 still requires independent validation of every advertised build contract. Signing, full app-private
-phone backup/restore, public Galaxy synchronization, and device flashing must remain visibly locked
-unless their exact contract is implemented and independently verified with real compatibility and
-recovery evidence. The offline signing ceremony is implemented for an explicitly flash-validated
+phone backup/restore, public Galaxy synchronization, and certified automatic device flashing remain
+incomplete unless their exact contract is implemented and independently verified. The local Expert
+image workflow above executes user-reviewed writes without claiming production certification or
+verified recovery. The offline signing ceremony is implemented for an explicitly flash-validated
 Device Pack policy; it does not make any current or future Pack production-certified.

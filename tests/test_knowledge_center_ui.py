@@ -90,8 +90,8 @@ def test_archives_searches_and_explains_structured_offline_evidence(tmp_path) ->
     center.show()
 
     assert "OFFLINE BRAIN READY" in center.offline_archive_status.text()
-    assert "280 STRUCTURED RECORDS" in center.offline_archive_status.text()
-    assert "180 ATTRIBUTED SOURCES" in center.offline_archive_status.text()
+    assert "281 STRUCTURED RECORDS" in center.offline_archive_status.text()
+    assert "181 ATTRIBUTED SOURCES" in center.offline_archive_status.text()
     center.search.setText("HASH_MISMATCH(3)")
     app.processEvents()
     offline_items = [
@@ -123,8 +123,8 @@ def test_synapse_constellation_reports_real_local_metrics_and_honours_reduced_mo
     )
 
     description = center.synapse_constellation.accessibleDescription()
-    assert "280 offline records" in description
-    assert "180 attributed sources" in description
+    assert "281 offline records" in description
+    assert "181 attributed sources" in description
     assert "0 private learned outcomes" in description
     assert not center.synapse_constellation._timer.isActive()
     center.close()

@@ -1422,6 +1422,14 @@ class BuildControlCenter(QDialog):
         self.autopilot_button.clicked.connect(self._start_autopilot)
         self.close_button = QPushButton("Close")
         self.close_button.clicked.connect(self.accept)
+        self.expert_images_button = QPushButton("Flash / restore images…")
+        self.expert_images_button.setObjectName("ForgeSecondaryAction")
+        self.expert_images_button.setVisible(self.studio.app_settings.experience_mode.value == "expert")
+        self.expert_images_button.setToolTip(
+            "Open the direct Expert image workflow. Choose and review your own exact partition "
+            "images; production Pack certification is a separate process."
+        )
+        self.expert_images_button.clicked.connect(self._open_expert_images)
         self.build_tools_toggle = QPushButton()
         self.build_tools_toggle.setObjectName("DetailToggle")
         self.build_tools_toggle.setCheckable(True)
@@ -1452,6 +1460,7 @@ class BuildControlCenter(QDialog):
         utility_actions.addWidget(self.refresh_button)
         utility_actions.addWidget(self.export_button)
         utility_actions.addWidget(self.build_tools_toggle)
+        utility_actions.addWidget(self.expert_images_button)
         utility_actions.addStretch(1)
         utility_actions.addWidget(self.close_button)
         layout.addLayout(utility_actions)
@@ -1475,6 +1484,19 @@ class BuildControlCenter(QDialog):
         layout.addLayout(primary_actions)
         self._set_build_tools_visible(self.studio.app_settings.experience_mode.value == "expert")
         return frame
+
+    def _open_expert_images(self) -> None:
+        if self.studio.app_settings.experience_mode.value != "expert":
+            return
+        if self.autopilot_active or any((
+            self.studio.worker, self.metadata_worker, self.blueprint_worker,
+            self.build_worker, self.avb_worker, self.signing_worker,
+            self.recovery_worker, self.media_backup_worker,
+        )):
+            self.status.setText("Wait for the current operation to finish before image flashing.")
+            return
+        self.accept()
+        QTimer.singleShot(0, self.studio._request_expert_flash)
 
     def _set_build_tools_visible(self, visible: bool) -> None:
         self.build_tools_panel.setVisible(visible)
@@ -3313,6 +3335,7 @@ class BuildControlCenter(QDialog):
             self.signing_button,
             self.release_button,
             self.close_button,
+            self.expert_images_button,
         ):
             button.setEnabled(enabled)
         if enabled:

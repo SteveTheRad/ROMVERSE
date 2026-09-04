@@ -69,7 +69,8 @@ class DevicePackDraftService:
         "Exact stock recovery route",
         "Independent physical recovery test",
     )
-    DEVICE_DNA_FACT_IDS = frozenset(
+    # Freeze the original schema-one / 0.3.0 projection for retained immutable drafts.
+    LEGACY_DEVICE_DNA_FACT_IDS = frozenset(
         {
             "identity.manufacturer",
             "identity.brand",
@@ -97,13 +98,13 @@ class DevicePackDraftService:
             "firmware.adapter",
             "partition.architecture",
             "partition.ab_scheme",
-            "bootloader.state",
             "boot.active_slot",
             "security.verified_boot",
             "capability.fastboot",
             "capability.recovery",
         }
     )
+    DEVICE_DNA_FACT_IDS = LEGACY_DEVICE_DNA_FACT_IDS | {"bootloader.state"}
 
     def load_request(self, path: Path) -> dict[str, object]:
         try:
@@ -326,13 +327,9 @@ class DevicePackDraftService:
         device_dna_evidence = self._validated_device_dna_evidence(
             request.get("device_dna_evidence"), source_evidence
         )
-        dna_fact_count = (
-            len(device_dna_evidence["facts"]) if device_dna_evidence is not None else 0
-        )
+        dna_fact_count = len(device_dna_evidence["facts"]) if device_dna_evidence is not None else 0
         dna_partition_count = (
-            len(device_dna_evidence["partitions"])
-            if device_dna_evidence is not None
-            else 0
+            len(device_dna_evidence["partitions"]) if device_dna_evidence is not None else 0
         )
         source_detail = (
             f"Strict project-local {source_evidence['source_kind']} evidence binds build "
@@ -485,7 +482,10 @@ class DevicePackDraftService:
             raise ValueError("Device DNA needs exact live model and codename evidence")
         return self._device_dna_projection(profile)
 
-    def _device_dna_projection(self, profile: DeviceDnaProfile) -> dict[str, object]:
+    def _device_dna_projection(
+        self, profile: DeviceDnaProfile, *, legacy: bool = False
+    ) -> dict[str, object]:
+        fact_ids = self.LEGACY_DEVICE_DNA_FACT_IDS if legacy else self.DEVICE_DNA_FACT_IDS
         facts = [
             {
                 "fact_id": fact.fact_id,
@@ -494,7 +494,7 @@ class DevicePackDraftService:
                 "evidence_ids": list(fact.evidence_ids),
             }
             for fact in profile.facts
-            if fact.fact_id in self.DEVICE_DNA_FACT_IDS
+            if fact.fact_id in fact_ids
             and fact.confidence is not EvidenceConfidence.UNCONFIRMED
             and fact.value != "Unconfirmed"
         ]
@@ -555,13 +555,10 @@ class DevicePackDraftService:
         if not source_keys.issubset(context):
             return False
         try:
-            source = self._validated_source_evidence(
-                {key: context[key] for key in source_keys}
-            )
+            source = self._validated_source_evidence({key: context[key] for key in source_keys})
             assert source is not None
-            profile = DeviceDnaStore(RomProjectStore(workspace)).load(
-                str(source["project_id"])
-            )
+            self._validated_device_dna_evidence(attached, source)
+            profile = DeviceDnaStore(RomProjectStore(workspace)).load(str(source["project_id"]))
             if (
                 profile is None
                 or profile.profile_digest != str(attached.get("profile_digest", ""))
@@ -570,6 +567,16 @@ class DevicePackDraftService:
                 return False
             expected = self._validated_device_dna_evidence(
                 self._device_dna_projection(profile),
+                source,
+            )
+            if expected == attached:
+                return True
+            # The bootloader fact was added without changing the original draft version.
+            # Accept only that exact historical projection, never an arbitrary fact subset.
+            if document.get("version") != "0.3.0":
+                return False
+            expected = self._validated_device_dna_evidence(
+                self._device_dna_projection(profile, legacy=True),
                 source,
             )
         except (OSError, TypeError, ValueError):
@@ -600,7 +607,8 @@ class DevicePackDraftService:
         raw_facts = value.get("facts")
         raw_partitions = value.get("partitions")
         if (
-            value.get("schema_version") != 1
+            type(value.get("schema_version")) is not int
+            or value.get("schema_version") != 1
             or value.get("project_id") != source_evidence["project_id"]
             or value.get("source_sha256") != source_evidence["source_sha256"]
             or not _sha256(value.get("profile_digest"))
@@ -634,7 +642,10 @@ class DevicePackDraftService:
                 or not _bounded_text(item.get("value"), 1_024)
                 or len(evidence_ids) > 16
                 or len(evidence_ids) != len(set(evidence_ids))
-                or any(re.fullmatch(r"[a-z0-9][a-z0-9._-]{0,79}", name) is None for name in evidence_ids)
+                or any(
+                    re.fullmatch(r"[a-z0-9][a-z0-9._-]{0,79}", name) is None
+                    for name in evidence_ids
+                )
             ):
                 raise ValueError("Device DNA fact is incomplete or unsafe")
             facts.append(
@@ -653,11 +664,10 @@ class DevicePackDraftService:
             "identity.codename",
         }.issubset(fact_map):
             raise ValueError("Device DNA exact identity facts are incomplete")
-        if (
-            _normalized(str(fact_map["identity.manufacturer"]["value"]))
-            != _normalized(str(source_evidence["manufacturer"]))
-            or _normalized(str(fact_map["identity.codename"]["value"]))
-            != _normalized(str(source_evidence["codename"]))
+        if _normalized(str(fact_map["identity.manufacturer"]["value"])) != _normalized(
+            str(source_evidence["manufacturer"])
+        ) or _normalized(str(fact_map["identity.codename"]["value"])) != _normalized(
+            str(source_evidence["codename"])
         ):
             raise ValueError("Device DNA identity does not match the project source")
         partitions: list[dict[str, object]] = []
@@ -683,7 +693,10 @@ class DevicePackDraftService:
                 or item.get("confidence") not in {"verified", "high", "medium", "low"}
                 or len(evidence_ids) > 16
                 or len(evidence_ids) != len(set(evidence_ids))
-                or any(re.fullmatch(r"[a-z0-9][a-z0-9._-]{0,79}", name) is None for name in evidence_ids)
+                or any(
+                    re.fullmatch(r"[a-z0-9][a-z0-9._-]{0,79}", name) is None
+                    for name in evidence_ids
+                )
             ):
                 raise ValueError("Device DNA partition is incomplete or unsafe")
             partitions.append(

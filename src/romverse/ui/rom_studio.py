@@ -664,6 +664,7 @@ class RomStudio(QWidget):
     compatibility_matrix_updated = Signal(object)
     offline_knowledge_updated = Signal(object)
     experience_mode_requested = Signal(object)
+    expert_flash_requested = Signal()
 
     def __init__(
         self,
@@ -1066,6 +1067,12 @@ class RomStudio(QWidget):
         )
         self.build_control_button.setEnabled(False)
         self.build_control_button.clicked.connect(self._open_build_control)
+        self.expert_flash_button = QPushButton("Flash / restore images…")
+        self.expert_flash_button.setToolTip(
+            "Review explicit image-to-partition writes on the connected Fastboot device, "
+            "then confirm execution in Expert Mode."
+        )
+        self.expert_flash_button.clicked.connect(self._request_expert_flash)
         action_buttons = (
             self.import_button,
             self.verify_button,
@@ -1086,6 +1093,7 @@ class RomStudio(QWidget):
             self.property_button,
             self.partition_button,
             self.build_control_button,
+            self.expert_flash_button,
         )
         hover_help = {
             "Import original…": "Load firmware into protected Original ROMs. ROMVERSE copies, hashes, protects, and automatically inspects the source without modifying it.",
@@ -1142,6 +1150,7 @@ class RomStudio(QWidget):
                     self.verify_forge_button,
                     self.partition_button,
                     self.build_control_button,
+                    self.expert_flash_button,
                 ),
             ),
             (
@@ -1203,7 +1212,9 @@ class RomStudio(QWidget):
         page.addLayout(content, 1)
 
         footer = QLabel(
-            "ROM Studio performs protected project work, inspection, exact partition extraction, metadata-preserving filesystem preparation, Recipes, deterministic Device Pack planning, and versioned local candidate builds with byte-for-byte super verification. Forge Bundles remain non-bootable intermediates; signing and every phone-changing action remain Guardian-locked."
+            "ROM Studio preserves firmware originals and builds local candidates. Forge Bundles "
+            "are intermediate archives. In Architect Mode, Flash / restore images provides "
+            "direct, reviewed Fastboot partition writes with separate confirmation and recorded results."
         )
         footer.setObjectName("Muted")
         footer.setWordWrap(True)
@@ -2225,6 +2236,11 @@ class RomStudio(QWidget):
         )
         self.expert_button.style().unpolish(self.expert_button)
         self.expert_button.style().polish(self.expert_button)
+        self.expert_flash_button.setVisible(expert)
+
+    def _request_expert_flash(self) -> None:
+        if self.app_settings.experience_mode is ExperienceMode.EXPERT:
+            self.expert_flash_requested.emit()
 
     def _toggle_architect_mode(self, enabled: bool) -> None:
         """Make the Studio mode control a genuine persisted Desktop transition."""

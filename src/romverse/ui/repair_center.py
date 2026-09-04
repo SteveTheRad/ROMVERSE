@@ -678,13 +678,14 @@ class RepairCenter(QWidget):
         boot_observation: BootObservationReceipt | None = None,
         knowledge_report: KnowledgeLookupReport | None = None,
         recovery_evidence: RecoveryEvidenceAssessment | None = None,
+        target_device: AndroidDevice | None = None,
     ) -> bool:
         """Open or refresh one evidence-backed incident without executing a route."""
 
         service = self.autopilot_service
         if service is None:
             return False
-        device = self.current_device or (self.devices[0] if len(self.devices) == 1 else None)
+        device = target_device or self.current_device or (self.devices[0] if len(self.devices) == 1 else None)
         prior_id = self.autopilot_incident.incident_id if self.autopilot_incident else ""
         self._autopilot_project_id = project_id.strip()[:100]
         self._autopilot_boot_observation = boot_observation
@@ -697,7 +698,7 @@ class RepairCenter(QWidget):
             project_id=self._autopilot_project_id,
             message=self._autopilot_message,
             boot_observation=boot_observation,
-            knowledge_report=knowledge_report or self.offline_report,
+            knowledge_report=knowledge_report or (self.offline_report if target_device is None else None),
             recovery_evidence=recovery_evidence,
             host_repair_available=self.host_repair_service is not None,
         )

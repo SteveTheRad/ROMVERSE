@@ -461,13 +461,18 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   content-addressed vault, and never changes the production registry or grants publication/build/
   flash/phone authority;
   deterministic Device Pack promotion review across exact revision, conflict, source/DNA,
-  partition/AVB, flash/rollback, simulation, manufacturer, independent-expert and physical-test
+  partition/AVB, flash/rollback, simulation, manufacturer-or-expert factual evidence, expert validation and physical-test
   gates, with private content-addressed blocker dossiers and no runtime method capable of changing
   the production Pack registry even when every prerequisite is present;
   sealed-DNA-bound Foundry Route Engineering that records measured bootloader, slot, A/B,
   dynamic-partition, Verified Boot, Fastboot/recovery, OEM AVB and partition-count observations,
   separates backup/flash/rollback/recovery evidence requirements, rejects changed or stale drafts,
   and exports no serial, raw command, relock permission, automatic operation or execution authority;
+  a direct Expert image-writing workflow in ROM Studio and Forge Control that reviews user-selected
+  Fastboot partition mappings, obtains exact final consent, preserves approved bytes in private
+  execution snapshots, rechecks the target/tool/partition evidence, records every attempted write,
+  stops on failure or between writes when cancelled, and routes interruptions to the attempted
+  phone's Recovery Bay context; command completion is never represented as boot/readback proof;
   Partition Atlas source-AVB inspection that rehashes the exact OTA `vbmeta` pair, distinguishes
   actual chain partitions from other descriptors, binds a strict private receipt to the payload and
   protected source, and carries it into that draft without creating signing or flash authority;

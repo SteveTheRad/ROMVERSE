@@ -329,7 +329,7 @@ identity.
 An exact revision also receives a deterministic nine-check **Promotion Review** covering immutable
 draft identity, unresolved identity conflicts, protected source plus sealed DNA, measured
 partitions/AVB, the flash/rollback/recovery contract, a successful exact-bound simulation, separately
-role-verified manufacturer and qualified-expert evidence, and real physical recovery/first-boot
+role-verified factual evidence from manufacturers or qualified experts, qualified-expert validation, and real physical recovery/first-boot
 testing. Device Atlas displays the honest passed/blocker totals and exports a private
 content-addressed review dossier. Even a complete dossier means only “eligible for governed review”:
 the runtime deliberately has no promotion operation, publication authority remains none, and the
@@ -343,6 +343,31 @@ separates pre-change backup, exact flash, rollback, and failure/stock-recovery r
 missing write, readback, transition, stock-package, consent and physical-test evidence for each.
 Those blueprints contain no raw command, serial, automatic operation, bootloader-relock permission,
 or execution authority. Changed drafts and stale sealed Device DNA are rejected before derivation.
+
+### Direct Expert image flashing
+
+In ROM Studio, enter **Architect Mode**, then choose **Build & Proof → Flash / restore images…**.
+The same action is available in Forge Control. This opens a local workflow for explicitly selected
+Fastboot partition images, including stock images for a manual restore. It does not require a
+production Device Pack or manufacturer contribution. Select the exact phone, enter each destination
+partition (including the intended A/B suffix), and review the live target, image hashes and warnings.
+Use **Refresh phones** after entering bootloader Fastboot or fastbootd. Each execution requires its
+own final confirmation; changing the selection invalidates the previous review.
+
+ROMVERSE preserves approved image bytes in private operation snapshots before writing. These copies
+require additional drive space and remain with the operation record for recovery. The executor
+rechecks the target, mode, slot, tool, partition facts and image bytes, stops after a failed command,
+and honours cancellation between writes. It journals in-flight writes before issuing them. Known
+wrong-target, locked-bootloader, oversized-image and wrong-mode conditions stop the operation;
+unreported optional facts remain visible warnings for expert review. Multiple connected phones are
+supported through explicit serial targeting.
+
+This is an experimental, user-directed image workflow. It does not interpret factory install
+scripts, select images for you, switch modes or slots, erase, unlock, relock or reboot. Fastboot
+completion is reported separately from image readback, first boot and subsystem validation.
+Interrupted writes open Recovery Bay for the actual attempted phone after a fresh scan, without
+claiming that the currently selected ROM project supplied these manually chosen images. Hardware
+validation and integration into the complete Guided mission remain unfinished.
 
 Device Atlas can export an exact physical-test challenge and import the resulting detached
 Ed25519 envelope. Accepted evidence is stored in a bounded workspace vault, reverified on every

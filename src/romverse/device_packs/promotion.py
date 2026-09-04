@@ -60,12 +60,8 @@ class DevicePackPromotionService:
     FORMAT = "romverse.device-pack-promotion-review"
     SCHEMA_VERSION = 1
     MAXIMUM_REVIEW_BYTES = 256 * 1024
-    MANUFACTURER_SCOPES = frozenset(
-        {"identity", "variant", "factory-firmware", "partitions-avb"}
-    )
-    EXPERT_SCOPES = frozenset(
-        {"flash-rollback-contract", "simulation", "physical-device-test"}
-    )
+    FACTUAL_SCOPES = frozenset({"identity", "variant", "factory-firmware", "partitions-avb"})
+    EXPERT_SCOPES = frozenset({"flash-rollback-contract", "simulation", "physical-device-test"})
 
     def assess(
         self,
@@ -83,14 +79,14 @@ class DevicePackPromotionService:
         conflicts = tuple(
             conflict
             for conflict in inventory.conflicts
-            if revision.pack_id in conflict.pack_ids
-            or revision.sha256 in conflict.revision_sha256s
+            if revision.pack_id in conflict.pack_ids or revision.sha256 in conflict.revision_sha256s
         )
         lanes = {lane.lane_id: lane for lane in revision.lanes}
         accepted = tuple(
             report
             for report in contributions
             if report.verified
+            and report.contributor_role in {"manufacturer", "qualified-expert"}
             and report.pack_id == revision.pack_id
             and report.pack_version == revision.version
             and report.draft_sha256 == revision.sha256
@@ -98,18 +94,15 @@ class DevicePackPromotionService:
             and not report.production_registry_changed
             and report.review_required
         )
-        manufacturer_scopes = {
-            scope
-            for report in accepted
-            if report.contributor_role == "manufacturer"
-            for scope in report.evidence_scopes
-        }
+        factual_scopes = {scope for report in accepted for scope in report.evidence_scopes}
         expert_scopes = {
             scope
             for report in accepted
             if report.contributor_role == "qualified-expert"
             for scope in report.evidence_scopes
         }
+        missing_factual_scopes = self.FACTUAL_SCOPES - factual_scopes
+        missing_expert_scopes = self.EXPERT_SCOPES - expert_scopes
         source_dna_ready = bool(
             revision.source_bound
             and revision.device_dna_attached
@@ -201,26 +194,32 @@ class DevicePackPromotionService:
                 "Resolve every Digital Twin blocker and rerun the unchanged exact plan.",
             ),
             DevicePackPromotionCheck(
-                "manufacturer-contribution",
-                "Role-verified manufacturer evidence",
-                self.MANUFACTURER_SCOPES.issubset(manufacturer_scopes),
+                "factual-contribution",
+                "Signed device and firmware evidence",
+                not missing_factual_scopes,
                 (
-                    "A trusted manufacturer key covers identity, variant, firmware and partitions/AVB."
-                    if self.MANUFACTURER_SCOPES.issubset(manufacturer_scopes)
-                    else "No trusted manufacturer contribution covers every required factual scope."
+                    "Trusted manufacturer or qualified-expert contributions cover identity, "
+                    "variant, firmware and partitions/AVB."
+                    if not missing_factual_scopes
+                    else "Signed factual evidence is missing for: "
+                    + ", ".join(sorted(missing_factual_scopes))
+                    + "."
                 ),
-                "Import exact-revision evidence signed by a trust-catalog manufacturer key.",
+                "Import exact-revision evidence signed by a trusted qualified expert or manufacturer.",
             ),
             DevicePackPromotionCheck(
                 "expert-contribution",
-                "Independent qualified-expert evidence",
-                self.EXPERT_SCOPES.issubset(expert_scopes),
+                "Signed qualified-expert validation evidence",
+                not missing_expert_scopes,
                 (
-                    "A trusted qualified-expert key covers flash/rollback, simulation and physical testing."
-                    if self.EXPERT_SCOPES.issubset(expert_scopes)
-                    else "No trusted qualified-expert contribution covers every required validation scope."
+                    "Trusted qualified-expert contributions cover flash/rollback, simulation "
+                    "and physical testing."
+                    if not missing_expert_scopes
+                    else "Signed qualified-expert validation is missing for: "
+                    + ", ".join(sorted(missing_expert_scopes))
+                    + "."
                 ),
-                "Import independent exact-revision evidence signed by a qualified-expert key.",
+                "Import exact-revision evidence signed by a trusted qualified expert.",
             ),
             DevicePackPromotionCheck(
                 "physical-device-test",
@@ -241,9 +240,7 @@ class DevicePackPromotionService:
             "pack_version": revision.version,
             "draft_sha256": revision.sha256,
             "checks": [asdict(check) for check in checks],
-            "contribution_envelope_sha256s": sorted(
-                report.envelope_sha256 for report in accepted
-            ),
+            "contribution_envelope_sha256s": sorted(report.envelope_sha256 for report in accepted),
             "eligible_for_governed_review": eligible,
             "status": "eligible-for-governed-review" if eligible else "blocked",
             "publication_authority": "none",
@@ -292,10 +289,7 @@ class DevicePackPromotionService:
 
 def _lane_evidenced(lanes: dict[str, object], lane_id: str) -> bool:
     lane = lanes.get(lane_id)
-    return bool(
-        lane is not None
-        and getattr(lane, "state", None) is FoundryEvidenceState.EVIDENCED
-    )
+    return bool(lane is not None and getattr(lane, "state", None) is FoundryEvidenceState.EVIDENCED)
 
 
 def _canonical(value: object) -> bytes:

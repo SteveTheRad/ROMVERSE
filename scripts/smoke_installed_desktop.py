@@ -136,10 +136,10 @@ def main() -> int:
     offline = OfflineKnowledgeService(workspace)
     archive = offline.store.ensure_seeded()
     if (
-        len(archive.records) != 280
-        or len(archive.sources) != 180
+        len(archive.records) != 281
+        or len(archive.sources) != 181
         or archive.bundle_digest
-        != "f05c9afd727bcdeefa9ad6775cb4c372379d68d20b012955430f53e1d99ac893"
+        != "5ee67fa59c07e21f28944ed21398231e728ad9e9cfff838a46915c9260efa3e3"
     ):
         raise RuntimeError("Installed offline Archives corpus is missing packaged evidence")
     failure_lookup = offline.lookup(

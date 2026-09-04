@@ -369,6 +369,10 @@ def test_project_draft_attaches_only_sealed_privacy_safe_device_dna(tmp_path) ->
     assert dna["authority"] == "device-dna-evidence-only"
     assert {item["name"] for item in dna["partitions"]} == {"product"}
     assert all(item["fact_id"] in service.DEVICE_DNA_FACT_IDS for item in dna["facts"])
+    assert (
+        next(item for item in dna["facts"] if item["fact_id"] == "bootloader.state")["value"]
+        == "unlocked"
+    )
     assert document["match"] == {
         "manufacturers": ["Xiaomi"],
         "model_patterns": ["2509FPN0BC"],
@@ -377,7 +381,9 @@ def test_project_draft_attaches_only_sealed_privacy_safe_device_dna(tmp_path) ->
     assert "PRIVATE-SERIAL" not in encoded
     assert "device.serial" not in encoded
 
-    exported = service.export(request, store.workspace / "device_pack_drafts", boundary=store.workspace)
+    exported = service.export(
+        request, store.workspace / "device_pack_drafts", boundary=store.workspace
+    )
     review = service.load_project_draft(
         store.workspace / "device_pack_drafts",
         boundary=store.workspace,
@@ -413,6 +419,140 @@ def test_project_draft_attaches_only_sealed_privacy_safe_device_dna(tmp_path) ->
     )
     with pytest.raises(ValueError, match="Device DNA fact"):
         service.build_document(unsafe_request)
+
+
+@pytest.fixture
+def legacy_dna_draft(tmp_path):
+    store, registry, project, inspection = _dna_project(tmp_path)
+    device = _dna_device()
+    profile = DeviceDnaService(store, registry).refresh(project.project_id, device, inspection)
+    builtins = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    seed = next(pack for pack in builtins.packs if pack.pack_id == "xiaomi.hyperos")
+    source = ProjectSourceRequirements(
+        project.project_id,
+        project.name,
+        project.original.sha256,
+        seed.pack_id,
+        "ota-payload",
+        "b" * 64,
+        "c" * 64,
+        "project-local-build-evidence-only",
+        "Xiaomi",
+        "popsicle",
+        "OS4.0.0.23.XPBCNXM",
+        len(profile.partitions),
+        ("Python", "Payload Dumper", "AVBTool"),
+    )
+    service = DevicePackDraftService()
+    request = service.request_from_project_source(seed, device, source, device_dna=profile)
+    # Before 268f33b, schema-one / 0.3.0 drafts omitted this measured fact.
+    request["device_dna_evidence"]["facts"] = [
+        fact
+        for fact in request["device_dna_evidence"]["facts"]
+        if fact["fact_id"] != "bootloader.state"
+    ]
+    exported = service.export(
+        request, store.workspace / "device_pack_drafts", boundary=store.workspace
+    )
+    document = json.loads(exported.output_path.read_bytes())
+    return service, store, registry, project, inspection, exported, document
+
+
+def test_legacy_dna_draft_reloads_exact_historical_projection_without_rewriting(
+    legacy_dna_draft,
+) -> None:
+    service, store, _, project, _, exported, document = legacy_dna_draft
+    original = exported.output_path.read_bytes()
+
+    assert service.verify_device_dna_attachment(document, workspace=store.workspace)
+    review = service.load_project_draft(
+        exported.output_path.parent,
+        boundary=store.workspace,
+        project_id=project.project_id,
+        source_sha256=project.original.sha256,
+        blueprint_digest="b" * 64,
+    )
+
+    assert review is not None
+    assert review.output_path == exported.output_path
+    assert review.sha256 == exported.sha256
+    assert review.device_dna_attached
+    assert exported.output_path.read_bytes() == original
+
+
+@pytest.mark.parametrize(
+    "change",
+    (
+        "changed_fact",
+        "missing_fact",
+        "changed_confidence",
+        "changed_evidence",
+        "serial_fact",
+        "changed_bootloader",
+        "changed_partition",
+        "stale_source",
+        "stale_profile_digest",
+        "widened_authority",
+        "unknown_projection_schema",
+        "boolean_projection_schema",
+        "numeric_authority_flag",
+        "different_pack_version",
+    ),
+)
+def test_legacy_dna_draft_rejects_every_projection_except_exact_historical_facts(
+    legacy_dna_draft, change
+) -> None:
+    service, store, _, _, _, _, document = legacy_dna_draft
+    dna = document["draft_context"]["device_dna_evidence"]
+    model = next(fact for fact in dna["facts"] if fact["fact_id"] == "identity.model")
+    if change == "changed_fact":
+        model["value"] = "another-model"
+    elif change == "missing_fact":
+        dna["facts"] = [
+            fact for fact in dna["facts"] if fact["fact_id"] != "software.android_version"
+        ]
+    elif change == "changed_confidence":
+        model["confidence"] = "low"
+    elif change == "changed_evidence":
+        model["evidence_ids"] = ["source.inspection"]
+    elif change in {"serial_fact", "changed_bootloader"}:
+        dna["facts"].append(
+            {
+                "fact_id": "device.serial" if change == "serial_fact" else "bootloader.state",
+                "value": "PRIVATE-SERIAL" if change == "serial_fact" else "locked",
+                "confidence": "high",
+                "evidence_ids": ["device.live"],
+            }
+        )
+    elif change == "changed_partition":
+        dna["partitions"][0]["size_bytes"] += 1
+    elif change == "stale_source":
+        document["draft_context"]["source_sha256"] = dna["source_sha256"] = "0" * 64
+    elif change == "stale_profile_digest":
+        dna["profile_digest"] = "0" * 64
+    elif change == "widened_authority":
+        dna["phone_action_allowed"] = True
+    elif change == "unknown_projection_schema":
+        dna["schema_version"] = 2
+    elif change == "boolean_projection_schema":
+        dna["schema_version"] = True
+    elif change == "numeric_authority_flag":
+        dna["phone_action_allowed"] = 0
+    elif change == "different_pack_version":
+        document["version"] = "0.3.1"
+
+    assert not service.verify_device_dna_attachment(document, workspace=store.workspace)
+
+
+def test_legacy_dna_draft_rejects_replaced_sealed_profile(legacy_dna_draft) -> None:
+    service, store, registry, project, inspection, _, document = legacy_dna_draft
+    DeviceDnaService(store, registry).refresh(
+        project.project_id,
+        _dna_device(bootloader_locked=True),
+        inspection,
+    )
+
+    assert not service.verify_device_dna_attachment(document, workspace=store.workspace)
 
 
 def test_draft_storage_is_private_and_rejects_linked_inputs_and_directories(tmp_path) -> None:

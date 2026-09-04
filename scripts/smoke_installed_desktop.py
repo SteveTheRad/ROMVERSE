@@ -8,7 +8,7 @@ from importlib.resources import files
 from pathlib import Path
 from unittest.mock import patch
 
-from PySide6.QtCore import QLockFile
+from PySide6.QtCore import QLockFile, Qt
 from PySide6.QtWidgets import QApplication
 
 from romverse import app as romverse_app
@@ -16,6 +16,8 @@ from romverse.device_packs.registry import DevicePackRegistry
 from romverse.guardian.runtime_authorization import GuardianRuntimeAuthorizationService
 from romverse.guardian.runtime_execution_claim import GuardianRuntimeExecutionClaimService
 from romverse.knowledge.archives import CANONICAL_ROUTES, KNOWN_FIXES
+from romverse.knowledge.lookup import OfflineKnowledgeService
+from romverse.knowledge.models import KnowledgeQuery
 from romverse.legal import (
     PRIVACY_STATUS,
     TERMS_STATUS,
@@ -25,7 +27,7 @@ from romverse.legal import (
 from romverse.rom.projects import RomProjectStore
 from romverse.ui import main_window as main_window_module
 from romverse.ui.backup_center import BackupCenter
-from romverse.ui.knowledge_center import ARCHIVE_ARTICLES
+from romverse.ui.knowledge_center import ARCHIVE_ARTICLES, KnowledgeCenter
 from romverse.ui.theme import STYLESHEET, apply_dark_palette
 from romverse.ui.workspace_shell import NAVIGATION_GROUPS
 
@@ -131,6 +133,44 @@ def main() -> int:
     app.setStyle("Fusion")
     apply_dark_palette(app)
     app.setStyleSheet(STYLESHEET)
+    offline = OfflineKnowledgeService(workspace)
+    archive = offline.store.ensure_seeded()
+    if len(archive.records) < 199 or len(archive.sources) < 111:
+        raise RuntimeError("Installed offline Archives corpus is missing packaged evidence")
+    failure_lookup = offline.lookup(
+        KnowledgeQuery(
+            error_codes=("HASH_MISMATCH(3)",),
+            finding_ids=("security.verified_boot", "boot.incomplete"),
+            symptoms=("ODIN MODE (AVB FAIL) vbmeta HASH_MISMATCH(3)",),
+        ),
+        trigger="release-smoke",
+        limit=4,
+    )
+    if (
+        not failure_lookup.matches
+        or failure_lookup.matches[0].record.record_id != "core.verified-boot-red-triage"
+        or failure_lookup.execution_authority != "none"
+    ):
+        raise RuntimeError("Installed offline Archives could not rank exact boot-failure evidence")
+    archives_center = KnowledgeCenter(offline_service=offline)
+    archives_center.resize(1_200, 760)
+    archives_center.show()
+    archives_center.search.setText("HASH_MISMATCH(3)")
+    app.processEvents()
+    try:
+        has_structured_result = any(
+            str(archives_center.list.item(row).data(Qt.ItemDataRole.UserRole)).startswith(
+                "offline:"
+            )
+            for row in range(archives_center.list.count())
+        )
+        if (
+            "OFFLINE BRAIN READY" not in archives_center.offline_archive_status.text()
+            or not has_structured_result
+        ):
+            raise RuntimeError("Installed Archives UI did not expose structured offline evidence")
+    finally:
+        archives_center.close()
     time_machine = BackupCenter(workspace)
     requested: list[str] = []
     time_machine.rom_studio_setup_requested.connect(requested.append)
@@ -195,7 +235,8 @@ def main() -> int:
         raise RuntimeError("Installed desktop changed protected existing-workspace evidence")
     print(
         f"Installed ROMVERSE desktop smoke passed with {len(registry.packs)} Device Packs, "
-        f"{len(KNOWN_FIXES)} known fixes, {len(desktop_routes)} covered desktop routes, "
+        f"{len(KNOWN_FIXES)} known fixes, {len(archive.records)} offline evidence records, "
+        f"{len(desktop_routes)} covered desktop routes, "
         "a connected dark Time Machine empty state, and byte-exact populated-workspace reopening"
     )
     return 0

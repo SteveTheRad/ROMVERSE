@@ -8,7 +8,7 @@ corpus later, but it is never required to explain a locally known problem or rec
 
 The initial archive promotes the existing curated ROMVERSE known-fix catalog into the structured
 store and adds modular, exact-scope evidence packs reviewed on 2026-09-04. The resulting seed
-currently contains 221 records and 129 distinct provenance entries. It includes platform guidance
+currently contains 245 records and 150 distinct provenance entries. It includes platform guidance
 and OEM coverage for
 Samsung, Google/Pixel, Huawei/Honor, Xiaomi/Redmi/POCO, OnePlus, Sony, Motorola/Lenovo, Nothing,
 OPPO, realme, vivo/iQOO, ASUS, HMD/Nokia, Fairphone, TECNO, Infinix, itel, ZTE, and nubia/REDMAGIC.
@@ -87,8 +87,8 @@ pre-device lookup neither assumes an identity nor starts the host recovery optio
 
 ## Persistence and import
 
-The packaged core, OEM recovery, and boot-error/device-alias evidence packs are merged and copied on first use to
-`knowledge/archive.romverse` inside the selected workspace. More reviewed packs can be added
+The packaged core, OEM recovery, boot-error/device-alias, and Fastboot/transport evidence packs are
+merged and copied on first use to `knowledge/archive.romverse` inside the selected workspace. More reviewed packs can be added
 without turning the archive loader into one unmaintainable data file. The local file is private,
 atomically replaced, byte-bounded, strict-schema, and sealed
 with a canonical SHA-256 digest. Loading rejects links, extra/missing fields, invalid types,
@@ -117,6 +117,15 @@ device-corruption failures. It also records A/B fallback and Virtual A/B snapsho
 maintainer-published Device DNA aliases such as `capri`, `caprip`, `clark`, `klte`, `Z00T`, and
 OnePlus 8T `kebab` regional model families. A generic Recovery `status 1` is deliberately not
 treated as a diagnosis when the underlying error line is absent.
+
+The Fastboot and transport pack distinguishes bootloader Fastboot from userspace fastbootd; locked
+policy refusals from missing logical partitions; super-allocation errors from unreadable metadata;
+and Virtual A/B snapshot guards from ordinary slot errors. It also gives offline answers for ADB
+`unauthorized`, `offline`, Linux `no permissions`, Windows OEM-driver, direct-USB transfer, and
+version-scoped Platform-Tools failures. Google-published Pixel May 2025 and May 2026 bootloader
+anti-rollback boundaries are model-scoped. Community outcomes for Pixel, Lenovo, OnePlus, Samsung,
+and Xiaomi retain their exact known circumstances and explicitly record what the report did not
+prove.
 
 ## Device-change boundary
 

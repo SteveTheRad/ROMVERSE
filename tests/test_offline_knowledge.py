@@ -113,8 +113,8 @@ def test_packaged_archive_promotes_the_existing_broad_multi_oem_brain() -> None:
     archive = load_packaged_archive()
     manufacturers = {value for record in archive.records for value in record.scope.manufacturers}
 
-    assert len(archive.records) >= 221
-    assert len(archive.sources) >= 129
+    assert len(archive.records) >= 245
+    assert len(archive.sources) >= 150
     assert {
         "samsung",
         "huawei",
@@ -151,6 +151,12 @@ def test_packaged_archive_promotes_the_existing_broad_multi_oem_brain() -> None:
         "identity.samsung-klte-models-and-firmware",
         "identity.oneplus8t-kebab-regional-models",
         "community.samsung-m31s-vbmeta-hash-mismatch",
+        "platform.fastboot-locked-flashing-refusal",
+        "platform.fastboot-not-enough-super-space",
+        "platform.adb-unauthorized-state",
+        "official.pixel-may2025-bootloader-antirollback",
+        "community.oneplus6t-critical-refusal-wrong-mode",
+        "community.xiaomi-miflash-lock-checkpoint-wrapper",
     } <= record_ids
 
 
@@ -183,6 +189,67 @@ def test_device_alias_and_codename_find_the_maintained_variant(tmp_path) -> None
     assert report.matches[0].record.record_id == "identity.motorola-capri-variants"
     assert report.matches[0].confidence is MatchConfidence.MEDIUM
     assert "exact codename" in report.matches[0].explanation.casefold()
+
+
+def test_generic_fastboot_resize_error_ranks_platform_diagnosis_first(tmp_path) -> None:
+    report = OfflineKnowledgeService(tmp_path / "workspace").lookup(
+        KnowledgeQuery(
+            symptoms=(
+                "Resizing 'system_a' FAILED "
+                "(remote: 'Not enough space to resize partition')",
+            ),
+            error_codes=("Not enough space to resize partition",),
+            partitions=("system_a", "super"),
+        ),
+        trigger="fastboot-failure",
+    )
+
+    assert report.matches[0].record.record_id == "platform.fastboot-not-enough-super-space"
+    assert report.matches[0].confidence is MatchConfidence.HIGH
+    assert report.execution_authority == "none"
+    assert "do not delete" in report.matches[0].record.fix_steps[1].casefold()
+
+
+def test_exact_pixel3axl_resize_outcome_stays_scoped_and_execution_inert(tmp_path) -> None:
+    report = OfflineKnowledgeService(tmp_path / "workspace").lookup(
+        KnowledgeQuery(
+            manufacturers=("google",),
+            brands=("pixel",),
+            models=("Pixel 3a XL",),
+            codenames=("bonito",),
+            android_versions=("11",),
+            bootloader_states=("unlocked",),
+            partitions=("system_a", "super"),
+            error_codes=(
+                "Resizing 'system_a' FAILED "
+                "(remote: 'Not enough space to resize partition')",
+            ),
+        ),
+        trigger="fastboot-failure",
+    )
+
+    match = report.matches[0]
+    assert match.record.record_id == "community.pixel3axl-resize-android-flash-tool"
+    assert match.confidence is MatchConfidence.MEDIUM
+    assert match.record.corroboration_count == 1
+    assert match.record.operations == ()
+    assert report.execution_authority == "none"
+
+
+def test_adb_unauthorized_is_not_misdiagnosed_as_offline_or_driver_failure(tmp_path) -> None:
+    report = OfflineKnowledgeService(tmp_path / "workspace").lookup(
+        KnowledgeQuery(
+            symptoms=(
+                "device unauthorized. Please check the confirmation dialog on your device",
+            ),
+            error_codes=("unauthorized",),
+        ),
+        trigger="device-discovery-failure",
+    )
+
+    assert report.matches[0].record.record_id == "platform.adb-unauthorized-state"
+    assert report.matches[0].confidence is MatchConfidence.HIGH
+    assert "owner approval" in report.matches[0].record.summary.casefold()
 
 
 def test_archive_store_seeds_private_integrity_checked_local_data(tmp_path) -> None:

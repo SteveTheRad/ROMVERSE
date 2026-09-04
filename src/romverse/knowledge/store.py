@@ -199,6 +199,7 @@ def load_packaged_archive() -> KnowledgeArchive:
         "knowledge_archive_seed.json",
         "knowledge_archive_oem_recovery_seed.json",
         "knowledge_archive_boot_errors_seed.json",
+        "knowledge_archive_fastboot_transport_seed.json",
     )
     archives = tuple(_load_packaged_bundle(name) for name in packaged)
     merged = _existing_catalog_archive()

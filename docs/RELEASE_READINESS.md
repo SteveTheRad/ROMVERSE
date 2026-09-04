@@ -404,7 +404,13 @@ honest pre-verification empty state, and Desktop ROMVERSE Link uses a dark scrol
 grouped pairing controls and visibly disabled actions instead of compressing buttons into unreadable
 bars. The complete Companion Link, ROM Studio, Guardian and theme-focused regressions pass. This is
 UI, private retrieval and diagnostic guidance evidence only; it does not add flash authority or a
-production Guardian runtime, and no phone action was performed.
+production Guardian runtime, and no phone action was performed. The checkpoint wheel is 7,959,760
+bytes with SHA-256 `068a199c194a0db27873bd0771224e649968108cdb8efaddbb786f9458ee5ef5`;
+an isolated dependency-installed first-launch and byte-exact reopen smoke passed with 22 Device
+Packs, 169 fixes, 280 offline records and 19 recovery routes. The self-contained Linux x86-64
+bundle contains 458 files and expands to 356,235,234 bytes; its 146,942,730-byte portable ZIP has
+SHA-256 `2b8a480e6360cd2f35c2e59d6e6df4712933d32872d7b29d8a3c7f30bbe334c1`, and a fresh
+frozen-application first-launch smoke passed.
 
 ## Required gates
 

@@ -145,7 +145,7 @@ exact flash-certified Device Pack proves the operation contract. A 1600×1000 of
 confirmed the Passport remains readable inside ROM Studio's existing dark scroll surface. No phone,
 firmware, partition, bootloader, flash or installation operation was performed.
 
-The source-AVB handoff increment passes all 1,638 Desktop tests and the complete Ruff check/format
+The source-AVB handoff increment passes all 1,639 Desktop tests and the complete Ruff check/format
 gates across 378 Python files. Partition Atlas now verifies a firmware's own `vbmeta` and
 `vbmeta_system` without requiring an already-complete Device Pack, strictly reloads the private
 source/project/payload-bound receipt, distinguishes three genuine top-level chain partitions from
@@ -153,7 +153,15 @@ ordinary hash/hashtree descriptors, and carries that evidence into the exact-sou
 draft. The live OS4.0.0.25 simulation confirmed one SHA256_RSA4096 OEM identity across both images,
 with `boot`, `recovery`, and `vbmeta_system` as the true chain partitions. The receipt and draft
 permanently retain zero signing, execution, flash, and phone authority; no physical-phone operation
-was performed.
+was performed. The release extra now explicitly installs both the `build` frontend and Hatchling
+backend plus PyInstaller, fixing clean no-isolation builds after a reboot. A fresh 244-member wheel
+contains and byte-compares all runtime sources and all 21 Device Packs; its SHA-256 is
+`574e85d0f67b08597df6fd9a52ba9869ae6354e9aeea5f5ba548173b673be8b9`. A separate Python 3.14
+environment installed that wheel and passed fresh and populated-workspace startup, dark Time Machine,
+169-fix, 19-route, and byte-preservation smoke checks. The resulting Fedora self-contained bundle
+also launched successfully and independently verified all 451 files and 355,801,547 expanded bytes;
+the portable ZIP SHA-256 is
+`5cad56e2c5daba30a4dab41f0b0ac4877b108533eafdce7697317034e6a613c6`.
 
 ## Required gates
 

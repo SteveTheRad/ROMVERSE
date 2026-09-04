@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import tomllib
 import zipfile
 from pathlib import Path
 from subprocess import CompletedProcess
@@ -11,6 +12,16 @@ from romverse.app import build_parser
 from scripts.build_desktop_executable import pyinstaller_arguments
 from scripts.package_desktop_bundle import package_bundle, verify_bundle_archive
 from scripts.smoke_frozen_desktop import smoke_frozen_desktop
+
+
+def test_release_extra_contains_frontend_backend_and_native_bundler() -> None:
+    repository = Path(__file__).resolve().parents[1]
+    document = tomllib.loads((repository / "pyproject.toml").read_text(encoding="utf-8"))
+    release = document["project"]["optional-dependencies"]["release"]
+
+    assert any(item.startswith("build>=") for item in release)
+    assert any(item.startswith("hatchling>=") for item in release)
+    assert any(item.startswith("pyinstaller>=") for item in release)
 
 
 def _bundle(tmp_path: Path) -> Path:

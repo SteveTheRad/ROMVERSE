@@ -23,6 +23,7 @@ dev = [
 ]
 release = [
   "build>=1.4,<2",
+  "hatchling>=1.26,<2",
   "pyinstaller>=6.22,<7",
 ]
 

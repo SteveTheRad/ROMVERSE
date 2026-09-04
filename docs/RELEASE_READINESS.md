@@ -424,7 +424,14 @@ like a repeated build failure. Shared cards, menus, fields, focus rings, and bot
 one high-contrast layered theme with semantic green/cyan/amber/red states. Offscreen visual review at
 1200×790 and 980×680 for Genesis and 1240×820 and 1040×700 for Forge Control confirmed readable
 copy, unclipped actions, and zero horizontal content overflow. This work changed presentation only;
-it added no flash authority and performed no phone or firmware operation.
+it added no flash authority and performed no phone or firmware operation. The source-identical
+checkpoint wheel contains 255 members and all 22 Device Packs; it is 7,965,344 bytes with SHA-256
+`879bcc8ec725564de3db4328dc91a9e36f8c666c79aef3653d1ab37895241c90`. A clean installed-wheel
+smoke loaded 169 fixes, 280 offline evidence records and all 19 covered Desktop routes. The
+self-contained Linux x86-64 bundle contains 458 files and expands to 356,244,938 bytes; its
+146,953,896-byte portable ZIP has SHA-256
+`65e09256f5f67132ae2ab5a23644e15c93ccfd843003a8b66327a82207a72b4c`, and a fresh frozen-app
+first-launch smoke passed.
 
 ## Required gates
 

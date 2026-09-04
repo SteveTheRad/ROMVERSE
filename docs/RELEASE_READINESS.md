@@ -222,6 +222,24 @@ release-candidate artifacts. Windows/CI reruns still depend on correcting the Gi
 billing limit, and no phone, firmware, partition, bootloader, flash, or installation operation was
 performed.
 
+The automatic desktop failure-diagnosis increment at commit `8711c11` passes all 1,664 Desktop
+tests plus the complete Ruff check/format gates across 368 Python and release-script files. Recovery
+Bay now scans the structured offline brain from the current device/build/bootloader identity, exact
+typed symptom, ADB errors, and typed diagnostic findings; it shows up to three ranked matches inside
+the safety plan and includes privacy-safe match/provenance metadata in the local export. ROM Studio
+worker failures use the same path. Exact observed symptom coverage now outranks unrelated broad
+profile terms, with a regression proving `adb: error: more than one device/emulator` resolves to the
+specific ADB diagnosis even when Device DNA contains other Android transport evidence.
+
+The corresponding isolated 249-member wheel contains all 21 Device Packs and has SHA-256
+`e52e0e186be298e080130d103f8b21d908b6328665b9b2dfe3ec65077690d4db`. Its separately installed
+Python 3.14 smoke passes the 199-record archive, exact AVB-failure ranking, Archives UI, fresh and
+populated workspaces, 169 known fixes, 19 routes, and byte preservation. The self-contained Fedora
+app launches successfully and its verified 453-file, 355,964,415-expanded-byte portable ZIP has
+SHA-256 `198ca8d82a89916779765a3d76009daf737454c946be97390b9b11ec1a138660`. GitHub Actions run
+`33843864740` again started zero steps in every matrix job because of the account billing/spending
+limit; it provides no CI test evidence. No phone action was performed.
+
 ## Required gates
 
 1. Run the complete `pytest`, `ruff check .`, and `ruff format --check .` gates on supported Linux

@@ -149,7 +149,9 @@ def test_connected_device_request_is_private_exact_and_inherits_only_reviewed_so
     assert all(capability["scope"] == "locked" for capability in document["capabilities"][1:])
 
 
-def test_project_source_draft_binds_local_evidence_and_lists_every_flash_contract() -> None:
+def test_project_source_draft_binds_local_evidence_and_lists_every_flash_contract(
+    tmp_path,
+) -> None:
     registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
     device = AndroidDevice(
         "private-serial-that-must-not-appear",
@@ -233,8 +235,9 @@ def test_project_source_draft_binds_local_evidence_and_lists_every_flash_contrac
         ).hexdigest(),
     )
 
-    request = DevicePackDraftService().request_from_project_source(pack, device, source, source_avb)
-    document = DevicePackDraftService().build_document(request)
+    service = DevicePackDraftService()
+    request = service.request_from_project_source(pack, device, source, source_avb)
+    document = service.build_document(request)
     encoded = json.dumps(document)
 
     assert document["publication_status"] == "draft"
@@ -270,6 +273,32 @@ def test_project_source_draft_binds_local_evidence_and_lists_every_flash_contrac
         DevicePackDraftService.MISSING_FLASH_CONTRACTS
     )
     assert "private-serial" not in encoded
+
+    exported = service.export(request, tmp_path / "drafts", boundary=tmp_path)
+    review = service.load_project_draft(
+        tmp_path / "drafts",
+        boundary=tmp_path,
+        project_id=source.project_id,
+        source_sha256=source.source_sha256,
+        blueprint_digest=source.blueprint_digest,
+    )
+    assert review is not None
+    assert review.output_path == exported.output_path
+    assert review.sha256 == exported.sha256
+    assert review.build_id == source.build_id
+    assert review.partition_count == source.partition_count
+    assert review.missing_flash_contracts == service.MISSING_FLASH_CONTRACTS
+    assert review.source_avb_attached
+    assert (
+        service.load_project_draft(
+            tmp_path / "drafts",
+            boundary=tmp_path,
+            project_id=source.project_id,
+            source_sha256="9" * 64,
+            blueprint_digest=source.blueprint_digest,
+        )
+        is None
+    )
 
     mismatched = ProjectSourceRequirements(
         source.project_id,
@@ -312,3 +341,48 @@ def test_draft_storage_is_private_and_rejects_linked_inputs_and_directories(tmp_
     with pytest.raises(ValueError, match="could not be preserved safely"):
         service.export(_request(), linked_output, boundary=tmp_path)
     assert list(outside.iterdir()) == []
+
+
+def test_project_draft_reload_rejects_changed_content_and_linked_storage(tmp_path) -> None:
+    service = DevicePackDraftService()
+    source_request = _request()
+    source_request["source_evidence"] = {
+        "project_id": "project-one",
+        "source_sha256": "a" * 64,
+        "source_kind": "ota-payload",
+        "blueprint_digest": "b" * 64,
+        "plan_digest": "c" * 64,
+        "authority": "project-local-build-evidence-only",
+        "manufacturer": "Example OEM",
+        "codename": "example_product",
+        "build_id": "EXAMPLE.1",
+        "partition_count": 12,
+        "required_tools": ["Python", "Payload Dumper"],
+    }
+    drafts = tmp_path / "drafts"
+    exported = service.export(source_request, drafts, boundary=tmp_path)
+    document = json.loads(exported.output_path.read_text(encoding="utf-8"))
+    document["draft_context"]["execution_authority"] = "flash"
+    exported.output_path.write_text(json.dumps(document), encoding="utf-8")
+
+    assert (
+        service.load_project_draft(
+            drafts,
+            boundary=tmp_path,
+            project_id="project-one",
+            source_sha256="a" * 64,
+            blueprint_digest="b" * 64,
+        )
+        is None
+    )
+
+    linked = tmp_path / "linked-drafts"
+    linked.symlink_to(drafts, target_is_directory=True)
+    with pytest.raises(ValueError, match="directory is unsafe"):
+        service.load_project_draft(
+            linked,
+            boundary=tmp_path,
+            project_id="project-one",
+            source_sha256="a" * 64,
+            blueprint_digest="b" * 64,
+        )

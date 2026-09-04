@@ -26,6 +26,23 @@ class DevicePackDraftExport:
     pack_id: str
 
 
+@dataclass(frozen=True, slots=True)
+class DevicePackDraftReview:
+    """Strictly reloaded status for one private exact-source development draft."""
+
+    output_path: Path
+    sha256: str
+    pack_id: str
+    display_name: str
+    project_id: str
+    source_sha256: str
+    blueprint_digest: str
+    build_id: str
+    partition_count: int
+    missing_flash_contracts: tuple[str, ...]
+    source_avb_attached: bool
+
+
 class DevicePackDraftService:
     """Create review-only exact-model Pack candidates that cannot enter the live registry."""
 
@@ -515,6 +532,151 @@ class DevicePackDraftService:
         except LocalStoreError as exc:
             raise ValueError(f"Device Pack draft could not be preserved safely: {exc}") from exc
         return DevicePackDraftExport(output_path, digest, len(payload), pack_id)
+
+    def load_project_draft(
+        self,
+        output_dir: Path,
+        *,
+        boundary: Path,
+        project_id: str,
+        source_sha256: str,
+        blueprint_digest: str,
+    ) -> DevicePackDraftReview | None:
+        """Find a current exact-source draft without trusting retained UI state."""
+
+        try:
+            if output_dir.is_symlink():
+                raise ValueError("Device Pack draft directory is unsafe")
+            if not output_dir.exists():
+                return None
+            if not output_dir.is_dir():
+                raise ValueError("Device Pack draft path is not a directory")
+            candidates = sorted(
+                path for path in output_dir.iterdir() if path.name.endswith(".draft.json")
+            )
+        except OSError as exc:
+            raise ValueError(f"Device Pack draft directory is unavailable: {exc}") from exc
+        if len(candidates) > 512:
+            raise ValueError("Device Pack draft directory exceeds the review limit")
+
+        reviews: list[DevicePackDraftReview] = []
+        for path in candidates:
+            try:
+                if path.is_symlink() or not path.is_file():
+                    continue
+                document = read_json_object(
+                    path,
+                    boundary=boundary,
+                    maximum_bytes=self.MAXIMUM_REQUEST_BYTES,
+                )
+                review = self._review_document(path, document)
+            except (LocalStoreError, OSError, ValueError):
+                continue
+            if (
+                review.project_id == project_id
+                and review.source_sha256 == source_sha256
+                and review.blueprint_digest == blueprint_digest
+            ):
+                reviews.append(review)
+        if not reviews:
+            return None
+        reviews.sort(
+            key=lambda item: (
+                item.source_avb_attached,
+                item.sha256,
+            ),
+            reverse=True,
+        )
+        return reviews[0]
+
+    def _review_document(
+        self,
+        path: Path,
+        document: dict[str, object],
+    ) -> DevicePackDraftReview:
+        expected = {
+            "schema_version",
+            "publication_status",
+            "pack_id",
+            "version",
+            "display_name",
+            "priority",
+            "match",
+            "knowledge_sources",
+            "capabilities",
+            "notes",
+            "draft_context",
+        }
+        if (
+            set(document) != expected
+            or document.get("schema_version") != 1
+            or document.get("publication_status") != "draft"
+        ):
+            raise ValueError("unsupported exact-source Device Pack draft")
+        context = document.get("draft_context")
+        if not isinstance(context, dict):
+            raise ValueError("Device Pack draft context is unavailable")
+        source_keys = {
+            "project_id",
+            "source_sha256",
+            "source_kind",
+            "blueprint_digest",
+            "plan_digest",
+            "authority",
+            "manufacturer",
+            "codename",
+            "build_id",
+            "partition_count",
+            "required_tools",
+        }
+        expected_context = source_keys | {
+            "status",
+            "missing_flash_contracts",
+            "execution_authority",
+            "phone_action_allowed",
+            "public_compatibility_claim",
+        }
+        if "source_avb_evidence" in context:
+            expected_context.add("source_avb_evidence")
+        if set(context) != expected_context:
+            raise ValueError("Device Pack draft context fields are invalid")
+        source = self._validated_source_evidence({key: context[key] for key in source_keys})
+        assert source is not None
+        source_avb = self._validated_source_avb_evidence(
+            context.get("source_avb_evidence"),
+            source,
+        )
+        missing = _string_list(context.get("missing_flash_contracts"), "missing contracts")
+        if (
+            missing != self.MISSING_FLASH_CONTRACTS
+            or context.get("status") != "review-required"
+            or context.get("execution_authority") != "none"
+            or context.get("phone_action_allowed") is not False
+            or context.get("public_compatibility_claim") is not False
+        ):
+            raise ValueError("Device Pack draft safety boundary is invalid")
+
+        payload = _canonical(document) + b"\n"
+        digest = hashlib.sha256(payload).hexdigest()
+        pack_document = dict(document)
+        pack_document.pop("publication_status")
+        pack_document.pop("draft_context")
+        pack = DevicePackRegistry._parse(pack_document, digest)
+        if path.name != f"{pack.pack_id}-{digest[:12]}.draft.json":
+            raise ValueError("Device Pack draft filename does not match its content")
+        return DevicePackDraftReview(
+            output_path=path,
+            sha256=digest,
+            pack_id=pack.pack_id,
+            display_name=pack.display_name,
+            project_id=str(source["project_id"]),
+            source_sha256=str(source["source_sha256"]),
+            blueprint_digest=str(source["blueprint_digest"]),
+            build_id=str(source["build_id"]),
+            partition_count=int(source["partition_count"]),
+            missing_flash_contracts=missing,
+            source_avb_attached=source_avb is not None,
+        )
 
 
 def _nonempty_strings(value: object, label: str) -> tuple[str, ...]:

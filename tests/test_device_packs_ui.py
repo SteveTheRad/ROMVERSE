@@ -171,12 +171,26 @@ def test_studio_handoff_scopes_requirements_to_current_strict_source_blueprint(
 
     center.next_action_button.click()
     assert "EXACT-SOURCE PACK DRAFT READY" in center.next_action_feedback.text()
+    assert center.active_project_draft is not None
+    assert center.next_action_title.text() == "Exact-source Pack draft prepared"
+    assert center.next_action_badge.text() == "DRAFT VERIFIED • FLASH EVIDENCE NEXT"
+    assert center.next_action_button.text() == "Review draft and missing evidence"
     drafts = list((store.workspace / "device_pack_drafts").glob("*.draft.json"))
     assert len(drafts) == 1
     draft = json.loads(drafts[0].read_text(encoding="utf-8"))
     assert draft["draft_context"]["source_sha256"] == project.original.sha256
     assert draft["draft_context"]["partition_count"] == len(source_blueprint.partitions)
     assert draft["draft_context"]["phone_action_allowed"] is False
+
+    assert center.open_rom_studio_project(
+        project.project_id,
+        project.name,
+        project.device_pack_id,
+        project.original.sha256,
+    )
+    assert center.active_project_draft is not None
+    assert center.next_action_button.text() == "Review draft and missing evidence"
+    assert len(list((store.workspace / "device_pack_drafts").glob("*.draft.json"))) == 1
 
     requests: list[tuple[str, str, str, str]] = []
     center.requirement_requested.connect(lambda *values: requests.append(values))

@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QPushButton,
     QScrollArea,
     QVBoxLayout,
@@ -27,7 +28,7 @@ from romverse.device.catalog import (
 )
 from romverse.device.models import AndroidDevice
 from romverse.device_packs.attestations import DevicePackAttestationStore
-from romverse.device_packs.drafts import DevicePackDraftService
+from romverse.device_packs.drafts import DevicePackDraftReview, DevicePackDraftService
 from romverse.device_packs.models import CapabilityStatus, DevicePack
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.device_packs.requirements import (
@@ -84,6 +85,7 @@ class DevicePacksCenter(QWidget):
         self.active_next_action: DevicePackNextAction | None = None
         self.active_requirements: DeviceRequirementsBlueprint | None = None
         self.active_project_source: ProjectSourceRequirements | None = None
+        self.active_project_draft: DevicePackDraftReview | None = None
         self.active_catalog_match: DeviceCatalogMatch | None = None
         self.active_pack: DevicePack | None = None
         self.active_device: AndroidDevice | None = None
@@ -422,6 +424,7 @@ class DevicePacksCenter(QWidget):
     def set_devices(self, devices: list[AndroidDevice]) -> None:
         self.dashboard_handoff.setVisible(False)
         self.active_project_source = None
+        self.active_project_draft = None
         self.devices = devices
         self.selector.blockSignals(True)
         self.selector.clear()
@@ -462,6 +465,7 @@ class DevicePacksCenter(QWidget):
             return False
         if self.active_project_source is not None:
             self.active_project_source = None
+            self.active_project_draft = None
             if self.active_pack is not None and self.active_report is not None:
                 self._render_pack(self.active_pack, self.active_report)
         device = self.active_device
@@ -899,6 +903,7 @@ class DevicePacksCenter(QWidget):
     def _select(self, index: int) -> None:
         if 0 <= index < len(self.devices):
             self.active_project_source = None
+            self.active_project_draft = None
             self._render_device(self.devices[index])
 
     def _render_device(self, device: AndroidDevice) -> None:
@@ -1014,6 +1019,10 @@ class DevicePacksCenter(QWidget):
         )
         project_override = project_source is not None and not project_contract_bound
         project_routes_suppressed = project_source_stale or project_override
+        self.active_project_draft = (
+            self._load_current_project_draft(project_source) if project_override else None
+        )
+        prepared_draft = self.active_project_draft
         self.active_next_action = (
             None if project_routes_suppressed else self.validation_service.next_safe_action(report)
         )
@@ -1082,6 +1091,8 @@ class DevicePacksCenter(QWidget):
         self.next_action_title = QLabel(
             "Reopen the exact project from ROM Studio"
             if project_source_stale
+            else "Exact-source Pack draft prepared"
+            if prepared_draft is not None
             else "Prepare the exact-source Device Pack draft"
             if project_override
             else self.active_next_action.title
@@ -1090,6 +1101,11 @@ class DevicePacksCenter(QWidget):
         self.next_action_detail = QLabel(
             "The retained source receipt changed, so ROMVERSE removed every project action."
             if project_source_stale
+            else f"ROMVERSE reloaded the private draft for {prepared_draft.build_id} and its "
+            f"{prepared_draft.partition_count}-partition source blueprint. This step is complete; "
+            f"review the {len(prepared_draft.missing_flash_contracts)} genuinely missing flash "
+            "contracts instead of creating the same draft again."
+            if prepared_draft is not None
             else "Local build preparation is ready, but the installed phone Pack describes a "
             "different firmware source. Create a private draft that binds this exact source, "
             "phone identity, partition blueprint, required tools, and every still-missing flash "
@@ -1113,6 +1129,8 @@ class DevicePacksCenter(QWidget):
         self.next_action_badge = QLabel(
             "ROUTES LOCKED"
             if project_source_stale
+            else "DRAFT VERIFIED • FLASH EVIDENCE NEXT"
+            if prepared_draft is not None
             else "BUILD READY • PACK DRAFT NEXT"
             if project_override
             else "READY • GUARDIAN ACTIVE"
@@ -1126,20 +1144,27 @@ class DevicePacksCenter(QWidget):
         self.next_action_button = QPushButton(
             "Reopen from ROM Studio"
             if project_source_stale
+            else "Review draft and missing evidence"
+            if prepared_draft is not None
             else "Prepare exact-source Pack draft"
             if project_override
             else self.active_next_action.button_label
         )
         self.next_action_button.setObjectName("Primary")
         self.next_action_button.setToolTip(
-            "Creates a private, source-bound Device Pack development draft with a precise "
+            "Reviews the integrity-reloaded draft and its exact missing-contract checklist. "
+            "It does not recreate the file, activate flashing, or make a public claim."
+            if prepared_draft is not None
+            else "Creates a private, source-bound Device Pack development draft with a precise "
             "missing-contract checklist. It cannot activate flashing or make a public claim."
             if project_override
             else "Opens the exact ROMVERSE page or verified guide selected from this current "
             "readiness report. It starts no worker, approval, build, or phone action."
         )
         self.next_action_button.setEnabled(not project_source_stale)
-        if project_override:
+        if prepared_draft is not None:
+            self.next_action_button.clicked.connect(self._review_project_pack_draft)
+        elif project_override:
             self.next_action_button.clicked.connect(self._export_project_pack_draft)
         elif not project_routes_suppressed:
             self.next_action_button.clicked.connect(self._request_next_action)
@@ -1647,12 +1672,72 @@ class DevicePacksCenter(QWidget):
             )
             self.next_action_feedback.setObjectName("Danger")
         else:
+            if self.active_pack is not None and self.active_report is not None:
+                self._render_pack(self.active_pack, self.active_report)
             self.next_action_feedback.setText(
                 f"EXACT-SOURCE PACK DRAFT READY  •  {exported.output_path}  •  SHA-256 "
                 f"{exported.sha256[:16]}…  •  review required  •  execution authority: none"
             )
             self.next_action_feedback.setObjectName("Good")
         self._repolish(self.next_action_feedback)
+
+    def _load_current_project_draft(
+        self,
+        source: ProjectSourceRequirements | None,
+    ) -> DevicePackDraftReview | None:
+        if self.workspace is None or source is None:
+            return None
+        try:
+            return self.draft_service.load_project_draft(
+                self.workspace / "device_pack_drafts",
+                boundary=self.workspace,
+                project_id=source.project_id,
+                source_sha256=source.source_sha256,
+                blueprint_digest=source.blueprint_digest,
+            )
+        except ValueError:
+            return None
+
+    def _review_project_pack_draft(self) -> None:
+        review = self.active_project_draft
+        source = self._validated_active_project_source()
+        if (
+            review is None
+            or source is None
+            or review.project_id != source.project_id
+            or review.source_sha256 != source.source_sha256
+            or review.blueprint_digest != source.blueprint_digest
+        ):
+            self.next_action_handoff_stopped(
+                "The prepared draft no longer matches the exact project source"
+            )
+            return
+        dialog = QMessageBox(self)
+        dialog.setWindowTitle("Device Atlas • exact-source Pack draft")
+        dialog.setIcon(QMessageBox.Icon.Information)
+        dialog.setText("This Pack-draft step is complete")
+        dialog.setInformativeText(
+            f"Build: {review.build_id}\n"
+            f"Partitions observed: {review.partition_count}\n"
+            f"Source AVB evidence attached: {'yes' if review.source_avb_attached else 'no'}\n"
+            f"Draft SHA-256: {review.sha256[:20]}…\n\n"
+            "The draft is safely stored and does not need to be created again. The remaining "
+            "work is exact flash engineering and physical recovery validation—not another "
+            "Guided Setup pass."
+        )
+        dialog.setDetailedText(
+            "Still required before this source can support a governed flash:\n"
+            + "\n".join(f"• {item}" for item in review.missing_flash_contracts)
+            + "\n\nExecution authority: NONE\nPhone changed: NO"
+        )
+        guide = dialog.addButton(
+            "Open flash-readiness guide",
+            QMessageBox.ButtonRole.ActionRole,
+        )
+        dialog.addButton(QMessageBox.StandardButton.Close)
+        dialog.exec()
+        if dialog.clickedButton() is guide:
+            self.knowledge_article_requested.emit("device-pack-readiness-roadmap")
 
     def _import_physical_attestation(self) -> None:
         if self.attestation_store is None or self.active_pack is None or self.active_device is None:

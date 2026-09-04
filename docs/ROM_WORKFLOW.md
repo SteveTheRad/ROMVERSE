@@ -360,6 +360,15 @@ The production registry explicitly rejects that marker even if someone manually 
 an integrity index. Publication therefore remains a separate reviewed change, never an ingestion
 side effect.
 
+For a ROM Studio source-mismatch handoff, Device Atlas also reloads the content-addressed private
+draft on every render and matches its project, protected-source hash, and source-blueprint digest.
+Once that exact draft exists, the page marks the step complete and replaces **Prepare exact-source
+Pack draft** with **Review draft and missing evidence**. The review lists the remaining write,
+readback/first-boot, transition/slot/recovery, AVB-policy, stock-recovery, and independent physical-
+test contracts. Reopening the project therefore does not recreate the same draft or send Guided
+Setup through the same step again. Changed content, a mismatched source, an authority-bearing draft,
+or linked storage is rejected and cannot produce a completed state.
+
 The read-only expansion now includes integrity-indexed Google Pixel, OnePlus/OxygenOS,
 OPPO/ColorOS, realme UI, Nothing OS, Motorola, and Sony Xperia Packs. Their official OEM and AOSP
 reference URLs are schema-validated, dated, and visible in Device Atlas. These Packs can classify

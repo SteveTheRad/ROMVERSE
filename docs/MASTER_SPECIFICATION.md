@@ -284,6 +284,12 @@ AVB, physical-test, publisher, and partition-write contract, Flash remains locke
 source tree, receipt, build identity, or phone target changes, the retained route fails closed and
 must not fall back to requirements from a different Pack build.
 
+An exact-source Device Pack development draft is a durable completed workflow step, not a repeating
+button. Device Atlas must strictly reload the private content-addressed document, revalidate its
+project/source/blueprint binding and zero-authority boundary, then show a review action with the
+remaining flash-contract checklist. It must not offer to create the same draft again merely because
+the separate published Pack and physical flash evidence are still absent.
+
 ### ROM project provenance increment
 
 ROM Studio creates project directories containing a private atomic, versioned `project.romverse`

@@ -402,6 +402,11 @@ key fingerprint, binds both images to the current payload manifest and protected
 no signing, Pack, execution, flash, or phone authority. An exact-source Device Atlas draft carries
 that receipt forward as development evidence while continuing to list the AVB execution policy and
 physical recovery contracts as unresolved.
+Forge Control uses the same distinction: **Inspect source AVB topology** is available for a new or
+mismatched source, while **Inspect candidate AVB topology** appears only for an exact source-bound
+Device Pack contract. Both operations independently reload their strict receipt before the UI
+accepts completion. Source-only success remains visibly unable to satisfy candidate signing or
+flash authority, and the six build controls use a two-row responsive grid instead of clipped labels.
 
 **ROMVERSE Nexus** consumes current Device DNA and Compatibility Matrix evidence. Pathfinder
 draws the Understand → Research → Nexus Plan → Guardian Review → Execute → Nexus Verification

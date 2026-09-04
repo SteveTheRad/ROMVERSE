@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QFormLayout,
     QFrame,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QLayout,
@@ -90,7 +91,12 @@ from romverse.nexus.events import (
     MissionConfidence,
     MissionState,
 )
-from romverse.rom.avb_evidence import AvbEvidenceService, AvbTopologyReceipt
+from romverse.rom.avb_evidence import (
+    AvbEvidenceService,
+    AvbTopologyReceipt,
+    SourceAvbEvidenceService,
+    SourceAvbTopologyReceipt,
+)
 from romverse.rom.boot_observation import BootObservationService
 from romverse.rom.build_execution import LocalBuildReceipt, LocalDeviceBuildExecutor
 from romverse.rom.build_inputs import BuildInputPreparation, BuildInputPreparationService
@@ -1064,7 +1070,11 @@ class LocalBuildWorker(ManagedRunnable):
 
 
 class AvbEvidenceWorker(ManagedRunnable):
-    def __init__(self, service: AvbEvidenceService, project_id: str) -> None:
+    def __init__(
+        self,
+        service: AvbEvidenceService | SourceAvbEvidenceService,
+        project_id: str,
+    ) -> None:
         super().__init__()
         self.service = service
         self.project_id = project_id
@@ -1326,9 +1336,13 @@ class BuildControlCenter(QDialog):
             "Execute the exact Device Pack plan in a new versioned output directory, then unpack and compare every logical partition. No phone command is available to this executor."
         )
         self.build_button.clicked.connect(self._execute_local_build)
-        self.avb_button = QPushButton("Inspect AVB topology")
+        self.avb_button = QPushButton(self._avb_action_label())
         self.avb_button.setToolTip(
-            "Compare exact-source signing identity, rollback fields, and descriptor chains with the current local candidate. This never signs or touches a phone."
+            "Compare exact-source signing identity, rollback fields, and descriptor chains with "
+            "the current local candidate. This never signs or touches a phone."
+            if self._has_exact_avb_contract()
+            else "Verify the firmware source's own vbmeta identity and true chain partitions. "
+            "This creates development evidence only and grants no Pack, signing, or phone authority."
         )
         self.avb_button.clicked.connect(self._inspect_avb_topology)
         self.signing_button = QPushButton("Offline signing ceremony")
@@ -1347,17 +1361,20 @@ class BuildControlCenter(QDialog):
         self.autopilot_button.clicked.connect(self._start_autopilot)
         self.close_button = QPushButton("Close")
         self.close_button.clicked.connect(self.accept)
-        build_actions = QHBoxLayout()
+        build_actions = QGridLayout()
         build_actions.setSpacing(8)
-        for button in (
-            self.source_button,
-            self.metadata_button,
-            prepare,
-            self.build_button,
-            self.avb_button,
-            self.signing_button,
+        for index, button in enumerate(
+            (
+                self.source_button,
+                self.metadata_button,
+                prepare,
+                self.build_button,
+                self.avb_button,
+                self.signing_button,
+            )
         ):
-            build_actions.addWidget(button, 1)
+            build_actions.addWidget(button, index // 3, index % 3)
+            build_actions.setColumnStretch(index % 3, 1)
         layout.addLayout(build_actions)
         workflow_actions = QHBoxLayout()
         workflow_actions.setSpacing(8)
@@ -3054,6 +3071,30 @@ class BuildControlCenter(QDialog):
             QMessageBox.warning(self, "Local build stopped safely", message)
         self._source_online_guidance(message, "local-build")
 
+    def _has_exact_avb_contract(self) -> bool:
+        project = self.studio.store.get(self.project.project_id)
+        pack = next(
+            (
+                item
+                for item in self.studio.pack_registry.packs
+                if item.pack_id == project.device_pack_id
+            ),
+            None,
+        )
+        return bool(
+            project.original is not None
+            and pack is not None
+            and pack.build_contract is not None
+            and pack.build_contract.source.archive_sha256 == project.original.sha256
+        )
+
+    def _avb_action_label(self) -> str:
+        return (
+            "Inspect candidate AVB topology"
+            if self._has_exact_avb_contract()
+            else "Inspect source AVB topology"
+        )
+
     def _inspect_avb_topology(self) -> None:
         if any(
             worker is not None
@@ -3114,13 +3155,23 @@ class BuildControlCenter(QDialog):
             self.status.setText(message)
             QMessageBox.warning(self, "AVB evidence remains locked", message)
             return
-        service = AvbEvidenceService(
-            self.studio.store,
-            self.studio.pack_registry,
-            self.studio.tool_statuses,
-            payloads,
-            avbtool,
-            payloads.runner,
+        exact_contract = self._has_exact_avb_contract()
+        service = (
+            AvbEvidenceService(
+                self.studio.store,
+                self.studio.pack_registry,
+                self.studio.tool_statuses,
+                payloads,
+                avbtool,
+                payloads.runner,
+            )
+            if exact_contract
+            else SourceAvbEvidenceService(
+                self.studio.store,
+                payloads,
+                avbtool,
+                payloads.runner,
+            )
         )
         self.avb_worker = AvbEvidenceWorker(service, self.project.project_id)
         self.avb_worker.signals.complete.connect(self._avb_complete)
@@ -3135,37 +3186,74 @@ class BuildControlCenter(QDialog):
         self.signing_button.setEnabled(False)
         self.status.setText(
             "Comparing exact source and local candidate AVB identities … phone changed: NO"
+            if exact_contract
+            else "Verifying OEM source AVB identity and true chain partitions … "
+            "Pack/signing/flash authority: NONE • phone changed: NO"
         )
         self._start_preparation_console("forge-avb-topology")
         start_background(self.avb_worker)
 
     @Slot(object)
     def _avb_complete(self, receipt: object) -> None:
-        if not isinstance(receipt, AvbTopologyReceipt):
+        worker = self.avb_worker
+        if (
+            not isinstance(receipt, (AvbTopologyReceipt, SourceAvbTopologyReceipt))
+            or worker is None
+        ):
             self._avb_failed("AVB inspection returned no verifiable topology receipt")
             return
-        diagnosis = str(getattr(receipt, "diagnosis", "AVB topology recorded"))
+        try:
+            persisted = worker.service.load(self.project.project_id)
+        except (OSError, ProjectError, TypeError, ValueError):
+            persisted = None
+        if persisted != receipt:
+            self._avb_failed("AVB inspection returned no verifiable topology receipt")
+            return
+        diagnosis = str(getattr(receipt, "diagnosis", "AVB topology recorded")).rstrip(". ")
         self.avb_worker = None
         self.process_progress.finish()
         self.source_button.setEnabled(self.project.original is not None)
         self.avb_button.setEnabled(True)
-        self.avb_button.setText("Inspect AVB topology")
+        self.avb_button.setText(self._avb_action_label())
         self.metadata_button.setEnabled(True)
         self.build_button.setEnabled(True)
         self.close_button.setEnabled(True)
         self.signing_button.setEnabled(True)
         self.refresh()
-        self.status.setText(f"{diagnosis}  •  phone changed: NO")
+        self.status.setText(
+            f"{diagnosis}  •  "
+            + (
+                "Pack/signing/flash authority: NONE  •  "
+                if isinstance(receipt, SourceAvbTopologyReceipt)
+                else ""
+            )
+            + "phone changed: NO"
+        )
         self._finish_preparation_console("forge-avb-topology", MissionState.SUCCEEDED)
         receipt_digest = _object_digest(receipt)
         self._record_online_fix_success(
             ("inspect-avb-topology",),
             receipt_digest,
             "Typed AVB inspection completed and its exact topology receipt was verified.",
-            f"projects/{self.project.project_id}/{AvbEvidenceService.RECEIPT_NAME}",
-            "romverse.avb-topology",
+            f"projects/{self.project.project_id}/"
+            + (
+                SourceAvbEvidenceService.RECEIPT_NAME
+                if isinstance(receipt, SourceAvbTopologyReceipt)
+                else AvbEvidenceService.RECEIPT_NAME
+            ),
+            (
+                SourceAvbEvidenceService.FORMAT
+                if isinstance(receipt, SourceAvbTopologyReceipt)
+                else "romverse.avb-topology"
+            ),
         )
         if self.autopilot_active and self.autopilot_waiting_for == "avb":
+            if isinstance(receipt, SourceAvbTopologyReceipt):
+                self._finish_autopilot(
+                    "OEM source AVB evidence is verified, but a full candidate comparison still "
+                    "requires an exact source-bound Device Pack contract. No phone action started."
+                )
+                return
             self.autopilot_completed.append("AVB topology")
             self.autopilot_waiting_for = ""
             QTimer.singleShot(0, self._continue_autopilot)
@@ -3176,7 +3264,7 @@ class BuildControlCenter(QDialog):
         self.process_progress.stop()
         self.source_button.setEnabled(self.project.original is not None)
         self.avb_button.setEnabled(True)
-        self.avb_button.setText("Inspect AVB topology")
+        self.avb_button.setText(self._avb_action_label())
         self.metadata_button.setEnabled(True)
         self.build_button.setEnabled(True)
         self.close_button.setEnabled(True)

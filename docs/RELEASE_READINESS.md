@@ -163,6 +163,15 @@ also launched successfully and independently verified all 451 files and 355,801,
 the portable ZIP SHA-256 is
 `5cad56e2c5daba30a4dab41f0b0ac4877b108533eafdce7697317034e6a613c6`.
 
+The adaptive Forge AVB increment passes all 1,641 Desktop tests and the complete Ruff check/format
+gates. Forge Control no longer sends a new protected source into an exact-Pack-only AVB operation:
+it verifies and strictly reloads the OEM source receipt, labels the result as development evidence
+with zero Pack/signing/flash authority, and retains the full source-versus-candidate path whenever
+the exact source contract exists. Source-only evidence cannot advance an AVB Autopilot step. A live
+OS4.0.0.25 UI run completed against the protected project with the correct OEM identity and three
+true chain partitions. At 1040×700, the six build actions now render as a non-overlapping two-row
+grid with every full label visible. No phone operation was performed.
+
 ## Required gates
 
 1. Run the complete `pytest`, `ruff check .`, and `ruff format --check .` gates on supported Linux

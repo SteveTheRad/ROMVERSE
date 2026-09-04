@@ -412,6 +412,10 @@ source-AVB inspection for `vbmeta` and `vbmeta_system`. This rehashes both image
 AVBTool output, distinguishes chain descriptors from all other protected descriptors, and persists
 a strict source/project/payload-bound receipt. The receipt is diagnostic development evidence only:
 it contains no signing key and cannot authorize a Pack or phone action.
+Forge Control reuses this source-only service whenever the current Pack lacks an exact contract for
+the protected source; an exact contract retains the full source-versus-candidate inspection. The UI
+must independently reload the worker's receipt before presenting success, must not advance
+Autopilot from source-only evidence, and must preserve explicit zero Pack/signing/flash authority.
 
 ### Build Control and evidence gates increment
 

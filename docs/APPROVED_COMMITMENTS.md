@@ -439,6 +439,10 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   Partition Atlas source-AVB inspection that rehashes the exact OTA `vbmeta` pair, distinguishes
   actual chain partitions from other descriptors, binds a strict private receipt to the payload and
   protected source, and carries it into that draft without creating signing or flash authority;
+  adaptive Forge Control AVB inspection that uses source-only evidence for new firmware, preserves
+  full candidate comparison for an exact Pack contract, independently reloads either receipt before
+  success, never advances candidate Autopilot from source-only evidence, and keeps its action labels
+  readable in a responsive two-row grid;
   Genesis Device DNA stage with a progress-visible fresh read-only scan, current profile/map gate,
   beginner identity and key capability evidence, automatic profile refresh, and fail-closed removal
   of stale ROM Studio device identity after an ADB refresh failure;

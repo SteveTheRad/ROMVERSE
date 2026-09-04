@@ -34,6 +34,12 @@ from romverse.intelligence.online_remediation import (
 )
 from romverse.intelligence.synapse import SynapseKnowledgeState, SynapseStore
 from romverse.nexus.events import LiveConsoleEventStore, MissionState
+from romverse.rom.avb_evidence import (
+    AvbEvidenceService,
+    AvbImageEvidence,
+    SourceAvbEvidenceService,
+    SourceAvbTopologyReceipt,
+)
 from romverse.rom.builds import RomBuildPlanner
 from romverse.rom.inspection import RomInspectionService
 from romverse.rom.projects import RomProjectStore
@@ -157,7 +163,106 @@ def test_direct_avb_action_resolves_missing_tools_before_starting_worker(
     assert resolutions[0][1]["parent"] is control
     assert started == [control.avb_worker]
     assert control.avb_worker is not None
+    assert isinstance(control.avb_worker.service, SourceAvbEvidenceService)
+    assert control.avb_button.text() == "Inspecting AVB, please wait …"
     assert control.process_progress.maximum() == 0
+    control.avb_worker = None
+    control.close()
+    studio.close()
+
+
+def test_source_only_avb_completion_is_reloaded_and_never_claims_authority(
+    tmp_path, monkeypatch
+) -> None:
+    QApplication.instance() or QApplication([])
+    studio = _studio(tmp_path)
+    control = BuildControlCenter(studio, auto_start=False)
+    project = studio.current_project
+    assert project is not None and project.original is not None
+    key = "8" * 40
+    receipt = SourceAvbTopologyReceipt(
+        1,
+        project.project_id,
+        "2026-09-04T00:00:00+00:00",
+        project.original.sha256,
+        "a" * 64,
+        (
+            AvbImageEvidence(
+                "source-vbmeta",
+                "working/vbmeta.img",
+                "b" * 64,
+                "SHA256_RSA4096",
+                key,
+                0,
+                0,
+                0,
+                ("boot", "recovery", "vbmeta_system", "dtbo"),
+                4096,
+                1,
+            ),
+            AvbImageEvidence(
+                "source-vbmeta_system",
+                "working/vbmeta_system.img",
+                "c" * 64,
+                "SHA256_RSA4096",
+                key,
+                1,
+                0,
+                0,
+                ("product", "system", "system_ext"),
+                4096,
+                1,
+            ),
+        ),
+        True,
+        ("boot", "recovery", "vbmeta_system"),
+        ("product", "system", "system_ext"),
+        "OEM source AVB identity is consistent. This is source evidence only.",
+        False,
+        "d" * 64,
+    )
+    outcomes = []
+    loaded = []
+    control.avb_worker = SimpleNamespace(
+        service=SimpleNamespace(load=lambda project_id: loaded.append(project_id) or receipt)
+    )
+    monkeypatch.setattr(control, "refresh", lambda: None)
+    monkeypatch.setattr(
+        control,
+        "_record_online_fix_success",
+        lambda *values: outcomes.append(values),
+    )
+    monkeypatch.setattr(control, "_finish_preparation_console", lambda *_args: None)
+
+    control._avb_complete(receipt)
+
+    assert control.avb_worker is None
+    assert loaded == [project.project_id]
+    assert control.avb_button.text() == "Inspect source AVB topology"
+    assert "source evidence only" in control.status.text()
+    assert "Pack/signing/flash authority: NONE" in control.status.text()
+    assert "phone changed: NO" in control.status.text()
+    assert outcomes[0][-1] == SourceAvbEvidenceService.FORMAT
+    control.close()
+    studio.close()
+
+
+def test_exact_source_contract_keeps_full_candidate_avb_comparison(tmp_path, monkeypatch) -> None:
+    QApplication.instance() or QApplication([])
+    studio = _studio(tmp_path)
+    studio.payload_service = SimpleNamespace(runner=SimpleNamespace())
+    studio.tool_statuses = (ToolStatus("AVBTool", True, "/bin/true", "fixture", "Ready"),)
+    control = BuildControlCenter(studio, auto_start=False)
+    monkeypatch.setattr(control, "_has_exact_avb_contract", lambda: True)
+    started = []
+    monkeypatch.setattr("romverse.ui.build_control.start_background", started.append)
+
+    control._inspect_avb_topology()
+
+    assert started == [control.avb_worker]
+    assert control.avb_worker is not None
+    assert isinstance(control.avb_worker.service, AvbEvidenceService)
+    assert "Comparing exact source and local candidate" in control.status.text()
     control.avb_worker = None
     control.close()
     studio.close()
@@ -427,7 +532,7 @@ def test_refresh_removes_stale_cards_and_footer_actions_remain_aligned(tmp_path)
         "Prepare exact build inputs",
         "Prepare local build plan",
         "Build verified local candidate",
-        "Inspect AVB topology",
+        "Inspect source AVB topology",
         "Offline signing ceremony",
         "Auto-resolve && continue",
         "Run safe pipeline simulation",
@@ -444,6 +549,7 @@ def test_refresh_removes_stale_cards_and_footer_actions_remain_aligned(tmp_path)
         for index, left in enumerate(footer_buttons)
         for right in footer_buttons[index + 1 :]
     )
+    assert all(button.width() >= button.sizeHint().width() for button in footer_buttons)
     control.close()
     studio.close()
 

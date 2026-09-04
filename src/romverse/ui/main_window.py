@@ -105,6 +105,11 @@ from romverse.device_packs.validation import DevicePackValidationReport, Validat
 from romverse.diagnostics.analyzer import DiagnosticAnalyzer
 from romverse.diagnostics.history import DiagnosticHistoryStore
 from romverse.diagnostics.models import DiagnosticReport
+from romverse.galaxy.network import (
+    GalaxyNetworkError,
+    GalaxyServiceTrust,
+    load_galaxy_service_trust,
+)
 from romverse.guardian.approval import ApprovalStore
 from romverse.guardian.audit import GuardianAuditStore
 from romverse.guardian.gateway import ExecutionGateway
@@ -3906,6 +3911,7 @@ class MainWindow(QMainWindow):
         attestation_store: DevicePackAttestationStore | None = None,
         app_settings: AppSettings | None = None,
         desktop_update_service: DesktopUpdateService | None = None,
+        galaxy_service_trust: GalaxyServiceTrust | None = None,
     ) -> None:
         super().__init__()
         self.engine = engine
@@ -3922,6 +3928,22 @@ class MainWindow(QMainWindow):
             scan_interval_seconds=self.scan_interval_seconds,
         )
         self.desktop_update_service = desktop_update_service
+        if galaxy_service_trust is None:
+            try:
+                trust_resource = files("romverse.assets").joinpath("galaxy_service_trust.json")
+                with as_file(trust_resource) as trust_path:
+                    galaxy_service_trust = load_galaxy_service_trust(trust_path)
+            except GalaxyNetworkError as exc:
+                galaxy_service_trust = GalaxyServiceTrust(
+                    False,
+                    f"The packaged Galaxy trust root was rejected: {exc}",
+                    "",
+                    "",
+                    (),
+                    (),
+                    (),
+                )
+        self.galaxy_service_trust = galaxy_service_trust
         self.scanning = False
         self.active_worker: ScanWorker | None = None
         self.device_catalog_worker: DeviceCatalogWorker | None = None
@@ -4163,10 +4185,8 @@ class MainWindow(QMainWindow):
             self.offline_knowledge_service,
             KnowledgeUpdateService(
                 workspace,
-                (),
-                unavailable_reason=(
-                    "No production ROMVERSE Synapse publisher key has been enrolled yet."
-                ),
+                self.galaxy_service_trust.knowledge_keys,
+                unavailable_reason=self.galaxy_service_trust.reason,
             ),
             reduced_motion=self.app_settings.reduced_motion,
         )
@@ -4283,6 +4303,11 @@ class MainWindow(QMainWindow):
             workspace,
             self.activity_store,
             knowledge_update_service=self.knowledge_center.update_service,
+            galaxy_trust=self.galaxy_service_trust,
+            member_issuer=self.app_settings.members_issuer,
+            member_session_provider=lambda: (
+                self.members_center.session if hasattr(self, "members_center") else None
+            ),
             contribution_opt_in=self.app_settings.synapse_contributions_enabled,
             reduced_motion=self.app_settings.reduced_motion,
         )
@@ -7580,6 +7605,7 @@ class MainWindow(QMainWindow):
         self.scan_interval_changed.emit(self.scan_interval_seconds)
         self.settings_changed.emit(settings)
         self.members_center.configure(settings.members_issuer, settings.members_client_id)
+        self.galaxy_center.set_member_issuer(settings.members_issuer)
         self.device_center.device_note.setText(
             "Settings saved securely. Device timing, online research, verified tool acquisition, "
             "experience mode, Desktop theme, notifications, backup destination, accessibility, and Members "

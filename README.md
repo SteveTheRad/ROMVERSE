@@ -1376,15 +1376,25 @@ opt-in and explicit acceptance before anything enters the local review queue. Qu
 not uploaded and carry `execution_authority: none` and `phone_changed: false`. A reviewed record can
 be exported manually outside the workspace for future service submission.
 
+The Desktop also contains the production Galaxy client contract without pretending a public
+service already exists. If a future signed release packages one canonical public HTTPS endpoint,
+matching ROMVERSE Members issuer and active receipt/moderation/knowledge public keys, an opted-in
+member can review the exact outbound JSON and destination, confirm one submission, and require a
+fresh Ed25519-signed server receipt. Requests are idempotent, redirects and private/local endpoints
+are rejected, response sizes are bounded, and the bearer token remains only in memory. A separate
+authenticated download path stages a signed Synapse update and verifies it before showing the
+record changes; installing that verified knowledge still needs a second explicit confirmation.
+
 Galaxy keeps official, verified-community, experimental, disputed and rejected evidence visibly
 separate, exposes an unresolved-problem queue, and builds contributor reputation only from signed,
 corroborated moderation decisions. An Ed25519-verified moderator decision can promote exact-device
 community evidence into the offline Knowledge Archive, where the existing Synapse matcher makes it
 available to Device Atlas, ROM Studio, Simulation Lab and Recovery Autopilot. Signed Synapse update
-import remains accessible from the chamber. Production moderator and publisher public keys and a
-deployed authenticated Galaxy transport are not yet enrolled, so the app makes no public-sync or
-download claim. The approved ROMVERSE and RadForge Labs logo masters are protected by independent
-fixed SHA-256 release tests on both Desktop and Companion; they are never regenerated or replaced.
+import remains accessible from the chamber. The packaged Galaxy trust file is deliberately
+unconfigured because no production service endpoint or public keys have been enrolled, so the app
+visibly keeps public submission and network download unavailable. The approved ROMVERSE and
+RadForge Labs logo masters are protected by independent fixed SHA-256 release tests on both Desktop
+and Companion; they are never regenerated or replaced.
 
 ## Linux quick start
 

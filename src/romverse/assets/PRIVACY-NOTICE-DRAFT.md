@@ -12,7 +12,7 @@ ROMVERSE is local-first. Firmware files, ROM projects, recovery evidence, diagno
 
 ROMVERSE reads technical information from a connected Android device only for the feature the user starts. The Desktop masks serial numbers in its interface and normally stores a workspace-specific pseudonym instead of the raw serial. A raw serial may exist briefly in memory when it is required to address the selected device through ADB or Fastboot; it is not a public identity and must not be uploaded as knowledge-bank data.
 
-Online intelligence, community research, verified tool downloads, update checks, Members configuration, wireless Companion pairing and future Synapse contributions are separate controls or explicit workflows. Opening About or reading this notice starts none of them. Synapse contribution is off by default. ROMVERSE does not currently operate a public account, Galaxy, Synapse or firmware-hosting service.
+Online intelligence, community research, verified tool downloads, update checks, Members configuration, wireless Companion pairing and Galaxy contribution are separate controls or explicit workflows. Opening About or reading this notice starts none of them. Galaxy contribution is off by default. ROMVERSE does not currently operate a public account, Galaxy, Synapse or firmware-hosting service, and the production Galaxy endpoint and public trust keys are not enrolled in this build.
 
 ## 2. Information the current apps may handle
 
@@ -58,7 +58,9 @@ The local connectivity badge may contact Google's connectivity-check endpoint on
 
 ## 7. Knowledge contribution and community reports
 
-Local Synapse memory and local Galaxy topics are not public uploads. Synapse contribution is off by default, and the current build has no production contribution backend. A future contribution flow must show the exact redacted payload before sending it, require a separate choice, exclude raw serials, file paths, credentials, user content and full unique build fingerprints where they could identify a device, and produce a verifiable receipt.
+Local Synapse memory and local Galaxy topics are not public uploads. Galaxy contribution is off by default, and the current build has no configured production contribution backend. The Desktop can prepare a bounded technical contribution from selected Device DNA, exclude raw serials, IMEI, accounts, private paths, credentials, personal content and unreviewed logs, show the exact payload and destination, and queue or export it only after a separate choice. With the packaged trust file currently unconfigured, it cannot send that payload.
+
+If a future legally reviewed release enrolls the official endpoint and public keys, a user who opts in and signs in through the matching ROMVERSE Members issuer can explicitly submit one reviewed payload. The client sends the in-memory access token to that named service for authentication but does not store it in the contribution or receipt. It requires a signed server receipt tied to the exact contribution. A separate signed-update workflow may download privacy-filtered technical knowledge, verify its publisher and show the proposed local changes; installing it requires another confirmation. These client controls do not replace the hosted service's still-required collection notice, retention/deletion rules, moderation, abuse prevention, access controls and incident response.
 
 Official, maintainer and community evidence may inform the knowledge system. Its source, date, scope and confidence must remain attached. Community evidence never grants flash authority and must not expose a reporter's personal information without a lawful basis and clear notice.
 

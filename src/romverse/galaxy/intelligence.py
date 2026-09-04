@@ -578,6 +578,30 @@ class GalaxyIntelligenceService:
             or item.evidence_class in {GalaxyEvidenceClass.DISPUTED, GalaxyEvidenceClass.REJECTED}
         )
 
+    @classmethod
+    def contribution_digest(cls, item: GalaxyContribution) -> str:
+        """Return the immutable technical-content identity across moderation state changes."""
+
+        if not isinstance(item, GalaxyContribution):
+            raise GalaxyIntelligenceError("Galaxy contribution is invalid")
+        return _digest(
+            {
+                "schema_version": item.schema_version,
+                "contribution_id": item.contribution_id,
+                "created_at": item.created_at,
+                "kind": item.kind.value,
+                "outcome": item.outcome.value,
+                "title": item.title,
+                "summary": item.summary,
+                "symptoms": item.symptoms,
+                "solution_steps": item.solution_steps,
+                "evidence_refs": item.evidence_refs,
+                "contributor_key": item.contributor_key,
+                "device_pattern": asdict(item.device_pattern),
+                "conflict_ids": item.conflict_ids,
+            }
+        )
+
     def apply_moderation(
         self,
         decisions: tuple[GalaxyModerationDecision, ...],
@@ -615,7 +639,11 @@ class GalaxyIntelligenceService:
             ):
                 raise GalaxyIntelligenceError("Galaxy moderation corroboration count is invalid")
             item = current.get(decision.contribution_id)
-            if item is None or item.record_digest != decision.contribution_digest:
+            if (
+                item is None
+                or not item.queued_for_review
+                or self.contribution_digest(item) != decision.contribution_digest
+            ):
                 raise GalaxyIntelligenceError(
                     "Galaxy moderation decision does not match the current contribution"
                 )

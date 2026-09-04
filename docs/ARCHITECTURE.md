@@ -139,6 +139,10 @@ scripts/                  Linux and Windows environment bootstrap
   Store requests and receipts through the same bounded private atomic contract, reject symlinked
   records, artifacts, and intermediate evidence directories, and fully verify legacy evidence
   before migrating it to a bounded routine-reload schema.
+- Keep Galaxy public authority in a packaged all-or-nothing trust record. Its canonical public HTTPS
+  endpoint, matching Members issuer, receipt/moderation/knowledge keys, exact payload confirmation,
+  idempotency binding and fresh signed receipt are one boundary. Downloaded Synapse envelopes remain
+  staged and review-only until their independent publisher verification and apply confirmation pass.
 - Keep Time Machine hashes separate from private absolute locators. Bind both bounded atomic records
   to the exact project, protected source, roles, and metadata; reject workspace redirection and let
   legacy recovery evidence inform the user only until a full rehash upgrades it.

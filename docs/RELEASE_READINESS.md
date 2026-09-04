@@ -1484,6 +1484,11 @@ The product-wide continuation target and definition of done are recorded in
 - Contribution sharing is opted out by default. When opted in, explicit acceptance queues the exact
   reviewed digest locally. Export remains a deliberate outside-workspace action. Neither path
   uploads, executes a command, changes a phone, grants Guardian authority or claims server receipt.
+- A production Galaxy client contract now exists behind immutable packaged trust. It permits only a
+  canonical public HTTPS endpoint matching the configured Members issuer, rejects redirects and
+  local/private addresses, limits request and response sizes, requires an active in-memory bearer
+  session, sends one exact reviewed payload with a stable idempotency key, and accepts only a fresh
+  Ed25519-signed receipt bound to that contribution. Tokens are never written into the receipt.
 - The large-format Galaxy Intelligence chamber shows official, verified-community, experimental,
   disputed and unresolved counts, a local review ledger, an unresolved queue, current selected-phone
   scope and a reduced-motion-compatible device-family constellation. It routes directly to Privacy
@@ -1493,11 +1498,22 @@ The product-wide continuation target and definition of done are recorded in
   Only corroborated verified-community decisions with a clean public HTTPS evidence page enter the
   Knowledge Archive, where Device Atlas, Synapse, Simulation Lab and Recovery Autopilot already use
   the same offline corpus. Reputation derives only from those verified results.
-- Production Galaxy moderation/publisher keys and authenticated public transport are deliberately
-  unconfigured. Public synchronization and automatic update download therefore remain unavailable
-  and must not be advertised as complete. Focused Galaxy core/UI, existing Community Lab, navigation,
-  settings, knowledge, multi-device and runtime-stability suites pass, and a 1360-by-900 visual check
-  found no clipping or low-contrast text in the new chamber and preview.
+- The same trust root can authorize a bounded signed Synapse download. The envelope is staged by
+  content hash and inspected against the enrolled publisher key first; a separate visible
+  confirmation is still required before it can change the local Archive. Downloading or applying
+  knowledge grants no command, repair, flash or phone authority.
+- The packaged trust file deliberately contains no production endpoint or public keys until the
+  hosted service, retention/abuse controls and key ceremony exist. Public synchronization and
+  network update download therefore remain unavailable in this build and must not be advertised as
+  complete. Focused tests cover opt-out, issuer/session enforcement, exact confirmation, signed and
+  stale/tampered receipt rejection, idempotency, token non-persistence, signed update staging and
+  explicit apply, local trust-link refusal, Galaxy core/UI, Community Lab, navigation, settings,
+  knowledge, multi-device and runtime stability. The earlier 1360-by-900 check covered the chamber
+  and privacy preview; fresh 1220-by-900 and compact 1040-by-720 renders confirmed the expanded
+  network state and footer remain dark, readable and aligned. Compact mode hides only the decorative
+  constellation so the evidence ledger and actions never overlap. Complete Desktop Pytest and Ruff
+  gates passed, and a clean wheel build contained the Galaxy network module, unconfigured trust
+  record, approved ROMVERSE icon and approved RadForge Labs logo.
 - The approved Desktop PNG/ICO and RadForge Labs master plus both Companion master copies now have
   independent fixed SHA-256 regression assertions. All five remain byte-identical to their approved
   hashes; no logo was replaced, regenerated, recoloured, cropped or otherwise edited.

@@ -33,6 +33,7 @@ from romverse.galaxy.intelligence import (
     GalaxyIntelligenceService,
     GalaxyModerationService,
 )
+from romverse.galaxy.network import GalaxyNetworkService, GalaxyServiceTrust
 from romverse.galaxy.store import (
     CommunityPost,
     GalaxyCommunityStore,
@@ -152,6 +153,9 @@ class GalaxyCenter(QWidget):
         activity_store: ActivityStore | None = None,
         *,
         knowledge_update_service: KnowledgeUpdateService | None = None,
+        galaxy_trust: GalaxyServiceTrust | None = None,
+        member_issuer: str = "",
+        member_session_provider=None,
         contribution_opt_in: bool = False,
         reduced_motion: bool = False,
     ) -> None:
@@ -161,14 +165,29 @@ class GalaxyCenter(QWidget):
             workspace,
             sharing_enabled=contribution_opt_in,
         )
+        resolved_trust = galaxy_trust or GalaxyServiceTrust(
+            False,
+            "The production Galaxy endpoint and public trust keys have not been enrolled yet.",
+            "",
+            "",
+            (),
+            (),
+            (),
+        )
         self.moderation = GalaxyModerationService(
             self.intelligence,
-            (),
-            unavailable_reason=(
-                "No production ROMVERSE Galaxy moderator key has been enrolled yet."
-            ),
+            resolved_trust.moderation_keys,
+            unavailable_reason=resolved_trust.reason,
         )
         self.knowledge_update_service = knowledge_update_service
+        self.network = GalaxyNetworkService(
+            workspace,
+            self.intelligence,
+            resolved_trust,
+            member_issuer=member_issuer,
+            update_service=knowledge_update_service,
+        )
+        self.member_session_provider = member_session_provider or (lambda: None)
         self._devices: tuple[AndroidDevice, ...] = ()
         self._reduced_motion = bool(reduced_motion)
         self.intelligence_dialog: GalaxyIntelligenceDialog | None = None
@@ -213,17 +232,16 @@ class GalaxyCenter(QWidget):
         boundary.setObjectName("HeroCard")
         boundary_layout = QHBoxLayout(boundary)
         boundary_layout.setContentsMargins(18, 13, 18, 13)
-        state = QLabel("◆  OFFLINE LOCAL MODE")
-        state.setObjectName("Good")
-        explanation = QLabel(
+        self.network_badge = QLabel()
+        self.network_explanation = QLabel(
             "Nothing here is public or synchronized. Future Galaxy accounts, moderation, "
             "privacy controls, and server security must pass review before online publishing unlocks."
         )
-        explanation.setObjectName("Muted")
-        explanation.setWordWrap(True)
-        boundary_layout.addWidget(state)
+        self.network_explanation.setObjectName("Muted")
+        self.network_explanation.setWordWrap(True)
+        boundary_layout.addWidget(self.network_badge)
         boundary_layout.addSpacing(16)
-        boundary_layout.addWidget(explanation, 1)
+        boundary_layout.addWidget(self.network_explanation, 1)
         self.guide_button = QPushButton("Privacy & publishing guide")
         self.guide_button.setToolTip(
             "Open the exact local Archives guide for Galaxy privacy, integrity, and publishing "
@@ -325,6 +343,7 @@ class GalaxyCenter(QWidget):
         self.status.setWordWrap(True)
         page.addWidget(self.status)
         self._set_detail_enabled(False)
+        self._render_network_state()
         self.refresh()
 
     def set_devices(self, devices: list[AndroidDevice] | tuple[AndroidDevice, ...]) -> None:
@@ -342,11 +361,36 @@ class GalaxyCenter(QWidget):
         if self.intelligence_dialog is not None:
             self.intelligence_dialog.set_reduced_motion(enabled)
 
+    def set_member_issuer(self, issuer: str) -> None:
+        self.network.set_member_issuer(issuer)
+        self._render_network_state()
+
+    def _render_network_state(self) -> None:
+        if self.network.configured:
+            self.network_badge.setObjectName("Good")
+            self.network_badge.setText("✦  SIGNED GALAXY AVAILABLE")
+            self.network_explanation.setText(
+                "Public submission is opt-in and requires ROMVERSE Members sign-in, an exact "
+                "payload review, and a signed server receipt. Local topics remain private."
+            )
+        else:
+            self.network_badge.setObjectName("Warning")
+            self.network_badge.setText("◆  OFFLINE LOCAL MODE")
+            self.network_explanation.setText(
+                f"Nothing here is public or synchronized. {self.network.status_reason} "
+                "Local topics and manual reviewed exports remain available."
+            )
+        for widget in (self.network_badge, self.network_explanation):
+            widget.style().unpolish(widget)
+            widget.style().polish(widget)
+
     def _open_intelligence(self) -> None:
         dialog = GalaxyIntelligenceDialog(
             self.intelligence,
             self._devices,
             moderation_service=self.moderation,
+            network_service=self.network,
+            member_session_provider=self.member_session_provider,
             signed_updates_available=(
                 self.knowledge_update_service is not None
                 and self.knowledge_update_service.configured
@@ -357,6 +401,7 @@ class GalaxyCenter(QWidget):
         self.intelligence_dialog = dialog
         dialog.archives_requested.connect(self._leave_for_archives)
         dialog.settings_requested.connect(self._leave_for_settings)
+        dialog.members_requested.connect(self._leave_for_members)
         dialog.archive_updated.connect(self.offline_archive_updated.emit)
         dialog.exec()
         if self.intelligence_dialog is dialog:
@@ -372,6 +417,11 @@ class GalaxyCenter(QWidget):
         if self.intelligence_dialog is not None:
             self.intelligence_dialog.accept()
         self.settings_requested.emit()
+
+    def _leave_for_members(self) -> None:
+        if self.intelligence_dialog is not None:
+            self.intelligence_dialog.accept()
+        self.route_requested.emit("members")
 
     def refresh(self, _value: str | None = None, select_id: str = "") -> None:
         requested = select_id or self.current_post_id

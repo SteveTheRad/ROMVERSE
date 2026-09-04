@@ -1,0 +1,10 @@
+{
+  "configured": false,
+  "knowledge_keys": [],
+  "members_issuer": "",
+  "moderation_keys": [],
+  "reason": "The production ROMVERSE Galaxy endpoint and public trust keys have not been enrolled yet.",
+  "receipt_keys": [],
+  "schema_version": 1,
+  "service_url": ""
+}

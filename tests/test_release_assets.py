@@ -13,6 +13,7 @@ def test_required_release_branding_and_device_art_are_packaged() -> None:
         "dashboard-phone.png",
         "sidebar-phone-white.png",
         "romverse-origin-living-chronicle-v2.png",
+        "galaxy_service_trust.json",
     )
 
     missing = [name for name in required if not assets.joinpath(name).is_file()]
@@ -31,9 +32,7 @@ def test_desktop_uses_the_byte_exact_production_romverse_app_assets() -> None:
     )
     assert sha256(
         assets.joinpath("radforge-labs-official-logo-transparent.png").read_bytes()
-    ).hexdigest() == (
-        "d82ff146aab1f18474005d1a2d9ce0c3944467ae30ff7cb4fb3284387daa95cb"
-    )
+    ).hexdigest() == ("d82ff146aab1f18474005d1a2d9ce0c3944467ae30ff7cb4fb3284387daa95cb")
     assert sha256(assets.joinpath("romverse-brand.png").read_bytes()).hexdigest() == (
         "7c85d0c8b7f62d3f757243e6ca336daf78078d04550b264323135cf4e1beb98a"
     )

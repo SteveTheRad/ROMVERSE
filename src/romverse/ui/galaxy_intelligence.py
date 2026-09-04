@@ -4,7 +4,7 @@ import html
 import math
 from pathlib import Path
 
-from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
+from PySide6.QtCore import QObject, QPointF, QRectF, Qt, QTimer, Signal, Slot
 from PySide6.QtGui import QColor, QLinearGradient, QPainter, QPen
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QListWidgetItem,
     QMessageBox,
     QPlainTextEdit,
+    QProgressBar,
     QPushButton,
     QScrollArea,
     QSplitter,
@@ -41,6 +42,15 @@ from romverse.galaxy.intelligence import (
     GalaxyModerationService,
     GalaxyOutcome,
 )
+from romverse.galaxy.network import (
+    GalaxyNetworkError,
+    GalaxyNetworkService,
+    GalaxySubmissionPreview,
+    GalaxySubmissionReceipt,
+)
+from romverse.knowledge.updates import KnowledgeUpdateError, KnowledgeUpdatePreview
+from romverse.members.client import MemberSession
+from romverse.ui.background import ManagedRunnable, start_background
 
 
 class GalaxyConstellation(QWidget):
@@ -325,9 +335,161 @@ class GalaxyContributionPreviewDialog(QDialog):
         )
 
 
+class _GalaxyNetworkSignals(QObject):
+    completed = Signal(object)
+    failed = Signal(str)
+
+
+class _GalaxyNetworkWorker(ManagedRunnable):
+    def __init__(self, operation) -> None:
+        super().__init__()
+        self.operation = operation
+        self.signals = _GalaxyNetworkSignals()
+
+    @Slot()
+    def execute(self) -> None:
+        try:
+            self.signals.completed.emit(self.operation())
+        except Exception as exc:  # converted to a bounded visible transport failure
+            self.signals.failed.emit(str(exc)[:800])
+
+
+class GalaxyNetworkPreviewDialog(QDialog):
+    """Final exact-payload confirmation before one authenticated network request."""
+
+    def __init__(
+        self,
+        service: GalaxyNetworkService,
+        preview: GalaxySubmissionPreview,
+        session: MemberSession,
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self.service = service
+        self.preview = preview
+        self.session = session
+        self.receipt: GalaxySubmissionReceipt | None = None
+        self.worker: _GalaxyNetworkWorker | None = None
+        self.setWindowTitle("ROMVERSE Galaxy • Network submission review")
+        self.setMinimumSize(860, 660)
+        self.resize(960, 740)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 22, 24, 22)
+        layout.setSpacing(12)
+        eyebrow = QLabel("GALAXY NETWORK  •  FINAL EXPLICIT CONFIRMATION")
+        eyebrow.setObjectName("Eyebrow")
+        title = QLabel("Review exactly what will leave this computer")
+        title.setObjectName("Title")
+        copy = QLabel(
+            "One authenticated HTTPS request will send only the payload below to the packaged "
+            "Galaxy endpoint. ROMVERSE requires a signed server receipt and never stores your "
+            "Members access token."
+        )
+        copy.setObjectName("Muted")
+        copy.setWordWrap(True)
+        layout.addWidget(eyebrow)
+        layout.addWidget(title)
+        layout.addWidget(copy)
+        endpoint = QLabel(f"DESTINATION  •  {preview.endpoint}")
+        endpoint.setObjectName("Good")
+        endpoint.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        endpoint.setWordWrap(True)
+        layout.addWidget(endpoint)
+        self.payload = QPlainTextEdit(preview.payload_json)
+        self.payload.setReadOnly(True)
+        self.payload.setAccessibleName("Exact privacy-reviewed Galaxy network payload")
+        layout.addWidget(self.payload, 1)
+        digest = QLabel(
+            f"PAYLOAD SHA-256  •  {preview.payload_sha256}\n"
+            "AUTHORITY  •  One reviewed submission only  •  Execution: none  •  Phone changed: no"
+        )
+        digest.setObjectName("Muted")
+        digest.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        digest.setWordWrap(True)
+        layout.addWidget(digest)
+        self.confirm = QCheckBox(
+            "I reviewed this exact destination and payload and choose to submit it for moderation."
+        )
+        self.confirm.toggled.connect(self._update_submit)
+        layout.addWidget(self.confirm)
+        self.progress = QProgressBar()
+        self.progress.setRange(0, 0)
+        self.progress.setTextVisible(False)
+        self.progress.setVisible(False)
+        layout.addWidget(self.progress)
+        self.status = QLabel("Nothing has been sent.")
+        self.status.setObjectName("Muted")
+        self.status.setWordWrap(True)
+        layout.addWidget(self.status)
+        actions = QHBoxLayout()
+        actions.addStretch()
+        self.cancel_button = QPushButton("Do not send")
+        self.cancel_button.clicked.connect(self.reject)
+        self.submit_button = QPushButton("Submit once and require receipt")
+        self.submit_button.setObjectName("Primary")
+        self.submit_button.clicked.connect(self._submit)
+        actions.addWidget(self.cancel_button)
+        actions.addWidget(self.submit_button)
+        layout.addLayout(actions)
+        self._update_submit()
+
+    def _update_submit(self) -> None:
+        self.submit_button.setEnabled(self.confirm.isChecked() and self.worker is None)
+
+    def _submit(self) -> None:
+        if not self.confirm.isChecked() or self.worker is not None:
+            return
+        self.confirm.setEnabled(False)
+        self.cancel_button.setEnabled(False)
+        self.submit_button.setEnabled(False)
+        self.progress.setVisible(True)
+        self.status.setObjectName("Warning")
+        self.status.setText("Submitting the exact reviewed payload and verifying its receipt …")
+        _restyle(self.status)
+        worker = _GalaxyNetworkWorker(
+            lambda: self.service.submit(
+                self.preview,
+                self.preview.payload_sha256,
+                self.session,
+            )
+        )
+        self.worker = worker
+        worker.signals.completed.connect(self._submitted)
+        worker.signals.failed.connect(self._failed)
+        start_background(worker)
+
+    @Slot(object)
+    def _submitted(self, value: object) -> None:
+        self.worker = None
+        self.progress.setVisible(False)
+        if not isinstance(value, GalaxySubmissionReceipt):
+            self._failed("Galaxy returned an invalid submission receipt")
+            return
+        self.receipt = value
+        self.status.setObjectName("Good")
+        self.status.setText(
+            f"SIGNED RECEIPT VERIFIED  •  {value.receipt_id}  •  {value.state.upper()}  •  "
+            "No phone action"
+        )
+        _restyle(self.status)
+        self.accept()
+
+    @Slot(str)
+    def _failed(self, message: str) -> None:
+        self.worker = None
+        self.progress.setVisible(False)
+        self.confirm.setEnabled(True)
+        self.cancel_button.setEnabled(True)
+        self.status.setObjectName("Danger")
+        self.status.setText(f"Galaxy submission stopped: {message}")
+        _restyle(self.status)
+        self._update_submit()
+
+
 class GalaxyIntelligenceDialog(QDialog):
     archives_requested = Signal()
     settings_requested = Signal()
+    members_requested = Signal()
     archive_updated = Signal(object)
 
     def __init__(
@@ -336,6 +498,8 @@ class GalaxyIntelligenceDialog(QDialog):
         devices: tuple[AndroidDevice, ...] = (),
         *,
         moderation_service: GalaxyModerationService | None = None,
+        network_service: GalaxyNetworkService | None = None,
+        member_session_provider=None,
         signed_updates_available: bool = False,
         reduced_motion: bool = False,
         parent: QWidget | None = None,
@@ -343,13 +507,16 @@ class GalaxyIntelligenceDialog(QDialog):
         super().__init__(parent)
         self.service = service
         self.moderation_service = moderation_service
+        self.network_service = network_service
+        self.member_session_provider = member_session_provider or (lambda: None)
         self.signed_updates_available = bool(signed_updates_available)
         self.devices = devices
         self.contributions: tuple[GalaxyContribution, ...] = ()
         self.current_contribution_id = ""
+        self.network_worker: _GalaxyNetworkWorker | None = None
         self.setWindowTitle("ROMVERSE Galaxy Intelligence")
         self.setMinimumSize(1040, 720)
-        self.resize(1220, 820)
+        self.resize(1220, 900)
 
         root = QVBoxLayout(self)
         root.setContentsMargins(26, 22, 26, 22)
@@ -412,6 +579,9 @@ class GalaxyIntelligenceDialog(QDialog):
         self.settings_button.clicked.connect(self.settings_requested.emit)
         privacy_layout.addWidget(self.settings_button)
         root.addWidget(self.privacy_bar)
+        self.network_state = QLabel()
+        self.network_state.setWordWrap(True)
+        root.addWidget(self.network_state)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.addWidget(self._contribution_panel())
@@ -421,12 +591,17 @@ class GalaxyIntelligenceDialog(QDialog):
 
         footer = QHBoxLayout()
         self.update_button = QPushButton("Open signed Synapse updates")
-        if not self.signed_updates_available:
-            self.update_button.setText("Signed updates · publisher key required")
+        if network_service is not None and network_service.configured:
+            self.update_button.setText("Download signed Synapse update")
+            self.update_button.clicked.connect(self._download_network_update)
+        else:
+            if not self.signed_updates_available:
+                self.update_button.setText("Signed updates · publisher key required")
+            self.update_button.clicked.connect(self.archives_requested.emit)
         self.update_button.setToolTip(
-            "Open the offline Synapse update chamber. Updates require an enrolled Ed25519 publisher key."
+            "Download through the packaged Galaxy trust root when available, or open the offline "
+            "Synapse update chamber. Applying always requires a separate reviewed confirmation."
         )
-        self.update_button.clicked.connect(self.archives_requested.emit)
         footer.addWidget(self.update_button)
         self.moderation_button = QPushButton("Import signed moderation")
         self.moderation_button.setEnabled(
@@ -438,13 +613,28 @@ class GalaxyIntelligenceDialog(QDialog):
         )
         self.moderation_button.clicked.connect(self._import_moderation)
         footer.addWidget(self.moderation_button)
+        self.network_progress = QProgressBar()
+        self.network_progress.setRange(0, 0)
+        self.network_progress.setTextVisible(False)
+        self.network_progress.setMaximumWidth(130)
+        self.network_progress.setVisible(False)
+        footer.addWidget(self.network_progress)
         footer.addStretch()
         self.status = QLabel()
         self.status.setObjectName("Muted")
         self.status.setWordWrap(True)
         footer.addWidget(self.status, 1)
         root.addLayout(footer)
+        self._update_responsive_layout()
         self.refresh()
+
+    def resizeEvent(self, event) -> None:  # noqa: N802
+        super().resizeEvent(event)
+        self._update_responsive_layout()
+
+    def _update_responsive_layout(self) -> None:
+        if hasattr(self, "constellation"):
+            self.constellation.setVisible(self.height() >= 840)
 
     def _contribution_panel(self) -> QWidget:
         scroll = QScrollArea()
@@ -536,17 +726,21 @@ class GalaxyIntelligenceDialog(QDialog):
         controls.addWidget(self.unresolved_only)
         layout.addLayout(controls)
         self.contribution_list = QListWidget()
-        self.contribution_list.setMinimumHeight(150)
+        self.contribution_list.setMinimumHeight(80)
         self.contribution_list.currentItemChanged.connect(self._select_contribution)
         layout.addWidget(self.contribution_list, 1)
         self.detail = QTextBrowser()
         self.detail.setOpenExternalLinks(False)
-        self.detail.setMinimumHeight(180)
+        self.detail.setMinimumHeight(100)
         layout.addWidget(self.detail, 1)
         actions = QHBoxLayout()
         self.export_button = QPushButton("Export reviewed submission")
         self.export_button.clicked.connect(self._export_selected)
         actions.addWidget(self.export_button)
+        self.network_button = QPushButton("Preview secure submission")
+        self.network_button.setObjectName("Primary")
+        self.network_button.clicked.connect(self._preview_network_submission)
+        actions.addWidget(self.network_button)
         actions.addStretch()
         layout.addLayout(actions)
         return panel
@@ -661,6 +855,7 @@ class GalaxyIntelligenceDialog(QDialog):
             )
         self._render_device()
         self._render_privacy()
+        self._render_network()
         self._update_actions()
 
     def _select_contribution(self, current: QListWidgetItem | None, _previous) -> None:
@@ -680,6 +875,18 @@ class GalaxyIntelligenceDialog(QDialog):
         evidence = "".join(f"<li>{html.escape(item)}</li>" for item in contribution.evidence_refs)
         steps = "".join(f"<li>{html.escape(item)}</li>" for item in contribution.solution_steps)
         conflicts = ", ".join(value[:12] + "…" for value in contribution.conflict_ids) or "None"
+        receipt_text = "Not submitted"
+        if self.network_service is not None and self.network_service.configured:
+            try:
+                receipt = self.network_service.receipt_for(contribution)
+            except GalaxyNetworkError as exc:
+                receipt_text = f"Receipt rejected: {exc}"
+            else:
+                if receipt is not None:
+                    receipt_text = (
+                        f"{receipt.receipt_id} / {receipt.state.upper()} / "
+                        f"signature verified from {receipt.signer_id}"
+                    )
         self.detail.setHtml(
             "<div style='color:#DCE8FA;'>"
             f"<h2 style='color:#FFFFFF;'>{html.escape(contribution.title)}</h2>"
@@ -690,7 +897,8 @@ class GalaxyIntelligenceDialog(QDialog):
             f"{html.escape(pattern.codename)} / {html.escape(pattern.build_id)}</p>"
             f"<p><b>Conflicts:</b> {html.escape(conflicts)}<br>"
             f"<b>Corroboration:</b> {contribution.corroboration_count}<br>"
-            f"<b>Moderation:</b> {html.escape(contribution.moderation_reason)}</p>"
+            f"<b>Moderation:</b> {html.escape(contribution.moderation_reason)}<br>"
+            f"<b>Network receipt:</b> {html.escape(receipt_text)}</p>"
             f"<h3 style='color:#59F2B1;'>Evidence</h3><ul>{evidence}</ul>"
             f"<h3 style='color:#B768FF;'>Steps</h3><ol>{steps or '<li>None recorded</li>'}</ol>"
             "<p style='color:#899AB7;'>Execution authority: NONE  •  Phone changed: NO  •  "
@@ -734,6 +942,161 @@ class GalaxyIntelligenceDialog(QDialog):
             )
         _restyle(self.privacy_state)
 
+    def _render_network(self) -> None:
+        service = self.network_service
+        if service is None or not service.configured:
+            self.network_state.setObjectName("Warning")
+            reason = (
+                service.status_reason
+                if service is not None
+                else ("The production Galaxy trust root is not available in this build.")
+            )
+            self.network_state.setText(
+                f"PUBLIC GALAXY UNAVAILABLE  •  {reason}  •  "
+                "Local intelligence and manual reviewed export remain available."
+            )
+            _restyle(self.network_state)
+            return
+        if self._active_member_session() is not None:
+            self.network_state.setObjectName("Good")
+            self.network_state.setText(
+                "PUBLIC GALAXY READY  •  Active in-memory Members session  •  "
+                "Packaged endpoint and signed receipts enforced  •  explicit confirmation required."
+            )
+        else:
+            self.network_state.setObjectName("Warning")
+            self.network_state.setText(
+                "PUBLIC GALAXY READY FOR SIGN-IN  •  Open ROMVERSE Members to authenticate; "
+                "your access token remains in memory and is never added to contributions."
+            )
+        _restyle(self.network_state)
+
+    def _preview_network_submission(self) -> None:
+        selected = next(
+            (
+                item
+                for item in self.contributions
+                if item.contribution_id == self.current_contribution_id
+            ),
+            None,
+        )
+        service = self.network_service
+        if selected is None or service is None:
+            return
+        session = self._active_member_session()
+        if session is None:
+            self._set_status(
+                "Sign in through ROMVERSE Members before submitting this reviewed contribution.",
+                "Warning",
+            )
+            self.members_requested.emit()
+            return
+        try:
+            preview = service.preview_submission(selected)
+        except GalaxyNetworkError as exc:
+            self._set_status(f"Galaxy submission unavailable: {exc}", "Danger")
+            return
+        dialog = GalaxyNetworkPreviewDialog(service, preview, session, self)
+        if dialog.exec() != QDialog.DialogCode.Accepted or dialog.receipt is None:
+            self._set_status("Network review closed; nothing new was submitted.", "Muted")
+            return
+        self._set_status(
+            f"Signed Galaxy receipt verified: {dialog.receipt.receipt_id}. "
+            "The contribution is awaiting evidence moderation.",
+            "Good",
+        )
+        self.refresh()
+
+    def _download_network_update(self) -> None:
+        service = self.network_service
+        if service is None or self.network_worker is not None:
+            return
+        session = self._active_member_session()
+        if session is None:
+            self._set_status(
+                "Sign in through ROMVERSE Members before checking the trusted Galaxy archive.",
+                "Warning",
+            )
+            self.members_requested.emit()
+            return
+        self.network_progress.setVisible(True)
+        self.update_button.setEnabled(False)
+        self._set_status("Downloading and verifying the signed Synapse update …", "Warning")
+        worker = _GalaxyNetworkWorker(lambda: service.download_signed_update(session))
+        self.network_worker = worker
+        worker.signals.completed.connect(self._network_update_ready)
+        worker.signals.failed.connect(self._network_failed)
+        start_background(worker)
+
+    def _active_member_session(self) -> MemberSession | None:
+        service = self.network_service
+        if service is None:
+            return None
+        try:
+            session = self.member_session_provider()
+        except Exception:  # UI provider failures become an unavailable sign-in state
+            return None
+        if (
+            not isinstance(session, MemberSession)
+            or session.token_type.casefold() != "bearer"
+            or not session.profile.access_active
+            or session.expires_at_epoch <= int(service.clock())
+            or not 16 <= len(session.access_token) <= 16_384
+        ):
+            return None
+        return session
+
+    @Slot(object)
+    def _network_update_ready(self, value: object) -> None:
+        self.network_worker = None
+        self.network_progress.setVisible(False)
+        self.update_button.setEnabled(True)
+        if not isinstance(value, KnowledgeUpdatePreview):
+            self._network_failed("Galaxy returned an invalid knowledge update preview")
+            return
+        result = value.result
+        answer = QMessageBox.question(
+            self,
+            "ROMVERSE Galaxy • Signed Synapse update",
+            f"Publisher signature verified: {value.signer_id}\n"
+            f"Update: {value.update_id}\n"
+            f"Envelope SHA-256: {value.envelope_sha256}\n"
+            f"Records: {result.added} added / {result.updated} updated / "
+            f"{result.unchanged} unchanged\n\n"
+            "Install this verified knowledge into the offline ROMVERSE brain? "
+            "No command, repair, flash, or phone action will run.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer is not QMessageBox.StandardButton.Yes:
+            self._set_status("Signed update verified but not installed.", "Warning")
+            self._update_actions()
+            return
+        try:
+            service = self.network_service
+            if service is None or service.update_service is None:
+                raise KnowledgeUpdateError("Knowledge update service is unavailable")
+            receipt = service.update_service.apply(value)
+        except (GalaxyNetworkError, KnowledgeUpdateError) as exc:
+            self._set_status(f"Signed update stopped safely: {exc}", "Danger")
+            self._update_actions()
+            return
+        self.archive_updated.emit(receipt)
+        self._set_status(
+            f"Installed {receipt.added + receipt.updated} verified knowledge record(s); "
+            "the offline ROMVERSE brain is refreshed.",
+            "Good",
+        )
+        self.refresh()
+
+    @Slot(str)
+    def _network_failed(self, message: str) -> None:
+        self.network_worker = None
+        self.network_progress.setVisible(False)
+        self.update_button.setEnabled(True)
+        self._set_status(f"Galaxy network operation stopped: {message}", "Danger")
+        self._update_actions()
+
     def _update_actions(self) -> None:
         selected = next(
             (
@@ -746,6 +1109,26 @@ class GalaxyIntelligenceDialog(QDialog):
         self.export_button.setEnabled(
             selected is not None and selected.queued_for_review and self.service.sharing_enabled
         )
+        network_ready = self.network_service is not None and self.network_service.configured
+        has_receipt = False
+        if selected is not None and network_ready:
+            try:
+                has_receipt = self.network_service.receipt_for(selected) is not None
+            except GalaxyNetworkError as exc:
+                self._set_status(str(exc), "Danger")
+                has_receipt = True
+        self.network_button.setEnabled(
+            selected is not None
+            and selected.queued_for_review
+            and self.service.sharing_enabled
+            and network_ready
+            and not has_receipt
+            and self.network_worker is None
+        )
+        if has_receipt:
+            self.network_button.setText("Signed receipt verified")
+        else:
+            self.network_button.setText("Preview secure submission")
 
     def _export_selected(self) -> None:
         selected = next(

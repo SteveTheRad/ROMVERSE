@@ -224,7 +224,7 @@ def test_signed_moderation_promotes_verified_community_evidence_into_synapse(tmp
     queued = intelligence.queue(preview, preview.preview_digest)
     decision = GalaxyModerationDecision(
         queued.contribution_id,
-        queued.record_digest,
+        intelligence.contribution_digest(queued),
         GalaxyEvidenceClass.VERIFIED_COMMUNITY,
         "Two independent exact-build reports reproduced this result.",
         2,
@@ -271,7 +271,7 @@ def test_moderation_rejects_tampering_untrusted_signers_stale_state_and_official
     moderation = _moderation_service(intelligence, private_key)
     decision = GalaxyModerationDecision(
         queued.contribution_id,
-        queued.record_digest,
+        intelligence.contribution_digest(queued),
         GalaxyEvidenceClass.DISPUTED,
         "The submitted result conflicts with another exact-build report.",
         0,

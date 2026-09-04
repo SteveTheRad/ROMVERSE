@@ -1047,6 +1047,16 @@ online state, synchronization, and moderation claims are prohibited. Public foru
 separate release gate requiring accounts, authentication, privacy controls, moderation,
 reporting, abuse prevention, transport security, retention policy, and explicit sync UX.
 
+Desktop Galaxy Intelligence may prepare serial-free technical contributions locally, detect
+duplicates/conflicts and accept signed moderation into the shared offline Archive. Its optional
+network client is enabled only by a packaged canonical HTTPS endpoint plus active receipt,
+moderation and knowledge public keys matching the configured Members issuer. Every submission
+requires the contribution opt-in, a current in-memory member session and confirmation of the exact
+payload/destination; success requires a fresh contribution-bound Ed25519 server receipt. Signed
+knowledge downloads are staged and inspected before a separate apply confirmation. The packaged
+trust record remains entirely unconfigured until the hosted service satisfies the public-forum gate
+above; partial or user-supplied trust cannot activate it.
+
 ## 8. Branding
 
 The official hierarchy is ROMVERSE / Build. Optimize. Perfect. / Created by SteveTheRad /

@@ -20,7 +20,8 @@ def test_packaged_privacy_notice_is_versioned_bounded_and_describes_real_flows()
     assert re.fullmatch(r"[0-9a-f]{64}", document.sha256)
     assert "local-first" in normalized
     assert "raw serial may exist briefly in memory" in normalized
-    assert "synapse contribution is off by default" in normalized
+    assert "galaxy contribution is off by default" in normalized
+    assert "exact payload and destination" in normalized
     assert "automated technical decisions" in normalized
     assert "privacy act 1988" in normalized
     assert "starts no network request" in normalized

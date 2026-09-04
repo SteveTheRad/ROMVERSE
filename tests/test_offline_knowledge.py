@@ -113,8 +113,8 @@ def test_packaged_archive_promotes_the_existing_broad_multi_oem_brain() -> None:
     archive = load_packaged_archive()
     manufacturers = {value for record in archive.records for value in record.scope.manufacturers}
 
-    assert len(archive.records) >= 263
-    assert len(archive.sources) >= 168
+    assert len(archive.records) >= 280
+    assert len(archive.sources) >= 180
     assert {
         "samsung",
         "huawei",
@@ -164,7 +164,90 @@ def test_packaged_archive_promotes_the_existing_broad_multi_oem_brain() -> None:
         "identity.nothing-spacewar-a063",
         "identity.asus-sake-models",
         "identity.xiaomi-surya-models",
+        "platform.boot-init-boot-launch-boundary",
+        "platform.recovery-partition-presence",
+        "platform.system-dlkm-gki-coherence",
+        "platform.vendor-odm-dlkm-coherence",
+        "official.pixel6-vendor-ramdisk-platform-match",
+        "official.pixel7plus-vendor-kernel-boot-layout",
     } <= record_ids
+
+
+def test_init_boot_failure_uses_launch_architecture_not_current_android_alone(
+    tmp_path,
+) -> None:
+    report = OfflineKnowledgeService(tmp_path / "workspace").lookup(
+        KnowledgeQuery(
+            android_versions=("15",),
+            partitions=("boot", "vendor_boot"),
+            error_codes=("No such partition: init_boot",),
+            finding_ids=("boot.layout.launch_version_unknown",),
+            evidence_terms=("init_boot target uncertain",),
+        ),
+        trigger="boot-layout-failure",
+    )
+
+    match = report.matches[0]
+    assert match.record.record_id == "platform.boot-init-boot-launch-boundary"
+    assert match.confidence is MatchConfidence.HIGH
+    assert "original android launch version" in match.record.diagnostic_steps[0].casefold()
+    assert report.execution_authority == "none"
+
+
+def test_system_dlkm_module_error_ranks_exact_gki_coherence_diagnosis(tmp_path) -> None:
+    report = OfflineKnowledgeService(tmp_path / "workspace").lookup(
+        KnowledgeQuery(
+            partitions=("boot", "system_dlkm", "super"),
+            error_codes=("disagrees about version of symbol",),
+            finding_ids=("kernel.system_dlkm.gki_mismatch",),
+            evidence_terms=("GKI module mismatch after boot image change",),
+        ),
+        trigger="kernel-boot-failure",
+    )
+
+    match = report.matches[0]
+    assert match.record.record_id == "platform.system-dlkm-gki-coherence"
+    assert match.confidence is MatchConfidence.HIGH
+    assert match.record.operations == ()
+
+
+def test_pixel_partition_generation_records_do_not_cross_match(tmp_path) -> None:
+    service = OfflineKnowledgeService(tmp_path / "workspace")
+    pixel6 = service.lookup(
+        KnowledgeQuery(
+            manufacturers=("google",),
+            brands=("pixel",),
+            models=("Pixel 6a",),
+            codenames=("bluejay",),
+            bootloader_states=("unlocked",),
+            finding_ids=("pixel6.vendor_ramdisk.platform_mismatch",),
+        ),
+        trigger="kernel-boot-failure",
+    )
+    pixel7 = service.lookup(
+        KnowledgeQuery(
+            manufacturers=("google",),
+            brands=("pixel",),
+            models=("Pixel 7",),
+            codenames=("panther",),
+            bootloader_states=("unlocked",),
+            finding_ids=("pixel.vendor_kernel_boot.layout",),
+        ),
+        trigger="partition-identification",
+    )
+
+    assert pixel6.matches[0].record.record_id == (
+        "official.pixel6-vendor-ramdisk-platform-match"
+    )
+    assert "official.pixel7plus-vendor-kernel-boot-layout" not in {
+        match.record.record_id for match in pixel6.matches
+    }
+    assert pixel7.matches[0].record.record_id == (
+        "official.pixel7plus-vendor-kernel-boot-layout"
+    )
+    assert "official.pixel6-vendor-ramdisk-platform-match" not in {
+        match.record.record_id for match in pixel7.matches
+    }
 
 
 def test_exact_update_engine_code_ranks_platform_diagnosis_first(tmp_path) -> None:

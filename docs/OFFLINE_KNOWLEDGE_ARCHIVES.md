@@ -8,7 +8,7 @@ corpus later, but it is never required to explain a locally known problem or rec
 
 The initial archive promotes the existing curated ROMVERSE known-fix catalog into the structured
 store and adds modular, exact-scope evidence packs reviewed on 2026-09-04. The resulting seed
-currently contains 263 records and 168 distinct provenance entries. It includes platform guidance
+currently contains 280 records and 180 distinct provenance entries. It includes platform guidance
 and OEM coverage for
 Samsung, Google/Pixel, Huawei/Honor, Xiaomi/Redmi/POCO, OnePlus, Sony, Motorola/Lenovo, Nothing,
 OPPO, realme, vivo/iQOO, ASUS, HMD/Nokia, Fairphone, TECNO, Infinix, itel, ZTE, and nubia/REDMAGIC.
@@ -87,8 +87,8 @@ pre-device lookup neither assumes an identity nor starts the host recovery optio
 
 ## Persistence and import
 
-The packaged core, OEM recovery, boot-error, Fastboot/transport, and expanded Device DNA alias
-packs are merged and copied on first use to `knowledge/archive.romverse` inside the selected
+The packaged core, OEM recovery, boot-error, Fastboot/transport, expanded Device DNA alias, and
+Android boot-chain packs are merged and copied on first use to `knowledge/archive.romverse` inside the selected
 workspace. More reviewed packs can be added
 without turning the archive loader into one unmaintainable data file. The local file is private,
 atomically replaced, byte-bounded, strict-schema, and sealed
@@ -134,6 +134,16 @@ Sony Xperia 1 II/5 II, Nothing Phone (1)/(2), ASUS ZenFone 8, and POCO X3 NFC. N
 names are stated as incompatible instead of being inferred into a shared package family. These
 aliases improve search and identification only; firmware region, bootloader revision, channel,
 build, slot, and partition compatibility remain separate evidence requirements.
+
+The Android boot-chain pack teaches the archive that current Android version alone does not locate
+the ramdisk or recovery image: original launch architecture and the observed partition map decide
+whether `boot`, `init_boot`, `vendor_boot`, or dedicated `recovery` is involved. It distinguishes
+physical bootloader partitions from logical partitions inside `super`, records DTB and DTBO board
+selection boundaries, and diagnoses mixed GKI/`system_dlkm`, `vendor_dlkm`, and `odm_dlkm` module
+sets. Official Pixel evidence keeps the Pixel 6-family vendor-ramdisk coupling separate from the
+listed Pixel 7-and-later `vendor_kernel_boot` layout. AVB recovery guidance restores the complete
+descriptor-defined signed chain; it never treats blank `vbmeta`, verification disabling, or
+relocking as a generic fix.
 
 ## Device-change boundary
 

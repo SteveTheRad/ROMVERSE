@@ -9,6 +9,7 @@ import pytest
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device_packs.drafts import DevicePackDraftService
 from romverse.device_packs.registry import DevicePackRegistry
+from romverse.device_packs.requirements import ProjectSourceRequirements
 
 
 def _request() -> dict[str, object]:
@@ -141,6 +142,69 @@ def test_connected_device_request_is_private_exact_and_inherits_only_reviewed_so
     assert document["publication_status"] == "draft"
     assert document["capabilities"][0]["status"] == "limited"
     assert all(capability["scope"] == "locked" for capability in document["capabilities"][1:])
+
+
+def test_project_source_draft_binds_local_evidence_and_lists_every_flash_contract() -> None:
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    device = AndroidDevice(
+        "private-serial-that-must-not-appear",
+        DeviceState.DEVICE,
+        brand="Xiaomi",
+        manufacturer="Xiaomi",
+        model="2509FPN0BC",
+        product="popsicle",
+        codename="popsicle",
+    )
+    pack = next(item for item in registry.packs if item.pack_id == "xiaomi.hyperos")
+    assert pack is not None
+    source = ProjectSourceRequirements(
+        "current-hyperos-source",
+        "Current HyperOS source",
+        "a" * 64,
+        "xiaomi.hyperos",
+        "ota-payload",
+        "b" * 64,
+        "c" * 64,
+        "project-local-build-evidence-only",
+        "Xiaomi",
+        "popsicle",
+        "OS4.0.0.25.XPBCNXM",
+        58,
+        ("Python", "Payload Dumper", "AVBTool"),
+    )
+
+    request = DevicePackDraftService().request_from_project_source(pack, device, source)
+    document = DevicePackDraftService().build_document(request)
+    encoded = json.dumps(document)
+
+    assert document["publication_status"] == "draft"
+    assert document["draft_context"]["source_sha256"] == "a" * 64
+    assert document["draft_context"]["source_kind"] == "ota-payload"
+    assert document["draft_context"]["partition_count"] == 58
+    assert document["draft_context"]["execution_authority"] == "none"
+    assert document["draft_context"]["phone_action_allowed"] is False
+    assert set(document["draft_context"]["missing_flash_contracts"]) == set(
+        DevicePackDraftService.MISSING_FLASH_CONTRACTS
+    )
+    assert "private-serial" not in encoded
+
+    mismatched = ProjectSourceRequirements(
+        source.project_id,
+        source.project_name,
+        source.source_sha256,
+        source.device_pack_id,
+        source.source_kind,
+        source.blueprint_digest,
+        source.plan_digest,
+        source.authority,
+        source.manufacturer,
+        "different-device",
+        source.build_id,
+        source.partition_count,
+        source.required_tools,
+    )
+    with pytest.raises(ValueError, match="does not match"):
+        DevicePackDraftService().request_from_project_source(pack, device, mismatched)
 
 
 def test_draft_storage_is_private_and_rejects_linked_inputs_and_directories(tmp_path) -> None:

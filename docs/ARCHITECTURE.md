@@ -78,6 +78,10 @@ scripts/                  Linux and Windows environment bootstrap
   backwards updates so large copies, hashes, scans, and downloads cannot starve the UI event loop.
 - Resolve connected intelligence through deterministic evidence, Synapse, verified cache, and the
   Compatibility Matrix before AI. Provider output stays guidance-only and passes through Guardian.
+- Treat every Synapse Contribution Passport as an exact-byte, content-digested, private review
+  artifact. Re-scrub summaries, allow only bounded aggregate scope/outcome fields, reject extra or
+  altered fields, and keep upload, execution, and phone authority false until a separate production
+  service and consent ceremony are implemented.
 - Keep provider credentials server-side. Desktop and Companion must never request or persist a
   member's third-party AI key.
 - Store projects and history as versioned manifests so migrations are explicit.
@@ -97,6 +101,13 @@ scripts/                  Linux and Windows environment bootstrap
   reference. Revalidate that source receipt on every load; a digest-shaped value alone is not proof.
 - Keep large firmware hashing and extraction off the Qt UI thread; UI refreshes consume small
   saved manifests and never re-hash multi-gigabyte trees or Time Machine images implicitly.
+- Re-activate only receipt-verified managed executables before an automatic Forge tool decision.
+  Skip setup when the exact scoped inventory is complete, and make an empty auto-close setup a
+  successful no-op so nested UI cannot strand Autopilot.
+- Treat an exact-source Device Pack draft as a development handoff only. Bind it to the revalidated
+  project source, blueprint/plan digests, matching phone identity, partition count, tool list, and
+  explicit missing flash contracts; reject it from the production Pack registry and keep public,
+  execution, and phone-action authority false.
 - Apply the bounded evidence-store contract at the producer as well as the consumer. OTA/fastboot
   blueprints, local-build/super receipts, and AVB topology must reject hostile files and exact-shape
   violations before domain construction. Use saved size/mtime identity for bounded routine reloads;

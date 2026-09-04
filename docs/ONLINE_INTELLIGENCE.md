@@ -132,6 +132,16 @@ retires it from query results. A bounded match is visibly different from an exac
 
 Contributions contain privacy-scrubbed summaries and content digests, not firmware, credentials,
 raw home paths, device serials, or provider keys. Contribution preparation is opt-in in Settings.
+The private Archives evidence viewer can prepare a Contribution Passport for one selected learned
+outcome. The exact bytes are displayed before the user may save a local review envelope. That
+envelope contains only bounded compatibility scope, a re-scrubbed outcome summary, aggregate
+verification state/counts, source-family labels, and observation times. Raw error/build
+fingerprints, knowledge/contribution IDs, action/evidence receipt identifiers, device/account
+identifiers, paths, email addresses, credentials, logs, firmware, and phone data are excluded. Its
+content digest is revalidated before the atomic private write, and extra or altered record fields
+are rejected. Preparing or saving this envelope starts no network request and permanently records
+that upload is not authorised, phone action is not allowed, and execution authority is
+guidance-only.
 Authenticated upload, server validation, moderation, retention, and deletion remain production
 backend release gates.
 

@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import hashlib
 import json
 
 import pytest
 
 from romverse.intelligence.synapse import (
     SynapseContribution,
+    SynapseContributionEnvelope,
+    SynapseContributionEnvelopeError,
+    SynapseContributionEnvelopeService,
     SynapseKnowledgeState,
     SynapseScope,
     SynapseStore,
@@ -137,3 +141,87 @@ def test_synapse_rejects_phone_changes_unverified_success_and_tampering(tmp_path
 
     with pytest.raises(SynapseStoreError, match="modified"):
         store.query(fingerprint_id="a" * 64, scope=scope)
+
+
+def test_synapse_contribution_passport_previews_exact_redacted_bytes_before_export(
+    tmp_path,
+) -> None:
+    store = SynapseStore(tmp_path)
+    scope = SynapseScope.create(
+        operation="payload extraction",
+        source_kind="payload-bin",
+        device_codename="popsicle",
+        build_family="os4-xpbcnxm",
+        tool_name="payload-dumper-go",
+        tool_version="2.0.2",
+    )
+    knowledge = store.contribute(
+        SynapseContribution.create(
+            fingerprint_id="a" * 64,
+            solution_id="inspect-payload-source",
+            scope=scope,
+            source_family="official-aosp",
+            summary=(
+                "Verified at C:\\Users\\Steve\\ROMVERSE for owner@example.com from "
+                "192.168.1.20 using token=private and serial ABCDEF123456789."
+            ),
+            successful=True,
+            locally_verified=True,
+            action_receipt_digest="b" * 64,
+            verification_evidence_digest="c" * 64,
+        )
+    )
+    service = SynapseContributionEnvelopeService(tmp_path)
+
+    envelope = service.prepare(knowledge)
+    document = json.loads(envelope.preview)
+
+    assert not service.output_dir.exists()
+    assert document["status"] == "private-review-only"
+    assert document["upload_authorized"] is False
+    assert document["phone_action_allowed"] is False
+    assert document["records"][0]["scope"]["device_codename"] == "popsicle"
+    assert document["records"][0]["scope"]["build_family"] == "os4-xpbcnxm"
+    assert "fingerprint_id" not in envelope.preview
+    assert "knowledge_id" not in envelope.preview
+    assert "receipt_digest" not in envelope.preview
+    assert "Steve" not in envelope.preview
+    assert "owner@example.com" not in envelope.preview
+    assert "192.168.1.20" not in envelope.preview
+    assert "token=private" not in envelope.preview
+    assert "ABCDEF123456789" not in envelope.preview
+
+    exported = service.export(envelope)
+
+    assert exported.output_path.read_bytes() == envelope.payload
+    assert exported.sha256 == envelope.sha256
+    assert exported.record_count == 1
+
+    changed = SynapseContributionEnvelope(
+        payload=envelope.payload.replace(
+            b'"upload_authorized": false', b'"upload_authorized": true'
+        ),
+        sha256=envelope.sha256,
+        envelope_digest=envelope.envelope_digest,
+        record_count=envelope.record_count,
+    )
+    with pytest.raises(SynapseContributionEnvelopeError, match="bytes changed"):
+        service.export(changed)
+
+    injected = json.loads(envelope.preview)
+    injected.pop("envelope_digest")
+    injected["records"][0]["serial"] = "ABCDEF123456789"
+    injected["envelope_digest"] = hashlib.sha256(
+        json.dumps(injected, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    injected_payload = (
+        json.dumps(injected, ensure_ascii=True, indent=2, sort_keys=True) + "\n"
+    ).encode()
+    reconstructed = SynapseContributionEnvelope(
+        payload=injected_payload,
+        sha256=hashlib.sha256(injected_payload).hexdigest(),
+        envelope_digest=injected["envelope_digest"],
+        record_count=1,
+    )
+    with pytest.raises(SynapseContributionEnvelopeError, match="record shape"):
+        service.export(reconstructed)

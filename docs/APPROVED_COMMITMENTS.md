@@ -151,6 +151,11 @@ Synapse is the server-side verified-solution network. Approved terms are Synapse
 Match, Synapse Contribution, Synapse Confidence, and Synapse Network. Knowledge progresses from
 Candidate → Verified Success → Strong/Corroborated → Trusted. Failures and version drift can
 downgrade or retire knowledge. Contributions must be privacy-scrubbed.
+Desktop Archives provides an exact-byte Contribution Passport before any later Synapse submission
+could exist. A separate explicit action may save only a private, content-digested review envelope;
+it omits raw fingerprints and local/device/account/receipt identifiers and carries no upload,
+execution, or phone authority. Public submission still requires the production authentication,
+consent, moderation, retention, deletion, and verifiable server-receipt boundary.
 
 ### AI Usage Governor and AI Gateway
 
@@ -427,6 +432,10 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   Device Atlas exact-model review drafts that exclude serial/private data, inherit only the matched
   Pack's reviewed HTTPS source starting points, mark proposed identity limited, use bounded no-link
   input and private atomic output, and remain registry-rejected until separately reviewed/published;
+  ROM Studio source-mismatch handoffs with a prominent exact-source Pack draft action that binds
+  the protected source SHA-256, build/source identity, blueprint and plan digests, matching phone,
+  observed partition count and scoped tools, lists every still-missing flash contract, and keeps
+  registry, publication, execution and phone-action authority disabled pending separate review;
   Genesis Device DNA stage with a progress-visible fresh read-only scan, current profile/map gate,
   beginner identity and key capability evidence, automatic profile refresh, and fail-closed removal
   of stale ROM Studio device identity after an ADB refresh failure;
@@ -647,6 +656,9 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   flash/physical cards green or create a new handoff without exact signed certification; the
   required-evidence action routes to Device Atlas rather than restarting Autopilot, and imported
   attestation envelopes use bounded atomic `0600` storage inside non-linked `0700` directories;
+  Forge Autopilot receipt-verified managed-tool refresh before provisioning, complete-inventory
+  setup bypass, and successful empty automatic setup closure so an already verified toolchain
+  cannot trap the user in a blank modal;
   fail-closed Device Pack build-contract schema two for signed partition-to-artifact intent, with
   bounded unique allowed-image mappings, explicit Fastboot/Fastbootd transport and target slots,
   mandatory verification, exact source/AVB/physical-attestation binding, explicit data-mode support,

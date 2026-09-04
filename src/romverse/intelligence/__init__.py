@@ -31,6 +31,10 @@ from romverse.intelligence.online_remediation import (
 )
 from romverse.intelligence.synapse import (
     SynapseContribution,
+    SynapseContributionEnvelope,
+    SynapseContributionEnvelopeError,
+    SynapseContributionEnvelopeExport,
+    SynapseContributionEnvelopeService,
     SynapseKnowledge,
     SynapseKnowledgeState,
     SynapseMatch,
@@ -55,6 +59,10 @@ __all__ = (
     "OnlineRemediationService",
     "SourceAuthority",
     "SynapseContribution",
+    "SynapseContributionEnvelope",
+    "SynapseContributionEnvelopeError",
+    "SynapseContributionEnvelopeExport",
+    "SynapseContributionEnvelopeService",
     "SynapseKnowledge",
     "SynapseKnowledgeState",
     "SynapseMatch",

@@ -12,6 +12,7 @@ from romverse.device.catalog import DeviceCatalogStatus
 from romverse.diagnostics.analyzer import DiagnosticAnalyzer
 from romverse.intelligence.synapse import (
     SynapseContribution,
+    SynapseContributionEnvelopeService,
     SynapseKnowledgeState,
     SynapseScope,
     SynapseStore,
@@ -23,6 +24,7 @@ from romverse.repair.templates import RepairConcern
 from romverse.ui.knowledge_center import (
     KnowledgeCenter,
     KnowledgeGuideDialog,
+    SynapseContributionPreviewDialog,
     SynapseLearningDialog,
 )
 
@@ -330,6 +332,25 @@ def test_archives_exposes_searchable_private_synapse_learning_and_retired_eviden
     assert "payload extraction" in dialog.detail.toPlainText().casefold()
     assert "guidance-only" in dialog.detail.toPlainText().casefold()
     assert "private" not in dialog.detail.toPlainText().casefold()
+    output_dir = SynapseContributionEnvelopeService(tmp_path).output_dir
+    assert not output_dir.exists()
+    dialog.contribution_button.click()
+    app.processEvents()
+    preview = dialog.contribution_dialog
+    assert isinstance(preview, SynapseContributionPreviewDialog)
+    assert preview.isVisible()
+    assert '"upload_authorized": false' in preview.preview.toPlainText()
+    assert '"phone_action_allowed": false' in preview.preview.toPlainText()
+    assert "fingerprint_id" not in preview.preview.toPlainText()
+    assert "NOT UPLOADED" not in preview.status.text()
+    preview.save_button.click()
+    app.processEvents()
+    assert preview.exported is not None
+    assert preview.exported.output_path.parent == output_dir
+    assert preview.exported.output_path.is_file()
+    assert "NOT UPLOADED" in preview.status.text()
+    assert not preview.save_button.isEnabled()
+    preview.close()
     dialog.search.setText("avbtool")
     app.processEvents()
     assert dialog.list.count() == 1

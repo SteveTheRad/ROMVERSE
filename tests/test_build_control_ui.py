@@ -263,6 +263,47 @@ def test_autopilot_recovery_creates_local_checkpoint_before_prompting(
     studio.close()
 
 
+def test_autopilot_skips_empty_tool_installer_after_managed_tool_refresh(
+    tmp_path, monkeypatch
+) -> None:
+    QApplication.instance() or QApplication([])
+    studio = _studio(tmp_path)
+    control = BuildControlCenter(studio, auto_start=False)
+    activations = []
+
+    class Verifier:
+        def __init__(self, *_args):
+            pass
+
+        def verify_extended(self):
+            return (ToolStatus("Payload Dumper", True, "/bin/true", "fixture", "Ready"),)
+
+    class UnexpectedSetupDialog:
+        def __init__(self, *_args, **_kwargs):
+            raise AssertionError("an empty automatic tool installer must not open")
+
+    monkeypatch.setattr(
+        "romverse.infrastructure.provisioning.required_tools_for_source",
+        lambda *_args: ("Payload Dumper",),
+    )
+    monkeypatch.setattr("romverse.infrastructure.tools.ToolVerifier", Verifier)
+    monkeypatch.setattr(
+        "romverse.ui.toolchain_center.activate_verified_managed_tools",
+        lambda workspace: activations.append(workspace) or (),
+    )
+    monkeypatch.setattr("romverse.ui.toolchain_center.ToolchainSetupDialog", UnexpectedSetupDialog)
+
+    control.autopilot_active = True
+    control._autopilot_tools()
+
+    assert activations == [studio.store.workspace]
+    assert "Forge Arsenal requirements" in control.autopilot_completed
+    assert studio.tool_statuses[0].available
+    control.autopilot_active = False
+    control.close()
+    studio.close()
+
+
 def test_autopilot_recovery_revalidates_legacy_evidence(tmp_path, monkeypatch) -> None:
     QApplication.instance() or QApplication([])
     studio = _studio(tmp_path)

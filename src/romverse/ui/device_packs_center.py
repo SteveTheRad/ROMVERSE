@@ -708,7 +708,15 @@ class DevicePacksCenter(QWidget):
             eyebrow="ROM STUDIO HANDOFF  •  EXACT PROJECT / SOURCE REQUIREMENTS",
         )
         if project_phone_bound and hasattr(self, "requirements_blueprint_frame"):
-            self.body.ensureWidgetVisible(self.requirements_blueprint_frame, 0, 24)
+            # A source mismatch used to land on a requirements grid whose Flash button
+            # only opened a guide. Put the new, actionable exact-source Pack draft at
+            # the top of the handoff so the user has an immediate next step.
+            focus = (
+                self.requirements_blueprint_frame
+                if source_pack_bound
+                else getattr(self, "project_next_action_frame", self.requirements_blueprint_frame)
+            )
+            self.body.ensureWidgetVisible(focus, 0, 24)
         return True
 
     def _load_project_source_requirements(
@@ -1018,6 +1026,7 @@ class DevicePacksCenter(QWidget):
 
         next_action = QFrame()
         next_action.setObjectName("DiagnosticHandoffBar")
+        self.project_next_action_frame = next_action
         next_layout = QHBoxLayout(next_action)
         next_layout.setContentsMargins(16, 13, 16, 13)
         next_copy = QVBoxLayout()
@@ -1026,7 +1035,7 @@ class DevicePacksCenter(QWidget):
         self.next_action_title = QLabel(
             "Reopen the exact project from ROM Studio"
             if project_source_stale
-            else "Use the exact project requirements below"
+            else "Prepare the exact-source Device Pack draft"
             if project_override
             else self.active_next_action.title
         )
@@ -1034,8 +1043,10 @@ class DevicePacksCenter(QWidget):
         self.next_action_detail = QLabel(
             "The retained source receipt changed, so ROMVERSE removed every project action."
             if project_source_stale
-            else "The phone Pack's next action is suppressed because it describes another source "
-            "build. Choose the project-scoped Build or Compile lane; Flash stays locked."
+            else "Local build preparation is ready, but the installed phone Pack describes a "
+            "different firmware source. Create a private draft that binds this exact source, "
+            "phone identity, partition blueprint, required tools, and every still-missing flash "
+            "contract for review."
             if project_override
             else self.active_next_action.detail
         )
@@ -1055,7 +1066,7 @@ class DevicePacksCenter(QWidget):
         self.next_action_badge = QLabel(
             "ROUTES LOCKED"
             if project_source_stale
-            else "PROJECT ROUTES ONLY"
+            else "BUILD READY • PACK DRAFT NEXT"
             if project_override
             else "READY • GUARDIAN ACTIVE"
             if scope == "ready"
@@ -1068,17 +1079,22 @@ class DevicePacksCenter(QWidget):
         self.next_action_button = QPushButton(
             "Reopen from ROM Studio"
             if project_source_stale
-            else "Use project blueprint below"
+            else "Prepare exact-source Pack draft"
             if project_override
             else self.active_next_action.button_label
         )
         self.next_action_button.setObjectName("Primary")
         self.next_action_button.setToolTip(
-            "Opens the exact ROMVERSE page or verified guide selected from this current "
+            "Creates a private, source-bound Device Pack development draft with a precise "
+            "missing-contract checklist. It cannot activate flashing or make a public claim."
+            if project_override
+            else "Opens the exact ROMVERSE page or verified guide selected from this current "
             "readiness report. It starts no worker, approval, build, or phone action."
         )
-        self.next_action_button.setEnabled(not project_routes_suppressed)
-        if not project_routes_suppressed:
+        self.next_action_button.setEnabled(not project_source_stale)
+        if project_override:
+            self.next_action_button.clicked.connect(self._export_project_pack_draft)
+        elif not project_routes_suppressed:
             self.next_action_button.clicked.connect(self._request_next_action)
         next_layout.addWidget(self.next_action_button)
         roadmap_layout.addWidget(next_action)
@@ -1542,6 +1558,53 @@ class DevicePacksCenter(QWidget):
             )
             self.export_status.setObjectName("Good")
         self._repolish(self.export_status)
+
+    def _export_project_pack_draft(self) -> None:
+        source = self._validated_active_project_source()
+        if (
+            self.active_pack is None
+            or self.active_device is None
+            or self.workspace is None
+            or source is None
+        ):
+            self.next_action_feedback.setText(
+                "EXACT-SOURCE DRAFT STOPPED  •  Reopen the unchanged project with its matching "
+                "phone  •  NO BUILD, FLASH, OR PHONE ACTION STARTED"
+            )
+            self.next_action_feedback.setObjectName("Danger")
+            self._repolish(self.next_action_feedback)
+            return
+        try:
+            seed_pack = next(
+                (
+                    pack
+                    for pack in self.registry.packs
+                    if pack.pack_id == source.device_pack_id and pack.knowledge_sources
+                ),
+                self.active_pack,
+            )
+            request = self.draft_service.request_from_project_source(
+                seed_pack,
+                self.active_device,
+                source,
+            )
+            exported = self.draft_service.export(
+                request,
+                self.workspace / "device_pack_drafts",
+                boundary=self.workspace,
+            )
+        except ValueError as exc:
+            self.next_action_feedback.setText(
+                f"EXACT-SOURCE DRAFT STOPPED  •  {exc}  •  NO BUILD, FLASH, OR PHONE ACTION STARTED"
+            )
+            self.next_action_feedback.setObjectName("Danger")
+        else:
+            self.next_action_feedback.setText(
+                f"EXACT-SOURCE PACK DRAFT READY  •  {exported.output_path}  •  SHA-256 "
+                f"{exported.sha256[:16]}…  •  review required  •  execution authority: none"
+            )
+            self.next_action_feedback.setObjectName("Good")
+        self._repolish(self.next_action_feedback)
 
     def _import_physical_attestation(self) -> None:
         if self.attestation_store is None or self.active_pack is None or self.active_device is None:

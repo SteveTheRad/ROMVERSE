@@ -20,6 +20,10 @@ from PySide6.QtWidgets import (
 
 from romverse.device.catalog import GooglePlayDeviceCatalog
 from romverse.intelligence.synapse import (
+    SynapseContributionEnvelope,
+    SynapseContributionEnvelopeError,
+    SynapseContributionEnvelopeExport,
+    SynapseContributionEnvelopeService,
     SynapseKnowledge,
     SynapseKnowledgeState,
     SynapseStore,
@@ -393,10 +397,13 @@ class SynapseLearningDialog(QDialog):
         self,
         knowledge: tuple[SynapseKnowledge, ...],
         parent: QWidget | None = None,
+        contribution_service: SynapseContributionEnvelopeService | None = None,
     ) -> None:
         super().__init__(parent)
         self.knowledge = knowledge
+        self.contribution_service = contribution_service
         self.visible_knowledge: tuple[SynapseKnowledge, ...] = ()
+        self.contribution_dialog: SynapseContributionPreviewDialog | None = None
         self.setWindowTitle("ROMVERSE Archives • Local Learning")
         self.setMinimumSize(860, 560)
         self.resize(980, 650)
@@ -453,6 +460,17 @@ class SynapseLearningDialog(QDialog):
         self.result_status = QLabel()
         self.result_status.setObjectName("Muted")
         actions.addWidget(self.result_status, 1)
+        self.contribution_button = QPushButton("Preview contribution passport")
+        self.contribution_button.setAccessibleName(
+            "Preview the exact privacy-redacted Synapse contribution passport"
+        )
+        self.contribution_button.setToolTip(
+            "Shows the exact local-only payload before it can be saved. This performs no upload, "
+            "network request, repair, or phone action."
+        )
+        self.contribution_button.setEnabled(contribution_service is not None)
+        self.contribution_button.clicked.connect(self._preview_contribution)
+        actions.addWidget(self.contribution_button)
         close = QPushButton("Return to Archives")
         close.setObjectName("Primary")
         close.clicked.connect(self.accept)
@@ -530,6 +548,34 @@ class SynapseLearningDialog(QDialog):
             "It cannot approve, build, flash, change a phone, or execute remote text."
         )
 
+    def _preview_contribution(self) -> None:
+        row = self.list.currentRow()
+        if self.contribution_service is None or not 0 <= row < len(self.visible_knowledge):
+            self.result_status.setText("Select one integrity-verified local record first.")
+            return
+        try:
+            envelope = self.contribution_service.prepare(self.visible_knowledge[row])
+        except SynapseContributionEnvelopeError as exc:
+            self.result_status.setText(f"Contribution preview unavailable: {exc}")
+            self.result_status.setObjectName("Danger")
+            self.result_status.style().unpolish(self.result_status)
+            self.result_status.style().polish(self.result_status)
+            return
+        dialog = SynapseContributionPreviewDialog(
+            envelope,
+            self.contribution_service,
+            self,
+        )
+        self.contribution_dialog = dialog
+        dialog.finished.connect(
+            lambda _result, opened=dialog: self._contribution_preview_closed(opened)
+        )
+        dialog.open()
+
+    def _contribution_preview_closed(self, dialog: SynapseContributionPreviewDialog) -> None:
+        if self.contribution_dialog is dialog:
+            self.contribution_dialog = None
+
     @staticmethod
     def _search_document(item: SynapseKnowledge) -> str:
         scope = item.scope
@@ -547,6 +593,101 @@ class SynapseLearningDialog(QDialog):
                 *item.independent_source_families,
             )
         ).casefold()
+
+
+class SynapseContributionPreviewDialog(QDialog):
+    """Show exact redacted bytes before an explicit local-only save."""
+
+    def __init__(
+        self,
+        envelope: SynapseContributionEnvelope,
+        service: SynapseContributionEnvelopeService,
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self.envelope = envelope
+        self.service = service
+        self.exported: SynapseContributionEnvelopeExport | None = None
+        self.setWindowTitle("ROMVERSE Synapse • Contribution Passport")
+        self.setMinimumSize(800, 600)
+        self.resize(920, 720)
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(24, 22, 24, 22)
+        root.setSpacing(12)
+        eyebrow = QLabel("CONTRIBUTION PASSPORT  •  EXACT REDACTED PREVIEW")
+        eyebrow.setObjectName("Eyebrow")
+        title = QLabel("Review every byte before anything can be shared")
+        title.setObjectName("Title")
+        subtitle = QLabel(
+            "This is a local preview of one learned outcome. It excludes device and account "
+            "identifiers, private paths, fingerprints, receipt IDs, logs, firmware, and phone "
+            "data. Saving it does not upload or publish it."
+        )
+        subtitle.setObjectName("Muted")
+        subtitle.setWordWrap(True)
+        root.addWidget(eyebrow)
+        root.addWidget(title)
+        root.addWidget(subtitle)
+
+        digest = QLabel(
+            f"CONTENT SHA-256  •  {envelope.sha256}  •  {len(envelope.payload):,} BYTES"
+        )
+        digest.setObjectName("Good")
+        digest.setWordWrap(True)
+        digest.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        root.addWidget(digest)
+
+        exact = QLabel("EXACT PAYLOAD  •  upload_authorized: false  •  phone_action_allowed: false")
+        exact.setObjectName("CardHeading")
+        root.addWidget(exact)
+        self.preview = QTextBrowser()
+        self.preview.setObjectName("ArchivesLearningDetail")
+        self.preview.setAccessibleName("Exact redacted Synapse contribution payload")
+        self.preview.setPlainText(envelope.preview)
+        root.addWidget(self.preview, 1)
+
+        boundary = QLabel(
+            "LOCAL REVIEW ONLY  •  No account  •  No upload  •  No publishing  •  No command  •  "
+            "No build or phone change. A future production service must ask again before sending."
+        )
+        boundary.setObjectName("SynapseBoundary")
+        boundary.setWordWrap(True)
+        root.addWidget(boundary)
+
+        actions = QHBoxLayout()
+        self.status = QLabel("Nothing has been saved or sent.")
+        self.status.setObjectName("Muted")
+        self.status.setWordWrap(True)
+        actions.addWidget(self.status, 1)
+        self.save_button = QPushButton("Save private review envelope")
+        self.save_button.setObjectName("Primary")
+        self.save_button.setAccessibleName(
+            "Save these exact redacted bytes privately in the ROMVERSE workspace"
+        )
+        self.save_button.clicked.connect(self._save)
+        actions.addWidget(self.save_button)
+        close = QPushButton("Close without saving")
+        close.clicked.connect(self.reject)
+        actions.addWidget(close)
+        root.addLayout(actions)
+
+    def _save(self) -> None:
+        try:
+            self.exported = self.service.export(self.envelope)
+        except SynapseContributionEnvelopeError as exc:
+            self.status.setText(f"Private review envelope was not saved: {exc}")
+            self.status.setObjectName("Danger")
+        else:
+            self.status.setText(
+                f"Saved privately to {self.exported.output_path}  •  SHA-256 "
+                f"{self.exported.sha256[:16]}…  •  NOT UPLOADED"
+            )
+            self.status.setObjectName("Good")
+            self.save_button.setEnabled(False)
+            self.save_button.setText("Private envelope saved")
+        self.status.style().unpolish(self.status)
+        self.status.style().polish(self.status)
 
 
 class KnowledgeCenter(QWidget):
@@ -999,7 +1140,16 @@ class KnowledgeCenter(QWidget):
         if not self.synapse_knowledge:
             self.open_article("archives-local-learning-boundary")
             return
-        dialog = SynapseLearningDialog(self.synapse_knowledge, self)
+        contribution_service = (
+            SynapseContributionEnvelopeService(self.synapse_store.workspace)
+            if self.synapse_store is not None
+            else None
+        )
+        dialog = SynapseLearningDialog(
+            self.synapse_knowledge,
+            self,
+            contribution_service=contribution_service,
+        )
         self.learning_dialog = dialog
         dialog.finished.connect(lambda _result, opened=dialog: self._learning_closed(opened))
         dialog.open()

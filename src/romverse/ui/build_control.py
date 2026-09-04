@@ -2479,26 +2479,51 @@ class BuildControlCenter(QDialog):
             contract,
             inspection.partition_signals if inspection is not None else (),
         )
-        dialog = ToolchainSetupDialog(
-            current_host(),
-            self.studio.tool_statuses,
-            self.studio.store.workspace,
-            self,
-            required_names=required or None,
-            auto_start=True,
-            auto_close=True,
-        )
-        dialog.exec()
-        if dialog.last_success is not True:
-            self._finish_autopilot(
-                "Forge Arsenal did not complete every automatic requirement. "
-                + (dialog.last_message or "Review the visible installation requirement and retry.")
-            )
-            return
+        # Re-activate only receipt-verified managed tools before deciding anything is
+        # missing. This also makes an already-complete inventory a true no-op instead
+        # of opening an empty modal that cannot advance Autopilot.
         activate_verified_managed_tools(self.studio.store.workspace)
         self.studio.set_tool_statuses(
             ToolVerifier(current_host(), SubprocessRunner()).verify_extended()
         )
+        current = {item.name: item for item in self.studio.tool_statuses}
+        missing = tuple(
+            name for name in required if name not in current or not current[name].available
+        )
+        if missing:
+            dialog = ToolchainSetupDialog(
+                current_host(),
+                self.studio.tool_statuses,
+                self.studio.store.workspace,
+                self,
+                required_names=missing,
+                auto_start=True,
+                auto_close=True,
+            )
+            dialog.exec()
+            if dialog.last_success is not True:
+                self._finish_autopilot(
+                    "Forge Arsenal did not complete every automatic requirement. "
+                    + (
+                        dialog.last_message
+                        or "Review the visible installation requirement and retry."
+                    )
+                )
+                return
+            activate_verified_managed_tools(self.studio.store.workspace)
+            self.studio.set_tool_statuses(
+                ToolVerifier(current_host(), SubprocessRunner()).verify_extended()
+            )
+            refreshed = {item.name: item for item in self.studio.tool_statuses}
+            remaining = tuple(
+                name for name in required if name not in refreshed or not refreshed[name].available
+            )
+            if remaining:
+                self._finish_autopilot(
+                    "Forge Arsenal installed the selected requirements, but fresh verification "
+                    "still reports missing tools: " + ", ".join(remaining)
+                )
+                return
         tool_digest = hashlib.sha256(
             json.dumps(
                 [asdict(item) for item in self.studio.tool_statuses],

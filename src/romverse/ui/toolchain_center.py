@@ -1922,6 +1922,15 @@ class ToolchainSetupDialog(QDialog):
         layout.addWidget(self.buttons)
         if auto_start and self.provision_plan.missing:
             QTimer.singleShot(0, self._create_plan)
+        elif auto_start and auto_close:
+            # Automatic callers must never strand the user in an empty setup dialog.
+            # The authoritative inventory already proves that every scoped requirement
+            # is available, so this is a successful no-op rather than an installation.
+            self.last_success = True
+            self.last_message = "Every required Forge Arsenal tool is already verified."
+            self.status.setText(self.last_message)
+            self.status.setObjectName("Good")
+            QTimer.singleShot(0, self.accept)
 
     def reject(self) -> None:
         if self._worker is not None:

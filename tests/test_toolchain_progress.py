@@ -91,6 +91,24 @@ def test_forge_arsenal_progress_widget_switches_modes_without_inventing_progress
     dialog.close()
 
 
+def test_empty_automatic_forge_setup_completes_without_stranding_user(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    dialog = ToolchainSetupDialog(
+        LinuxHost(),
+        (ToolStatus("ADB", True, "/bin/true", "fixture", "Ready"),),
+        tmp_path,
+        required_names=("ADB",),
+        auto_start=True,
+        auto_close=True,
+    )
+
+    result = dialog.exec()
+
+    assert result == dialog.DialogCode.Accepted
+    assert dialog.last_success is True
+    assert "already verified" in dialog.last_message
+
+
 def test_forge_arsenal_shows_managed_apk_tool_capability_boundaries(tmp_path) -> None:
     app = QApplication.instance() or QApplication([])
     dialog = ToolchainSetupDialog(

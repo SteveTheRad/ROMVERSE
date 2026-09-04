@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import os
 import re
@@ -10,9 +11,15 @@ from enum import StrEnum
 from pathlib import Path
 from uuid import uuid4
 
+from romverse.infrastructure.local_store import LocalStoreError, atomic_write_bytes
+
 
 class SynapseStoreError(RuntimeError):
     """Raised when the local Synapse evidence mirror cannot be trusted."""
+
+
+class SynapseContributionEnvelopeError(RuntimeError):
+    """Raised when a private Synapse review envelope cannot be trusted."""
 
 
 class SynapseKnowledgeState(StrEnum):
@@ -141,6 +148,334 @@ class SynapseMatch:
     execution_authority: str = "guidance-only"
 
 
+@dataclass(frozen=True, slots=True)
+class SynapseContributionEnvelope:
+    """Exact immutable bytes shown to the user before any future submission."""
+
+    payload: bytes
+    sha256: str
+    envelope_digest: str
+    record_count: int
+
+    @property
+    def preview(self) -> str:
+        return self.payload.decode("utf-8")
+
+
+@dataclass(frozen=True, slots=True)
+class SynapseContributionEnvelopeExport:
+    output_path: Path
+    sha256: str
+    envelope_digest: str
+    size_bytes: int
+    record_count: int
+
+
+class SynapseContributionEnvelopeService:
+    """Prepare transparent, local-only payloads for a later moderated service.
+
+    The envelope deliberately excludes the local error fingerprint, knowledge ID,
+    contribution IDs, action/evidence receipt digests, filesystem paths, device serials,
+    credentials, and provider keys. Preparing or exporting it performs no network action.
+    """
+
+    FORMAT = "romverse.synapse.contribution-envelope"
+    SCHEMA_VERSION = 1
+    MAXIMUM_RECORDS = 64
+    MAXIMUM_BYTES = 512 * 1024
+    INCLUDED = (
+        "bounded operation and compatibility scope",
+        "redacted outcome summary",
+        "aggregate verification counts and state",
+        "source-family labels and observation times",
+    )
+    EXCLUDED = (
+        "device serial, IMEI, account, and user content",
+        "local paths, email addresses, credentials, and provider keys",
+        "raw error fingerprint and full build fingerprint",
+        "local knowledge, contribution, action, and evidence receipt identifiers",
+        "firmware bytes, logs, command output, and phone data",
+    )
+    SUBMISSION_BOUNDARY = (
+        "This file is a private preview, not a submission. A production service must "
+        "show these exact bytes again and require a separate explicit send choice."
+    )
+
+    def __init__(self, workspace: Path) -> None:
+        self.workspace = workspace
+        self.output_dir = workspace / "knowledge" / "contribution-previews"
+
+    def prepare(
+        self,
+        knowledge: SynapseKnowledge | tuple[SynapseKnowledge, ...],
+    ) -> SynapseContributionEnvelope:
+        records = (knowledge,) if isinstance(knowledge, SynapseKnowledge) else knowledge
+        if not records or len(records) > self.MAXIMUM_RECORDS:
+            raise SynapseContributionEnvelopeError(
+                "A contribution preview needs between 1 and 64 local knowledge records"
+            )
+        prepared_records = [self._record(item) for item in records]
+        document: dict[str, object] = {
+            "format": self.FORMAT,
+            "schema_version": self.SCHEMA_VERSION,
+            "status": "private-review-only",
+            "prepared_at": datetime.now(UTC).isoformat(),
+            "privacy": "redacted",
+            "upload_authorized": False,
+            "execution_authority": "guidance-only",
+            "phone_action_allowed": False,
+            "records": prepared_records,
+            "privacy_manifest": {
+                "included": list(self.INCLUDED),
+                "excluded": list(self.EXCLUDED),
+            },
+            "submission_boundary": self.SUBMISSION_BOUNDARY,
+        }
+        envelope_digest = hashlib.sha256(_canonical(document)).hexdigest()
+        document["envelope_digest"] = envelope_digest
+        payload = (
+            json.dumps(
+                document,
+                ensure_ascii=True,
+                allow_nan=False,
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n"
+        ).encode("utf-8")
+        if len(payload) > self.MAXIMUM_BYTES:
+            raise SynapseContributionEnvelopeError(
+                "The redacted contribution preview exceeds its size boundary"
+            )
+        return SynapseContributionEnvelope(
+            payload=payload,
+            sha256=hashlib.sha256(payload).hexdigest(),
+            envelope_digest=envelope_digest,
+            record_count=len(prepared_records),
+        )
+
+    def export(
+        self,
+        envelope: SynapseContributionEnvelope,
+    ) -> SynapseContributionEnvelopeExport:
+        self._validate_envelope(envelope)
+        output_path = self.output_dir / (f"synapse-review-{envelope.envelope_digest[:16]}.json")
+        try:
+            atomic_write_bytes(
+                output_path,
+                envelope.payload,
+                boundary=self.workspace,
+                maximum_bytes=self.MAXIMUM_BYTES,
+            )
+        except LocalStoreError as exc:
+            raise SynapseContributionEnvelopeError(
+                f"The private contribution preview could not be saved safely: {exc}"
+            ) from exc
+        return SynapseContributionEnvelopeExport(
+            output_path=output_path,
+            sha256=envelope.sha256,
+            envelope_digest=envelope.envelope_digest,
+            size_bytes=len(envelope.payload),
+            record_count=envelope.record_count,
+        )
+
+    @staticmethod
+    def _record(item: SynapseKnowledge) -> dict[str, object]:
+        if not isinstance(item, SynapseKnowledge):
+            raise SynapseContributionEnvelopeError("Local knowledge record is invalid")
+        scope = _validated_scope(item.scope)
+        try:
+            state = SynapseKnowledgeState(item.state)
+            confidence = int(item.confidence)
+            successful = int(item.successful_verifications)
+            failed = int(item.failed_verifications)
+        except (TypeError, ValueError) as exc:
+            raise SynapseContributionEnvelopeError(
+                "Local knowledge state or verification counts are invalid"
+            ) from exc
+        if not 0 <= confidence <= 100 or not 0 <= successful <= 5_000 or not 0 <= failed <= 5_000:
+            raise SynapseContributionEnvelopeError(
+                "Local knowledge confidence or verification counts are invalid"
+            )
+        if item.execution_authority != "guidance-only":
+            raise SynapseContributionEnvelopeError(
+                "Local knowledge attempted to exceed guidance-only authority"
+            )
+        observed_at = _timestamp(item.last_observed_at)
+        verified_at = _timestamp(item.last_verified_at) if item.last_verified_at else ""
+        return {
+            "solution": _identifier(item.solution_id, "solution id"),
+            "scope": {
+                "operation": scope.operation,
+                "source_kind": scope.source_kind,
+                "device_codename": scope.device_codename,
+                "build_family": scope.build_family,
+                "tool_name": scope.tool_name,
+                "tool_version": scope.tool_version,
+            },
+            "outcome": {
+                "state": state.value,
+                "confidence": confidence,
+                "successful_verifications": successful,
+                "failed_or_drifted_verifications": failed,
+                "summary": _privacy_scrub(item.summary, 500),
+                "independent_source_families": [
+                    _token(source, 100, required=True)
+                    for source in item.independent_source_families[:64]
+                ],
+                "last_observed_at": observed_at,
+                "last_verified_at": verified_at,
+            },
+        }
+
+    def _validate_envelope(self, envelope: SynapseContributionEnvelope) -> None:
+        if not isinstance(envelope, SynapseContributionEnvelope):
+            raise SynapseContributionEnvelopeError("Contribution preview is invalid")
+        if not 0 < len(envelope.payload) <= self.MAXIMUM_BYTES:
+            raise SynapseContributionEnvelopeError("Contribution preview size is invalid")
+        if not hmac.compare_digest(envelope.sha256, hashlib.sha256(envelope.payload).hexdigest()):
+            raise SynapseContributionEnvelopeError("Contribution preview bytes changed")
+        try:
+            document = json.loads(envelope.payload.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise SynapseContributionEnvelopeError("Contribution preview is unreadable") from exc
+        if not isinstance(document, dict):
+            raise SynapseContributionEnvelopeError("Contribution preview must be an object")
+        claimed = document.pop("envelope_digest", None)
+        actual = hashlib.sha256(_canonical(document)).hexdigest()
+        expected_fields = {
+            "format",
+            "schema_version",
+            "status",
+            "prepared_at",
+            "privacy",
+            "upload_authorized",
+            "execution_authority",
+            "phone_action_allowed",
+            "records",
+            "privacy_manifest",
+            "submission_boundary",
+        }
+        if (
+            set(document) != expected_fields
+            or document.get("format") != self.FORMAT
+            or document.get("schema_version") != self.SCHEMA_VERSION
+            or document.get("status") != "private-review-only"
+            or document.get("privacy") != "redacted"
+            or document.get("upload_authorized") is not False
+            or document.get("execution_authority") != "guidance-only"
+            or document.get("phone_action_allowed") is not False
+            or not hmac.compare_digest(str(claimed or ""), envelope.envelope_digest)
+            or not hmac.compare_digest(str(claimed or ""), actual)
+        ):
+            raise SynapseContributionEnvelopeError(
+                "Contribution preview boundary or digest is invalid"
+            )
+        try:
+            _timestamp(document.get("prepared_at"))
+        except (TypeError, ValueError) as exc:
+            raise SynapseContributionEnvelopeError(
+                "Contribution preview timestamp is invalid"
+            ) from exc
+        if (
+            document.get("privacy_manifest")
+            != {
+                "included": list(self.INCLUDED),
+                "excluded": list(self.EXCLUDED),
+            }
+            or document.get("submission_boundary") != self.SUBMISSION_BOUNDARY
+        ):
+            raise SynapseContributionEnvelopeError("Contribution preview privacy manifest changed")
+        records = document.get("records")
+        if (
+            not isinstance(records, list)
+            or not 0 < len(records) <= self.MAXIMUM_RECORDS
+            or len(records) != envelope.record_count
+        ):
+            raise SynapseContributionEnvelopeError("Contribution preview record count changed")
+        for record in records:
+            self._validate_record(record)
+
+    @staticmethod
+    def _validate_record(record: object) -> None:
+        if not isinstance(record, dict) or set(record) != {"solution", "scope", "outcome"}:
+            raise SynapseContributionEnvelopeError("Contribution preview record shape is invalid")
+        scope = record.get("scope")
+        outcome = record.get("outcome")
+        scope_fields = {
+            "operation",
+            "source_kind",
+            "device_codename",
+            "build_family",
+            "tool_name",
+            "tool_version",
+        }
+        outcome_fields = {
+            "state",
+            "confidence",
+            "successful_verifications",
+            "failed_or_drifted_verifications",
+            "summary",
+            "independent_source_families",
+            "last_observed_at",
+            "last_verified_at",
+        }
+        if (
+            not isinstance(scope, dict)
+            or set(scope) != scope_fields
+            or not isinstance(outcome, dict)
+            or set(outcome) != outcome_fields
+        ):
+            raise SynapseContributionEnvelopeError(
+                "Contribution preview scope or outcome shape is invalid"
+            )
+        try:
+            _identifier(record.get("solution"), "solution id")
+            rebuilt_scope = SynapseScope.create(**scope)
+            SynapseKnowledgeState(outcome.get("state"))
+            confidence = int(outcome.get("confidence"))
+            successful = int(outcome.get("successful_verifications"))
+            failed = int(outcome.get("failed_or_drifted_verifications"))
+            observed_at = _timestamp(outcome.get("last_observed_at"))
+            verified_value = outcome.get("last_verified_at")
+            verified_at = _timestamp(verified_value) if verified_value else ""
+        except (TypeError, ValueError) as exc:
+            raise SynapseContributionEnvelopeError(
+                "Contribution preview evidence fields are invalid"
+            ) from exc
+        if asdict(rebuilt_scope) != {"scope_digest": rebuilt_scope.scope_digest, **scope}:
+            raise SynapseContributionEnvelopeError(
+                "Contribution preview scope normalization changed"
+            )
+        if (
+            not 0 <= confidence <= 100
+            or not 0 <= successful <= 5_000
+            or not 0 <= failed <= 5_000
+            or observed_at != outcome.get("last_observed_at")
+            or verified_at != outcome.get("last_verified_at")
+        ):
+            raise SynapseContributionEnvelopeError(
+                "Contribution preview outcome boundaries are invalid"
+            )
+        summary = outcome.get("summary")
+        if not isinstance(summary, str) or _privacy_scrub(summary, 500) != summary:
+            raise SynapseContributionEnvelopeError(
+                "Contribution preview summary is not fully redacted"
+            )
+        sources = outcome.get("independent_source_families")
+        if (
+            not isinstance(sources, list)
+            or len(sources) > 64
+            or any(
+                not isinstance(source, str) or _token(source, 100, required=True) != source
+                for source in sources
+            )
+        ):
+            raise SynapseContributionEnvelopeError(
+                "Contribution preview source families are invalid"
+            )
+
+
 class SynapseStore:
     """Tamper-detecting local mirror of privacy-safe Synapse knowledge.
 
@@ -153,6 +488,7 @@ class SynapseStore:
     MAX_CONTRIBUTIONS = 5_000
 
     def __init__(self, workspace: Path) -> None:
+        self.workspace = workspace
         self.path = workspace / "knowledge" / "synapse-cache-v1.json"
 
     def contribute(self, contribution: SynapseContribution) -> SynapseKnowledge:
@@ -449,6 +785,14 @@ def _scope_match(requested: SynapseScope, candidate: SynapseScope) -> str:
 def _privacy_scrub(value: object, maximum: int) -> str:
     text = str(value or "")
     text = re.sub(r"(?:/home|/Users)/[^\s/]+(?:/[^\s]+)*", "<path>", text)
+    text = re.sub(r"\b[A-Za-z]:\\(?:[^\s\\]+\\)*[^\s\\]*", "<path>", text)
+    text = re.sub(r"\b[^\s@]+@[^\s@]+\.[^\s@]+\b", "<email>", text)
+    text = re.sub(
+        r"(?<![\d.])(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\."
+        r"(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}(?![\d.])",
+        "<ip-address>",
+        text,
+    )
     text = re.sub(
         r"\b(?:token|password|secret|api[_-]?key)\s*[:=]\s*[^\s,;]+",
         "<credential>",
@@ -456,7 +800,9 @@ def _privacy_scrub(value: object, maximum: int) -> str:
         flags=re.I,
     )
     text = re.sub(r"\b[0-9a-f]{32,}\b", "<digest>", text, flags=re.I)
-    text = re.sub(r"\b[A-Z0-9]{14,}\b", "<identifier>", text)
+    text = re.sub(
+        r"\b(?=[A-Za-z0-9]*[A-Za-z])(?=[A-Za-z0-9]*\d)[A-Za-z0-9]{14,}\b", "<identifier>", text
+    )
     return re.sub(r"\s+", " ", text).strip()[:maximum]
 
 

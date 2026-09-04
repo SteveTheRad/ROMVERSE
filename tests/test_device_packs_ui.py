@@ -162,11 +162,21 @@ def test_studio_handoff_scopes_requirements_to_current_strict_source_blueprint(
     assert "is for a different source" in center.match_reason.text()
     assert center.pack_badge.text() == "REFERENCE ONLY • PROJECT SOURCE ACTIVE"
     assert center.active_next_action is None
-    assert center.next_action_title.text() == "Use the exact project requirements below"
-    assert center.next_action_badge.text() == "PROJECT ROUTES ONLY"
-    assert not center.next_action_button.isEnabled()
+    assert center.next_action_title.text() == "Prepare the exact-source Device Pack draft"
+    assert center.next_action_badge.text() == "BUILD READY • PACK DRAFT NEXT"
+    assert center.next_action_button.isEnabled()
+    assert center.next_action_button.text() == "Prepare exact-source Pack draft"
     labels = [label.text() for label in center.findChildren(QLabel)]
     assert any("Current HyperOS source" in label and "ota-payload" in label for label in labels)
+
+    center.next_action_button.click()
+    assert "EXACT-SOURCE PACK DRAFT READY" in center.next_action_feedback.text()
+    drafts = list((store.workspace / "device_pack_drafts").glob("*.draft.json"))
+    assert len(drafts) == 1
+    draft = json.loads(drafts[0].read_text(encoding="utf-8"))
+    assert draft["draft_context"]["source_sha256"] == project.original.sha256
+    assert draft["draft_context"]["partition_count"] == len(source_blueprint.partitions)
+    assert draft["draft_context"]["phone_action_allowed"] is False
 
     requests: list[tuple[str, str, str, str]] = []
     center.requirement_requested.connect(lambda *values: requests.append(values))

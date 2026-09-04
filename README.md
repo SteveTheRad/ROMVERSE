@@ -227,6 +227,13 @@ or extracted source stops the retained route instead of silently falling back to
 verified project-local baseline can mark local build preparation ready, but its Flash lane stays
 locked until the independent source-matched recovery, AVB, publisher, physical-test,
 partition-write, artifact-binding, and approval gates pass.
+If the phone matches but its installed Pack describes another firmware source, the Studio handoff
+now stops on a prominent, actionable **Prepare exact-source Pack draft** card instead of a guide-only
+dead end. The private content-addressed draft binds the protected source SHA-256, source/build
+identity, blueprint and plan digests, observed partition count, exact host-tool list, and matching
+phone identity. It also names every missing write/readback, transition, AVB, stock-recovery, and
+physical-test contract. The draft remains review-only, registry-rejected, non-public, and permanently
+unable to grant a phone action by itself.
 Downloads are parsed and verified in memory before activation. Switching off online diagnostics
 and sources cancels a pending refresh and prevents a late response from replacing the active local
 mirror; any previously activated receipt-checked catalog remains available for local read-only
@@ -416,6 +423,13 @@ knowledge model distinguishes reported, independently corroborated, matching loc
 retired outcomes. See
 [docs/ONLINE_INTELLIGENCE.md](docs/ONLINE_INTELLIGENCE.md). The public
 Synapse, AI, Members, billing, and community services remain explicit production release gates.
+Archives now exposes a **Contribution Passport** for each integrity-checked learned outcome. It
+shows the exact redacted JSON before writing anything, excludes raw fingerprints, local record and
+receipt identifiers, device/account identifiers, paths, email addresses, credentials, logs,
+firmware, and phone data, and saves only a content-addressed private review envelope after a second
+explicit click. The envelope permanently records `upload_authorized: false`,
+`phone_action_allowed: false`, and `execution_authority: guidance-only`; no current Desktop control
+uploads or publishes it.
 
 Verified ZIP/TAR archives can now be extracted into a contained working tree with strict path,
 link, entry, and size guards. Direct `payload.bin` and recognized partition images such as
@@ -476,6 +490,10 @@ order, installs and verifies contract-scoped tools through Forge Arsenal, and co
 successful operation. It pauses on one clearly explained authoritative input only when software
 cannot truthfully create it; Device Pack contracts, signing identities, recovery tests, and live
 device authorization are never fabricated merely to turn a card green.
+Autopilot reactivates receipt-verified managed tools before deciding that setup is required. An
+already complete scoped inventory skips installation and continues immediately; the automatic
+setup dialog also treats an empty plan as a successful no-op, so a verified toolchain cannot strand
+the workflow in a blank modal.
 The direct **Inspect AVB topology** and **Offline signing** controls use the same resolver instead of
 ending at an “install this tool” message. They select only missing Payload Dumper/AVBTool evidence,
 respect the verified-tool automation setting, rescan the complete tool inventory, and continue the

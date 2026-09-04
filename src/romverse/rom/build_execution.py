@@ -18,6 +18,10 @@ from romverse.infrastructure.toolchain_evidence import (
     ToolchainEvidenceError,
     ToolchainEvidenceService,
 )
+from romverse.infrastructure.toolchain_versions import (
+    VersionedToolchainError,
+    VersionedToolchainStore,
+)
 from romverse.infrastructure.tools import ToolStatus
 from romverse.rom.build_contracts import (
     DeviceBuildContractService,
@@ -112,7 +116,7 @@ class LocalDeviceBuildExecutor:
             raise ProjectError("Exact Device Pack build contract is unavailable")
         contract = pack.build_contract
         tools = self._verified_tools()
-        toolchain_manifest_digest, locked_tool_hashes = self._capture_toolchain(
+        toolchain_manifest_digest, locked_tool_hashes, tools = self._capture_toolchain(
             project_id,
             tools,
         )
@@ -541,7 +545,7 @@ class LocalDeviceBuildExecutor:
         self,
         project_id: str,
         tools: dict[str, Path],
-    ) -> tuple[str, dict[str, str]]:
+    ) -> tuple[str, dict[str, str], dict[str, Path]]:
         required = tuple(sorted(tools))
         by_name = {status.name: status for status in self.tool_statuses}
         statuses = tuple(by_name[name] for name in required)
@@ -558,11 +562,14 @@ class LocalDeviceBuildExecutor:
             if not manifest.complete:
                 raise ToolchainEvidenceError("The exact build toolchain is incomplete")
             service.save_private(manifest)
-        except (OSError, ValueError, ToolchainEvidenceError) as exc:
+            isolated = VersionedToolchainStore(self.store.workspace).isolate(tools, manifest)
+        except (OSError, ValueError, ToolchainEvidenceError, VersionedToolchainError) as exc:
             raise ProjectError(f"Exact build toolchain proof failed: {exc}") from exc
-        return manifest.manifest_digest, {
-            item.name: item.sha256 for item in manifest.tools if item.state == "verified"
-        }
+        return (
+            manifest.manifest_digest,
+            {item.name: item.sha256 for item in manifest.tools if item.state == "verified"},
+            isolated,
+        )
 
     @staticmethod
     def _assert_locked_tools(tools: dict[str, Path], expected: dict[str, str]) -> None:

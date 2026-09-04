@@ -1346,7 +1346,12 @@ normal managed-source receipts before asking for exact confirmation. It extracts
 links, applies private executable/data modes, replaces only named managed packages, records a private
 receipt and transactionally restores the previous packages if installation or evidence persistence
 fails. Neither export nor import can run a phone command or grant build/flash authority. Automatic
-content-addressed managed-version selection remains active Stage 12 work.
+content-addressed managed-version selection now preserves every source-receipted managed executable
+used by a local build in an immutable hash-named slot. The build executes that preserved copy, while
+system-installed tools remain in place under the same per-step hash lock. A later managed update can
+create a new slot without replacing the earlier bytes, allowing the earlier manifest to resolve its
+original version. Changed receipts, altered slot bytes, unexpected slot files and redirected version
+storage all fail closed.
 
 Payload Dumper uses a stricter release flow: ROMVERSE resolves the current host asset only from
 the official `ssut/payload-dumper-go` GitHub API, requires GitHub's asset SHA-256, restricts the

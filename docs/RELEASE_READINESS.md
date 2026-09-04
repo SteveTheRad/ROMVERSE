@@ -1580,9 +1580,16 @@ The product-wide continuation target and definition of done are recorded in
   transfer integrity rather than an official ROMVERSE release signature and runs no phone command.
   The Environment Proof card now lives inside the scroll surface; a fresh 1360-by-900 render confirms
   the title, actions, proof controls, communication evidence and first equipment slot remain visible
-  and aligned without forcing the window beyond the viewport. Content-addressed managed-version
-  isolation plus physical multi-host/USB-driver exercises are still required before Stage 12 can be
-  marked complete.
+  and aligned without forcing the window beyond the viewport.
+- Source-receipted managed executables used by exact local builds are now copied into private,
+  content-addressed version slots before any build output directory is created. The build executes
+  the isolated bytes and retains the manifest identity that selected them. A later valid managed-tool
+  update creates a separate slot; an older manifest can resolve the preserved older slot. System tools
+  remain in place under the existing before-and-after SHA-256 lock and are never copied. Tests cover
+  deterministic reuse, two versions side by side, active-source replacement during a successful build,
+  altered version bytes, unreceipted managed inputs, linked workspaces, linked slots, redirected version
+  roots and private modes. Physical multi-host/USB-driver exercises are still required before Stage 12
+  can be marked complete.
 - The approved ROMVERSE application logo and approved RadForge Labs company logo were not edited or
   replaced; their byte-exact regression checks remain green.
 

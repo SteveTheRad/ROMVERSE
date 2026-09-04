@@ -328,6 +328,19 @@ class _MutatingBuildRunner(_BuildRunner):
         return result
 
 
+class _UpdatingManagedSourceRunner(_BuildRunner):
+    def __init__(self, system_image: Path, managed_source: Path):
+        super().__init__(system_image)
+        self.managed_source = managed_source
+        self.updated = False
+
+    def run(self, args, timeout=10, cwd=None):
+        if not self.updated:
+            self.managed_source.write_bytes(b"newer managed avbtool")
+            self.updated = True
+        return super().run(args, timeout=timeout, cwd=cwd)
+
+
 def _executable_tools(tmp_path):
     tmp_path.mkdir(parents=True)
     paths = {}
@@ -521,3 +534,51 @@ def test_local_executor_stops_when_a_locked_tool_changes_during_build(tmp_path):
     assert payload["schema_version"] == 2
     assert len(payload["toolchain_manifest_digest"]) == 64
     assert payload["phone_changed"] is False
+
+
+def test_local_build_executes_preserved_managed_version_when_active_source_updates(
+    tmp_path,
+):
+    store, project, registry, _tools, _metadata, partitions = _fixture(tmp_path)
+    tools = list(_executable_tools(tmp_path / "tools"))
+    managed_root = store.workspace / "tools" / "downloads" / "avbtool"
+    managed_root.mkdir(parents=True)
+    managed_avb = managed_root / "avbtool"
+    managed_avb.write_bytes(b"original managed avbtool")
+    old_digest = hashlib.sha256(managed_avb.read_bytes()).hexdigest()
+    (managed_root / "managed-tool.romverse").write_text(
+        json.dumps(
+            {
+                "format": "romverse.managed-tool",
+                "schema_version": 1,
+                "name": "AVBTool",
+                "source": (
+                    "https://android.googlesource.com/platform/external/avb/+/"
+                    "refs/heads/main/avbtool.py?format=TEXT"
+                ),
+                "sha256": old_digest,
+                "executable": "avbtool",
+            }
+        ),
+        encoding="utf-8",
+    )
+    tools = tuple(
+        ToolStatus("AVBTool", True, str(managed_avb), "1")
+        if item.name == "AVBTool"
+        else item
+        for item in tools
+    )
+    DeviceBuildContractService(store, registry, tools).create_plan(project.project_id)
+    runner = _UpdatingManagedSourceRunner(partitions / "system.img", managed_avb)
+    executor = LocalDeviceBuildExecutor(store, registry, tools, runner)
+
+    receipt = executor.execute(project.project_id)
+
+    assert receipt.status == "success"
+    avb_calls = [call for call in runner.calls if "avbtool" in Path(call[0]).name]
+    assert avb_calls
+    assert all("tools/versioned" in call[0] for call in avb_calls)
+    preserved = Path(avb_calls[0][0])
+    assert preserved.read_bytes() == b"original managed avbtool"
+    assert old_digest in preserved.parts
+    assert managed_avb.read_bytes() == b"newer managed avbtool"

@@ -979,8 +979,10 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   managed packages. Importers must compare the full workspace-local Ed25519 signer fingerprint,
   explicitly approve the exact kit and pass a second full hash/receipt check; failed installation or
   evidence persistence restores the prior packages. This is labelled local transfer integrity, not
-  an official ROMVERSE release signature. The approved application and company logo bytes remain
-  locked and unchanged.
+  an official ROMVERSE release signature. Local builds copy each source-receipted managed executable
+  into an immutable content-addressed version slot and execute that copy; later managed updates create
+  new slots without replacing older build inputs. Host-installed tools remain hash-locked in place and
+  are never copied. The approved application and company logo bytes remain locked and unchanged.
 - **PARTIAL:** Genesis/Ascension/Guardian integration, Companion Vitalis/Lifeline, connected online
   remediation, and local Link are functional foundations but still need broader hardware testing.
   Connected remediation V2 preserves tamper-detecting receipts and presents source, explicit

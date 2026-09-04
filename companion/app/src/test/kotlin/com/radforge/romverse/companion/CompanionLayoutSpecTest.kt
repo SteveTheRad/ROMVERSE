@@ -18,6 +18,7 @@ class CompanionLayoutSpecTest {
         assertTrue(CompanionLayoutSpec.CONTROL_MIN_HEIGHT_DP >= 48)
         assertTrue(CompanionLayoutSpec.SOCIAL_ACTION_MIN_HEIGHT_DP >= 56)
         assertTrue(CompanionLayoutSpec.ABOUT_MARK_SIZE_DP in 144..200)
+        assertTrue(CompanionLayoutSpec.ABOUT_COMPANY_LOGO_HEIGHT_DP in 144..180)
         assertEquals(0, CompanionLayoutSpec.usableContentWidth(20))
     }
 }

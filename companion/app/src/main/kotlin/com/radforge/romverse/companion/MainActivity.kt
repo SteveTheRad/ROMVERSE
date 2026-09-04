@@ -3,6 +3,7 @@ package com.radforge.romverse.companion
 import android.graphics.Color
 import android.graphics.Canvas
 import android.graphics.BitmapFactory
+import android.graphics.Outline
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.RadialGradient
@@ -35,6 +36,7 @@ import android.os.SystemClock
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
 import android.view.View
+import android.view.ViewOutlineProvider
 import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.EditText
@@ -669,10 +671,14 @@ class MainActivity : ComponentActivity() {
             setPadding(0, 0, 0, 0)
             setOnClickListener { root.openDrawer(GravityCompat.START) }
         }, LinearLayout.LayoutParams(dp(48), dp(48)))
-        appBar.addView(ImageView(this).apply {
-            setImageResource(R.drawable.romverse_app_icon)
-            scaleType = ImageView.ScaleType.CENTER_INSIDE
-        }, LinearLayout.LayoutParams(dp(44), dp(44)).apply { marginStart = dp(8) })
+        appBar.addView(
+            romverseBrandMedallion(
+                sizeDp = 44,
+                description = "ROMVERSE approved app logo",
+                prominent = false,
+            ),
+            LinearLayout.LayoutParams(dp(44), dp(44)).apply { marginStart = dp(8) },
+        )
         navigationTitleView = text("COMMAND DECK", 14f, Color.WHITE, true).apply {
             letterSpacing = 0.08f
             maxLines = 2
@@ -697,14 +703,17 @@ class MainActivity : ComponentActivity() {
                 dp(CompanionLayoutSpec.CONTENT_BOTTOM_DP),
             )
         }
-        val mark = ImageView(this).apply {
-            setImageResource(R.drawable.romverse_app_icon)
-            scaleType = ImageView.ScaleType.CENTER_INSIDE
-            layoutParams = LinearLayout.LayoutParams(-1, dp(138)).apply {
+        val mark = romverseBrandMedallion(
+            sizeDp = 148,
+            description = "ROMVERSE approved animated logo",
+            prominent = true,
+        ).apply {
+            layoutParams = LinearLayout.LayoutParams(dp(148), dp(148)).apply {
                 gravity = Gravity.CENTER_HORIZONTAL
                 bottomMargin = dp(4)
             }
         }
+        animateBrandIdentity(mark, tiltDegrees = 0.8f)
         page.addView(mark)
         val homeIdentity = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -1295,7 +1304,12 @@ class MainActivity : ComponentActivity() {
         galaxyTab.setOnClickListener { scroll.smoothScrollTo(0, community.top) }
         aboutTab.setOnClickListener { scroll.smoothScrollTo(0, activity.top) }
         page.addView(space(dp(20)))
-        val footer = text("ROMVERSE Companion  •  v0.1.0\nA RadForge Labs Project", 12f, muted, false)
+        val footer = text(
+            "ROMVERSE Companion  •  v${BuildConfig.VERSION_NAME}\nA RadForge Labs Project",
+            12f,
+            muted,
+            false,
+        )
         footer.gravity = Gravity.CENTER
         page.addView(footer)
         scroll.addView(page)
@@ -1344,11 +1358,15 @@ class MainActivity : ComponentActivity() {
             view.setPadding(dp(14), dp(20) + bars.top, dp(14), dp(18) + bars.bottom)
             insets
         }
-        drawer.addView(ImageView(this).apply {
-            setImageResource(R.drawable.romverse_app_icon)
-            scaleType = ImageView.ScaleType.CENTER_INSIDE
-            contentDescription = "ROMVERSE Companion"
-            layoutParams = LinearLayout.LayoutParams(-1, dp(92))
+        drawer.addView(romverseBrandMedallion(
+            sizeDp = 100,
+            description = "ROMVERSE Companion",
+            prominent = true,
+        ).apply {
+            layoutParams = LinearLayout.LayoutParams(dp(100), dp(100)).apply {
+                gravity = Gravity.CENTER_HORIZONTAL
+                bottomMargin = dp(4)
+            }
         })
         drawer.addView(text("ROMVERSE COMPANION", 17f, Color.WHITE, true).apply {
             gravity = Gravity.CENTER
@@ -1522,6 +1540,160 @@ class MainActivity : ComponentActivity() {
         elevation = dp(2).toFloat()
         layoutParams = LinearLayout.LayoutParams(-1, -2).apply {
             bottomMargin = dp(CompanionLayoutSpec.CARD_GAP_DP)
+        }
+    }
+
+    private fun animateBrandIdentity(view: View, tiltDegrees: Float) {
+        val reducedMotion = userSettingsPrefs.getBoolean("reduced_motion", false)
+        if (reducedMotion || !android.animation.ValueAnimator.areAnimatorsEnabled()) return
+        val scaleX = android.animation.ObjectAnimator.ofFloat(view, "scaleX", 0.985f, 1.015f)
+        val scaleY = android.animation.ObjectAnimator.ofFloat(view, "scaleY", 0.985f, 1.015f)
+        val alpha = android.animation.ObjectAnimator.ofFloat(view, "alpha", 0.90f, 1f)
+        val rotation = android.animation.ObjectAnimator.ofFloat(
+            view,
+            "rotation",
+            -tiltDegrees,
+            tiltDegrees,
+        )
+        listOf(scaleX, scaleY, alpha, rotation).forEach { animator ->
+            animator.repeatCount = android.animation.ValueAnimator.INFINITE
+            animator.repeatMode = android.animation.ValueAnimator.REVERSE
+            animator.interpolator = android.view.animation.AccelerateDecelerateInterpolator()
+        }
+        scaleX.duration = 2_800L
+        scaleY.duration = 2_800L
+        alpha.duration = 2_800L
+        rotation.duration = 5_600L
+        val motion = android.animation.AnimatorSet().apply {
+            playTogether(scaleX, scaleY, alpha, rotation)
+        }
+        view.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(attached: View) {
+                if (!motion.isStarted) motion.start()
+            }
+
+            override fun onViewDetachedFromWindow(detached: View) {
+                motion.cancel()
+            }
+        })
+        if (view.isAttachedToWindow) motion.start()
+    }
+
+    /**
+     * Presents the approved square master as the circular crest it was designed to be.
+     * The bitmap remains byte-for-byte unchanged; only its on-screen frame is clipped.
+     */
+    private fun romverseBrandMedallion(
+        sizeDp: Int,
+        description: String?,
+        prominent: Boolean,
+    ): FrameLayout {
+        val frame = FrameLayout(this).apply {
+            contentDescription = description
+            importantForAccessibility = if (description == null) {
+                View.IMPORTANT_FOR_ACCESSIBILITY_NO
+            } else {
+                View.IMPORTANT_FOR_ACCESSIBILITY_YES
+            }
+        }
+        if (prominent) {
+            frame.addView(View(this).apply {
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    gradientType = GradientDrawable.RADIAL_GRADIENT
+                    colors = intArrayOf(
+                        "#6645CFE8".toColorInt(),
+                        "#332B7FFF".toColorInt(),
+                        Color.TRANSPARENT,
+                    )
+                    gradientRadius = dp(sizeDp).toFloat() / 2f
+                }
+            }, FrameLayout.LayoutParams(-1, -1))
+        }
+        val inset = if (prominent) (sizeDp * 0.08f).roundToInt().coerceAtLeast(6) else 1
+        val rim = View(this).apply {
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor("#B5050912".toColorInt())
+                setStroke(dp(if (prominent) 2 else 1), "#8845CFE8".toColorInt())
+            }
+        }
+        frame.addView(rim, FrameLayout.LayoutParams(-1, -1).apply {
+            setMargins(dp(inset), dp(inset), dp(inset), dp(inset))
+        })
+        frame.addView(ImageView(this).apply {
+            setImageResource(R.drawable.romverse_app_icon)
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            outlineProvider = ovalOutlineProvider
+            clipToOutline = true
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        }, FrameLayout.LayoutParams(-1, -1).apply {
+            val imageInset = dp(inset + if (prominent) 3 else 1)
+            setMargins(imageInset, imageInset, imageInset, imageInset)
+        })
+        return frame
+    }
+
+    /** A deliberate dark identity plate makes the official transparent logo field disappear. */
+    private fun radForgeBrandPlaque(): FrameLayout {
+        val plaque = FrameLayout(this).apply {
+            contentDescription = "RadForge Labs official animated company logo"
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
+            isClickable = true
+            isFocusable = true
+            background = GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                intArrayOf(
+                    "#FF030508".toColorInt(),
+                    "#FF080B11".toColorInt(),
+                    "#FF071019".toColorInt(),
+                ),
+            ).apply {
+                cornerRadius = dp(20).toFloat()
+                setStroke(dp(1), "#8852D9F2".toColorInt())
+            }
+            elevation = dp(5).toFloat()
+        }
+        plaque.addView(ImageView(this).apply {
+            setImageResource(R.drawable.radforge_labs_official_logo)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            adjustViewBounds = true
+            outlineProvider = roundedOutlineProvider(dp(15).toFloat())
+            clipToOutline = true
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        }, FrameLayout.LayoutParams(-1, -1).apply {
+            val horizontalInset = dp(10)
+            val verticalInset = dp(8)
+            setMargins(horizontalInset, verticalInset, horizontalInset, verticalInset)
+        })
+        plaque.addView(View(this).apply {
+            background = GradientDrawable(
+                GradientDrawable.Orientation.LEFT_RIGHT,
+                intArrayOf(
+                    Color.TRANSPARENT,
+                    "#FFB94C".toColorInt(),
+                    "#52D9F2".toColorInt(),
+                    Color.TRANSPARENT,
+                ),
+            ).apply { cornerRadius = dp(1).toFloat() }
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        }, FrameLayout.LayoutParams(-1, dp(2), Gravity.BOTTOM).apply {
+            marginStart = dp(28)
+            marginEnd = dp(28)
+            bottomMargin = dp(7)
+        })
+        return plaque
+    }
+
+    private val ovalOutlineProvider = object : ViewOutlineProvider() {
+        override fun getOutline(view: View, outline: Outline) {
+            outline.setOval(0, 0, view.width, view.height)
+        }
+    }
+
+    private fun roundedOutlineProvider(radius: Float) = object : ViewOutlineProvider() {
+        override fun getOutline(view: View, outline: Outline) {
+            outline.setRoundRect(0, 0, view.width, view.height, radius)
         }
     }
 
@@ -3634,10 +3806,11 @@ class MainActivity : ComponentActivity() {
                 detailView.visibility = View.GONE
                 var lastMarkTap = 0L
                 var originReplay: Button? = null
-                val mark = ImageView(this).apply {
-                    setImageResource(R.drawable.romverse_app_icon)
-                    scaleType = ImageView.ScaleType.CENTER_INSIDE
-                    contentDescription = "ROMVERSE mark"
+                val mark = romverseBrandMedallion(
+                    sizeDp = CompanionLayoutSpec.ABOUT_MARK_SIZE_DP,
+                    description = "ROMVERSE approved animated logo",
+                    prominent = true,
+                ).apply {
                     isClickable = true
                     isFocusable = true
                     setOnClickListener {
@@ -3667,6 +3840,7 @@ class MainActivity : ComponentActivity() {
                         bottomMargin = dp(12)
                     }
                 }
+                animateBrandIdentity(mark, tiltDegrees = 1.2f)
                 panel.addView(mark)
                 panel.addView(text("ROMVERSE COMPANION", 21f, Color.WHITE, true).apply {
                     gravity = Gravity.CENTER
@@ -3711,6 +3885,24 @@ class MainActivity : ComponentActivity() {
                     violet,
                 )
                 val identity = card()
+                val radForgeLogo = radForgeBrandPlaque().apply {
+                    layoutParams = LinearLayout.LayoutParams(
+                        -1,
+                        dp(CompanionLayoutSpec.ABOUT_COMPANY_LOGO_HEIGHT_DP),
+                    ).apply {
+                        gravity = Gravity.CENTER_HORIZONTAL
+                        bottomMargin = dp(8)
+                    }
+                    setOnClickListener {
+                        openOfficialPage(
+                            RADFORGE_LABS_URL,
+                            "radforgelabs.com",
+                            "RadForge Labs website",
+                        )
+                    }
+                }
+                animateBrandIdentity(radForgeLogo, tiltDegrees = 0.35f)
+                identity.addView(radForgeLogo)
                 identity.addView(text("A RADFORGE LABS PROJECT", 12f, violet, true).apply {
                     gravity = Gravity.CENTER
                 })
@@ -3875,11 +4067,14 @@ class MainActivity : ComponentActivity() {
             setPadding(dp(22), dp(24), dp(22), dp(24))
             background = glassCardBackground()
         }
-        centre.addView(ImageView(this).apply {
-            setImageResource(R.drawable.romverse_app_icon)
-            scaleType = ImageView.ScaleType.CENTER_INSIDE
-            contentDescription = null
-        }, LinearLayout.LayoutParams(-1, dp(92)))
+        centre.addView(romverseBrandMedallion(
+            sizeDp = 100,
+            description = null,
+            prominent = true,
+        ), LinearLayout.LayoutParams(dp(100), dp(100)).apply {
+            gravity = Gravity.CENTER_HORIZONTAL
+            bottomMargin = dp(6)
+        })
         centre.addView(text("PRIVACY CURTAIN", 13f, cyan, true).apply {
             gravity = Gravity.CENTER
             textAlignment = View.TEXT_ALIGNMENT_CENTER

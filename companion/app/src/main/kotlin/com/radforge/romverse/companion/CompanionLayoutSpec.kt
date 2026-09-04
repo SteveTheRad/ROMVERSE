@@ -11,6 +11,7 @@ object CompanionLayoutSpec {
     const val CONTROL_MIN_HEIGHT_DP = 52
     const val SOCIAL_ACTION_MIN_HEIGHT_DP = 64
     const val ABOUT_MARK_SIZE_DP = 176
+    const val ABOUT_COMPANY_LOGO_HEIGHT_DP = 160
 
     fun usableContentWidth(screenWidthDp: Int): Int =
         (screenWidthDp - CONTENT_HORIZONTAL_DP * 2).coerceAtLeast(0)

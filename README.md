@@ -24,6 +24,11 @@ website and social actions report browser-launch failure without implying that D
 state changed. The hidden Origin discovery remains replayable, while its tiny local record is
 strictly schema-validated, private, atomic, and deliberately carries no XP, membership, account, or
 device-operation authority.
+Companion build 7 now consumes those same byte-exact approved ROMVERSE and RadForge Labs masters,
+including regenerated launcher densities. Its in-app presentation circularly masks the ROMVERSE
+crest inside a subtle interface halo and seats RadForge Labs inside a purpose-built dark identity
+plate, eliminating the pasted-on rectangular edges without altering either approved master.
+Accessible Home/About motion respects both Reduced Effects and Android's system animator setting.
 Its ROMVERSE Now evidence map gives Guardian a full-width owner lane: About can display only the
 current Guardian Core audit/approval state, cannot turn green before full verification, and retires
 stale audit metadata to reverify-required without starting an approval or device action.
@@ -511,6 +516,15 @@ Guardian Manifest Review starts with an honest animated preflight, then displays
 artifact-binding byte percentage while declared images are rehashed. The binding phase's terminal
 100 is withheld while the broader command-free manifest is compiled; the review reaches 100 only
 after that final evidence exists. The former synthetic 90% and 94% milestones are not used.
+A forward-only Guardian runtime source boundary now completes the protocol after an externally
+enrolled runtime has supplied the missing trust, live-target, consent, session and one-use permit
+chain. It rehashes every artifact before device access, consumes the exact-target permit once,
+requires one freshly matching Fastboot target, runs only the signed read-only-first gateway prefix,
+verifies transition/readback/post-boot evidence, stops on first failure or cancellation, and signs a
+privacy-bounded result for the independent Desktop verifier. It has no recovery, wipe, unlock or
+relock surface. This source is not constructed by the current Desktop UI; production packaging,
+protected key enrollment, physical flashing validation and cross-transport identity continuity are
+still required before final consent or execution can be made available to users.
 Time Machine recovery records use a digested schema-two contract and bounded private atomic storage
 for both the public-safe evidence and its separate `0600` absolute locator. Extra fields, oversized
 or symlinked records, unsafe roles, changed project/source identity, and locators redirected into

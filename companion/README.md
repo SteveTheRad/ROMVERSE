@@ -41,6 +41,15 @@ Promise, SteveTheRad/RadForge Labs identity, ecosystem and trust boundaries, and
 website actions for `https://romverse.app/` and `https://radforgelabs.com/`, followed by Facebook
 and Reddit actions using their exact clean official destinations. The website and social rows use
 aligned touch targets, untinted vector marks, validated HTTPS hosts, and no tracking parameters.
+Companion `0.2.0-alpha.4` build 7 uses the exact approved Desktop ROMVERSE master for its launcher,
+app bar, Home, drawer, About identity and Origin portal. About also renders the exact official
+transparent RadForge Labs company master. The square ROMVERSE bitmap is presentation-clipped into
+its intended circular crest with a soft interface halo; the wide company artwork sits in a rounded,
+dark glass identity plate whose edge treatment matches its transparent field. This removes the
+pasted-on rectangle while leaving both approved source assets byte-exact. Home and About use a
+restrained breathing/tilt animation on the complete presentation, not the raw bitmap. Motion stops
+when detached and is disabled by either Companion Reduced Effects or Android's system animation
+setting; both official identities remain accessible static compositions when motion is off.
 Double-tapping the R
 discovers **ROMVERSE: The Origin**; the local discovery and **Beyond the Verse** state enable replay
 without inventing account XP. The purpose-built vertical experience presents the seven approved

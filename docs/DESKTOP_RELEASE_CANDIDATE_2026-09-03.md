@@ -167,9 +167,16 @@ in this report.
   unsafe claims, duplicate fields, links and tampering fail closed. A second create-once runtime
   claim converts that still-live grant into one memory-only exact-target open permit bound to the
   first read-only step, entry mode, product, unlocked state and slot; it also has one concurrent
-  winner and persists no raw token or serial. This is protocol/source evidence, not an enrolled or
-  separately packaged production runtime: no target opener, device runner, Android command,
-  recovery/wipe consent, result signer or physical validation has been added.
+  winner and persists no raw token or serial. A forward-only runtime source boundary now consumes
+  the permit once before any tool call, rehashes all write artifacts, freshly requires the one exact
+  Fastboot target, runs only the ordered gateway prefix, observes its signed mode/slot transitions,
+  hashes private readbacks, checks post-boot properties, stops on first failure/cancellation and
+  signs a result that the independent verifier accepts. Fixture coverage proves success, replay
+  rejection, wrong-target abort, same-size and changed-size artifact rejection before device access,
+  bad readback failure, exact-prefix failure and the absence of recovery/wipe/unlock/relock paths.
+  This remains source evidence, not an enrolled production runtime: separate packaging/self-integrity,
+  protected production key enrollment, transport-change identity binding and physical flashing
+  validation have not been completed, so the Desktop still exposes no final-consent or execute button.
 - A persistent user-supplied firmware responsibility notice and explicit import acknowledgement,
   without attempting to exclude rights or obligations that cannot legally be excluded.
 - Signed Desktop update checking and explicit, cancellable staging with measured progress, strict
@@ -180,6 +187,12 @@ in this report.
   Live Console, and Ascension status display under the tested local contracts. Desktop visibly
   restores a genuine remembered Link session after restart, reports its remaining lifetime, copies
   only a live one-time code, and provides explicit replacement and immediate wireless reset controls.
+- Companion build 7 uses the byte-exact approved Desktop ROMVERSE master for its launcher and in-app
+  identity, and the byte-exact official RadForge Labs company master on About. ROMVERSE is now
+  presentation-clipped as its intended circular crest inside a soft halo, while RadForge occupies a
+  rounded dark identity plate matched to the artwork field; neither approved bitmap is altered. Its
+  restrained composed-brand motion stops off-screen and respects Companion Reduced Effects plus
+  Android's animator setting.
 - A pinned Fedora launcher runs the installed wheel from the recovered data-drive source and opens
   the preserved recovered workspace.
 
@@ -199,13 +212,13 @@ in this report.
   inert: it never infers mode transitions, slot activation, reboot, wipe, rollback or recovery; it
   represents them only when an exact signed schema-three Pack declares them. No built-in Device Pack
   currently carries the required signed schema-two or schema-three contracts. Both gateway variants
-  are inert result templates—not execution receipts. A domain-separated Ed25519 result verifier is
-  now defined and tested, but it has no signer, runner or execution method and no production runtime
-  trust is enrolled. The read-only live-target receipt issuer and runtime-bound final-consent receipt
-  verifier/issuer are implemented but not physically validated; no consent can be created in the
-  production Desktop without enrolled trust, and atomic token consumption, separately consented
-  recovery/wipe, a governed runtime adapter, physical validation, and an actual signed result remain
-  unavailable.
+  are inert result templates—not execution receipts. The result verifier remains independent from
+  the new forward-only runtime source boundary, and no production runtime trust is enrolled. The
+  read-only live-target receipt issuer and runtime-bound final-consent receipt verifier/issuer are
+  implemented but not physically validated; no consent can be created in the production Desktop
+  without enrolled trust. Separate runtime packaging/self-integrity and key custody, cross-transport
+  exact-target binding, separately consented recovery/wipe and physical write/readback/post-boot
+  validation remain unavailable.
 - Physical-device and broad multi-OEM claims remain limited to the hardware evidence actually
   collected. Samsung Download Mode, Qualcomm EDL, MediaTek preloader, OEM unlock services, recovery
   signing, and other vendor-specific write paths still need separately reviewed adapters and signed

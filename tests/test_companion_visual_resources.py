@@ -68,6 +68,21 @@ def test_about_uses_a_standalone_social_icon_instead_of_button_tinting() -> None
     assert "CompanionLayoutSpec.CONTENT_HORIZONTAL_DP" in source
 
 
+def test_approved_brand_assets_are_composed_into_intentional_ui_frames() -> None:
+    source = (
+        ROOT / "companion/app/src/main/kotlin/com/radforge/romverse/companion/MainActivity.kt"
+    ).read_text(encoding="utf-8")
+
+    assert "private fun romverseBrandMedallion(" in source
+    assert "scaleType = ImageView.ScaleType.CENTER_CROP" in source
+    assert "outlineProvider = ovalOutlineProvider" in source
+    assert "clipToOutline = true" in source
+    assert "private fun radForgeBrandPlaque()" in source
+    assert '"#FF030508".toColorInt()' in source
+    assert 'setStroke(dp(1), "#8852D9F2".toColorInt())' in source
+    assert "animateBrandIdentity(radForgeLogo" in source
+
+
 def test_about_origin_is_double_tap_discovered_replayable_and_honest() -> None:
     source = (
         ROOT / "companion/app/src/main/kotlin/com/radforge/romverse/companion/MainActivity.kt"

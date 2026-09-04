@@ -434,6 +434,18 @@ class MainActivityInstrumentedTest {
             val views = descendants(activity.window.decorView)
             val texts = textValues(views)
             assertTrue(texts.contains("ABOUT ROMVERSE COMPANION"))
+            assertTrue(
+                views.any {
+                    it.contentDescription?.toString() == "ROMVERSE approved animated logo"
+                },
+            )
+            assertEquals(
+                1,
+                views.count {
+                    it.contentDescription?.toString() ==
+                        "RadForge Labs official animated company logo"
+                },
+            )
             assertEquals(
                 1,
                 views.count { it.contentDescription?.toString().orEmpty().startsWith("Facebook.") },

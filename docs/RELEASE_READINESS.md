@@ -285,10 +285,18 @@ policy evidence, not universal device assurance or a live flashing runtime.
    one memory-only exact-target open permit. It binds the first read-only gateway step/transport,
    entry mode, product, unlocked state, slot, Pack and runtime identity; one concurrent caller wins;
    no raw token or serial is persisted; and its audit record explicitly says target unopened, first
-   step unstarted and phone unchanged. No production runtime trust/key/process is enrolled. Fresh
-   runtime target re-identification plus atomic permit claim-and-open, separately consented
-   recovery/wipe paths, governed execution, physical validation and built-in schema-three Pack
-   authority remain unfinished.
+   step unstarted and phone unchanged. A new forward-only runtime source boundary then creates a
+   signed one-use permit-consumption record before any tool call, rehashes every artifact before
+   access and again before its write, requires exactly one fresh matching Fastboot serial, resolves
+   only exact gateway placeholders, executes only the read-only-first ordered prefix, verifies mode
+   and slot transitions, hashes private readbacks, checks post-boot properties, stops at the first
+   failure/cancellation, and signs plus independently verifies its result before private persistence.
+   Focused tests cover complete success, permit replay, wrong target, changed-size and same-size
+   artifact tampering before device access, mismatched readback, exact failure prefix, privacy and
+   the permanent absence of recovery/wipe/unlock/relock commands. No production runtime trust/key is
+   enrolled and the Desktop does not construct this executor. Separate production packaging and
+   self-integrity, OS-level identity continuity across Fastboot/ADB transitions, separately consented
+   recovery/wipe, physical validation and built-in schema-three Pack authority remain unfinished.
 
    Exact post-candidate source commit `898bd04d87fba52690a330d09eeb61c4275c3649` is fully green in
    GitHub Actions run `33797435368`: both Linux versions passed all 1,489 tests and complete Ruff
@@ -509,11 +517,25 @@ policy evidence, not universal device assurance or a live flashing runtime.
    foregrounded. No firmware, partition, root, wipe, reboot, unlock, relock, or bootloader operation
    was performed.
 
-   The same 2026-09-04 candidate passed all 1,536 Desktop tests and Ruff checks locally. Companion
+   The same 2026-09-04 candidate passed all 1,547 Desktop/Python contract tests and Ruff checks locally. Companion
    passed all 150 JVM tests, Android-test source compilation, clean debug assembly, APK ZIP/signature
    verification, and Android lint. GitHub Actions run `33817739893` did not start any runner steps:
    GitHub rejected every job at scheduling time because of the account payment/spending-limit state,
    so that red status is external CI infrastructure evidence rather than a code-test failure.
+
+   Companion `0.2.0-alpha.4` build 7 then replaced every launcher density and the in-app identity
+   asset with the byte-exact approved Desktop ROMVERSE master, and added the byte-exact official
+   RadForge Labs transparent company master to About. The UI now presentation-clips ROMVERSE into
+   its intended circular crest and halo, and blends RadForge into a rounded dark identity plate;
+   both master files remain byte-exact. Home and About animate the complete composed presentation
+   only while attached and only when both Companion Reduced Effects and Android's global animator
+   setting allow it. JVM tests, Android-test source compilation, debug assembly and Android lint
+   passed. The v2-signed debug APK SHA-256 is
+   `132db06e9ef9431bfbebabc8eb35d2dc1151441f0ca175216502bcb8cac0d056`; a data-preserving upgrade
+   installed on the authorized Xiaomi `popsicle`, and the copy at
+   `/sdcard/Download/ROMVERSE-Companion-0.2.0-alpha.4-build7-debug.apk` matched that digest. The phone
+   was dozing, so this records install/package/hash evidence rather than claiming a fresh physical
+   visual inspection of the new framing.
 
    Current repository evidence recorded on 2026-08-31 covers strict endpoint parsing, exact
    fingerprint comparison, refusal without active authenticated proof, bounded reconnect delay,

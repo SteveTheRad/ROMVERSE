@@ -737,9 +737,14 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   mode/product/unlocked/slot scope, and returns only a memory-held exact-target open permit; one
   concurrent claimant wins, no raw token or serial is persisted, and the record explicitly says the
   target remains unopened and the phone unchanged;
-  the separately packaged/enrolled production runtime, fresh target re-identification plus atomic
-  permit claim/device open, governed forward execution, result signing, recovery/wipe consent and
-  physical validation remain unavailable;
+  a forward-only runtime source boundary that consumes the open permit exactly once before device
+  access, rehashes all artifacts, freshly re-identifies one exact Fastboot serial, runs only the
+  signed read-only-first gateway prefix, verifies mode/slot/readback/post-boot evidence, stops on
+  first failure/cancellation, and produces an independently verified signed private result without
+  raw serial, token or tool output; it exposes no recovery/wipe/unlock/relock path;
+  separately packaged/self-verifying runtime delivery, protected production key enrollment,
+  cross-transport exact-device continuity, recovery/wipe consent and physical flashing validation
+  remain unavailable, so the shipping Desktop does not expose final consent or execution;
   end-to-end Desktop presentation of that inert chain through the managed ROM Studio Guardian
   worker, with a single monotonic byte-derived scale across each required artifact rehash, terminal
   100 only after the applicable private records are sealed, readable dark scroll cards for

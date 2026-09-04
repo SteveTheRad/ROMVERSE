@@ -579,9 +579,19 @@ wins; neither token nor the raw target serial is persisted; and the first bound 
 read-only precondition. Loading the claim is audit-only and cannot recreate its permit. It explicitly
 records target unopened, first forward step unstarted and phone unchanged. No production runtime
 key/process is enrolled and the Desktop never imports or exposes either signer. A separately
-packaged and enrolled production runtime, fresh target re-identification plus atomic permit
-claim-and-device-open inside that runtime, governed forward executor, distinct recovery/wipe consent,
-signed result production and physical-device validation remain required.
+packaged runtime source boundary now consumes that target-open permit through a create-once signed
+record before any tool call, revalidates every artifact before device access and immediately before
+its write, then requires exactly one freshly discovered matching Fastboot serial. It resolves only
+the gateway's exact target/workspace/private-output placeholders, runs the read-only-first ordered
+forward prefix, observes signed mode/slot transitions, hashes full private readbacks, verifies
+allowlisted post-boot properties, stops on the first failure or operator cancellation, and verifies
+its own domain-separated signed result before preserving it. The result and open records persist no
+raw serial, raw token, stdout or stderr. The executor exposes no recovery action, automatic wipe,
+unlock or relock path; recovery and wipe remain separately unconsented. It is not constructed or
+enrolled by the shipping Desktop UI. Separate production packaging and runtime self-integrity,
+externally protected/enrolled production keys, OS-level exact-device binding across transport
+changes, distinct recovery/wipe consent, hostile-runner review and physical-device validation remain
+required before the final-consent control can be exposed.
 
 ROM Studio's managed Guardian review worker carries this inert chain through the actual Desktop
 journey. It seals the command-free manifest, independently rehashes the same artifacts for the inert

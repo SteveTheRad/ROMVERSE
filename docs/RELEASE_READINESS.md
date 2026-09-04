@@ -277,6 +277,34 @@ verified 453-file, 355,969,615-expanded-byte portable ZIP has SHA-256
 it provides no CI evidence. No phone, firmware, partition, bootloader, flash, or installation
 operation was performed.
 
+The broad Android OTA relationship and expanded offline-brain increment at exact packaged
+checkpoint `40ebfe0` passes all 1,679 Desktop tests and the complete Ruff check/format gates across
+383 Python and release-script files. Standard Android OTA comparison now uses exact target/update-path
+preconditions followed by post-build identity, SDK level, build timestamp, and security-patch date.
+Exact post-build identity remains the only generic proof that the package is already installed. For
+a different build, every available directional signal must agree; a newer SDK or security patch can
+support an Upgrade Candidate when timestamps are absent, while conflicting signals remain visibly
+Unconfirmed. Impossible patch dates and malformed OTA ZIP containers are rejected instead of falling
+back to filename evidence. Device DNA retains the individual conflict reasons so the automatic
+offline diagnosis query can use the actual failure evidence. These classifications grant no install
+or flash authority.
+
+The same checkpoint incorporates archive commit `86dc348`: the packaged offline brain now contains
+221 structured records and 129 attributed sources, including canonical AOSP update-engine errors,
+A/B and Virtual A/B boundaries, AVB constraints, maintained Android model/codename aliases, and
+precisely scoped community recovery outcomes. Existing local archives reconcile newer packaged
+records on app upgrade while preserving higher locally reviewed revisions; equal-revision content or
+provenance conflicts fail closed. The fresh 250-member wheel contains all 21 Device Packs, is
+7,907,973 bytes, and has SHA-256
+`ea2f7ec5b5f9961cee1a7e3fa76f6fcba8dd9961e472d946f91668ca0e24359c`. Its separate Python 3.14
+install passes fresh/populated-workspace startup, the 221-record offline archive, 169 known fixes, all
+19 routes, structured Archives UI, and byte-exact reopening. The self-contained Fedora app launches
+successfully; its verified 454-file, 356,034,840-expanded-byte portable ZIP is 146,872,042 bytes and
+has SHA-256 `e5ed95c26c74594d88b2d69afdae5209e2094aae0ecca644822234637a4cdade`.
+These are local Linux checkpoint artifacts; Windows and GitHub runner evidence has not yet been
+created for this exact commit. No phone, firmware, partition, bootloader, flash, or installation
+operation was performed.
+
 ## Required gates
 
 1. Run the complete `pytest`, `ruff check .`, and `ruff format --check .` gates on supported Linux

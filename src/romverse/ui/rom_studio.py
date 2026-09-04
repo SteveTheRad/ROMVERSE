@@ -66,6 +66,7 @@ from romverse.infrastructure.process import SubprocessRunner
 from romverse.infrastructure.provisioning import required_tools_for_source
 from romverse.infrastructure.tools import ToolStatus, ToolVerifier
 from romverse.intelligence.online_remediation import OnlineFixReceipt, SourceAuthority
+from romverse.knowledge.models import KnowledgeFailure
 from romverse.nexus.compatibility import CompatibilityMatrix, CompatibilityMatrixService
 from romverse.nexus.planning import NexusPlanStore
 from romverse.platform.host import current_host
@@ -2727,10 +2728,43 @@ class RomStudio(QWidget):
         failure = BootObservationService.knowledge_failure(receipt)
         if failure is None:
             return None
-        report = self.device_dna.scan_knowledge_after_failure(receipt.project_id, failure)
+        return self.scan_failure_knowledge(receipt.project_id, failure)
+
+    def scan_failure_knowledge(self, project_id: str, failure: KnowledgeFailure):
+        """Run one project-scoped local diagnosis and announce the inert result."""
+
+        report = self.device_dna.scan_knowledge_after_failure(project_id, failure)
         if report is not None:
             self.offline_knowledge_updated.emit(report)
         return report
+
+    def scan_operation_failure_knowledge(
+        self,
+        project_id: str,
+        operation: str,
+        message: str,
+    ):
+        """Translate a bounded ROM worker failure into offline diagnostic evidence."""
+
+        normalized_operation = operation.replace("\x00", " ").strip()[:160] or "unknown"
+        normalized_message = message.replace("\x00", " ").strip()[:4_000]
+        phase = (
+            "flash"
+            if any(
+                token in normalized_operation.casefold()
+                for token in ("flash", "guardian", "install", "fastboot")
+            )
+            else "build"
+        )
+        return self.scan_failure_knowledge(
+            project_id,
+            KnowledgeFailure(
+                phase=phase,
+                message=normalized_message or "ROM Studio operation failed without detail",
+                finding_ids=(f"{phase}.operation_failed",),
+                operation=normalized_operation,
+            ),
+        )
 
     def set_companion_snapshot(self, snapshot: object) -> None:
         """Receive authenticated, read-only Companion device-safety evidence."""
@@ -4390,13 +4424,27 @@ class RomStudio(QWidget):
         self.new_button.setEnabled(True)
         self.project_list.setEnabled(True)
         self.progress.stop()
-        self.operation_status.setText(
-            message + ("\n" + self._recovery_notice(recovery) if recovery is not None else "")
-        )
-        self.operation_status.setObjectName("Danger")
-        self._repolish(self.operation_status)
+        status = message + ("\n" + self._recovery_notice(recovery) if recovery is not None else "")
         if self.current_project is not None:
             self._select(self.project_list.currentRow())
+            report = self.scan_operation_failure_knowledge(
+                self.current_project.project_id,
+                operation,
+                message,
+            )
+            if report is not None:
+                best = (
+                    f" Best match: {report.matches[0].record.title}."
+                    if report.matches
+                    else " No compatible local record matched; ROMVERSE did not guess."
+                )
+                status += (
+                    f"\nOffline Archives scanned {len(report.matches)} compatible match(es)."
+                    f"{best} Guidance only; no action started."
+                )
+        self.operation_status.setText(status)
+        self.operation_status.setObjectName("Danger")
+        self._repolish(self.operation_status)
         self.operation_failed.emit(operation, message)
 
     def _render_inspection(self, report: RomInspectionReport | None) -> None:

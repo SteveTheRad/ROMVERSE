@@ -338,3 +338,23 @@ def test_typed_boot_failure_requeries_device_dna_and_ranks_exact_error(tmp_path)
     assert "exact error" in report.matches[0].explanation.casefold()
     assert report.execution_authority == "none"
     assert "EXECUTION AUTHORITY • NONE" in report.plain_text
+
+
+def test_exact_failure_symptom_outranks_unrelated_device_profile_terms(tmp_path) -> None:
+    store, registry, project, inspection = _project(tmp_path)
+    service = DeviceDnaService(store, registry)
+    service.refresh(project.project_id, _device(), inspection)
+
+    report = service.scan_knowledge_after_failure(
+        project.project_id,
+        KnowledgeFailure(
+            phase="build",
+            message="adb: error: more than one device/emulator",
+            finding_ids=("build.operation_failed",),
+            operation="extract",
+        ),
+    )
+
+    assert report is not None
+    assert report.matches[0].record.record_id == "catalog.adb-multiple-targets"
+    assert "failure symptom" in report.matches[0].explanation.casefold()

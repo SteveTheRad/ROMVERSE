@@ -643,6 +643,32 @@ def test_rom_studio_creates_and_renders_device_dna_without_guessing(tmp_path):
     studio.close()
 
 
+def test_rom_studio_worker_failure_automatically_queries_offline_archives(tmp_path):
+    QApplication.instance() or QApplication([])
+    source = tmp_path / "failure-fixture.zip"
+    with zipfile.ZipFile(source, "w") as archive:
+        archive.writestr("payload.bin", b"CrAU test")
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.import_original(store.create("Failure lookup").project_id, source)
+    studio = RomStudio(store, DevicePackRegistry(()))
+    studio.refresh(project.project_id)
+    reports = []
+    studio.offline_knowledge_updated.connect(reports.append)
+    studio._active_operation = "extract"
+    studio._active_project_id = project.project_id
+
+    studio._worker_failed("adb: error: more than one device/emulator")
+
+    assert reports
+    report = reports[-1]
+    assert report.trigger == "build-failure"
+    assert report.execution_authority == "none"
+    assert report.matches[0].record.record_id == "catalog.adb-multiple-targets"
+    assert "Offline Archives scanned" in studio.operation_status.text()
+    assert "guidance only; no action started" in studio.operation_status.text().casefold()
+    studio.close()
+
+
 def test_rom_studio_renders_a_newer_same_device_firmware_as_an_upgrade_candidate(tmp_path):
     app = QApplication.instance() or QApplication([])
     source = tmp_path / "popsicle-ota_full-OS4.0.0.25.XPBCNXM-user-17.0-test.zip"

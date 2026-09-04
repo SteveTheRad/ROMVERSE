@@ -243,6 +243,7 @@ def _score_record(
 
     score += _match_values(query.error_codes, record.error_codes, 1_600, "error", matched)
     score += _embedded_error_match(query.symptoms, record.error_codes, matched)
+    score += _embedded_symptom_match(query.symptoms, record.symptoms, matched)
     score += _match_values(query.finding_ids, record.finding_ids, 1_300, "finding", matched)
     score += _scope_score(record.scope.build_ids, query.build_ids, 1_000, "build", matched, missing)
     score += _scope_score(
@@ -329,6 +330,31 @@ def _embedded_error_match(
         if len(needle) >= 4 and needle in haystack:
             matched.append(f"exact error in failure text: {error}")
             return 1_500
+    return 0
+
+
+def _embedded_symptom_match(
+    symptoms: tuple[str, ...],
+    record_symptoms: tuple[str, ...],
+    matched: list[str],
+) -> int:
+    for observed in symptoms:
+        observed_text = _normalize(observed)
+        observed_tokens = set(observed_text.split())
+        for known in record_symptoms:
+            known_text = _normalize(known)
+            known_tokens = {
+                token
+                for token in known_text.split()
+                if token not in _STOP_WORDS and len(token) >= 3
+            }
+            if not known_text or not known_tokens:
+                continue
+            if known_text in observed_text or (
+                len(known_tokens) >= 3 and known_tokens <= observed_tokens
+            ):
+                matched.append(f"failure symptom: {known[:120]}")
+                return 1_000
     return 0
 
 

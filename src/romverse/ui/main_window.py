@@ -3768,6 +3768,7 @@ class MainWindow(QMainWindow):
             host_repair_service,
             self.nexus_events,
             recovery_online_service,
+            OfflineKnowledgeService(workspace),
         )
         self.repair_center.knowledge_requested.connect(self._open_knowledge_query)
         self.repair_center.knowledge_article_requested.connect(self._open_knowledge_article)

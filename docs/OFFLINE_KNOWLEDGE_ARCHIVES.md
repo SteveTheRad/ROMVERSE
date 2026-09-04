@@ -72,6 +72,14 @@ failure lookup. The desktop Archives also searches the structured records direct
 scope, confidence, corroboration count, diagnostic steps, compatible guidance, known
 incompatibilities, and provenance alongside the original curated guides.
 
+Recovery Bay automatically builds a privacy-safe query from the selected device identity, Android
+build, bootloader state, exact typed symptom, ADB errors, and current diagnostic finding IDs. It
+shows the top compatible structured records inside the safety plan and includes their record IDs,
+confidence, corroboration and source IDs in the exportable local report. ROM Studio worker failures
+use the same path. Exact observed failure symptoms outrank unrelated broad Device DNA terms, so a
+specific transport or tool error cannot be buried by generic profile context. These automatic scans
+start no online request, repair worker, command, or phone action.
+
 ## Persistence and import
 
 The packaged core and OEM recovery evidence packs are merged and copied on first use to

@@ -44,6 +44,8 @@ from romverse.intelligence.online_remediation import (
     synthesize_remediation,
 )
 from romverse.knowledge.advisor import ArchiveRecommendation, recommend_for_repair
+from romverse.knowledge.lookup import OfflineKnowledgeService
+from romverse.knowledge.models import KnowledgeLookupReport, KnowledgeQuery
 from romverse.nexus.events import (
     LiveConsoleEventStore,
     LiveConsoleStoreError,
@@ -133,6 +135,7 @@ class RepairCenter(QWidget):
         host_repair_service: AdbHostRepairService | None = None,
         live_console_store: LiveConsoleEventStore | None = None,
         online_service: OnlineRemediationService | None = None,
+        offline_service: OfflineKnowledgeService | None = None,
     ) -> None:
         super().__init__()
         self.analyzer = analyzer
@@ -144,6 +147,9 @@ class RepairCenter(QWidget):
         self.host_repair_service = host_repair_service
         self.live_console_store = live_console_store
         self.online_service = online_service
+        self.offline_service = offline_service
+        self.offline_report: KnowledgeLookupReport | None = None
+        self.offline_error = ""
         self.devices: list[AndroidDevice] = []
         self._report_payload: dict[str, object] | None = None
         self.current_device: AndroidDevice | None = None
@@ -696,6 +702,7 @@ class RepairCenter(QWidget):
         self.current_device = device
         self.current_report = report
         self.current_concern = concern
+        self._scan_offline_knowledge(device, report, concern)
         self.active_session = self._matching_session(device, concern)
         manifest = self.templates.build(concern, device, report)
         assessment = self.preflight.assess(manifest)
@@ -838,6 +845,66 @@ class RepairCenter(QWidget):
         if self._diagnostic_context_id:
             self.diagnostic_requested.emit(self._diagnostic_context_id)
 
+    def _scan_offline_knowledge(
+        self,
+        device: AndroidDevice,
+        report: DiagnosticReport,
+        concern: RepairConcern,
+    ) -> None:
+        """Automatically rank the private archive from the current read-only evidence."""
+
+        self.offline_report = None
+        self.offline_error = ""
+        if self.offline_service is None:
+            return
+
+        def values(*items: str) -> tuple[str, ...]:
+            return tuple(
+                dict.fromkeys(
+                    item.replace("\x00", " ").strip()[:500]
+                    for item in items
+                    if item and item.replace("\x00", " ").strip()
+                )
+            )
+
+        typed = self.symptom_input.text().replace("\x00", " ").strip()[:600]
+        finding_text = tuple(
+            f"{finding.title}. {finding.explanation}" for finding in report.findings
+        )
+        symptoms = values(typed, *device.errors[:6], *finding_text)
+        finding_ids = values(*(finding.finding_id for finding in report.findings))
+        bootloader_state = (
+            "locked"
+            if device.bootloader_locked is True
+            else "unlocked"
+            if device.bootloader_locked is False
+            else ""
+        )
+        query = KnowledgeQuery(
+            manufacturers=values(device.manufacturer),
+            brands=values(device.brand),
+            models=values(device.model, device.marketing_name),
+            codenames=values(device.codename, device.product, device.vendor_device),
+            build_ids=values(device.rom_display, device.build_id, device.build_incremental),
+            android_versions=values(device.android_version),
+            bootloader_states=values(bootloader_state),
+            symptoms=symptoms,
+            finding_ids=finding_ids,
+            evidence_terms=values(
+                concern.value,
+                f"Android state {device.state.value}",
+                *(finding.guidance for finding in report.findings),
+            ),
+        )
+        try:
+            self.offline_report = self.offline_service.lookup(
+                query,
+                trigger="recovery-bay",
+                limit=5,
+            )
+        except (OSError, TypeError, ValueError) as exc:
+            self.offline_error = str(exc)[:500]
+
     def _render(
         self,
         manifest: OperationManifest,
@@ -916,6 +983,30 @@ class RepairCenter(QWidget):
                 }
                 for recommendation in archive_recommendations
             ],
+            "offline_knowledge": (
+                {
+                    "trigger": self.offline_report.trigger,
+                    "query_digest": self.offline_report.query_digest,
+                    "archive_digest": self.offline_report.archive_digest,
+                    "execution_authority": self.offline_report.execution_authority,
+                    "matches": [
+                        {
+                            "record_id": match.record.record_id,
+                            "title": match.record.title,
+                            "match_confidence": match.confidence.value,
+                            "record_confidence": match.record.confidence.value,
+                            "corroboration_count": match.record.corroboration_count,
+                            "source_ids": list(match.record.source_ids),
+                        }
+                        for match in self.offline_report.matches
+                    ],
+                }
+                if self.offline_report is not None
+                else {
+                    "unavailable": bool(self.offline_error),
+                    "execution_authority": "none",
+                }
+            ),
             "device_pack": (
                 {
                     "pack_id": active_pack.pack_id,
@@ -974,6 +1065,8 @@ class RepairCenter(QWidget):
 
         if archive_recommendations:
             self._render_archive_advisor(archive_recommendations)
+        if self.offline_service is not None:
+            self._render_offline_knowledge()
 
         # Offline repair playbook: explain the issue, evidence, and next actions
         # in plain language alongside the Guardian preflight.  This remains
@@ -1106,6 +1199,89 @@ class RepairCenter(QWidget):
             self.body_layout.addWidget(card)
         self._configure_host_repair(device=self.current_device, concern=concern)
         self.body_layout.addStretch()
+
+    def _render_offline_knowledge(self) -> None:
+        card = QFrame()
+        card.setObjectName("HeroCard")
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(20, 17, 20, 17)
+        header = QHBoxLayout()
+        title = QLabel("OFFLINE ARCHIVES BRAIN  •  AUTOMATIC EVIDENCE MATCH")
+        title.setObjectName("Eyebrow")
+        header.addWidget(title)
+        header.addStretch()
+        report = self.offline_report
+        status = QLabel()
+        if report is None:
+            status.setText("UNAVAILABLE")
+            status.setObjectName("Warning")
+        elif report.matches:
+            status.setText(
+                f"{len(report.matches)} COMPATIBLE MATCH{'ES' if len(report.matches) != 1 else ''}"
+            )
+            status.setObjectName("Good")
+        else:
+            status.setText("NO COMPATIBLE MATCH")
+            status.setObjectName("Warning")
+        header.addWidget(status)
+        layout.addLayout(header)
+
+        if report is None:
+            detail = QLabel(
+                "The integrity-checked offline archive could not be queried. ROMVERSE kept the "
+                "failure separate from the device assessment and did not guess a repair."
+            )
+            detail.setObjectName("Warning")
+            detail.setWordWrap(True)
+            layout.addWidget(detail)
+        elif not report.matches:
+            detail = QLabel(
+                "No record matched the current device, build, symptom, and diagnostic evidence. "
+                "The cause remains unknown; collect more exact evidence before taking action."
+            )
+            detail.setObjectName("Muted")
+            detail.setWordWrap(True)
+            layout.addWidget(detail)
+        else:
+            for index, match in enumerate(report.matches[:3], 1):
+                source_names = ", ".join(source.label for source in match.provenance)
+                match_title = QLabel(
+                    f"{index}. {match.record.title}  •  {match.confidence.value.upper()} MATCH"
+                )
+                match_title.setObjectName("SectionTitle")
+                match_title.setWordWrap(True)
+                match_detail = QLabel(
+                    f"{match.explanation}\n"
+                    f"Scope: {match.record.scope.scope_note or 'Not specified'}\n"
+                    f"Record confidence: {match.record.confidence.value}  •  "
+                    f"corroborated outcome/report count: {match.record.corroboration_count}\n"
+                    f"Sources: {source_names or 'No valid provenance'}"
+                )
+                match_detail.setObjectName("Muted")
+                match_detail.setWordWrap(True)
+                layout.addWidget(match_title)
+                layout.addWidget(match_detail)
+            open_matches = QPushButton("Review all matching offline evidence")
+            open_matches.setObjectName("Primary")
+            open_matches.setToolTip(
+                "Open ROMVERSE Archives with this exact symptom. This starts no repair, "
+                "command, flash, wipe, or phone action."
+            )
+            query = (
+                self.symptom_input.text().replace("\x00", " ").strip()[:160]
+                or report.matches[0].record.title[:160]
+            )
+            open_matches.clicked.connect(
+                lambda _checked=False, value=query: self.knowledge_requested.emit(value)
+            )
+            layout.addWidget(open_matches, 0, Qt.AlignmentFlag.AlignLeft)
+        boundary = QLabel(
+            "LOCAL EVIDENCE: GUIDANCE ONLY  •  EXECUTION AUTHORITY: NONE  •  PHONE CHANGES: NONE"
+        )
+        boundary.setObjectName("Warning")
+        boundary.setWordWrap(True)
+        layout.addWidget(boundary)
+        self.body_layout.addWidget(card)
 
     def _render_archive_advisor(
         self,

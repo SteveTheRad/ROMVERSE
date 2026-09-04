@@ -23,6 +23,7 @@ from romverse.intelligence.online_remediation import (
     OnlineRemediationService,
     SourceAuthority,
 )
+from romverse.knowledge.lookup import OfflineKnowledgeService
 from romverse.repair.host import AdbHostRepairReceiptStore, AdbHostRepairService
 from romverse.repair.templates import RepairAssessmentTemplates, RepairConcern
 from romverse.ui.repair_center import RepairCenter
@@ -322,6 +323,45 @@ def test_recovery_bay_searches_local_archives_without_starting_a_repair(tmp_path
     assert queries == ["INSTALL_FAILED_VERSION_DOWNGRADE"]
     assert center.active_session is None
     assert center.host_repair_worker is None
+    center.close()
+
+
+def test_recovery_bay_automatically_ranks_structured_offline_evidence(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = RepairCenter(
+        DiagnosticAnalyzer(),
+        RepairAssessmentTemplates(),
+        GuardianPreflight(),
+        tmp_path,
+        ActivityStore(tmp_path),
+        offline_service=OfflineKnowledgeService(tmp_path),
+    )
+    center.symptom_input.setText("adb: error: more than one device/emulator")
+    center.set_devices([device()])
+    app.processEvents()
+
+    assert center.offline_report is not None
+    assert center.offline_report.trigger == "recovery-bay"
+    assert center.offline_report.execution_authority == "none"
+    assert center.offline_report.matches[0].record.record_id == "catalog.adb-multiple-targets"
+    labels = "\n".join(label.text() for label in center.findChildren(QLabel))
+    assert "OFFLINE ARCHIVES BRAIN" in labels
+    assert "AUTOMATIC EVIDENCE MATCH" in labels
+    assert "EXECUTION AUTHORITY: NONE" in labels
+    assert "PHONE CHANGES: NONE" in labels
+    assert center._report_payload is not None
+    offline_payload = center._report_payload["offline_knowledge"]
+    assert offline_payload["matches"][0]["record_id"] == "catalog.adb-multiple-targets"
+    queries: list[str] = []
+    center.knowledge_requested.connect(queries.append)
+    review = next(
+        button
+        for button in center.findChildren(QPushButton)
+        if button.text() == "Review all matching offline evidence"
+    )
+    review.click()
+    assert queries == ["adb: error: more than one device/emulator"]
+    assert center.active_session is None
     center.close()
 
 

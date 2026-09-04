@@ -66,6 +66,14 @@ incompatibility; signed incremental OTA pre-build requirements remain exact. Imp
 the user supplied the firmware and is responsible for its trusted official source and exact update
 path. The acknowledgement does not create compatibility, installation, flash, or blanket legal
 waiver authority.
+The Desktop Firmware Upgrade Passport must present this exact source/live-device relationship near
+the top of ROM Studio and re-evaluate it inside Forge readiness. It binds the protected source and
+evidence digests, exposes the reasons and next safe step, and always states install/flash authority
+`NO`, phone changed `NO`, and bootloader relock `NEVER`. Same-version and downgrade inputs are not
+upgrades and require an exact Pack for any explicit reinstall/recovery/downgrade route; wrong-device
+and rejected OTA metadata stop the route. Unknown evidence remains Attention. Cross-channel
+upgrades are reviewable and may satisfy the relationship gate only when the separate exact
+flash-certified Device Pack proves the operation contract; physical country is never a gate.
 The persisted profile uses bounded private atomic schema-two storage, strict nested shapes and
 cross-references, exact protected-source binding, and a digest over the normalized profile. Valid
 schema-one evidence remains readable and refreshes forward. Structure-backed facts consume only the

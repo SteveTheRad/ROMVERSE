@@ -50,6 +50,12 @@ scripts/                  Linux and Windows environment bootstrap
 - Publish Device Engine snapshots to later diagnostics, Companion, and Galaxy integrations.
 - Treat Device DNA as the authoritative project evidence profile; Compatibility Matrix and Nexus
   plans must bind its digest and become invalid when the source evidence changes.
+- Derive the Firmware Upgrade Passport from the same bounded relationship engine used by Device DNA,
+  bind it to the current protected source and live device, and recompute it inside Forge readiness.
+  Relationship classification must stay separate from installation authority: same and downgrade
+  are never labelled upgrades and need an exact alternate-route contract; incompatible and rejected
+  metadata stay blocked; unknown states remain Attention; and a distribution-channel change is
+  reviewed against the exact Device Pack contract rather than physical country.
 - Persist Device DNA through a bounded private atomic schema-two contract with exact top-level and
   nested shapes, typed enums, bounded collections, valid evidence cross-references, source binding,
   and an invariant UNSUPPORTED bootloader-relock capability. Consume structure facts only from the

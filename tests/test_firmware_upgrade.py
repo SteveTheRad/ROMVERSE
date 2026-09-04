@@ -1,5 +1,14 @@
+import hashlib
+import zipfile
+
+from romverse.device.models import AndroidDevice, DeviceState
 from romverse.rom.ota_metadata import parse_android_ota_metadata
-from romverse.rom.upgrade import FirmwareRelationship, assess_firmware_upgrade
+from romverse.rom.projects import RomProjectStore
+from romverse.rom.upgrade import (
+    FirmwareRelationship,
+    assess_firmware_upgrade,
+    assess_project_firmware_upgrade,
+)
 
 
 def _assess(current: str, candidate: str, *, target: str = "popsicle"):
@@ -203,3 +212,59 @@ def test_generic_android_ota_stays_unconfirmed_without_comparable_timestamp() ->
     )
 
     assert result.relationship is FirmwareRelationship.UNCONFIRMED
+
+
+def test_project_review_binds_upgrade_classification_to_the_protected_source(tmp_path) -> None:
+    source = tmp_path / "popsicle-ota_full-OS4.0.0.25.XPBCNXM-user-17.0-test.zip"
+    with zipfile.ZipFile(source, "w") as archive:
+        archive.writestr("payload.bin", b"CrAU test")
+        archive.writestr("META-INF/com/android/metadata", "ota-type=AB\n")
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.import_original(store.create("Upgrade review").project_id, source)
+    device = AndroidDevice(
+        "private-serial",
+        DeviceState.DEVICE,
+        manufacturer="Xiaomi",
+        model="2509FPN0BC",
+        codename="popsicle",
+        product="popsicle",
+        rom_display="OS4.0.0.23.XPBCNXM",
+    )
+
+    review = assess_project_firmware_upgrade(store, project.project_id, device)
+
+    assert review.assessment.relationship is FirmwareRelationship.UPGRADE
+    assert review.assessment.summary.startswith("UPGRADE CANDIDATE")
+    assert (
+        review.source_sha256
+        == hashlib.sha256(store.original_path(project.project_id).read_bytes()).hexdigest()
+    )
+    assert review.evidence_kind == "bounded vendor build identity"
+    assert review.authority == "firmware-relationship-classification-only"
+    assert not review.install_authority
+    assert not review.phone_changed
+
+
+def test_project_review_rejects_bad_ota_metadata_instead_of_falling_back_to_filename(
+    tmp_path,
+) -> None:
+    source = tmp_path / "popsicle-ota_full-OS4.0.0.25.XPBCNXM-user-17.0-test.zip"
+    with zipfile.ZipFile(source, "w") as archive:
+        archive.writestr("payload.bin", b"CrAU test")
+        archive.writestr("META-INF/com/android/metadata", "not-a-valid-line\n")
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.import_original(store.create("Rejected metadata").project_id, source)
+    device = AndroidDevice(
+        "private-serial",
+        DeviceState.DEVICE,
+        codename="popsicle",
+        rom_display="OS4.0.0.23.XPBCNXM",
+    )
+
+    review = assess_project_firmware_upgrade(store, project.project_id, device)
+
+    assert review.metadata_error
+    assert review.assessment.relationship is FirmwareRelationship.UNCONFIRMED
+    assert any("will not replace rejected" in item for item in review.assessment.reasons)
+    assert not review.install_authority
+    assert not review.phone_changed

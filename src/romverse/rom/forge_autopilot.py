@@ -97,6 +97,11 @@ _ACTIONS: dict[str, tuple[str, ResolutionKind, str]] = {
         ResolutionKind.EXTERNAL_EVIDENCE,
         "Automatic local preparation is complete; Guardian now requires a signed exact-device partition-write and physical-recovery contract.",
     ),
+    "firmware-upgrade": (
+        "review-firmware-upgrade",
+        ResolutionKind.GUIDED_INPUT,
+        "Review the source-bound Upgrade Passport and supply a newer exact-device package or the missing channel/update-path evidence.",
+    ),
     "user-backup": (
         "confirm-user-backup",
         ResolutionKind.GUIDED_INPUT,

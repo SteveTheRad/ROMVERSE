@@ -59,6 +59,18 @@ QFrame#TopBar { background: #05080E; border-bottom: 1px solid #1A2539; }
 QFrame#ConnectionBar { background: rgba(3, 7, 13, 250); border: 1px solid #22324E; border-radius: 11px; }
 QFrame#Card { background: rgba(5, 9, 16, 250); border: 1px solid #202C43; border-radius: 13px; }
 QFrame#HeroCard { background: rgba(5, 9, 16, 250); border: 1px solid #283A58; border-radius: 13px; }
+QFrame#UpgradePassport {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 rgba(19,12,43,242),stop:0.52 rgba(7,20,42,242),stop:1 rgba(4,32,39,238));
+    border: 1px solid rgba(74, 114, 181, 180); border-left: 4px solid #64748B; border-radius: 11px;
+}
+QFrame#UpgradePassport[upgradeState="verified"] { border-left-color: #44E39A; border-color: rgba(68, 227, 154, 150); }
+QFrame#UpgradePassport[upgradeState="attention"] { border-left-color: #FFB454; border-color: rgba(255, 180, 84, 150); }
+QFrame#UpgradePassport[upgradeState="blocked"] { border-left-color: #FF6685; border-color: rgba(255, 102, 133, 160); }
+QLabel#UpgradePassportTitle { color: #74EAF4; font-size: 10px; font-weight: 850; letter-spacing: 1.2px; }
+QLabel#UpgradePassportStatus { color: #F3F6FF; font-size: 15px; font-weight: 850; }
+QLabel#UpgradePassportStatus[upgradeState="verified"] { color: #44E39A; }
+QLabel#UpgradePassportStatus[upgradeState="attention"] { color: #FFB454; }
+QLabel#UpgradePassportStatus[upgradeState="blocked"] { color: #FF6685; }
 QFrame#AboutEvidencePanel {
     background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(12,17,45,246),stop:0.5 rgba(5,24,38,244),stop:1 rgba(24,12,43,242));
     border: 1px solid rgba(77, 214, 235, 155); border-top: 2px solid rgba(180, 92, 255, 190); border-radius: 14px;

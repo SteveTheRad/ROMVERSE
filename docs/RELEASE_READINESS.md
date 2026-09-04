@@ -132,6 +132,19 @@ records, and seven maintainer/community records. Navigation alone starts no scan
 build, flash, or phone command. All 1,629 Desktop tests pass, and Ruff check plus format verification
 pass across all 378 Python files for this increment. No physical-phone operation was performed.
 
+The subsequent Firmware Upgrade Passport increment passes all 1,632 Desktop tests and the complete
+Ruff check/format gates across 378 Python files. ROM Studio now presents one prominent exact-source/
+live-device upgrade review with its current/candidate identity, evidence kind and digest, reasons,
+next safe step and permanent zero install/flash authority. Forge Control independently recomputes
+the same decision as a required readiness gate. A newer exact-device package passes relationship
+review; same-version and downgrade inputs remain clearly non-upgrade Attention unless an exact Pack
+supports an explicit reinstall/recovery/downgrade route; wrong-device and rejected OTA-metadata
+inputs block the route; missing comparable evidence remains Attention. A cross-channel candidate remains reviewable
+and does not use physical country as a compatibility signal, but stays Attention until the separate
+exact flash-certified Device Pack proves the operation contract. A 1600×1000 offscreen visual check
+confirmed the Passport remains readable inside ROM Studio's existing dark scroll surface. No phone,
+firmware, partition, bootloader, flash or installation operation was performed.
+
 ## Required gates
 
 1. Run the complete `pytest`, `ruff check .`, and `ruff format --check .` gates on supported Linux
@@ -481,6 +494,15 @@ pass across all 378 Python files for this increment. No physical-phone operation
    passport. Repeat with a wrong target, wrong pre-build fingerprint, wrong incremental, older SDK,
    older timestamp, missing live timestamp, duplicate metadata key, contradictory pre/post target,
    oversized metadata, and malformed metadata. Confirm none grants flash authority.
+   Confirm ROM Studio's Firmware Upgrade Passport and Forge Control's independent readiness card
+   agree for a newer exact-device package, same installed version, downgrade, wrong device, rejected
+   metadata, missing evidence and a distribution-channel change. Same and downgrade inputs must be
+   labelled non-upgrades and remain Attention without an exact alternate-route Pack; incompatible
+   and rejected-metadata inputs must block; unknown evidence must remain Attention.
+   A cross-channel candidate must remain Attention without an exact flash-certified Device Pack and
+   may satisfy only the relationship gate when that separate contract is current. Confirm physical
+   country never changes the result, every card reports install/flash authority `NO` and phone
+   changed `NO`, and merely opening either view starts no scan, worker or device action.
    Connect two simulated or physical transports and confirm every action page remains unbound until
    Command Deck selects one. Confirm all pages bind the same chosen device, the choice survives a
    reordered rescan, disappears when that transport is removed, and no raw serial is persisted.

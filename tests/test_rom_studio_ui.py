@@ -609,6 +609,11 @@ def test_rom_studio_renders_a_newer_same_device_firmware_as_an_upgrade_candidate
     assert (
         "Firmware relationship: UPGRADE CANDIDATE • OS4.0.0.23.XPBCNXM → OS4.0.0.25.XPBCNXM [high]"
     ) in studio.device_dna_detail.text()
+    assert studio.upgrade_passport.property("upgradeState") == "verified"
+    assert studio.upgrade_passport_status.text() == "NEWER EXACT-DEVICE CANDIDATE"
+    assert "UPGRADE CANDIDATE" in studio.upgrade_passport_detail.text()
+    assert "Install/flash: NO" in studio.upgrade_passport_detail.text()
+    assert "Phone changed: NO" in studio.upgrade_passport_detail.text()
     profile = studio.device_dna.profiles.load(project.project_id)
     assert profile is not None
     assert profile.capability("guardian_flash").state is CapabilityState.UNSUPPORTED

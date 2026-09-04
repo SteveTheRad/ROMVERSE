@@ -3,9 +3,23 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import TYPE_CHECKING, Protocol
 
-from romverse.rom.ota_metadata import AndroidOtaMetadata
-from romverse.rom.source_identity import xiaomi_build_region
+from romverse.rom.models import ProjectError
+from romverse.rom.ota_metadata import (
+    AndroidOtaMetadata,
+    OtaMetadataError,
+    read_android_ota_metadata,
+)
+from romverse.rom.source_identity import (
+    FirmwareSourceIdentity,
+    identify_firmware_source,
+    xiaomi_build_region,
+)
+
+if TYPE_CHECKING:
+    from romverse.device.models import AndroidDevice
+    from romverse.rom.projects import RomProjectStore
 
 
 class FirmwareRelationship(StrEnum):
@@ -28,6 +42,37 @@ class FirmwareUpgradeAssessment:
     summary: str
     reasons: tuple[str, ...]
     user_supplied_source: bool = True
+    install_authority: bool = False
+    phone_changed: bool = False
+
+    @property
+    def cross_channel(self) -> bool:
+        return bool(
+            self.current_region
+            and self.candidate_region
+            and self.current_region != self.candidate_region
+        )
+
+
+class UpgradeSourceBlueprint(Protocol):
+    source_archive_sha256: str
+    manufacturer: str
+    codename: str
+    build_id: str
+
+
+@dataclass(frozen=True, slots=True)
+class ProjectFirmwareUpgradeReview:
+    """One source-bound relationship review with permanently zero write authority."""
+
+    assessment: FirmwareUpgradeAssessment
+    source_sha256: str
+    source_name: str
+    package_type: str
+    evidence_kind: str
+    evidence_digest: str
+    metadata_error: str = ""
+    authority: str = "firmware-relationship-classification-only"
     install_authority: bool = False
     phone_changed: bool = False
 
@@ -221,6 +266,120 @@ def assess_firmware_upgrade(
             f"Firmware region matched: {current.region or 'unconfirmed'}.",
             "Version order was derived from numeric HyperOS components.",
         ),
+    )
+
+
+def assess_device_firmware_upgrade(
+    *,
+    device: AndroidDevice | None,
+    source: FirmwareSourceIdentity,
+    blueprint: UpgradeSourceBlueprint | None = None,
+    ota_metadata: AndroidOtaMetadata | None = None,
+    metadata_error: str = "",
+) -> FirmwareUpgradeAssessment:
+    """Apply the same relationship engine to one live device and firmware source."""
+
+    source_build = (
+        source.build_id
+        or str(getattr(blueprint, "build_id", "")).strip()
+        or _ota_candidate_build(ota_metadata)
+    )
+    source_codename = (
+        " | ".join(ota_metadata.target_devices)
+        if ota_metadata is not None and ota_metadata.target_devices
+        else source.codename or str(getattr(blueprint, "codename", "")).strip()
+    )
+    if metadata_error:
+        return _assessment(
+            FirmwareRelationship.UNCONFIRMED,
+            (device.rom_display or device.build_id) if device is not None else "",
+            source_build,
+            device.codename.casefold().strip() if device is not None else "",
+            source_codename.casefold().strip(),
+            xiaomi_build_region(device.rom_display or device.build_id)
+            if device is not None
+            else "",
+            xiaomi_build_region(source_build),
+            "UPGRADE STATUS UNCONFIRMED",
+            (
+                f"Android OTA metadata was rejected: {metadata_error}.",
+                "ROMVERSE will not replace rejected package metadata with a filename-only decision.",
+            ),
+        )
+    return assess_firmware_upgrade(
+        current_build=(device.rom_display or device.build_id) if device is not None else "",
+        candidate_build=source_build,
+        device_codename=device.codename if device is not None else "",
+        candidate_codename=source_codename,
+        current_fingerprint=device.build_fingerprint if device is not None else "",
+        current_incremental=device.build_incremental if device is not None else "",
+        current_sdk_level=device.api_level if device is not None else "",
+        current_build_timestamp=device.build_timestamp_utc if device is not None else None,
+        current_build_fingerprints=(device.system_build_fingerprint,) if device is not None else (),
+        current_build_incrementals=(device.system_build_incremental,) if device is not None else (),
+        device_aliases=(device.product, device.vendor_device) if device is not None else (),
+        ota_metadata=(
+            ota_metadata if ota_metadata is not None and ota_metadata.target_devices else None
+        ),
+    )
+
+
+def _ota_candidate_build(metadata: AndroidOtaMetadata | None) -> str:
+    if metadata is None:
+        return ""
+    return metadata.post_build_incremental or (
+        metadata.post_builds[0] if metadata.post_builds else ""
+    )
+
+
+def assess_project_firmware_upgrade(
+    store: RomProjectStore,
+    project_id: str,
+    device: AndroidDevice | None,
+    *,
+    blueprint: UpgradeSourceBlueprint | None = None,
+) -> ProjectFirmwareUpgradeReview:
+    """Review the current protected source against one live phone without changing either."""
+
+    project = store.get(project_id)
+    if project.original is None:
+        raise ProjectError("Import a protected firmware source before reviewing an upgrade")
+    source = identify_firmware_source(project.original.original_name)
+    if (
+        blueprint is not None
+        and getattr(blueprint, "source_archive_sha256", "") != project.original.sha256
+    ):
+        blueprint = None
+    metadata: AndroidOtaMetadata | None = None
+    metadata_error = ""
+    try:
+        metadata = read_android_ota_metadata(store.original_path(project_id))
+    except OtaMetadataError as exc:
+        metadata_error = str(exc)
+    assessment = assess_device_firmware_upgrade(
+        device=device,
+        source=source,
+        blueprint=blueprint,
+        ota_metadata=metadata,
+        metadata_error=metadata_error,
+    )
+    if metadata is not None and metadata.target_devices:
+        evidence_kind = "Android OTA package metadata"
+        evidence_digest = metadata.metadata_digest
+    elif source.confidence == "high":
+        evidence_kind = "bounded vendor build identity"
+        evidence_digest = project.original.sha256
+    else:
+        evidence_kind = "unconfirmed firmware identity"
+        evidence_digest = project.original.sha256
+    return ProjectFirmwareUpgradeReview(
+        assessment,
+        project.original.sha256,
+        project.original.original_name,
+        source.package_type,
+        evidence_kind,
+        evidence_digest,
+        metadata_error,
     )
 
 

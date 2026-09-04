@@ -32,6 +32,14 @@ approve a plan, or grant phone-write authority.
    install authority. ROM Studio requires the user to acknowledge that they supplied the firmware,
    must confirm its trusted official source and exact model/region/update path, and accept the risk;
    this notice does not claim to exclude rights or obligations that law does not allow excluding.
+   ROM Studio presents the same source-bound decision as a Firmware Upgrade Passport, including its
+   evidence digest, reasons, next safe step and permanent zero-authority boundary. Forge Control
+   re-evaluates it as a required flash-readiness gate. Newer exact-device candidates pass only the
+   relationship check; same-version and downgrade inputs are visibly not upgrades and need an exact
+   Pack for an explicit alternate route; wrong-device and rejected-metadata inputs stop the route,
+   while missing evidence stays Attention. Cross-channel upgrades remain reviewable
+   and become relationship-ready only with the separate exact flash-certified Device Pack contract;
+   physical country of use is never used as a compatibility signal.
    Schema-one Device DNA remains readable and refreshes forward automatically.
    Genesis requests a fresh read-only device scan at this stage, shows the current identity and
    Capability Map states, and refuses to advance if either the profile or map is missing. A failed

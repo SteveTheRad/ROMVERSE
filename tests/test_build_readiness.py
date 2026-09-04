@@ -37,6 +37,7 @@ from romverse.device_packs.models import (
     PostBootPropertyRule,
 )
 from romverse.device_packs.registry import DevicePackRegistry
+from romverse.device_packs.validation import DevicePackValidationService
 from romverse.infrastructure.process import SubprocessRunner
 from romverse.infrastructure.provisioning import GENESIS_REQUIRED_TOOLS
 from romverse.infrastructure.tools import ToolStatus
@@ -343,6 +344,90 @@ def test_pipeline_simulation_stops_before_unsupported_build_and_never_changes_ph
     assert not receipt.phone_changed
     assert not receipt.success
     assert (store.projects_root / project.project_id / service.SIMULATION_NAME).is_file()
+
+
+def test_firmware_upgrade_passport_distinguishes_upgrade_non_upgrade_wrong_device_and_channel(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    store = RomProjectStore(tmp_path / "workspace")
+
+    def passport(candidate: str, device: AndroidDevice, *, exact_contract: bool = False):
+        source = tmp_path / (f"popsicle-ota_full-{candidate}-user-17.0-{candidate[-8:]}.zip")
+        with zipfile.ZipFile(source, "w") as archive:
+            archive.writestr("payload.bin", b"CrAU test")
+            archive.writestr("META-INF/com/android/metadata", "ota-type=AB\n")
+        project = store.create(candidate, "test.pack" if exact_contract else "")
+        project = store.import_original(project.project_id, source)
+        registry = (
+            _registry(CapabilityStatus.SUPPORTED) if exact_contract else DevicePackRegistry(())
+        )
+        report = BuildReadinessService(store, registry).assess(
+            project.project_id,
+            (device,),
+            persist=False,
+        )
+        return next(gate for gate in report.gates if gate.gate_id == "firmware-upgrade")
+
+    current = AndroidDevice(
+        "upgrade-serial",
+        DeviceState.DEVICE,
+        manufacturer="Xiaomi",
+        model="2509FPN0BC",
+        product="popsicle",
+        codename="popsicle",
+        rom_display="OS4.0.0.23.XPBCNXM",
+    )
+    installed = AndroidDevice(
+        "same-serial",
+        DeviceState.DEVICE,
+        manufacturer="Xiaomi",
+        model="2509FPN0BC",
+        product="popsicle",
+        codename="popsicle",
+        rom_display="OS4.0.0.25.XPBCNXM",
+    )
+    wrong_device = AndroidDevice(
+        "wrong-serial",
+        DeviceState.DEVICE,
+        manufacturer="Xiaomi",
+        model="Different phone",
+        product="miami",
+        codename="miami",
+        rom_display="OS4.0.0.23.XPBCNXM",
+    )
+
+    upgrade = passport("OS4.0.0.25.XPBCNXM", current)
+    same = passport("OS4.0.0.25.XPBCNXM", installed)
+    incompatible = passport("OS4.0.0.25.XPBCNXM", wrong_device)
+    cross_channel = passport("OS4.0.0.25.XPBMIXM", current)
+    downgrade = passport("OS4.0.0.21.XPBCNXM", current)
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(
+        DevicePackValidationService,
+        "assess",
+        lambda *_args: SimpleNamespace(flash_contract_ready=True, checks=()),
+    )
+    exact_same = passport("OS4.0.0.25.XPBCNXM", installed, exact_contract=True)
+    exact_downgrade = passport("OS4.0.0.21.XPBCNXM", current, exact_contract=True)
+
+    assert upgrade.status is GateStatus.PASS
+    assert "UPGRADE CANDIDATE" in upgrade.evidence
+    assert same.status is GateStatus.ATTENTION
+    assert "SAME FIRMWARE VERSION" in same.evidence
+    assert downgrade.status is GateStatus.ATTENTION
+    assert "DOWNGRADE CANDIDATE" in downgrade.evidence
+    assert "not an upgrade" in downgrade.evidence
+    assert incompatible.status is GateStatus.BLOCKED
+    assert "INCOMPATIBLE FIRMWARE" in incompatible.evidence
+    assert cross_channel.status is GateStatus.ATTENTION
+    assert exact_same.status is GateStatus.PASS
+    assert exact_downgrade.status is GateStatus.PASS
+    assert "physical country of use does not decide compatibility" in cross_channel.evidence
+    assert all(
+        "phone changed: NO" in gate.evidence for gate in (upgrade, same, downgrade, incompatible)
+    )
 
 
 def test_ascension_build_seal_is_a_real_local_candidate_but_guardian_review_remains(

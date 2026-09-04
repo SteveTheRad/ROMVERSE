@@ -330,6 +330,18 @@ and wrong incremental paths fail closed. An Upgrade Candidate requires matching 
 preconditions and a newer package timestamp; missing comparable evidence remains Unconfirmed.
 This covers standards-conforming Android OTAs without pretending that OEM-specific Download Mode,
 EDL, preloader, unlock, signing, recovery, or flashing protocols are interchangeable.
+ROM Studio now raises that relationship into a prominent **Firmware Upgrade Passport** bound to
+the exact protected-source SHA-256 and the one current live device. It shows the candidate/current
+builds, evidence kind and digest, reasons, next safe step, zero install/flash authority, zero phone
+change, and permanent no-relock boundary. Forge Control independently recomputes the same review as
+a required flash-readiness gate: a newer exact-device candidate can pass relationship review;
+same-version and downgrade inputs are clearly not upgrades and remain Attention unless an exact
+flash-certified Device Pack supports the explicit reinstall/recovery/downgrade route; wrong-device
+and rejected-metadata inputs are blocked; missing evidence remains Attention. A cross-channel
+upgrade stays reviewable rather than
+being rejected because of the phone's physical country, but remains Attention until an exact
+flash-certified Device Pack proves the product, partition, unlock, wipe, rollback, and recovery
+contract. This gate classifies an upgrade only—it never grants a write command or bypasses Guardian.
 The Matrix uses private bounded strict schema-two persistence and is re-derived from its exact
 current Device DNA binding whenever loaded. Extra/coerced/linked records fail closed, and changing
 even a correctly re-digested decision cannot override the deterministic result. Schema-one Matrix

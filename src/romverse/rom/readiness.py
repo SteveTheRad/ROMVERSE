@@ -31,6 +31,7 @@ from romverse.rom.builds import RomBuildPlanner
 from romverse.rom.debloat import DebloatService
 from romverse.rom.forge import ForgeBundleService
 from romverse.rom.inspection import RomInspectionService
+from romverse.rom.models import ProjectError
 from romverse.rom.payloads import PayloadService
 from romverse.rom.projects import RomProjectStore
 from romverse.rom.recipes import RecipeStore, load_run_receipt
@@ -38,6 +39,11 @@ from romverse.rom.recovery_evidence import RecoveryEvidenceService
 from romverse.rom.signing_ceremony import OfflineSigningCeremonyService
 from romverse.rom.source_blueprint import FastbootSourceBlueprintService
 from romverse.rom.source_intelligence import FirmwareSourceIntelligenceService, SourceBlueprint
+from romverse.rom.upgrade import (
+    FirmwareRelationship,
+    ProjectFirmwareUpgradeReview,
+    assess_project_firmware_upgrade,
+)
 
 
 class GateStatus(StrEnum):
@@ -151,6 +157,17 @@ _GATE_REMEDIATIONS: dict[str, GateRemediation] = {
         ),
         "Open Device Atlas",
         "device-packs",
+    ),
+    "firmware-upgrade": GateRemediation(
+        "Guardian needs one current, source-bound answer about whether the imported firmware is a newer candidate for the connected phone.",
+        (
+            "Return to ROM Studio and connect the exact intended phone so Device DNA can compare its live build with the protected firmware.",
+            "For an ordinary upgrade, import a newer package that names the same device and satisfies any OTA pre-build/update-path requirement.",
+            "A same-version reinstall, recovery flash, or intentional downgrade is not an upgrade and needs an exact Device Pack contract for that alternate route.",
+            "A distribution-channel change is reviewable when the exact Device Pack proves its product, partitions, unlock, wipe, rollback, and recovery contract; the phone's physical country is not a compatibility gate.",
+        ),
+        "Review Firmware Upgrade Passport",
+        "rom-studio",
     ),
     "device-build-plan": GateRemediation(
         "The exact Device Pack contract has not yet produced a verified, deterministic local execution plan.",
@@ -290,6 +307,7 @@ class BuildReadinessReport:
         if not self.signing_ready:
             return False
         required = {
+            "firmware-upgrade",
             "device-pack-flash",
             "device",
             "battery",
@@ -480,6 +498,17 @@ class BuildReadinessService:
         pack_flash_supported = bool(
             validation_report is not None and validation_report.flash_contract_ready
         )
+        upgrade_review = None
+        if project.original is not None:
+            try:
+                upgrade_review = assess_project_firmware_upgrade(
+                    self.store,
+                    project_id,
+                    device,
+                    blueprint=source_blueprint,
+                )
+            except (OSError, ProjectError, TypeError, ValueError):
+                upgrade_review = None
         contract_service = DeviceBuildContractService(self.store, self.registry, self.tool_statuses)
         contract_assessment = contract_service.assess(project_id)
         contract_plan = contract_service.load(project_id)
@@ -785,6 +814,7 @@ class BuildReadinessService:
                 if ascension_integrated
                 else ()
             ),
+            _firmware_upgrade_gate(upgrade_review, pack_flash_supported),
             BuildGate(
                 "device-pack-flash",
                 "Device Pack flash and recovery contract",
@@ -1109,6 +1139,68 @@ def _gate(
         GateStatus.PASS if passed else GateStatus.BLOCKED,
         evidence,
         required_for,
+    )
+
+
+def _firmware_upgrade_gate(
+    review: ProjectFirmwareUpgradeReview | None,
+    exact_flash_contract: bool,
+) -> BuildGate:
+    if review is None:
+        return BuildGate(
+            "firmware-upgrade",
+            "Firmware Upgrade Passport",
+            "Flash",
+            GateStatus.ATTENTION,
+            "A current protected-source and live-device relationship review is unavailable; no upgrade or installation authority was inferred.",
+            "flash",
+        )
+    assessment = review.assessment
+    if review.metadata_error:
+        status = GateStatus.BLOCKED
+    elif assessment.relationship is FirmwareRelationship.UPGRADE:
+        status = (
+            GateStatus.ATTENTION
+            if assessment.cross_channel and not exact_flash_contract
+            else GateStatus.PASS
+        )
+    elif assessment.relationship in {
+        FirmwareRelationship.DOWNGRADE,
+        FirmwareRelationship.SAME,
+    }:
+        status = GateStatus.PASS if exact_flash_contract else GateStatus.ATTENTION
+    elif assessment.relationship is FirmwareRelationship.INCOMPATIBLE:
+        status = GateStatus.BLOCKED
+    else:
+        status = GateStatus.ATTENTION
+
+    detail = assessment.summary
+    if assessment.reasons:
+        detail += " • " + " ".join(assessment.reasons)
+    if assessment.cross_channel and not exact_flash_contract:
+        detail += (
+            " Exact cross-channel Device Pack evidence is still required; physical country of use "
+            "does not decide compatibility."
+        )
+    if (
+        assessment.relationship in {FirmwareRelationship.SAME, FirmwareRelationship.DOWNGRADE}
+        and not exact_flash_contract
+    ):
+        detail += (
+            " This is not an upgrade and needs an exact flash-certified Device Pack before "
+            "Guardian can review a reinstall, recovery, or downgrade route."
+        )
+    detail += (
+        f" • Evidence: {review.evidence_kind} {review.evidence_digest[:16]}… bound to source "
+        f"{review.source_sha256[:16]}… • Classification authority only; phone changed: NO."
+    )
+    return BuildGate(
+        "firmware-upgrade",
+        "Firmware Upgrade Passport",
+        "Flash",
+        status,
+        detail,
+        "flash",
     )
 
 

@@ -39,7 +39,11 @@ from romverse.rom.source_intelligence import (
     FirmwareSourceIntelligenceService,
     SourceBlueprint,
 )
-from romverse.rom.upgrade import FirmwareRelationship, assess_firmware_upgrade
+from romverse.rom.upgrade import (
+    FirmwareRelationship,
+    FirmwareUpgradeAssessment,
+    assess_device_firmware_upgrade,
+)
 
 
 class EvidenceConfidence(StrEnum):
@@ -260,6 +264,13 @@ class DeviceDnaService:
         ota_metadata: AndroidOtaMetadata | None,
         ota_error: str,
     ) -> DeviceDnaProfile:
+        upgrade = assess_device_firmware_upgrade(
+            device=device,
+            source=source,
+            blueprint=blueprint,
+            ota_metadata=ota_metadata,
+            metadata_error=ota_error,
+        )
         evidence = _evidence(
             self.store,
             self.registry,
@@ -273,7 +284,16 @@ class DeviceDnaService:
             ota_metadata,
             ota_error,
         )
-        facts = _facts(source, device, inspection, pack, exact_pack, blueprint, ota_metadata)
+        facts = _facts(
+            source,
+            device,
+            inspection,
+            pack,
+            exact_pack,
+            blueprint,
+            ota_metadata,
+            upgrade,
+        )
         partitions = _partitions(pack, exact_pack, blueprint)
         warnings = _warnings(
             source,
@@ -284,6 +304,7 @@ class DeviceDnaService:
             blueprint,
             ota_metadata,
             ota_error,
+            upgrade,
         )
         capabilities = _capability_map(
             source,
@@ -476,6 +497,7 @@ def _facts(
     exact_pack: bool,
     blueprint: SourceBlueprint | None,
     ota_metadata: AndroidOtaMetadata | None,
+    upgrade: FirmwareUpgradeAssessment,
 ) -> tuple[DeviceDnaFact, ...]:
     live_confidence = (
         EvidenceConfidence.HIGH if device is not None else EvidenceConfidence.UNCONFIRMED
@@ -525,7 +547,6 @@ def _facts(
         source_region, region_confidence, region_evidence = project_source_fact(
             "region", source.region
         )
-    upgrade = _assess_upgrade(device, source_build, source_codename, ota_metadata)
     upgrade_evidence = tuple(dict.fromkeys((*live_evidence, *codename_evidence, *build_evidence)))
     structure = _effective_structure(inspection, blueprint)
     structure_confidence = _effective_structure_confidence(inspection, blueprint)
@@ -876,30 +897,6 @@ def _ota_candidate_build(metadata: AndroidOtaMetadata | None) -> str:
     )
 
 
-def _assess_upgrade(
-    device: AndroidDevice | None,
-    candidate_build: str,
-    candidate_codename: str,
-    ota_metadata: AndroidOtaMetadata | None,
-):
-    return assess_firmware_upgrade(
-        current_build=(device.rom_display or device.build_id) if device is not None else "",
-        candidate_build=candidate_build,
-        device_codename=device.codename if device is not None else "",
-        candidate_codename=candidate_codename,
-        current_fingerprint=device.build_fingerprint if device is not None else "",
-        current_incremental=device.build_incremental if device is not None else "",
-        current_sdk_level=device.api_level if device is not None else "",
-        current_build_timestamp=device.build_timestamp_utc if device is not None else None,
-        current_build_fingerprints=(device.system_build_fingerprint,) if device is not None else (),
-        current_build_incrementals=(device.system_build_incremental,) if device is not None else (),
-        device_aliases=(device.product, device.vendor_device) if device is not None else (),
-        ota_metadata=(
-            ota_metadata if ota_metadata is not None and ota_metadata.target_devices else None
-        ),
-    )
-
-
 def _device_matches_candidate(
     device: AndroidDevice,
     candidate_codename: str,
@@ -929,6 +926,7 @@ def _warnings(
     blueprint: SourceBlueprint | None,
     ota_metadata: AndroidOtaMetadata | None,
     ota_error: str,
+    upgrade: FirmwareUpgradeAssessment,
 ) -> tuple[str, ...]:
     warnings: list[str] = []
     blueprint_codename = str(getattr(blueprint, "codename", "")).strip()
@@ -937,12 +935,6 @@ def _warnings(
         if ota_metadata is not None and ota_metadata.target_devices
         else source.codename or blueprint_codename
     )
-    source_build = (
-        source.build_id
-        or str(getattr(blueprint, "build_id", "")).strip()
-        or _ota_candidate_build(ota_metadata)
-    )
-    upgrade = _assess_upgrade(device, source_build, source_codename, ota_metadata)
     if ota_error:
         warnings.append(f"Android OTA metadata was rejected: {ota_error}.")
     if source.confidence != "high" and not (
@@ -970,12 +962,18 @@ def _warnings(
             "authority remain separate requirements."
         )
     elif upgrade.relationship is FirmwareRelationship.DOWNGRADE:
-        warnings.append(f"{upgrade.summary}. Downgrade installation remains blocked.")
+        warnings.append(
+            f"{upgrade.summary}. This is not an upgrade; an exact Device Pack and separate "
+            "Guardian-reviewed downgrade or recovery contract are required."
+        )
     elif upgrade.relationship is FirmwareRelationship.SAME:
-        warnings.append(f"{upgrade.summary}. The imported firmware is not an upgrade.")
+        warnings.append(
+            f"{upgrade.summary}. The imported firmware is not an upgrade; an exact Device Pack "
+            "is required for any explicit reinstall or recovery route."
+        )
     elif upgrade.relationship is FirmwareRelationship.INCOMPATIBLE:
         warnings.extend(upgrade.reasons)
-    elif device and source_build:
+    elif device and upgrade.candidate_build:
         warnings.append(
             "ROMVERSE could not prove that the imported firmware is a valid upgrade from the "
             "connected phone. Installation authority remains unavailable."

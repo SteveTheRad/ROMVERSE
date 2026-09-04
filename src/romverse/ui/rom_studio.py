@@ -111,7 +111,12 @@ from romverse.rom.recipes import (
 )
 from romverse.rom.source_identity import identify_firmware_source
 from romverse.rom.source_intelligence import FirmwareSourceIntelligenceService
-from romverse.rom.upgrade import USER_FIRMWARE_RESPONSIBILITY_NOTICE
+from romverse.rom.upgrade import (
+    USER_FIRMWARE_RESPONSIBILITY_NOTICE,
+    FirmwareRelationship,
+    ProjectFirmwareUpgradeReview,
+    assess_project_firmware_upgrade,
+)
 from romverse.rom.workspace_recovery import WorkspaceRecoveryReport, WorkspaceRecoveryService
 from romverse.ui.background import (
     CoalescedProgress,
@@ -709,6 +714,31 @@ class RomStudio(QWidget):
         self.project_meta.setWordWrap(True)
         detail_layout.addWidget(self.project_name)
         detail_layout.addWidget(self.project_meta)
+
+        self.upgrade_passport = QFrame()
+        self.upgrade_passport.setObjectName("UpgradePassport")
+        self.upgrade_passport.setProperty("upgradeState", "attention")
+        upgrade_layout = QVBoxLayout(self.upgrade_passport)
+        upgrade_layout.setContentsMargins(16, 13, 16, 13)
+        upgrade_layout.setSpacing(5)
+        upgrade_title = QLabel("FIRMWARE UPGRADE PASSPORT  •  SOURCE + LIVE DEVICE")
+        upgrade_title.setObjectName("UpgradePassportTitle")
+        self.upgrade_passport_status = QLabel("AWAITING PROTECTED FIRMWARE")
+        self.upgrade_passport_status.setObjectName("UpgradePassportStatus")
+        self.upgrade_passport_status.setProperty("upgradeState", "attention")
+        self.upgrade_passport_detail = QLabel(
+            "ROMVERSE will compare the exact protected package with one connected phone. "
+            "Classification never grants installation or flash authority."
+        )
+        self.upgrade_passport_detail.setObjectName("Muted")
+        self.upgrade_passport_detail.setWordWrap(True)
+        self.upgrade_passport_detail.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        upgrade_layout.addWidget(upgrade_title)
+        upgrade_layout.addWidget(self.upgrade_passport_status)
+        upgrade_layout.addWidget(self.upgrade_passport_detail)
+        detail_layout.addWidget(self.upgrade_passport)
 
         dna_title = QLabel("Device DNA • Capability Map")
         dna_title.setObjectName("SectionTitle")
@@ -2780,6 +2810,7 @@ class RomStudio(QWidget):
             f"Manifest  •  projects/{project.project_id}/{self.store.MANIFEST_NAME}\n\n"
             f"Guided validation\n{self._validation_summary(project)}"
         )
+        self._render_upgrade_passport(project)
         self._render_device_dna(dna)
         if project.original is None:
             self.original_name.setText("No original imported")
@@ -3126,6 +3157,99 @@ class RomStudio(QWidget):
             + f"\n\nEvidence sources: {len(profile.evidence)}  •  "
             f"Profile digest: {profile.profile_digest[:16]}…  •  Bootloader relock: NEVER"
         )
+
+    def _render_upgrade_passport(self, project: RomProject) -> None:
+        if project.original is None:
+            self._set_upgrade_passport(
+                "attention",
+                "AWAITING PROTECTED FIRMWARE",
+                "Import a firmware package to create a source-bound comparison. No phone action is available.",
+            )
+            return
+        candidates = tuple(device for device in self.devices if device.state is DeviceState.DEVICE)
+        device = candidates[0] if len(candidates) == 1 else None
+        try:
+            blueprint = FirmwareSourceIntelligenceService(
+                self.store,
+                self.tool_statuses,
+                SubprocessRunner(),
+            ).load(project.project_id)
+            review = assess_project_firmware_upgrade(
+                self.store,
+                project.project_id,
+                device,
+                blueprint=blueprint,
+            )
+        except (OSError, ProjectError, TypeError, ValueError) as exc:
+            self._set_upgrade_passport(
+                "attention",
+                "UPGRADE REVIEW UNAVAILABLE",
+                f"ROMVERSE could not create the current relationship review: {exc}. Nothing was inferred or changed.",
+            )
+            return
+        self._show_upgrade_review(review)
+
+    def _show_upgrade_review(self, review: ProjectFirmwareUpgradeReview) -> None:
+        assessment = review.assessment
+        if review.metadata_error:
+            state, title = "blocked", "PACKAGE METADATA REJECTED"
+            next_step = (
+                "Import a package with readable, internally consistent Android OTA metadata."
+            )
+        elif assessment.relationship is FirmwareRelationship.UPGRADE:
+            if assessment.cross_channel:
+                state, title = "attention", "CROSS-CHANNEL UPGRADE CANDIDATE"
+                next_step = (
+                    "Continue only through an exact Device Pack review of product, partitions, "
+                    "unlock, wipe, rollback, and recovery. Physical country is not a compatibility gate."
+                )
+            else:
+                state, title = "verified", "NEWER EXACT-DEVICE CANDIDATE"
+                next_step = (
+                    "Open Forge Control for package, recovery, Device Pack, and Guardian readiness."
+                )
+        elif assessment.relationship is FirmwareRelationship.SAME:
+            state, title = "attention", "NOT AN UPGRADE  •  REINSTALL/RECOVERY REVIEW"
+            next_step = (
+                "Import a newer package for an upgrade, or continue only with an exact Device Pack "
+                "that explicitly supports the intended reinstall/recovery route."
+            )
+        elif assessment.relationship is FirmwareRelationship.DOWNGRADE:
+            state, title = "attention", "NOT AN UPGRADE  •  DOWNGRADE RISK REVIEW"
+            next_step = (
+                "Choose a newer package for an upgrade. Any intentional downgrade needs an exact "
+                "Device Pack rollback/recovery contract and separate Guardian review."
+            )
+        elif assessment.relationship is FirmwareRelationship.INCOMPATIBLE:
+            state, title = "blocked", "FIRMWARE TARGET DOES NOT MATCH"
+            next_step = (
+                "Import firmware that names the connected device or a verified device alias."
+            )
+        else:
+            state, title = "attention", "UPGRADE RELATIONSHIP UNCONFIRMED"
+            next_step = (
+                "Connect and authorize exactly one phone, then provide a package with usable build "
+                "identity or Android OTA metadata."
+            )
+        reasons = "\n".join(f"• {reason}" for reason in assessment.reasons)
+        detail = (
+            f"{assessment.summary}\n"
+            f"Evidence  •  {review.evidence_kind} {review.evidence_digest[:16]}…  •  "
+            f"protected source {review.source_sha256[:16]}…\n"
+            f"{reasons}\n"
+            f"Next  •  {next_step}\n"
+            "Authority  •  Relationship classification only  •  Install/flash: NO  •  "
+            "Phone changed: NO  •  Bootloader relock: NEVER"
+        )
+        self._set_upgrade_passport(state, title, detail)
+
+    def _set_upgrade_passport(self, state: str, title: str, detail: str) -> None:
+        self.upgrade_passport.setProperty("upgradeState", state)
+        self.upgrade_passport_status.setText(title)
+        self.upgrade_passport_status.setProperty("upgradeState", state)
+        self.upgrade_passport_detail.setText(detail)
+        self._repolish(self.upgrade_passport)
+        self._repolish(self.upgrade_passport_status)
 
     def _new_project(self) -> None:
         name, accepted = QInputDialog.getText(self, "New ROMVERSE project", "Project name")

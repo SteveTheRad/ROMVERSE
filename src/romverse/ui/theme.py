@@ -65,6 +65,31 @@ QFrame#HeroCard {
     background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(10,16,29,252),stop:.64 rgba(5,10,19,250),stop:1 rgba(17,9,31,246));
     border: 1px solid #2B3F60; border-top: 1px solid rgba(73, 218, 235, 135); border-radius: 14px;
 }
+QFrame#DevicePassport {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(26,12,53,248),stop:.42 rgba(7,21,43,248),stop:1 rgba(3,38,44,245));
+    border: 1px solid rgba(85, 226, 240, 180); border-top: 2px solid rgba(183, 94, 255, 205); border-radius: 16px;
+}
+QLabel#DevicePassportHologram {
+    color: #F3E8FF; background: qradialgradient(cx:.42,cy:.36,radius:.86,stop:0 rgba(93,238,246,220),stop:.38 rgba(81,99,235,205),stop:.72 rgba(136,48,190,190),stop:1 rgba(15,9,38,225));
+    border: 2px solid rgba(222, 186, 255, 205); border-radius: 16px; font-size: 17px; font-weight: 900; letter-spacing: 2px;
+}
+QLabel#DevicePassportEyebrow { color: #6DEAF4; font-size: 9px; font-weight: 900; letter-spacing: 1.35px; }
+QLabel#DevicePassportTitle { color: #F5F7FF; font-size: 19px; font-weight: 860; padding: 1px 0 3px 0; }
+QFrame#DevicePassportFact {
+    background: rgba(3, 9, 22, 205); border: 1px solid rgba(70, 102, 160, 150); border-left: 2px solid rgba(88, 226, 239, 175); border-radius: 9px;
+}
+QLabel#DevicePassportFactLabel { color: #83DCEB; font-size: 8px; font-weight: 900; letter-spacing: 1.15px; }
+QLabel#DevicePassportFactValue { color: #E7EEFF; font-size: 10px; font-weight: 700; }
+QLabel#DevicePassportBoundary {
+    color: #C9B9F6; background: rgba(22, 13, 48, 205); border: 1px solid rgba(163, 89, 229, 150); border-radius: 8px; padding: 7px 9px; font-size: 8px; font-weight: 850; letter-spacing: .8px;
+}
+QDialog#DeviceTimelineDialog { background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #0B1022,stop:.58 #07131F,stop:1 #130C26); }
+QFrame#DeviceTimelineEvent {
+    background: rgba(4, 11, 24, 225); border: 1px solid rgba(65, 94, 148, 165); border-left: 3px solid #55DDEA; border-radius: 10px;
+}
+QFrame#DeviceTimelineEvent[timelineState="verified"] { border-left-color: #44E39A; }
+QFrame#DeviceTimelineEvent[timelineState="attention"] { border-left-color: #FFB454; }
+QLabel#DeviceTimelineMarker { color: #7DE1ED; font-size: 9px; font-weight: 850; letter-spacing: .75px; }
 QFrame#UpgradePassport {
     background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 rgba(19,12,43,242),stop:0.52 rgba(7,20,42,242),stop:1 rgba(4,32,39,238));
     border: 1px solid rgba(74, 114, 181, 180); border-left: 4px solid #64748B; border-radius: 11px;
@@ -457,6 +482,7 @@ QProgressBar#FlightPlanProgress::chunk { background: qlineargradient(x1:0,y1:0,x
 QScrollArea, QWidget#ScrollContent { border: 0; background: transparent; }
 QScrollArea > QWidget, QScrollArea > QWidget > QWidget { background: transparent; }
 QScrollArea::viewport { background: #050A16; }
+QScrollArea#DeviceAtlasScroll, QScrollArea#DeviceAtlasScroll::viewport { background: #02050A; border: 0; }
 QScrollArea#IntelligenceEvidenceScroll,
 QScrollArea#IntelligenceEvidenceScroll::viewport,
 QWidget#IntelligenceEvidenceContent { background: transparent; border: 0; }

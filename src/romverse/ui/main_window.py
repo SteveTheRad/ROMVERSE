@@ -4060,6 +4060,7 @@ class MainWindow(QMainWindow):
         )
         self.device_packs_center.catalog_refresh_requested.connect(self._refresh_device_catalog)
         self.device_packs_center.knowledge_article_requested.connect(self._open_knowledge_article)
+        self.device_packs_center.knowledge_query_requested.connect(self._open_knowledge_query)
         self.device_packs_center.next_action_requested.connect(self._open_device_pack_next_action)
         self.device_packs_center.requirement_requested.connect(self._open_device_requirement)
         self.device_packs_center.readiness_changed.connect(self._record_device_pack_readiness)
@@ -4132,6 +4133,9 @@ class MainWindow(QMainWindow):
         )
         self.repair_center.resolution_memory_updated.connect(
             self.knowledge_center.refresh_resolution_memory
+        )
+        self.repair_center.resolution_memory_updated.connect(
+            self.device_packs_center.refresh_history
         )
         self.knowledge_index = self.stack.addWidget(self.knowledge_center)
         self.terminal_center = TerminalCenter(gateway, adb_executable, self.raw_terminal_feed)
@@ -4521,6 +4525,9 @@ class MainWindow(QMainWindow):
         self.rom_studio.device_scan_requested.connect(self.scan)
         self.rom_studio.device_scan_available = engine is not None
         self.rom_studio.device_dna_updated.connect(self._record_device_dna)
+        self.rom_studio.guardian_flash_verified.connect(
+            self.device_packs_center.record_verified_flash
+        )
         self.rom_studio.compatibility_matrix_updated.connect(self._record_compatibility_matrix)
         self.rom_studio.compatibility_matrix_updated.connect(
             lambda _matrix: self.nexus_center.refresh()
@@ -4709,6 +4716,7 @@ class MainWindow(QMainWindow):
         current = self.stack.currentWidget()
         self.device_center.set_scanning(True, show_progress=current is self.device_center)
         self.diagnostics_center.set_scanning(True, show_progress=current is self.diagnostics_center)
+        self.device_packs_center.set_scanning(True)
         worker = ScanWorker(self.engine)
         self.active_worker = worker
         generation = self._device_runtime_generation
@@ -4744,6 +4752,7 @@ class MainWindow(QMainWindow):
         self.device_center.set_devices(devices, self._selected_device_serial)
         self.diagnostics_center.set_scanning(False)
         self._set_active_device_context(active_devices)
+        self.device_packs_center.set_scanning(False)
         if any(device.brand.strip() and device.codename.strip() for device in devices):
             self._maybe_refresh_device_catalog()
         stabilizing = any(
@@ -4798,6 +4807,7 @@ class MainWindow(QMainWindow):
         self.diagnostics_center.set_devices(devices)
         self.guardian_center.request_refresh()
         self.repair_center.set_devices(devices)
+        self.device_packs_center.set_devices(devices)
         if len(devices) == 1:
             device = devices[0]
             try:
@@ -4807,12 +4817,25 @@ class MainWindow(QMainWindow):
                 )
             except (OSError, TypeError, ValueError) as exc:
                 self.device_center.set_knowledge_lookup(device.serial, None, str(exc))
+                self.device_packs_center.set_knowledge_lookup(
+                    device.serial,
+                    None,
+                    str(exc),
+                )
             else:
                 self.device_center.set_knowledge_lookup(device.serial, knowledge_report)
+                self.device_packs_center.set_knowledge_lookup(device.serial, knowledge_report)
                 self.knowledge_center.refresh_offline_archive(knowledge_report)
         else:
             self.device_center.set_knowledge_lookup("", None)
-        self.device_packs_center.set_devices(devices)
+            self.device_packs_center.set_knowledge_lookup("", None)
+        current_project = self.rom_studio.current_project
+        current_profile = (
+            self.rom_studio.device_dna.profiles.load(current_project.project_id)
+            if current_project is not None and current_project.original is not None
+            else None
+        )
+        self.device_packs_center.set_device_dna(current_profile)
         self.rom_studio.set_devices(
             devices,
             observed_devices=self._observed_devices,
@@ -5036,6 +5059,7 @@ class MainWindow(QMainWindow):
         self.guardian_center.request_refresh()
         self.repair_center.set_devices([])
         self.repair_center.show_error(message)
+        self.device_packs_center.set_scanning(False)
         self.device_packs_center.set_devices([])
         self.rom_studio.set_devices([], scan_error=message)
         self.apk_installer.set_devices([])
@@ -5330,7 +5354,7 @@ class MainWindow(QMainWindow):
         report_id: str,
         report_digest: str,
     ) -> None:
-        """Continue an exact current Device Atlas build contract into Genesis."""
+        """Start Genesis with the exact current Device Atlas evidence."""
 
         report = self.device_packs_center.active_report
         pack = self.device_packs_center.active_pack
@@ -5341,13 +5365,12 @@ class MainWindow(QMainWindow):
             or device is None
             or report.report_id != report_id
             or report.report_digest != report_digest
-            or not report.build_contract_ready
             or report.pack_id != pack.pack_id
             or report.pack_version != pack.version
             or report.pack_sha256 != pack.sha256
         ):
             self.device_packs_center.next_action_handoff_stopped(
-                "The Continue control no longer matches the current exact Device Pack report"
+                "Start ROM Mission no longer matches the current Device Pack report"
             )
             return
         if not self._navigate_route("rom_studio"):
@@ -5359,7 +5382,7 @@ class MainWindow(QMainWindow):
         ):
             self._navigate_route("device_atlas")
             self.device_packs_center.next_action_handoff_stopped(
-                "ROM Studio rejected a changed or incomplete exact build contract"
+                "ROM Studio rejected changed or invalid Device Atlas evidence"
             )
 
     @Slot(str, str)
@@ -6386,6 +6409,9 @@ class MainWindow(QMainWindow):
 
     @Slot(object)
     def _record_device_dna(self, profile: object) -> None:
+        self.device_packs_center.set_device_dna(
+            profile if isinstance(profile, DeviceDnaProfile) else None
+        )
         if hasattr(self, "companion_center"):
             project_name = ""
             if isinstance(profile, DeviceDnaProfile):

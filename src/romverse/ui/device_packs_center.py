@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import html
 import shutil
+from datetime import datetime
 from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QComboBox,
+    QDialog,
+    QDialogButtonBox,
     QFileDialog,
     QFrame,
     QGridLayout,
@@ -26,6 +29,11 @@ from romverse.device.catalog import (
     DeviceCatalogStatus,
     GooglePlayDeviceCatalog,
 )
+from romverse.device.dna import DeviceDnaProfile, EvidenceConfidence
+from romverse.device.intelligence import (
+    DeviceIntelligenceError,
+    DeviceIntelligenceHistoryStore,
+)
 from romverse.device.models import AndroidDevice
 from romverse.device_packs.attestations import DevicePackAttestationStore
 from romverse.device_packs.drafts import DevicePackDraftReview, DevicePackDraftService
@@ -44,14 +52,19 @@ from romverse.device_packs.validation import (
     DevicePackValidationService,
     ValidationState,
 )
+from romverse.guardian.execution_result_receipt import VerifiedGuardianExecutionResult
 from romverse.infrastructure.process import SubprocessRunner
 from romverse.infrastructure.provisioning import required_tools_for_source
 from romverse.infrastructure.tools import ToolStatus
+from romverse.knowledge.models import KnowledgeLookupReport
+from romverse.repair.sessions import RepairSessionStore
 from romverse.rom.avb_evidence import SourceAvbEvidenceService, SourceAvbTopologyReceipt
 from romverse.rom.models import ProjectError
 from romverse.rom.payloads import PayloadService
 from romverse.rom.projects import RomProjectStore
 from romverse.rom.source_intelligence import FirmwareSourceIntelligenceService
+from romverse.ui.formatters import human_bytes
+from romverse.ui.process_progress import ProcessProgressBar
 
 
 class DevicePacksCenter(QWidget):
@@ -61,6 +74,7 @@ class DevicePacksCenter(QWidget):
     next_action_requested = Signal(str, str, str, str)
     requirement_requested = Signal(str, str, str, str)
     readiness_changed = Signal(object)
+    knowledge_query_requested = Signal(str)
 
     def __init__(
         self,
@@ -89,6 +103,17 @@ class DevicePacksCenter(QWidget):
         self.active_catalog_match: DeviceCatalogMatch | None = None
         self.active_pack: DevicePack | None = None
         self.active_device: AndroidDevice | None = None
+        self.active_device_dna: DeviceDnaProfile | None = None
+        self.active_knowledge_report: KnowledgeLookupReport | None = None
+        self.active_knowledge_device_serial = ""
+        self.knowledge_lookup_error = ""
+        self.intelligence_history = (
+            DeviceIntelligenceHistoryStore(workspace) if workspace is not None else None
+        )
+        self.repair_history = RepairSessionStore(workspace) if workspace is not None else None
+        self.intelligence_history_error = ""
+        self._timeline_rows: tuple[tuple[str, str, str, str, str], ...] = ()
+        self._timeline_dialog: QDialog | None = None
         self.validation_rows: dict[str, QFrame] = {}
         self.requirement_buttons: dict[str, QPushButton] = {}
         self.requirement_badges: dict[str, QLabel] = {}
@@ -97,9 +122,18 @@ class DevicePacksCenter(QWidget):
         self.devices: list[AndroidDevice] = []
         self.source_summary = summarize_sources(registry)
 
-        page = QVBoxLayout(self)
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        self.body = QScrollArea()
+        self.body.setObjectName("DeviceAtlasScroll")
+        self.body.setWidgetResizable(True)
+        self.body_content = QWidget()
+        self.body_content.setObjectName("ScrollContent")
+        page = QVBoxLayout(self.body_content)
         page.setContentsMargins(30, 26, 30, 30)
         page.setSpacing(18)
+        self.body.setWidget(self.body_content)
+        root.addWidget(self.body)
         header = QHBoxLayout()
         text = QVBoxLayout()
         eyebrow = QLabel("DEVICE ATLAS  •  MULTI-OEM BY DESIGN")
@@ -129,6 +163,8 @@ class DevicePacksCenter(QWidget):
         self.audit_button.clicked.connect(self._export_source_audit)
         header.addWidget(self.audit_button)
         page.addLayout(header)
+
+        page.addWidget(self._device_passport())
 
         catalog_row = QHBoxLayout()
         self.catalog_search = QLineEdit()
@@ -241,11 +277,12 @@ class DevicePacksCenter(QWidget):
         guidance_copy.addWidget(self.guidance_title)
         guidance_copy.addWidget(self.guidance_detail)
         guidance_layout.addLayout(guidance_copy, 1)
-        self.continue_button = QPushButton("Continue to ROM Studio")
+        self.continue_button = QPushButton("Start ROM Mission")
         self.continue_button.setObjectName("Primary")
         self.continue_button.setVisible(False)
         self.continue_button.setToolTip(
-            "Open ROM Studio. Genesis Sequence will continue source and safety checks automatically."
+            "Send the current verified device evidence to ROM Studio and begin or resume Genesis. "
+            "This does not build, flash, wipe, unlock, relock, or change the phone."
         )
         self.continue_button.clicked.connect(self._request_rom_studio)
         guidance_layout.addWidget(self.continue_button)
@@ -272,15 +309,12 @@ class DevicePacksCenter(QWidget):
         metrics.addWidget(self.source_card, 1)
         page.addLayout(metrics)
 
-        self.body = QScrollArea()
-        self.body.setWidgetResizable(True)
-        self.body_content = QWidget()
-        self.body_content.setObjectName("ScrollContent")
-        self.body_layout = QVBoxLayout(self.body_content)
-        self.body_layout.setContentsMargins(0, 0, 6, 0)
+        self.results_content = QWidget()
+        self.results_content.setObjectName("ScrollContent")
+        self.body_layout = QVBoxLayout(self.results_content)
+        self.body_layout.setContentsMargins(0, 0, 0, 0)
         self.body_layout.setSpacing(12)
-        self.body.setWidget(self.body_content)
-        page.addWidget(self.body, 1)
+        page.addWidget(self.results_content)
 
         boundary = QLabel(
             "Pack integrity is verified against the bundled SHA-256 index. Imported physical-test "
@@ -296,6 +330,508 @@ class DevicePacksCenter(QWidget):
             else DeviceCatalogStatus(False, False, "Official device catalog is unavailable")
         )
         self._show_installed()
+
+    def _device_passport(self) -> QFrame:
+        passport = QFrame()
+        passport.setObjectName("DevicePassport")
+        passport.setAccessibleName("Live Device Intelligence passport")
+        passport.setMinimumHeight(310)
+        outer = QHBoxLayout(passport)
+        outer.setContentsMargins(22, 18, 22, 18)
+        outer.setSpacing(18)
+
+        hologram = QLabel("◇\nDNA")
+        hologram.setObjectName("DevicePassportHologram")
+        hologram.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        hologram.setFixedSize(88, 118)
+        hologram.setAccessibleName("Holographic device DNA emblem")
+        outer.addWidget(hologram, 0, Qt.AlignmentFlag.AlignTop)
+
+        content = QVBoxLayout()
+        content.setSpacing(7)
+        title_row = QHBoxLayout()
+        heading = QLabel("DEVICE INTELLIGENCE HUB  •  LIVE PASSPORT")
+        heading.setObjectName("DevicePassportEyebrow")
+        title_row.addWidget(heading)
+        title_row.addStretch()
+        self.passport_state = QLabel("AWAITING DEVICE")
+        self.passport_state.setObjectName("Warning")
+        title_row.addWidget(self.passport_state)
+        content.addLayout(title_row)
+        self.passport_name = QLabel("Connect an Android phone to unfold its Device DNA")
+        self.passport_name.setObjectName("DevicePassportTitle")
+        self.passport_name.setWordWrap(True)
+        content.addWidget(self.passport_name)
+        self.passport_scan_progress = ProcessProgressBar()
+        self.passport_scan_progress.setAccessibleName("Animated Device DNA scan progress")
+        content.addWidget(self.passport_scan_progress)
+
+        facts = QGridLayout()
+        facts.setHorizontalSpacing(16)
+        facts.setVerticalSpacing(8)
+        self.passport_identity = self._passport_fact(facts, 0, 0, "IDENTITY")
+        self.passport_platform = self._passport_fact(facts, 0, 1, "CHIPSET / REGION")
+        self.passport_firmware = self._passport_fact(facts, 0, 2, "ANDROID / FIRMWARE")
+        self.passport_boot = self._passport_fact(facts, 1, 0, "BOOT / SLOTS")
+        self.passport_partitions = self._passport_fact(facts, 1, 1, "PARTITIONS")
+        self.passport_health = self._passport_fact(facts, 1, 2, "LIVE HEALTH")
+        self.passport_upgrade = self._passport_fact(facts, 2, 0, "UPGRADE VERDICT")
+        self.passport_knowledge = self._passport_fact(facts, 2, 1, "MATCHED KNOWLEDGE")
+        self.passport_history = self._passport_fact(facts, 2, 2, "LOCAL TIMELINE")
+        content.addLayout(facts)
+        outer.addLayout(content, 1)
+
+        actions = QVBoxLayout()
+        actions.setSpacing(8)
+        self.passport_refresh_note = QLabel("READ-ONLY • PRIVATE • OFFLINE-FIRST")
+        self.passport_refresh_note.setObjectName("DevicePassportBoundary")
+        self.passport_refresh_note.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        actions.addWidget(self.passport_refresh_note)
+        self.passport_knowledge_button = QPushButton("Review best knowledge match")
+        self.passport_knowledge_button.setObjectName("KnowledgeBrainAction")
+        self.passport_knowledge_button.setVisible(False)
+        self.passport_knowledge_button.setToolTip(
+            "Open the best current offline Archives match. No command or phone action is started."
+        )
+        self.passport_knowledge_button.clicked.connect(self._request_passport_knowledge)
+        actions.addWidget(self.passport_knowledge_button)
+        self.passport_timeline_button = QPushButton("Open private timeline")
+        self.passport_timeline_button.setObjectName("KnowledgeBrainAction")
+        self.passport_timeline_button.setVisible(False)
+        self.passport_timeline_button.setToolTip(
+            "Review integrity-checked scans, verified Guardian flashes, and repair sessions "
+            "for this pseudonymous device. Nothing is uploaded or executed."
+        )
+        self.passport_timeline_button.clicked.connect(self._open_private_timeline)
+        actions.addWidget(self.passport_timeline_button)
+        actions.addStretch()
+        outer.addLayout(actions)
+        return passport
+
+    @staticmethod
+    def _passport_fact(
+        grid: QGridLayout,
+        row: int,
+        column: int,
+        title: str,
+    ) -> QLabel:
+        card = QFrame()
+        card.setObjectName("DevicePassportFact")
+        card.setMinimumHeight(70)
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(11, 8, 11, 8)
+        layout.setSpacing(2)
+        label = QLabel(title)
+        label.setObjectName("DevicePassportFactLabel")
+        value = QLabel("Unconfirmed")
+        value.setObjectName("DevicePassportFactValue")
+        value.setWordWrap(True)
+        value.setMinimumHeight(34)
+        value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        layout.addWidget(label)
+        layout.addWidget(value)
+        grid.addWidget(card, row, column)
+        return value
+
+    def set_scanning(self, scanning: bool) -> None:
+        """Animate only while Device Engine is performing a genuine read-only scan."""
+
+        if scanning:
+            self.passport_scan_progress.begin()
+            self.passport_state.setText("SCANNING DEVICE DNA")
+            self.passport_state.setObjectName("Warning")
+            self.passport_refresh_note.setText("READ-ONLY PROBES ACTIVE • NOTHING UPLOADED")
+        else:
+            self.passport_scan_progress.finish()
+            if self.active_device is not None:
+                self._render_live_passport(self.active_device, self.active_pack, record=False)
+            else:
+                self.passport_state.setText("AWAITING DEVICE")
+                self.passport_state.setObjectName("Warning")
+                self.passport_refresh_note.setText("READ-ONLY • PRIVATE • OFFLINE-FIRST")
+        self._repolish(self.passport_state)
+
+    def set_knowledge_lookup(
+        self,
+        device_serial: str,
+        report: KnowledgeLookupReport | None,
+        error: str = "",
+    ) -> None:
+        """Bind one offline Archives result to the exact current live passport."""
+
+        device = self.active_device
+        if device is None or device.serial != device_serial:
+            self.active_knowledge_report = None
+            self.knowledge_lookup_error = ""
+            return
+        self.active_knowledge_report = report
+        self.active_knowledge_device_serial = device_serial
+        self.knowledge_lookup_error = " ".join(str(error).replace("\x00", " ").split())[:500]
+        self._render_live_passport(device, self.active_pack, record=False)
+
+    def set_device_dna(self, profile: DeviceDnaProfile | None) -> None:
+        """Show source-bound mission DNA only when it includes this exact live device."""
+
+        device = self.active_device
+        self.active_device_dna = (
+            profile
+            if profile is not None
+            and device is not None
+            and self._profile_matches_device(profile, device)
+            else None
+        )
+        if device is not None:
+            self._render_live_passport(device, self.active_pack, record=False)
+
+    @staticmethod
+    def _profile_matches_device(profile: DeviceDnaProfile, device: AndroidDevice) -> bool:
+        codename = profile.fact("identity.codename")
+        model = profile.fact("identity.model")
+        live_facts = tuple(
+            fact
+            for fact in (codename, model)
+            if fact is not None
+            and "device.live" in fact.evidence_ids
+            and fact.confidence is not EvidenceConfidence.UNCONFIRMED
+        )
+        if not live_facts:
+            return False
+        if codename in live_facts and device.codename:
+            aliases = {
+                value.strip().casefold()
+                for value in codename.value.replace("|", ",").split(",")
+                if value.strip()
+            }
+            if device.codename.casefold() not in aliases:
+                return False
+        return not (
+            model in live_facts
+            and device.model
+            and model.value.strip().casefold() != device.model.strip().casefold()
+        )
+
+    def _request_passport_knowledge(self) -> None:
+        report = self.active_knowledge_report
+        if report is not None and report.matches:
+            self.knowledge_query_requested.emit(report.matches[0].record.title[:160])
+
+    def record_verified_flash(
+        self,
+        device_serial: str,
+        project_name: str,
+        result: VerifiedGuardianExecutionResult,
+    ) -> bool:
+        """Add one Guardian-verified flash to the private device timeline."""
+
+        if self.intelligence_history is None:
+            return False
+        try:
+            self.intelligence_history.record_verified_flash(
+                device_serial,
+                project_name,
+                result,
+            )
+        except DeviceIntelligenceError as exc:
+            self.intelligence_history_error = str(exc)
+            return False
+        if self.active_device is not None and self.active_device.serial == device_serial:
+            self._render_live_passport(self.active_device, self.active_pack, record=False)
+        return True
+
+    def refresh_history(self) -> None:
+        """Refresh timeline projections without probing or changing the phone."""
+
+        if self.active_device is not None:
+            self._render_live_passport(self.active_device, self.active_pack, record=False)
+
+    def _render_live_passport(
+        self,
+        device: AndroidDevice,
+        pack: DevicePack | None,
+        *,
+        match_reason: str = "",
+        record: bool = False,
+    ) -> None:
+        snapshot = None
+        history = ()
+        if self.intelligence_history is not None:
+            try:
+                if record:
+                    snapshot = self.intelligence_history.record_scan(
+                        device,
+                        pack,
+                        match_reason,
+                    )
+                history = self.intelligence_history.load(
+                    device_serial=device.serial,
+                    limit=20,
+                )
+                snapshot = snapshot or (history[0] if history else None)
+                self.intelligence_history_error = ""
+            except DeviceIntelligenceError as exc:
+                self.intelligence_history_error = str(exc)
+
+        self.passport_name.setText(device.display_name)
+        state = device.state.value.replace("_", " ").upper()
+        self.passport_state.setText(
+            "CONNECTED • PASSPORT CURRENT"
+            if device.state.value == "device"
+            else f"{state} • PARTIAL PASSPORT"
+        )
+        self.passport_state.setObjectName(
+            "Good" if device.state.value == "device" and not device.errors else "Warning"
+        )
+        self.passport_identity.setText(
+            f"{device.model or 'Model unconfirmed'}\n{device.codename or 'Codename unconfirmed'}"
+        )
+        region = snapshot.region if snapshot is not None else ""
+        self.passport_platform.setText(
+            f"{device.soc_platform or device.hardware or 'Chipset unconfirmed'}\n"
+            f"{region or 'Region unconfirmed'}"
+        )
+        self.passport_firmware.setText(
+            f"Android {device.android_version or 'unconfirmed'}\n"
+            f"{device.rom_display or device.build_id or 'Firmware unconfirmed'}"
+        )
+        bootloader = (
+            "Locked"
+            if device.bootloader_locked is True
+            else "Unlocked"
+            if device.bootloader_locked is False
+            else "Bootloader unconfirmed"
+        )
+        slot = device.slot_suffix.removeprefix("_").upper() or "unconfirmed"
+        scheme = (
+            "Virtual A/B"
+            if device.virtual_ab is True
+            else "A/B"
+            if device.ab_update is True
+            else "Single-slot reported"
+            if device.ab_update is False
+            else "scheme unconfirmed"
+        )
+        self.passport_boot.setText(f"{bootloader}\nSlot {slot} • {scheme}")
+
+        dna = self.active_device_dna
+        architecture = dna.fact("partition.architecture") if dna is not None else None
+        if architecture is not None and architecture.confirmed:
+            partition_text = architecture.value
+            if dna.partitions:
+                partition_text += f" • {len(dna.partitions)} mapped"
+        elif snapshot is not None:
+            partition_text = snapshot.partition_summary
+        else:
+            partition_text = "Exact partition inventory unconfirmed"
+        self.passport_partitions.setText(partition_text)
+
+        battery = (
+            f"Battery {device.battery_percent}%"
+            if device.battery_percent is not None
+            else "Battery unconfirmed"
+        )
+        storage = (
+            f"{human_bytes(device.storage.available_bytes)} free"
+            if device.storage.available_bytes is not None
+            else "storage unconfirmed"
+        )
+        health = snapshot.health_summary if snapshot is not None else "Live health unconfirmed"
+        self.passport_health.setText(f"{battery} • {storage}\n{health}")
+
+        upgrade = dna.fact("firmware.upgrade_relationship") if dna is not None else None
+        self.passport_upgrade.setText(
+            upgrade.value
+            if upgrade is not None and upgrade.confirmed
+            else "Select protected firmware in ROM Studio for an upgrade/downgrade verdict"
+        )
+
+        report = self.active_knowledge_report
+        if self.knowledge_lookup_error:
+            self.passport_knowledge.setText("Offline lookup needs attention")
+            self.passport_knowledge_button.setVisible(False)
+        elif report is not None and report.matches:
+            leading = report.matches[0]
+            self.passport_knowledge.setText(
+                f"{len(report.matches)} local match(es)\n"
+                f"{leading.confidence.value.upper()} • {leading.record.title}"
+            )
+            self.passport_knowledge_button.setVisible(True)
+        elif report is not None:
+            self.passport_knowledge.setText("No compatible local record yet")
+            self.passport_knowledge_button.setVisible(False)
+        else:
+            self.passport_knowledge.setText("Matching current evidence…")
+            self.passport_knowledge_button.setVisible(False)
+
+        counts = self._collect_timeline(device, history)
+        if self.intelligence_history_error:
+            self.passport_history.setText("Timeline integrity needs attention")
+        else:
+            latest = self._timeline_rows[0][2] if self._timeline_rows else "No history yet"
+            self.passport_history.setText(
+                f"{counts['scan']} scans • {counts['flash']} flashes • "
+                f"{counts['repair']} repairs\nLatest: {latest}"
+            )
+        self.passport_timeline_button.setVisible(bool(self._timeline_rows))
+        self.passport_refresh_note.setText(
+            "READ-ONLY • PRIVATE • OFFLINE-FIRST"
+            if not self.intelligence_history_error
+            else "TIMELINE PRESERVED • INVALID DATA NOT OVERWRITTEN"
+        )
+        self._repolish(self.passport_state)
+
+    def _collect_timeline(
+        self,
+        device: AndroidDevice,
+        scans: tuple,
+    ) -> dict[str, int]:
+        rows: list[tuple[str, str, str, str, str]] = []
+        for item in scans:
+            rows.append(
+                (
+                    item.observed_at,
+                    "SCAN",
+                    "Device DNA scan",
+                    f"{item.display_name} • {item.firmware_version or 'firmware unconfirmed'} • "
+                    f"{item.connection_state}",
+                    "verified",
+                )
+            )
+        operations = ()
+        if self.intelligence_history is not None:
+            try:
+                operations = self.intelligence_history.load_operations(
+                    device_serial=device.serial,
+                    limit=40,
+                )
+            except DeviceIntelligenceError as exc:
+                self.intelligence_history_error = str(exc)
+        for item in operations:
+            rows.append(
+                (
+                    item.occurred_at,
+                    item.event_type.upper(),
+                    item.title,
+                    item.detail,
+                    item.outcome,
+                )
+            )
+        repairs = ()
+        if self.repair_history is not None and self.intelligence_history is not None:
+            device_key = self.intelligence_history.privacy.pseudonym(device.serial)
+            repairs = tuple(
+                item for item in self.repair_history.list_recent() if item.device_key == device_key
+            )[:40]
+        for item in repairs:
+            detail = item.verification_summary or (
+                f"{len(item.reviewed_steps)}/{len(item.recommendations)} guided checkpoints reviewed; "
+                "no repair success claimed"
+            )
+            rows.append(
+                (
+                    item.updated_at,
+                    "REPAIR",
+                    f"{item.concern.replace('_', ' ').title()} repair session",
+                    detail,
+                    "verified" if item.status == "verified" else "attention",
+                )
+            )
+        self._timeline_rows = tuple(
+            sorted(
+                rows,
+                key=lambda row: datetime.fromisoformat(row[0].replace("Z", "+00:00")),
+                reverse=True,
+            )[:60]
+        )
+        return {
+            "scan": len(scans),
+            "flash": len(operations),
+            "repair": len(repairs),
+        }
+
+    def _open_private_timeline(self) -> None:
+        if not self._timeline_rows:
+            return
+        dialog = QDialog(self)
+        dialog.setObjectName("DeviceTimelineDialog")
+        dialog.setWindowTitle("Private device timeline")
+        dialog.setMinimumSize(760, 520)
+        layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(24, 22, 24, 22)
+        layout.setSpacing(12)
+        eyebrow = QLabel("DEVICE INTELLIGENCE HUB  •  LOCAL EVIDENCE TIMELINE")
+        eyebrow.setObjectName("DevicePassportEyebrow")
+        layout.addWidget(eyebrow)
+        title = QLabel(self.passport_name.text())
+        title.setObjectName("DialogTitle")
+        layout.addWidget(title)
+        boundary = QLabel(
+            "Pseudonymous local history only. Flash entries appear only after a successful "
+            "Guardian result; repair entries describe recorded evidence without inventing success."
+        )
+        boundary.setObjectName("DevicePassportBoundary")
+        boundary.setWordWrap(True)
+        layout.addWidget(boundary)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        content = QWidget()
+        content.setObjectName("ScrollContent")
+        timeline = QVBoxLayout(content)
+        timeline.setContentsMargins(0, 0, 6, 0)
+        timeline.setSpacing(8)
+        for occurred_at, kind, event_title, detail, outcome in self._timeline_rows:
+            card = QFrame()
+            card.setObjectName("DeviceTimelineEvent")
+            card.setProperty("timelineState", outcome)
+            card_layout = QHBoxLayout(card)
+            card_layout.setContentsMargins(14, 11, 14, 11)
+            stamp = datetime.fromisoformat(occurred_at.replace("Z", "+00:00"))
+            marker = QLabel(f"{kind}\n{stamp.astimezone().strftime('%d %b %Y • %H:%M')}")
+            marker.setObjectName("DeviceTimelineMarker")
+            marker.setMinimumWidth(150)
+            card_layout.addWidget(marker)
+            copy = QVBoxLayout()
+            heading = QLabel(event_title)
+            heading.setObjectName("SectionTitle")
+            description = QLabel(detail)
+            description.setObjectName("Muted")
+            description.setWordWrap(True)
+            copy.addWidget(heading)
+            copy.addWidget(description)
+            card_layout.addLayout(copy, 1)
+            timeline.addWidget(card)
+        timeline.addStretch()
+        scroll.setWidget(content)
+        layout.addWidget(scroll, 1)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+        self._timeline_dialog = dialog
+        dialog.finished.connect(lambda _result: setattr(self, "_timeline_dialog", None))
+        dialog.show()
+        dialog.raise_()
+        dialog.activateWindow()
+
+    def _clear_live_passport(self) -> None:
+        self.passport_name.setText("Connect an Android phone to unfold its Device DNA")
+        self.passport_state.setText("AWAITING DEVICE")
+        self.passport_state.setObjectName("Warning")
+        for label in (
+            self.passport_identity,
+            self.passport_platform,
+            self.passport_firmware,
+            self.passport_boot,
+            self.passport_partitions,
+            self.passport_health,
+            self.passport_upgrade,
+            self.passport_knowledge,
+            self.passport_history,
+        ):
+            label.setText("Unconfirmed")
+        self.passport_knowledge_button.setVisible(False)
+        self.passport_timeline_button.setVisible(False)
+        self._timeline_rows = ()
+        self.passport_refresh_note.setText("READ-ONLY • PRIVATE • OFFLINE-FIRST")
+        self._repolish(self.passport_state)
 
     def set_catalog_checking(self) -> None:
         self.identity_catalog_title.setText("Checking official Android device IDs…")
@@ -446,7 +982,11 @@ class DevicePacksCenter(QWidget):
             self.active_catalog_match = None
             self.active_pack = None
             self.active_device = None
+            self.active_knowledge_report = None
+            self.active_knowledge_device_serial = ""
+            self.knowledge_lookup_error = ""
             self._repolish(self.pack_badge)
+            self._clear_live_passport()
             self._set_guidance(
                 "Connect a phone and ROMVERSE will identify its support level",
                 "Device Atlas checks model, codename, firmware knowledge, and verified build "
@@ -618,7 +1158,7 @@ class DevicePacksCenter(QWidget):
                     "Compile lane below; flash remains locked."
                 ),
                 "Good" if exact_pack_ready else "Warning",
-                exact_pack_ready,
+                True,
             )
             if not source_pack_bound and self.active_pack is not None:
                 self.pack_name.setText(f"Phone Pack reference • {self.active_pack.display_name}")
@@ -907,6 +1447,15 @@ class DevicePacksCenter(QWidget):
             self._render_device(self.devices[index])
 
     def _render_device(self, device: AndroidDevice) -> None:
+        if self.active_knowledge_device_serial != device.serial:
+            self.active_knowledge_report = None
+            self.active_knowledge_device_serial = ""
+            self.knowledge_lookup_error = ""
+        if self.active_device_dna is not None and not self._profile_matches_device(
+            self.active_device_dna,
+            device,
+        ):
+            self.active_device_dna = None
         official_identity = self._render_catalog_identity(device)
         resolution = self.registry.resolve(device)
         if resolution.pack is None:
@@ -921,6 +1470,12 @@ class DevicePacksCenter(QWidget):
             self.active_pack = None
             self.active_device = device
             self._repolish(self.pack_badge)
+            self._render_live_passport(
+                device,
+                None,
+                match_reason=resolution.reason,
+                record=True,
+            )
             self._set_guidance(
                 "This phone is not yet supported for ROM building",
                 "Safe device diagnostics remain available, but ROMVERSE found no integrity-checked "
@@ -952,6 +1507,12 @@ class DevicePacksCenter(QWidget):
             else None
         )
         self.active_report = self.validation_service.assess(pack, device, attestation)
+        self._render_live_passport(
+            device,
+            pack,
+            match_reason=resolution.reason,
+            record=True,
+        )
         generic = pack.priority <= 0 or pack.manufacturers == ("*",)
         if self.active_report.build_contract_ready:
             self._set_guidance(
@@ -969,7 +1530,7 @@ class DevicePacksCenter(QWidget):
                 "identity data is not a partition map or flash contract. ROMVERSE can diagnose "
                 "the phone while Device Atlas gathers a signed exact model/source contract.",
                 "Warning",
-                False,
+                True,
             )
         elif generic:
             self._set_guidance(
@@ -977,7 +1538,7 @@ class DevicePacksCenter(QWidget):
                 "ROMVERSE can run safe generic diagnostics, but this match does not contain an "
                 "exact build contract. ROM building and device-changing work remain locked.",
                 "Warning",
-                False,
+                True,
             )
         else:
             self._set_guidance(
@@ -985,7 +1546,7 @@ class DevicePacksCenter(QWidget):
                 "ROMVERSE has model-specific knowledge, but not a complete verified build contract "
                 "for this exact firmware. The evidence roadmap below explains what is still needed.",
                 "Warning",
-                False,
+                True,
             )
         self._render_pack(pack, self.active_report)
         self.readiness_changed.emit(self.active_report)
@@ -1029,7 +1590,7 @@ class DevicePacksCenter(QWidget):
         roadmap = QFrame()
         roadmap.setObjectName("Card")
         roadmap_layout = QVBoxLayout(roadmap)
-        roadmap_layout.setContentsMargins(18, 16, 18, 16)
+        roadmap_layout.setContentsMargins(10, 16, 10, 16)
         roadmap_layout.setSpacing(10)
         roadmap_header = QHBoxLayout()
         roadmap_copy = QVBoxLayout()

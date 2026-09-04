@@ -711,7 +711,7 @@ def test_device_atlas_and_nexus_preserve_exact_context_into_rom_studio(
         app.processEvents()
         assert window.stack.currentWidget() is window.device_packs_center
         assert "NEXT ACTION STOPPED" in window.device_packs_center.next_action_feedback.text()
-        assert "Continue control no longer matches" in (
+        assert "Start ROM Mission no longer matches" in (
             window.device_packs_center.next_action_feedback.text()
         )
         assert window.rom_studio.worker is None
@@ -749,6 +749,70 @@ def test_device_atlas_and_nexus_preserve_exact_context_into_rom_studio(
         )
         assert project.project_id in window.rom_studio.dashboard_handoff_detail.text()
         assert "NO PROJECT WORKER, PLAN, BUILD, OR PHONE ACTION STARTED" in (
+            window.rom_studio.dashboard_handoff_detail.text()
+        )
+        assert window.rom_studio.worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_device_atlas_starts_genesis_with_identity_evidence_before_build_is_ready(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        pack_registry=registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    genesis_opened: list[bool] = []
+    monkeypatch.setattr(
+        window.rom_studio,
+        "_open_guided_setup",
+        lambda: genesis_opened.append(True),
+    )
+    try:
+        window._scan_complete(
+            [
+                AndroidDevice(
+                    "private-pixel",
+                    DeviceState.DEVICE,
+                    manufacturer="Google",
+                    brand="google",
+                    model="Pixel 9 Pro",
+                    product="caiman",
+                    codename="caiman",
+                    android_version="16",
+                )
+            ]
+        )
+        app.processEvents()
+        report = window.device_packs_center.active_report
+        assert report is not None and not report.build_contract_ready
+        assert not window.device_packs_center.continue_button.isHidden()
+        assert window.device_packs_center.active_knowledge_device_serial == "private-pixel"
+        assert window.device_packs_center.active_knowledge_report is not None
+        assert window.device_packs_center.passport_knowledge.text() != (
+            "Matching current evidence…"
+        )
+
+        window._navigate_route("device_atlas")
+        window.device_packs_center.continue_button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.rom_studio
+        assert genesis_opened == [True]
+        assert window.rom_studio.dashboard_handoff_badge.text() == (
+            "BUILD EVIDENCE NEEDED • FLASH LOCKED"
+        )
+        assert "NO BUILD, APPROVAL, FLASH, OR PHONE ACTION STARTED" in (
             window.rom_studio.dashboard_handoff_detail.text()
         )
         assert window.rom_studio.worker is None

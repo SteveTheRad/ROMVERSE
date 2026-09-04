@@ -292,8 +292,11 @@ def test_rom_studio_advances_flash_and_first_boot_only_from_linked_evidence(tmp_
     studio = RomStudio(store, registry)
     studio.refresh(project.project_id)
     studio.set_devices([device])
+    timeline_events = []
+    studio.guardian_flash_verified.connect(lambda *values: timeline_events.append(values))
 
     assert studio.register_guardian_execution_result(verified)
+    assert timeline_events == [(device.serial, project.name, verified)]
     assert studio.guided_context().flash_complete
     assert not studio.guided_context().first_boot_verified
 

@@ -2,9 +2,10 @@ import json
 import zipfile
 from importlib.resources import files
 
-from PySide6.QtWidgets import QApplication, QLabel
+from PySide6.QtWidgets import QApplication, QFrame, QLabel
 
 from romverse.device.catalog import GooglePlayDeviceCatalog
+from romverse.device.dna import DeviceDnaService
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.device_packs.requirements import RequirementState
@@ -13,6 +14,8 @@ from romverse.rom.projects import RomProjectStore
 from romverse.rom.source_intelligence import FirmwareSourceIntelligenceService
 from romverse.ui.device_packs_center import DevicePacksCenter
 from tests.test_device_catalog import _payload, _sync
+from tests.test_device_dna import _device as _dna_device
+from tests.test_device_dna import _project as _dna_project
 from tests.test_source_intelligence import SourceRunner
 
 
@@ -29,6 +32,13 @@ def test_device_atlas_distinguishes_local_build_readiness_from_flash_lock(tmp_pa
                 model="2509FPN0BC",
                 product="popsicle_global",
                 codename="popsicle",
+                android_version="17",
+                build_id="OS4.0.0.25.XPBCNXM",
+                battery_percent=76,
+                bootloader_locked=False,
+                slot_suffix="_a",
+                virtual_ab=True,
+                dynamic_partitions=True,
             )
         ]
     )
@@ -71,6 +81,21 @@ def test_device_atlas_distinguishes_local_build_readiness_from_flash_lock(tmp_pa
     ]
     assert "rom build planning is ready" in center.guidance_title.text().casefold()
     assert center.continue_button.isVisibleTo(center)
+    assert center.passport_name.text() == "Xiaomi 2509FPN0BC"
+    assert center.passport_state.text() == "CONNECTED • PASSPORT CURRENT"
+    assert center.passport_platform.text().endswith("China")
+    assert "Android 17" in center.passport_firmware.text()
+    assert "Unlocked" in center.passport_boot.text()
+    assert center.passport_history.text().startswith("1 scans • 0 flashes • 0 repairs")
+    passport_bytes = center.intelligence_history.path.read_text(encoding="utf-8")
+    assert "private-serial" not in passport_bytes
+    center._open_private_timeline()
+    app.processEvents()
+    assert center._timeline_dialog is not None
+    assert any(
+        "Device DNA scan" in label.text() for label in center._timeline_dialog.findChildren(QLabel)
+    )
+    center._timeline_dialog.close()
     studio_requests: list[tuple[str, str]] = []
     center.rom_studio_requested.connect(
         lambda report_id, digest: studio_requests.append((report_id, digest))
@@ -94,6 +119,42 @@ def test_device_atlas_distinguishes_local_build_readiness_from_flash_lock(tmp_pa
     center._export_source_audit()
     assert "execution authority: none" in center.match_reason.text()
     assert list((tmp_path / "device_atlas_audits").glob("*.json"))
+    center.close()
+
+
+def test_device_passport_unfolds_exact_source_bound_dna_and_remains_scrollable(
+    tmp_path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    store, registry, project, inspection = _dna_project(tmp_path)
+    device = _dna_device()
+    profile = DeviceDnaService(store, registry).refresh(
+        project.project_id,
+        device,
+        inspection,
+    )
+    center = DevicePacksCenter(registry, store.workspace)
+    center.resize(1280, 720)
+    center.set_devices([device])
+    center.set_device_dna(profile)
+    center.show()
+    app.processEvents()
+
+    assert center.passport_upgrade.text() == (
+        "SAME FIRMWARE VERSION • OS4.0.0.23.XPBCNXM → OS4.0.0.23.XPBCNXM"
+    )
+    assert "1 mapped" in center.passport_partitions.text()
+    assert center.body.horizontalScrollBar().maximum() == 0
+    assert center.body.verticalScrollBar().maximum() > 0
+    fact_cards = [
+        card for card in center.findChildren(QFrame) if card.objectName() == "DevicePassportFact"
+    ]
+    assert len(fact_cards) == 9
+    for index, first in enumerate(fact_cards):
+        first_rect = first.geometry()
+        for second in fact_cards[index + 1 :]:
+            if first.parentWidget() is second.parentWidget():
+                assert not first_rect.intersects(second.geometry())
     center.close()
 
 
@@ -159,7 +220,8 @@ def test_studio_handoff_scopes_requirements_to_current_strict_source_blueprint(
     assert "OS4.0.0.25" in center.dashboard_handoff_detail.text()
     assert "3 HOST TOOLS" in center.dashboard_handoff_detail.text()
     assert "project source recognized" in center.guidance_title.text().casefold()
-    assert center.continue_button.isHidden()
+    assert not center.continue_button.isHidden()
+    assert center.continue_button.isEnabled()
     assert center.pack_name.text().startswith("Phone Pack reference")
     assert "is for a different source" in center.match_reason.text()
     assert center.pack_badge.text() == "REFERENCE ONLY • PROJECT SOURCE ACTIVE"
@@ -388,7 +450,8 @@ def test_device_atlas_renders_exact_pixel_sources_without_build_authority(tmp_pa
     assert center.active_report is not None
     assert not center.active_report.build_contract_ready
     assert "safe diagnostics are ready" in center.guidance_title.text().casefold()
-    assert not center.continue_button.isVisible()
+    assert not center.continue_button.isHidden()
+    assert center.continue_button.isEnabled()
     labels = [label.text() for label in center.findChildren(QLabel)]
     assert any("AOSP Pixel kernel compatibility matrix" in label for label in labels)
     assert "SOURCE CURRENT" in labels
@@ -591,7 +654,8 @@ def test_device_atlas_shows_exact_official_identity_without_inventing_build_supp
     assert "Build.BRAND / Build.DEVICE: Example / nebula" in (center.identity_catalog_detail.text())
     assert "exact build support is still locked" in center.guidance_title.text().casefold()
     assert center.active_pack is not None and center.active_pack.pack_id == "android.generic"
-    assert not center.continue_button.isVisible()
+    assert not center.continue_button.isHidden()
+    assert center.continue_button.isEnabled()
     assert center.active_next_action is not None
     assert center.active_next_action.article_key == "android-device-identity-catalog"
     assert center.next_action_badge.text() == "BUILD GATE • ZERO AUTHORITY"

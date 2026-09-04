@@ -658,6 +658,7 @@ class RomStudio(QWidget):
     device_scan_requested = Signal()
     device_scan_finished = Signal(bool, str)
     device_dna_updated = Signal(object)
+    guardian_flash_verified = Signal(str, str, object)
     compatibility_matrix_updated = Signal(object)
     offline_knowledge_updated = Signal(object)
     experience_mode_requested = Signal(object)
@@ -1699,7 +1700,7 @@ class RomStudio(QWidget):
             pack is None
             or report.pack_version != pack.version
             or report.pack_sha256 != pack.sha256
-            or not report.build_contract_ready
+            or (intent != "genesis" and not report.build_contract_ready)
         ):
             return False
         if source == "Forge Arsenal":
@@ -1724,6 +1725,7 @@ class RomStudio(QWidget):
                 f"Current project {project.name} is not associated with Pack {pack.pack_id}; "
                 "select or create the correct protected-source project before planning."
             )
+        build = "READY" if report.build_contract_ready else "EVIDENCE NEEDED"
         flash = "READY" if report.flash_contract_ready else "LOCKED"
         if intent == "genesis":
             title = f"{source} → Genesis Sequence"
@@ -1751,11 +1753,11 @@ class RomStudio(QWidget):
         self._show_dashboard_handoff(
             title,
             f"{report.model} / {report.codename}  •  Pack {pack.pack_id} v{pack.version}  •  "
-            f"report {report.report_digest[:16]}…  •  build READY  •  flash {flash}. "
+            f"report {report.report_digest[:16]}…  •  build {build}  •  flash {flash}. "
             f"{project_context} {next_step} NO BUILD, APPROVAL, FLASH, OR PHONE ACTION STARTED.",
-            f"BUILD READY • FLASH {flash}",
-            ready=True,
-            eyebrow=f"{source.upper()} HANDOFF  •  EXACT CURRENT BUILD CONTRACT",
+            f"BUILD {build} • FLASH {flash}",
+            ready=report.build_contract_ready,
+            eyebrow=f"{source.upper()} HANDOFF  •  EXACT CURRENT DEVICE EVIDENCE",
         )
         self.detail_scroll.ensureWidgetVisible(self.command_tabs, 0, 24)
         focus.setFocus(Qt.FocusReason.OtherFocusReason)
@@ -2144,6 +2146,7 @@ class RomStudio(QWidget):
         except ProjectError:
             return False
         self._latest_guardian_execution_result = result
+        self.guardian_flash_verified.emit(device.serial, project.name, result)
         return True
 
     def genesis_flight_plan(self) -> GenesisFlightPlan:

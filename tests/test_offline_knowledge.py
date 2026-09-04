@@ -113,8 +113,8 @@ def test_packaged_archive_promotes_the_existing_broad_multi_oem_brain() -> None:
     archive = load_packaged_archive()
     manufacturers = {value for record in archive.records for value in record.scope.manufacturers}
 
-    assert len(archive.records) >= 199
-    assert len(archive.sources) >= 111
+    assert len(archive.records) >= 221
+    assert len(archive.sources) >= 129
     assert {
         "samsung",
         "huawei",
@@ -145,7 +145,44 @@ def test_packaged_archive_promotes_the_existing_broad_multi_oem_brain() -> None:
         "community.cph2573-kitsune-init-boot",
         "community.huawei-vnsl31-cross-region-negative",
         "community.nothing-phone1-power-button-loop",
+        "platform.update-engine-payload-timestamp-downgrade",
+        "platform.avb-restore-consistent-chain",
+        "identity.motorola-capri-variants",
+        "identity.samsung-klte-models-and-firmware",
+        "identity.oneplus8t-kebab-regional-models",
+        "community.samsung-m31s-vbmeta-hash-mismatch",
     } <= record_ids
+
+
+def test_exact_update_engine_code_ranks_platform_diagnosis_first(tmp_path) -> None:
+    report = OfflineKnowledgeService(tmp_path / "workspace").lookup(
+        KnowledgeQuery(
+            symptoms=("ADB sideload aborted with status 1",),
+            error_codes=("PAYLOAD_TIMESTAMP_ERROR",),
+        ),
+        trigger="ota-failure",
+    )
+
+    assert report.matches[0].record.record_id == (
+        "platform.update-engine-payload-timestamp-downgrade"
+    )
+    assert report.matches[0].confidence is MatchConfidence.HIGH
+    assert "exact error" in report.matches[0].explanation.casefold()
+
+
+def test_device_alias_and_codename_find_the_maintained_variant(tmp_path) -> None:
+    report = OfflineKnowledgeService(tmp_path / "workspace").lookup(
+        KnowledgeQuery(
+            manufacturers=("motorola",),
+            models=("moto g10 power",),
+            codenames=("capri",),
+        ),
+        trigger="device-dna",
+    )
+
+    assert report.matches[0].record.record_id == "identity.motorola-capri-variants"
+    assert report.matches[0].confidence is MatchConfidence.MEDIUM
+    assert "exact codename" in report.matches[0].explanation.casefold()
 
 
 def test_archive_store_seeds_private_integrity_checked_local_data(tmp_path) -> None:
@@ -161,6 +198,56 @@ def test_archive_store_seeds_private_integrity_checked_local_data(tmp_path) -> N
 
     with pytest.raises(KnowledgeArchiveError, match="digest mismatch"):
         store.load()
+
+
+def test_existing_local_archive_receives_new_packaged_records(tmp_path) -> None:
+    store = KnowledgeArchiveStore(tmp_path / "workspace")
+    store.save(_archive(_source(), _record()))
+
+    upgraded = store.ensure_seeded()
+
+    record_ids = {record.record_id for record in upgraded.records}
+    assert "fixture.exact-boot-repair" in record_ids
+    assert "platform.update-engine-install-device-open" in record_ids
+    assert len(upgraded.records) >= 222
+    assert store.load() == upgraded
+
+
+def test_packaged_upgrade_preserves_a_newer_local_record_revision(tmp_path) -> None:
+    packaged = load_packaged_archive()
+    original = next(
+        record
+        for record in packaged.records
+        if record.record_id == "platform.update-engine-not-enough-space"
+    )
+    newer = replace(
+        original,
+        revision=original.revision + 1,
+        title="Locally reviewed update-engine space diagnosis",
+    )
+    sources = tuple(
+        source for source in packaged.sources if source.source_id in newer.source_ids
+    )
+    local = seal_archive(
+        KnowledgeArchive(
+            schema_version=ARCHIVE_SCHEMA_VERSION,
+            bundle_id="local-reviewed-bundle",
+            updated_at="2026-09-05T00:00:00+00:00",
+            sources=sources,
+            records=(newer,),
+            bundle_digest="",
+        )
+    )
+    store = KnowledgeArchiveStore(tmp_path / "workspace")
+    store.save(local)
+
+    upgraded = store.ensure_seeded()
+    retained = next(
+        record for record in upgraded.records if record.record_id == newer.record_id
+    )
+
+    assert retained.revision == newer.revision
+    assert retained.title == newer.title
 
 
 def test_archive_store_rejects_linked_data_without_touching_the_target(tmp_path) -> None:

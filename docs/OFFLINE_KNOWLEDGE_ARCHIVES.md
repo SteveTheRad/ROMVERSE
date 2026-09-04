@@ -8,7 +8,7 @@ corpus later, but it is never required to explain a locally known problem or rec
 
 The initial archive promotes the existing curated ROMVERSE known-fix catalog into the structured
 store and adds modular, exact-scope evidence packs reviewed on 2026-09-04. The resulting seed
-currently contains 199 records and 111 distinct provenance entries. It includes platform guidance
+currently contains 221 records and 129 distinct provenance entries. It includes platform guidance
 and OEM coverage for
 Samsung, Google/Pixel, Huawei/Honor, Xiaomi/Redmi/POCO, OnePlus, Sony, Motorola/Lenovo, Nothing,
 OPPO, realme, vivo/iQOO, ASUS, HMD/Nokia, Fairphone, TECNO, Infinix, itel, ZTE, and nubia/REDMAGIC.
@@ -87,13 +87,18 @@ pre-device lookup neither assumes an identity nor starts the host recovery optio
 
 ## Persistence and import
 
-The packaged core and OEM recovery evidence packs are merged and copied on first use to
+The packaged core, OEM recovery, and boot-error/device-alias evidence packs are merged and copied on first use to
 `knowledge/archive.romverse` inside the selected workspace. More reviewed packs can be added
 without turning the archive loader into one unmaintainable data file. The local file is private,
 atomically replaced, byte-bounded, strict-schema, and sealed
 with a canonical SHA-256 digest. Loading rejects links, extra/missing fields, invalid types,
 duplicate IDs, unknown provenance, invalid URLs, digest changes, oversized collections, and unsafe
 operation declarations.
+
+On application upgrade, newly packaged records are reconciled into the existing local archive.
+Higher-revision packaged records replace older local copies, while newer locally reviewed/imported
+revisions are retained. Equal-revision content or provenance conflicts fail closed instead of
+silently choosing one meaning.
 
 Imports are local JSON bundles using the same schema and digest. Merge behavior is deterministic:
 
@@ -105,6 +110,13 @@ Imports are local JSON bundles using the same schema and digest. Merge behavior 
 
 This makes the brain continuously expandable without letting an update rewrite the meaning of an
 existing source or silently downgrade a record.
+
+The boot-error pack includes the canonical AOSP `update_engine` meanings for payload hash/size,
+signature, timestamp downgrade, install-device access, operation hash, insufficient-space, and
+device-corruption failures. It also records A/B fallback and Virtual A/B snapshot boundaries plus
+maintainer-published Device DNA aliases such as `capri`, `caprip`, `clark`, `klte`, `Z00T`, and
+OnePlus 8T `kebab` regional model families. A generic Recovery `status 1` is deliberately not
+treated as a diagnosis when the underlying error line is absent.
 
 ## Device-change boundary
 

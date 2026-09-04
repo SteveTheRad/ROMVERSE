@@ -116,7 +116,11 @@ class KnowledgeArchiveStore:
 
     def ensure_seeded(self) -> KnowledgeArchive:
         if self.path.exists() or self.path.is_symlink():
-            return self.load()
+            current = self.load()
+            reconciled = reconcile_packaged_archive(current, load_packaged_archive())
+            if reconciled.bundle_digest != current.bundle_digest:
+                return self.save(reconciled)
+            return current
         archive = load_packaged_archive()
         self.save(archive)
         return archive
@@ -194,6 +198,7 @@ def load_packaged_archive() -> KnowledgeArchive:
     packaged = (
         "knowledge_archive_seed.json",
         "knowledge_archive_oem_recovery_seed.json",
+        "knowledge_archive_boot_errors_seed.json",
     )
     archives = tuple(_load_packaged_bundle(name) for name in packaged)
     merged = _existing_catalog_archive()
@@ -342,6 +347,46 @@ def merge_archives(
         len(merged.records),
         merged.bundle_digest,
     )
+
+
+def reconcile_packaged_archive(
+    current: KnowledgeArchive,
+    packaged: KnowledgeArchive,
+) -> KnowledgeArchive:
+    """Add packaged knowledge on app upgrade without downgrading newer local records."""
+
+    validate_archive(current)
+    validate_archive(packaged)
+    sources = {source.source_id: source for source in current.sources}
+    for source in packaged.sources:
+        existing = sources.get(source.source_id)
+        if existing is not None and existing != source:
+            raise KnowledgeArchiveError(
+                f"Packaged knowledge conflicts with local provenance: {source.source_id}"
+            )
+        sources[source.source_id] = source
+
+    records = {record.record_id: record for record in current.records}
+    for record in packaged.records:
+        existing = records.get(record.record_id)
+        if existing is None or record.revision > existing.revision:
+            records[record.record_id] = record
+        elif record.revision == existing.revision and record != existing:
+            raise KnowledgeArchiveError(
+                f"Packaged knowledge revision conflicts with local content: {record.record_id}"
+            )
+
+    reconciled = KnowledgeArchive(
+        schema_version=ARCHIVE_SCHEMA_VERSION,
+        bundle_id="local-offline-archive",
+        updated_at=max(current.updated_at, packaged.updated_at),
+        sources=tuple(sources[key] for key in sorted(sources)),
+        records=tuple(records[key] for key in sorted(records)),
+        bundle_digest="",
+    )
+    reconciled = seal_archive(reconciled)
+    validate_archive(reconciled)
+    return reconciled
 
 
 def _parse_source(raw: dict[str, object]) -> KnowledgeSource:

@@ -648,6 +648,12 @@ class DevicePacksCenter(QWidget):
         if self.knowledge_lookup_error:
             self.passport_knowledge.setText("Offline lookup needs attention")
             self.passport_knowledge_button.setVisible(False)
+        elif report is not None and report.conflicts:
+            self.passport_knowledge.setText(
+                f"{len(report.conflicts)} conflicting guidance record(s)\n"
+                f"STOP AND REVIEW • {report.safest_answer}"
+            )
+            self.passport_knowledge_button.setVisible(True)
         elif report is not None and report.matches:
             leading = report.matches[0]
             self.passport_knowledge.setText(

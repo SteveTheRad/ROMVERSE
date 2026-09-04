@@ -14,6 +14,8 @@ from romverse.diagnostics.models import DiagnosticReport
 from romverse.knowledge.models import (
     KnowledgeArchive,
     KnowledgeConfidence,
+    KnowledgeConflict,
+    KnowledgeEvidenceLabel,
     KnowledgeFailure,
     KnowledgeLookupReport,
     KnowledgeMatch,
@@ -144,6 +146,7 @@ class OfflineKnowledgeService:
     ) -> KnowledgeLookupReport:
         archive = self.store.ensure_seeded()
         matches = rank_knowledge(archive, query, limit=limit)
+        conflicts = detect_knowledge_conflicts(matches)
         limitations = (
             "Matches are local guidance and never execute a command, flash, wipe, unlock, or relock.",
             "Family-level or missing build evidence can support identification, not a destructive action.",
@@ -156,6 +159,8 @@ class OfflineKnowledgeService:
             matches=matches,
             execution_authority="none",
             limitations=limitations,
+            conflicts=conflicts,
+            safest_answer=_safest_answer(matches, conflicts),
         )
 
 
@@ -350,6 +355,7 @@ def rank_knowledge(
                 missing_evidence=missing,
                 provenance=provenance,
                 safety=_safety(record.operations, record, query),
+                evidence_labels=evidence_labels(record, provenance),
             )
         )
     results.sort(
@@ -360,7 +366,181 @@ def rank_knowledge(
             match.record.record_id,
         )
     )
-    return tuple(results[:bounded_limit])
+    selected = tuple(results[:bounded_limit])
+    conflicts = detect_knowledge_conflicts(selected)
+    disputed = {
+        record_id for conflict in conflicts for record_id in conflict.record_ids
+    }
+    return tuple(
+        replace(
+            match,
+            evidence_labels=_unique_labels(
+                *match.evidence_labels,
+                *(
+                    (KnowledgeEvidenceLabel.DISPUTED,)
+                    if match.record.record_id in disputed
+                    else ()
+                ),
+            ),
+        )
+        for match in selected
+    )
+
+
+def evidence_labels(
+    record: KnowledgeRecord,
+    provenance: tuple[KnowledgeSource, ...],
+) -> tuple[KnowledgeEvidenceLabel, ...]:
+    """Derive visible evidence-state labels without rewriting source records."""
+
+    labels: list[KnowledgeEvidenceLabel] = []
+    tiers = {source.tier for source in provenance}
+    corpus = _normalize(
+        " ".join(
+            (
+                record.title,
+                record.summary,
+                *record.tags,
+                *record.known_incompatibility,
+            )
+        )
+    )
+    if tiers & {
+        KnowledgeSourceTier.OFFICIAL_PLATFORM,
+        KnowledgeSourceTier.OFFICIAL_VENDOR,
+    }:
+        labels.append(KnowledgeEvidenceLabel.OFFICIAL)
+    if KnowledgeSourceTier.COMMUNITY in tiers:
+        labels.append(KnowledgeEvidenceLabel.COMMUNITY_REPORTED)
+    if (
+        record.confidence in {KnowledgeConfidence.VERIFIED, KnowledgeConfidence.HIGH}
+        and record.corroboration_count >= 1
+    ):
+        labels.append(KnowledgeEvidenceLabel.VERIFIED)
+    if record.confidence in {
+        KnowledgeConfidence.MEDIUM,
+        KnowledgeConfidence.LOW,
+        KnowledgeConfidence.UNCONFIRMED,
+    } or any(term in corpus.split() for term in {"experimental", "unconfirmed", "hypothesis"}):
+        labels.append(KnowledgeEvidenceLabel.EXPERIMENTAL)
+    if any(term in corpus.split() for term in {"disputed", "controversial", "conflicting"}):
+        labels.append(KnowledgeEvidenceLabel.DISPUTED)
+    if any(term in corpus.split() for term in {"outdated", "deprecated", "retired", "superseded"}):
+        labels.append(KnowledgeEvidenceLabel.OUTDATED)
+    if not labels:
+        labels.append(KnowledgeEvidenceLabel.EXPERIMENTAL)
+    return _unique_labels(*labels)
+
+
+def detect_knowledge_conflicts(
+    matches: tuple[KnowledgeMatch, ...],
+) -> tuple[KnowledgeConflict, ...]:
+    """Flag only explicit scope-compatible contradictions; silence is not a conflict."""
+
+    conflicts: list[KnowledgeConflict] = []
+    for index, left in enumerate(matches):
+        for right in matches[index + 1 :]:
+            reason = _explicit_conflict_reason(left.record, right.record)
+            if not reason:
+                continue
+            record_ids = tuple(sorted((left.record.record_id, right.record.record_id)))
+            conflict_id = hashlib.sha256(
+                json.dumps(record_ids, separators=(",", ":")).encode("utf-8")
+            ).hexdigest()
+            conflicts.append(
+                KnowledgeConflict(
+                    conflict_id,
+                    record_ids,
+                    reason,
+                    "Do not combine either procedure. Prefer current exact-device official "
+                    "evidence, preserve rollback material, and keep device-changing actions "
+                    "locked until the contradiction is resolved.",
+                )
+            )
+    return tuple(conflicts[:16])
+
+
+def _explicit_conflict_reason(left: KnowledgeRecord, right: KnowledgeRecord) -> str:
+    if _scope_conflicts(left, _query_for_scope(right.scope)) or _scope_conflicts(
+        right, _query_for_scope(left.scope)
+    ):
+        return ""
+    left_compatibility = {_normalize(item) for item in left.compatibility}
+    right_compatibility = {_normalize(item) for item in right.compatibility}
+    left_incompatible = {_normalize(item) for item in left.known_incompatibility}
+    right_incompatible = {_normalize(item) for item in right.known_incompatibility}
+    direct = (left_compatibility & right_incompatible) | (
+        right_compatibility & left_incompatible
+    )
+    if direct:
+        return (
+            f"{left.title} and {right.title} explicitly disagree about "
+            f"{sorted(direct)[0]}."
+        )
+    for left_operation in left.operations:
+        for right_operation in right.operations:
+            overlap = set(_normalized(left_operation.target_partitions)) & set(
+                _normalized(right_operation.target_partitions)
+            )
+            if overlap and (
+                left_operation.kind != right_operation.kind
+                or _normalize(left_operation.rollback_route)
+                != _normalize(right_operation.rollback_route)
+            ):
+                return (
+                    f"{left.title} and {right.title} declare incompatible operations for "
+                    f"{', '.join(sorted(overlap))}."
+                )
+    return ""
+
+
+def _query_for_scope(scope) -> KnowledgeQuery:
+    return KnowledgeQuery(
+        manufacturers=scope.manufacturers,
+        brands=scope.brands,
+        models=scope.models,
+        codenames=scope.codenames,
+        build_ids=scope.build_ids,
+        android_versions=scope.android_versions,
+        bootloader_states=scope.bootloader_states,
+        partitions=scope.partitions,
+    )
+
+
+def _safest_answer(
+    matches: tuple[KnowledgeMatch, ...],
+    conflicts: tuple[KnowledgeConflict, ...],
+) -> str:
+    if conflicts:
+        return (
+            "Conflicting compatible guidance is present. Stop at evidence collection and "
+            "resolve the named conflict with current exact-device official evidence before "
+            "opening any device-changing route."
+        )
+    if not matches:
+        return (
+            "No compatible local answer is proven. Collect more Device DNA, firmware, "
+            "partition, or error evidence instead of broadening the search into a guess."
+        )
+    lead = matches[0]
+    return (
+        f"Start with {lead.record.title} as {lead.confidence.value} guidance, retain its "
+        "stated scope and prerequisites, and independently confirm any device-changing step."
+    )
+
+
+def _unique_labels(
+    *labels: KnowledgeEvidenceLabel,
+) -> tuple[KnowledgeEvidenceLabel, ...]:
+    order = {
+        KnowledgeEvidenceLabel.OFFICIAL: 0,
+        KnowledgeEvidenceLabel.VERIFIED: 1,
+        KnowledgeEvidenceLabel.COMMUNITY_REPORTED: 2,
+        KnowledgeEvidenceLabel.EXPERIMENTAL: 3,
+        KnowledgeEvidenceLabel.DISPUTED: 4,
+        KnowledgeEvidenceLabel.OUTDATED: 5,
+    }
+    return tuple(sorted(set(labels), key=order.__getitem__))
 
 
 def _score_record(

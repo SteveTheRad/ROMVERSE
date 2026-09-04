@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
-import os
 import re
 from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime
@@ -11,7 +10,13 @@ from enum import StrEnum
 from pathlib import Path
 from uuid import uuid4
 
-from romverse.infrastructure.local_store import LocalStoreError, atomic_write_bytes
+from romverse.infrastructure.local_store import (
+    LocalStoreError,
+    atomic_write_bytes,
+    atomic_write_json,
+    ensure_private_directory,
+    read_json_object,
+)
 
 
 class SynapseStoreError(RuntimeError):
@@ -486,10 +491,11 @@ class SynapseStore:
     FORMAT = "romverse.synapse-cache"
     SCHEMA_VERSION = 1
     MAX_CONTRIBUTIONS = 5_000
+    MAX_CACHE_BYTES = 4 * 1024 * 1024
 
     def __init__(self, workspace: Path) -> None:
-        self.workspace = workspace
-        self.path = workspace / "knowledge" / "synapse-cache-v1.json"
+        self.workspace = workspace.expanduser().resolve()
+        self.path = self.workspace / "knowledge" / "synapse-cache-v1.json"
 
     def contribute(self, contribution: SynapseContribution) -> SynapseKnowledge:
         validated = _validated_contribution(contribution)
@@ -606,10 +612,14 @@ class SynapseStore:
         )
 
     def _load(self) -> tuple[SynapseContribution, ...]:
-        if not self.path.exists():
+        if not self.path.exists() and not self.path.is_symlink():
             return ()
         try:
-            payload = json.loads(self.path.read_text(encoding="utf-8"))
+            payload = read_json_object(
+                self.path,
+                boundary=self.workspace,
+                maximum_bytes=self.MAX_CACHE_BYTES,
+            )
             raw = payload["contributions"]
             if (
                 payload.get("format") != self.FORMAT
@@ -634,11 +644,10 @@ class SynapseStore:
             if len({item.contribution_id for item in contributions}) != len(contributions):
                 raise ValueError("duplicate Synapse contribution identifiers")
             return contributions
-        except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
+        except (LocalStoreError, OSError, ValueError, TypeError, KeyError) as exc:
             raise SynapseStoreError(f"Synapse cache is unreadable: {exc}") from exc
 
     def _save(self, contributions: tuple[SynapseContribution, ...]) -> None:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
         raw = [asdict(item) for item in contributions]
         payload = {
             "format": self.FORMAT,
@@ -648,18 +657,18 @@ class SynapseStore:
             "ledger_digest": _hexdigest(raw),
             "contributions": raw,
         }
-        temporary = self.path.with_name(f".{self.path.name}.{uuid4().hex}.tmp")
         try:
-            with temporary.open("x", encoding="utf-8") as stream:
-                json.dump(payload, stream, indent=2, sort_keys=True)
-                stream.write("\n")
-                stream.flush()
-                os.fsync(stream.fileno())
-            os.replace(temporary, self.path)
-        except OSError as exc:
+            self.workspace.mkdir(parents=True, exist_ok=True)
+            ensure_private_directory(self.workspace, boundary=self.workspace)
+            ensure_private_directory(self.path.parent, boundary=self.workspace)
+            atomic_write_json(
+                self.path,
+                payload,
+                boundary=self.workspace,
+                maximum_bytes=self.MAX_CACHE_BYTES,
+            )
+        except (LocalStoreError, OSError) as exc:
             raise SynapseStoreError(f"Could not preserve Synapse knowledge: {exc}") from exc
-        finally:
-            temporary.unlink(missing_ok=True)
 
 
 def _compile_knowledge(

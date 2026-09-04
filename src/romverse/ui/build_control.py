@@ -81,6 +81,7 @@ from romverse.intelligence.online_remediation import (
 )
 from romverse.intelligence.synapse import (
     SynapseContribution,
+    SynapseMatch,
     SynapseScope,
     SynapseStore,
     SynapseStoreError,
@@ -1150,6 +1151,7 @@ class BuildControlCenter(QDialog):
         self.media_backup_worker: PhoneMediaBackupWorker | None = None
         self.online_worker: OnlineRemediationWorker | None = None
         self.online_receipt: OnlineFixReceipt | None = None
+        self.local_synapse_match: SynapseMatch | None = None
         self.online_mission_id = ""
         self.boot_knowledge_report = None
         self.boot_knowledge_receipt_digest = ""
@@ -2916,11 +2918,17 @@ class BuildControlCenter(QDialog):
             archive_line = ""
             if self.boot_knowledge_report is not None:
                 matches = self.boot_knowledge_report.matches
-                archive_line = (
-                    f"\nOffline Archives: {len(matches)} compatible match(es) found"
-                    + (f"  •  Best match: {matches[0].record.title}" if matches else "")
-                    + "  •  guidance only"
-                )
+                if self.boot_knowledge_report.conflicts:
+                    archive_line = (
+                        f"\nROMVERSE Synapse: {len(self.boot_knowledge_report.conflicts)} explicit "
+                        f"conflict(s)  •  {self.boot_knowledge_report.safest_answer}"
+                    )
+                else:
+                    archive_line = (
+                        f"\nROMVERSE Synapse: {len(matches)} compatible match(es) found"
+                        + (f"  •  Best match: {matches[0].record.title}" if matches else "")
+                        + "  •  guidance only"
+                    )
             detail = QLabel(
                 f"{receipt.status.value.upper()}  •  {len(receipt.samples)} sample(s)  •  "
                 f"{receipt.diagnosis}\nNext: {service.next_step(receipt)}\n"
@@ -3635,11 +3643,6 @@ class BuildControlCenter(QDialog):
         if self.online_worker is not None or not message.strip():
             return
         settings = getattr(self.studio, "app_settings", None)
-        if settings is not None and not settings.online_intelligence_enabled:
-            self.status.setText(
-                f"{message}  •  Online intelligence is disabled in ROMVERSE Settings."
-            )
-            return
         device = next(iter(self.studio.devices), None)
         try:
             blueprint = FirmwareSourceIntelligenceService(
@@ -3664,8 +3667,30 @@ class BuildControlCenter(QDialog):
             tool_name=verified_tool_name,
             tool_version=verified_tool_version,
         )
+        scope = SynapseScope.create(
+            operation=fingerprint.category or "failure",
+            source_kind=fingerprint.source_kind,
+            device_codename=fingerprint.codename,
+            build_family=fingerprint.build_id,
+            tool_name=fingerprint.tool_name,
+            tool_version=fingerprint.tool_version,
+        )
+        if self._show_local_synapse_guidance(fingerprint, scope):
+            return
+        if settings is not None and not settings.online_intelligence_enabled:
+            self.status.setText(
+                f"{message}  •  No exact verified local Synapse outcome matched  •  "
+                "Online intelligence is disabled in ROMVERSE Settings."
+            )
+            return
         self.status.setText(
-            f"{message}  •  ROMVERSE Intelligence is checking verified online sources …"
+            f"{message}  •  "
+            + (
+                "A bounded local Synapse outcome needs exact confirmation  •  "
+                if self.local_synapse_match is not None
+                else "No exact local Synapse outcome matched  •  "
+            )
+            + "ROMVERSE Intelligence is checking verified online sources …"
         )
         console = self._live_console_store()
         if console is not None:
@@ -3703,6 +3728,74 @@ class BuildControlCenter(QDialog):
         self.online_worker.signals.complete.connect(self._online_guidance_complete)
         self.online_worker.signals.failed.connect(self._online_guidance_failed)
         start_background(self.online_worker)
+
+    def _show_local_synapse_guidance(
+        self,
+        fingerprint: ErrorFingerprint,
+        scope: SynapseScope,
+    ) -> bool:
+        """Consult private verified outcomes before any optional network lookup."""
+
+        self.local_synapse_match = None
+        try:
+            matches = SynapseStore(self.studio.store.workspace).query(
+                fingerprint_id=fingerprint.fingerprint_id,
+                scope=scope,
+            )
+        except (OSError, ValueError, SynapseStoreError):
+            matches = ()
+        if not matches:
+            return False
+        match = matches[0]
+        self.local_synapse_match = match
+        knowledge = match.knowledge
+        detail = (
+            "ROMVERSE SYNAPSE • PRIVATE OFFLINE MATCH\n"
+            f"{knowledge.solution_id}  •  {knowledge.state.value.upper()}  •  "
+            f"{match.confidence}% confidence  •  {match.scope_match.upper()} SCOPE\n"
+            f"{knowledge.summary}\n{match.explanation}\n"
+            "Guidance only. Retry only through the matching built-in typed action; this "
+            "record grants no approval or execution authority."
+        )
+        self.status.setToolTip(detail)
+        self.overall_badge.setToolTip(detail)
+        for row in self.gate_rows.values():
+            row.setToolTip(f"{row.toolTip()}\n\n{detail}")
+        exact_verified = match.scope_match == "exact" and match.confidence >= 60
+        if exact_verified:
+            self.status.setText(
+                f"ROMVERSE Synapse  •  VERIFIED PRIVATE OFFLINE MATCH  •  "
+                f"{knowledge.solution_id}  •  {match.confidence}% confidence  •  "
+                "Use the matching built-in action; no network or phone action started"
+            )
+        console = self._live_console_store()
+        if console is not None:
+            with suppress(LiveConsoleStoreError):
+                console.note(
+                    source="ROMVERSE Synapse",
+                    stage="offline-guidance",
+                    title="Private verified outcome matched",
+                    summary=(
+                        f"{knowledge.solution_id} matched at {match.confidence}% confidence "
+                        f"with {match.scope_match} scope."
+                    ),
+                    explanation=match.explanation,
+                    next_action=(
+                        "Retry only through the matching built-in typed action."
+                        if exact_verified
+                        else "Collect exact scope evidence before relying on this bounded match."
+                    ),
+                    state=MissionState.INFORMATION,
+                    confidence=(
+                        MissionConfidence.HIGH
+                        if exact_verified
+                        else MissionConfidence.MEDIUM
+                    ),
+                    project_id=self.project.project_id,
+                    evidence_refs=("knowledge/synapse-cache-v1.json",),
+                    dedupe_key=f"synapse-match-{knowledge.knowledge_id}",
+                )
+        return exact_verified
 
     def _verified_tool_evidence(self, requested_name: str) -> tuple[str, str]:
         """Return current runtime tool evidence or keep the fingerprint explicitly unbound."""

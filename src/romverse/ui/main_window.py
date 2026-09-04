@@ -124,6 +124,7 @@ from romverse.knowledge.archives import catalog_metrics
 from romverse.knowledge.lookup import OfflineKnowledgeService
 from romverse.knowledge.models import KnowledgeLookupReport
 from romverse.knowledge.resolution_memory import ArchivesResolutionMemory
+from romverse.knowledge.updates import KnowledgeUpdateService
 from romverse.legal import load_privacy_document, load_terms_document
 from romverse.nexus.compatibility import CompatibilityMatrix, CompatibilityStatus
 from romverse.nexus.events import (
@@ -4134,6 +4135,14 @@ class MainWindow(QMainWindow):
             SynapseStore(workspace),
             self.device_catalog,
             self.offline_knowledge_service,
+            KnowledgeUpdateService(
+                workspace,
+                (),
+                unavailable_reason=(
+                    "No production ROMVERSE Synapse publisher key has been enrolled yet."
+                ),
+            ),
+            reduced_motion=self.app_settings.reduced_motion,
         )
         self.knowledge_center.route_requested.connect(self._open_knowledge_route)
         self.rom_studio.offline_knowledge_updated.connect(
@@ -7462,6 +7471,7 @@ class MainWindow(QMainWindow):
         self.notification_center.set_enabled(settings.desktop_notifications_enabled)
         self.notification_center.set_reduced_motion(settings.reduced_motion)
         self.diagnostics_center.set_reduced_motion(settings.reduced_motion)
+        self.knowledge_center.set_reduced_motion(settings.reduced_motion)
         self.backup_center.set_default_backup_directory(
             Path(settings.backup_directory) if settings.backup_directory else None
         )

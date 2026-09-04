@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import stat
 
 import pytest
 
@@ -141,6 +142,23 @@ def test_synapse_rejects_phone_changes_unverified_success_and_tampering(tmp_path
 
     with pytest.raises(SynapseStoreError, match="modified"):
         store.query(fingerprint_id="a" * 64, scope=scope)
+
+
+def test_synapse_cache_is_private_and_rejects_symbolic_links(tmp_path) -> None:
+    scope = SynapseScope.create(operation="inspect")
+    store = SynapseStore(tmp_path / "private")
+    store.contribute(_contribution(scope, source="official"))
+
+    assert stat.S_IMODE(store.path.stat().st_mode) == 0o600
+    assert stat.S_IMODE(store.path.parent.stat().st_mode) == 0o700
+
+    linked = SynapseStore(tmp_path / "linked")
+    linked.path.parent.mkdir(parents=True)
+    target = tmp_path / "outside-cache.json"
+    target.write_text("{}", encoding="utf-8")
+    linked.path.symlink_to(target)
+    with pytest.raises(SynapseStoreError, match="unreadable"):
+        linked.list_knowledge()
 
 
 def test_synapse_contribution_passport_previews_exact_redacted_bytes_before_export(

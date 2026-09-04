@@ -11,6 +11,7 @@ from romverse.device.models import AndroidDevice, DeviceState
 from romverse.diagnostics.analyzer import DiagnosticAnalyzer
 from romverse.knowledge.lookup import (
     OfflineKnowledgeService,
+    evidence_labels,
     query_from_device_snapshot,
     query_from_diagnostic_report,
 )
@@ -18,6 +19,7 @@ from romverse.knowledge.models import (
     DeviceKnowledgeScope,
     KnowledgeArchive,
     KnowledgeConfidence,
+    KnowledgeEvidenceLabel,
     KnowledgeFailure,
     KnowledgeKind,
     KnowledgeOperation,
@@ -177,6 +179,22 @@ def test_packaged_archive_promotes_the_existing_broad_multi_oem_brain() -> None:
         "official.pixel6-vendor-ramdisk-platform-match",
         "official.pixel7plus-vendor-kernel-boot-layout",
     } <= record_ids
+    source_by_id = {source.source_id: source for source in archive.sources}
+    assert all(
+        evidence_labels(
+            record,
+            tuple(source_by_id[source_id] for source_id in record.source_ids),
+        )
+        for record in archive.records
+    )
+    assert any(
+        KnowledgeEvidenceLabel.COMMUNITY_REPORTED
+        in evidence_labels(
+            record,
+            tuple(source_by_id[source_id] for source_id in record.source_ids),
+        )
+        for record in archive.records
+    )
 
 
 def test_connected_device_snapshot_builds_a_private_execution_inert_query(tmp_path) -> None:
@@ -249,6 +267,58 @@ def test_diagnostic_report_adds_typed_findings_to_private_local_query(tmp_path) 
     assert device.build_fingerprint not in repr(query)
     assert lookup.trigger == "diagnostic-report"
     assert lookup.execution_authority == "none"
+
+
+def test_synapse_labels_explicit_conflicts_and_explains_the_safest_answer(tmp_path) -> None:
+    source = _source()
+    supported = _record("fixture.supported-route")
+    rejected = replace(
+        _record("fixture.rejected-route"),
+        title="Exact radphone build rejection",
+        compatibility=(),
+        known_incompatibility=supported.compatibility,
+        fix_steps=("Do not use the declared restore operation on this exact build.",),
+    )
+    archive = seal_archive(
+        KnowledgeArchive(
+            ARCHIVE_SCHEMA_VERSION,
+            "fixture-conflict-bundle",
+            "2026-09-04T10:00:00+00:00",
+            (source,),
+            (supported, rejected),
+            "",
+        )
+    )
+    service = OfflineKnowledgeService(tmp_path / "workspace")
+    service.store.save(archive)
+
+    report = service.lookup(
+        KnowledgeQuery(
+            manufacturers=("RadForge",),
+            models=("RP1",),
+            codenames=("rad",),
+            build_ids=("RAD.2026.0904",),
+            android_versions=("17",),
+            bootloader_states=("unlocked",),
+            partitions=("boot",),
+            error_codes=("E_BOOT_42",),
+        ),
+        trigger="conflict-test",
+    )
+
+    assert {"fixture.supported-route", "fixture.rejected-route"} <= {
+        match.record.record_id for match in report.matches
+    }
+    assert len(report.conflicts) == 1
+    disputed = {
+        match.record.record_id
+        for match in report.matches
+        if KnowledgeEvidenceLabel.DISPUTED in match.evidence_labels
+    }
+    assert disputed == {"fixture.supported-route", "fixture.rejected-route"}
+    assert "Conflicting compatible guidance" in report.safest_answer
+    assert "CONFLICTS DETECTED" in report.plain_text
+    assert report.execution_authority == "none"
 
 
 def test_init_boot_failure_uses_launch_architecture_not_current_android_alone(

@@ -38,6 +38,15 @@ class MatchConfidence(StrEnum):
     UNCONFIRMED = "unconfirmed"
 
 
+class KnowledgeEvidenceLabel(StrEnum):
+    OFFICIAL = "official"
+    VERIFIED = "verified"
+    COMMUNITY_REPORTED = "community-reported"
+    EXPERIMENTAL = "experimental"
+    DISPUTED = "disputed"
+    OUTDATED = "outdated"
+
+
 @dataclass(frozen=True, slots=True)
 class KnowledgeSource:
     source_id: str
@@ -160,16 +169,29 @@ class KnowledgeMatch:
     missing_evidence: tuple[str, ...]
     provenance: tuple[KnowledgeSource, ...]
     safety: str
+    evidence_labels: tuple[KnowledgeEvidenceLabel, ...] = ()
 
     @property
     def explanation(self) -> str:
         matched = "; ".join(self.matched_evidence) or "broad local text only"
+        labels = ", ".join(label.value for label in self.evidence_labels) or "experimental"
         missing = (
             f" Missing exact evidence: {', '.join(self.missing_evidence)}."
             if self.missing_evidence
             else ""
         )
-        return f"{self.confidence.value.upper()} MATCH • {matched}.{missing} {self.safety}"
+        return (
+            f"{self.confidence.value.upper()} MATCH • {matched}.{missing} "
+            f"EVIDENCE LABELS • {labels.upper()}. {self.safety}"
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class KnowledgeConflict:
+    conflict_id: str
+    record_ids: tuple[str, ...]
+    reason: str
+    safest_action: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -180,6 +202,8 @@ class KnowledgeLookupReport:
     matches: tuple[KnowledgeMatch, ...]
     execution_authority: str = "none"
     limitations: tuple[str, ...] = ()
+    conflicts: tuple[KnowledgeConflict, ...] = ()
+    safest_answer: str = ""
 
     @property
     def plain_text(self) -> str:
@@ -231,9 +255,20 @@ class KnowledgeLookupReport:
                     + f"   Provenance: {sources}"
                 )
             body = "\n\n" + "\n\n".join(rows)
+        conflict_text = ""
+        if self.conflicts:
+            conflict_text = "\n\nCONFLICTS DETECTED\n" + "\n".join(
+                f"• {item.reason} Safest action: {item.safest_action}"
+                for item in self.conflicts
+            )
+        safest = (
+            f"\n\nSAFEST ANSWER\n{self.safest_answer}"
+            if self.safest_answer
+            else ""
+        )
         boundary = (
             "\n\nLIMITS\n" + "\n".join(f"• {item}" for item in self.limitations)
             if self.limitations
             else ""
         )
-        return heading + body + boundary
+        return heading + body + conflict_text + safest + boundary

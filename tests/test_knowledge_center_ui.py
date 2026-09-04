@@ -5,8 +5,9 @@ import os
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication, QLabel
+from PySide6.QtWidgets import QApplication, QFileDialog, QLabel, QMessageBox
 
 from romverse.device.catalog import DeviceCatalogStatus
 from romverse.diagnostics.analyzer import DiagnosticAnalyzer
@@ -30,6 +31,7 @@ from romverse.ui.knowledge_center import (
 )
 
 from .test_diagnostics import device
+from .test_knowledge_updates import _archive, _service, _write_update
 
 
 def test_archives_search_selects_a_verified_guide_and_routes_to_rom_studio() -> None:
@@ -108,6 +110,57 @@ def test_archives_searches_and_explains_structured_offline_evidence(tmp_path) ->
     assert "PROVENANCE" in detail
     assert "EXECUTION AUTHORITY  •  NONE" in detail
     assert center.open_source.isVisibleTo(center)
+    center.close()
+
+
+def test_synapse_constellation_reports_real_local_metrics_and_honours_reduced_motion(
+    tmp_path,
+) -> None:
+    QApplication.instance() or QApplication([])
+    center = KnowledgeCenter(
+        offline_service=OfflineKnowledgeService(tmp_path / "workspace"),
+        reduced_motion=True,
+    )
+
+    description = center.synapse_constellation.accessibleDescription()
+    assert "280 offline records" in description
+    assert "180 attributed sources" in description
+    assert "0 private learned outcomes" in description
+    assert not center.synapse_constellation._timer.isActive()
+    center.close()
+
+
+def test_synapse_applies_a_verified_signed_offline_update_only_after_confirmation(
+    tmp_path, monkeypatch
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    workspace = tmp_path / "workspace"
+    private_key = Ed25519PrivateKey.generate()
+    update = tmp_path / "signed-knowledge-update.json"
+    _write_update(update, private_key, _archive())
+    service = _service(workspace, private_key)
+    center = KnowledgeCenter(
+        offline_service=OfflineKnowledgeService(workspace),
+        update_service=service,
+    )
+    monkeypatch.setattr(
+        QFileDialog,
+        "getOpenFileName",
+        lambda *args, **kwargs: (str(update), "ROMVERSE signed knowledge update"),
+    )
+    monkeypatch.setattr(
+        QMessageBox,
+        "question",
+        lambda *args, **kwargs: QMessageBox.StandardButton.Yes,
+    )
+
+    center.update_button.click()
+    app.processEvents()
+
+    assert "SIGNED UPDATE APPLIED" in center.update_status.text()
+    assert "fixture.signed-update" in center.offline_records
+    assert service.receipt_root.is_dir()
+    assert "No network or phone action" in center.update_status.text()
     center.close()
 
 

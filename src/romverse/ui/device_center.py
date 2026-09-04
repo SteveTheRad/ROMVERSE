@@ -1966,6 +1966,14 @@ class DeviceCenter(QWidget):
             )
             state_text = "LOCAL LOOKUP"
             state_style = "Warning"
+        elif report.conflicts:
+            title_text = "Conflicting local guidance detected"
+            detail_text = (
+                f"{len(report.conflicts)} explicit conflict"
+                f"{'s' if len(report.conflicts) != 1 else ''}  •  {report.safest_answer}"
+            )
+            state_text = "REVIEW CONFLICT"
+            state_style = "Warning"
         elif report.matches:
             primary = report.matches[0]
             title_text = primary.record.title
@@ -2042,7 +2050,8 @@ class DeviceCenter(QWidget):
         count = len(report.matches)
         detail = (
             f"{device.display_name} • {count} compatible local evidence "
-            f"match{'es' if count != 1 else ''} • guidance only • nothing uploaded"
+            f"match{'es' if count != 1 else ''} • {len(report.conflicts)} explicit conflict(s) "
+            "• guidance only • nothing uploaded"
         )
         device_key = WorkspacePrivacy(self.workspace).pseudonym(device.serial)
         with suppress(ActivityStoreError):

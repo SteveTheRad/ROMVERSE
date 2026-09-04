@@ -1687,6 +1687,12 @@ class RepairCenter(QWidget):
         if report is None:
             status.setText("UNAVAILABLE")
             status.setObjectName("Warning")
+        elif report.conflicts:
+            status.setText(
+                f"{len(report.conflicts)} CONFLICT"
+                f"{'S' if len(report.conflicts) != 1 else ''} • REVIEW REQUIRED"
+            )
+            status.setObjectName("Warning")
         elif report.matches:
             status.setText(
                 f"{len(report.matches)} COMPATIBLE MATCH{'ES' if len(report.matches) != 1 else ''}"
@@ -1715,6 +1721,14 @@ class RepairCenter(QWidget):
             detail.setWordWrap(True)
             layout.addWidget(detail)
         else:
+            if report.conflicts:
+                conflict = QLabel(
+                    "CONFLICTING GUIDANCE • STOP BEFORE DEVICE CHANGES\n"
+                    f"{report.safest_answer}"
+                )
+                conflict.setObjectName("Warning")
+                conflict.setWordWrap(True)
+                layout.addWidget(conflict)
             for index, match in enumerate(report.matches[:3], 1):
                 source_names = ", ".join(source.label for source in match.provenance)
                 match_title = QLabel(

@@ -32,7 +32,12 @@ from romverse.intelligence.online_remediation import (
     ErrorFingerprint,
     OnlineRemediationService,
 )
-from romverse.intelligence.synapse import SynapseKnowledgeState, SynapseStore
+from romverse.intelligence.synapse import (
+    SynapseContribution,
+    SynapseKnowledgeState,
+    SynapseScope,
+    SynapseStore,
+)
 from romverse.nexus.events import LiveConsoleEventStore, MissionState
 from romverse.rom.avb_evidence import (
     AvbEvidenceService,
@@ -1322,6 +1327,53 @@ def test_online_research_fingerprint_binds_only_verified_tool_runtime_evidence(
     assert control.online_worker.fingerprint.tool_version == "avbtool 1.4.3"
     assert "/verified/avbtool" not in control.online_worker.fingerprint.query
     control.online_worker = None
+    control.close()
+    studio.close()
+
+
+def test_build_failure_uses_exact_private_synapse_match_before_network(
+    tmp_path, monkeypatch
+) -> None:
+    _app = QApplication.instance() or QApplication([])
+    studio = _studio(tmp_path)
+    control = BuildControlCenter(studio, auto_start=False)
+    monkeypatch.setattr("romverse.ui.build_control.start_background", lambda _worker: None)
+    message = "payload.bin extraction failed with a repeatable fixture error"
+
+    control._source_online_guidance(message, "source")
+    worker = control.online_worker
+    assert worker is not None
+    fingerprint = worker.fingerprint
+    scope = SynapseScope.create(
+        operation=fingerprint.category,
+        source_kind=fingerprint.source_kind,
+        device_codename=fingerprint.codename,
+        build_family=fingerprint.build_id,
+        tool_name=fingerprint.tool_name,
+        tool_version=fingerprint.tool_version,
+    )
+    SynapseStore(studio.store.workspace).contribute(
+        SynapseContribution.create(
+            fingerprint_id=fingerprint.fingerprint_id,
+            solution_id="inspect-payload-source",
+            scope=scope,
+            source_family="official-aosp",
+            summary="The built-in payload inspection resolved this exact verified scope.",
+            successful=True,
+            locally_verified=True,
+            action_receipt_digest="a" * 64,
+            verification_evidence_digest="b" * 64,
+        )
+    )
+    control.online_worker = None
+
+    control._source_online_guidance(message, "source")
+
+    assert control.online_worker is None
+    assert control.local_synapse_match is not None
+    assert control.local_synapse_match.scope_match == "exact"
+    assert "VERIFIED PRIVATE OFFLINE MATCH" in control.status.text()
+    assert "no network or phone action" in control.status.text()
     control.close()
     studio.close()
 

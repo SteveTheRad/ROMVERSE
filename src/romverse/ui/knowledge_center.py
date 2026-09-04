@@ -1,16 +1,21 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QSize, Qt, QUrl, Signal
-from PySide6.QtGui import QDesktopServices
+import math
+from pathlib import Path
+
+from PySide6.QtCore import QPointF, QRectF, QSize, Qt, QTimer, QUrl, Signal
+from PySide6.QtGui import QColor, QDesktopServices, QLinearGradient, QPainter, QPen
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
+    QFileDialog,
     QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QListWidget,
     QListWidgetItem,
+    QMessageBox,
     QPushButton,
     QSplitter,
     QTextBrowser,
@@ -38,9 +43,15 @@ from romverse.knowledge.archives import (
     search_catalog,
     source_lane,
 )
-from romverse.knowledge.lookup import OfflineKnowledgeService, rank_knowledge
+from romverse.knowledge.lookup import (
+    OfflineKnowledgeService,
+    detect_knowledge_conflicts,
+    evidence_labels,
+    rank_knowledge,
+)
 from romverse.knowledge.models import (
     KnowledgeArchive,
+    KnowledgeConflict,
     KnowledgeMatch,
     KnowledgeQuery,
     KnowledgeRecord,
@@ -51,7 +62,138 @@ from romverse.knowledge.resolution_memory import (
     ArchivesResolutionMemory,
     ArticleResolutionMemory,
 )
+from romverse.knowledge.updates import KnowledgeUpdateError, KnowledgeUpdateService
 from romverse.ui.vocabulary import FEATURES, feature
+
+
+class SynapseConstellation(QWidget):
+    """A decorative, data-backed map of Synapse's offline evidence pathways."""
+
+    _NODES = (
+        (0.06, 0.64, "DNA", "#34E6F4"),
+        (0.18, 0.31, "OEM", "#34E6F4"),
+        (0.31, 0.68, "FW", "#8A63FF"),
+        (0.43, 0.26, "PART", "#B95CFF"),
+        (0.56, 0.62, "FIX", "#56F2B2"),
+        (0.68, 0.30, "REC", "#56F2B2"),
+        (0.80, 0.66, "COMM", "#FFB95A"),
+        (0.93, 0.35, "PROOF", "#34E6F4"),
+    )
+    _EDGES = ((0, 1), (0, 2), (1, 3), (2, 3), (2, 4), (3, 5), (4, 5), (4, 6), (5, 7), (6, 7))
+
+    def __init__(self, *, reduced_motion: bool = False) -> None:
+        super().__init__()
+        self._reduced_motion = bool(reduced_motion)
+        self._phase = 0.0
+        self._records = 0
+        self._sources = 0
+        self._learned = 0
+        self._conflicts = 0
+        self.setObjectName("SynapseConstellation")
+        self.setAccessibleName("ROMVERSE Synapse offline knowledge constellation")
+        self.setMinimumHeight(112)
+        self.setMaximumHeight(138)
+        self._timer = QTimer(self)
+        self._timer.setInterval(48)
+        self._timer.timeout.connect(self._advance)
+
+    def set_metrics(self, records: int, sources: int, learned: int, conflicts: int) -> None:
+        self._records = max(0, int(records))
+        self._sources = max(0, int(sources))
+        self._learned = max(0, int(learned))
+        self._conflicts = max(0, int(conflicts))
+        self.setAccessibleDescription(
+            f"{self._records} offline records, {self._sources} attributed sources, "
+            f"{self._learned} private learned outcomes, and {self._conflicts} explicit conflicts."
+        )
+        self.update()
+
+    def set_reduced_motion(self, enabled: bool) -> None:
+        self._reduced_motion = bool(enabled)
+        if self._reduced_motion:
+            self._phase = 0.0
+            self._timer.stop()
+        elif self.isVisible():
+            self._timer.start()
+        self.update()
+
+    def showEvent(self, event) -> None:  # noqa: N802
+        super().showEvent(event)
+        if not self._reduced_motion:
+            self._timer.start()
+
+    def hideEvent(self, event) -> None:  # noqa: N802
+        self._timer.stop()
+        super().hideEvent(event)
+
+    def _advance(self) -> None:
+        self._phase = (self._phase + 0.035) % (math.tau * 4)
+        self.update()
+
+    def paintEvent(self, _event) -> None:  # noqa: N802
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        bounds = QRectF(1, 1, max(1, self.width() - 2), max(1, self.height() - 2))
+        background = QLinearGradient(bounds.topLeft(), bounds.bottomRight())
+        background.setColorAt(0.0, QColor(3, 10, 27, 242))
+        background.setColorAt(0.55, QColor(13, 11, 43, 238))
+        background.setColorAt(1.0, QColor(2, 24, 36, 242))
+        painter.setPen(QPen(QColor(52, 230, 244, 92), 1.0))
+        painter.setBrush(background)
+        painter.drawRoundedRect(bounds, 15, 15)
+
+        graph = bounds.adjusted(22, 22, -22, -27)
+        points = tuple(
+            QPointF(
+                graph.left() + graph.width() * x,
+                graph.top()
+                + graph.height() * y
+                + (0.0 if self._reduced_motion else math.sin(self._phase + index) * 2.2),
+            )
+            for index, (x, y, _label, _color) in enumerate(self._NODES)
+        )
+        for index, (start, end) in enumerate(self._EDGES):
+            glow = 58 + int(30 * (1 + math.sin(self._phase * 1.4 + index)) / 2)
+            if self._reduced_motion:
+                glow = 72
+            painter.setPen(QPen(QColor(69, 173, 255, glow), 1.25))
+            painter.drawLine(points[start], points[end])
+
+        for index, (point, (_x, _y, label, color_name)) in enumerate(
+            zip(points, self._NODES, strict=True)
+        ):
+            color = QColor(color_name)
+            pulse = 1.0 if self._reduced_motion else (1 + math.sin(self._phase * 1.8 + index) * 0.18)
+            radius = 4.2 * pulse
+            halo = QColor(color)
+            halo.setAlpha(42)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(halo)
+            painter.drawEllipse(point, radius + 5, radius + 5)
+            painter.setBrush(color)
+            painter.drawEllipse(point, radius, radius)
+            painter.setPen(QColor(220, 238, 255, 205))
+            painter.drawText(QPointF(point.x() + 8, point.y() - 6), label)
+
+        painter.setPen(QColor(164, 187, 218, 225))
+        painter.drawText(
+            bounds.adjusted(18, 0, -18, -8),
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom,
+            f"{self._records} RECORDS   •   {self._sources} SOURCES   •   "
+            f"{self._learned} PRIVATE OUTCOMES",
+        )
+        conflict_color = QColor("#FFB95A") if self._conflicts else QColor("#56F2B2")
+        painter.setPen(conflict_color)
+        conflict_text = (
+            f"{self._conflicts} CONFLICT{'S' if self._conflicts != 1 else ''} FLAGGED"
+            if self._conflicts
+            else "NO EXPLICIT CONFLICT IN VIEW"
+        )
+        painter.drawText(
+            bounds.adjusted(18, 0, -18, -8),
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom,
+            conflict_text,
+        )
 
 LEGACY_GUIDES = (
     (
@@ -780,32 +922,45 @@ class KnowledgeCenter(QWidget):
         synapse_store: SynapseStore | None = None,
         device_catalog: GooglePlayDeviceCatalog | None = None,
         offline_service: OfflineKnowledgeService | None = None,
+        update_service: KnowledgeUpdateService | None = None,
+        *,
+        reduced_motion: bool = False,
     ) -> None:
         super().__init__()
         self.resolution_memory = resolution_memory
         self.synapse_store = synapse_store
         self.device_catalog = device_catalog
         self.offline_service = offline_service
+        self.update_service = update_service
         self.offline_archive: KnowledgeArchive | None = None
         self.offline_archive_error = ""
         self.offline_records: dict[str, KnowledgeRecord] = {}
         self.offline_sources: dict[str, KnowledgeSource] = {}
         self.visible_offline_matches: dict[str, KnowledgeMatch | None] = {}
+        self.visible_offline_conflicts: tuple[KnowledgeConflict, ...] = ()
         self._load_offline_archive()
         self.synapse_knowledge: tuple[SynapseKnowledge, ...] = ()
         self.learning_dialog: SynapseLearningDialog | None = None
         layout = QVBoxLayout(self)
         layout.setContentsMargins(30, 26, 30, 30)
         layout.setSpacing(14)
-        eyebrow = QLabel("ROMVERSE ARCHIVES  •  CONNECTED INTELLIGENCE")
+        eyebrow = QLabel("ROMVERSE SYNAPSE  •  OFFLINE KNOWLEDGE BRAIN")
         eyebrow.setObjectName("Eyebrow")
         layout.addWidget(eyebrow)
-        title = QLabel("ROMVERSE Archives")
+        title = QLabel("ROMVERSE Synapse")
         title.setObjectName("Title")
         layout.addWidget(title)
-        subtitle = QLabel("Search verified ROMVERSE knowledge, cached evidence, and guided fixes.")
+        subtitle = QLabel(
+            "Search source-labelled Android knowledge, compare conflicting guidance, and use "
+            "private verified outcomes without sending device data anywhere."
+        )
         subtitle.setObjectName("Muted")
+        subtitle.setWordWrap(True)
         layout.addWidget(subtitle)
+
+        self.synapse_constellation = SynapseConstellation(reduced_motion=reduced_motion)
+        layout.addWidget(self.synapse_constellation)
+        self._update_synapse_visual()
 
         self.source_context = QFrame()
         self.source_context.setObjectName("DiagnosticHandoffBar")
@@ -897,6 +1052,50 @@ class KnowledgeCenter(QWidget):
         self.offline_archive_status.setWordWrap(True)
         self._render_offline_archive_status()
         layout.addWidget(self.offline_archive_status)
+
+        self.update_panel = QFrame()
+        self.update_panel.setObjectName("SynapseLearningPanel")
+        update_layout = QHBoxLayout(self.update_panel)
+        update_layout.setContentsMargins(16, 11, 13, 11)
+        update_copy = QVBoxLayout()
+        update_title = QLabel("SIGNED OFFLINE UPDATES  •  ED25519 TRUST BOUNDARY")
+        update_title.setObjectName("SynapseLearningTitle")
+        self.update_status = QLabel()
+        self.update_status.setWordWrap(True)
+        self.update_status.setObjectName(
+            "Good" if update_service is not None and update_service.configured else "Warning"
+        )
+        if update_service is not None and update_service.configured:
+            self.update_status.setText(
+                f"{len(update_service.trust_keys)} TRUSTED PUBLISHER KEY(S)  •  Preview before "
+                "merge  •  Rollback-safe revisions  •  No network or execution authority"
+            )
+        else:
+            reason = (
+                update_service.unavailable_reason
+                if update_service is not None
+                else "No trusted ROMVERSE knowledge publisher key is configured."
+            )
+            self.update_status.setText(
+                f"SIGNED UPDATE IMPORT LOCKED  •  {reason} Existing local knowledge remains usable."
+            )
+        update_copy.addWidget(update_title)
+        update_copy.addWidget(self.update_status)
+        update_layout.addLayout(update_copy, 1)
+        self.update_button = QPushButton("Import signed knowledge update")
+        self.update_button.setAccessibleName(
+            "Inspect and import a trusted signed offline knowledge update"
+        )
+        self.update_button.setToolTip(
+            "Reads and verifies a local Ed25519-signed update, shows its exact merge counts, "
+            "and asks before changing the private Archive. It never contacts a server or phone."
+        )
+        self.update_button.setEnabled(
+            update_service is not None and update_service.configured
+        )
+        self.update_button.clicked.connect(self._import_signed_update)
+        update_layout.addWidget(self.update_button)
+        layout.addWidget(self.update_panel)
 
         self.device_catalog_status = QLabel()
         self.device_catalog_status.setAccessibleName("Official Android device ID catalog status")
@@ -1156,6 +1355,10 @@ class KnowledgeCenter(QWidget):
         self.visible_offline_matches = {
             record.record_id: match for record, match in offline_matches
         }
+        self.visible_offline_conflicts = detect_knowledge_conflicts(
+            tuple(match for _record, match in offline_matches if match is not None)
+        )
+        self._update_synapse_visual()
 
         self.list.blockSignals(True)
         self.list.clear()
@@ -1167,8 +1370,19 @@ class KnowledgeCenter(QWidget):
             )
             self.list.addItem(item)
         for record, match in offline_matches:
+            sources = tuple(
+                self.offline_sources[source_id]
+                for source_id in record.source_ids
+                if source_id in self.offline_sources
+            )
+            labels = (
+                match.evidence_labels
+                if match is not None
+                else evidence_labels(record, sources)
+            )
             item = QListWidgetItem(
-                f"{record.title}\nOFFLINE EVIDENCE  •  {record.kind.value.upper()}"
+                f"{record.title}\nOFFLINE EVIDENCE  •  {record.kind.value.upper()}  •  "
+                + " + ".join(label.value.upper() for label in labels)
             )
             item.setData(Qt.ItemDataRole.UserRole, f"offline:{record.record_id}")
             source_summary = ", ".join(
@@ -1198,10 +1412,13 @@ class KnowledgeCenter(QWidget):
                     f"{guide_count} found for “{query}”." if query else f"{guide_count} available."
                 )
             else:
+                conflict_count = len(self.visible_offline_conflicts)
                 self.search_status.setText(
-                    f"{guide_count} found for “{query}”  •  {record_count} found."
+                    f"{guide_count} found for “{query}”  •  {record_count} found  •  "
+                    f"{conflict_count} explicit conflict{'s' if conflict_count != 1 else ''}."
                     if query
-                    else f"{guide_count} and {record_count} available."
+                    else f"{guide_count} and {record_count} available  •  "
+                    f"{conflict_count} explicit conflict{'s' if conflict_count != 1 else ''}."
                 )
         else:
             self.detail.setText(
@@ -1281,8 +1498,34 @@ class KnowledgeCenter(QWidget):
             f"RECORD CONFIDENCE  •  {record.confidence.value.upper()}  •  "
             f"CORROBORATED OUTCOME/REPORT COUNT  •  {record.corroboration_count}",
         ]
+        labels = (
+            match.evidence_labels
+            if match is not None
+            else evidence_labels(record, sources)
+        )
+        sections.extend(
+            (
+                "",
+                "EVIDENCE STATE",
+                " • ".join(label.value.upper() for label in labels),
+            )
+        )
         if match is not None:
             sections.extend(("", "WHY THIS MATCHED", match.explanation))
+        conflicts = tuple(
+            conflict
+            for conflict in self.visible_offline_conflicts
+            if record.record_id in conflict.record_ids
+        )
+        if conflicts:
+            sections.extend(("", "CONFLICTING GUIDANCE  •  STOP AND RESOLVE"))
+            for conflict in conflicts:
+                sections.extend(
+                    (
+                        f"• {conflict.reason}",
+                        f"  Safest action: {conflict.safest_action}",
+                    )
+                )
         sections.extend(("", "DEVICE / BUILD SCOPE", record.scope.scope_note or "Not specified"))
         for heading, values in (
             ("Symptoms and errors", (*record.symptoms, *record.error_codes)),
@@ -1409,6 +1652,7 @@ class KnowledgeCenter(QWidget):
         self.learning_eyebrow.setText("LOCAL LEARNING  •  ROMVERSE SYNAPSE")
         if self.synapse_store is None:
             self.synapse_knowledge = ()
+            self._update_synapse_visual()
             self._set_learning_state(
                 "0 LOCAL OUTCOMES  •  Learning begins only after a typed fix is verified  •  "
                 "GUIDANCE ONLY",
@@ -1420,6 +1664,7 @@ class KnowledgeCenter(QWidget):
             self.synapse_knowledge = self.synapse_store.list_knowledge()
         except SynapseStoreError:
             self.synapse_knowledge = ()
+            self._update_synapse_visual()
             self._set_learning_state(
                 "LOCAL LEARNING UNAVAILABLE  •  The integrity check rejected this private "
                 "cache  •  ORIGINAL PRESERVED",
@@ -1440,6 +1685,7 @@ class KnowledgeCenter(QWidget):
             item.state is SynapseKnowledgeState.RETIRED for item in self.synapse_knowledge
         )
         if not self.synapse_knowledge:
+            self._update_synapse_visual()
             self._set_learning_state(
                 "0 LOCAL OUTCOMES  •  Learning begins only after a typed fix is verified  •  "
                 "NO UPLOAD OR EXECUTION AUTHORITY",
@@ -1447,12 +1693,93 @@ class KnowledgeCenter(QWidget):
             )
             self.learning_button.setText("How local learning works  →")
             return
+        self._update_synapse_visual()
         self._set_learning_state(
             f"{len(self.synapse_knowledge)} LOCAL KNOWLEDGE RECORD(S)  •  {usable} USABLE  •  "
             f"{trusted} TRUSTED  •  {retired} RETIRED  •  GUIDANCE ONLY",
             "verified" if usable and not retired else "attention",
         )
         self.learning_button.setText("Inspect learned fixes  →")
+
+    def set_reduced_motion(self, enabled: bool) -> None:
+        self.synapse_constellation.set_reduced_motion(enabled)
+
+    def _update_synapse_visual(self) -> None:
+        visual = getattr(self, "synapse_constellation", None)
+        if visual is None:
+            return
+        archive = self.offline_archive
+        visual.set_metrics(
+            len(archive.records) if archive is not None else 0,
+            len(archive.sources) if archive is not None else 0,
+            len(self.synapse_knowledge),
+            len(self.visible_offline_conflicts),
+        )
+
+    def _import_signed_update(self) -> None:
+        service = self.update_service
+        if service is None or not service.configured:
+            return
+        source_name, _selected_filter = QFileDialog.getOpenFileName(
+            self,
+            "Select signed ROMVERSE Synapse update",
+            "",
+            "ROMVERSE signed knowledge update (*.json *.romverse);;All files (*)",
+        )
+        if not source_name:
+            return
+        try:
+            preview = service.inspect(Path(source_name))
+        except KnowledgeUpdateError as exc:
+            self.update_status.setObjectName("Danger")
+            self.update_status.setText(f"SIGNED UPDATE REJECTED  •  {exc}")
+            self._restyle(self.update_status)
+            return
+        result = preview.result
+        answer = QMessageBox.question(
+            self,
+            "ROMVERSE Synapse • Verified signed update",
+            f"Publisher signature verified: {preview.signer_id}\n"
+            f"Update: {preview.update_id}\n"
+            f"Envelope SHA-256: {preview.envelope_sha256}\n\n"
+            f"Add {result.added} record(s)  •  Update {result.updated}  •  "
+            f"Unchanged {result.unchanged}\n"
+            f"Installed total after merge: {result.record_count}\n\n"
+            "Apply this reviewed offline update? This changes only the private local "
+            "knowledge Archive. It performs no network request, command, repair, build, "
+            "flash, wipe, or phone action.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer is not QMessageBox.StandardButton.Yes:
+            self.update_status.setObjectName("Warning")
+            self.update_status.setText(
+                "SIGNED UPDATE VERIFIED BUT NOT APPLIED  •  The local Archive is unchanged."
+            )
+            self._restyle(self.update_status)
+            return
+        try:
+            receipt = service.apply(preview)
+            self._load_offline_archive()
+            self._render_offline_archive_status()
+            self._filter("")
+        except KnowledgeUpdateError as exc:
+            self.update_status.setObjectName("Danger")
+            self.update_status.setText(f"SIGNED UPDATE STOPPED SAFELY  •  {exc}")
+        else:
+            self.update_status.setObjectName("Good")
+            self.update_status.setText(
+                f"SIGNED UPDATE APPLIED  •  {receipt.signer_id}  •  "
+                f"{receipt.added} added  •  {receipt.updated} updated  •  "
+                f"Archive {receipt.installed_archive_digest[:16]}…  •  Audit receipt saved  •  "
+                "No network or phone action"
+            )
+        self._restyle(self.update_status)
+
+    @staticmethod
+    def _restyle(widget: QWidget) -> None:
+        widget.style().unpolish(widget)
+        widget.style().polish(widget)
 
     def _set_learning_state(self, text: str, state: str) -> None:
         self.learning_status.setText(text)

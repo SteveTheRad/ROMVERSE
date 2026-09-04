@@ -37,6 +37,7 @@ from romverse.rom.projects import RomProjectStore
 from romverse.rom.recipes import RecipeStore, load_run_receipt
 from romverse.rom.recovery_evidence import RecoveryEvidenceService
 from romverse.rom.signing_ceremony import OfflineSigningCeremonyService
+from romverse.rom.simulation import RomSimulationService
 from romverse.rom.source_blueprint import FastbootSourceBlueprintService
 from romverse.rom.source_intelligence import FirmwareSourceIntelligenceService, SourceBlueprint
 from romverse.rom.upgrade import (
@@ -1074,6 +1075,8 @@ class BuildReadinessService:
             ("local-build-attempt", project_dir / LocalDeviceBuildExecutor.ATTEMPT_NAME),
             ("recovery-evidence", project_dir / RecoveryEvidenceService.RECEIPT_NAME),
             ("avb-topology", project_dir / AvbEvidenceService.RECEIPT_NAME),
+            ("device-digital-twin", project_dir / RomSimulationService.RECEIPT_NAME),
+            ("simulation-mission", project_dir / RomSimulationService.MISSION_NAME),
         )
         artifacts: list[tuple[str, str, str]] = []
         for label, path in candidates:

@@ -1326,6 +1326,19 @@ rescans the complete profile, and refreshes the active Genesis stage. The Androi
 partition tools are pinned to the exact commit and SHA-256 values validated by the successful
 Android 15 HyperOS reference build rather than silently tracking mutable binaries.
 
+The **ROM Simulation Lab** now replaces the earlier readiness-only dry run with a sealed
+Device-DNA Digital Twin. It maps the exact Device Pack geometry, differentiates partitions that
+would be written or preserved, verifies current build artifacts, rehearses payload/source handling,
+local build steps, mode transitions, partition writes, readback checks and the adapter-scoped
+rollback route, and detects codename, downgrade, capacity, AVB, bootloader, battery, storage and
+dangerous-command risks. The Lab presents an animated exploded phone model, evidence-ranked
+findings, honest time/space/battery estimates and a complete operation sequence. It always lists
+what only physical hardware can prove and caps simulated confidence accordingly. Architect Mode
+can create explicit what-if reorder/exclusion revisions, but those revisions lose signed authority
+and cannot become a mission. Only an unmodified successful rehearsal can create an inert ROM Studio
+mission receipt; simulation and mission creation both retain execution authority none, send no
+device command and change no phone.
+
 ## Linux quick start
 
 Ubuntu 24.04+, Fedora 44, and Python 3.11–3.14 are supported for development.

@@ -1395,6 +1395,29 @@ first-launch smoke passed.
 The product-wide continuation target and definition of done are recorded in
 `docs/DESIGN_VISION_AND_POLISH_GOAL.md`.
 
+## 2026-09-05 ROM Simulation Lab checkpoint
+
+- Forge Control opens a dedicated, large-format ROM Simulation Lab instead of reporting only
+  readiness phase colours.
+- The private, tamper-evident Digital Twin receipt is bound to the protected source, Device DNA and
+  exact Device Pack. It records the partition map, write/preserve intent, command order, AVB and
+  slot evidence, recovery rehearsal, resource estimates, findings, confidence limits and the
+  permanent zero-authority boundary.
+- Source verification, payload/partition inventory, deterministic local build steps, transitions,
+  writes, readbacks and recovery-adapter actions are represented as inert ordered operations.
+  Missing images, oversized super images, identity disagreement, downgrade risk, dangerous
+  erase/wipe/format/relock operations, insufficient storage, inadequate live battery and incomplete
+  rollback evidence remain visible blockers.
+- Architect Mode exposes a bounded what-if editor for move/exclude revisions. Every revision records
+  its reason and parent digest, is visibly blocked from inheriting Device Pack authority, and cannot
+  create a real operation.
+- A successful unmodified rehearsal can create a ROM Studio mission receipt for review. It still
+  cannot open device transport, execute a command, grant Guardian consent or claim physical success.
+- The Lab supports reduced motion, scrolls at constrained sizes, and visually passed a 1440x960
+  offscreen rendering check. Focused Simulation Lab, Forge Control, readiness and Project Vault
+  suites pass, as does the complete Desktop regression suite.
+- Approved ROMVERSE and RadForge Labs logo files were not edited.
+
 ## Honest feature boundary
 
 The current safe milestone supports read-only Android evidence, local diagnostics, guarded APK

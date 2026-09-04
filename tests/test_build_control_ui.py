@@ -583,7 +583,7 @@ def test_refresh_removes_stale_cards_and_footer_actions_remain_aligned(tmp_path)
         "Inspect source AVB topology",
         "Offline signing ceremony",
         "Review optional flash requirements",
-        "Verify local build completion",
+        "Open Digital Twin verification",
         "Close",
     }
     visible_footer_buttons = tuple(
@@ -595,7 +595,7 @@ def test_refresh_removes_stale_cards_and_footer_actions_remain_aligned(tmp_path)
         "Refresh evidence",
         "Export evidence bundle",
         "Review optional flash requirements",
-        "Verify local build completion",
+        "Open Digital Twin verification",
         "Close",
     }
     assert control.build_tools_toggle.text() == "Show build tools"

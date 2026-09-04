@@ -118,6 +118,7 @@ from romverse.rom.signing_ceremony import (
     OfflineSigningReceipt,
     OfflineSigningRequest,
 )
+from romverse.rom.simulation import RomSimulationService
 from romverse.rom.source_blueprint import FastbootSourceBlueprint
 from romverse.rom.source_intelligence import (
     FirmwareSourceIntelligenceService,
@@ -130,6 +131,7 @@ from romverse.ui.backup_center import RecoveryEvidenceWorker
 from romverse.ui.guided_mission import GuidedBuildMission
 from romverse.ui.phone_backup import PhoneMediaBackupDialog, PhoneMediaBackupWorker
 from romverse.ui.process_progress import ProcessProgressBar
+from romverse.ui.simulation_lab import DigitalTwinDialog
 
 
 class LiveTargetCheckSignals(QObject):
@@ -1394,8 +1396,12 @@ class BuildControlCenter(QDialog):
             "Export exact unsigned artifacts for an external signer, or import and verify the signed results. ROMVERSE never stores or requests a private key and never touches a phone."
         )
         self.signing_button.clicked.connect(self._signing_ceremony)
-        self.simulate_button = QPushButton("Run safe pipeline simulation")
+        self.simulate_button = QPushButton("Open ROM Simulation Lab")
         self.simulate_button.setObjectName("ForgeSecondaryAction")
+        self.simulate_button.setToolTip(
+            "Build a Device-DNA digital twin, rehearse partition writes, AVB, slots, "
+            "verification and rollback without sending any command to a phone."
+        )
         self.simulate_button.clicked.connect(self._simulate)
         self.autopilot_button = QPushButton("Auto-resolve && continue")
         self.autopilot_button.setObjectName("ForgePrimaryAction")
@@ -1876,9 +1882,9 @@ class BuildControlCenter(QDialog):
                 f"{attention_count} need attention"
             )
         self.simulate_button.setText(
-            "Verify local build completion"
+            "Open Digital Twin verification"
             if self.report.signing_ready and not self.report.flash_ready
-            else "Run safe pipeline simulation"
+            else "Open ROM Simulation Lab"
         )
         if not self.autopilot_active:
             self.autopilot_button.setText(
@@ -3218,22 +3224,38 @@ class BuildControlCenter(QDialog):
     def _simulate(self) -> None:
         if self.report is None:
             return
-        receipt = self.service.simulate(self.report)
-        path = (
-            self.studio.store.projects_root / self.project.project_id / self.service.SIMULATION_NAME
+        simulator = RomSimulationService(
+            self.studio.store,
+            self.studio.pack_registry,
+            self.studio.tool_statuses,
         )
-        stages = "  →  ".join(f"{name}: {status}" for name, status in receipt.stages)
-        if self.report.signing_ready and not self.report.flash_ready:
-            self.status.setText(
-                f"Local build verification complete  •  Workspace, Build, and Signing passed  •  "
-                f"optional phone installation remains locked at {receipt.stopped_at}  •  "
-                f"phone changed: NO  •  receipt: {path.name}"
+        device = self.studio.devices[0] if len(self.studio.devices) == 1 else None
+        try:
+            receipt = simulator.rehearse(self.project.project_id, device)
+        except ProjectError as exc:
+            self.status.setText(str(exc))
+            QMessageBox.warning(self, "Digital Twin could not start", str(exc))
+            return
+        dialog = DigitalTwinDialog(
+            simulator,
+            receipt,
+            self.studio.app_settings.experience_mode,
+            self,
+            reduced_motion=self.studio.app_settings.reduced_motion,
+        )
+        dialog.exec()
+        final_receipt = dialog.receipt
+        blockers = sum(gate.severity.value == "blocked" for gate in final_receipt.findings)
+        self.status.setText(
+            (
+                "Digital Twin rehearsal passed"
+                if final_receipt.successful
+                else f"Digital Twin found {blockers} blocker(s)"
             )
-        else:
-            self.status.setText(
-                f"Simulation complete  •  {stages}  •  stopped at {receipt.stopped_at}. "
-                f"Phone changed: NO. Receipt: {path.name}"
-            )
+            + f"  •  confidence {final_receipt.confidence_percent}% "
+            f"{final_receipt.confidence_label}  •  phone changed: NO  •  "
+            f"receipt: {simulator.RECEIPT_NAME}"
+        )
 
     def _prepare_build_plan(self) -> None:
         try:

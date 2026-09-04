@@ -139,6 +139,8 @@ class ProjectVaultService:
         "rom-dna": "rom-dna.romverse",
         "build-plan": "build-plan.romverse",
         "device-build-plan": "device-build-plan.romverse",
+        "digital-twin": "device-digital-twin.romverse",
+        "simulation-mission": "simulation-mission.romverse",
     }
 
     def __init__(self, store: RomProjectStore) -> None:

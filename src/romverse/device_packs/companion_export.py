@@ -37,10 +37,18 @@ def render_companion_kotlin(registry: DevicePackRegistry) -> str:
             (
                 pack
                 for pack in registry.packs
-                if pack.build_contract is not None
-                and pack.manufacturers != ("*",)
+                if pack.manufacturers != ("*",)
                 and pack.model_patterns
                 and pack.product_patterns
+                and (
+                    pack.build_contract is not None
+                    or (
+                        len(pack.model_patterns) == 1
+                        and len(pack.product_patterns) == 1
+                        and not _has_glob(pack.model_patterns[0])
+                        and not _has_glob(pack.product_patterns[0])
+                    )
+                )
             ),
             key=lambda item: (-item.priority, item.pack_id),
         )
@@ -155,3 +163,7 @@ def _quote(value: str) -> str:
 
 def _string_set(values: tuple[str, ...]) -> str:
     return "setOf(" + ", ".join(_quote(value) for value in values) + ")"
+
+
+def _has_glob(value: str) -> bool:
+    return any(marker in value for marker in "*?[]")

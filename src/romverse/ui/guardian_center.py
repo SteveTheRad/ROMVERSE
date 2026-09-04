@@ -3,11 +3,14 @@ from __future__ import annotations
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 
 from PySide6.QtCore import QObject, Qt, QTimer, Signal, Slot
 from PySide6.QtWidgets import (
+    QFileDialog,
     QFrame,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QPushButton,
     QScrollArea,
@@ -26,6 +29,13 @@ from romverse.guardian.execution_gateway_contract import (
 )
 from romverse.guardian.execution_plan import GuardianExecutionPlan
 from romverse.guardian.manifest_review import GuardianManifestReview
+from romverse.guardian.runtime_package import (
+    VerifiedGuardianRuntimePackage,
+    current_guardian_runtime_platform,
+    load_guardian_runtime_package,
+    load_guardian_runtime_public_key,
+    verify_guardian_runtime_package,
+)
 from romverse.nexus.planning import NexusObjective, NexusPlan
 from romverse.ui.background import ManagedRunnable, start_background
 from romverse.ui.process_progress import ProcessProgressBar
@@ -92,6 +102,45 @@ class GuardianCenterWorker(ManagedRunnable):
                 self.signals.failed.emit(f"{type(exc).__name__}: {exc}")
 
 
+class GuardianRuntimePackageSignals(QObject):
+    complete = Signal(object)
+    failed = Signal(str)
+
+
+class GuardianRuntimePackageWorker(ManagedRunnable):
+    """Inspect one local runtime candidate without launching or enrolling it."""
+
+    def __init__(
+        self,
+        envelope_path: Path,
+        release_public_key_path: Path,
+        expected_release_key_id: str,
+        expected_platform: str,
+    ) -> None:
+        super().__init__()
+        self.envelope_path = envelope_path
+        self.release_public_key_path = release_public_key_path
+        self.expected_release_key_id = expected_release_key_id
+        self.expected_platform = expected_platform
+        self.signals = GuardianRuntimePackageSignals()
+
+    @Slot()
+    def execute(self) -> None:
+        try:
+            result = verify_guardian_runtime_package(
+                envelope=load_guardian_runtime_package(self.envelope_path),
+                release_public_key=load_guardian_runtime_public_key(self.release_public_key_path),
+                expected_release_key_id=self.expected_release_key_id,
+                package_directory=self.envelope_path.parent,
+                expected_platform=self.expected_platform,
+            )
+            with suppress(RuntimeError):
+                self.signals.complete.emit(result)
+        except Exception as exc:
+            with suppress(RuntimeError):
+                self.signals.failed.emit(f"{type(exc).__name__}: {exc}")
+
+
 class GuardianCenter(QWidget):
     nexus_requested = Signal(str, str)
     time_machine_requested = Signal(str, str)
@@ -103,6 +152,7 @@ class GuardianCenter(QWidget):
         super().__init__()
         self.audit = audit
         self.worker: GuardianCenterWorker | None = None
+        self.runtime_worker: GuardianRuntimePackageWorker | None = None
         self._nexus_review_identity: tuple[str, str] | None = None
         self._backup_review_identity: tuple[str, str] | None = None
         self._studio_review_identity: tuple[str, str] | None = None
@@ -276,6 +326,48 @@ class GuardianCenter(QWidget):
             "Guardian is verifying bounded audit, approval, APK, and recovery evidence off the interface thread."
         )
         page.addWidget(self.progress)
+
+        self.runtime_package_card = QFrame()
+        self.runtime_package_card.setObjectName("Card")
+        runtime_layout = QHBoxLayout(self.runtime_package_card)
+        runtime_layout.setContentsMargins(20, 15, 20, 15)
+        runtime_layout.setSpacing(14)
+        runtime_copy = QVBoxLayout()
+        runtime_eyebrow = QLabel("GUARDIAN RUNTIME  •  LOCAL CANDIDATE INSPECTOR")
+        runtime_eyebrow.setObjectName("Eyebrow")
+        self.runtime_package_title = QLabel("No runtime package inspected")
+        self.runtime_package_title.setObjectName("SectionTitle")
+        self.runtime_package_detail = QLabel(
+            "Check a separately supplied signed runtime package and its release public key. "
+            "Inspection never launches the file, enrolls trust, opens a phone, or unlocks final consent."
+        )
+        self.runtime_package_detail.setObjectName("Muted")
+        self.runtime_package_detail.setWordWrap(True)
+        self.runtime_package_detail.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        runtime_copy.addWidget(runtime_eyebrow)
+        runtime_copy.addWidget(self.runtime_package_title)
+        runtime_copy.addWidget(self.runtime_package_detail)
+        self.runtime_package_progress = ProcessProgressBar()
+        self.runtime_package_progress.setAccessibleName(
+            "Guardian runtime package verification progress"
+        )
+        runtime_copy.addWidget(self.runtime_package_progress)
+        runtime_layout.addLayout(runtime_copy, 1)
+        runtime_actions = QVBoxLayout()
+        self.runtime_package_badge = QLabel("NOT INSPECTED")
+        self.runtime_package_badge.setObjectName("Warning")
+        self.inspect_runtime_package_button = QPushButton("Inspect runtime candidate")
+        self.inspect_runtime_package_button.setAccessibleName(
+            "Inspect a signed Guardian runtime package candidate"
+        )
+        self.inspect_runtime_package_button.clicked.connect(self._choose_runtime_package)
+        runtime_actions.addWidget(self.runtime_package_badge, 0, Qt.AlignmentFlag.AlignRight)
+        runtime_actions.addWidget(self.inspect_runtime_package_button)
+        runtime_actions.addStretch()
+        runtime_layout.addLayout(runtime_actions)
+        page.addWidget(self.runtime_package_card)
 
         metrics = QHBoxLayout()
         self.total_card, self.total_value = self._metric("AUDITED OPERATIONS")
@@ -680,6 +772,126 @@ class GuardianCenter(QWidget):
     def _return_to_time_machine(self) -> None:
         if self._backup_review_identity is not None:
             self.time_machine_requested.emit(*self._backup_review_identity)
+
+    def _choose_runtime_package(self) -> None:
+        envelope_name, _selected_filter = QFileDialog.getOpenFileName(
+            self,
+            "Select signed Guardian runtime package",
+            "",
+            "ROMVERSE runtime package (*.json *.romverse);;All files (*)",
+        )
+        if not envelope_name:
+            return
+        public_key_name, _selected_filter = QFileDialog.getOpenFileName(
+            self,
+            "Select trusted Guardian runtime release public key",
+            "",
+            "PEM public key (*.pem);;All files (*)",
+        )
+        if not public_key_name:
+            return
+        release_key_id, accepted = QInputDialog.getText(
+            self,
+            "Confirm runtime release identity",
+            "Enter the expected release key ID obtained with the public key:",
+        )
+        if not accepted or not release_key_id.strip():
+            return
+        self.inspect_runtime_candidate(
+            Path(envelope_name),
+            Path(public_key_name),
+            release_key_id.strip(),
+        )
+
+    def inspect_runtime_candidate(
+        self,
+        envelope_path: Path,
+        release_public_key_path: Path,
+        expected_release_key_id: str,
+        *,
+        expected_platform: str | None = None,
+    ) -> bool:
+        """Start an integrity-only runtime package inspection."""
+
+        if self.runtime_worker is not None:
+            return False
+        try:
+            platform = expected_platform or current_guardian_runtime_platform()
+        except Exception as exc:
+            self._runtime_inspection_failed(f"{type(exc).__name__}: {exc}")
+            return False
+        worker = GuardianRuntimePackageWorker(
+            Path(envelope_path),
+            Path(release_public_key_path),
+            str(expected_release_key_id),
+            platform,
+        )
+        worker.signals.complete.connect(self._runtime_inspection_complete)
+        worker.signals.failed.connect(self._runtime_inspection_failed)
+        self.runtime_worker = worker
+        self.inspect_runtime_package_button.setEnabled(False)
+        self.inspect_runtime_package_button.setText("Inspecting exact bytes …")
+        self.runtime_package_progress.begin(determinate=False)
+        self.runtime_package_title.setText("Inspecting runtime package candidate")
+        self.runtime_package_badge.setText("VERIFYING")
+        self.runtime_package_badge.setObjectName("Warning")
+        self.runtime_package_detail.setText(
+            "Checking the selected release signature, runtime identity, safety policy, platform, "
+            "and exact executable bytes off the interface thread. Nothing is being launched."
+        )
+        self._repolish(self.runtime_package_badge)
+        start_background(worker)
+        return True
+
+    @Slot(object)
+    def _runtime_inspection_complete(self, value: object) -> None:
+        self.runtime_worker = None
+        self.runtime_package_progress.finish()
+        self.inspect_runtime_package_button.setEnabled(True)
+        self.inspect_runtime_package_button.setText("Inspect another candidate")
+        if not isinstance(value, VerifiedGuardianRuntimePackage):
+            self._runtime_inspection_failed(
+                "Guardian runtime inspection returned an unexpected result"
+            )
+            return
+        manifest = value.manifest
+        self.runtime_package_title.setText(
+            f"Candidate verified  •  {manifest.runtime_id} {manifest.runtime_version}"
+        )
+        self.runtime_package_badge.setText("CHECK PASSED • NOT ENROLLED")
+        self.runtime_package_badge.setObjectName("Good")
+        self.runtime_package_detail.setText(
+            f"Platform  •  {manifest.platform}  •  protocol {manifest.runtime_protocol_version}  •  "
+            f"result schema {manifest.result_receipt_schema_version}\n"
+            f"Artifact  •  {manifest.artifact.file_name}  •  {manifest.artifact.size_bytes:,} bytes  •  "
+            f"SHA-256 {manifest.artifact.sha256}\n"
+            f"Release identity  •  {value.release_key_id}  •  "
+            f"public-key SHA-256 {value.release_public_key_sha256}\n"
+            f"Manifest  •  SHA-256 {value.manifest_sha256}\n"
+            f"Runtime signer  •  {manifest.runtime_signer.key_id}  •  "
+            f"public-key SHA-256 {manifest.runtime_signer.public_key_sha256}\n"
+            f"Adapter  •  {manifest.adapter_id} v{manifest.adapter_version}  •  forward-only policy\n"
+            "RESULT  •  Package signature and current bytes verified under the selected public key. "
+            "Trust is not enrolled.\n"
+            "BOUNDARY  •  Execution authority: NONE  •  Runtime invoked: NO  •  Phone changed: NO"
+        )
+        self._repolish(self.runtime_package_badge)
+
+    @Slot(str)
+    def _runtime_inspection_failed(self, message: str) -> None:
+        self.runtime_worker = None
+        self.runtime_package_progress.stop()
+        self.inspect_runtime_package_button.setEnabled(True)
+        self.inspect_runtime_package_button.setText("Inspect runtime candidate")
+        self.runtime_package_title.setText("Runtime candidate rejected safely")
+        self.runtime_package_badge.setText("CANDIDATE REJECTED")
+        self.runtime_package_badge.setObjectName("Danger")
+        clean = " ".join(str(message).replace("\x00", " ").split())[:500]
+        self.runtime_package_detail.setText(
+            f"{clean}\nNo package was launched or enrolled. Execution authority remains NONE; "
+            "runtime invoked: NO; phone changed: NO."
+        )
+        self._repolish(self.runtime_package_badge)
 
     @staticmethod
     def _metric(label: str) -> tuple[QFrame, QLabel]:

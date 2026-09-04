@@ -5,8 +5,10 @@ import binascii
 import hashlib
 import json
 import os
+import platform as host_platform
 import re
 import stat
+import sys
 from contextlib import suppress
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -38,6 +40,7 @@ RUNTIME_PROTOCOL_VERSION = 1
 RUNTIME_RESULT_RECEIPT_SCHEMA_VERSION = 2
 RUNTIME_PACKAGE_DOMAIN = b"ROMVERSE-GUARDIAN-RUNTIME-PACKAGE-V1\0"
 MAX_RUNTIME_ARTIFACT_BYTES = 2_147_483_648
+MAX_RUNTIME_PUBLIC_KEY_BYTES = 65_536
 RUNTIME_PLATFORMS = frozenset({"linux-x86_64", "windows-x86_64"})
 
 _IDENTIFIER = re.compile(r"[a-z0-9][a-z0-9._-]{0,95}")
@@ -98,6 +101,7 @@ class VerifiedGuardianRuntimePackage:
 
     manifest: GuardianRuntimePackageManifest
     release_key_id: str
+    release_public_key_sha256: str
     manifest_sha256: str
     artifact_path: Path
     _runtime_public_key: Ed25519PublicKey = field(repr=False, compare=False)
@@ -430,6 +434,10 @@ def verify_guardian_runtime_package(
             raise RuntimePackageValidationError(
                 "Runtime package release signature verification failed"
             ) from exc
+        raw_release_key = release_public_key.public_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PublicFormat.Raw,
+        )
 
         root = package_directory.expanduser()
         try:
@@ -459,6 +467,7 @@ def verify_guardian_runtime_package(
         return VerifiedGuardianRuntimePackage(
             manifest=manifest,
             release_key_id=key_id,
+            release_public_key_sha256=hashlib.sha256(raw_release_key).hexdigest(),
             manifest_sha256=manifest_sha256,
             artifact_path=artifact_path.resolve(strict=True),
             _runtime_public_key=runtime_public_key,
@@ -483,6 +492,42 @@ def write_guardian_runtime_package(path: Path, value: dict[str, Any]) -> None:
         raise RuntimePackageValidationError(
             "Runtime package document could not be written"
         ) from exc
+
+
+def current_guardian_runtime_platform() -> str:
+    """Return the exact supported runtime package platform for this host."""
+
+    machine = host_platform.machine().casefold().replace("-", "_")
+    if machine not in {"amd64", "x86_64"}:
+        raise RuntimePackageValidationError(
+            "Guardian runtime packages are not yet supported on this processor architecture"
+        )
+    if os.name == "nt":
+        return "windows-x86_64"
+    if sys.platform.startswith("linux"):
+        return "linux-x86_64"
+    raise RuntimePackageValidationError(
+        "Guardian runtime packages are not yet supported on this operating system"
+    )
+
+
+def load_guardian_runtime_public_key(path: Path) -> Ed25519PublicKey:
+    """Load one stable bounded Ed25519 public key without following a file link."""
+
+    payload = _read_bounded_regular_file(
+        path.expanduser(),
+        maximum_bytes=MAX_RUNTIME_PUBLIC_KEY_BYTES,
+        label="Guardian runtime public key",
+    )
+    try:
+        key = serialization.load_pem_public_key(payload)
+    except (TypeError, ValueError) as exc:
+        raise RuntimePackageValidationError(
+            "Guardian runtime public key could not be loaded"
+        ) from exc
+    if not isinstance(key, Ed25519PublicKey):
+        raise RuntimePackageValidationError("Guardian runtime public key must use Ed25519")
+    return key
 
 
 def _hash_regular_artifact(path: Path) -> tuple[str, int, int]:
@@ -545,6 +590,61 @@ def _hash_regular_artifact(path: Path) -> tuple[str, int, int]:
     except OSError as exc:
         raise RuntimePackageValidationError("Runtime artifact could not be read safely") from exc
     return digest.hexdigest(), read_bytes, opened.st_mode
+
+
+def _read_bounded_regular_file(path: Path, *, maximum_bytes: int, label: str) -> bytes:
+    try:
+        before = path.lstat()
+    except OSError as exc:
+        raise RuntimePackageValidationError(f"{label} is unavailable") from exc
+    if (
+        stat.S_ISLNK(before.st_mode)
+        or not stat.S_ISREG(before.st_mode)
+        or not 1 <= before.st_size <= maximum_bytes
+    ):
+        raise RuntimePackageValidationError(f"{label} must be one bounded regular file")
+    flags = (
+        os.O_RDONLY
+        | getattr(os, "O_BINARY", 0)
+        | getattr(os, "O_CLOEXEC", 0)
+        | getattr(os, "O_NOFOLLOW", 0)
+    )
+    try:
+        descriptor = os.open(path, flags)
+        try:
+            with os.fdopen(descriptor, "rb", closefd=True) as stream:
+                opened = os.fstat(stream.fileno())
+                current = path.lstat()
+                if (
+                    not stat.S_ISREG(opened.st_mode)
+                    or not os.path.samestat(before, opened)
+                    or not os.path.samestat(opened, current)
+                    or opened.st_size != before.st_size
+                ):
+                    raise RuntimePackageValidationError(f"{label} changed while it was opened")
+                payload = stream.read(maximum_bytes + 1)
+                final = os.fstat(stream.fileno())
+                current = path.lstat()
+                if (
+                    not 1 <= len(payload) <= maximum_bytes
+                    or len(payload) != opened.st_size
+                    or final.st_size != opened.st_size
+                    or final.st_mtime_ns != opened.st_mtime_ns
+                    or not os.path.samestat(opened, final)
+                    or not os.path.samestat(opened, current)
+                ):
+                    raise RuntimePackageValidationError(
+                        f"{label} changed while it was being verified"
+                    )
+        except Exception:
+            with suppress(OSError):
+                os.close(descriptor)
+            raise
+    except RuntimePackageValidationError:
+        raise
+    except OSError as exc:
+        raise RuntimePackageValidationError(f"{label} could not be read safely") from exc
+    return payload
 
 
 def _validate_platform_artifact(path: Path, platform: str, *, artifact_mode: int) -> None:

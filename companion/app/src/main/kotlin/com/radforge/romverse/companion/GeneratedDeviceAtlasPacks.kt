@@ -2,10 +2,10 @@
 package com.radforge.romverse.companion
 
 internal object GeneratedDeviceAtlasPacks {
-    const val catalogPackCount: Int = 20
-    const val catalogSourceCount: Int = 45
+    const val catalogPackCount: Int = 21
+    const val catalogSourceCount: Int = 48
     const val catalogReviewDueCount: Int = 0
-    const val exactIdentityCount: Int = 1
+    const val exactIdentityCount: Int = 2
 
     val exactIdentities: List<CompanionExactIdentity> = listOf(
         CompanionExactIdentity(
@@ -16,6 +16,15 @@ internal object GeneratedDeviceAtlasPacks {
             manufacturers = setOf("xiaomi"),
             modelPatterns = setOf("2509fpn0bc"),
             productPatterns = setOf("popsicle", "popsicle_*"),
+        ),
+        CompanionExactIdentity(
+            packId = "samsung.galaxy-s24-ultra.sm-s928b",
+            packSha256 = "b6dc4aa27ed0b869eb3e970eb7aaae5d937b200d5f342adcdc4f4e32eaadebed",
+            priority = 220,
+            marketingName = "Samsung Galaxy S24 Ultra",
+            manufacturers = setOf("samsung"),
+            modelPatterns = setOf("sm-s928b"),
+            productPatterns = setOf("e3q"),
         ),
     )
 
@@ -85,6 +94,43 @@ internal object GeneratedDeviceAtlasPacks {
                 ),
             ),
             boundary = "Product-codename identity is authoritative only for the pinned Sony table; announced, WIP, and deprecated lifecycle labels remain informational. No exact stock archive hash, partition contract, AVB policy, signing identity, or physical recovery attestation is present, so execution authority is NONE.",
+        ),
+        CompanionDevicePack(
+            packId = "samsung.galaxy-s24-ultra.sm-s928b",
+            version = "0.1.0",
+            packSha256 = "b6dc4aa27ed0b869eb3e970eb7aaae5d937b200d5f342adcdc4f4e32eaadebed",
+            priority = 220,
+            displayName = "Samsung Galaxy S24 Ultra / SM-S928B",
+            manufacturers = setOf("samsung"),
+            modelPatterns = setOf("sm-s928b"),
+            productPatterns = setOf("e3q"),
+            sources = listOf(
+                AtlasSource(
+                    sourceId = "google-play-supported-devices",
+                    label = "Google Play supported Android devices catalog",
+                    authority = "Google Play",
+                    scope = "Exact SM-S928B retail-name identity corroboration",
+                    verifiedOn = "2026-09-04",
+                    url = "https://storage.googleapis.com/play_public/supported_devices.csv",
+                ),
+                AtlasSource(
+                    sourceId = "samsung.knox.hardware-security",
+                    label = "Samsung Knox hardware-backed security",
+                    authority = "Samsung Knox Documentation",
+                    scope = "Knox Warranty Bit, rollback protection, trusted boot, and hardware-backed attestation boundaries",
+                    verifiedOn = "2026-09-04",
+                    url = "https://docs.samsungknox.com/admin/fundamentals/whitepaper/samsung-knox-mobile-security/system-security/hw-backed-security/",
+                ),
+                AtlasSource(
+                    sourceId = "aosp.verified-boot",
+                    label = "AOSP Verified Boot behavior",
+                    authority = "Android Open Source Project",
+                    scope = "Standards-based interpretation of Android Verified Boot state",
+                    verifiedOn = "2026-09-04",
+                    url = "https://source.android.com/docs/security/features/verifiedboot/boot-flow",
+                ),
+            ),
+            boundary = "ROMVERSE physically observed an SM-S928B reporting codename e3q over an authorized USB ADB connection on 2026-09-04; all bounded read-only identity and health probes completed without timeout. Google Play catalog evidence resolved the retail identity as Galaxy S24 Ultra and was stored in a tamper-evident local identity receipt. This evidence validates discovery and read-only diagnostics only. It does not validate another SM-S928 variant or grant build, download-mode, recovery, signing, or flash authority.",
         ),
         CompanionDevicePack(
             packId = "google.pixel",

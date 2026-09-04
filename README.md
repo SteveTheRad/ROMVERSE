@@ -186,6 +186,12 @@ locked. Each broader OEM Pack records checked
 links to official OEM or AOSP references and shows those sources in the UI. Source-backed
 read-only knowledge improves diagnosis, but Pack metadata and a manufacturer match have no
 execution authority.
+An exact read-only Samsung Galaxy S24 Ultra Pack now recognizes only the physically observed
+`SM-S928B` + `e3q` combination. Its on-device discovery completed the bounded identity and health
+probe set without a timeout, and Google's supported-device catalog corroborated the retail name.
+That evidence passes the exact-identity gate only: sibling S24 Ultra variants remain on the Samsung
+family Pack, while firmware layout, download mode, Knox state, recovery, build, and flash stay
+explicitly unvalidated and locked.
 The Companion Atlas is generated from this same verified registry at build time; a parity test
 fails if its Pack versions, SHA-256 identities, match patterns, source scopes, or safety boundaries
 drift from Desktop. Sources older than the review window are visibly marked `REVIEW DUE` rather
@@ -609,6 +615,12 @@ fields, unsafe policy claims, and any package that advertises recovery, wipe, un
 access, phone change, or execution authority. Preparation, offline signing, and verification tools
 are documented in [Guardian runtime packaging](docs/GUARDIAN_RUNTIME_PACKAGING.md). No production
 runtime binary or private key is included, and verifying a package does not enroll or run it.
+Guardian Core now exposes that same boundary through a local **Runtime Candidate Inspector**. The
+user selects the signed package, an independently obtained release public key, and its expected key
+ID; verification runs off the interface thread and displays the exact release-key fingerprint,
+manifest, runtime signer, adapter, platform, protocol, and artifact digest. A passing inspection is
+labelled **CHECK PASSED • NOT ENROLLED** and creates no stored trust, approval, final consent,
+runtime process, device access, or phone change.
 Time Machine recovery records use a digested schema-two contract and bounded private atomic storage
 for both the public-safe evidence and its separate `0600` absolute locator. Extra fields, oversized
 or symlinked records, unsafe roles, changed project/source identity, and locators redirected into

@@ -274,6 +274,13 @@ evidence can be enabled and otherwise routes visibly back to ROM Studio. Readine
 deduplicated genuine Live Console evidence with Device Atlas as the canonical source. Navigation
 grants no build, flash, approval, worker, or execution authority.
 
+The built-in Samsung hierarchy includes a family-level One UI knowledge Pack and a higher-priority
+exact read-only Pack for the physically observed `SM-S928B` + `e3q` Galaxy S24 Ultra identity.
+Registry matching requires both exact model and codename/product, so another regional model or a
+sibling codename falls back to the family Pack instead of inheriting compatibility. The observation
+validates bounded ADB identity/health discovery and catalog naming only; it cannot satisfy firmware,
+partition, download-mode, Knox, recovery, build, signing, physical-test, or flash gates.
+
 A ROM Studio → Device Atlas handoff scopes the Automatic Requirements Blueprint to the exact
 selected project when a strict source-intelligence receipt is current and its manufacturer/codename
 matches the connected phone. The Build lane may then report a verified project-local OTA,

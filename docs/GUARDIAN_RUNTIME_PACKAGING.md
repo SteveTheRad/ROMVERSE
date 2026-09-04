@@ -77,6 +77,18 @@ Windows packages use `windows-x86_64` and an `.exe` artifact. A successful verif
 the release signature, manifest invariants, and current artifact bytes. It does not prove process
 isolation, physical device behavior, a flash-certified Device Pack, recovery, or consent.
 
+## Desktop candidate inspection
+
+Guardian Core's **Runtime Candidate Inspector** exposes the same verification boundary without a
+command line. Select the signed package document, select the release public key received through an
+independent trusted channel, and enter that key's expected release ID. The check runs on a managed
+background worker and shows the exact release-key fingerprint, manifest digest, runtime signer,
+adapter, platform, protocol, result schema, executable name, size, and digest.
+
+The Desktop does not remember either selected path and does not copy, open, execute, or enroll the
+runtime. Success is deliberately labelled **CHECK PASSED • NOT ENROLLED**. It creates no approval,
+final consent, device access, runtime session, or execution authority and changes no phone.
+
 ## Remaining release gates
 
 Before ROMVERSE may expose final consent or execution, the project still needs a real reviewed

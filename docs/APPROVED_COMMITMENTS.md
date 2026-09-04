@@ -782,6 +782,10 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   platform, changed bytes, extra fields and unsafe policy claims, then derives exact gateway-scoped
   runtime trust without enrollment, execution or phone authority; preparation, offline-signing and
   verification CLIs contain no embedded private key and tests prove they never run the artifact;
+  a Guardian Core Runtime Candidate Inspector that verifies the selected package and independently
+  supplied release key off the interface thread, displays exact release/runtime/adapter/artifact
+  fingerprints, retains no selected path or trust, and labels success `CHECK PASSED • NOT ENROLLED`
+  with runtime, device access, phone change, approval, final consent and execution all absent;
   a production runtime artifact, protected production release/runtime key enrollment, Desktop
   consent/enrollment UI, OS process isolation, cross-transport exact-device continuity, separately
   consented recovery/wipe and physical flashing validation remain unavailable, so the shipping

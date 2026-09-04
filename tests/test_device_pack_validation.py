@@ -55,6 +55,29 @@ def test_builtin_xiaomi_pack_fails_closed_without_exact_contract() -> None:
     assert not report.flash_contract_ready
 
 
+def test_observed_s24_ultra_pack_passes_identity_but_grants_no_build_or_flash() -> None:
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    device = AndroidDevice(
+        serial="private-serial-never-exported",
+        state=DeviceState.DEVICE,
+        manufacturer="samsung",
+        model="SM-S928B",
+        product="e3q",
+        codename="e3q",
+    )
+    pack = registry.resolve(device).pack
+
+    assert pack is not None
+    assert pack.pack_id == "samsung.galaxy-s24-ultra.sm-s928b"
+    report = DevicePackValidationService().assess(pack, device)
+    checks = {check.check_id: check for check in report.checks}
+    assert checks["integrity"].state is ValidationState.PASS
+    assert checks["exact-model"].state is ValidationState.PASS
+    assert checks["declarative-build-contract"].state is ValidationState.BLOCKED
+    assert not report.build_contract_ready
+    assert not report.flash_contract_ready
+
+
 def test_capability_labels_without_declarative_contract_cannot_reach_build_readiness() -> None:
     pack = DevicePack(
         "xiaomi.popsicle",

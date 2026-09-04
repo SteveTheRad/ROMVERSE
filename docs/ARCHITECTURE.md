@@ -50,9 +50,17 @@ scripts/                  Linux and Windows environment bootstrap
   platform, protocol/result schemas, adapter and runtime public key; rehash the local regular file,
   reject links and all authority-widening policy claims, and never execute or enroll it as a side
   effect of package verification.
+- Keep Desktop runtime-package inspection separate from enrollment. File selection may verify an
+  independently supplied release key and exact package bytes off the UI thread, but it must retain
+  no path, start no process, open no device, and visibly report that a passing candidate is not
+  enrolled and has no execution authority.
 - Store approvals in a separate SHA-256 chain, expire new approvals after ten minutes, and treat
   readable legacy entries as audit-only rather than reusable authority.
 - Add OEM knowledge through versioned Device Pack providers returning generic facts and checks.
+- Record physical discovery evidence narrowly: the observed `SM-S928B` + `e3q` pair may select its
+  exact read-only Pack, while unobserved regional siblings remain on the Samsung family Pack and no
+  identity observation may imply firmware, partition, recovery, download-mode, signing, or flash
+  compatibility.
 - Publish Device Engine snapshots to later diagnostics, Companion, and Galaxy integrations.
 - Treat Device DNA as the authoritative project evidence profile; Compatibility Matrix and Nexus
   plans must bind its digest and become invalid when the source evidence changes.

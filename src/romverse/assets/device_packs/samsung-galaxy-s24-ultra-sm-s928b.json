@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "pack_id": "samsung.galaxy-s24-ultra.sm-s928b",
+  "version": "0.1.0",
+  "display_name": "Samsung Galaxy S24 Ultra / SM-S928B",
+  "priority": 220,
+  "match": {
+    "manufacturers": ["samsung"],
+    "model_patterns": ["sm-s928b"],
+    "product_patterns": ["e3q"]
+  },
+  "knowledge_sources": [
+    {
+      "source_id": "google-play-supported-devices",
+      "label": "Google Play supported Android devices catalog",
+      "url": "https://storage.googleapis.com/play_public/supported_devices.csv",
+      "authority": "Google Play",
+      "scope": "Exact SM-S928B retail-name identity corroboration",
+      "verified_on": "2026-09-04"
+    },
+    {
+      "source_id": "samsung.knox.hardware-security",
+      "label": "Samsung Knox hardware-backed security",
+      "url": "https://docs.samsungknox.com/admin/fundamentals/whitepaper/samsung-knox-mobile-security/system-security/hw-backed-security/",
+      "authority": "Samsung Knox Documentation",
+      "scope": "Knox Warranty Bit, rollback protection, trusted boot, and hardware-backed attestation boundaries",
+      "verified_on": "2026-09-04"
+    },
+    {
+      "source_id": "aosp.verified-boot",
+      "label": "AOSP Verified Boot behavior",
+      "url": "https://source.android.com/docs/security/features/verifiedboot/boot-flow",
+      "authority": "Android Open Source Project",
+      "scope": "Standards-based interpretation of Android Verified Boot state",
+      "verified_on": "2026-09-04"
+    }
+  ],
+  "capabilities": [
+    {
+      "capability_id": "identity.properties",
+      "label": "Exact Galaxy S24 Ultra identity",
+      "status": "supported",
+      "scope": "model_specific",
+      "detail": "Matches only Samsung model SM-S928B when the device product or codename is also e3q."
+    },
+    {
+      "capability_id": "health.baseline",
+      "label": "Battery, storage, memory, and runtime baseline",
+      "status": "supported",
+      "scope": "read_only",
+      "detail": "Physically observed through the Guardian-approved bounded ADB probe set without a timeout or device mutation."
+    },
+    {
+      "capability_id": "security.boot_signals",
+      "label": "Samsung boot-state signals",
+      "status": "limited",
+      "scope": "read_only",
+      "detail": "Standard Android boot properties are readable; Knox Warranty Bit and download-mode state were not observed."
+    },
+    {
+      "capability_id": "samsung.firmware_layout",
+      "label": "Galaxy S24 Ultra firmware and partition knowledge",
+      "status": "planned",
+      "scope": "locked",
+      "detail": "No exact SM-S928B firmware source, bootloader revision, partition layout, signing, or write contract has been validated."
+    },
+    {
+      "capability_id": "samsung.download_mode",
+      "label": "Samsung download-mode workflows",
+      "status": "planned",
+      "scope": "locked",
+      "detail": "No Odin, Heimdall, download-mode, Knox-changing, recovery, or flashing action is enabled."
+    }
+  ],
+  "notes": [
+    "ROMVERSE physically observed an SM-S928B reporting codename e3q over an authorized USB ADB connection on 2026-09-04; all bounded read-only identity and health probes completed without timeout.",
+    "Google Play catalog evidence resolved the retail identity as Galaxy S24 Ultra and was stored in a tamper-evident local identity receipt.",
+    "This evidence validates discovery and read-only diagnostics only. It does not validate another SM-S928 variant or grant build, download-mode, recovery, signing, or flash authority."
+  ]
+}

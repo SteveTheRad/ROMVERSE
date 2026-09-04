@@ -6,6 +6,8 @@ import json
 import zipfile
 from time import monotonic
 
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from PySide6.QtCore import QThreadPool
 from PySide6.QtWidgets import QApplication
 
@@ -16,6 +18,12 @@ from romverse.device.models import AndroidDevice, DeviceState
 from romverse.guardian.approval import ApprovalStore
 from romverse.guardian.audit import GuardianAuditStore
 from romverse.guardian.manifest_review import GuardianManifestReviewService
+from romverse.guardian.runtime_package import (
+    build_guardian_runtime_package_manifest,
+    create_signed_guardian_runtime_package,
+    current_guardian_runtime_platform,
+    write_guardian_runtime_package,
+)
 from romverse.infrastructure.process import CommandResult
 from romverse.nexus.planning import NexusObjective, NexusPlanner
 from romverse.ui.guardian_center import GuardianCenter
@@ -40,6 +48,156 @@ def _wait_for_guardian(center: GuardianCenter, app: QApplication) -> None:
         QThreadPool.globalInstance().waitForDone(20)
         app.processEvents()
     assert center.worker is None
+
+
+def _runtime_package(tmp_path):
+    artifact_name = (
+        "ROMVERSE-Guardian-Runtime.exe"
+        if current_guardian_runtime_platform() == "windows-x86_64"
+        else "ROMVERSE-Guardian-Runtime"
+    )
+    artifact = tmp_path / artifact_name
+    artifact.write_bytes(b"inert Guardian runtime candidate; this fixture must never execute\n")
+    artifact.chmod(0o700)
+    runtime_key = Ed25519PrivateKey.generate()
+    release_key = Ed25519PrivateKey.generate()
+    manifest = build_guardian_runtime_package_manifest(
+        runtime_id="romverse.guardian-runtime",
+        runtime_version="0.1.0-rc.1",
+        created_at="2026-09-04T09:15:00Z",
+        platform=current_guardian_runtime_platform(),
+        artifact_path=artifact,
+        runtime_signer_key_id="guardian-runtime-2026",
+        runtime_public_key=runtime_key.public_key(),
+        adapter_id="romverse.fastboot.forward",
+        adapter_version=1,
+    )
+    envelope = create_signed_guardian_runtime_package(
+        manifest,
+        release_key,
+        "romverse-runtime-release-2026",
+    )
+    envelope_path = tmp_path / "guardian-runtime-signed.json"
+    release_public_path = tmp_path / "runtime-release-public.pem"
+    write_guardian_runtime_package(envelope_path, envelope)
+    release_public_path.write_bytes(
+        release_key.public_key().public_bytes(
+            serialization.Encoding.PEM,
+            serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+    )
+    return artifact, envelope_path, release_public_path
+
+
+def test_guardian_inspects_runtime_candidate_without_enrolling_or_executing(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    artifact, envelope_path, release_public_path = _runtime_package(tmp_path)
+    original_artifact = artifact.read_bytes()
+    started: list[object] = []
+    monkeypatch.setattr("romverse.ui.guardian_center.start_background", started.append)
+    center = GuardianCenter(GuardianAuditStore(tmp_path / "workspace"), auto_start=False)
+
+    assert center.runtime_package_badge.text() == "NOT INSPECTED"
+    assert center.inspect_runtime_candidate(
+        envelope_path,
+        release_public_path,
+        "romverse-runtime-release-2026",
+    )
+    assert not center.inspect_runtime_candidate(
+        envelope_path,
+        release_public_path,
+        "romverse-runtime-release-2026",
+    )
+    assert len(started) == 1
+    assert not center.inspect_runtime_package_button.isEnabled()
+    assert center.runtime_package_progress.minimum() == 0
+    assert center.runtime_package_progress.maximum() == 0
+    assert "nothing is being launched" in center.runtime_package_detail.text().casefold()
+
+    started[0].execute()
+    app.processEvents()
+
+    assert center.runtime_worker is None
+    assert center.inspect_runtime_package_button.isEnabled()
+    assert center.runtime_package_badge.text() == "CHECK PASSED • NOT ENROLLED"
+    assert center.runtime_package_badge.objectName() == "Good"
+    detail = center.runtime_package_detail.text()
+    assert artifact.name in detail
+    assert "romverse.fastboot.forward v1" in detail
+    assert "romverse-runtime-release-2026" in detail
+    assert "Release identity" in detail and "public-key SHA-256" in detail
+    assert "Execution authority: NONE" in detail
+    assert "Runtime invoked: NO" in detail
+    assert "Phone changed: NO" in detail
+    assert str(tmp_path) not in detail
+    assert artifact.read_bytes() == original_artifact
+    center.close()
+
+
+def test_guardian_rejects_changed_runtime_candidate_without_opening_it(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    artifact, envelope_path, release_public_path = _runtime_package(tmp_path)
+    changed = b"changed after package signing; still inert and must never execute\n"
+    artifact.write_bytes(changed)
+    started: list[object] = []
+    monkeypatch.setattr("romverse.ui.guardian_center.start_background", started.append)
+    center = GuardianCenter(GuardianAuditStore(tmp_path / "workspace"), auto_start=False)
+
+    assert center.inspect_runtime_candidate(
+        envelope_path,
+        release_public_path,
+        "romverse-runtime-release-2026",
+    )
+    started[0].execute()
+    app.processEvents()
+
+    assert center.runtime_worker is None
+    assert center.runtime_package_title.text() == "Runtime candidate rejected safely"
+    assert center.runtime_package_badge.text() == "CANDIDATE REJECTED"
+    assert center.runtime_package_badge.objectName() == "Danger"
+    detail = center.runtime_package_detail.text()
+    assert "failed exact size or SHA-256 verification" in detail
+    assert "No package was launched or enrolled" in detail
+    assert "runtime invoked: NO" in detail
+    assert "phone changed: NO" in detail
+    assert str(tmp_path) not in detail
+    assert artifact.read_bytes() == changed
+    center.close()
+
+
+def test_guardian_runtime_inspector_picker_requires_out_of_band_release_identity(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    QApplication.instance() or QApplication([])
+    _artifact, envelope_path, release_public_path = _runtime_package(tmp_path)
+    selected = iter(((str(envelope_path), ""), (str(release_public_path), "")))
+    started: list[object] = []
+    monkeypatch.setattr(
+        "romverse.ui.guardian_center.QFileDialog.getOpenFileName",
+        lambda *_args, **_kwargs: next(selected),
+    )
+    monkeypatch.setattr(
+        "romverse.ui.guardian_center.QInputDialog.getText",
+        lambda *_args, **_kwargs: ("romverse-runtime-release-2026", True),
+    )
+    monkeypatch.setattr("romverse.ui.guardian_center.start_background", started.append)
+    center = GuardianCenter(GuardianAuditStore(tmp_path / "workspace"), auto_start=False)
+
+    center.inspect_runtime_package_button.click()
+
+    assert len(started) == 1
+    assert started[0].expected_release_key_id == "romverse-runtime-release-2026"
+    assert started[0].envelope_path == envelope_path
+    assert started[0].release_public_key_path == release_public_path
+    center.runtime_worker = None
+    center.close()
 
 
 def test_guardian_displays_verified_plan_digest_and_rejects_later_tampering(tmp_path) -> None:

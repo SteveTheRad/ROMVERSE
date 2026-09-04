@@ -18,6 +18,10 @@
       "sha256": "948cf3b0ae8f23ce722174a15f0861ef3ce09799f989620aa646811f8bb04a4c"
     },
     {
+      "file": "samsung-galaxy-s24-ultra-sm-s928b.json",
+      "sha256": "b6dc4aa27ed0b869eb3e970eb7aaae5d937b200d5f342adcdc4f4e32eaadebed"
+    },
+    {
       "file": "google-pixel.json",
       "sha256": "8aaafe6f077f462d6251dbf0bdec14c2b50a5e7a12020c6577ce0bd319eff753"
     },

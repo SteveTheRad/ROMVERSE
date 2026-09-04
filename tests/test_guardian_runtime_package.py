@@ -18,7 +18,9 @@ from romverse.guardian.runtime_package import (
     RuntimePackageValidationError,
     build_guardian_runtime_package_manifest,
     create_signed_guardian_runtime_package,
+    current_guardian_runtime_platform,
     load_guardian_runtime_package,
+    load_guardian_runtime_public_key,
     verify_guardian_runtime_package,
     write_guardian_runtime_package,
 )
@@ -101,6 +103,15 @@ def test_release_signed_runtime_package_rehashes_artifact_and_binds_exact_gatewa
     assert not verified.manifest.safety_policy.device_access_opened
     assert not verified.manifest.safety_policy.phone_changed
     assert (
+        verified.release_public_key_sha256
+        == hashlib.sha256(
+            release_key.public_key().public_bytes(
+                encoding=serialization.Encoding.Raw,
+                format=serialization.PublicFormat.Raw,
+            )
+        ).hexdigest()
+    )
+    assert (
         verified.runtime_public_key.public_bytes(
             encoding=serialization.Encoding.Raw,
             format=serialization.PublicFormat.Raw,
@@ -113,6 +124,33 @@ def test_release_signed_runtime_package_rehashes_artifact_and_binds_exact_gatewa
     assert trust.device_pack_id == runtime_context["gateway"].device_pack_id
     assert trust.write_contract_id == runtime_context["gateway"].write_contract_id
     assert "public_key_base64" not in repr(verified)
+
+
+def test_runtime_public_key_loader_and_host_platform_are_exact(tmp_path) -> None:
+    private_key = Ed25519PrivateKey.generate()
+    public_path = tmp_path / "runtime-public.pem"
+    public_bytes = private_key.public_key().public_bytes(
+        serialization.Encoding.PEM,
+        serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
+    public_path.write_bytes(public_bytes)
+
+    loaded = load_guardian_runtime_public_key(public_path)
+
+    assert current_guardian_runtime_platform() == _HOST_PLATFORM
+    assert loaded.public_bytes(
+        serialization.Encoding.Raw,
+        serialization.PublicFormat.Raw,
+    ) == private_key.public_key().public_bytes(
+        serialization.Encoding.Raw,
+        serialization.PublicFormat.Raw,
+    )
+
+    if os.name != "nt":
+        linked = tmp_path / "linked-public.pem"
+        linked.symlink_to(public_path.name)
+        with pytest.raises(RuntimePackageValidationError, match="bounded regular file"):
+            load_guardian_runtime_public_key(linked)
 
 
 def test_runtime_package_rejects_changed_or_linked_artifact(tmp_path) -> None:

@@ -81,6 +81,20 @@ class DeviceAtlasKnowledgeTest {
     }
 
     @Test
+    fun resolvesExactObservedS24UltraIdentityWithoutGrantingBuildAuthority() {
+        val identity = CompanionDeviceAtlas.identify("samsung", "SM-S928B", "e3q")
+        val pack = CompanionDeviceAtlas.resolve("samsung", "SM-S928B", "e3q")
+        val sibling = CompanionDeviceAtlas.resolve("samsung", "SM-S928U1", "e3q")
+
+        assertEquals("Samsung Galaxy S24 Ultra", identity.displayName)
+        assertTrue(identity.verifiedExact)
+        assertTrue(identity.evidence.contains("samsung.galaxy-s24-ultra.sm-s928b"))
+        assertEquals("samsung.galaxy-s24-ultra.sm-s928b", pack.packId)
+        assertTrue(pack.reportText().contains("Execution authority: NONE"))
+        assertEquals("samsung.oneui", sibling.packId)
+    }
+
+    @Test
     fun unknownMarketingIdentityKeepsReportedModelExplicitlyUnconfirmed() {
         val identity = CompanionDeviceAtlas.identify("Example", "ABC-123", "example")
 
@@ -158,8 +172,8 @@ class DeviceAtlasKnowledgeTest {
     @Test
     fun searchesCatalogAcrossOemCodenameAndAuthoritativeSourceText() {
         assertEquals(
-            "samsung.oneui",
-            CompanionDeviceAtlas.search("Knox").single().packId,
+            setOf("samsung.galaxy-s24-ultra.sm-s928b", "samsung.oneui"),
+            CompanionDeviceAtlas.search("Knox").map { it.packId }.toSet(),
         )
         assertEquals(
             "google.pixel.tensor-gki",

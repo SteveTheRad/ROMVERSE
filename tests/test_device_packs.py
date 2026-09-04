@@ -58,6 +58,7 @@ def test_builtin_pack_index_and_hashes_are_valid():
         "transsion.android",
         "xiaomi.hyperos",
         "xiaomi.popsicle.hyperos4.os4.0.0.23",
+        "samsung.galaxy-s24-ultra.sm-s928b",
         "samsung.oneui",
         "zte.nubia-android",
     }
@@ -70,6 +71,27 @@ def test_registry_resolves_xiaomi_samsung_and_generic_fallback():
     generic = registry.resolve(android_device("Example OEM"))
     assert generic.pack.pack_id == "android.generic"
     assert generic.reason == "Generic Android fallback"
+
+
+def test_registry_resolves_only_the_physically_observed_s24_ultra_identity():
+    registry = builtin_registry()
+    observed = AndroidDevice(
+        serial="private",
+        state=DeviceState.DEVICE,
+        manufacturer="samsung",
+        model="SM-S928B",
+        product="e3q",
+        codename="e3q",
+    )
+    sibling_variant = replace(observed, model="SM-S928U1")
+    wrong_codename = replace(observed, codename="dm3q", product="dm3q")
+
+    resolution = registry.resolve(observed)
+
+    assert resolution.pack is not None
+    assert resolution.pack.pack_id == "samsung.galaxy-s24-ultra.sm-s928b"
+    assert registry.resolve(sibling_variant).pack.pack_id == "samsung.oneui"
+    assert registry.resolve(wrong_codename).pack.pack_id == "samsung.oneui"
 
 
 def test_registry_uses_exact_android_retail_brand_when_manufacturer_differs():

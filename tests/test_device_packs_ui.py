@@ -416,18 +416,37 @@ def test_device_atlas_searches_catalog_and_reviews_pack_evidence_without_phone(t
     app.processEvents()
     matches = center._matching_packs("knox")
 
-    assert len(matches) == 1
-    assert matches[0].pack_id == "samsung.oneui"
+    assert {pack.pack_id for pack in matches} == {
+        "samsung.galaxy-s24-ultra.sm-s928b",
+        "samsung.oneui",
+    }
     labels = [label.text() for label in center.findChildren(QLabel)]
-    assert any("1 of" in label and "Pack" in label for label in labels)
+    assert any("2 of" in label and "Pack" in label for label in labels)
     assert "Samsung / One UI" in labels
     assert "INTEGRITY VERIFIED" in labels
 
-    center._show_pack_knowledge(matches[0])
+    family_pack = next(pack for pack in matches if pack.pack_id == "samsung.oneui")
+    center._show_pack_knowledge(family_pack)
     app.processEvents()
     labels = [label.text() for label in center.findChildren(QLabel)]
     assert "READ-ONLY KNOWLEDGE  •  EXECUTION AUTHORITY: NONE" in labels
     assert any("Samsung Knox hardware-backed security" in label for label in labels)
+    assert "No exact local build contract — diagnostics knowledge only" in labels
+    center.close()
+
+
+def test_device_atlas_exposes_exact_observed_s24_ultra_read_only_evidence(tmp_path) -> None:
+    _app = QApplication.instance() or QApplication([])
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    center = DevicePacksCenter(registry, tmp_path)
+
+    matches = center._matching_packs("SM-S928B e3q")
+
+    assert [pack.pack_id for pack in matches] == ["samsung.galaxy-s24-ultra.sm-s928b"]
+    center._show_pack_knowledge(matches[0])
+    labels = [label.text() for label in center.findChildren(QLabel)]
+    assert "READ-ONLY KNOWLEDGE  •  EXECUTION AUTHORITY: NONE" in labels
+    assert any("physically observed" in label.casefold() for label in labels)
     assert "No exact local build contract — diagnostics knowledge only" in labels
     center.close()
 

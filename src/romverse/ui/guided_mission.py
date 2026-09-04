@@ -167,7 +167,7 @@ class StageButton(QPushButton):
             GuidedStageStatus.READY: "Ready",
             GuidedStageStatus.ATTENTION: "Needs attention",
             GuidedStageStatus.LOCKED: "Locked",
-            GuidedStageStatus.FUTURE: "Future phase",
+            GuidedStageStatus.FUTURE: "Optional install phase",
         }[assessment.status]
         guidance = [
             f"{assessment.stage.number:02d} • {assessment.stage.title}",
@@ -368,10 +368,10 @@ class GuidedBuildMission(QDialog):
         )
         self.learn_button.clicked.connect(self._open_stage_learning)
         self.save_button = QPushButton("Save && exit")
-        self.save_button.clicked.connect(self.accept)
+        self.save_button.clicked.connect(self._save_or_finish)
         self.skip_button = QPushButton("Continue to Nebula Debloat")
         self.skip_button.setObjectName("SecondaryAction")
-        self.skip_button.clicked.connect(self._skip_customization)
+        self.skip_button.clicked.connect(self._secondary_action)
         self.action_button = QPushButton()
         self.action_button.setObjectName("MissionAction")
         self.action_button.clicked.connect(self._run_stage)
@@ -627,9 +627,19 @@ class GuidedBuildMission(QDialog):
             # Resume at the first stage not supported by real evidence. This deliberately
             # outranks the last page viewed so a stale navigation choice cannot imply progress.
             self.selected_index = self.engine.current_index(self.assessments)
-        self.overall_progress.setValue(self.engine.progress(self.assessments))
         complete = sum(item.status is GuidedStageStatus.COMPLETE for item in self.assessments)
-        self.progress_copy.setText(f"{complete} OF {len(self.assessments)} STAGES VERIFIED")
+        local_build_complete = all(
+            item.status is GuidedStageStatus.COMPLETE for item in self.assessments[:13]
+        )
+        install_deferred = local_build_complete and not self.state.install_requested
+        self.overall_progress.setValue(
+            100 if install_deferred else self.engine.progress(self.assessments)
+        )
+        self.progress_copy.setText(
+            "13 OF 13 LOCAL BUILD STAGES VERIFIED  •  2 OPTIONAL INSTALL STAGES DEFERRED"
+            if install_deferred
+            else f"{complete} OF {len(self.assessments)} STAGES VERIFIED"
+        )
         for index, (button, assessment) in enumerate(
             zip(self.stage_buttons, self.assessments, strict=True)
         ):
@@ -759,8 +769,11 @@ class GuidedBuildMission(QDialog):
             GuidedStageStatus.ATTENTION: "Needs attention — follow the recommendation before continuing.",
             GuidedStageStatus.LOCKED: "Locked — complete the earlier highlighted stage first.",
             GuidedStageStatus.FUTURE: (
-                "Post-flash verification phase — connect the exact phone and capture boot "
-                "samples to complete first-boot health evidence."
+                "Local ROM build complete — phone installation is optional and has not been "
+                "requested. You can finish here without weakening Guardian."
+                if stage.stage_id == "flash"
+                else "Optional post-install verification is deferred until a Guardian flash "
+                "receipt exists."
             ),
         }[assessment.status]
         self.status_text.setText(status_copy)
@@ -770,6 +783,8 @@ class GuidedBuildMission(QDialog):
 
         busy = bool(self.studio.worker or self.active_operation)
         self.action_button.setText("Processing stage …" if busy else stage.action_label)
+        if not busy and stage.stage_id == "flash" and not self.state.install_requested:
+            self.action_button.setText("Continue to optional flash setup")
         if (
             not busy
             and stage.stage_id == "flash"
@@ -803,8 +818,22 @@ class GuidedBuildMission(QDialog):
             and not busy
         )
         self.back_button.setEnabled(self.selected_index > 0 and not busy)
-        self.skip_button.setVisible(
+        self.save_button.setText(
+            "Finish local build"
+            if stage.stage_id == "flash" and not self.state.install_requested
+            else "Save && exit"
+        )
+        defer_flash = (
+            stage.stage_id == "flash"
+            and self.state.install_requested
+            and assessment.status is not GuidedStageStatus.COMPLETE
+        )
+        skip_customization = (
             stage.stage_id == "customize" and assessment.status is not GuidedStageStatus.COMPLETE
+        )
+        self.skip_button.setVisible(skip_customization or defer_flash)
+        self.skip_button.setText(
+            "Defer flash & finish local build" if defer_flash else "Continue to Nebula Debloat"
         )
         self.skip_button.setEnabled(not busy)
         if self.failure is None:
@@ -886,6 +915,48 @@ class GuidedBuildMission(QDialog):
         if self.autopilot_active:
             QTimer.singleShot(0, self._advance_autopilot)
 
+    def _secondary_action(self) -> None:
+        assessment = self.assessments[self.selected_index]
+        if assessment.stage.stage_id == "flash":
+            self._defer_flash()
+            return
+        self._skip_customization()
+
+    def _save_or_finish(self) -> None:
+        assessment = self.assessments[self.selected_index]
+        if assessment.stage.stage_id == "flash" and not self.state.install_requested:
+            self._finish_local_build()
+            return
+        self.accept()
+
+    def _finish_local_build(self) -> None:
+        self.state = replace(
+            self.state,
+            selected_stage="flash",
+            install_requested=False,
+            last_error="",
+        )
+        if not self._save_state():
+            self._render_stage()
+            return
+        self._finish_genesis_live(
+            MissionState.SUCCEEDED,
+            "Genesis local ROM build is complete.",
+            "All 13 local build stages are verified. Optional Guardian installation and first-boot verification were deliberately deferred; no phone state changed.",
+            "Use the verified local artifact, or reopen Genesis and explicitly continue to Guardian flash setup when an exact write plan is available.",
+            MissionConfidence.VERIFIED,
+        )
+        super().accept()
+
+    def _defer_flash(self) -> None:
+        self.state = replace(self.state, install_requested=False, last_error="")
+        self.failure = None
+        self._save_state()
+        self._refresh(select_current=True)
+        self.status_text.setText(
+            "Local ROM build complete. Flash setup was deferred; no phone state changed."
+        )
+
     def _start_autopilot(self) -> None:
         if self.autopilot_active or self.studio.worker is not None or self.active_operation:
             return
@@ -909,6 +980,13 @@ class GuidedBuildMission(QDialog):
             return
         assessment = self.assessments[self.selected_index]
         stage = assessment.stage
+        if stage.stage_id == "flash" and assessment.status is GuidedStageStatus.FUTURE:
+            self._finish_autopilot(
+                "Local ROM build complete: all 13 build stages are verified. Optional phone "
+                "installation was not started. Choose Finish local build, or explicitly continue "
+                "to Guardian flash setup."
+            )
+            return
         if assessment.status is GuidedStageStatus.LOCKED:
             self._finish_autopilot(
                 "Complete the highlighted prerequisite before ROMVERSE can continue."
@@ -1115,7 +1193,9 @@ class GuidedBuildMission(QDialog):
         self.live_paused = False
         self._sync_genesis_live()
         self.failure = None
-        if action == "new-project":
+        if action == "flash" and not self.state.install_requested:
+            self._prompt_flash_choice()
+        elif action == "new-project":
             self.studio._new_project()
             if self.studio.current_project is not None:
                 self.state = self._load_state()
@@ -1251,6 +1331,41 @@ class GuidedBuildMission(QDialog):
                 "Genesis stopped safely instead of leaving an inert action. No phone state changed."
             )
             self._render_stage()
+
+    def _prompt_flash_choice(self) -> None:
+        dialog = QMessageBox(self)
+        dialog.setWindowTitle("Genesis Sequence • local build complete")
+        dialog.setIcon(QMessageBox.Icon.Information)
+        dialog.setText("Your local ROM build is complete")
+        dialog.setInformativeText(
+            "All 13 local build stages have verified evidence. Flashing is a separate optional "
+            "operation with its own device, recovery, write-plan, warning, and final-consent "
+            "checks.\n\nYou can finish here, or explicitly enter Guardian flash setup. Entering "
+            "setup does not flash the phone and cannot turn a missing deterministic partition "
+            "write plan into a warning override."
+        )
+        finish = dialog.addButton(
+            "Finish local build • Recommended",
+            QMessageBox.ButtonRole.AcceptRole,
+        )
+        continue_flash = dialog.addButton(
+            "Continue to Guardian flash setup",
+            QMessageBox.ButtonRole.ActionRole,
+        )
+        dialog.addButton(QMessageBox.StandardButton.Cancel)
+        dialog.setDefaultButton(finish)
+        dialog.exec()
+        if dialog.clickedButton() is finish:
+            self._finish_local_build()
+            return
+        if dialog.clickedButton() is continue_flash:
+            self.state = replace(self.state, install_requested=True, last_error="")
+            if not self._save_state():
+                self._render_stage()
+                return
+            self._refresh(select_current=True)
+            self.studio._open_build_control(self)
+            self._refresh(select_current=True)
 
     def _run_first_boot_check(self) -> None:
         project = self.studio.current_project

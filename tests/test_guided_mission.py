@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from dataclasses import replace
@@ -222,6 +223,7 @@ def test_guardian_stage_becomes_ready_after_every_handoff_prerequisite():
         tool_statuses=tools,
         build_artifact_ready=True,
         signed_artifact_ready=True,
+        install_requested=True,
         guardian_handoff_ready=True,
     )
 
@@ -233,8 +235,46 @@ def test_guardian_stage_becomes_ready_after_every_handoff_prerequisite():
     assert assessments[14].status is GuidedStageStatus.LOCKED
 
 
+def test_completed_local_build_defers_phone_install_until_explicitly_requested():
+    tools = tuple(
+        ToolStatus(name, True, f"/tools/{name.casefold()}", "1.0", "Ready")
+        for name in GENESIS_REQUIRED_TOOLS
+    )
+    context = GuidedContext(
+        project_exists=True,
+        original_imported=True,
+        inspection_saved=True,
+        working_copy_ready=True,
+        working_tree_ready=True,
+        device=AndroidDevice("serial", DeviceState.DEVICE, model="Phone"),
+        device_pack_id="phone-pack",
+        device_dna_ready=True,
+        capability_map_ready=True,
+        customization_skipped=True,
+        debloat_complete=True,
+        root_choice="skip",
+        build_plan_saved=True,
+        build_plan_verified=True,
+        recovery_snapshot_ready=True,
+        tool_statuses=tools,
+        build_artifact_ready=True,
+        signed_artifact_ready=True,
+        guardian_handoff_ready=True,
+    )
+
+    deferred = GuidedMissionEngine().assess(context)
+    requested = GuidedMissionEngine().assess(replace(context, install_requested=True))
+
+    assert all(item.status is GuidedStageStatus.COMPLETE for item in deferred[:13])
+    assert deferred[13].status is GuidedStageStatus.FUTURE
+    assert deferred[14].status is GuidedStageStatus.FUTURE
+    assert requested[13].status is GuidedStageStatus.READY
+    assert requested[14].status is GuidedStageStatus.LOCKED
+
+
 def test_guardian_stage_explains_prepared_mode_without_claiming_a_flash():
     context = GuidedContext(
+        install_requested=True,
         guardian_handoff_ready=True,
         guardian_flash_handoff_ready=True,
         guardian_flash_mode="Dirty flash • keep user data",
@@ -277,6 +317,7 @@ def test_mission_state_round_trip(tmp_path):
         build_plan_verified=True,
         last_error="",
         root_choice="skip",
+        install_requested=True,
     )
 
     store.save(expected)
@@ -287,9 +328,10 @@ def test_mission_state_round_trip(tmp_path):
     assert loaded.recipe_skipped
     assert loaded.build_plan_verified
     assert loaded.root_choice == "skip"
+    assert loaded.install_requested
     payload = json.loads(store.path.read_text(encoding="utf-8"))
     assert payload["format"] == "romverse.guided-mission"
-    assert payload["schema_version"] == 5
+    assert payload["schema_version"] == 6
     assert len(payload["record_digest"]) == 64
     if os.name != "nt":
         assert store.path.stat().st_mode & 0o777 == 0o600
@@ -355,12 +397,40 @@ def test_strict_legacy_mission_state_remains_readable_and_upgrades_on_save(tmp_p
     upgraded = store.save(legacy)
     reloaded = store.load()
 
-    assert legacy.schema_version == 5
+    assert legacy.schema_version == 6
     assert legacy.selected_stage == "root_choice"
     assert legacy.root_choice == "skip"
-    assert upgraded.schema_version == 5
+    assert upgraded.schema_version == 6
     assert reloaded == upgraded
     assert json.loads(path.read_text(encoding="utf-8"))["format"] == "romverse.guided-mission"
+
+
+def test_signed_schema_five_state_migrates_without_starting_phone_install(tmp_path):
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+    path = project_dir / GuidedMissionStore.NAME
+    payload = {
+        "format": "romverse.guided-mission",
+        "schema_version": 5,
+        "updated_at": "2026-09-03T12:00:00+00:00",
+        "selected_stage": "flash",
+        "customization_skipped": True,
+        "recipe_skipped": True,
+        "recipe_validated": False,
+        "build_plan_verified": True,
+        "last_error": "",
+        "root_choice": "skip",
+    }
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    payload["record_digest"] = hashlib.sha256(canonical.encode()).hexdigest()
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    loaded = GuidedMissionStore(project_dir).load()
+
+    assert loaded.schema_version == 6
+    assert loaded.selected_stage == "flash"
+    assert loaded.build_plan_verified
+    assert not loaded.install_requested
 
 
 def test_root_choice_requires_an_explicit_decision_and_supports_unrooted_route():
@@ -509,6 +579,7 @@ def test_first_boot_validation_requires_flash_receipt_and_linked_stable_observat
         tool_statuses=tools,
         build_artifact_ready=True,
         signed_artifact_ready=True,
+        install_requested=True,
         guardian_handoff_ready=True,
         first_boot_verified=False,
     )

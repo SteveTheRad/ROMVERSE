@@ -67,6 +67,7 @@ class GuidedContext:
     tool_statuses: tuple[ToolStatus, ...] = ()
     build_artifact_ready: bool = False
     signed_artifact_ready: bool = False
+    install_requested: bool = False
     guardian_handoff_ready: bool = False
     guardian_flash_handoff_ready: bool = False
     guardian_flash_mode: str = ""
@@ -99,7 +100,7 @@ class GuidedFailure:
 
 @dataclass(frozen=True, slots=True)
 class GuidedMissionState:
-    schema_version: int = 5
+    schema_version: int = 6
     updated_at: str = ""
     selected_stage: str = "project"
     customization_skipped: bool = False
@@ -108,6 +109,7 @@ class GuidedMissionState:
     build_plan_verified: bool = False
     last_error: str = ""
     root_choice: str = "undecided"
+    install_requested: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -270,8 +272,8 @@ STAGES = (
         14,
         "Guardian flash",
         "Flash with a verified recovery path",
-        "Guardian will re-check the exact device, battery, bootloader state, partitions, artifact signatures, backups, cable stability, and rollback path immediately before execution.",
-        "ROMVERSE prepares the exact review automatically, then asks for backup confirmation, flash mode, and final device-write consent. Bootloader relocking is never offered.",
+        "Phone installation is optional and separate from the completed local ROM build. If requested, Guardian re-checks the exact device, battery, bootloader state, partitions, artifact signatures, backups, cable stability, and rollback path before execution.",
+        "Finish safely after the local build, or explicitly continue into Guardian flash setup. Repeating local build steps cannot create missing external certification, and bootloader relocking is never offered.",
         "flash",
         "Resolve Guardian readiness",
     ),
@@ -299,6 +301,8 @@ class GuidedMissionEngine:
             complete, evidence, blockers = facts[stage.stage_id]
             if complete:
                 status = GuidedStageStatus.COMPLETE
+            elif stage.stage_id in {"flash", "first_boot"} and not context.install_requested:
+                status = GuidedStageStatus.FUTURE
             elif stage.stage_id == "flash" and context.guardian_handoff_ready:
                 status = GuidedStageStatus.READY
             elif stage.future_gate:
@@ -691,6 +695,12 @@ class GuidedMissionEngine:
                 ("Guardian flash receipt verified",)
                 if context.flash_complete
                 else (
+                    "Local ROM build complete; optional phone installation was not requested",
+                    "Flash-only evidence remains separate and does not invalidate the local artifact",
+                    "No device write has started and bootloader relocking is permanently prohibited",
+                )
+                if not context.install_requested
+                else (
                     f"Exact Guardian handoff prepared: {context.guardian_flash_mode}",
                     "No device write has started; final manifest review and consent remain required",
                     "Bootloader relocking is permanently prohibited",
@@ -720,6 +730,8 @@ class GuidedMissionEngine:
                 context.flash_complete and context.first_boot_verified,
                 ("First boot and health verification appears stable",)
                 if context.flash_complete and context.first_boot_verified
+                else ("Optional post-install verification is deferred with phone installation",)
+                if not context.install_requested
                 else (
                     "Stable read-only boot baseline recorded; not linked to a Guardian flash receipt",
                 )
@@ -751,8 +763,8 @@ class GuidedMissionEngine:
             "recovery": "A local recovery point is verified before later high-risk work.",
             "toolchain": "The build environment is ready to be pinned into provenance records.",
             "build_sign": "A signed, validated ROM artifact will be ready for Guardian review.",
-            "flash": "A receipt will prove exactly what was written to the exact device.",
-            "first_boot": "ROMVERSE will confirm Android booted and core health checks pass after first successful Guardian flash execution.",
+            "flash": "You can finish the verified local build now or explicitly begin the separate Guardian installation route.",
+            "first_boot": "After an optional successful Guardian flash, ROMVERSE can confirm Android booted and core health checks pass.",
         }
         return outcomes[stage_id]
 
@@ -760,7 +772,7 @@ class GuidedMissionEngine:
 class GuidedMissionStore:
     NAME = "guided-mission.json"
     FORMAT = "romverse.guided-mission"
-    SCHEMA_VERSION = 5
+    SCHEMA_VERSION = 6
     MAX_BYTES = 64 * 1024
     MAX_ERROR_CHARS = 4096
     LEGACY_FIELDS = {
@@ -774,7 +786,8 @@ class GuidedMissionStore:
         "last_error",
         "root_choice",
     }
-    CURRENT_FIELDS = LEGACY_FIELDS | {"format", "record_digest"}
+    SIGNED_LEGACY_FIELDS = LEGACY_FIELDS | {"format", "record_digest"}
+    CURRENT_FIELDS = SIGNED_LEGACY_FIELDS | {"install_requested"}
 
     def __init__(self, project_directory: Path) -> None:
         self.project_directory = project_directory
@@ -788,10 +801,15 @@ class GuidedMissionStore:
                 maximum_bytes=self.MAX_BYTES,
             )
             schema = data.get("schema_version")
-            if type(schema) is not int or schema not in {2, 3, 4, self.SCHEMA_VERSION}:
+            if type(schema) is not int or schema not in {2, 3, 4, 5, self.SCHEMA_VERSION}:
                 return GuidedMissionState()
-            if schema == self.SCHEMA_VERSION:
-                if set(data) != self.CURRENT_FIELDS or data.get("format") != self.FORMAT:
+            if schema in {5, self.SCHEMA_VERSION}:
+                expected_fields = (
+                    self.CURRENT_FIELDS
+                    if schema == self.SCHEMA_VERSION
+                    else self.SIGNED_LEGACY_FIELDS
+                )
+                if set(data) != expected_fields or data.get("format") != self.FORMAT:
                     return GuidedMissionState()
                 record_digest = data.get("record_digest")
                 unsigned = dict(data)
@@ -818,6 +836,7 @@ class GuidedMissionStore:
             state.build_plan_verified,
             state.last_error,
             state.root_choice,
+            state.install_requested,
         )
         if not self._valid(updated, allow_blank_time=False):
             raise ValueError("Genesis mission state contains invalid or unbounded fields")
@@ -845,6 +864,7 @@ class GuidedMissionStore:
             "build_plan_verified": state.build_plan_verified,
             "last_error": state.last_error,
             "root_choice": state.root_choice,
+            "install_requested": state.install_requested,
         }
 
     @classmethod
@@ -854,6 +874,7 @@ class GuidedMissionStore:
             "recipe_skipped",
             "recipe_validated",
             "build_plan_verified",
+            "install_requested",
         )
         if any(field in data and type(data[field]) is not bool for field in boolean_fields):
             return None
@@ -871,6 +892,7 @@ class GuidedMissionStore:
             data.get("build_plan_verified", False),
             last_error,
             root_choice,
+            data.get("install_requested", False),
         )
         return state if cls._valid(state, allow_blank_time=legacy) else None
 
@@ -904,6 +926,7 @@ class GuidedMissionStore:
             and "\0" not in state.last_error
             and isinstance(state.root_choice, str)
             and state.root_choice in {"undecided", "skip", "ascension"}
+            and type(state.install_requested) is bool
         )
 
 

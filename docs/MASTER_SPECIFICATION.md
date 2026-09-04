@@ -18,8 +18,10 @@ The core audiences are everyday users seeking repair help, enthusiasts optimizin
 device, modders changing firmware, ROM developers, and professional technicians. The UI
 will progressively disclose complexity through two coherent experiences: **Guided Mode powered by
 ROMVERSE Arcana** and **Expert Mode with the Architect workspace**. They use the same projects,
-evidence, and Guardian rules; the difference is presentation density and control depth, never a
-safety bypass.
+evidence, and non-bypassable target/integrity invariants. Guided Mode enforces Guardian's recommended
+sequence. Expert Mode requires an explicit risk warning, then exposes manual control and may reduce
+advisory workflow lockouts; it still cannot turn a proven target mismatch, corrupt artifact, path
+escape, invalid command target, or undefined partition operation into executable authority.
 
 ## 2. Product family and bounded contexts
 
@@ -452,12 +454,20 @@ Pack resolution, Recipe receipts, build-plan evidence, recovery snapshots, and v
 status. Saved UI state records navigation and explicit user decisions, but cannot manufacture
 completion evidence.
 
-The mission presents fifteen stages: project, firmware, provenance, isolated working lab,
+The mission presents thirteen local-build stages followed by two explicitly optional installation
+stages: project, firmware, provenance, isolated working lab,
 device match and Device DNA, customization, change validation, Nebula Debloat, optional root,
 deterministic build planning, recovery, toolchain, build/sign, Guardian flash, and first boot.
 Every stage explains its purpose, recommended choice, observed evidence, blockers, and the outcome
 that unlocks next. Safe multi-operation stages run sequentially on background workers and
 acknowledge loading before allowing navigation.
+
+When the first thirteen stages are verified, Genesis reports the local ROM build as 100% complete
+and offers **Finish local build**. It does not send the user back through Device Atlas or Forge for
+flash-only evidence. The user may separately choose **Continue to optional flash setup**, which
+persists that intent and enters the install/recovery route without implying that a phone write has
+started. Deferring installation preserves the verified artifact and records that no phone state
+changed.
 
 Large extracted working trees must never be recursively enumerated by a normal Qt page refresh.
 Extraction creates a private, source-bound, digest-checked display index on its managed worker;
@@ -469,12 +479,15 @@ or hashes, and then refreshes the index from that current scan.
 Failures are converted into plain-language diagnoses for low disk space, integrity mismatch,
 unsupported containers, unauthorized ADB, unsafe paths, missing inputs, and unknown errors.
 Automatic recovery is limited to removing recognized incomplete transaction files inside the
-active ROMVERSE workspace. Integrity failures, compatibility gaps, or device-changing actions
-are never bypassed or silently repaired. A local build can complete only for the exact reviewed
-contract. Exact-contract offline signing is available only when a flash-validated Pack authorizes
-its identity; flash and first boot remain Guardian-locked until external device backup, physical
-recovery validation, a device-bound manifest, separate final consent, execution, and postcondition
-evidence exist.
+active ROMVERSE workspace. Proven identity mismatch, corrupt or changed inputs, containment
+failure, and missing/invalid command targets are never bypassed or silently repaired. Guided Mode
+keeps device-changing work behind the complete recommended Guardian path. Expert Mode may later
+accept explicitly classified informed-risk gaps only after its warning and an operation-specific
+consequence review, but risk acceptance cannot invent a missing partition write, transition,
+verification, or rollback action. A local build can complete independently for the exact reviewed
+contract. Exact-contract offline signing is available only when an applicable Pack authorizes its
+identity; flash and first boot require a device-bound manifest, separate consent, execution receipt,
+and postcondition evidence.
 
 After the command-free manifest has hash-bound every declared image, Guardian may compile a
 separate inert execution-plan preview. The preview rehashes the current artifact binding, remains
@@ -972,7 +985,9 @@ A RadForge Labs Project. The full badge is for splash, installer, and marketing.
 approved cross-platform application icon is `romverse-app-icon.png`: the dimensional
 purple/blue R inside a cyan orbital arc with the ROMVERSE wordmark beneath it. Desktop,
 Windows packaging, and Android launcher resources must derive from that canonical asset
-without distortion or creative reinterpretation.
+without distortion or creative reinterpretation. Android must keep the canonical artwork inside
+the adaptive-icon safe zone and provide transparent rounded and circular legacy fallbacks; launcher
+masking must never make the official crest look like a pasted square.
 
 The Desktop About ROMVERSE page places the canonical ROMVERSE product crest and the byte-exact
 approved RadForge Labs company logo together in one responsive studio-identity hero without

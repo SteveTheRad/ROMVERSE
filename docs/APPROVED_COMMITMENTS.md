@@ -22,7 +22,11 @@ Ideas**. A requirement appearing here does not prove that it is implemented or v
 - Apply an automatic fix only when its prerequisites, scope, safety, and outcome are verifiable.
 - Require informed consent for destructive operations.
 - Never authorize bootloader relocking.
-- Rooting, flashing, unlocking, wiping, and partition writes remain Guardian-controlled.
+- Guided Mode keeps rooting, flashing, unlocking, wiping, and partition writes Guardian-controlled.
+  Expert Mode may disable advisory Guardian sequencing only after explicit risk acceptance; every
+  device-changing command still requires an exact target, intact artifact, defined operation,
+  bounded command target, separate consent, and a recorded result. Bootloader relocking remains
+  prohibited in every mode.
 - Performance is measured throughout development rather than treated as release-only polish.
 
 ## Approved workflows
@@ -307,8 +311,10 @@ Companion health/UX → account/progression/community → production backend.
 - **Expert Mode · Architect workspace:** specialist navigation, technical evidence by default,
   developer workspaces, deep inspection, and advanced Nexus/ROM tooling.
 - Both modes consume the same authoritative projects and evidence. Switching must not discard the
-  active project or weaken Guardian. Approval rules and the bootloader-relock prohibition are
-  identical in both modes.
+  active project. Entering Expert Mode requires an explicit Accept/Decline risk dialog; declining
+  leaves Guided Mode unchanged. Expert Mode reduces guided sequencing and advisory lockouts but
+  cannot bypass a proven target mismatch, corrupt artifact, path escape, invalid command target, or
+  missing operation definition. Bootloader relocking remains prohibited in both modes.
 - Complicated screens follow **Essential → Details → Engineering**. Public copy uses restrained
   plain language; subsystem names appear when they help rather than to advertise complexity.
 
@@ -793,11 +799,14 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   zero execution authority; Desktop startup hydration of genuine remembered pairing, truthful
   remaining-lifetime display, code copying only while a live one-time code exists, and explicit
   replacement/reset language that cannot imply USB revocation;
-  Genesis genuine 15-stage Live Console/Companion lifecycle with evidence-derived progress, plus
+  Genesis genuine 13-stage local-build lifecycle plus two optional install/first-boot stages, with
+  evidence-derived progress, a 100% local-build completion state, explicit finish-or-install choice,
+  no automatic build-to-flash loop, and Live Console/Companion reporting, plus
   a stage-preserving Learn this stage route into bounded, context-selected verified Archives
-  guidance that cannot advance readiness or weaken Guardian; one private atomic strict schema-five
-  Genesis crash-resume record shared by ROM Studio project cards, bounded no-link schema-two through
-  schema-four compatibility, hostile shape/type/digest rejection, explicit save-failure recovery,
+  guidance that cannot advance readiness or manufacture execution authority; one private atomic
+  strict schema-six Genesis crash-resume record with explicit install intent shared by ROM Studio
+  project cards, bounded no-link schema-two through schema-five compatibility, hostile
+  shape/type/digest rejection, explicit save-failure recovery,
   and removal of the obsolete seven-step progress file and duplicate guided wizard;
   Desktop settings schema-v4 Guided · Arcana and Expert · Architect experience persistence,
   specialist navigation/Command Console progressive disclosure that preserves the active route,
@@ -811,8 +820,9 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   persisted Guided/Architect mode, and stop on stale or unknown evidence; exact zero-action
   Pathfinder, Foresight, and Insight panel
   destinations plus complete Command Deck launch-card name discovery; a genuine ROM Studio
-  Architect toggle that persists that same authoritative
-  Desktop mode without changing evidence or Guardian; one authoritative grouped navigation registry with live
+  Architect toggle that persists that same authoritative Desktop mode after an explicit risk
+  decision without changing project evidence or the hard execution invariants; one authoritative
+  grouped navigation registry with live
   canonical breadcrumbs, Ctrl+B compact icon rail, and reversible Ctrl+Shift+F/Escape Focus
   workspace that preserves the exact active page, prior rail choice, workers, evidence, projects,
   and Guardian state while keeping visible search and connectivity context; canonical Desktop

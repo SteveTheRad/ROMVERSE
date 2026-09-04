@@ -288,11 +288,16 @@ def test_every_command_deck_launch_card_is_discoverable_by_its_visible_name(
 
 def test_rom_studio_architect_control_changes_and_persists_the_real_desktop_mode(
     tmp_path: Path,
+    monkeypatch,
 ) -> None:
     app = QApplication.instance() or QApplication([])
     logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
     window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
     saved: list[AppSettings] = []
+    monkeypatch.setattr(
+        "romverse.ui.rom_studio.confirm_expert_mode",
+        lambda _parent=None: True,
+    )
     window.settings_changed.connect(saved.append)
     by_route = {button.property("route_key"): button for button in window.nav_buttons}
     try:
@@ -330,5 +335,33 @@ def test_rom_studio_architect_control_changes_and_persists_the_real_desktop_mode
     finally:
         if window._command_palette is not None:
             window._command_palette.reject()
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_rom_studio_declined_expert_warning_keeps_guided_mode(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
+    saved: list[AppSettings] = []
+    window.settings_changed.connect(saved.append)
+    monkeypatch.setattr(
+        "romverse.ui.rom_studio.confirm_expert_mode",
+        lambda _parent=None: False,
+    )
+    try:
+        assert window._navigate_route("rom_studio")
+        window.rom_studio.expert_button.click()
+        app.processEvents()
+
+        assert window.app_settings.experience_mode is ExperienceMode.GUIDED
+        assert not saved
+        assert not window.rom_studio.expert_button.isChecked()
+        assert window.rom_studio.expert_button.text() == "Enter Architect Mode"
+        assert window.rom_studio.command_tabs.currentIndex() == 0
+    finally:
         window.companion_center.transport.close()
         window.close()

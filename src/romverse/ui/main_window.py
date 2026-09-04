@@ -168,7 +168,7 @@ from romverse.ui.nexus_center import NexusCenter
 from romverse.ui.notifications import DesktopNotificationCenter, NotificationKind
 from romverse.ui.origin_story import ORIGIN_SCENES
 from romverse.ui.repair_center import RepairCenter
-from romverse.ui.rom_studio import RomStudio
+from romverse.ui.rom_studio import RomStudio, confirm_expert_mode
 from romverse.ui.terminal_center import TerminalCenter
 from romverse.ui.theme import STYLESHEET, apply_dark_palette
 from romverse.ui.toolchain_center import (
@@ -1566,9 +1566,22 @@ class SettingsDialog(QDialog):
         else:
             message = (
                 "Architect workspace reveals Command Console, ROMVERSE Nexus, and Forge Arsenal. "
-                "Guardian remains active, approvals are unchanged, and bootloader relock stays forbidden."
+                "Guided Guardian sequencing is off after explicit risk acceptance. Exact target, "
+                "artifact-integrity, and command-validity checks remain active."
             )
         self.experience_note.setText(message)
+
+    def accept(self) -> None:
+        selected = ExperienceMode(self.experience_mode.currentData())
+        if (
+            selected is ExperienceMode.EXPERT
+            and self._settings.experience_mode is not ExperienceMode.EXPERT
+            and not confirm_expert_mode(self)
+        ):
+            guided = self.experience_mode.findData(ExperienceMode.GUIDED.value)
+            self.experience_mode.setCurrentIndex(max(0, guided))
+            return
+        super().accept()
 
     @Slot()
     def _check_for_update(self) -> None:
@@ -5806,7 +5819,8 @@ class MainWindow(QMainWindow):
             mode_text[:1] if self._workspace_shell_state.navigation_collapsed else mode_text
         )
         self.experience_badge.setToolTip(
-            "Expert Mode reveals specialist tools. Guardian and all approvals remain active."
+            "Expert Mode reveals specialist tools after risk acceptance. Guided Guardian "
+            "sequencing is off; exact target, integrity, and command-validity guards remain active."
             if expert
             else "Guided Mode keeps the next safe action prominent and folds specialist tools."
         )

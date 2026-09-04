@@ -1531,6 +1531,35 @@ class BuildControlCenter(QDialog):
             review.clicked.connect(lambda _checked=False: self._show_final_handoff(unresolved))
             banner_layout.addWidget(review)
             self.content.addWidget(banner)
+        elif self.report.signing_ready:
+            banner = QFrame()
+            banner.setObjectName("ReadyBanner")
+            banner_layout = QHBoxLayout(banner)
+            banner_layout.setContentsMargins(18, 14, 18, 14)
+            copy = QVBoxLayout()
+            heading = QLabel("✓  LOCAL ROM BUILD COMPLETE  •  FLASH IS A SEPARATE CHOICE")
+            heading.setObjectName("ReadyHeading")
+            guidance = QLabel(
+                "ROMVERSE verified the protected source, workspace, toolchain, reproducible "
+                "artifact, and OEM-signature/AVB evidence. The red and amber rows below are "
+                "phone-installation requirements—not build failures. Finish here, or review "
+                "them once if you explicitly want to prepare a flash. Repeating automatic "
+                "build steps cannot create missing external evidence or a missing write plan."
+            )
+            guidance.setObjectName("GateCopy")
+            guidance.setWordWrap(True)
+            copy.addWidget(heading)
+            copy.addWidget(guidance)
+            banner_layout.addLayout(copy, 1)
+            finish = QPushButton("Finish local build")
+            finish.setObjectName("MissionNext")
+            finish.setToolTip(
+                "Close Forge Control with the verified local artifact intact. Nothing is sent "
+                "to or changed on the phone."
+            )
+            finish.clicked.connect(self.accept)
+            banner_layout.addWidget(finish)
+            self.content.addWidget(banner)
         elif unresolved:
             priority = next(
                 (gate for gate in unresolved if gate.status is GateStatus.BLOCKED),
@@ -1603,7 +1632,16 @@ class BuildControlCenter(QDialog):
                 label.setObjectName("GateCopy")
                 label.setWordWrap(True)
                 label.setToolTip(remediation.tooltip)
-                badge = QLabel(gate.status.value.upper())
+                badge_copy = gate.status.value.upper()
+                if (
+                    self.report.signing_ready
+                    and gate.status is not GateStatus.PASS
+                    and gate.required_for in {"flash", "release"}
+                ):
+                    badge_copy = "FLASH ONLY • " + (
+                        "REVIEW" if gate.status is GateStatus.ATTENTION else "LOCKED"
+                    )
+                badge = QLabel(badge_copy)
                 badge.setObjectName("GateBadge")
                 badge.setToolTip(remediation.tooltip)
                 row_layout.addWidget(state)
@@ -1631,6 +1669,8 @@ class BuildControlCenter(QDialog):
             self.overall_badge.setText("✓  FLASH EVIDENCE READY")
         elif self.report.guardian_handoff_ready:
             self.overall_badge.setText("✓  PROJECT READY / GUARDIAN HANDOFF")
+        elif self.report.signing_ready:
+            self.overall_badge.setText("✓  LOCAL BUILD COMPLETE / FLASH NOT AUTHORIZED")
         elif self.report.build_ready:
             self.overall_badge.setText("◆  BUILD READY / FLASH LOCKED")
         elif self.report.workspace_ready:
@@ -1649,6 +1689,19 @@ class BuildControlCenter(QDialog):
                 + f"{self.report.report_digest[:16]}…  •  {blocked_count} blocked  •  "
                 f"{attention_count} need attention"
             )
+        self.simulate_button.setText(
+            "Verify local build completion"
+            if self.report.signing_ready and not self.report.flash_ready
+            else "Run safe pipeline simulation"
+        )
+        if not self.autopilot_active:
+            self.autopilot_button.setText(
+                "Review optional flash requirements"
+                if self.report.signing_ready and not self.report.guardian_handoff_ready
+                else "Review final Guardian handoff"
+                if self.report.guardian_handoff_ready
+                else "Auto-resolve && continue"
+            )
 
     @staticmethod
     def _resolution_button_label(remediation) -> str:
@@ -1657,7 +1710,7 @@ class BuildControlCenter(QDialog):
         if remediation.action_id == "backup-guide":
             return "Choose backup route"
         if remediation.action_id:
-            return "Provide required evidence"
+            return remediation.action_label or "Open relevant section"
         return "View explanation"
 
     def _ascension_root_card(self) -> QFrame:
@@ -2617,6 +2670,14 @@ class BuildControlCenter(QDialog):
             message = "Your project is ready for Guardian-controlled flash review. ROMVERSE resolved every safe automatic step; only final user-data backup confirmation and explicit device-write consent remain."
             waiting_gate = ""
             self.autopilot_button.setText("Review final Guardian handoff")
+        elif self.report is not None and self.report.signing_ready:
+            message = (
+                "Local ROM build complete. Phone installation is optional and was not started. "
+                "Review the highlighted flash-only requirement once if you want to prepare an "
+                "install; repeating automatic build resolution cannot create external evidence "
+                "or an undefined partition-write plan."
+            )
+            self.autopilot_button.setText("Review optional flash requirements")
         prefix = f"{completed} safe step(s) completed automatically. " if completed else ""
         self.status.setText(prefix + message)
         if waiting_gate and self.report is not None:
@@ -2624,7 +2685,7 @@ class BuildControlCenter(QDialog):
             if gate is not None:
                 button = self.resolve_buttons.get(waiting_gate)
                 if button is not None:
-                    button.setText("Provide required evidence")
+                    button.setText(self._resolution_button_label(remediation_for(gate)))
                     button.setFocus()
         if prompt_for_backup:
             QTimer.singleShot(0, self.start_guided_backup)
@@ -2857,10 +2918,17 @@ class BuildControlCenter(QDialog):
             self.studio.store.projects_root / self.project.project_id / self.service.SIMULATION_NAME
         )
         stages = "  →  ".join(f"{name}: {status}" for name, status in receipt.stages)
-        self.status.setText(
-            f"Simulation complete  •  {stages}  •  stopped at {receipt.stopped_at}. "
-            f"Phone changed: NO. Receipt: {path.name}"
-        )
+        if self.report.signing_ready and not self.report.flash_ready:
+            self.status.setText(
+                f"Local build verification complete  •  Workspace, Build, and Signing passed  •  "
+                f"optional phone installation remains locked at {receipt.stopped_at}  •  "
+                f"phone changed: NO  •  receipt: {path.name}"
+            )
+        else:
+            self.status.setText(
+                f"Simulation complete  •  {stages}  •  stopped at {receipt.stopped_at}. "
+                f"Phone changed: NO. Receipt: {path.name}"
+            )
 
     def _prepare_build_plan(self) -> None:
         try:

@@ -447,6 +447,35 @@ class GuardianReviewWorker(ManagedRunnable):
             self.signals.failed.emit(str(exc))
 
 
+def confirm_expert_mode(parent: QWidget | None = None) -> bool:
+    """Require a deliberate acknowledgement before revealing unrestricted expert surfaces."""
+
+    dialog = QMessageBox(parent)
+    dialog.setWindowTitle("ROMVERSE • enter Expert Mode?")
+    dialog.setIcon(QMessageBox.Icon.Warning)
+    dialog.setText("Expert Mode removes Guided Setup's automatic safety sequencing")
+    dialog.setInformativeText(
+        "Advanced build, partition, signing, and device-operation surfaces will be exposed. "
+        "You are responsible for the firmware, instructions, backups, and consequences of every "
+        "operation you deliberately approve. Device damage, data loss, loss of warranty, or an "
+        "unbootable phone may result.\n\nGuardian guidance and workflow lockouts are reduced in "
+        "Expert Mode. ROMVERSE still refuses a proven device mismatch, corrupted or changed "
+        "artifact, path escape, or missing/invalid command target; those checks prevent the app "
+        "from executing a different operation than the one you selected."
+    )
+    accept = dialog.addButton(
+        "I accept the risk • Enter Expert Mode",
+        QMessageBox.ButtonRole.DestructiveRole,
+    )
+    decline = dialog.addButton(
+        "Decline • Stay in Guided Mode",
+        QMessageBox.ButtonRole.RejectRole,
+    )
+    dialog.setDefaultButton(decline)
+    dialog.exec()
+    return dialog.clickedButton() is accept
+
+
 class RomModeChooser(QDialog):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -458,7 +487,8 @@ class RomModeChooser(QDialog):
         layout.addWidget(title)
         detail = QLabel(
             "Genesis Sequence teaches each step and presents recommendations. "
-            "Architect Mode exposes the complete advanced workspace. Guardian Core protection remains active in both modes."
+            "Architect Mode exposes the complete advanced workspace after an explicit risk warning. "
+            "Its guided lockouts are reduced, while exact target, artifact-integrity, and command-validity checks remain active."
         )
         detail.setObjectName("Muted")
         detail.setWordWrap(True)
@@ -468,9 +498,13 @@ class RomModeChooser(QDialog):
         automatic = buttons.addButton("Genesis Sequence", QDialogButtonBox.ButtonRole.AcceptRole)
         expert = buttons.addButton("Architect Mode", QDialogButtonBox.ButtonRole.DestructiveRole)
         automatic.clicked.connect(lambda: self.done(1))
-        expert.clicked.connect(lambda: self.done(2))
+        expert.clicked.connect(self._choose_expert)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
+
+    def _choose_expert(self) -> None:
+        if confirm_expert_mode(self):
+            self.done(2)
 
 
 class RecipeGuidedWizard(QDialog):
@@ -1956,6 +1990,7 @@ class RomStudio(QWidget):
             tool_statuses=self.tool_statuses,
             build_artifact_ready=readiness.local_candidate_ready,
             signed_artifact_ready=readiness.signing_ready,
+            install_requested=state.install_requested,
             # Genesis opens Guardian as soon as every safe automatic
             # prerequisite is complete. Guardian owns the remaining backup
             # choice, flash mode, manifest review, and final consent.
@@ -2058,6 +2093,13 @@ class RomStudio(QWidget):
         """Make the Studio mode control a genuine persisted Desktop transition."""
 
         selected = ExperienceMode.EXPERT if enabled else ExperienceMode.GUIDED
+        if (
+            selected is ExperienceMode.EXPERT
+            and self.app_settings.experience_mode is not ExperienceMode.EXPERT
+            and not confirm_expert_mode(self)
+        ):
+            self.set_experience_mode(ExperienceMode.GUIDED)
+            return
         self.set_experience_mode(selected)
         self.reveal_experience_mode(selected)
         self.experience_mode_requested.emit(selected)
@@ -2072,8 +2114,9 @@ class RomStudio(QWidget):
             self._show_dashboard_handoff(
                 "Architect Mode → complete advanced workspace",
                 f"{detail} Specialist Desktop routes are now visible. Projects, evidence, "
-                "approvals, and Guardian policy are unchanged; NO WORKER, BUILD, FLASH, OR "
-                "PHONE ACTION STARTED.",
+                "and receipts are unchanged. Guided Guardian sequencing is off; exact target, "
+                "artifact-integrity, and command-validity guards remain active. NO WORKER, BUILD, "
+                "FLASH, OR PHONE ACTION STARTED.",
                 "EXPERT • ARCHITECT" if ready else "EXPERT • PREREQUISITE",
                 ready=ready,
                 eyebrow="ARCHITECT MODE  •  PERSISTED DESKTOP EXPERIENCE",

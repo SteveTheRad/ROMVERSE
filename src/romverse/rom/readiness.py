@@ -149,13 +149,13 @@ _GATE_REMEDIATIONS: dict[str, GateRemediation] = {
         "autopilot",
     ),
     "device-pack-flash": GateRemediation(
-        "ROMVERSE has completed the safe local preparation it can prove, but Guardian still needs an exact flash-certified Device Pack before it can create a partition-write manifest.",
+        "The local ROM build is complete. This separate flash-only gate means ROMVERSE still lacks a technically complete partition-write contract; repeating Guided Setup or accepting a disclaimer cannot invent one.",
         (
-            "Open Device Atlas and review the exact model, source, AVB, recovery, and physical-test checks.",
-            "Import a valid signed physical-test envelope if an approved ROMVERSE Pack publisher supplied one.",
-            "A local rollback capsule or prior successful flash is useful recovery evidence, but cannot replace the signed exact partition-write contract.",
+            "Finish and use the verified local build now if phone installation is not required.",
+            "For flashing, open Device Atlas and review the exact missing partitions, order, slot rules, readback checks, and recovery actions.",
+            "A prior successful flash or risk acceptance can support an amber warning decision, but cannot replace an absent deterministic write plan.",
         ),
-        "Open Device Atlas",
+        "Review flash contract",
         "device-packs",
     ),
     "firmware-upgrade": GateRemediation(
@@ -260,13 +260,13 @@ _GATE_REMEDIATIONS: dict[str, GateRemediation] = {
         "backup-guide",
     ),
     "physical-validation": GateRemediation(
-        "The exact Device Pack has not been independently certified for the final write and recovery sequence.",
+        "The verified local build does not have independent physical release certification. This is a flash/release warning, not a failed local build.",
         (
-            "Open Device Atlas and export the exact physical-test challenge when certification is missing.",
+            "Finish the verified local build now, or continue only if you explicitly want phone installation.",
+            "When a technically complete exact write plan exists, Guardian may present missing independent certification as an informed-risk warning rather than a device-mismatch bypass.",
             "Import only a signed, unexpired response from a trusted, non-revoked Pack publisher.",
-            "ROMVERSE will re-check the Pack, firmware, hardware, AVB policy, recovery scenarios, and signature before this gate can pass.",
         ),
-        "Open Device Atlas",
+        "Review release evidence",
         "device-packs",
     ),
 }

@@ -526,6 +526,8 @@ def test_refresh_removes_stale_cards_and_footer_actions_remain_aligned(tmp_path)
     assert not any("Structure inspection" in label.text() for label in control.findChildren(QLabel))
     assert "0 blocked" in control.status.text()
     assert "2 need attention" in control.status.text()
+    assert control.resolve_buttons["device-pack-flash"].text() == "Review flash contract"
+    assert control.resolve_buttons["physical-validation"].text() == "Review release evidence"
     footer_labels = {
         "Refresh evidence",
         "Export evidence bundle",
@@ -534,8 +536,8 @@ def test_refresh_removes_stale_cards_and_footer_actions_remain_aligned(tmp_path)
         "Build verified local candidate",
         "Inspect source AVB topology",
         "Offline signing ceremony",
-        "Auto-resolve && continue",
-        "Run safe pipeline simulation",
+        "Review optional flash requirements",
+        "Verify local build completion",
         "Close",
     }
     footer_buttons = tuple(

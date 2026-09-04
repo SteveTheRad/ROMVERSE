@@ -50,6 +50,9 @@ pasted-on rectangle while leaving both approved source assets byte-exact. Home a
 restrained breathing/tilt animation on the complete presentation, not the raw bitmap. Motion stops
 when detached and is disabled by either Companion Reduced Effects or Android's system animation
 setting; both official identities remain accessible static compositions when motion is off.
+The launcher keeps that same master intact inside Android's adaptive-icon safe zone, with distinct
+transparent rounded and circular legacy fallbacks, so the approved crest follows each launcher's
+native mask instead of appearing as a pasted square.
 Double-tapping the R
 discovers **ROMVERSE: The Origin**; the local discovery and **Beyond the Verse** state enable replay
 without inventing account XP. The purpose-built vertical experience presents the seven approved
@@ -143,8 +146,9 @@ Build with Android Studio, or use the repository-managed Android SDK and Gradle 
 
 ```bash
 cd ..
-ANDROID_HOME="$PWD/.build-tools/android-sdk" \
-  .build-tools/gradle/bin/gradle -p companion :app:assembleDebug
+JAVA_HOME="$PWD/../toolchains/jdk-17" \
+ANDROID_HOME="$PWD/../toolchains/android-sdk" \
+  ../toolchains/gradle-8.11.1/bin/gradle -p companion :app:assembleDebug
 ```
 
 The debug APK is written to `companion/app/build/outputs/apk/debug/app-debug.apk`.
@@ -153,16 +157,18 @@ Run the Companion JVM gate and build together with:
 
 ```bash
 cd ..
-ANDROID_HOME="$PWD/.build-tools/android-sdk" \
-  .build-tools/gradle/bin/gradle -p companion testDebugUnitTest :app:assembleDebug
+JAVA_HOME="$PWD/../toolchains/jdk-17" \
+ANDROID_HOME="$PWD/../toolchains/android-sdk" \
+  ../toolchains/gradle-8.11.1/bin/gradle -p companion testDebugUnitTest :app:assembleDebug
 ```
 
 Install all analysis dependencies and run the strict Android UI/package lint gate with:
 
 ```bash
 cd ..
-ANDROID_HOME="$PWD/.build-tools/android-sdk" \
-  .build-tools/gradle/bin/gradle -p companion :app:lintDebug
+JAVA_HOME="$PWD/../toolchains/jdk-17" \
+ANDROID_HOME="$PWD/../toolchains/android-sdk" \
+  ../toolchains/gradle-8.11.1/bin/gradle -p companion :app:lintDebug
 ```
 
 With an authorized Android device or the repository's Android 15 / API 35 emulator connected,
@@ -170,8 +176,9 @@ run the real Activity UI gate with:
 
 ```bash
 cd ..
-ANDROID_HOME="$PWD/.build-tools/android-sdk" \
-  .build-tools/gradle/bin/gradle -p companion :app:connectedDebugAndroidTest
+JAVA_HOME="$PWD/../toolchains/jdk-17" \
+ANDROID_HOME="$PWD/../toolchains/android-sdk" \
+  ../toolchains/gradle-8.11.1/bin/gradle -p companion :app:connectedDebugAndroidTest
 ```
 
 The gate covers Vitalis evidence assessment, Lifeline finding-specific checkpoints and fresh-scan

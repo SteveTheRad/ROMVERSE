@@ -17,6 +17,7 @@ from romverse.device.dna import CapabilityState
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.guardian.manifest_review import GuardianManifestReviewService
+from romverse.infrastructure.provisioning import GENESIS_REQUIRED_TOOLS
 from romverse.infrastructure.tools import ToolStatus
 from romverse.intelligence.online_remediation import ErrorFingerprint, OnlineRemediationService
 from romverse.nexus.events import LiveConsoleEventStore, MissionState
@@ -1357,6 +1358,52 @@ def test_genesis_opens_forge_control_as_a_visible_child_and_releases_autopilot(
     studio.close()
 
 
+def test_genesis_presents_completed_local_build_as_100_percent_with_install_deferred(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.create("Completed local build")
+    studio = RomStudio(store, DevicePackRegistry(()))
+    studio.refresh(project.project_id)
+    mission = GuidedBuildMission(studio)
+    tools = tuple(
+        ToolStatus(name, True, f"/tools/{name.casefold()}", "1.0", "Ready")
+        for name in GENESIS_REQUIRED_TOOLS
+    )
+    mission._context = lambda: GuidedContext(
+        project_exists=True,
+        original_imported=True,
+        inspection_saved=True,
+        working_copy_ready=True,
+        working_tree_ready=True,
+        device=AndroidDevice("serial", DeviceState.DEVICE, model="Phone"),
+        device_pack_id="phone-pack",
+        device_dna_ready=True,
+        capability_map_ready=True,
+        customization_skipped=True,
+        debloat_complete=True,
+        root_choice="skip",
+        build_plan_saved=True,
+        build_plan_verified=True,
+        recovery_snapshot_ready=True,
+        tool_statuses=tools,
+        build_artifact_ready=True,
+        signed_artifact_ready=True,
+        guardian_handoff_ready=True,
+    )
+
+    mission._refresh(select_current=True)
+    app.processEvents()
+
+    assert mission.selected_index == 13
+    assert mission.overall_progress.value() == 100
+    assert "13 OF 13 LOCAL BUILD STAGES VERIFIED" in mission.progress_copy.text()
+    assert mission.action_button.text() == "Continue to optional flash setup"
+    assert mission.save_button.text() == "Finish local build"
+    assert "Local ROM build complete" in mission.status_text.text()
+    mission.close()
+    studio.close()
+
+
 def test_genesis_routes_a_prepared_flash_handoff_to_manifest_review_not_forge_loop(tmp_path):
     app = QApplication.instance() or QApplication([])
     store = RomProjectStore(tmp_path / "workspace")
@@ -1370,6 +1417,7 @@ def test_genesis_routes_a_prepared_flash_handoff_to_manifest_review_not_forge_lo
     studio._open_guardian_manifest_review = lambda parent=None: manifest_calls.append(parent)
     studio._open_build_control = lambda parent=None: forge_calls.append(parent)
     mission._refresh = lambda select_current=False: None
+    mission.state = replace(mission.state, install_requested=True)
     mission.selected_index = 13
 
     mission._context = lambda: GuidedContext(guardian_flash_handoff_ready=True)

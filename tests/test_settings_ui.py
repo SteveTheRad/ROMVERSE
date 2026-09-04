@@ -46,7 +46,8 @@ def test_settings_dialog_exposes_only_runtime_backed_controls(tmp_path) -> None:
     dialog.desktop_theme.setCurrentIndex(
         dialog.desktop_theme.findData(DesktopTheme.QUANTUM_MINT.value)
     )
-    assert "Guardian remains active" in dialog.experience_note.text()
+    assert "Guided Guardian sequencing is off" in dialog.experience_note.text()
+    assert "Exact target" in dialog.experience_note.text()
 
     saved = dialog.values()
     assert saved.ai_daily_reasoning_budget == 123_000

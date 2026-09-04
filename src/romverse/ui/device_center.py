@@ -31,6 +31,12 @@ from romverse.core.settings import ExperienceMode
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device.root_identity import review_root_identity
 from romverse.knowledge.models import KnowledgeLookupReport
+from romverse.nexus.events import (
+    LiveConsoleEvent,
+    LiveConsoleEventStore,
+    LiveConsoleStoreError,
+    MissionState,
+)
 from romverse.rom.guided import GenesisFlightPlan, GuidedStageStatus
 from romverse.ui.cosmic_icons import quick_action_icon
 from romverse.ui.formatters import human_bytes
@@ -235,6 +241,7 @@ class DeviceCenter(QWidget):
     runtime_tools_requested = Signal()
     rom_studio_requested = Signal(str, str, str)
     knowledge_requested = Signal(str)
+    mission_state_changed = Signal(str)
     GUARDIAN_CARD_STATES = {
         "unverified": "VERIFY REQUIRED",
         "review_due": "REVERIFY REQUIRED",
@@ -249,12 +256,14 @@ class DeviceCenter(QWidget):
         self,
         workspace: Path | None = None,
         activity_store: ActivityStore | None = None,
+        mission_store: LiveConsoleEventStore | None = None,
     ) -> None:
         super().__init__()
         self.workspace = workspace
         self.activity_store = activity_store or (
             ActivityStore(workspace) if workspace is not None else None
         )
+        self.mission_store = mission_store
         self._experience_mode = ExperienceMode.GUIDED
         self._project_name = ""
         self._project_has_firmware = False
@@ -268,8 +277,12 @@ class DeviceCenter(QWidget):
         self._knowledge_device_serial = ""
         self._knowledge_report: KnowledgeLookupReport | None = None
         self._knowledge_error = ""
+        self._device_engine_error = ""
         self._compact_layout = False
+        self._next_action_key = "Connect Device"
+        self._mission_visual_state = "idle"
         self.quick_action_buttons: dict[str, QToolButton] = {}
+        self._quick_actions_grid: QGridLayout | None = None
         self.metrics_history_path = (
             workspace / "logs" / "device-metrics-history.json" if workspace is not None else None
         )
@@ -288,6 +301,12 @@ class DeviceCenter(QWidget):
         title_row.addWidget(title)
         title_row.addStretch()
         text.addLayout(title_row)
+        deck_subtitle = QLabel(
+            "One live device, one active project, one evidence-derived next action."
+        )
+        deck_subtitle.setObjectName("Muted")
+        deck_subtitle.setWordWrap(True)
+        text.addWidget(deck_subtitle)
         header.addLayout(text, 1)
         self.scan_status_row = QFrame()
         self.scan_status_row.setObjectName("ProcessStatusRow")
@@ -394,9 +413,9 @@ class DeviceCenter(QWidget):
         self.feature_handoff.setVisible(False)
         page.addWidget(self.feature_handoff)
 
-        next_action = QFrame()
-        next_action.setObjectName("HeroCard")
-        next_layout = QHBoxLayout(next_action)
+        self.next_action_card = QFrame()
+        self.next_action_card.setObjectName("CommandDeckNextAction")
+        next_layout = QHBoxLayout(self.next_action_card)
         next_layout.setContentsMargins(20, 14, 20, 14)
         next_text = QVBoxLayout()
         next_label = QLabel("NEXT BEST ACTION")
@@ -408,17 +427,49 @@ class DeviceCenter(QWidget):
         )
         self.next_note.setObjectName("Muted")
         self.next_note.setWordWrap(True)
+        self.mission_context = QLabel("DEVICE: NOT CONNECTED  •  PROJECT: NONE  •  MISSION: IDLE")
+        self.mission_context.setObjectName("CommandDeckContext")
+        self.mission_context.setWordWrap(True)
         next_text.addWidget(next_label)
         next_text.addWidget(self.next_title)
         next_text.addWidget(self.next_note)
+        next_text.addWidget(self.mission_context)
+        self.mission_progress = ProcessProgressBar()
+        self.mission_progress.setAccessibleName("Active Command Deck mission progress")
+        self.mission_progress.setToolTip(
+            "Progress is shown only when the producing workflow reports a real percentage."
+        )
+        next_text.addWidget(self.mission_progress)
         next_layout.addLayout(next_text, 1)
         self.next_button = QPushButton("Scan for device")
         self.next_button.setObjectName("Primary")
         self.next_button.setToolTip("Scan for an Android device using the read-only Device Engine.")
         self.next_button.clicked.connect(self._perform_next_action)
         next_layout.addWidget(self.next_button)
-        page.addWidget(next_action)
-        next_action.setVisible(False)
+        page.addWidget(self.next_action_card)
+
+        self.primary_action_rail = QFrame()
+        self.primary_action_rail.setObjectName("CommandDeckPrimaryActions")
+        primary_actions = QHBoxLayout(self.primary_action_rail)
+        primary_actions.setContentsMargins(12, 9, 12, 9)
+        primary_actions.setSpacing(8)
+        self.primary_action_buttons: dict[str, QPushButton] = {}
+        for action in (
+            "Connect Device",
+            "Start ROM Project",
+            "Resume Mission",
+            "Diagnose Problem",
+            "Recover Device",
+        ):
+            button = QPushButton(action)
+            button.setObjectName("CommandDeckPrimaryAction")
+            button.setAccessibleName(action)
+            button.clicked.connect(
+                lambda _checked=False, selected=action: self._dispatch_primary_action(selected)
+            )
+            primary_actions.addWidget(button, 1)
+            self.primary_action_buttons[action] = button
+        page.addWidget(self.primary_action_rail)
 
         self.status_card = QFrame()
         self.status_card.setObjectName("HeroCard")
@@ -437,7 +488,7 @@ class DeviceCenter(QWidget):
         self.status_badge.setObjectName("Warning")
         hero.addWidget(self.status_badge)
         page.addWidget(self.status_card)
-        self.status_card.setVisible(False)
+        self.status_card.setVisible(True)
         self.last_scan_label = QLabel("Last scan: not yet completed")
         self.last_scan_label.setObjectName("Muted")
         page.addWidget(self.last_scan_label)
@@ -495,6 +546,7 @@ class DeviceCenter(QWidget):
         self.devices: list[AndroidDevice] = []
         self._selected_index = -1
         self.show_empty("Scanning for devices…")
+        self._update_mission_control()
 
     def set_experience_mode(self, mode: ExperienceMode) -> None:
         """Apply progressive disclosure without changing device or project state."""
@@ -576,6 +628,7 @@ class DeviceCenter(QWidget):
         self._project_has_firmware = bool(has_firmware)
         self._flight_plan = flight_plan
         if not changed:
+            self._update_mission_control()
             return
         if 0 <= self._selected_index < len(self.devices):
             self.render_device(self.devices[self._selected_index])
@@ -588,6 +641,7 @@ class DeviceCenter(QWidget):
             self.show_empty(
                 "No Android device is connected. ROM Studio remains available for safe local firmware work."
             )
+        self._update_mission_control()
 
     def set_repair_context(self, finding_id: str = "", title: str = "") -> None:
         """Refresh Command Deck repair wording from current typed diagnostic evidence."""
@@ -598,11 +652,13 @@ class DeviceCenter(QWidget):
             self._repair_finding_id,
             self._repair_finding_title,
         ):
+            self._update_mission_control()
             return
         self._repair_finding_id = normalized_id
         self._repair_finding_title = normalized_title
-        if self.devices:
+        if 0 <= self._selected_index < len(self.devices):
             self.render_device(self.devices[self._selected_index])
+        self._update_mission_control()
 
     def set_guardian_state(self, state: str, detail: str, verified: bool) -> None:
         """Update Guardian's Command Deck claim from its owning verified lifecycle."""
@@ -619,6 +675,7 @@ class DeviceCenter(QWidget):
         self._guardian_verified = evidence_ready
         button = self.quick_action_buttons.get("Guardian")
         if button is None:
+            self._update_mission_control()
             return
         status = self.GUARDIAN_CARD_STATES[normalized_state]
         button.setText(f"Guardian\n{status}")
@@ -631,12 +688,302 @@ class DeviceCenter(QWidget):
         button.setProperty("guardianState", normalized_state)
         button.setProperty("evidenceReady", evidence_ready)
         self._repolish(button)
+        self._update_mission_control()
+
+    def refresh_mission_control(self) -> None:
+        """Refresh the fixed mission strip without rerunning a device scan or operation."""
+
+        self._update_mission_control()
+
+    @property
+    def mission_visual_state(self) -> str:
+        return self._mission_visual_state
+
+    def _update_mission_control(self) -> None:
+        selected = (
+            self.devices[self._selected_index]
+            if 0 <= self._selected_index < len(self.devices)
+            else None
+        )
+        events, ledger_error = self._mission_events()
+        current_missions = self._latest_mission_states(events)
+        active = next(
+            (event for event in current_missions if event.state is MissionState.RUNNING),
+            None,
+        )
+        newest_event = events[0] if events else None
+        latest_attention = (
+            newest_event
+            if newest_event is not None
+            and newest_event.state
+            in {MissionState.FAILED, MissionState.BLOCKED, MissionState.ATTENTION}
+            else None
+        )
+
+        action_key = "Connect Device"
+        action_label = "Scan for device"
+        title = "Connect your Android device"
+        note = (
+            "Use a data-capable USB cable, enable USB debugging, and collect a read-only "
+            "identity before choosing firmware or a device-changing route."
+        )
+        visual_state = "idle"
+        if active is not None:
+            action_key = "Live Operations"
+            action_label = "Open live operation"
+            title = active.title
+            note = f"{active.summary}  Next: {active.next_action}"
+            visual_state = "running"
+            self.mission_progress.begin(determinate=True)
+            self.mission_progress.report(active.progress_percent)
+        else:
+            self.mission_progress.stop()
+            if self._device_engine_error:
+                action_key = "Resolve Platform Tools"
+                action_label = "Resolve Platform Tools"
+                title = "Device Engine needs attention"
+                note = self._device_engine_error
+                visual_state = "attention"
+            elif self._repair_finding_id:
+                action_key = "Repair Phone"
+                action_label = "Open Recovery Autopilot"
+                title = self._repair_finding_title or "Review the current recovery finding"
+                note = (
+                    "ROMVERSE has a typed diagnostic finding. Review ranked recovery evidence; "
+                    "opening Recovery Bay starts no phone-changing action."
+                )
+                visual_state = "recovery"
+            elif self.devices and selected is None:
+                action_key = "Choose Device"
+                action_label = "Choose a device above"
+                title = "Choose the exact Android target"
+                note = (
+                    "Multiple transports are present. Select one before ROMVERSE binds a project, "
+                    "diagnosis, backup, or recovery route."
+                )
+                visual_state = "attention"
+            elif selected is not None and selected.is_fastboot:
+                action_key = "Device DNA"
+                action_label = "Open Device Atlas"
+                title = "Review the detected bootloader identity"
+                note = (
+                    "Device Atlas can bind this read-only Fastboot identity to exact Device Pack "
+                    "requirements. No reboot, flash, wipe, unlock, or relock starts here."
+                )
+                visual_state = "device"
+            elif selected is not None and selected.state is DeviceState.UNAUTHORIZED:
+                action_key = "Connect Device"
+                action_label = "Scan after authorizing"
+                title = "Authorize this computer on your phone"
+                note = "Unlock the phone, accept the USB debugging fingerprint, then scan again."
+                visual_state = "attention"
+            elif selected is None:
+                pass
+            elif not self._project_name:
+                action_key = "Start ROM Project"
+                action_label = "Start ROM project"
+                title = "Start a ROM mission for this device"
+                note = (
+                    "The phone identity is available. Create a versioned ROM Studio project before "
+                    "selecting or modifying firmware."
+                )
+                visual_state = "device"
+            elif not self._project_has_firmware:
+                action_key = "Start ROM Project"
+                action_label = "Import firmware"
+                title = f"Add protected firmware to {self._project_name}"
+                note = (
+                    "ROM Studio will hash the selected source and preserve it unchanged before any "
+                    "inspection or build preparation."
+                )
+                visual_state = "device"
+            elif self._flight_plan is not None and self._flight_plan.status is not GuidedStageStatus.COMPLETE:
+                action_key = "Continue Genesis"
+                action_label = "Resume mission"
+                title = self._flight_plan.stage_title
+                note = (
+                    ("Needs attention: " + "  •  ".join(self._flight_plan.blockers[:2]))
+                    if self._flight_plan.blockers
+                    else self._flight_plan.recommendation
+                )
+                visual_state = (
+                    "attention"
+                    if self._flight_plan.status in {GuidedStageStatus.ATTENTION, GuidedStageStatus.LOCKED}
+                    else "running"
+                )
+            elif self._guardian_state in {"failed", "unavailable", "review_due"}:
+                action_key = "Guardian"
+                action_label = "Review Guardian evidence"
+                title = "Guardian evidence needs attention"
+                note = self._guardian_detail
+                visual_state = "attention"
+            else:
+                action_key = "Health Review"
+                action_label = "Diagnose problem"
+                title = "Run an evidence-backed health review"
+                note = (
+                    "Device and project context are ready. Start with read-only diagnostics before "
+                    "choosing an optimization or recovery route."
+                )
+                visual_state = "device"
+
+        if ledger_error:
+            note = f"{note}  Live mission history needs attention: {ledger_error}"
+            visual_state = "attention"
+        elif latest_attention is not None and active is None and not self._repair_finding_id:
+            note += (
+                f"  Recent warning: {latest_attention.title} — {latest_attention.next_action}"
+            )
+            visual_state = "attention"
+
+        self._next_action_key = action_key
+        self.next_title.setText(title)
+        self.next_note.setText(note)
+        self.next_button.setText(action_label)
+        self.next_button.setEnabled(action_key != "Choose Device")
+        self.next_button.setToolTip(self._next_action_tooltip(action_key))
+        device_text = (
+            selected.display_name
+            if selected is not None
+            else f"{len(self.devices)} AWAITING SELECTION"
+            if self.devices
+            else "NOT CONNECTED"
+        )
+        project_text = self._project_name or "NONE"
+        mission_text = (
+            f"{active.title} • {active.progress_percent}%"
+            if active is not None
+            else "ATTENTION"
+            if latest_attention is not None
+            else "IDLE"
+        )
+        self.mission_context.setText(
+            f"DEVICE: {device_text}  •  PROJECT: {project_text}  •  MISSION: {mission_text}  •  "
+            f"GUARDIAN: {self.GUARDIAN_CARD_STATES[self._guardian_state]}"
+        )
+        self._update_primary_actions(selected, action_key)
+        if visual_state != self._mission_visual_state:
+            self._mission_visual_state = visual_state
+            self.mission_state_changed.emit(visual_state)
+
+    def _update_primary_actions(
+        self,
+        selected: AndroidDevice | None,
+        active_action: str,
+    ) -> None:
+        available = {
+            "Connect Device": True,
+            "Start ROM Project": True,
+            "Resume Mission": bool(
+                self._project_name or active_action == "Live Operations"
+            ),
+            "Diagnose Problem": bool(
+                selected is not None and selected.state is DeviceState.DEVICE
+            ),
+            "Recover Device": bool(selected is not None or self._repair_finding_id),
+        }
+        active_alias = {
+            "Live Operations": "Resume Mission",
+            "Continue Genesis": "Resume Mission",
+            "Health Review": "Diagnose Problem",
+            "Repair Phone": "Recover Device",
+            "Device DNA": "Connect Device",
+            "Resolve Platform Tools": "Connect Device",
+        }.get(active_action, active_action)
+        for action, button in self.primary_action_buttons.items():
+            enabled = available[action]
+            button.setEnabled(enabled)
+            button.setProperty("recommended", action == active_alias)
+            button.setProperty("available", enabled)
+            button.setToolTip(self._primary_action_tooltip(action, enabled))
+            self._repolish(button)
+
+    @staticmethod
+    def _next_action_tooltip(action: str) -> str:
+        return {
+            "Connect Device": "Run a read-only Device Engine scan.",
+            "Start ROM Project": "Open ROM Studio. No build or phone action starts automatically.",
+            "Continue Genesis": "Open the active project at its first unverified Genesis stage.",
+            "Live Operations": "Open the real event ledger for the active mission.",
+            "Health Review": "Open read-only device diagnostics.",
+            "Repair Phone": "Open Recovery Autopilot for evidence review and confirmation.",
+            "Device DNA": "Open Device Atlas for the detected Fastboot identity.",
+            "Guardian": "Open Guardian Core to inspect its current trust evidence.",
+            "Resolve Platform Tools": (
+                "Open Forge Arsenal to verify and repair the local Android Platform Tools runtime."
+            ),
+            "Choose Device": "Select one exact device in the chooser above.",
+        }.get(action, "Open the owning ROMVERSE workflow.")
+
+    @staticmethod
+    def _primary_action_tooltip(action: str, enabled: bool) -> str:
+        if not enabled:
+            return {
+                "Resume Mission": "Create or open a ROM project before resuming a mission.",
+                "Diagnose Problem": "Connect and authorize Android before running diagnostics.",
+                "Recover Device": "Connect a device or open a typed diagnostic finding first.",
+            }.get(action, "This action needs more current evidence.")
+        return {
+            "Connect Device": "Scan or refresh Android identity using read-only probes.",
+            "Start ROM Project": "Open ROM Studio to create or continue a versioned project.",
+            "Resume Mission": "Continue the active project from its first unverified stage.",
+            "Diagnose Problem": "Open Quantum Optimizer for read-only diagnosis.",
+            "Recover Device": "Open Recovery Autopilot; no repair starts without confirmation.",
+        }[action]
+
+    def _dispatch_primary_action(self, action: str) -> None:
+        if action == "Connect Device":
+            self.refresh_requested.emit()
+            return
+        if action == "Resume Mission" and self._next_action_key == "Live Operations":
+            self.action_requested.emit("Live Operations")
+            return
+        target = {
+            "Start ROM Project": "Build ROM",
+            "Resume Mission": "Continue Genesis",
+            "Diagnose Problem": "Health Review",
+            "Recover Device": "Repair Phone",
+        }.get(action)
+        if target:
+            self.action_requested.emit(target)
+
+    def _mission_events(self) -> tuple[tuple[LiveConsoleEvent, ...], str]:
+        if self.mission_store is None:
+            return (), ""
+        try:
+            return self.mission_store.list_recent(80), ""
+        except LiveConsoleStoreError as exc:
+            return (), str(exc)[:320]
+
+    @staticmethod
+    def _latest_mission_states(
+        events: tuple[LiveConsoleEvent, ...],
+    ) -> tuple[LiveConsoleEvent, ...]:
+        seen: set[str] = set()
+        latest: list[LiveConsoleEvent] = []
+        for event in events:
+            if not event.mission_id or event.mission_id in seen:
+                continue
+            seen.add(event.mission_id)
+            latest.append(event)
+        return tuple(latest)
 
     def _apply_quick_action_visibility(self) -> None:
-        expert = self._experience_mode is ExperienceMode.EXPERT
-        command_console = self.quick_action_buttons.get("Command Console")
-        if command_console is not None:
-            command_console.setVisible(expert)
+        # The five-button mission rail prioritises the safest next steps, while every
+        # specialist surface remains reachable in every presentation mode.
+        visible = set(self.quick_action_buttons)
+        for label, button in self.quick_action_buttons.items():
+            button.setVisible(label in visible)
+        grid = self._quick_actions_grid
+        if grid is not None:
+            for button in self.quick_action_buttons.values():
+                grid.removeWidget(button)
+            for index, button in enumerate(
+                button
+                for label, button in self.quick_action_buttons.items()
+                if label in visible
+            ):
+                grid.addWidget(button, index // 3, index % 3)
 
     def set_scanning(self, scanning: bool, *, show_progress: bool = True) -> None:
         self.refresh.setEnabled(not scanning)
@@ -656,6 +1003,7 @@ class DeviceCenter(QWidget):
             self.status_badge.style().polish(self.status_badge)
 
     def set_devices(self, devices: list[AndroidDevice], selected_serial: str = "") -> None:
+        self._device_engine_error = ""
         self.devices = devices
         selected = next(
             (index for index, device in enumerate(devices) if device.serial == selected_serial),
@@ -764,6 +1112,7 @@ class DeviceCenter(QWidget):
                 "No Android transport is visible. ROMVERSE checks verified ADB and Fastboot runtimes without rebooting or changing a phone."
             )
         self._render_studio_handoff()
+        self._update_mission_control()
 
     def set_knowledge_lookup(
         self,
@@ -943,27 +1292,35 @@ class DeviceCenter(QWidget):
             )
 
     def _perform_next_action(self) -> None:
-        device = (
-            self.devices[self._selected_index]
-            if 0 <= self._selected_index < len(self.devices)
-            else None
-        )
-        if device is not None and device.state is DeviceState.DEVICE:
-            self.action_requested.emit("Optimize")
+        action = self._next_action_key
+        if action == "Connect Device":
+            self.refresh_requested.emit()
             return
-        if device is not None and device.is_fastboot:
-            self.action_requested.emit("Device DNA")
+        if action == "Choose Device":
             return
-        if self.devices:
+        if action == "Resolve Platform Tools":
+            self.runtime_tools_requested.emit()
             return
-        self.refresh_requested.emit()
+        self.action_requested.emit(action)
 
     def refresh_activity(self) -> None:
         """Re-render cached device evidence so the durable activity card stays current."""
+        self._update_mission_control()
         if 0 <= self._selected_index < len(self.devices):
             self.render_device(self.devices[self._selected_index])
+        elif self.devices:
+            self.show_empty(
+                "Choose one connected device above. ROMVERSE has not bound any "
+                "device-changing workflow to a phone."
+            )
+        else:
+            self.show_empty(
+                "No Android device is connected. ROM Studio remains available for safe local "
+                "firmware work."
+            )
 
     def show_error(self, message: str) -> None:
+        self._device_engine_error = " ".join(message.replace("\x00", " ").split())[:500]
         self.device_name.setText("Device Engine needs attention")
         self.device_note.setText(message)
         self._set_badge("DEVICE ENGINE ERROR", "Danger")
@@ -972,6 +1329,7 @@ class DeviceCenter(QWidget):
             action_text="Resolve Platform Tools",
             action=self.runtime_tools_requested.emit,
         )
+        self._update_mission_control()
 
     def show_empty(self, text: str, *, action_text: str = "", action=None) -> None:
         self._clear_body()
@@ -994,6 +1352,7 @@ class DeviceCenter(QWidget):
             layout.addWidget(button, 0, Qt.AlignmentFlag.AlignCenter)
         self.body_layout.addWidget(card)
         self.body_layout.addWidget(self._build_flight_plan_card())
+        self._add_mission_pulse_card()
         self._add_command_cards(connected=False)
         self._add_telemetry_panel(None)
         self.body_layout.addStretch()
@@ -1042,6 +1401,7 @@ class DeviceCenter(QWidget):
         context.setWordWrap(True)
         cards_layout.addWidget(context)
         grid = QGridLayout()
+        self._quick_actions_grid = grid
         grid.setHorizontalSpacing(10)
         grid.setVerticalSpacing(10)
         for column in range(3):
@@ -1173,6 +1533,150 @@ class DeviceCenter(QWidget):
         cards_layout.addLayout(grid)
         self.body_layout.addWidget(cards)
         self._apply_quick_action_visibility()
+
+    def _add_mission_pulse_card(self) -> None:
+        """Show only ledger-backed mission state, warnings, and accomplishments."""
+
+        events, ledger_error = self._mission_events()
+        current = self._latest_mission_states(events)
+        active = next((event for event in current if event.state is MissionState.RUNNING), None)
+        warnings = (
+            (events[0],)
+            if events
+            and events[0].state
+            in {MissionState.FAILED, MissionState.BLOCKED, MissionState.ATTENTION}
+            else ()
+        )
+        successes = tuple(event for event in events if event.state is MissionState.SUCCEEDED)[:3]
+        try:
+            activity = self.activity_store.list_recent(24) if self.activity_store else ()
+            activity_error = ""
+        except ActivityStoreError as exc:
+            activity = ()
+            activity_error = str(exc)[:320]
+        completed_activity = tuple(event for event in activity if event.outcome == "success")[:3]
+
+        card = QFrame()
+        card.setObjectName("CommandDeckMissionPulse")
+        card.setAccessibleName("Live mission warnings and verified accomplishments")
+        root = QVBoxLayout(card)
+        root.setContentsMargins(16, 12, 16, 14)
+        root.setSpacing(10)
+        header = QHBoxLayout()
+        header.addWidget(self._dashboard_heading("MISSION PULSE"))
+        header.addStretch()
+        state = QLabel(
+            "LEDGER NEEDS ATTENTION"
+            if ledger_error
+            else "RUNNING"
+            if active is not None
+            else "ATTENTION"
+            if warnings
+            else "IDLE • READY"
+        )
+        state.setObjectName(
+            "Warning" if ledger_error or active is not None or warnings else "Good"
+        )
+        header.addWidget(state)
+        root.addLayout(header)
+
+        if active is not None:
+            active_title = QLabel(f"{active.source}  •  {active.title}")
+            active_title.setObjectName("SectionTitle")
+            active_detail = QLabel(f"{active.summary}\nNext: {active.next_action}")
+            active_detail.setObjectName("Muted")
+            active_detail.setWordWrap(True)
+            progress = ProcessProgressBar()
+            progress.begin(determinate=True)
+            progress.report(active.progress_percent)
+            progress.setAccessibleName(f"{active.title}: {active.progress_percent}%")
+            root.addWidget(active_title)
+            root.addWidget(active_detail)
+            root.addWidget(progress)
+        else:
+            idle = QLabel(
+                ledger_error
+                or "No build, flash, backup, recovery, or other ROMVERSE operation is currently "
+                "reported as running."
+            )
+            idle.setObjectName("Danger" if ledger_error else "Muted")
+            idle.setWordWrap(True)
+            root.addWidget(idle)
+
+        lanes = QVBoxLayout() if self._compact_layout else QHBoxLayout()
+        warnings_panel = QFrame()
+        warnings_panel.setObjectName("MissionPulseLane")
+        warnings_layout = QVBoxLayout(warnings_panel)
+        warnings_layout.setContentsMargins(12, 10, 12, 10)
+        warnings_layout.addWidget(self._dashboard_heading("URGENT WARNINGS"))
+        if warnings:
+            for event in warnings:
+                warning = QLabel(
+                    f"{event.state.value.upper()}  •  {event.title}\n{event.next_action}"
+                )
+                warning.setObjectName("Warning")
+                warning.setWordWrap(True)
+                warnings_layout.addWidget(warning)
+        else:
+            clear = QLabel("No unresolved warning is present in the current live-operation view.")
+            clear.setObjectName("Good")
+            clear.setWordWrap(True)
+            warnings_layout.addWidget(clear)
+        warnings_layout.addStretch()
+        lanes.addWidget(warnings_panel, 1)
+
+        accomplishments_panel = QFrame()
+        accomplishments_panel.setObjectName("MissionPulseLane")
+        accomplishments_layout = QVBoxLayout(accomplishments_panel)
+        accomplishments_layout.setContentsMargins(12, 10, 12, 10)
+        accomplishments_layout.addWidget(
+            self._dashboard_heading("GENUINE ACCOMPLISHMENTS • RECORDED OUTCOMES")
+        )
+        accomplishment_rows: list[str] = []
+        for event in successes:
+            evidence = (
+                f"{event.confidence.value.upper()} CONFIDENCE"
+                if event.confidence.value != "not-applicable"
+                else "PRODUCER-REPORTED SUCCESS"
+            )
+            line = f"{event.title}  •  {evidence}"
+            if line not in accomplishment_rows:
+                accomplishment_rows.append(line)
+        for event in completed_activity:
+            line = f"{event.title}  •  {event.source} RECORDED SUCCESS"
+            if line not in accomplishment_rows:
+                accomplishment_rows.append(line)
+        if accomplishment_rows:
+            for line in accomplishment_rows[:4]:
+                accomplishment = QLabel(f"✓  {line}")
+                accomplishment.setObjectName("Good")
+                accomplishment.setWordWrap(True)
+                accomplishments_layout.addWidget(accomplishment)
+        else:
+            empty = QLabel(
+                activity_error
+                or "No verified completion is recorded yet. ROMVERSE will never create an "
+                "accomplishment from elapsed time or an unfinished task."
+            )
+            empty.setObjectName("Danger" if activity_error else "Muted")
+            empty.setWordWrap(True)
+            accomplishments_layout.addWidget(empty)
+        accomplishments_layout.addStretch()
+        lanes.addWidget(accomplishments_panel, 1)
+        root.addLayout(lanes)
+
+        actions = QHBoxLayout()
+        actions.addStretch()
+        live = QPushButton("Open Live Operations")
+        live.clicked.connect(lambda _checked=False: self.action_requested.emit("Live Operations"))
+        actions.addWidget(live)
+        history = QPushButton("Open Activity Center")
+        history.clicked.connect(
+            lambda _checked=False: self.action_requested.emit("View Activity Center")
+        )
+        actions.addWidget(history)
+        root.addLayout(actions)
+        self.body_layout.addWidget(card)
 
     def _build_flight_plan_card(self) -> QFrame:
         """Render the exact evidence-derived resume point from Genesis Sequence."""
@@ -1775,6 +2279,7 @@ class DeviceCenter(QWidget):
         top_host.setLayout(top)
         self.body_layout.addWidget(top_host)
 
+        self._add_mission_pulse_card()
         self._add_knowledge_brain_card(device)
 
         self._add_command_cards(connected=True)
@@ -1920,6 +2425,7 @@ class DeviceCenter(QWidget):
         open_atlas.clicked.connect(lambda _checked=False: self.action_requested.emit("Device DNA"))
         layout.addWidget(open_atlas)
         self.body_layout.addWidget(handoff)
+        self._add_mission_pulse_card()
         self._add_command_cards(connected=False)
         if device.errors:
             warning = InfoCard("PARTIAL FASTBOOT EVIDENCE")
@@ -2080,9 +2586,11 @@ class DeviceCenter(QWidget):
             self._selected_index = device_index
             device = self.devices[device_index]
             self.render_device(device)
+            self._update_mission_control()
             self.device_selected.emit(device.serial)
         elif self.devices:
             self._selected_index = -1
+            self._update_mission_control()
             self.device_selected.emit("")
 
     def _set_badge(self, text: str, style: str) -> None:
@@ -2097,6 +2605,7 @@ class DeviceCenter(QWidget):
         widget.style().polish(widget)
 
     def _clear_body(self) -> None:
+        self._quick_actions_grid = None
         while self.body_layout.count():
             item = self.body_layout.takeAt(0)
             widget = item.widget()

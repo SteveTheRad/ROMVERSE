@@ -3458,6 +3458,7 @@ class CosmicBackground(QWidget):
         self._background = QPixmap()
         self._logo = QPixmap(str(logo_path))
         self._reduced_motion = False
+        self._activity_state = "idle"
         self._shooting = False
         self._star_progress = 0.0
         self._star_start = QPointF()
@@ -3525,6 +3526,19 @@ class CosmicBackground(QWidget):
             self._ufo_timer.start(18000)
             if not self._battle_timer.isActive():
                 self._schedule_battle(first=True)
+
+    @Slot(str)
+    def set_activity_state(self, state: str) -> None:
+        """Shift the ambient nebula only when Command Deck's real mission state changes."""
+
+        normalized = str(state).strip().casefold()
+        if normalized not in {"idle", "device", "running", "recovery", "attention"}:
+            normalized = "idle"
+        if normalized == self._activity_state:
+            return
+        self._activity_state = normalized
+        self._background = QPixmap()
+        self.update()
 
     def paintEvent(self, _event) -> None:
         if self._background.size() != self.size():
@@ -3836,9 +3850,16 @@ class CosmicBackground(QWidget):
         gradient.setColorAt(0.5, QColor("#040812"))
         gradient.setColorAt(1.0, QColor("#050712"))
         painter.fillRect(self.rect(), gradient)
+        state_color = {
+            "idle": QColor(33, 78, 142, 20),
+            "device": QColor(22, 191, 218, 25),
+            "running": QColor(111, 66, 255, 30),
+            "recovery": QColor(255, 109, 52, 28),
+            "attention": QColor(255, 181, 70, 27),
+        }[self._activity_state]
         glow = QRadialGradient(self.width() * 0.72, self.height() * 0.2, self.width() * 0.6)
-        glow.setColorAt(0.0, QColor(33, 78, 142, 20))
-        glow.setColorAt(0.55, QColor(89, 43, 139, 7))
+        glow.setColorAt(0.0, state_color)
+        glow.setColorAt(0.55, QColor(state_color.red(), state_color.green(), state_color.blue(), 8))
         glow.setColorAt(1.0, QColor(7, 10, 22, 0))
         painter.fillRect(self.rect(), glow)
         painter.setPen(QColor(118, 246, 255, 90))
@@ -3995,7 +4016,11 @@ class MainWindow(QMainWindow):
         self.nexus_events = LiveConsoleEventStore(workspace)
         self.raw_terminal_feed = RawTerminalFeed()
         self._live_missions: dict[str, str] = {}
-        self.device_center = DeviceCenter(workspace, self.activity_store)
+        self.device_center = DeviceCenter(workspace, self.activity_store, self.nexus_events)
+        self.device_center.mission_state_changed.connect(
+            self.cosmic_background.set_activity_state
+        )
+        self.cosmic_background.set_activity_state(self.device_center.mission_visual_state)
         self.device_center.knowledge_requested.connect(self._open_knowledge_query)
         self.stack.addWidget(self.device_center)
         history_store = DiagnosticHistoryStore(workspace, self.activity_store)
@@ -6298,6 +6323,7 @@ class MainWindow(QMainWindow):
             return
         self._live_missions[operation] = event.mission_id
         self.live_console.refresh()
+        self.device_center.refresh_mission_control()
 
     @Slot(str, int)
     def _live_operation_progress(self, operation: str, progress: int) -> None:
@@ -6314,6 +6340,7 @@ class MainWindow(QMainWindow):
         except LiveConsoleStoreError:
             return
         self.live_console.refresh()
+        self.device_center.refresh_mission_control()
 
     @Slot(str, object)
     def _live_operation_completed(self, operation: str, _result: object) -> None:
@@ -6342,6 +6369,7 @@ class MainWindow(QMainWindow):
         except LiveConsoleStoreError:
             return
         self.live_console.refresh()
+        self.device_center.refresh_mission_control()
 
     @Slot(str, str)
     def _live_operation_failed(self, operation: str, message: str) -> None:
@@ -6372,6 +6400,7 @@ class MainWindow(QMainWindow):
         except LiveConsoleStoreError:
             return
         self.live_console.refresh()
+        self.device_center.refresh_mission_control()
 
     @Slot(object)
     def _record_device_pack_readiness(self, report: object) -> None:

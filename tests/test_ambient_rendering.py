@@ -54,7 +54,6 @@ def test_shooting_star_is_diagonal_and_repaints_only_its_local_region() -> None:
         background.dirty_updates.clear()
         background._advance_star()
         app.processEvents()
-
         assert background.dirty_updates
         dirty = background.dirty_updates[-1]
         assert 0 < dirty.width() < background.width() * 0.15
@@ -63,6 +62,48 @@ def test_shooting_star_is_diagonal_and_repaints_only_its_local_region() -> None:
     finally:
         background.hide()
         background.deleteLater()
+        app.processEvents()
+
+
+def test_cosmic_background_tracks_real_command_deck_activity_states() -> None:
+    QApplication.instance() or QApplication([])
+    background = CosmicBackground(_logo_path())
+    try:
+        background.resize(1_200, 800)
+        background._render_background()
+        assert not background._background.isNull()
+
+        background.set_activity_state("recovery")
+
+        assert background._activity_state == "recovery"
+        assert background._background.isNull()
+        background.set_activity_state("not-a-real-state")
+        assert background._activity_state == "idle"
+    finally:
+        background.hide()
+        background.deleteLater()
+
+
+def test_main_window_projects_real_operation_progress_into_command_deck_and_nebula(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    window = MainWindow(None, _logo_path(), tmp_path, app_icon_path=_logo_path())
+    try:
+        window._live_operation_started("fixture-build")
+        window._live_operation_progress("fixture-build", 61)
+
+        assert window.device_center._next_action_key == "Live Operations"
+        assert window.device_center.mission_progress.value() == 61
+        assert window.cosmic_background._activity_state == "running"
+
+        window._live_operation_completed("fixture-build", object())
+
+        assert window.device_center._next_action_key == "Resolve Platform Tools"
+        assert window.cosmic_background._activity_state == "attention"
+    finally:
+        window.close()
+        window.deleteLater()
         app.processEvents()
 
 

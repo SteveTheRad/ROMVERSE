@@ -237,6 +237,29 @@ QFrame#Card[diagnosticFocus="true"] {
     border: 2px solid #42DDEA; border-left: 4px solid #B45CFF;
 }
 QFrame#DashboardCard { background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(4, 8, 14, 252),stop:1 rgba(7, 12, 20, 252)); border: 1px solid #24334D; border-radius: 12px; }
+QFrame#CommandDeckNextAction {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 rgba(19,11,43,250),stop:0.5 rgba(7,22,43,248),stop:1 rgba(4,37,43,245));
+    border: 1px solid rgba(73, 218, 235, 180); border-left: 4px solid #B45CFF; border-radius: 14px;
+}
+QLabel#CommandDeckContext { color: #7EDDE9; font-size: 9px; font-weight: 850; letter-spacing: .65px; }
+QFrame#CommandDeckPrimaryActions {
+    background: rgba(4, 9, 19, 238); border: 1px solid rgba(49, 73, 112, 175); border-radius: 11px;
+}
+QPushButton#CommandDeckPrimaryAction {
+    color: #B8C7DF; background: rgba(8, 16, 31, 225); border: 1px solid rgba(59, 86, 132, 175);
+    border-radius: 8px; min-height: 30px; padding: 6px 10px; font-size: 10px; font-weight: 790;
+}
+QPushButton#CommandDeckPrimaryAction:hover { color: #FFFFFF; border-color: #35E7F5; background: rgba(17, 35, 61, 235); }
+QPushButton#CommandDeckPrimaryAction[recommended="true"] {
+    color: #FFFFFF; background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 rgba(91,41,157,238),stop:1 rgba(10,74,91,235));
+    border: 1px solid #69E8F3; border-left: 3px solid #C066FF;
+}
+QPushButton#CommandDeckPrimaryAction:disabled { color: #5E6B80; background: rgba(5, 10, 19, 190); border-color: #253149; }
+QFrame#CommandDeckMissionPulse {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(8,14,28,248),stop:0.52 rgba(8,18,34,246),stop:1 rgba(23,10,40,242));
+    border: 1px solid rgba(77, 112, 173, 180); border-top: 1px solid rgba(72, 225, 239, 175); border-radius: 12px;
+}
+QFrame#MissionPulseLane { background: rgba(3, 9, 20, 210); border: 1px solid rgba(52, 77, 119, 155); border-radius: 9px; }
 QFrame#KnowledgeBrainStrip {
     background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 rgba(20,11,42,246),stop:0.52 rgba(7,20,39,244),stop:1 rgba(4,32,38,240));
     border: 1px solid rgba(82, 117, 187, 180); border-left: 3px solid #B45CFF; border-radius: 11px;

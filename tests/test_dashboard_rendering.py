@@ -20,8 +20,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from romverse.core.activity import ActivityStore
 from romverse.device.models import AndroidDevice, DeviceState, MemoryInfo, StorageInfo
 from romverse.knowledge.lookup import OfflineKnowledgeService
+from romverse.nexus.events import LiveConsoleEventStore, MissionConfidence, MissionState
 from romverse.rom.guided import GenesisFlightPlan, GuidedStageStatus
 from romverse.ui.device_center import DeviceCenter, PhoneMockup, RingGauge, RomStudioDeviceContext
 from romverse.ui.main_window import (
@@ -162,6 +164,171 @@ def test_connected_dashboard_builds_all_approved_contextual_mission_cards(tmp_pa
     )
     manage_storage.click()
     assert requested == ["Optimize"]
+
+
+def test_command_deck_projects_one_exact_action_and_five_primary_mission_routes(
+    tmp_path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    missions = LiveConsoleEventStore(tmp_path)
+    center = DeviceCenter(tmp_path, ActivityStore(tmp_path), missions)
+    center.show()
+    app.processEvents()
+
+    assert not center.next_action_card.isHidden()
+    assert tuple(center.primary_action_buttons) == (
+        "Connect Device",
+        "Start ROM Project",
+        "Resume Mission",
+        "Diagnose Problem",
+        "Recover Device",
+    )
+    assert center._next_action_key == "Connect Device"
+    assert center.primary_action_buttons["Connect Device"].property("recommended") is True
+    assert not center.primary_action_buttons["Resume Mission"].isEnabled()
+    assert not center.primary_action_buttons["Diagnose Problem"].isEnabled()
+    assert not center.primary_action_buttons["Recover Device"].isEnabled()
+
+    refreshes: list[bool] = []
+    center.refresh_requested.connect(lambda: refreshes.append(True))
+    center.primary_action_buttons["Connect Device"].click()
+    assert refreshes == [True]
+
+    center.set_devices(
+        [
+            AndroidDevice(
+                "private-device",
+                DeviceState.DEVICE,
+                manufacturer="RadForge",
+                model="Reference Phone",
+            )
+        ]
+    )
+    assert center._next_action_key == "Start ROM Project"
+    assert center.primary_action_buttons["Diagnose Problem"].isEnabled()
+    assert center.primary_action_buttons["Recover Device"].isEnabled()
+
+    center.set_workspace_context(
+        "Project Aurora",
+        True,
+        GenesisFlightPlan(
+            project_name="Project Aurora",
+            stage_number=6,
+            stage_total=15,
+            stage_title="Review Device DNA",
+            status=GuidedStageStatus.READY,
+            progress_percent=33,
+            verified_stages=5,
+            blockers=(),
+            recommendation="Confirm the exact capability map.",
+            action_label="Review Device DNA",
+            root_route="Unrooted build",
+            recovery_ready=False,
+            guardian_ready=False,
+        ),
+    )
+    assert center._next_action_key == "Continue Genesis"
+    assert center.next_button.text() == "Resume mission"
+    assert "Project Aurora" in center.mission_context.text()
+    assert center.primary_action_buttons["Resume Mission"].property("recommended") is True
+    center.close()
+
+
+def test_command_deck_live_progress_warnings_and_accomplishments_need_real_ledgers(
+    tmp_path,
+) -> None:
+    _app = QApplication.instance() or QApplication([])
+    activity = ActivityStore(tmp_path)
+    missions = LiveConsoleEventStore(tmp_path)
+    center = DeviceCenter(tmp_path, activity, missions)
+    started = missions.start(
+        source="ROM Studio",
+        stage="build",
+        title="Build verified candidate",
+        summary="The source-bound build worker is running.",
+        explanation="A real worker reported this state.",
+        next_action="Keep ROMVERSE open.",
+        project_id="project-1",
+    )
+    missions.progress(started.mission_id, 47)
+
+    center.refresh_mission_control()
+
+    assert center._next_action_key == "Live Operations"
+    assert center.next_title.text() == "Build verified candidate"
+    assert center.mission_progress.isVisibleTo(center)
+    assert center.mission_progress.value() == 47
+    assert center.mission_visual_state == "running"
+    requested: list[str] = []
+    center.action_requested.connect(requested.append)
+    center.primary_action_buttons["Resume Mission"].click()
+    assert requested == ["Live Operations"]
+
+    missions.finish(
+        started.mission_id,
+        MissionState.SUCCEEDED,
+        summary="Candidate completed with producer evidence.",
+        explanation="Completion came from the build service result.",
+        next_action="Review its manifest.",
+        confidence=MissionConfidence.VERIFIED,
+    )
+    activity.record(
+        "rom-studio",
+        "Firmware source inspected",
+        "The producing service saved the inspection report.",
+        outcome="success",
+        source="ROM Studio",
+    )
+    center.refresh_activity()
+    pulse = center.findChild(QFrame, "CommandDeckMissionPulse")
+    labels = [label.text() for label in pulse.findChildren(QLabel)]
+
+    assert not center.mission_progress.isVisibleTo(center)
+    assert "GENUINE ACCOMPLISHMENTS • RECORDED OUTCOMES" in labels
+    assert any("Build verified candidate" in label for label in labels)
+    assert any("Firmware source inspected" in label for label in labels)
+    assert not any("No verified completion" in label for label in labels)
+
+    failed = missions.start(
+        source="Recovery Autopilot",
+        stage="reconnect-check",
+        title="Verify Android reconnect",
+        summary="Recovery verification is checking the exact target.",
+        explanation="A real recovery checkpoint started.",
+        next_action="Keep the target connected.",
+    )
+    missions.finish(
+        failed.mission_id,
+        MissionState.ATTENTION,
+        summary="Android did not reconnect.",
+        explanation="The expected boot proof was not observed.",
+        next_action="Open Recovery Autopilot and review the next ranked route.",
+        confidence=MissionConfidence.VERIFIED,
+    )
+    center.refresh_activity()
+    pulse = center.findChild(QFrame, "CommandDeckMissionPulse")
+    labels = [label.text() for label in pulse.findChildren(QLabel)]
+    assert "URGENT WARNINGS" in labels
+    assert any("Verify Android reconnect" in label for label in labels)
+    assert center.mission_visual_state == "attention"
+    center.close()
+
+
+def test_command_deck_exposes_a_modified_live_ledger_without_guessing_state(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    missions = LiveConsoleEventStore(tmp_path)
+    missions.path.parent.mkdir(parents=True)
+    missions.path.write_text("{}", encoding="utf-8")
+
+    center = DeviceCenter(tmp_path, ActivityStore(tmp_path), missions)
+
+    assert "Live mission history needs attention" in center.next_note.text()
+    assert center.mission_visual_state == "attention"
+    pulse = center.findChild(QFrame, "CommandDeckMissionPulse")
+    labels = [label.text() for label in pulse.findChildren(QLabel)]
+    assert "LEDGER NEEDS ATTENTION" in labels
+    assert not any(label == "RUNNING" for label in labels)
+    center.close()
 
 
 def test_command_deck_repair_card_reflects_exact_diagnostic_context(tmp_path) -> None:
@@ -403,6 +570,9 @@ def test_command_deck_adb_error_offers_in_place_runtime_resolution(tmp_path) -> 
     center.runtime_tools_requested.connect(lambda: requested.append(True))
 
     center.show_error("Verified Android Platform Tools are not active yet.")
+    assert center._next_action_key == "Resolve Platform Tools"
+    assert center.mission_visual_state == "attention"
+    assert center.next_button.text() == "Resolve Platform Tools"
     button = next(
         item for item in center.findChildren(QPushButton) if item.text() == "Resolve Platform Tools"
     )

@@ -47,9 +47,13 @@ def test_device_center_requires_an_explicit_choice_for_multiple_transports(tmp_p
     assert center._selected_index == -1
     assert center.selector.currentIndex() == 0
     assert center.status_badge.text() == "SELECT ONE DEVICE"
+    assert center._next_action_key == "Choose Device"
+    assert not center.next_button.isEnabled()
     center.selector.setCurrentIndex(2)
     app.processEvents()
     assert center._selected_index == 1
+    assert center._next_action_key == "Start ROM Project"
+    assert center.next_button.isEnabled()
     assert selected == ["PRIVATE-B"]
     center.close()
 

@@ -338,6 +338,29 @@ archive seed. Its 251-member wheel is 7,927,886 bytes with SHA-256
 and explain; they cannot authorize, construct, or execute a phone-changing operation. No phone
 action was performed.
 
+The combined Device DNA, boot-chain Archives and Guardian runtime-package checkpoint at exact
+application commit `9a9df8c2aaad8a473074ad45ea639ba7b61bdfa6` passes all 1,711 Desktop tests
+and complete Ruff check/format gates across 389 Python and release-script files. The packaged offline
+brain now contains 280 structured records from 180 attributed sources with combined digest
+`f05c9afd727bcdeefa9ad6775cb4c372379d68d20b012955430f53e1d99ac893`. Its exact model aliases
+and execution-inert boot-chain evidence cover boot, `init_boot`, `vendor_boot`, recovery layout,
+DTB/DTBO, dynamic `super`, AVB, kernel-module coherence, Pixel 6 vendor-ramdisk boundaries and the
+Pixel 7+ `vendor_kernel_boot` split. The same checkpoint adds a strict domain-separated Ed25519
+Guardian runtime-package manifest/verifier and offline release tooling. It binds an exact runtime
+artifact, platform, protocol/result schemas, adapter and runtime public key, rejects links, changed
+files, wrong keys/platforms and widened policy, and never executes or enrolls the artifact.
+
+The fresh isolated 254-member wheel contains all 21 Device Packs and all six committed archive
+seed bundles. It is 7,951,738 bytes with SHA-256
+`c47df1dd6915f840c9638fa60939a378fbd44e716db1a6aa96b1a4d13441772c`. Its separate install
+passes fresh/populated-workspace startup, all 280 archive records, 169 known fixes, 19 routes, dark UI
+rendering and byte-exact reopening. The self-contained Fedora app also launches successfully; its
+verified 457-file, 356,217,648-expanded-byte portable ZIP is 146,927,965 bytes with SHA-256
+`a98ff7a4a5ceea3b62e3157d14eb2ed55bd98b64d82891e19923d8593f8b1944`. These local Linux
+artifacts include no production runtime binary or private key and grant no flash authority. Windows,
+GitHub CI, production enrollment/process isolation, cross-transport identity and physical-device
+validation remain outstanding. No phone action was performed.
+
 ## Required gates
 
 1. Run the complete `pytest`, `ruff check .`, and `ruff format --check .` gates on supported Linux

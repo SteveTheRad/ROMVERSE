@@ -6,6 +6,7 @@ import hashlib
 import json
 import re
 from dataclasses import asdict, replace
+from datetime import UTC, datetime
 from pathlib import Path
 
 from romverse.device.dna import DeviceDnaProfile, EvidenceConfidence
@@ -16,12 +17,14 @@ from romverse.knowledge.models import (
     KnowledgeConfidence,
     KnowledgeConflict,
     KnowledgeEvidenceLabel,
+    KnowledgeEvidenceStatus,
     KnowledgeFailure,
     KnowledgeLookupReport,
     KnowledgeMatch,
     KnowledgeOperation,
     KnowledgeQuery,
     KnowledgeRecord,
+    KnowledgeRiskClass,
     KnowledgeSource,
     KnowledgeSourceTier,
     MatchConfidence,
@@ -43,6 +46,16 @@ _RECORD_CONFIDENCE_CAP = {
     KnowledgeConfidence.VERIFIED: 4,
 }
 _CONFIDENCE_FOR_VALUE = {value: key for key, value in _CONFIDENCE_VALUE.items()}
+_EVIDENCE_STATUS_SCORE = {
+    KnowledgeEvidenceStatus.OFFICIAL: 26,
+    KnowledgeEvidenceStatus.MAINTAINER_VERIFIED: 20,
+    KnowledgeEvidenceStatus.COMMUNITY_CONFIRMED: 14,
+    KnowledgeEvidenceStatus.REPORTED_WORKING: 8,
+    KnowledgeEvidenceStatus.DRAFT: 4,
+    KnowledgeEvidenceStatus.DISPUTED: -20,
+    KnowledgeEvidenceStatus.UNSAFE: -45,
+    KnowledgeEvidenceStatus.RETIRED: -100,
+}
 _SOURCE_WEIGHT = {
     KnowledgeSourceTier.OFFICIAL_PLATFORM: 50,
     KnowledgeSourceTier.OFFICIAL_VENDOR: 50,
@@ -344,8 +357,16 @@ def rank_knowledge(
         scored = _score_record(record, query, provenance)
         if scored is None:
             continue
-        score, matched, missing = scored
+        base_score, matched, missing = scored
+        evidence_score = _evidence_score(record, query, provenance)
+        score = base_score + evidence_score
         confidence = _match_confidence(record, matched, missing)
+        if record.evidence_status in {
+            KnowledgeEvidenceStatus.DISPUTED,
+            KnowledgeEvidenceStatus.UNSAFE,
+            KnowledgeEvidenceStatus.RETIRED,
+        }:
+            confidence = _lowered_confidence(confidence)
         results.append(
             KnowledgeMatch(
                 record=record,
@@ -355,6 +376,7 @@ def rank_knowledge(
                 missing_evidence=missing,
                 provenance=provenance,
                 safety=_safety(record.operations, record, query),
+                evidence_score=evidence_score,
                 evidence_labels=evidence_labels(record, provenance),
             )
         )
@@ -368,19 +390,13 @@ def rank_knowledge(
     )
     selected = tuple(results[:bounded_limit])
     conflicts = detect_knowledge_conflicts(selected)
-    disputed = {
-        record_id for conflict in conflicts for record_id in conflict.record_ids
-    }
+    disputed = {record_id for conflict in conflicts for record_id in conflict.record_ids}
     return tuple(
         replace(
             match,
             evidence_labels=_unique_labels(
                 *match.evidence_labels,
-                *(
-                    (KnowledgeEvidenceLabel.DISPUTED,)
-                    if match.record.record_id in disputed
-                    else ()
-                ),
+                *((KnowledgeEvidenceLabel.DISPUTED,) if match.record.record_id in disputed else ()),
             ),
         )
         for match in selected
@@ -413,19 +429,36 @@ def evidence_labels(
     if KnowledgeSourceTier.COMMUNITY in tiers:
         labels.append(KnowledgeEvidenceLabel.COMMUNITY_REPORTED)
     if (
-        record.confidence in {KnowledgeConfidence.VERIFIED, KnowledgeConfidence.HIGH}
+        record.evidence_status
+        not in {
+            KnowledgeEvidenceStatus.DRAFT,
+            KnowledgeEvidenceStatus.DISPUTED,
+            KnowledgeEvidenceStatus.UNSAFE,
+            KnowledgeEvidenceStatus.RETIRED,
+        }
+        and record.confidence in {KnowledgeConfidence.VERIFIED, KnowledgeConfidence.HIGH}
         and record.corroboration_count >= 1
     ):
         labels.append(KnowledgeEvidenceLabel.VERIFIED)
-    if record.confidence in {
-        KnowledgeConfidence.MEDIUM,
-        KnowledgeConfidence.LOW,
-        KnowledgeConfidence.UNCONFIRMED,
-    } or any(term in corpus.split() for term in {"experimental", "unconfirmed", "hypothesis"}):
+    if (
+        record.evidence_status is KnowledgeEvidenceStatus.DRAFT
+        or record.confidence
+        in {
+            KnowledgeConfidence.MEDIUM,
+            KnowledgeConfidence.LOW,
+            KnowledgeConfidence.UNCONFIRMED,
+        }
+        or any(term in corpus.split() for term in {"experimental", "unconfirmed", "hypothesis"})
+    ):
         labels.append(KnowledgeEvidenceLabel.EXPERIMENTAL)
-    if any(term in corpus.split() for term in {"disputed", "controversial", "conflicting"}):
+    if record.evidence_status in {
+        KnowledgeEvidenceStatus.DISPUTED,
+        KnowledgeEvidenceStatus.UNSAFE,
+    } or any(term in corpus.split() for term in {"disputed", "controversial", "conflicting"}):
         labels.append(KnowledgeEvidenceLabel.DISPUTED)
-    if any(term in corpus.split() for term in {"outdated", "deprecated", "retired", "superseded"}):
+    if record.evidence_status is KnowledgeEvidenceStatus.RETIRED or any(
+        term in corpus.split() for term in {"outdated", "deprecated", "retired", "superseded"}
+    ):
         labels.append(KnowledgeEvidenceLabel.OUTDATED)
     if not labels:
         labels.append(KnowledgeEvidenceLabel.EXPERIMENTAL)
@@ -469,14 +502,9 @@ def _explicit_conflict_reason(left: KnowledgeRecord, right: KnowledgeRecord) -> 
     right_compatibility = {_normalize(item) for item in right.compatibility}
     left_incompatible = {_normalize(item) for item in left.known_incompatibility}
     right_incompatible = {_normalize(item) for item in right.known_incompatibility}
-    direct = (left_compatibility & right_incompatible) | (
-        right_compatibility & left_incompatible
-    )
+    direct = (left_compatibility & right_incompatible) | (right_compatibility & left_incompatible)
     if direct:
-        return (
-            f"{left.title} and {right.title} explicitly disagree about "
-            f"{sorted(direct)[0]}."
-        )
+        return f"{left.title} and {right.title} explicitly disagree about {sorted(direct)[0]}."
     for left_operation in left.operations:
         for right_operation in right.operations:
             overlap = set(_normalized(left_operation.target_partitions)) & set(
@@ -522,7 +550,21 @@ def _safest_answer(
             "No compatible local answer is proven. Collect more Device DNA, firmware, "
             "partition, or error evidence instead of broadening the search into a guess."
         )
-    lead = matches[0]
+    lead = next(
+        (
+            match
+            for match in matches
+            if match.record.evidence_status
+            not in {
+                KnowledgeEvidenceStatus.DISPUTED,
+                KnowledgeEvidenceStatus.UNSAFE,
+                KnowledgeEvidenceStatus.RETIRED,
+            }
+        ),
+        None,
+    )
+    if lead is None:
+        return "The matching records are disputed, unsafe or retired. Use them as diagnostic history, not as a repair recommendation."
     return (
         f"Start with {lead.record.title} as {lead.confidence.value} guidance, retain its "
         "stated scope and prerequisites, and independently confirm any device-changing step."
@@ -541,6 +583,75 @@ def _unique_labels(
         KnowledgeEvidenceLabel.OUTDATED: 5,
     }
     return tuple(sorted(set(labels), key=order.__getitem__))
+
+
+def _lowered_confidence(confidence: MatchConfidence) -> MatchConfidence:
+    if confidence is MatchConfidence.EXACT:
+        return MatchConfidence.HIGH
+    if confidence is MatchConfidence.HIGH:
+        return MatchConfidence.MEDIUM
+    if confidence is MatchConfidence.MEDIUM:
+        return MatchConfidence.LOW
+    return MatchConfidence.UNCONFIRMED
+
+
+def _newest_source_reviewed_on(
+    provenance: tuple[KnowledgeSource, ...],
+) -> datetime | None:
+    newest: datetime | None = None
+    for source in provenance:
+        try:
+            reviewed = datetime.fromisoformat(source.reviewed_on).replace(tzinfo=UTC)
+        except ValueError:
+            continue
+        if newest is None or reviewed > newest:
+            newest = reviewed
+    return newest
+
+
+def _evidence_score(
+    record: KnowledgeRecord,
+    query: KnowledgeQuery,
+    provenance: tuple[KnowledgeSource, ...],
+) -> int:
+    source_quality = 0
+    if provenance:
+        source_quality = max(_SOURCE_WEIGHT.get(source.tier, 0) for source in provenance)
+    status_bonus = _EVIDENCE_STATUS_SCORE.get(record.evidence_status, 0)
+    confirmation_bonus = max(0, min(record.corroboration_count, 10)) * 4
+    stored_confidence_bonus = record.confidence_score if record.confidence_score > 0 else 0
+    failure_penalty = min(max(record.failure_count, 0), 16) * 3
+    reason_penalty = -18 if record.status_reason else 0
+    recency = 0
+    reviewed = _newest_source_reviewed_on(provenance)
+    if reviewed:
+        age_days = max(0, (datetime.now(UTC) - reviewed).days)
+        if age_days <= 30:
+            recency = 16
+        elif age_days <= 90:
+            recency = 8
+        elif age_days <= 365:
+            recency = 4
+    exactity_bonus = 0
+    if _intersection(record.scope.build_ids, query.build_ids):
+        exactity_bonus += 24
+    if _intersection(record.scope.models, query.models):
+        exactity_bonus += 12
+    if _intersection(record.scope.codenames, query.codenames):
+        exactity_bonus += 12
+    if _intersection(record.scope.partitions, query.partitions):
+        exactity_bonus += 4
+    score = (
+        source_quality
+        + status_bonus
+        + confirmation_bonus
+        + stored_confidence_bonus
+        + recency
+        + exactity_bonus
+        - failure_penalty
+        + reason_penalty
+    )
+    return max(0, min(100, score))
 
 
 def _score_record(
@@ -612,6 +723,8 @@ def _score_record(
     if evidence_score <= 0:
         return None
     confidence_bonus = _RECORD_CONFIDENCE_CAP[record.confidence] * 12
+    if record.evidence_status is KnowledgeEvidenceStatus.RETIRED:
+        confidence_bonus = 0
     score += confidence_bonus + min(record.corroboration_count, 10)
     return score, tuple(matched), tuple(dict.fromkeys(missing))
 
@@ -755,15 +868,31 @@ def _safety(
     record: KnowledgeRecord,
     query: KnowledgeQuery,
 ) -> str:
+    if record.evidence_status in {
+        KnowledgeEvidenceStatus.DISPUTED,
+        KnowledgeEvidenceStatus.UNSAFE,
+        KnowledgeEvidenceStatus.RETIRED,
+    }:
+        return f"WITHHELD • record is {record.evidence_status.value}; retained as diagnostic history, not a suggested repair path."
     changing = tuple(operation for operation in operations if operation.changes_device)
     if not changing:
         return "GUIDANCE ONLY • no automatic device-changing operation is declared."
+    if record.moderation_required:
+        return (
+            "LOCKED • this device-changing operation is awaiting moderation "
+            "before it can be surfaced as a suggested repair path."
+        )
     eligible = tuple(
         operation
         for operation in changing
         if _operation_evidence_complete(operation, record, query)
     )
     if len(eligible) == len(changing):
+        if any(operation.risk_class is KnowledgeRiskClass.HIGH for operation in changing):
+            return (
+                "EXACT EVIDENCE PRESENT • this high-risk operation is shown only for "
+                "separate human review; this lookup still grants no execution authority."
+            )
         return (
             "EXACT EVIDENCE PRESENT • operation may be shown for separate Guardian review; "
             "this lookup still grants no execution authority."

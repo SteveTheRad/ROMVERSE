@@ -473,6 +473,11 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   execution snapshots, rechecks the target/tool/partition evidence, records every attempted write,
   stops on failure or between writes when cancelled, and routes interruptions to the attempted
   phone's Recovery Bay context; command completion is never represented as boot/readback proof;
+  confirmed exact-phone bootloader/fastbootd/Android mode transitions with distinct command and
+  arrival evidence; cancellable local boot observation linked to unchanged image-write records,
+  measured boot-complete/uptime/kernel/build/slot continuity, optional Android/build-ID display,
+  and exact-phone bootloop/timeout Recovery Bay handoff without a repaired-phone, readback,
+  subsystem-health or production-certification claim;
   Partition Atlas source-AVB inspection that rehashes the exact OTA `vbmeta` pair, distinguishes
   actual chain partitions from other descriptors, binds a strict private receipt to the payload and
   protected source, and carries it into that draft without creating signing or flash authority;

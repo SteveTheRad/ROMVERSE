@@ -47,6 +47,23 @@ class KnowledgeEvidenceLabel(StrEnum):
     OUTDATED = "outdated"
 
 
+class KnowledgeEvidenceStatus(StrEnum):
+    DRAFT = "draft"
+    REPORTED_WORKING = "reported_working"
+    COMMUNITY_CONFIRMED = "community_confirmed"
+    MAINTAINER_VERIFIED = "maintainer_verified"
+    OFFICIAL = "official"
+    DISPUTED = "disputed"
+    UNSAFE = "unsafe"
+    RETIRED = "retired"
+
+
+class KnowledgeRiskClass(StrEnum):
+    SAFE = "safe"
+    MODERATE = "moderate"
+    HIGH = "high"
+
+
 @dataclass(frozen=True, slots=True)
 class KnowledgeSource:
     source_id: str
@@ -82,6 +99,7 @@ class KnowledgeOperation:
     target_partitions: tuple[str, ...]
     verified_input_requirements: tuple[str, ...]
     rollback_route: str
+    risk_class: KnowledgeRiskClass = KnowledgeRiskClass.MODERATE
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,6 +125,12 @@ class KnowledgeRecord:
     confidence: KnowledgeConfidence
     corroboration_count: int
     operations: tuple[KnowledgeOperation, ...]
+    evidence_status: KnowledgeEvidenceStatus = KnowledgeEvidenceStatus.DRAFT
+    confidence_score: int = 0
+    status_reason: str = ""
+    updated_at: str = "1970-01-01T00:00:00+00:00"
+    failure_count: int = 0
+    moderation_required: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -170,6 +194,7 @@ class KnowledgeMatch:
     provenance: tuple[KnowledgeSource, ...]
     safety: str
     evidence_labels: tuple[KnowledgeEvidenceLabel, ...] = ()
+    evidence_score: int = 0
 
     @property
     def explanation(self) -> str:
@@ -258,14 +283,9 @@ class KnowledgeLookupReport:
         conflict_text = ""
         if self.conflicts:
             conflict_text = "\n\nCONFLICTS DETECTED\n" + "\n".join(
-                f"• {item.reason} Safest action: {item.safest_action}"
-                for item in self.conflicts
+                f"• {item.reason} Safest action: {item.safest_action}" for item in self.conflicts
             )
-        safest = (
-            f"\n\nSAFEST ANSWER\n{self.safest_answer}"
-            if self.safest_answer
-            else ""
-        )
+        safest = f"\n\nSAFEST ANSWER\n{self.safest_answer}" if self.safest_answer else ""
         boundary = (
             "\n\nLIMITS\n" + "\n".join(f"• {item}" for item in self.limitations)
             if self.limitations

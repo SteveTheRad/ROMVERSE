@@ -30,6 +30,7 @@ from romverse.knowledge.models import (
     DeviceKnowledgeScope,
     KnowledgeArchive,
     KnowledgeConfidence,
+    KnowledgeEvidenceStatus,
     KnowledgeKind,
     KnowledgeRecord,
     KnowledgeSource,
@@ -759,6 +760,8 @@ class GalaxyIntelligenceService:
                     KnowledgeConfidence.HIGH,
                     item.corroboration_count,
                     (),
+                    evidence_status=KnowledgeEvidenceStatus.COMMUNITY_CONFIRMED,
+                    updated_at=item.updated_at,
                 )
             )
         incoming = seal_archive(

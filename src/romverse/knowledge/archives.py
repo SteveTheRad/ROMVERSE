@@ -2624,16 +2624,18 @@ KNOWN_FIXES = (
         ),
         fix_steps=(
             "Open ROM Studio → Enter Architect Mode, accept the Expert risk dialog, then open Build & Proof → Flash / restore images.",
+            "If the phone is in authorized Android, choose Bootloader or fastbootd in the device-mode selector and choose Change mode. Review and confirm Restart phone. ROMVERSE sends only the reviewed reboot and observes the same phone returning in the requested mode; it does not guess another target if the USB serial changes.",
             "Refresh phones and select the exact target. Use Add image for extracted .img files and enter each destination partition. Writes run from the top row down; select your appropriate stock images when doing a manual restore.",
             "Choose Review images and target. Compare the complete plan, image hashes, partition names, slot suffixes, and warnings before choosing Flash reviewed images.",
             "Read the final exact-plan risk dialog and choose Flash images only when ready. ROMVERSE preserves verified private copies and rechecks the target and files before writing; changed plans require a fresh review.",
             "Use Stop after current write to stop the remaining sequence. Allow an in-progress write to finish; cancellation does not undo earlier writes.",
+            "After writing, choose Android in the device-mode selector and confirm Change mode to reboot and begin a separate boot check. Check Android boot starts the same read-only monitor without sending a reboot. Stop boot check preserves its observations and stops further polling.",
             "After a failed or interrupted attempt, use Open diagnosis and recovery or close the result dialog to continue in Recovery Bay. The incident is bound to the phone used in that attempt; a disconnected phone remains explicitly unknown. Review its current state before retrying.",
         ),
         verification=(
             "Read the recorded result for every attempted partition, its reviewed image digest, Fastboot output, and the saved operation receipt. Earlier completed writes may remain after a later failure or cancellation.",
             "A completed result means Fastboot completed the selected writes. It does not verify image readback, successful Android boot, subsystem health, or a repaired phone; those need separate observations.",
-            "The workflow leaves rebooting and post-write diagnosis as separate steps. A failed write, timeout, changed target, or inability to preserve the final record must not become a successful boot claim.",
+            "Mode arrival is separate from Android boot. The boot monitor requires a measured continuous boot-complete interval with advancing uptime and consistent identity. Repeated restarts or a boot-observation deadline hand the exact phone to Recovery Bay; subsystem health and image readback remain unverified.",
         ),
         tags=(
             "flash restore images",
@@ -2643,10 +2645,12 @@ KNOWN_FIXES = (
             "fastboot image write",
             "private image snapshots space",
             "stop after current write",
+            "check android boot",
+            "confirm reboot mode change",
         ),
         route="rom_studio",
         evidence="The local Fastboot executor, Expert confirmation dialog, private snapshot checks, and exact-phone Recovery Bay handoff implement this workflow. Automated runner and UI tests cover its software behavior; this guide makes no physical-phone validation, universal compatibility, or production-certification claim.",
-        automation="GUIDANCE ONLY • EXPERT RISK AND EXACT-PLAN CONFIRMATION REQUIRED FOR WRITES • NO AUTOMATIC REBOOT, READBACK PROOF, OR REPAIRED-PHONE CLAIM",
+        automation="GUIDANCE ONLY • EXACT CONFIRMATION REQUIRED FOR WRITES AND REBOOTS • READ-ONLY BOOT MONITORING • NO READBACK PROOF OR REPAIRED-PHONE CLAIM",
         source=EXPERT_IMAGE_SOURCE,
     ),
     _fix(

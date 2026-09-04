@@ -1731,6 +1731,80 @@ The product-wide continuation target and definition of done are recorded in
   No remote publication, phone operation, Companion binary change or production-logo modification
   occurred. The running user app was not restarted.
 
+## 2026-09-05 Confirmed device transitions and measured local boot
+
+- The Expert image dialog now offers bootloader, fastbootd and Android mode changes with a
+  separate exact-target confirmation. All seven supported ADB/Fastboot transition routes use
+  expiring single-use previews, tool/identity rechecks, the image writer's shared device lock,
+  pre-command journaling and measured arrival. Command acknowledgement is not mode arrival or
+  Android boot. Cancellation does not undo a reboot already sent.
+- Successful image writes point to the Android reboot action. An acknowledged Android reboot
+  starts a separate read-only boot monitor, including when first transport arrival takes longer
+  than the short transition-observation window. A user can also start or stop that monitor
+  directly without rebooting. Confirmations remain explicit; no slot selection, erase, unlock
+  or relock was added.
+- Local boot observation binds the exact phone and, when applicable, the original local image
+  receipt. Spaced boot-complete samples, a consistent kernel boot identity/build/slot and advancing
+  uptime must span the measured stability window. Android version and build ID are optional
+  display observations. Missing, denied or malformed evidence cannot become a stable result.
+  Repeated observed restarts or a bounded boot deadline enter the exact phone's Recovery Bay
+  incident; region/product-name variants do not substitute for contradictory hardware identity.
+- A separate private boot receipt preserves its observation window, tool hash and original image
+  receipt binding. It does not rewrite the image-write result, certify a production Device Pack,
+  grant a signed Guardian result, prove partition readback or establish subsystem health. The
+  certified First Light path remains separate; automatic repair and complete Guided orchestration
+  are still unfinished and must not be advertised as completed by this change.
+- UI simulation exercises real Qt confirmations and the production local write/transition/boot
+  services against an inert Android transport. It covers declined reboot, confirmed bootloader
+  entry, reviewed image writing, Android return, simulated-clock stability and a bootloop recovery
+  handoff. The repeatable harness is `scripts/simulate_expert_lifecycle.py`; it creates only a new
+  disposable simulation workspace and visibly labels its screenshots. This is software evidence,
+  not a physical phone test or proof that any particular ROM boots.
+- User-style regressions caught and corrected mode-selector enum conversion, cancellation state
+  leaking into a later write, late worker callbacks, silently rejected activity events, stale
+  transition warnings after a measured stable boot, recovery masquerading as Android, and a
+  single mid-sample restart being counted twice. Compact dark-theme renders remain readable;
+  the approved production logos have not been edited.
+- Mode command semantics were checked against AOSP's
+  [Fastbootd documentation](https://source.android.com/docs/core/architecture/bootloader/fastbootd)
+  and [ADB manual](https://android.googlesource.com/platform/packages/modules/adb/+/refs/heads/main/docs/user/adb.1.md).
+  No physical-phone command, live-app restart, website change or remote publication was performed
+  for this increment.
+
+## 2026-09-05 Knowledge evidence compatibility and test-package checkpoint
+
+- Integration testing exposed three archive-reload failures in the evidence-metadata update.
+  Saving now seals the exact canonical document it writes and verifies reopening; explicit
+  evidence statuses are not silently promoted. Legacy signed inputs are verified against their
+  original bytes before local migration, while newly prepared signing documents bind their own
+  actual serialization. Malformed evidence metadata is rejected.
+- Revision-two catalog enrichment preserves local moderation, failure history and conflicting
+  core content. Disputed, unsafe and retired entries remain inspectable but cannot become the
+  recommended repair lead. Only the genuine signed Galaxy moderation producer sets a newly
+  promoted record to community-confirmed; it cannot grant official status or execution authority.
+- The existing live workspace archive was inspected read-only: its 280 records and 180 sources
+  validated, and the file's before/after SHA-256 stayed unchanged. Packaged knowledge contains
+  281 records and 181 sources with digest
+  `e198fe3773f62052db37048f97fae4fc4ab4261a8c7167ce7ff738dc382b3787`.
+- The 185 focused local-write, transition, boot, real-desktop/dialog, user-simulation and workflow
+  knowledge tests pass. The knowledge compatibility work also passed 139 focused offline/update/
+  advisor/UI tests and a 43-test Galaxy/metadata regression group. These groups overlap and are not
+  an additive total. Whole-source Ruff checks pass.
+- The full Desktop/Python regression run completed with 2,133 passes in 515.99 seconds. Three
+  subsequently added real-MainWindow integration cases passed separately in the 185-test group;
+  the final collected inventory is 2,136 tests. The final explicit Galaxy community-status producer
+  change was verified by the 43-test Galaxy/metadata rerun before final packaging.
+- A 283-member wheel byte-matches every current runtime module/asset and its 22 Device Packs.
+  Installed startup, unchanged populated-workspace reopening, and the real UI/services with an
+  inert Android transport all pass. The self-contained Fedora executable also passes launch
+  verification. No physical flashing, boot, recovery or subsystem validation is implied.
+- The test artifacts are retained on the data drive under `dist/device-lifecycle-2026-09-05/`.
+  `ROMVERSE-Linux-Device-Lifecycle-test.zip` contains 460 files and 359,776,466 expanded bytes,
+  SHA-256 `50c458763970d3f6626e7e0c60cf735bacf1af888599f2623532e8b9127d2d11`.
+  Wheel SHA-256 is `d28bc11de79a8d420fe3a01e43a2d725f33848f1bd5d83aa02f164b1befa0558`.
+  The running user app was not restarted. Separate uncommitted Companion navigation work was
+  preserved and is not a newly built or installed Companion release.
+
 ## Honest feature boundary
 
 The current safe milestone supports read-only Android evidence, local diagnostics, guarded APK

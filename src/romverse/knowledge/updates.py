@@ -8,7 +8,7 @@ import hashlib
 import hmac
 import json
 import re
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -26,10 +26,12 @@ from romverse.knowledge.store import (
     MAX_ARCHIVE_BYTES,
     KnowledgeArchiveError,
     KnowledgeArchiveStore,
+    archive_mapping,
     load_packaged_archive,
     merge_archives,
     parse_archive,
     reconcile_packaged_archive,
+    seal_archive,
 )
 
 
@@ -205,9 +207,7 @@ class KnowledgeUpdateService:
             or not hmac.compare_digest(
                 fresh.incoming_archive_digest, preview.incoming_archive_digest
             )
-            or not hmac.compare_digest(
-                fresh.current_archive_digest, preview.current_archive_digest
-            )
+            or not hmac.compare_digest(fresh.current_archive_digest, preview.current_archive_digest)
             or fresh.result != preview.result
         ):
             raise KnowledgeUpdateError(
@@ -349,6 +349,12 @@ def signed_update_document(
 ) -> dict[str, object]:
     """Build the exact unsigned document a separate offline signer must sign."""
 
+    # This prepares a new signing document. Incoming signed envelopes are verified
+    # against their original bytes in inspect(), before any local serialization.
+    document = json.loads(
+        KnowledgeUpdateService.canonical_bytes(archive_mapping(seal_archive(archive)))
+    )
+    parse_archive(document)
     return {
         "format": KnowledgeUpdateService.FORMAT,
         "schema_version": KnowledgeUpdateService.SCHEMA_VERSION,
@@ -357,8 +363,5 @@ def signed_update_document(
         "signature_algorithm": "ed25519",
         "issued_at": KnowledgeUpdateService._timestamp(issued_at).isoformat(),
         "expires_at": KnowledgeUpdateService._timestamp(expires_at).isoformat(),
-        "archive": {
-            "format": "romverse.offline-knowledge-archive",
-            **asdict(archive),
-        },
+        "archive": document,
     }

@@ -4776,7 +4776,9 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event) -> None:  # noqa: N802
         """Stop producers before Qt begins destroying their receiving widgets."""
 
-        if self._local_flash_dialog is not None and self._local_flash_dialog.worker is not None:
+        if self._local_flash_dialog is not None and (
+            self._local_flash_dialog.worker is not None or self._local_flash_dialog.monitoring
+        ):
             event.ignore()
             self._local_flash_dialog.raise_()
             return
@@ -6715,6 +6717,8 @@ class MainWindow(QMainWindow):
     @Slot()
     def _open_expert_flash(self) -> None:
         from romverse.guardian.local_flash import LocalFlashService
+        from romverse.guardian.local_transition import LocalDeviceTransitionService
+        from romverse.rom.local_boot import LocalBootService
         from romverse.ui.local_flash import LocalFlashDialog
 
         if self._experience_mode is not ExperienceMode.EXPERT or self._local_flash_dialog is not None:
@@ -6755,50 +6759,81 @@ class MainWindow(QMainWindow):
         dialog = LocalFlashDialog(
             service, tuple(self._observed_devices), self,
             discover=self.engine.scan if self.engine is not None else None,
+            transition_service=LocalDeviceTransitionService(service, self._device_adb_executable),
+            boot_service=(
+                LocalBootService(service, self._device_adb_executable)
+                if self._device_adb_executable is not None else None
+            ),
         )
         dialog.operation_finished.connect(self._record_local_flash_result)
+        dialog.transition_finished.connect(self._record_local_transition_result)
+        dialog.boot_finished.connect(self._record_local_boot_result)
         self._local_flash_dialog = dialog
         self._reconnect_timer.stop()
         try:
             dialog.exec()
         finally:
             self._local_flash_dialog = None
+        self._finish_expert_dialog(dialog)
+        if self.engine is not None:
+            self.scan()
+        else:
+            self._finish_local_flash_recovery([])
+
+    def _finish_expert_dialog(self, dialog) -> None:
         result = dialog.result
         failure_message = ""
-        if result is not None and result.phone_change_attempted and result.state != "completed":
+        attempted = dialog.last_attempt_device
+        trigger = RecoveryTrigger.FLASH_FAILURE
+        if dialog.boot_report is not None and dialog.boot_report.status == "attention":
+            failure_message = dialog.boot_report.summary
+            attempted = dialog.boot_device
+            trigger = (
+                RecoveryTrigger.BOOTLOOP if dialog.boot_report.failure_kind == "reboot_loop"
+                else RecoveryTrigger.BOOT_ATTENTION
+            )
+        elif dialog.boot_error:
+            failure_message = "Boot could not be verified. " + dialog.boot_error
+            attempted = dialog.boot_device
+            trigger = RecoveryTrigger.BOOT_ATTENTION
+        elif result is not None and result.phone_change_attempted and result.state != "completed":
             # An interrupted sequence can leave only some partitions written. Feed
             # the measured outcome into the existing recovery incident workflow.
             failure_message = result.summary
+            attempted = dialog.last_flash_device or attempted
         elif dialog.execution_error:
             failure_message = (
                 "The image-writing service did not return a complete result. Recheck the phone state. "
                 + dialog.execution_error
             )
+        elif dialog.transition_error:
+            failure_message = "The requested phone mode was not verified. " + dialog.transition_error
+            attempted = dialog.transition_attempt_device
+            trigger = RecoveryTrigger.DEVICE_MODE
         elif dialog.recovery_requested:
             self._navigate_route("recovery_bay")
-        if failure_message and dialog.last_attempt_device is not None:
-            self._pending_local_flash_recovery = (dialog.last_attempt_device, failure_message)
-            self._selected_device_serial = dialog.last_attempt_device.serial
-        if self.engine is not None:
-            self.scan()
-        else:
-            self._finish_local_flash_recovery([])
+        if failure_message and attempted is not None:
+            self._pending_local_flash_recovery = (attempted, failure_message)
+            self._pending_local_flash_recovery_trigger = trigger
+            self._selected_device_serial = attempted.serial
 
     def _finish_local_flash_recovery(self, devices: list[AndroidDevice]) -> None:
         pending = self._pending_local_flash_recovery
         if pending is None:
             return
         self._pending_local_flash_recovery = None
+        trigger = getattr(self, "_pending_local_flash_recovery_trigger", RecoveryTrigger.FLASH_FAILURE)
+        self._pending_local_flash_recovery_trigger = RecoveryTrigger.FLASH_FAILURE
         attempted, message = pending
         fresh = next((item for item in devices if item.serial == attempted.serial), None)
         target = fresh or AndroidDevice(
             attempted.serial, DeviceState.UNKNOWN,
             manufacturer=attempted.manufacturer, model=attempted.model,
             product=attempted.product, codename=attempted.codename,
-            connection_note="Last attempted image-write target; current connection state is unknown.",
+            connection_note="Last selected operation target; current connection state is unknown.",
         )
         self.repair_center.open_recovery_incident(
-            RecoveryTrigger.FLASH_FAILURE,
+            trigger,
             project_id="", message=message, target_device=target,
         )
         self._navigate_route("recovery_bay")
@@ -6821,7 +6856,32 @@ class MainWindow(QMainWindow):
         title = "Image writes completed · boot unverified" if result.state == "completed" else "Image writing stopped"
         self._record_activity(
             "rom-studio", title, result.summary, "attention", "ROM Studio",
-            source_route="rom_studio",
+        )
+        self.rom_studio.operation_status.setText(result.summary)
+
+    @Slot(object)
+    def _record_local_transition_result(self, result: object) -> None:
+        from romverse.guardian.local_transition import LocalTransitionResult
+
+        if not isinstance(result, LocalTransitionResult):
+            return
+        self._record_activity(
+            "rom-studio", "Phone mode observed" if result.state == "completed" else "Phone mode needs attention",
+            result.summary, "attention", "ROM Studio",
+        )
+        self.rom_studio.operation_status.setText(result.summary)
+
+    @Slot(object)
+    def _record_local_boot_result(self, result: object) -> None:
+        from romverse.rom.local_boot import LocalBootReport
+
+        if not isinstance(result, LocalBootReport):
+            return
+        stable = result.status == "stable" and result.boot_observed
+        title = "Android boot observed · subsystem tests pending" if stable else "Android boot check ended"
+        self._record_activity(
+            "rom-studio", title, result.summary,
+            "success" if stable else "attention", "ROM Studio",
         )
         self.rom_studio.operation_status.setText(result.summary)
 

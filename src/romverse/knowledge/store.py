@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import datetime
 from importlib.resources import files
 from pathlib import Path
@@ -22,10 +22,12 @@ from romverse.knowledge.models import (
     DeviceKnowledgeScope,
     KnowledgeArchive,
     KnowledgeConfidence,
+    KnowledgeEvidenceStatus,
     KnowledgeImportResult,
     KnowledgeKind,
     KnowledgeOperation,
     KnowledgeRecord,
+    KnowledgeRiskClass,
     KnowledgeSource,
     KnowledgeSourceTier,
 )
@@ -78,6 +80,7 @@ _OPERATION_FIELDS = {
     "target_partitions",
     "verified_input_requirements",
     "rollback_route",
+    "risk_class",
 }
 _RECORD_FIELDS = {
     "record_id",
@@ -101,7 +104,23 @@ _RECORD_FIELDS = {
     "confidence",
     "corroboration_count",
     "operations",
+    "evidence_status",
+    "confidence_score",
+    "status_reason",
+    "updated_at",
+    "failure_count",
+    "moderation_required",
 }
+
+_RECORD_REQUIRED_FIELDS = set(_RECORD_FIELDS) - {
+    "evidence_status",
+    "confidence_score",
+    "status_reason",
+    "updated_at",
+    "failure_count",
+    "moderation_required",
+}
+_OPERATION_REQUIRED_FIELDS = set(_OPERATION_FIELDS) - {"risk_class"}
 
 
 class KnowledgeArchiveStore:
@@ -146,7 +165,10 @@ class KnowledgeArchiveStore:
             sort_keys=True,
             separators=(",", ":"),
         )
-        sealed = parse_archive(json.loads(encoded))
+        # Parsing may normalize legacy optional fields. Seal the exact normalized
+        # document that will be written, never retain a digest of its earlier form.
+        sealed = seal_archive(parse_archive(json.loads(encoded)))
+        parse_archive(json.loads(json.dumps(archive_mapping(sealed), allow_nan=False)))
         self.workspace.mkdir(parents=True, exist_ok=True)
         ensure_private_directory(self.workspace, boundary=self.workspace)
         ensure_private_directory(self.root, boundary=self.workspace)
@@ -161,7 +183,12 @@ class KnowledgeArchiveStore:
             raise KnowledgeArchiveError(
                 f"Offline knowledge archive could not be saved: {exc}"
             ) from exc
-        return sealed
+        saved = self.load()
+        if saved != sealed:
+            raise KnowledgeArchiveError(
+                "Offline knowledge archive changed during save verification"
+            )
+        return saved
 
     def import_bundle(self, source: Path) -> KnowledgeImportResult:
         """Merge a strict content-digested bundle; never silently replace equal revisions."""
@@ -282,6 +309,18 @@ def validate_archive(archive: KnowledgeArchive) -> None:
     known_sources = set(source_ids)
     source_by_id = {source.source_id: source for source in archive.sources}
     for record in archive.records:
+        _timestamp(record.updated_at, "record update time")
+        if not isinstance(record.evidence_status, KnowledgeEvidenceStatus):
+            raise KnowledgeArchiveError(f"Knowledge evidence status is invalid: {record.record_id}")
+        if type(record.confidence_score) is not int or not 0 <= record.confidence_score <= 100:
+            raise KnowledgeArchiveError(
+                f"Knowledge confidence score is invalid: {record.record_id}"
+            )
+        if type(record.failure_count) is not int or not 0 <= record.failure_count <= 50_000:
+            raise KnowledgeArchiveError(f"Knowledge failure count is invalid: {record.record_id}")
+        if type(record.moderation_required) is not bool:
+            raise KnowledgeArchiveError(f"Knowledge moderation flag is invalid: {record.record_id}")
+        _optional_text(record.status_reason, "status reason", 400)
         if not record.source_ids or not set(record.source_ids) <= known_sources:
             raise KnowledgeArchiveError(
                 f"Knowledge record has unknown provenance: {record.record_id}"
@@ -295,6 +334,10 @@ def validate_archive(archive: KnowledgeArchive) -> None:
                 f"Community knowledge lacks scope or corroboration: {record.record_id}"
             )
         for operation in record.operations:
+            if not isinstance(operation.risk_class, KnowledgeRiskClass):
+                raise KnowledgeArchiveError(
+                    f"Knowledge risk class is invalid: {operation.operation_id}"
+                )
             _validate_operation_authority(record, operation)
 
 
@@ -372,6 +415,24 @@ def reconcile_packaged_archive(
     records = {record.record_id: record for record in current.records}
     for record in packaged.records:
         existing = records.get(record.record_id)
+        if existing is not None and (
+            existing.evidence_status
+            in {
+                KnowledgeEvidenceStatus.DISPUTED,
+                KnowledgeEvidenceStatus.UNSAFE,
+                KnowledgeEvidenceStatus.RETIRED,
+            }
+            or existing.moderation_required
+            or existing.status_reason
+            or existing.failure_count
+        ):
+            record = replace(
+                record,
+                evidence_status=existing.evidence_status,
+                moderation_required=existing.moderation_required,
+                status_reason=existing.status_reason,
+                failure_count=existing.failure_count,
+            )
         if existing is None or record.revision > existing.revision:
             records[record.record_id] = record
         elif record.revision == existing.revision and record != existing:
@@ -439,9 +500,27 @@ def _parse_scope(raw: object) -> DeviceKnowledgeScope:
 
 
 def _parse_operation(raw: dict[str, object]) -> KnowledgeOperation:
-    _exact_fields(raw, _OPERATION_FIELDS, "operation")
+    if not isinstance(raw, dict):
+        raise KnowledgeArchiveError("Knowledge operation must be an object")
+    if set(raw) - _OPERATION_FIELDS:
+        raise KnowledgeArchiveError("Knowledge operation fields exceed evidence contract")
+    if not set(raw) >= _OPERATION_REQUIRED_FIELDS:
+        raise KnowledgeArchiveError("Knowledge operation fields are missing")
     if type(raw["changes_device"]) is not bool:
         raise KnowledgeArchiveError("Knowledge operation device-change flag is invalid")
+    if "risk_class" in raw:
+        try:
+            risk_class = KnowledgeRiskClass(raw["risk_class"])
+        except (TypeError, ValueError) as exc:
+            raise KnowledgeArchiveError("Knowledge operation risk class is invalid") from exc
+    else:
+        risk_class = _derive_risk_class(
+            _text(raw["kind"], "operation kind", 80),
+            _text(raw["label"], "operation label", 180),
+            _strings(raw["target_partitions"], "target partitions", 64, 80),
+            (_optional_text(raw["rollback_route"], "rollback route", 240),),
+            _strings(raw["verified_input_requirements"], "verified input requirements", 32, 120),
+        )
     return KnowledgeOperation(
         operation_id=_identifier(raw["operation_id"], "operation id", 96),
         label=_text(raw["label"], "operation label", 180),
@@ -452,14 +531,23 @@ def _parse_operation(raw: dict[str, object]) -> KnowledgeOperation:
             raw["verified_input_requirements"], "verified input requirements", 32, 120
         ),
         rollback_route=_optional_text(raw["rollback_route"], "rollback route", 240),
+        risk_class=risk_class,
     )
 
 
 def _parse_record(raw: dict[str, object]) -> KnowledgeRecord:
-    _exact_fields(raw, _RECORD_FIELDS, "record")
+    if not isinstance(raw, dict):
+        raise KnowledgeArchiveError("Knowledge record must be an object")
+    if set(raw) - _RECORD_FIELDS:
+        raise KnowledgeArchiveError("Knowledge record fields exceed evidence contract")
+    if not set(raw) >= _RECORD_REQUIRED_FIELDS:
+        raise KnowledgeArchiveError("Knowledge record fields are missing")
     try:
         kind = KnowledgeKind(raw["kind"])
         confidence = KnowledgeConfidence(raw["confidence"])
+        evidence_status = KnowledgeEvidenceStatus(
+            raw.get("evidence_status", KnowledgeEvidenceStatus.DRAFT)
+        )
     except (TypeError, ValueError) as exc:
         raise KnowledgeArchiveError("Knowledge record classification is invalid") from exc
     revision = raw["revision"]
@@ -472,6 +560,21 @@ def _parse_record(raw: dict[str, object]) -> KnowledgeRecord:
     operations = tuple(_parse_operation(item) for item in operations_raw)
     if len({item.operation_id for item in operations}) != len(operations):
         raise KnowledgeArchiveError("Knowledge operation identities must be unique")
+    updated_at = (
+        _timestamp(raw["updated_at"], "record update time")
+        if "updated_at" in raw
+        else "1970-01-01T00:00:00+00:00"
+    )
+    confidence_score = raw.get("confidence_score", 0)
+    if type(confidence_score) is not int or not 0 <= confidence_score <= 100:
+        raise KnowledgeArchiveError("Knowledge confidence score is invalid")
+    status_reason = raw.get("status_reason", "")
+    failure_count = raw.get("failure_count", 0)
+    if type(failure_count) is not int or not 0 <= failure_count <= 50_000:
+        raise KnowledgeArchiveError("Knowledge failure count is invalid")
+    moderation_required = raw.get("moderation_required", False)
+    if type(moderation_required) is not bool:
+        raise KnowledgeArchiveError("Knowledge moderation flag is invalid")
     return KnowledgeRecord(
         record_id=_identifier(raw["record_id"], "record id", 96),
         revision=revision,
@@ -496,6 +599,12 @@ def _parse_record(raw: dict[str, object]) -> KnowledgeRecord:
         confidence=confidence,
         corroboration_count=corroboration,
         operations=operations,
+        evidence_status=evidence_status,
+        confidence_score=int(confidence_score),
+        status_reason=_optional_text(status_reason, "status reason", 400),
+        updated_at=updated_at,
+        failure_count=failure_count,
+        moderation_required=moderation_required,
     )
 
 
@@ -525,6 +634,91 @@ def _validate_operation_authority(
             f"Device-changing knowledge lacks exact target/build/partition/input/rollback evidence: "
             f"{operation.operation_id}"
         )
+
+
+def _derive_risk_class(
+    kind: str,
+    label: str,
+    partitions: tuple[str, ...],
+    rollback: tuple[str, ...],
+    requirements: tuple[str, ...],
+) -> KnowledgeRiskClass:
+    words = (
+        kind
+        + " "
+        + label
+        + " "
+        + " ".join(partitions)
+        + " "
+        + " ".join(rollback)
+        + " "
+        + " ".join(requirements)
+    )
+    lowered = words.casefold()
+    if any(
+        token in lowered
+        for token in (
+            "unlock",
+            "relock",
+            "wipe",
+            "format",
+            "erase",
+            "root",
+            "bootloader",
+            "partition",
+        )
+    ):
+        return KnowledgeRiskClass.HIGH
+    if any(token in lowered for token in ("resize", "flashing", "flash", "restore", "repartition")):
+        return KnowledgeRiskClass.MODERATE
+    return KnowledgeRiskClass.SAFE
+
+
+def _derive_confidence_score(
+    *,
+    kind: KnowledgeKind,
+    confidence: KnowledgeConfidence,
+    source_tiers: tuple[KnowledgeSourceTier, ...],
+    corroboration: int,
+    failure_count: int,
+    evidence_status: KnowledgeEvidenceStatus,
+    status_reason: str,
+) -> int:
+    source_quality = 0
+    if source_tiers:
+        source_quality = max(
+            {
+                KnowledgeSourceTier.OFFICIAL_PLATFORM: 55,
+                KnowledgeSourceTier.OFFICIAL_VENDOR: 50,
+                KnowledgeSourceTier.ROMVERSE_VERIFIED: 48,
+                KnowledgeSourceTier.REPUTABLE_TECHNICAL: 32,
+                KnowledgeSourceTier.COMMUNITY: 15,
+            }.get(item, 0)
+            for item in source_tiers
+        )
+    status_bonus = {
+        KnowledgeEvidenceStatus.OFFICIAL: 26,
+        KnowledgeEvidenceStatus.MAINTAINER_VERIFIED: 22,
+        KnowledgeEvidenceStatus.COMMUNITY_CONFIRMED: 14,
+        KnowledgeEvidenceStatus.REPORTED_WORKING: 7,
+        KnowledgeEvidenceStatus.DRAFT: 0,
+        KnowledgeEvidenceStatus.DISPUTED: -20,
+        KnowledgeEvidenceStatus.UNSAFE: -40,
+        KnowledgeEvidenceStatus.RETIRED: 0,
+    }[evidence_status]
+    corroboration_bonus = max(0, min(corroboration, 8)) * 4
+    reason_penalty = -18 if status_reason else 0
+    failure_penalty = min(max(failure_count, 0), 12) * 6
+    confidence_cap = {
+        KnowledgeConfidence.UNCONFIRMED: 16,
+        KnowledgeConfidence.LOW: 36,
+        KnowledgeConfidence.MEDIUM: 58,
+        KnowledgeConfidence.HIGH: 80,
+        KnowledgeConfidence.VERIFIED: 100,
+    }[confidence]
+    derived = source_quality + status_bonus + corroboration_bonus + reason_penalty - failure_penalty
+    derived += 10 if kind is KnowledgeKind.RECOVERY else 0
+    return max(0, min(confidence_cap, derived))
 
 
 def _exact_fields(raw: dict[str, object], expected: set[str], label: str) -> None:
@@ -636,6 +830,12 @@ def _existing_catalog_archive() -> KnowledgeArchive:
             tier = KnowledgeSourceTier.COMMUNITY
         else:
             tier = KnowledgeSourceTier.ROMVERSE_VERIFIED
+        evidence_status = {
+            KnowledgeSourceTier.OFFICIAL_PLATFORM: KnowledgeEvidenceStatus.OFFICIAL,
+            KnowledgeSourceTier.OFFICIAL_VENDOR: KnowledgeEvidenceStatus.OFFICIAL,
+            KnowledgeSourceTier.REPUTABLE_TECHNICAL: KnowledgeEvidenceStatus.MAINTAINER_VERIFIED,
+            KnowledgeSourceTier.ROMVERSE_VERIFIED: KnowledgeEvidenceStatus.REPORTED_WORKING,
+        }.get(tier, KnowledgeEvidenceStatus.REPORTED_WORKING)
         sources[source_id] = KnowledgeSource(
             source_id=source_id,
             label=article.source.label,
@@ -667,7 +867,7 @@ def _existing_catalog_archive() -> KnowledgeArchive:
         records.append(
             KnowledgeRecord(
                 record_id=f"catalog.{article.key}",
-                revision=1,
+                revision=2,
                 title=article.title,
                 kind=kind,
                 summary=article.meaning,
@@ -696,6 +896,20 @@ def _existing_catalog_archive() -> KnowledgeArchive:
                 source_ids=(source_id,),
                 confidence=confidence,
                 corroboration_count=1,
+                evidence_status=evidence_status,
+                confidence_score=_derive_confidence_score(
+                    kind=kind,
+                    confidence=confidence,
+                    source_tiers=(tier,),
+                    corroboration=1,
+                    failure_count=0,
+                    evidence_status=evidence_status,
+                    status_reason="",
+                ),
+                status_reason="",
+                updated_at=f"{article.source.reviewed_on}T00:00:00+00:00",
+                failure_count=0,
+                moderation_required=tier is KnowledgeSourceTier.COMMUNITY,
                 operations=(),
             )
         )

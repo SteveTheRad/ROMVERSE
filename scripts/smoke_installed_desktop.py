@@ -139,7 +139,7 @@ def main() -> int:
         len(archive.records) != 281
         or len(archive.sources) != 181
         or archive.bundle_digest
-        != "5ee67fa59c07e21f28944ed21398231e728ad9e9cfff838a46915c9260efa3e3"
+        != "e198fe3773f62052db37048f97fae4fc4ab4261a8c7167ce7ff738dc382b3787"
     ):
         raise RuntimeError("Installed offline Archives corpus is missing packaged evidence")
     failure_lookup = offline.lookup(

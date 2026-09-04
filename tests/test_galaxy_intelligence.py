@@ -22,7 +22,11 @@ from romverse.galaxy.intelligence import (
     GalaxyOutcome,
     galaxy_moderation_document,
 )
-from romverse.knowledge.models import KnowledgeConfidence, KnowledgeSourceTier
+from romverse.knowledge.models import (
+    KnowledgeConfidence,
+    KnowledgeEvidenceStatus,
+    KnowledgeSourceTier,
+)
 from romverse.knowledge.store import KnowledgeArchiveStore
 
 
@@ -236,6 +240,8 @@ def test_signed_moderation_promotes_verified_community_evidence_into_synapse(tmp
     moderation = _moderation_service(intelligence, private_key)
 
     moderation_preview = moderation.inspect(bundle)
+    before = KnowledgeArchiveStore(workspace).ensure_seeded()
+    assert not any(item.record_id == f"galaxy.{queued.contribution_id}" for item in before.records)
     changed = moderation.apply(moderation_preview)
 
     assert moderation_preview.execution_authority == "none"
@@ -253,6 +259,9 @@ def test_signed_moderation_promotes_verified_community_evidence_into_synapse(tmp
     )
     source = next(item for item in archive.sources if item.source_id == record.source_ids[0])
     assert record.confidence is KnowledgeConfidence.HIGH
+    assert record.evidence_status is KnowledgeEvidenceStatus.COMMUNITY_CONFIRMED
+    assert record.updated_at == changed[0].updated_at
+    assert record.operations == ()
     assert record.scope.codenames == ("popsicle",)
     assert record.scope.build_ids == ("OS4.0.0.25.WPBCNXM",)
     assert record.corroboration_count == 2

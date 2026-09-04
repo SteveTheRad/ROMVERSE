@@ -200,6 +200,28 @@ transparent rounded/circular legacy fallbacks. The v2-valid debug APK SHA-256 is
 `e6947c9de6aaab0700af08c77c5ad417b7203177625a4b6fafa72ebd79dc2919`; it remains a debug artifact,
 not a production-signed release. No phone write or installation was performed by this increment.
 
+The offline Knowledge Archives increment at commits `b7ceb82`, `0bf1844`, `51a1b62`, and release
+checkpoint `41a5838` passes all 1,661 Desktop tests and complete Ruff check/format gates across 355
+Python files. The new strict local brain contains 199 structured records and 111 attributed sources,
+including scoped official, maintainer, XDA, and Reddit evidence across the represented Android OEMs.
+Every successful Device DNA refresh queries it automatically. Boot Observatory now classifies
+device-mode, identity-drift, uptime-reset, boot-timeout, and incomplete-probe attention evidence;
+Genesis and Forge Control automatically rank matching recovery knowledge without granting an
+action. ROMVERSE Archives exposes those structured records beside the curated guides with source
+lane, exact scope, corroboration count, confidence, incompatibilities, and source links. Typed guide
+handoffs remain exact and isolated from broad search results.
+
+The fresh isolated 249-member wheel contains all 21 Device Packs and has SHA-256
+`8b26224c7c8952be4f10812e4c30a4b1a94485bfc50f2b2478d947334283bdd4`. A separate Python 3.14
+environment installed it and passed fresh/populated-workspace startup, 199-record archive loading,
+exact `HASH_MISMATCH(3)` ranking, structured Archives UI visibility, 169-fix/19-route checks, and
+byte-exact reopening. The self-contained Fedora app launched successfully; both packaged knowledge
+seed files were present, and its verified 453-file, 355,958,199-expanded-byte portable ZIP has
+SHA-256 `f879d5f89858c259f64d506377a2e9df5b83e0d390ee5f25c4da214757181d97`. These are local Linux
+release-candidate artifacts. Windows/CI reruns still depend on correcting the GitHub account runner
+billing limit, and no phone, firmware, partition, bootloader, flash, or installation operation was
+performed.
+
 ## Required gates
 
 1. Run the complete `pytest`, `ruff check .`, and `ruff format --check .` gates on supported Linux

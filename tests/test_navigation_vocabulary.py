@@ -37,7 +37,14 @@ from romverse.intelligence.synapse import (
 )
 from romverse.nexus.events import MissionConfidence
 from romverse.nexus.planning import NexusObjective, NexusPlanner
+from romverse.repair.autopilot import RecoveryTrigger
 from romverse.repair.templates import RepairConcern
+from romverse.rom.boot_observation import (
+    BootFailureKind,
+    BootObservationReceipt,
+    BootObservationStatus,
+    BootSample,
+)
 from romverse.rom.inspection import RomInspectionService
 from romverse.rom.projects import RomProjectStore
 from romverse.rom.source_intelligence import FirmwareSourceIntelligenceService
@@ -55,6 +62,67 @@ from tests.test_device_catalog import _payload, _sync
 from tests.test_device_dna import _device, _project, _source
 from tests.test_guardian_manifest_review import _prepared as _prepared_guardian_manifest
 from tests.test_source_intelligence import SourceRunner
+
+
+def test_bootloop_evidence_automatically_opens_recovery_autopilot(tmp_path: Path) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    store, registry, project, _report = _project(tmp_path)
+    phone = _device(
+        state=DeviceState.FASTBOOT,
+        boot_completed=False,
+        uptime_seconds=10,
+    )
+    window = MainWindow(None, logo, store.workspace, app_icon_path=logo, pack_registry=registry)
+    try:
+        window.rom_studio.refresh(project.project_id)
+        window.rom_studio.devices = [phone]
+        window.repair_center.set_devices([phone])
+        sample = BootSample(
+            datetime.now(UTC).isoformat(),
+            "a" * 20,
+            DeviceState.FASTBOOT.value,
+            False,
+            10,
+            "_a",
+            phone.build_id,
+            phone.build_fingerprint,
+            phone.battery_percent,
+            (),
+        )
+        receipt = BootObservationReceipt(
+            3,
+            project.project_id,
+            project.device_pack_id,
+            registry.packs[0].build_contract.contract_id,
+            project.original.sha256,
+            (sample,),
+            BootObservationStatus.ATTENTION,
+            False,
+            True,
+            True,
+            "b" * 64,
+            False,
+            "Repeated restart evidence was measured after the verified flash.",
+            False,
+            BootFailureKind.REBOOT_LOOP,
+            ("boot loop after flash",),
+            "c" * 64,
+        )
+
+        window._handle_boot_observation(receipt, None)
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.repair_center
+        assert window.repair_center.autopilot_incident is not None
+        assert window.repair_center.autopilot_incident.trigger is RecoveryTrigger.BOOTLOOP
+        assert not window.repair_center.autopilot_incident.repaired
+        assert window.repair_center.autopilot_card.isVisibleTo(window.repair_center)
+        assert window.rom_studio.worker is None
+        assert window.repair_center.host_repair_worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
 
 
 def test_every_desktop_navigation_label_opens_and_highlights_its_own_page(

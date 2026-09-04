@@ -659,6 +659,7 @@ class RomStudio(QWidget):
     device_scan_finished = Signal(bool, str)
     device_dna_updated = Signal(object)
     guardian_flash_verified = Signal(str, str, object)
+    boot_observation_updated = Signal(object, object)
     compatibility_matrix_updated = Signal(object)
     offline_knowledge_updated = Signal(object)
     experience_mode_requested = Signal(object)
@@ -2854,7 +2855,8 @@ class RomStudio(QWidget):
                     active[0],
                     verified_flash=self._latest_guardian_execution_result,
                 )
-                self.scan_boot_observation_knowledge(receipt)
+                knowledge_report = self.scan_boot_observation_knowledge(receipt)
+                self.boot_observation_updated.emit(receipt, knowledge_report)
         if changed:
             self.device_context_changed.emit()
             if self.current_project is not None and self.worker is None:

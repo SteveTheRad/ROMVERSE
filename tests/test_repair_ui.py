@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from dataclasses import replace
 from importlib.resources import files
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -24,6 +25,7 @@ from romverse.intelligence.online_remediation import (
     SourceAuthority,
 )
 from romverse.knowledge.lookup import OfflineKnowledgeService
+from romverse.repair.autopilot import RecoveryIncidentState, RecoveryTrigger
 from romverse.repair.host import AdbHostRepairReceiptStore, AdbHostRepairService
 from romverse.repair.templates import RepairAssessmentTemplates, RepairConcern
 from romverse.ui.repair_center import RepairCenter
@@ -575,6 +577,127 @@ def test_recovery_bay_offers_exact_host_only_adb_repair_and_rescans(tmp_path, mo
     assert requested == [True]
     assert "rescan" in center.digest.text().casefold()
     assert service.receipts.load_latest().valid
+    center.close()
+
+
+def test_recovery_autopilot_cockpit_opens_from_evidence_and_survives_disconnect(
+    tmp_path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = RepairCenter(
+        DiagnosticAnalyzer(),
+        RepairAssessmentTemplates(),
+        GuardianPreflight(),
+        tmp_path,
+        ActivityStore(tmp_path),
+    )
+    center.set_devices([device(state=DeviceState.UNAUTHORIZED)])
+
+    created = center.open_recovery_incident(
+        RecoveryTrigger.DEVICE_MODE,
+        message="ADB authorization is required after reconnect",
+    )
+    app.processEvents()
+
+    assert created
+    assert center.autopilot_incident is not None
+    assert center.autopilot_incident.state is RecoveryIncidentState.STABILIZING
+    assert center.autopilot_card.isVisibleTo(center)
+    assert "ADB UNAUTHORIZED" in center.autopilot_title.text()
+    assert center.autopilot_route_buttons
+    assert "RECOVERED REQUIRES FRESH BOOT + RECONNECT PROOF" in (
+        center.autopilot_boundary.text()
+    )
+
+    center.set_devices([])
+    app.processEvents()
+
+    assert center.autopilot_incident is not None
+    assert center.autopilot_incident.mode == "disconnected"
+    assert center.autopilot_incident.state is RecoveryIncidentState.EMERGENCY
+    assert not center.autopilot_incident.repaired
+    assert "EMERGENCY" in center.autopilot_badge.text()
+    center.close()
+
+
+def test_recovery_autopilot_route_review_opens_owner_without_phone_action(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = RepairCenter(
+        DiagnosticAnalyzer(),
+        RepairAssessmentTemplates(),
+        GuardianPreflight(),
+        tmp_path,
+        ActivityStore(tmp_path),
+    )
+    center.set_devices([device(state=DeviceState.UNAUTHORIZED)])
+    center.open_recovery_incident(RecoveryTrigger.DEVICE_MODE)
+    requested: list[tuple[str, str]] = []
+    center.autopilot_route_requested.connect(
+        lambda owner, route: requested.append((owner, route))
+    )
+
+    center.autopilot_route_buttons[0].click()
+    app.processEvents()
+
+    assert requested == [("command_deck", "recovery.authorize_adb")]
+    assert center.host_repair_worker is None
+    assert center.autopilot_incident is not None
+    assert center.autopilot_incident.events[-1].event_type == "route_reviewed"
+    assert not center.autopilot_incident.phone_changed
+    center.close()
+
+
+def test_recovery_autopilot_keeps_every_ranked_route_reviewable(
+    tmp_path, monkeypatch
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = RepairCenter(
+        DiagnosticAnalyzer(),
+        RepairAssessmentTemplates(),
+        GuardianPreflight(),
+        tmp_path,
+        ActivityStore(tmp_path),
+    )
+    center.open_recovery_incident(RecoveryTrigger.MANUAL_DIAGNOSIS)
+    incident = center.autopilot_incident
+    assert incident is not None
+    template = incident.routes[0]
+    routes = tuple(
+        replace(
+            template,
+            route_id=f"recovery.presentation-{rank}",
+            title=f"Ranked recovery route {rank}",
+            rank=rank,
+        )
+        for rank in range(1, 6)
+    )
+    center.autopilot_incident = replace(incident, routes=routes)
+    center._render_autopilot()
+    app.processEvents()
+
+    assert len(center.autopilot_route_buttons) == 4
+    show_all = next(
+        button
+        for button in center.findChildren(QPushButton)
+        if button.text() == "Show all 5 ranked routes"
+    )
+    show_all.click()
+    app.processEvents()
+    assert len(center.autopilot_route_buttons) == 5
+    assert any(
+        button.text() == "Show highest-priority routes"
+        for button in center.findChildren(QPushButton)
+    )
+
+    shown: list[str] = []
+    monkeypatch.setattr(
+        QMessageBox,
+        "information",
+        lambda _parent, _title, text: shown.append(text),
+    )
+    center.autopilot_timeline_button.click()
+    assert shown and "CURRENT RANKED ROUTES" in shown[-1]
+    assert "Ranked recovery route 5" in shown[-1]
     center.close()
 
 

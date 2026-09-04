@@ -52,6 +52,16 @@ from romverse.nexus.events import (
     MissionConfidence,
     MissionState,
 )
+from romverse.repair.autopilot import (
+    RecoveryAutopilotContext,
+    RecoveryAutopilotError,
+    RecoveryAutopilotService,
+    RecoveryIncident,
+    RecoveryIncidentState,
+    RecoveryRoute,
+    RecoveryRouteKind,
+    RecoveryTrigger,
+)
 from romverse.repair.host import (
     AdbHostRepairError,
     AdbHostRepairMode,
@@ -67,6 +77,8 @@ from romverse.repair.templates import (
     RepairConcern,
     concern_for_finding,
 )
+from romverse.rom.boot_observation import BootObservationReceipt
+from romverse.rom.recovery_evidence import RecoveryEvidenceAssessment
 from romverse.ui.background import ManagedRunnable, start_background
 from romverse.ui.process_progress import ProcessProgressBar
 
@@ -123,6 +135,7 @@ class RepairCenter(QWidget):
     knowledge_article_requested = Signal(str)
     diagnostic_requested = Signal(str)
     resolution_memory_updated = Signal()
+    autopilot_route_requested = Signal(str, str)
 
     def __init__(
         self,
@@ -172,6 +185,19 @@ class RepairCenter(QWidget):
         self._online_receipts: dict[str, OnlineFixReceipt] = {}
         self._online_mission = ""
         self._intelligence_action_binding: tuple[str, str, str, str] | None = None
+        self.autopilot_service = (
+            RecoveryAutopilotService(workspace, self.pack_registry)
+            if workspace is not None
+            else None
+        )
+        self.autopilot_incident: RecoveryIncident | None = None
+        self._autopilot_project_id = ""
+        self._autopilot_boot_observation: BootObservationReceipt | None = None
+        self._autopilot_recovery_evidence: RecoveryEvidenceAssessment | None = None
+        self._autopilot_knowledge_report: KnowledgeLookupReport | None = None
+        self._autopilot_message = ""
+        self._autopilot_show_all_routes = False
+        self.autopilot_route_buttons: list[QPushButton] = []
 
         page = QVBoxLayout(self)
         page.setContentsMargins(30, 26, 30, 30)
@@ -341,6 +367,81 @@ class RepairCenter(QWidget):
         hero_layout.addWidget(self.status_badge)
         page.addWidget(self.hero)
 
+        self.autopilot_card = QFrame()
+        self.autopilot_card.setObjectName("RecoveryCockpit")
+        self.autopilot_card.setProperty("incidentState", "monitoring")
+        autopilot_layout = QVBoxLayout(self.autopilot_card)
+        autopilot_layout.setContentsMargins(22, 18, 22, 18)
+        autopilot_layout.setSpacing(11)
+        autopilot_header = QHBoxLayout()
+        autopilot_copy = QVBoxLayout()
+        autopilot_eyebrow = QLabel("RECOVERY AUTOPILOT  •  LIVE INCIDENT COMMAND CENTRE")
+        autopilot_eyebrow.setObjectName("Eyebrow")
+        self.autopilot_title = QLabel("Waiting for recovery evidence")
+        self.autopilot_title.setObjectName("HeroTitle")
+        self.autopilot_title.setWordWrap(True)
+        autopilot_copy.addWidget(autopilot_eyebrow)
+        autopilot_copy.addWidget(self.autopilot_title)
+        autopilot_header.addLayout(autopilot_copy, 1)
+        self.autopilot_badge = QLabel("MONITORING")
+        self.autopilot_badge.setObjectName("Warning")
+        autopilot_header.addWidget(self.autopilot_badge)
+        autopilot_layout.addLayout(autopilot_header)
+        self.autopilot_diagnosis = QLabel()
+        self.autopilot_diagnosis.setObjectName("Muted")
+        self.autopilot_diagnosis.setWordWrap(True)
+        self.autopilot_diagnosis.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        autopilot_layout.addWidget(self.autopilot_diagnosis)
+
+        self.autopilot_flight_path = QFrame()
+        self.autopilot_flight_path.setObjectName("RecoveryFlightPath")
+        flight_layout = QHBoxLayout(self.autopilot_flight_path)
+        flight_layout.setContentsMargins(10, 10, 10, 10)
+        flight_layout.setSpacing(8)
+        self.autopilot_stages: list[QFrame] = []
+        for number, label in enumerate(("DETECT", "DIAGNOSE", "ROUTE", "VERIFY"), 1):
+            stage = QFrame()
+            stage.setObjectName("RecoveryStage")
+            stage.setProperty("state", "attention")
+            stage_layout = QVBoxLayout(stage)
+            stage_layout.setContentsMargins(10, 7, 10, 7)
+            number_label = QLabel(f"{number:02d}")
+            number_label.setObjectName("RecoveryStageNumber")
+            value_label = QLabel(label)
+            value_label.setObjectName("RecoveryStageValue")
+            stage_layout.addWidget(number_label)
+            stage_layout.addWidget(value_label)
+            flight_layout.addWidget(stage, 1)
+            self.autopilot_stages.append(stage)
+        autopilot_layout.addWidget(self.autopilot_flight_path)
+
+        self.autopilot_routes = QWidget()
+        self.autopilot_routes_layout = QVBoxLayout(self.autopilot_routes)
+        self.autopilot_routes_layout.setContentsMargins(0, 0, 0, 0)
+        self.autopilot_routes_layout.setSpacing(8)
+        autopilot_layout.addWidget(self.autopilot_routes)
+        self.autopilot_boundary = QLabel(
+            "RANKING IS ADVISORY • DEVICE CHANGES REQUIRE A TYPED OWNER AND CONFIRMATION • "
+            "RECOVERED REQUIRES FRESH BOOT + RECONNECT PROOF"
+        )
+        self.autopilot_boundary.setObjectName("RecoveryBoundary")
+        self.autopilot_boundary.setWordWrap(True)
+        autopilot_layout.addWidget(self.autopilot_boundary)
+        autopilot_actions = QHBoxLayout()
+        self.autopilot_timeline_button = QPushButton("View incident timeline + routes")
+        self.autopilot_timeline_button.clicked.connect(self._show_autopilot_timeline)
+        self.autopilot_scan_button = QPushButton("Capture fresh read-only evidence")
+        self.autopilot_scan_button.setObjectName("Primary")
+        self.autopilot_scan_button.clicked.connect(self._request_autopilot_scan)
+        autopilot_actions.addWidget(self.autopilot_timeline_button)
+        autopilot_actions.addStretch()
+        autopilot_actions.addWidget(self.autopilot_scan_button)
+        autopilot_layout.addLayout(autopilot_actions)
+        self.autopilot_card.setVisible(False)
+        page.addWidget(self.autopilot_card)
+
         self.intelligence_card = QFrame()
         self.intelligence_card.setObjectName("Card")
         intelligence_layout = QVBoxLayout(self.intelligence_card)
@@ -502,33 +603,41 @@ class RepairCenter(QWidget):
         footer.addWidget(self.export_button)
         page.addLayout(footer)
         self._empty("Select a connected device and problem category to create a dry-run plan.")
+        if self.autopilot_service is not None:
+            self.autopilot_incident = next(
+                (
+                    incident
+                    for incident in self.autopilot_service.list_recent()
+                    if not incident.repaired
+                ),
+                None,
+            )
+            self._render_autopilot()
 
     def open_feature_destination(self, route: str) -> bool:
         """Reveal one Recovery Bay subsystem without starting research or repair."""
 
         destination = str(route).strip()
         if destination == "recovery_autopilot":
-            active = self.host_action_card.isVisible() and bool(
-                self.host_action_detail.text().strip()
-            )
+            active = self.autopilot_incident is not None
             self.feature_handoff_title.setText("Find Anything → Recovery Autopilot")
             self.feature_handoff_detail.setText(
                 (
-                    "The current bounded ADB host-recovery evidence is displayed below. Review "
-                    "its exact plan and Guardian boundary before choosing any action."
+                    "The current private incident, detected mode, ranked recovery routes, and "
+                    "verification boundary are displayed below."
                     if active
-                    else "Recovery Autopilot needs a current USB/ADB assessment that identifies "
-                    "an offline or failed host daemon. Select the matching concern and build a "
-                    "safety plan after a Device Engine snapshot exists."
+                    else "Recovery Autopilot opens automatically for measured flash or boot "
+                    "failure evidence. You can also start a guided diagnosis from a current "
+                    "Device Engine snapshot."
                 )
                 + " Navigation did not scan, restart ADB, research, repair, approve, build, "
                 "flash, or change a phone."
             )
             self.feature_handoff_badge.setText(
-                "CURRENT HOST PLAN" if active else "EVIDENCE REQUIRED"
+                "CURRENT INCIDENT" if active else "EVIDENCE REQUIRED"
             )
             self.feature_handoff_badge.setObjectName("Good" if active else "Warning")
-            focus = self._host_action_button if active else self.concern_selector
+            focus = self.autopilot_timeline_button if active else self.concern_selector
         elif destination == "romverse_intelligence":
             active = self.intelligence_card.isVisible() and bool(
                 self.intelligence_status.text().strip()
@@ -560,6 +669,329 @@ class RepairCenter(QWidget):
         focus.setFocus(Qt.FocusReason.OtherFocusReason)
         return True
 
+    def open_recovery_incident(
+        self,
+        trigger: RecoveryTrigger,
+        *,
+        project_id: str = "",
+        message: str = "",
+        boot_observation: BootObservationReceipt | None = None,
+        knowledge_report: KnowledgeLookupReport | None = None,
+        recovery_evidence: RecoveryEvidenceAssessment | None = None,
+    ) -> bool:
+        """Open or refresh one evidence-backed incident without executing a route."""
+
+        service = self.autopilot_service
+        if service is None:
+            return False
+        device = self.current_device or (self.devices[0] if len(self.devices) == 1 else None)
+        prior_id = self.autopilot_incident.incident_id if self.autopilot_incident else ""
+        self._autopilot_project_id = project_id.strip()[:100]
+        self._autopilot_boot_observation = boot_observation
+        self._autopilot_recovery_evidence = recovery_evidence
+        self._autopilot_knowledge_report = knowledge_report
+        self._autopilot_message = message.replace("\x00", " ").strip()[:1_000]
+        context = RecoveryAutopilotContext(
+            trigger,
+            device=device,
+            project_id=self._autopilot_project_id,
+            message=self._autopilot_message,
+            boot_observation=boot_observation,
+            knowledge_report=knowledge_report or self.offline_report,
+            recovery_evidence=recovery_evidence,
+            host_repair_available=self.host_repair_service is not None,
+        )
+        try:
+            self.autopilot_incident = service.open(context)
+        except RecoveryAutopilotError as exc:
+            self.digest.setText(f"Recovery incident could not be preserved  •  {exc}")
+            return False
+        self._render_autopilot()
+        created = self.autopilot_incident.incident_id != prior_id
+        if created:
+            self._record_activity(
+                "Recovery Autopilot incident opened",
+                self.autopilot_incident.diagnosis,
+                "attention",
+            )
+        return created
+
+    def update_recovery_boot_observation(
+        self,
+        receipt: BootObservationReceipt,
+        knowledge_report: KnowledgeLookupReport | None = None,
+    ) -> None:
+        """Apply a freshly verified boot receipt to the active incident."""
+
+        incident = self.autopilot_incident
+        if incident is None or (
+            incident.project_id and receipt.project_id != incident.project_id
+        ):
+            return
+        self._autopilot_boot_observation = receipt
+        if knowledge_report is not None:
+            self._autopilot_knowledge_report = knowledge_report
+        self._refresh_autopilot(self.current_device)
+
+    def _refresh_autopilot(self, device: AndroidDevice | None) -> None:
+        service = self.autopilot_service
+        incident = self.autopilot_incident
+        if service is None or incident is None or incident.repaired:
+            return
+        context = RecoveryAutopilotContext(
+            incident.trigger,
+            device=device,
+            project_id=self._autopilot_project_id or incident.project_id,
+            message=self._autopilot_message,
+            boot_observation=self._autopilot_boot_observation,
+            knowledge_report=self._autopilot_knowledge_report or self.offline_report,
+            recovery_evidence=self._autopilot_recovery_evidence,
+            host_repair_available=self.host_repair_service is not None,
+        )
+        try:
+            updated = service.refresh(incident.incident_id, context)
+        except RecoveryAutopilotError as exc:
+            self.digest.setText(f"Recovery incident refresh stopped safely  •  {exc}")
+            return
+        recovered_now = updated.repaired and not incident.repaired
+        self.autopilot_incident = updated
+        self._render_autopilot()
+        if recovered_now:
+            self._record_activity(
+                "Recovery verified",
+                "Fresh boot and reconnect evidence completed the Recovery Autopilot incident.",
+                "success",
+            )
+
+    def _render_autopilot(self) -> None:
+        incident = self.autopilot_incident
+        self.autopilot_card.setVisible(incident is not None)
+        if incident is None:
+            return
+        display_state = incident.state.value.replace("_", " ").upper()
+        self.autopilot_title.setText(
+            f"{incident.device_name}  •  {incident.mode.replace('-', ' ').upper()}"
+        )
+        self.autopilot_badge.setText(display_state)
+        style = (
+            "Good"
+            if incident.state is RecoveryIncidentState.RECOVERED
+            else "Danger"
+            if incident.state is RecoveryIncidentState.EMERGENCY
+            else "Warning"
+        )
+        self.autopilot_badge.setObjectName(style)
+        self.autopilot_diagnosis.setText(
+            f"{incident.diagnosis}\nIncident {incident.incident_id[:12]}…  •  "
+            f"{len(incident.events)} tamper-evident timeline event(s)  •  "
+            f"Device Pack {incident.pack_id or 'not proven'}  •  Before/after Device DNA + "
+            f"partition evidence "
+            f"{'CHANGED' if incident.before_evidence_digest != incident.after_evidence_digest else 'UNCHANGED'}"
+        )
+        self.autopilot_card.setProperty("incidentState", incident.state.value)
+        self.autopilot_card.style().unpolish(self.autopilot_card)
+        self.autopilot_card.style().polish(self.autopilot_card)
+        self.autopilot_badge.style().unpolish(self.autopilot_badge)
+        self.autopilot_badge.style().polish(self.autopilot_badge)
+
+        stage_states = (
+            "complete",
+            "complete",
+            "complete" if incident.routes or incident.repaired else "active",
+            "complete"
+            if incident.repaired
+            else "active"
+            if incident.state
+            in {RecoveryIncidentState.STABILIZING, RecoveryIncidentState.VERIFYING}
+            else "attention",
+        )
+        for stage, stage_state in zip(self.autopilot_stages, stage_states, strict=True):
+            stage.setProperty("state", stage_state)
+            stage.style().unpolish(stage)
+            stage.style().polish(stage)
+
+        while self.autopilot_routes_layout.count():
+            item = self.autopilot_routes_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
+                widget.deleteLater()
+        self.autopilot_route_buttons = []
+        visible_routes = (
+            incident.routes if self._autopilot_show_all_routes else incident.routes[:4]
+        )
+        for route in visible_routes:
+            self._add_autopilot_route(route)
+        if len(incident.routes) > 4:
+            routes_toggle = QPushButton(
+                "Show highest-priority routes"
+                if self._autopilot_show_all_routes
+                else f"Show all {len(incident.routes)} ranked routes"
+            )
+            routes_toggle.setAccessibleName(
+                "Collapse Recovery Autopilot route list"
+                if self._autopilot_show_all_routes
+                else "Show every ranked Recovery Autopilot route"
+            )
+            routes_toggle.clicked.connect(self._toggle_autopilot_routes)
+            self.autopilot_routes_layout.addWidget(routes_toggle)
+        if incident.repaired:
+            verified = QFrame()
+            verified.setObjectName("RecoveryVerification")
+            verified.setProperty("state", "complete")
+            verified_layout = QVBoxLayout(verified)
+            verified_layout.setContentsMargins(14, 11, 14, 11)
+            verified_title = QLabel("VERIFIED RECOVERY • FRESH BOOT + RECONNECT")
+            verified_title.setObjectName("Good")
+            verified_detail = QLabel(
+                "The incident is green because current evidence satisfied the reboot boundary—not because a button was clicked or time elapsed."
+            )
+            verified_detail.setObjectName("Muted")
+            verified_detail.setWordWrap(True)
+            verified_layout.addWidget(verified_title)
+            verified_layout.addWidget(verified_detail)
+            self.autopilot_routes_layout.addWidget(verified)
+        self.autopilot_boundary.setText(
+            "VERIFIED RECOVERED • SAME DEVICE • AUTHORIZED ADB • BOOT COMPLETED • "
+            "INCIDENT HISTORY SEALED"
+            if incident.repaired
+            else "RANKING IS ADVISORY • ARCHIVES GRANT NO EXECUTION AUTHORITY • DEVICE CHANGES "
+            "REQUIRE A TYPED OWNER AND CONFIRMATION • RECOVERED REQUIRES FRESH BOOT + RECONNECT PROOF"
+        )
+        self.autopilot_scan_button.setVisible(not incident.repaired)
+
+    def _add_autopilot_route(self, route: RecoveryRoute) -> None:
+        card = QFrame()
+        card.setObjectName("RecoveryVerification")
+        card.setProperty(
+            "state",
+            "attention"
+            if route.changes_device or route.risk.value in {"high", "destructive"}
+            else "active",
+        )
+        layout = QHBoxLayout(card)
+        layout.setContentsMargins(14, 10, 14, 10)
+        copy = QVBoxLayout()
+        rank = QLabel(
+            f"ROUTE {route.rank:02d}  •  {route.confidence}% CONFIDENCE  •  "
+            f"{route.risk.value.upper()} RISK"
+        )
+        rank.setObjectName("Eyebrow")
+        title = QLabel(route.title)
+        title.setObjectName("SectionTitle")
+        title.setWordWrap(True)
+        summary = QLabel(route.summary)
+        summary.setObjectName("Muted")
+        summary.setWordWrap(True)
+        boundary = QLabel(
+            "PHONE CHANGE • YES • CONFIRMATION REQUIRED • EXECUTION AUTHORITY • NONE"
+            if route.changes_device
+            else f"PHONE CHANGE • NO • EXECUTION AUTHORITY • {route.execution_authority.upper()}"
+        )
+        boundary.setObjectName("Warning" if route.changes_device else "Good")
+        boundary.setWordWrap(True)
+        copy.addWidget(rank)
+        copy.addWidget(title)
+        copy.addWidget(summary)
+        copy.addWidget(boundary)
+        layout.addLayout(copy, 1)
+        button = QPushButton("Review route")
+        button.setObjectName("Primary" if route.rank == 1 else "")
+        button.setAccessibleName(f"Review Recovery Autopilot route {route.rank}: {route.title}")
+        button.setToolTip(
+            "Revalidates this incident route and opens its typed owner. It does not infer or run a phone command."
+        )
+        button.clicked.connect(
+            lambda _checked=False, route_id=route.route_id: self._review_autopilot_route(
+                route_id
+            )
+        )
+        layout.addWidget(button)
+        self.autopilot_route_buttons.append(button)
+        self.autopilot_routes_layout.addWidget(card)
+
+    def _review_autopilot_route(self, route_id: str) -> None:
+        service = self.autopilot_service
+        incident = self.autopilot_incident
+        if service is None or incident is None:
+            return
+        try:
+            incident = service.load(incident.incident_id)
+            route = next((item for item in incident.routes if item.route_id == route_id), None)
+            if route is None:
+                raise RecoveryAutopilotError("Recovery route no longer matches fresh evidence")
+            self.autopilot_incident = service.record_route_result(
+                incident.incident_id,
+                route.route_id,
+                "reviewed",
+                "The user opened the typed route owner; no action was started by the ranking.",
+            )
+        except RecoveryAutopilotError as exc:
+            self.digest.setText(f"Recovery route review stopped safely  •  {exc}")
+            return
+        self._render_autopilot()
+        if route.kind is RecoveryRouteKind.HOST_ADB_REPAIR and self.host_repair_plan is not None:
+            self._run_host_repair()
+            return
+        if route.owner_route != "recovery_bay":
+            self.autopilot_route_requested.emit(route.owner_route, route.route_id)
+            return
+        detail = "\n".join(
+            (
+                route.summary,
+                "",
+                "Required evidence:",
+                *(f"• {item}" for item in route.requirements),
+                "",
+                "This review did not start a phone action.",
+            )
+        )
+        QMessageBox.information(self, route.title, detail)
+
+    def _show_autopilot_timeline(self) -> None:
+        incident = self.autopilot_incident
+        if incident is None:
+            return
+        event_rows = [
+            f"{event.sequence:02d}  •  {event.observed_at}  •  {event.mode.upper()}  •  "
+            f"{event.title}\n{event.detail}\nEvidence SHA-256 {event.evidence_digest[:20]}…"
+            for event in incident.events
+        ]
+        route_rows = [
+            f"{route.rank:02d}  •  {route.risk.value.upper()} RISK  •  "
+            f"{route.confidence}% CONFIDENCE  •  {route.title}\n"
+            f"{route.summary}\n"
+            f"Phone change: {'yes' if route.changes_device else 'no'}  •  "
+            f"Confirmation: {'required' if route.confirmation_required else 'not required'}  •  "
+            f"Execution authority: {route.execution_authority}\n"
+            "Required evidence: " + "; ".join(route.requirements)
+            for route in incident.routes
+        ]
+        QMessageBox.information(
+            self,
+            "Recovery Autopilot • incident timeline + ranked routes",
+            "INCIDENT TIMELINE\n\n"
+            + "\n\n".join(event_rows)
+            + (
+                "\n\nCURRENT RANKED ROUTES\n\n" + "\n\n".join(route_rows)
+                if route_rows
+                else ""
+            )
+            + "\n\nPrivacy: local pseudonymous evidence; raw device serial is not stored.",
+        )
+
+    def _toggle_autopilot_routes(self) -> None:
+        self._autopilot_show_all_routes = not self._autopilot_show_all_routes
+        self._render_autopilot()
+
+    def _request_autopilot_scan(self) -> None:
+        if self.autopilot_incident is None or self.autopilot_incident.repaired:
+            return
+        self.digest.setText(
+            "Recovery Autopilot requested a fresh read-only Device Engine scan • phone changes: none"
+        )
+        self.verification_scan_requested.emit()
+
     def set_devices(self, devices: list[AndroidDevice]) -> None:
         self.devices = devices
         self.device_selector.blockSignals(True)
@@ -582,6 +1014,7 @@ class RepairCenter(QWidget):
             if self._pending_verification_session:
                 self._complete_pending_verification(devices)
             self.build_plan()
+            self._refresh_autopilot(self.current_device)
         else:
             self._clear_intelligence_action()
             self._clear_diagnostic_context()
@@ -603,6 +1036,7 @@ class RepairCenter(QWidget):
             self._empty(
                 "Guardian will not construct a repair plan without current device evidence."
             )
+            self._refresh_autopilot(None)
 
     def set_host_repair_service(self, service: AdbHostRepairService | None) -> None:
         """Apply the currently verified host ADB runtime without retaining stale plans."""
@@ -612,6 +1046,7 @@ class RepairCenter(QWidget):
             return
         self.host_repair_service = service
         self.host_repair_plan = None
+        self._refresh_autopilot(self.current_device)
         if self.host_repair_worker is not None:
             # The running worker owns the exact previously approved service and
             # plan. Its terminal callback requests a fresh scan, which rebuilds
@@ -1482,11 +1917,26 @@ class RepairCenter(QWidget):
             QMessageBox.StandardButton.Cancel,
         )
         if answer is not QMessageBox.StandardButton.Yes:
+            self._record_autopilot_route_result(
+                RecoveryRouteKind.HOST_ADB_REPAIR,
+                "declined",
+                "Host ADB recovery was declined; no action started.",
+            )
             return
+        self._record_autopilot_route_result(
+            RecoveryRouteKind.HOST_ADB_REPAIR,
+            "confirmed",
+            "The exact host-only ADB plan was confirmed; no phone command is permitted.",
+        )
         try:
             service.approve(plan)
         except Exception as exc:
             self.digest.setText(f"Guardian could not approve ADB host recovery  •  {exc}")
+            self._record_autopilot_route_result(
+                RecoveryRouteKind.HOST_ADB_REPAIR,
+                "failed",
+                f"Guardian could not approve the exact host plan: {exc}",
+            )
             return
         worker = HostRepairWorker(service, plan)
         worker.signals.complete.connect(self._host_repair_complete)
@@ -1499,6 +1949,11 @@ class RepairCenter(QWidget):
             "Recovery Autopilot is restarting and verifying the host ADB daemon • phone changes: none"
         )
         self._start_host_repair_console(plan)
+        self._record_autopilot_route_result(
+            RecoveryRouteKind.HOST_ADB_REPAIR,
+            "started",
+            "The confirmed host-only ADB daemon plan started; phone changes remain impossible.",
+        )
         start_background(worker)
 
     @Slot(object)
@@ -1524,6 +1979,14 @@ class RepairCenter(QWidget):
         )
         self._record_online_host_outcome(result)
         self._finish_host_repair_console(result)
+        self._record_autopilot_route_result(
+            RecoveryRouteKind.HOST_ADB_REPAIR,
+            "succeeded"
+            if result.status is AdbHostRepairStatus.SUCCEEDED
+            else "failed",
+            result.summary
+            + " A fresh Device Engine scan is still required before recovery can be verified.",
+        )
         if self.host_repair_button is not None:
             self.host_repair_button.setEnabled(True)
             self.host_repair_button.setObjectName(style)
@@ -1541,6 +2004,35 @@ class RepairCenter(QWidget):
             self.host_repair_button.setEnabled(True)
         self._record_activity("ADB host recovery stopped safely", safe, "attention")
         self._fail_host_repair_console(safe)
+        self._record_autopilot_route_result(
+            RecoveryRouteKind.HOST_ADB_REPAIR,
+            "failed",
+            safe,
+        )
+
+    def _record_autopilot_route_result(
+        self,
+        kind: RecoveryRouteKind,
+        outcome: str,
+        detail: str,
+    ) -> None:
+        service = self.autopilot_service
+        incident = self.autopilot_incident
+        if service is None or incident is None or incident.repaired:
+            return
+        route = next((item for item in incident.routes if item.kind is kind), None)
+        if route is None:
+            return
+        try:
+            self.autopilot_incident = service.record_route_result(
+                incident.incident_id,
+                route.route_id,
+                outcome,
+                detail,
+            )
+        except RecoveryAutopilotError:
+            return
+        self._render_autopilot()
 
     def _start_host_repair_console(self, plan: AdbHostRepairPlan) -> None:
         if self.live_console_store is None:

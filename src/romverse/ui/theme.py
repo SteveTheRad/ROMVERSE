@@ -177,6 +177,18 @@ QFrame#RecoveryCockpit {
     background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(25,13,52,250),stop:.44 rgba(8,20,40,248),stop:1 rgba(4,37,42,244));
     border: 1px solid rgba(70, 225, 238, 185); border-left: 4px solid #B45CFF; border-radius: 15px;
 }
+QFrame#RecoveryCockpit[incidentState="emergency"] {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(56,10,29,248),stop:.48 rgba(30,13,29,248),stop:1 rgba(39,22,8,244));
+    border-color: rgba(255, 102, 133, 205); border-left-color: #FF6685;
+}
+QFrame#RecoveryCockpit[incidentState="stabilizing"], QFrame#RecoveryCockpit[incidentState="verifying"] {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(48,26,8,248),stop:.5 rgba(23,18,28,246),stop:1 rgba(5,30,38,244));
+    border-color: rgba(255, 180, 84, 185); border-left-color: #FFB454;
+}
+QFrame#RecoveryCockpit[incidentState="recovered"] {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(5,38,29,248),stop:.52 rgba(5,28,35,246),stop:1 rgba(12,20,48,244));
+    border-color: rgba(68, 227, 154, 195); border-left-color: #44E39A;
+}
 QFrame#RecoveryVerification {
     background: rgba(9, 18, 34, 235); border: 1px solid rgba(74, 108, 166, 180); border-left: 4px solid #4F7CFF; border-radius: 10px;
 }

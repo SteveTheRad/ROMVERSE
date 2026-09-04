@@ -2979,6 +2979,7 @@ class BuildControlCenter(QDialog):
             return
         self.boot_knowledge_report = self.studio.scan_boot_observation_knowledge(receipt)
         self.boot_knowledge_receipt_digest = receipt.receipt_digest
+        self.studio.boot_observation_updated.emit(receipt, self.boot_knowledge_report)
         self.refresh()
         archive_status = ""
         if self.boot_knowledge_report is not None:

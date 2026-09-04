@@ -122,6 +122,7 @@ from romverse.intelligence.synapse import SynapseStore
 from romverse.knowledge.advisor import article_for_key
 from romverse.knowledge.archives import catalog_metrics
 from romverse.knowledge.lookup import OfflineKnowledgeService
+from romverse.knowledge.models import KnowledgeLookupReport
 from romverse.knowledge.resolution_memory import ArchivesResolutionMemory
 from romverse.legal import load_privacy_document, load_terms_document
 from romverse.nexus.compatibility import CompatibilityMatrix, CompatibilityStatus
@@ -133,12 +134,19 @@ from romverse.nexus.events import (
 )
 from romverse.nexus.planning import NexusPlan, NexusPlanStatus
 from romverse.platform.host import HostPlatform, current_host
+from romverse.repair.autopilot import RecoveryTrigger
 from romverse.repair.host import AdbHostRepairReceiptStore, AdbHostRepairService
 from romverse.repair.sessions import RepairSessionStore
 from romverse.repair.templates import RepairAssessmentTemplates, actionable_repair_finding
+from romverse.rom.boot_observation import (
+    BootFailureKind,
+    BootObservationReceipt,
+    BootObservationStatus,
+)
 from romverse.rom.models import ProjectError
 from romverse.rom.projects import RomProjectStore
 from romverse.rom.readiness import BuildReadinessService
+from romverse.rom.recovery_evidence import RecoveryEvidenceService
 from romverse.rom.source_intelligence import FirmwareSourceIntelligenceService
 from romverse.ui.about_state import OriginDiscoveryError, OriginDiscoveryStore
 from romverse.ui.activity_center import ActivityCenter
@@ -4516,18 +4524,21 @@ class MainWindow(QMainWindow):
         self.repair_center.verification_scan_requested.connect(self.scan)
         self.repair_center.runtime_tools_requested.connect(self._resolve_repair_runtime)
         self.repair_center.solution_action_requested.connect(self._open_repair_solution_action)
+        self.repair_center.autopilot_route_requested.connect(self._open_autopilot_route)
         self.rom_studio.operation_started.connect(self._live_operation_started)
         self.rom_studio.operation_progress.connect(self._live_operation_progress)
         self.rom_studio.operation_completed.connect(self._record_rom_operation)
         self.rom_studio.operation_completed.connect(self._live_operation_completed)
         self.rom_studio.operation_failed.connect(self._record_rom_failure)
         self.rom_studio.operation_failed.connect(self._live_operation_failed)
+        self.rom_studio.operation_failed.connect(self._open_recovery_from_rom_failure)
         self.rom_studio.device_scan_requested.connect(self.scan)
         self.rom_studio.device_scan_available = engine is not None
         self.rom_studio.device_dna_updated.connect(self._record_device_dna)
         self.rom_studio.guardian_flash_verified.connect(
             self.device_packs_center.record_verified_flash
         )
+        self.rom_studio.boot_observation_updated.connect(self._handle_boot_observation)
         self.rom_studio.compatibility_matrix_updated.connect(self._record_compatibility_matrix)
         self.rom_studio.compatibility_matrix_updated.connect(
             lambda _matrix: self.nexus_center.refresh()
@@ -6567,6 +6578,36 @@ class MainWindow(QMainWindow):
         )
         self._update_companion_ascension_status()
 
+    @Slot(str, str)
+    def _open_recovery_from_rom_failure(self, operation: str, message: str) -> None:
+        """Open recovery only for an actual device-write runtime failure."""
+
+        if operation not in {
+            "device-flash",
+            "flash-device",
+            "guardian-execute",
+            "guardian-runtime-flash",
+        }:
+            return
+        project = self.rom_studio.current_project
+        project_id = project.project_id if project is not None else ""
+        device = self.rom_studio.devices[0] if len(self.rom_studio.devices) == 1 else None
+        recovery_evidence = None
+        if project is not None:
+            with suppress(OSError, ProjectError):
+                recovery_evidence = RecoveryEvidenceService(self.rom_studio.store).assess(
+                    project_id,
+                    device,
+                )
+        created = self.repair_center.open_recovery_incident(
+            RecoveryTrigger.FLASH_FAILURE,
+            project_id=project_id,
+            message=message,
+            recovery_evidence=recovery_evidence,
+        )
+        if created:
+            self._navigate_route("recovery_bay")
+
     def _update_companion_ascension_status(self) -> None:
         project_id = (
             self.rom_studio.current_project.project_id
@@ -7197,6 +7238,78 @@ class MainWindow(QMainWindow):
         source_route = self._route_by_page_index.get(self.stack.currentIndex(), "")
         self._navigate_route("archives")
         self.knowledge_center.open_article(key, source_route=source_route)
+
+    @Slot(object, object)
+    def _handle_boot_observation(self, receipt: object, knowledge_report: object) -> None:
+        """Route measured boot failure into Recovery Autopilot and close only on proof."""
+
+        if not isinstance(receipt, BootObservationReceipt):
+            return
+        compatible_report = (
+            knowledge_report
+            if isinstance(knowledge_report, KnowledgeLookupReport)
+            and knowledge_report.execution_authority == "none"
+            else None
+        )
+        self.repair_center.update_recovery_boot_observation(receipt, compatible_report)
+        if receipt.status is not BootObservationStatus.ATTENTION:
+            return
+        current_project = self.rom_studio.current_project
+        device = self.rom_studio.devices[0] if len(self.rom_studio.devices) == 1 else None
+        recovery_evidence = None
+        if current_project is not None and current_project.project_id == receipt.project_id:
+            with suppress(OSError, ProjectError):
+                recovery_evidence = RecoveryEvidenceService(self.rom_studio.store).assess(
+                    current_project.project_id,
+                    device,
+                )
+        trigger = (
+            RecoveryTrigger.BOOTLOOP
+            if receipt.failure_kind is BootFailureKind.REBOOT_LOOP
+            else RecoveryTrigger.BOOT_ATTENTION
+        )
+        created = self.repair_center.open_recovery_incident(
+            trigger,
+            project_id=receipt.project_id,
+            message=receipt.diagnosis,
+            boot_observation=receipt,
+            knowledge_report=compatible_report,
+            recovery_evidence=recovery_evidence,
+        )
+        if not created:
+            return
+        self._navigate_route("recovery_bay")
+        self.notification_center.notify(
+            f"recovery-autopilot.{receipt.project_id}.{receipt.failure_kind.value}",
+            "Recovery Autopilot opened",
+            "Measured boot evidence needs attention. ROMVERSE ranked evidence-backed routes and "
+            "did not start a phone-changing action.",
+            NotificationKind.ATTENTION,
+        )
+
+    @Slot(str, str)
+    def _open_autopilot_route(self, owner_route: str, route_id: str) -> None:
+        """Open the typed route owner without turning a recommendation into execution."""
+
+        if owner_route not in self.page_routes or not self._navigate_route(owner_route):
+            self.notification_center.notify(
+                f"recovery-autopilot.route.{route_id}",
+                "Recovery route needs attention",
+                "The route owner is unavailable. No scan, approval, repair, or phone action started.",
+                NotificationKind.ATTENTION,
+            )
+            return
+        if owner_route == "guardian_core":
+            self.guardian_center.request_refresh()
+        elif owner_route == "time_machine":
+            self.backup_center.open_dashboard_intent("Rescue & Backup")
+        self.notification_center.notify(
+            f"recovery-autopilot.route.{route_id}",
+            "Recovery route opened for review",
+            "ROMVERSE opened the existing typed owner. The ranking granted no execution authority "
+            "and started no phone command.",
+            NotificationKind.INFORMATION,
+        )
 
     @Slot(str)
     def _open_repair_finding(self, finding_id: str) -> None:

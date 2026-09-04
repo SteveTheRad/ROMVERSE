@@ -1847,6 +1847,7 @@ class GuidedBuildMission(QDialog):
             f"Boot evidence recorded  •  {receipt.status.value}  •  {receipt.diagnosis}"
         )
         knowledge_report = self.studio.scan_boot_observation_knowledge(receipt)
+        self.studio.boot_observation_updated.emit(receipt, knowledge_report)
         self._refresh(select_current=True)
         if receipt.status is BootObservationStatus.STABLE:
             self.status_text.setText(

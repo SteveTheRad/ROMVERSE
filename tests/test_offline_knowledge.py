@@ -606,6 +606,32 @@ def test_typed_boot_failure_requeries_device_dna_and_ranks_exact_error(tmp_path)
     assert "EXECUTION AUTHORITY • NONE" in report.plain_text
 
 
+def test_typed_boot_failure_uses_new_boot_chain_pack_through_device_dna_service(
+    tmp_path,
+) -> None:
+    store, registry, project, inspection = _project(tmp_path)
+    service = DeviceDnaService(store, registry)
+    service.refresh(project.project_id, _device(), inspection)
+
+    report = service.scan_knowledge_after_failure(
+        project.project_id,
+        KnowledgeFailure(
+            phase="boot-layout",
+            message="fastboot: FAILED (remote: No such partition: init_boot)",
+            error_codes=("No such partition: init_boot",),
+            finding_ids=("boot.layout.launch_version_unknown",),
+            partition="init_boot",
+        ),
+    )
+
+    assert report is not None
+    assert report.matches[0].record.record_id == "platform.boot-init-boot-launch-boundary"
+    assert report.matches[0].confidence is MatchConfidence.HIGH
+    assert report.matches[0].record.operations == ()
+    assert report.execution_authority == "none"
+    assert service.last_knowledge_lookup == report
+
+
 def test_exact_failure_symptom_outranks_unrelated_device_profile_terms(tmp_path) -> None:
     store, registry, project, inspection = _project(tmp_path)
     service = DeviceDnaService(store, registry)

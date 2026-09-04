@@ -135,7 +135,12 @@ def main() -> int:
     app.setStyleSheet(STYLESHEET)
     offline = OfflineKnowledgeService(workspace)
     archive = offline.store.ensure_seeded()
-    if len(archive.records) < 280 or len(archive.sources) < 180:
+    if (
+        len(archive.records) != 280
+        or len(archive.sources) != 180
+        or archive.bundle_digest
+        != "f05c9afd727bcdeefa9ad6775cb4c372379d68d20b012955430f53e1d99ac893"
+    ):
         raise RuntimeError("Installed offline Archives corpus is missing packaged evidence")
     failure_lookup = offline.lookup(
         KnowledgeQuery(
@@ -152,10 +157,46 @@ def main() -> int:
         or failure_lookup.execution_authority != "none"
     ):
         raise RuntimeError("Installed offline Archives could not rank exact boot-failure evidence")
+    boot_chain_lookup = offline.lookup(
+        KnowledgeQuery(
+            android_versions=("15",),
+            partitions=("boot", "vendor_boot", "init_boot"),
+            error_codes=("No such partition: init_boot",),
+            finding_ids=("boot.layout.launch_version_unknown",),
+            symptoms=("fastboot: FAILED (remote: No such partition: init_boot)",),
+        ),
+        trigger="release-boot-chain-smoke",
+        limit=4,
+    )
+    if (
+        not boot_chain_lookup.matches
+        or boot_chain_lookup.matches[0].record.record_id
+        != "platform.boot-init-boot-launch-boundary"
+        or boot_chain_lookup.execution_authority != "none"
+    ):
+        raise RuntimeError("Installed offline brain did not rank new boot-chain evidence")
+    alias_lookup = offline.lookup(
+        KnowledgeQuery(
+            manufacturers=("samsung",),
+            models=("SM-G973F",),
+            codenames=("beyond1lte",),
+        ),
+        trigger="release-device-dna-smoke",
+        limit=8,
+    )
+    alias_ids = {match.record.record_id for match in alias_lookup.matches}
+    if (
+        not alias_lookup.matches
+        or alias_lookup.matches[0].record.record_id != "identity.samsung-beyond1lte-models"
+        or "identity.samsung-beyond0lte-models" in alias_ids
+        or "identity.samsung-beyond2lte-models" in alias_ids
+        or alias_lookup.execution_authority != "none"
+    ):
+        raise RuntimeError("Installed offline brain crossed exact Device DNA alias boundaries")
     archives_center = KnowledgeCenter(offline_service=offline)
     archives_center.resize(1_200, 760)
     archives_center.show()
-    archives_center.search.setText("HASH_MISMATCH(3)")
+    archives_center.search.setText("No such partition: init_boot")
     app.processEvents()
     try:
         has_structured_result = any(

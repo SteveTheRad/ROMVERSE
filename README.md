@@ -601,6 +601,14 @@ privacy-bounded result for the independent Desktop verifier. It has no recovery,
 relock surface. This source is not constructed by the current Desktop UI; production packaging,
 protected key enrollment, physical flashing validation and cross-transport identity continuity are
 still required before final consent or execution can be made available to users.
+The repository now also defines the release-signed package boundary for that separate runtime. Its
+strict manifest binds the exact executable bytes, host platform, protocol/result versions, adapter
+identity, and runtime public key beneath a separately trusted Ed25519 release signature. The local
+verifier rehashes the executable and rejects changed files, links, the wrong platform/key, added
+fields, unsafe policy claims, and any package that advertises recovery, wipe, unlock, relock, device
+access, phone change, or execution authority. Preparation, offline signing, and verification tools
+are documented in [Guardian runtime packaging](docs/GUARDIAN_RUNTIME_PACKAGING.md). No production
+runtime binary or private key is included, and verifying a package does not enroll or run it.
 Time Machine recovery records use a digested schema-two contract and bounded private atomic storage
 for both the public-safe evidence and its separate `0600` absolute locator. Extra fields, oversized
 or symlinked records, unsafe roles, changed project/source identity, and locators redirected into

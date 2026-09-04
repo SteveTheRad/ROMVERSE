@@ -533,9 +533,15 @@ action was performed.
    failure/cancellation, and signs plus independently verifies its result before private persistence.
    Focused tests cover complete success, permit replay, wrong target, changed-size and same-size
    artifact tampering before device access, mismatched readback, exact failure prefix, privacy and
-   the permanent absence of recovery/wipe/unlock/relock commands. No production runtime trust/key is
-   enrolled and the Desktop does not construct this executor. Separate production packaging and
-   self-integrity, OS-level identity continuity across Fastboot/ADB transitions, separately consented
+   the permanent absence of recovery/wipe/unlock/relock commands. A strict release-signed runtime
+   package format now separately binds the runtime executable bytes, platform, protocol/result
+   schemas, adapter and runtime public key to a pinned Ed25519 release identity. Its local verifier
+   rehashes the artifact, rejects links, changed bytes, wrong keys/platforms, added fields and every
+   widened safety claim, and derives gateway-scoped runtime trust without executing or enrolling the
+   package. The repository includes manifest-preparation, offline-signing and verification CLIs plus
+   adversarial and end-to-end CLI tests. No production runtime binary or production key is included;
+   the Desktop does not enroll or construct this executor. Protected release/runtime key operations,
+   OS process isolation and identity continuity across Fastboot/ADB transitions, separately consented
    recovery/wipe, physical validation and built-in schema-three Pack authority remain unfinished.
 
    Exact post-candidate source commit `898bd04d87fba52690a330d09eeb61c4275c3649` is fully green in

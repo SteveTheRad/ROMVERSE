@@ -645,11 +645,23 @@ forward prefix, observes signed mode/slot transitions, hashes full private readb
 allowlisted post-boot properties, stops on the first failure or operator cancellation, and verifies
 its own domain-separated signed result before preserving it. The result and open records persist no
 raw serial, raw token, stdout or stderr. The executor exposes no recovery action, automatic wipe,
-unlock or relock path; recovery and wipe remain separately unconsented. It is not constructed or
-enrolled by the shipping Desktop UI. Separate production packaging and runtime self-integrity,
-externally protected/enrolled production keys, OS-level exact-device binding across transport
-changes, distinct recovery/wipe consent, hostile-runner review and physical-device validation remain
-required before the final-consent control can be exposed.
+unlock or relock path; recovery and wipe remain separately unconsented.
+
+The separate-runtime delivery contract now has a strict release-signed package manifest and local
+verifier. A domain-separated Ed25519 release signature binds the exact runtime executable size and
+SHA-256, supported host platform, runtime protocol and result schema, adapter identity/version, and
+the runtime's Ed25519 public key/digest. Verification requires a separately pinned release public
+key and expected key identity, rehashes the exact regular executable, rejects linked package roots
+and artifacts, and fails closed on the wrong platform, key, fields, types, policy or changed bytes.
+The only accepted packaged policy is forward-scope-only with automatic recovery, wipe, unlock,
+relock, device access, phone change and execution authority all denied. The verified package can
+derive the exact `GuardianRuntimeTrust` for one already validated gateway; it cannot enroll itself,
+authorize an operation or execute its artifact. Preparation, offline-signing and verification CLIs
+keep runtime and release private keys outside the manifest. The shipping Desktop still constructs
+none of this chain. A real production runtime artifact, protected release/runtime key ceremonies,
+explicit Desktop enrollment and final-consent UX, OS process isolation, exact-device continuity
+across transport changes, separately consented recovery/wipe, hostile-runner review and physical
+device validation remain required before final consent or execution can be exposed.
 
 ROM Studio's managed Guardian review worker carries this inert chain through the actual Desktop
 journey. It seals the command-free manifest, independently rehashes the same artifacts for the inert

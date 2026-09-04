@@ -775,9 +775,17 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   signed read-only-first gateway prefix, verifies mode/slot/readback/post-boot evidence, stops on
   first failure/cancellation, and produces an independently verified signed private result without
   raw serial, token or tool output; it exposes no recovery/wipe/unlock/relock path;
-  separately packaged/self-verifying runtime delivery, protected production key enrollment,
-  cross-transport exact-device continuity, recovery/wipe consent and physical flashing validation
-  remain unavailable, so the shipping Desktop does not expose final consent or execution;
+  a separate release-signed runtime package contract whose strict manifest binds one exact regular
+  executable, supported platform, protocol/result schemas, adapter identity/version and runtime
+  Ed25519 public key/digest beneath a pinned domain-separated Ed25519 release signature; local
+  verification rehashes the artifact, rejects linked roots/files, wrong release identity/key or
+  platform, changed bytes, extra fields and unsafe policy claims, then derives exact gateway-scoped
+  runtime trust without enrollment, execution or phone authority; preparation, offline-signing and
+  verification CLIs contain no embedded private key and tests prove they never run the artifact;
+  a production runtime artifact, protected production release/runtime key enrollment, Desktop
+  consent/enrollment UI, OS process isolation, cross-transport exact-device continuity, separately
+  consented recovery/wipe and physical flashing validation remain unavailable, so the shipping
+  Desktop does not expose final consent or execution;
   end-to-end Desktop presentation of that inert chain through the managed ROM Studio Guardian
   worker, with a single monotonic byte-derived scale across each required artifact rehash, terminal
   100 only after the applicable private records are sealed, readable dark scroll cards for

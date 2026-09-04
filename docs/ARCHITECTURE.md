@@ -45,6 +45,11 @@ scripts/                  Linux and Windows environment bootstrap
 - Extend Guardian through typed operations and policy rules, never raw command strings from UI.
 - Bind every enabled mutation to immutable evidence, a privacy-safe target, explicit approval,
   pre-execution revalidation, a bounded argument vector, and a post-operation receipt.
+- Treat the Guardian runtime as a separately released artifact. Before deriving runtime trust,
+  require a pinned Ed25519 release identity over a strict manifest that binds the executable hash,
+  platform, protocol/result schemas, adapter and runtime public key; rehash the local regular file,
+  reject links and all authority-widening policy claims, and never execute or enroll it as a side
+  effect of package verification.
 - Store approvals in a separate SHA-256 chain, expire new approvals after ten minutes, and treat
   readable legacy entries as audit-only rather than reusable authority.
 - Add OEM knowledge through versioned Device Pack providers returning generic facts and checks.

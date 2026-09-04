@@ -258,6 +258,25 @@ SHA-256 `b438564c54408c3ad9ddd4313e4360cd8a358187012a3334fbbf0d39a3cc696f`. GitH
 it contributes no CI evidence. No phone, firmware, partition, bootloader, flash, or installation
 operation was performed.
 
+The non-circular exact-source Pack-draft increment at commit `29c4928` passes all 1,667 Desktop
+tests and the complete Ruff check/format gates across 368 Python and release-script files. Device
+Atlas strictly reloads a prepared private draft and matches its project, protected-source hash, and
+source-blueprint digest. It marks that step complete, replaces the repeated creation action with a
+review of the six genuinely missing flash contracts, and preserves the state across project reopen.
+Changed content, an authority-bearing edit, a different source, a mismatched blueprint, and linked
+draft storage cannot produce the completed state. This removes the previous Guided Setup loop
+without promoting a development draft into an active Pack or flash permission.
+
+The fresh 249-member wheel contains all 21 Device Packs and has SHA-256
+`8f88611ac242bcfc19e7eca59779c22be23bcb14cf10a1c37366513321ef2f5c`. Its separately installed
+Python 3.14 smoke passes the 199-record archive, fresh/populated workspaces, 169 known fixes, all 19
+routes, and byte preservation. The fresh self-contained Fedora app launches successfully and its
+verified 453-file, 355,969,615-expanded-byte portable ZIP has SHA-256
+`634bc36eba856b6f885f176770aab14c5c48f9554f4464fb5a8c2528730c2b13`. GitHub Actions run
+`33846467457` again assigned zero steps to all seven matrix jobs and skipped the dependent candidate;
+it provides no CI evidence. No phone, firmware, partition, bootloader, flash, or installation
+operation was performed.
+
 ## Required gates
 
 1. Run the complete `pytest`, `ruff check .`, and `ruff format --check .` gates on supported Linux

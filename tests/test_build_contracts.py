@@ -24,6 +24,7 @@ from romverse.device_packs.models import (
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.infrastructure.process import CommandResult
 from romverse.infrastructure.provisioning import GENESIS_REQUIRED_TOOLS
+from romverse.infrastructure.toolchain_evidence import ToolchainEvidenceService
 from romverse.infrastructure.tools import ToolStatus
 from romverse.rom.build_contracts import ContractCheckStatus, DeviceBuildContractService
 from romverse.rom.build_execution import LocalDeviceBuildExecutor
@@ -313,6 +314,20 @@ class _BuildRunner:
         return CommandResult(command, 0, "logical partition metadata", "")
 
 
+class _MutatingBuildRunner(_BuildRunner):
+    def __init__(self, system_image: Path, changed_tool: Path):
+        super().__init__(system_image)
+        self.changed_tool = changed_tool
+        self.mutated = False
+
+    def run(self, args, timeout=10, cwd=None):
+        result = super().run(args, timeout=timeout, cwd=cwd)
+        if not self.mutated:
+            self.changed_tool.write_bytes(b"tool changed during build")
+            self.mutated = True
+        return result
+
+
 def _executable_tools(tmp_path):
     tmp_path.mkdir(parents=True)
     paths = {}
@@ -344,6 +359,8 @@ def test_local_executor_builds_versioned_candidate_and_verifies_every_partition(
     receipt = executor.execute(project.project_id)
 
     assert receipt.status == "success"
+    assert receipt.schema_version == 2
+    assert len(receipt.toolchain_manifest_digest) == 64
     assert not receipt.phone_changed
     assert [item.name for item in receipt.outputs] == [
         "product.img",
@@ -363,6 +380,23 @@ def test_local_executor_builds_versioned_candidate_and_verifies_every_partition(
         / executor.RECEIPT_NAME
     )
     assert stat.S_IMODE(output_receipt.stat().st_mode) == 0o600
+    manifest = ToolchainEvidenceService(store.workspace, "Linux").load_private(
+        receipt.toolchain_manifest_digest
+    )
+    assert manifest.complete
+    assert manifest.scope == f"local-build:{project.project_id}"
+    assert set(manifest.required_tools) == {
+        "AVBTool",
+        "EROFS Builder",
+        "EROFS Verifier",
+        "Fakeroot",
+        "LP Dump",
+        "LP Make",
+        "LP Unpack",
+        "simg2img",
+    }
+    assert manifest.execution_authority == "none"
+    assert not manifest.phone_changed
     assert executor.load_receipt(project.project_id) == receipt
 
     output = store.workspace / receipt.outputs[0].path
@@ -383,6 +417,18 @@ def test_local_build_receipt_rejects_hostile_files_and_missing_logs(tmp_path):
     receipt = executor.execute(project.project_id)
     attempt = store.projects_root / project.project_id / executor.ATTEMPT_NAME
     original = attempt.read_bytes()
+    evidence = (
+        store.workspace
+        / "config"
+        / "toolchain"
+        / "evidence"
+        / f"{receipt.toolchain_manifest_digest}.romverse-toolchain.json"
+    )
+    original_evidence = evidence.read_bytes()
+
+    evidence.write_text("{}", encoding="utf-8")
+    assert executor.load_receipt(project.project_id) is None
+    evidence.write_bytes(original_evidence)
 
     payload = json.loads(original)
     payload["unexpected"] = "not in the receipt schema"
@@ -406,6 +452,35 @@ def test_local_build_receipt_rejects_hostile_files_and_missing_logs(tmp_path):
     assert executor.load_receipt(project.project_id) is None
 
 
+def test_local_build_preserves_strict_schema_one_receipt_compatibility(tmp_path):
+    store, project, registry, _tools, _metadata, partitions = _fixture(tmp_path)
+    tools = _executable_tools(tmp_path / "tools")
+    DeviceBuildContractService(store, registry, tools).create_plan(project.project_id)
+    executor = LocalDeviceBuildExecutor(
+        store,
+        registry,
+        tools,
+        _BuildRunner(partitions / "system.img"),
+    )
+    executor.execute(project.project_id)
+    attempt = store.projects_root / project.project_id / executor.ATTEMPT_NAME
+    payload = json.loads(attempt.read_text())
+    payload["schema_version"] = 1
+    payload.pop("toolchain_manifest_digest")
+    unsigned = {key: value for key, value in payload.items() if key != "format"}
+    unsigned.pop("receipt_digest")
+    payload["receipt_digest"] = hashlib.sha256(
+        json.dumps(unsigned, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    attempt.write_text(json.dumps(payload), encoding="utf-8")
+
+    legacy = executor.load_receipt(project.project_id)
+
+    assert legacy is not None
+    assert legacy.schema_version == 1
+    assert legacy.toolchain_manifest_digest == ""
+
+
 def test_local_executor_rederives_steps_even_if_plan_digest_is_recomputed(tmp_path):
     store, project, registry, _tools, _metadata, partitions = _fixture(tmp_path)
     tools = _executable_tools(tmp_path / "tools")
@@ -427,3 +502,22 @@ def test_local_executor_rederives_steps_even_if_plan_digest_is_recomputed(tmp_pa
         executor.execute(project.project_id)
 
     assert runner.calls == []
+
+
+def test_local_executor_stops_when_a_locked_tool_changes_during_build(tmp_path):
+    store, project, registry, _tools, _metadata, partitions = _fixture(tmp_path)
+    tools = _executable_tools(tmp_path / "tools")
+    DeviceBuildContractService(store, registry, tools).create_plan(project.project_id)
+    changed = next(Path(item.path) for item in tools if item.name == "LP Make")
+    runner = _MutatingBuildRunner(partitions / "system.img", changed)
+    executor = LocalDeviceBuildExecutor(store, registry, tools, runner)
+
+    with pytest.raises(ProjectError, match="Locked build tool changed after preflight: LP Make"):
+        executor.execute(project.project_id)
+
+    attempt = store.projects_root / project.project_id / executor.ATTEMPT_NAME
+    payload = json.loads(attempt.read_text())
+    assert payload["status"] == "failed"
+    assert payload["schema_version"] == 2
+    assert len(payload["toolchain_manifest_digest"]) == 64
+    assert payload["phone_changed"] is False

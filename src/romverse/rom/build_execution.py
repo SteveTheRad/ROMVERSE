@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import platform
 import re
 import shutil
 from dataclasses import asdict, dataclass, fields
@@ -13,6 +14,10 @@ from romverse.device_packs.models import DeviceBuildContract
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.infrastructure.local_store import atomic_write_json, read_json_object
 from romverse.infrastructure.process import CommandResult, CommandRunner
+from romverse.infrastructure.toolchain_evidence import (
+    ToolchainEvidenceError,
+    ToolchainEvidenceService,
+)
 from romverse.infrastructure.tools import ToolStatus
 from romverse.rom.build_contracts import (
     DeviceBuildContractService,
@@ -59,6 +64,7 @@ class LocalBuildReceipt:
     outputs: tuple[BuildOutputReceipt, ...]
     phone_changed: bool
     receipt_digest: str
+    toolchain_manifest_digest: str = ""
 
 
 class LocalDeviceBuildExecutor:
@@ -106,6 +112,10 @@ class LocalDeviceBuildExecutor:
             raise ProjectError("Exact Device Pack build contract is unavailable")
         contract = pack.build_contract
         tools = self._verified_tools()
+        toolchain_manifest_digest, locked_tool_hashes = self._capture_toolchain(
+            project_id,
+            tools,
+        )
         output_root = self._output_root(project_id, plan.plan_id)
         if output_root.exists():
             raise ProjectError(
@@ -133,8 +143,17 @@ class LocalDeviceBuildExecutor:
             for step in plan.steps:
                 active_step = step.step_id
                 step_receipts.append(
-                    self._execute_step(step, plan, contract, tools, output_root, logs)
+                    self._execute_step(
+                        step,
+                        plan,
+                        contract,
+                        tools,
+                        locked_tool_hashes,
+                        output_root,
+                        logs,
+                    )
                 )
+            self._assert_locked_tools(tools, locked_tool_hashes)
             outputs = tuple(
                 self._output_receipt(output_root / name, name, project_id)
                 for name in plan.expected_outputs
@@ -148,6 +167,7 @@ class LocalDeviceBuildExecutor:
                 "",
                 tuple(step_receipts),
                 outputs,
+                toolchain_manifest_digest,
             )
             atomic_write_json(
                 output_root / self.RECEIPT_NAME,
@@ -168,6 +188,7 @@ class LocalDeviceBuildExecutor:
                 failure,
                 tuple(step_receipts),
                 (),
+                toolchain_manifest_digest,
             )
             self._record_attempt(receipt)
             raise ProjectError(f"Local build stopped safely at {failure}") from exc
@@ -180,11 +201,14 @@ class LocalDeviceBuildExecutor:
                 boundary=self.store.workspace,
                 maximum_bytes=self.MAX_RECEIPT_BYTES,
             )
-            if (
-                set(data) != {"format", *(field.name for field in fields(LocalBuildReceipt))}
-                or data.pop("format") != "romverse.local-build-attempt"
-            ):
+            schema_version = data.get("schema_version")
+            expected = {"format", *(field.name for field in fields(LocalBuildReceipt))}
+            if schema_version == 1:
+                expected.remove("toolchain_manifest_digest")
+            if set(data) != expected or data.pop("format") != "romverse.local-build-attempt":
                 return None
+            if schema_version == 1:
+                data["toolchain_manifest_digest"] = ""
             raw_steps = data.pop("steps")
             raw_outputs = data.pop("outputs")
             if (
@@ -232,9 +256,26 @@ class LocalDeviceBuildExecutor:
             return None
         payload = asdict(receipt)
         digest = str(payload.pop("receipt_digest"))
+        if receipt.schema_version == 1:
+            payload.pop("toolchain_manifest_digest")
         plan = self.contracts.load(project_id)
+        toolchain_manifest_valid = receipt.schema_version == 1
+        if receipt.schema_version == 2 and _sha256_value(receipt.toolchain_manifest_digest):
+            try:
+                manifest = ToolchainEvidenceService(
+                    self.store.workspace,
+                    platform.system() or os.name,
+                ).load_private(receipt.toolchain_manifest_digest)
+                toolchain_manifest_valid = (
+                    manifest.complete
+                    and manifest.scope == f"local-build:{project_id}"
+                    and manifest.execution_authority == "none"
+                    and not manifest.phone_changed
+                )
+            except (OSError, ValueError, ToolchainEvidenceError):
+                toolchain_manifest_valid = False
         if (
-            receipt.schema_version != 1
+            receipt.schema_version not in {1, 2}
             or receipt.project_id != project_id
             or not _aware_timestamp(receipt.started_at)
             or not _aware_timestamp(receipt.completed_at)
@@ -243,6 +284,7 @@ class LocalDeviceBuildExecutor:
             or receipt.failure
             or not _sha256_value(receipt.plan_digest)
             or not _sha256_value(receipt.receipt_digest)
+            or not toolchain_manifest_valid
             or any(not self._valid_step(item) for item in steps)
             or any(not self._valid_output(item) for item in outputs)
             or plan is None
@@ -313,11 +355,13 @@ class LocalDeviceBuildExecutor:
         plan: DeviceBuildExecutionPlan,
         contract: DeviceBuildContract,
         tools: dict[str, Path],
+        locked_tool_hashes: dict[str, str],
         output_root: Path,
         logs: Path,
     ) -> BuildStepReceipt:
         if step.phone_changed:
             raise ProjectError("A local build plan attempted to declare a phone-changing step")
+        self._assert_locked_tools(tools, locked_tool_hashes)
         started = _now()
         log_path = logs / f"{step.step_id}.log"
         if step.tool == "ROMVERSE internal copier":
@@ -328,6 +372,7 @@ class LocalDeviceBuildExecutor:
         else:
             command = self._external_command(step, tools)
             result = self.runner.run(command, timeout=4 * 60 * 60, cwd=self.store.workspace)
+        self._assert_locked_tools(tools, locked_tool_hashes)
         log_path.write_text(
             "COMMAND\n"
             + "\n".join(result.args)
@@ -490,7 +535,51 @@ class LocalDeviceBuildExecutor:
             raise ProjectError("Verified local build tools are missing: " + ", ".join(missing))
         if any(not available[name].is_file() for name in required):
             raise ProjectError("A verified local build executable is no longer available")
-        return available
+        return {name: available[name] for name in sorted(required)}
+
+    def _capture_toolchain(
+        self,
+        project_id: str,
+        tools: dict[str, Path],
+    ) -> tuple[str, dict[str, str]]:
+        required = tuple(sorted(tools))
+        by_name = {status.name: status for status in self.tool_statuses}
+        statuses = tuple(by_name[name] for name in required)
+        try:
+            service = ToolchainEvidenceService(
+                self.store.workspace,
+                platform.system() or os.name,
+            )
+            manifest = service.capture(
+                statuses,
+                required_tools=required,
+                scope=f"local-build:{project_id}",
+            )
+            if not manifest.complete:
+                raise ToolchainEvidenceError("The exact build toolchain is incomplete")
+            service.save_private(manifest)
+        except (OSError, ValueError, ToolchainEvidenceError) as exc:
+            raise ProjectError(f"Exact build toolchain proof failed: {exc}") from exc
+        return manifest.manifest_digest, {
+            item.name: item.sha256 for item in manifest.tools if item.state == "verified"
+        }
+
+    @staticmethod
+    def _assert_locked_tools(tools: dict[str, Path], expected: dict[str, str]) -> None:
+        if set(tools) != set(expected):
+            raise ProjectError("The exact build toolchain lock is incomplete")
+        for name, executable in tools.items():
+            try:
+                if not executable.is_file() or executable.is_symlink():
+                    raise ProjectError(f"Locked build tool is unavailable: {name}")
+                digest = _sha256(executable)
+            except OSError as exc:
+                raise ProjectError(f"Locked build tool is unavailable: {name}") from exc
+            if digest != expected[name]:
+                raise ProjectError(
+                    f"Locked build tool changed after preflight: {name}. "
+                    "Re-open Forge Arsenal and create a fresh build plan."
+                )
 
     def _output_root(self, project_id: str, plan_id: str) -> Path:
         root = (self.store.working_root / project_id / "build-candidates" / plan_id).resolve()
@@ -536,9 +625,10 @@ class LocalDeviceBuildExecutor:
         failure: str,
         steps: tuple[BuildStepReceipt, ...],
         outputs: tuple[BuildOutputReceipt, ...],
+        toolchain_manifest_digest: str,
     ) -> LocalBuildReceipt:
         payload = {
-            "schema_version": 1,
+            "schema_version": 2,
             "project_id": project_id,
             "plan_id": plan.plan_id,
             "plan_digest": plan.plan_digest,
@@ -550,10 +640,11 @@ class LocalDeviceBuildExecutor:
             "steps": [asdict(step) for step in steps],
             "outputs": [asdict(output) for output in outputs],
             "phone_changed": False,
+            "toolchain_manifest_digest": toolchain_manifest_digest,
         }
         digest = _json_digest(payload)
         return LocalBuildReceipt(
-            1,
+            2,
             project_id,
             plan.plan_id,
             plan.plan_digest,
@@ -566,6 +657,7 @@ class LocalDeviceBuildExecutor:
             outputs,
             False,
             digest,
+            toolchain_manifest_digest,
         )
 
     def _record_attempt(self, receipt: LocalBuildReceipt) -> None:

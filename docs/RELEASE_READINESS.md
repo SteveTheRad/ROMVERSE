@@ -1563,10 +1563,15 @@ The product-wide continuation target and definition of done are recorded in
   failed-scan evidence. The presentation itself runs no device command and exposes no serial.
 - The equipment bay has a polished cosmic slot treatment plus a dedicated Environment Proof chamber.
   A fresh 1360-by-900 offscreen render confirmed the new hierarchy, contrast, alignment and scrolling
-  remain readable. Focused infrastructure, Forge UI/provisioning/download, cross-feature navigation
-  and approved-brand hash tests pass. Project tool-version isolation, verified offline toolchain
-  bundles, automatic build attachment and physical multi-host/USB-driver exercises are still required
-  before Stage 12 can be marked complete.
+  remain readable. Exact Device Pack local builds now generate a project-scoped proof of only their
+  required executables before creating output, attach its SHA-256 identity to the schema-two build
+  receipt, and rehash every locked tool before and after each build step. A simulated mid-build tool
+  replacement is rejected and produces only a failed attempt receipt. Historical strict schema-one
+  build receipts remain readable without inventing newer evidence. Focused infrastructure, Forge
+  UI/provisioning/download, build, readiness, AVB, Guardian artifact-binding, Simulation Lab, offline-
+  signing, Release Forge, navigation and approved-brand tests pass. Content-addressed managed-version
+  isolation, verified offline toolchain bundles and physical multi-host/USB-driver exercises are still
+  required before Stage 12 can be marked complete.
 - The approved ROMVERSE application logo and approved RadForge Labs company logo were not edited or
   replaced; their byte-exact regression checks remain green.
 

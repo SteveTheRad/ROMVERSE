@@ -1328,9 +1328,15 @@ schema changes, type confusion, tampering, linked workspace roots, unsafe export
 unbounded `PATH` input. Forge Arsenal also consumes the existing Device Engine scan to distinguish
 ADB Android, recovery, sideload, Fastboot/fastbootd, unauthorized, offline, multi-target and scan-
 failure states without issuing an additional phone command. Its equipment-bay slots and evidence
-surfaces use the same dark cyan-violet production language as the rest of ROMVERSE. Project-specific
-version isolation, verified offline bundle exchange and automatic build-manifest attachment remain
-active Stage 12 work and are not claimed by this checkpoint.
+surfaces use the same dark cyan-violet production language as the rest of ROMVERSE.
+
+Every exact Device Pack local build now seals a project-scoped Environment Proof before creating an
+output directory. The build receipt records that manifest identity, and each step rehashes the locked
+required executables before and after use. A tool replaced during the build stops the operation and
+cannot produce a successful receipt; historical schema-one receipts remain readable under their
+original strict contract. This binds a completed build to its exact tool versions without requiring
+the current host tools to remain unchanged forever. Content-addressed managed versions and signed,
+verified offline toolchain exchange remain active Stage 12 work and are not claimed here.
 
 Payload Dumper uses a stricter release flow: ROMVERSE resolves the current host asset only from
 the official `ssut/payload-dumper-go` GitHub API, requires GitHub's asset SHA-256, restricts the

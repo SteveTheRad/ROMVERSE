@@ -972,7 +972,10 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   Its Device Communication chamber truthfully presents the already completed Guardian-routed Device
   Engine result for Android ADB, recovery, sideload, bootloader Fastboot, fastbootd, unauthorized,
   offline, multiple-device and failed-scan states; opening or refreshing that presentation cannot
-  issue a phone command. The approved application and company logo bytes remain locked and unchanged.
+  issue a phone command. Exact Device Pack local builds now seal a project-scoped toolchain manifest,
+  store its identity in schema-two build receipts and rehash the locked executables around every
+  build step, so a mid-build tool replacement fails instead of silently changing the output. The
+  approved application and company logo bytes remain locked and unchanged.
 - **PARTIAL:** Genesis/Ascension/Guardian integration, Companion Vitalis/Lifeline, connected online
   remediation, and local Link are functional foundations but still need broader hardware testing.
   Connected remediation V2 preserves tamper-detecting receipts and presents source, explicit

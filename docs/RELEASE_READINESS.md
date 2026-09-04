@@ -170,7 +170,12 @@ with zero Pack/signing/flash authority, and retains the full source-versus-candi
 the exact source contract exists. Source-only evidence cannot advance an AVB Autopilot step. A live
 OS4.0.0.25 UI run completed against the protected project with the correct OEM identity and three
 true chain partitions. At 1040×700, the six build actions now render as a non-overlapping two-row
-grid with every full label visible. No phone operation was performed.
+grid with every full label visible. A fresh 244-member/21-Pack wheel for this exact runtime has
+SHA-256 `961ceb8c81fc909d8d1eb0f90729cd621feaead10744ed965eb622d2d94bcf5c`; it passed a separate
+installed-environment smoke. The self-contained Fedora build launched and its persistent 451-file,
+355,803,371-expanded-byte portable ZIP independently verified with SHA-256
+`25065b20f42bd381038a713b6db99874af9d25cfd07778542630daac361acb8c`. No phone operation was
+performed.
 
 ## Required gates
 

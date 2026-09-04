@@ -14,6 +14,7 @@ from romverse.device_packs.foundry import (
 )
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.device_packs.requirements import ProjectSourceRequirements
+from romverse.rom.simulation import RomSimulationService
 from tests.test_device_dna import _device as _dna_device
 from tests.test_device_dna import _project as _dna_project
 
@@ -150,6 +151,11 @@ def test_foundry_illuminates_sealed_device_dna_without_treating_region_as_matche
         drafts,
         boundary=store.workspace,
     )
+    simulation = RomSimulationService(store, dna_registry).rehearse(
+        project.project_id,
+        device,
+    )
+    assert not simulation.successful
 
     inventory = DevicePackFoundryService().inspect(drafts, boundary=store.workspace)
 
@@ -163,8 +169,27 @@ def test_foundry_illuminates_sealed_device_dna_without_treating_region_as_matche
     assert revision.lanes[1].state is FoundryEvidenceState.EVIDENCED
     assert "observation only" in revision.lanes[1].detail
     assert revision.lanes[3].state is FoundryEvidenceState.PARTIAL
+    assert revision.simulation is not None
+    assert revision.simulation.receipt_digest == simulation.receipt_digest
+    assert not revision.simulation.successful
+    assert revision.simulation.blocker_count > 0
+    assert revision.lanes[5].state is FoundryEvidenceState.PARTIAL
+    assert "resolve them" in revision.lanes[5].detail
     assert revision.evidenced_lane_count == 3
     assert revision.execution_authority == "none"
+
+    simulation_path = (
+        store.projects_root / project.project_id / RomSimulationService.RECEIPT_NAME
+    )
+    changed_simulation = json.loads(simulation_path.read_text(encoding="utf-8"))
+    changed_simulation["confidence_percent"] = 92
+    simulation_path.write_text(json.dumps(changed_simulation), encoding="utf-8")
+    without_simulation = DevicePackFoundryService().inspect(
+        drafts,
+        boundary=store.workspace,
+    ).revisions[0]
+    assert without_simulation.simulation is None
+    assert without_simulation.lanes[5].state is FoundryEvidenceState.PENDING
 
     forged = json.loads(json.dumps(request))
     region = next(

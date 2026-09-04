@@ -1641,6 +1641,13 @@ The product-wide continuation target and definition of done are recorded in
   state, two-row lane alignment, source/DNA lineage, observation-only region text, measured source
   versus DNA partition counts, conflict/rejection totals and the permanent zero-authority footer are
   readable without clipping.
+- The Foundry now independently reloads the current Simulation Lab Digital Twin only when its project,
+  protected source and sealed Device DNA digest match the revision. The final lane shows the genuine
+  inert-operation count, confidence and blocker/attention totals. Blocked rehearsals remain partial;
+  successful unedited rehearsals also remain partial because simulation cannot establish USB,
+  bootloader, storage-wear, first-boot or subsystem behavior. A changed, stale or internally
+  inconsistent receipt is discarded and the lane returns to pending. This live validation overlay
+  does not alter the immutable draft revision or grant any registry, build, flash or phone authority.
 - All 1,883 Desktop/Python tests and the complete Ruff check gate pass, including core draft,
   Foundry inventory, Device Atlas UI, validation, requirements, Companion parity and navigation
   coverage. A themed 1200-by-600 direct panel

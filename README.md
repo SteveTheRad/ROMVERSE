@@ -306,6 +306,15 @@ and requires the complete projection and digest to match. A manually edited and 
 claim is therefore rejected by the Foundry rather than being treated as stronger evidence. The prior
 draft remains in revision history and no capability or phone authority changes.
 
+The Foundry also independently reloads the current project’s Digital Twin receipt when it matches
+the protected source and the exact sealed DNA digest. The **Simulation + device test** lane reports
+the real inert-operation count, confidence and blocker/attention totals. A blocked rehearsal is
+visible as partial evidence instead of success; a successful unedited rehearsal is also only partial
+because USB behavior, bootloader acceptance, storage wear, first boot and hardware subsystems still
+need signed physical observation. A changed, stale, differently bound or internally inconsistent
+receipt is ignored and the lane returns to pending. Simulation never changes the draft hash, enters
+the production registry, or grants build/flash/phone authority.
+
 Device Atlas can export an exact physical-test challenge and import the resulting detached
 Ed25519 envelope. Accepted evidence is stored in a bounded workspace vault, reverified on every
 read, and shared consistently with Genesis Sequence and Forge Control. The release trust catalog

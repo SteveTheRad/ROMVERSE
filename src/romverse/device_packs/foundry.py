@@ -11,6 +11,8 @@ from pathlib import Path
 from romverse.device_packs.drafts import DevicePackDraftService
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.infrastructure.local_store import LocalStoreError, read_regular_bytes
+from romverse.rom.projects import RomProjectStore
+from romverse.rom.simulation import RomSimulationService, SimulationSeverity
 
 
 class FoundryEvidenceState(StrEnum):
@@ -25,6 +27,20 @@ class FoundryEvidenceLane:
     title: str
     state: FoundryEvidenceState
     detail: str
+
+
+@dataclass(frozen=True, slots=True)
+class FoundrySimulationEvidence:
+    receipt_digest: str
+    device_pack_id: str
+    successful: bool
+    blocker_count: int
+    attention_count: int
+    operation_count: int
+    confidence_percent: int
+    rollback_ready: bool
+    hardware_unknown_count: int
+    execution_authority: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -47,6 +63,7 @@ class FoundryDraftRevision:
     device_dna_fact_count: int
     device_dna_partition_count: int
     device_dna_region: str
+    simulation: FoundrySimulationEvidence | None
     missing_flash_contracts: tuple[str, ...]
     lanes: tuple[FoundryEvidenceLane, ...]
     publication_status: str
@@ -133,6 +150,8 @@ class DevicePackFoundryInventory:
                 revision.evidenced_lane_count,
                 revision.source_avb_attached,
                 revision.device_dna_attached,
+                revision.simulation is not None and revision.simulation.successful,
+                revision.simulation is not None,
                 revision.source_bound,
                 revision.sha256,
             ),
@@ -196,6 +215,8 @@ class DevicePackFoundryService:
                     revision.evidenced_lane_count,
                     revision.source_avb_attached,
                     revision.device_dna_attached,
+                    revision.simulation is not None and revision.simulation.successful,
+                    revision.simulation is not None,
                     revision.sha256,
                 ),
                 reverse=True,
@@ -274,7 +295,8 @@ class DevicePackFoundryService:
             raise ValueError(
                 "Device DNA attachment no longer matches the sealed workspace profile"
             )
-        lanes = self._lanes(pack, review)
+        simulation = self._simulation_evidence(review, boundary)
+        lanes = self._lanes(pack, review, simulation)
         return FoundryDraftRevision(
             path,
             digest,
@@ -294,6 +316,7 @@ class DevicePackFoundryService:
             review.device_dna_fact_count if review is not None else 0,
             review.device_dna_partition_count if review is not None else 0,
             review.device_dna_region if review is not None else "",
+            simulation,
             (
                 review.missing_flash_contracts
                 if review is not None
@@ -305,7 +328,7 @@ class DevicePackFoundryService:
         )
 
     @staticmethod
-    def _lanes(pack, review) -> tuple[FoundryEvidenceLane, ...]:
+    def _lanes(pack, review, simulation) -> tuple[FoundryEvidenceLane, ...]:
         source_bound = review is not None
         avb_bound = source_bound and review.source_avb_attached
         dna_bound = source_bound and review.device_dna_attached
@@ -376,10 +399,82 @@ class DevicePackFoundryService:
             ),
             FoundryEvidenceLane(
                 "physical-test",
-                "Independent device test",
-                FoundryEvidenceState.PENDING,
-                "Simulation and signed physical recovery evidence are still required.",
+                "Simulation + device test",
+                (
+                    FoundryEvidenceState.PARTIAL
+                    if simulation is not None
+                    else FoundryEvidenceState.PENDING
+                ),
+                (
+                    f"Digital Twin {simulation.receipt_digest[:12]}… passed "
+                    f"{simulation.operation_count} inert operation(s) at "
+                    f"{simulation.confidence_percent}% confidence; signed physical recovery and "
+                    f"first-boot evidence are still required."
+                    if simulation is not None and simulation.successful
+                    else f"Digital Twin {simulation.receipt_digest[:12]}… reports "
+                    f"{simulation.blocker_count} blocker(s) and {simulation.attention_count} "
+                    "attention item(s); resolve them and still complete signed physical testing."
+                    if simulation is not None
+                    else "Run the source/DNA-bound Digital Twin, then complete signed physical recovery and first-boot testing."
+                ),
             ),
+        )
+
+    @staticmethod
+    def _simulation_evidence(
+        review,
+        workspace: Path,
+    ) -> FoundrySimulationEvidence | None:
+        if review is None or not review.device_dna_attached:
+            return None
+        try:
+            receipt = RomSimulationService(
+                RomProjectStore(workspace),
+                DevicePackRegistry(()),
+            ).load(review.project_id)
+        except (OSError, TypeError, ValueError):
+            return None
+        if (
+            receipt is None
+            or receipt.source_sha256 != review.source_sha256
+            or receipt.device_dna_digest != review.device_dna_profile_digest
+            or receipt.phone_changed
+            or receipt.execution_authority != "none"
+            or not 0 <= receipt.confidence_percent <= 92
+            or not 0 <= receipt.observed_battery_percent <= 100
+            and receipt.observed_battery_percent != -1
+        ):
+            return None
+        blocker_count = sum(
+            finding.severity is SimulationSeverity.BLOCKED for finding in receipt.findings
+        )
+        attention_count = sum(
+            finding.severity is SimulationSeverity.ATTENTION for finding in receipt.findings
+        )
+        expected_successful = bool(receipt.operations) and blocker_count == 0
+        if (
+            receipt.successful != expected_successful
+            or receipt.mission_ready != receipt.successful
+        ):
+            return None
+        successful = bool(
+            receipt.successful
+            and receipt.mission_ready
+            and receipt.operations
+            and blocker_count == 0
+            and not receipt.expert_edits
+        )
+        return FoundrySimulationEvidence(
+            receipt.receipt_digest,
+            receipt.device_pack_id,
+            successful,
+            blocker_count,
+            attention_count,
+            len(receipt.operations),
+            receipt.confidence_percent,
+            receipt.rollback.ready,
+            len(receipt.hardware_unknowns),
+            "none",
         )
 
     @staticmethod

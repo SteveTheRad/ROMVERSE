@@ -451,6 +451,10 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   firmware, slot/partition architecture and measured partition facts, structurally exclude serials
   and personal/command/credential data, retain region as observation rather than a match rule, and
   rebind the complete attached projection to the current project-local sealed profile on every load;
+  Foundry-to-Simulation-Lab validation that independently reloads the current project/source/DNA-bound
+  Digital Twin receipt, reports genuine operation/confidence/blocker evidence, rejects changed or
+  inconsistent receipts, and always keeps the combined simulation/physical-test lane partial until
+  separate signed physical recovery and first-boot proof exists;
   Partition Atlas source-AVB inspection that rehashes the exact OTA `vbmeta` pair, distinguishes
   actual chain partitions from other descriptors, binds a strict private receipt to the payload and
   protected source, and carries it into that draft without creating signing or flash authority;

@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QApplication, QFrame, QLabel
 from romverse.device.catalog import GooglePlayDeviceCatalog
 from romverse.device.dna import DeviceDnaService
 from romverse.device.models import AndroidDevice, DeviceState
+from romverse.device_packs.drafts import DevicePackDraftService
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.device_packs.requirements import RequirementState
 from romverse.infrastructure.tools import ToolStatus
@@ -456,6 +457,8 @@ def test_device_atlas_renders_exact_pixel_sources_without_build_authority(tmp_pa
     assert any("AOSP Pixel kernel compatibility matrix" in label for label in labels)
     assert "SOURCE CURRENT" in labels
     assert center.draft_button.isEnabled()
+    assert center.active_foundry_revision is None
+    assert any("DEVICE PACK FOUNDRY" in label for label in labels)
 
     center._export_model_draft()
 
@@ -467,6 +470,13 @@ def test_device_atlas_renders_exact_pixel_sources_without_build_authority(tmp_pa
     assert document["match"]["model_patterns"] == ["Pixel 9 Pro"]
     assert "private-serial" not in payload
     assert "execution authority: none" in center.export_status.text()
+    assert center.active_foundry_revision is not None
+    assert not center.active_foundry_revision.source_bound
+    assert center.draft_button.text() == "Model Pack draft recorded"
+    assert not center.draft_button.isEnabled()
+    labels = [label.text() for label in center.findChildren(QLabel)]
+    assert any("1/6 LANES" in label and "EXPERIMENTAL" in label for label in labels)
+    assert any("DRAFTS STAY OUTSIDE THE PRODUCTION REGISTRY" in label for label in labels)
     center.close()
 
 
@@ -496,6 +506,48 @@ def test_device_atlas_searches_catalog_and_reviews_pack_evidence_without_phone(t
     assert any("Samsung Knox hardware-backed security" in label for label in labels)
     assert "No exact local build contract — diagnostics knowledge only" in labels
     center.close()
+
+
+def test_device_pack_foundry_surfaces_conflicting_experimental_identity_claims(
+    tmp_path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    device = AndroidDevice(
+        "private-serial",
+        DeviceState.DEVICE,
+        manufacturer="Google",
+        brand="Google",
+        model="Pixel 9 Pro",
+        product="caiman",
+        codename="caiman",
+    )
+    seed = registry.resolve(device).pack
+    assert seed is not None
+    service = DevicePackDraftService()
+    first = service.request_from_device(seed, device)
+    second = json.loads(json.dumps(first))
+    first["pack_id"] = "candidate.pixel.first"
+    second["pack_id"] = "candidate.pixel.second"
+    drafts = tmp_path / "device_pack_drafts"
+    service.export(first, drafts, boundary=tmp_path)
+    service.export(second, drafts, boundary=tmp_path)
+
+    center = DevicePacksCenter(registry, tmp_path)
+    center.set_devices([device])
+    app.processEvents()
+    try:
+        assert center.foundry_inventory is not None
+        assert len(center.foundry_inventory.conflicts) == 2
+        labels = [label.text() for label in center.findChildren(QLabel)]
+        assert any("2 identity conflict(s)" in label for label in labels)
+        assert any(
+            "candidate.pixel.first" in label and "candidate.pixel.second" in label
+            for label in labels
+        )
+        assert any("PUBLICATION AUTHORITY: NONE" in label for label in labels)
+    finally:
+        center.close()
 
 
 def test_device_atlas_exposes_exact_observed_s24_ultra_read_only_evidence(tmp_path) -> None:

@@ -322,6 +322,13 @@ QFrame#ToolBaySlot {
     background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 rgba(7,20,34,242),stop:1 rgba(14,11,34,240));
     border: 1px solid rgba(61, 99, 147, 145); border-left: 3px solid rgba(51, 215, 232, 190); border-radius: 10px;
 }
+QFrame#DevicePackFoundryCard {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(7,25,35,245),stop:0.52 rgba(8,18,39,246),stop:1 rgba(29,11,50,243));
+    border: 1px solid rgba(55, 210, 228, 175); border-left: 3px solid #35DCEB; border-right: 2px solid rgba(180,92,255,175); border-radius: 13px;
+}
+QFrame#FoundryLane {
+    background: rgba(4, 13, 28, 225); border: 1px solid rgba(70, 104, 165, 155); border-top: 1px solid rgba(65, 223, 236, 135); border-radius: 9px;
+}
 QLabel#CompanionTransferStatus {
     color: #B9CAE4; background: rgba(3, 12, 25, 210); border: 1px solid rgba(62, 99, 151, 145); border-radius: 8px; padding: 10px 12px;
 }

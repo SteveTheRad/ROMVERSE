@@ -283,6 +283,19 @@ capability stays locked. The same workflow remains available to maintainers thro
 `scripts/create_device_pack_draft.py`. Every draft carries `publication_status: draft`, so the
 production registry rejects it even if it is manually added to the Pack index.
 
+The first **Device Pack Foundry** layer turns those isolated files into a strict local blueprint
+vault. It scans only bounded canonical `.draft.json` artifacts under the workspace, revalidates each
+draft through the production Pack parser and the exact-source safety contract, and keeps malformed,
+reformatted, linked, oversized or altered artifacts visible only as rejected inventory issues.
+Multiple immutable revisions of one Pack ID form development history; two different Pack IDs that
+claim the same manufacturer/model or manufacturer/product identity become an explicit conflict and
+remain experimental. For the connected identity, Device Atlas shows six evidence lanes: observed
+identity, variant aliases, factory firmware, partitions/AVB, flash/rollback contract, and independent
+device testing. Only genuinely attached source or AVB evidence illuminates its lane. Region remains
+visible evidence but is never used alone as the compatibility matcher. The panel permanently states
+that publication, build, flash and phone authority are none, and a recorded model draft disables the
+repeated create action instead of leading the user through the same loop again.
+
 Device Atlas can export an exact physical-test challenge and import the resulting detached
 Ed25519 envelope. Accepted evidence is stored in a bounded workspace vault, reverified on every
 read, and shared consistently with Genesis Sequence and Forge Control. The release trust catalog

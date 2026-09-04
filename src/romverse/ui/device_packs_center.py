@@ -37,6 +37,12 @@ from romverse.device.intelligence import (
 from romverse.device.models import AndroidDevice
 from romverse.device_packs.attestations import DevicePackAttestationStore
 from romverse.device_packs.drafts import DevicePackDraftReview, DevicePackDraftService
+from romverse.device_packs.foundry import (
+    DevicePackFoundryInventory,
+    DevicePackFoundryService,
+    FoundryDraftRevision,
+    FoundryEvidenceState,
+)
 from romverse.device_packs.models import CapabilityStatus, DevicePack
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.device_packs.requirements import (
@@ -95,11 +101,14 @@ class DevicePacksCenter(QWidget):
         self.validation_service = DevicePackValidationService()
         self.requirements_service = DeviceRequirementsService()
         self.draft_service = DevicePackDraftService()
+        self.foundry_service = DevicePackFoundryService()
         self.active_report: DevicePackValidationReport | None = None
         self.active_next_action: DevicePackNextAction | None = None
         self.active_requirements: DeviceRequirementsBlueprint | None = None
         self.active_project_source: ProjectSourceRequirements | None = None
         self.active_project_draft: DevicePackDraftReview | None = None
+        self.active_foundry_revision: FoundryDraftRevision | None = None
+        self.foundry_inventory: DevicePackFoundryInventory | None = None
         self.active_catalog_match: DeviceCatalogMatch | None = None
         self.active_pack: DevicePack | None = None
         self.active_device: AndroidDevice | None = None
@@ -1453,6 +1462,8 @@ class DevicePacksCenter(QWidget):
             self._render_device(self.devices[index])
 
     def _render_device(self, device: AndroidDevice) -> None:
+        self.active_foundry_revision = None
+        self.foundry_inventory = None
         if self.active_knowledge_device_serial != device.serial:
             self.active_knowledge_report = None
             self.active_knowledge_device_serial = ""
@@ -1741,6 +1752,7 @@ class DevicePacksCenter(QWidget):
         self.next_action_feedback.setObjectName("Muted")
         self.next_action_feedback.setWordWrap(True)
         roadmap_layout.addWidget(self.next_action_feedback)
+        self._render_foundry_blueprint(roadmap_layout)
 
         if project_source_stale:
             self.active_requirements = None
@@ -1847,7 +1859,10 @@ class DevicePacksCenter(QWidget):
             and self.active_device is not None
             and bool(pack.knowledge_sources)
             and not report.build_contract_ready
+            and self.active_foundry_revision is None
         )
+        if self.active_foundry_revision is not None:
+            self.draft_button.setText("Model Pack draft recorded")
         self.draft_button.setToolTip(
             "Creates a private, content-addressed draft with exact reported model/product "
             "patterns and reviewed source starting points. It excludes the serial and remains "
@@ -2172,6 +2187,140 @@ class DevicePacksCenter(QWidget):
         self.export_status.setObjectName("Good")
         self._repolish(self.export_status)
 
+    def _render_foundry_blueprint(self, parent: QVBoxLayout) -> None:
+        self.active_foundry_revision = None
+        self.foundry_inventory = None
+        card = QFrame()
+        card.setObjectName("DevicePackFoundryCard")
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(18, 15, 18, 15)
+        layout.setSpacing(9)
+        top = QHBoxLayout()
+        copy = QVBoxLayout()
+        eyebrow = QLabel("DEVICE PACK FOUNDRY  •  EXPERIMENTAL BLUEPRINT VAULT")
+        eyebrow.setObjectName("Eyebrow")
+        title = QLabel("Connected identity blueprint")
+        title.setObjectName("SectionTitle")
+        copy.addWidget(eyebrow)
+        copy.addWidget(title)
+        top.addLayout(copy, 1)
+        badge = QLabel("NO DRAFT")
+        badge.setObjectName("Muted")
+        top.addWidget(badge)
+        layout.addLayout(top)
+        if self.workspace is None or self.active_device is None:
+            detail = QLabel(
+                "Choose a workspace and connect one identified phone to begin a private draft."
+            )
+            detail.setObjectName("Muted")
+            detail.setWordWrap(True)
+            layout.addWidget(detail)
+            parent.addWidget(card)
+            return
+        try:
+            inventory = self.foundry_service.inspect(
+                self.workspace / "device_pack_drafts",
+                boundary=self.workspace,
+            )
+        except ValueError as exc:
+            detail = QLabel(f"Foundry inventory stopped safely: {exc}")
+            detail.setObjectName("Danger")
+            detail.setWordWrap(True)
+            layout.addWidget(detail)
+            badge.setText("INVENTORY BLOCKED")
+            badge.setObjectName("Danger")
+            parent.addWidget(card)
+            return
+        self.foundry_inventory = inventory
+        device = self.active_device
+        revision = inventory.best_for_identity(
+            device.brand or device.manufacturer,
+            device.model,
+            device.product,
+            device.codename,
+        )
+        self.active_foundry_revision = revision
+        if revision is None:
+            detail = QLabel(
+                f"No experimental blueprint matches {device.display_name}. Prepare one private "
+                "model draft, then attach a genuine firmware source and measured partition evidence."
+            )
+            detail.setObjectName("Muted")
+            detail.setWordWrap(True)
+            layout.addWidget(detail)
+        else:
+            title.setText(revision.display_name)
+            badge.setText(
+                f"{revision.evidenced_lane_count}/{len(revision.lanes)} LANES  •  EXPERIMENTAL"
+            )
+            badge.setObjectName("Warning")
+            revision_copy = QLabel(
+                f"Pack lineage {revision.pack_id} v{revision.version}  •  revision "
+                f"{revision.sha256[:16]}…  •  "
+                f"{'source-bound' if revision.source_bound else 'identity-only'}  •  "
+                "region is never used as the compatibility matcher"
+            )
+            revision_copy.setObjectName("Muted")
+            revision_copy.setWordWrap(True)
+            revision_copy.setTextInteractionFlags(
+                Qt.TextInteractionFlag.TextSelectableByMouse
+            )
+            layout.addWidget(revision_copy)
+            grid = QGridLayout()
+            grid.setHorizontalSpacing(10)
+            grid.setVerticalSpacing(10)
+            for index, lane in enumerate(revision.lanes):
+                tile = QFrame()
+                tile.setObjectName("FoundryLane")
+                tile_layout = QVBoxLayout(tile)
+                tile_layout.setContentsMargins(12, 10, 12, 10)
+                lane_state = QLabel(lane.state.value.upper())
+                lane_state.setObjectName(
+                    "Good"
+                    if lane.state is FoundryEvidenceState.EVIDENCED
+                    else "Warning"
+                    if lane.state is FoundryEvidenceState.PARTIAL
+                    else "Muted"
+                )
+                lane_title = QLabel(lane.title)
+                lane_title.setObjectName("SectionTitle")
+                lane_detail = QLabel(lane.detail)
+                lane_detail.setObjectName("Muted")
+                lane_detail.setWordWrap(True)
+                tile_layout.addWidget(lane_state)
+                tile_layout.addWidget(lane_title)
+                tile_layout.addWidget(lane_detail)
+                grid.addWidget(tile, index // 3, index % 3)
+            layout.addLayout(grid)
+        inventory_state = QLabel(
+            f"FOUNDRY VAULT  •  {inventory.pack_count} experimental Pack lineage(s)  •  "
+            f"{len(inventory.revisions)} immutable revision(s)  •  "
+            f"{len(inventory.conflicts)} identity conflict(s)  •  "
+            f"{len(inventory.issues)} rejected artifact(s)"
+        )
+        inventory_state.setObjectName(
+            "Danger" if inventory.conflicts or inventory.issues else "Good"
+        )
+        inventory_state.setWordWrap(True)
+        layout.addWidget(inventory_state)
+        if inventory.conflicts:
+            conflict = inventory.conflicts[0]
+            conflict_copy = QLabel(
+                f"CONFLICT • {conflict.identity_kind} '{conflict.identity}' is claimed by "
+                f"{', '.join(conflict.pack_ids)}. {conflict.safest_action}"
+            )
+            conflict_copy.setObjectName("Danger")
+            conflict_copy.setWordWrap(True)
+            layout.addWidget(conflict_copy)
+        boundary = QLabel(
+            "DRAFTS STAY OUTSIDE THE PRODUCTION REGISTRY  •  PUBLICATION AUTHORITY: NONE  •  "
+            "BUILD / FLASH / PHONE AUTHORITY: NONE"
+        )
+        boundary.setObjectName("Muted")
+        boundary.setWordWrap(True)
+        layout.addWidget(boundary)
+        parent.addWidget(card)
+
     def _export_model_draft(self) -> None:
         if self.active_pack is None or self.active_device is None or self.workspace is None:
             return
@@ -2191,6 +2340,8 @@ class DevicePacksCenter(QWidget):
             )
             self.export_status.setObjectName("Danger")
         else:
+            if self.active_pack is not None and self.active_report is not None:
+                self._render_pack(self.active_pack, self.active_report)
             self.export_status.setText(
                 f"Prepared review-only model draft {exported.output_path}  •  SHA-256 "
                 f"{exported.sha256[:16]}…  •  serial excluded  •  execution authority: none."

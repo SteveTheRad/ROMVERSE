@@ -1608,6 +1608,34 @@ The product-wide continuation target and definition of done are recorded in
 - The approved ROMVERSE application logo and approved RadForge Labs company logo were not edited or
   replaced; their byte-exact regression checks remain green.
 
+## 2026-09-05 Device Pack Foundry Stage 13 opening checkpoint
+
+- Device Atlas now includes a cosmic Device Pack Foundry blueprint vault for the connected identity.
+  Its six lanes distinguish observed identity, variant aliases, protected factory firmware,
+  partition/AVB evidence, exact flash/rollback contracts and independent device testing. A lane
+  illuminates only when the corresponding strict local artifact exists; an identity-only draft is
+  shown as 1/6 rather than being promoted to firmware or flash support. Region is explicitly not an
+  identity/compatibility matcher.
+- The Foundry inventory reads at most 512 drafts from a bounded workspace directory, requires the
+  exact canonical exported bytes and content-addressed filename, runs the ordinary production Pack
+  parser, revalidates exact-source context, and rejects links, path redirection, altered safety
+  declarations, widened capabilities, malformed JSON and unexpected fields. Every accepted revision
+  remains `experimental-draft` with publication and execution authority `none`; the service never
+  changes the production registry.
+- Revisions sharing one Pack ID are retained as a version history and the strongest source/AVB-backed
+  revision is selected for the connected model. Distinct Pack IDs claiming the same normalized
+  manufacturer/model or manufacturer/product identity generate a deterministic conflict with a
+  reconcile-evidence instruction; neither lineage is selected for publication. Device Atlas disables
+  the repeated create button after an exact identity draft is already recorded, removing another
+  circular step.
+- All 1,881 Desktop/Python tests and the complete Ruff check gate pass, including core draft,
+  Foundry inventory, Device Atlas UI, validation, requirements, Companion parity and navigation
+  coverage. A themed 1200-by-600 direct panel
+  render confirms the cyan-violet blueprint, two rows of evidence lanes, long identity text, state
+  contrast and authority boundary are readable. Physical validation, Simulation Lab attachment,
+  signed contributor intake and controlled production promotion remain required before Stage 13 is
+  complete.
+
 ## Honest feature boundary
 
 The current safe milestone supports read-only Android evidence, local diagnostics, guarded APK

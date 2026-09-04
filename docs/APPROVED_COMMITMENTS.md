@@ -442,6 +442,11 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   the protected source SHA-256, build/source identity, blueprint and plan digests, matching phone,
   observed partition count and scoped tools, lists every still-missing flash contract, and keeps
   registry, publication, execution and phone-action authority disabled pending separate review;
+  Device Pack Foundry's bounded private blueprint vault that strictly revalidates canonical draft
+  bytes, preserves immutable revisions per Pack lineage, rejects altered/linked/non-canonical
+  artifacts, detects distinct Pack IDs claiming the same exact model/product identity, ranks the
+  strongest current-identity revision, and renders six honest evidence lanes without treating region
+  alone as compatibility or allowing any draft into the production registry;
   Partition Atlas source-AVB inspection that rehashes the exact OTA `vbmeta` pair, distinguishes
   actual chain partitions from other descriptors, binds a strict private receipt to the payload and
   protected source, and carries it into that draft without creating signing or flash authority;

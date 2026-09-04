@@ -1017,6 +1017,9 @@ def _warnings(
             "ROMVERSE could not prove that the imported firmware is a valid upgrade from the "
             "connected phone. Installation authority remains unavailable."
         )
+        warnings.extend(
+            f"Upgrade comparison: {reason}" for reason in upgrade.reasons[:8] if reason.strip()
+        )
     if inspection is None and blueprint is None:
         warnings.append("Firmware container inspection has not completed yet.")
     elif inspection is not None and any(

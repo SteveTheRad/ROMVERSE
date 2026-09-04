@@ -254,6 +254,53 @@ def test_device_dna_uses_standard_ota_metadata_for_an_unknown_android_brand(tmp_
     assert profile.capability("guardian_flash").state is CapabilityState.UNSUPPORTED
 
 
+def test_device_dna_preserves_conflicting_ota_evidence_for_offline_diagnosis(tmp_path):
+    source = tmp_path / "conflicting-update.zip"
+    with zipfile.ZipFile(source, "w") as archive:
+        archive.writestr("payload.bin", b"CrAU test payload")
+        archive.writestr(
+            "META-INF/com/android/metadata",
+            b"\n".join(
+                (
+                    b"pre-device=rad",
+                    b"pre-build-incremental=100",
+                    b"post-build-incremental=200",
+                    b"post-sdk-level=34",
+                    b"post-security-patch-level=2026-09-01",
+                    b"post-timestamp=300",
+                )
+            ),
+        )
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.import_original(store.create("Conflicting OTA").project_id, source)
+    report = RomInspectionService(store).inspect_project(project.project_id)
+    device = AndroidDevice(
+        "PRIVATE-GENERIC",
+        DeviceState.DEVICE,
+        manufacturer="RadForge",
+        model="Universal One",
+        product="rad",
+        codename="rad",
+        api_level="35",
+        build_id="AP4A",
+        build_incremental="100",
+        build_timestamp_utc=200,
+        security_patch="2026-08-01",
+    )
+
+    profile = DeviceDnaService(store, DevicePackRegistry(())).refresh(
+        project.project_id, device, report
+    )
+
+    assert profile.fact("firmware.upgrade_relationship").value.endswith("VERSION EVIDENCE CONFLICT")
+    assert any("will not guess" in warning for warning in profile.warnings)
+    assert any("Android SDK: live 35; OTA 34 (older)" in warning for warning in profile.warnings)
+    assert any(
+        "Build timestamp: live 200; OTA 300 (newer)" in warning for warning in profile.warnings
+    )
+    assert profile.capability("guardian_flash").state is CapabilityState.UNSUPPORTED
+
+
 def test_device_dna_consumes_current_project_local_source_blueprint_without_flash_authority(
     tmp_path,
     monkeypatch,

@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import asdict, replace
+from datetime import UTC, datetime
 from types import SimpleNamespace
 
 import pytest
@@ -12,9 +13,16 @@ from romverse.device_packs.models import (
     AvbPolicyAuthority,
     AvbPolicyMode,
 )
-from romverse.rom.avb_evidence import AvbEvidenceService, AvbImageEvidence
+from romverse.infrastructure.process import CommandResult
+from romverse.rom.avb_evidence import (
+    AvbEvidenceService,
+    AvbImageEvidence,
+    SourceAvbEvidenceService,
+)
 from romverse.rom.build_execution import LocalDeviceBuildExecutor
 from romverse.rom.models import ProjectError
+from romverse.rom.payloads import PayloadManifest, PayloadPartition, PayloadService
+from romverse.rom.projects import RomProjectStore
 
 from .test_build_contracts import _fixture
 
@@ -39,6 +47,23 @@ Rollback Index Location:  0
 Descriptors:
     Hashtree descriptor:
       Partition Name:        product
+"""
+
+TOP_LEVEL_INFO = """Minimum libavb version:   1.0
+Algorithm:                SHA256_RSA4096
+Public key (sha1):        8256e695b81d1eb6dd0b1ce5d08b9c73cbb5e5b6
+Rollback Index:           0
+Flags:                    0
+Rollback Index Location:  0
+Descriptors:
+    Chain Partition descriptor:
+      Partition Name:          boot
+    Chain Partition descriptor:
+      Partition Name:          recovery
+    Chain Partition descriptor:
+      Partition Name:          vbmeta_system
+    Hash descriptor:
+      Partition Name:          dtbo
 """
 
 
@@ -134,6 +159,101 @@ def test_avb_parser_supports_unsigned_candidate_without_inventing_a_key():
     )
     assert evidence.algorithm == "NONE"
     assert evidence.public_key_sha1 == ""
+
+
+class _SourceAvbRunner:
+    def run(self, args, timeout=10, cwd=None):
+        output = SIGNED_INFO if "vbmeta_system.img" in str(args[-1]) else TOP_LEVEL_INFO
+        return CommandResult(tuple(map(str, args)), 0, output, "")
+
+
+def _source_avb_fixture(tmp_path):
+    source = tmp_path / "source.zip"
+    source.write_bytes(b"protected firmware")
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.create("Source AVB", "android.generic")
+    project = store.import_original(project.project_id, source)
+    tree = store.working_root / project.project_id / "tree"
+    tree.mkdir(parents=True)
+    payload = tree / "payload.bin"
+    payload.write_bytes(b"payload")
+    tool = tmp_path / "payload-dumper-go"
+    tool.write_bytes(b"tool")
+    partitions = store.working_root / project.project_id / "partitions"
+    partitions.mkdir()
+    records = []
+    for name, content in (
+        ("vbmeta", b"AVB0top-vbmeta"),
+        ("vbmeta_system", b"AVB0child-vbmeta"),
+    ):
+        image = partitions / f"{name}.img"
+        image.write_bytes(content)
+        records.append(
+            PayloadPartition(
+                name,
+                len(content),
+                "Firmware / boot chain",
+                True,
+                False,
+                image.relative_to(store.workspace).as_posix(),
+                len(content),
+                hashlib.sha256(content).hexdigest(),
+                "AVB metadata",
+            )
+        )
+    payloads = PayloadService(store, tool, _SourceAvbRunner())
+    payloads._save(
+        PayloadManifest(
+            PayloadService.SCHEMA_VERSION,
+            project.project_id,
+            datetime.now(UTC).isoformat(),
+            project.original.sha256,
+            payload.relative_to(store.workspace).as_posix(),
+            payload.stat().st_size,
+            hashlib.sha256(payload.read_bytes()).hexdigest(),
+            str(tool.resolve()),
+            tuple(records),
+            payload.stat().st_mtime_ns,
+            hashlib.sha256(tool.read_bytes()).hexdigest(),
+            "",
+        )
+    )
+    avbtool = tmp_path / "avbtool"
+    avbtool.write_bytes(b"verified tool")
+    return store, project, payloads, avbtool, partitions
+
+
+def test_source_avb_inventory_works_without_a_device_pack_and_reloads_strictly(tmp_path):
+    store, project, payloads, avbtool, partitions = _source_avb_fixture(tmp_path)
+    service = SourceAvbEvidenceService(store, payloads, avbtool, _SourceAvbRunner())
+
+    receipt = service.inspect(project.project_id)
+
+    assert receipt.signing_identity_consistent
+    assert receipt.top_level_chain_partitions == ("boot", "recovery", "vbmeta_system")
+    assert receipt.images[0].descriptor_partitions == (
+        "boot",
+        "recovery",
+        "vbmeta_system",
+        "dtbo",
+    )
+    assert receipt.child_descriptor_partitions == ("product", "system")
+    assert receipt.images[0].public_key_sha1 == receipt.images[1].public_key_sha1
+    assert "source evidence only" in receipt.diagnosis
+    assert not receipt.phone_changed
+    assert service.load(project.project_id) == receipt
+
+    path = store.projects_root / project.project_id / service.RECEIPT_NAME
+    original = path.read_bytes()
+    document = json.loads(original)
+    document["unexpected"] = True
+    path.write_text(json.dumps(document), encoding="utf-8")
+    assert service.load(project.project_id) is None
+
+    path.write_bytes(original)
+    image = partitions / "vbmeta_system.img"
+    image.touch()
+    assert service.load(project.project_id) is None
 
 
 def test_historical_unsigned_child_policy_is_recognized_but_never_authorized():

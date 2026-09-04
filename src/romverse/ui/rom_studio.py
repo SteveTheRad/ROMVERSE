@@ -69,6 +69,7 @@ from romverse.intelligence.online_remediation import OnlineFixReceipt, SourceAut
 from romverse.nexus.compatibility import CompatibilityMatrix, CompatibilityMatrixService
 from romverse.nexus.planning import NexusPlanStore
 from romverse.platform.host import current_host
+from romverse.rom.avb_evidence import SourceAvbEvidenceService, SourceAvbTopologyReceipt
 from romverse.rom.boot_observation import BootObservationService, BootObservationStatus
 from romverse.rom.builds import BuildPlan, RomBuildPlanner
 from romverse.rom.debloat import DebloatService
@@ -152,6 +153,7 @@ class ProjectWorker(ManagedRunnable):
         payload_service: PayloadService | None = None,
         filesystem_service: PartitionFilesystemService | None = None,
         partitions: tuple[str, ...] = (),
+        source_avb_service: SourceAvbEvidenceService | None = None,
     ) -> None:
         super().__init__()
         self.store = store
@@ -162,6 +164,7 @@ class ProjectWorker(ManagedRunnable):
         self.payload_service = payload_service
         self.filesystem_service = filesystem_service
         self.partitions = partitions
+        self.source_avb_service = source_avb_service
         self.signals = ProjectWorkerSignals()
 
     @Slot()
@@ -243,6 +246,8 @@ class ProjectWorker(ManagedRunnable):
                 if len(self.partitions) != 1:
                     raise ProjectError("Choose one partition filesystem to expand")
                 result = self.filesystem_service.expand(self.project_id, self.partitions[0])
+            elif self.operation == "inspect-source-avb" and self.source_avb_service is not None:
+                result = self.source_avb_service.inspect(self.project_id)
             elif self.operation == "preview-recipe":
                 recipe = RecipeStore().load(self.store.projects_root / self.project_id)
                 tree = self.store.working_root / self.project_id / "tree"
@@ -576,6 +581,7 @@ class RomStudio(QWidget):
         self.tool_statuses: tuple[ToolStatus, ...] = ()
         self.payload_service: PayloadService | None = None
         self.filesystem_service: PartitionFilesystemService | None = None
+        self.source_avb_service: SourceAvbEvidenceService | None = None
         self._configure_tools(tool_statuses)
         self.worker: ManagedRunnable | None = None
         self._active_operation = ""
@@ -1116,6 +1122,17 @@ class RomStudio(QWidget):
             erofs=resolved_tool("EROFS Verifier", "fsck.erofs"),
             fakeroot=resolved_tool("Fakeroot", "fakeroot"),
             lpunpack=resolved_tool("LP Unpack", "lpunpack"),
+        )
+        avbtool = resolved_tool("AVBTool", "avbtool")
+        self.source_avb_service = (
+            SourceAvbEvidenceService(
+                self.store,
+                self.payload_service,
+                avbtool,
+                SubprocessRunner(),
+            )
+            if self.payload_service is not None and avbtool is not None
+            else None
         )
 
     def _open_guided_setup(self) -> None:
@@ -3808,11 +3825,12 @@ class RomStudio(QWidget):
             self.store,
             operation,
             self.current_project.project_id,
-            source,
-            self.inspection,
-            self.payload_service,
-            self.filesystem_service,
-            partitions,
+            source=source,
+            inspection=self.inspection,
+            payload_service=self.payload_service,
+            filesystem_service=self.filesystem_service,
+            partitions=partitions,
+            source_avb_service=self.source_avb_service,
         )
         self._launch_worker(worker, operation)
 
@@ -3877,6 +3895,8 @@ class RomStudio(QWidget):
             if operation == "extract-payload"
             else "Expanding the selected read-only partition filesystem into the contained ROM tree…"
             if operation == "expand-filesystem"
+            else "Verifying the firmware's own vbmeta chain and signing identity locally. This creates source evidence only and grants no signing, Pack, or phone authority…"
+            if operation == "inspect-source-avb"
             else "Previewing recipe targets without mutation…"
             if operation == "preview-recipe"
             else "Verifying approval and creating rollback protection with an animated preflight, then reporting completed recipe steps; final tree and receipt verification remain below completion…"
@@ -3954,6 +3974,7 @@ class RomStudio(QWidget):
             "scan-payload": PayloadManifest,
             "extract-payload": PayloadManifest,
             "expand-filesystem": FilesystemManifest,
+            "inspect-source-avb": SourceAvbTopologyReceipt,
             "preview-recipe": RecipePreview,
             "replace-file": ExecutionReceipt,
             "set-property": ExecutionReceipt,
@@ -4015,6 +4036,12 @@ class RomStudio(QWidget):
                     or self.filesystem_service.load(project_id, result.partition) != result
                 ):
                     return "ROM Studio rejected changed filesystem evidence"
+            elif isinstance(result, SourceAvbTopologyReceipt):
+                if (
+                    self.source_avb_service is None
+                    or self.source_avb_service.load(project_id) != result
+                ):
+                    return "ROM Studio rejected changed source AVB evidence"
             elif isinstance(result, RecipeRunReceipt):
                 project_dir = self.store.projects_root / project_id
                 recipe = RecipeStore().load(project_dir)
@@ -4161,6 +4188,15 @@ class RomStudio(QWidget):
                 f"{result.partition} filesystem expanded safely  •  "
                 f"{result.file_count:,} files  •  {human_bytes(result.content_bytes)} browsable content."
             )
+        elif isinstance(result, SourceAvbTopologyReceipt):
+            top = result.images[0]
+            chains = ", ".join(result.top_level_chain_partitions) or "none"
+            state = "consistent" if result.signing_identity_consistent else "requires review"
+            self.operation_status.setText(
+                f"OEM source AVB verified  •  {state}  •  {top.algorithm}  •  "
+                f"key {top.public_key_sha1[:16]}…  •  chains: {chains}  •  "
+                "source evidence only  •  Pack/signing/flash authority: NONE  •  phone changed: NO"
+            )
         elif isinstance(result, RecipePreview):
             self.operation_status.setText(
                 f"Recipe preview: {len(result.matched_targets)} matched, "
@@ -4226,6 +4262,7 @@ class RomStudio(QWidget):
                 RecipeRollbackReceipt,
                 PayloadManifest,
                 FilesystemManifest,
+                SourceAvbTopologyReceipt,
                 BuildPlan,
                 ForgeBundleReceipt,
                 GuardianManifestReview,

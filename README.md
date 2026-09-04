@@ -395,6 +395,13 @@ For a project with no exact source contract, one unambiguous authorized phone ca
 highest-priority OEM Pack as read-only knowledge; multiple phones remain unassociated. ROM Studio
 recompiles Device DNA when device context changes, and a single phone whose codename conflicts with
 the firmware remains visible as UNSUPPORTED instead of being filtered out.
+Partition Atlas can now inspect an OTA source's extracted `vbmeta` and `vbmeta_system` with the
+verified local AVBTool even before an exact Device Pack exists. The strict private receipt separates
+true chain partitions from ordinary hash/hashtree descriptors, records the OEM algorithm and public
+key fingerprint, binds both images to the current payload manifest and protected source, and grants
+no signing, Pack, execution, flash, or phone authority. An exact-source Device Atlas draft carries
+that receipt forward as development evidence while continuing to list the AVB execution policy and
+physical recovery contracts as unresolved.
 
 **ROMVERSE Nexus** consumes current Device DNA and Compatibility Matrix evidence. Pathfinder
 draws the Understand → Research → Nexus Plan → Guardian Review → Execute → Nexus Verification

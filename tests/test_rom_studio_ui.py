@@ -243,6 +243,64 @@ def test_partition_atlas_uses_honest_shared_progress_states(tmp_path):
     studio.close()
 
 
+def test_partition_atlas_routes_source_avb_inspection_without_phone_authority(tmp_path):
+    QApplication.instance() or QApplication([])
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.create("Source AVB route")
+    studio = RomStudio(store, DevicePackRegistry(()))
+    studio.refresh(project.project_id)
+    partitions = tuple(
+        SimpleNamespace(
+            name=name,
+            estimated_bytes=4096,
+            category="Firmware / boot chain",
+            recommended=False,
+            critical=True,
+            extracted_path=f"working/{name}.img",
+            actual_bytes=4096,
+            sha256="a" * 64,
+            image_format="AVB metadata",
+        )
+        for name in ("vbmeta", "vbmeta_system")
+    )
+
+    class Payloads:
+        def load(self, _project_id):
+            return SimpleNamespace(partitions=partitions)
+
+        def plan_extraction(self, _project_id, selected):
+            return SimpleNamespace(safe=bool(selected), reason="Local extraction is safe")
+
+    class Filesystems:
+        def load(self, _project_id, _partition):
+            return None
+
+    class SourceAvb:
+        def load(self, _project_id):
+            return SimpleNamespace(signing_identity_consistent=True)
+
+    studio.payload_service = Payloads()
+    studio.filesystem_service = Filesystems()
+    studio.source_avb_service = SourceAvb()
+    operations = []
+    studio._start_worker = lambda operation, **options: operations.append((operation, options))
+    atlas = PartitionWorkspace(studio)
+
+    assert atlas.source_avb_state.text() == "CONSISTENT"
+    assert atlas.avb_button.isEnabled()
+    assert atlas.avb_button.text() == "Reinspect source AVB"
+    assert "does not sign, flash" in atlas.avb_button.toolTip()
+
+    atlas._inspect_source_avb()
+
+    assert operations == [("inspect-source-avb", {})]
+    atlas._operation_started("inspect-source-avb")
+    assert atlas.busy
+    assert "source evidence only" in atlas.detail.text()
+    atlas.close()
+    studio.close()
+
+
 def test_partition_atlas_resolves_its_missing_tool_and_continues(tmp_path, monkeypatch):
     app = QApplication.instance() or QApplication([])
     store = RomProjectStore(tmp_path / "workspace")

@@ -145,6 +145,16 @@ exact flash-certified Device Pack proves the operation contract. A 1600×1000 of
 confirmed the Passport remains readable inside ROM Studio's existing dark scroll surface. No phone,
 firmware, partition, bootloader, flash or installation operation was performed.
 
+The source-AVB handoff increment passes all 1,638 Desktop tests and the complete Ruff check/format
+gates across 378 Python files. Partition Atlas now verifies a firmware's own `vbmeta` and
+`vbmeta_system` without requiring an already-complete Device Pack, strictly reloads the private
+source/project/payload-bound receipt, distinguishes three genuine top-level chain partitions from
+ordinary hash/hashtree descriptors, and carries that evidence into the exact-source Device Atlas
+draft. The live OS4.0.0.25 simulation confirmed one SHA256_RSA4096 OEM identity across both images,
+with `boot`, `recovery`, and `vbmeta_system` as the true chain partitions. The receipt and draft
+permanently retain zero signing, execution, flash, and phone authority; no physical-phone operation
+was performed.
+
 ## Required gates
 
 1. Run the complete `pytest`, `ruff check .`, and `ruff format --check .` gates on supported Linux

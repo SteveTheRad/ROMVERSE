@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import html
+import shutil
 from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
@@ -45,7 +46,9 @@ from romverse.device_packs.validation import (
 from romverse.infrastructure.process import SubprocessRunner
 from romverse.infrastructure.provisioning import required_tools_for_source
 from romverse.infrastructure.tools import ToolStatus
+from romverse.rom.avb_evidence import SourceAvbEvidenceService, SourceAvbTopologyReceipt
 from romverse.rom.models import ProjectError
+from romverse.rom.payloads import PayloadService
 from romverse.rom.projects import RomProjectStore
 from romverse.rom.source_intelligence import FirmwareSourceIntelligenceService
 
@@ -792,6 +795,50 @@ class DevicePacksCenter(QWidget):
             source.source_sha256,
         )
         return current if current == source else None
+
+    def _load_project_source_avb(
+        self, source: ProjectSourceRequirements
+    ) -> SourceAvbTopologyReceipt | None:
+        """Reload optional strict OEM-source AVB evidence for a private Pack draft."""
+
+        if self.workspace is None:
+            return None
+
+        def resolved_tool(status_name: str, executable: str) -> Path | None:
+            configured = next(
+                (
+                    Path(item.path)
+                    for item in (self.tool_statuses or ())
+                    if item.name == status_name and item.available and item.path
+                ),
+                None,
+            )
+            found = shutil.which(executable)
+            return configured or (Path(found) if found else None)
+
+        payload_tool = resolved_tool("Payload Dumper", "payload-dumper-go")
+        avbtool = resolved_tool("AVBTool", "avbtool")
+        if payload_tool is None or avbtool is None:
+            return None
+        try:
+            store = RomProjectStore(self.workspace)
+            runner = SubprocessRunner()
+            payloads = PayloadService(store, payload_tool, runner)
+            receipt = SourceAvbEvidenceService(
+                store,
+                payloads,
+                avbtool,
+                runner,
+            ).load(source.project_id)
+        except (OSError, ProjectError, TypeError, ValueError):
+            return None
+        if (
+            receipt is None
+            or receipt.source_original_sha256 != source.source_sha256
+            or receipt.phone_changed
+        ):
+            return None
+        return receipt
 
     def open_forge_return(
         self,
@@ -1587,6 +1634,7 @@ class DevicePacksCenter(QWidget):
                 seed_pack,
                 self.active_device,
                 source,
+                self._load_project_source_avb(source),
             )
             exported = self.draft_service.export(
                 request,

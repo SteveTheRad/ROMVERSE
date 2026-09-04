@@ -407,7 +407,11 @@ Extracted Android sparse, ext4, and EROFS images may be expanded with verified l
 `working_roms/<project>/tree/partition_files/<partition>/root`. Entry count, content size,
 symlink containment, source hash, and extractor identity are recorded in per-partition
 manifests. Partition Atlas uses lazy filesystem models, allowing users to browse large
-trees and hand a selected contained target directly to Recipe Forge.
+trees and hand a selected contained target directly to Recipe Forge. It also exposes a local
+source-AVB inspection for `vbmeta` and `vbmeta_system`. This rehashes both images, parses verified
+AVBTool output, distinguishes chain descriptors from all other protected descriptors, and persists
+a strict source/project/payload-bound receipt. The receipt is diagnostic development evidence only:
+it contains no signing key and cannot authorize a Pack or phone action.
 
 ### Build Control and evidence gates increment
 

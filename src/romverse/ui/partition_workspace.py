@@ -60,6 +60,7 @@ class PartitionWorkspace(QDialog):
         self.partition_count = self._stat_card(cards, "PARTITIONS", "—")
         self.selected_size = self._stat_card(cards, "RECOMMENDED SET", "—")
         self.extracted_count = self._stat_card(cards, "EXTRACTED", "—")
+        self.source_avb_state = self._stat_card(cards, "SOURCE AVB", "—")
         self.safety_state = self._stat_card(cards, "GUARDIAN BUDGET", "Waiting")
         body.addLayout(cards)
 
@@ -129,6 +130,11 @@ class PartitionWorkspace(QDialog):
             "Expand the selected ext4, EROFS, or sparse partition into a contained browsable tree."
         )
         self.expand_button.clicked.connect(self._expand_filesystem)
+        self.avb_button = QPushButton("Inspect source AVB")
+        self.avb_button.setToolTip(
+            "Verify the firmware's own vbmeta signing identity locally. This does not sign, flash, or authorize a Device Pack."
+        )
+        self.avb_button.clicked.connect(self._inspect_source_avb)
         self.browse_button = QPushButton("Browse files")
         self.browse_button.clicked.connect(self._browse_files)
         self.extract_button = QPushButton("Extract selected")
@@ -138,6 +144,7 @@ class PartitionWorkspace(QDialog):
         footer_layout.addStretch()
         footer_layout.addWidget(self.scan_button)
         footer_layout.addWidget(self.recommended_button)
+        footer_layout.addWidget(self.avb_button)
         footer_layout.addWidget(self.expand_button)
         footer_layout.addWidget(self.browse_button)
         footer_layout.addWidget(self.extract_button)
@@ -282,12 +289,14 @@ class PartitionWorkspace(QDialog):
             self.partition_count.setText("Not scanned")
             self.selected_size.setText("—")
             self.extracted_count.setText("0")
+            self.source_avb_state.setText("Waiting")
             self.safety_state.setText("Waiting")
             self.scan_button.setEnabled(not self.busy and self.service is not None)
             self.recommended_button.setEnabled(False)
             self.extract_button.setEnabled(False)
             self.expand_button.setEnabled(False)
             self.browse_button.setEnabled(False)
+            self.avb_button.setEnabled(False)
             return
         selected = self._selected()
         selected_set = set(selected)
@@ -298,6 +307,25 @@ class PartitionWorkspace(QDialog):
         self.partition_count.setText(str(len(self.manifest.partitions)))
         self.selected_size.setText(human_bytes(selected_bytes))
         self.extracted_count.setText(f"{extracted} / {len(self.manifest.partitions)}")
+        source_avb = (
+            self.studio.source_avb_service.load(self.project.project_id)
+            if self.studio.source_avb_service is not None
+            else None
+        )
+        self.source_avb_state.setText(
+            "CONSISTENT"
+            if source_avb is not None and source_avb.signing_identity_consistent
+            else "REVIEW"
+            if source_avb is not None
+            else "Not inspected"
+        )
+        self.source_avb_state.setObjectName(
+            "PartitionStatSafe"
+            if source_avb is not None and source_avb.signing_identity_consistent
+            else "PartitionStat"
+        )
+        self.source_avb_state.style().unpolish(self.source_avb_state)
+        self.source_avb_state.style().polish(self.source_avb_state)
         try:
             plan = (
                 self.service.plan_extraction(self.project.project_id, selected)
@@ -319,6 +347,17 @@ class PartitionWorkspace(QDialog):
         self.scan_button.setEnabled(not self.busy)
         self.recommended_button.setEnabled(not self.busy)
         self.extract_button.setEnabled(bool(plan and plan.safe and not self.busy))
+        available_names = {item.name for item in self.manifest.partitions}
+        self.avb_button.setEnabled(
+            bool(
+                not self.busy
+                and self.studio.source_avb_service is not None
+                and {"vbmeta", "vbmeta_system"}.issubset(available_names)
+            )
+        )
+        self.avb_button.setText(
+            "Reinspect source AVB" if source_avb is not None else "Inspect source AVB"
+        )
         self._update_filesystem_actions()
 
     def _show_partition_detail(self) -> None:
@@ -452,6 +491,16 @@ class PartitionWorkspace(QDialog):
             return
         self.studio._start_worker("scan-payload")
 
+    def _inspect_source_avb(self) -> None:
+        if self.studio.source_avb_service is None:
+            QMessageBox.warning(
+                self,
+                "AVB inspection unavailable",
+                "Verify Payload Dumper and AVBTool through Forge Arsenal first.",
+            )
+            return
+        self.studio._start_worker("inspect-source-avb")
+
     def _extract(self) -> None:
         selected = self._selected()
         if not selected:
@@ -475,13 +524,20 @@ class PartitionWorkspace(QDialog):
 
     @Slot(str)
     def _operation_started(self, operation: str) -> None:
-        if operation not in {"scan-payload", "extract-payload", "expand-filesystem"}:
+        if operation not in {
+            "scan-payload",
+            "extract-payload",
+            "expand-filesystem",
+            "inspect-source-avb",
+        }:
             return
         self.busy = True
         self.progress.begin(determinate=False)
         self.detail.setText(
             "Expanding the selected filesystem into a contained browsable tree…"
             if operation == "expand-filesystem"
+            else "Verifying the firmware's own vbmeta and vbmeta_system images. This is source evidence only; phone changed: NO…"
+            if operation == "inspect-source-avb"
             else "Payload Dumper is extracting without a trustworthy percentage. Measured output-byte verification will appear when images exist…"
             if operation == "extract-payload"
             else "Verifying payload.bin and reading its partition manifest. The external partition scan has no trustworthy percentage…"
@@ -490,13 +546,23 @@ class PartitionWorkspace(QDialog):
 
     @Slot(str, int)
     def _operation_progress(self, operation: str, value: int) -> None:
-        if operation not in {"scan-payload", "extract-payload", "expand-filesystem"}:
+        if operation not in {
+            "scan-payload",
+            "extract-payload",
+            "expand-filesystem",
+            "inspect-source-avb",
+        }:
             return
         self.progress.report(value)
 
     @Slot(str, object)
     def _operation_completed(self, operation: str, _result: object) -> None:
-        if operation not in {"scan-payload", "extract-payload", "expand-filesystem"}:
+        if operation not in {
+            "scan-payload",
+            "extract-payload",
+            "expand-filesystem",
+            "inspect-source-avb",
+        }:
             return
         self.busy = False
         self.progress.finish()
@@ -504,7 +570,12 @@ class PartitionWorkspace(QDialog):
 
     @Slot(str, str)
     def _operation_failed(self, operation: str, message: str) -> None:
-        if operation not in {"scan-payload", "extract-payload", "expand-filesystem"}:
+        if operation not in {
+            "scan-payload",
+            "extract-payload",
+            "expand-filesystem",
+            "inspect-source-avb",
+        }:
             return
         self.busy = False
         self.progress.stop()

@@ -106,8 +106,10 @@ scripts/                  Linux and Windows environment bootstrap
   successful no-op so nested UI cannot strand Autopilot.
 - Treat an exact-source Device Pack draft as a development handoff only. Bind it to the revalidated
   project source, blueprint/plan digests, matching phone identity, partition count, tool list, and
-  explicit missing flash contracts; reject it from the production Pack registry and keep public,
-  execution, and phone-action authority false.
+  explicit missing flash contracts. When a current strict source-AVB receipt exists, carry its OEM
+  algorithm, public-key fingerprint, true chain partitions and other descriptor partitions as
+  evidence without treating them as an AVB execution policy; reject the draft from the production
+  Pack registry and keep public, execution, and phone-action authority false.
 - Apply the bounded evidence-store contract at the producer as well as the consumer. OTA/fastboot
   blueprints, local-build/super receipts, and AVB topology must reject hostile files and exact-shape
   violations before domain construction. Use saved size/mtime identity for bounded routine reloads;

@@ -436,6 +436,9 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   the protected source SHA-256, build/source identity, blueprint and plan digests, matching phone,
   observed partition count and scoped tools, lists every still-missing flash contract, and keeps
   registry, publication, execution and phone-action authority disabled pending separate review;
+  Partition Atlas source-AVB inspection that rehashes the exact OTA `vbmeta` pair, distinguishes
+  actual chain partitions from other descriptors, binds a strict private receipt to the payload and
+  protected source, and carries it into that draft without creating signing or flash authority;
   Genesis Device DNA stage with a progress-visible fresh read-only scan, current profile/map gate,
   beginner identity and key capability evidence, automatic profile refresh, and fail-closed removal
   of stale ROM Studio device identity after an ADB refresh failure;

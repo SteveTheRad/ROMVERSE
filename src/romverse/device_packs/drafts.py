@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from romverse.device.models import AndroidDevice
@@ -15,6 +15,7 @@ from romverse.infrastructure.local_store import (
     atomic_write_bytes,
     read_json_object,
 )
+from romverse.rom.avb_evidence import SourceAvbTopologyReceipt
 
 
 @dataclass(frozen=True, slots=True)
@@ -105,6 +106,7 @@ class DevicePackDraftService:
         pack: DevicePack,
         device: AndroidDevice,
         source: ProjectSourceRequirements,
+        source_avb: SourceAvbTopologyReceipt | None = None,
     ) -> dict[str, object]:
         """Bind a review draft to one revalidated local project source and phone identity."""
 
@@ -131,12 +133,76 @@ class DevicePackDraftService:
             "partition_count": source.partition_count,
             "required_tools": list(source.required_tools),
         }
+        if source_avb is not None:
+            receipt_payload = asdict(source_avb)
+            receipt_payload.pop("receipt_digest", None)
+            expected_receipt_digest = hashlib.sha256(
+                json.dumps(
+                    receipt_payload,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ).hexdigest()
+            top = source_avb.images[0] if len(source_avb.images) == 2 else None
+            child = source_avb.images[1] if len(source_avb.images) == 2 else None
+            consistent = bool(
+                top is not None
+                and child is not None
+                and top.algorithm != "NONE"
+                and child.algorithm != "NONE"
+                and top.public_key_sha1
+                and top.public_key_sha1 == child.public_key_sha1
+                and "vbmeta_system" in source_avb.top_level_chain_partitions
+            )
+            if (
+                source_avb.project_id != source.project_id
+                or source_avb.source_original_sha256 != source.source_sha256
+                or source_avb.phone_changed
+                or source_avb.receipt_digest != expected_receipt_digest
+                or top is None
+                or child is None
+                or (top.role, child.role) != ("source-vbmeta", "source-vbmeta_system")
+                or not _sha256(top.sha256)
+                or not _sha256(child.sha256)
+                or source_avb.signing_identity_consistent != consistent
+                or not source_avb.top_level_chain_partitions
+                or not set(source_avb.top_level_chain_partitions).issubset(
+                    top.descriptor_partitions
+                )
+                or source_avb.child_descriptor_partitions != child.descriptor_partitions
+            ):
+                raise ValueError("source AVB receipt does not match the exact project source")
+            request["source_avb_evidence"] = {
+                "project_id": source_avb.project_id,
+                "source_sha256": source_avb.source_original_sha256,
+                "receipt_digest": source_avb.receipt_digest,
+                "payload_manifest_digest": source_avb.payload_manifest_digest,
+                "signing_identity_consistent": source_avb.signing_identity_consistent,
+                "algorithm": top.algorithm,
+                "public_key_sha1": top.public_key_sha1,
+                "vbmeta_sha256": top.sha256,
+                "vbmeta_system_algorithm": child.algorithm,
+                "vbmeta_system_public_key_sha1": child.public_key_sha1,
+                "vbmeta_system_sha256": child.sha256,
+                "top_level_chain_partitions": list(source_avb.top_level_chain_partitions),
+                "top_level_descriptor_partitions": list(top.descriptor_partitions),
+                "child_descriptor_partitions": list(source_avb.child_descriptor_partitions),
+                "authority": "source-evidence-only",
+                "phone_changed": False,
+            }
         notes = request["notes"]
         assert isinstance(notes, list)
         notes.extend(
             (
                 f"Strict local {source.source_kind} evidence binds protected source {source.source_sha256} and build {source.build_id}.",
                 f"The local source blueprint reports {source.partition_count} partition records; exact write, readback, AVB, transition, stock-recovery, and physical-test contracts still require review.",
+                (
+                    f"OEM source AVB receipt {source_avb.receipt_digest[:16]}… records "
+                    f"{top.algorithm} identity and {len(source_avb.top_level_chain_partitions)} "
+                    "top-level chains; this does not provide signing keys or an execution policy."
+                    if source_avb is not None
+                    else "OEM source AVB topology has not yet been attached to this draft."
+                ),
                 "This exact-source draft is a development handoff, not a flash authorization or public compatibility claim.",
             )
         )
@@ -156,6 +222,7 @@ class DevicePackDraftService:
             "knowledge_sources",
             "notes",
             "source_evidence",
+            "source_avb_evidence",
         }
         unexpected = sorted(set(request) - allowed)
         if unexpected:
@@ -172,6 +239,9 @@ class DevicePackDraftService:
         if any(pattern == "*" for pattern in (*model_patterns, *product_patterns)):
             raise ValueError("exact-model drafts cannot use wildcard-only identity")
         source_evidence = self._validated_source_evidence(request.get("source_evidence"))
+        source_avb_evidence = self._validated_source_avb_evidence(
+            request.get("source_avb_evidence"), source_evidence
+        )
         source_detail = (
             f"Strict project-local {source_evidence['source_kind']} evidence binds build "
             f"{source_evidence['build_id']} and {source_evidence['partition_count']} observed "
@@ -180,9 +250,14 @@ class DevicePackDraftService:
             else "No immutable firmware build contract has been reviewed or published."
         )
         partition_detail = (
-            f"A source blueprint records {source_evidence['partition_count']} partitions, but "
-            "their exact writable artifacts, slots, AVB relationships, and recovery behavior "
-            "remain locked pending review."
+            f"A source blueprint records {source_evidence['partition_count']} partitions"
+            + (
+                f" and verified OEM AVB topology records "
+                f"{len(source_avb_evidence['top_level_chain_partitions'])} top-level chains, but "
+                if source_avb_evidence is not None
+                else ", but "
+            )
+            + "their exact writable artifacts, slots, AVB execution policy, and recovery behavior remain locked pending review."
             if source_evidence is not None
             else "No exact partition, slot, filesystem, or AVB contract is available."
         )
@@ -251,7 +326,116 @@ class DevicePackDraftService:
                 "phone_action_allowed": False,
                 "public_compatibility_claim": False,
             }
+            if source_avb_evidence is not None:
+                document["draft_context"]["source_avb_evidence"] = source_avb_evidence
         return document
+
+    def _validated_source_avb_evidence(
+        self,
+        value: object,
+        source_evidence: dict[str, object] | None,
+    ) -> dict[str, object] | None:
+        if value is None:
+            return None
+        if source_evidence is None or not isinstance(value, dict):
+            raise ValueError("source AVB evidence requires exact project source evidence")
+        expected = {
+            "project_id",
+            "source_sha256",
+            "receipt_digest",
+            "payload_manifest_digest",
+            "signing_identity_consistent",
+            "algorithm",
+            "public_key_sha1",
+            "vbmeta_sha256",
+            "vbmeta_system_algorithm",
+            "vbmeta_system_public_key_sha1",
+            "vbmeta_system_sha256",
+            "top_level_chain_partitions",
+            "top_level_descriptor_partitions",
+            "child_descriptor_partitions",
+            "authority",
+            "phone_changed",
+        }
+        chains = _string_list(value.get("top_level_chain_partitions"), "AVB chains")
+        top_descriptors = _string_list(
+            value.get("top_level_descriptor_partitions"), "top AVB descriptors"
+        )
+        child_descriptors = _string_list(
+            value.get("child_descriptor_partitions"),
+            "child AVB descriptors",
+            allow_empty=True,
+        )
+        algorithm = value.get("algorithm")
+        public_key = value.get("public_key_sha1")
+        child_algorithm = value.get("vbmeta_system_algorithm")
+        child_public_key = value.get("vbmeta_system_public_key_sha1")
+        consistent = bool(
+            algorithm != "NONE"
+            and child_algorithm != "NONE"
+            and public_key
+            and public_key == child_public_key
+            and "vbmeta_system" in chains
+        )
+        if (
+            set(value) != expected
+            or value.get("project_id") != source_evidence["project_id"]
+            or value.get("source_sha256") != source_evidence["source_sha256"]
+            or not _sha256(value.get("receipt_digest"))
+            or not _sha256(value.get("payload_manifest_digest"))
+            or type(value.get("signing_identity_consistent")) is not bool
+            or value.get("signing_identity_consistent") != consistent
+            or not isinstance(algorithm, str)
+            or not 1 <= len(algorithm) <= 80
+            or not isinstance(public_key, str)
+            or (
+                (algorithm == "NONE" and public_key != "")
+                or (algorithm != "NONE" and re.fullmatch(r"[0-9a-f]{40}", public_key) is None)
+            )
+            or not _sha256(value.get("vbmeta_sha256"))
+            or not isinstance(child_algorithm, str)
+            or not 1 <= len(child_algorithm) <= 80
+            or not isinstance(child_public_key, str)
+            or (
+                (child_algorithm == "NONE" and child_public_key != "")
+                or (
+                    child_algorithm != "NONE"
+                    and re.fullmatch(r"[0-9a-f]{40}", child_public_key) is None
+                )
+            )
+            or not _sha256(value.get("vbmeta_system_sha256"))
+            or not chains
+            or "vbmeta_system" not in chains
+            or not set(chains).issubset(top_descriptors)
+            or len(chains) != len(set(chains))
+            or len(top_descriptors) != len(set(top_descriptors))
+            or len(child_descriptors) != len(set(child_descriptors))
+            or any(
+                re.fullmatch(r"[A-Za-z0-9._-]{1,80}", name) is None
+                for name in (*chains, *top_descriptors, *child_descriptors)
+            )
+            or value.get("authority") != "source-evidence-only"
+            or value.get("phone_changed") is not False
+        ):
+            raise ValueError("source AVB evidence is incomplete or unsafe")
+        return {
+            "project_id": value["project_id"],
+            "source_sha256": value["source_sha256"],
+            "receipt_digest": value["receipt_digest"],
+            "payload_manifest_digest": value["payload_manifest_digest"],
+            "signing_identity_consistent": value["signing_identity_consistent"],
+            "algorithm": algorithm,
+            "public_key_sha1": public_key,
+            "vbmeta_sha256": value["vbmeta_sha256"],
+            "vbmeta_system_algorithm": child_algorithm,
+            "vbmeta_system_public_key_sha1": child_public_key,
+            "vbmeta_system_sha256": value["vbmeta_system_sha256"],
+            "top_level_chain_partitions": list(chains),
+            "top_level_descriptor_partitions": list(top_descriptors),
+            "child_descriptor_partitions": list(child_descriptors),
+            "authority": "source-evidence-only",
+            "phone_changed": False,
+        }
 
     def _validated_source_evidence(self, value: object) -> dict[str, object] | None:
         if value is None:

@@ -60,6 +60,317 @@ class AvbTopologyReceipt:
     phone_changed: bool
 
 
+@dataclass(frozen=True, slots=True)
+class SourceAvbTopologyReceipt:
+    """Exact-source AVB inventory that grants no signing, Pack, or phone authority."""
+
+    schema_version: int
+    project_id: str
+    created_at: str
+    source_original_sha256: str
+    payload_manifest_digest: str
+    images: tuple[AvbImageEvidence, ...]
+    signing_identity_consistent: bool
+    top_level_chain_partitions: tuple[str, ...]
+    child_descriptor_partitions: tuple[str, ...]
+    diagnosis: str
+    phone_changed: bool
+    receipt_digest: str
+
+
+class SourceAvbEvidenceService:
+    """Inspect OEM source vbmeta without requiring or manufacturing a Device Pack contract."""
+
+    RECEIPT_NAME = "source-avb-topology.romverse"
+    FORMAT = "romverse.source-avb-topology"
+    SCHEMA_VERSION = 1
+    MAX_RECEIPT_BYTES = 256 * 1024
+
+    def __init__(
+        self,
+        store: RomProjectStore,
+        payloads: PayloadService,
+        avbtool: Path,
+        runner: CommandRunner,
+    ) -> None:
+        self.store = store
+        self.payloads = payloads
+        self.avbtool = avbtool.resolve()
+        self.runner = runner
+
+    def inspect(self, project_id: str) -> SourceAvbTopologyReceipt:
+        project = self.store.get(project_id)
+        if project.original is None:
+            raise ProjectError("Source AVB inspection requires a protected firmware source")
+        if not self.avbtool.is_file():
+            raise ProjectError("Verified AVBTool is unavailable")
+        payload = self.payloads.load(project_id) or self.payloads.scan(project_id)
+        if (
+            payload.schema_version != PayloadService.SCHEMA_VERSION
+            or payload.source_original_sha256 != project.original.sha256
+            or not _sha256_value(payload.record_digest)
+        ):
+            raise ProjectError("Payload evidence does not match the protected firmware source")
+        records = {item.name: item for item in payload.partitions}
+        missing = tuple(
+            name
+            for name in AvbEvidenceService.SOURCE_NAMES
+            if name not in records or not records[name].extracted_path
+        )
+        if missing:
+            payload = self.payloads.extract(project_id, missing)
+            records = {item.name: item for item in payload.partitions}
+
+        images: list[AvbImageEvidence] = []
+        top_chains: tuple[str, ...] = ()
+        for name in AvbEvidenceService.SOURCE_NAMES:
+            record = records.get(name)
+            if (
+                record is None
+                or not record.extracted_path
+                or not _sha256_value(record.sha256)
+                or record.actual_bytes <= 0
+            ):
+                raise ProjectError(f"Exact source {name} image evidence is unavailable")
+            path = self._workspace_file(record.extracted_path)
+            if path.stat().st_size != record.actual_bytes:
+                raise ProjectError(f"Exact source {name} size changed before AVB inspection")
+            image, chain_partitions = self._inspect_source_image(
+                f"source-{name}", path, record.sha256
+            )
+            images.append(image)
+            if name == "vbmeta":
+                top_chains = chain_partitions
+
+        top, child = images
+        consistent = bool(
+            top.algorithm != "NONE"
+            and child.algorithm != "NONE"
+            and top.public_key_sha1
+            and top.public_key_sha1 == child.public_key_sha1
+            and "vbmeta_system" in top_chains
+        )
+        child_descriptors = child.descriptor_partitions
+        diagnosis = (
+            f"OEM source AVB identity is consistent: {top.algorithm}, key "
+            f"{top.public_key_sha1[:16]}…, top-level chains "
+            f"{', '.join(top_chains) or 'none'}, child descriptors "
+            f"{', '.join(child_descriptors) or 'none'}. This is source evidence only."
+            if consistent
+            else "OEM source vbmeta and vbmeta_system do not expose one consistent signed identity; exact Pack development must stop for review."
+        )
+        receipt = _seal_source_receipt(
+            SourceAvbTopologyReceipt(
+                self.SCHEMA_VERSION,
+                project_id,
+                datetime.now(UTC).isoformat(),
+                project.original.sha256,
+                payload.record_digest,
+                tuple(images),
+                consistent,
+                top_chains,
+                child_descriptors,
+                diagnosis,
+                False,
+                "",
+            )
+        )
+        atomic_write_json(
+            self.store.projects_root / project_id / self.RECEIPT_NAME,
+            {"format": self.FORMAT, **asdict(receipt)},
+            boundary=self.store.workspace,
+            maximum_bytes=self.MAX_RECEIPT_BYTES,
+        )
+        return receipt
+
+    def load(self, project_id: str) -> SourceAvbTopologyReceipt | None:
+        path = self.store.projects_root / project_id / self.RECEIPT_NAME
+        try:
+            data = read_json_object(
+                path,
+                boundary=self.store.workspace,
+                maximum_bytes=self.MAX_RECEIPT_BYTES,
+            )
+            if (
+                set(data) != {"format", *(field.name for field in fields(SourceAvbTopologyReceipt))}
+                or data.pop("format") != self.FORMAT
+            ):
+                return None
+            raw_images = data.pop("images")
+            image_fields = {field.name for field in fields(AvbImageEvidence)}
+            if (
+                not isinstance(raw_images, list)
+                or len(raw_images) != 2
+                or any(
+                    not isinstance(item, dict)
+                    or set(item) != image_fields
+                    or not isinstance(item.get("descriptor_partitions"), list)
+                    for item in raw_images
+                )
+                or not isinstance(data.get("top_level_chain_partitions"), list)
+                or not isinstance(data.get("child_descriptor_partitions"), list)
+            ):
+                return None
+            images = tuple(
+                AvbImageEvidence(
+                    **{**item, "descriptor_partitions": tuple(item["descriptor_partitions"])}
+                )
+                for item in raw_images
+            )
+            top_level_chain_partitions = tuple(data.pop("top_level_chain_partitions"))
+            child_descriptor_partitions = tuple(data.pop("child_descriptor_partitions"))
+            receipt = SourceAvbTopologyReceipt(
+                **data,
+                images=images,
+                top_level_chain_partitions=top_level_chain_partitions,
+                child_descriptor_partitions=child_descriptor_partitions,
+            )
+        except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError):
+            return None
+        try:
+            project = self.store.get(project_id)
+            payload = self.payloads.load(project_id)
+            expected = _seal_source_receipt(replace(receipt, receipt_digest=""))
+            top, child = receipt.images
+            derived_consistency = bool(
+                top.algorithm != "NONE"
+                and child.algorithm != "NONE"
+                and top.public_key_sha1
+                and top.public_key_sha1 == child.public_key_sha1
+                and "vbmeta_system" in receipt.top_level_chain_partitions
+            )
+            if (
+                receipt.schema_version != self.SCHEMA_VERSION
+                or expected != receipt
+                or not _aware_timestamp(receipt.created_at)
+                or receipt.project_id != project_id
+                or project.original is None
+                or receipt.source_original_sha256 != project.original.sha256
+                or payload is None
+                or receipt.payload_manifest_digest != payload.record_digest
+                or type(receipt.signing_identity_consistent) is not bool
+                or receipt.signing_identity_consistent != derived_consistency
+                or type(receipt.phone_changed) is not bool
+                or receipt.phone_changed
+                or not 1 <= len(receipt.diagnosis) <= 600
+                or tuple(item.role for item in receipt.images)
+                != ("source-vbmeta", "source-vbmeta_system")
+                or not receipt.top_level_chain_partitions
+                or "vbmeta_system" not in receipt.top_level_chain_partitions
+                or not set(receipt.top_level_chain_partitions).issubset(
+                    receipt.images[0].descriptor_partitions
+                )
+                or not self._valid_partitions(receipt.top_level_chain_partitions)
+                or receipt.child_descriptor_partitions != receipt.images[1].descriptor_partitions
+                or any(not self._valid_image(item) for item in receipt.images)
+            ):
+                return None
+            for item in receipt.images:
+                artifact = self._workspace_file(item.path)
+                details = artifact.stat()
+                if details.st_size != item.size_bytes or details.st_mtime_ns != item.modified_ns:
+                    return None
+        except (OSError, ProjectError, TypeError, ValueError):
+            return None
+        return receipt
+
+    def _inspect_source_image(
+        self,
+        role: str,
+        path: Path,
+        expected_sha256: str,
+    ) -> tuple[AvbImageEvidence, tuple[str, ...]]:
+        if _sha256(path) != expected_sha256:
+            raise ProjectError(f"{role} changed before AVB inspection")
+        result = self.runner.run(
+            (str(self.avbtool), "info_image", "--image", str(path)),
+            timeout=120,
+        )
+        if not result.ok:
+            detail = (result.stderr or result.stdout).strip().splitlines()
+            raise ProjectError(
+                f"AVB inspection failed for {role}" + (f": {detail[-1][:240]}" if detail else "")
+            )
+        evidence = AvbEvidenceService.parse_info(
+            role,
+            path.relative_to(self.store.workspace).as_posix(),
+            expected_sha256,
+            result.stdout,
+        )
+        details = path.stat()
+        evidence = replace(
+            evidence,
+            size_bytes=details.st_size,
+            modified_ns=details.st_mtime_ns,
+        )
+        return evidence, self._parse_chain_partitions(result.stdout)
+
+    @staticmethod
+    def _parse_chain_partitions(output: str) -> tuple[str, ...]:
+        return tuple(
+            dict.fromkeys(
+                match.group(1)
+                for match in re.finditer(
+                    r"^\s+Chain Partition descriptor:\s*$\s+Partition Name:\s*"
+                    r"([A-Za-z0-9._-]+)\s*$",
+                    output,
+                    re.MULTILINE,
+                )
+            )
+        )
+
+    @staticmethod
+    def _valid_partitions(values: tuple[str, ...]) -> bool:
+        return bool(
+            len(values) <= AvbEvidenceService.MAX_DESCRIPTOR_PARTITIONS
+            and all(
+                isinstance(value, str) and bool(re.fullmatch(r"[A-Za-z0-9._-]{1,80}", value))
+                for value in values
+            )
+        )
+
+    @staticmethod
+    def _valid_image(item: AvbImageEvidence) -> bool:
+        return bool(
+            item.role in {"source-vbmeta", "source-vbmeta_system"}
+            and isinstance(item.path, str)
+            and 1 <= len(item.path) <= 4_096
+            and _sha256_value(item.sha256)
+            and isinstance(item.algorithm, str)
+            and 1 <= len(item.algorithm) <= 80
+            and (
+                (item.algorithm == "NONE" and item.public_key_sha1 == "")
+                or (
+                    item.algorithm != "NONE"
+                    and bool(re.fullmatch(r"[0-9a-f]{40}", item.public_key_sha1))
+                )
+            )
+            and type(item.rollback_index) is int
+            and item.rollback_index >= 0
+            and type(item.rollback_index_location) is int
+            and item.rollback_index_location >= 0
+            and type(item.flags) is int
+            and item.flags >= 0
+            and item.size_bytes > 0
+            and item.modified_ns > 0
+            and len(item.descriptor_partitions) <= AvbEvidenceService.MAX_DESCRIPTOR_PARTITIONS
+            and all(
+                isinstance(value, str) and bool(re.fullmatch(r"[A-Za-z0-9._-]{1,80}", value))
+                for value in item.descriptor_partitions
+            )
+        )
+
+    def _workspace_file(self, relative: str) -> Path:
+        candidate = (self.store.workspace / relative).resolve(strict=True)
+        if (
+            not candidate.is_relative_to(self.store.workspace.resolve())
+            or not candidate.is_file()
+            or candidate.is_symlink()
+        ):
+            raise ProjectError("Source AVB evidence path escaped the ROMVERSE workspace")
+        return candidate
+
+
 class AvbEvidenceService:
     """Inspect exact source/candidate AVB topology without signing or device access."""
 
@@ -501,6 +812,15 @@ def _sha256(path: Path) -> str:
         while chunk := stream.read(4 * 1024 * 1024):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _seal_source_receipt(receipt: SourceAvbTopologyReceipt) -> SourceAvbTopologyReceipt:
+    payload = asdict(receipt)
+    payload.pop("receipt_digest", None)
+    digest = hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    return replace(receipt, receipt_digest=digest)
 
 
 def _sha256_value(value: object) -> bool:

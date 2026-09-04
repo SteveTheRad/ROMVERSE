@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+from dataclasses import asdict, replace
 from importlib.resources import files
 from pathlib import Path
 
@@ -10,6 +11,10 @@ from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device_packs.drafts import DevicePackDraftService
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.device_packs.requirements import ProjectSourceRequirements
+from romverse.rom.avb_evidence import (
+    AvbImageEvidence,
+    SourceAvbTopologyReceipt,
+)
 
 
 def _request() -> dict[str, object]:
@@ -173,7 +178,62 @@ def test_project_source_draft_binds_local_evidence_and_lists_every_flash_contrac
         ("Python", "Payload Dumper", "AVBTool"),
     )
 
-    request = DevicePackDraftService().request_from_project_source(pack, device, source)
+    key = "8" * 40
+    source_avb = SourceAvbTopologyReceipt(
+        1,
+        source.project_id,
+        "2026-09-04T00:00:00+00:00",
+        source.source_sha256,
+        "e" * 64,
+        (
+            AvbImageEvidence(
+                "source-vbmeta",
+                "working/vbmeta.img",
+                "f" * 64,
+                "SHA256_RSA4096",
+                key,
+                0,
+                0,
+                0,
+                ("boot", "recovery", "vbmeta_system", "dtbo"),
+                4096,
+                1,
+            ),
+            AvbImageEvidence(
+                "source-vbmeta_system",
+                "working/vbmeta_system.img",
+                "1" * 64,
+                "SHA256_RSA4096",
+                key,
+                1785542400,
+                0,
+                0,
+                ("product", "system", "system_ext"),
+                4096,
+                1,
+            ),
+        ),
+        True,
+        ("boot", "recovery", "vbmeta_system"),
+        ("product", "system", "system_ext"),
+        "OEM source AVB identity is consistent; source evidence only.",
+        False,
+        "",
+    )
+    source_avb_payload = asdict(source_avb)
+    source_avb_payload.pop("receipt_digest")
+    source_avb = replace(
+        source_avb,
+        receipt_digest=hashlib.sha256(
+            json.dumps(
+                source_avb_payload,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        ).hexdigest(),
+    )
+
+    request = DevicePackDraftService().request_from_project_source(pack, device, source, source_avb)
     document = DevicePackDraftService().build_document(request)
     encoded = json.dumps(document)
 
@@ -183,6 +243,29 @@ def test_project_source_draft_binds_local_evidence_and_lists_every_flash_contrac
     assert document["draft_context"]["partition_count"] == 58
     assert document["draft_context"]["execution_authority"] == "none"
     assert document["draft_context"]["phone_action_allowed"] is False
+    assert document["draft_context"]["source_avb_evidence"] == {
+        "project_id": source.project_id,
+        "source_sha256": source.source_sha256,
+        "receipt_digest": source_avb.receipt_digest,
+        "payload_manifest_digest": source_avb.payload_manifest_digest,
+        "signing_identity_consistent": True,
+        "algorithm": "SHA256_RSA4096",
+        "public_key_sha1": key,
+        "vbmeta_sha256": "f" * 64,
+        "vbmeta_system_algorithm": "SHA256_RSA4096",
+        "vbmeta_system_public_key_sha1": key,
+        "vbmeta_system_sha256": "1" * 64,
+        "top_level_chain_partitions": ["boot", "recovery", "vbmeta_system"],
+        "top_level_descriptor_partitions": [
+            "boot",
+            "recovery",
+            "vbmeta_system",
+            "dtbo",
+        ],
+        "child_descriptor_partitions": ["product", "system", "system_ext"],
+        "authority": "source-evidence-only",
+        "phone_changed": False,
+    }
     assert set(document["draft_context"]["missing_flash_contracts"]) == set(
         DevicePackDraftService.MISSING_FLASH_CONTRACTS
     )

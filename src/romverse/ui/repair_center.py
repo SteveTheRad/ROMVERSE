@@ -45,7 +45,7 @@ from romverse.intelligence.online_remediation import (
 )
 from romverse.knowledge.advisor import ArchiveRecommendation, recommend_for_repair
 from romverse.knowledge.lookup import OfflineKnowledgeService
-from romverse.knowledge.models import KnowledgeLookupReport, KnowledgeQuery
+from romverse.knowledge.models import KnowledgeFailure, KnowledgeLookupReport, KnowledgeQuery
 from romverse.nexus.events import (
     LiveConsoleEventStore,
     LiveConsoleStoreError,
@@ -150,6 +150,7 @@ class RepairCenter(QWidget):
         self.offline_service = offline_service
         self.offline_report: KnowledgeLookupReport | None = None
         self.offline_error = ""
+        self._offline_query_text = ""
         self.devices: list[AndroidDevice] = []
         self._report_payload: dict[str, object] | None = None
         self.current_device: AndroidDevice | None = None
@@ -636,6 +637,7 @@ class RepairCenter(QWidget):
     def show_error(self, message: str) -> None:
         self._clear_diagnostic_context()
         safe_message = message.replace("\x00", " ").strip()[:300] or "ADB discovery failed"
+        self._scan_offline_host_failure(safe_message)
         self.host_action_card.setVisible(False)
         self.host_repair_plan = None
         self.host_repair_button = None
@@ -657,7 +659,13 @@ class RepairCenter(QWidget):
         self.export_button.setEnabled(False)
         self.host_repair_plan = None
         if self.host_repair_service is None:
-            self._empty("Resolve Device Engine access before creating a repair assessment.")
+            self._empty(
+                "Resolve Device Engine access before creating a repair assessment.",
+                add_stretch=False,
+            )
+            if self.offline_service is not None:
+                self._render_offline_knowledge()
+            self.body_layout.addStretch()
             return
         try:
             self.host_repair_plan = self.host_repair_service.plan(
@@ -665,7 +673,10 @@ class RepairCenter(QWidget):
                 f"Device Engine scan failed: {safe_message}",
             )
         except AdbHostRepairError as exc:
-            self._empty(f"ADB host recovery is unavailable: {exc}")
+            self._empty(f"ADB host recovery is unavailable: {exc}", add_stretch=False)
+            if self.offline_service is not None:
+                self._render_offline_knowledge()
+            self.body_layout.addStretch()
             return
         self._clear()
         failure = QFrame()
@@ -679,6 +690,8 @@ class RepairCenter(QWidget):
         failure_copy.setWordWrap(True)
         failure_layout.addWidget(failure_copy)
         self.body_layout.addWidget(failure)
+        if self.offline_service is not None:
+            self._render_offline_knowledge()
         self._render_host_repair(self.host_repair_plan)
         self.body_layout.addStretch()
 
@@ -855,6 +868,7 @@ class RepairCenter(QWidget):
 
         self.offline_report = None
         self.offline_error = ""
+        self._offline_query_text = ""
         if self.offline_service is None:
             return
 
@@ -868,6 +882,7 @@ class RepairCenter(QWidget):
             )
 
         typed = self.symptom_input.text().replace("\x00", " ").strip()[:600]
+        self._offline_query_text = typed
         finding_text = tuple(
             f"{finding.title}. {finding.explanation}" for finding in report.findings
         )
@@ -900,6 +915,28 @@ class RepairCenter(QWidget):
             self.offline_report = self.offline_service.lookup(
                 query,
                 trigger="recovery-bay",
+                limit=5,
+            )
+        except (OSError, TypeError, ValueError) as exc:
+            self.offline_error = str(exc)[:500]
+
+    def _scan_offline_host_failure(self, message: str) -> None:
+        """Diagnose an ADB discovery failure without requiring a device snapshot."""
+
+        self.offline_report = None
+        self.offline_error = ""
+        self._offline_query_text = message
+        if self.offline_service is None:
+            return
+        try:
+            self.offline_report = self.offline_service.scan_after_failure(
+                None,
+                KnowledgeFailure(
+                    phase="device-discovery",
+                    message=message,
+                    finding_ids=("adb.host.discovery",),
+                    operation="Read-only ADB device discovery",
+                ),
                 limit=5,
             )
         except (OSError, TypeError, ValueError) as exc:
@@ -1268,7 +1305,8 @@ class RepairCenter(QWidget):
                 "command, flash, wipe, or phone action."
             )
             query = (
-                self.symptom_input.text().replace("\x00", " ").strip()[:160]
+                self._offline_query_text[:160]
+                or self.symptom_input.text().replace("\x00", " ").strip()[:160]
                 or report.matches[0].record.title[:160]
             )
             open_matches.clicked.connect(
@@ -2447,7 +2485,7 @@ class RepairCenter(QWidget):
                 context_id=session_id,
             )
 
-    def _empty(self, message: str) -> None:
+    def _empty(self, message: str, *, add_stretch: bool = True) -> None:
         self._clear()
         card = QFrame()
         card.setObjectName("Card")
@@ -2458,7 +2496,8 @@ class RepairCenter(QWidget):
         label.setWordWrap(True)
         layout.addWidget(label)
         self.body_layout.addWidget(card)
-        self.body_layout.addStretch()
+        if add_stretch:
+            self.body_layout.addStretch()
 
     def _export_report(self) -> None:
         if self._report_payload is None:

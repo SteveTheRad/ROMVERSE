@@ -80,6 +80,11 @@ use the same path. Exact observed failure symptoms outrank unrelated broad Devic
 specific transport or tool error cannot be buried by generic profile context. These automatic scans
 start no online request, repair worker, command, or phone action.
 
+Device discovery failures also enter this path before a phone snapshot exists. Recovery Bay ranks
+the bounded ADB/host error against the local corpus, displays the compatible evidence beside any
+separate host-daemon recovery option, and can hand the exact error to Archives for review. This
+pre-device lookup neither assumes an identity nor starts the host recovery option automatically.
+
 ## Persistence and import
 
 The packaged core and OEM recovery evidence packs are merged and copied on first use to

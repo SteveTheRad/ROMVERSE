@@ -365,6 +365,47 @@ def test_recovery_bay_automatically_ranks_structured_offline_evidence(tmp_path) 
     center.close()
 
 
+def test_recovery_bay_diagnoses_device_discovery_failure_offline_without_action(
+    tmp_path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = RepairCenter(
+        DiagnosticAnalyzer(),
+        RepairAssessmentTemplates(),
+        GuardianPreflight(),
+        tmp_path,
+        ActivityStore(tmp_path),
+        offline_service=OfflineKnowledgeService(tmp_path),
+    )
+    queries: list[str] = []
+    center.knowledge_requested.connect(queries.append)
+
+    center.show_error("adb: error: more than one device/emulator\x00")
+    app.processEvents()
+
+    assert center.offline_report is not None
+    assert center.offline_report.trigger == "device-discovery-failure"
+    assert center.offline_report.execution_authority == "none"
+    assert center.offline_report.matches[0].record.record_id == "catalog.adb-multiple-targets"
+    labels = "\n".join(label.text() for label in center.findChildren(QLabel))
+    assert "OFFLINE ARCHIVES BRAIN" in labels
+    assert "ADB error: more than one device or emulator" in labels
+    assert "EXECUTION AUTHORITY: NONE" in labels
+    assert center.host_repair_plan is None
+    assert center.host_repair_worker is None
+    assert center._report_payload is None
+
+    review = next(
+        button
+        for button in center.findChildren(QPushButton)
+        if button.text() == "Review all matching offline evidence"
+    )
+    review.click()
+    assert queries == ["adb: error: more than one device/emulator"]
+    assert center.host_repair_worker is None
+    center.close()
+
+
 def test_recovery_bay_advisor_opens_exact_symptom_fix_and_exports_reason(tmp_path) -> None:
     app = QApplication.instance() or QApplication([])
     center = RepairCenter(

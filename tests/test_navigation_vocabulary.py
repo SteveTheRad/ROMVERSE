@@ -1939,6 +1939,48 @@ def test_failed_device_refresh_clears_stale_rom_studio_identity(tmp_path: Path) 
         window.close()
 
 
+def test_failed_device_refresh_routes_exact_offline_diagnosis_to_archives(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    error = "adb: error: more than one device/emulator"
+
+    try:
+        window._scan_failed(error)
+        app.processEvents()
+
+        report = window.repair_center.offline_report
+        assert report is not None
+        assert report.trigger == "device-discovery-failure"
+        assert report.execution_authority == "none"
+        assert report.matches[0].record.record_id == "catalog.adb-multiple-targets"
+        assert window.repair_center.host_repair_worker is None
+
+        review = next(
+            button
+            for button in window.repair_center.findChildren(QPushButton)
+            if button.text() == "Review all matching offline evidence"
+        )
+        review.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.knowledge_center
+        assert window.knowledge_center.search.text() == error
+        assert "ADB found multiple transports" in window.knowledge_center.detail.toPlainText()
+        assert window.repair_center.host_repair_worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
 def test_fresh_scan_connects_exact_official_device_identity_to_every_desktop_consumer(
     tmp_path: Path,
     monkeypatch,

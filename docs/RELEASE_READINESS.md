@@ -1648,13 +1648,22 @@ The product-wide continuation target and definition of done are recorded in
   bootloader, storage-wear, first-boot or subsystem behavior. A changed, stale or internally
   inconsistent receipt is discarded and the lane returns to pending. This live validation overlay
   does not alter the immutable draft revision or grant any registry, build, flash or phone authority.
-- All 1,883 Desktop/Python tests and the complete Ruff check gate pass, including core draft,
+- Signed Foundry contributions now require a canonical Ed25519 envelope bound to the exact immutable
+  draft SHA-256, Pack ID/version, bounded evidence scopes, an external review-report digest and a
+  validity window. The immutable trust catalog—not the envelope—must assign the signer either the
+  manufacturer or qualified-expert role; unknown, unassigned, role-mismatched, revoked, expired,
+  altered, linked, noncanonical and wrong-revision evidence fails closed. Verified envelopes use a
+  private content-addressed vault and are reverified on every load. Device Atlas shows their exact
+  signer, role and scopes while retaining mandatory review and zero publication, production-registry,
+  build, flash or phone authority. The bundled catalog still contains no trusted signer, so this
+  checkpoint invents no publisher identity.
+- All 1,886 Desktop/Python tests and the complete Ruff check gate pass, including core draft,
   Foundry inventory, Device Atlas UI, validation, requirements, Companion parity and navigation
   coverage. A themed 1200-by-600 direct panel
   render confirms the cyan-violet blueprint, two rows of evidence lanes, long identity text, state
   contrast and authority boundary are readable. Physical validation, Simulation Lab attachment,
-  signed contributor intake and controlled production promotion remain required before Stage 13 is
-  complete.
+  governed real-signer enrolment, signed physical validation and controlled production promotion
+  remain required before Stage 13 is complete.
 
 ## Honest feature boundary
 

@@ -15,6 +15,8 @@ from romverse.device_packs.models import DevicePack
 from romverse.infrastructure.local_store import atomic_write_bytes, ensure_private_directory
 from romverse.infrastructure.process import CommandRunner
 
+PUBLISHER_CONTRIBUTION_ROLES = frozenset({"manufacturer", "qualified-expert"})
+
 
 @dataclass(frozen=True, slots=True)
 class PublisherTrustKey:
@@ -22,6 +24,7 @@ class PublisherTrustKey:
     public_key_path: Path
     public_key_sha256: str
     revoked: bool = False
+    contribution_roles: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -338,6 +341,7 @@ def load_publisher_trust_keys(root: Path) -> tuple[PublisherTrustKey, ...]:
         filename = str(item.get("file", ""))
         digest = str(item.get("sha256", "")).casefold()
         revoked = item.get("revoked", False)
+        roles = item.get("contribution_roles", [])
         if not re.fullmatch(r"[A-Za-z0-9._-]{1,80}", signer_id):
             raise ValueError("Publisher signer id is invalid")
         if signer_id in signer_ids:
@@ -346,6 +350,14 @@ def load_publisher_trust_keys(root: Path) -> tuple[PublisherTrustKey, ...]:
             raise ValueError("Publisher key filename is unsafe")
         if not _sha256(digest) or not isinstance(revoked, bool):
             raise ValueError("Publisher key metadata is invalid")
+        if (
+            not isinstance(roles, list)
+            or len(roles) > len(PUBLISHER_CONTRIBUTION_ROLES)
+            or any(not isinstance(role, str) for role in roles)
+            or len(set(roles)) != len(roles)
+            or not set(roles).issubset(PUBLISHER_CONTRIBUTION_ROLES)
+        ):
+            raise ValueError("Publisher contribution roles are invalid")
         key_path = trusted_root / filename
         try:
             resolved = key_path.resolve(strict=True)
@@ -359,7 +371,7 @@ def load_publisher_trust_keys(root: Path) -> tuple[PublisherTrustKey, ...]:
             or _file_sha256(resolved) != digest
         ):
             raise ValueError("Publisher public key integrity check failed")
-        keys.append(PublisherTrustKey(signer_id, resolved, digest, revoked))
+        keys.append(PublisherTrustKey(signer_id, resolved, digest, revoked, tuple(roles)))
         signer_ids.add(signer_id)
     return tuple(keys)
 

@@ -275,6 +275,7 @@ def test_release_trust_catalog_is_integrity_checked(signed_attestation, tmp_path
                         "file": trusted_public.name,
                         "sha256": digest,
                         "revoked": False,
+                        "contribution_roles": ["manufacturer"],
                     }
                 ],
             }
@@ -286,6 +287,7 @@ def test_release_trust_catalog_is_integrity_checked(signed_attestation, tmp_path
     assert len(loaded) == 1
     assert loaded[0].signer_id == key.signer_id
     assert loaded[0].public_key_sha256 == digest
+    assert loaded[0].contribution_roles == ("manufacturer",)
 
     (trust_root / "index.json").write_text(
         json.dumps(

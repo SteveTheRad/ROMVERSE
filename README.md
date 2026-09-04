@@ -315,6 +315,17 @@ need signed physical observation. A changed, stale, differently bound or interna
 receipt is ignored and the lane returns to pending. Simulation never changes the draft hash, enters
 the production registry, or grants build/flash/phone authority.
 
+The Foundry accepts review evidence only through a canonical, content-addressed Ed25519 contribution
+envelope bound to one exact immutable draft revision and external review-report SHA-256. A signer
+cannot declare its own standing: the bundled integrity-checked trust catalog must separately assign
+that exact key the `manufacturer` or `qualified-expert` contribution role, and revoked keys fail
+closed. The signed envelope can scope its evidence to identity, variant, factory firmware,
+partitions/AVB, flash/rollback contract, simulation, or physical-device testing, but those claims
+remain private review material. Every accepted envelope is reverified on load and explicitly has no
+publication, production-registry, build, flash, or phone authority. The release trust catalog remains
+empty until genuine governed contributor keys are approved; ROMVERSE does not ship a placeholder
+identity.
+
 Device Atlas can export an exact physical-test challenge and import the resulting detached
 Ed25519 envelope. Accepted evidence is stored in a bounded workspace vault, reverified on every
 read, and shared consistently with Genesis Sequence and Forge Control. The release trust catalog

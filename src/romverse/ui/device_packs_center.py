@@ -36,6 +36,10 @@ from romverse.device.intelligence import (
 )
 from romverse.device.models import AndroidDevice
 from romverse.device_packs.attestations import DevicePackAttestationStore
+from romverse.device_packs.contributions import (
+    DevicePackContributionStore,
+    DevicePackContributionVerifier,
+)
 from romverse.device_packs.drafts import DevicePackDraftReview, DevicePackDraftService
 from romverse.device_packs.foundry import (
     DevicePackFoundryInventory,
@@ -95,6 +99,18 @@ class DevicePacksCenter(QWidget):
         self.registry = registry
         self.workspace = workspace
         self.attestation_store = attestation_store
+        self.contribution_store = (
+            DevicePackContributionStore(
+                workspace,
+                DevicePackContributionVerifier(
+                    attestation_store.verifier.openssl,
+                    attestation_store.verifier.runner,
+                    tuple(attestation_store.verifier.trust_keys.values()),
+                ),
+            )
+            if workspace is not None and isinstance(attestation_store, DevicePackAttestationStore)
+            else None
+        )
         self.device_catalog = device_catalog
         self.online_catalog_enabled = online_catalog_enabled
         self.tool_statuses = tool_statuses
@@ -109,6 +125,8 @@ class DevicePacksCenter(QWidget):
         self.active_project_draft: DevicePackDraftReview | None = None
         self.active_foundry_revision: FoundryDraftRevision | None = None
         self.foundry_inventory: DevicePackFoundryInventory | None = None
+        self.import_contribution_button: QPushButton | None = None
+        self.foundry_contribution_status: QLabel | None = None
         self.active_catalog_match: DeviceCatalogMatch | None = None
         self.active_pack: DevicePack | None = None
         self.active_device: AndroidDevice | None = None
@@ -2222,6 +2240,8 @@ class DevicePacksCenter(QWidget):
     def _render_foundry_blueprint(self, parent: QVBoxLayout) -> None:
         self.active_foundry_revision = None
         self.foundry_inventory = None
+        self.import_contribution_button = None
+        self.foundry_contribution_status = None
         card = QFrame()
         card.setObjectName("DevicePackFoundryCard")
         layout = QVBoxLayout(card)
@@ -2295,9 +2315,7 @@ class DevicePacksCenter(QWidget):
             )
             revision_copy.setObjectName("Muted")
             revision_copy.setWordWrap(True)
-            revision_copy.setTextInteractionFlags(
-                Qt.TextInteractionFlag.TextSelectableByMouse
-            )
+            revision_copy.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
             layout.addWidget(revision_copy)
             grid = QGridLayout()
             grid.setHorizontalSpacing(10)
@@ -2345,6 +2363,55 @@ class DevicePacksCenter(QWidget):
             conflict_copy.setObjectName("Danger")
             conflict_copy.setWordWrap(True)
             layout.addWidget(conflict_copy)
+        contribution_row = QHBoxLayout()
+        contribution_copy = QVBoxLayout()
+        contribution_title = QLabel("Signed manufacturer and qualified-expert evidence")
+        contribution_title.setObjectName("SectionTitle")
+        contributions = (
+            self.contribution_store.load_exact(revision)
+            if self.contribution_store is not None and revision is not None
+            else ()
+        )
+        contribution_detail_text = (
+            f"{len(contributions)} exact-revision contribution(s) reverified. They remain "
+            "review material and cannot publish a Pack or unlock any operation."
+            if contributions
+            else "Import a canonical, Ed25519-signed evidence envelope from a trust-catalog "
+            "manufacturer or qualified expert. The signature cannot self-assign its role."
+        )
+        contribution_detail = QLabel(contribution_detail_text)
+        contribution_detail.setObjectName("Muted")
+        contribution_detail.setWordWrap(True)
+        contribution_copy.addWidget(contribution_title)
+        contribution_copy.addWidget(contribution_detail)
+        if contributions:
+            evidence = QLabel(
+                "  •  ".join(
+                    f"{report.contributor_role}: {report.signer_id} "
+                    f"({', '.join(report.evidence_scopes)})"
+                    for report in contributions
+                )
+            )
+            evidence.setObjectName("Good")
+            evidence.setWordWrap(True)
+            contribution_copy.addWidget(evidence)
+        contribution_row.addLayout(contribution_copy, 1)
+        self.import_contribution_button = QPushButton("Import signed contribution…")
+        self.import_contribution_button.setEnabled(
+            self.contribution_store is not None and revision is not None
+        )
+        self.import_contribution_button.setToolTip(
+            "Revalidates the exact draft bytes, signer key, assigned role, evidence scopes, "
+            "review-report digest, validity window and Ed25519 signature. Accepted evidence "
+            "stays private and review-only."
+        )
+        self.import_contribution_button.clicked.connect(self._import_foundry_contribution)
+        contribution_row.addWidget(self.import_contribution_button)
+        layout.addLayout(contribution_row)
+        self.foundry_contribution_status = QLabel("")
+        self.foundry_contribution_status.setObjectName("Muted")
+        self.foundry_contribution_status.setWordWrap(True)
+        layout.addWidget(self.foundry_contribution_status)
         boundary = QLabel(
             "DRAFTS STAY OUTSIDE THE PRODUCTION REGISTRY  •  PUBLICATION AUTHORITY: NONE  •  "
             "BUILD / FLASH / PHONE AUTHORITY: NONE"
@@ -2353,6 +2420,39 @@ class DevicePacksCenter(QWidget):
         boundary.setWordWrap(True)
         layout.addWidget(boundary)
         parent.addWidget(card)
+
+    def _import_foundry_contribution(self) -> None:
+        revision = self.active_foundry_revision
+        if self.contribution_store is None or revision is None:
+            return
+        selected, _ = QFileDialog.getOpenFileName(
+            self,
+            "Import signed Device Pack contribution",
+            "",
+            "ROMVERSE contribution (*.romverse *.json);;All files (*)",
+        )
+        if not selected:
+            return
+        result = self.contribution_store.import_envelope(revision, Path(selected))
+        if result.report.verified:
+            active_pack = self.active_pack
+            active_report = self.active_report
+            if active_pack is not None and active_report is not None:
+                self._render_pack(active_pack, active_report)
+            if self.foundry_contribution_status is not None:
+                self.foundry_contribution_status.setText(
+                    f"Verified {result.report.contributor_role} contribution from "
+                    f"{result.report.signer_id} and stored {result.stored_path}. Review is still "
+                    "required; production registry changed: NO; authority: NONE."
+                )
+                self.foundry_contribution_status.setObjectName("Good")
+        elif self.foundry_contribution_status is not None:
+            self.foundry_contribution_status.setText(
+                f"Contribution rejected: {result.report.reason}. Nothing was published or enabled."
+            )
+            self.foundry_contribution_status.setObjectName("Danger")
+        if self.foundry_contribution_status is not None:
+            self._repolish(self.foundry_contribution_status)
 
     def _export_model_draft(self) -> None:
         if self.active_pack is None or self.active_device is None or self.workspace is None:

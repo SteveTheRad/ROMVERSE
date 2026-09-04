@@ -455,6 +455,11 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   Digital Twin receipt, reports genuine operation/confidence/blocker evidence, rejects changed or
   inconsistent receipts, and always keeps the combined simulation/physical-test lane partial until
   separate signed physical recovery and first-boot proof exists;
+  role-scoped Device Pack Foundry contribution intake that revalidates canonical Ed25519 envelopes,
+  exact immutable draft and report digests, assigned manufacturer/qualified-expert trust roles,
+  revocation, expiry and bounded evidence scopes, stores only verified files in a private
+  content-addressed vault, and never changes the production registry or grants publication/build/
+  flash/phone authority;
   Partition Atlas source-AVB inspection that rehashes the exact OTA `vbmeta` pair, distinguishes
   actual chain partitions from other descriptors, binds a strict private receipt to the payload and
   protected source, and carries it into that draft without creating signing or flash authority;

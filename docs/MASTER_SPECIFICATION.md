@@ -180,6 +180,16 @@ reported harmful result can only increase caution. Receipt revalidation and curr
 verification are required immediately before display; failed revalidation must remove the proposed
 solution. Every state retains guidance-only authority and `phone_action_allowed: false`.
 
+If and only if the current lead is official/maintainer evidence with a registered typed local action,
+the Brief may offer one built-in workflow handoff. Recovery Bay and the application shell must each
+revalidate the persisted fingerprint, receipt digest, lead source, authority, action, and synthesized
+state. Host ADB review remains local to Recovery Bay; Platform Tools opens a host-only Forge Arsenal
+context; payload, OTA-source, and AVB reviews bind the currently selected project and protected-source
+SHA-256 before Forge Control opens without Autopilot. The destination highlights a local typed action
+but does not invoke it. Unknown IDs or changed receipt, ranking, project, or source evidence must stop
+visibly, and navigation grants no install, project-worker, build, signing, approval, flash, wipe,
+reboot, relock, or other phone authority.
+
 Guided repair sessions persist a pseudonymous initial evidence digest, health signal score,
 finding IDs, and the user's reviewed checkpoints. Checkpoints record review only and never
 assert success. Verification always requests a fresh read-only Device Engine scan and

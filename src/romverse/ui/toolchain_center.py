@@ -69,6 +69,15 @@ from romverse.infrastructure.provisioning import (
     source_for,
 )
 from romverse.infrastructure.tools import ToolStatus, ToolVerifier
+from romverse.intelligence.action_evidence import (
+    ToolchainVerificationStore,
+    TypedLocalActionEvidence,
+)
+from romverse.intelligence.online_remediation import (
+    OnlineFixReceipt,
+    OnlineRemediationService,
+    SourceAuthority,
+)
 from romverse.platform.host import HostPlatform
 from romverse.ui.background import (
     CoalescedProgress,
@@ -756,6 +765,18 @@ class StudioProjectToolchainContext:
     source_plan_digest: str = ""
 
 
+@dataclass(frozen=True, slots=True)
+class RepairToolchainContext:
+    """Immutable Smart Solution evidence for a host-only Platform Tools review."""
+
+    action_id: str
+    fingerprint_id: str
+    receipt_digest: str
+    source_id: str
+    receipt: OnlineFixReceipt
+    required_tools: tuple[str, ...] = ("ADB", "Fastboot")
+
+
 class ToolchainCenter(QWidget):
     """Inventory and guidance for the local ROM and diagnostics toolchain."""
 
@@ -782,6 +803,9 @@ class ToolchainCenter(QWidget):
         self._device_pack_context_stale = False
         self._studio_project_context: StudioProjectToolchainContext | None = None
         self._studio_project_context_stale = False
+        self._repair_solution_context: RepairToolchainContext | None = None
+        self._repair_solution_outcome_saved = False
+        self._repair_solution_outcome_error = ""
         self._activate_managed_tools()
         self.statuses = ToolVerifier(host, runner).verify_extended()
         if baseline:
@@ -886,6 +910,7 @@ class ToolchainCenter(QWidget):
 
     def refresh(self) -> None:
         self._verify_local_tools(emit=True)
+        self._record_repair_solution_outcome()
 
     def _verify_local_tools(self, *, emit: bool) -> None:
         self._activate_managed_tools()
@@ -917,6 +942,9 @@ class ToolchainCenter(QWidget):
             return False
         self._studio_project_context = None
         self._studio_project_context_stale = False
+        self._repair_solution_context = None
+        self._repair_solution_outcome_saved = False
+        self._repair_solution_outcome_error = ""
         self._device_pack_context = context
         self._device_pack_context_stale = False
         self.device_pack_handoff.setVisible(True)
@@ -938,10 +966,29 @@ class ToolchainCenter(QWidget):
             return False
         self._device_pack_context = None
         self._device_pack_context_stale = False
+        self._repair_solution_context = None
+        self._repair_solution_outcome_saved = False
+        self._repair_solution_outcome_error = ""
         self._studio_project_context = context
         self._studio_project_context_stale = False
         self.device_pack_handoff.setVisible(True)
         self._verify_local_tools(emit=False)
+        return True
+
+    def open_repair_solution_context(self, context: RepairToolchainContext) -> bool:
+        """Show an exact research-bound host-tool review without running verification."""
+
+        if not self._valid_repair_solution_context(context):
+            return False
+        self._device_pack_context = None
+        self._device_pack_context_stale = False
+        self._studio_project_context = None
+        self._studio_project_context_stale = False
+        self._repair_solution_context = context
+        self._repair_solution_outcome_saved = False
+        self._repair_solution_outcome_error = ""
+        self._render()
+        self.context_refresh_button.setFocus(Qt.FocusReason.OtherFocusReason)
         return True
 
     def clear_studio_project_context(self) -> None:
@@ -1091,6 +1138,10 @@ class ToolchainCenter(QWidget):
         self._render_studio_project_context()
 
     def _request_device_pack_setup(self) -> None:
+        repair_context = self._repair_solution_context
+        if repair_context is not None:
+            self._open_repair_solution_setup(repair_context)
+            return
         studio_context = self._studio_project_context
         if studio_context is not None:
             self.studio_project_setup_requested.emit(
@@ -1105,6 +1156,26 @@ class ToolchainCenter(QWidget):
                 context.pack_sha256,
                 context.report_digest,
             )
+
+    def _open_repair_solution_setup(self, context: RepairToolchainContext) -> None:
+        if context != self._repair_solution_context or not self._valid_repair_solution_context(
+            context
+        ):
+            return
+        dialog = ToolchainSetupDialog(
+            self.host,
+            self.statuses,
+            self.workspace,
+            self,
+            required_names=context.required_tools,
+        )
+        dialog.setWindowTitle("ROMVERSE • Verify official Android Platform Tools")
+        dialog.status.setText(
+            "Install or select only ADB and Fastboot from the official Platform Tools route. "
+            "This changes host tooling only; no phone command, project worker, or flash starts."
+        )
+        dialog.exec()
+        self.refresh()
 
     def _request_device_pack_continue(self) -> None:
         studio_context = self._studio_project_context
@@ -1132,6 +1203,9 @@ class ToolchainCenter(QWidget):
             )
 
     def _request_context_guide(self) -> None:
+        if self._repair_solution_context is not None:
+            self.knowledge_article_requested.emit("android-platform-tools-verification")
+            return
         key = (
             "rom-studio-project-toolchain"
             if self._studio_project_context is not None
@@ -1188,11 +1262,145 @@ class ToolchainCenter(QWidget):
             )
         )
 
+    @staticmethod
+    def _valid_repair_solution_context(context: RepairToolchainContext) -> bool:
+        receipt = context.receipt
+        lead = receipt.candidates[0] if receipt.candidates else None
+        return bool(
+            context.action_id == "verify-platform-tools"
+            and re.fullmatch(r"[0-9a-f]{64}", context.fingerprint_id)
+            and re.fullmatch(r"[0-9a-f]{64}", context.receipt_digest)
+            and re.fullmatch(r"[A-Za-z0-9._:-]{1,120}", context.source_id)
+            and context.required_tools == ("ADB", "Fastboot")
+            and receipt.fingerprint.fingerprint_id == context.fingerprint_id
+            and receipt.receipt_digest == context.receipt_digest
+            and lead is not None
+            and lead.local_action_id == context.action_id
+            and lead.source_id == context.source_id
+            and lead.authority in {SourceAuthority.OFFICIAL, SourceAuthority.MAINTAINER}
+        )
+
+    def _render_repair_solution_context(self) -> None:
+        context = self._repair_solution_context
+        if context is None:
+            return
+        statuses = {status.name: status for status in self.statuses}
+        missing = tuple(
+            name
+            for name in context.required_tools
+            if name not in statuses or not statuses[name].available
+        )
+        ready = len(context.required_tools) - len(missing)
+        self.device_pack_handoff.setVisible(True)
+        self.device_pack_handoff_eyebrow.setText(
+            "RECOVERY BAY SMART SOLUTION  •  SAVED OFFICIAL EVIDENCE"
+        )
+        self.device_pack_handoff_title.setText("Review Android Platform Tools on this computer")
+        self.device_pack_handoff_detail.setText(
+            f"Research fingerprint {context.fingerprint_id[:16]}… • receipt "
+            f"{context.receipt_digest[:16]}… • source {context.source_id}\n"
+            f"{ready} of {len(context.required_tools)} required host tools currently verify. "
+            "Choose Re-check exact tools for a host-only version/path check, or explicitly set "
+            "up the missing official package. This evidence grants no ADB target, project-worker, "
+            "build, flash, wipe, relock, or phone authority."
+        )
+        self.device_pack_handoff_badge.setText(
+            f"{ready}/{len(context.required_tools)} PLATFORM TOOLS  •  PHONE AUTHORITY: NONE"
+        )
+        self.device_pack_handoff_badge.setObjectName("Good" if not missing else "Warning")
+        self._repolish(self.device_pack_handoff_badge)
+        self.context_refresh_button.setVisible(True)
+        self.context_refresh_button.setText("Re-check exact tools")
+        self.context_setup_button.setVisible(True)
+        self.context_setup_button.setEnabled(bool(missing))
+        self.context_setup_button.setText(
+            "Set up ADB + Fastboot" if missing else "Platform Tools verified"
+        )
+        self.context_continue_button.setVisible(False)
+        self.context_return_button.setVisible(False)
+        self.context_guide_button.setVisible(True)
+        self.context_guide_button.setText("Open verified Platform Tools guide")
+        self.device_pack_handoff_feedback.setText(
+            "SMART SOLUTION OUTCOME VERIFIED AND SAVED  •  PHONE CHANGED: NO"
+            if self._repair_solution_outcome_saved
+            else f"SMART SOLUTION OUTCOME NOT SAVED  •  {self._repair_solution_outcome_error}  •  PHONE CHANGED: NO"
+            if self._repair_solution_outcome_error
+            else "MISSING HOST REQUIREMENTS  •  "
+            + (" • ".join(missing) if missing else "none")
+            + "  •  RECOMMENDATION REVIEW ONLY"
+        )
+        self.device_pack_handoff_feedback.setObjectName(
+            "Good"
+            if self._repair_solution_outcome_saved
+            else "Warning"
+            if self._repair_solution_outcome_error or missing
+            else "Good"
+        )
+        self._repolish(self.device_pack_handoff_feedback)
+
+    def _record_repair_solution_outcome(self) -> None:
+        context = self._repair_solution_context
+        if (
+            context is None
+            or self.workspace is None
+            or not self._valid_repair_solution_context(context)
+        ):
+            return
+        statuses = {status.name: status for status in self.statuses}
+        if any(
+            name not in statuses or not statuses[name].available or not statuses[name].path
+            for name in context.required_tools
+        ):
+            self._repair_solution_outcome_saved = False
+            self._repair_solution_outcome_error = ""
+            self._render_repair_solution_context()
+            return
+        lead = context.receipt.candidates[0]
+        remediation = OnlineRemediationService(self.workspace)
+        try:
+            decision = remediation.synthesize(context.receipt)
+            if lead.source_id in decision.locally_verified_source_ids:
+                self._repair_solution_outcome_saved = True
+                self._repair_solution_outcome_error = ""
+                self._render_repair_solution_context()
+                return
+            evidence = ToolchainVerificationStore(self.workspace).record(
+                self.statuses,
+                context.required_tools,
+            )
+            remediation.record_verified_outcome(
+                context.receipt.fingerprint,
+                lead,
+                TypedLocalActionEvidence(
+                    context.action_id,
+                    evidence.receipt_digest,
+                    evidence.evidence_ref,
+                    ToolchainVerificationStore.FORMAT,
+                ),
+                "Forge Arsenal verified the exact ADB and Fastboot paths, versions, and executable hashes without targeting a phone.",
+            )
+        except (OSError, TypeError, ValueError):
+            self._repair_solution_outcome_saved = False
+            self._repair_solution_outcome_error = (
+                "The research or exact host-tool receipt failed revalidation"
+            )
+            self._render_repair_solution_context()
+            return
+        self._repair_solution_outcome_saved = True
+        self._repair_solution_outcome_error = ""
+        self._render_repair_solution_context()
+
     def _render_studio_project_context(self) -> None:
         context = self._studio_project_context
         if context is None:
             return
         self.device_pack_handoff.setVisible(True)
+        self.context_refresh_button.setVisible(True)
+        self.context_refresh_button.setText("Re-check exact tools")
+        self.context_setup_button.setVisible(True)
+        self.context_continue_button.setVisible(True)
+        self.context_guide_button.setVisible(True)
+        self.context_guide_button.setText("Open verified guide")
         self.device_pack_handoff_eyebrow.setText(
             "ROM STUDIO HANDOFF  •  EXACT PROJECT / SOURCE-BOUND TOOL EVIDENCE"
         )
@@ -1267,10 +1475,16 @@ class ToolchainCenter(QWidget):
     def _render_device_pack_context(self) -> None:
         context = self._device_pack_context
         if context is None:
-            if self._studio_project_context is None:
+            if self._studio_project_context is None and self._repair_solution_context is None:
                 self.device_pack_handoff.setVisible(False)
             return
         self.device_pack_handoff.setVisible(True)
+        self.context_refresh_button.setVisible(True)
+        self.context_refresh_button.setText("Re-check exact tools")
+        self.context_setup_button.setVisible(True)
+        self.context_continue_button.setVisible(True)
+        self.context_guide_button.setVisible(True)
+        self.context_guide_button.setText("Open verified guide")
         self.device_pack_handoff_eyebrow.setText("DEVICE ATLAS HANDOFF  •  EXACT BUILD CONTRACT")
         self.context_return_button.setVisible(True)
         self.context_return_button.setText("Return to Device Atlas")
@@ -1338,7 +1552,11 @@ class ToolchainCenter(QWidget):
             if item.widget() is not None:
                 item.widget().hide()
                 item.widget().deleteLater()
-        context = self._studio_project_context or self._device_pack_context
+        context = (
+            self._repair_solution_context
+            or self._studio_project_context
+            or self._device_pack_context
+        )
         required = context.required_tools if context is not None else ()
         required_set = set(required)
         status_by_name = {status.name: status for status in self.statuses}
@@ -1371,7 +1589,9 @@ class ToolchainCenter(QWidget):
             name_row.addWidget(name)
             if status.name in required:
                 required_badge = QLabel(
-                    "EXACT PROJECT REQUIREMENT"
+                    "SMART SOLUTION REQUIREMENT"
+                    if self._repair_solution_context is not None
+                    else "EXACT PROJECT REQUIREMENT"
                     if self._studio_project_context is not None
                     else "EXACT PACK REQUIREMENT"
                 )
@@ -1394,7 +1614,9 @@ class ToolchainCenter(QWidget):
             row.addLayout(top)
             self.layout.addWidget(card)
         self.layout.addStretch()
-        if self._studio_project_context is not None:
+        if self._repair_solution_context is not None:
+            self._render_repair_solution_context()
+        elif self._studio_project_context is not None:
             self._render_studio_project_context()
         else:
             self._render_device_pack_context()

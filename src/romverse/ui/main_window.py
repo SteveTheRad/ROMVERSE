@@ -173,6 +173,7 @@ from romverse.ui.terminal_center import TerminalCenter
 from romverse.ui.theme import STYLESHEET, apply_dark_palette
 from romverse.ui.toolchain_center import (
     DevicePackToolchainContext,
+    RepairToolchainContext,
     StudioProjectToolchainContext,
     ToolchainCenter,
 )
@@ -4215,6 +4216,7 @@ class MainWindow(QMainWindow):
         self.diagnostics_center.report_saved.connect(self.history_center.refresh)
         self.repair_center.verification_scan_requested.connect(self.scan)
         self.repair_center.runtime_tools_requested.connect(self._resolve_repair_runtime)
+        self.repair_center.solution_action_requested.connect(self._open_repair_solution_action)
         self.rom_studio.operation_started.connect(self._live_operation_started)
         self.rom_studio.operation_progress.connect(self._live_operation_progress)
         self.rom_studio.operation_completed.connect(self._record_rom_operation)
@@ -6659,6 +6661,74 @@ class MainWindow(QMainWindow):
                 "Android Platform Tools freshly verified. Device Engine is starting a new scan."
             ),
             parent=self,
+        )
+
+    @Slot(str, str, str, str)
+    def _open_repair_solution_action(
+        self,
+        action_id: str,
+        fingerprint_id: str,
+        receipt_digest: str,
+        source_id: str,
+    ) -> None:
+        """Revalidate and route a Smart Solution to its built-in review surface."""
+
+        if not self.repair_center.validate_solution_handoff(
+            action_id,
+            fingerprint_id,
+            receipt_digest,
+            source_id,
+        ):
+            self.repair_center.solution_handoff_stopped(
+                "The current saved research receipt no longer proves this exact lead action"
+            )
+            return
+        receipt = self.repair_center.solution_handoff_receipt(
+            action_id,
+            fingerprint_id,
+            receipt_digest,
+            source_id,
+        )
+        if receipt is None:
+            self.repair_center.solution_handoff_stopped(
+                "The saved research receipt changed during final handoff validation"
+            )
+            return
+        if action_id == "verify-platform-tools":
+            context = RepairToolchainContext(
+                action_id,
+                fingerprint_id,
+                receipt_digest,
+                source_id,
+                receipt,
+            )
+            if not self.toolchain_center.open_repair_solution_context(context):
+                self.repair_center.solution_handoff_stopped(
+                    "Forge Arsenal rejected the research-bound Platform Tools context"
+                )
+                return
+            self._navigate_route("forge_arsenal")
+            return
+        if action_id in {
+            "inspect-payload-source",
+            "inspect-avb-topology",
+            "classify-ota-source",
+        }:
+            if not self.rom_studio.open_repair_solution_handoff(
+                action_id,
+                fingerprint_id,
+                receipt_digest,
+                source_id,
+                receipt,
+            ):
+                self.repair_center.solution_handoff_stopped(
+                    "ROM Studio rejected the research-bound firmware inspection context"
+                )
+                return
+            self._navigate_route("rom_studio")
+            return
+        self.repair_center.solution_handoff_stopped(
+            "This typed action has no registered Desktop owner"
         )
 
     @Slot(str)

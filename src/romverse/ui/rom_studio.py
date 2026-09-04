@@ -65,6 +65,7 @@ from romverse.guardian.manifest_review import (
 from romverse.infrastructure.process import SubprocessRunner
 from romverse.infrastructure.provisioning import required_tools_for_source
 from romverse.infrastructure.tools import ToolStatus, ToolVerifier
+from romverse.intelligence.online_remediation import OnlineFixReceipt, SourceAuthority
 from romverse.nexus.compatibility import CompatibilityMatrix, CompatibilityMatrixService
 from romverse.nexus.planning import NexusPlanStore
 from romverse.platform.host import current_host
@@ -579,6 +580,9 @@ class RomStudio(QWidget):
         self._latest_guardian_execution_plan: GuardianExecutionPlan | None = None
         self._latest_guardian_gateway_contract: GuardianExecutionGatewayContract | None = None
         self._latest_guardian_reviewed_device: AndroidDevice | None = None
+        self._pending_repair_solution: (
+            tuple[str, str, str, str, str, str, OnlineFixReceipt] | None
+        ) = None
 
         page = QVBoxLayout(self)
         page.setContentsMargins(30, 26, 30, 30)
@@ -2470,6 +2474,96 @@ class RomStudio(QWidget):
         self.detail_scroll.ensureWidgetVisible(self.command_tabs, 0, 24)
         return True
 
+    def open_repair_solution_handoff(
+        self,
+        action_id: str,
+        fingerprint_id: str,
+        receipt_digest: str,
+        source_id: str,
+        receipt: OnlineFixReceipt,
+    ) -> bool:
+        """Stage a research-bound firmware inspection for explicit local review."""
+
+        lead = receipt.candidates[0] if receipt.candidates else None
+        if (
+            action_id
+            not in {
+                "inspect-payload-source",
+                "inspect-avb-topology",
+                "classify-ota-source",
+            }
+            or re.fullmatch(r"[0-9a-f]{64}", fingerprint_id) is None
+            or re.fullmatch(r"[0-9a-f]{64}", receipt_digest) is None
+            or re.fullmatch(r"[A-Za-z0-9._:-]{1,120}", source_id) is None
+            or receipt.fingerprint.fingerprint_id != fingerprint_id
+            or receipt.receipt_digest != receipt_digest
+            or lead is None
+            or lead.local_action_id != action_id
+            or lead.source_id != source_id
+            or lead.authority not in {SourceAuthority.OFFICIAL, SourceAuthority.MAINTAINER}
+        ):
+            return False
+        self._pending_repair_solution = None
+        self.command_tabs.setCurrentIndex(1)
+        project = self.current_project
+        action_copy = {
+            "inspect-payload-source": "inspect the firmware payload source",
+            "inspect-avb-topology": "inspect the Android Verified Boot topology",
+            "classify-ota-source": "classify the OTA source",
+        }[action_id]
+        if project is None:
+            self._show_dashboard_handoff(
+                "Recovery Bay → firmware evidence workspace",
+                f"The saved lead evidence recommends ROMVERSE {action_copy}, but no exact ROM "
+                "project is selected. Create or select a project first, then return to the Smart "
+                "Solution so its receipt can be rebound. NO PROJECT, WORKER, BUILD, FLASH, OR "
+                "PHONE ACTION STARTED.",
+                "PROJECT REQUIRED",
+                ready=False,
+                eyebrow="RECOVERY BAY SMART SOLUTION  •  EXACT LOCAL HANDOFF",
+            )
+            self.new_button.setFocus(Qt.FocusReason.OtherFocusReason)
+            return True
+        if project.original is None:
+            self._show_dashboard_handoff(
+                f"Recovery Bay → {project.name}",
+                f"The saved lead evidence recommends ROMVERSE {action_copy}. Exact project "
+                f"{project.project_id} has no protected firmware source, so import and hash the "
+                "user-selected package first, then return to refresh the Smart Solution. "
+                "Compatibility is not inferred from the recommendation. NO IMPORT, WORKER, "
+                "BUILD, FLASH, OR PHONE ACTION STARTED.",
+                "PROTECTED SOURCE REQUIRED",
+                ready=False,
+                eyebrow="RECOVERY BAY SMART SOLUTION  •  EXACT LOCAL HANDOFF",
+            )
+            self.import_button.setFocus(Qt.FocusReason.OtherFocusReason)
+            self.detail_scroll.ensureWidgetVisible(self.command_tabs, 0, 24)
+            return True
+        self._pending_repair_solution = (
+            action_id,
+            fingerprint_id,
+            receipt_digest,
+            source_id,
+            project.project_id,
+            project.original.sha256,
+            receipt,
+        )
+        ready = self.worker is None and self.build_control_button.isEnabled()
+        self._show_dashboard_handoff(
+            f"Recovery Bay → {project.name} Forge Control",
+            f"Saved source {source_id} recommends ROMVERSE {action_copy}. The handoff is bound "
+            f"to research receipt {receipt_digest[:16]}…, project {project.project_id}, and "
+            f"protected source {project.original.sha256[:16]}…. Open Forge Control to review "
+            "only that host-side action; ROMVERSE does not assert firmware compatibility from "
+            "the recommendation. NO DIALOG, WORKER, BUILD, FLASH, OR PHONE ACTION STARTED.",
+            "READY TO REVIEW" if ready else "WAIT FOR CURRENT OPERATION",
+            ready=ready,
+            eyebrow="RECOVERY BAY SMART SOLUTION  •  EXACT LOCAL HANDOFF",
+        )
+        self.build_control_button.setFocus(Qt.FocusReason.OtherFocusReason)
+        self.detail_scroll.ensureWidgetVisible(self.command_tabs, 0, 24)
+        return True
+
     def choose_mode(self) -> int:
         return RomModeChooser(self).exec()
 
@@ -3176,7 +3270,46 @@ class RomStudio(QWidget):
             return
         from romverse.ui.build_control import BuildControlCenter
 
-        dialog = BuildControlCenter(self, parent or self)
+        pending = self._pending_repair_solution
+        if pending is not None:
+            (
+                action_id,
+                fingerprint_id,
+                receipt_digest,
+                source_id,
+                project_id,
+                source_sha256,
+                receipt,
+            ) = pending
+            if (
+                self.current_project.project_id != project_id
+                or self.current_project.original is None
+                or self.current_project.original.sha256 != source_sha256
+            ):
+                self._pending_repair_solution = None
+                self.outbound_handoff_stopped(
+                    "Forge Control",
+                    "The selected project or protected firmware changed after the Smart Solution handoff",
+                )
+                return
+            dialog = BuildControlCenter(self, parent or self, auto_start=False)
+            if not dialog.open_solution_review(
+                action_id,
+                fingerprint_id,
+                receipt_digest,
+                source_id,
+                receipt,
+            ):
+                self._pending_repair_solution = None
+                dialog.close()
+                self.outbound_handoff_stopped(
+                    "Forge Control",
+                    "The typed Smart Solution action is no longer registered",
+                )
+                return
+            self._pending_repair_solution = None
+        else:
+            dialog = BuildControlCenter(self, parent or self)
         dialog.exec()
         if dialog.guardian_manifest_requested:
             self._open_guardian_manifest_review(parent)

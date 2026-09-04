@@ -324,6 +324,9 @@ QProgressBar#FlightPlanProgress::chunk { background: qlineargradient(x1:0,y1:0,x
 QScrollArea, QWidget#ScrollContent { border: 0; background: transparent; }
 QScrollArea > QWidget, QScrollArea > QWidget > QWidget { background: transparent; }
 QScrollArea::viewport { background: #050A16; }
+QScrollArea#IntelligenceEvidenceScroll,
+QScrollArea#IntelligenceEvidenceScroll::viewport,
+QWidget#IntelligenceEvidenceContent { background: transparent; border: 0; }
 QScrollArea#NexusScroll, QScrollArea#NexusScroll > QWidget,
 QScrollArea#NexusScroll > QWidget > QWidget { background: #02050A; }
 QScrollBar:vertical { background: #090D1D; width: 10px; margin: 0; }

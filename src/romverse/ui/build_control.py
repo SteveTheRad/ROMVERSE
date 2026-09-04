@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from contextlib import suppress
 from dataclasses import asdict, is_dataclass
 from datetime import datetime
@@ -75,6 +76,7 @@ from romverse.intelligence.online_remediation import (
     ErrorFingerprint,
     OnlineFixReceipt,
     OnlineRemediationService,
+    SourceAuthority,
 )
 from romverse.intelligence.synapse import (
     SynapseContribution,
@@ -1157,6 +1159,24 @@ class BuildControlCenter(QDialog):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
         root.addWidget(self._header())
+        self.solution_review = QFrame()
+        self.solution_review.setObjectName("ResolutionBanner")
+        solution_layout = QHBoxLayout(self.solution_review)
+        solution_layout.setContentsMargins(24, 14, 24, 14)
+        solution_copy = QVBoxLayout()
+        self.solution_review_heading = QLabel("SMART SOLUTION REVIEW")
+        self.solution_review_heading.setObjectName("CardHeading")
+        self.solution_review_detail = QLabel("")
+        self.solution_review_detail.setObjectName("GateCopy")
+        self.solution_review_detail.setWordWrap(True)
+        solution_copy.addWidget(self.solution_review_heading)
+        solution_copy.addWidget(self.solution_review_detail)
+        solution_layout.addLayout(solution_copy, 1)
+        self.solution_review_badge = QLabel("REVIEW ONLY")
+        self.solution_review_badge.setObjectName("GuardianBadge")
+        solution_layout.addWidget(self.solution_review_badge)
+        self.solution_review.setVisible(False)
+        root.addWidget(self.solution_review)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -1289,6 +1309,13 @@ class BuildControlCenter(QDialog):
             "Verify the exact contract inputs and save a locked deterministic execution plan. This does not compile, sign, or touch a phone."
         )
         prepare.clicked.connect(self._prepare_build_plan)
+        self.source_button = QPushButton("Inspect firmware source")
+        self.source_button.setToolTip(
+            "Classify the exact protected firmware and create a source-bound blueprint receipt. "
+            "This reads local project inputs only and never touches a phone."
+        )
+        self.source_button.setEnabled(self.project.original is not None)
+        self.source_button.clicked.connect(self._prepare_source_blueprint)
         self.metadata_button = QPushButton("Prepare exact build inputs")
         self.metadata_button.setToolTip(
             "Extract only contract-required partitions, preserve filesystem metadata, and combine source-bound SELinux contexts locally. This never reads from or writes to the phone."
@@ -1323,6 +1350,7 @@ class BuildControlCenter(QDialog):
         build_actions = QHBoxLayout()
         build_actions.setSpacing(8)
         for button in (
+            self.source_button,
             self.metadata_button,
             prepare,
             self.build_button,
@@ -1341,6 +1369,61 @@ class BuildControlCenter(QDialog):
         workflow_actions.addWidget(self.close_button)
         layout.addLayout(workflow_actions)
         return frame
+
+    def open_solution_review(
+        self,
+        action_id: str,
+        fingerprint_id: str,
+        receipt_digest: str,
+        source_id: str,
+        receipt: OnlineFixReceipt,
+    ) -> bool:
+        """Focus one saved-evidence action without starting its local worker."""
+
+        targets = {
+            "inspect-payload-source": (
+                self.source_button,
+                "Inspect the exact protected firmware and derive a payload-bound blueprint.",
+            ),
+            "classify-ota-source": (
+                self.source_button,
+                "Classify the exact protected input as a full/incremental OTA or another supported source.",
+            ),
+            "inspect-avb-topology": (
+                self.avb_button,
+                "Inspect AVB descriptors, algorithms, salts, rollback fields, and partition chains.",
+            ),
+        }
+        selected = targets.get(action_id)
+        lead = receipt.candidates[0] if receipt.candidates else None
+        if (
+            selected is None
+            or re.fullmatch(r"[0-9a-f]{64}", fingerprint_id) is None
+            or re.fullmatch(r"[0-9a-f]{64}", receipt_digest) is None
+            or re.fullmatch(r"[A-Za-z0-9._:-]{1,120}", source_id) is None
+            or receipt.fingerprint.fingerprint_id != fingerprint_id
+            or receipt.receipt_digest != receipt_digest
+            or lead is None
+            or lead.local_action_id != action_id
+            or lead.source_id != source_id
+            or lead.authority not in {SourceAuthority.OFFICIAL, SourceAuthority.MAINTAINER}
+        ):
+            return False
+        target, explanation = selected
+        self.online_receipt = receipt
+        self.solution_review_detail.setText(
+            f"{explanation} Saved research fingerprint {fingerprint_id[:16]}… • receipt "
+            f"{receipt_digest[:16]}… • source {source_id}. The highlighted control runs only "
+            "the built-in host-side inspection after this separate user click. Remote text is "
+            "never interpreted as a command; phone authority remains NONE."
+        )
+        self.solution_review.setVisible(True)
+        self.status.setText(
+            "Smart Solution evidence revalidated  •  review the highlighted local inspection "
+            "control  •  no worker or phone action started"
+        )
+        target.setFocus(Qt.FocusReason.OtherFocusReason)
+        return True
 
     def reject(self) -> None:
         if any(
@@ -2713,6 +2796,7 @@ class BuildControlCenter(QDialog):
 
     def _set_action_buttons_enabled(self, enabled: bool) -> None:
         for button in (
+            self.source_button,
             self.metadata_button,
             self.build_button,
             self.avb_button,
@@ -2720,6 +2804,8 @@ class BuildControlCenter(QDialog):
             self.close_button,
         ):
             button.setEnabled(enabled)
+        if enabled:
+            self.source_button.setEnabled(self.project.original is not None)
 
     def _simulate(self) -> None:
         if self.report is None:
@@ -2805,6 +2891,7 @@ class BuildControlCenter(QDialog):
         )
         self.metadata_worker.signals.complete.connect(self._metadata_complete)
         self.metadata_worker.signals.failed.connect(self._metadata_failed)
+        self.source_button.setEnabled(False)
         self.metadata_button.setEnabled(False)
         self.build_button.setEnabled(False)
         self.avb_button.setEnabled(False)
@@ -2826,6 +2913,7 @@ class BuildControlCenter(QDialog):
         count = len(getattr(result, "metadata_receipts", ()))
         self.metadata_worker = None
         self.process_progress.finish()
+        self.source_button.setEnabled(self.project.original is not None)
         self.metadata_button.setEnabled(True)
         self.metadata_button.setText("Prepare exact build inputs")
         self.build_button.setEnabled(True)
@@ -2846,6 +2934,7 @@ class BuildControlCenter(QDialog):
     def _metadata_failed(self, message: str) -> None:
         self.metadata_worker = None
         self.process_progress.stop()
+        self.source_button.setEnabled(self.project.original is not None)
         self.metadata_button.setEnabled(True)
         self.metadata_button.setText("Prepare exact build inputs")
         self.build_button.setEnabled(True)
@@ -2881,6 +2970,7 @@ class BuildControlCenter(QDialog):
         self.build_worker = LocalBuildWorker(executor, self.project.project_id)
         self.build_worker.signals.complete.connect(self._build_complete)
         self.build_worker.signals.failed.connect(self._build_failed)
+        self.source_button.setEnabled(False)
         self.build_button.setEnabled(False)
         self.build_button.setText("Building and verifying …")
         self.process_progress.begin()
@@ -2903,6 +2993,7 @@ class BuildControlCenter(QDialog):
         digest = getattr(receipt, "receipt_digest", "")
         self.build_worker = None
         self.process_progress.finish()
+        self.source_button.setEnabled(self.project.original is not None)
         self.build_button.setEnabled(True)
         self.build_button.setText("Build verified local candidate")
         self.metadata_button.setEnabled(True)
@@ -2923,6 +3014,7 @@ class BuildControlCenter(QDialog):
     def _build_failed(self, message: str) -> None:
         self.build_worker = None
         self.process_progress.stop()
+        self.source_button.setEnabled(self.project.original is not None)
         self.build_button.setEnabled(True)
         self.build_button.setText("Build verified local candidate")
         self.metadata_button.setEnabled(True)
@@ -3008,6 +3100,7 @@ class BuildControlCenter(QDialog):
         self.avb_worker = AvbEvidenceWorker(service, self.project.project_id)
         self.avb_worker.signals.complete.connect(self._avb_complete)
         self.avb_worker.signals.failed.connect(self._avb_failed)
+        self.source_button.setEnabled(False)
         self.avb_button.setEnabled(False)
         self.avb_button.setText("Inspecting AVB, please wait …")
         self.process_progress.begin()
@@ -3029,6 +3122,7 @@ class BuildControlCenter(QDialog):
         diagnosis = str(getattr(receipt, "diagnosis", "AVB topology recorded"))
         self.avb_worker = None
         self.process_progress.finish()
+        self.source_button.setEnabled(self.project.original is not None)
         self.avb_button.setEnabled(True)
         self.avb_button.setText("Inspect AVB topology")
         self.metadata_button.setEnabled(True)
@@ -3055,6 +3149,7 @@ class BuildControlCenter(QDialog):
     def _avb_failed(self, message: str) -> None:
         self.avb_worker = None
         self.process_progress.stop()
+        self.source_button.setEnabled(self.project.original is not None)
         self.avb_button.setEnabled(True)
         self.avb_button.setText("Inspect AVB topology")
         self.metadata_button.setEnabled(True)
@@ -3576,6 +3671,7 @@ class BuildControlCenter(QDialog):
         )
         self.signing_worker.signals.complete.connect(self._signing_complete)
         self.signing_worker.signals.failed.connect(self._signing_failed)
+        self.source_button.setEnabled(False)
         self.signing_button.setEnabled(False)
         self.metadata_button.setEnabled(False)
         self.build_button.setEnabled(False)
@@ -3599,6 +3695,7 @@ class BuildControlCenter(QDialog):
         operation = self.signing_worker.operation if self.signing_worker is not None else "import"
         self.signing_worker = None
         self.process_progress.finish()
+        self.source_button.setEnabled(self.project.original is not None)
         self.signing_button.setEnabled(True)
         self.signing_button.setText("Offline signing ceremony")
         self.metadata_button.setEnabled(True)
@@ -3623,6 +3720,7 @@ class BuildControlCenter(QDialog):
         operation = self.signing_worker.operation if self.signing_worker is not None else "import"
         self.signing_worker = None
         self.process_progress.stop()
+        self.source_button.setEnabled(self.project.original is not None)
         self.signing_button.setEnabled(True)
         self.signing_button.setText("Offline signing ceremony")
         self.metadata_button.setEnabled(True)

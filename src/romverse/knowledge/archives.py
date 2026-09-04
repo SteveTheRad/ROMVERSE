@@ -134,6 +134,12 @@ ADB_SOURCE = ArchiveSource(
     "OFFICIAL ANDROID",
     "https://developer.android.com/tools/adb",
 )
+PLATFORM_TOOLS_SOURCE = ArchiveSource(
+    "SDK Platform Tools release notes",
+    "OFFICIAL ANDROID",
+    "https://developer.android.com/tools/releases/platform-tools",
+    "2026-09-04",
+)
 FASTBOOT_SOURCE = ArchiveSource(
     "AOSP fastboot and userspace fastbootd",
     "OFFICIAL AOSP",
@@ -428,6 +434,42 @@ KNOWN_FIXES = (
         evidence="AOSP defines recovery and sideload as distinct ADB states. Its recovery implementation uses a restricted adbd in sideload mode that supports only package sideloading; normal shell, log, reboot, push, and pull commands are unavailable there.",
         automation="AUTOMATIC READ-ONLY STATE DETECTION AND RECOVERY BAY HANDOFF • NO PACKAGE TRANSFER, REBOOT, INSTALL, OR DEVICE WRITE AUTHORITY",
         source=RECOVERY_SIDELOAD_SOURCE,
+    ),
+    _fix(
+        "android-platform-tools-verification",
+        "Verify one current Android Platform Tools installation",
+        "TOOLS & HOST",
+        "ADB and Fastboot ship together in Android SDK Platform Tools. Multiple copies or an "
+        "unverified path can make the Desktop use a different client than the one a user tests "
+        "manually, producing misleading version, transport, and recovery results.",
+        checks=(
+            "In Forge Arsenal, record the exact active ADB and Fastboot paths and versions.",
+            "Check whether Android Studio, a system package, and a downloaded Platform Tools copy compete on PATH.",
+            "Treat OEM USB drivers or Linux udev permissions as separate host evidence; replacing Platform Tools does not prove either is correct.",
+        ),
+        fix_steps=(
+            "Use the research-bound Forge Arsenal card to re-check both tools without targeting a phone.",
+            "If either tool is absent or stale, explicitly select the ROMVERSE-managed official Platform Tools setup and verify its integrity receipt.",
+            "Return to Device Engine or Recovery Bay and run a new read-only connection scan; never carry an old device result across a tool change.",
+        ),
+        verification=(
+            "Forge Arsenal shows both ADB and Fastboot as available from the intended verified package.",
+            "A repeated tool inventory resolves the same executable paths and versions.",
+            "A later device scan creates fresh evidence and does not infer device or flash authority from the host-tool result.",
+        ),
+        tags=(
+            "verify platform tools",
+            "adb fastboot version",
+            "multiple adb copies",
+            "platform tools path",
+            "exit code 127",
+            "adb command not found",
+            "fastboot command not found",
+        ),
+        route="forge_arsenal",
+        evidence="Android publishes ADB and Fastboot in the SDK Platform Tools package and maintains their release history separately from OEM USB-driver instructions.",
+        automation="HOST-ONLY PATH, VERSION, AND INTEGRITY CHECK • EXPLICIT SETUP CLICK • NO PHONE AUTHORITY",
+        source=PLATFORM_TOOLS_SOURCE,
     ),
     _fix(
         "adb-server-version-mismatch",

@@ -5,7 +5,7 @@ import json
 from contextlib import suppress
 from pathlib import Path
 
-from PySide6.QtCore import QObject, Qt, Signal, Slot
+from PySide6.QtCore import QObject, Qt, QTimer, Signal, Slot
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -116,6 +116,7 @@ class RepairResearchWorker(ManagedRunnable):
 class RepairCenter(QWidget):
     verification_scan_requested = Signal()
     runtime_tools_requested = Signal()
+    solution_action_requested = Signal(str, str, str, str)
     knowledge_requested = Signal(str)
     knowledge_article_requested = Signal(str)
     diagnostic_requested = Signal(str)
@@ -163,6 +164,7 @@ class RepairCenter(QWidget):
         self._online_attempted: set[str] = set()
         self._online_receipts: dict[str, OnlineFixReceipt] = {}
         self._online_mission = ""
+        self._intelligence_action_binding: tuple[str, str, str, str] | None = None
 
         page = QVBoxLayout(self)
         page.setContentsMargins(30, 26, 30, 30)
@@ -356,6 +358,7 @@ class RepairCenter(QWidget):
         self.intelligence_status.setAccessibleName("ROMVERSE Intelligence status")
         self.intelligence_status.setWordWrap(True)
         self.intelligence_details = QWidget()
+        self.intelligence_details.setObjectName("IntelligenceEvidenceContent")
         intelligence_details_layout = QVBoxLayout(self.intelligence_details)
         intelligence_details_layout.setContentsMargins(0, 0, 0, 0)
         intelligence_details_layout.setSpacing(7)
@@ -380,15 +383,53 @@ class RepairCenter(QWidget):
         self.intelligence_retry = QPushButton("Retry verified research")
         self.intelligence_retry.clicked.connect(self._retry_online_research)
         self.intelligence_retry.setVisible(False)
+        self.intelligence_action = QPushButton("Open matching ROMVERSE workflow")
+        self.intelligence_action.setObjectName("Primary")
+        self.intelligence_action.setAccessibleName(
+            "Open the matching built-in ROMVERSE verification workflow"
+        )
+        self.intelligence_action.setToolTip(
+            "Revalidate the saved research receipt, then open the matching built-in review "
+            "surface. This button never runs remote instructions or starts a phone action."
+        )
+        self.intelligence_action.clicked.connect(self._request_intelligence_action)
+        self.intelligence_action.setVisible(False)
         intelligence_layout.addLayout(intelligence_header)
         intelligence_layout.addWidget(self.intelligence_status)
         intelligence_details_layout.addWidget(self.intelligence_decision)
         intelligence_details_layout.addWidget(self.intelligence_detail)
         intelligence_details_layout.addWidget(self.intelligence_source)
-        intelligence_details_layout.addWidget(self.intelligence_boundary)
-        intelligence_details_layout.addWidget(self.intelligence_progress)
-        intelligence_details_layout.addWidget(self.intelligence_retry)
-        intelligence_layout.addWidget(self.intelligence_details)
+        self.intelligence_details_scroll = QScrollArea()
+        self.intelligence_details_scroll.setObjectName("IntelligenceEvidenceScroll")
+        self.intelligence_details_scroll.setAccessibleName(
+            "Scrollable ROMVERSE Smart Solution evidence"
+        )
+        self.intelligence_details_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.intelligence_details_scroll.setWidgetResizable(True)
+        self.intelligence_details_scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        self.intelligence_details_scroll.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+        self.intelligence_details_scroll.setMinimumHeight(156)
+        self.intelligence_details_scroll.setMaximumHeight(340)
+        self.intelligence_details_scroll.setWidget(self.intelligence_details)
+        self.intelligence_expanded_panel = QWidget()
+        self.intelligence_expanded_panel.setObjectName("IntelligenceEvidenceContent")
+        intelligence_expanded_layout = QVBoxLayout(self.intelligence_expanded_panel)
+        intelligence_expanded_layout.setContentsMargins(0, 0, 0, 0)
+        intelligence_expanded_layout.setSpacing(7)
+        intelligence_expanded_layout.addWidget(self.intelligence_details_scroll)
+        intelligence_expanded_layout.addWidget(self.intelligence_progress)
+        intelligence_footer = QHBoxLayout()
+        intelligence_footer.setContentsMargins(0, 0, 0, 0)
+        intelligence_footer.setSpacing(12)
+        intelligence_footer.addWidget(self.intelligence_boundary, 1)
+        intelligence_footer.addWidget(self.intelligence_action)
+        intelligence_expanded_layout.addLayout(intelligence_footer)
+        intelligence_expanded_layout.addWidget(self.intelligence_retry)
+        intelligence_layout.addWidget(self.intelligence_expanded_panel)
         self.intelligence_card.setVisible(False)
         page.addWidget(self.intelligence_card)
 
@@ -535,6 +576,7 @@ class RepairCenter(QWidget):
                 self._complete_pending_verification(devices)
             self.build_plan()
         else:
+            self._clear_intelligence_action()
             self._clear_diagnostic_context()
             self.host_action_card.setVisible(False)
             self.host_repair_plan = None
@@ -1364,6 +1406,7 @@ class RepairCenter(QWidget):
         self._online_receipts.clear()
         if service is None:
             self._online_pending = None
+            self._clear_intelligence_action()
             self.intelligence_card.setVisible(False)
             return
         if self.devices:
@@ -1425,6 +1468,7 @@ class RepairCenter(QWidget):
 
     def _maybe_research(self, fingerprint: ErrorFingerprint) -> None:
         self._online_current = fingerprint
+        self._clear_intelligence_action()
         if self._report_payload is not None:
             self._report_payload["online_research"] = {
                 "fingerprint_id": fingerprint.fingerprint_id,
@@ -1468,6 +1512,7 @@ class RepairCenter(QWidget):
         self.intelligence_card.setVisible(True)
         self._set_intelligence_expanded(True)
         self.intelligence_retry.setVisible(False)
+        self._clear_intelligence_action()
         self.intelligence_source.clear()
         self.intelligence_decision.setText(
             "SMART SOLUTION BRIEF • EVIDENCE SYNTHESIS PENDING\n"
@@ -1527,6 +1572,7 @@ class RepairCenter(QWidget):
         self.online_worker = None
         self.intelligence_progress.stop()
         safe = message.replace("\x00", " ").strip()[:400] or "Online lookup failed"
+        self._clear_intelligence_action()
         if self.online_service is not None:
             self.intelligence_card.setVisible(True)
             self._set_intelligence_expanded(True)
@@ -1552,6 +1598,7 @@ class RepairCenter(QWidget):
         self.intelligence_card.setVisible(True)
         self._set_intelligence_expanded(True)
         self.intelligence_progress.stop()
+        self._clear_intelligence_action()
         try:
             decision = self._synthesize_intelligence(receipt)
         except (OSError, TypeError, ValueError):
@@ -1584,6 +1631,7 @@ class RepairCenter(QWidget):
         top = receipt.candidates[0]
         self._show_intelligence_decision(decision)
         self._record_intelligence_decision(decision)
+        self._configure_intelligence_action(receipt, decision)
         locally_verified = top.source_id in decision.locally_verified_source_ids
         confidence = "LOCALLY VERIFIED WORKING" if locally_verified else "GUIDANCE • REVIEW"
         self._set_intelligence_status(
@@ -1627,6 +1675,161 @@ class RepairCenter(QWidget):
             "Opening a source is a user review action. Web content cannot become a ROMVERSE command."
         )
 
+    def _configure_intelligence_action(
+        self,
+        receipt: OnlineFixReceipt,
+        decision: RemediationDecision,
+    ) -> None:
+        if not receipt.candidates:
+            return
+        lead = receipt.candidates[0]
+        if (
+            not lead.local_action_id
+            or lead.authority not in {SourceAuthority.OFFICIAL, SourceAuthority.MAINTAINER}
+            or decision.state.value not in {"typed-action-available", "locally-verified"}
+            or decision.lead_source_id != lead.source_id
+        ):
+            return
+        labels = {
+            "refresh-adb-evidence": "Review USB / ADB verification",
+            "verify-platform-tools": "Open Platform Tools verification",
+            "inspect-payload-source": "Open firmware source inspection",
+            "inspect-avb-topology": "Open Verified Boot inspection",
+            "classify-ota-source": "Open OTA source classification",
+        }
+        label = labels.get(lead.local_action_id)
+        if label is None:
+            return
+        self._intelligence_action_binding = (
+            lead.local_action_id,
+            receipt.fingerprint.fingerprint_id,
+            receipt.receipt_digest,
+            lead.source_id,
+        )
+        self.intelligence_action.setText(label)
+        self.intelligence_action.setVisible(True)
+        if self._report_payload is not None:
+            current = self._report_payload.get("online_research")
+            if isinstance(current, dict):
+                current.update(
+                    {
+                        "lead_local_action_id": lead.local_action_id,
+                        "built_in_review_available": True,
+                        "built_in_review_started": False,
+                    }
+                )
+
+    def _clear_intelligence_action(self) -> None:
+        self._intelligence_action_binding = None
+        self.intelligence_action.setVisible(False)
+        self.intelligence_action.setEnabled(True)
+
+    def validate_solution_handoff(
+        self,
+        action_id: str,
+        fingerprint_id: str,
+        receipt_digest: str,
+        source_id: str,
+    ) -> bool:
+        """Re-derive one lead action from the current persisted evidence."""
+
+        requested = (action_id, fingerprint_id, receipt_digest, source_id)
+        if requested != self._intelligence_action_binding:
+            return False
+        service = self.online_service
+        current = self._online_current
+        if service is None or current is None or current.fingerprint_id != fingerprint_id:
+            return False
+        receipt = service.load(current)
+        if receipt is None or receipt.receipt_digest != receipt_digest or not receipt.candidates:
+            return False
+        lead = receipt.candidates[0]
+        if (
+            lead.local_action_id != action_id
+            or lead.source_id != source_id
+            or lead.authority not in {SourceAuthority.OFFICIAL, SourceAuthority.MAINTAINER}
+        ):
+            return False
+        try:
+            decision = service.synthesize(receipt)
+        except (OSError, TypeError, ValueError):
+            return False
+        return decision.lead_source_id == source_id and decision.state.value in {
+            "typed-action-available",
+            "locally-verified",
+        }
+
+    def solution_handoff_receipt(
+        self,
+        action_id: str,
+        fingerprint_id: str,
+        receipt_digest: str,
+        source_id: str,
+    ) -> OnlineFixReceipt | None:
+        """Return only the revalidated receipt backing the current visible handoff."""
+
+        if not self.validate_solution_handoff(
+            action_id,
+            fingerprint_id,
+            receipt_digest,
+            source_id,
+        ):
+            return None
+        service = self.online_service
+        current = self._online_current
+        if service is None or current is None:
+            return None
+        return service.load(current)
+
+    def _request_intelligence_action(self) -> None:
+        binding = self._intelligence_action_binding
+        if binding is None or not self.validate_solution_handoff(*binding):
+            self.solution_handoff_stopped(
+                "The saved research evidence changed before the built-in workflow opened"
+            )
+            return
+        action_id, fingerprint_id, receipt_digest, source_id = binding
+        if action_id == "refresh-adb-evidence":
+            target = (
+                self.host_repair_button
+                if self.host_repair_button is not None and self.host_repair_button.isEnabled()
+                else self.execute_button
+                if self.execute_button.isEnabled()
+                else self.resolve_runtime_button
+            )
+            target.setFocus(Qt.FocusReason.OtherFocusReason)
+            self.digest.setText(
+                "Smart Solution handoff verified  •  review the highlighted USB / ADB "
+                "control  •  no scan, daemon restart, or phone action started"
+            )
+            return
+        self.solution_action_requested.emit(
+            action_id,
+            fingerprint_id,
+            receipt_digest,
+            source_id,
+        )
+
+    def solution_handoff_stopped(self, reason: str) -> None:
+        safe = reason.replace("\x00", " ").strip()[:300] or "Evidence no longer matches"
+        self._clear_intelligence_action()
+        if self._report_payload is not None:
+            current = self._report_payload.get("online_research")
+            if isinstance(current, dict):
+                current.update(
+                    {
+                        "built_in_review_available": False,
+                        "built_in_review_started": False,
+                        "handoff_stopped_reason": safe,
+                    }
+                )
+        self._set_intelligence_status(
+            "SMART SOLUTION HANDOFF STOPPED",
+            f"{safe}. Refresh the assessment before choosing another workflow. No worker, "
+            "install, project change, or phone action started.",
+            "Warning",
+        )
+
     def _synthesize_intelligence(self, receipt: OnlineFixReceipt) -> RemediationDecision:
         service = self.online_service
         if service is None:
@@ -1644,6 +1847,44 @@ class RepairCenter(QWidget):
         )
         self.intelligence_decision.style().unpolish(self.intelligence_decision)
         self.intelligence_decision.style().polish(self.intelligence_decision)
+        QTimer.singleShot(0, self._fit_intelligence_copy)
+
+    def _fit_intelligence_copy(self) -> None:
+        """Keep wrapped Smart Brief evidence readable without overlapping adjacent rows."""
+
+        width = self.intelligence_decision.width()
+        if width <= 0 or not self.intelligence_details.isVisible():
+            return
+        visible_rows: list[QWidget] = []
+        for label in (
+            self.intelligence_decision,
+            self.intelligence_detail,
+            self.intelligence_source,
+        ):
+            text = label.text()
+            label.setMinimumHeight(0)
+            required = label.heightForWidth(max(1, label.width())) if text else 0
+            label.setMinimumHeight(required + 4 if required else 0)
+            if label.isVisible() and text:
+                visible_rows.append(label)
+
+        details_layout = self.intelligence_details.layout()
+        if details_layout is None:
+            return
+        spacing = details_layout.spacing() * max(0, len(visible_rows) - 1)
+        content_height = spacing + sum(
+            max(widget.minimumHeight(), widget.minimumSizeHint().height())
+            for widget in visible_rows
+        )
+        self.intelligence_details.setMinimumHeight(content_height)
+        details_layout.invalidate()
+        details_layout.activate()
+        self.intelligence_details.updateGeometry()
+        self.intelligence_details_scroll.updateGeometry()
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        QTimer.singleShot(0, self._fit_intelligence_copy)
 
     def _record_intelligence_decision(self, decision: RemediationDecision) -> None:
         if self._report_payload is None:
@@ -1683,6 +1924,9 @@ class RepairCenter(QWidget):
         )
         self.intelligence_toggle.blockSignals(False)
         self.intelligence_details.setVisible(expanded)
+        self.intelligence_expanded_panel.setVisible(expanded)
+        if expanded:
+            QTimer.singleShot(0, self._fit_intelligence_copy)
 
     def _retry_online_research(self) -> None:
         fingerprint = self._online_current

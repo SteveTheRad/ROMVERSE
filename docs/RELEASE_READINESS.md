@@ -99,8 +99,8 @@ advance only through a supported gateway with fresh exact-plan acceptance. This 
 policy evidence, not universal device assurance or a live flashing runtime.
 
 The subsequent source-attributed Android knowledge increment passes all 1,617 Desktop tests and the
-complete Ruff check/format gates across 378 Python files. Archives now contains 218 validated guides,
-168 structured known fixes, 94 official-source-backed records, and seven maintainer/community records.
+complete Ruff check/format gates across 378 Python files. Archives now contains 219 validated guides,
+169 structured known fixes, 95 official-source-backed records, and seven maintainer/community records.
 It adds current official update, recovery, error-triage, compatibility, and working/not-working context
 for every manufacturer family represented by the 21 bundled Device Packs, including separate TECNO,
 Infinix, and itel evidence and separate ZTE and nubia/REDMAGIC evidence. Archives can visibly filter
@@ -121,6 +121,16 @@ different. Community/maintainer text describing a boot loop, bricking, data loss
 can only produce a reported-risk caution with a do-not-reproduce next step. Focused remediation and
 Recovery Bay tests, all 1,624 Desktop tests, and the complete Ruff check/format gates across 378
 Python files pass for this exact increment. No phone operation is part of this feature.
+
+The next Desktop integration increment makes those typed leads navigable without weakening the
+boundary. It adds receipt-and-lead revalidation at both Recovery Bay and MainWindow, a host-only
+Platform Tools review in Forge Arsenal, project/source-bound OTA/payload/AVB review in ROM Studio,
+and review-only Forge Control entry with explicit firmware-source and AVB inspection controls.
+Unknown or stale actions stop in-page. A new official Platform Tools verification guide expands
+Archives to 219 validated guides, 169 known fixes, 102 externally sourced records, 95 official-source
+records, and seven maintainer/community records. Navigation alone starts no scan, setup, worker,
+build, flash, or phone command. All 1,629 Desktop tests pass, and Ruff check plus format verification
+pass across all 378 Python files for this increment. No physical-phone operation was performed.
 
 ## Required gates
 

@@ -92,6 +92,42 @@ def _studio(tmp_path) -> RomStudio:
     return RomStudio(store, DevicePackRegistry((pack,)), tools)
 
 
+def test_smart_solution_opens_exact_forge_review_without_starting_work(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    studio = _studio(tmp_path)
+    control = BuildControlCenter(studio, auto_start=False)
+    fingerprint = ErrorFingerprint.create("target files build ota block based")
+    receipt = OnlineRemediationService(studio.store.workspace).lookup(fingerprint)
+    lead = receipt.candidates[0]
+    assert lead.local_action_id == "classify-ota-source"
+
+    assert control.open_solution_review(
+        lead.local_action_id,
+        receipt.fingerprint.fingerprint_id,
+        receipt.receipt_digest,
+        lead.source_id,
+        receipt,
+    )
+    app.processEvents()
+
+    assert not control.solution_review.isHidden()
+    assert "aosp.ota-tools" in control.solution_review_detail.text()
+    assert "phone authority remains NONE" in control.solution_review_detail.text()
+    assert "no worker or phone action started" in control.status.text()
+    assert not control.autopilot_active
+    assert not control._has_active_worker()
+    assert control.source_button.isEnabled()
+    assert not control.open_solution_review(
+        "provider-injected-command",
+        "a" * 64,
+        "b" * 64,
+        "community.untrusted",
+        receipt,
+    )
+    control.close()
+    studio.close()
+
+
 def test_direct_avb_action_resolves_missing_tools_before_starting_worker(
     tmp_path, monkeypatch
 ) -> None:

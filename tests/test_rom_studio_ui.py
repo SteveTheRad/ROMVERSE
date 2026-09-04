@@ -18,6 +18,7 @@ from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.guardian.manifest_review import GuardianManifestReviewService
 from romverse.infrastructure.tools import ToolStatus
+from romverse.intelligence.online_remediation import ErrorFingerprint, OnlineRemediationService
 from romverse.nexus.events import LiveConsoleEventStore, MissionState
 from romverse.rom.builds import RomBuildPlanner
 from romverse.rom.forge import ForgeBundleService
@@ -75,6 +76,57 @@ def test_rom_studio_project_card_uses_authoritative_genesis_state_and_ignores_le
     studio.refresh(project.project_id)
     app.processEvents()
     assert "GENESIS • ATTENTION" in studio.project_list.item(0).text()
+    studio.close()
+
+
+def test_recovery_bay_solution_binds_exact_project_source_without_starting_worker(
+    tmp_path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    source = tmp_path / "phone-ota.zip"
+    with zipfile.ZipFile(source, "w") as archive:
+        archive.writestr("payload.bin", b"CrAU fixture")
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.create("Smart source review")
+    project = store.import_original(project.project_id, source)
+    studio = RomStudio(store, DevicePackRegistry(()))
+    studio.refresh(project.project_id)
+    fingerprint = ErrorFingerprint.create("payload.bin OTA update engine")
+    receipt = OnlineRemediationService(store.workspace).lookup(fingerprint)
+    lead = receipt.candidates[0]
+    assert lead.local_action_id == "inspect-payload-source"
+
+    assert studio.open_repair_solution_handoff(
+        lead.local_action_id,
+        receipt.fingerprint.fingerprint_id,
+        receipt.receipt_digest,
+        lead.source_id,
+        receipt,
+    )
+    app.processEvents()
+
+    assert studio._pending_repair_solution == (
+        "inspect-payload-source",
+        receipt.fingerprint.fingerprint_id,
+        receipt.receipt_digest,
+        lead.source_id,
+        project.project_id,
+        project.original.sha256,
+        receipt,
+    )
+    assert "RECOVERY BAY SMART SOLUTION" in studio.dashboard_handoff_eyebrow.text()
+    assert project.original.sha256[:16] in studio.dashboard_handoff_detail.text()
+    assert "NO DIALOG, WORKER, BUILD, FLASH, OR PHONE ACTION STARTED" in (
+        studio.dashboard_handoff_detail.text()
+    )
+    assert studio.worker is None
+    assert not studio.open_repair_solution_handoff(
+        "run-community-command",
+        "a" * 64,
+        "b" * 64,
+        "community.report",
+        receipt,
+    )
     studio.close()
 
 

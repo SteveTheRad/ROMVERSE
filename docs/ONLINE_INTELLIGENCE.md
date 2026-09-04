@@ -48,6 +48,17 @@ in-memory or provider-supplied claim is insufficient. The exported Recovery Bay 
 the bounded derived decision and source identifiers, plus `execution_authority: guidance-only` and
 `phone_action_allowed: false`.
 
+For a lead official/maintainer candidate with a registered typed local action, Recovery Bay may show
+one matching workflow control. Before emitting a handoff it must reload the same fingerprint receipt,
+recheck its digest, lead source, authority, action ID, and current synthesized state. MainWindow must
+repeat that validation before accepting the route. ADB evidence stays on the current Recovery Bay
+surface; Platform Tools opens an immutable host-only Forge Arsenal context; OTA payload,
+source-classification, and AVB actions bind the current ROM project and protected-source SHA-256
+before opening Forge Control in review-only mode. The user must make a separate click on the local
+inspection. Merely opening any of these views starts no scan, install, worker, build, flash, or phone
+command. Provider-injected IDs and stale fingerprint, receipt, lead, project, or source evidence fail
+closed with a visible in-page explanation.
+
 The connected provider set always begins with ROMVERSE's curated official Android/AOSP/OEM index.
 When community research is enabled it also searches Reddit reports and accepted-answer Android
 Enthusiasts threads. A configured Google Programmable Search connection may add official OEM pages,

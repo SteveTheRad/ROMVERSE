@@ -5,6 +5,7 @@ from importlib.resources import files
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QLabel, QMessageBox, QPushButton
 
 from romverse.core.activity import ActivityStore
@@ -17,6 +18,7 @@ from romverse.guardian.planning import GuardianPreflight
 from romverse.guardian.policy import GuardianPolicy
 from romverse.infrastructure.process import CommandResult
 from romverse.intelligence.online_remediation import (
+    ErrorFingerprint,
     OnlineFixCandidate,
     OnlineRemediationService,
     SourceAuthority,
@@ -95,6 +97,23 @@ class MultiSourceResearchProvider:
                 "https://xdaforums.com/t/example-update-report.1234567/",
                 "One device owner reported the same symptom.",
                 confidence=68,
+            ),
+        )
+
+
+class OfficialPlatformToolsProvider:
+    def search(self, _fingerprint):
+        return (
+            OnlineFixCandidate(
+                "android.platform-tools",
+                SourceAuthority.OFFICIAL,
+                "SDK Platform Tools release notes",
+                "https://developer.android.com/tools/releases/platform-tools",
+                "Verify the exact ADB and Fastboot package before repeating the host check.",
+                ("platform tools", "command not found"),
+                "android.platform-tools",
+                "verify-platform-tools",
+                92,
             ),
         )
 
@@ -538,8 +557,58 @@ def test_recovery_bay_automatically_researches_exact_error_without_executing_rem
     assert "developer.android.com" in center.intelligence_source.text()
     assert "guidance only" in center.intelligence_boundary.text().casefold()
     assert "execution authority: none" in center.intelligence_boundary.text().casefold()
+    assert not center.intelligence_action.isHidden()
+    assert "USB / ADB" in center.intelligence_action.text()
+    center.intelligence_action.click()
+    app.processEvents()
+    assert "no scan, daemon restart, or phone action started" in center.digest.text()
     assert center.host_repair_worker is None
     assert not list((tmp_path / "diagnostics" / "host-repair-receipts").glob("*"))
+    center.close()
+
+
+def test_recovery_bay_emits_only_a_current_revalidated_typed_solution_handoff(
+    tmp_path, monkeypatch
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    online = OnlineRemediationService(tmp_path, (OfficialPlatformToolsProvider(),))
+    monkeypatch.setattr(
+        "romverse.ui.repair_center.start_background",
+        lambda worker: worker.execute(),
+    )
+    center = RepairCenter(
+        DiagnosticAnalyzer(),
+        RepairAssessmentTemplates(),
+        GuardianPreflight(),
+        tmp_path,
+        ActivityStore(tmp_path),
+        online_service=online,
+    )
+    center.symptom_input.setText("platform tools command not found")
+    center.set_devices([device()])
+    app.processEvents()
+
+    requested: list[tuple[str, str, str, str]] = []
+    center.solution_action_requested.connect(
+        lambda *values: requested.append(tuple(str(value) for value in values))
+    )
+    assert not center.intelligence_action.isHidden()
+    assert center.intelligence_action.text() == "Open Platform Tools verification"
+    binding = center._intelligence_action_binding
+    assert binding is not None
+    assert center.validate_solution_handoff(*binding)
+
+    center.intelligence_action.click()
+    app.processEvents()
+    assert requested == [binding]
+    assert center.host_repair_worker is None
+
+    center._online_current = ErrorFingerprint.create("different current evidence")
+    center.intelligence_action.click()
+    app.processEvents()
+    assert requested == [binding]
+    assert center.intelligence_action.isHidden()
+    assert "HANDOFF STOPPED" in center.intelligence_status.text()
     center.close()
 
 
@@ -585,6 +654,61 @@ def test_recovery_bay_synthesizes_and_displays_ranked_solution_evidence(
     assert research["execution_authority"] == "guidance-only"
     assert not research["phone_action_allowed"]
     assert center.host_repair_worker is None
+    center.close()
+
+
+def test_recovery_bay_smart_solution_copy_remains_visible_at_desktop_sizes(
+    tmp_path, monkeypatch
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    online = OnlineRemediationService(tmp_path, (MultiSourceResearchProvider(),))
+    monkeypatch.setattr(
+        "romverse.ui.repair_center.start_background",
+        lambda worker: worker.execute(),
+    )
+    center = RepairCenter(
+        DiagnosticAnalyzer(),
+        RepairAssessmentTemplates(),
+        GuardianPreflight(),
+        tmp_path,
+        ActivityStore(tmp_path),
+        online_service=online,
+    )
+    center.resize(1_280, 720)
+    center.show()
+    center.symptom_input.setText("system update failed after download")
+    center.set_devices([device(manufacturer="Samsung")])
+
+    for _ in range(4):
+        app.processEvents()
+
+    decision = center.intelligence_decision
+    text_height = (
+        decision.fontMetrics()
+        .boundingRect(
+            decision.rect(),
+            int(Qt.TextFlag.TextWordWrap | Qt.AlignmentFlag.AlignLeft),
+            decision.text(),
+        )
+        .height()
+    )
+    assert decision.height() >= text_height
+    assert center.intelligence_detail.geometry().top() > decision.geometry().bottom()
+
+    center.resize(960, 720)
+    for _ in range(4):
+        app.processEvents()
+    text_height = (
+        decision.fontMetrics()
+        .boundingRect(
+            decision.rect(),
+            int(Qt.TextFlag.TextWordWrap | Qt.AlignmentFlag.AlignLeft),
+            decision.text(),
+        )
+        .height()
+    )
+    assert decision.height() >= text_height
+    assert center.intelligence_detail.geometry().top() > decision.geometry().bottom()
     center.close()
 
 

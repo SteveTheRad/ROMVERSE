@@ -77,6 +77,13 @@ caution signal—never as a recipe to repeat. The same decision, source identiti
 `phone_action_allowed: false` boundary enter the privacy-safe Recovery Bay report. Remote text remains guidance-only.
 Only a matching built-in typed action with a successful local receipt can be recorded as locally
 verified working; disabling online intelligence while a lookup is running discards that result.
+When the lead official or maintainer evidence maps to one of ROMVERSE's five built-in read-only
+actions, the Brief now exposes one clearly named workflow button. The click reopens and revalidates
+the saved receipt before routing: USB/ADB stays in Recovery Bay, Platform Tools opens a host-only
+Forge Arsenal card, and OTA/payload/AVB work opens a project-and-protected-source-bound ROM Studio
+handoff. Forge Control opens in review-only mode with the exact local inspection highlighted.
+Navigation itself starts no verifier, installer, project worker, build, or phone command; changed
+fingerprints, receipts, projects, sources, lead rankings, and unknown action IDs stop visibly.
 Research receipts and verified-outcome records now use size-bounded, private `0600`, uniquely
 staged atomic writes anchored beneath the workspace. Symlinked directories/files, non-regular
 targets, malformed or extra-field schemas, oversized records, unbounded outcome collections, and
@@ -105,8 +112,8 @@ When online research is off, its secondary panel folds into a compact, accessibl
 preconditions and the Advisor stay prominent. Active, returned, or failed research expands its full
 evidence automatically, and the user can fold only those details without changing assessment state.
 
-The Desktop **ROMVERSE Archives** catalog now contains 218 validated local guides across eleven
-categories, including 168 structured known-fix records, 94 official-source-backed records, and seven
+The Desktop **ROMVERSE Archives** catalog now contains 219 validated local guides across eleven
+categories, including 169 structured known-fix records, 95 official-source-backed records, and seven
 community/maintainer evidence guides. Its evidence selector can isolate official/OEM/AOSP,
 maintainer/community, or ROMVERSE field records, and every outbound button names the evidence lane
 instead of presenting a community report as an official source. The dedicated **Device Identity & Compatibility** category

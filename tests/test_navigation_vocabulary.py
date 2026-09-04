@@ -28,6 +28,7 @@ from romverse.device_packs.registry import DevicePackRegistry
 from romverse.guardian.manifest_review import GuardianManifestReviewService
 from romverse.infrastructure.process import CommandResult
 from romverse.infrastructure.tools import ToolStatus
+from romverse.intelligence.online_remediation import ErrorFingerprint, OnlineRemediationService
 from romverse.intelligence.synapse import (
     SynapseContribution,
     SynapseKnowledgeState,
@@ -284,7 +285,7 @@ def test_about_recalculates_real_workspace_evidence_and_returns_from_its_exact_g
             f"{len(registry.packs)} DEVICE PACKS  •  1 OFFICIAL IDS"
         )
         assert window.about_page.evidence_values["knowledge"].text() == (
-            "218 VERIFIED GUIDES  •  168 KNOWN FIXES"
+            "219 VERIFIED GUIDES  •  169 KNOWN FIXES"
         )
         ready_tools = sum(status.available for status in window.toolchain_center.statuses)
         tool_count = len(window.toolchain_center.statuses)
@@ -2796,6 +2797,71 @@ def test_adb_tool_refresh_activates_and_revokes_every_dependent_runtime(
         assert window.repair_center.devices == []
         assert window.rom_studio.devices == []
         assert "Platform Tools" in window.device_center.device_note.text()
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_smart_solution_routes_to_exact_platform_tools_review_without_running_it(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
+    fingerprint = ErrorFingerprint.create("fastboot command not found exit code 127")
+    receipt = OnlineRemediationService(tmp_path).lookup(fingerprint)
+    lead = receipt.candidates[0]
+    assert lead.local_action_id == "verify-platform-tools"
+    binding = (
+        lead.local_action_id,
+        receipt.fingerprint.fingerprint_id,
+        receipt.receipt_digest,
+        lead.source_id,
+    )
+    monkeypatch.setattr(
+        window.repair_center,
+        "validate_solution_handoff",
+        lambda *values: values == binding,
+    )
+    monkeypatch.setattr(
+        window.repair_center,
+        "solution_handoff_receipt",
+        lambda *values: receipt if values == binding else None,
+    )
+
+    try:
+        window.repair_center.solution_action_requested.emit(*binding)
+        app.processEvents()
+
+        context = window.toolchain_center._repair_solution_context
+        assert context is not None
+        assert context.required_tools == ("ADB", "Fastboot")
+        assert window.stack.currentWidget() is window.toolchain_center
+        assert not window.toolchain_center.device_pack_handoff.isHidden()
+        assert "RECOVERY BAY SMART SOLUTION" in (
+            window.toolchain_center.device_pack_handoff_eyebrow.text()
+        )
+        assert "PHONE AUTHORITY: NONE" in (window.toolchain_center.device_pack_handoff_badge.text())
+        assert window.rom_studio.worker is None
+        assert window.repair_center.host_repair_worker is None
+
+        adb = tmp_path / "verified-adb"
+        fastboot = tmp_path / "verified-fastboot"
+        adb.write_bytes(b"adb fixture")
+        fastboot.write_bytes(b"fastboot fixture")
+        window.toolchain_center.statuses = (
+            ToolStatus("ADB", True, str(adb), "fixture", "Ready"),
+            ToolStatus("Fastboot", True, str(fastboot), "fixture", "Ready"),
+        )
+        window.toolchain_center._record_repair_solution_outcome()
+
+        decision = OnlineRemediationService(tmp_path).synthesize(receipt)
+        assert lead.source_id in decision.locally_verified_source_ids
+        assert window.toolchain_center._repair_solution_outcome_saved
+        assert "OUTCOME VERIFIED AND SAVED" in (
+            window.toolchain_center.device_pack_handoff_feedback.text()
+        )
     finally:
         window.companion_center.transport.close()
         window.close()

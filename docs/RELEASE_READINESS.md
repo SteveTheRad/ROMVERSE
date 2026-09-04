@@ -1518,6 +1518,34 @@ The product-wide continuation target and definition of done are recorded in
   independent fixed SHA-256 regression assertions. All five remain byte-identical to their approved
   hashes; no logo was replaced, regenerated, recoloured, cropped or otherwise edited.
 
+## 2026-09-05 Companion Link 2.0 checkpoint
+
+- Desktop ROMVERSE Link now has a polished Secure Handoff chamber for APKs, reports, recovery
+  capsules, approved packages and emergency guides. Inspection hashes without retention; staging
+  begins only after the user confirms exact filename, type, size and SHA-256. The private
+  content-addressed offer omits the source path, expires after 24 hours, and grants no install,
+  execution, flash or Guardian authority.
+- Authenticated Companion sessions can list those strict offers. The phone requires a second exact
+  confirmation and an Android document-picker destination. Downloads use the already pinned TLS
+  identity, reject redirects and mismatched transfer ID, media type, byte count or digest, and remove
+  partial output after failure. APK success routes only to the existing App Launchpad verifier;
+  nothing is automatically opened, installed, executed or flashed.
+- Companion health schema five can carry only a user attestation that an external user-data backup
+  is current. The timestamp, `user_attestation_only` scope and `backup_execution_authority: none`
+  remain explicit on phone and Desktop; ROMVERSE does not claim it inspected or proved the backup.
+- Companion now preserves a strict privacy-reduced last-known Device DNA record for disconnected or
+  unbootable-device reference and labels it historical rather than fresh. A content-digested offline
+  first-boot guide records eight reviewed interaction checkpoints separately from First Light test
+  evidence. Emergency-guide access is retained only when Android grants persistable document access.
+- All 1,839 Desktop/Python tests, the complete Ruff gate, 162 Companion JVM tests, a clean debug
+  assembly, and Android lint pass on the pinned data-drive Java 17, Gradle 8.11.1 and Android 35
+  toolchain. The build-8 debug APK is 9,060,239 bytes with SHA-256
+  `62bc530d5f077e3e34ad71002caa24303a584bf4661f56d2cc338c976bfb5a2b`.
+  Physical phone confirmation of the new build-8 transfer, backup, offline-document and first-boot
+  flows remains a public-release gate; this checkpoint makes no physical validation claim.
+- The approved ROMVERSE application logo and approved RadForge Labs company logo were not edited or
+  replaced. Their independent hash locks remain the production identity boundary.
+
 ## Honest feature boundary
 
 The current safe milestone supports read-only Android evidence, local diagnostics, guarded APK

@@ -1,15 +1,13 @@
-"""Local-network Companion pairing transport.
-
-The endpoint is intentionally limited to pairing state.  Telemetry and any
-future command APIs must be added as separate, Guardian-reviewed contracts.
-"""
+"""Encrypted local Companion pairing, telemetry, and download-only handoff transport."""
 
 from __future__ import annotations
 
 import json
 import os
+import re
 import socket
 import ssl
+import stat
 import threading
 from collections.abc import Callable
 from contextlib import suppress
@@ -22,6 +20,7 @@ from urllib.parse import urlsplit
 from romverse.companion.pairing import PairingCode, PairingSessionBroker
 from romverse.companion.security import LinkSecurityError, LinkTlsIdentity
 from romverse.companion.telemetry import CompanionTelemetry, RemoteCompanionSnapshot
+from romverse.companion.transfers import CompanionTransferError, CompanionTransferService
 
 
 class CompanionHTTPServer(ThreadingHTTPServer):
@@ -57,6 +56,7 @@ class CompanionTransport:
         pairing_provider: Callable[[], PairingCode | None],
         telemetry_provider: Callable[[], CompanionTelemetry] | None = None,
         identity_root: Path | None = None,
+        transfer_service: CompanionTransferService | None = None,
     ) -> None:
         self._pairing_provider = pairing_provider
         self._telemetry_provider = telemetry_provider or CompanionTelemetry
@@ -71,6 +71,7 @@ class CompanionTransport:
         self._remote_lock = threading.Lock()
         self._remote_snapshot: RemoteCompanionSnapshot | None = None
         self._remote_received_at: datetime | None = None
+        self._transfer_service = transfer_service
         transport = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -166,18 +167,19 @@ class CompanionTransport:
             def do_GET(self) -> None:  # noqa: N802
                 path = urlsplit(self.path).path
                 if path == "/telemetry":
-                    authorization = self.headers.get("Authorization", "")
-                    token = authorization.removeprefix("Bearer ").strip()
-                    if not transport._sessions.authorize(token):
-                        self._respond(
-                            {
-                                "protocol_version": transport.PROTOCOL_VERSION,
-                                "status": "unauthorized",
-                            },
-                            status=401,
-                        )
+                    if not self._authorized():
                         return
                     self._respond(transport._telemetry_provider().to_mapping())
+                    return
+                if path == "/companion/transfers":
+                    self._list_transfers()
+                    return
+                match = re.fullmatch(
+                    r"/companion/transfers/([0-9a-f]{32})/content",
+                    path,
+                )
+                if match is not None:
+                    self._download_transfer(match.group(1))
                     return
                 if path != "/status":
                     self.send_error(404)
@@ -193,6 +195,115 @@ class CompanionTransport:
                     payload["expires_in_seconds"] = session.expires_in_seconds
                 response_status = 403 if session.state == "rejected" else 200
                 self._respond(payload, status=response_status)
+
+            def _authorized(self) -> bool:
+                authorization = self.headers.get("Authorization", "")
+                token = authorization.removeprefix("Bearer ").strip()
+                if transport._sessions.authorize(token):
+                    return True
+                self._respond(
+                    {
+                        "protocol_version": transport.PROTOCOL_VERSION,
+                        "status": "unauthorized",
+                    },
+                    status=401,
+                )
+                return False
+
+            def _list_transfers(self) -> None:
+                if not self._authorized():
+                    return
+                service = transport._transfer_service
+                if service is None:
+                    self._respond(
+                        {
+                            "protocol_version": transport.PROTOCOL_VERSION,
+                            "schema_version": 1,
+                            "status": "available",
+                            "transfers": [],
+                        }
+                    )
+                    return
+                try:
+                    offers = [offer.to_wire_mapping() for offer in service.list_active()]
+                except CompanionTransferError as exc:
+                    self._respond(
+                        {
+                            "protocol_version": transport.PROTOCOL_VERSION,
+                            "status": "transfer_store_unavailable",
+                            "detail": str(exc)[:400],
+                        },
+                        status=503,
+                    )
+                    return
+                self._respond(
+                    {
+                        "protocol_version": transport.PROTOCOL_VERSION,
+                        "schema_version": 1,
+                        "status": "available",
+                        "transfers": offers,
+                    }
+                )
+
+            def _download_transfer(self, transfer_id: str) -> None:
+                if not self._authorized():
+                    return
+                service = transport._transfer_service
+                if service is None:
+                    self.send_error(404)
+                    return
+                stream = None
+                descriptor = -1
+                try:
+                    offer, content = service.verified_content_path(transfer_id)
+                    flags = (
+                        os.O_RDONLY
+                        | getattr(os, "O_BINARY", 0)
+                        | getattr(os, "O_NOFOLLOW", 0)
+                    )
+                    descriptor = os.open(content, flags)
+                    opened = os.fstat(descriptor)
+                    current = content.lstat()
+                    if (
+                        content.is_symlink()
+                        or not stat.S_ISREG(opened.st_mode)
+                        or not os.path.samestat(opened, current)
+                        or opened.st_size != offer.size_bytes
+                        or opened.st_mtime_ns != offer.content_mtime_ns
+                    ):
+                        raise CompanionTransferError(
+                            "The staged Companion payload changed before download"
+                        )
+                    stream = os.fdopen(descriptor, "rb", closefd=True)
+                    descriptor = -1
+                except (CompanionTransferError, OSError):
+                    if descriptor >= 0:
+                        with suppress(OSError):
+                            os.close(descriptor)
+                    self._respond(
+                        {
+                            "protocol_version": transport.PROTOCOL_VERSION,
+                            "status": "transfer_unavailable",
+                        },
+                        status=404,
+                    )
+                    return
+                assert stream is not None
+                with stream:
+                    self.send_response(200)
+                    self.send_header("Content-Type", offer.media_type)
+                    self.send_header("Content-Length", str(offer.size_bytes))
+                    self.send_header("Cache-Control", "no-store")
+                    self.send_header("Strict-Transport-Security", "max-age=31536000")
+                    self.send_header("X-Content-Type-Options", "nosniff")
+                    self.send_header("X-ROMVERSE-SHA256", offer.sha256)
+                    self.send_header("X-ROMVERSE-Transfer-Id", offer.transfer_id)
+                    self.end_headers()
+                    try:
+                        while chunk := stream.read(1024 * 1024):
+                            self.wfile.write(chunk)
+                    except (BrokenPipeError, ConnectionResetError):
+                        return
 
             def _respond(self, payload: dict[str, object], *, status: int = 200) -> None:
                 data = json.dumps(payload).encode()
@@ -301,6 +412,9 @@ class CompanionTransport:
 
     def reset(self) -> None:
         self._sessions.reset()
+        if self._transfer_service is not None:
+            with suppress(CompanionTransferError):
+                self._transfer_service.revoke_all()
         with self._remote_lock:
             self._remote_snapshot = None
             self._remote_received_at = None

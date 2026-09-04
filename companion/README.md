@@ -4,7 +4,7 @@ The Android sidekick for ROMVERSE Studio.
 
 Package: `com.radforge.romverse.companion`
 
-The current 0.2 alpha provides the branded mobile **Home**, **ROMVERSE Link** pairing,
+The current `0.2.0-alpha.5` build 8 provides the branded mobile **Home**, **ROMVERSE Link** pairing,
 **Pulse**, **Vitalis**, **Lifeline**, **Live Console**, **Device DNA**, **Ascension Protocol**,
 **App Launchpad**, **ROMVERSE Galaxy**, Guardian Core state, and activity feed.
 
@@ -21,6 +21,22 @@ active-stage pulse is purposeful, stops
 off-screen, and respects Reduced Effects and Android's disabled-animation setting. The entire route
 has a concise accessibility description and permanently states that it grants no flash, root, wipe,
 unlock, relock, or command authority.
+
+After authentication, **Secure Handoff** turns Link into a deliberate download-only bridge for
+APKs, reports, recovery capsules, approved packages, and offline emergency guides. The phone shows
+each offer's exact filename, type, size, and full SHA-256 before asking where Android should save it.
+The pinned-TLS download rejects redirects and mismatched identity, media type, size, or digest;
+partial output is removed on failure. A successful download is never automatically opened,
+installed, executed, or flashed. Verified APKs can only be handed to App Launchpad's separate local
+inspection surface. Emergency-guide access is retained only when Android grants lasting document
+permission; otherwise the UI says that in-app offline access was not retained.
+
+The phone health card now has an explicit user-data backup checkpoint. Its confirmation means only
+that the user says a current external backup is complete; it does not claim ROMVERSE verified its
+contents or recoverability and grants no flash authority. A strict privacy-bounded last-known Device
+DNA record remains available while disconnected, and an eight-step offline First Boot Guide walks
+through stable boot, setup, display/input, radios, USB trust, services, Android Auto, and First Light.
+Checking a guide step records review, never a passed subsystem test.
 
 The approved Galaxy interface now uses a responsive `RomverseDrawerLayout`: swipe inward from the
 left edge (or tap the menu control) for the translucent glass feature drawer. A bounded classifier
@@ -41,7 +57,7 @@ Promise, SteveTheRad/RadForge Labs identity, ecosystem and trust boundaries, and
 website actions for `https://romverse.app/` and `https://radforgelabs.com/`, followed by Facebook
 and Reddit actions using their exact clean official destinations. The website and social rows use
 aligned touch targets, untinted vector marks, validated HTTPS hosts, and no tracking parameters.
-Companion `0.2.0-alpha.4` build 7 uses the exact approved Desktop ROMVERSE master for its launcher,
+Companion `0.2.0-alpha.5` build 8 uses the exact approved Desktop ROMVERSE master for its launcher,
 app bar, Home, drawer, About identity and Origin portal. About also renders the exact official
 transparent RadForge Labs company master. The square ROMVERSE bitmap is presentation-clipped into
 its intended circular crest with a soft interface halo; the wide company artwork sits in a rounded,

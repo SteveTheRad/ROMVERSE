@@ -1,6 +1,6 @@
 # ROMVERSE Privacy Notice
 
-**Version:** draft-2026-09-04  
+**Version:** draft-2026-09-05
 **Status:** INTERNAL REVIEW DRAFT — NOT YET EFFECTIVE  
 **Product:** ROMVERSE Desktop and ROMVERSE Companion
 
@@ -23,7 +23,8 @@ Depending on the feature used, ROMVERSE may handle:
 - the presence and version status of ROMVERSE Companion and narrowly allowlisted Android tooling used by a requested workflow;
 - user-selected firmware packages, APKs, ROM project files, build outputs, recovery snapshots, backup destinations and shared-storage backup content;
 - local settings, feature choices, warnings acknowledged for a specific high-risk plan, integrity receipts, operation outcomes and audit metadata;
-- local Companion telemetry that is deliberately bounded and rejects accounts, IMEI, raw serials, package lists, files, shell commands and other prohibited fields; and
+- local Companion telemetry that is deliberately bounded and rejects accounts, IMEI, raw serials, package lists, files, shell commands and other prohibited fields;
+- user-confirmed backup status, a privacy-reduced last-known Device DNA summary, reviewed first-boot guide steps, and user-selected Desktop-to-Companion transfer metadata and bytes; and
 - account identifiers or service configuration only if a future production Members service is configured and the user explicitly signs in.
 
 ROMVERSE is not designed to collect contacts, messages, call history, photographs, documents, precise location, advertising identifiers, IMEI or unrelated installed-app inventories for diagnostics or knowledge contribution. A user-selected phone-media backup can copy the chosen shared-storage folders to the user's chosen local destination; that content is backup data, not diagnostic or knowledge-bank data.
@@ -45,6 +46,21 @@ The current build does not sell personal information, build advertising profiles
 The Desktop stores projects and most records in the selected ROMVERSE workspace. Settings are stored in the operating system's application-configuration area. Sensitive local records use bounded schemas, integrity digests, atomic writes and link/path checks. Device-facing audit and diagnostic records use a workspace-specific pseudonym where a stable device reference is needed.
 
 ROMVERSE Link uses a short-lived pairing flow and authenticated encrypted transport. Companion credentials are protected by Android Keystore where available, Android backup is disabled for those credentials, and resetting Link revokes the remembered local session. These controls reduce risk but do not make a compromised computer, phone, operating system or network safe.
+
+For Secure Handoff, Desktop first hashes a file without retaining it. Only after the user confirms
+the exact filename, type, size and digest does Desktop create a private content-addressed copy and a
+24-hour offer that omits the original path. The authenticated phone asks again and uses Android's
+document picker for the destination. It verifies TLS identity, response metadata, byte length and
+SHA-256 and removes partial output after failure. ROMVERSE does not automatically open, install,
+execute or flash a transferred file. Reset Link revokes offer manifests; private inert staged bytes
+are not represented as user backups and are not automatically deleted in this development build.
+
+The backup checkpoint stores and transmits only a user's statement that an external backup is
+current and the confirmation time. It does not inspect the backup or prove it recoverable. The
+last-known Device DNA cache excludes raw serial, IMEI, paths, full hashes, commands and authority.
+First-boot guide progress records reviewed checklist steps, not subsystem test results. An emergency
+guide remains reopenable inside Companion only when the user selected it and Android granted lasting
+document access.
 
 Firmware, build outputs and phone-media backups can contain sensitive user or device material. The user chooses their locations and is responsible for securing those locations and any additional copies. ROMVERSE does not automatically delete user backups or protected firmware sources.
 

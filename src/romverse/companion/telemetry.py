@@ -767,12 +767,16 @@ class RemoteCompanionSnapshot:
     root_manager_candidate: str = "unknown"
     bootloader_state: str = "unknown"
     kernelsu_support: str = "unknown"
+    user_data_backup_state: str = "unconfirmed"
+    user_data_backup_confirmed_at_epoch_ms: int | None = None
+    backup_confirmation_scope: str = "user_attestation_only"
+    backup_execution_authority: str = "none"
     schema_version: int = 2
     guardian_active: bool = True
     privacy_scope: str = "health_and_device_safety"
 
     def __post_init__(self) -> None:
-        if self.schema_version not in {1, 2, 3, 4}:
+        if self.schema_version not in {1, 2, 3, 4, 5}:
             raise ValueError("unsupported remote Companion telemetry schema")
         if self.captured_at_epoch_ms <= 0:
             raise ValueError("captured_at_epoch_ms must be positive")
@@ -889,6 +893,30 @@ class RemoteCompanionSnapshot:
                 raise ValueError("vitalis_state does not match its evidence")
             if self.vitalis_evidence_percent != expected_coverage:
                 raise ValueError("vitalis_evidence_percent does not match its fields")
+        if self.schema_version >= 5:
+            if self.user_data_backup_state not in {"unconfirmed", "confirmed_by_user"}:
+                raise ValueError("user_data_backup_state is invalid")
+            confirmed_at = self.user_data_backup_confirmed_at_epoch_ms
+            if self.user_data_backup_state == "confirmed_by_user":
+                if (
+                    isinstance(confirmed_at, bool)
+                    or not isinstance(confirmed_at, int)
+                    or not 1 <= confirmed_at <= self.captured_at_epoch_ms + 300_000
+                ):
+                    raise ValueError("user-data backup confirmation is invalid")
+            elif confirmed_at is not None:
+                raise ValueError("unconfirmed user-data backup cannot have a timestamp")
+            if self.backup_confirmation_scope != "user_attestation_only":
+                raise ValueError("backup_confirmation_scope is invalid")
+            if self.backup_execution_authority != "none":
+                raise ValueError("backup confirmation cannot carry execution authority")
+        elif (
+            self.user_data_backup_state != "unconfirmed"
+            or self.user_data_backup_confirmed_at_epoch_ms is not None
+            or self.backup_confirmation_scope != "user_attestation_only"
+            or self.backup_execution_authority != "none"
+        ):
+            raise ValueError("user-data backup evidence requires schema 5")
 
     def _derived_vitalis(self) -> tuple[int | None, str, int]:
         storage_percent = (
@@ -1002,6 +1030,10 @@ class RemoteCompanionSnapshot:
             "root_manager_candidate": self.root_manager_candidate,
             "bootloader_state": self.bootloader_state,
             "kernelsu_support": self.kernelsu_support,
+            "user_data_backup_state": self.user_data_backup_state,
+            "user_data_backup_confirmed_at_epoch_ms": self.user_data_backup_confirmed_at_epoch_ms,
+            "backup_confirmation_scope": self.backup_confirmation_scope,
+            "backup_execution_authority": self.backup_execution_authority,
             "guardian_active": self.guardian_active,
             "privacy_scope": self.privacy_scope,
         }
@@ -1016,7 +1048,7 @@ class RemoteCompanionSnapshot:
         guardian_active = payload.get("guardian_active")
         if guardian_active is not True:
             raise ValueError("remote telemetry requires Guardian to be active")
-        schema_version = _integer(payload, "schema_version", minimum=1, maximum=4)
+        schema_version = _integer(payload, "schema_version", minimum=1, maximum=5)
         privacy_scope = payload.get("privacy_scope")
         expected_scope = "health_only" if schema_version == 1 else "health_and_device_safety"
         if privacy_scope != expected_scope:
@@ -1094,6 +1126,31 @@ class RemoteCompanionSnapshot:
                 _bounded_text(payload, "kernelsu_support", maximum=20)
                 if schema_version >= 2
                 else "unknown"
+            ),
+            user_data_backup_state=(
+                _bounded_text(payload, "user_data_backup_state", maximum=24)
+                if schema_version >= 5
+                else "unconfirmed"
+            ),
+            user_data_backup_confirmed_at_epoch_ms=(
+                _optional_integer(
+                    payload,
+                    "user_data_backup_confirmed_at_epoch_ms",
+                    minimum=1,
+                    maximum=2**63 - 1,
+                )
+                if schema_version >= 5
+                else None
+            ),
+            backup_confirmation_scope=(
+                _bounded_text(payload, "backup_confirmation_scope", maximum=40)
+                if schema_version >= 5
+                else "user_attestation_only"
+            ),
+            backup_execution_authority=(
+                _bounded_text(payload, "backup_execution_authority", maximum=20)
+                if schema_version >= 5
+                else "none"
             ),
             guardian_active=True,
             privacy_scope=expected_scope,

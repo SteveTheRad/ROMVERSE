@@ -30,8 +30,10 @@ escape, invalid command target, or undefined partition operation into executable
 - **Guardian**: independent policy and evidence layer for compatibility, risk, battery,
   partitions, hashes, boot state, backups, recovery readiness, approvals, and verification.
 - **Companion**: Android client for local device status/diagnostics, secure Desktop pairing,
-  integrity-checked build monitoring, notifications, and approved APK transfer/install flows;
-  broader production services remain gated by their exact evidence and backend contracts.
+  integrity-checked build monitoring, explicit download-only file handoff, user backup attestation,
+  last-known Device DNA, offline emergency/first-boot guidance, notifications, and separately
+  approved APK inspection/install flows; broader production services remain gated by their exact
+  evidence and backend contracts.
 - **Galaxy**: optional online services for updates, firmware discovery, compatibility
   intelligence, Device Packs, Recipes, plugins, sync, and community. Never required for
   basic local operation.
@@ -1003,6 +1005,23 @@ code, authenticated health, USB assist, explicit safety-code confirmation, appro
 remain readable at the supported minimum size. Disabled approval controls must not resemble active
 primary actions. The safety code and certificate identity stay selectable, and pairing still grants
 read-only telemetry only.
+
+An authenticated ROMVERSE Link may advertise only strict, expiring download offers for a bounded
+allowlist of APK, report, recovery-capsule, approved-package and emergency-guide file types. Desktop
+must inspect and hash the source without retaining it, ask for confirmation of the exact filename,
+type, size and digest, revalidate the same regular file, then copy it into a private
+content-addressed store. The manifest must omit the source path and carry
+`install_authority: none` and `execution_authority: none`. Companion must independently confirm each
+file, use Android's document picker, reject redirects and mismatched certificate/content metadata,
+length or digest, and remove a partial destination after failure. Download success cannot auto-open,
+install, execute, flash or grant Guardian authority. Reset Link revokes offers; inactive content
+remains private and inert.
+
+Companion may transmit a user-data backup confirmation only as a labelled user attestation with no
+claim of content or recovery verification. Its last-known Device DNA cache must be strict, bounded,
+content-digested and privacy-reduced, and must be labelled historical whenever fresh Link evidence
+is absent. Its offline first-boot guide records reviewed instructions separately from automated or
+user-observed First Light results; checklist completion is never a release-test pass.
 
 ## 6. Quality attributes
 

@@ -11,8 +11,8 @@ android {
         applicationId = "com.radforge.romverse.companion"
         minSdk = 26
         targetSdk = 35
-        versionCode = 7
-        versionName = "0.2.0-alpha.4"
+        versionCode = 8
+        versionName = "0.2.0-alpha.5"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

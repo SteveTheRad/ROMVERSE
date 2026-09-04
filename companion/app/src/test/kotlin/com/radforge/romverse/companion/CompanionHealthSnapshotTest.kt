@@ -37,13 +37,16 @@ class CompanionHealthSnapshotTest {
         val payload = snapshot().asWireMap()
 
         assertEquals("health_and_device_safety", payload["privacy_scope"])
-        assertEquals(4, payload["schema_version"])
+        assertEquals(5, payload["schema_version"])
         assertEquals(true, payload["guardian_active"])
         assertEquals(100, payload["health_score"])
         assertEquals("OPTIMAL", payload["vitalis_state"])
         assertEquals(100, payload["vitalis_evidence_percent"])
         assertEquals("6.12.23-popsicle", payload["kernel_release"])
         assertEquals("magisk", payload["root_manager_candidate"])
+        assertEquals("unconfirmed", payload["user_data_backup_state"])
+        assertEquals("user_attestation_only", payload["backup_confirmation_scope"])
+        assertEquals("none", payload["backup_execution_authority"])
         listOf("serial", "imei", "accounts", "files", "packages", "command", "approval")
             .forEach { assertFalse(payload.containsKey(it)) }
     }
@@ -72,5 +75,25 @@ class CompanionHealthSnapshotTest {
 
         assertEquals(null, missingTemperature.healthScore)
         assertEquals("UNCONFIRMED", missingTemperature.vitalisState)
+    }
+
+    @Test
+    fun `backup confirmation is explicit user evidence and never authority`() {
+        val confirmed = snapshot().copy(
+            userDataBackupState = "confirmed_by_user",
+            userDataBackupConfirmedAtEpochMs = 1_787_999_000_000,
+        )
+
+        assertEquals("confirmed_by_user", confirmed.asWireMap()["user_data_backup_state"])
+        assertEquals(1_787_999_000_000, confirmed.asWireMap()["user_data_backup_confirmed_at_epoch_ms"])
+        assertEquals("none", confirmed.asWireMap()["backup_execution_authority"])
+        assertTrue(
+            runCatching {
+                snapshot().copy(
+                    userDataBackupState = "confirmed_by_user",
+                    userDataBackupConfirmedAtEpochMs = null,
+                )
+            }.isFailure,
+        )
     }
 }

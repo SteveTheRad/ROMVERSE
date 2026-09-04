@@ -9,6 +9,7 @@ from datetime import UTC, datetime
 import pytest
 
 from romverse.companion.pairing import create_pairing_code
+from romverse.companion.transfers import CompanionTransferKind, CompanionTransferService
 from romverse.companion.transport import CompanionTransport
 
 
@@ -348,3 +349,72 @@ def test_transport_remembers_approved_phone_across_desktop_restart(tmp_path) -> 
         assert not (tmp_path / "remembered-session.romverse").exists()
     finally:
         restarted.close()
+
+
+def test_transport_serves_staged_payload_only_to_the_approved_tls_session(tmp_path) -> None:
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    source = tmp_path / "tester-report.json"
+    source.write_bytes(b'{"first_light":"verified"}')
+    transfers = CompanionTransferService(workspace)
+    offer = transfers.stage(transfers.inspect(source, CompanionTransferKind.REPORT))
+    pairing = create_pairing_code()
+    transport = CompanionTransport(
+        lambda: pairing,
+        identity_root=workspace / "config" / "companion-link",
+        transfer_service=transfers,
+    )
+    if not transport.available:
+        pytest.skip("execution environment denies local sockets")
+    transport.start()
+    try:
+        unauthenticated = urllib.request.Request(endpoint(transport, "/companion/transfers"))
+        with pytest.raises(urllib.error.HTTPError) as unauthorized_error:
+            open_link(unauthenticated)
+        assert unauthorized_error.value.code == 401
+
+        pair_request = urllib.request.Request(
+            endpoint(transport, "/pair"),
+            data=json.dumps({"code": pairing.code}).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with open_link(pair_request) as response:
+            request_id = json.load(response)["request_id"]
+        assert transport.approve()
+        status_request = urllib.request.Request(
+            endpoint(transport, "/status"),
+            headers={"X-ROMVERSE-Pairing-Request": request_id},
+        )
+        with open_link(status_request) as response:
+            token = json.load(response)["session_token"]
+
+        listing_request = urllib.request.Request(
+            endpoint(transport, "/companion/transfers"),
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        with open_link(listing_request) as response:
+            listing = json.load(response)
+        assert listing["protocol_version"] == 3
+        assert listing["schema_version"] == 1
+        assert listing["status"] == "available"
+        assert listing["transfers"] == [offer.to_wire_mapping()]
+        assert str(tmp_path) not in json.dumps(listing)
+
+        content_request = urllib.request.Request(
+            endpoint(transport, offer.to_wire_mapping()["download_path"]),
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        with open_link(content_request) as response:
+            assert response.headers["X-ROMVERSE-SHA256"] == offer.sha256
+            assert response.headers["X-ROMVERSE-Transfer-Id"] == offer.transfer_id
+            assert response.headers["Cache-Control"] == "no-store"
+            assert response.read() == source.read_bytes()
+
+        transport.reset()
+        assert transfers.list_active() == ()
+        with pytest.raises(urllib.error.HTTPError) as revoked_error:
+            open_link(content_request)
+        assert revoked_error.value.code == 401
+    finally:
+        transport.close()

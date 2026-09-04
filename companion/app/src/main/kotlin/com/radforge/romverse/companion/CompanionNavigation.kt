@@ -50,6 +50,10 @@ internal enum class CompanionRoute(
         "DEVICE ATLAS",
         "Search integrity-checked OEM knowledge and authoritative references. Read-only guidance never grants build or flash authority.",
     ),
+    FIRST_BOOT_GUIDE(
+        "FIRST BOOT GUIDE",
+        "Offline, user-reviewed guidance after a ROM starts. Review does not claim a subsystem passed.",
+    ),
     ASCENSION_PROTOCOL(
         "ASCENSION PROTOCOL",
         "Follow Desktop root preparation with Guardian proof at every stage.",

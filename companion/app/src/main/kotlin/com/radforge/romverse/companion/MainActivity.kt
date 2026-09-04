@@ -103,6 +103,17 @@ private data class SnapshotPostResult(
     val unauthorized: Boolean = false,
 )
 
+private data class TransferInboxResult(
+    val offers: List<CompanionTransferOffer> = emptyList(),
+    val unauthorized: Boolean = false,
+)
+
+private data class TransferDownloadResult(
+    val verified: Boolean = false,
+    val unauthorized: Boolean = false,
+    val detail: String = "Transfer unavailable",
+)
+
 private data class CompanionOriginScene(
     val eyebrow: String,
     val title: String,
@@ -214,6 +225,11 @@ class MainActivity : ComponentActivity() {
     private val draftPrefs by lazy { getSharedPreferences("community", MODE_PRIVATE) }
     private val activityPrefs by lazy { getSharedPreferences("activity", MODE_PRIVATE) }
     private val repairPrefs by lazy { getSharedPreferences("repair_session", MODE_PRIVATE) }
+    private val backupCheckpointPrefs by lazy {
+        getSharedPreferences("user_data_backup_checkpoint", MODE_PRIVATE)
+    }
+    private val deviceDnaPrefs by lazy { getSharedPreferences("last_known_device_dna", MODE_PRIVATE) }
+    private val firstBootPrefs by lazy { getSharedPreferences("first_boot_guide", MODE_PRIVATE) }
     private val optimizerPrefs by lazy { getSharedPreferences("optimizer_history", MODE_PRIVATE) }
     private val userSettingsPrefs by lazy { getSharedPreferences("romverse_settings", MODE_PRIVATE) }
     private val aboutPrefs by lazy { getSharedPreferences("about_romverse", MODE_PRIVATE) }
@@ -254,6 +270,14 @@ class MainActivity : ComponentActivity() {
     private var desktopAscensionStatus: DesktopAscensionStatus? = null
     private var desktopLiveConsoleStatus: DesktopLiveConsoleStatus? = null
     private var desktopDeviceDnaStatus: DesktopDeviceDnaStatus? = null
+    private var lastKnownDeviceDna: LastKnownDeviceDna? = null
+    private var firstBootGuideState = FirstBootGuideState()
+    private var desktopTransferOffers: List<CompanionTransferOffer> = emptyList()
+    private var transferInboxView: TextView? = null
+    private var transferInboxButton: Button? = null
+    private var backupCheckpointView: TextView? = null
+    private var pendingTransferOffer: CompanionTransferOffer? = null
+    @Volatile private var transferDownloadInFlight = false
     private var stagedApkUri: String? = null
     private var stagedApkName: String? = null
     private var stagedApkHash: String? = null
@@ -304,6 +328,18 @@ class MainActivity : ComponentActivity() {
     private val apkPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let(::stageApk)
     }
+    private val desktopTransferSaver = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("*/*"),
+    ) { uri ->
+        val offer = pendingTransferOffer
+        pendingTransferOffer = null
+        if (uri != null && offer != null) {
+            downloadDesktopTransfer(offer, uri)
+        } else if (offer != null) {
+            logActivity("Secure handoff declined before saving")
+            refreshTransferInboxCard("Handoff declined • no file was saved")
+        }
+    }
     private val galaxyArchiveExporter = registerForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
     ) { uri ->
@@ -319,6 +355,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         privacyCurtainState = CompanionPrivacyCurtainState(
             enabled = userSettingsPrefs.getBoolean("privacy_curtain_enabled", false),
+        )
+        lastKnownDeviceDna = LastKnownDeviceDnaArchive.decode(
+            deviceDnaPrefs.getString("record_v1", null),
+            System.currentTimeMillis(),
+        )
+        firstBootGuideState = FirstBootGuide.decode(
+            firstBootPrefs.getString("record_v1", null),
+            System.currentTimeMillis(),
         )
         applySystemBarPalette()
         stagedApkName = pairingPrefs.getString("staged_apk_name", null)
@@ -1104,6 +1148,11 @@ class MainActivity : ComponentActivity() {
                                 getTelemetrySummary(host, status.sessionToken, certificateSha256)
                             } else TelemetryResult()
                             if (status.state == "approved" && telemetry.summary != null) {
+                                val transferInbox = getDesktopTransferOffers(
+                                    host,
+                                    status.sessionToken,
+                                    certificateSha256,
+                                )
                                 val phoneSync = postCompanionHealthSnapshot(
                                     host,
                                     status.sessionToken,
@@ -1132,6 +1181,8 @@ class MainActivity : ComponentActivity() {
                                     desktopAscensionStatus = telemetry.ascension
                                     desktopLiveConsoleStatus = telemetry.liveConsole
                                     desktopDeviceDnaStatus = telemetry.deviceDna
+                                    preserveLastKnownDeviceDna(telemetry.deviceDna)
+                                    desktopTransferOffers = transferInbox.offers
                                     desktopTelemetry.text = if (phoneSync.accepted) {
                                         "${telemetry.summary}  •  phone health synced"
                                     } else telemetry.summary
@@ -1157,6 +1208,7 @@ class MainActivity : ComponentActivity() {
                                     pendingUsbPairingAssist = null
                                     code.text?.clear()
                                     refreshHomeHero()
+                                    refreshTransferInboxCard()
                                     if (phoneSync.accepted) {
                                         pairingPrefs.edit()
                                             .putLong(
@@ -1193,6 +1245,86 @@ class MainActivity : ComponentActivity() {
         }
         refreshLinkFlightPath()
         page.addView(connection)
+
+        val transferInbox = card()
+        transferInbox.addView(text("SECURE HANDOFF  •  ENERGY BRIDGE", 13f, cyan, true))
+        transferInbox.addView(text("Verified files from your trusted Desktop", 20f, Color.WHITE, true))
+        transferInboxView = text(
+            when {
+                secureWireless -> "Checking the encrypted Link for pending handoffs…"
+                rememberedDesktop -> "Trusted Desktop remembered • Link approval must be renewed"
+                else -> "Pair ROMVERSE Link to receive APKs, reports, recovery capsules, approved packages, and emergency guides."
+            },
+            13f,
+            muted,
+            false,
+        )
+        transferInbox.addView(transferInboxView)
+        transferInboxButton = sectionAction("CHECK SECURE INBOX") {
+            if (desktopTransferOffers.isEmpty()) {
+                desktopTelemetryView?.let { refreshTelemetry(it) }
+            } else {
+                showDesktopTransferInbox()
+            }
+        }.apply {
+            isEnabled = secureWireless
+        }
+        transferInbox.addView(transferInboxButton)
+        transferInbox.addView(text(
+            "Every offer is bound to its size and SHA-256 fingerprint. You choose the destination. " +
+                "ROMVERSE never installs, opens, executes, or flashes a received file automatically.",
+            11f,
+            muted,
+            false,
+        ))
+        page.addView(transferInbox)
+
+        val backupCheckpoint = card()
+        backupCheckpoint.addView(text("MISSION CHECKPOINT  •  USER-DATA BACKUP", 13f, violet, true))
+        backupCheckpoint.addView(text("Confirm what only you can verify", 20f, Color.WHITE, true))
+        backupCheckpointView = text(backupCheckpointText(), 13f, muted, false)
+        backupCheckpoint.addView(backupCheckpointView)
+        backupCheckpoint.addView(sectionAction("CONFIRM BACKUP IS COMPLETE") {
+            confirmUserDataBackup()
+        })
+        backupCheckpoint.addView(sectionAction("CLEAR BACKUP CONFIRMATION") {
+            clearUserDataBackupConfirmation()
+        })
+        backupCheckpoint.addView(text(
+            "This is your attestation, not a fabricated ROMVERSE backup result. Desktop receives " +
+                "the state as read-only evidence with no flash or execution authority.",
+            11f,
+            muted,
+            false,
+        ))
+        page.addView(backupCheckpoint)
+
+        val firstBoot = card()
+        firstBoot.addView(text("FIRST BOOT  •  OFFLINE GUIDE", 13f, cyan, true))
+        firstBoot.addView(text(
+            if (firstBootGuideState.complete) {
+                "All guidance reviewed • First Light evidence still required"
+            } else {
+                "${firstBootGuideState.progressPercent}% reviewed • ${FirstBootGuide.steps.size} guided checks"
+            },
+            18f,
+            Color.WHITE,
+            true,
+        ))
+        firstBoot.addView(text(
+            "Available even when Desktop is disconnected. It helps with setup, USB trust, radios, " +
+                "required services, Android Auto, and the handoff into First Light.",
+            12f,
+            muted,
+            false,
+        ))
+        firstBoot.addView(sectionAction("OPEN FIRST-BOOT GUIDE") {
+            showSection(
+                "FIRST BOOT GUIDE",
+                "Review the interactions that require a person at the phone. Checked means reviewed—not automatically tested or passed.",
+            )
+        })
+        page.addView(firstBoot)
 
         val identity = card()
         identity.addView(text("DEVICE PORTAL", 13f, violet, true))
@@ -1261,7 +1393,7 @@ class MainActivity : ComponentActivity() {
         val guardian = card()
         guardian.addView(text("GUARDIAN PROTECTION", 13f, violet, true))
         guardian.addView(text("ACTIVE  •  READ-ONLY MODE", 19f, cyan, true))
-        guardian.addView(text("Companion can report health and activity, but it cannot flash, wipe, unlock, or modify your phone.", 14f, muted, false))
+        guardian.addView(text("Companion can report health/activity and save user-approved verified handoffs, but it cannot silently install, flash, wipe, unlock, or modify your phone.", 14f, muted, false))
         page.addView(guardian)
 
         val activity = card()
@@ -2314,7 +2446,7 @@ class MainActivity : ComponentActivity() {
                 panel.addView(overview)
                 panel.addView(space(dp(12)))
 
-                val deviceDna = desktopDeviceDnaStatus
+                val deviceDna = desktopDeviceDnaStatus ?: lastKnownDeviceDna?.status
                 val dnaCard = card()
                 dnaCard.addView(text("DEVICE DNA  •  DESKTOP EVIDENCE", 12f, violet, true))
                 if (deviceDna == null) {
@@ -2331,7 +2463,16 @@ class MainActivity : ComponentActivity() {
                     } else {
                         "#FFB454".toColorInt()
                     }
-                    dnaCard.addView(text(deviceDna.headline, 16f, dnaColor, true))
+                    dnaCard.addView(text(
+                        if (desktopDeviceDnaStatus == null) {
+                            "LAST KNOWN  •  ${deviceDna.headline}"
+                        } else {
+                            deviceDna.headline
+                        },
+                        16f,
+                        dnaColor,
+                        true,
+                    ))
                     dnaCard.addView(text(
                         "${deviceDna.project}  •  profile ${deviceDna.profileRef}…  •  " +
                             "${deviceDna.attentionCount} item(s) need attention",
@@ -2396,6 +2537,12 @@ class MainActivity : ComponentActivity() {
                 quick.addView(sectionAction("OPEN LIFELINE") {
                     showSection("LIFELINE", "Read-only System Scan and guided repair knowledge.")
                 })
+                quick.addView(sectionAction("OPEN FIRST-BOOT GUIDE") {
+                    showSection(
+                        "FIRST BOOT GUIDE",
+                        "Offline, user-reviewed setup guidance before First Light validation.",
+                    )
+                })
                 quick.addView(sectionAction("OPEN APP LAUNCHPAD") {
                     showSection("APP LAUNCHPAD", "Stage, fingerprint, and review APK packages safely.")
                 })
@@ -2414,8 +2561,96 @@ class MainActivity : ComponentActivity() {
                     )
                 })
             }
+            "FIRST BOOT GUIDE" -> {
+                val statusCard = card()
+                val progressColor = if (firstBootGuideState.complete) {
+                    "#72FFB2".toColorInt()
+                } else {
+                    "#FFB454".toColorInt()
+                }
+                statusCard.addView(text(
+                    "${firstBootGuideState.progressPercent}% REVIEWED",
+                    19f,
+                    progressColor,
+                    true,
+                ))
+                statusCard.addView(text(
+                    if (firstBootGuideState.complete) {
+                        "Every interaction below was reviewed by the user. This does not replace First Light hardware evidence."
+                    } else {
+                        "Continue in order and leave anything uncertain unchecked. The guide remains on this phone while offline."
+                    },
+                    12f,
+                    muted,
+                    false,
+                ))
+                panel.addView(statusCard)
+                panel.addView(space(dp(10)))
+                FirstBootGuide.steps.forEachIndexed { index, step ->
+                    val stepCard = card()
+                    val reviewed = firstBootGuideState.reviewedStepIds.contains(step.id)
+                    stepCard.addView(text(
+                        "${(index + 1).toString().padStart(2, '0')}  •  " +
+                            if (reviewed) "REVIEWED" else "WAITING",
+                        11f,
+                        if (reviewed) "#72FFB2".toColorInt() else cyan,
+                        true,
+                    ))
+                    stepCard.addView(text(step.title, 16f, Color.WHITE, true))
+                    stepCard.addView(text(step.guidance, 12f, muted, false))
+                    val checkbox = CheckBox(this).apply {
+                        text = "I reviewed this interaction on the phone"
+                        setTextColor(Color.WHITE)
+                        buttonTintList = ColorStateList.valueOf(cyan)
+                        isChecked = reviewed
+                        setPadding(0, dp(8), 0, dp(4))
+                    }
+                    checkbox.setOnCheckedChangeListener { _, checked ->
+                        val changed = FirstBootGuide.toggle(
+                            firstBootGuideState,
+                            step.id,
+                            checked,
+                            System.currentTimeMillis(),
+                        )
+                        if (persistFirstBootGuide(changed)) {
+                            detailView.text =
+                                "FIRST BOOT GUIDE  •  ${changed.progressPercent}% REVIEWED\n\n" +
+                                    "Review state saved locally. No subsystem result or device-change authority was created."
+                            logActivity("First-boot interaction review updated")
+                        } else {
+                            checkbox.setOnCheckedChangeListener(null)
+                            checkbox.isChecked = reviewed
+                            detailView.text =
+                                "FIRST BOOT GUIDE NOT SAVED\n\nThe review state could not be preserved. No success was claimed."
+                        }
+                    }
+                    stepCard.addView(checkbox)
+                    panel.addView(stepCard)
+                    panel.addView(space(dp(8)))
+                }
+                panel.addView(sectionAction("RESET FIRST-BOOT REVIEW") {
+                    AlertDialog.Builder(this)
+                        .setTitle("Reset first-boot review?")
+                        .setMessage(
+                            "This clears only the local checklist. It does not change the phone, " +
+                                "Desktop evidence, backups, or First Light results.",
+                        )
+                        .setNegativeButton("Keep review", null)
+                        .setPositiveButton("Reset checklist") { _, _ ->
+                            firstBootPrefs.edit().remove("record_v1").apply()
+                            firstBootGuideState = FirstBootGuideState()
+                            showSection(
+                                "FIRST BOOT GUIDE",
+                                "Checklist reset. Begin again when the next first boot is ready for review.",
+                            )
+                        }
+                        .show()
+                })
+            }
             "DEVICE DNA" -> {
-                val status = desktopDeviceDnaStatus
+                val liveStatus = desktopDeviceDnaStatus
+                val archived = lastKnownDeviceDna
+                val status = liveStatus ?: archived?.status
                 if (status == null) {
                     val unavailable = card()
                     unavailable.addView(text("DEVICE DNA UNAVAILABLE", 17f, "#FFB454".toColorInt(), true))
@@ -2427,6 +2662,23 @@ class MainActivity : ComponentActivity() {
                     ))
                     panel.addView(unavailable)
                 } else {
+                    if (liveStatus == null && archived != null) {
+                        val captured = DateFormat.getDateTimeInstance(
+                            DateFormat.MEDIUM,
+                            DateFormat.SHORT,
+                        ).format(Date(archived.capturedAtEpochMs))
+                        val offline = card()
+                        offline.addView(text("LAST-KNOWN DEVICE DNA  •  OFFLINE", 13f, "#FFB454".toColorInt(), true))
+                        offline.addView(text(
+                            "Preserved from the last authenticated Desktop Link at $captured. " +
+                                "Use this for diagnosis if the phone cannot reconnect; it is not fresh live evidence.",
+                            12f,
+                            muted,
+                            false,
+                        ))
+                        panel.addView(offline)
+                        panel.addView(space(dp(10)))
+                    }
                     val summary = card()
                     val summaryColor = if (status.state == "ready") {
                         "#72FFB2".toColorInt()
@@ -6032,8 +6284,316 @@ Guardian: ACTIVE (read-only)
         }
     }
 
+    private fun getDesktopTransferOffers(
+        host: String,
+        token: String,
+        certificateSha256: String,
+    ): TransferInboxResult {
+        return try {
+            val connection = openDesktopConnection(
+                host,
+                "/companion/transfers",
+                certificateSha256,
+            ).apply {
+                connectTimeout = 2500
+                readTimeout = 2500
+                setRequestProperty("Authorization", "Bearer $token")
+            }
+            val responseCode = connection.responseCode
+            if (responseCode == 401) return TransferInboxResult(unauthorized = true)
+            if (responseCode in 300..399 || responseCode !in 200..299) return TransferInboxResult()
+            val bytes = connection.inputStream.use { stream ->
+                val output = ByteArrayOutputStream()
+                val buffer = ByteArray(8 * 1024)
+                while (true) {
+                    val count = stream.read(buffer)
+                    if (count < 0) break
+                    require(output.size() + count <= 512 * 1024) {
+                        "The Companion transfer list is too large."
+                    }
+                    output.write(buffer, 0, count)
+                }
+                output.toByteArray()
+            }
+            val offers = CompanionTransferOffer.parseInbox(
+                JSONObject(bytes.toString(Charsets.UTF_8)),
+                System.currentTimeMillis(),
+            ) ?: return TransferInboxResult()
+            TransferInboxResult(offers = offers)
+        } catch (_: Exception) {
+            TransferInboxResult()
+        }
+    }
+
+    private fun showDesktopTransferInbox() {
+        val offers = desktopTransferOffers
+        if (offers.isEmpty()) {
+            refreshTransferInboxCard("No pending handoffs • checking Desktop again…")
+            desktopTelemetryView?.let { refreshTelemetry(it) }
+            return
+        }
+        val labels = offers.map { offer ->
+            "${offer.displayName}\n${offer.kind.wireValue.replace('_', ' ').uppercase()}  •  " +
+                "${formatBytes(offer.sizeBytes)}  •  ${offer.fingerprintPreview}…"
+        }.toTypedArray()
+        AlertDialog.Builder(this)
+            .setTitle("Secure Handoff • choose a verified file")
+            .setItems(labels) { _, index ->
+                confirmDesktopTransfer(offers[index])
+            }
+            .setNegativeButton("Close", null)
+            .show()
+    }
+
+    private fun confirmDesktopTransfer(offer: CompanionTransferOffer) {
+        val expires = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
+            .format(Date(offer.expiresAtEpochMs))
+        AlertDialog.Builder(this)
+            .setTitle("Save this verified handoff?")
+            .setMessage(
+                "File: ${offer.displayName}\n" +
+                    "Type: ${offer.kind.wireValue.replace('_', ' ').replaceFirstChar(Char::uppercase)}\n" +
+                    "Size: ${formatBytes(offer.sizeBytes)}\n" +
+                    "Expires: $expires\n\n" +
+                    "SHA-256:\n${offer.sha256.chunked(16).joinToString("\n")}\n\n" +
+                    "Companion will download only these exact bytes through the pinned encrypted " +
+                    "Link, verify the full fingerprint, and keep the file only where you choose. " +
+                    "It will not install, open, execute, or flash it.",
+            )
+            .setNegativeButton("Decline") { _, _ ->
+                logActivity("Secure handoff declined")
+                refreshTransferInboxCard("Handoff declined • no file was saved")
+            }
+            .setPositiveButton("Choose save location") { _, _ ->
+                pendingTransferOffer = offer
+                desktopTransferSaver.launch(offer.displayName)
+            }
+            .show()
+    }
+
+    private fun downloadDesktopTransfer(offer: CompanionTransferOffer, destination: Uri) {
+        if (transferDownloadInFlight || !hasSecureWirelessSession()) {
+            refreshTransferInboxCard("Secure handoff unavailable • renew ROMVERSE Link")
+            return
+        }
+        val host = telemetryHost
+        val token = telemetryToken
+        val certificateSha256 = telemetryCertificateSha256
+        if (host == null || token == null || certificateSha256 == null) {
+            refreshTransferInboxCard("Secure handoff unavailable • trusted Link details are missing")
+            return
+        }
+        transferDownloadInFlight = true
+        transferInboxButton?.isEnabled = false
+        refreshTransferInboxCard("Receiving ${offer.displayName} through the encrypted Link…")
+        Thread {
+            val result = receiveDesktopTransfer(
+                host,
+                token,
+                certificateSha256,
+                offer,
+                destination,
+            )
+            runOnUiThread {
+                transferDownloadInFlight = false
+                transferInboxButton?.isEnabled = hasSecureWirelessSession()
+                if (result.unauthorized) {
+                    runCatching { contentResolver.delete(destination, null, null) }
+                    clearWirelessSession(forgetTrustedDesktop = false)
+                    desktopTransferOffers = emptyList()
+                    refreshTransferInboxCard(
+                        "Trusted Desktop remembered • Link approval ended before the handoff",
+                    )
+                    refreshHomeHero()
+                    refreshLinkFlightPath()
+                    return@runOnUiThread
+                }
+                if (!result.verified) {
+                    runCatching { contentResolver.delete(destination, null, null) }
+                    refreshTransferInboxCard("Secure handoff stopped safely • ${result.detail}")
+                    logActivity("Secure handoff failed integrity verification")
+                    return@runOnUiThread
+                }
+                val retainedAccess = runCatching {
+                    contentResolver.takePersistableUriPermission(
+                        destination,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                    )
+                }.isSuccess
+                if (offer.kind == CompanionTransferKind.APK) {
+                    stageApk(destination)
+                }
+                if (offer.kind == CompanionTransferKind.EMERGENCY_GUIDE && retainedAccess) {
+                    pairingPrefs.edit()
+                        .putString("offline_emergency_guide_uri", destination.toString())
+                        .putString("offline_emergency_guide_name", offer.displayName)
+                        .putString("offline_emergency_guide_sha256", offer.sha256)
+                        .apply()
+                }
+                refreshTransferInboxCard(
+                    "VERIFIED & SAVED  •  ${offer.displayName}  •  SHA-256 ${offer.fingerprintPreview}…" +
+                        if (offer.kind == CompanionTransferKind.EMERGENCY_GUIDE) {
+                            if (retainedAccess) {
+                                "\nEmergency guidance remains available from this phone while Desktop is offline."
+                            } else {
+                                "\nThe document provider did not grant lasting in-app access; the saved file remains at the location you chose."
+                            }
+                        } else {
+                            "\nNo install, open, execute, or flash action was started."
+                        },
+                )
+                logActivity("Secure handoff verified and saved")
+            }
+        }.start()
+    }
+
+    private fun receiveDesktopTransfer(
+        host: String,
+        token: String,
+        certificateSha256: String,
+        offer: CompanionTransferOffer,
+        destination: Uri,
+    ): TransferDownloadResult {
+        return try {
+            val connection = openDesktopConnection(
+                host,
+                offer.downloadPath,
+                certificateSha256,
+            ).apply {
+                connectTimeout = 5000
+                readTimeout = 30_000
+                setRequestProperty("Accept", offer.mediaType)
+                setRequestProperty("Authorization", "Bearer $token")
+            }
+            val responseCode = connection.responseCode
+            if (responseCode == 401) return TransferDownloadResult(unauthorized = true)
+            if (responseCode in 300..399 || responseCode !in 200..299) {
+                return TransferDownloadResult(detail = "Desktop no longer offers this file")
+            }
+            if (
+                connection.contentLengthLong != offer.sizeBytes ||
+                connection.getHeaderField("X-ROMVERSE-SHA256") != offer.sha256 ||
+                connection.getHeaderField("X-ROMVERSE-Transfer-Id") != offer.transferId ||
+                connection.getHeaderField("Content-Type")?.substringBefore(';') != offer.mediaType
+            ) {
+                return TransferDownloadResult(detail = "Desktop response did not match the reviewed offer")
+            }
+            val digest = MessageDigest.getInstance("SHA-256")
+            var copied = 0L
+            val output = contentResolver.openOutputStream(destination, "w")
+                ?: return TransferDownloadResult(detail = "The chosen save location could not be opened")
+            connection.inputStream.use { input ->
+                output.use { target ->
+                    val buffer = ByteArray(64 * 1024)
+                    while (true) {
+                        val count = input.read(buffer)
+                        if (count < 0) break
+                        copied += count
+                        require(copied <= offer.sizeBytes && copied <= offer.kind.maximumBytes) {
+                            "Transfer exceeded its reviewed size"
+                        }
+                        digest.update(buffer, 0, count)
+                        target.write(buffer, 0, count)
+                    }
+                    target.flush()
+                }
+            }
+            val observed = digest.digest().joinToString("") { byte -> "%02x".format(byte) }
+            if (copied != offer.sizeBytes || observed != offer.sha256) {
+                runCatching { contentResolver.delete(destination, null, null) }
+                TransferDownloadResult(detail = "Downloaded bytes failed fingerprint verification")
+            } else {
+                TransferDownloadResult(verified = true, detail = "Verified and saved")
+            }
+        } catch (_: Exception) {
+            runCatching { contentResolver.delete(destination, null, null) }
+            TransferDownloadResult(detail = "Encrypted download or storage failed")
+        }
+    }
+
+    private fun refreshTransferInboxCard(message: String? = null) {
+        val retainedGuide = pairingPrefs.getString("offline_emergency_guide_name", null)
+        transferInboxView?.text = message ?: when {
+            !hasSecureWirelessSession() && hasRememberedDesktop() ->
+                "Trusted Desktop remembered • renew Link approval to check handoffs" +
+                    retainedGuide?.let { "\nOffline emergency guide retained: $it" }.orEmpty()
+            !hasSecureWirelessSession() ->
+                "Pair ROMVERSE Link to check encrypted handoffs" +
+                    retainedGuide?.let { "\nOffline emergency guide retained: $it" }.orEmpty()
+            desktopTransferOffers.isEmpty() ->
+                "Encrypted bridge active • no pending handoffs" +
+                    retainedGuide?.let { "\nOffline emergency guide retained: $it" }.orEmpty()
+            else ->
+                "${desktopTransferOffers.size} pending verified handoff" +
+                    (if (desktopTransferOffers.size == 1) "" else "s") +
+                    " • tap to review"
+        }
+        transferInboxButton?.apply {
+            text = if (desktopTransferOffers.isEmpty()) "CHECK SECURE INBOX" else "REVIEW SECURE HANDOFFS"
+            isEnabled = hasSecureWirelessSession() && !transferDownloadInFlight
+        }
+    }
+
+    private fun userDataBackupConfirmedAt(nowEpochMs: Long = System.currentTimeMillis()): Long? =
+        backupCheckpointPrefs.getLong("confirmed_at_epoch_ms", 0L)
+            .takeIf { it in 1..nowEpochMs + 300_000L }
+
+    private fun backupCheckpointText(): String {
+        val confirmedAt = userDataBackupConfirmedAt()
+            ?: return "UNCONFIRMED  •  ROMVERSE has no user statement that a current backup exists."
+        val label = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
+            .format(Date(confirmedAt))
+        return "CONFIRMED BY USER  •  $label\nThis records your statement only; ROMVERSE has not inspected the backup contents."
+    }
+
+    private fun confirmUserDataBackup() {
+        AlertDialog.Builder(this)
+            .setTitle("Confirm user-data backup")
+            .setMessage(
+                "Confirm only if you have a current backup of the personal data you need, stored " +
+                    "somewhere other than this phone, and you understand that ROMVERSE has not " +
+                    "verified its contents or recoverability.\n\nThis confirmation is evidence for " +
+                    "the mission dashboard. It does not authorize a flash, wipe, unlock, root, or other change.",
+            )
+            .setNegativeButton("Not confirmed", null)
+            .setPositiveButton("Yes, my backup is complete") { _, _ ->
+                backupCheckpointPrefs.edit()
+                    .putLong("confirmed_at_epoch_ms", System.currentTimeMillis())
+                    .apply()
+                backupCheckpointView?.text = backupCheckpointText()
+                logActivity("User-data backup confirmed by user")
+                desktopTelemetryView?.let { scheduleTelemetryRefresh(it, 0L) }
+            }
+            .show()
+    }
+
+    private fun clearUserDataBackupConfirmation() {
+        backupCheckpointPrefs.edit().remove("confirmed_at_epoch_ms").apply()
+        backupCheckpointView?.text = backupCheckpointText()
+        logActivity("User-data backup confirmation cleared")
+        desktopTelemetryView?.let { scheduleTelemetryRefresh(it, 0L) }
+    }
+
+    private fun preserveLastKnownDeviceDna(status: DesktopDeviceDnaStatus?) {
+        if (status == null) return
+        val capturedAt = System.currentTimeMillis()
+        val encoded = runCatching {
+            LastKnownDeviceDnaArchive.encode(status, capturedAt)
+        }.getOrNull() ?: return
+        if (!deviceDnaPrefs.edit().putString("record_v1", encoded).commit()) return
+        lastKnownDeviceDna = LastKnownDeviceDnaArchive.decode(encoded, capturedAt)
+    }
+
+    private fun persistFirstBootGuide(state: FirstBootGuideState): Boolean {
+        val encoded = runCatching { FirstBootGuide.encode(state) }.getOrNull() ?: return false
+        if (!firstBootPrefs.edit().putString("record_v1", encoded).commit()) return false
+        firstBootGuideState = state
+        return true
+    }
+
     private fun buildCompanionHealthSnapshot(): CompanionHealthSnapshot {
         val capturedAt = System.currentTimeMillis()
+        val backupConfirmedAt = userDataBackupConfirmedAt(capturedAt)
         val battery = (getSystemService(BATTERY_SERVICE) as BatteryManager)
             .getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
             .takeIf { it in 0..100 }
@@ -6104,6 +6664,12 @@ Guardian: ACTIVE (read-only)
             ),
             bootloaderState = "unknown",
             kernelSuSupport = "unknown",
+            userDataBackupState = if (backupConfirmedAt == null) {
+                "unconfirmed"
+            } else {
+                "confirmed_by_user"
+            },
+            userDataBackupConfirmedAtEpochMs = backupConfirmedAt,
         )
     }
 
@@ -6177,6 +6743,8 @@ Guardian: ACTIVE (read-only)
                 telemetryCertificateSha256 = pairingPrefs.getString("certificate_sha256", null)
                 label.text = "Desktop remembered securely • approval expired • enter a new Link code"
             }
+            desktopTransferOffers = emptyList()
+            refreshTransferInboxCard()
             return
         }
         telemetryHost = pairingPrefs.getString("paired_host", null)
@@ -6201,6 +6769,8 @@ Guardian: ACTIVE (read-only)
             }
             refreshHomeHero()
             refreshLinkFlightPath()
+            desktopTransferOffers = emptyList()
+            refreshTransferInboxCard()
             onFinished?.invoke()
             return
         }
@@ -6221,17 +6791,22 @@ Guardian: ACTIVE (read-only)
         refreshLinkFlightPath()
         Thread {
             val telemetry = getTelemetrySummary(host, token, certificateSha256)
-            val phoneSync = if (!telemetry.unauthorized) {
+            val transferInbox = if (!telemetry.unauthorized) {
+                getDesktopTransferOffers(host, token, certificateSha256)
+            } else TransferInboxResult()
+            val phoneSync = if (!telemetry.unauthorized && !transferInbox.unauthorized) {
                 postCompanionHealthSnapshot(host, token, certificateSha256)
             } else SnapshotPostResult()
-            if (telemetry.unauthorized || phoneSync.unauthorized) {
+            if (telemetry.unauthorized || transferInbox.unauthorized || phoneSync.unauthorized) {
                 runOnUiThread {
                     telemetryRefreshInFlight = false
                     clearWirelessSession(forgetTrustedDesktop = false)
+                    desktopTransferOffers = emptyList()
                     label.text =
                         "Trusted Desktop remembered • approval ended • enter a new Link code"
                     refreshHomeHero()
                     refreshLinkFlightPath()
+                    refreshTransferInboxCard()
                     onFinished?.invoke()
                 }
                 return@Thread
@@ -6248,12 +6823,15 @@ Guardian: ACTIVE (read-only)
                     desktopAscensionStatus = telemetry.ascension
                     desktopLiveConsoleStatus = telemetry.liveConsole
                     desktopDeviceDnaStatus = telemetry.deviceDna
+                    preserveLastKnownDeviceDna(telemetry.deviceDna)
+                    desktopTransferOffers = transferInbox.offers
                     if (phoneSync.accepted) {
                         pairingPrefs.edit()
                             .putLong(LAST_SUCCESSFUL_LINK_SYNC_KEY, System.currentTimeMillis())
                             .apply()
                     }
                     refreshHomeHero()
+                    refreshTransferInboxCard()
                     label.text = if (phoneSync.accepted) {
                         "${telemetry.summary}  •  phone health synced"
                     } else {
@@ -6320,6 +6898,8 @@ Guardian: ACTIVE (read-only)
 
     private fun clearWirelessSession(forgetTrustedDesktop: Boolean) {
         pendingUsbPairingAssist = null
+        pendingTransferOffer = null
+        desktopTransferOffers = emptyList()
         linkSafetyRejected = false
         if (forgetTrustedDesktop) telemetryHost = null
         telemetryToken = null
@@ -6339,6 +6919,7 @@ Guardian: ACTIVE (read-only)
                 .remove(LAST_SUCCESSFUL_LINK_SYNC_KEY)
         }
         editor.apply()
+        refreshTransferInboxCard()
     }
 
     private fun desktopEndpoint(host: String, path: String): URL {
@@ -6381,6 +6962,11 @@ Guardian: ACTIVE (read-only)
         telemetryCertificateSha256 = null
         desktopTelemetryView = null
         telemetryRefreshInFlight = false
+        transferDownloadInFlight = false
+        pendingTransferOffer = null
+        desktopTransferOffers = emptyList()
+        transferInboxView = null
+        transferInboxButton = null
         linkAddressField = null
         linkFingerprintField = null
         linkSafetyLabel = null

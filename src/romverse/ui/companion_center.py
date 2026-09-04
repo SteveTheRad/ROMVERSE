@@ -7,13 +7,15 @@ from datetime import UTC, datetime
 from math import ceil
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer, Signal, Slot
+from PySide6.QtCore import QObject, Qt, QTimer, Signal, Slot
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
+    QFileDialog,
     QFrame,
     QHBoxLayout,
     QLabel,
+    QMessageBox,
     QPushButton,
     QScrollArea,
     QVBoxLayout,
@@ -29,6 +31,13 @@ from romverse.companion.telemetry import (
     LiveConsoleTelemetryEvent,
     RawTerminalTelemetryRecord,
 )
+from romverse.companion.transfers import (
+    CompanionTransferError,
+    CompanionTransferKind,
+    CompanionTransferOffer,
+    CompanionTransferPreview,
+    CompanionTransferService,
+)
 from romverse.companion.transport import CompanionTransport
 from romverse.companion.usb_assist import UsbPairingAssistPlan, UsbPairingAssistService
 from romverse.device.dna import CapabilityState, DeviceDnaProfile
@@ -40,6 +49,26 @@ from romverse.nexus.events import (
     MissionState,
 )
 from romverse.nexus.planning import NexusPlan, NexusPlanStatus, RouteStageState
+from romverse.ui.background import ManagedRunnable, start_background
+
+
+class _CompanionTransferSignals(QObject):
+    completed = Signal(object)
+    failed = Signal(str)
+
+
+class _CompanionTransferWorker(ManagedRunnable):
+    def __init__(self, operation) -> None:
+        super().__init__()
+        self.operation = operation
+        self.signals = _CompanionTransferSignals()
+
+    @Slot()
+    def execute(self) -> None:
+        try:
+            self.signals.completed.emit(self.operation())
+        except Exception as exc:  # converted to a bounded visible transfer failure
+            self.signals.failed.emit(str(exc)[:800])
 
 
 class CompanionCenter(QWidget):
@@ -68,11 +97,20 @@ class CompanionCenter(QWidget):
         self._live_console_store = live_console_store
         self._raw_terminal_feed = raw_terminal_feed
         self._nexus_plan: NexusPlan | None = None
+        self._transfer_worker: _CompanionTransferWorker | None = None
+        self.transfer_service: CompanionTransferService | None = None
+        self._transfer_availability_error = ""
+        if workspace is not None:
+            try:
+                self.transfer_service = CompanionTransferService(workspace)
+            except CompanionTransferError as exc:
+                self._transfer_availability_error = str(exc)
         identity_root = workspace / "config" / "companion-link" if workspace is not None else None
         self.transport = CompanionTransport(
             lambda: self._pairing,
             self._telemetry_snapshot,
             identity_root,
+            self.transfer_service,
         )
         self.transport.start()
         self._approved = self.transport.approved
@@ -182,6 +220,7 @@ class CompanionCenter(QWidget):
         layout.addWidget(self.remote_summary)
         self.usb_pair = QPushButton("Pair connected phone with USB assist")
         self.usb_pair.setObjectName("Primary")
+        self.usb_pair.setMinimumHeight(36)
         self.usb_pair.setEnabled(False)
         self.usb_pair.setToolTip(
             "Connect and authorize one phone by USB. The phone must still confirm the matching safety code."
@@ -189,6 +228,7 @@ class CompanionCenter(QWidget):
         self.usb_pair.clicked.connect(self.pair_connected_usb)
         self.generate = QPushButton("Generate wireless code")
         self.generate.setObjectName("Primary")
+        self.generate.setMinimumHeight(36)
         self.generate.setEnabled(self.transport.available)
         if not self.transport.available:
             self.generate.setToolTip(
@@ -196,10 +236,12 @@ class CompanionCenter(QWidget):
             )
         self.generate.clicked.connect(self.generate_code)
         self.copy_button = QPushButton("Copy code")
+        self.copy_button.setMinimumHeight(36)
         self.copy_button.setEnabled(False)
         self.copy_button.clicked.connect(self.copy_code)
         self.approve = QPushButton("Approve device")
         self.approve.setObjectName("Primary")
+        self.approve.setMinimumHeight(36)
         self.approve.setEnabled(False)
         self.approve.setToolTip(
             "Approve only after the six-digit code was entered and the Link safety code matches on both screens."
@@ -214,12 +256,14 @@ class CompanionCenter(QWidget):
         )
         self.safety_confirm.toggled.connect(self._update_approval_button)
         self.reset_link = QPushButton("Reset wireless pairing")
+        self.reset_link.setMinimumHeight(36)
         self.reset_link.setEnabled(False)
         self.reset_link.setToolTip(
-            "Immediately revoke the remembered wireless session on this computer. USB evidence is not changed."
+            "Immediately revoke the remembered wireless session and pending handoff offers on this computer. USB evidence and original files are not changed."
         )
         self.reset_link.clicked.connect(self.reset_pairing)
         import_summary = QPushButton("Import phone summary")
+        import_summary.setMinimumHeight(36)
         import_summary.setToolTip(
             "Read a ROMVERSE health summary from the clipboard. This is display-only and never executes commands."
         )
@@ -246,8 +290,48 @@ class CompanionCenter(QWidget):
         supporting_actions.addWidget(self.reset_link)
         layout.addLayout(supporting_actions)
         page.addWidget(card)
+
+        transfer_card = QFrame()
+        transfer_card.setObjectName("CompanionTransferCard")
+        transfer_layout = QVBoxLayout(transfer_card)
+        transfer_layout.setContentsMargins(22, 20, 22, 20)
+        transfer_layout.setSpacing(9)
+        transfer_eyebrow = QLabel("SECURE HANDOFF  •  DESKTOP ↔ COMPANION")
+        transfer_eyebrow.setObjectName("Eyebrow")
+        transfer_title = QLabel("Send verified files without surrendering control")
+        transfer_title.setObjectName("HeroTitle")
+        transfer_copy = QLabel(
+            "Offer an APK, report, recovery capsule, emergency guide, or approved package to "
+            "this trusted phone. Companion verifies the exact fingerprint and asks where to "
+            "save it. Nothing installs, opens, flashes, or executes automatically."
+        )
+        transfer_copy.setObjectName("Muted")
+        transfer_copy.setWordWrap(True)
+        self.transfer_status = QLabel("Pair Companion to open the encrypted handoff bridge.")
+        self.transfer_status.setObjectName("CompanionTransferStatus")
+        self.transfer_status.setWordWrap(True)
+        self.transfer_status.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.transfer_button = QPushButton("Choose file for Companion")
+        self.transfer_button.setObjectName("Primary")
+        self.transfer_button.setMinimumHeight(38)
+        self.transfer_button.setEnabled(False)
+        self.transfer_button.clicked.connect(self.choose_companion_transfer)
+        self.transfer_clear = QPushButton("Revoke pending handoffs")
+        self.transfer_clear.setMinimumHeight(38)
+        self.transfer_clear.setEnabled(False)
+        self.transfer_clear.clicked.connect(self.revoke_companion_transfers)
+        transfer_actions = QHBoxLayout()
+        transfer_actions.setSpacing(10)
+        transfer_actions.addWidget(self.transfer_button, 1)
+        transfer_actions.addWidget(self.transfer_clear)
+        transfer_layout.addWidget(transfer_eyebrow)
+        transfer_layout.addWidget(transfer_title)
+        transfer_layout.addWidget(transfer_copy)
+        transfer_layout.addWidget(self.transfer_status)
+        transfer_layout.addLayout(transfer_actions)
+        page.addWidget(transfer_card)
         boundary = QLabel(
-            "Guardian boundary  •  pairing grants telemetry visibility only; it cannot approve or execute device-changing operations."
+            "Guardian boundary  •  pairing grants telemetry and download-only handoff access; it cannot approve or execute device-changing operations."
         )
         boundary.setObjectName("Warning")
         boundary.setWordWrap(True)
@@ -255,6 +339,8 @@ class CompanionCenter(QWidget):
         page.addStretch()
         if self._approved:
             self._render_approved_state(restored=True)
+        else:
+            self._refresh_transfer_state()
 
     def set_device_snapshot(
         self,
@@ -578,6 +664,7 @@ class CompanionCenter(QWidget):
             )
             return
         self.transport.reset()
+        self._refresh_transfer_state()
         self._pairing = create_pairing_code()
         self._approved = False
         self._approved_restored = False
@@ -727,6 +814,22 @@ class CompanionCenter(QWidget):
             if snapshot.schema_version >= 4
             else "legacy evidence contract"
         )
+        if (
+            snapshot.schema_version >= 5
+            and snapshot.user_data_backup_state == "confirmed_by_user"
+            and snapshot.user_data_backup_confirmed_at_epoch_ms is not None
+        ):
+            backup_time = (
+                datetime.fromtimestamp(
+                    snapshot.user_data_backup_confirmed_at_epoch_ms / 1000,
+                    tz=UTC,
+                )
+                .astimezone()
+                .strftime("%Y-%m-%d %H:%M")
+            )
+            backup = f"confirmed by user at {backup_time}"
+        else:
+            backup = "unconfirmed"
         synchronized = received_at.astimezone().strftime("%H:%M:%S")
         self.remote_summary.setText(
             "LIVE COMPANION HEALTH  •  AUTHENTICATED\n"
@@ -735,6 +838,7 @@ class CompanionCenter(QWidget):
             f"Battery {battery}  •  Storage {storage}  •  RAM {memory}  •  "
             f"Guardian health {health}\n"
             f"Vitalis {vitalis}\n"
+            f"User-data backup {backup}  •  user attestation only  •  authority none\n"
             f"Synced {synchronized}  •  Companion {snapshot.companion_version}  •  "
             f"{snapshot.privacy_scope.replace('_', ' ')} privacy scope\n"
             f"Kernel {snapshot.kernel_release or 'unavailable'}  •  "
@@ -757,6 +861,207 @@ class CompanionCenter(QWidget):
                 return f"{amount:.1f} {unit}"
             amount /= 1024
         return f"{amount:.1f} TB"
+
+    @Slot()
+    def choose_companion_transfer(self) -> None:
+        service = self.transfer_service
+        if service is None or not self.transport.approved or self._transfer_worker is not None:
+            return
+        filters = {
+            "Android app (*.apk)": CompanionTransferKind.APK,
+            "ROMVERSE report (*.json *.txt *.log *.html *.htm *.pdf)": CompanionTransferKind.REPORT,
+            "Recovery capsule (*.romverse-recovery *.recovery.zip *.zip)": CompanionTransferKind.RECOVERY_CAPSULE,
+            "Approved package (*.romverse-package *.romverse *.zip *.bin *.img)": CompanionTransferKind.APPROVED_PACKAGE,
+            "Emergency guide (*.json *.txt *.html *.htm *.pdf)": CompanionTransferKind.EMERGENCY_GUIDE,
+        }
+        filename, selected_filter = QFileDialog.getOpenFileName(
+            self,
+            "Choose a file for ROMVERSE Companion",
+            str(Path.home()),
+            ";;".join(filters),
+        )
+        if not filename:
+            return
+        kind = filters.get(selected_filter)
+        if kind is None:
+            self._set_transfer_status(
+                "No handoff was created because its file type was not selected.",
+                "Warning",
+            )
+            return
+        self.transfer_button.setEnabled(False)
+        self._set_transfer_status(
+            "Verifying the selected file for an exact handoff preview…",
+            "CompanionTransferStatus",
+        )
+        worker = _CompanionTransferWorker(lambda: service.inspect(Path(filename), kind))
+        self._transfer_worker = worker
+        worker.signals.completed.connect(self._transfer_preview_ready)
+        worker.signals.failed.connect(self._transfer_failed)
+        start_background(worker)
+
+    @Slot(object)
+    def _transfer_preview_ready(self, value: object) -> None:
+        self._transfer_worker = None
+        if not isinstance(value, CompanionTransferPreview):
+            self._transfer_failed("ROMVERSE returned an invalid transfer preview")
+            return
+        if not self.transport.approved or self.transfer_service is None:
+            self._set_transfer_status(
+                "The Link changed while the file was inspected. Pair again before offering it.",
+                "Warning",
+            )
+            self._refresh_transfer_state()
+            return
+        answer = QMessageBox.question(
+            self,
+            "ROMVERSE Link • Confirm secure handoff",
+            f"File: {value.display_name}\n"
+            f"Type: {value.kind.value.replace('_', ' ').title()}\n"
+            f"Size: {self._format_bytes(value.size_bytes)}\n"
+            f"SHA-256: {value.sha256}\n\n"
+            "Confirming copies these exact bytes into private ROMVERSE staging and makes a "
+            "download offer available to the currently trusted Companion for 24 hours. The "
+            "phone must confirm where to save it. Nothing will install, open, execute, flash, "
+            "or change the phone automatically.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer is not QMessageBox.StandardButton.Yes:
+            self._set_transfer_status(
+                "Handoff declined. The selected file was inspected but not copied or offered.",
+                "Warning",
+            )
+            self._refresh_transfer_state(preserve_message=True)
+            return
+        service = self.transfer_service
+        if service is None:
+            self._transfer_failed("Private Companion transfer storage is unavailable")
+            return
+        self.transfer_button.setEnabled(False)
+        self._set_transfer_status(
+            "Creating the approved private copy and rechecking its exact fingerprint…",
+            "CompanionTransferStatus",
+        )
+        worker = _CompanionTransferWorker(lambda: service.stage(value))
+        self._transfer_worker = worker
+        worker.signals.completed.connect(self._transfer_staged)
+        worker.signals.failed.connect(self._transfer_failed)
+        start_background(worker)
+
+    @Slot(object)
+    def _transfer_staged(self, value: object) -> None:
+        self._transfer_worker = None
+        if not isinstance(value, CompanionTransferOffer):
+            self._transfer_failed("ROMVERSE returned an invalid transfer offer")
+            return
+        self._set_transfer_status(
+            f"READY FOR COMPANION  •  {value.display_name}  •  "
+            f"{self._format_bytes(value.size_bytes)}  •  SHA-256 {value.sha256[:16]}…\n"
+            "The encrypted Link now advertises this download. Companion will ask the user to "
+            "accept or decline and choose the save location.",
+            "Good",
+        )
+        self._record_link_note(
+            title="Secure Companion handoff ready",
+            summary=f"{value.display_name} is available to the authenticated Companion for 24 hours.",
+            explanation="ROMVERSE copied the exact reviewed bytes into private content-addressed staging. Installation and execution authority remain none.",
+            next_action="Open Secure Handoff on Companion, review the fingerprint, and choose where to save it.",
+            state=MissionState.INFORMATION,
+            confidence=MissionConfidence.VERIFIED,
+            dedupe_key="",
+        )
+        self._refresh_transfer_state(preserve_message=True)
+
+    @Slot(str)
+    def _transfer_failed(self, message: str) -> None:
+        self._transfer_worker = None
+        self._set_transfer_status(f"Secure handoff stopped safely: {message}", "Danger")
+        self._refresh_transfer_state(preserve_message=True)
+
+    @Slot()
+    def revoke_companion_transfers(self) -> None:
+        service = self.transfer_service
+        if service is None:
+            return
+        answer = QMessageBox.question(
+            self,
+            "Revoke pending Companion handoffs?",
+            "This removes every pending phone download offer. Original files are never deleted. "
+            "Private inert content may remain for integrity history, but no Companion can request "
+            "it without a new confirmed offer.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer is not QMessageBox.StandardButton.Yes:
+            return
+        try:
+            count = service.revoke_all()
+        except CompanionTransferError as exc:
+            self._set_transfer_status(f"Handoff revocation needs attention: {exc}", "Danger")
+            return
+        self._set_transfer_status(
+            f"Revoked {count} pending handoff{'s' if count != 1 else ''}. Original files were not changed.",
+            "Warning",
+        )
+        self._refresh_transfer_state(preserve_message=True)
+
+    def _refresh_transfer_state(self, *, preserve_message: bool = False) -> None:
+        available = bool(
+            self.transfer_service is not None
+            and self.transport.available
+            and self.transport.approved
+            and self._transfer_worker is None
+        )
+        self.transfer_button.setEnabled(available)
+        service = self.transfer_service
+        if service is None:
+            self.transfer_clear.setEnabled(False)
+            if not preserve_message:
+                detail = (
+                    self._transfer_availability_error or "Open a persistent ROMVERSE workspace."
+                )
+                self._set_transfer_status(
+                    f"Private handoff storage is unavailable. {detail}",
+                    "Warning",
+                )
+            return
+        try:
+            offers = service.list_active()
+        except CompanionTransferError as exc:
+            self.transfer_button.setEnabled(False)
+            self.transfer_clear.setEnabled(False)
+            if not preserve_message:
+                self._set_transfer_status(
+                    f"Private handoff storage needs attention: {exc}", "Danger"
+                )
+            return
+        self.transfer_clear.setEnabled(bool(offers))
+        if preserve_message:
+            return
+        if not self.transport.approved:
+            self._set_transfer_status(
+                "Pair Companion to open the encrypted handoff bridge.",
+                "CompanionTransferStatus",
+            )
+        elif not offers:
+            self._set_transfer_status(
+                "Encrypted bridge ready  •  no files are waiting for the phone.",
+                "CompanionTransferStatus",
+            )
+        else:
+            latest = offers[0]
+            self._set_transfer_status(
+                f"{len(offers)} pending handoff{'s' if len(offers) != 1 else ''}  •  "
+                f"latest: {latest.display_name}  •  SHA-256 {latest.sha256[:16]}…",
+                "Good",
+            )
+
+    def _set_transfer_status(self, message: str, state: str) -> None:
+        self.transfer_status.setText(message)
+        self.transfer_status.setObjectName(state)
+        self.transfer_status.style().unpolish(self.transfer_status)
+        self.transfer_status.style().polish(self.transfer_status)
 
     def _update_expiry(self) -> None:
         if self.transport.pending and not self.transport.approved and not self._approved:
@@ -843,8 +1148,9 @@ class CompanionCenter(QWidget):
             state += " • USB also connected"
         self.state.setText(state)
         self.instructions.setText(
-            "This workspace remembers the approved Companion for read-only health and activity telemetry. "
-            "USB evidence remains a separate input. Guardian still blocks device-changing actions."
+            "This workspace remembers the approved Companion for read-only health/activity telemetry "
+            "and user-confirmed download handoffs. USB evidence remains a separate input. Guardian still "
+            "blocks device-changing actions."
         )
         self._expiry_timer.stop()
         self._pairing = None
@@ -861,6 +1167,7 @@ class CompanionCenter(QWidget):
         self.generate.setEnabled(self.transport.available)
         self._update_usb_assist_button()
         self.expiry.setText(self._approved_expiry_text())
+        self._refresh_transfer_state()
 
     def _approved_expiry_text(self) -> str:
         remaining = self.transport.session_expires_in_seconds
@@ -904,6 +1211,7 @@ class CompanionCenter(QWidget):
         self.remote_summary.setText(
             "LIVE COMPANION HEALTH\nWaiting for an authenticated phone snapshot."
         )
+        self._refresh_transfer_state()
         self._last_remote_capture = 0
         if self._usb_ready:
             self.state.setText("Wireless Link expired • USB read-only evidence remains available")
@@ -941,6 +1249,7 @@ class CompanionCenter(QWidget):
         self.remote_summary.setText(
             "LIVE COMPANION HEALTH\nWaiting for an authenticated phone snapshot."
         )
+        self._refresh_transfer_state()
         if self._usb_ready:
             self.state.setText(
                 "Wireless Link not paired • USB read-only evidence remains available"
@@ -961,7 +1270,7 @@ class CompanionCenter(QWidget):
         self._record_link_note(
             title="Companion Link pairing reset",
             summary="The remembered wireless Companion authorization was revoked locally.",
-            explanation="ROMVERSE cleared the pending request, stored session digest, and cached wireless telemetry. USB read-only evidence was not changed.",
+            explanation="ROMVERSE cleared the pending request, stored session digest, cached wireless telemetry, and pending download offers. USB read-only evidence and original files were not changed.",
             next_action="Generate a new wireless code only when you want to pair Companion again.",
             state=MissionState.INFORMATION,
             confidence=MissionConfidence.VERIFIED,

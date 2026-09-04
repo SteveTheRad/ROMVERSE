@@ -300,6 +300,13 @@ QFrame#PairingApprovalBar {
 }
 QFrame#PairingApprovalBar QCheckBox { color: #B8C7E0; font-size: 12px; }
 QFrame#PairingApprovalBar QCheckBox:disabled { color: #677691; }
+QFrame#CompanionTransferCard {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 rgba(5,22,32,244),stop:0.5 rgba(8,18,36,246),stop:1 rgba(27,11,46,242));
+    border: 1px solid rgba(57, 188, 218, 160); border-left: 3px solid #42DDEA; border-right: 2px solid rgba(180,92,255,170); border-radius: 13px;
+}
+QLabel#CompanionTransferStatus {
+    color: #B9CAE4; background: rgba(3, 12, 25, 210); border: 1px solid rgba(62, 99, 151, 145); border-radius: 8px; padding: 10px 12px;
+}
 QFrame#GenesisFlightPlan {
     background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(18,11,39,248),stop:0.52 rgba(7,16,34,246),stop:1 rgba(5,25,35,244));
     border: 1px solid rgba(106, 116, 255, 190);

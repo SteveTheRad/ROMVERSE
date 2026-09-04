@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QApplication, QFrame
 from romverse.ascension.companion import AscensionCompanionStatus
 from romverse.companion.raw_terminal import RawTerminalFeed
 from romverse.companion.telemetry import RemoteCompanionSnapshot
+from romverse.companion.transfers import CompanionTransferKind
 from romverse.device.dna import CapabilityMapEntry, CapabilityState, DeviceDnaProfile
 from romverse.device.models import AndroidDevice, DeviceState, StorageInfo
 from romverse.nexus.events import LiveConsoleEventStore, MissionState
@@ -46,11 +47,45 @@ def test_companion_link_keeps_pairing_controls_readable_in_a_scroll_surface(tmp_
     assert center.scroll.horizontalScrollBar().maximum() == 0
     assert center.findChild(QFrame, "CompanionPairingCard") is not None
     assert center.findChild(QFrame, "PairingApprovalBar") is not None
+    assert center.findChild(QFrame, "CompanionTransferCard") is not None
     assert center.generate.height() >= 30
     assert center.copy_button.height() >= 30
     assert center.approve.height() >= 30
     center.shutdown()
     center.close()
+
+
+def test_secure_handoff_enables_only_for_a_confirmed_companion_link(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    center = CompanionCenter(workspace=tmp_path)
+    assert not center.transfer_button.isEnabled()
+    assert "Pair Companion" in center.transfer_status.text()
+
+    center.generate_code()
+    pairing = center._pairing
+    assert pairing is not None
+    request_id = center.transport._sessions.request(pairing, pairing.code, "127.0.0.1")
+    assert request_id
+    center._update_expiry()
+    center.safety_confirm.setChecked(True)
+    center.approve_device()
+
+    assert center.transfer_button.isEnabled()
+    assert "Encrypted bridge ready" in center.transfer_status.text()
+    report = tmp_path / "first-light-report.json"
+    report.write_text('{"camera":"verified"}')
+    service = center.transfer_service
+    assert service is not None
+    offer = service.stage(service.inspect(report, CompanionTransferKind.REPORT))
+    center._transfer_staged(offer)
+
+    assert "READY FOR COMPANION" in center.transfer_status.text()
+    assert center.transfer_clear.isEnabled()
+    center.reset_pairing()
+    assert service.list_active() == ()
+    assert not center.transfer_button.isEnabled()
+    assert not center.transfer_clear.isEnabled()
+    center.shutdown()
 
 
 def test_companion_center_renders_authenticated_remote_health_snapshot() -> None:

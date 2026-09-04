@@ -956,6 +956,15 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   double-click/double-tap Origin discovery and replay, seven-chapter Origin story, honest Beyond the
   Verse discovery state, functional off-by-default cinematic ambience, immediate exit, pause,
   navigation, skip-to-finale, Reduced Effects handling, progress, and responsive scrolling.
+- **IMPLEMENTED, PHYSICAL VALIDATION PENDING:** Companion Link 2.0 adds an authenticated,
+  download-only Secure Handoff with two exact confirmations, private content-addressed Desktop
+  staging, expiring no-authority offers, Android document-picker destinations, pinned-TLS response
+  validation, bounded streaming SHA-256 verification, and failed-download cleanup. It also adds
+  schema-five user-only backup attestation, a strict privacy-reduced last-known Device DNA archive,
+  an offline eight-stage first-boot guide, and retained emergency-guide access only where Android
+  grants lasting permission. No transfer can auto-open, install, execute, flash or grant Guardian
+  authority. Repository unit/build evidence passes; build-8 physical phone verification remains a
+  release gate. The byte-exact approved ROMVERSE and RadForge Labs logos remain unchanged and locked.
 - **PARTIAL:** Genesis/Ascension/Guardian integration, Companion Vitalis/Lifeline, connected online
   remediation, and local Link are functional foundations but still need broader hardware testing.
   Connected remediation V2 preserves tamper-detecting receipts and presents source, explicit

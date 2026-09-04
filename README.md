@@ -24,7 +24,7 @@ website and social actions report browser-launch failure without implying that D
 state changed. The hidden Origin discovery remains replayable, while its tiny local record is
 strictly schema-validated, private, atomic, and deliberately carries no XP, membership, account, or
 device-operation authority.
-Companion build 7 now consumes those same byte-exact approved ROMVERSE and RadForge Labs masters,
+Companion build 8 continues to consume those same byte-exact approved ROMVERSE and RadForge Labs masters,
 including regenerated launcher densities. Its in-app presentation circularly masks the ROMVERSE
 crest inside a subtle interface halo and seats RadForge Labs inside a purpose-built dark identity
 plate, eliminating the pasted-on rectangular edges without altering either approved master.
@@ -1251,6 +1251,16 @@ commands, approvals, and all execution authority remain excluded; Companion cann
 input back to Desktop. The same schema carries the read-only Device DNA Capability Map described
 above, with explicit `execution_authority: none` and `bootloader_relock: never` constraints.
 
+An authenticated Link can now carry an explicitly staged **Secure Handoff** from Desktop to
+Companion. Desktop hashes the selected APK, report, recovery capsule, approved package, or emergency
+guide without retaining it, shows the exact filename, type, size and SHA-256 for confirmation, then
+copies only the confirmed bytes into a private content-addressed workspace store. Offers expire
+after 24 hours, reveal no source path, and are revoked by Reset Link. Companion presents a second
+per-file confirmation and an Android document destination, then pins TLS, validates response
+identity/type/length and hashes the received bytes before declaring success. A failed or altered
+download removes the partial document. Nothing is automatically opened, installed, executed, or
+flashed; an APK may only enter App Launchpad's existing local inspection path after verification.
+
 An approved Companion can also submit a bounded health-only snapshot back to Desktop. The
 snapshot contains the visible device model/codename, Android and Companion versions, battery,
 temperature, storage, memory, network/USB evidence, and the locally calculated Guardian health
@@ -1270,6 +1280,14 @@ timeline rather than three independent preference strings. Its 24-sample history
 verified, suppresses duplicate page-open samples, migrates valid legacy graph data, preserves
 failed evidence without overwriting it, and offers an explicit local-only reset when recovery is
 needed.
+
+Companion health schema five adds a user-controlled backup checkpoint. It can report only that the
+person confirmed an external user-data backup, when they confirmed it, and that the scope is
+`user_attestation_only` with `backup_execution_authority: none`; it never claims ROMVERSE inspected
+or proved recoverability. Companion also keeps a bounded, content-digested last-known Device DNA
+summary with no full hash, path, command, or authority, clearly labels it historical when Link is
+offline, and provides an eight-step offline first-boot guide. Reviewed first-boot steps do not
+become test passes: the exact build still requires First Light evidence before release validation.
 
 Companion **safe cache cleanup** now mirrors Desktop's evidence-first optimizer boundary. It
 previews only regular app-private cache files older than 24 hours, limits scan/file/byte scope,

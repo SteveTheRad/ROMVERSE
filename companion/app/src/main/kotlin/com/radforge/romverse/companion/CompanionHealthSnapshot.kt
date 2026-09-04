@@ -31,6 +31,8 @@ internal data class CompanionHealthSnapshot(
     val rootManagerCandidate: String,
     val bootloaderState: String,
     val kernelSuSupport: String,
+    val userDataBackupState: String = "unconfirmed",
+    val userDataBackupConfirmedAtEpochMs: Long? = null,
 ) {
     init {
         require(capturedAtEpochMs > 0) { "capture time must be positive" }
@@ -65,6 +67,17 @@ internal data class CompanionHealthSnapshot(
         require(kernelSuSupport in setOf("supported", "unsupported", "unknown")) {
             "KernelSU support is invalid"
         }
+        require(userDataBackupState in setOf("unconfirmed", "confirmed_by_user")) {
+            "user-data backup state is invalid"
+        }
+        require(
+            if (userDataBackupState == "confirmed_by_user") {
+                userDataBackupConfirmedAtEpochMs != null &&
+                    userDataBackupConfirmedAtEpochMs in 1..capturedAtEpochMs + 300_000L
+            } else {
+                userDataBackupConfirmedAtEpochMs == null
+            },
+        ) { "user-data backup confirmation is invalid" }
         listOf(
             storageUsedBytes,
             storageTotalBytes,
@@ -121,7 +134,7 @@ internal data class CompanionHealthSnapshot(
     }
 
     fun asWireMap(): Map<String, Any?> = mapOf(
-        "schema_version" to 4,
+        "schema_version" to 5,
         "captured_at_epoch_ms" to capturedAtEpochMs,
         "manufacturer" to manufacturer,
         "model" to model,
@@ -145,6 +158,10 @@ internal data class CompanionHealthSnapshot(
         "root_manager_candidate" to rootManagerCandidate,
         "bootloader_state" to bootloaderState,
         "kernelsu_support" to kernelSuSupport,
+        "user_data_backup_state" to userDataBackupState,
+        "user_data_backup_confirmed_at_epoch_ms" to userDataBackupConfirmedAtEpochMs,
+        "backup_confirmation_scope" to "user_attestation_only",
+        "backup_execution_authority" to "none",
         "guardian_active" to true,
         "privacy_scope" to "health_and_device_safety",
     )

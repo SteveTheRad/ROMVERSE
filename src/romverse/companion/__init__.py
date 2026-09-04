@@ -7,12 +7,24 @@ from romverse.companion.telemetry import (
     RawTerminalTelemetryRecord,
     RemoteCompanionSnapshot,
 )
+from romverse.companion.transfers import (
+    CompanionTransferError,
+    CompanionTransferKind,
+    CompanionTransferOffer,
+    CompanionTransferPreview,
+    CompanionTransferService,
+)
 from romverse.companion.transport import CompanionTransport
 
 __all__ = [
     "ActivityEvent",
     "CompanionTelemetry",
     "CompanionTransport",
+    "CompanionTransferError",
+    "CompanionTransferKind",
+    "CompanionTransferOffer",
+    "CompanionTransferPreview",
+    "CompanionTransferService",
     "RemoteCompanionSnapshot",
     "LiveConsoleTelemetryEvent",
     "RawTerminalTelemetryRecord",

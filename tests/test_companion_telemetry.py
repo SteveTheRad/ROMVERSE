@@ -311,6 +311,16 @@ def vitalis_payload() -> dict[str, object]:
     }
 
 
+def backup_confirmation_payload() -> dict[str, object]:
+    return vitalis_payload() | {
+        "schema_version": 5,
+        "user_data_backup_state": "confirmed_by_user",
+        "user_data_backup_confirmed_at_epoch_ms": 1_787_999_000_000,
+        "backup_confirmation_scope": "user_attestation_only",
+        "backup_execution_authority": "none",
+    }
+
+
 def test_remote_companion_snapshot_round_trips_device_safety_contract() -> None:
     snapshot = RemoteCompanionSnapshot.from_mapping(remote_payload() | {"future_metric": 3})
 
@@ -329,6 +339,32 @@ def test_schema_four_rederives_vitalis_score_state_and_coverage() -> None:
     assert snapshot.vitalis_state == "OPTIMAL"
     assert snapshot.vitalis_evidence_percent == 100
     assert RemoteCompanionSnapshot.from_mapping(snapshot.to_mapping()) == snapshot
+
+
+def test_schema_five_preserves_user_backup_attestation_without_authority() -> None:
+    snapshot = RemoteCompanionSnapshot.from_mapping(backup_confirmation_payload())
+
+    assert snapshot.user_data_backup_state == "confirmed_by_user"
+    assert snapshot.user_data_backup_confirmed_at_epoch_ms == 1_787_999_000_000
+    assert snapshot.backup_confirmation_scope == "user_attestation_only"
+    assert snapshot.backup_execution_authority == "none"
+    assert RemoteCompanionSnapshot.from_mapping(snapshot.to_mapping()) == snapshot
+
+
+@pytest.mark.parametrize(
+    ("change", "message"),
+    [
+        ({"user_data_backup_state": "verified"}, "backup_state"),
+        ({"user_data_backup_confirmed_at_epoch_ms": None}, "backup confirmation"),
+        ({"backup_confirmation_scope": "verified_by_romverse"}, "backup_confirmation_scope"),
+        ({"backup_execution_authority": "flash"}, "execution authority"),
+    ],
+)
+def test_schema_five_rejects_fabricated_backup_proof_or_authority(
+    change: dict[str, object], message: str
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        RemoteCompanionSnapshot.from_mapping(backup_confirmation_payload() | change)
 
 
 @pytest.mark.parametrize(

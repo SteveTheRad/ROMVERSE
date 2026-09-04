@@ -24,6 +24,7 @@ src/romverse/
   guardian/              policy, execution gateway, tamper-evident audit
   infrastructure/        subprocess and tool verification
   device/                ADB adapter, parsers, models, engine
+  companion/             encrypted Link telemetry and download-only transfer contracts
   nexus/                 Device DNA compatibility, plans, routes, foresight, insight, event ledger
   intelligence/          online remediation, Synapse evidence, AI Gateway and Usage Governor
   diagnostics/           evidence, findings, analysis, redacted history
@@ -62,6 +63,11 @@ scripts/                  Linux and Windows environment bootstrap
   identity observation may imply firmware, partition, recovery, download-mode, signing, or flash
   compatibility.
 - Publish Device Engine snapshots to later diagnostics, Companion, and Galaxy integrations.
+- Keep Companion file handoff download-only. Inspect without retention, require an exact Desktop
+  confirmation before private content-addressed staging, advertise only bounded allowlisted kinds
+  over an authenticated TLS-pinned Link, and require a second Android destination confirmation.
+  Revalidate regular-file identity and SHA-256 at every boundary; never carry a source path,
+  installer, executor, flash instruction, or Guardian authority in an offer.
 - Treat Device DNA as the authoritative project evidence profile; Compatibility Matrix and Nexus
   plans must bind its digest and become invalid when the source evidence changes.
 - Derive the Firmware Upgrade Passport from the same bounded relationship engine used by Device DNA,

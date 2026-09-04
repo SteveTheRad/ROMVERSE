@@ -566,6 +566,16 @@ def _facts(
     source_build, build_confidence, build_evidence = project_source_fact(
         "build_id", source.build_id
     )
+    ota_brand = _ota_post_field(ota_metadata, "brand")
+    ota_product = _ota_post_field(ota_metadata, "product")
+    ota_device = _ota_post_field(ota_metadata, "device")
+    ota_android_release = _ota_post_field(ota_metadata, "release")
+    ota_post_build_id = _ota_post_field(ota_metadata, "build_id")
+    ota_post_evidence = ("source.ota_metadata",) if ota_metadata is not None else ()
+    if ota_android_release and not source_android:
+        source_android = ota_android_release
+        android_confidence = EvidenceConfidence.VERIFIED
+        android_evidence = ota_post_evidence
     if ota_metadata is not None and ota_metadata.target_devices:
         source_codename = " | ".join(ota_metadata.target_devices)
         codename_confidence = EvidenceConfidence.VERIFIED
@@ -713,6 +723,41 @@ def _facts(
             live_evidence,
         ),
         _fact(
+            "firmware.ota_post_brand",
+            "OTA post-build brand",
+            ota_brand,
+            EvidenceConfidence.VERIFIED if ota_brand else EvidenceConfidence.UNCONFIRMED,
+            ota_post_evidence,
+        ),
+        _fact(
+            "firmware.ota_post_product",
+            "OTA post-build product",
+            ota_product,
+            EvidenceConfidence.VERIFIED if ota_product else EvidenceConfidence.UNCONFIRMED,
+            ota_post_evidence,
+        ),
+        _fact(
+            "firmware.ota_post_device",
+            "OTA post-build device",
+            ota_device,
+            EvidenceConfidence.VERIFIED if ota_device else EvidenceConfidence.UNCONFIRMED,
+            ota_post_evidence,
+        ),
+        _fact(
+            "firmware.ota_post_android",
+            "OTA post-build Android",
+            ota_android_release,
+            EvidenceConfidence.VERIFIED if ota_android_release else EvidenceConfidence.UNCONFIRMED,
+            ota_post_evidence,
+        ),
+        _fact(
+            "firmware.ota_post_build_id",
+            "OTA post-build ID",
+            ota_post_build_id,
+            EvidenceConfidence.VERIFIED if ota_post_build_id else EvidenceConfidence.UNCONFIRMED,
+            ota_post_evidence,
+        ),
+        _fact(
             "firmware.ota_post_incremental",
             "OTA post-build incremental",
             ota_metadata.post_build_incremental if ota_metadata else "",
@@ -720,6 +765,26 @@ def _facts(
             if ota_metadata and ota_metadata.post_build_incremental
             else EvidenceConfidence.UNCONFIRMED,
             ("source.ota_metadata",) if ota_metadata else (),
+        ),
+        _fact(
+            "firmware.ota_post_sdk",
+            "OTA post-build SDK",
+            str(ota_metadata.post_sdk_level)
+            if ota_metadata and ota_metadata.post_sdk_level is not None
+            else "",
+            EvidenceConfidence.VERIFIED
+            if ota_metadata and ota_metadata.post_sdk_level is not None
+            else EvidenceConfidence.UNCONFIRMED,
+            ota_post_evidence,
+        ),
+        _fact(
+            "firmware.ota_post_security_patch",
+            "OTA post-build security patch",
+            ota_metadata.post_security_patch_level if ota_metadata else "",
+            EvidenceConfidence.VERIFIED
+            if ota_metadata and ota_metadata.post_security_patch_level
+            else EvidenceConfidence.UNCONFIRMED,
+            ota_post_evidence,
         ),
         _fact(
             "firmware.ota_post_timestamp",
@@ -1502,6 +1567,19 @@ def _fact(
         confidence if clean else EvidenceConfidence.UNCONFIRMED,
         evidence_ids if clean else (),
     )
+
+
+def _ota_post_field(metadata: AndroidOtaMetadata | None, attribute: str) -> str:
+    if metadata is None:
+        return ""
+    values = tuple(
+        dict.fromkeys(
+            str(getattr(fingerprint, attribute)).strip()
+            for fingerprint in metadata.post_fingerprints
+            if str(getattr(fingerprint, attribute)).strip()
+        )
+    )
+    return values[0] if len(values) == 1 else ""
 
 
 def _source_confidence(source: FirmwareSourceIdentity) -> EvidenceConfidence:

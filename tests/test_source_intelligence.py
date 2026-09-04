@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import stat
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -60,7 +61,11 @@ def _project(tmp_path: Path, name: str, original_name: str):
     store = RomProjectStore(tmp_path / "workspace")
     project = store.create(name)
     original = tmp_path / original_name
-    original.write_bytes(b"protected-source")
+    if original.suffix.casefold() == ".zip":
+        with zipfile.ZipFile(original, "w") as archive:
+            archive.writestr("source-marker.txt", b"protected-source")
+    else:
+        original.write_bytes(b"protected-source")
     store.import_original(project.project_id, original)
     tree = store.working_root / project.project_id / "tree"
     tree.mkdir(parents=True)
@@ -155,6 +160,69 @@ def test_source_intelligence_selects_nested_ota_payload_without_static_pack(tmp_
     assert "payload hash" in plan_gate.evidence
     assert "3-partition OTA baseline" in plan_gate.evidence
     assert "fastboot super" not in plan_gate.evidence
+
+
+def test_generic_ota_blueprint_uses_internal_post_build_identity(tmp_path):
+    source = tmp_path / "official-generic-update.zip"
+    with zipfile.ZipFile(source, "w") as archive:
+        archive.writestr("payload.bin", b"CrAU-source")
+        archive.writestr(
+            "META-INF/com/android/metadata",
+            "pre-device=komodo\n"
+            "post-build=google/komodo/komodo:16/BP2A.260901.001/456:user/release-keys\n"
+            "post-build-incremental=456\n"
+            "post-sdk-level=36\n"
+            "post-security-patch-level=2026-09-01\n"
+            "post-timestamp=1788220800\n",
+        )
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.import_original(store.create("Generic OTA identity").project_id, source)
+    tree = store.working_root / project.project_id / "tree"
+    tree.mkdir(parents=True)
+    (tree / "payload.bin").write_bytes(b"CrAU-source")
+    dumper = tmp_path / "payload-dumper-go"
+    dumper.write_bytes(b"tool")
+    service = FirmwareSourceIntelligenceService(
+        store,
+        (ToolStatus("Payload Dumper", True, str(dumper), "test"),),
+        SourceRunner(),
+    )
+
+    blueprint = service.prepare(project.project_id)
+
+    assert blueprint.manufacturer == "google"
+    assert blueprint.codename == "komodo"
+    assert blueprint.build_id == "BP2A.260901.001"
+    assert blueprint.android_version == "16"
+    assert blueprint.region == ""
+    assert blueprint.source_archive_sha256 == project.original.sha256
+    assert service.load(project.project_id) == blueprint
+
+
+def test_ota_blueprint_rejects_filename_and_internal_target_disagreement(tmp_path):
+    source = tmp_path / "popsicle-ota_full-OS4.0.0.25.XPBCNXM-user-17.0-test.zip"
+    with zipfile.ZipFile(source, "w") as archive:
+        archive.writestr("payload.bin", b"CrAU-source")
+        archive.writestr(
+            "META-INF/com/android/metadata",
+            "pre-device=komodo\n"
+            "post-build=google/komodo/komodo:17/BP2A.260901.001/456:user/release-keys\n",
+        )
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.import_original(store.create("Conflicting OTA identity").project_id, source)
+    tree = store.working_root / project.project_id / "tree"
+    tree.mkdir(parents=True)
+    (tree / "payload.bin").write_bytes(b"CrAU-source")
+    dumper = tmp_path / "payload-dumper-go"
+    dumper.write_bytes(b"tool")
+    service = FirmwareSourceIntelligenceService(
+        store,
+        (ToolStatus("Payload Dumper", True, str(dumper), "test"),),
+        SourceRunner(),
+    )
+
+    with pytest.raises(ProjectError, match="filename target.*package target disagree"):
+        service.prepare(project.project_id)
 
 
 def test_ota_blueprint_rejects_extra_oversized_and_symlinked_evidence(tmp_path):

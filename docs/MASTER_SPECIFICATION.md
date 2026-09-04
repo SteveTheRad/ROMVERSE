@@ -847,6 +847,14 @@ ABI, verified boot, slot, dynamic/A/B state, encryption, kernel, platform and he
 that the device actually reports. Vendor-neutral OTA intake reads only the bounded standard
 `META-INF/com/android/metadata` ZIP entry and validates its target, current-build preconditions,
 post-build identity, SDK, build timestamp and security-patch date against that live passport.
+ROMVERSE parses each declared build fingerprint as the canonical
+`brand/product/device:release/id/incremental:type/tags` tuple and rejects malformed fingerprints,
+ambiguous scalar incrementals, any fingerprint/scalar incremental disagreement, and contradictory
+filename versus internal target or Android-release claims. For a generic filename, a single
+unambiguous post-build brand, device, release and build ID may populate the project-local source
+blueprint and flow into Device DNA, Archives lookup, Forge and Device Atlas. This is bounded
+package-declared structure only; it does not prove a trusted signer, download origin, authentic OEM
+release, compatible partition contract, recovery path, or install authority.
 Exact post-build identity is the only generic `same installed build` proof. For a different build,
 all available SDK/timestamp/security-patch directions must agree before the comparison may label an
 upgrade or downgrade; malformed dates are rejected and conflicting or missing evidence remains

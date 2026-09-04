@@ -335,6 +335,15 @@ For vendor-neutral Android OTA ZIPs, Device DNA also reads the standard bounded
 `post-security-patch-level`, and `post-timestamp` with the live product/device aliases, fingerprint,
 incremental build, SDK, security patch, and build timestamp. Contradictory targets, duplicate keys,
 impossible dates, malformed values, wrong-device packages, and wrong incremental paths fail closed.
+Every declared Android build fingerprint is parsed through the canonical
+`brand/product/device:release/id/incremental:type/tags` shape. Its embedded incremental must agree
+with the package's separate incremental field across every runtime fingerprint variant. When a
+generic filename carries no useful identity, one unambiguous post-build fingerprint now supplies
+the source blueprint's brand, device codename, Android release, and build ID; that exact result is
+carried into Device DNA, offline-archive lookup, Forge, and a phone-matched Device Atlas handoff.
+Filename and internal target/release conflicts stop preparation and upgrade review rather than
+choosing whichever claim is more convenient. These are package-declared structural facts, not
+proof of the package's signer, provenance, authenticity, or permission to install it.
 Exact post-build identity proves that the package is already installed. Otherwise, every available
 SDK, timestamp, and security-patch direction must agree before ROMVERSE labels an Upgrade or
 Downgrade Candidate; conflicting or missing comparable evidence remains Unconfirmed.

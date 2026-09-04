@@ -154,16 +154,23 @@ def query_from_device_dna(profile: DeviceDnaProfile | None) -> KnowledgeQuery:
     evidence_terms.extend(profile.warnings)
     return KnowledgeQuery(
         manufacturers=values("identity.manufacturer"),
-        brands=values("identity.brand"),
+        brands=values("identity.brand", "firmware.ota_post_brand"),
         models=values("identity.model", "identity.marketing_name"),
-        codenames=values("identity.codename", "identity.product", "identity.vendor_device"),
+        codenames=values(
+            "identity.codename",
+            "identity.product",
+            "identity.vendor_device",
+            "firmware.ota_post_product",
+            "firmware.ota_post_device",
+        ),
         build_ids=values(
             "software.build",
             "software.live_incremental",
             "software.live_system_incremental",
+            "firmware.ota_post_build_id",
             "firmware.ota_post_incremental",
         ),
-        android_versions=values("software.android_version"),
+        android_versions=values("software.android_version", "firmware.ota_post_android"),
         bootloader_states=values("bootloader.state"),
         partitions=_unique(partitions),
         evidence_terms=_unique(evidence_terms, maximum=256),

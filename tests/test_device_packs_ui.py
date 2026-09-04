@@ -1,4 +1,5 @@
 import json
+import zipfile
 from importlib.resources import files
 
 from PySide6.QtWidgets import QApplication, QLabel
@@ -104,7 +105,8 @@ def test_studio_handoff_scopes_requirements_to_current_strict_source_blueprint(
     store = RomProjectStore(tmp_path / "workspace")
     project = store.create("Current HyperOS source", "xiaomi.hyperos")
     source = tmp_path / "popsicle-ota_full-OS4.0.0.25.XPBCNXM-user-17.0-test.zip"
-    source.write_bytes(b"protected-current-source")
+    with zipfile.ZipFile(source, "w") as archive:
+        archive.writestr("source-marker.txt", b"protected-current-source")
     project = store.import_original(project.project_id, source)
     tree = store.working_root / project.project_id / "tree"
     tree.mkdir(parents=True)
@@ -202,6 +204,80 @@ def test_studio_handoff_scopes_requirements_to_current_strict_source_blueprint(
     assert requests == [("compile", "forge_arsenal_project", "", blueprint.report_digest)]
     assert "BUILD HANDOFF STOPPED" in center.requirements_feedback.text()
     assert "source blueprint changed" in center.requirements_feedback.text()
+    center.close()
+
+
+def test_generic_ota_internal_identity_reaches_matching_device_atlas_project(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.create("Pixel OTA source", "google.pixel.tensor-gki")
+    source = tmp_path / "official-generic-update.zip"
+    with zipfile.ZipFile(source, "w") as archive:
+        archive.writestr("payload.bin", b"CrAU protected payload")
+        archive.writestr(
+            "META-INF/com/android/metadata",
+            "pre-device=komodo\n"
+            "post-build=google/komodo/komodo:16/BP2A.260901.001/456:user/release-keys\n"
+            "post-build-incremental=456\n"
+            "post-sdk-level=36\n"
+            "post-security-patch-level=2026-09-01\n"
+            "post-timestamp=1788220800\n",
+        )
+    project = store.import_original(project.project_id, source)
+    tree = store.working_root / project.project_id / "tree"
+    tree.mkdir(parents=True)
+    (tree / "payload.bin").write_bytes(b"CrAU protected payload")
+    payload_dumper = tmp_path / "payload-dumper-go"
+    payload_dumper.write_bytes(b"verified tool fixture")
+    statuses = (
+        ToolStatus("Python", True, "/verified/python", "test", "Ready"),
+        ToolStatus("Payload Dumper", True, str(payload_dumper), "test", "Ready"),
+        ToolStatus("AVBTool", True, "/verified/avbtool", "test", "Ready"),
+    )
+    source_blueprint = FirmwareSourceIntelligenceService(
+        store,
+        statuses,
+        SourceRunner(),
+    ).prepare(project.project_id)
+    center = DevicePacksCenter(registry, store.workspace, tool_statuses=statuses)
+    center.set_devices(
+        [
+            AndroidDevice(
+                "private-pixel",
+                DeviceState.DEVICE,
+                brand="Google",
+                manufacturer="Google",
+                model="Pixel 9 Pro XL",
+                product="komodo",
+                codename="komodo",
+                build_id="BP1A.260801.001",
+            )
+        ]
+    )
+
+    assert center.open_rom_studio_project(
+        project.project_id,
+        project.name,
+        project.device_pack_id,
+        project.original.sha256,
+    )
+    app.processEvents()
+
+    requirements = center.current_requirements()
+    assert source_blueprint.manufacturer == "google"
+    assert source_blueprint.codename == "komodo"
+    assert source_blueprint.build_id == "BP2A.260901.001"
+    assert requirements is not None and requirements.project_scoped
+    assert requirements.pack_id == "google.pixel.tensor-gki"
+    assert requirements.source_build_id == "BP2A.260901.001"
+    assert requirements.source_blueprint_digest == source_blueprint.blueprint_digest
+    assert requirements.lane("build").badge == "PROJECT SOURCE • LOCAL BASELINE READY"
+    assert requirements.lane("compile").state is RequirementState.VERIFIED
+    assert requirements.lane("flash").state is RequirementState.LOCKED
+    assert center.dashboard_handoff_badge.text() == "PROJECT SOURCE BOUND"
+    assert "BP2A.260901.001" in center.dashboard_handoff_detail.text()
+    assert center.next_action_button.text() == "Prepare exact-source Pack draft"
     center.close()
 
 

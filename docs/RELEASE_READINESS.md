@@ -305,6 +305,19 @@ These are local Linux checkpoint artifacts; Windows and GitHub runner evidence h
 created for this exact commit. No phone, firmware, partition, bootloader, flash, or installation
 operation was performed.
 
+The post-checkpoint generic-OTA identity increment parses the full canonical Android fingerprint
+tuple and requires every embedded incremental to agree with the corresponding scalar package
+metadata. It rejects contradictory filename/internal target or Android-release claims in both
+source preparation and upgrade review. A generic OTA with a single unambiguous post-build identity
+now carries its brand, device codename, Android release and build ID through the strict local source
+blueprint, Device DNA, offline knowledge query, Forge and a matching Device Atlas project handoff.
+An end-to-end Pixel `komodo` fixture proves this path while Build remains local-source ready and
+Flash remains locked. The real protected HyperOS 4.0.0.25 package also parses successfully as
+`Xiaomi / popsicle / Android 17 / CP2A.260605.016`, post incremental
+`17OS4.0.260821.223347094.QCPECN.S`, SDK 37 and security patch 2026-08-01. This metadata is still
+package-declared structure and grants no authenticity, signing, recovery, install, or flash
+authority. No phone action was performed.
+
 ## Required gates
 
 1. Run the complete `pytest`, `ruff check .`, and `ruff format --check .` gates on supported Linux

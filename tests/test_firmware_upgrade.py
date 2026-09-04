@@ -391,3 +391,36 @@ def test_project_review_rejects_bad_ota_metadata_instead_of_falling_back_to_file
     assert any("will not replace rejected" in item for item in review.assessment.reasons)
     assert not review.install_authority
     assert not review.phone_changed
+
+
+def test_project_review_rejects_filename_and_internal_ota_identity_conflict(tmp_path) -> None:
+    source = tmp_path / "popsicle-ota_full-OS4.0.0.25.XPBCNXM-user-17.0-test.zip"
+    with zipfile.ZipFile(source, "w") as archive:
+        archive.writestr("payload.bin", b"CrAU test")
+        archive.writestr(
+            "META-INF/com/android/metadata",
+            "pre-device=komodo\n"
+            "post-build=google/komodo/komodo:17/BP2A.260901.001/200:user/release-keys\n"
+            "post-build-incremental=200\n"
+            "post-sdk-level=37\n"
+            "post-timestamp=200\n",
+        )
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.import_original(store.create("Identity conflict").project_id, source)
+    device = AndroidDevice(
+        "private-serial",
+        DeviceState.DEVICE,
+        codename="komodo",
+        build_id="CP2A.260605.016",
+        build_incremental="100",
+        build_timestamp_utc=100,
+        api_level="37",
+    )
+
+    review = assess_project_firmware_upgrade(store, project.project_id, device)
+
+    assert review.assessment.relationship is FirmwareRelationship.UNCONFIRMED
+    assert "PACKAGE IDENTITY CONFLICT" in review.assessment.summary
+    assert any("popsicle" in reason and "komodo" in reason for reason in review.assessment.reasons)
+    assert not review.install_authority
+    assert not review.phone_changed

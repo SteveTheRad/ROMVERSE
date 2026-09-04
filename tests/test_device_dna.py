@@ -216,6 +216,7 @@ def test_device_dna_uses_standard_ota_metadata_for_an_unknown_android_brand(tmp_
                     b"ota-type=AB",
                     b"pre-device=rad",
                     b"pre-build-incremental=100",
+                    b"post-build=radforge/rad/rad:15/AP4A.260901.001/200:user/release-keys",
                     b"post-build-incremental=200",
                     b"post-sdk-level=35",
                     b"post-security-patch-level=2026-09-01",
@@ -248,6 +249,14 @@ def test_device_dna_uses_standard_ota_metadata_for_an_unknown_android_brand(tmp_
     assert profile.fact("identity.vendor_device").value == "rad"
     assert profile.fact("software.live_incremental").value == "100"
     assert profile.fact("software.build").value == "200"
+    assert profile.fact("software.android_version").value == "15"
+    assert profile.fact("firmware.ota_post_brand").value == "radforge"
+    assert profile.fact("firmware.ota_post_product").value == "rad"
+    assert profile.fact("firmware.ota_post_device").value == "rad"
+    assert profile.fact("firmware.ota_post_android").value == "15"
+    assert profile.fact("firmware.ota_post_build_id").value == "AP4A.260901.001"
+    assert profile.fact("firmware.ota_post_sdk").value == "35"
+    assert profile.fact("firmware.ota_post_security_patch").value == "2026-09-01"
     assert profile.fact("firmware.upgrade_relationship").value == ("UPGRADE CANDIDATE • AP4A → 200")
     assert any(item.evidence_id == "source.ota_metadata" for item in profile.evidence)
     assert profile.capability("firmware_detection").state is CapabilityState.SUPPORTED

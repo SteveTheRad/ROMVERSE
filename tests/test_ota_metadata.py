@@ -34,6 +34,14 @@ def test_parses_standard_android_ota_metadata_and_fingerprint_target() -> None:
     assert metadata.post_build_incremental == "456"
     assert metadata.post_sdk_level == 36
     assert metadata.post_timestamp == 1788220800
+    assert metadata.post_fingerprints[0].brand == "google"
+    assert metadata.post_fingerprints[0].product == "komodo"
+    assert metadata.post_fingerprints[0].device == "komodo"
+    assert metadata.post_fingerprints[0].release == "16"
+    assert metadata.post_fingerprints[0].build_id == "BP2A.260901.001"
+    assert metadata.post_fingerprints[0].incremental == "456"
+    assert metadata.post_fingerprints[0].build_type == "user"
+    assert metadata.post_fingerprints[0].tags == "release-keys"
     assert len(metadata.metadata_digest) == 64
 
 
@@ -57,6 +65,27 @@ def test_reads_only_the_standard_metadata_entry_from_zip(tmp_path: Path) -> None
         b"post-sdk-level=not-a-number\n",
         b"post-security-patch-level=September\n",
         b"post-security-patch-level=2026-13-40\n",
+        b"pre-build=not-a-build-fingerprint\n",
+        b"post-build=google/product/device:16/build/missing-variant\n",
+        (
+            b"pre-build=google/komodo/komodo:16/BP2A/123:user/release-keys\n"
+            b"pre-build-incremental=999\n"
+        ),
+        (
+            b"post-build=google/komodo/komodo:16/BP2A/456:user/release-keys\n"
+            b"post-build-incremental=999\n"
+        ),
+        (
+            b"pre-build=google/komodo/komodo:16/BP2A/456:user/release-keys|"
+            b"google/komodo/komodo:16/BP2A/999:user/release-keys\n"
+            b"pre-build-incremental=456\n"
+        ),
+        (
+            b"post-build=google/komodo/komodo:16/BP2A/456:user/release-keys|"
+            b"google/komodo/komodo:16/BP2A/999:user/release-keys\n"
+            b"post-build-incremental=456\n"
+        ),
+        b"pre-build-incremental=456|999\n",
         (b"pre-device=komodo\npost-build=google/husky/husky:16/BP2A/456:user/release-keys\n"),
         b"missing-separator\n",
         b"x" * (MAX_METADATA_BYTES + 1),

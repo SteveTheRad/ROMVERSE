@@ -45,7 +45,12 @@ approve a plan, or grant phone-write authority.
    post-build identity means already installed; all available directional signals must agree before
    Upgrade or Downgrade is shown. A conflict remains visibly Unconfirmed instead of being resolved
    from a filename, marketing version, or a preferred signal. This classification still grants no
-   phone-changing authority.
+   phone-changing authority. Each pre/post build fingerprint must use Android's canonical tuple and
+   must agree with its separately declared incremental. A generic OTA filename may obtain one
+   unambiguous brand/device/Android/build identity from its post-build fingerprint for the strict
+   local source blueprint. Forge, Device DNA, Archives lookup, and a matching Device Atlas phone
+   consume that same identity; conflicting filename/internal claims stop the route. Package metadata
+   is not treated as signer, origin, authenticity, partition-write, recovery, or flash evidence.
    Schema-one Device DNA remains readable and refreshes forward automatically.
    Genesis requests a fresh read-only device scan at this stage, shows the current identity and
    Capability Map states, and refuses to advance if either the profile or map is missing. A failed

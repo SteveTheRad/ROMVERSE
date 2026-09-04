@@ -13,6 +13,21 @@ class OtaMetadataError(ValueError):
 
 
 @dataclass(frozen=True, slots=True)
+class AndroidBuildFingerprint:
+    """Strict fields from Android's canonical build-fingerprint shape."""
+
+    raw: str
+    brand: str
+    product: str
+    device: str
+    release: str
+    build_id: str
+    incremental: str
+    build_type: str
+    tags: str
+
+
+@dataclass(frozen=True, slots=True)
 class AndroidOtaMetadata:
     pre_devices: tuple[str, ...]
     pre_builds: tuple[str, ...]
@@ -34,6 +49,14 @@ class AndroidOtaMetadata:
             if device
         )
         return tuple(dict.fromkeys(item.casefold() for item in observed if item.strip()))
+
+    @property
+    def post_fingerprints(self) -> tuple[AndroidBuildFingerprint, ...]:
+        return tuple(
+            parsed
+            for value in self.post_builds
+            if (parsed := parse_android_build_fingerprint(value)) is not None
+        )
 
 
 METADATA_PATH = "META-INF/com/android/metadata"
@@ -106,7 +129,34 @@ def parse_android_ota_metadata(payload: bytes) -> AndroidOtaMetadata:
             raise OtaMetadataError("Android OTA security patch level is not a valid date") from exc
 
     pre_devices = _alternatives(values.get("pre-device", ""))
+    pre_builds = _alternatives(values.get("pre-build", ""))
+    pre_build_incrementals = _alternatives(values.get("pre-build-incremental", ""))
     post_builds = _alternatives(values.get("post-build", ""))
+    post_build_incremental = values.get("post-build-incremental", "").strip()
+    if any(parse_android_build_fingerprint(value) is None for value in pre_builds):
+        raise OtaMetadataError("Android OTA pre-build fingerprint is malformed")
+    if any(parse_android_build_fingerprint(value) is None for value in post_builds):
+        raise OtaMetadataError("Android OTA post-build fingerprint is malformed")
+    pre_fingerprints = tuple(parse_android_build_fingerprint(value) for value in pre_builds)
+    post_fingerprints = tuple(parse_android_build_fingerprint(value) for value in post_builds)
+    if len(pre_build_incrementals) > 1:
+        raise OtaMetadataError("Android OTA pre-build incremental is ambiguous")
+    if pre_build_incrementals and pre_fingerprints:
+        declared_pre_incremental = pre_build_incrementals[0]
+        if any(
+            fingerprint is not None and fingerprint.incremental != declared_pre_incremental
+            for fingerprint in pre_fingerprints
+        ):
+            raise OtaMetadataError("Android OTA pre-build fingerprint and incremental disagree")
+    if (
+        post_build_incremental
+        and post_fingerprints
+        and any(
+            fingerprint is not None and fingerprint.incremental != post_build_incremental
+            for fingerprint in post_fingerprints
+        )
+    ):
+        raise OtaMetadataError("Android OTA post-build fingerprint and incremental disagree")
     post_devices = tuple(
         item for item in (_fingerprint_device(value) for value in post_builds) if item
     )
@@ -119,10 +169,10 @@ def parse_android_ota_metadata(payload: bytes) -> AndroidOtaMetadata:
 
     return AndroidOtaMetadata(
         pre_devices=pre_devices,
-        pre_builds=_alternatives(values.get("pre-build", "")),
-        pre_build_incrementals=_alternatives(values.get("pre-build-incremental", "")),
+        pre_builds=pre_builds,
+        pre_build_incrementals=pre_build_incrementals,
         post_builds=post_builds,
-        post_build_incremental=values.get("post-build-incremental", "").strip(),
+        post_build_incremental=post_build_incremental,
         post_sdk_level=post_sdk,
         post_security_patch_level=security_patch,
         post_timestamp=post_timestamp,
@@ -148,6 +198,33 @@ def _optional_positive_int(value: str, label: str) -> int | None:
 
 
 def _fingerprint_device(fingerprint: str) -> str:
-    prefix = fingerprint.split(":", 1)[0]
-    parts = prefix.split("/")
-    return parts[2].strip() if len(parts) >= 3 else ""
+    parsed = parse_android_build_fingerprint(fingerprint)
+    return parsed.device if parsed is not None else ""
+
+
+def parse_android_build_fingerprint(value: str) -> AndroidBuildFingerprint | None:
+    """Parse one canonical brand/product/device:release/id/incremental:type/tags value."""
+
+    raw = str(value).strip()
+    if not raw or len(raw) > 1_024 or any(character.isspace() for character in raw):
+        return None
+    product_scope, separator, remainder = raw.partition(":")
+    if not separator:
+        return None
+    build_scope, separator, variant_scope = remainder.partition(":")
+    if not separator or ":" in variant_scope:
+        return None
+    product_parts = product_scope.split("/")
+    build_parts = build_scope.split("/")
+    variant_parts = variant_scope.split("/")
+    if len(product_parts) != 3 or len(build_parts) != 3 or len(variant_parts) != 2:
+        return None
+    fields = (*product_parts, *build_parts, *variant_parts)
+    if any(
+        not field
+        or len(field) > 160
+        or any(ord(character) < 33 or character in "/:" for character in field)
+        for field in fields
+    ):
+        return None
+    return AndroidBuildFingerprint(raw, *fields)

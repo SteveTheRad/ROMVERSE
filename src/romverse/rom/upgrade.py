@@ -309,6 +309,24 @@ def assess_device_firmware_upgrade(
                 "ROMVERSE will not replace rejected package metadata with a filename-only decision.",
             ),
         )
+    identity_conflict = _ota_source_identity_conflict(source, ota_metadata)
+    if identity_conflict:
+        return _assessment(
+            FirmwareRelationship.UNCONFIRMED,
+            (device.rom_display or device.build_id) if device is not None else "",
+            source_build,
+            device.codename.casefold().strip() if device is not None else "",
+            source_codename.casefold().strip(),
+            xiaomi_build_region(device.rom_display or device.build_id)
+            if device is not None
+            else "",
+            xiaomi_build_region(source_build),
+            "UPGRADE STATUS UNCONFIRMED • PACKAGE IDENTITY CONFLICT",
+            (
+                identity_conflict,
+                "ROMVERSE will not replace contradictory internal package identity with a filename-only decision.",
+            ),
+        )
     return assess_firmware_upgrade(
         current_build=(device.rom_display or device.build_id) if device is not None else "",
         candidate_build=source_build,
@@ -334,6 +352,52 @@ def _ota_candidate_build(metadata: AndroidOtaMetadata | None) -> str:
     return metadata.post_build_incremental or (
         metadata.post_builds[0] if metadata.post_builds else ""
     )
+
+
+def _ota_source_identity_conflict(
+    source: FirmwareSourceIdentity,
+    metadata: AndroidOtaMetadata | None,
+) -> str:
+    if metadata is None:
+        return ""
+    source_codename = source.codename.casefold().strip()
+    targets = set(metadata.target_devices)
+    post_devices = {fingerprint.device.casefold() for fingerprint in metadata.post_fingerprints}
+    exact_targets = post_devices or targets
+    if source_codename and exact_targets and source_codename not in exact_targets:
+        return (
+            f"Firmware filename target {source_codename} disagrees with Android OTA target(s) "
+            f"{', '.join(sorted(exact_targets))}."
+        )
+    for attribute, label in (
+        ("brand", "brands"),
+        ("release", "Android releases"),
+        ("build_id", "build IDs"),
+        ("incremental", "incremental builds"),
+    ):
+        values = {
+            str(getattr(fingerprint, attribute)).strip()
+            for fingerprint in metadata.post_fingerprints
+            if str(getattr(fingerprint, attribute)).strip()
+        }
+        if len(values) > 1:
+            return f"Android OTA post-build fingerprints report conflicting {label}."
+    releases = {
+        fingerprint.release.strip()
+        for fingerprint in metadata.post_fingerprints
+        if fingerprint.release.strip()
+    }
+    if (
+        source.android_version
+        and len(releases) == 1
+        and _android_release_key(source.android_version)
+        != _android_release_key(next(iter(releases)))
+    ):
+        return (
+            f"Firmware filename Android {source.android_version} disagrees with OTA post-build "
+            f"Android {next(iter(releases))}."
+        )
+    return ""
 
 
 def assess_project_firmware_upgrade(
@@ -674,6 +738,16 @@ def _parse_security_patch(value: str) -> date | None:
         return date.fromisoformat(value.strip()) if value.strip() else None
     except ValueError:
         return None
+
+
+def _android_release_key(value: str) -> tuple[int, ...] | tuple[str]:
+    normalized = str(value).strip()
+    if re.fullmatch(r"[0-9]+(?:\.[0-9]+)*", normalized):
+        numbers = [int(part) for part in normalized.split(".")]
+        while len(numbers) > 1 and numbers[-1] == 0:
+            numbers.pop()
+        return tuple(numbers)
+    return (normalized.casefold(),)
 
 
 def _ota_precondition_error(

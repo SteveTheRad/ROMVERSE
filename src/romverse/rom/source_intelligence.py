@@ -14,13 +14,18 @@ from romverse.infrastructure.local_store import atomic_write_json, read_json_obj
 from romverse.infrastructure.process import CommandRunner
 from romverse.infrastructure.tools import ToolStatus
 from romverse.rom.models import ProjectError
+from romverse.rom.ota_metadata import (
+    AndroidOtaMetadata,
+    OtaMetadataError,
+    read_android_ota_metadata,
+)
 from romverse.rom.payloads import PayloadPartition, PayloadService
 from romverse.rom.projects import RomProjectStore
 from romverse.rom.source_blueprint import (
     FastbootSourceBlueprintService,
     ProgressCallback,
 )
-from romverse.rom.source_identity import identify_firmware_source
+from romverse.rom.source_identity import FirmwareSourceIdentity, identify_firmware_source
 
 
 class FirmwareAdapter(StrEnum):
@@ -257,6 +262,14 @@ class FirmwareSourceIntelligenceService:
         project = self.store.get(project_id)
         assert project.original is not None
         identity = identify_firmware_source(project.original.original_name)
+        try:
+            ota_metadata = read_android_ota_metadata(self.store.original_path(project_id))
+        except OtaMetadataError as exc:
+            raise ProjectError(f"Android OTA metadata was rejected: {exc}") from exc
+        manufacturer, codename, build_id, android_version, region = _ota_blueprint_identity(
+            identity,
+            ota_metadata,
+        )
         payload_path = self.store.workspace / manifest.payload_path
         payload_stat = payload_path.stat()
         plan_payload = {
@@ -274,11 +287,11 @@ class FirmwareSourceIntelligenceService:
             "schema_version": 1,
             "project_id": project_id,
             "created_at": datetime.now(UTC).isoformat(),
-            "manufacturer": identity.manufacturer,
-            "codename": identity.codename,
-            "build_id": identity.build_id,
-            "android_version": identity.android_version,
-            "region": identity.region,
+            "manufacturer": manufacturer,
+            "codename": codename,
+            "build_id": build_id,
+            "android_version": android_version,
+            "region": region,
             "source_archive_sha256": project.original.sha256,
             "payload_path": manifest.payload_path,
             "payload_size_bytes": payload_stat.st_size,
@@ -576,6 +589,81 @@ def _digest(payload: dict[str, object]) -> str:
     return hashlib.sha256(
         json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode()
     ).hexdigest()
+
+
+def _ota_blueprint_identity(
+    filename_identity: FirmwareSourceIdentity,
+    metadata: AndroidOtaMetadata | None,
+) -> tuple[str, str, str, str, str]:
+    """Reconcile filename evidence with exact standard OTA post-build fields."""
+
+    if metadata is None:
+        return (
+            filename_identity.manufacturer,
+            filename_identity.codename,
+            filename_identity.build_id,
+            filename_identity.android_version,
+            filename_identity.region,
+        )
+    targets = tuple(dict.fromkeys(metadata.target_devices))
+    post_devices = tuple(
+        dict.fromkeys(fingerprint.device.casefold() for fingerprint in metadata.post_fingerprints)
+    )
+    filename_codename = filename_identity.codename.casefold().strip()
+    exact_targets = post_devices or targets
+    if filename_codename and exact_targets and filename_codename not in exact_targets:
+        raise ProjectError(
+            "Firmware filename target and Android OTA package target disagree; source preparation stopped"
+        )
+
+    brands = _single_post_fingerprint_field(metadata, "brand", "brand")
+    release = _single_post_fingerprint_field(metadata, "release", "Android release")
+    post_build_id = _single_post_fingerprint_field(metadata, "build_id", "build ID")
+    if (
+        filename_identity.android_version
+        and release
+        and _android_release_key(filename_identity.android_version) != _android_release_key(release)
+    ):
+        raise ProjectError(
+            "Firmware filename Android version and Android OTA post-build release disagree; source preparation stopped"
+        )
+    codename = filename_identity.codename or (
+        post_devices[0] if len(post_devices) == 1 else targets[0] if len(targets) == 1 else ""
+    )
+    return (
+        filename_identity.manufacturer or brands,
+        codename,
+        filename_identity.build_id or post_build_id or metadata.post_build_incremental,
+        filename_identity.android_version or release,
+        filename_identity.region,
+    )
+
+
+def _single_post_fingerprint_field(
+    metadata: AndroidOtaMetadata,
+    attribute: str,
+    label: str,
+) -> str:
+    values = tuple(
+        dict.fromkeys(
+            str(getattr(fingerprint, attribute)).strip()
+            for fingerprint in metadata.post_fingerprints
+            if str(getattr(fingerprint, attribute)).strip()
+        )
+    )
+    if len(values) > 1:
+        raise ProjectError(f"Android OTA post-build {label} is ambiguous")
+    return values[0] if values else ""
+
+
+def _android_release_key(value: str) -> tuple[int, ...] | tuple[str]:
+    normalized = str(value).strip()
+    if re.fullmatch(r"[0-9]+(?:\.[0-9]+)*", normalized):
+        numbers = [int(part) for part in normalized.split(".")]
+        while len(numbers) > 1 and numbers[-1] == 0:
+            numbers.pop()
+        return tuple(numbers)
+    return (normalized.casefold(),)
 
 
 def _valid_payload_partition(item: PayloadPartition) -> bool:

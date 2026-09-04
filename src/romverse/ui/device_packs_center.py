@@ -59,6 +59,11 @@ from romverse.device_packs.requirements import (
     ProjectSourceRequirements,
     RequirementState,
 )
+from romverse.device_packs.routes import (
+    DevicePackRouteBlueprint,
+    DevicePackRouteBlueprintService,
+    FoundryRouteState,
+)
 from romverse.device_packs.source_audit import export_source_audit, summarize_sources
 from romverse.device_packs.validation import (
     DevicePackNextAction,
@@ -123,6 +128,7 @@ class DevicePacksCenter(QWidget):
         self.draft_service = DevicePackDraftService()
         self.foundry_service = DevicePackFoundryService()
         self.promotion_service = DevicePackPromotionService()
+        self.route_blueprint_service = DevicePackRouteBlueprintService()
         self.active_report: DevicePackValidationReport | None = None
         self.active_next_action: DevicePackNextAction | None = None
         self.active_requirements: DeviceRequirementsBlueprint | None = None
@@ -131,8 +137,10 @@ class DevicePacksCenter(QWidget):
         self.active_foundry_revision: FoundryDraftRevision | None = None
         self.foundry_inventory: DevicePackFoundryInventory | None = None
         self.active_promotion_review: DevicePackPromotionReview | None = None
+        self.active_route_blueprint: DevicePackRouteBlueprint | None = None
         self.import_contribution_button: QPushButton | None = None
         self.export_promotion_review_button: QPushButton | None = None
+        self.export_route_blueprint_button: QPushButton | None = None
         self.foundry_contribution_status: QLabel | None = None
         self.active_catalog_match: DeviceCatalogMatch | None = None
         self.active_pack: DevicePack | None = None
@@ -2248,8 +2256,10 @@ class DevicePacksCenter(QWidget):
         self.active_foundry_revision = None
         self.foundry_inventory = None
         self.active_promotion_review = None
+        self.active_route_blueprint = None
         self.import_contribution_button = None
         self.export_promotion_review_button = None
+        self.export_route_blueprint_button = None
         self.foundry_contribution_status = None
         card = QFrame()
         card.setObjectName("DevicePackFoundryCard")
@@ -2352,6 +2362,61 @@ class DevicePacksCenter(QWidget):
                 tile_layout.addWidget(lane_detail)
                 grid.addWidget(tile, index // 3, index % 3)
             layout.addLayout(grid)
+            try:
+                route_blueprint = self.route_blueprint_service.derive(
+                    revision,
+                    boundary=self.workspace,
+                )
+            except ValueError:
+                route_blueprint = None
+            if route_blueprint is None:
+                route_pending = QLabel(
+                    "ROUTE ENGINEERING  •  PENDING SEALED DEVICE DNA  •  no flash, backup, "
+                    "rollback or recovery route has been inferred"
+                )
+                route_pending.setObjectName("Muted")
+                route_pending.setWordWrap(True)
+                layout.addWidget(route_pending)
+            else:
+                self.active_route_blueprint = route_blueprint
+                route_header = QHBoxLayout()
+                route_copy = QVBoxLayout()
+                route_title = QLabel(
+                    f"ROUTE ENGINEERING  •  {route_blueprint.evidenced_observation_count} "
+                    f"MEASURED OBSERVATION(S)  •  {route_blueprint.blocked_route_count} "
+                    "BLOCKED ROUTE(S)"
+                )
+                route_title.setObjectName("Warning")
+                route_detail = QLabel(
+                    "  •  ".join(route_blueprint.operational_characteristics)
+                    or "No route characteristic is confirmed yet."
+                )
+                route_detail.setObjectName("Muted")
+                route_detail.setWordWrap(True)
+                route_copy.addWidget(route_title)
+                route_copy.addWidget(route_detail)
+                route_header.addLayout(route_copy, 1)
+                self.export_route_blueprint_button = QPushButton("Export route blueprint…")
+                self.export_route_blueprint_button.setToolTip(
+                    "Exports measured slot, partition, bootloader, AVB and transport facts plus "
+                    "the exact missing backup/flash/rollback/recovery contracts. It contains no "
+                    "command or execution authority."
+                )
+                self.export_route_blueprint_button.clicked.connect(
+                    self._export_foundry_route_blueprint
+                )
+                route_header.addWidget(self.export_route_blueprint_button)
+                layout.addLayout(route_header)
+                route_states = QLabel(
+                    "  •  ".join(
+                        f"{route.title}: "
+                        f"{'BLOCKED' if route.state is FoundryRouteState.BLOCKED else 'NEEDS EVIDENCE'}"
+                        for route in route_blueprint.routes
+                    )
+                )
+                route_states.setObjectName("Warning")
+                route_states.setWordWrap(True)
+                layout.addWidget(route_states)
         inventory_state = QLabel(
             f"FOUNDRY VAULT  •  {inventory.pack_count} experimental Pack lineage(s)  •  "
             f"{len(inventory.revisions)} immutable revision(s)  •  "
@@ -2514,6 +2579,33 @@ class DevicePacksCenter(QWidget):
                     f"Saved {exported.output_path}  •  SHA-256 {exported.sha256[:16]}…  •  "
                     f"{review.blocker_count} blocker(s) recorded  •  publication authority: NONE  •  "
                     "production registry changed: NO."
+                )
+                self.foundry_contribution_status.setObjectName("Good")
+        if self.foundry_contribution_status is not None:
+            self._repolish(self.foundry_contribution_status)
+
+    def _export_foundry_route_blueprint(self) -> None:
+        blueprint = self.active_route_blueprint
+        if self.workspace is None or blueprint is None:
+            return
+        try:
+            exported = self.route_blueprint_service.export(
+                blueprint,
+                self.workspace / "device_pack_route_blueprints",
+                boundary=self.workspace,
+            )
+        except OSError as exc:
+            if self.foundry_contribution_status is not None:
+                self.foundry_contribution_status.setText(
+                    f"Route blueprint export stopped safely: {exc}. No device route was enabled."
+                )
+                self.foundry_contribution_status.setObjectName("Danger")
+        else:
+            if self.foundry_contribution_status is not None:
+                self.foundry_contribution_status.setText(
+                    f"Saved {exported.output_path}  •  SHA-256 {exported.sha256[:16]}…  •  "
+                    f"{blueprint.blocked_route_count} route(s) remain blocked  •  commands: NONE  •  "
+                    "phone authority: NONE."
                 )
                 self.foundry_contribution_status.setObjectName("Good")
         if self.foundry_contribution_status is not None:

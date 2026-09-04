@@ -1666,7 +1666,16 @@ The product-wide continuation target and definition of done are recorded in
   `eligible-for-governed-review`: runtime promotion is explicitly unsupported, publication authority
   is `none`, and the production registry remains unchanged. Current real drafts stay blocked where
   evidence is genuinely absent.
-- All 1,889 Desktop/Python tests and the complete Ruff check gate pass, including core draft,
+- Source/DNA-bound revisions now expose a deterministic Route Engineering blueprint. It strictly
+  reloads the canonical draft and current sealed Device DNA before recording the measured bootloader
+  state, active slot, A/B scheme, dynamic-partition architecture, Verified Boot, Fastboot/recovery,
+  OEM AVB and partition-count evidence. Separate backup, exact-flash, rollback and failure/stock-
+  recovery routes name their still-missing write, readback, transition, stock-package, consent and
+  independent physical-test contracts. The private content-addressed export excludes the serial and
+  raw commands, forbids bootloader relocking and automatic device actions, and permanently carries
+  execution authority `none`. Changed or reformatted bytes, identity-only drafts and stale sealed profiles
+  fail closed rather than generating a route.
+- All 1,892 Desktop/Python tests and the complete Ruff check gate pass, including core draft,
   Foundry inventory, Device Atlas UI, validation, requirements, Companion parity and navigation
   coverage. A themed 1200-by-600 direct panel
   render confirms the cyan-violet blueprint, two rows of evidence lanes, long identity text, state

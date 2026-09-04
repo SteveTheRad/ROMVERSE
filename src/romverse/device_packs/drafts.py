@@ -97,6 +97,7 @@ class DevicePackDraftService:
             "firmware.adapter",
             "partition.architecture",
             "partition.ab_scheme",
+            "bootloader.state",
             "boot.active_slot",
             "security.verified_boot",
             "capability.fastboot",

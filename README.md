@@ -335,6 +335,15 @@ content-addressed review dossier. Even a complete dossier means only “eligible
 the runtime deliberately has no promotion operation, publication authority remains none, and the
 installed production registry cannot be modified by this workflow.
 
+For source/DNA-bound revisions, **Route Engineering** now derives a privacy-safe blueprint from the
+sealed measured facts rather than inventing a generic flashing recipe. It records the observed
+bootloader state, active slot, A/B scheme, dynamic-partition architecture, Verified Boot state,
+Fastboot/recovery capability, OEM AVB identity when available, and source partition count. It then
+separates pre-change backup, exact flash, rollback, and failure/stock-recovery routes and lists the
+missing write, readback, transition, stock-package, consent and physical-test evidence for each.
+Those blueprints contain no raw command, serial, automatic operation, bootloader-relock permission,
+or execution authority. Changed drafts and stale sealed Device DNA are rejected before derivation.
+
 Device Atlas can export an exact physical-test challenge and import the resulting detached
 Ed25519 envelope. Accepted evidence is stored in a bounded workspace vault, reverified on every
 read, and shared consistently with Genesis Sequence and Forge Control. The release trust catalog

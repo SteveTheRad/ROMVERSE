@@ -580,6 +580,7 @@ class RomStudio(QWidget):
     device_scan_finished = Signal(bool, str)
     device_dna_updated = Signal(object)
     compatibility_matrix_updated = Signal(object)
+    offline_knowledge_updated = Signal(object)
     experience_mode_requested = Signal(object)
 
     def __init__(
@@ -2710,14 +2711,26 @@ class RomStudio(QWidget):
         if self.current_project is not None and active:
             # Boot evidence is optional and must never interfere with device discovery.
             with suppress(OSError, ProjectError):
-                BootObservationService(self.store, self.pack_registry).observe(
+                receipt = BootObservationService(self.store, self.pack_registry).observe(
                     self.current_project.project_id,
                     active[0],
                 )
+                self.scan_boot_observation_knowledge(receipt)
         if changed:
             self.device_context_changed.emit()
             if self.current_project is not None and self.worker is None:
                 self.refresh(self.current_project.project_id)
+
+    def scan_boot_observation_knowledge(self, receipt):
+        """Automatically rank the offline archive when boot evidence needs attention."""
+
+        failure = BootObservationService.knowledge_failure(receipt)
+        if failure is None:
+            return None
+        report = self.device_dna.scan_knowledge_after_failure(receipt.project_id, failure)
+        if report is not None:
+            self.offline_knowledge_updated.emit(report)
+        return report
 
     def set_companion_snapshot(self, snapshot: object) -> None:
         """Receive authenticated, read-only Companion device-safety evidence."""
@@ -3123,16 +3136,20 @@ class RomStudio(QWidget):
             return None
         candidates = tuple(device for device in self.devices if device.state is DeviceState.DEVICE)
         device = candidates[0] if len(candidates) == 1 else None
+        refreshed = False
         try:
             profile = self.device_dna.refresh(
                 project.project_id,
                 device,
                 self.inspection.load_report(project.project_id),
             )
+            refreshed = True
         except (OSError, ProjectError, TypeError, ValueError):
             profile = self.device_dna.profiles.load(project.project_id)
         if profile is not None:
             self.device_dna_updated.emit(profile)
+            if refreshed and self.device_dna.last_knowledge_lookup is not None:
+                self.offline_knowledge_updated.emit(self.device_dna.last_knowledge_lookup)
             matrix: CompatibilityMatrix | None
             try:
                 matrix = self.compatibility.assess(profile)
@@ -3206,6 +3223,24 @@ class RomStudio(QWidget):
             if matrix is not None
             else "\n\nCompatibility Matrix\n• Not available; ROMVERSE will not infer compatibility."
         )
+        archive = ""
+        knowledge_report = self.device_dna.last_knowledge_lookup
+        if knowledge_report is not None and knowledge_report.trigger == "device-dna":
+            best = (
+                f"\n• Best match: {knowledge_report.matches[0].record.title}"
+                if knowledge_report.matches
+                else "\n• No compatible local record matched; unknowns remain explicit."
+            )
+            archive = (
+                "\n\nOffline Archives\n"
+                f"• AUTOMATIC SCAN COMPLETE  •  {len(knowledge_report.matches)} compatible "
+                f"match(es)  •  EXECUTION AUTHORITY: NONE{best}"
+            )
+        elif self.device_dna.knowledge_lookup_error:
+            archive = (
+                "\n\nOffline Archives\n"
+                "• Archive integrity or availability check failed; ROMVERSE did not guess."
+            )
         self.device_dna_detail.setText(
             "Evidence-backed profile\n"
             + "\n".join(facts)
@@ -3213,6 +3248,7 @@ class RomStudio(QWidget):
             + "\n\nCapability Map\n"
             + "\n".join(capabilities)
             + compatibility
+            + archive
             + warning
             + f"\n\nEvidence sources: {len(profile.evidence)}  •  "
             f"Profile digest: {profile.profile_digest[:16]}…  •  Bootloader relock: NEVER"

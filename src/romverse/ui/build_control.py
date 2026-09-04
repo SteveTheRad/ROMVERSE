@@ -1149,6 +1149,8 @@ class BuildControlCenter(QDialog):
         self.online_worker: OnlineRemediationWorker | None = None
         self.online_receipt: OnlineFixReceipt | None = None
         self.online_mission_id = ""
+        self.boot_knowledge_report = None
+        self.boot_knowledge_receipt_digest = ""
         self.preparation_missions: dict[str, str] = {}
         self.autopilot_active = False
         self.autopilot_completed: list[str] = []
@@ -2693,6 +2695,12 @@ class BuildControlCenter(QDialog):
     def _boot_observation_card(self) -> QFrame:
         service = BootObservationService(self.studio.store, self.studio.pack_registry)
         receipt = service.load(self.project.project_id)
+        if receipt is None or not service.needs_knowledge_lookup(receipt):
+            self.boot_knowledge_report = None
+            self.boot_knowledge_receipt_digest = ""
+        elif receipt.receipt_digest != self.boot_knowledge_receipt_digest:
+            self.boot_knowledge_report = self.studio.scan_boot_observation_knowledge(receipt)
+            self.boot_knowledge_receipt_digest = receipt.receipt_digest
         card = QFrame()
         card.setObjectName("BuildPhase")
         layout = QHBoxLayout(card)
@@ -2706,10 +2714,19 @@ class BuildControlCenter(QDialog):
                 f"Next: {service.next_step(receipt)}"
             )
         else:
+            archive_line = ""
+            if self.boot_knowledge_report is not None:
+                matches = self.boot_knowledge_report.matches
+                archive_line = (
+                    f"\nOffline Archives: {len(matches)} compatible match(es) found"
+                    + (f"  •  Best match: {matches[0].record.title}" if matches else "")
+                    + "  •  guidance only"
+                )
             detail = QLabel(
                 f"{receipt.status.value.upper()}  •  {len(receipt.samples)} sample(s)  •  "
                 f"{receipt.diagnosis}\nNext: {service.next_step(receipt)}\n"
                 "Flash-linked: NO  •  Verified first boot: NO"
+                f"{archive_line}"
             )
         detail.setObjectName("GateCopy")
         detail.setWordWrap(True)
@@ -2725,6 +2742,11 @@ class BuildControlCenter(QDialog):
         observe.clicked.connect(self._observe_boot)
         observe.setEnabled(bool(self.studio.devices))
         layout.addWidget(observe)
+        if self.boot_knowledge_report is not None:
+            review = QPushButton("Review offline matches")
+            review.setObjectName("SecondaryAction")
+            review.clicked.connect(self._review_boot_knowledge)
+            layout.addWidget(review)
         return card
 
     def _observe_boot(self) -> None:
@@ -2747,11 +2769,47 @@ class BuildControlCenter(QDialog):
             self.status.setText(str(exc))
             QMessageBox.warning(self, "Boot observation stopped safely", str(exc))
             return
+        self.boot_knowledge_report = self.studio.scan_boot_observation_knowledge(receipt)
+        self.boot_knowledge_receipt_digest = receipt.receipt_digest
         self.refresh()
+        archive_status = ""
+        if self.boot_knowledge_report is not None:
+            archive_status = (
+                f"  •  Offline Archives scanned: "
+                f"{len(self.boot_knowledge_report.matches)} compatible match(es)"
+            )
         self.status.setText(
             f"Boot sample recorded  •  {receipt.status.value}  •  "
-            f"{receipt.diagnosis}  •  phone changed: NO"
+            f"{receipt.diagnosis}  •  phone changed: NO{archive_status}"
         )
+
+    def _review_boot_knowledge(self) -> None:
+        report = self.boot_knowledge_report
+        if report is None:
+            return
+        dialog = QMessageBox(self)
+        dialog.setWindowTitle("ROMVERSE • Offline recovery matches")
+        dialog.setIcon(QMessageBox.Icon.Information)
+        dialog.setText(
+            f"ROMVERSE found {len(report.matches)} compatible offline archive match(es)."
+        )
+        if report.matches:
+            dialog.setInformativeText(
+                "Best matches:\n"
+                + "\n".join(
+                    f"• {match.record.title} — {match.confidence.value}"
+                    for match in report.matches[:4]
+                )
+                + "\n\nThese are evidence-ranked diagnostic guides, not permission to flash."
+            )
+        else:
+            dialog.setInformativeText(
+                "No compatible local record matched. ROMVERSE kept the uncertainty visible "
+                "instead of guessing a repair."
+            )
+        dialog.setDetailedText(report.plain_text)
+        dialog.addButton(QMessageBox.StandardButton.Close)
+        dialog.exec()
 
     def _show_resolution(self, gate: BuildGate) -> None:
         remediation = remediation_for(gate)

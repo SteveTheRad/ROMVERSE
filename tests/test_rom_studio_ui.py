@@ -625,6 +625,9 @@ def test_rom_studio_creates_and_renders_device_dna_without_guessing(tmp_path):
     assert profile.capability("device_identity").state is CapabilityState.UNCONFIRMED
     assert "Capability Map" in studio.device_dna_detail.text()
     assert "Compatibility Matrix" in studio.device_dna_detail.text()
+    assert "Offline Archives" in studio.device_dna_detail.text()
+    assert "AUTOMATIC SCAN COMPLETE" in studio.device_dna_detail.text()
+    assert "EXECUTION AUTHORITY: NONE" in studio.device_dna_detail.text()
     assert studio.compatibility.matrices.load(project.project_id) is not None
     assert "Bootloader relock: NEVER" in studio.device_dna_detail.text()
     assert "Firmware files are selected and supplied by you" in (

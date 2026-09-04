@@ -17,6 +17,7 @@ from romverse.intelligence.synapse import (
     SynapseScope,
     SynapseStore,
 )
+from romverse.knowledge.lookup import OfflineKnowledgeService
 from romverse.knowledge.resolution_memory import ArchivesResolutionMemory
 from romverse.repair.knowledge import knowledge_for
 from romverse.repair.sessions import RepairSessionStore
@@ -78,6 +79,61 @@ def test_archives_never_leaves_stale_advice_when_search_has_no_match() -> None:
     assert "no verified guide matched" in center.search_status.text().casefold()
     assert "will not invent a fix" in center.detail.toPlainText().casefold()
     assert not center.open_route.isVisible()
+    center.close()
+
+
+def test_archives_searches_and_explains_structured_offline_evidence(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = KnowledgeCenter(offline_service=OfflineKnowledgeService(tmp_path / "workspace"))
+    center.show()
+
+    assert "OFFLINE BRAIN READY" in center.offline_archive_status.text()
+    assert "199 STRUCTURED RECORDS" in center.offline_archive_status.text()
+    assert "111 ATTRIBUTED SOURCES" in center.offline_archive_status.text()
+    center.search.setText("HASH_MISMATCH(3)")
+    app.processEvents()
+    offline_items = [
+        center.list.item(row)
+        for row in range(center.list.count())
+        if str(center.list.item(row).data(Qt.ItemDataRole.UserRole)).startswith("offline:")
+    ]
+
+    assert offline_items
+    center.list.setCurrentItem(offline_items[0])
+    app.processEvents()
+    detail = center.detail.toPlainText()
+    assert "OFFLINE EVIDENCE RECORD" in detail
+    assert "WHY THIS MATCHED" in detail
+    assert "HASH_MISMATCH(3)" in detail
+    assert "PROVENANCE" in detail
+    assert "EXECUTION AUTHORITY  •  NONE" in detail
+    assert center.open_source.isVisibleTo(center)
+    center.close()
+
+
+def test_archives_can_filter_single_report_community_outcomes_without_hiding_scope(
+    tmp_path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = KnowledgeCenter(offline_service=OfflineKnowledgeService(tmp_path / "workspace"))
+    center.show()
+    center.evidence_lane.setCurrentIndex(center.evidence_lane.findData("community"))
+    center.search.setText("realme XT Magisk 20.4")
+    app.processEvents()
+    offline = next(
+        center.list.item(row)
+        for row in range(center.list.count())
+        if str(center.list.item(row).data(Qt.ItemDataRole.UserRole)).startswith("offline:")
+    )
+    center.list.setCurrentItem(offline)
+    app.processEvents()
+
+    detail = center.detail.toPlainText()
+    assert "realme XT" in detail
+    assert "COMMUNITY" in detail.upper()
+    assert "CORROBORATED OUTCOME/REPORT COUNT  •  1" in detail
+    assert "DEVICE / BUILD SCOPE" in detail
+    assert "EXECUTION AUTHORITY  •  NONE" in detail
     center.close()
 
 

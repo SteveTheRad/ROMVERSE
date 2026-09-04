@@ -1414,6 +1414,7 @@ class GuidedBuildMission(QDialog):
         self.status_text.setText(
             f"Boot evidence recorded  •  {receipt.status.value}  •  {receipt.diagnosis}"
         )
+        knowledge_report = self.studio.scan_boot_observation_knowledge(receipt)
         self._refresh(select_current=True)
         if receipt.status is BootObservationStatus.STABLE:
             self.status_text.setText(
@@ -1423,11 +1424,30 @@ class GuidedBuildMission(QDialog):
             if self.autopilot_active:
                 QTimer.singleShot(0, self._advance_autopilot)
         else:
+            archive_guidance: tuple[str, ...] = ()
+            if service.needs_knowledge_lookup(receipt):
+                if knowledge_report is None:
+                    archive_guidance = (
+                        "The offline Archives scan could not complete; ROMVERSE did not guess a repair.",
+                    )
+                elif knowledge_report.matches:
+                    archive_guidance = (
+                        f"Offline Archives automatically found {len(knowledge_report.matches)} compatible diagnostic match(es).",
+                        *(
+                            f"{match.record.title} — {match.confidence.value} match; guidance only."
+                            for match in knowledge_report.matches[:3]
+                        ),
+                    )
+                else:
+                    archive_guidance = (
+                        "Offline Archives found no compatible local match; the cause remains unknown.",
+                    )
             self.failure = GuidedFailure(
                 "First-boot check incomplete",
                 f"Boot status is currently {receipt.status.value}.",
                 (
                     service.next_step(receipt),
+                    *archive_guidance,
                     "Keep the device connected and capture the next sample when prompted.",
                 ),
             )

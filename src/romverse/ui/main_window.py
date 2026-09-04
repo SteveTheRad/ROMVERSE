@@ -121,6 +121,7 @@ from romverse.intelligence.online_remediation import OnlineRemediationService
 from romverse.intelligence.synapse import SynapseStore
 from romverse.knowledge.advisor import article_for_key
 from romverse.knowledge.archives import catalog_metrics
+from romverse.knowledge.lookup import OfflineKnowledgeService
 from romverse.knowledge.resolution_memory import ArchivesResolutionMemory
 from romverse.legal import load_privacy_document, load_terms_document
 from romverse.nexus.compatibility import CompatibilityMatrix, CompatibilityStatus
@@ -3846,8 +3847,12 @@ class MainWindow(QMainWindow):
             ArchivesResolutionMemory(RepairSessionStore(workspace)),
             SynapseStore(workspace),
             self.device_catalog,
+            OfflineKnowledgeService(workspace),
         )
         self.knowledge_center.route_requested.connect(self._open_knowledge_route)
+        self.rom_studio.offline_knowledge_updated.connect(
+            self.knowledge_center.refresh_offline_archive
+        )
         self.repair_center.resolution_memory_updated.connect(
             self.knowledge_center.refresh_resolution_memory
         )

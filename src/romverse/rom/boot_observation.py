@@ -3,16 +3,20 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-import os
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
+from typing import TYPE_CHECKING
 
 from romverse.core.privacy import WorkspacePrivacy
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device_packs.registry import DevicePackRegistry
+from romverse.infrastructure.local_store import LocalStoreError, atomic_write_json, read_json_object
 from romverse.rom.models import ProjectError
 from romverse.rom.projects import RomProjectStore
+
+if TYPE_CHECKING:
+    from romverse.knowledge.models import KnowledgeFailure
 
 
 class BootObservationStatus(StrEnum):
@@ -20,6 +24,17 @@ class BootObservationStatus(StrEnum):
     SETTLING = "settling"
     STABLE = "stable"
     ATTENTION = "attention"
+
+
+class BootFailureKind(StrEnum):
+    """Evidence-derived failure class used for offline Archives lookup."""
+
+    NONE = "none"
+    DEVICE_MODE = "device_mode"
+    IDENTITY_CHANGED = "identity_changed"
+    REBOOT_LOOP = "reboot_loop"
+    BOOT_TIMEOUT = "boot_timeout"
+    PROBE_INCOMPLETE = "probe_incomplete"
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,6 +66,8 @@ class BootObservationReceipt:
     verified_first_boot: bool
     diagnosis: str
     phone_changed: bool
+    failure_kind: BootFailureKind
+    knowledge_queries: tuple[str, ...]
     receipt_digest: str
 
 
@@ -58,9 +75,42 @@ class BootObservationService:
     """Accumulate read-only boot evidence without claiming that a ROM was flashed."""
 
     NAME = "boot-observation.romverse"
+    FORMAT = "romverse.boot-observation"
+    SCHEMA_VERSION = 2
+    MAX_BYTES = 256 * 1024
     MIN_SAMPLE_INTERVAL_SECONDS = 60
     STABILITY_WINDOW_SECONDS = 300
     MAX_SAMPLES = 30
+    SAMPLE_FIELDS = {
+        "observed_at",
+        "device_pseudonym",
+        "state",
+        "boot_completed",
+        "uptime_seconds",
+        "slot_suffix",
+        "build_id",
+        "build_fingerprint",
+        "battery_percent",
+        "probe_errors",
+    }
+    RECEIPT_FIELDS_V1 = {
+        "format",
+        "schema_version",
+        "project_id",
+        "pack_id",
+        "contract_id",
+        "source_original_sha256",
+        "samples",
+        "status",
+        "stable",
+        "reboot_detected",
+        "flash_linked",
+        "verified_first_boot",
+        "diagnosis",
+        "phone_changed",
+        "receipt_digest",
+    }
+    RECEIPT_FIELDS_V2 = RECEIPT_FIELDS_V1 | {"failure_kind", "knowledge_queries"}
 
     def __init__(self, store: RomProjectStore, registry: DevicePackRegistry) -> None:
         self.store = store
@@ -107,9 +157,10 @@ class BootObservationService:
         samples = ((*previous.samples, sample) if previous is not None else (sample,))[
             -self.MAX_SAMPLES :
         ]
-        status, stable, rebooted, diagnosis = self._classify(samples)
+        status, stable, rebooted, diagnosis, failure_kind = self._classify(samples)
+        knowledge_queries = self._knowledge_queries(samples, failure_kind)
         payload = {
-            "schema_version": 1,
+            "schema_version": self.SCHEMA_VERSION,
             "project_id": project_id,
             "pack_id": pack.pack_id,
             "contract_id": pack.build_contract.contract_id,
@@ -122,10 +173,12 @@ class BootObservationService:
             "verified_first_boot": False,
             "diagnosis": diagnosis,
             "phone_changed": False,
+            "failure_kind": failure_kind.value,
+            "knowledge_queries": list(knowledge_queries),
         }
         digest = _digest(payload)
         receipt = BootObservationReceipt(
-            1,
+            self.SCHEMA_VERSION,
             project_id,
             pack.pack_id,
             pack.build_contract.contract_id,
@@ -138,64 +191,120 @@ class BootObservationService:
             False,
             diagnosis,
             False,
+            failure_kind,
+            knowledge_queries,
             digest,
         )
-        _atomic_json(
+        atomic_write_json(
             self.store.projects_root / project_id / self.NAME,
-            {"format": "romverse.boot-observation", **asdict(receipt)},
+            {"format": self.FORMAT, **asdict(receipt)},
+            boundary=self.store.projects_root / project_id,
+            maximum_bytes=self.MAX_BYTES,
         )
         return receipt
 
     def load(self, project_id: str) -> BootObservationReceipt | None:
         path = self.store.projects_root / project_id / self.NAME
         try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-            if data.pop("format") != "romverse.boot-observation":
-                return None
-            samples = tuple(
-                BootSample(
-                    str(item["observed_at"]),
-                    str(item["device_pseudonym"]),
-                    str(item["state"]),
-                    item.get("boot_completed"),
-                    int(item["uptime_seconds"]) if item.get("uptime_seconds") is not None else None,
-                    str(item.get("slot_suffix", "")),
-                    str(item.get("build_id", "")),
-                    str(item.get("build_fingerprint", "")),
-                    int(item["battery_percent"])
-                    if item.get("battery_percent") is not None
-                    else None,
-                    tuple(map(str, item.get("probe_errors", ()))),
-                )
-                for item in data.pop("samples")
+            data = read_json_object(
+                path,
+                boundary=self.store.projects_root / project_id,
+                maximum_bytes=self.MAX_BYTES,
             )
-            data["status"] = BootObservationStatus(str(data["status"]))
-            receipt = BootObservationReceipt(**data, samples=samples)
-        except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError):
-            return None
-        project = self.store.get(project_id)
-        pack = next(
-            (item for item in self.registry.packs if item.pack_id == project.device_pack_id), None
-        )
-        payload = asdict(receipt)
-        digest = str(payload.pop("receipt_digest"))
-        if (
-            receipt.schema_version != 1
-            or receipt.project_id != project_id
-            or receipt.phone_changed
-            or receipt.flash_linked
-            or receipt.verified_first_boot
-            or not receipt.samples
-            or project.original is None
-            or receipt.source_original_sha256 != project.original.sha256
-            or pack is None
-            or pack.build_contract is None
-            or receipt.pack_id != pack.pack_id
-            or receipt.contract_id != pack.build_contract.contract_id
-            or _digest(payload) != digest
+            schema = data.get("schema_version")
+            if (
+                data.get("format") != self.FORMAT
+                or type(schema) is not int
+                or schema not in {1, self.SCHEMA_VERSION}
+                or set(data) != self._receipt_fields(schema)
+            ):
+                return None
+            raw_samples = data.get("samples")
+            if not isinstance(raw_samples, list) or not 1 <= len(raw_samples) <= self.MAX_SAMPLES:
+                return None
+            samples = tuple(self._parse_sample(item) for item in raw_samples)
+            status = BootObservationStatus(data["status"])
+            failure_kind = (
+                BootFailureKind(data["failure_kind"])
+                if schema == self.SCHEMA_VERSION
+                else self._classify(samples)[4]
+            )
+            if schema == self.SCHEMA_VERSION:
+                raw_queries = data["knowledge_queries"]
+                if (
+                    not isinstance(raw_queries, list)
+                    or len(raw_queries) > 6
+                    or any(not self._text(item, 500) for item in raw_queries)
+                ):
+                    return None
+                queries = tuple(raw_queries)
+            else:
+                queries = self._knowledge_queries(samples, failure_kind)
+            receipt = BootObservationReceipt(
+                self.SCHEMA_VERSION,
+                data["project_id"],
+                data["pack_id"],
+                data["contract_id"],
+                data["source_original_sha256"],
+                samples,
+                status,
+                data["stable"],
+                data["reboot_detected"],
+                data["flash_linked"],
+                data["verified_first_boot"],
+                data["diagnosis"],
+                data["phone_changed"],
+                failure_kind,
+                queries,
+                data["receipt_digest"],
+            )
+        except (
+            LocalStoreError,
+            OSError,
+            ValueError,
+            TypeError,
+            KeyError,
+            json.JSONDecodeError,
         ):
             return None
+        if not self._valid_receipt(receipt, project_id, source_schema=schema):
+            return None
         return receipt
+
+    @classmethod
+    def needs_knowledge_lookup(cls, receipt: BootObservationReceipt | None) -> bool:
+        """Return whether current boot evidence should trigger an offline Archives scan."""
+
+        return bool(
+            receipt is not None
+            and receipt.status is BootObservationStatus.ATTENTION
+            and receipt.failure_kind is not BootFailureKind.NONE
+            and receipt.knowledge_queries
+        )
+
+    @classmethod
+    def knowledge_failure(
+        cls,
+        receipt: BootObservationReceipt | None,
+    ) -> KnowledgeFailure | None:
+        """Translate verified boot evidence into a bounded, non-executing archive query."""
+
+        if not cls.needs_knowledge_lookup(receipt) or receipt is None:
+            return None
+        from romverse.knowledge.models import KnowledgeFailure
+
+        latest = receipt.samples[-1]
+        probe_detail = tuple(error for error in latest.probe_errors if cls._text(error, 500))
+        return KnowledgeFailure(
+            phase="boot",
+            message="\n".join((receipt.diagnosis, *receipt.knowledge_queries, *probe_detail)),
+            finding_ids=("boot.incomplete", f"boot.{receipt.failure_kind.value}"),
+            operation="read-only boot observation",
+            verified_inputs=(
+                f"pack:{receipt.pack_id}",
+                f"source:{receipt.source_original_sha256}",
+            ),
+        )
 
     @classmethod
     def next_sample_wait_seconds(
@@ -222,9 +331,156 @@ class BootObservationService:
         return "Stop and review the diagnosis before any further device-changing work. ROMVERSE will not call this a successful boot."
 
     @classmethod
+    def _receipt_fields(cls, schema: int) -> set[str]:
+        return cls.RECEIPT_FIELDS_V2 if schema == cls.SCHEMA_VERSION else cls.RECEIPT_FIELDS_V1
+
+    @classmethod
+    def _parse_sample(cls, value: object) -> BootSample:
+        if not isinstance(value, dict) or set(value) != cls.SAMPLE_FIELDS:
+            raise ValueError("Boot sample has an invalid shape")
+        observed_at = value["observed_at"]
+        pseudonym = value["device_pseudonym"]
+        state = value["state"]
+        boot_completed = value["boot_completed"]
+        uptime = value["uptime_seconds"]
+        slot = value["slot_suffix"]
+        build_id = value["build_id"]
+        fingerprint = value["build_fingerprint"]
+        battery = value["battery_percent"]
+        errors = value["probe_errors"]
+        if (
+            not cls._timestamp(observed_at)
+            or not isinstance(pseudonym, str)
+            or len(pseudonym) != 20
+            or any(char not in "0123456789abcdef" for char in pseudonym)
+            or not isinstance(state, str)
+            or state not in {item.value for item in DeviceState}
+            or (boot_completed is not None and type(boot_completed) is not bool)
+            or (uptime is not None and (type(uptime) is not int or not 0 <= uptime <= 10**9))
+            or not cls._text(slot, 32)
+            or not cls._text(build_id, 160)
+            or not cls._text(fingerprint, 500)
+            or (battery is not None and (type(battery) is not int or not 0 <= battery <= 100))
+            or not isinstance(errors, list)
+            or len(errors) > 12
+            or any(not cls._text(item, 240) for item in errors)
+        ):
+            raise ValueError("Boot sample contains invalid evidence")
+        return BootSample(
+            observed_at,
+            pseudonym,
+            state,
+            boot_completed,
+            uptime,
+            slot,
+            build_id,
+            fingerprint,
+            battery,
+            tuple(errors),
+        )
+
+    def _valid_receipt(
+        self,
+        receipt: BootObservationReceipt,
+        project_id: str,
+        *,
+        source_schema: int,
+    ) -> bool:
+        try:
+            project = self.store.get(project_id)
+        except ProjectError:
+            return False
+        pack = next(
+            (item for item in self.registry.packs if item.pack_id == project.device_pack_id), None
+        )
+        classified = self._classify(receipt.samples)
+        status, stable, rebooted, diagnosis, failure_kind = classified
+        queries = self._knowledge_queries(receipt.samples, failure_kind)
+        if (
+            receipt.schema_version != self.SCHEMA_VERSION
+            or receipt.project_id != project_id
+            or receipt.phone_changed
+            or receipt.flash_linked
+            or receipt.verified_first_boot
+            or project.original is None
+            or receipt.source_original_sha256 != project.original.sha256
+            or pack is None
+            or pack.build_contract is None
+            or receipt.pack_id != pack.pack_id
+            or receipt.contract_id != pack.build_contract.contract_id
+            or receipt.status is not status
+            or receipt.stable is not stable
+            or receipt.reboot_detected is not rebooted
+            or receipt.diagnosis != diagnosis
+            or receipt.failure_kind is not failure_kind
+            or receipt.knowledge_queries != queries
+            or not self._valid_sample_sequence(receipt.samples)
+        ):
+            return False
+        payload = asdict(receipt)
+        digest = payload.pop("receipt_digest", "")
+        if source_schema == 1:
+            payload["schema_version"] = 1
+            payload.pop("failure_kind", None)
+            payload.pop("knowledge_queries", None)
+        return isinstance(digest, str) and len(digest) == 64 and _digest(payload) == digest
+
+    @classmethod
+    def _valid_sample_sequence(cls, samples: tuple[BootSample, ...]) -> bool:
+        if not 1 <= len(samples) <= cls.MAX_SAMPLES:
+            return False
+        times = tuple(datetime.fromisoformat(item.observed_at) for item in samples)
+        return bool(
+            all(item.tzinfo is not None for item in times)
+            and all(earlier < later for earlier, later in zip(times, times[1:], strict=False))
+            and len({item.device_pseudonym for item in samples}) == 1
+        )
+
+    @staticmethod
+    def _timestamp(value: object) -> bool:
+        if not isinstance(value, str) or len(value) > 64:
+            return False
+        try:
+            return datetime.fromisoformat(value).tzinfo is not None
+        except ValueError:
+            return False
+
+    @staticmethod
+    def _text(value: object, maximum: int) -> bool:
+        return bool(
+            isinstance(value, str)
+            and len(value) <= maximum
+            and "\0" not in value
+            and all(char in "\n\t" or ord(char) >= 32 for char in value)
+        )
+
+    @staticmethod
+    def _knowledge_queries(
+        samples: tuple[BootSample, ...],
+        failure_kind: BootFailureKind,
+    ) -> tuple[str, ...]:
+        if failure_kind is BootFailureKind.NONE:
+            return ()
+        latest = samples[-1]
+        primary = {
+            BootFailureKind.DEVICE_MODE: f"Android stuck in {latest.state} mode after update",
+            BootFailureKind.IDENTITY_CHANGED: "Android build identity changed during first boot",
+            BootFailureKind.REBOOT_LOOP: "Android boot loop uptime reset after firmware update",
+            BootFailureKind.BOOT_TIMEOUT: "Android sys.boot_completed timeout after firmware update",
+            BootFailureKind.PROBE_INCOMPLETE: "ADB boot property probes incomplete after update",
+        }[failure_kind]
+        candidates = [primary]
+        if latest.build_id:
+            candidates.append(f"Android build {latest.build_id} boot recovery")
+        if latest.slot_suffix:
+            candidates.append(f"Android A/B slot {latest.slot_suffix} boot recovery")
+        candidates.append("Android verified boot recovery diagnosis")
+        return tuple(dict.fromkeys(candidates))[:6]
+
+    @classmethod
     def _classify(
         cls, samples: tuple[BootSample, ...]
-    ) -> tuple[BootObservationStatus, bool, bool, str]:
+    ) -> tuple[BootObservationStatus, bool, bool, str, BootFailureKind]:
         latest = samples[-1]
         pairs = tuple(zip(samples, samples[1:], strict=False))
         rebooted = any(
@@ -245,6 +501,7 @@ class BootObservationService:
                 False,
                 rebooted,
                 f"ADB reports {latest.state}; stable Android userspace is not observable",
+                BootFailureKind.DEVICE_MODE,
             )
         if fingerprint_changed:
             return (
@@ -252,6 +509,7 @@ class BootObservationService:
                 False,
                 rebooted,
                 "Build fingerprint changed inside one observation session",
+                BootFailureKind.IDENTITY_CHANGED,
             )
         if rebooted:
             return (
@@ -259,6 +517,15 @@ class BootObservationService:
                 False,
                 True,
                 "Device uptime reset during observation; investigate a reboot or boot loop",
+                BootFailureKind.REBOOT_LOOP,
+            )
+        if latest.probe_errors and latest.boot_completed is None and latest.uptime_seconds is None:
+            return (
+                BootObservationStatus.ATTENTION,
+                False,
+                False,
+                "Android boot probes are incomplete; boot state cannot be established",
+                BootFailureKind.PROBE_INCOMPLETE,
             )
         if latest.boot_completed is not True:
             status = (
@@ -266,7 +533,15 @@ class BootObservationService:
                 if latest.uptime_seconds is not None and latest.uptime_seconds >= 20 * 60
                 else BootObservationStatus.SETTLING
             )
-            return status, False, False, "Android has not yet reported sys.boot_completed=1"
+            return (
+                status,
+                False,
+                False,
+                "Android has not yet reported sys.boot_completed=1",
+                BootFailureKind.BOOT_TIMEOUT
+                if status is BootObservationStatus.ATTENTION
+                else BootFailureKind.NONE,
+            )
         if len(samples) >= 2:
             earlier = samples[-2]
             elapsed = (
@@ -294,21 +569,17 @@ class BootObservationService:
                     True,
                     False,
                     "Android remained boot-complete on the same build and slot across the stability window",
+                    BootFailureKind.NONE,
                 )
         return (
             BootObservationStatus.WAITING,
             False,
             False,
             "Boot completion observed; collect another sample after the stability window",
+            BootFailureKind.NONE,
         )
 
 
 def _digest(payload: dict[str, object]) -> str:
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
-
-
-def _atomic_json(path, payload: dict[str, object]) -> None:
-    temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-    os.replace(temporary, path)

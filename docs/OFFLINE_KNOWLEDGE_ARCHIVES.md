@@ -63,6 +63,15 @@ Every successful Device DNA refresh automatically scans the archive and exposes 
 Archive corruption never invalidates a valid Device DNA profile; it is reported separately through
 `knowledge_lookup_error`.
 
+Boot Observatory receipts use a strict, bounded schema-two contract and classify observed device
+mode, identity drift, uptime-reset boot loops, boot-completion timeouts, and incomplete property
+probes. An attention receipt is translated into typed failure evidence automatically. Genesis and
+Forge Control immediately rank the offline corpus, show the number and best compatible matches,
+and keep the full evidence explanation available for review. Stable boot samples do not trigger a
+failure lookup. The desktop Archives also searches the structured records directly and exposes
+scope, confidence, corroboration count, diagnostic steps, compatible guidance, known
+incompatibilities, and provenance alongside the original curated guides.
+
 ## Persistence and import
 
 The packaged core and OEM recovery evidence packs are merged and copied on first use to

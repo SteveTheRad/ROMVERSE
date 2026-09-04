@@ -38,6 +38,15 @@ from romverse.knowledge.archives import (
     search_catalog,
     source_lane,
 )
+from romverse.knowledge.lookup import OfflineKnowledgeService, rank_knowledge
+from romverse.knowledge.models import (
+    KnowledgeArchive,
+    KnowledgeMatch,
+    KnowledgeQuery,
+    KnowledgeRecord,
+    KnowledgeSource,
+    KnowledgeSourceTier,
+)
 from romverse.knowledge.resolution_memory import (
     ArchivesResolutionMemory,
     ArticleResolutionMemory,
@@ -272,6 +281,78 @@ LEGACY_GUIDES = (
 ARCHIVE_ARTICLES = build_catalog(LEGACY_GUIDES)
 ARTICLES = tuple((article.title, article.plain_text) for article in ARCHIVE_ARTICLES)
 ARTICLE_BY_KEY = {article.key: article for article in ARCHIVE_ARTICLES}
+
+_OFFLINE_CATEGORY_TERMS = {
+    "CONNECTIVITY & ADB": ("adb", "usb", "transport", "unauthorized", "offline"),
+    "TOOLS & HOST": ("tool", "driver", "host", "java", "python", "odin"),
+    "FIRMWARE INTAKE": ("firmware", "ota", "payload", "archive", "package"),
+    "FILESYSTEMS & PARTITIONS": ("partition", "super", "dynamic", "erofs", "ext4"),
+    "BUILD & RECIPES": ("build", "recipe", "repack", "compile", "signing"),
+    "BOOT & SECURITY": ("boot", "avb", "vbmeta", "verity", "slot", "fastboot"),
+    "APPS & PACKAGES": ("apk", "application", "package manager", "android auto"),
+    "RECOVERY & GUARDIAN": ("recovery", "restore", "rollback", "rescue", "brick"),
+    "DIAGNOSTICS & HEALTH": ("diagnos", "battery", "thermal", "camera", "audio", "network"),
+    "DEVICE IDENTITY & COMPATIBILITY": (
+        "identity",
+        "compatib",
+        "model",
+        "codename",
+        "region",
+    ),
+    "ROMVERSE WORKFLOWS": ("romverse", "genesis", "forge", "guardian", "synapse"),
+}
+
+
+def _offline_record_in_category(record: KnowledgeRecord, category: str) -> bool:
+    if category == ALL_CATEGORIES:
+        return True
+    if record.record_id.startswith("catalog."):
+        article = ARTICLE_BY_KEY.get(record.record_id.removeprefix("catalog."))
+        if article is not None:
+            return article.category == category
+    if record.kind.value == "compatibility" and category == "DEVICE IDENTITY & COMPATIBILITY":
+        return True
+    if record.kind.value == "recovery" and category == "RECOVERY & GUARDIAN":
+        return True
+    terms = _OFFLINE_CATEGORY_TERMS.get(category, ())
+    text = " ".join(
+        (
+            record.title,
+            record.summary,
+            *record.symptoms,
+            *record.error_codes,
+            *record.tags,
+            *record.scope.partitions,
+        )
+    ).casefold()
+    return any(term in text for term in terms)
+
+
+def _offline_record_in_lane(
+    record: KnowledgeRecord,
+    sources: dict[str, KnowledgeSource],
+    lane: str,
+) -> bool:
+    if lane == "all":
+        return True
+    tiers = {sources[source_id].tier for source_id in record.source_ids if source_id in sources}
+    if lane == "official":
+        return bool(
+            tiers
+            & {
+                KnowledgeSourceTier.OFFICIAL_PLATFORM,
+                KnowledgeSourceTier.OFFICIAL_VENDOR,
+            }
+        )
+    if lane == "community":
+        return bool(
+            tiers
+            & {
+                KnowledgeSourceTier.COMMUNITY,
+                KnowledgeSourceTier.REPUTABLE_TECHNICAL,
+            }
+        )
+    return KnowledgeSourceTier.ROMVERSE_VERIFIED in tiers
 
 
 def matching_articles(query: str) -> tuple[tuple[str, str], ...]:
@@ -698,11 +779,19 @@ class KnowledgeCenter(QWidget):
         resolution_memory: ArchivesResolutionMemory | None = None,
         synapse_store: SynapseStore | None = None,
         device_catalog: GooglePlayDeviceCatalog | None = None,
+        offline_service: OfflineKnowledgeService | None = None,
     ) -> None:
         super().__init__()
         self.resolution_memory = resolution_memory
         self.synapse_store = synapse_store
         self.device_catalog = device_catalog
+        self.offline_service = offline_service
+        self.offline_archive: KnowledgeArchive | None = None
+        self.offline_archive_error = ""
+        self.offline_records: dict[str, KnowledgeRecord] = {}
+        self.offline_sources: dict[str, KnowledgeSource] = {}
+        self.visible_offline_matches: dict[str, KnowledgeMatch | None] = {}
+        self._load_offline_archive()
         self.synapse_knowledge: tuple[SynapseKnowledge, ...] = ()
         self.learning_dialog: SynapseLearningDialog | None = None
         layout = QVBoxLayout(self)
@@ -782,18 +871,32 @@ class KnowledgeCenter(QWidget):
 
         metrics = catalog_metrics(ARCHIVE_ARTICLES)
         metrics_row = QHBoxLayout()
-        for text in (
+        metric_text = [
             f"{metrics['guides']} VERIFIED GUIDES",
             f"{metrics['known_fixes']} KNOWN FIXES",
             f"{metrics['categories']} CATEGORIES",
             f"{metrics['official_sources']} OFFICIAL GUIDES",
             f"{metrics['community_sources']} COMMUNITY GUIDES",
-        ):
+        ]
+        if self.offline_archive is not None:
+            metric_text.extend(
+                (
+                    f"{len(self.offline_archive.records)} OFFLINE RECORDS",
+                    f"{len(self.offline_archive.sources)} SOURCES",
+                )
+            )
+        for text in metric_text:
             metric = QLabel(text)
             metric.setObjectName("Good")
             metrics_row.addWidget(metric)
         metrics_row.addStretch()
         layout.addLayout(metrics_row)
+
+        self.offline_archive_status = QLabel()
+        self.offline_archive_status.setAccessibleName("Offline Knowledge Archives status")
+        self.offline_archive_status.setWordWrap(True)
+        self._render_offline_archive_status()
+        layout.addWidget(self.offline_archive_status)
 
         self.device_catalog_status = QLabel()
         self.device_catalog_status.setAccessibleName("Official Android device ID catalog status")
@@ -931,18 +1034,25 @@ class KnowledgeCenter(QWidget):
             return False
         self.category.setCurrentIndex(0)
         self.evidence_lane.setCurrentIndex(0)
-        if self.search.text() == article.title:
-            self._filter(article.title)
-        else:
-            self.search.setText(article.title)
-        for row in range(self.list.count()):
-            item = self.list.item(row)
-            if item.data(Qt.ItemDataRole.UserRole) == article.key:
-                self.list.setCurrentItem(item)
-                self.list.scrollToItem(item)
-                self.search.setFocus(Qt.FocusReason.OtherFocusReason)
-                return True
-        return False
+        self.search.blockSignals(True)
+        self.search.setText(article.title)
+        self.search.blockSignals(False)
+        self.visible_offline_matches = {}
+        self.list.blockSignals(True)
+        self.list.clear()
+        item = QListWidgetItem(article.title)
+        item.setData(Qt.ItemDataRole.UserRole, article.key)
+        item.setToolTip(f"{article.category.title()}  •  {article.source.authority}")
+        self.list.addItem(item)
+        self.list.blockSignals(False)
+        self.list.setCurrentItem(item)
+        self._show_article(item, None)
+        self.search_status.setObjectName("Good")
+        self.search_status.setText(f"1 verified guide found for “{article.title}”.")
+        self.search_status.style().unpolish(self.search_status)
+        self.search_status.style().polish(self.search_status)
+        self.search.setFocus(Qt.FocusReason.OtherFocusReason)
+        return True
 
     def set_source_context(self, route: str) -> None:
         """Keep a safe return path to the workflow that requested Archives guidance."""
@@ -966,6 +1076,50 @@ class KnowledgeCenter(QWidget):
         self.source_return.setText("")
         self.source_context.setVisible(False)
 
+    def _load_offline_archive(self) -> None:
+        self.offline_archive = None
+        self.offline_archive_error = ""
+        self.offline_records = {}
+        self.offline_sources = {}
+        if self.offline_service is None:
+            return
+        try:
+            archive = self.offline_service.store.ensure_seeded()
+        except (OSError, TypeError, ValueError) as exc:
+            self.offline_archive_error = str(exc)[:500]
+            return
+        self.offline_archive = archive
+        self.offline_records = {record.record_id: record for record in archive.records}
+        self.offline_sources = {source.source_id: source for source in archive.sources}
+
+    def _render_offline_archive_status(self) -> None:
+        if self.offline_service is None:
+            self.offline_archive_status.setVisible(False)
+            return
+        self.offline_archive_status.setVisible(True)
+        if self.offline_archive is None:
+            self.offline_archive_status.setObjectName("Warning")
+            self.offline_archive_status.setText(
+                "OFFLINE BRAIN UNAVAILABLE  •  Integrity checks rejected the local archive  •  "
+                "ROMVERSE WILL NOT GUESS"
+            )
+        else:
+            self.offline_archive_status.setObjectName("Good")
+            self.offline_archive_status.setText(
+                f"OFFLINE BRAIN READY  •  {len(self.offline_archive.records)} STRUCTURED "
+                f"RECORDS  •  {len(self.offline_archive.sources)} ATTRIBUTED SOURCES  •  "
+                "AUTOMATIC DEVICE DNA + FAILURE MATCHING  •  EXECUTION AUTHORITY: NONE"
+            )
+        self.offline_archive_status.style().unpolish(self.offline_archive_status)
+        self.offline_archive_status.style().polish(self.offline_archive_status)
+
+    def refresh_offline_archive(self, _report: object = None) -> None:
+        """Reload the integrity-checked offline corpus after a DNA or failure scan."""
+
+        self._load_offline_archive()
+        self._render_offline_archive_status()
+        self._filter()
+
     def _filter(self, _value: object = None) -> None:
         query = self.search.text().strip()[:160]
         category = str(self.category.currentData() or ALL_CATEGORIES)
@@ -976,6 +1130,33 @@ class KnowledgeCenter(QWidget):
                 match for match in matches if source_lane(match.article.source) == evidence_lane
             )
 
+        offline_matches: list[tuple[KnowledgeRecord, KnowledgeMatch | None]] = []
+        if self.offline_archive is not None:
+            if query:
+                ranked = rank_knowledge(
+                    self.offline_archive,
+                    KnowledgeQuery(symptoms=(query,), evidence_terms=(query,)),
+                    limit=256,
+                )
+                offline_matches = [(match.record, match) for match in ranked]
+            else:
+                offline_matches = [
+                    (record, None)
+                    for record in sorted(
+                        self.offline_archive.records,
+                        key=lambda item: (item.title.casefold(), item.record_id),
+                    )
+                ]
+            offline_matches = [
+                (record, match)
+                for record, match in offline_matches
+                if _offline_record_in_category(record, category)
+                and _offline_record_in_lane(record, self.offline_sources, evidence_lane)
+            ]
+        self.visible_offline_matches = {
+            record.record_id: match for record, match in offline_matches
+        }
+
         self.list.blockSignals(True)
         self.list.clear()
         for match in matches:
@@ -985,24 +1166,56 @@ class KnowledgeCenter(QWidget):
                 f"{match.article.category.title()}  •  {match.article.source.authority}"
             )
             self.list.addItem(item)
+        for record, match in offline_matches:
+            item = QListWidgetItem(
+                f"{record.title}\nOFFLINE EVIDENCE  •  {record.kind.value.upper()}"
+            )
+            item.setData(Qt.ItemDataRole.UserRole, f"offline:{record.record_id}")
+            source_summary = ", ".join(
+                self.offline_sources[source_id].tier.value
+                for source_id in record.source_ids
+                if source_id in self.offline_sources
+            )
+            confidence = match.confidence.value if match is not None else record.confidence.value
+            item.setToolTip(
+                f"{record.kind.value.title()}  •  {confidence}  •  {source_summary}  •  "
+                "guidance only"
+            )
+            self.list.addItem(item)
         self.list.blockSignals(False)
 
-        if matches:
+        if matches or offline_matches:
             self.list.setCurrentRow(0)
             self._show_article(self.list.currentItem(), None)
             self.search_status.setObjectName("Good" if query else "Muted")
             guide_count = f"{len(matches)} verified guide{'s' if len(matches) != 1 else ''}"
-            self.search_status.setText(
-                f"{guide_count} found for “{query}”." if query else f"{guide_count} available."
+            record_count = (
+                f"{len(offline_matches)} offline evidence "
+                f"record{'s' if len(offline_matches) != 1 else ''}"
             )
+            if self.offline_service is None:
+                self.search_status.setText(
+                    f"{guide_count} found for “{query}”." if query else f"{guide_count} available."
+                )
+            else:
+                self.search_status.setText(
+                    f"{guide_count} found for “{query}”  •  {record_count} found."
+                    if query
+                    else f"{guide_count} and {record_count} available."
+                )
         else:
             self.detail.setText(
-                "No verified ROMVERSE guide matched this search. Try a shorter symptom, exact "
-                "error code, tool name, firmware format, or phone feature. ROMVERSE will not "
-                "invent a fix when its local knowledge has no match."
+                "No verified ROMVERSE guide or compatible offline evidence record matched this "
+                "search. Try a shorter symptom, exact error code, tool name, firmware format, "
+                "or phone feature. ROMVERSE will not invent a fix when its local knowledge has "
+                "no match."
             )
             self.search_status.setObjectName("Warning")
-            self.search_status.setText(f"No verified guide matched “{query}”.")
+            self.search_status.setText(
+                f"No verified guide matched “{query}”."
+                if self.offline_service is None
+                else f"No verified guide or offline record matched “{query}”."
+            )
             self.open_route.setVisible(False)
             self.open_source.setVisible(False)
             self.resolution_status.setVisible(False)
@@ -1012,6 +1225,11 @@ class KnowledgeCenter(QWidget):
     def _show_article(
         self, current: QListWidgetItem | None, _previous: QListWidgetItem | None
     ) -> None:
+        offline = self._offline_record_for(current)
+        if offline is not None:
+            match = self.visible_offline_matches.get(offline.record_id)
+            self._show_offline_record(offline, match)
+            return
         article = self._article_for(current)
         memory = (
             self.resolution_memory.for_article(article.key)
@@ -1043,6 +1261,116 @@ class KnowledgeCenter(QWidget):
         self.open_source.setText(source_label)
         self.open_source.setAccessibleName(source_label)
         self.open_source.setVisible(bool(source_url))
+
+    def _show_offline_record(
+        self,
+        record: KnowledgeRecord,
+        match: KnowledgeMatch | None,
+    ) -> None:
+        sources = tuple(
+            self.offline_sources[source_id]
+            for source_id in record.source_ids
+            if source_id in self.offline_sources
+        )
+        sections = [
+            f"OFFLINE EVIDENCE RECORD  •  {record.kind.value.upper()}",
+            record.title,
+            "",
+            record.summary,
+            "",
+            f"RECORD CONFIDENCE  •  {record.confidence.value.upper()}  •  "
+            f"CORROBORATED OUTCOME/REPORT COUNT  •  {record.corroboration_count}",
+        ]
+        if match is not None:
+            sections.extend(("", "WHY THIS MATCHED", match.explanation))
+        sections.extend(("", "DEVICE / BUILD SCOPE", record.scope.scope_note or "Not specified"))
+        for heading, values in (
+            ("Symptoms and errors", (*record.symptoms, *record.error_codes)),
+            ("Diagnose first", record.diagnostic_steps),
+            ("Compatible guidance", record.fix_steps),
+            ("Prerequisites", record.prerequisites),
+            ("Expected outcomes", record.expected_outcomes),
+            ("Compatibility", record.compatibility),
+            ("Known incompatibility", record.known_incompatibility),
+            ("Recovery routes", record.recovery_routes),
+        ):
+            if values:
+                sections.extend(("", heading.upper(), *(f"• {value}" for value in values)))
+        if record.operations:
+            sections.extend(("", "DECLARED OPERATIONS  •  NOT COMMANDS OR AUTHORITY"))
+            for operation in record.operations:
+                change = "changes device" if operation.changes_device else "read-only"
+                sections.append(f"• {operation.label} — {change}")
+                if operation.verified_input_requirements:
+                    sections.append(
+                        "  Requires: " + "; ".join(operation.verified_input_requirements)
+                    )
+                if operation.rollback_route:
+                    sections.append(f"  Rollback route: {operation.rollback_route}")
+        if sources:
+            sections.extend(("", "PROVENANCE"))
+            sections.extend(
+                f"• {source.label} — {source.publisher} — {source.tier.value} — "
+                f"reviewed {source.reviewed_on}\n  {source.url or 'Local ROMVERSE evidence'}"
+                for source in sources
+            )
+        sections.extend(
+            (
+                "",
+                "SAFETY BOUNDARY",
+                "This record is evidence-ranked guidance. It cannot authorize, start, or widen "
+                "a flash, wipe, unlock, relock, repair, or command.",
+                "EXECUTION AUTHORITY  •  NONE",
+            )
+        )
+        self.detail.setPlainText("\n".join(sections))
+        self._show_resolution_memory(None)
+        route = (
+            "device_atlas"
+            if record.kind.value == "compatibility"
+            else "recovery_bay"
+            if record.kind.value in {"diagnosis", "recovery"}
+            else ""
+        )
+        self.open_route.setProperty("route", route)
+        self.open_route.setText(f"Open {feature(route).title}" if route else "")
+        self.open_route.setVisible(bool(route))
+        preferred = next(
+            (
+                source
+                for source in sources
+                if source.tier
+                in {
+                    KnowledgeSourceTier.OFFICIAL_PLATFORM,
+                    KnowledgeSourceTier.OFFICIAL_VENDOR,
+                }
+                and source.url
+            ),
+            next((source for source in sources if source.url), None),
+        )
+        source_url = preferred.url if preferred is not None else ""
+        self.open_source.setProperty("source_url", source_url)
+        source_label = (
+            "Open official source"
+            if preferred is not None
+            and preferred.tier
+            in {
+                KnowledgeSourceTier.OFFICIAL_PLATFORM,
+                KnowledgeSourceTier.OFFICIAL_VENDOR,
+            }
+            else "Open community or technical source"
+        )
+        self.open_source.setText(source_label)
+        self.open_source.setAccessibleName(source_label)
+        self.open_source.setVisible(bool(source_url))
+
+    def _offline_record_for(self, current: QListWidgetItem | None) -> KnowledgeRecord | None:
+        if current is None:
+            return None
+        identity = str(current.data(Qt.ItemDataRole.UserRole) or "")
+        if not identity.startswith("offline:"):
+            return None
+        return self.offline_records.get(identity.removeprefix("offline:"))
 
     def refresh_resolution_memory(self) -> None:
         """Refresh presentation after Recovery Bay records a fresh comparison."""

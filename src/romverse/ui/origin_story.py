@@ -118,14 +118,19 @@ ORIGIN_SCENES = (
             "BUILD. OPTIMIZE. PERFECT.\n\n"
             "Created by SteveTheRad\n"
             "A RadForge Labs Project\n\n"
-            "To every supporter, tester, builder, curious newcomer, and person who shared an idea: "
-            "thank you. Your time, trust, patience, and belief are part of this universe.\n\n"
-            "ROMVERSE is being built for you—and it is better because you are here.\n\n"
+            "To every supporter and every user; to every tester, builder, curious newcomer, and "
+            "person who shared an idea, reported a problem, or simply believed this could become "
+            "something special: thank you.\n\n"
+            "Your time, trust, patience, and belief are part of this universe. What began as one "
+            "determined idea grows brighter because you are here.\n\n"
+            "ROMVERSE is being built for you. Wherever this journey leads, your place in its "
+            "origin will never be forgotten.\n\n"
+            "From the bottom of my heart—thank you for stepping into the Verse.\n\n"
             "Made for the people who refuse to stop tinkering.\n\n"
             "27.08.2026"
         ),
         constellation="THE JOURNEY IS ONLY BEGINNING",
-        duration_ms=13_000,
+        duration_ms=20_000,
     ),
 )
 

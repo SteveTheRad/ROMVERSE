@@ -444,10 +444,27 @@ def test_about_and_supporter_sequence_use_new_app_icon() -> None:
     assert dialog.message_scroll.widgetResizable()
     assert dialog.message_scroll.widget() is dialog.message
     assert dialog.comic_stage.objectName() == "OriginComicStage"
-    assert dialog.issue_badge.text() == "ROMVERSE ORIGIN  •  ISSUE #01"
+    assert dialog.issue_badge.text() == "ROMVERSE ORIGIN  •  THE LIVING CHRONICLE"
+    assert dialog.portal.accessibleName() == "Illustrated ROMVERSE living chronicle"
+    assert not dialog.portal.chronicle.isNull()
+    assert dialog.portal.chronicle.width() >= 1600
+    assert dialog.portal.chronicle.height() >= 900
     dialog._render_scene(2)
     assert dialog.chapter.text().startswith("PANEL 03")
     assert dialog.comic_burst.text() == "VERIFY!"
+    assert dialog.portal.scene_index == 2
+    dialog.portal.set_reduced_motion(False)
+    dialog.portal.set_progress(1.0)
+    dialog.portal.set_story_scene(0, 0.0)
+    app.processEvents()
+    beginning_frame = dialog.portal.grab().toImage()
+    dialog.portal.set_story_scene(6, 0.5)
+    app.processEvents()
+    assert dialog.portal.grab().toImage() != beginning_frame
+    dialog.portal.set_story_scene(2, 0.5)
+    assert dialog.portal.scene_progress == 0.5
+    dialog.portal.set_reduced_motion(True)
+    assert dialog.portal.scene_progress == 0.0
     dialog.close()
 
 
@@ -502,6 +519,7 @@ def test_origin_story_follows_the_approved_public_scene_contract() -> None:
     assert "ROMVERSE started as an idea I wanted to see exist." in story
     assert "Personal recognition appears only when genuine account evidence" in story
     assert "Your time, trust, patience, and belief are part of this universe." in story
+    assert "From the bottom of my heart—thank you for stepping into the Verse." in story
     assert "Made for the people who refuse to stop tinkering." in story
     assert "27.08.2026" in story
     assert origin_total_duration_ms() >= 100_000

@@ -766,10 +766,21 @@ class BrandProject(QWidget):
 
 
 class PortalCanvas(QWidget):
-    def __init__(self, logo_path: Path, parent: QWidget | None = None) -> None:
+    _SCENE_FOCUS = (0.10, 0.28, 0.49, 0.49, 0.70, 0.89, 0.89)
+
+    def __init__(
+        self,
+        logo_path: Path,
+        chronicle_path: Path | None = None,
+        parent: QWidget | None = None,
+    ) -> None:
         super().__init__(parent)
         self.logo = QPixmap(str(logo_path))
+        self.chronicle = QPixmap(str(chronicle_path)) if chronicle_path else QPixmap()
         self.progress = 0.0
+        self.scene_index = 0
+        self.scene_progress = 0.0
+        self.reduced_motion = False
         self._stars = tuple(
             (
                 ((index * 83 + 17) % 997) / 997.0,
@@ -780,7 +791,18 @@ class PortalCanvas(QWidget):
         )
 
     def set_progress(self, progress: float) -> None:
-        self.progress = progress
+        self.progress = max(0.0, min(1.0, progress))
+        self.update()
+
+    def set_story_scene(self, index: int, progress: float = 0.0) -> None:
+        self.scene_index = max(0, min(index, len(self._SCENE_FOCUS) - 1))
+        self.scene_progress = 0.0 if self.reduced_motion else max(0.0, min(1.0, progress))
+        self.update()
+
+    def set_reduced_motion(self, enabled: bool) -> None:
+        self.reduced_motion = bool(enabled)
+        if self.reduced_motion:
+            self.scene_progress = 0.0
         self.update()
 
     def paintEvent(self, _event) -> None:
@@ -789,9 +811,8 @@ class PortalCanvas(QWidget):
         center = QPointF(self.width() / 2, self.height() / 2)
         progress = self.progress
 
-        # A moving comic panel sits above the wider cosmic background. The
-        # halftone corners and heavy ink frame keep the secret playful without
-        # relying on an external artwork or obscuring the approved logo.
+        # The approved logo remains a separate, lossless layer. The generated
+        # chronicle is illustration only, so public copy stays crisp and localizable.
         panel = QRectF(self.rect()).adjusted(4, 4, -4, -4)
         panel_fill = QLinearGradient(panel.topLeft(), panel.bottomRight())
         panel_fill.setColorAt(0.0, QColor(9, 14, 38, 238))
@@ -801,27 +822,93 @@ class PortalCanvas(QWidget):
         painter.setPen(QPen(QColor(2, 3, 10, 245), 7))
         painter.drawRoundedRect(panel, 12, 12)
         painter.setBrush(Qt.BrushStyle.NoBrush)
-        painter.setPen(QPen(QColor(94, 230, 244, 205), 2))
-        painter.drawRoundedRect(panel.adjusted(4, 4, -4, -4), 9, 9)
-        painter.setPen(Qt.PenStyle.NoPen)
-        for row in range(5):
-            for column in range(9):
-                alpha = max(25, 105 - row * 15 - column * 5)
-                painter.setBrush(QColor(211, 93, 255, alpha))
-                painter.drawEllipse(
-                    QPointF(18 + column * 10, 18 + row * 9),
-                    1.8,
-                    1.8,
+        painter.setPen(QPen(QColor(194, 159, 85, 225), 2))
+        art_rect = panel.adjusted(6, 6, -6, -6)
+        painter.drawRoundedRect(art_rect, 9, 9)
+
+        if not self.chronicle.isNull() and art_rect.width() > 0 and art_rect.height() > 0:
+            painter.save()
+            clip = QPainterPath()
+            clip.addRoundedRect(art_rect.adjusted(1, 1, -1, -1), 8, 8)
+            painter.setClipPath(clip)
+
+            image_width = float(self.chronicle.width())
+            image_height = float(self.chronicle.height())
+            target_ratio = art_rect.width() / art_rect.height()
+            image_ratio = image_width / image_height
+            if image_ratio > target_ratio:
+                source_height = image_height
+                source_width = source_height * target_ratio
+            else:
+                source_width = image_width
+                source_height = source_width / target_ratio
+
+            drift = 0.0 if self.reduced_motion else math.sin(self.scene_progress * math.pi) * 0.018
+            zoom = 1.0 + drift
+            source_width /= zoom
+            source_height /= zoom
+            focus = self._SCENE_FOCUS[self.scene_index]
+            focus_x = image_width * focus
+            source_x = max(0.0, min(image_width - source_width, focus_x - source_width / 2))
+            vertical_drift = 0.0
+            if not self.reduced_motion:
+                vertical_drift = math.sin((self.scene_progress + self.scene_index) * math.pi) * 7.0
+            source_y = max(
+                0.0,
+                min(
+                    image_height - source_height,
+                    (image_height - source_height) / 2 + vertical_drift,
+                ),
+            )
+            painter.setOpacity(0.97)
+            painter.drawPixmap(
+                art_rect,
+                self.chronicle,
+                QRectF(source_x, source_y, source_width, source_height),
+            )
+
+            # A restrained moving pool of light leads the eye through each chapter.
+            if self.progress >= 1.0:
+                spotlight_x = art_rect.left() + art_rect.width() * focus
+                spotlight = QRadialGradient(
+                    QPointF(spotlight_x, art_rect.center().y()),
+                    max(art_rect.width() * 0.42, art_rect.height()),
                 )
+                spotlight.setColorAt(0.0, QColor(8, 12, 30, 0))
+                spotlight.setColorAt(0.35, QColor(8, 12, 30, 8))
+                spotlight.setColorAt(0.72, QColor(2, 5, 18, 70))
+                spotlight.setColorAt(1.0, QColor(2, 5, 18, 145))
+                painter.setOpacity(1.0)
+                painter.fillRect(art_rect, spotlight)
+
+            lower_veil = QLinearGradient(art_rect.bottomLeft(), art_rect.topLeft())
+            lower_veil.setColorAt(0.0, QColor(2, 5, 16, 105))
+            lower_veil.setColorAt(0.42, QColor(2, 5, 16, 0))
+            lower_veil.setColorAt(1.0, QColor(2, 5, 16, 10))
+            painter.fillRect(art_rect, lower_veil)
+            painter.restore()
+
+        # Small celestial chapter markers make the artwork feel like a navigable atlas.
+        marker_y = art_rect.bottom() - 13
+        marker_width = min(170.0, art_rect.width() * 0.30)
+        marker_start = art_rect.center().x() - marker_width / 2
+        painter.setPen(Qt.PenStyle.NoPen)
+        for index in range(len(self._SCENE_FOCUS)):
+            marker_x = marker_start + index * marker_width / (len(self._SCENE_FOCUS) - 1)
+            active = index == self.scene_index
+            painter.setBrush(QColor("#F1CC77") if active else QColor(226, 214, 183, 135))
+            radius = 3.8 if active else 2.1
+            painter.drawEllipse(QPointF(marker_x, marker_y), radius, radius)
 
         # The surrounding stars bend toward the event horizon before the portal opens.
         gather = min(0.58, max(0.0, (progress - 0.03) / 0.48) * 0.58)
+        star_fade = max(0.0, 1.0 - max(0.0, progress - 0.74) / 0.26)
         for index, (x_ratio, y_ratio, star_size) in enumerate(self._stars):
             origin = QPointF(x_ratio * self.width(), y_ratio * self.height())
             point = origin + (center - origin) * gather
             shimmer = 0.58 + 0.42 * math.sin(progress * 24 + index * 1.7)
             painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(QColor(165, 219, 255, int(105 * shimmer)))
+            painter.setBrush(QColor(165, 219, 255, int(105 * shimmer * star_fade)))
             painter.drawEllipse(point, star_size, star_size)
             if 0.18 < progress < 0.58 and index % 4 == 0:
                 painter.setPen(QPen(QColor(116, 103, 255, 55), 0.8))
@@ -903,7 +990,7 @@ class PortalCanvas(QWidget):
             burst_font = QFont("DejaVu Sans", 23, QFont.Weight.Black)
             burst_font.setItalic(True)
             painter.setFont(burst_font)
-            burst_text = "KRA-KOOM!"
+            burst_text = "THE RIFT OPENS"
             burst_bounds = painter.fontMetrics().boundingRect(burst_text)
             burst_x = int(center.x() - burst_bounds.width() / 2)
             burst_y = int(max(42, center.y() - radius * 0.62))
@@ -915,7 +1002,7 @@ class PortalCanvas(QWidget):
         reveal = min(1.0, max(0.0, (progress - 0.69) / 0.22))
         if reveal > 0 and not self.logo.isNull():
             eased = 1.0 - (1.0 - reveal) ** 3
-            icon_size = int(86 + 88 * eased)
+            icon_size = int(74 + 72 * eased)
             icon = self.logo.scaled(
                 icon_size,
                 icon_size,
@@ -930,7 +1017,20 @@ class PortalCanvas(QWidget):
             painter.setBrush(icon_glow)
             painter.setPen(Qt.PenStyle.NoPen)
             painter.drawEllipse(center, icon_size * 0.82, icon_size * 0.82)
-            painter.drawPixmap(center - QPointF(icon.width() / 2, icon.height() / 2), icon)
+            icon_rect = QRectF(
+                center.x() - icon.width() / 2,
+                center.y() - icon.height() / 2,
+                icon.width(),
+                icon.height(),
+            )
+            seal = QPainterPath()
+            seal.addEllipse(icon_rect)
+            painter.setClipPath(seal)
+            painter.drawPixmap(icon_rect, icon, QRectF(icon.rect()))
+            painter.setClipping(False)
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.setPen(QPen(QColor(231, 199, 115, int(220 * reveal)), 1.4))
+            painter.drawEllipse(icon_rect.adjusted(1, 1, -1, -1))
             painter.restore()
         painter.end()
 
@@ -947,21 +1047,23 @@ class ThanksPortal(QDialog):
         super().__init__(parent)
         self.setWindowTitle("ROMVERSE: The Origin")
         self.setModal(False)
-        self.setMinimumSize(760, 720)
+        self.setMinimumSize(800, 740)
         self._fit_to_screen()
         self.setStyleSheet(
-            "QDialog { background: #02040B; border: 1px solid #365AA5; border-radius: 22px; }"
+            "QDialog { background: #02040B; border: 1px solid #7E6B44; border-radius: 22px; }"
             "QLabel { color: #EDF4FF; background: transparent; }"
             "QProgressBar { background: rgba(15, 20, 43, 220); border: 1px solid "
             "rgba(96, 124, 190, 110); border-radius: 3px; min-height: 5px; max-height: 5px; }"
             "QProgressBar::chunk { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-            "stop:0 #A44CFF, stop:1 #36E7F5); border-radius: 3px; }"
-            "QFrame#OriginComicStage { background: rgba(3, 6, 17, 225); border: 3px solid #02030A; "
-            "border-top: 3px solid #63ECF8; border-radius: 15px; }"
-            "QLabel#OriginIssue { color:#08101F; background:#FFD84F; border:2px solid #02030A; "
+            "stop:0 #A44CFF, stop:0.54 #36E7F5, stop:1 #E7C773); border-radius: 3px; }"
+            "QFrame#OriginComicStage { background: rgba(5, 8, 20, 238); border: 3px solid #050611; "
+            "border-top: 3px solid #C5A65E; border-radius: 15px; }"
+            "QLabel#OriginIssue { color:#18233B; background:#E8D5A5; border:2px solid #8B713C; "
             "border-radius:5px; padding:5px 9px; font-size:10px; font-weight:900; letter-spacing:1px; }"
-            "QLabel#OriginBurst { color:#FFFFFF; background:#9D36E8; border:2px solid #02030A; "
+            "QLabel#OriginBurst { color:#FAEBC7; background:#43306F; border:1px solid #C29A50; "
             "border-radius:5px; padding:5px 11px; font-size:11px; font-weight:900; letter-spacing:1px; }"
+            "QScrollArea#OriginStoryScroll { background: rgba(236, 221, 187, 238); "
+            "border: 1px solid rgba(194, 154, 80, 210); border-radius: 9px; }"
         )
         self._reduced_motion = bool(reduced_motion)
         self._scene_index = 0
@@ -979,7 +1081,7 @@ class ThanksPortal(QDialog):
         top = QHBoxLayout()
         self.chapter = QLabel()
         self.chapter.setStyleSheet(
-            "color: #63ECF8; font-size: 10px; font-weight: 800; letter-spacing: 2px;"
+            "color: #E7C773; font-size: 10px; font-weight: 800; letter-spacing: 2px;"
         )
         top.addWidget(self.chapter)
         top.addStretch(1)
@@ -1002,7 +1104,7 @@ class ThanksPortal(QDialog):
         comic_layout.setContentsMargins(18, 14, 18, 15)
         comic_layout.setSpacing(7)
         comic_header = QHBoxLayout()
-        self.issue_badge = QLabel("ROMVERSE ORIGIN  •  ISSUE #01")
+        self.issue_badge = QLabel("ROMVERSE ORIGIN  •  THE LIVING CHRONICLE")
         self.issue_badge.setObjectName("OriginIssue")
         comic_header.addWidget(self.issue_badge)
         comic_header.addStretch(1)
@@ -1011,13 +1113,22 @@ class ThanksPortal(QDialog):
         comic_header.addWidget(self.comic_burst)
         comic_layout.addLayout(comic_header)
 
-        self.portal = PortalCanvas(logo_path)
-        self.portal.setMinimumHeight(205)
+        chronicle_resource = files("romverse.assets").joinpath(
+            "romverse-origin-living-chronicle-v2.png"
+        )
+        with as_file(chronicle_resource) as chronicle_path:
+            self.portal = PortalCanvas(
+                logo_path,
+                chronicle_path if chronicle_path.is_file() else None,
+            )
+        self.portal.set_reduced_motion(self._reduced_motion)
+        self.portal.setAccessibleName("Illustrated ROMVERSE living chronicle")
+        self.portal.setMinimumHeight(300)
         comic_layout.addWidget(self.portal)
-        self.title = QLabel("ROMVERSE: THE ORIGIN  •  A COMIC UNIVERSE")
+        self.title = QLabel("ROMVERSE: THE ORIGIN  •  VOLUME I")
         self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.title.setStyleSheet(
-            "color: #63ECF8; font-size: 13px; font-weight: 800; letter-spacing: 3px;"
+            "color: #E7C773; font-size: 13px; font-weight: 800; letter-spacing: 3px;"
         )
         self.title_effect = QGraphicsOpacityEffect(self)
         self.title_effect.setOpacity(0.0)
@@ -1028,7 +1139,7 @@ class ThanksPortal(QDialog):
         self.scene_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.scene_title.setWordWrap(True)
         self.scene_title.setStyleSheet(
-            "color: #E5C6FF; font-size: 23px; font-weight: 850; letter-spacing: 2px;"
+            "color: #E9D7A9; font-size: 23px; font-weight: 850; letter-spacing: 2px;"
         )
         comic_layout.addWidget(self.scene_title)
         self.constellation = QLabel()
@@ -1045,7 +1156,7 @@ class ThanksPortal(QDialog):
         self.message.setWordWrap(True)
         self.message.setStyleSheet(
             "font-family: 'DejaVu Sans', sans-serif; font-size: 14px; "
-            "line-height: 128%; letter-spacing: 0.2px; color: #F0F3FF; padding: 8px 18px;"
+            "line-height: 128%; letter-spacing: 0.2px; color: #17223B; padding: 14px 22px;"
         )
         self.message_effect = QGraphicsOpacityEffect(self)
         self.message_effect.setOpacity(0.0)
@@ -1055,7 +1166,7 @@ class ThanksPortal(QDialog):
         self.message_scroll.setWidgetResizable(True)
         self.message_scroll.setFrameShape(QFrame.Shape.NoFrame)
         self.message_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.message_scroll.setStyleSheet("background: transparent; border: 0;")
+        self.message_scroll.viewport().setStyleSheet("background: transparent;")
         self.message_scroll.setWidget(self.message)
         comic_layout.addWidget(self.message_scroll, 1)
         layout.addWidget(self.comic_stage, 1)
@@ -1190,11 +1301,11 @@ class ThanksPortal(QDialog):
     def _fit_to_screen(self) -> None:
         screen = QGuiApplication.primaryScreen()
         if screen is None:
-            self.resize(900, 880)
+            self.resize(1040, 900)
             return
         available = screen.availableGeometry()
-        width = min(1180, max(760, int(available.width() * 0.86)))
-        height = min(980, max(720, int(available.height() * 0.90)))
+        width = min(1240, max(800, int(available.width() * 0.88)))
+        height = min(1000, max(740, int(available.height() * 0.92)))
         self.resize(width, height)
 
     def _advance_portal(self) -> None:
@@ -1221,6 +1332,7 @@ class ThanksPortal(QDialog):
         self._scene_elapsed_ms = 0
         self._last_scene_tick = time.monotonic()
         scene = ORIGIN_SCENES[self._scene_index]
+        self.portal.set_story_scene(self._scene_index)
         self.chapter.setText(scene.eyebrow.replace("SCENE", "PANEL"))
         self.scene_counter.setText(f"{self._scene_index + 1:02d} / {len(ORIGIN_SCENES):02d}")
         self.comic_burst.setText(
@@ -1257,6 +1369,10 @@ class ThanksPortal(QDialog):
         self._last_scene_tick = now
         self._scene_elapsed_ms += elapsed
         scene = ORIGIN_SCENES[self._scene_index]
+        self.portal.set_story_scene(
+            self._scene_index,
+            self._scene_elapsed_ms / max(1, scene.duration_ms),
+        )
         if self._scene_elapsed_ms >= scene.duration_ms:
             if self._scene_index < len(ORIGIN_SCENES) - 1:
                 self._render_scene(self._scene_index + 1)
@@ -1304,6 +1420,7 @@ class ThanksPortal(QDialog):
     def _set_reduced_effects(self, enabled: bool) -> None:
         self._reduced_motion = bool(enabled)
         self._cosmic_background.set_reduced_motion(self._reduced_motion)
+        self.portal.set_reduced_motion(self._reduced_motion)
         if enabled and self._portal_timer.isActive():
             self._portal_timer.stop()
             self._progress = 1.0

@@ -27,6 +27,7 @@ src/romverse/
   nexus/                 Device DNA compatibility, plans, routes, foresight, insight, event ledger
   intelligence/          online remediation, Synapse evidence, AI Gateway and Usage Governor
   diagnostics/           evidence, findings, analysis, redacted history
+  knowledge/             offline repair brain, provenance store, deterministic evidence ranking
   device_packs/          validated multi-OEM metadata and matching
   repair/                guided assessment plus typed, receipt-bound safe repair services
   rom/                   provenance, payload/filesystem services, Recipes, build gates
@@ -78,6 +79,11 @@ scripts/                  Linux and Windows environment bootstrap
   backwards updates so large copies, hashes, scans, and downloads cannot starve the UI event loop.
 - Resolve connected intelligence through deterministic evidence, Synapse, verified cache, and the
   Compatibility Matrix before AI. Provider output stays guidance-only and passes through Guardian.
+- Query the strict local Knowledge Archives after every successful Device DNA capture and from typed
+  boot/flash failure producers. Rank exact error, finding, build, codename, model, and partition
+  evidence ahead of broad family text; expose provenance, scope, corroboration, confidence,
+  incompatibility, and missing evidence in every result. Community-reported successful outcomes are
+  usable scoped evidence even when the count is one, but Archives never receives execution authority.
 - Treat every Synapse Contribution Passport as an exact-byte, content-digested, private review
   artifact. Re-scrub summaries, allow only bounded aggregate scope/outcome fields, reject extra or
   altered fields, and keep upload, execution, and phone authority false until a separate production

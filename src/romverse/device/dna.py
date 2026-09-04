@@ -201,6 +201,8 @@ class DeviceDnaService:
         self.store = store
         self.registry = registry
         self.profiles = DeviceDnaStore(store)
+        self.last_knowledge_lookup = None
+        self.knowledge_lookup_error = ""
 
     def refresh(
         self,
@@ -249,7 +251,44 @@ class DeviceDnaService:
             ota_metadata,
             ota_error,
         )
-        return self.profiles.save(profile)
+        saved = self.profiles.save(profile)
+        self._scan_offline_knowledge(saved)
+        return saved
+
+    def scan_knowledge_after_failure(self, project_id: str, failure):
+        """Run the same local brain for a typed boot/flash failure without device authority."""
+
+        from romverse.knowledge.lookup import OfflineKnowledgeService
+
+        profile = self.profiles.load(project_id)
+        try:
+            report = OfflineKnowledgeService(self.store.workspace).scan_after_failure(
+                profile,
+                failure,
+            )
+        except (OSError, TypeError, ValueError) as exc:
+            self.last_knowledge_lookup = None
+            self.knowledge_lookup_error = str(exc)[:500]
+            return None
+        self.last_knowledge_lookup = report
+        self.knowledge_lookup_error = ""
+        return report
+
+    def _scan_offline_knowledge(self, profile: DeviceDnaProfile) -> None:
+        """Refresh local recommendations after every successfully persisted DNA capture."""
+
+        from romverse.knowledge.lookup import OfflineKnowledgeService
+
+        try:
+            self.last_knowledge_lookup = OfflineKnowledgeService(
+                self.store.workspace
+            ).scan_after_device_dna(profile)
+        except (OSError, TypeError, ValueError) as exc:
+            # Device DNA remains authoritative even when an independently stored archive is bad.
+            self.last_knowledge_lookup = None
+            self.knowledge_lookup_error = str(exc)[:500]
+        else:
+            self.knowledge_lookup_error = ""
 
     def _compile(
         self,

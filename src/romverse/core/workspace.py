@@ -17,6 +17,7 @@ WORKSPACE_DIRECTORIES = (
     "device_packs",
     "recipes",
     "diagnostics",
+    "knowledge",
     "logs",
     "cache",
     "temp",

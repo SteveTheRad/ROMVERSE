@@ -240,6 +240,24 @@ SHA-256 `198ca8d82a89916779765a3d76009daf737454c946be97390b9b11ec1a138660`. GitH
 `33843864740` again started zero steps in every matrix job because of the account billing/spending
 limit; it provides no CI test evidence. No phone action was performed.
 
+The pre-device discovery-diagnosis increment at commit `8be100e` passes all 1,666 Desktop tests and
+the complete Ruff check/format gates across 368 Python and release-script files. A failed Main
+Window ADB discovery now supplies its bounded host error to Recovery Bay's offline brain even when
+no device snapshot exists, shows the ranked guidance beside any separate host-recovery option, and
+hands the exact error to Archives. The regression follows the real Main Window route and proves the
+specific multiple-target error opens the matching local ADB guide without starting a host worker,
+command, scan, repair, or phone action.
+
+The fresh 249-member wheel contains all 21 Device Packs and has SHA-256
+`03ba688635f496cf703d366a3ab37cc99e6cf2170bdf853e42d652f7dab5d463`. A separate Python 3.14
+environment installed that exact wheel and passed fresh/populated-workspace startup, 199-record
+archive loading, 169-fix/19-route checks, and byte-exact reopening. The fresh self-contained Fedora
+app launches successfully and its verified 453-file, 355,965,055-expanded-byte portable ZIP has
+SHA-256 `b438564c54408c3ad9ddd4313e4360cd8a358187012a3334fbbf0d39a3cc696f`. GitHub Actions run
+`33845292632` started zero steps in all seven matrix jobs, with the dependent candidate skipped, so
+it contributes no CI evidence. No phone, firmware, partition, bootloader, flash, or installation
+operation was performed.
+
 ## Required gates
 
 1. Run the complete `pytest`, `ruff check .`, and `ruff format --check .` gates on supported Linux

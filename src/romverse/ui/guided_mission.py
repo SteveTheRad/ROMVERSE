@@ -1820,7 +1820,11 @@ class GuidedBuildMission(QDialog):
             self._refresh()
             return
         service = BootObservationService(self.studio.store, self.studio.pack_registry)
-        existing = service.load(project.project_id)
+        existing = service.load(
+            project.project_id,
+            verified_flash=self.studio._latest_guardian_execution_result,
+            device=context.device,
+        )
         wait = service.next_sample_wait_seconds(existing)
         if wait:
             self.failure = self.engine.diagnose(
@@ -1829,7 +1833,11 @@ class GuidedBuildMission(QDialog):
             self._refresh()
             return
         try:
-            receipt = service.observe(project.project_id, context.device)
+            receipt = service.observe(
+                project.project_id,
+                context.device,
+                verified_flash=self.studio._latest_guardian_execution_result,
+            )
         except (OSError, ProjectError) as exc:
             self.failure = self.engine.diagnose(str(exc))
             self._refresh()

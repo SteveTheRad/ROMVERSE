@@ -4,7 +4,7 @@ import hashlib
 import json
 import os
 import zipfile
-from dataclasses import replace
+from dataclasses import asdict, replace
 from datetime import UTC, datetime, timedelta
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -12,6 +12,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 import pytest
 from PySide6.QtWidgets import QApplication
 
+from romverse.core.privacy import WorkspacePrivacy
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device_packs.models import (
     CapabilityStatus,
@@ -23,6 +24,15 @@ from romverse.device_packs.models import (
     PartitionBuildRule,
 )
 from romverse.device_packs.registry import DevicePackRegistry
+from romverse.guardian.execution_result_receipt import (
+    ExecutionTerminalState,
+    GatewayResultOutcome,
+    GuardianExecutionResultReceipt,
+    GuardianGatewayStepResult,
+    VerifiedGuardianExecutionResult,
+    canonical_execution_result_bytes,
+    execution_result_digest,
+)
 from romverse.rom.boot_observation import (
     BootFailureKind,
     BootObservationService,
@@ -107,6 +117,72 @@ def _redigest(data: dict[str, object]) -> dict[str, object]:
     return data
 
 
+def _verified_flash(store, project, device, completed_at: datetime):
+    timestamp = completed_at.isoformat()
+    result = GuardianGatewayStepResult(
+        order=1,
+        operation_id="flash-system",
+        gateway_step_digest="e" * 64,
+        started_at=(completed_at - timedelta(seconds=30)).isoformat(),
+        completed_at=timestamp,
+        outcome=GatewayResultOutcome.PASSED,
+        returncode=0,
+        timed_out=False,
+        observed_value="",
+        observed_size_bytes=0,
+        observed_sha256="",
+        evidence_sha256="f" * 64,
+        error_code="",
+        result_digest="",
+    )
+    result_payload = asdict(result)
+    result_payload.pop("result_digest")
+    result = replace(result, result_digest=execution_result_digest(result_payload))
+    receipt = GuardianExecutionResultReceipt(
+        schema_version=2,
+        receipt_id="1" * 32,
+        created_at=timestamp,
+        started_at=(completed_at - timedelta(seconds=30)).isoformat(),
+        completed_at=timestamp,
+        gateway_contract_digest="2" * 64,
+        project_id=project.project_id,
+        plan_digest="3" * 64,
+        manifest_digest="4" * 64,
+        artifact_binding_digest="5" * 64,
+        device_key=WorkspacePrivacy(store.workspace).pseudonym(device.serial),
+        device_pack_id=project.device_pack_id,
+        device_pack_version="1",
+        device_pack_sha256="6" * 64,
+        live_target_receipt_digest="7" * 64,
+        final_consent_receipt_digest="8" * 64,
+        runtime_signer_key_id="runtime",
+        runtime_adapter_id="adapter",
+        runtime_adapter_version=1,
+        runtime_adapter_sha256="9" * 64,
+        recorded_prewrite_slot="a",
+        forward_result_count=1,
+        forward_results_digest=execution_result_digest({"forward_results": [asdict(result)]}),
+        forward_results=(result,),
+        recovery_invoked=False,
+        recovery_consent_receipt_digest="",
+        wipe_consent_receipt_digest="",
+        recovery_result_count=0,
+        recovery_results_digest="b" * 64,
+        recovery_results=(),
+        terminal_state=ExecutionTerminalState.SUCCEEDED,
+        phone_change_attempted=True,
+        phone_change_verified=True,
+        phone_state_uncertain=False,
+        postconditions_verified=True,
+        receipt_digest="c" * 64,
+    )
+    receipt_payload = asdict(receipt)
+    receipt_payload.pop("receipt_digest")
+    receipt = replace(receipt, receipt_digest=execution_result_digest(receipt_payload))
+    signed_digest = hashlib.sha256(canonical_execution_result_bytes(asdict(receipt))).hexdigest()
+    return VerifiedGuardianExecutionResult(receipt, "runtime", signed_digest)
+
+
 def test_boot_observation_requires_time_based_stability_and_never_claims_flash(tmp_path):
     store, project, registry = _fixture(tmp_path)
     service = BootObservationService(store, registry)
@@ -133,6 +209,143 @@ def test_boot_observation_requires_time_based_stability_and_never_claims_flash(t
     assert service.next_sample_wait_seconds(first, started + timedelta(seconds=70)) == 0
     assert "five-minute" in service.next_step(first)
     assert "Guardian write receipt" in service.next_step(stable)
+
+
+def test_verified_guardian_flash_starts_and_maintains_a_first_boot_session(tmp_path):
+    store, project, registry = _fixture(tmp_path)
+    service = BootObservationService(store, registry)
+    device = _device()
+    started = datetime(2026, 8, 29, 12, 0, tzinfo=UTC)
+    service.observe(project.project_id, device, started - timedelta(minutes=10))
+    verified = _verified_flash(store, project, device, started)
+
+    first_boot = service.observe(
+        project.project_id,
+        _device(uptime_seconds=20),
+        started + timedelta(seconds=5),
+        verified_flash=verified,
+    )
+    stable = service.observe(
+        project.project_id,
+        _device(uptime_seconds=330),
+        started + timedelta(seconds=315),
+    )
+
+    assert len(first_boot.samples) == 1
+    assert first_boot.flash_linked
+    assert first_boot.guardian_execution_receipt_digest == verified.signed_receipt_sha256
+    assert not first_boot.verified_first_boot
+    assert stable.status is BootObservationStatus.STABLE
+    assert stable.flash_linked
+    assert stable.verified_first_boot
+    assert stable.guardian_execution_receipt_digest == verified.signed_receipt_sha256
+    assert "Verified first boot" in service.next_step(stable)
+    assert service.load(project.project_id) == stable
+    fresh = BootObservationService(store, registry)
+    assert fresh.load(project.project_id) is None
+    assert fresh.load(project.project_id, verified_flash=verified, device=device) == stable
+
+
+def test_boot_observation_rejects_a_mismatched_or_unsuccessful_guardian_result(tmp_path):
+    store, project, registry = _fixture(tmp_path)
+    service = BootObservationService(store, registry)
+    device = _device()
+    started = datetime(2026, 8, 29, 12, 0, tzinfo=UTC)
+    verified = _verified_flash(store, project, device, started)
+
+    with pytest.raises(ProjectError, match="exact project and device"):
+        service.observe(
+            project.project_id,
+            device,
+            started + timedelta(seconds=5),
+            verified_flash=VerifiedGuardianExecutionResult(
+                replace(verified.receipt, device_key="0" * 20),
+                verified.signer_key_id,
+                verified.signed_receipt_sha256,
+            ),
+        )
+
+    with pytest.raises(ProjectError, match="exact project and device"):
+        service.observe(
+            project.project_id,
+            device,
+            started + timedelta(seconds=5),
+            verified_flash=VerifiedGuardianExecutionResult(
+                replace(
+                    verified.receipt,
+                    terminal_state=ExecutionTerminalState.FAILED,
+                    phone_change_verified=False,
+                    postconditions_verified=False,
+                ),
+                verified.signer_key_id,
+                verified.signed_receipt_sha256,
+            ),
+        )
+
+
+def test_rom_studio_advances_flash_and_first_boot_only_from_linked_evidence(tmp_path):
+    QApplication.instance() or QApplication([])
+    store, project, registry = _fixture(tmp_path)
+    device = _device()
+    completed = datetime(2026, 8, 29, 12, 0, tzinfo=UTC)
+    verified = _verified_flash(store, project, device, completed)
+    studio = RomStudio(store, registry)
+    studio.refresh(project.project_id)
+    studio.set_devices([device])
+
+    assert studio.register_guardian_execution_result(verified)
+    assert studio.guided_context().flash_complete
+    assert not studio.guided_context().first_boot_verified
+
+    service = BootObservationService(store, registry)
+    service.observe(
+        project.project_id,
+        _device(uptime_seconds=20),
+        completed + timedelta(seconds=5),
+        verified_flash=verified,
+    )
+    service.observe(
+        project.project_id,
+        _device(uptime_seconds=330),
+        completed + timedelta(seconds=315),
+    )
+    linked = studio.guided_context()
+
+    assert linked.flash_complete
+    assert linked.boot_observation_stable
+    assert linked.first_boot_verified
+    studio._latest_guardian_execution_result = None
+    untrusted_after_restart = studio.guided_context()
+    assert not untrusted_after_restart.flash_complete
+    assert not untrusted_after_restart.boot_observation_stable
+    assert not untrusted_after_restart.first_boot_verified
+    studio.close()
+
+
+def test_boot_observation_rejects_a_locally_forged_flash_link(tmp_path):
+    store, project, registry = _fixture(tmp_path)
+    service = BootObservationService(store, registry)
+    started = datetime(2026, 8, 29, tzinfo=UTC)
+    service.observe(project.project_id, _device(), started)
+    service.observe(
+        project.project_id,
+        _device(uptime_seconds=1310),
+        started + timedelta(seconds=310),
+    )
+    path = store.projects_root / project.project_id / service.NAME
+    forged = json.loads(path.read_text(encoding="utf-8"))
+    forged["flash_linked"] = True
+    forged["guardian_execution_receipt_digest"] = "f" * 64
+    forged["verified_first_boot"] = True
+    path.write_text(json.dumps(_redigest(forged)), encoding="utf-8")
+
+    assert BootObservationService(store, registry).load(project.project_id) is None
+    with pytest.raises(ProjectError, match="will not be overwritten"):
+        BootObservationService(store, registry).observe(
+            project.project_id,
+            _device(uptime_seconds=1400),
+            started + timedelta(seconds=400),
+        )
 
 
 def test_boot_observation_detects_uptime_reset_and_build_change(tmp_path):
@@ -267,12 +480,13 @@ def test_schema_one_boot_observation_migrates_in_memory_with_lookup_terms(tmp_pa
     legacy["schema_version"] = 1
     legacy.pop("failure_kind")
     legacy.pop("knowledge_queries")
+    legacy.pop("guardian_execution_receipt_digest")
     path.write_text(json.dumps(_redigest(legacy)), encoding="utf-8")
 
     migrated = service.load(project.project_id)
 
     assert migrated is not None
-    assert migrated.schema_version == 2
+    assert migrated.schema_version == 3
     assert migrated.failure_kind is BootFailureKind.REBOOT_LOOP
     assert migrated.knowledge_queries == receipt.knowledge_queries
 

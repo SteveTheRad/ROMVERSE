@@ -2884,7 +2884,12 @@ class BuildControlCenter(QDialog):
 
     def _boot_observation_card(self) -> QFrame:
         service = BootObservationService(self.studio.store, self.studio.pack_registry)
-        receipt = service.load(self.project.project_id)
+        device = self.studio.devices[0] if len(self.studio.devices) == 1 else None
+        receipt = service.load(
+            self.project.project_id,
+            verified_flash=self.studio._latest_guardian_execution_result,
+            device=device,
+        )
         if receipt is None or not service.needs_knowledge_lookup(receipt):
             self.boot_knowledge_report = None
             self.boot_knowledge_receipt_digest = ""
@@ -2896,7 +2901,11 @@ class BuildControlCenter(QDialog):
         layout = QHBoxLayout(card)
         layout.setContentsMargins(18, 15, 18, 15)
         copy = QVBoxLayout()
-        heading = QLabel("BOOT OBSERVATORY  •  READ-ONLY POST-BUILD EVIDENCE")
+        heading = QLabel(
+            "FIRST LIGHT  •  VERIFIED POST-FLASH EVIDENCE"
+            if receipt is not None and receipt.flash_linked
+            else "BOOT OBSERVATORY  •  READ-ONLY POST-BUILD EVIDENCE"
+        )
         heading.setObjectName("CardHeading")
         if receipt is None:
             detail = QLabel(
@@ -2915,7 +2924,8 @@ class BuildControlCenter(QDialog):
             detail = QLabel(
                 f"{receipt.status.value.upper()}  •  {len(receipt.samples)} sample(s)  •  "
                 f"{receipt.diagnosis}\nNext: {service.next_step(receipt)}\n"
-                "Flash-linked: NO  •  Verified first boot: NO"
+                f"Flash-linked: {'YES' if receipt.flash_linked else 'NO'}  •  "
+                f"Verified first boot: {'YES' if receipt.verified_first_boot else 'NO'}"
                 f"{archive_line}"
             )
         detail.setObjectName("GateCopy")
@@ -2946,7 +2956,11 @@ class BuildControlCenter(QDialog):
             )
             return
         service = BootObservationService(self.studio.store, self.studio.pack_registry)
-        existing = service.load(self.project.project_id)
+        existing = service.load(
+            self.project.project_id,
+            verified_flash=self.studio._latest_guardian_execution_result,
+            device=self.studio.devices[0],
+        )
         wait = service.next_sample_wait_seconds(existing)
         if wait:
             self.status.setText(
@@ -2954,7 +2968,11 @@ class BuildControlCenter(QDialog):
             )
             return
         try:
-            receipt = service.observe(self.project.project_id, self.studio.devices[0])
+            receipt = service.observe(
+                self.project.project_id,
+                self.studio.devices[0],
+                verified_flash=self.studio._latest_guardian_execution_result,
+            )
         except (OSError, ProjectError) as exc:
             self.status.setText(str(exc))
             QMessageBox.warning(self, "Boot observation stopped safely", str(exc))

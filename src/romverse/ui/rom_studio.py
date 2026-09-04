@@ -55,6 +55,7 @@ from romverse.guardian.execution_plan import (
     GuardianExecutionPlan,
     GuardianExecutionPlanService,
 )
+from romverse.guardian.execution_result_receipt import VerifiedGuardianExecutionResult
 from romverse.guardian.flash_handoff import GuardianFlashHandoffService
 from romverse.guardian.gateway import ExecutionGateway
 from romverse.guardian.live_target_receipt import GuardianLiveTargetReceiptService
@@ -704,6 +705,7 @@ class RomStudio(QWidget):
         self._latest_guardian_execution_plan: GuardianExecutionPlan | None = None
         self._latest_guardian_gateway_contract: GuardianExecutionGatewayContract | None = None
         self._latest_guardian_reviewed_device: AndroidDevice | None = None
+        self._latest_guardian_execution_result: VerifiedGuardianExecutionResult | None = None
         self._pending_repair_solution: (
             tuple[str, str, str, str, str, str, OnlineFixReceipt] | None
         ) = None
@@ -2017,13 +2019,31 @@ class RomStudio(QWidget):
 
         boot_observation_stable = False
         first_boot_verified = False
+        flash_complete = False
+        boot_service = BootObservationService(self.store, self.pack_registry)
         try:
-            boot_receipt = BootObservationService(self.store, self.pack_registry).load(project_id)
+            boot_receipt = boot_service.load(
+                project_id,
+                verified_flash=self._latest_guardian_execution_result,
+                device=device,
+            )
         except ProjectError:
             boot_receipt = None
-        if boot_receipt is not None and boot_receipt.status is BootObservationStatus.STABLE:
-            boot_observation_stable = True
-            first_boot_verified = boot_receipt.verified_first_boot
+        if boot_receipt is not None:
+            flash_complete = boot_receipt.flash_linked
+            if boot_receipt.status is BootObservationStatus.STABLE:
+                boot_observation_stable = True
+                first_boot_verified = boot_receipt.verified_first_boot
+        if not flash_complete and device is not None and self._latest_guardian_execution_result:
+            try:
+                boot_service.verified_flash_digest(
+                    project_id,
+                    device,
+                    self._latest_guardian_execution_result,
+                )
+                flash_complete = True
+            except ProjectError:
+                pass
 
         readiness = BuildReadinessService(
             self.store,
@@ -2091,6 +2111,7 @@ class RomStudio(QWidget):
                 if flash_handoff_ready and flash_handoff is not None
                 else ""
             ),
+            flash_complete=flash_complete,
             boot_observation_stable=boot_observation_stable,
             first_boot_verified=first_boot_verified,
             required_tools=required_tools_for_source(
@@ -2103,6 +2124,27 @@ class RomStudio(QWidget):
                 report.partition_signals if report is not None else (),
             ),
         )
+
+    def register_guardian_execution_result(
+        self,
+        result: VerifiedGuardianExecutionResult,
+    ) -> bool:
+        """Bind one already verified successful Guardian result to the active mission."""
+
+        project = self.current_project
+        device = self.devices[0] if len(self.devices) == 1 else None
+        if project is None or device is None:
+            return False
+        try:
+            BootObservationService(self.store, self.pack_registry).verified_flash_digest(
+                project.project_id,
+                device,
+                result,
+            )
+        except ProjectError:
+            return False
+        self._latest_guardian_execution_result = result
+        return True
 
     def genesis_flight_plan(self) -> GenesisFlightPlan:
         """Summarize the exact stage Genesis Sequence would resume from."""
@@ -2565,7 +2607,11 @@ class RomStudio(QWidget):
             self.command_tabs.setCurrentIndex(1)
             project = self.current_project
             receipt = (
-                BootObservationService(self.store, self.pack_registry).load(project.project_id)
+                BootObservationService(self.store, self.pack_registry).load(
+                    project.project_id,
+                    verified_flash=self._latest_guardian_execution_result,
+                    device=self.devices[0] if len(self.devices) == 1 else None,
+                )
                 if project is not None
                 else None
             )
@@ -2803,6 +2849,7 @@ class RomStudio(QWidget):
                 receipt = BootObservationService(self.store, self.pack_registry).observe(
                     self.current_project.project_id,
                     active[0],
+                    verified_flash=self._latest_guardian_execution_result,
                 )
                 self.scan_boot_observation_knowledge(receipt)
         if changed:

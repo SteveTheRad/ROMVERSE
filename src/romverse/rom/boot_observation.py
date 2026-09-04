@@ -11,6 +11,14 @@ from typing import TYPE_CHECKING
 from romverse.core.privacy import WorkspacePrivacy
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device_packs.registry import DevicePackRegistry
+from romverse.guardian.execution_result_receipt import (
+    ExecutionTerminalState,
+    GatewayResultOutcome,
+    GuardianExecutionResultReceipt,
+    VerifiedGuardianExecutionResult,
+    canonical_execution_result_bytes,
+    execution_result_digest,
+)
 from romverse.infrastructure.local_store import LocalStoreError, atomic_write_json, read_json_object
 from romverse.rom.models import ProjectError
 from romverse.rom.projects import RomProjectStore
@@ -63,6 +71,7 @@ class BootObservationReceipt:
     stable: bool
     reboot_detected: bool
     flash_linked: bool
+    guardian_execution_receipt_digest: str
     verified_first_boot: bool
     diagnosis: str
     phone_changed: bool
@@ -72,11 +81,11 @@ class BootObservationReceipt:
 
 
 class BootObservationService:
-    """Accumulate read-only boot evidence without claiming that a ROM was flashed."""
+    """Accumulate boot evidence and link it only to a verified Guardian result."""
 
     NAME = "boot-observation.romverse"
     FORMAT = "romverse.boot-observation"
-    SCHEMA_VERSION = 2
+    SCHEMA_VERSION = 3
     MAX_BYTES = 256 * 1024
     MIN_SAMPLE_INTERVAL_SECONDS = 60
     STABILITY_WINDOW_SECONDS = 300
@@ -111,17 +120,21 @@ class BootObservationService:
         "receipt_digest",
     }
     RECEIPT_FIELDS_V2 = RECEIPT_FIELDS_V1 | {"failure_kind", "knowledge_queries"}
+    RECEIPT_FIELDS_V3 = RECEIPT_FIELDS_V2 | {"guardian_execution_receipt_digest"}
 
     def __init__(self, store: RomProjectStore, registry: DevicePackRegistry) -> None:
         self.store = store
         self.registry = registry
         self.privacy = WorkspacePrivacy(store.workspace)
+        self._verified_flash_digests: set[str] = set()
 
     def observe(
         self,
         project_id: str,
         device: AndroidDevice,
         observed_at: datetime | None = None,
+        *,
+        verified_flash: VerifiedGuardianExecutionResult | None = None,
     ) -> BootObservationReceipt:
         project = self.store.get(project_id)
         pack = next(
@@ -134,7 +147,31 @@ class BootObservationService:
             raise ProjectError("Connected device does not match the project's exact Device Pack")
         now = (observed_at or datetime.now(UTC)).astimezone(UTC)
         pseudonym = self.privacy.pseudonym(device.serial)
+        verified_flash_digest = ""
+        if verified_flash is not None:
+            verified_flash_digest = self.verified_flash_digest(
+                project_id,
+                device,
+                verified_flash,
+                observed_at=now,
+            )
         previous = self.load(project_id)
+        evidence_path = self.store.projects_root / project_id / self.NAME
+        if previous is None and evidence_path.exists():
+            raise ProjectError(
+                "Existing boot evidence could not be verified and will not be overwritten"
+            )
+        if (
+            verified_flash_digest
+            and previous is not None
+            and (
+                not previous.flash_linked
+                or previous.guardian_execution_receipt_digest != verified_flash_digest
+            )
+        ):
+            # A genuine new flash begins a new first-boot observation session. Never
+            # mix a pre-flash baseline or an earlier installation into this timeline.
+            previous = None
         if previous is not None and previous.samples:
             if previous.samples[0].device_pseudonym != pseudonym:
                 raise ProjectError("Boot observation is already bound to another device")
@@ -159,6 +196,13 @@ class BootObservationService:
         ]
         status, stable, rebooted, diagnosis, failure_kind = self._classify(samples)
         knowledge_queries = self._knowledge_queries(samples, failure_kind)
+        flash_receipt_digest = verified_flash_digest or (
+            previous.guardian_execution_receipt_digest
+            if previous is not None and previous.flash_linked
+            else ""
+        )
+        flash_linked = bool(flash_receipt_digest)
+        verified_first_boot = bool(stable and flash_linked)
         payload = {
             "schema_version": self.SCHEMA_VERSION,
             "project_id": project_id,
@@ -169,8 +213,9 @@ class BootObservationService:
             "status": status.value,
             "stable": stable,
             "reboot_detected": rebooted,
-            "flash_linked": False,
-            "verified_first_boot": False,
+            "flash_linked": flash_linked,
+            "guardian_execution_receipt_digest": flash_receipt_digest,
+            "verified_first_boot": verified_first_boot,
             "diagnosis": diagnosis,
             "phone_changed": False,
             "failure_kind": failure_kind.value,
@@ -187,8 +232,9 @@ class BootObservationService:
             status,
             stable,
             rebooted,
-            False,
-            False,
+            flash_linked,
+            flash_receipt_digest,
+            verified_first_boot,
             diagnosis,
             False,
             failure_kind,
@@ -203,7 +249,20 @@ class BootObservationService:
         )
         return receipt
 
-    def load(self, project_id: str) -> BootObservationReceipt | None:
+    def load(
+        self,
+        project_id: str,
+        *,
+        verified_flash: VerifiedGuardianExecutionResult | None = None,
+        device: AndroidDevice | None = None,
+    ) -> BootObservationReceipt | None:
+        if verified_flash is not None:
+            if device is None:
+                return None
+            try:
+                self.verified_flash_digest(project_id, device, verified_flash)
+            except ProjectError:
+                return None
         path = self.store.projects_root / project_id / self.NAME
         try:
             data = read_json_object(
@@ -215,7 +274,7 @@ class BootObservationService:
             if (
                 data.get("format") != self.FORMAT
                 or type(schema) is not int
-                or schema not in {1, self.SCHEMA_VERSION}
+                or schema not in {1, 2, self.SCHEMA_VERSION}
                 or set(data) != self._receipt_fields(schema)
             ):
                 return None
@@ -251,6 +310,7 @@ class BootObservationService:
                 data["stable"],
                 data["reboot_detected"],
                 data["flash_linked"],
+                data["guardian_execution_receipt_digest"] if schema == self.SCHEMA_VERSION else "",
                 data["verified_first_boot"],
                 data["diagnosis"],
                 data["phone_changed"],
@@ -327,12 +387,86 @@ class BootObservationService:
         if receipt.status is BootObservationStatus.WAITING:
             return "Keep the phone connected. Record a follow-up after the five-minute stability window."
         if receipt.status is BootObservationStatus.STABLE:
+            if receipt.verified_first_boot:
+                return "Verified first boot is stable and linked to the successful Guardian execution receipt. Continue with subsystem health checks."
             return "Android looks stable on the same build and slot. A matching signed Guardian write receipt is still required before this can become verified first-boot evidence."
         return "Stop and review the diagnosis before any further device-changing work. ROMVERSE will not call this a successful boot."
 
     @classmethod
     def _receipt_fields(cls, schema: int) -> set[str]:
-        return cls.RECEIPT_FIELDS_V2 if schema == cls.SCHEMA_VERSION else cls.RECEIPT_FIELDS_V1
+        if schema == cls.SCHEMA_VERSION:
+            return cls.RECEIPT_FIELDS_V3
+        if schema == 2:
+            return cls.RECEIPT_FIELDS_V2
+        return cls.RECEIPT_FIELDS_V1
+
+    def verified_flash_digest(
+        self,
+        project_id: str,
+        device: AndroidDevice,
+        verified: VerifiedGuardianExecutionResult,
+        *,
+        observed_at: datetime | None = None,
+    ) -> str:
+        """Accept only an already cryptographically verified successful exact-device result."""
+
+        project = self.store.get(project_id)
+        pack = next(
+            (item for item in self.registry.packs if item.pack_id == project.device_pack_id), None
+        )
+        receipt = (
+            verified.receipt if isinstance(verified, VerifiedGuardianExecutionResult) else None
+        )
+        now = (observed_at or datetime.now(UTC)).astimezone(UTC)
+        try:
+            completed_at = datetime.fromisoformat(receipt.completed_at.replace("Z", "+00:00"))
+        except (AttributeError, TypeError, ValueError) as exc:
+            raise ProjectError("Guardian execution result has an invalid completion time") from exc
+        if completed_at.tzinfo is None:
+            raise ProjectError("Guardian execution result completion time requires a zone")
+        unsigned = asdict(receipt) if isinstance(receipt, GuardianExecutionResultReceipt) else {}
+        receipt_digest = unsigned.pop("receipt_digest", "")
+        signed_receipt_sha256 = (
+            hashlib.sha256(canonical_execution_result_bytes(asdict(receipt))).hexdigest()
+            if isinstance(receipt, GuardianExecutionResultReceipt)
+            else ""
+        )
+        if (
+            project.original is None
+            or pack is None
+            or pack.build_contract is None
+            or not isinstance(receipt, GuardianExecutionResultReceipt)
+            or receipt.project_id != project_id
+            or receipt.device_pack_id != pack.pack_id
+            or receipt.device_key != self.privacy.pseudonym(device.serial)
+            or receipt.terminal_state is not ExecutionTerminalState.SUCCEEDED
+            or receipt.forward_result_count != len(receipt.forward_results)
+            or not receipt.forward_results
+            or any(
+                result.outcome is not GatewayResultOutcome.PASSED
+                for result in receipt.forward_results
+            )
+            or receipt.forward_results_digest
+            != execution_result_digest(
+                {"forward_results": [asdict(result) for result in receipt.forward_results]}
+            )
+            or not receipt.phone_change_attempted
+            or not receipt.phone_change_verified
+            or receipt.phone_state_uncertain
+            or not receipt.postconditions_verified
+            or completed_at.astimezone(UTC) > now
+            or not isinstance(verified.signed_receipt_sha256, str)
+            or len(verified.signed_receipt_sha256) != 64
+            or any(char not in "0123456789abcdef" for char in verified.signed_receipt_sha256)
+            or verified.signer_key_id != receipt.runtime_signer_key_id
+            or receipt_digest != execution_result_digest(unsigned)
+            or verified.signed_receipt_sha256 != signed_receipt_sha256
+        ):
+            raise ProjectError(
+                "Boot observation requires a successful verified Guardian result for this exact project and device"
+            )
+        self._verified_flash_digests.add(verified.signed_receipt_sha256)
+        return verified.signed_receipt_sha256
 
     @classmethod
     def _parse_sample(cls, value: object) -> BootSample:
@@ -400,8 +534,24 @@ class BootObservationService:
             receipt.schema_version != self.SCHEMA_VERSION
             or receipt.project_id != project_id
             or receipt.phone_changed
-            or receipt.flash_linked
-            or receipt.verified_first_boot
+            or type(receipt.flash_linked) is not bool
+            or type(receipt.verified_first_boot) is not bool
+            or receipt.flash_linked != bool(receipt.guardian_execution_receipt_digest)
+            or (
+                receipt.flash_linked
+                and receipt.guardian_execution_receipt_digest not in self._verified_flash_digests
+            )
+            or (
+                receipt.guardian_execution_receipt_digest
+                and (
+                    len(receipt.guardian_execution_receipt_digest) != 64
+                    or any(
+                        char not in "0123456789abcdef"
+                        for char in receipt.guardian_execution_receipt_digest
+                    )
+                )
+            )
+            or receipt.verified_first_boot is not bool(receipt.flash_linked and receipt.stable)
             or project.original is None
             or receipt.source_original_sha256 != project.original.sha256
             or pack is None
@@ -419,8 +569,10 @@ class BootObservationService:
             return False
         payload = asdict(receipt)
         digest = payload.pop("receipt_digest", "")
+        payload["schema_version"] = source_schema
+        if source_schema < 3:
+            payload.pop("guardian_execution_receipt_digest", None)
         if source_schema == 1:
-            payload["schema_version"] = 1
             payload.pop("failure_kind", None)
             payload.pop("knowledge_queries", None)
         return isinstance(digest, str) and len(digest) == 64 and _digest(payload) == digest

@@ -45,6 +45,10 @@ from romverse.rom.boot_observation import (
     BootObservationStatus,
     BootSample,
 )
+from romverse.rom.first_light import (
+    FirstLightOverall,
+    FirstLightReport,
+)
 from romverse.rom.inspection import RomInspectionService
 from romverse.rom.projects import RomProjectStore
 from romverse.rom.source_intelligence import FirmwareSourceIntelligenceService
@@ -118,6 +122,57 @@ def test_bootloop_evidence_automatically_opens_recovery_autopilot(tmp_path: Path
         assert window.repair_center.autopilot_incident.trigger is RecoveryTrigger.BOOTLOOP
         assert not window.repair_center.autopilot_incident.repaired
         assert window.repair_center.autopilot_card.isVisibleTo(window.repair_center)
+        assert window.rom_studio.worker is None
+        assert window.repair_center.host_repair_worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_first_light_failure_automatically_opens_recovery_autopilot(tmp_path: Path) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    store, registry, project, _report = _project(tmp_path)
+    phone = _device(state=DeviceState.DEVICE, boot_completed=True, uptime_seconds=900)
+    window = MainWindow(None, logo, store.workspace, app_icon_path=logo, pack_registry=registry)
+    try:
+        window.rom_studio.refresh(project.project_id)
+        window.rom_studio.devices = [phone]
+        window.repair_center.set_devices([phone])
+        report = FirstLightReport(
+            schema_version=1,
+            report_id="a" * 32,
+            project_id=project.project_id,
+            created_at=datetime.now(UTC).isoformat(),
+            updated_at=datetime.now(UTC).isoformat(),
+            device_key="b" * 20,
+            pack_id=project.device_pack_id,
+            source_sha256=project.original.sha256,
+            guardian_execution_receipt_digest="c" * 64,
+            boot_observation_digest="d" * 64,
+            expected_build_id=phone.build_id,
+            observed_build_id=phone.build_id,
+            observed_build_fingerprint=phone.build_fingerprint,
+            observed_android_version=phone.android_version,
+            observed_slot=phone.slot_suffix,
+            baseline_scan_id="",
+            baseline_changes=(),
+            subsystems=(),
+            overall=FirstLightOverall.FAILED,
+            knowledge_queries=("Android camera failed after ROM flash",),
+            public_release_ready=False,
+            exportable=True,
+            phone_changed=False,
+            report_digest="e" * 64,
+        )
+
+        window.rom_studio.first_light_updated.emit(report, None)
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.repair_center
+        assert window.repair_center.autopilot_incident is not None
+        assert window.repair_center.autopilot_incident.trigger is RecoveryTrigger.MANUAL_DIAGNOSIS
+        assert "camera failed" in window.repair_center.autopilot_incident.diagnosis.casefold()
         assert window.rom_studio.worker is None
         assert window.repair_center.host_repair_worker is None
     finally:

@@ -1447,6 +1447,32 @@ The product-wide continuation target and definition of done are recorded in
   readiness and Project Vault regression suites pass. Approved ROMVERSE and RadForge Labs logo files
   were not edited.
 
+## 2026-09-05 First Light checkpoint
+
+- Forge Control now opens a dedicated large-format First Light orbital test chamber only after Boot
+  Observatory supplies a stable first boot linked to the exact successful Guardian execution. A
+  file, button click or unlinked boot sample cannot self-assert physical validation.
+- Automatic read-only evidence covers first-boot stability, exact build identity, USB and storage
+  visibility, and the observed slot, A/B, dynamic-partition and Verified Boot state. The receipt
+  digest, source, Device Pack, pseudonymous device key and Guardian execution digest must all remain
+  consistent. Unknown telemetry remains `UNTESTED`.
+- The lab separately records Wi-Fi, Bluetooth, mobile data, calls, GPS, NFC, camera, microphone,
+  speakers, sensors, biometrics, charging, Android Auto system integration, real vehicle projection,
+  thermal behaviour, abnormal battery drain and crash stability. Desktop entries are explicitly
+  labelled user-observed; the data model reserves a distinct authenticated-Companion evidence type.
+  No manual entry can overwrite an automatic check or claim automated provenance.
+- Where a verified Guardian operation exists in the private Device Intelligence timeline, First
+  Light selects the latest Passport from before that operation and compares Android, firmware,
+  security patch, active slot, slot scheme, partition state and Verified Boot evidence.
+- Degraded or failed subsystems create bounded offline knowledge queries. The Desktop automatically
+  scans Synapse and hands the compatible, zero-execution-authority results to a Recovery Autopilot
+  incident. This ranks routes but does not run a repair, flash or phone command.
+- Release Forge's public physical-validation gate now loads the strict current First Light report;
+  all required subsystems must be `WORKING` or explicitly `NOT APPLICABLE`. The report is included in
+  readiness evidence bundles and Project Vault fingerprints, and its external tester export contains
+  no raw serial. Focused core, UI, Release Forge, Forge Control, navigation, readiness and Vault tests
+  pass. The approved ROMVERSE and RadForge Labs logos remain byte-identical and were not edited.
+
 ## Honest feature boundary
 
 The current safe milestone supports read-only Android evidence, local diagnostics, guarded APK

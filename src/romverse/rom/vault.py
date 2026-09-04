@@ -145,6 +145,7 @@ class ProjectVaultService:
         "release-forge-plan": "release-forge-plan.romverse",
         "release-certificate": "release-certificate-signature.romverse",
         "release-bundle": "release-bundle-receipt.romverse",
+        "first-light": "first-light-report.romverse",
     }
 
     def __init__(self, store: RomProjectStore) -> None:

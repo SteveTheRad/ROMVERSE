@@ -1353,6 +1353,20 @@ keys are never requested or stored. Built-in secret and unexpected-file screenin
 opaque-image limitation, public releases remain dependent on genuine First Light hardware evidence,
 and Release Forge never publishes, flashes or sends a device command.
 
+**First Light** now begins only after Boot Observatory proves a stable first boot linked to the
+exact successful Guardian execution. Its large orbital test chamber rechecks the expected Android
+build, firmware identity, USB/storage telemetry, active slot, A/B topology, dynamic-partition and
+Verified Boot state; compares the result with the last Device Passport recorded before that flash;
+and keeps every unknown feature visibly untested. Wi-Fi, Bluetooth, radio, calls, location, NFC,
+camera, microphone, audio, sensors, biometrics, charging, Android Auto system integration and real
+vehicle projection, thermal behaviour, battery drain and crash stability require an explicitly
+labelled user or authenticated-Companion observation. Degraded and failed results automatically
+query the offline Archives and open a non-executing Recovery Autopilot incident. Exported tester
+reports contain a pseudonymous device key instead of the raw serial. Release Forge accepts public
+physical-validation evidence only through the strict First Light loader after every required
+subsystem is working or explicitly not applicable. First Light itself is read-only and never runs a
+repair, flash or other phone-changing command.
+
 ## Linux quick start
 
 Ubuntu 24.04+, Fedora 44, and Python 3.11–3.14 are supported for development.

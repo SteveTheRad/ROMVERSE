@@ -611,6 +611,8 @@ def test_exact_source_bound_pack_is_build_capable_while_phone_is_offline(tmp_pat
 
 def test_build_evidence_bundle_is_content_addressed_and_contains_only_manifests(tmp_path):
     store, project = _prepared_project(tmp_path)
+    first_light = store.projects_root / project.project_id / "first-light-report.romverse"
+    first_light.write_text('{"format":"romverse.first-light-report"}\n', encoding="utf-8")
     service = BuildReadinessService(
         store, _registry(), (ToolStatus("Python", True, "/python", "3"),)
     )
@@ -622,6 +624,7 @@ def test_build_evidence_bundle_is_content_addressed_and_contains_only_manifests(
     assert first.evidence_digest == second.evidence_digest
     assert first.output_path == second.output_path
     assert all("original_roms" not in path for _label, path, _digest in first.artifacts)
+    assert any(label == "first-light" for label, _path, _digest in first.artifacts)
     assert (store.workspace / first.output_path).is_file()
 
 

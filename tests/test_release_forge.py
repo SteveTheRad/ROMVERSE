@@ -17,6 +17,7 @@ from romverse.infrastructure.process import CommandResult
 from romverse.infrastructure.tools import ToolStatus
 from romverse.rom.build_contracts import DeviceBuildContractService
 from romverse.rom.build_execution import BuildOutputReceipt, LocalDeviceBuildExecutor
+from romverse.rom.first_light import FirstLightOverall, FirstLightService
 from romverse.rom.models import ProjectError
 from romverse.rom.projects import RomProjectStore
 from romverse.rom.recovery_evidence import (
@@ -146,6 +147,22 @@ def test_development_release_is_deterministic_local_and_tamper_evident(
 
     archive_path.write_bytes(archive_path.read_bytes() + b"tampered")
     assert "hash or size changed" in service.verify_bundle(receipt)
+
+
+def test_release_forge_trusts_only_the_strict_first_light_loader(tmp_path, monkeypatch):
+    service, project_id, _artifact, _state = _fixture(tmp_path, monkeypatch)
+    monkeypatch.setattr(FirstLightService, "load", lambda _self, _project_id: None)
+    assert not service._first_light_passed(project_id)
+
+    report = SimpleNamespace(
+        overall=FirstLightOverall.VERIFIED,
+        public_release_ready=True,
+    )
+    monkeypatch.setattr(FirstLightService, "load", lambda _self, _project_id: report)
+    assert service._first_light_passed(project_id)
+
+    report.public_release_ready = False
+    assert not service._first_light_passed(project_id)
 
 
 def test_public_certificate_is_signed_externally_and_reverified(

@@ -26,6 +26,10 @@ def _prepared_vault(tmp_path):
 
 def test_project_vault_captures_compares_and_restores_individual_files(tmp_path) -> None:
     store, project, tree, vault = _prepared_vault(tmp_path)
+    (store.projects_root / project.project_id / "first-light-report.romverse").write_text(
+        '{"format":"romverse.first-light-report"}\n',
+        encoding="utf-8",
+    )
     first = vault.capture(
         project.project_id,
         label="Known working baseline",
@@ -35,6 +39,7 @@ def test_project_vault_captures_compares_and_restores_individual_files(tmp_path)
     assert first.parent_entry_id == ""
     assert first.tree_bytes > 0
     assert dict(first.source_fingerprints)["protected-firmware"] == project.original.sha256
+    assert dict(first.source_fingerprints)["first-light"]
     assert vault.verify(first).valid
 
     (tree / "system" / "build.prop").write_text("ro.product=changed\n", encoding="utf-8")

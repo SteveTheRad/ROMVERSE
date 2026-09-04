@@ -101,6 +101,7 @@ from romverse.rom.avb_evidence import (
 from romverse.rom.boot_observation import BootObservationService
 from romverse.rom.build_execution import LocalBuildReceipt, LocalDeviceBuildExecutor
 from romverse.rom.build_inputs import BuildInputPreparation, BuildInputPreparationService
+from romverse.rom.first_light import FirstLightService
 from romverse.rom.forge_autopilot import ResolutionKind, resolution_plan
 from romverse.rom.guided import GuidedMissionStore
 from romverse.rom.models import ProjectError
@@ -129,6 +130,7 @@ from romverse.rom.source_intelligence import (
 from romverse.rom.vault import ProjectVaultService
 from romverse.ui.background import CoalescedProgress, ManagedRunnable, start_background
 from romverse.ui.backup_center import RecoveryEvidenceWorker
+from romverse.ui.first_light import FirstLightDialog
 from romverse.ui.guided_mission import GuidedBuildMission
 from romverse.ui.phone_backup import PhoneMediaBackupDialog, PhoneMediaBackupWorker
 from romverse.ui.process_progress import ProcessProgressBar
@@ -2927,6 +2929,10 @@ class BuildControlCenter(QDialog):
             verified_flash=self.studio._latest_guardian_execution_result,
             device=device,
         )
+        first_light = FirstLightService(
+            self.studio.store,
+            self.studio.pack_registry,
+        ).load(self.project.project_id)
         if receipt is None or not service.needs_knowledge_lookup(receipt):
             self.boot_knowledge_report = None
             self.boot_knowledge_receipt_digest = ""
@@ -2969,13 +2975,21 @@ class BuildControlCenter(QDialog):
                 f"{receipt.diagnosis}\nNext: {service.next_step(receipt)}\n"
                 f"Flash-linked: {'YES' if receipt.flash_linked else 'NO'}  •  "
                 f"Verified first boot: {'YES' if receipt.verified_first_boot else 'NO'}"
-                f"{archive_line}"
+                + (
+                    f"\nSubsystem validation: {first_light.overall.value.upper()}  •  "
+                    f"public release ready: {'YES' if first_light.public_release_ready else 'NO'}"
+                    if first_light is not None
+                    else "\nSubsystem validation: NOT STARTED"
+                )
+                + archive_line
             )
         detail.setObjectName("GateCopy")
         detail.setWordWrap(True)
         copy.addWidget(heading)
         copy.addWidget(detail)
         layout.addLayout(copy, 1)
+        actions = QVBoxLayout()
+        actions.setSpacing(7)
         observe = QPushButton(
             "Record baseline sample" if receipt is None else "Record follow-up sample"
         )
@@ -2984,13 +2998,85 @@ class BuildControlCenter(QDialog):
         )
         observe.clicked.connect(self._observe_boot)
         observe.setEnabled(bool(self.studio.devices))
-        layout.addWidget(observe)
+        actions.addWidget(observe)
+        first_light_button = QPushButton(
+            "Open First Light"
+            if first_light is None
+            else f"First Light • {first_light.overall.value.title()}"
+        )
+        first_light_button.setObjectName("ForgePrimaryAction")
+        first_light_button.setToolTip(
+            "Validate the current ROM against the verified first boot, pre-flash Device "
+            "Passport, and explicit subsystem observations. No phone-changing command runs."
+        )
+        first_light_button.clicked.connect(self._open_first_light)
+        first_light_button.setEnabled(
+            bool(device is not None and receipt is not None and receipt.verified_first_boot)
+        )
+        actions.addWidget(first_light_button)
         if self.boot_knowledge_report is not None:
             review = QPushButton("Review offline matches")
             review.setObjectName("SecondaryAction")
             review.clicked.connect(self._review_boot_knowledge)
-            layout.addWidget(review)
+            actions.addWidget(review)
+        actions.addStretch(1)
+        layout.addLayout(actions)
         return card
+
+    def _open_first_light(self) -> None:
+        if len(self.studio.devices) != 1:
+            self.status.setText(
+                "Connect exactly one authorized target before opening First Light."
+            )
+            return
+        device = self.studio.devices[0]
+        boot_service = BootObservationService(self.studio.store, self.studio.pack_registry)
+        boot = boot_service.load(
+            self.project.project_id,
+            verified_flash=self.studio._latest_guardian_execution_result,
+            device=device,
+        )
+        if boot is None or not boot.verified_first_boot:
+            self.status.setText(
+                "First Light needs a stable boot linked to the exact successful Guardian execution."
+            )
+            return
+        service = FirstLightService(self.studio.store, self.studio.pack_registry)
+        try:
+            report = service.start(self.project.project_id, device, boot)
+        except (OSError, ProjectError) as exc:
+            self.status.setText(str(exc))
+            QMessageBox.warning(self, "First Light could not start", str(exc))
+            return
+
+        knowledge_report = None
+
+        def scan_failure(failure):
+            nonlocal knowledge_report
+            knowledge_report = self.studio.scan_failure_knowledge(
+                self.project.project_id,
+                failure,
+            )
+            return knowledge_report
+
+        dialog = FirstLightDialog(
+            service,
+            report,
+            self,
+            reduced_motion=self.studio.app_settings.reduced_motion,
+            knowledge_lookup=scan_failure,
+        )
+        dialog.exec()
+        failure = FirstLightService.knowledge_failure(dialog.report)
+        if failure is not None and knowledge_report is None:
+            knowledge_report = scan_failure(failure)
+        self.studio.first_light_updated.emit(dialog.report, knowledge_report)
+        self.refresh()
+        self.status.setText(
+            f"First Light closed  •  {dialog.report.overall.value}  •  "
+            f"public release ready: {'YES' if dialog.report.public_release_ready else 'NO'}  •  "
+            "phone changed: NO"
+        )
 
     def _observe_boot(self) -> None:
         if not self.studio.devices:

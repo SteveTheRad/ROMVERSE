@@ -1085,6 +1085,7 @@ class BuildReadinessService:
                 project_dir / ReleaseForgeService.SIGNATURE_NAME,
             ),
             ("release-bundle", project_dir / ReleaseForgeService.RECEIPT_NAME),
+            ("first-light", project_dir / "first-light-report.romverse"),
         )
         artifacts: list[tuple[str, str, str]] = []
         for label, path in candidates:

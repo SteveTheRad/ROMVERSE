@@ -1939,11 +1939,15 @@ class ReleaseForgeService:
             resolution,
         )
 
-    @staticmethod
-    def _first_light_passed(project_id: str) -> bool:
-        # Stage 9 owns the strict report loader. Until then no file can self-assert success.
-        _ = project_id
-        return False
+    def _first_light_passed(self, project_id: str) -> bool:
+        from romverse.rom.first_light import FirstLightOverall, FirstLightService
+
+        report = FirstLightService(self.store, self.registry).load(project_id)
+        return bool(
+            report is not None
+            and report.overall is FirstLightOverall.VERIFIED
+            and report.public_release_ready
+        )
 
     @staticmethod
     def _text(value: str, label: str, maximum: int) -> str:

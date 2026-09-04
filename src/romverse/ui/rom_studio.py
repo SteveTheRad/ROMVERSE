@@ -660,6 +660,7 @@ class RomStudio(QWidget):
     device_dna_updated = Signal(object)
     guardian_flash_verified = Signal(str, str, object)
     boot_observation_updated = Signal(object, object)
+    first_light_updated = Signal(object, object)
     compatibility_matrix_updated = Signal(object)
     offline_knowledge_updated = Signal(object)
     experience_mode_requested = Signal(object)

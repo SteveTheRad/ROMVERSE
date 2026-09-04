@@ -144,6 +144,7 @@ from romverse.rom.boot_observation import (
     BootObservationReceipt,
     BootObservationStatus,
 )
+from romverse.rom.first_light import FirstLightReport, FirstLightService
 from romverse.rom.models import ProjectError
 from romverse.rom.projects import RomProjectStore
 from romverse.rom.readiness import BuildReadinessService
@@ -4573,6 +4574,7 @@ class MainWindow(QMainWindow):
             self.device_packs_center.record_verified_flash
         )
         self.rom_studio.boot_observation_updated.connect(self._handle_boot_observation)
+        self.rom_studio.first_light_updated.connect(self._handle_first_light)
         self.rom_studio.compatibility_matrix_updated.connect(self._record_compatibility_matrix)
         self.rom_studio.compatibility_matrix_updated.connect(
             lambda _matrix: self.nexus_center.refresh()
@@ -7333,6 +7335,47 @@ class MainWindow(QMainWindow):
             "Recovery Autopilot opened",
             "Measured boot evidence needs attention. ROMVERSE ranked evidence-backed routes and "
             "did not start a phone-changing action.",
+            NotificationKind.ATTENTION,
+        )
+
+    @Slot(object, object)
+    def _handle_first_light(self, report: object, knowledge_report: object) -> None:
+        """Route measured subsystem failures to Recovery Autopilot without executing fixes."""
+
+        if not isinstance(report, FirstLightReport) or not FirstLightService.needs_knowledge_lookup(
+            report
+        ):
+            return
+        compatible_report = (
+            knowledge_report
+            if isinstance(knowledge_report, KnowledgeLookupReport)
+            and knowledge_report.execution_authority == "none"
+            else None
+        )
+        project = self.rom_studio.current_project
+        device = self.rom_studio.devices[0] if len(self.rom_studio.devices) == 1 else None
+        recovery_evidence = None
+        if project is not None and project.project_id == report.project_id:
+            with suppress(OSError, ProjectError):
+                recovery_evidence = RecoveryEvidenceService(self.rom_studio.store).assess(
+                    report.project_id,
+                    device,
+                )
+        created = self.repair_center.open_recovery_incident(
+            RecoveryTrigger.MANUAL_DIAGNOSIS,
+            project_id=report.project_id,
+            message="; ".join(report.knowledge_queries),
+            knowledge_report=compatible_report,
+            recovery_evidence=recovery_evidence,
+        )
+        if not created:
+            return
+        self._navigate_route("recovery_bay")
+        self.notification_center.notify(
+            f"recovery-autopilot.first-light.{report.report_id}",
+            "First Light opened Recovery Autopilot",
+            "Measured subsystem evidence needs attention. ROMVERSE ranked offline, "
+            "evidence-backed routes and did not run a repair or phone-changing action.",
             NotificationKind.ATTENTION,
         )
 

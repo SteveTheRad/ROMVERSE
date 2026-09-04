@@ -236,15 +236,11 @@ def test_pixel_partition_generation_records_do_not_cross_match(tmp_path) -> None
         trigger="partition-identification",
     )
 
-    assert pixel6.matches[0].record.record_id == (
-        "official.pixel6-vendor-ramdisk-platform-match"
-    )
+    assert pixel6.matches[0].record.record_id == ("official.pixel6-vendor-ramdisk-platform-match")
     assert "official.pixel7plus-vendor-kernel-boot-layout" not in {
         match.record.record_id for match in pixel6.matches
     }
-    assert pixel7.matches[0].record.record_id == (
-        "official.pixel7plus-vendor-kernel-boot-layout"
-    )
+    assert pixel7.matches[0].record.record_id == ("official.pixel7plus-vendor-kernel-boot-layout")
     assert "official.pixel6-vendor-ramdisk-platform-match" not in {
         match.record.record_id for match in pixel7.matches
     }
@@ -319,8 +315,7 @@ def test_generic_fastboot_resize_error_ranks_platform_diagnosis_first(tmp_path) 
     report = OfflineKnowledgeService(tmp_path / "workspace").lookup(
         KnowledgeQuery(
             symptoms=(
-                "Resizing 'system_a' FAILED "
-                "(remote: 'Not enough space to resize partition')",
+                "Resizing 'system_a' FAILED (remote: 'Not enough space to resize partition')",
             ),
             error_codes=("Not enough space to resize partition",),
             partitions=("system_a", "super"),
@@ -345,8 +340,7 @@ def test_exact_pixel3axl_resize_outcome_stays_scoped_and_execution_inert(tmp_pat
             bootloader_states=("unlocked",),
             partitions=("system_a", "super"),
             error_codes=(
-                "Resizing 'system_a' FAILED "
-                "(remote: 'Not enough space to resize partition')",
+                "Resizing 'system_a' FAILED (remote: 'Not enough space to resize partition')",
             ),
         ),
         trigger="fastboot-failure",
@@ -363,9 +357,7 @@ def test_exact_pixel3axl_resize_outcome_stays_scoped_and_execution_inert(tmp_pat
 def test_adb_unauthorized_is_not_misdiagnosed_as_offline_or_driver_failure(tmp_path) -> None:
     report = OfflineKnowledgeService(tmp_path / "workspace").lookup(
         KnowledgeQuery(
-            symptoms=(
-                "device unauthorized. Please check the confirmation dialog on your device",
-            ),
+            symptoms=("device unauthorized. Please check the confirmation dialog on your device",),
             error_codes=("unauthorized",),
         ),
         trigger="device-discovery-failure",

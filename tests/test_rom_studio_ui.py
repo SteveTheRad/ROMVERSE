@@ -1085,6 +1085,19 @@ def test_genesis_uses_task_evidence_action_hierarchy_and_responsive_layout(tmp_p
     assert mission.action_button.property("primary") is True
     assert mission.next_button.property("primary") is False
     assert mission.auto_button.objectName() == "MissionAutopilot"
+    assert [button.phase.label for button in mission.phase_buttons] == [
+        "SCAN",
+        "MATCH",
+        "BUILD",
+        "VERIFY",
+        "BACKUP",
+        "FLASH",
+        "DIAGNOSE",
+    ]
+    assert mission.rail_scroll.isHidden()
+    assert mission.task_list_button.text() == "Show detailed tasks"
+    assert mission.firmware_identity_title.text() == "No firmware selected"
+    assert mission.device_identity_title.text() == "No device connected"
     assert mission.supporting_panel.isHidden()
     assert mission.details_button.text() == "Show evidence & guidance"
     assert mission.rail_scroll.width() == 238
@@ -1120,6 +1133,8 @@ def test_genesis_expert_view_expands_evidence_and_reduced_motion_stays_static(tm
     app.processEvents()
 
     assert mission.mode_badge.text() == "ARCHITECT  •  DEEP VIEW"
+    assert not mission.rail_scroll.isHidden()
+    assert mission.task_list_button.text() == "Hide detailed tasks"
     assert not mission.supporting_panel.isHidden()
     mission._select_stage(1)
     assert mission.task_effect.opacity() == 1.0
@@ -1444,16 +1459,16 @@ def test_genesis_opens_forge_control_as_a_visible_child_and_releases_autopilot(
     opened_with = []
     studio._open_build_control = lambda parent=None: opened_with.append(parent)
 
-    mission.selected_index = 12
+    mission.selected_index = 11
     mission._run_stage()
 
     assert opened_with == [mission]
 
     mission.assessments = tuple(
-        replace(item, status=GuidedStageStatus.ATTENTION) if index == 12 else item
+        replace(item, status=GuidedStageStatus.ATTENTION) if index == 11 else item
         for index, item in enumerate(mission.assessments)
     )
-    mission.selected_index = 12
+    mission.selected_index = 11
     mission.autopilot_active = True
     mission._refresh = lambda select_current=False: None
     mission._advance_autopilot()

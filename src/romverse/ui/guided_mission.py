@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from contextlib import suppress
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QEasingCurve, QObject, QPropertyAnimation, Qt, QTimer, Signal, Slot
@@ -191,6 +191,55 @@ class StageButton(QPushButton):
         self.style().polish(self)
 
 
+@dataclass(frozen=True, slots=True)
+class MissionPhase:
+    phase_id: str
+    label: str
+    stage_ids: tuple[str, ...]
+
+
+MISSION_PHASES = (
+    MissionPhase("scan", "SCAN", ("project", "firmware", "provenance", "workspace")),
+    MissionPhase("match", "MATCH", ("device",)),
+    MissionPhase(
+        "build",
+        "BUILD",
+        ("customize", "validate_recipe", "debloat", "root_choice", "toolchain", "build_plan"),
+    ),
+    MissionPhase("verify", "VERIFY", ("build_sign",)),
+    MissionPhase("backup", "BACKUP", ("recovery",)),
+    MissionPhase("flash", "FLASH", ("flash",)),
+    MissionPhase("diagnose", "DIAGNOSE", ("first_boot",)),
+)
+
+_PHASE_BY_STAGE = {stage_id: phase for phase in MISSION_PHASES for stage_id in phase.stage_ids}
+
+
+class PhaseButton(QPushButton):
+    def __init__(self, phase: MissionPhase, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.phase = phase
+        self.setCheckable(True)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setMinimumHeight(48)
+        self.setText(phase.label)
+        self.setProperty("phaseStatus", GuidedStageStatus.LOCKED.value)
+
+    def update_status(self, status: GuidedStageStatus, *, current: bool) -> None:
+        symbols = {
+            GuidedStageStatus.COMPLETE: "✓",
+            GuidedStageStatus.READY: "◆",
+            GuidedStageStatus.ATTENTION: "!",
+            GuidedStageStatus.LOCKED: "·",
+            GuidedStageStatus.FUTURE: "◇",
+        }
+        self.setText(f"{symbols[status]}  {self.phase.label}")
+        self.setChecked(current)
+        self.setProperty("phaseStatus", status.value)
+        self.style().unpolish(self)
+        self.style().polish(self)
+
+
 class GuidedBuildMission(QDialog):
     """Evidence-driven ROM journey with explicit Guardian boundaries."""
 
@@ -205,6 +254,7 @@ class GuidedBuildMission(QDialog):
         self.active_operation = ""
         self.failure: GuidedFailure | None = None
         self.stage_buttons: list[StageButton] = []
+        self.phase_buttons: list[PhaseButton] = []
         self.autopilot_active = False
         self.live_mission_id = ""
         self.live_mission_project_id = ""
@@ -267,6 +317,40 @@ class GuidedBuildMission(QDialog):
         progress_layout.addWidget(self.progress_copy)
         progress_layout.addWidget(self.overall_progress, 1)
         root.addWidget(progress_bar)
+
+        phase_strip = QFrame()
+        phase_strip.setObjectName("PhaseStrip")
+        phase_layout = QHBoxLayout(phase_strip)
+        phase_layout.setContentsMargins(24, 10, 24, 10)
+        phase_layout.setSpacing(7)
+        for phase in MISSION_PHASES:
+            button = PhaseButton(phase)
+            button.clicked.connect(
+                lambda _checked=False, phase_id=phase.phase_id: self._select_phase(phase_id)
+            )
+            phase_layout.addWidget(button, 1)
+            self.phase_buttons.append(button)
+        root.addWidget(phase_strip)
+
+        self.identity_deck = QFrame()
+        self.identity_deck.setObjectName("IdentityDeck")
+        identity_layout = QHBoxLayout(self.identity_deck)
+        identity_layout.setContentsMargins(24, 12, 24, 12)
+        identity_layout.setSpacing(10)
+        self.firmware_identity_card, self.firmware_identity_title, self.firmware_identity_detail = (
+            self._identity_card("FIRMWARE SOURCE")
+        )
+        self.compatibility_card, self.compatibility_title, self.compatibility_detail = (
+            self._identity_card("COMPATIBILITY VERDICT")
+        )
+        self.device_identity_card, self.device_identity_title, self.device_identity_detail = (
+            self._identity_card("LIVE DEVICE")
+        )
+        self.compatibility_card.setObjectName("CompatibilityCard")
+        identity_layout.addWidget(self.firmware_identity_card, 1)
+        identity_layout.addWidget(self.compatibility_card, 1)
+        identity_layout.addWidget(self.device_identity_card, 1)
+        root.addWidget(self.identity_deck)
 
         body = QHBoxLayout()
         body.setContentsMargins(0, 0, 0, 0)
@@ -434,6 +518,10 @@ class GuidedBuildMission(QDialog):
             "Save Genesis progress and open the verified ROMVERSE Archives guide for this stage."
         )
         self.learn_button.clicked.connect(self._open_stage_learning)
+        self.task_list_button = QPushButton("Show detailed tasks")
+        self.task_list_button.setObjectName("SecondaryAction")
+        self.task_list_button.setCheckable(True)
+        self.task_list_button.toggled.connect(self._toggle_task_list)
         self.save_button = QPushButton("Save && exit")
         self.save_button.clicked.connect(self._save_or_finish)
         self.skip_button = QPushButton("Continue to Nebula Debloat")
@@ -454,6 +542,7 @@ class GuidedBuildMission(QDialog):
         self.next_button.clicked.connect(self._next)
         utility_row.addWidget(self.back_button)
         utility_row.addWidget(self.learn_button)
+        utility_row.addWidget(self.task_list_button)
         utility_row.addWidget(self.save_button)
         utility_row.addStretch()
         utility_row.addWidget(self.auto_button)
@@ -483,6 +572,9 @@ class GuidedBuildMission(QDialog):
         self.studio.operation_failed.connect(self._operation_failed)
         self.studio.device_context_changed.connect(self._root_device_context_changed)
         self.studio.device_scan_finished.connect(self._device_scan_finished)
+        expert = self.studio.app_settings.experience_mode.value == "expert"
+        self.task_list_button.setChecked(expert)
+        self._toggle_task_list(expert)
         self._refresh(select_current=True)
         self._apply_responsive_layout()
 
@@ -668,6 +760,32 @@ class GuidedBuildMission(QDialog):
         layout.addWidget(body)
         return card, body
 
+    def _identity_card(self, label: str) -> tuple[QFrame, QLabel, QLabel]:
+        card = QFrame()
+        card.setObjectName("IdentityCard")
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(15, 11, 15, 11)
+        layout.setSpacing(3)
+        eyebrow = QLabel(label)
+        eyebrow.setObjectName("IdentityEyebrow")
+        title = QLabel()
+        title.setObjectName("IdentityTitle")
+        title.setWordWrap(True)
+        detail = QLabel()
+        detail.setObjectName("IdentityDetail")
+        detail.setWordWrap(True)
+        layout.addWidget(eyebrow)
+        layout.addWidget(title)
+        layout.addWidget(detail)
+        return card, title, detail
+
+    def _toggle_task_list(self, visible: bool) -> None:
+        self.rail_scroll.setVisible(bool(visible))
+        self.task_list_button.blockSignals(True)
+        self.task_list_button.setChecked(bool(visible))
+        self.task_list_button.setText("Hide detailed tasks" if visible else "Show detailed tasks")
+        self.task_list_button.blockSignals(False)
+
     def _apply_responsive_layout(self) -> None:
         """Keep the mission readable without hiding controls at the minimum window size."""
 
@@ -787,8 +905,105 @@ class GuidedBuildMission(QDialog):
         ):
             button.update_assessment(assessment)
             button.setChecked(index == self.selected_index)
+        self._refresh_phases()
+        self._render_identity_deck()
         self._sync_genesis_live()
         self._render_stage()
+
+    def _phase_status(self, phase: MissionPhase) -> GuidedStageStatus:
+        relevant = tuple(
+            assessment
+            for assessment in self.assessments
+            if assessment.stage.stage_id in phase.stage_ids
+        )
+        if relevant and all(item.status is GuidedStageStatus.COMPLETE for item in relevant):
+            return GuidedStageStatus.COMPLETE
+        for status in (
+            GuidedStageStatus.ATTENTION,
+            GuidedStageStatus.READY,
+            GuidedStageStatus.FUTURE,
+            GuidedStageStatus.LOCKED,
+        ):
+            if any(item.status is status for item in relevant):
+                return status
+        return GuidedStageStatus.LOCKED
+
+    def _refresh_phases(self) -> None:
+        if not self.assessments:
+            return
+        selected_stage_id = self.assessments[self.selected_index].stage.stage_id
+        selected_phase = _PHASE_BY_STAGE[selected_stage_id]
+        for button in self.phase_buttons:
+            status = self._phase_status(button.phase)
+            button.update_status(status, current=button.phase is selected_phase)
+            button.setToolTip(
+                f"{button.phase.label.title()} phase  •  "
+                f"{sum(stage.stage.stage_id in button.phase.stage_ids and stage.status is GuidedStageStatus.COMPLETE for stage in self.assessments)} "
+                f"of {len(button.phase.stage_ids)} detailed tasks verified"
+            )
+
+    def _select_phase(self, phase_id: str) -> None:
+        phase = next(item for item in MISSION_PHASES if item.phase_id == phase_id)
+        indexes = tuple(
+            index
+            for index, assessment in enumerate(self.assessments)
+            if assessment.stage.stage_id in phase.stage_ids
+        )
+        target = next(
+            (
+                index
+                for index in indexes
+                if self.assessments[index].status is not GuidedStageStatus.COMPLETE
+            ),
+            indexes[-1],
+        )
+        self._select_stage(target)
+
+    def _render_identity_deck(self) -> None:
+        project = self.studio.current_project
+        device = self.studio.devices[0] if len(self.studio.devices) == 1 else None
+        if project is None:
+            self.firmware_identity_title.setText("No firmware selected")
+            self.firmware_identity_detail.setText("Create a project to begin")
+        elif project.original is None:
+            self.firmware_identity_title.setText("Awaiting firmware")
+            self.firmware_identity_detail.setText(project.name)
+        else:
+            self.firmware_identity_title.setText(project.original.original_name)
+            self.firmware_identity_detail.setText(
+                f"Protected  •  SHA-256 {project.original.sha256[:12]}…"
+            )
+
+        if device is None:
+            self.device_identity_title.setText(
+                "Choose one device" if self.studio.observed_devices else "No device connected"
+            )
+            self.device_identity_detail.setText(
+                f"{len(self.studio.observed_devices)} detected"
+                if self.studio.observed_devices
+                else "Connect by USB to scan Device DNA"
+            )
+        else:
+            self.device_identity_title.setText(device.display_name)
+            current_build = device.rom_display or device.build_id or "Build unconfirmed"
+            self.device_identity_detail.setText(
+                f"{device.codename or 'Codename unconfirmed'}  •  {current_build}"
+            )
+
+        verdict = self.studio.upgrade_passport_status.text().strip()
+        self.compatibility_title.setText(verdict or "AWAITING COMPARISON")
+        if project is not None and project.original is not None and device is not None:
+            self.compatibility_detail.setText("Firmware ↔ Device DNA")
+        elif project is not None and project.original is not None:
+            self.compatibility_detail.setText("Firmware ready  •  device needed")
+        else:
+            self.compatibility_detail.setText("Add firmware and a live device")
+        state = self.studio.upgrade_passport.property("upgradeState") or "attention"
+        self.compatibility_card.setProperty("upgradeState", state)
+        self.compatibility_title.setProperty("upgradeState", state)
+        for widget in (self.compatibility_card, self.compatibility_title):
+            widget.style().unpolish(widget)
+            widget.style().polish(widget)
 
     def _reset_root_entry_preview(self) -> None:
         self.root_preview_generation += 1
@@ -888,7 +1103,10 @@ class GuidedBuildMission(QDialog):
         status_label = assessment.status.value.upper()
         expert = self.studio.app_settings.experience_mode.value == "expert"
         self.mode_badge.setText("ARCHITECT  •  DEEP VIEW" if expert else "GUIDED  •  ARCANA")
-        self.step_label.setText(f"CURRENT TASK  •  STAGE {stage.number:02d} OF {len(STAGES):02d}")
+        phase = _PHASE_BY_STAGE[stage.stage_id]
+        self.step_label.setText(
+            f"CURRENT PHASE  •  {phase.label}  /  TASK {stage.number:02d} OF {len(STAGES):02d}"
+        )
         self.stage_title.setText(stage.title)
         self.stage_detail.setText(stage.explanation)
         self.evidence.setText(
@@ -1867,6 +2085,43 @@ class GuidedBuildMission(QDialog):
             QDialog { background: #02050A; color: #EEF4FF; }
             QFrame#MissionHeader { background: #040812; border-bottom: 1px solid #1C2E48; }
             QFrame#ProgressStrip { background: #060B14; border-bottom: 1px solid #15243B; }
+            QFrame#PhaseStrip { background: #040913; border-bottom: 1px solid #172941; }
+            QPushButton[phaseStatus] {
+                color: #73819B; background: #070C15; border: 1px solid #1B2A40;
+                border-radius: 9px; padding: 8px 7px; font-size: 10px;
+                font-weight: 850; letter-spacing: 1px;
+            }
+            QPushButton[phaseStatus="complete"] { color: #60E9B2; border-color: #185841; }
+            QPushButton[phaseStatus="ready"] { color: #8DEAF3; border-color: #247083; }
+            QPushButton[phaseStatus="attention"] { color: #FFD07A; border-color: #74501B; }
+            QPushButton[phaseStatus="future"] { color: #B68BE8; border-color: #4F3470; }
+            QPushButton[phaseStatus]:checked {
+                color: #FFFFFF; background: qlineargradient(x1:0,y1:0,x2:1,y2:0,
+                    stop:0 #23113B, stop:.48 #162148, stop:1 #082D38);
+                border: 1px solid #67DFED;
+            }
+            QFrame#IdentityDeck { background: #03070D; border-bottom: 1px solid #142237; }
+            QFrame#IdentityCard, QFrame#CompatibilityCard {
+                background: #060C16; border: 1px solid #1A2C45; border-radius: 10px;
+            }
+            QFrame#CompatibilityCard { border-color: #274C61; }
+            QFrame#CompatibilityCard[upgradeState="verified"] {
+                background: #06140F; border-color: #1C805E;
+            }
+            QFrame#CompatibilityCard[upgradeState="attention"] {
+                background: #151107; border-color: #77541C;
+            }
+            QFrame#CompatibilityCard[upgradeState="blocked"] {
+                background: #17090E; border-color: #87304A;
+            }
+            QLabel#IdentityEyebrow {
+                color: #58D9E9; font-size: 9px; font-weight: 850; letter-spacing: 1.4px;
+            }
+            QLabel#IdentityTitle { color: #F5F8FF; font-size: 13px; font-weight: 800; }
+            QLabel#IdentityTitle[upgradeState="verified"] { color: #62E9B4; }
+            QLabel#IdentityTitle[upgradeState="attention"] { color: #FFD07A; }
+            QLabel#IdentityTitle[upgradeState="blocked"] { color: #FF819D; }
+            QLabel#IdentityDetail { color: #8191AD; font-size: 10px; }
             QLabel#MissionEyebrow, QLabel#CardHeading {
                 color: #40DDF2; font-size: 11px; font-weight: 800; letter-spacing: 2px;
             }

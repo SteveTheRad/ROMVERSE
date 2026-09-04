@@ -1158,6 +1158,8 @@ class BuildControlCenter(QDialog):
         self.autopilot_completed: list[str] = []
         self.autopilot_waiting_for = ""
         self.guardian_manifest_requested = False
+        self.resolution_gate_id = ""
+        self.resolution_action_id = ""
         self.evidence_watch = QTimer(self)
         self.evidence_watch.setInterval(1500)
         self.evidence_watch.timeout.connect(self._refresh_if_evidence_changed)
@@ -1191,6 +1193,40 @@ class BuildControlCenter(QDialog):
         solution_layout.addWidget(self.solution_review_badge)
         self.solution_review.setVisible(False)
         root.addWidget(self.solution_review)
+        self.resolution_drawer = QFrame()
+        self.resolution_drawer.setObjectName("ResolutionDrawer")
+        drawer_layout = QHBoxLayout(self.resolution_drawer)
+        drawer_layout.setContentsMargins(24, 15, 24, 15)
+        drawer_layout.setSpacing(14)
+        drawer_copy = QVBoxLayout()
+        drawer_copy.setSpacing(5)
+        self.resolution_heading = QLabel("RESOLUTION PATH")
+        self.resolution_heading.setObjectName("CardHeading")
+        self.resolution_summary = QLabel()
+        self.resolution_summary.setObjectName("ResolutionTitle")
+        self.resolution_summary.setWordWrap(True)
+        self.resolution_detail = QLabel()
+        self.resolution_detail.setObjectName("GateCopy")
+        self.resolution_detail.setWordWrap(True)
+        self.resolution_detail.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        drawer_copy.addWidget(self.resolution_heading)
+        drawer_copy.addWidget(self.resolution_summary)
+        drawer_copy.addWidget(self.resolution_detail)
+        drawer_layout.addLayout(drawer_copy, 1)
+        drawer_actions = QVBoxLayout()
+        drawer_actions.setSpacing(7)
+        self.resolution_action = QPushButton()
+        self.resolution_action.setObjectName("MissionAction")
+        self.resolution_action.clicked.connect(self._run_resolution_action)
+        resolution_close = QPushButton("Keep reviewing here")
+        resolution_close.setObjectName("SecondaryAction")
+        resolution_close.clicked.connect(self._hide_resolution)
+        drawer_actions.addWidget(self.resolution_action)
+        drawer_actions.addWidget(resolution_close)
+        drawer_actions.addStretch()
+        drawer_layout.addLayout(drawer_actions)
+        self.resolution_drawer.setVisible(False)
+        root.addWidget(self.resolution_drawer)
         scroll = QScrollArea()
         self.content_scroll = scroll
         scroll.setWidgetResizable(True)
@@ -1550,6 +1586,20 @@ class BuildControlCenter(QDialog):
         self.resolve_buttons.clear()
         self.phase_toggles.clear()
         self.phase_bodies.clear()
+        if self.resolution_gate_id:
+            current_resolution_gate = next(
+                (
+                    gate
+                    for gate in self.report.gates
+                    if gate.gate_id == self.resolution_gate_id
+                    and gate.status is not GateStatus.PASS
+                ),
+                None,
+            )
+            if current_resolution_gate is None:
+                self._hide_resolution()
+            else:
+                self._show_resolution(current_resolution_gate, focus=False)
         unresolved = tuple(gate for gate in self.report.gates if gate.status is not GateStatus.PASS)
         verified_count = sum(gate.status is GateStatus.PASS for gate in self.report.gates)
         blocked_count = sum(gate.status is GateStatus.BLOCKED for gate in self.report.gates)
@@ -2951,27 +3001,38 @@ class BuildControlCenter(QDialog):
         dialog.addButton(QMessageBox.StandardButton.Close)
         dialog.exec()
 
-    def _show_resolution(self, gate: BuildGate) -> None:
+    def _show_resolution(self, gate: BuildGate, *, focus: bool = True) -> None:
         remediation = remediation_for(gate)
-        dialog = QMessageBox(self)
-        dialog.setWindowTitle(f"Resolve • {gate.label}")
-        dialog.setIcon(QMessageBox.Icon.Information)
-        dialog.setText(gate.label)
-        dialog.setInformativeText(
-            f"{remediation.summary}\n\nCurrent evidence:\n{gate.evidence}\n\n"
-            "Recommended path:\n"
-            + "\n".join(f"{index}. {fix}" for index, fix in enumerate(remediation.fixes, 1))
+        self.resolution_gate_id = gate.gate_id
+        self.resolution_action_id = remediation.action_id
+        self.resolution_heading.setText(
+            f"RESOLUTION PATH  •  {gate.phase.upper()}  •  {gate.status.value.upper()}"
         )
-        action = None
-        if remediation.action_id:
-            action = dialog.addButton(
-                remediation.action_label or "Open relevant section",
-                QMessageBox.ButtonRole.ActionRole,
-            )
-        dialog.addButton(QMessageBox.StandardButton.Close)
-        dialog.exec()
-        if action is not None and dialog.clickedButton() is action:
-            self._open_resolution(remediation.action_id)
+        self.resolution_summary.setText(f"{gate.label}  •  {remediation.summary}")
+        self.resolution_detail.setText(
+            f"Current evidence\n{gate.evidence}\n\nWhat resolves it\n"
+            + "\n".join(f"{index}. {fix}" for index, fix in enumerate(remediation.fixes, 1))
+            + "\n\nROMVERSE will return to this exact project and reassess the evidence after the step."
+        )
+        self.resolution_action.setVisible(bool(remediation.action_id))
+        self.resolution_action.setText(remediation.action_label or "Open relevant section")
+        self.resolution_action.setToolTip(remediation.tooltip)
+        self.resolution_drawer.setVisible(True)
+        self.status.setText(
+            f"Solution opened here for {gate.label}. Review the evidence and use the single highlighted action when ready."
+        )
+        if focus and remediation.action_id:
+            self.resolution_action.setFocus(Qt.FocusReason.OtherFocusReason)
+
+    def _hide_resolution(self) -> None:
+        self.resolution_gate_id = ""
+        self.resolution_action_id = ""
+        self.resolution_drawer.setVisible(False)
+
+    def _run_resolution_action(self) -> None:
+        action_id = self.resolution_action_id
+        if action_id:
+            self._open_resolution(action_id)
 
     def _open_resolution(self, action_id: str) -> None:
         if action_id == "autopilot":
@@ -4173,6 +4234,14 @@ class BuildControlCenter(QDialog):
             }
             QFrame#ResolutionBanner {
                 background: #071722; border: 1px solid #24BFD2; border-radius: 12px;
+            }
+            QFrame#ResolutionDrawer {
+                background: qlineargradient(x1:0,y1:0,x2:1,y2:0,
+                    stop:0 #0B1524, stop:.62 #091422, stop:1 #15102A);
+                border-top: 1px solid #36CDDF; border-bottom: 1px solid #314B70;
+            }
+            QLabel#ResolutionTitle {
+                color: #FFFFFF; font-size: 16px; font-weight: 850; background: transparent;
             }
             QFrame#ReadyBanner {
                 background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #082219,stop:0.55 #071B22,stop:1 #17102A);

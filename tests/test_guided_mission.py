@@ -161,10 +161,10 @@ def test_mission_routes_verified_local_workflow_into_real_forge_control():
 
     assessments = GuidedMissionEngine().assess(context)
 
-    assert all(assessment.status is GuidedStageStatus.COMPLETE for assessment in assessments[:12])
-    assert assessments[12].status is GuidedStageStatus.ATTENTION
-    assert "verified local candidate" in " ".join(assessments[12].blockers).casefold()
-    assert assessments[12].stage.action_label == "Resolve build automatically"
+    assert all(assessment.status is GuidedStageStatus.COMPLETE for assessment in assessments[:11])
+    assert assessments[11].status is GuidedStageStatus.ATTENTION
+    assert "verified local candidate" in " ".join(assessments[11].blockers).casefold()
+    assert assessments[11].stage.action_label == "Resolve build automatically"
 
 
 def test_toolchain_stage_requires_every_proven_build_dependency():
@@ -192,7 +192,7 @@ def test_toolchain_stage_requires_every_proven_build_dependency():
         tool_statuses=tools,
     )
 
-    toolchain = GuidedMissionEngine().assess(context)[11]
+    toolchain = GuidedMissionEngine().assess(context)[9]
 
     assert toolchain.status is GuidedStageStatus.ATTENTION
     assert "avbtool" in " ".join(toolchain.blockers).casefold()
@@ -229,6 +229,7 @@ def test_guardian_stage_becomes_ready_after_every_handoff_prerequisite():
 
     assessments = GuidedMissionEngine().assess(context)
 
+    assert assessments[11].status is GuidedStageStatus.COMPLETE
     assert assessments[12].status is GuidedStageStatus.COMPLETE
     assert assessments[13].status is GuidedStageStatus.READY
     assert "final Guardian review" in " ".join(assessments[13].evidence)
@@ -456,7 +457,8 @@ def test_root_choice_requires_an_explicit_decision_and_supports_unrooted_route()
     unrooted = GuidedMissionEngine().assess(replace(base, root_choice="skip"))
     assert unrooted[8].status is GuidedStageStatus.COMPLETE
     assert "unrooted" in " ".join(unrooted[8].evidence).casefold()
-    assert unrooted[9].status is GuidedStageStatus.READY
+    assert unrooted[9].stage.stage_id == "toolchain"
+    assert unrooted[9].status is GuidedStageStatus.ATTENTION
 
 
 def test_rooted_route_waits_for_completed_ascension_protocol():
@@ -482,7 +484,8 @@ def test_rooted_route_waits_for_completed_ascension_protocol():
 
     complete = GuidedMissionEngine().assess(replace(base, ascension_complete=True))
     assert complete[8].status is GuidedStageStatus.COMPLETE
-    assert complete[9].status is GuidedStageStatus.READY
+    assert complete[9].stage.stage_id == "toolchain"
+    assert complete[9].status is GuidedStageStatus.ATTENTION
 
 
 def test_unrooted_route_cannot_pass_while_a_rooted_input_is_still_integrated():

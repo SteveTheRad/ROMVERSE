@@ -495,6 +495,30 @@ def test_build_control_cards_explain_and_route_blocked_gates(tmp_path) -> None:
     studio.close()
 
 
+def test_gate_solution_expands_in_place_before_any_outbound_route(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    studio = _studio(tmp_path)
+    control = BuildControlCenter(studio, auto_start=False)
+    gate = next(item for item in control.report.gates if item.gate_id == "device-pack-flash")
+    outbound: list[str] = []
+    control._open_resolution = outbound.append
+
+    control._show_resolution(gate)
+
+    assert not control.resolution_drawer.isHidden()
+    assert control.resolution_gate_id == gate.gate_id
+    assert gate.label in control.resolution_summary.text()
+    assert "Current evidence" in control.resolution_detail.text()
+    assert "What resolves it" in control.resolution_detail.text()
+    assert outbound == []
+
+    control.resolution_action.click()
+
+    assert outbound == [remediation_for(gate).action_id]
+    control.close()
+    studio.close()
+
+
 def test_refresh_removes_stale_cards_and_footer_actions_remain_aligned(tmp_path) -> None:
     app = QApplication.instance() or QApplication([])
     studio = _studio(tmp_path)

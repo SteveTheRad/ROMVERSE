@@ -304,6 +304,20 @@ QFrame#CompanionTransferCard {
     background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 rgba(5,22,32,244),stop:0.5 rgba(8,18,36,246),stop:1 rgba(27,11,46,242));
     border: 1px solid rgba(57, 188, 218, 160); border-left: 3px solid #42DDEA; border-right: 2px solid rgba(180,92,255,170); border-radius: 13px;
 }
+QFrame#ToolchainManifestCard {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 rgba(6,24,31,244),stop:0.52 rgba(7,18,35,246),stop:1 rgba(27,11,45,242));
+    border: 1px solid rgba(56, 198, 218, 155); border-left: 3px solid #35DCEB; border-right: 2px solid rgba(180,92,255,165); border-radius: 13px;
+}
+QLabel#ToolchainManifestStatus {
+    color: #B9CAE4; background: rgba(3, 12, 25, 210); border: 1px solid rgba(62, 99, 151, 145); border-radius: 8px; padding: 9px 11px;
+}
+QFrame#ToolCommunicationCard {
+    background: rgba(5, 16, 30, 238); border: 1px solid rgba(46, 122, 164, 145); border-radius: 11px;
+}
+QFrame#ToolBaySlot {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 rgba(7,20,34,242),stop:1 rgba(14,11,34,240));
+    border: 1px solid rgba(61, 99, 147, 145); border-left: 3px solid rgba(51, 215, 232, 190); border-radius: 10px;
+}
 QLabel#CompanionTransferStatus {
     color: #B9CAE4; background: rgba(3, 12, 25, 210); border: 1px solid rgba(62, 99, 151, 145); border-radius: 8px; padding: 10px 12px;
 }

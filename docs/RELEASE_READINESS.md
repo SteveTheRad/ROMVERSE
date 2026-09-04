@@ -1546,6 +1546,30 @@ The product-wide continuation target and definition of done are recorded in
 - The approved ROMVERSE application logo and approved RadForge Labs company logo were not edited or
   replaced. Their independent hash locks remain the production identity boundary.
 
+## 2026-09-05 Forge Arsenal Stage 12 environment-proof checkpoint
+
+- A strict schema-one Toolchain Evidence service now hashes each exact active executable, records its
+  reported version, executable name, bounded origin/source claim, byte size and distinct `PATH`
+  candidate count, and seals the complete inventory with a SHA-256 identity. A missing executable
+  cannot receive proof, and managed-source scope requires both the exact executable hash and an
+  allowlisted ROMVERSE managed receipt.
+- The same manifest is saved privately under the workspace and may be exported only to a user-chosen
+  safe JSON destination. Absolute host paths are deliberately excluded. Rehashed round trips reject
+  extra fields, wrong scalar types, modified safety claims, digest tampering, unsafe linked workspace
+  roots, linked export parents and excessive `PATH` entries. Every record states phone changed: no
+  and execution authority: none.
+- Forge Arsenal now presents the genuine existing Device Engine scan as ADB Android, ADB recovery,
+  ADB sideload, bootloader Fastboot, fastbootd, unauthorized, offline, multiple-target, absent or
+  failed-scan evidence. The presentation itself runs no device command and exposes no serial.
+- The equipment bay has a polished cosmic slot treatment plus a dedicated Environment Proof chamber.
+  A fresh 1360-by-900 offscreen render confirmed the new hierarchy, contrast, alignment and scrolling
+  remain readable. Focused infrastructure, Forge UI/provisioning/download, cross-feature navigation
+  and approved-brand hash tests pass. Project tool-version isolation, verified offline toolchain
+  bundles, automatic build attachment and physical multi-host/USB-driver exercises are still required
+  before Stage 12 can be marked complete.
+- The approved ROMVERSE application logo and approved RadForge Labs company logo were not edited or
+  replaced; their byte-exact regression checks remain green.
+
 ## Honest feature boundary
 
 The current safe milestone supports read-only Android evidence, local diagnostics, guarded APK

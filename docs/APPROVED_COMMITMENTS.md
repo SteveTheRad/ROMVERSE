@@ -965,6 +965,14 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   grants lasting permission. No transfer can auto-open, install, execute, flash or grant Guardian
   authority. Repository unit/build evidence passes; build-8 physical phone verification remains a
   release gate. The byte-exact approved ROMVERSE and RadForge Labs logos remain unchanged and locked.
+- **STAGE 12 IN PROGRESS — ENVIRONMENT PROOF CHECKPOINT:** Forge Arsenal can now export a strict,
+  content-digested and path-private manifest of the exact active executables, versions, source scope
+  and distinct `PATH` candidate counts. It persists the same proof privately, rejects tampering and
+  unsafe filesystem boundaries, and grants no build, install, flash or phone-change authority.
+  Its Device Communication chamber truthfully presents the already completed Guardian-routed Device
+  Engine result for Android ADB, recovery, sideload, bootloader Fastboot, fastbootd, unauthorized,
+  offline, multiple-device and failed-scan states; opening or refreshing that presentation cannot
+  issue a phone command. The approved application and company logo bytes remain locked and unchanged.
 - **PARTIAL:** Genesis/Ascension/Guardian integration, Companion Vitalis/Lifeline, connected online
   remediation, and local Link are functional foundations but still need broader hardware testing.
   Connected remediation V2 preserves tamper-detecting receipts and presents source, explicit

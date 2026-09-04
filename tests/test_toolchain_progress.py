@@ -4,13 +4,23 @@ import os
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QLabel
+from PySide6.QtWidgets import QApplication, QLabel, QPushButton
 
+from romverse.device.models import AndroidDevice, DeviceState
 from romverse.infrastructure.payload_dumper import PayloadDumperRelease
 from romverse.infrastructure.provisioning import ProvisionStrategy, ToolProvisionItem
 from romverse.infrastructure.tools import ToolStatus
 from romverse.platform.host import LinuxHost
-from romverse.ui.toolchain_center import ToolchainDownloadWorker, ToolchainSetupDialog
+from romverse.ui.toolchain_center import (
+    ToolchainCenter,
+    ToolchainDownloadWorker,
+    ToolchainSetupDialog,
+)
+
+
+class _NoCommandRunner:
+    def run(self, *_args, **_kwargs):
+        raise AssertionError("The Forge Arsenal evidence surface must not run a phone command")
 
 
 def test_forge_arsenal_worker_uses_measured_progress_and_honest_verification_phase(
@@ -61,6 +71,83 @@ def test_forge_arsenal_worker_uses_measured_progress_and_honest_verification_pha
         ("Downloading and verifying Payload Dumper 2.0.2…", False),
     ]
     assert completed and "Payload Dumper 2.0.2" in completed[0]
+
+
+def test_forge_arsenal_renders_guardian_routed_device_communication_without_commands(
+    tmp_path, monkeypatch
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    monkeypatch.setattr(
+        "romverse.ui.toolchain_center.ToolVerifier.verify_extended",
+        lambda _verifier: (
+            ToolStatus("ADB", True, "/bin/true", "fixture", "Ready"),
+            ToolStatus("Fastboot", True, "/bin/true", "fixture", "Ready"),
+        ),
+    )
+    center = ToolchainCenter(
+        LinuxHost(distribution_id="fedora"),
+        _NoCommandRunner(),
+        workspace=tmp_path,
+    )
+    center.show()
+    app.processEvents()
+    try:
+        recovery = AndroidDevice(
+            "private-serial",
+            DeviceState.RECOVERY,
+            manufacturer="Samsung",
+            model="SM-S928B",
+        )
+        center.set_device_communication_evidence([recovery])
+        visible = " ".join(label.text() for label in center.findChildren(QLabel))
+        assert "ADB recovery communication verified" in visible
+        assert "private-serial" not in visible
+        assert "Phone-change authority: none" in visible
+
+        fastbootd = AndroidDevice("private-serial", DeviceState.FASTBOOTD, model="Phone")
+        center.set_device_communication_evidence([fastbootd])
+        visible = " ".join(label.text() for label in center.findChildren(QLabel))
+        assert "fastbootd communication verified" in visible
+        assert "No reboot, unlock, erase, flash, or write command was available" in visible
+    finally:
+        center.close()
+
+
+def test_forge_arsenal_requires_explicit_target_when_multiple_transports_are_visible(
+    tmp_path, monkeypatch
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    monkeypatch.setattr(
+        "romverse.ui.toolchain_center.ToolVerifier.verify_extended",
+        lambda _verifier: (ToolStatus("ADB", False, detail="Not ready"),),
+    )
+    center = ToolchainCenter(
+        LinuxHost(distribution_id="fedora"),
+        _NoCommandRunner(),
+        workspace=tmp_path,
+    )
+    center.show()
+    app.processEvents()
+    try:
+        observed = [
+            AndroidDevice("first-secret", DeviceState.DEVICE, model="First Phone"),
+            AndroidDevice("second-secret", DeviceState.FASTBOOT, model="Second Phone"),
+        ]
+        center.set_device_communication_evidence([], observed_devices=observed)
+        visible = " ".join(label.text() for label in center.findChildren(QLabel))
+        assert "Choose the target in Command Deck" in visible
+        assert "2 Android transports are visible" in visible
+        assert "first-secret" not in visible
+        assert "second-secret" not in visible
+        manifest_buttons = [
+            button
+            for button in center.findChildren(QPushButton)
+            if button.text() == "Export reproducible manifest"
+        ]
+        assert len(manifest_buttons) == 1
+        assert manifest_buttons[0].isEnabled()
+    finally:
+        center.close()
 
 
 def test_forge_arsenal_progress_widget_switches_modes_without_inventing_progress(

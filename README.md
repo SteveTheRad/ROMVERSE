@@ -1318,6 +1318,20 @@ tools report their real completed-file count. Release discovery, archive validat
 receipt activation, unknown-length transfers, and operating-system authorization remain visibly
 indeterminate until they genuinely finish.
 
+Forge Arsenal's **Environment Proof** now fingerprints the exact executable selected for every
+visible slot, records its reported version and bounded provenance scope, detects distinct executable
+candidates on `PATH`, and writes a content-digested private evidence record plus an explicitly chosen
+path-private JSON export. Missing tools never receive hash evidence; managed-source claims require a
+matching executable hash and an allowlisted ROMVERSE managed-source receipt. The manifest contains no
+absolute host paths, declares `execution_authority: none` and `phone_changed: false`, and rejects
+schema changes, type confusion, tampering, linked workspace roots, unsafe export parents and
+unbounded `PATH` input. Forge Arsenal also consumes the existing Device Engine scan to distinguish
+ADB Android, recovery, sideload, Fastboot/fastbootd, unauthorized, offline, multi-target and scan-
+failure states without issuing an additional phone command. Its equipment-bay slots and evidence
+surfaces use the same dark cyan-violet production language as the rest of ROMVERSE. Project-specific
+version isolation, verified offline bundle exchange and automatic build-manifest attachment remain
+active Stage 12 work and are not claimed by this checkpoint.
+
 Payload Dumper uses a stricter release flow: ROMVERSE resolves the current host asset only from
 the official `ssut/payload-dumper-go` GitHub API, requires GitHub's asset SHA-256, restricts the
 download URL to the official release path, rejects unsafe TAR members and links, extracts only

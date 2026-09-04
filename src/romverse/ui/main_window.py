@@ -4886,6 +4886,10 @@ class MainWindow(QMainWindow):
             devices,
             observed_devices=self._observed_devices,
         )
+        self.toolchain_center.set_device_communication_evidence(
+            devices,
+            observed_devices=self._observed_devices,
+        )
         self._update_companion_ascension_status()
         self.diagnostics_center.set_devices(devices)
         self.guardian_center.request_refresh()
@@ -5137,6 +5141,7 @@ class MainWindow(QMainWindow):
         self.device_center.set_devices([])
         self.device_center.show_error(message)
         self.companion_center.set_device_snapshot([], scan_error=message)
+        self.toolchain_center.set_device_communication_evidence([], scan_error=message)
         self.diagnostics_center.set_scanning(False)
         self.diagnostics_center.set_devices([])
         self.diagnostics_center.show_error(message)

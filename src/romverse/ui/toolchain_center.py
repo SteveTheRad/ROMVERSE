@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QDialog,
     QDialogButtonBox,
+    QFileDialog,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -32,6 +33,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from romverse.device.models import AndroidDevice, DeviceState
 from romverse.infrastructure.android_apk_tools import (
     AAPT2_ARCHIVE_SHA256,
     AAPT2_PACKAGE_DIRECTORY,
@@ -67,6 +69,11 @@ from romverse.infrastructure.provisioning import (
     create_provision_plan,
     install_system_packages,
     source_for,
+)
+from romverse.infrastructure.toolchain_evidence import (
+    ToolchainEvidenceError,
+    ToolchainEvidenceManifest,
+    ToolchainEvidenceService,
 )
 from romverse.infrastructure.tools import ToolStatus, ToolVerifier
 from romverse.intelligence.action_evidence import (
@@ -777,6 +784,44 @@ class RepairToolchainContext:
     required_tools: tuple[str, ...] = ("ADB", "Fastboot")
 
 
+class _ToolchainManifestSignals(QObject):
+    complete = Signal(object)
+    failed = Signal(str)
+
+
+class _ToolchainManifestWorker(ManagedRunnable):
+    def __init__(
+        self,
+        service: ToolchainEvidenceService,
+        statuses: tuple[ToolStatus, ...],
+        required_tools: tuple[str, ...],
+        scope: str,
+        destination: Path,
+    ) -> None:
+        super().__init__()
+        self.service = service
+        self.statuses = statuses
+        self.required_tools = required_tools
+        self.scope = scope
+        self.destination = destination
+        self.signals = _ToolchainManifestSignals()
+
+    @Slot()
+    def execute(self) -> None:
+        try:
+            manifest = self.service.capture(
+                self.statuses,
+                required_tools=self.required_tools,
+                scope=self.scope,
+            )
+            self.service.save_private(manifest)
+            self.service.export(manifest, self.destination)
+        except (OSError, ValueError, ToolchainEvidenceError) as exc:
+            self.signals.failed.emit(str(exc)[:800])
+            return
+        self.signals.complete.emit(manifest)
+
+
 class ToolchainCenter(QWidget):
     """Inventory and guidance for the local ROM and diagnostics toolchain."""
 
@@ -806,6 +851,21 @@ class ToolchainCenter(QWidget):
         self._repair_solution_context: RepairToolchainContext | None = None
         self._repair_solution_outcome_saved = False
         self._repair_solution_outcome_error = ""
+        self._communication_devices: tuple[AndroidDevice, ...] = ()
+        self._observed_communication_devices: tuple[AndroidDevice, ...] = ()
+        self._communication_error = ""
+        self._manifest_worker: _ToolchainManifestWorker | None = None
+        self._manifest_error = ""
+        self.manifest_service: ToolchainEvidenceService | None = None
+        if workspace is not None:
+            try:
+                self.manifest_service = ToolchainEvidenceService(
+                    workspace,
+                    host.name,
+                    getattr(host, "distribution_id", ""),
+                )
+            except ToolchainEvidenceError as exc:
+                self._manifest_error = str(exc)
         self._activate_managed_tools()
         self.statuses = ToolVerifier(host, runner).verify_extended()
         if baseline:
@@ -899,6 +959,45 @@ class ToolchainCenter(QWidget):
         general_actions.addWidget(self.android_sdk_guide_button)
         general_actions.addStretch()
         page.addLayout(general_actions)
+
+        manifest_card = QFrame()
+        manifest_card.setObjectName("ToolchainManifestCard")
+        manifest_layout = QVBoxLayout(manifest_card)
+        manifest_layout.setContentsMargins(18, 15, 18, 15)
+        manifest_layout.setSpacing(8)
+        manifest_eyebrow = QLabel("ENVIRONMENT PROOF  •  REPRODUCIBLE TOOLCHAIN MANIFEST")
+        manifest_eyebrow.setObjectName("Eyebrow")
+        manifest_title = QLabel("Fingerprint the exact equipment bay")
+        manifest_title.setObjectName("SectionTitle")
+        manifest_copy = QLabel(
+            "Hash every active executable, record its version and source scope, detect distinct "
+            "PATH candidates, and export a path-private manifest. This runs no phone command and "
+            "grants no build, install, or flash authority."
+        )
+        manifest_copy.setObjectName("Muted")
+        manifest_copy.setWordWrap(True)
+        self.manifest_status = QLabel(
+            self._manifest_error
+            or "Ready to produce exact local tool evidence. No manifest has been exported yet."
+        )
+        self.manifest_status.setObjectName(
+            "Warning" if self._manifest_error else "ToolchainManifestStatus"
+        )
+        self.manifest_status.setWordWrap(True)
+        self.manifest_status.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        self.manifest_button = QPushButton("Export reproducible manifest")
+        self.manifest_button.setObjectName("Primary")
+        self.manifest_button.setMinimumHeight(38)
+        self.manifest_button.setEnabled(self.manifest_service is not None)
+        self.manifest_button.clicked.connect(self.export_toolchain_manifest)
+        manifest_layout.addWidget(manifest_eyebrow)
+        manifest_layout.addWidget(manifest_title)
+        manifest_layout.addWidget(manifest_copy)
+        manifest_layout.addWidget(self.manifest_status)
+        manifest_layout.addWidget(self.manifest_button, 0, Qt.AlignmentFlag.AlignLeft)
+        page.addWidget(manifest_card)
         self.body = QScrollArea()
         self.body.setWidgetResizable(True)
         self.content = QWidget()
@@ -911,6 +1010,104 @@ class ToolchainCenter(QWidget):
     def refresh(self) -> None:
         self._verify_local_tools(emit=True)
         self._record_repair_solution_outcome()
+
+    def set_device_communication_evidence(
+        self,
+        devices: list[AndroidDevice],
+        *,
+        observed_devices: list[AndroidDevice] | None = None,
+        scan_error: str = "",
+    ) -> None:
+        """Render the latest Guardian-routed Device Engine communication evidence."""
+
+        if any(not isinstance(device, AndroidDevice) for device in devices):
+            return
+        observed = list(devices) if observed_devices is None else observed_devices
+        if any(not isinstance(device, AndroidDevice) for device in observed):
+            return
+        self._communication_devices = tuple(devices[:1])
+        self._observed_communication_devices = tuple(observed[:16])
+        self._communication_error = " ".join(scan_error.split())[:400]
+        self._render()
+
+    @Slot()
+    def export_toolchain_manifest(self) -> None:
+        service = self.manifest_service
+        if service is None or self._manifest_worker is not None or self.workspace is None:
+            return
+        required, scope = self._manifest_scope()
+        filename, _selected_filter = QFileDialog.getSaveFileName(
+            self,
+            "Export reproducible ROMVERSE toolchain manifest",
+            str(self.workspace / "ROMVERSE-Toolchain-Manifest.json"),
+            "JSON manifest (*.json)",
+        )
+        if not filename:
+            return
+        self.manifest_button.setEnabled(False)
+        self._set_manifest_status(
+            "Fingerprinting the exact active executables and auditing PATH candidates…",
+            "ToolchainManifestStatus",
+        )
+        worker = _ToolchainManifestWorker(
+            service,
+            tuple(self.statuses),
+            required,
+            scope,
+            Path(filename),
+        )
+        self._manifest_worker = worker
+        worker.signals.complete.connect(self._manifest_complete)
+        worker.signals.failed.connect(self._manifest_failed)
+        start_background(worker)
+
+    @Slot(object)
+    def _manifest_complete(self, value: object) -> None:
+        self._manifest_worker = None
+        self.manifest_button.setEnabled(self.manifest_service is not None)
+        if not isinstance(value, ToolchainEvidenceManifest):
+            self._manifest_failed("ROMVERSE returned an invalid toolchain manifest")
+            return
+        state = "COMPLETE" if value.complete else "INCOMPLETE"
+        conflicts = (
+            "no PATH conflicts"
+            if value.conflict_count == 0
+            else f"{value.conflict_count} PATH conflict(s) recorded"
+        )
+        self._set_manifest_status(
+            f"{state}  •  {len(value.tools)} tool slots  •  {conflicts}  •  "
+            f"SHA-256 {value.manifest_digest}\n"
+            "Saved privately and exported without absolute host paths. Authority remains none.",
+            "Good" if value.complete and value.conflict_count == 0 else "Warning",
+        )
+
+    @Slot(str)
+    def _manifest_failed(self, message: str) -> None:
+        self._manifest_worker = None
+        self.manifest_button.setEnabled(self.manifest_service is not None)
+        self._set_manifest_status(
+            f"Manifest stopped safely: {message}",
+            "Danger",
+        )
+
+    def _manifest_scope(self) -> tuple[tuple[str, ...], str]:
+        context = (
+            self._repair_solution_context
+            or self._studio_project_context
+            or self._device_pack_context
+        )
+        if context is None:
+            return (), "full-inventory"
+        if self._repair_solution_context is not None:
+            return context.required_tools, "recovery-toolchain"
+        if self._studio_project_context is not None:
+            return context.required_tools, "rom-studio-project"
+        return context.required_tools, "device-pack-build"
+
+    def _set_manifest_status(self, message: str, state: str) -> None:
+        self.manifest_status.setText(message)
+        self.manifest_status.setObjectName(state)
+        self._repolish(self.manifest_status)
 
     def _verify_local_tools(self, *, emit: bool) -> None:
         self._activate_managed_tools()
@@ -1574,15 +1771,40 @@ class ToolchainCenter(QWidget):
                 for status in ordered_statuses
             )
         )
-        summary = QLabel(f"{ready} of {len(ordered_statuses)} tools verified on {self.host.name}")
+        communication = QFrame()
+        communication.setObjectName("ToolCommunicationCard")
+        communication_layout = QVBoxLayout(communication)
+        communication_layout.setContentsMargins(16, 13, 16, 13)
+        communication_layout.setSpacing(5)
+        communication_eyebrow = QLabel("DEVICE COMMUNICATION  •  GUARDIAN-ROUTED EVIDENCE")
+        communication_eyebrow.setObjectName("Eyebrow")
+        communication_title, communication_detail, communication_state = (
+            self._communication_copy()
+        )
+        communication_heading = QLabel(communication_title)
+        communication_heading.setObjectName("SectionTitle")
+        communication_body = QLabel(communication_detail)
+        communication_body.setObjectName(communication_state)
+        communication_body.setWordWrap(True)
+        communication_layout.addWidget(communication_eyebrow)
+        communication_layout.addWidget(communication_heading)
+        communication_layout.addWidget(communication_body)
+        self.layout.addWidget(communication)
+        summary = QLabel(
+            f"EQUIPMENT BAY  •  {ready} of {len(ordered_statuses)} slots verified on {self.host.name}"
+        )
         summary.setObjectName("Good" if ready == len(ordered_statuses) else "Warning")
         self.layout.addWidget(summary)
-        for status in ordered_statuses:
+        for index, status in enumerate(ordered_statuses, start=1):
             card = QFrame()
-            card.setObjectName("Card")
+            card.setObjectName("ToolBaySlot")
             row = QVBoxLayout(card)
             row.setContentsMargins(16, 12, 16, 12)
             top = QVBoxLayout()
+            slot_state = "VERIFIED" if status.available else "NEEDS ATTENTION"
+            slot = QLabel(f"SLOT {index:02d}  •  {slot_state}")
+            slot.setObjectName("Eyebrow")
+            top.addWidget(slot)
             name_row = QHBoxLayout()
             name = QLabel(status.name)
             name.setObjectName("SectionTitle")
@@ -1620,6 +1842,77 @@ class ToolchainCenter(QWidget):
             self._render_studio_project_context()
         else:
             self._render_device_pack_context()
+
+    def _communication_copy(self) -> tuple[str, str, str]:
+        if self._communication_error:
+            return (
+                "Communication test needs attention",
+                f"The latest bounded Device Engine scan failed: {self._communication_error}. "
+                "Forge Arsenal did not change the phone. Recheck the verified tool, cable, host "
+                "driver or Linux USB permission before trying again.",
+                "Danger",
+            )
+        selected = self._communication_devices
+        observed = self._observed_communication_devices
+        if not selected and len(observed) > 1:
+            return (
+                "Choose the target in Command Deck",
+                f"{len(observed)} Android transports are visible. ROMVERSE will not bind a "
+                "communication result until one is selected. No additional command was run.",
+                "Warning",
+            )
+        if not selected:
+            return (
+                "No Android transport currently visible",
+                "Connect a phone when you want a genuine communication check. The equipment-bay "
+                "inventory remains useful offline; this state is not a failed driver claim.",
+                "Muted",
+            )
+        device = selected[0]
+        if device.state is DeviceState.DEVICE:
+            label = "ADB Android communication verified"
+            detail = (
+                f"Device Engine completed the Guardian-approved ADB discovery and identity path "
+                f"for {device.display_name}."
+            )
+            state = "Good" if not device.errors else "Warning"
+        elif device.state is DeviceState.RECOVERY:
+            label = "ADB recovery communication verified"
+            detail = "The latest Guardian-routed ADB discovery genuinely observed recovery mode."
+            state = "Good"
+        elif device.state is DeviceState.SIDELOAD:
+            label = "ADB sideload communication verified"
+            detail = "The latest Guardian-routed ADB discovery genuinely observed sideload mode."
+            state = "Good"
+        elif device.is_fastboot:
+            mode = "fastbootd" if device.state is DeviceState.FASTBOOTD else "bootloader Fastboot"
+            label = f"{mode} communication verified"
+            detail = (
+                "Device Engine completed Guardian-approved Fastboot discovery and bounded identity "
+                "reads. No reboot, unlock, erase, flash, or write command was available."
+            )
+            state = "Good" if not device.errors else "Warning"
+        elif device.state is DeviceState.UNAUTHORIZED:
+            label = "ADB interface found • owner confirmation required"
+            detail = (
+                "The host can see the ADB interface, but the phone has not authorized this computer. "
+                "Unlock the phone and accept only the RSA fingerprint you recognise."
+            )
+            state = "Warning"
+        elif device.state is DeviceState.OFFLINE:
+            label = "ADB transport found but not communicating"
+            detail = (
+                "Check the data cable, USB mode, current Platform Tools, and host driver or Linux "
+                "permission. ROMVERSE will not report a successful communication test."
+            )
+            state = "Danger"
+        else:
+            label = "Android transport state is unconfirmed"
+            detail = "The latest scan did not provide enough evidence to name a working mode."
+            state = "Warning"
+        if device.errors:
+            detail += f" {len(device.errors)} bounded probe warning(s) remain visible in Device Portal."
+        return label, detail + " Phone-change authority: none.", state
 
     @staticmethod
     def _repolish(widget: QWidget) -> None:

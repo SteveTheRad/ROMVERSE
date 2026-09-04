@@ -225,9 +225,7 @@ def test_packaged_upgrade_preserves_a_newer_local_record_revision(tmp_path) -> N
         revision=original.revision + 1,
         title="Locally reviewed update-engine space diagnosis",
     )
-    sources = tuple(
-        source for source in packaged.sources if source.source_id in newer.source_ids
-    )
+    sources = tuple(source for source in packaged.sources if source.source_id in newer.source_ids)
     local = seal_archive(
         KnowledgeArchive(
             schema_version=ARCHIVE_SCHEMA_VERSION,
@@ -242,9 +240,7 @@ def test_packaged_upgrade_preserves_a_newer_local_record_revision(tmp_path) -> N
     store.save(local)
 
     upgraded = store.ensure_seeded()
-    retained = next(
-        record for record in upgraded.records if record.record_id == newer.record_id
-    )
+    retained = next(record for record in upgraded.records if record.record_id == newer.record_id)
 
     assert retained.revision == newer.revision
     assert retained.title == newer.title

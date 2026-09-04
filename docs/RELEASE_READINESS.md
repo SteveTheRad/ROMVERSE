@@ -316,7 +316,15 @@ Flash remains locked. The real protected HyperOS 4.0.0.25 package also parses su
 `Xiaomi / popsicle / Android 17 / CP2A.260605.016`, post incremental
 `17OS4.0.260821.223347094.QCPECN.S`, SDK 37 and security patch 2026-08-01. This metadata is still
 package-declared structure and grants no authenticity, signing, recovery, install, or flash
-authority. No phone action was performed.
+authority. Exact commit `5fe9b10` passes the complete 1,693-test Desktop collection and the full
+Ruff check/format gates across 383 Python and release-script files. Its separately installed Python
+3.14 wheel smoke passes 21 Device Packs, 169 known fixes, 221 offline records, all 19 Desktop routes,
+dark UI rendering and byte-exact populated-workspace reopening. The 250-member wheel is 7,910,649
+bytes with SHA-256 `d7b8fdae5075f624cc314026b1cd79372079689994432bdf0a9bb59bfaa2b147`.
+The clean-checkout frozen application launches successfully and contains only the three committed
+archive seed bundles; its verified 454-file, 356,042,016-expanded-byte portable ZIP is 146,879,590
+bytes with SHA-256 `b9fffe5e773ba7173a2c83fb2a0da5a4b95f802cf204dbb60cec97cce92c64ac`.
+No phone action was performed.
 
 ## Required gates
 

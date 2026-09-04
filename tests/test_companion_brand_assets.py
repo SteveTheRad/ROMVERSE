@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import struct
 import xml.etree.ElementTree as ET
+from hashlib import sha256
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,12 +25,18 @@ def _png_color_type(path: Path) -> int:
 
 
 def test_companion_uses_exact_approved_desktop_brand_masters() -> None:
-    assert (COMPANION_RES / "drawable-nodpi" / "romverse_app_icon.png").read_bytes() == (
-        DESKTOP_ASSETS / "romverse-app-icon.png"
-    ).read_bytes()
-    assert (COMPANION_RES / "drawable-nodpi" / "radforge_labs_official_logo.png").read_bytes() == (
+    app_icon = COMPANION_RES / "drawable-nodpi" / "romverse_app_icon.png"
+    company_logo = COMPANION_RES / "drawable-nodpi" / "radforge_labs_official_logo.png"
+    assert app_icon.read_bytes() == (DESKTOP_ASSETS / "romverse-app-icon.png").read_bytes()
+    assert company_logo.read_bytes() == (
         DESKTOP_ASSETS / "radforge-labs-official-logo-transparent.png"
     ).read_bytes()
+    assert sha256(app_icon.read_bytes()).hexdigest() == (
+        "ab9286ce69e77abd82fe88105df70680186a4eb992289580c23f5d362c132a18"
+    )
+    assert sha256(company_logo.read_bytes()).hexdigest() == (
+        "d82ff146aab1f18474005d1a2d9ce0c3944467ae30ff7cb4fb3284387daa95cb"
+    )
 
 
 def test_companion_launcher_icons_cover_every_android_density() -> None:

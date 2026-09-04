@@ -28,12 +28,19 @@ from PySide6.QtWidgets import (
 )
 
 from romverse.core.activity import ActivityStore, ActivityStoreError
+from romverse.device.models import AndroidDevice
+from romverse.galaxy.intelligence import (
+    GalaxyIntelligenceService,
+    GalaxyModerationService,
+)
 from romverse.galaxy.store import (
     CommunityPost,
     GalaxyCommunityStore,
     GalaxySort,
     GalaxyStoreError,
 )
+from romverse.knowledge.updates import KnowledgeUpdateService
+from romverse.ui.galaxy_intelligence import GalaxyIntelligenceDialog
 
 
 class NewTopicDialog(QDialog):
@@ -135,14 +142,36 @@ class GalaxyCenter(QWidget):
     """Real offline community workspace with no implied network synchronization."""
 
     knowledge_article_requested = Signal(str)
+    route_requested = Signal(str)
+    settings_requested = Signal()
+    offline_archive_updated = Signal(object)
 
     def __init__(
         self,
         workspace: Path,
         activity_store: ActivityStore | None = None,
+        *,
+        knowledge_update_service: KnowledgeUpdateService | None = None,
+        contribution_opt_in: bool = False,
+        reduced_motion: bool = False,
     ) -> None:
         super().__init__()
         self.store = GalaxyCommunityStore(workspace)
+        self.intelligence = GalaxyIntelligenceService(
+            workspace,
+            sharing_enabled=contribution_opt_in,
+        )
+        self.moderation = GalaxyModerationService(
+            self.intelligence,
+            (),
+            unavailable_reason=(
+                "No production ROMVERSE Galaxy moderator key has been enrolled yet."
+            ),
+        )
+        self.knowledge_update_service = knowledge_update_service
+        self._devices: tuple[AndroidDevice, ...] = ()
+        self._reduced_motion = bool(reduced_motion)
+        self.intelligence_dialog: GalaxyIntelligenceDialog | None = None
         self.activity_store = activity_store
         self.posts: tuple[CommunityPost, ...] = ()
         self.current_post_id = ""
@@ -167,8 +196,14 @@ class GalaxyCenter(QWidget):
         heading.addWidget(title)
         heading.addWidget(subtitle)
         header.addLayout(heading, 1)
+        self.intelligence_button = QPushButton("✦  Galaxy Intelligence")
+        self.intelligence_button.setObjectName("Primary")
+        self.intelligence_button.setToolTip(
+            "Open the opt-in Device DNA contribution, evidence review, and constellation chamber."
+        )
+        self.intelligence_button.clicked.connect(self._open_intelligence)
+        header.addWidget(self.intelligence_button)
         self.new_button = QPushButton("＋  New topic")
-        self.new_button.setObjectName("Primary")
         self.new_button.setToolTip("Create a private local Community Lab topic.")
         self.new_button.clicked.connect(self._new_topic)
         header.addWidget(self.new_button)
@@ -291,6 +326,52 @@ class GalaxyCenter(QWidget):
         page.addWidget(self.status)
         self._set_detail_enabled(False)
         self.refresh()
+
+    def set_devices(self, devices: list[AndroidDevice] | tuple[AndroidDevice, ...]) -> None:
+        self._devices = tuple(devices)
+        if self.intelligence_dialog is not None:
+            self.intelligence_dialog.set_devices(self._devices)
+
+    def set_contribution_opt_in(self, enabled: bool) -> None:
+        self.intelligence.set_sharing_enabled(enabled)
+        if self.intelligence_dialog is not None:
+            self.intelligence_dialog.set_sharing_enabled(enabled)
+
+    def set_reduced_motion(self, enabled: bool) -> None:
+        self._reduced_motion = bool(enabled)
+        if self.intelligence_dialog is not None:
+            self.intelligence_dialog.set_reduced_motion(enabled)
+
+    def _open_intelligence(self) -> None:
+        dialog = GalaxyIntelligenceDialog(
+            self.intelligence,
+            self._devices,
+            moderation_service=self.moderation,
+            signed_updates_available=(
+                self.knowledge_update_service is not None
+                and self.knowledge_update_service.configured
+            ),
+            reduced_motion=self._reduced_motion,
+            parent=self,
+        )
+        self.intelligence_dialog = dialog
+        dialog.archives_requested.connect(self._leave_for_archives)
+        dialog.settings_requested.connect(self._leave_for_settings)
+        dialog.archive_updated.connect(self.offline_archive_updated.emit)
+        dialog.exec()
+        if self.intelligence_dialog is dialog:
+            self.intelligence_dialog = None
+        self.refresh()
+
+    def _leave_for_archives(self) -> None:
+        if self.intelligence_dialog is not None:
+            self.intelligence_dialog.accept()
+        self.route_requested.emit("archives")
+
+    def _leave_for_settings(self) -> None:
+        if self.intelligence_dialog is not None:
+            self.intelligence_dialog.accept()
+        self.settings_requested.emit()
 
     def refresh(self, _value: str | None = None, select_id: str = "") -> None:
         requested = select_id or self.current_post_id

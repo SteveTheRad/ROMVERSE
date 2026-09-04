@@ -26,6 +26,14 @@ def test_desktop_uses_the_byte_exact_production_romverse_app_assets() -> None:
     assert sha256(assets.joinpath("romverse-app-icon.png").read_bytes()).hexdigest() == (
         "ab9286ce69e77abd82fe88105df70680186a4eb992289580c23f5d362c132a18"
     )
+    assert sha256(assets.joinpath("romverse-app-icon.ico").read_bytes()).hexdigest() == (
+        "bcfe1c5b960de2327c5e706cc22b872923c8ce2c254aa0b125c4f9b1dd4036b2"
+    )
+    assert sha256(
+        assets.joinpath("radforge-labs-official-logo-transparent.png").read_bytes()
+    ).hexdigest() == (
+        "d82ff146aab1f18474005d1a2d9ce0c3944467ae30ff7cb4fb3284387daa95cb"
+    )
     assert sha256(assets.joinpath("romverse-brand.png").read_bytes()).hexdigest() == (
         "7c85d0c8b7f62d3f757243e6ca336daf78078d04550b264323135cf4e1beb98a"
     )

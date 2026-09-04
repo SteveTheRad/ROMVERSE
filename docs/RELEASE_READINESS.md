@@ -1473,6 +1473,35 @@ The product-wide continuation target and definition of done are recorded in
   no raw serial. Focused core, UI, Release Forge, Forge Control, navigation, readiness and Vault tests
   pass. The approved ROMVERSE and RadForge Labs logos remain byte-identical and were not edited.
 
+## 2026-09-05 Galaxy Intelligence checkpoint
+
+- ROMVERSE Galaxy now has a separate structured field-intelligence ledger alongside the private
+  local forum. It accepts compatibility, fix, flash-outcome and recovery drafts only through a
+  selected live Device DNA snapshot and never includes the phone serial in the contribution model.
+- Every draft receives an exact privacy preview. Sensitive identifiers, email addresses, private
+  paths and dangerous instruction patterns block queuing; evidence is required; duplicate records
+  are stopped; and conflicting exact-scope outcomes are labelled disputed rather than confirmed.
+- Contribution sharing is opted out by default. When opted in, explicit acceptance queues the exact
+  reviewed digest locally. Export remains a deliberate outside-workspace action. Neither path
+  uploads, executes a command, changes a phone, grants Guardian authority or claims server receipt.
+- The large-format Galaxy Intelligence chamber shows official, verified-community, experimental,
+  disputed and unresolved counts, a local review ledger, an unresolved queue, current selected-phone
+  scope and a reduced-motion-compatible device-family constellation. It routes directly to Privacy
+  settings and the existing signed Synapse update chamber.
+- Galaxy moderation bundles require a trusted Ed25519 public key, bounded validity window, exact
+  current contribution digest and unchanged ledger digest. Moderation cannot grant official status.
+  Only corroborated verified-community decisions with a clean public HTTPS evidence page enter the
+  Knowledge Archive, where Device Atlas, Synapse, Simulation Lab and Recovery Autopilot already use
+  the same offline corpus. Reputation derives only from those verified results.
+- Production Galaxy moderation/publisher keys and authenticated public transport are deliberately
+  unconfigured. Public synchronization and automatic update download therefore remain unavailable
+  and must not be advertised as complete. Focused Galaxy core/UI, existing Community Lab, navigation,
+  settings, knowledge, multi-device and runtime-stability suites pass, and a 1360-by-900 visual check
+  found no clipping or low-contrast text in the new chamber and preview.
+- The approved Desktop PNG/ICO and RadForge Labs master plus both Companion master copies now have
+  independent fixed SHA-256 regression assertions. All five remain byte-identical to their approved
+  hashes; no logo was replaced, regenerated, recoloured, cropped or otherwise edited.
+
 ## Honest feature boundary
 
 The current safe milestone supports read-only Android evidence, local diagnostics, guarded APK

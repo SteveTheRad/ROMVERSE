@@ -1367,6 +1367,25 @@ physical-validation evidence only through the strict First Light loader after ev
 subsystem is working or explicitly not applicable. First Light itself is read-only and never runs a
 repair, flash or other phone-changing command.
 
+**ROMVERSE Galaxy Intelligence** now adds a separate evidence network layer beside the private
+local Community Lab. A selected phone can prepare an anonymised Device DNA contribution for a
+compatibility result, fix, flash outcome or recovery finding. The exact privacy preview excludes
+serial numbers, IMEI/MEID, accounts, personal files and unreviewed raw logs; detects private or
+malicious text, duplicate submissions and conflicting outcomes; and requires both the Privacy
+opt-in and explicit acceptance before anything enters the local review queue. Queued records are
+not uploaded and carry `execution_authority: none` and `phone_changed: false`. A reviewed record can
+be exported manually outside the workspace for future service submission.
+
+Galaxy keeps official, verified-community, experimental, disputed and rejected evidence visibly
+separate, exposes an unresolved-problem queue, and builds contributor reputation only from signed,
+corroborated moderation decisions. An Ed25519-verified moderator decision can promote exact-device
+community evidence into the offline Knowledge Archive, where the existing Synapse matcher makes it
+available to Device Atlas, ROM Studio, Simulation Lab and Recovery Autopilot. Signed Synapse update
+import remains accessible from the chamber. Production moderator and publisher public keys and a
+deployed authenticated Galaxy transport are not yet enrolled, so the app makes no public-sync or
+download claim. The approved ROMVERSE and RadForge Labs logo masters are protected by independent
+fixed SHA-256 release tests on both Desktop and Companion; they are never regenerated or replaced.
+
 ## Linux quick start
 
 Ubuntu 24.04+, Fedora 44, and Python 3.11–3.14 are supported for development.

@@ -4279,8 +4279,19 @@ class MainWindow(QMainWindow):
         self.about_page.route_requested.connect(self._navigate_route)
         self.about_page.knowledge_article_requested.connect(self._open_knowledge_article)
         about_index = self.stack.addWidget(self.about_page)
-        self.galaxy_center = GalaxyCenter(workspace, self.activity_store)
+        self.galaxy_center = GalaxyCenter(
+            workspace,
+            self.activity_store,
+            knowledge_update_service=self.knowledge_center.update_service,
+            contribution_opt_in=self.app_settings.synapse_contributions_enabled,
+            reduced_motion=self.app_settings.reduced_motion,
+        )
         self.galaxy_center.knowledge_article_requested.connect(self._open_knowledge_article)
+        self.galaxy_center.route_requested.connect(self._navigate_route)
+        self.galaxy_center.settings_requested.connect(self._open_settings)
+        self.galaxy_center.offline_archive_updated.connect(
+            self.knowledge_center.refresh_offline_archive
+        )
         self.stack.addWidget(self.galaxy_center)
         self.members_center = MembersCenter(
             self.app_settings.members_issuer,
@@ -4890,6 +4901,7 @@ class MainWindow(QMainWindow):
         self.apk_installer.set_devices(devices)
         self.backup_center.set_devices(devices)
         self.terminal_center.set_devices(devices)
+        self.galaxy_center.set_devices(devices)
         # Genesis derives its device stage from ROM Studio. Refresh the Command
         # Deck only after every consumer has received the newly selected device,
         # otherwise its cached flight plan can continue to claim no phone is
@@ -5112,6 +5124,7 @@ class MainWindow(QMainWindow):
         self.apk_installer.set_devices([])
         self.backup_center.set_devices([])
         self.terminal_center.set_devices([])
+        self.galaxy_center.set_devices([])
         self._sync_command_deck_context()
         self.rom_studio.device_scan_finished.emit(False, message)
         connection_copy, sidebar_copy, detail_copy = _device_scan_failure_copy(message)
@@ -7555,6 +7568,10 @@ class MainWindow(QMainWindow):
         self.notification_center.set_reduced_motion(settings.reduced_motion)
         self.diagnostics_center.set_reduced_motion(settings.reduced_motion)
         self.knowledge_center.set_reduced_motion(settings.reduced_motion)
+        self.galaxy_center.set_reduced_motion(settings.reduced_motion)
+        self.galaxy_center.set_contribution_opt_in(
+            settings.synapse_contributions_enabled
+        )
         self.backup_center.set_default_backup_directory(
             Path(settings.backup_directory) if settings.backup_directory else None
         )

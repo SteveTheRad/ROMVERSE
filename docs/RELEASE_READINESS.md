@@ -177,6 +177,29 @@ installed-environment smoke. The self-contained Fedora build launched and its pe
 `25065b20f42bd381038a713b6db99874af9d25cfd07778542630daac361acb8c`. No phone operation was
 performed.
 
+The Genesis completion and launcher-branding increment at commit `d88caf3` passes all 1,646
+Desktop tests from an isolated committed-source snapshot; complete Ruff check and format gates pass
+across 378 Python files. Genesis now treats its first 13 stages as the complete local-build mission,
+shows 100%, and presents an explicit **Finish local build** or **Continue to optional flash setup**
+choice. The optional install intent is stored in strict digest-protected schema six with verified
+schema-five migration. Forge Control identifies remaining device/release rows as flash-only,
+preserves their exact resolution labels after Autopilot stops, and no longer invites a repeated
+automatic build loop. Entering Expert/Architect Mode from either ROM Studio or Settings now requires
+an Accept/Decline risk dialog; declining preserves Guided Mode. Expert presentation reduces guided
+sequencing but does not bypass proven target mismatch, artifact corruption, path containment,
+invalid command target, missing operation definition, or the permanent bootloader-relock ban.
+
+A fresh 244-member wheel contains all 21 Device Packs and passes installed fresh/populated-workspace
+smoke; SHA-256 is `a99f1802a86354bfac6d1c42110ef62088fb721d6b228746ee256ff4fa1eea64`.
+The fresh self-contained Fedora build launches and its 451-file, 355,809,131-expanded-byte portable
+ZIP verifies with SHA-256 `20a657a337d4222a2de67e36748ca6e62f9cf95cb412a3aa2f9eacbad04ab3d7`.
+Companion clean build/test/lint runs from the pinned data-drive Java 17, Gradle 8.11.1 and Android
+SDK toolchain: 150 JVM tests pass with zero failures/errors/skips and lint reports 0 errors (328
+warnings). The approved ROMVERSE master is now used through an Android adaptive icon plus distinct
+transparent rounded/circular legacy fallbacks. The v2-valid debug APK SHA-256 is
+`e6947c9de6aaab0700af08c77c5ad417b7203177625a4b6fafa72ebd79dc2919`; it remains a debug artifact,
+not a production-signed release. No phone write or installation was performed by this increment.
+
 ## Required gates
 
 1. Run the complete `pytest`, `ruff check .`, and `ruff format --check .` gates on supported Linux

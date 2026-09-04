@@ -113,8 +113,8 @@ def test_packaged_archive_promotes_the_existing_broad_multi_oem_brain() -> None:
     archive = load_packaged_archive()
     manufacturers = {value for record in archive.records for value in record.scope.manufacturers}
 
-    assert len(archive.records) >= 245
-    assert len(archive.sources) >= 150
+    assert len(archive.records) >= 263
+    assert len(archive.sources) >= 168
     assert {
         "samsung",
         "huawei",
@@ -157,6 +157,13 @@ def test_packaged_archive_promotes_the_existing_broad_multi_oem_brain() -> None:
         "official.pixel-may2025-bootloader-antirollback",
         "community.oneplus6t-critical-refusal-wrong-mode",
         "community.xiaomi-miflash-lock-checkpoint-wrapper",
+        "identity.samsung-beyond0lte-models",
+        "identity.oneplus-waffle-models",
+        "identity.motorola-dubai-models",
+        "identity.sony-pdx203-models",
+        "identity.nothing-spacewar-a063",
+        "identity.asus-sake-models",
+        "identity.xiaomi-surya-models",
     } <= record_ids
 
 
@@ -189,6 +196,40 @@ def test_device_alias_and_codename_find_the_maintained_variant(tmp_path) -> None
     assert report.matches[0].record.record_id == "identity.motorola-capri-variants"
     assert report.matches[0].confidence is MatchConfidence.MEDIUM
     assert "exact codename" in report.matches[0].explanation.casefold()
+
+
+def test_exact_samsung_s10_model_excludes_neighboring_codenames(tmp_path) -> None:
+    report = OfflineKnowledgeService(tmp_path / "workspace").lookup(
+        KnowledgeQuery(
+            manufacturers=("samsung",),
+            brands=("galaxy",),
+            models=("SM-G973F",),
+            codenames=("beyond1lte",),
+        ),
+        trigger="device-dna",
+    )
+
+    ids = {match.record.record_id for match in report.matches}
+    assert report.matches[0].record.record_id == "identity.samsung-beyond1lte-models"
+    assert "identity.samsung-beyond0lte-models" not in ids
+    assert "identity.samsung-beyond2lte-models" not in ids
+    assert report.matches[0].confidence is MatchConfidence.MEDIUM
+
+
+def test_nothing_spacewar_model_maps_without_transferring_pong(tmp_path) -> None:
+    report = OfflineKnowledgeService(tmp_path / "workspace").lookup(
+        KnowledgeQuery(
+            manufacturers=("nothing",),
+            models=("A063",),
+            codenames=("Spacewar",),
+        ),
+        trigger="device-dna",
+    )
+
+    ids = {match.record.record_id for match in report.matches}
+    assert report.matches[0].record.record_id == "identity.nothing-spacewar-a063"
+    assert "identity.nothing-pong-models" not in ids
+    assert report.execution_authority == "none"
 
 
 def test_generic_fastboot_resize_error_ranks_platform_diagnosis_first(tmp_path) -> None:

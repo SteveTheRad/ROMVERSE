@@ -88,8 +88,8 @@ def test_archives_searches_and_explains_structured_offline_evidence(tmp_path) ->
     center.show()
 
     assert "OFFLINE BRAIN READY" in center.offline_archive_status.text()
-    assert "245 STRUCTURED RECORDS" in center.offline_archive_status.text()
-    assert "150 ATTRIBUTED SOURCES" in center.offline_archive_status.text()
+    assert "263 STRUCTURED RECORDS" in center.offline_archive_status.text()
+    assert "168 ATTRIBUTED SOURCES" in center.offline_archive_status.text()
     center.search.setText("HASH_MISMATCH(3)")
     app.processEvents()
     offline_items = [

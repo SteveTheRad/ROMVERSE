@@ -8,7 +8,7 @@ corpus later, but it is never required to explain a locally known problem or rec
 
 The initial archive promotes the existing curated ROMVERSE known-fix catalog into the structured
 store and adds modular, exact-scope evidence packs reviewed on 2026-09-04. The resulting seed
-currently contains 245 records and 150 distinct provenance entries. It includes platform guidance
+currently contains 263 records and 168 distinct provenance entries. It includes platform guidance
 and OEM coverage for
 Samsung, Google/Pixel, Huawei/Honor, Xiaomi/Redmi/POCO, OnePlus, Sony, Motorola/Lenovo, Nothing,
 OPPO, realme, vivo/iQOO, ASUS, HMD/Nokia, Fairphone, TECNO, Infinix, itel, ZTE, and nubia/REDMAGIC.
@@ -87,8 +87,9 @@ pre-device lookup neither assumes an identity nor starts the host recovery optio
 
 ## Persistence and import
 
-The packaged core, OEM recovery, boot-error/device-alias, and Fastboot/transport evidence packs are
-merged and copied on first use to `knowledge/archive.romverse` inside the selected workspace. More reviewed packs can be added
+The packaged core, OEM recovery, boot-error, Fastboot/transport, and expanded Device DNA alias
+packs are merged and copied on first use to `knowledge/archive.romverse` inside the selected
+workspace. More reviewed packs can be added
 without turning the archive loader into one unmaintainable data file. The local file is private,
 atomically replaced, byte-bounded, strict-schema, and sealed
 with a canonical SHA-256 digest. Loading rejects links, extra/missing fields, invalid types,
@@ -126,6 +127,13 @@ version-scoped Platform-Tools failures. Google-published Pixel May 2025 and May 
 anti-rollback boundaries are model-scoped. Community outcomes for Pixel, Lenovo, OnePlus, Samsung,
 and Xiaomi retain their exact known circumstances and explicitly record what the report did not
 prove.
+
+The expanded Device DNA pack adds maintainer-published model-number boundaries for Samsung Galaxy
+S9+/S10e/S10/S10+, OnePlus 7T Pro/Nord/8 Pro/12, Motorola edge 30/edge 30 ultra/moto g52/moto g32,
+Sony Xperia 1 II/5 II, Nothing Phone (1)/(2), ASUS ZenFone 8, and POCO X3 NFC. Neighboring product
+names are stated as incompatible instead of being inferred into a shared package family. These
+aliases improve search and identification only; firmware region, bootloader revision, channel,
+build, slot, and partition compatibility remain separate evidence requirements.
 
 ## Device-change boundary
 

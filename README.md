@@ -1028,6 +1028,14 @@ shows **INTEGRITY VERIFIED** only after both audit and approval chains pass, and
 The destination displays the same lifecycle in a visible handoff and navigation starts no approval,
 command, build, flash, or phone action.
 
+Every selected ADB or Fastboot identity also runs a dedicated local Archives match immediately
+after discovery. The bounded query uses device/build/capability evidence but excludes the transport
+serial, firmware fingerprints and personal telemetry. Command Deck shows the leading evidence in a
+compact **Offline Archives Brain** strip with explicit match/source counts, nothing-uploaded wording
+and execution authority `none`; full provenance remains one click away in Archives. The dashboard
+stacks its major cards at compact widths without a horizontal scrollbar, and its phone artwork is
+brand-neutral so an unknown or newly supported model is never illustrated as a different product.
+
 Desktop navigation also has a keyboard-first **Ctrl+K command palette**. It searches every
 canonical sidebar page plus every registered implemented internal feature, including Device Portal,
 Device Engine, System Scan, Genesis Sequence, Ascension Protocol, Device DNA, Compatibility Matrix,
@@ -1119,6 +1127,9 @@ short-lived request to that phone, and the phone presents the full safety code i
 dialog. Only Yes submits the request and completes read-only Link automatically; No blocks it. The
 cable alone never establishes trust. The compact active-stage animation respects Reduced
 Effects and Android animation policy, and the route exposes a complete accessibility description.
+Desktop Link keeps this workflow in a dark vertical scroll surface with grouped USB/wireless,
+safety-confirmation and support/revocation actions. Disabled controls use a visibly inactive style,
+so a waiting approval cannot be mistaken for an available action at the minimum window size.
 Companion app-private state is explicitly excluded from Android cloud backup and device transfer so
 pairing tokens, certificate pins, and private evidence cannot migrate to an unverified phone.
 

@@ -654,25 +654,36 @@ class RomStudio(QWidget):
         self.new_button.setObjectName("Primary")
         self.new_button.clicked.connect(self._new_project)
         header.addWidget(self.new_button)
+        page.addLayout(header)
+
+        workflow_bar = QFrame()
+        workflow_bar.setObjectName("StudioWorkflowBar")
+        workflow = QHBoxLayout(workflow_bar)
+        workflow.setContentsMargins(12, 9, 12, 9)
+        workflow.setSpacing(9)
+        workflow_label = QLabel("PROJECT WORKFLOW")
+        workflow_label.setObjectName("StudioWorkflowLabel")
+        workflow.addWidget(workflow_label)
         self.delete_button = QPushButton("Delete project")
         self.delete_button.setToolTip(
             "Delete the selected project and derived working data after confirmation."
         )
         self.delete_button.setEnabled(False)
         self.delete_button.clicked.connect(self._delete_project)
-        header.addWidget(self.delete_button)
+        workflow.addWidget(self.delete_button)
+        workflow.addStretch()
         self.guided_button = QPushButton("Genesis Sequence")
         self.guided_button.setToolTip(
             "Enter ROMVERSE Genesis Sequence: a guided journey from trusted firmware through build, Guardian flash, and verified first boot."
         )
         self.guided_button.clicked.connect(self._open_guided_setup)
-        header.addWidget(self.guided_button)
+        workflow.addWidget(self.guided_button)
         self.ascension_button = QPushButton("Ascension Protocol")
         self.ascension_button.setToolTip(
             "Identify a device-specific Magisk or KernelSU path, verify official tools, and prepare a Guardian-controlled root handoff."
         )
         self.ascension_button.clicked.connect(self._open_ascension_protocol)
-        header.addWidget(self.ascension_button)
+        workflow.addWidget(self.ascension_button)
         self.expert_button = QPushButton("Architect Mode")
         self.expert_button.setObjectName("ArchitectModeButton")
         self.expert_button.setCheckable(True)
@@ -681,8 +692,8 @@ class RomStudio(QWidget):
             "routes. Projects, evidence, and Guardian protections remain unchanged."
         )
         self.expert_button.clicked.connect(self._toggle_architect_mode)
-        header.addWidget(self.expert_button)
-        page.addLayout(header)
+        workflow.addWidget(self.expert_button)
+        page.addWidget(workflow_bar)
 
         boundary = QFrame()
         boundary.setObjectName("HeroCard")

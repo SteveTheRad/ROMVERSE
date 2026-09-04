@@ -404,6 +404,10 @@ class GuardianCenter(QWidget):
             self.refresh()
         else:
             self._refresh_pending = True
+            self._empty(
+                "No Guardian decisions have been verified for this view yet. Choose Verify audit "
+                "trail to check the current local evidence; verification starts no phone action."
+            )
 
     def current_dashboard_state(self) -> tuple[str, str, bool]:
         """Return the latest bounded Guardian summary owned by this page."""

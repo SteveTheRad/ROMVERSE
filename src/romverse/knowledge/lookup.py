@@ -9,6 +9,7 @@ from dataclasses import asdict, replace
 from pathlib import Path
 
 from romverse.device.dna import DeviceDnaProfile, EvidenceConfidence
+from romverse.device.models import AndroidDevice
 from romverse.knowledge.models import (
     KnowledgeArchive,
     KnowledgeConfidence,
@@ -82,6 +83,25 @@ class OfflineKnowledgeService:
         return self.lookup(
             query_from_device_dna(profile),
             trigger="device-dna",
+            limit=limit,
+        )
+
+    def scan_after_device_snapshot(
+        self,
+        device: AndroidDevice,
+        *,
+        limit: int = 8,
+    ) -> KnowledgeLookupReport:
+        """Rank local evidence immediately after a read-only transport scan.
+
+        The query deliberately excludes the transport serial, fingerprints,
+        storage, memory, battery, and every other user-specific reading.  It is
+        suitable for automatic local matching, but never grants an operation.
+        """
+
+        return self.lookup(
+            query_from_device_snapshot(device),
+            trigger="device-connection",
             limit=limit,
         )
 
@@ -174,6 +194,57 @@ def query_from_device_dna(profile: DeviceDnaProfile | None) -> KnowledgeQuery:
         bootloader_states=values("bootloader.state"),
         partitions=_unique(partitions),
         evidence_terms=_unique(evidence_terms, maximum=256),
+    )
+
+
+def query_from_device_snapshot(device: AndroidDevice) -> KnowledgeQuery:
+    """Create a privacy-bounded archive query from current read-only evidence."""
+
+    bootloader_state = (
+        "locked"
+        if device.bootloader_locked is True
+        else "unlocked"
+        if device.bootloader_locked is False
+        else ""
+    )
+    capabilities = (
+        f"transport state {device.state.value}",
+        f"API level {device.api_level}" if device.api_level else "",
+        f"security patch {device.security_patch}" if device.security_patch else "",
+        f"ABI {device.abi}" if device.abi else "",
+        f"verified boot {device.verified_boot}" if device.verified_boot else "",
+        f"active slot {device.slot_suffix}" if device.slot_suffix else "",
+        f"SoC platform {device.soc_platform}" if device.soc_platform else "",
+        f"hardware {device.hardware}" if device.hardware else "",
+        f"hardware SKU {device.hardware_sku}" if device.hardware_sku else "",
+        f"A/B updates {'supported' if device.ab_update else 'not reported as supported'}"
+        if device.ab_update is not None
+        else "",
+        f"Virtual A/B {'supported' if device.virtual_ab else 'not reported as supported'}"
+        if device.virtual_ab is not None
+        else "",
+        f"dynamic partitions {'supported' if device.dynamic_partitions else 'not reported as supported'}"
+        if device.dynamic_partitions is not None
+        else "",
+        device.fastboot_capability,
+        device.recovery_capability,
+    )
+    return KnowledgeQuery(
+        manufacturers=_unique((device.manufacturer,)),
+        brands=_unique((device.brand,)),
+        models=_unique((device.model, device.marketing_name)),
+        codenames=_unique((device.codename, device.product, device.vendor_device)),
+        build_ids=_unique(
+            (
+                device.rom_display,
+                device.build_id,
+                device.build_incremental,
+                device.system_build_incremental,
+            )
+        ),
+        android_versions=_unique((device.android_version,)),
+        bootloader_states=_unique((bootloader_state,)),
+        evidence_terms=_unique(capabilities, maximum=32),
     )
 
 

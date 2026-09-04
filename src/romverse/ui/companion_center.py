@@ -12,8 +12,10 @@ from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
     QFrame,
+    QHBoxLayout,
     QLabel,
     QPushButton,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
@@ -86,9 +88,19 @@ class CompanionCenter(QWidget):
         self._remote_timer.setInterval(1000)
         self._remote_timer.timeout.connect(self._update_remote_snapshot)
         self._remote_timer.start()
-        page = QVBoxLayout(self)
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        self.scroll = QScrollArea()
+        self.scroll.setObjectName("CompanionScroll")
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        content = QWidget()
+        content.setObjectName("ScrollContent")
+        page = QVBoxLayout(content)
         page.setContentsMargins(30, 26, 30, 30)
         page.setSpacing(16)
+        self.scroll.setWidget(content)
+        root.addWidget(self.scroll)
         eyebrow = QLabel("ROMVERSE LINK  •  SECURE LOCAL PAIRING")
         eyebrow.setObjectName("Eyebrow")
         title = QLabel("ROMVERSE Link")
@@ -124,7 +136,7 @@ class CompanionCenter(QWidget):
             if self.transport.available
             else "LINK SAFETY CODE\nUnavailable until encrypted wireless Link is restored."
         )
-        self.identity_status.setObjectName("StatusCard")
+        self.identity_status.setObjectName("LinkIdentityStatus")
         self.identity_status.setWordWrap(True)
         self.identity_status.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self.identity_status.setToolTip(
@@ -132,7 +144,7 @@ class CompanionCenter(QWidget):
         )
         page.addWidget(self.identity_status)
         card = QFrame()
-        card.setObjectName("HeroCard")
+        card.setObjectName("CompanionPairingCard")
         layout = QVBoxLayout(card)
         layout.setContentsMargins(24, 24, 24, 24)
         self.state = QLabel("Not paired")
@@ -143,10 +155,8 @@ class CompanionCenter(QWidget):
         self.instructions.setObjectName("Muted")
         self.instructions.setWordWrap(True)
         self.code = QLabel("------")
+        self.code.setObjectName("LinkPairingCode")
         self.code.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.code.setStyleSheet(
-            "font-size:42px; font-weight:800; letter-spacing:8px; color:#D8B5FF;"
-        )
         self.expiry = QLabel("Codes expire after 10 minutes and are never reused.")
         self.expiry.setObjectName("Muted")
         self.expiry.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -162,12 +172,7 @@ class CompanionCenter(QWidget):
         self.remote_summary = QLabel(
             "LIVE COMPANION HEALTH\nWaiting for an authenticated phone snapshot."
         )
-        self.remote_summary.setObjectName("StatusCard")
-        self.remote_summary.setStyleSheet(
-            "QLabel#StatusCard { background: rgba(3, 12, 22, 225); "
-            "border: 1px solid rgba(40, 231, 245, 105); border-radius: 10px; "
-            "padding: 14px; color: #DDE9FF; }"
-        )
+        self.remote_summary.setObjectName("CompanionHealthCard")
         self.remote_summary.setWordWrap(True)
         self.remote_summary.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self.remote_summary.setToolTip(
@@ -175,7 +180,6 @@ class CompanionCenter(QWidget):
             "ROMVERSE never requests its serial, IMEI, accounts, files, or app list through this channel."
         )
         layout.addWidget(self.remote_summary)
-        buttons = QVBoxLayout()
         self.usb_pair = QPushButton("Pair connected phone with USB assist")
         self.usb_pair.setObjectName("Primary")
         self.usb_pair.setEnabled(False)
@@ -220,14 +224,27 @@ class CompanionCenter(QWidget):
             "Read a ROMVERSE health summary from the clipboard. This is display-only and never executes commands."
         )
         import_summary.clicked.connect(self.import_summary)
-        buttons.addWidget(self.usb_pair)
-        buttons.addWidget(self.generate)
-        buttons.addWidget(self.copy_button)
-        buttons.addWidget(self.safety_confirm)
-        buttons.addWidget(self.approve)
-        buttons.addWidget(self.reset_link)
-        buttons.addWidget(import_summary)
-        layout.addLayout(buttons)
+        start_actions = QHBoxLayout()
+        start_actions.setSpacing(10)
+        start_actions.addWidget(self.usb_pair, 1)
+        start_actions.addWidget(self.generate, 1)
+        layout.addLayout(start_actions)
+
+        approval_bar = QFrame()
+        approval_bar.setObjectName("PairingApprovalBar")
+        approval_layout = QHBoxLayout(approval_bar)
+        approval_layout.setContentsMargins(13, 9, 10, 9)
+        approval_layout.addWidget(self.safety_confirm, 1)
+        approval_layout.addWidget(self.approve)
+        layout.addWidget(approval_bar)
+
+        supporting_actions = QHBoxLayout()
+        supporting_actions.setSpacing(10)
+        supporting_actions.addWidget(self.copy_button)
+        supporting_actions.addWidget(import_summary)
+        supporting_actions.addStretch()
+        supporting_actions.addWidget(self.reset_link)
+        layout.addLayout(supporting_actions)
         page.addWidget(card)
         boundary = QLabel(
             "Guardian boundary  •  pairing grants telemetry visibility only; it cannot approve or execute device-changing operations."

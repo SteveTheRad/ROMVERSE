@@ -3662,7 +3662,7 @@ class MainWindow(QMainWindow):
         side.setSpacing(3)
         brand_card = QFrame()
         brand_card.setObjectName("WebsiteBrandCard")
-        brand_card.setFixedHeight(250)
+        brand_card.setFixedHeight(190)
         brand_card.setStyleSheet(
             "QFrame#WebsiteBrandCard { background: rgba(3, 6, 17, 188); "
             "border: 1px solid rgba(39, 220, 255, 82); border-radius: 18px; }"
@@ -3676,7 +3676,7 @@ class MainWindow(QMainWindow):
             parent=brand_card,
         )
         logo.setAccessibleName("Official ROMVERSE website icon in the app sidebar")
-        logo.setFixedSize(220, 220)
+        logo.setFixedSize(172, 172)
         brand_layout.addWidget(logo, 0, Qt.AlignmentFlag.AlignHCenter)
         side.addWidget(brand_card)
         self._brand_card = brand_card
@@ -3712,10 +3712,12 @@ class MainWindow(QMainWindow):
         self.stack = QStackedWidget()
         self.page_routes: dict[str, int] = {}
         self.activity_store = ActivityStore(workspace)
+        self.offline_knowledge_service = OfflineKnowledgeService(workspace)
         self.nexus_events = LiveConsoleEventStore(workspace)
         self.raw_terminal_feed = RawTerminalFeed()
         self._live_missions: dict[str, str] = {}
         self.device_center = DeviceCenter(workspace, self.activity_store)
+        self.device_center.knowledge_requested.connect(self._open_knowledge_query)
         self.stack.addWidget(self.device_center)
         history_store = DiagnosticHistoryStore(workspace, self.activity_store)
         self.diagnostics_center = DiagnosticsCenter(DiagnosticAnalyzer(), history_store)
@@ -3768,7 +3770,7 @@ class MainWindow(QMainWindow):
             host_repair_service,
             self.nexus_events,
             recovery_online_service,
-            OfflineKnowledgeService(workspace),
+            self.offline_knowledge_service,
         )
         self.repair_center.knowledge_requested.connect(self._open_knowledge_query)
         self.repair_center.knowledge_article_requested.connect(self._open_knowledge_article)
@@ -3848,7 +3850,7 @@ class MainWindow(QMainWindow):
             ArchivesResolutionMemory(RepairSessionStore(workspace)),
             SynapseStore(workspace),
             self.device_catalog,
-            OfflineKnowledgeService(workspace),
+            self.offline_knowledge_service,
         )
         self.knowledge_center.route_requested.connect(self._open_knowledge_route)
         self.rom_studio.offline_knowledge_updated.connect(
@@ -4286,8 +4288,8 @@ class MainWindow(QMainWindow):
             return
         # Keep the production crest prominent without starving navigation at
         # the supported minimum window height.
-        brand_height = max(180, min(250, int(self.height() * 0.27)))
-        crest_side = max(166, min(220, brand_height - 12))
+        brand_height = max(158, min(205, int(self.height() * 0.215)))
+        crest_side = max(142, min(178, brand_height - 12))
         self._brand_logo.setFixedSize(crest_side, crest_side)
         self._brand_card.setFixedHeight(brand_height)
 
@@ -4521,6 +4523,20 @@ class MainWindow(QMainWindow):
         self.diagnostics_center.set_devices(devices)
         self.guardian_center.request_refresh()
         self.repair_center.set_devices(devices)
+        if len(devices) == 1:
+            device = devices[0]
+            try:
+                knowledge_report = self.offline_knowledge_service.scan_after_device_snapshot(
+                    device,
+                    limit=5,
+                )
+            except (OSError, TypeError, ValueError) as exc:
+                self.device_center.set_knowledge_lookup(device.serial, None, str(exc))
+            else:
+                self.device_center.set_knowledge_lookup(device.serial, knowledge_report)
+                self.knowledge_center.refresh_offline_archive(knowledge_report)
+        else:
+            self.device_center.set_knowledge_lookup("", None)
         self.device_packs_center.set_devices(devices)
         self.rom_studio.set_devices(
             devices,

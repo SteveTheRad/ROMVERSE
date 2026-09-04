@@ -828,6 +828,16 @@ state cannot drift into a separate dashboard claim. Its primary action opens Gen
 stage not supported by persisted evidence. A saved Genesis error remains visible as attention and
 no absent fact is promoted past unconfirmed.
 
+Every explicitly selected device also triggers a dedicated integrity-checked offline Archives
+lookup from bounded identity, build, Android, boot-state and reported capability evidence. This
+lookup excludes the transport serial, firmware fingerprints and personal health/storage telemetry,
+performs no upload, and always returns execution authority `none`. Command Deck presents only the
+leading result and match/source counts in a compact strip; the complete source-attributed evidence
+stays in Archives. Unknown and archive-integrity failures remain visible rather than being widened
+into generic advice. At compact widths the Device Portal and Genesis cards, recent activity and
+storage panels stack vertically without horizontal overflow. The device illustration is deliberately
+brand-neutral unless an exact approved model asset is available.
+
 The lower Command Deck telemetry bay consumes only current read-only device evidence and bounded
 local metric history. It presents nullable battery, battery-sensor thermal, memory, storage and
 evidence-coverage gauges; Device DNA facts; boot trust, slot, encryption, transport and uptime
@@ -970,6 +980,12 @@ Companion applies the same truthfulness rule to an independent app-private, 100-
 history. Routine health refreshes are deduplicated, restart persistence is required, and the
 user can copy a privacy-safe report or explicitly clear this history. Sensitive device, APK,
 and Community Lab content is not included in activity titles.
+
+Desktop ROMVERSE Link uses a vertical scroll surface and grouped pairing controls so the one-time
+code, authenticated health, USB assist, explicit safety-code confirmation, approval and revocation
+remain readable at the supported minimum size. Disabled approval controls must not resemble active
+primary actions. The safety code and certificate identity stay selectable, and pairing still grants
+read-only telemetry only.
 
 ## 6. Quality attributes
 

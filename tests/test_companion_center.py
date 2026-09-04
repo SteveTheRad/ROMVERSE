@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QFrame
 
 from romverse.ascension.companion import AscensionCompanionStatus
 from romverse.companion.raw_terminal import RawTerminalFeed
@@ -33,6 +33,24 @@ class FakeUsbPairingService:
     def launch(self, _plan):
         self.launched = True
         return SimpleNamespace(ok=True, detail="confirmation opened")
+
+
+def test_companion_link_keeps_pairing_controls_readable_in_a_scroll_surface(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = CompanionCenter(workspace=tmp_path)
+    center.resize(760, 560)
+    center.show()
+    app.processEvents()
+
+    assert center.scroll.widgetResizable()
+    assert center.scroll.horizontalScrollBar().maximum() == 0
+    assert center.findChild(QFrame, "CompanionPairingCard") is not None
+    assert center.findChild(QFrame, "PairingApprovalBar") is not None
+    assert center.generate.height() >= 30
+    assert center.copy_button.height() >= 30
+    assert center.approve.height() >= 30
+    center.shutdown()
+    center.close()
 
 
 def test_companion_center_renders_authenticated_remote_health_snapshot() -> None:

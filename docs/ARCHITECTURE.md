@@ -92,8 +92,10 @@ scripts/                  Linux and Windows environment bootstrap
   backwards updates so large copies, hashes, scans, and downloads cannot starve the UI event loop.
 - Resolve connected intelligence through deterministic evidence, Synapse, verified cache, and the
   Compatibility Matrix before AI. Provider output stays guidance-only and passes through Guardian.
-- Query the strict local Knowledge Archives after every successful Device DNA capture and from typed
-  boot/flash failure producers. Rank exact error, finding, build, codename, model, and partition
+- Query the strict local Knowledge Archives after every explicitly selected read-only device
+  snapshot, every successful Device DNA capture, and typed boot/flash failure producers. The
+  connection query excludes transport serials, fingerprints and personal telemetry. Rank exact
+  error, finding, build, codename, model, and partition
   evidence ahead of broad family text; expose provenance, scope, corroboration, confidence,
   incompatibility, and missing evidence in every result. Community-reported successful outcomes are
   usable scoped evidence even when the count is one, but Archives never receives execution authority.

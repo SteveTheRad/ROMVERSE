@@ -7,7 +7,8 @@ from dataclasses import replace
 import pytest
 
 from romverse.device.dna import DeviceDnaService
-from romverse.knowledge.lookup import OfflineKnowledgeService
+from romverse.device.models import AndroidDevice, DeviceState
+from romverse.knowledge.lookup import OfflineKnowledgeService, query_from_device_snapshot
 from romverse.knowledge.models import (
     DeviceKnowledgeScope,
     KnowledgeArchive,
@@ -171,6 +172,53 @@ def test_packaged_archive_promotes_the_existing_broad_multi_oem_brain() -> None:
         "official.pixel6-vendor-ramdisk-platform-match",
         "official.pixel7plus-vendor-kernel-boot-layout",
     } <= record_ids
+
+
+def test_connected_device_snapshot_builds_a_private_execution_inert_query(tmp_path) -> None:
+    device = AndroidDevice(
+        "PRIVATE-S24-TRANSPORT-SERIAL",
+        DeviceState.DEVICE,
+        manufacturer="Samsung",
+        brand="samsung",
+        model="SM-S928B",
+        marketing_name="Galaxy S24 Ultra",
+        product="e3qxxx",
+        codename="e3q",
+        android_version="16",
+        api_level="36",
+        build_id="UP1A.TEST",
+        build_fingerprint="PRIVATE/BUILD/FINGERPRINT",
+        build_incremental="12345",
+        security_patch="2026-08-01",
+        abi="arm64-v8a",
+        bootloader_locked=True,
+        verified_boot="green",
+        ab_update=True,
+        virtual_ab=True,
+        dynamic_partitions=True,
+        soc_platform="kalama",
+    )
+
+    query = query_from_device_snapshot(device)
+    serialized = repr(query)
+    report = OfflineKnowledgeService(tmp_path / "workspace").scan_after_device_snapshot(
+        device,
+        limit=5,
+    )
+
+    assert query.models == ("SM-S928B", "Galaxy S24 Ultra")
+    assert query.codenames == ("e3q", "e3qxxx")
+    assert query.bootloader_states == ("locked",)
+    assert "Virtual A/B supported" in query.evidence_terms
+    assert device.serial not in serialized
+    assert device.build_fingerprint not in serialized
+    assert report.trigger == "device-connection"
+    assert report.execution_authority == "none"
+    assert report.matches
+    assert all(
+        "automatic" not in match.safety.casefold() or "no automatic" in match.safety.casefold()
+        for match in report.matches
+    )
 
 
 def test_init_boot_failure_uses_launch_architecture_not_current_android_alone(

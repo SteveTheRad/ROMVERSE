@@ -2027,6 +2027,13 @@ def test_fresh_scan_connects_exact_official_device_identity_to_every_desktop_con
         assert receipt is not None
         assert receipt.authority is IdentityAuthority.GOOGLE_PLAY_CATALOG
         assert window.device_catalog_worker is None
+        assert window.device_center._knowledge_report is not None
+        assert window.device_center._knowledge_report.trigger == "device-connection"
+        assert window.device_center._knowledge_report.execution_authority == "none"
+        assert any(
+            event.title == "Offline device evidence lookup completed"
+            for event in window.activity_store.list_recent(20)
+        )
 
         readiness = next(
             event for event in window.nexus_events.list_recent() if event.source == "Device Atlas"

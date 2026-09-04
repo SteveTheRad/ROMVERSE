@@ -391,6 +391,21 @@ development-signed Companion debug APK is 9,387,722 bytes with SHA-256
 `759a778967eaf22a0357b58b23e3dc3dfb5ea43c3f591cf0859390aefce88020`; it is test evidence,
 not a public release artifact. No phone action was performed during this checkpoint.
 
+The subsequent connected-intelligence and Desktop layout increment passes all 1,722 Desktop tests
+and complete Ruff check/format gates across 389 Python and release-script files. Every explicitly
+selected ADB or Fastboot snapshot now triggers a separate privacy-bounded offline Archives lookup;
+transport serials, firmware fingerprints and personal telemetry are excluded, nothing is uploaded,
+and the result always has execution authority `none`. Command Deck records the completed lookup in
+its redacted local Activity ledger and shows only the leading result plus bounded match/source counts
+in a compact Archives strip. Visual inspection at 1440×900 and the supported 1080×700 minimum
+confirms brand-neutral device art, vertical compact-width card stacking and zero horizontal body
+overflow. ROM Studio separates project identity from its workflow controls, Guardian supplies an
+honest pre-verification empty state, and Desktop ROMVERSE Link uses a dark scroll surface with
+grouped pairing controls and visibly disabled actions instead of compressing buttons into unreadable
+bars. The complete Companion Link, ROM Studio, Guardian and theme-focused regressions pass. This is
+UI, private retrieval and diagnostic guidance evidence only; it does not add flash authority or a
+production Guardian runtime, and no phone action was performed.
+
 ## Required gates
 
 1. Run the complete `pytest`, `ruff check .`, and `ruff format --check .` gates on supported Linux

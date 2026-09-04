@@ -21,8 +21,9 @@ from PySide6.QtWidgets import (
 )
 
 from romverse.device.models import AndroidDevice, DeviceState, MemoryInfo, StorageInfo
+from romverse.knowledge.lookup import OfflineKnowledgeService
 from romverse.rom.guided import GenesisFlightPlan, GuidedStageStatus
-from romverse.ui.device_center import DeviceCenter, RingGauge, RomStudioDeviceContext
+from romverse.ui.device_center import DeviceCenter, PhoneMockup, RingGauge, RomStudioDeviceContext
 from romverse.ui.main_window import (
     AboutPage,
     AboutRuntimeEvidence,
@@ -192,6 +193,74 @@ def test_command_deck_repair_card_reflects_exact_diagnostic_context(tmp_path) ->
     repair = center.quick_action_buttons["Repair Phone"]
     assert repair.text().splitlines()[1] == "DEVICE READY"
     assert not repair.property("diagnosticFinding")
+    center.close()
+
+
+def test_command_deck_shows_compact_automatic_offline_brain_match(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = DeviceCenter(tmp_path)
+    device = AndroidDevice(
+        "private-s24-serial",
+        DeviceState.DEVICE,
+        manufacturer="Samsung",
+        brand="samsung",
+        model="SM-S928B",
+        marketing_name="Galaxy S24 Ultra",
+        product="e3q",
+        codename="e3q",
+        android_version="16",
+        bootloader_locked=True,
+        verified_boot="green",
+        ab_update=True,
+        virtual_ab=True,
+        dynamic_partitions=True,
+    )
+    center.set_devices([device])
+    report = OfflineKnowledgeService(tmp_path).scan_after_device_snapshot(device, limit=5)
+    requested: list[str] = []
+    center.knowledge_requested.connect(requested.append)
+
+    center.set_knowledge_lookup(device.serial, report)
+    app.processEvents()
+
+    strip = center.findChild(QFrame, "KnowledgeBrainStrip")
+    assert strip is not None
+    labels = [label.text() for label in strip.findChildren(QLabel)]
+    assert "OFFLINE ARCHIVES BRAIN  •  AUTOMATIC PRIVATE MATCH" in labels
+    assert report.matches[0].record.title in labels
+    assert "NOTHING UPLOADED  •  AUTHORITY: NONE" in labels
+    assert not any(report.matches[1].record.summary in label for label in labels)
+    button = strip.findChild(QPushButton, "KnowledgeBrainAction")
+    assert button is not None
+    button.click()
+    assert requested == [report.matches[0].record.title]
+    center.close()
+
+
+def test_command_deck_stacks_without_horizontal_overflow_at_compact_width(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = DeviceCenter(tmp_path)
+    center.resize(780, 650)
+    device = AndroidDevice(
+        "private-serial",
+        DeviceState.DEVICE,
+        manufacturer="Samsung",
+        model="SM-S928B",
+        marketing_name="Galaxy S24 Ultra",
+        codename="e3q",
+        android_version="16",
+    )
+    center.set_devices([device])
+    report = OfflineKnowledgeService(tmp_path).scan_after_device_snapshot(device, limit=5)
+    center.set_knowledge_lookup(device.serial, report)
+    center.show()
+    app.processEvents()
+
+    assert center._compact_layout
+    assert center.body.horizontalScrollBar().maximum() == 0
+    illustration = center.findChild(PhoneMockup)
+    assert illustration is not None
+    assert illustration.accessibleName() == "Brand-neutral Android device illustration"
     center.close()
 
 

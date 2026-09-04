@@ -5,11 +5,10 @@ import os
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime
-from importlib.resources import as_file, files
 from pathlib import Path
 
 from PySide6.QtCore import QRectF, QSize, Qt, Signal
-from PySide6.QtGui import QBrush, QColor, QLinearGradient, QPainter, QPen, QPixmap
+from PySide6.QtGui import QBrush, QColor, QLinearGradient, QPainter, QPen
 from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
@@ -31,6 +30,7 @@ from romverse.core.privacy import WorkspacePrivacy
 from romverse.core.settings import ExperienceMode
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device.root_identity import review_root_identity
+from romverse.knowledge.models import KnowledgeLookupReport
 from romverse.rom.guided import GenesisFlightPlan, GuidedStageStatus
 from romverse.ui.cosmic_icons import quick_action_icon
 from romverse.ui.formatters import human_bytes
@@ -112,45 +112,55 @@ class RingGauge(QWidget):
 
 
 class PhoneMockup(QWidget):
-    """Crisp device illustration used when no model-specific product image is installed."""
+    """Brand-neutral live-device illustration for broad Android support."""
 
     def __init__(self) -> None:
         super().__init__()
         self.setFixedSize(146, 250)
-        resource = files("romverse.assets").joinpath("dashboard-phone.png")
-        with as_file(resource) as image_path:
-            self._image = QPixmap(str(image_path))
+        self.setAccessibleName("Brand-neutral Android device illustration")
 
     def paintEvent(self, _event) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        if not self._image.isNull():
-            scaled = self._image.scaled(
-                self.size(),
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation,
-            )
-            x = (self.width() - scaled.width()) // 2
-            y = (self.height() - scaled.height()) // 2
-            painter.drawPixmap(x, y, scaled)
-            return
-        body = QRectF(18, 4, 110, 240)
-        painter.setPen(QPen(QColor("#53607A"), 2))
-        painter.setBrush(QColor("#060912"))
+        body = QRectF(17, 3, 112, 242)
+        painter.setPen(QPen(QColor(40, 231, 245, 55), 7))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawRoundedRect(body.adjusted(-2, -2, 2, 2), 19, 19)
+        painter.setPen(QPen(QColor("#7183A5"), 2))
+        painter.setBrush(QColor("#050914"))
         painter.drawRoundedRect(body, 17, 17)
-        screen = QRectF(24, 10, 98, 228)
+        screen = QRectF(23, 9, 100, 230)
         gradient = QLinearGradient(screen.topLeft(), screen.bottomRight())
-        gradient.setColorAt(0.0, QColor("#080C1C"))
-        gradient.setColorAt(0.38, QColor("#5425A8"))
-        gradient.setColorAt(0.68, QColor("#2738A3"))
-        gradient.setColorAt(1.0, QColor("#070914"))
+        gradient.setColorAt(0.0, QColor("#071122"))
+        gradient.setColorAt(0.38, QColor("#26134A"))
+        gradient.setColorAt(0.7, QColor("#082E45"))
+        gradient.setColorAt(1.0, QColor("#050914"))
         painter.setBrush(gradient)
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawRoundedRect(screen, 14, 14)
-        painter.setPen(QPen(QColor(183, 98, 255, 130), 5))
-        painter.drawArc(QRectF(31, 52, 94, 142), 35 * 16, 205 * 16)
-        painter.setPen(QPen(QColor(40, 231, 245, 110), 3))
-        painter.drawArc(QRectF(19, 79, 95, 126), 210 * 16, 155 * 16)
+
+        painter.setPen(QPen(QColor(183, 98, 255, 175), 4, Qt.PenStyle.SolidLine))
+        painter.drawArc(QRectF(34, 54, 86, 136), 35 * 16, 215 * 16)
+        painter.setPen(QPen(QColor(40, 231, 245, 160), 3, Qt.PenStyle.SolidLine))
+        painter.drawArc(QRectF(24, 76, 92, 126), 214 * 16, 160 * 16)
+        painter.setPen(QPen(QColor(79, 124, 255, 135), 2, Qt.PenStyle.DotLine))
+        painter.drawEllipse(QRectF(36, 67, 75, 123))
+
+        for x, y, color in (
+            (51, 94, "#B45CFF"),
+            (94, 107, "#28E7F5"),
+            (58, 151, "#4F7CFF"),
+            (99, 169, "#44E39A"),
+        ):
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QColor(color))
+            painter.drawEllipse(QRectF(x, y, 6, 6))
+
+        painter.setPen(QPen(QColor("#C9F7FF"), 2))
+        painter.setBrush(QColor(8, 18, 36, 180))
+        painter.drawRoundedRect(QRectF(55, 111, 36, 42), 12, 12)
+        painter.drawLine(64, 129, 82, 129)
+        painter.drawLine(64, 136, 82, 136)
         painter.setBrush(QColor("#0B0D17"))
         painter.setPen(QPen(QColor("#3A4155"), 1))
         painter.drawEllipse(QRectF(65, 14, 16, 16))
@@ -224,6 +234,7 @@ class DeviceCenter(QWidget):
     action_requested = Signal(str)
     runtime_tools_requested = Signal()
     rom_studio_requested = Signal(str, str, str)
+    knowledge_requested = Signal(str)
     GUARDIAN_CARD_STATES = {
         "unverified": "VERIFY REQUIRED",
         "review_due": "REVERIFY REQUIRED",
@@ -254,6 +265,10 @@ class DeviceCenter(QWidget):
         self._guardian_detail = "Guardian's current audit and approval evidence has not yet been verified in this session."
         self._guardian_verified = False
         self._studio_device_context: RomStudioDeviceContext | None = None
+        self._knowledge_device_serial = ""
+        self._knowledge_report: KnowledgeLookupReport | None = None
+        self._knowledge_error = ""
+        self._compact_layout = False
         self.quick_action_buttons: dict[str, QToolButton] = {}
         self.metrics_history_path = (
             workspace / "logs" / "device-metrics-history.json" if workspace is not None else None
@@ -713,6 +728,7 @@ class DeviceCenter(QWidget):
             self.storage_chart.set_values(self.storage_history)
             self.render_device(device)
         elif devices:
+            self._clear_knowledge_lookup()
             self.next_title.setText("Choose the device you want to use")
             self.next_note.setText(
                 "More than one Android transport is connected. Select one above before ROMVERSE binds diagnostics, firmware, backup, or terminal actions."
@@ -730,6 +746,7 @@ class DeviceCenter(QWidget):
                 "Choose one connected device above. ROMVERSE has not bound any device-changing workflow to a phone."
             )
         else:
+            self._clear_knowledge_lookup()
             self.next_title.setText("Connect your Android device")
             self.next_note.setText(
                 "Use a data-capable USB cable, enable USB debugging, then let Device Engine scan safely."
@@ -747,6 +764,32 @@ class DeviceCenter(QWidget):
                 "No Android transport is visible. ROMVERSE checks verified ADB and Fastboot runtimes without rebooting or changing a phone."
             )
         self._render_studio_handoff()
+
+    def set_knowledge_lookup(
+        self,
+        device_serial: str,
+        report: KnowledgeLookupReport | None,
+        error: str = "",
+    ) -> None:
+        """Present a local-only archive match for the explicitly selected device."""
+
+        selected = (
+            self.devices[self._selected_index]
+            if 0 <= self._selected_index < len(self.devices)
+            else None
+        )
+        if selected is None or selected.serial != device_serial:
+            return
+        self._knowledge_device_serial = device_serial
+        self._knowledge_report = report
+        self._knowledge_error = " ".join(error.replace("\x00", " ").split())[:500]
+        self._record_knowledge_lookup(selected)
+        self.render_device(selected)
+
+    def _clear_knowledge_lookup(self) -> None:
+        self._knowledge_device_serial = ""
+        self._knowledge_report = None
+        self._knowledge_error = ""
 
     def open_rom_studio_context(self, context: RomStudioDeviceContext) -> bool:
         """Show one exact project-to-device prerequisite without starting a scan."""
@@ -1647,6 +1690,7 @@ class DeviceCenter(QWidget):
 
     def render_device(self, device: AndroidDevice) -> None:
         self._clear_body()
+        self._compact_layout = self.width() < 980
         root_review = review_root_identity(
             device.root_detected,
             device.root_manager_candidate,
@@ -1674,7 +1718,7 @@ class DeviceCenter(QWidget):
             self.show_empty(device.connection_note)
             return
 
-        top = QHBoxLayout()
+        top = QVBoxLayout() if self._compact_layout else QHBoxLayout()
         top.setSpacing(12)
         overview = QFrame()
         overview.setObjectName("DashboardCard")
@@ -1723,17 +1767,19 @@ class DeviceCenter(QWidget):
             facts.addLayout(row)
         overview_body.addLayout(facts, 1)
         overview_layout.addLayout(overview_body)
-        top.addWidget(overview, 5)
+        top.addWidget(overview, 0 if self._compact_layout else 5)
 
         storage = device.storage.percent_used
-        top.addWidget(self._build_flight_plan_card(), 7)
+        top.addWidget(self._build_flight_plan_card(), 0 if self._compact_layout else 7)
         top_host = QWidget()
         top_host.setLayout(top)
         self.body_layout.addWidget(top_host)
 
+        self._add_knowledge_brain_card(device)
+
         self._add_command_cards(connected=True)
 
-        lower = QHBoxLayout()
+        lower = QVBoxLayout() if self._compact_layout else QHBoxLayout()
         lower.setSpacing(12)
         activity = QFrame()
         activity.setObjectName("DashboardCard")
@@ -1780,7 +1826,7 @@ class DeviceCenter(QWidget):
             lambda _checked=False: self.action_requested.emit("View Activity Center")
         )
         activity_layout.addWidget(full_log)
-        lower.addWidget(activity, 1)
+        lower.addWidget(activity, 0 if self._compact_layout else 1)
 
         storage_card = QFrame()
         storage_card.setObjectName("DashboardCard")
@@ -1820,7 +1866,7 @@ class DeviceCenter(QWidget):
         manage.setAccessibleName("Manage Storage in Quantum Optimizer")
         manage.clicked.connect(lambda _checked=False: self.action_requested.emit("Optimize"))
         storage_layout.addWidget(manage)
-        lower.addWidget(storage_card, 1)
+        lower.addWidget(storage_card, 0 if self._compact_layout else 1)
         lower_host = QWidget()
         lower_host.setLayout(lower)
         self.body_layout.addWidget(lower_host)
@@ -1848,6 +1894,8 @@ class DeviceCenter(QWidget):
         )
         identity.add_value("Evidence", device.fastboot_capability or "Fastboot observed")
         self.body_layout.addWidget(identity)
+
+        self._add_knowledge_brain_card(device)
 
         handoff = QFrame()
         handoff.setObjectName("DiagnosticHandoffBar")
@@ -1878,6 +1926,138 @@ class DeviceCenter(QWidget):
             warning.add_value("Unsupported or unavailable variables", "\n".join(device.errors))
             self.body_layout.addWidget(warning)
         self.body_layout.addStretch()
+
+    def _add_knowledge_brain_card(self, device: AndroidDevice) -> None:
+        card = QFrame()
+        card.setObjectName("KnowledgeBrainStrip")
+        card.setAccessibleName("Offline Archives automatic device evidence match")
+        layout = QVBoxLayout(card) if self._compact_layout else QHBoxLayout(card)
+        layout.setContentsMargins(18, 13, 18, 13)
+        layout.setSpacing(14)
+        pulse = QLabel("✦")
+        pulse.setObjectName("KnowledgeBrainGlyph")
+        pulse.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        pulse.setFixedSize(38, 38)
+        compact_identity = QHBoxLayout() if self._compact_layout else None
+        if compact_identity is not None:
+            compact_identity.addWidget(pulse, 0, Qt.AlignmentFlag.AlignTop)
+        else:
+            layout.addWidget(pulse)
+
+        copy = QVBoxLayout()
+        copy.setSpacing(3)
+        eyebrow = QLabel("OFFLINE ARCHIVES BRAIN  •  AUTOMATIC PRIVATE MATCH")
+        eyebrow.setObjectName("KnowledgeBrainEyebrow")
+        copy.addWidget(eyebrow)
+        current = self._knowledge_device_serial == device.serial
+        report = self._knowledge_report if current else None
+        if self._knowledge_error and current:
+            title_text = "Local knowledge needs attention"
+            detail_text = (
+                f"Integrity check stopped the lookup: {self._knowledge_error}. "
+                "ROMVERSE did not guess or start an action."
+            )
+            state_text = "NEEDS ATTENTION"
+            state_style = "Warning"
+        elif report is None:
+            title_text = "Matching current read-only device evidence…"
+            detail_text = (
+                "Serial, firmware fingerprint and personal telemetry are excluded from the query."
+            )
+            state_text = "LOCAL LOOKUP"
+            state_style = "Warning"
+        elif report.matches:
+            primary = report.matches[0]
+            title_text = primary.record.title
+            source_count = len(
+                {source.source_id for match in report.matches for source in match.provenance}
+            )
+            detail_text = (
+                f"Leading result: {primary.confidence.value.upper()} match  •  "
+                f"{len(report.matches)} compatible records  •  {source_count} attributed "
+                f"source{'s' if source_count != 1 else ''}  •  guidance only"
+            )
+            state_text = f"{len(report.matches)} MATCH{'ES' if len(report.matches) != 1 else ''}"
+            state_style = "Good"
+        else:
+            title_text = "No compatible local record yet"
+            detail_text = (
+                "Unknown remains explicit; ROMVERSE will collect more exact evidence before "
+                "suggesting a route."
+            )
+            state_text = "NO MATCH"
+            state_style = "Warning"
+
+        title = QLabel(title_text)
+        title.setObjectName("KnowledgeBrainTitle")
+        title.setWordWrap(True)
+        detail = QLabel(detail_text)
+        detail.setObjectName("KnowledgeBrainDetail")
+        detail.setWordWrap(True)
+        copy.addWidget(title)
+        copy.addWidget(detail)
+        if compact_identity is not None:
+            compact_identity.addLayout(copy, 1)
+            layout.addLayout(compact_identity)
+        else:
+            layout.addLayout(copy, 1)
+
+        actions = QVBoxLayout()
+        actions.setSpacing(7)
+        status = QLabel(state_text)
+        status.setObjectName(state_style)
+        status.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        actions.addWidget(status)
+        if report is not None and report.matches:
+            open_matches = QPushButton("Review matching evidence in Archives")
+            open_matches.setObjectName("KnowledgeBrainAction")
+            open_matches.setToolTip(
+                "Open the leading integrity-checked local record. This starts no command, "
+                "download, repair, build, flash, wipe, unlock, or upload."
+            )
+            query = report.matches[0].record.title[:160]
+            open_matches.clicked.connect(
+                lambda _checked=False, value=query: self.knowledge_requested.emit(value)
+            )
+            actions.addWidget(open_matches)
+        boundary = QLabel("NOTHING UPLOADED  •  AUTHORITY: NONE")
+        boundary.setObjectName("KnowledgeBrainBoundary")
+        boundary.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        actions.addWidget(boundary)
+        layout.addLayout(actions)
+        self.body_layout.addWidget(card)
+
+    def resizeEvent(self, event) -> None:  # noqa: N802
+        compact = event.size().width() < 980
+        changed = compact != self._compact_layout
+        self._compact_layout = compact
+        super().resizeEvent(event)
+        if changed and 0 <= self._selected_index < len(self.devices):
+            self.render_device(self.devices[self._selected_index])
+
+    def _record_knowledge_lookup(self, device: AndroidDevice) -> None:
+        if self.activity_store is None or self.workspace is None or self._knowledge_report is None:
+            return
+        report = self._knowledge_report
+        count = len(report.matches)
+        detail = (
+            f"{device.display_name} • {count} compatible local evidence "
+            f"match{'es' if count != 1 else ''} • guidance only • nothing uploaded"
+        )
+        device_key = WorkspacePrivacy(self.workspace).pseudonym(device.serial)
+        with suppress(ActivityStoreError):
+            self.activity_store.record(
+                "knowledge",
+                "Offline device evidence lookup completed",
+                detail,
+                outcome="success",
+                source="ROMVERSE Archives",
+                dedupe_key=(
+                    f"device-knowledge:{device_key}:{report.query_digest[:20]}:"
+                    f"{report.archive_digest[:20]}"
+                ),
+                dedupe_seconds=900,
+            )
 
     @staticmethod
     def _dashboard_heading(text: str) -> QLabel:

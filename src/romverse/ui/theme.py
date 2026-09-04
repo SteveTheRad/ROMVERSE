@@ -146,6 +146,45 @@ QFrame#Card[diagnosticFocus="true"] {
     border: 2px solid #42DDEA; border-left: 4px solid #B45CFF;
 }
 QFrame#DashboardCard { background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(4, 8, 14, 252),stop:1 rgba(7, 12, 20, 252)); border: 1px solid #24334D; border-radius: 12px; }
+QFrame#KnowledgeBrainStrip {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 rgba(20,11,42,246),stop:0.52 rgba(7,20,39,244),stop:1 rgba(4,32,38,240));
+    border: 1px solid rgba(82, 117, 187, 180); border-left: 3px solid #B45CFF; border-radius: 11px;
+}
+QLabel#KnowledgeBrainGlyph {
+    color: #D69BFF; background: rgba(64, 28, 105, 205); border: 1px solid rgba(184, 92, 255, 175);
+    border-radius: 19px; font-size: 18px; font-weight: 900;
+}
+QLabel#KnowledgeBrainEyebrow { color: #52DDEB; font-size: 9px; font-weight: 850; letter-spacing: 1.25px; }
+QLabel#KnowledgeBrainTitle { color: #F2F6FF; font-size: 14px; font-weight: 780; }
+QLabel#KnowledgeBrainDetail { color: #99AACA; font-size: 11px; }
+QLabel#KnowledgeBrainBoundary { color: #89A0C4; font-size: 8px; font-weight: 800; letter-spacing: 0.55px; }
+QPushButton#KnowledgeBrainAction {
+    color: #EDE5FF; background: rgba(41, 25, 72, 220); border: 1px solid rgba(173, 93, 244, 175);
+    border-radius: 8px; padding: 7px 11px; font-size: 10px; font-weight: 780;
+}
+QPushButton#KnowledgeBrainAction:hover { color: #FFFFFF; border-color: #55E8F5; background: rgba(20, 55, 76, 235); }
+QScrollArea#CompanionScroll, QScrollArea#CompanionScroll::viewport { background: transparent; border: 0; }
+QLabel#LinkIdentityStatus {
+    color: #C8D7ED; background: rgba(5, 13, 27, 235); border: 1px solid rgba(59, 94, 148, 175);
+    border-left: 3px solid #42DDEA; border-radius: 10px; padding: 12px 15px; font-size: 11px;
+}
+QFrame#CompanionPairingCard {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(8,13,27,248),stop:0.6 rgba(8,14,28,246),stop:1 rgba(18,10,35,242));
+    border: 1px solid rgba(64, 94, 145, 185); border-top: 2px solid rgba(180, 92, 255, 175); border-radius: 14px;
+}
+QLabel#LinkPairingCode {
+    color: #D8B5FF; background: rgba(25, 13, 48, 185); border: 1px solid rgba(164, 82, 231, 145);
+    border-radius: 11px; padding: 10px; font-size: 34px; font-weight: 850; letter-spacing: 7px;
+}
+QLabel#CompanionHealthCard {
+    color: #DDE9FF; background: rgba(3, 15, 27, 228); border: 1px solid rgba(40, 231, 245, 115);
+    border-radius: 10px; padding: 13px;
+}
+QFrame#PairingApprovalBar {
+    background: rgba(9, 18, 35, 220); border: 1px solid rgba(61, 92, 145, 165); border-radius: 9px;
+}
+QFrame#PairingApprovalBar QCheckBox { color: #B8C7E0; font-size: 12px; }
+QFrame#PairingApprovalBar QCheckBox:disabled { color: #677691; }
 QFrame#GenesisFlightPlan {
     background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(18,11,39,248),stop:0.52 rgba(7,16,34,246),stop:1 rgba(5,25,35,244));
     border: 1px solid rgba(106, 116, 255, 190);
@@ -192,6 +231,16 @@ QPushButton#ArchitectModeButton:checked {
 }
 QPushButton#Primary { background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #6236CA,stop:1 #2567B9); border-color: #8B72FF; }
 QPushButton#Primary:hover { background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #7847E0,stop:1 #2D79CF); border-color: #A88BFF; }
+QPushButton#Primary:disabled {
+    color: #687795; background: #0A1020; border-color: #263553;
+}
+QCheckBox { color: #C6D3E8; spacing: 8px; }
+QCheckBox::indicator {
+    width: 16px; height: 16px; background: #07101E; border: 1px solid #466083; border-radius: 4px;
+}
+QCheckBox::indicator:hover { border-color: #55E8F5; }
+QCheckBox::indicator:checked { background: #6540C9; border: 2px solid #B493FF; }
+QCheckBox::indicator:disabled { background: #080D17; border-color: #283650; }
 QPushButton#Nav { text-align: left; border: 0; border-radius: 8px; background: transparent; color: #AEB8CD; padding: 8px 12px; min-height: 30px; font-weight: 600; }
 QPushButton#Nav:hover { background: rgba(20, 31, 55, 185); color: #F4F7FF; border: 1px solid rgba(77, 142, 210, 90); }
 QPushButton#Nav[active="true"] { background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 rgba(103,35,151,210),stop:0.55 rgba(46,22,87,190),stop:1 rgba(18,53,76,175)); color: #FFFFFF; border: 1px solid rgba(183,92,255,145); border-left: 3px solid #B45CFF; padding-left: 9px; }
@@ -218,6 +267,10 @@ QFrame#StudioCommandGroup {
     border-top: 1px solid rgba(89, 231, 248, 180);
     border-radius: 13px;
 }
+QFrame#StudioWorkflowBar {
+    background: rgba(6, 12, 24, 232); border: 1px solid rgba(52, 78, 122, 165); border-radius: 10px;
+}
+QLabel#StudioWorkflowLabel { color: #7386A8; font-size: 9px; font-weight: 850; letter-spacing: 1.15px; }
 QTabWidget#StudioCommandTabs::pane {
     background: rgba(4, 9, 18, 205);
     border: 1px solid rgba(82, 134, 204, 175);

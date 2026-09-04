@@ -5,13 +5,15 @@ import os
 from contextlib import suppress
 from datetime import datetime
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QEasingCurve, QPropertyAnimation, Qt, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QFrame,
+    QGraphicsOpacityEffect,
     QGridLayout,
     QHBoxLayout,
     QLabel,
+    QLayout,
     QMessageBox,
     QProgressBar,
     QPushButton,
@@ -21,12 +23,15 @@ from PySide6.QtWidgets import (
 )
 
 from romverse.core.activity import ActivityStoreError
+from romverse.core.settings import ExperienceMode
 from romverse.device.models import AndroidDevice
 from romverse.diagnostics.analyzer import DiagnosticAnalyzer
 from romverse.diagnostics.history import DiagnosticHistoryError, DiagnosticHistoryStore
 from romverse.diagnostics.models import DiagnosticReport, Finding, Severity
 from romverse.diagnostics.optimizer import OptimizerSafetyError, RomverseCacheOptimizer
 from romverse.knowledge.advisor import recommend_for_findings
+from romverse.knowledge.lookup import OfflineKnowledgeService
+from romverse.knowledge.models import KnowledgeLookupReport
 from romverse.repair.templates import actionable_repair_finding
 from romverse.ui.mini_chart import MiniChart
 from romverse.ui.process_progress import ProcessProgressBar
@@ -98,17 +103,31 @@ class DiagnosticsCenter(QWidget):
         analyzer: DiagnosticAnalyzer,
         history: DiagnosticHistoryStore,
         cache_optimizer: RomverseCacheOptimizer | None = None,
+        knowledge_service: OfflineKnowledgeService | None = None,
     ) -> None:
         super().__init__()
         self.analyzer = analyzer
         self.history = history
         self.cache_optimizer = cache_optimizer or RomverseCacheOptimizer(history.workspace)
+        self.knowledge_service = knowledge_service or OfflineKnowledgeService(history.workspace)
         self.score_history_path = self.history.root / "_health-score-history.json"
         self.devices: list[AndroidDevice] = []
         self.current_device: AndroidDevice | None = None
         self.current_report: DiagnosticReport | None = None
         self.finding_cards: dict[str, FindingCard] = {}
         self.action_plan_card: QFrame | None = None
+        self.offline_report: KnowledgeLookupReport | None = None
+        self._experience_mode = ExperienceMode.GUIDED
+        self._reduced_motion = False
+        self._pending_verification_finding = ""
+        self._pending_verification_serial = ""
+        self._pending_verification_score: int | None = None
+        self._pending_verification_ids: frozenset[str] = frozenset()
+        self._last_verification_state = ""
+        self._details_user_open = False
+        self.details_toggle: QPushButton | None = None
+        self.details_container: QFrame | None = None
+        self._cockpit_animation: QPropertyAnimation | None = None
 
         page = QVBoxLayout(self)
         page.setContentsMargins(30, 26, 30, 30)
@@ -120,7 +139,7 @@ class DiagnosticsCenter(QWidget):
         title = QLabel("Quantum Optimizer")
         title.setObjectName("Title")
         subtitle = QLabel(
-            "Live health graphs, evidence-backed recommendations, and Guardian-safe optimization guidance."
+            "One connected path from device evidence to diagnosis, local knowledge, guided action, and verified outcome."
         )
         subtitle.setObjectName("Muted")
         subtitle.setWordWrap(True)
@@ -130,6 +149,11 @@ class DiagnosticsCenter(QWidget):
         header.addLayout(text, 1)
         page.addLayout(header)
         actions = QHBoxLayout()
+        self.selector = QComboBox()
+        self.selector.setMinimumWidth(220)
+        self.selector.setVisible(False)
+        self.selector.currentIndexChanged.connect(self._select)
+        actions.addWidget(self.selector)
         actions.addStretch(1)
         self.scan_status_row = QFrame()
         self.scan_status_row.setObjectName("ProcessStatusRow")
@@ -148,33 +172,100 @@ class DiagnosticsCenter(QWidget):
         scan_status_layout.addWidget(self.scan_progress)
         self.scan_status_row.setVisible(False)
         actions.addWidget(self.scan_status_row)
-        self.selector = QComboBox()
-        self.selector.setMinimumWidth(220)
-        self.selector.setVisible(False)
-        self.selector.currentIndexChanged.connect(self._select)
-        actions.addWidget(self.selector)
-        self.refresh = QPushButton("Refresh health data")
+        self.tools_toggle = QPushButton("Specialist tools")
+        self.tools_toggle.setCheckable(True)
+        self.tools_toggle.setToolTip(
+            "Reveal report export and bounded ROMVERSE cache tools. These do not change the phone."
+        )
+        self.tools_toggle.toggled.connect(self._set_tools_visible)
+        actions.addWidget(self.tools_toggle)
+        self.refresh = QPushButton("Scan device health")
+        self.refresh.setObjectName("Primary")
         self.refresh.clicked.connect(self.refresh_requested)
         actions.addWidget(self.refresh)
+        page.addLayout(actions)
+
+        self.utility_panel = QFrame()
+        self.utility_panel.setObjectName("CockpitUtilityBar")
+        utility_layout = QHBoxLayout(self.utility_panel)
+        utility_layout.setContentsMargins(12, 8, 12, 8)
+        utility_layout.addStretch(1)
         self.optimize = QPushButton("Analyze && recommend")
         self.optimize.setToolTip(
             "Re-run read-only evidence checks and recommendations. No device changes are made."
         )
         self.optimize.clicked.connect(self._safe_optimization_review)
-        actions.addWidget(self.optimize)
+        utility_layout.addWidget(self.optimize)
         self.clean_cache = QPushButton("Preview safe cleanup")
         self.clean_cache.setToolTip(
             "Preview stale ROMVERSE cache/temp files older than 24 hours. Projects, firmware, "
             "backups, tools, personal files, and the phone are always excluded."
         )
         self.clean_cache.clicked.connect(self._clean_romverse_cache)
-        actions.addWidget(self.clean_cache)
+        utility_layout.addWidget(self.clean_cache)
         self.save_button = QPushButton("Save report")
-        self.save_button.setObjectName("Primary")
         self.save_button.setEnabled(False)
         self.save_button.clicked.connect(self._save)
-        actions.addWidget(self.save_button)
-        page.addLayout(actions)
+        utility_layout.addWidget(self.save_button)
+        self.utility_panel.setVisible(False)
+        page.addWidget(self.utility_panel)
+
+        self.flight_path = QFrame()
+        self.flight_path.setObjectName("RecoveryFlightPath")
+        flight_layout = QHBoxLayout(self.flight_path)
+        flight_layout.setContentsMargins(14, 10, 14, 10)
+        flight_layout.setSpacing(8)
+        self.flight_stages: list[QFrame] = []
+        self.flight_stage_values: list[QLabel] = []
+        for number, label in enumerate(
+            ("DEVICE EVIDENCE", "DIAGNOSIS", "ARCHIVES MATCH", "GUIDED ACTION", "VERIFY OUTCOME"),
+            1,
+        ):
+            stage = QFrame()
+            stage.setObjectName("RecoveryStage")
+            stage.setProperty("state", "pending")
+            stage_layout = QVBoxLayout(stage)
+            stage_layout.setContentsMargins(11, 7, 11, 7)
+            stage_layout.setSpacing(2)
+            step = QLabel(f"{number:02d}")
+            step.setObjectName("RecoveryStageNumber")
+            value = QLabel(label)
+            value.setObjectName("RecoveryStageValue")
+            value.setWordWrap(True)
+            stage_layout.addWidget(step)
+            stage_layout.addWidget(value)
+            flight_layout.addWidget(stage, 1)
+            self.flight_stages.append(stage)
+            self.flight_stage_values.append(value)
+        page.addWidget(self.flight_path)
+
+        self.body = QScrollArea()
+        self.body.setWidgetResizable(True)
+        self.body_content = QWidget()
+        self.body_content.setObjectName("ScrollContent")
+        self.cockpit_layout = QVBoxLayout(self.body_content)
+        self.cockpit_layout.setContentsMargins(0, 0, 6, 0)
+        self.cockpit_layout.setSpacing(12)
+        self.cockpit_layout.setSizeConstraint(QLayout.SizeConstraint.SetMinAndMaxSize)
+        self.body.setWidget(self.body_content)
+        page.addWidget(self.body, 1)
+
+        self.verification_banner = QFrame()
+        self.verification_banner.setObjectName("RecoveryVerification")
+        self.verification_banner.setProperty("state", "pending")
+        verification_layout = QHBoxLayout(self.verification_banner)
+        verification_layout.setContentsMargins(16, 10, 16, 10)
+        self.verification_title = QLabel()
+        self.verification_title.setObjectName("SectionTitle")
+        self.verification_detail = QLabel()
+        self.verification_detail.setObjectName("Muted")
+        self.verification_detail.setWordWrap(True)
+        verification_copy = QVBoxLayout()
+        verification_copy.addWidget(self.verification_title)
+        verification_copy.addWidget(self.verification_detail)
+        verification_layout.addLayout(verification_copy, 1)
+        self.verification_banner.setVisible(False)
+        self.cockpit_layout.addWidget(self.verification_banner)
 
         self.dashboard_handoff = QFrame()
         self.dashboard_handoff.setObjectName("DiagnosticHandoffBar")
@@ -199,10 +290,10 @@ class DiagnosticsCenter(QWidget):
         self.dashboard_handoff_badge = QLabel()
         dashboard_handoff_layout.addWidget(self.dashboard_handoff_badge)
         self.dashboard_handoff.setVisible(False)
-        page.addWidget(self.dashboard_handoff)
+        self.cockpit_layout.addWidget(self.dashboard_handoff)
 
         self.overview = QFrame()
-        self.overview.setObjectName("HeroCard")
+        self.overview.setObjectName("RecoveryCockpit")
         overview_layout = QHBoxLayout(self.overview)
         overview_layout.setContentsMargins(24, 20, 24, 20)
         summary = QVBoxLayout()
@@ -223,11 +314,19 @@ class DiagnosticsCenter(QWidget):
         score_box.addWidget(self.score)
         score_box.addWidget(score_label)
         overview_layout.addLayout(score_box)
-        page.addWidget(self.overview)
+        self.cockpit_layout.addWidget(self.overview)
 
-        resource_card = QFrame()
-        resource_card.setObjectName("Card")
-        resources = QGridLayout(resource_card)
+        self.dynamic_content = QWidget()
+        self.dynamic_content.setObjectName("ScrollContent")
+        self.body_layout = QVBoxLayout(self.dynamic_content)
+        self.body_layout.setContentsMargins(0, 0, 0, 0)
+        self.body_layout.setSpacing(12)
+        self.body_layout.setSizeConstraint(QLayout.SizeConstraint.SetMinAndMaxSize)
+        self.cockpit_layout.addWidget(self.dynamic_content)
+
+        self.resource_card = QFrame()
+        self.resource_card.setObjectName("Card")
+        resources = QGridLayout(self.resource_card)
         resources.setContentsMargins(20, 16, 20, 16)
         resources.setHorizontalSpacing(18)
         resource_title = QLabel("LIVE RESOURCE GRAPH")
@@ -236,26 +335,18 @@ class DiagnosticsCenter(QWidget):
         self.battery_graph = self._resource_graph("Battery", resources, 1, 0)
         self.storage_graph = self._resource_graph("Storage used", resources, 1, 1)
         self.health_graph = self._resource_graph("Health score", resources, 1, 2)
-        page.addWidget(resource_card)
+        self.cockpit_layout.addWidget(self.resource_card)
 
         self.score_history: list[float] = self._load_score_history()
-        page.addWidget(QLabel("Health score trend (recent analyses)"))
+        self.score_history_label = QLabel("Health score trend (recent analyses)")
+        self.cockpit_layout.addWidget(self.score_history_label)
         self.score_chart = MiniChart("#7dffb2")
         self.score_chart.set_values(self.score_history)
-        page.addWidget(self.score_chart)
+        self.cockpit_layout.addWidget(self.score_chart)
         self.last_analysis_label = QLabel("Last analysis: not yet completed")
         self.last_analysis_label.setObjectName("Muted")
-        page.addWidget(self.last_analysis_label)
-
-        self.body = QScrollArea()
-        self.body.setWidgetResizable(True)
-        self.body_content = QWidget()
-        self.body_content.setObjectName("ScrollContent")
-        self.body_layout = QVBoxLayout(self.body_content)
-        self.body_layout.setContentsMargins(0, 0, 6, 0)
-        self.body_layout.setSpacing(12)
-        self.body.setWidget(self.body_content)
-        page.addWidget(self.body, 1)
+        self.cockpit_layout.addWidget(self.last_analysis_label)
+        self.cockpit_layout.addStretch()
 
         footer = QHBoxLayout()
         self.history_label = QLabel()
@@ -268,12 +359,146 @@ class DiagnosticsCenter(QWidget):
         page.addLayout(footer)
         self._update_history_label()
         self._empty("Diagnostics will appear after the next Device Engine scan.")
+        self._set_flight_states(("active", "pending", "pending", "pending", "pending"))
+
+    def set_experience_mode(self, mode: ExperienceMode) -> None:
+        """Adjust information density without changing diagnostic or repair policy."""
+
+        try:
+            self._experience_mode = ExperienceMode(mode)
+        except (TypeError, ValueError):
+            self._experience_mode = ExperienceMode.GUIDED
+        expert = self._experience_mode is ExperienceMode.EXPERT
+        self.tools_toggle.setText("Hide specialist tools" if expert else "Specialist tools")
+        self.tools_toggle.blockSignals(True)
+        self.tools_toggle.setChecked(expert)
+        self.tools_toggle.blockSignals(False)
+        self.utility_panel.setVisible(expert)
+        self._update_details_visibility()
+
+    def set_reduced_motion(self, enabled: bool) -> None:
+        self._reduced_motion = bool(enabled)
+
+    def _set_tools_visible(self, visible: bool) -> None:
+        self.utility_panel.setVisible(bool(visible))
+        self.tools_toggle.setText("Hide specialist tools" if visible else "Specialist tools")
+
+    def _toggle_details(self, visible: bool) -> None:
+        self._details_user_open = bool(visible)
+        self._update_details_visibility()
+
+    def _update_details_visibility(self) -> None:
+        if self.details_container is None or self.details_toggle is None:
+            return
+        visible = self._experience_mode is ExperienceMode.EXPERT or self._details_user_open
+        self.details_container.setVisible(visible)
+        self.details_toggle.blockSignals(True)
+        self.details_toggle.setChecked(visible)
+        self.details_toggle.setText(
+            "Hide supporting evidence" if visible else "Show supporting evidence"
+        )
+        self.details_toggle.blockSignals(False)
+
+    @staticmethod
+    def _repolish(widget: QWidget) -> None:
+        widget.style().unpolish(widget)
+        widget.style().polish(widget)
+
+    def _set_flight_states(self, states: tuple[str, str, str, str, str]) -> None:
+        for stage, state in zip(self.flight_stages, states, strict=True):
+            stage.setProperty("state", state)
+            self._repolish(stage)
+
+    def _animate_cockpit(self) -> None:
+        if self._reduced_motion or not self.isVisible():
+            return
+        effect = self.overview.graphicsEffect()
+        if not isinstance(effect, QGraphicsOpacityEffect):
+            effect = QGraphicsOpacityEffect(self.overview)
+            self.overview.setGraphicsEffect(effect)
+        animation = QPropertyAnimation(effect, b"opacity", self)
+        animation.setDuration(170)
+        animation.setStartValue(0.78)
+        animation.setEndValue(1.0)
+        animation.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._cockpit_animation = animation
+        animation.start()
+
+    def mark_repair_handoff(self, finding_id: str) -> None:
+        """Remember the pre-action evidence so the next scan can compare outcomes."""
+
+        report = self.current_report
+        normalized = finding_id.strip()[:120]
+        if report is None or not normalized:
+            return
+        self._pending_verification_finding = normalized
+        self._pending_verification_serial = (
+            self.current_device.serial if self.current_device is not None else ""
+        )
+        self._pending_verification_score = report.health_score
+        self._pending_verification_ids = frozenset(
+            finding.finding_id for finding in report.findings
+        )
+        self._last_verification_state = ""
+        self.verification_title.setText("Outcome verification is ready")
+        self.verification_detail.setText(
+            "After completing or leaving the guided action, scan device health again. "
+            "ROMVERSE will compare fresh evidence with this baseline; it will not assume the action worked."
+        )
+        self.verification_banner.setProperty("state", "pending")
+        self._repolish(self.verification_banner)
+        self.verification_banner.setVisible(True)
+        self._set_flight_states(("complete", "complete", "complete", "complete", "active"))
+
+    def _complete_pending_verification(
+        self,
+        device: AndroidDevice,
+        report: DiagnosticReport,
+    ) -> None:
+        target = self._pending_verification_finding
+        if not target:
+            return
+        if self._pending_verification_serial != device.serial:
+            self.verification_title.setText("The original phone is required for comparison")
+            self.verification_detail.setText(
+                "This fresh scan belongs to a different device. ROMVERSE kept the original baseline and made no outcome claim."
+            )
+            self.verification_banner.setProperty("state", "attention")
+            self._repolish(self.verification_banner)
+            self.verification_banner.setVisible(True)
+            return
+        current_ids = frozenset(finding.finding_id for finding in report.findings)
+        resolved = sorted(self._pending_verification_ids - current_ids)
+        new = sorted(current_ids - self._pending_verification_ids)
+        target_resolved = target not in current_ids
+        previous_score = self._pending_verification_score
+        score_delta = report.health_score - previous_score if previous_score is not None else 0
+        state = "complete" if target_resolved else "attention"
+        self._last_verification_state = state
+        self.verification_title.setText(
+            "Fresh evidence no longer reports the selected issue"
+            if target_resolved
+            else "Fresh evidence still reports the selected issue"
+        )
+        delta_text = f"{score_delta:+d}" if previous_score is not None else "unavailable"
+        self.verification_detail.setText(
+            f"Compared with the saved baseline: {len(resolved)} finding(s) cleared, "
+            f"{len(new)} new, health score change {delta_text}. "
+            "This is an evidence comparison, not proof that a particular action caused the change."
+        )
+        self.verification_banner.setProperty("state", state)
+        self._repolish(self.verification_banner)
+        self.verification_banner.setVisible(True)
+        self._pending_verification_finding = ""
+        self._pending_verification_serial = ""
+        self._pending_verification_score = None
+        self._pending_verification_ids = frozenset()
 
     def set_scanning(self, scanning: bool, *, show_progress: bool = True) -> None:
         self.refresh.setEnabled(not scanning)
         self.optimize.setEnabled(not scanning)
         self.clean_cache.setEnabled(not scanning)
-        self.refresh.setText("Reading health data…" if scanning else "Refresh health data")
+        self.refresh.setText("Reading health data…" if scanning else "Scan device health")
         active = scanning and show_progress
         self.scan_status_row.setVisible(active)
         if active:
@@ -388,6 +613,7 @@ class DiagnosticsCenter(QWidget):
         else:
             self.current_device = None
             self.current_report = None
+            self.offline_report = None
             self.save_button.setEnabled(False)
             self.device_name.setText("No device available")
             self.summary.setText("Connect a phone with USB debugging enabled and refresh evidence.")
@@ -396,6 +622,18 @@ class DiagnosticsCenter(QWidget):
             self._set_resource_graph(self.storage_graph, None)
             self._set_resource_graph(self.health_graph, None)
             self._empty("No diagnostic claims are made without device evidence.")
+            if self._pending_verification_finding:
+                self.verification_title.setText("Reconnect the same phone to verify the outcome")
+                self.verification_detail.setText(
+                    "The pre-action baseline is retained locally. No result will be claimed until a fresh authorized scan is available."
+                )
+                self.verification_banner.setProperty("state", "pending")
+                self._repolish(self.verification_banner)
+                self.verification_banner.setVisible(True)
+                self._set_flight_states(("active", "pending", "pending", "complete", "active"))
+            else:
+                self.verification_banner.setVisible(False)
+                self._set_flight_states(("active", "pending", "pending", "pending", "pending"))
             self.report_changed.emit(None)
 
     def open_dashboard_intent(self, action: str) -> bool:
@@ -464,6 +702,7 @@ class DiagnosticsCenter(QWidget):
     def show_error(self, message: str) -> None:
         self.current_device = None
         self.current_report = None
+        self.offline_report = None
         self.save_button.setEnabled(False)
         self.device_name.setText("Diagnostics unavailable")
         self.summary.setText(message)
@@ -474,12 +713,22 @@ class DiagnosticsCenter(QWidget):
         self._empty(
             "Device Engine must complete successfully before ROMVERSE can analyze evidence."
         )
+        self._set_flight_states(("attention", "pending", "pending", "pending", "pending"))
         self.report_changed.emit(None)
 
     def _render(self, device: AndroidDevice) -> None:
         report = self.analyzer.analyze(device)
+        self._complete_pending_verification(device, report)
         self.current_device = device
         self.current_report = report
+        try:
+            self.offline_report = self.knowledge_service.scan_after_diagnostic_report(
+                device,
+                report,
+                limit=5,
+            )
+        except (OSError, ValueError, TypeError):
+            self.offline_report = None
         self.device_name.setText(report.device_name)
         self.summary.setText(report.summary)
         self.score.setText(str(report.health_score))
@@ -498,10 +747,24 @@ class DiagnosticsCenter(QWidget):
         evidence = {item.evidence_id: item.value for item in report.evidence}
         self.action_plan_card = self._action_plan(report)
         self.body_layout.addWidget(self.action_plan_card)
+
+        self.details_toggle = QPushButton("Show supporting evidence")
+        self.details_toggle.setObjectName("CockpitDisclosure")
+        self.details_toggle.setCheckable(True)
+        self.details_toggle.setToolTip(
+            "Reveal the individual findings and analysis boundaries behind the recommendation."
+        )
+        self.details_toggle.toggled.connect(self._toggle_details)
+        self.body_layout.addWidget(self.details_toggle)
+        self.details_container = QFrame()
+        self.details_container.setObjectName("CockpitEvidencePanel")
+        details_layout = QVBoxLayout(self.details_container)
+        details_layout.setContentsMargins(0, 0, 0, 0)
+        details_layout.setSpacing(12)
         for finding in report.findings:
             card = FindingCard(finding, evidence)
             self.finding_cards[finding.finding_id] = card
-            self.body_layout.addWidget(card)
+            details_layout.addWidget(card)
 
         limitations = QFrame()
         limitations.setObjectName("Card")
@@ -514,8 +777,32 @@ class DiagnosticsCenter(QWidget):
         copy.setObjectName("Muted")
         copy.setWordWrap(True)
         layout.addWidget(copy, 1, 0)
-        self.body_layout.addWidget(limitations)
+        details_layout.addWidget(limitations)
+        self.body_layout.addWidget(self.details_container)
         self.body_layout.addStretch()
+        actionable = any(
+            finding.severity in {Severity.ADVISORY, Severity.WARNING, Severity.CRITICAL}
+            for finding in report.findings
+        )
+        archive_state = "complete" if self.offline_report is not None else "attention"
+        if self._last_verification_state:
+            action_state = "complete"
+            verification_state = self._last_verification_state
+        elif self._pending_verification_finding:
+            action_state = "complete"
+            verification_state = "active"
+        elif actionable:
+            action_state = "active"
+            verification_state = "pending"
+        else:
+            action_state = "complete"
+            verification_state = "active"
+        self._set_flight_states(
+            ("complete", "complete", archive_state, action_state, verification_state)
+        )
+        self._details_user_open = False
+        self._update_details_visibility()
+        self._animate_cockpit()
         self.report_changed.emit(report)
 
     def open_finding(self, finding_id: str) -> bool:
@@ -537,6 +824,8 @@ class DiagnosticsCenter(QWidget):
             self.saved_label.style().unpolish(self.saved_label)
             self.saved_label.style().polish(self.saved_label)
             return False
+        self._details_user_open = True
+        self._update_details_visibility()
         card.set_focused(True)
         self.saved_label.setText(f"Recovery Bay source  •  {normalized}  •  evidence view only")
         self.saved_label.setObjectName("Good")
@@ -571,6 +860,11 @@ class DiagnosticsCenter(QWidget):
         )
         archive_recommendations = recommend_for_findings(report.findings, limit=3)
         archive_primary = archive_recommendations[0] if archive_recommendations else None
+        offline_primary = (
+            self.offline_report.matches[0]
+            if self.offline_report is not None and self.offline_report.matches
+            else None
+        )
         priority = max(report.findings, key=lambda item: ranking[item.severity], default=None)
         repair_priority = actionable_repair_finding(report)
         card = QFrame()
@@ -613,10 +907,44 @@ class DiagnosticsCenter(QWidget):
             advisor_summary.setObjectName("Muted")
             advisor_summary.setWordWrap(True)
             layout.addWidget(advisor_summary)
-        boundary = QLabel(
-            "Guardian boundary  •  recommendation only; no device change runs automatically"
+        brain = QFrame()
+        brain.setObjectName("KnowledgeBrainStrip")
+        brain_layout = QHBoxLayout(brain)
+        brain_layout.setContentsMargins(14, 10, 14, 10)
+        brain_copy = QVBoxLayout()
+        brain_eyebrow = QLabel("OFFLINE ARCHIVES BRAIN  •  AUTOMATIC LOCAL SCAN")
+        brain_eyebrow.setObjectName("KnowledgeBrainEyebrow")
+        brain_copy.addWidget(brain_eyebrow)
+        brain_title = QLabel(
+            f"{len(self.offline_report.matches)} compatible knowledge match(es)"
+            if self.offline_report is not None
+            else "Local knowledge scan unavailable"
         )
-        boundary.setObjectName("Good")
+        brain_title.setObjectName("KnowledgeBrainTitle")
+        brain_copy.addWidget(brain_title)
+        if offline_primary is not None:
+            sources = (
+                ", ".join(source.label for source in offline_primary.provenance[:2])
+                or "local ROMVERSE evidence"
+            )
+            brain_detail_text = (
+                f"Best match: {offline_primary.record.title}  •  "
+                f"{offline_primary.confidence.value.upper()}  •  {sources}"
+            )
+        elif self.offline_report is not None:
+            brain_detail_text = "No compatible local record matched this exact evidence. ROMVERSE did not broaden uncertainty into a repair instruction."
+        else:
+            brain_detail_text = "Diagnostics remain available, but the local archive could not be read for this scan."
+        brain_detail = QLabel(brain_detail_text)
+        brain_detail.setObjectName("KnowledgeBrainDetail")
+        brain_detail.setWordWrap(True)
+        brain_copy.addWidget(brain_detail)
+        brain_layout.addLayout(brain_copy, 1)
+        layout.addWidget(brain)
+        boundary = QLabel(
+            "Guardian boundary  •  guidance only; nothing changes the phone until the user reviews and deliberately confirms an exact action"
+        )
+        boundary.setObjectName("RecoveryBoundary")
         boundary.setWordWrap(True)
         layout.addWidget(boundary)
         if actionable:
@@ -748,6 +1076,8 @@ class DiagnosticsCenter(QWidget):
     def _clear_body(self) -> None:
         self.finding_cards.clear()
         self.action_plan_card = None
+        self.details_toggle = None
+        self.details_container = None
         while self.body_layout.count():
             item = self.body_layout.takeAt(0)
             widget = item.widget()

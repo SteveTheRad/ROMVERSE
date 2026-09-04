@@ -443,6 +443,11 @@ def test_about_and_supporter_sequence_use_new_app_icon() -> None:
     assert dialog.story_progress.maximum() == 1000
     assert dialog.message_scroll.widgetResizable()
     assert dialog.message_scroll.widget() is dialog.message
+    assert dialog.comic_stage.objectName() == "OriginComicStage"
+    assert dialog.issue_badge.text() == "ROMVERSE ORIGIN  •  ISSUE #01"
+    dialog._render_scene(2)
+    assert dialog.chapter.text().startswith("PANEL 03")
+    assert dialog.comic_burst.text() == "VERIFY!"
     dialog.close()
 
 
@@ -496,6 +501,7 @@ def test_origin_story_follows_the_approved_public_scene_contract() -> None:
     assert "Never hide uncertainty behind a green tick." in story
     assert "ROMVERSE started as an idea I wanted to see exist." in story
     assert "Personal recognition appears only when genuine account evidence" in story
+    assert "Your time, trust, patience, and belief are part of this universe." in story
     assert "Made for the people who refuse to stop tinkering." in story
     assert "27.08.2026" in story
     assert origin_total_duration_ms() >= 100_000
@@ -521,6 +527,8 @@ def test_about_page_uses_wide_responsive_grid_and_crisp_social_actions() -> None
     content = page.findChild(QWidget, "AboutContent")
     facebook_card = page.findChild(QWidget, "FacebookCard")
     reddit_card = page.findChild(QWidget, "RedditCard")
+    github_card = page.findChild(QWidget, "GitHubCard")
+    founder_spotlight = page.findChild(QWidget, "FounderSpotlight")
     romverse_website_card = page.findChild(QWidget, "RomverseWebsiteCard")
     radforge_website_card = page.findChild(QWidget, "RadForgeWebsiteCard")
     radforge_studio_identity = page.findChild(QWidget, "RadForgeStudioIdentity")
@@ -536,6 +544,8 @@ def test_about_page_uses_wide_responsive_grid_and_crisp_social_actions() -> None
     assert radforge_company_logo.accessibleName() == "Official RadForge Labs company logo"
     assert facebook_card is not None and facebook_card.minimumHeight() == 78
     assert reddit_card is not None and reddit_card.minimumHeight() == 78
+    assert github_card is not None and github_card.minimumHeight() == 78
+    assert founder_spotlight is page.founder_spotlight
     assert romverse_website_card is not None and romverse_website_card.minimumHeight() == 118
     assert radforge_website_card is not None and radforge_website_card.minimumHeight() == 118
     assert page.logo.width() == page.logo.height() == 310
@@ -552,6 +562,10 @@ def test_about_page_uses_wide_responsive_grid_and_crisp_social_actions() -> None
     assert page.reddit_icon.accessibleName() == "Reddit"
     assert page.reddit_link.minimumHeight() >= 42
     assert page.reddit_link.accessibleName() == "Open ROMVERSE on Reddit"
+    assert not page.github_icon.pixmap().isNull()
+    assert page.github_icon.accessibleName() == "GitHub"
+    assert page.github_link.minimumHeight() >= 42
+    assert page.github_link.accessibleName() == ("Open the official ROMVERSE GitHub repository")
     assert not page.romverse_website_icon.pixmap().isNull()
     assert page.romverse_website_link.minimumHeight() >= 44
     assert page.romverse_website_link.accessibleName() == "Open the official ROMVERSE website"
@@ -596,11 +610,13 @@ def test_about_official_website_actions_use_clean_approved_destinations() -> Non
     with patch("romverse.ui.main_window.QDesktopServices.openUrl") as open_url:
         page.romverse_website_link.click()
         page.radforge_website_link.click()
+        page.github_link.click()
         app.processEvents()
 
     assert [call.args[0].toString() for call in open_url.call_args_list] == [
         "https://romverse.app/",
         "https://radforgelabs.com/",
+        "https://github.com/SteveTheRad/ROMVERSE",
     ]
     page.close()
 

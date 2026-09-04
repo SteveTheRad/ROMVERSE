@@ -508,6 +508,83 @@ class RomModeChooser(QDialog):
             self.done(2)
 
 
+class ProjectNameDialog(QDialog):
+    """Stable, readable project-creation prompt with explicit validation."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("ProjectNameDialog")
+        self.setWindowTitle("New ROMVERSE project")
+        self.setModal(True)
+        self.setMinimumSize(620, 340)
+        self.resize(660, 360)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(28, 24, 28, 24)
+        layout.setSpacing(12)
+
+        eyebrow = QLabel("ROM STUDIO  •  NEW WORKSPACE")
+        eyebrow.setObjectName("Eyebrow")
+        layout.addWidget(eyebrow)
+        title = QLabel("Create a ROMVERSE project")
+        title.setObjectName("DialogTitle")
+        layout.addWidget(title)
+        description = QLabel(
+            "Give this build workspace a clear name. The original firmware remains protected and unchanged."
+        )
+        description.setObjectName("Muted")
+        description.setWordWrap(True)
+        layout.addWidget(description)
+
+        field_label = QLabel("PROJECT NAME")
+        field_label.setObjectName("Eyebrow")
+        layout.addWidget(field_label)
+        self.name_input = QLineEdit()
+        self.name_input.setObjectName("ProjectNameInput")
+        self.name_input.setMaxLength(80)
+        self.name_input.setFixedHeight(54)
+        self.name_input.setPlaceholderText("Example: HyperOS 4 daily driver")
+        self.name_input.textChanged.connect(self._validate)
+        self.name_input.returnPressed.connect(self._accept_if_valid)
+        layout.addWidget(self.name_input)
+
+        self.hint = QLabel("1–80 characters")
+        self.hint.setObjectName("Muted")
+        layout.addWidget(self.hint)
+        layout.addStretch(1)
+
+        actions = QHBoxLayout()
+        actions.setSpacing(10)
+        actions.addStretch(1)
+        self.cancel_button = QPushButton("Cancel")
+        self.cancel_button.setMinimumWidth(110)
+        self.cancel_button.clicked.connect(self.reject)
+        actions.addWidget(self.cancel_button)
+        self.create_button = QPushButton("Create project")
+        self.create_button.setObjectName("Primary")
+        self.create_button.setMinimumWidth(150)
+        self.create_button.setEnabled(False)
+        self.create_button.clicked.connect(self._accept_if_valid)
+        actions.addWidget(self.create_button)
+        layout.addLayout(actions)
+
+    @property
+    def project_name(self) -> str:
+        return self.name_input.text().strip()
+
+    def _validate(self, text: str) -> None:
+        valid = bool(text.strip())
+        self.create_button.setEnabled(valid)
+        self.hint.setText("Ready to create" if valid else "Enter 1–80 characters")
+        self.hint.setObjectName("Good" if valid else "Muted")
+        self.hint.style().unpolish(self.hint)
+        self.hint.style().polish(self.hint)
+
+    def _accept_if_valid(self) -> None:
+        if self.project_name:
+            self.accept()
+
+
 class RecipeGuidedWizard(QDialog):
     STEPS = (
         (
@@ -3393,11 +3470,12 @@ class RomStudio(QWidget):
         self._repolish(self.upgrade_passport_status)
 
     def _new_project(self) -> None:
-        name, accepted = QInputDialog.getText(self, "New ROMVERSE project", "Project name")
-        if not accepted:
+        dialog = ProjectNameDialog(self)
+        dialog.name_input.setFocus(Qt.FocusReason.OtherFocusReason)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             return
         try:
-            project = self.store.create(name, self.suggested_pack_id)
+            project = self.store.create(dialog.project_name, self.suggested_pack_id)
         except ProjectError as exc:
             QMessageBox.warning(self, "Project not created", str(exc))
             return

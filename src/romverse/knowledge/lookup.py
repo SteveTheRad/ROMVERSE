@@ -10,6 +10,7 @@ from pathlib import Path
 
 from romverse.device.dna import DeviceDnaProfile, EvidenceConfidence
 from romverse.device.models import AndroidDevice
+from romverse.diagnostics.models import DiagnosticReport
 from romverse.knowledge.models import (
     KnowledgeArchive,
     KnowledgeConfidence,
@@ -102,6 +103,21 @@ class OfflineKnowledgeService:
         return self.lookup(
             query_from_device_snapshot(device),
             trigger="device-connection",
+            limit=limit,
+        )
+
+    def scan_after_diagnostic_report(
+        self,
+        device: AndroidDevice,
+        report: DiagnosticReport,
+        *,
+        limit: int = 8,
+    ) -> KnowledgeLookupReport:
+        """Match current findings without exporting personal device telemetry."""
+
+        return self.lookup(
+            query_from_diagnostic_report(device, report),
+            trigger="diagnostic-report",
             limit=limit,
         )
 
@@ -245,6 +261,43 @@ def query_from_device_snapshot(device: AndroidDevice) -> KnowledgeQuery:
         android_versions=_unique((device.android_version,)),
         bootloader_states=_unique((bootloader_state,)),
         evidence_terms=_unique(capabilities, maximum=32),
+    )
+
+
+def query_from_diagnostic_report(
+    device: AndroidDevice,
+    report: DiagnosticReport,
+) -> KnowledgeQuery:
+    """Extend a privacy-bounded device query with typed diagnostic findings.
+
+    Finding identifiers and generic diagnostic language improve local matching.
+    Raw evidence values are intentionally excluded because they can contain
+    personal telemetry or transport identifiers.
+    """
+
+    base = query_from_device_snapshot(device)
+    findings = tuple(report.findings)
+    return replace(
+        base,
+        symptoms=_unique(
+            (
+                text
+                for finding in findings
+                for text in (finding.title, finding.explanation, finding.guidance)
+            ),
+            maximum=128,
+        ),
+        finding_ids=_unique(
+            (finding.finding_id for finding in findings),
+            maximum=64,
+        ),
+        evidence_terms=_unique(
+            (
+                *base.evidence_terms,
+                *(f"{finding.severity.value} {finding.title}" for finding in findings),
+            ),
+            maximum=256,
+        ),
     )
 
 

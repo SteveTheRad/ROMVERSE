@@ -201,6 +201,7 @@ ROMVERSE_WEBSITE_URL = "https://romverse.app/"
 RADFORGE_LABS_URL = "https://radforgelabs.com/"
 FACEBOOK_URL = "https://www.facebook.com/ROMVERSEOfficial"
 REDDIT_URL = "https://www.reddit.com/user/ROMVERSE/"
+GITHUB_URL = "https://github.com/SteveTheRad/ROMVERSE"
 
 DESKTOP_THEMES: dict[DesktopTheme, tuple[str, str]] = {
     DesktopTheme.NEBULA_FLOW: ("Nebula Flow", ""),
@@ -788,6 +789,31 @@ class PortalCanvas(QWidget):
         center = QPointF(self.width() / 2, self.height() / 2)
         progress = self.progress
 
+        # A moving comic panel sits above the wider cosmic background. The
+        # halftone corners and heavy ink frame keep the secret playful without
+        # relying on an external artwork or obscuring the approved logo.
+        panel = QRectF(self.rect()).adjusted(4, 4, -4, -4)
+        panel_fill = QLinearGradient(panel.topLeft(), panel.bottomRight())
+        panel_fill.setColorAt(0.0, QColor(9, 14, 38, 238))
+        panel_fill.setColorAt(0.55, QColor(20, 10, 48, 232))
+        panel_fill.setColorAt(1.0, QColor(3, 31, 39, 230))
+        painter.setBrush(panel_fill)
+        painter.setPen(QPen(QColor(2, 3, 10, 245), 7))
+        painter.drawRoundedRect(panel, 12, 12)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.setPen(QPen(QColor(94, 230, 244, 205), 2))
+        painter.drawRoundedRect(panel.adjusted(4, 4, -4, -4), 9, 9)
+        painter.setPen(Qt.PenStyle.NoPen)
+        for row in range(5):
+            for column in range(9):
+                alpha = max(25, 105 - row * 15 - column * 5)
+                painter.setBrush(QColor(211, 93, 255, alpha))
+                painter.drawEllipse(
+                    QPointF(18 + column * 10, 18 + row * 9),
+                    1.8,
+                    1.8,
+                )
+
         # The surrounding stars bend toward the event horizon before the portal opens.
         gather = min(0.58, max(0.0, (progress - 0.03) / 0.48) * 0.58)
         for index, (x_ratio, y_ratio, star_size) in enumerate(self._stars):
@@ -874,6 +900,17 @@ class PortalCanvas(QWidget):
             painter.setBrush(Qt.BrushStyle.NoBrush)
             painter.setPen(QPen(QColor(142, 215, 255, int(190 * pulse)), 2.0))
             painter.drawEllipse(center, pulse_radius * 1.6, pulse_radius * 0.48)
+            burst_font = QFont("DejaVu Sans", 23, QFont.Weight.Black)
+            burst_font.setItalic(True)
+            painter.setFont(burst_font)
+            burst_text = "KRA-KOOM!"
+            burst_bounds = painter.fontMetrics().boundingRect(burst_text)
+            burst_x = int(center.x() - burst_bounds.width() / 2)
+            burst_y = int(max(42, center.y() - radius * 0.62))
+            painter.setPen(QPen(QColor(1, 2, 8, int(245 * pulse)), 6))
+            painter.drawText(burst_x, burst_y, burst_text)
+            painter.setPen(QColor(255, 218, 79, int(255 * pulse)))
+            painter.drawText(burst_x, burst_y, burst_text)
 
         reveal = min(1.0, max(0.0, (progress - 0.69) / 0.22))
         if reveal > 0 and not self.logo.isNull():
@@ -919,6 +956,12 @@ class ThanksPortal(QDialog):
             "rgba(96, 124, 190, 110); border-radius: 3px; min-height: 5px; max-height: 5px; }"
             "QProgressBar::chunk { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
             "stop:0 #A44CFF, stop:1 #36E7F5); border-radius: 3px; }"
+            "QFrame#OriginComicStage { background: rgba(3, 6, 17, 225); border: 3px solid #02030A; "
+            "border-top: 3px solid #63ECF8; border-radius: 15px; }"
+            "QLabel#OriginIssue { color:#08101F; background:#FFD84F; border:2px solid #02030A; "
+            "border-radius:5px; padding:5px 9px; font-size:10px; font-weight:900; letter-spacing:1px; }"
+            "QLabel#OriginBurst { color:#FFFFFF; background:#9D36E8; border:2px solid #02030A; "
+            "border-radius:5px; padding:5px 11px; font-size:11px; font-weight:900; letter-spacing:1px; }"
         )
         self._reduced_motion = bool(reduced_motion)
         self._scene_index = 0
@@ -953,10 +996,25 @@ class ThanksPortal(QDialog):
         self.story_progress.setAccessibleName("The Origin story progress")
         layout.addWidget(self.story_progress)
 
+        self.comic_stage = QFrame()
+        self.comic_stage.setObjectName("OriginComicStage")
+        comic_layout = QVBoxLayout(self.comic_stage)
+        comic_layout.setContentsMargins(18, 14, 18, 15)
+        comic_layout.setSpacing(7)
+        comic_header = QHBoxLayout()
+        self.issue_badge = QLabel("ROMVERSE ORIGIN  •  ISSUE #01")
+        self.issue_badge.setObjectName("OriginIssue")
+        comic_header.addWidget(self.issue_badge)
+        comic_header.addStretch(1)
+        self.comic_burst = QLabel("IGNITE!")
+        self.comic_burst.setObjectName("OriginBurst")
+        comic_header.addWidget(self.comic_burst)
+        comic_layout.addLayout(comic_header)
+
         self.portal = PortalCanvas(logo_path)
         self.portal.setMinimumHeight(205)
-        layout.addWidget(self.portal)
-        self.title = QLabel("ROMVERSE: THE ORIGIN")
+        comic_layout.addWidget(self.portal)
+        self.title = QLabel("ROMVERSE: THE ORIGIN  •  A COMIC UNIVERSE")
         self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.title.setStyleSheet(
             "color: #63ECF8; font-size: 13px; font-weight: 800; letter-spacing: 3px;"
@@ -964,7 +1022,7 @@ class ThanksPortal(QDialog):
         self.title_effect = QGraphicsOpacityEffect(self)
         self.title_effect.setOpacity(0.0)
         self.title.setGraphicsEffect(self.title_effect)
-        layout.addWidget(self.title)
+        comic_layout.addWidget(self.title)
 
         self.scene_title = QLabel()
         self.scene_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -972,14 +1030,14 @@ class ThanksPortal(QDialog):
         self.scene_title.setStyleSheet(
             "color: #E5C6FF; font-size: 23px; font-weight: 850; letter-spacing: 2px;"
         )
-        layout.addWidget(self.scene_title)
+        comic_layout.addWidget(self.scene_title)
         self.constellation = QLabel()
         self.constellation.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.constellation.setWordWrap(True)
         self.constellation.setStyleSheet(
             "color: #73EEFF; font-size: 10px; font-weight: 800; letter-spacing: 2px;"
         )
-        layout.addWidget(self.constellation)
+        comic_layout.addWidget(self.constellation)
 
         self.message = QLabel()
         self.message.setTextFormat(Qt.TextFormat.PlainText)
@@ -999,7 +1057,8 @@ class ThanksPortal(QDialog):
         self.message_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.message_scroll.setStyleSheet("background: transparent; border: 0;")
         self.message_scroll.setWidget(self.message)
-        layout.addWidget(self.message_scroll, 1)
+        comic_layout.addWidget(self.message_scroll, 1)
+        layout.addWidget(self.comic_stage, 1)
 
         self.discovery_notice = QLabel(
             "SECRET AWARD UNLOCKED  •  BEYOND THE VERSE\n"
@@ -1162,8 +1221,13 @@ class ThanksPortal(QDialog):
         self._scene_elapsed_ms = 0
         self._last_scene_tick = time.monotonic()
         scene = ORIGIN_SCENES[self._scene_index]
-        self.chapter.setText(scene.eyebrow)
+        self.chapter.setText(scene.eyebrow.replace("SCENE", "PANEL"))
         self.scene_counter.setText(f"{self._scene_index + 1:02d} / {len(ORIGIN_SCENES):02d}")
+        self.comic_burst.setText(
+            ("IGNITE!", "UNITE!", "VERIFY!", "BUILD!", "TOGETHER!", "EXPAND!", "ROMVERSE!")[
+                self._scene_index
+            ]
+        )
         self.scene_title.setText(scene.title)
         self.constellation.setText(scene.constellation)
         self.message.setText(scene.body)
@@ -2079,12 +2143,12 @@ class AboutPage(QWidget):
         eyebrow.setObjectName("Eyebrow")
         eyebrow.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(eyebrow)
-        heading = QLabel("ABOUT ROMVERSE")
+        heading = QLabel("ABOUT ROMVERSE & ITS CREATOR")
         heading.setObjectName("Title")
         heading.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(heading)
         brand_intro = QLabel(
-            "One connected Android engineering universe, created independently with technical truth at its core."
+            "The product, the independent studio, the person behind the vision, and every verified place to follow the journey."
         )
         brand_intro.setObjectName("Muted")
         brand_intro.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -2169,6 +2233,37 @@ class AboutPage(QWidget):
         )
         self.brand_stage_layout.addLayout(studio_identity, 5)
         layout.addWidget(self.brand_stage)
+
+        self.founder_spotlight = QFrame()
+        self.founder_spotlight.setObjectName("FounderSpotlight")
+        founder_layout = QHBoxLayout(self.founder_spotlight)
+        founder_layout.setContentsMargins(24, 20, 24, 20)
+        founder_layout.setSpacing(20)
+        founder_monogram = QLabel("SR")
+        founder_monogram.setObjectName("FounderMonogram")
+        founder_monogram.setFixedSize(86, 86)
+        founder_monogram.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        founder_monogram.setAccessibleName("SteveTheRad creator monogram")
+        founder_layout.addWidget(founder_monogram)
+        founder_copy = QVBoxLayout()
+        founder_eyebrow = QLabel("FROM THE FOUNDER  •  STEVETHERAD")
+        founder_eyebrow.setObjectName("Eyebrow")
+        founder_title = QLabel("Built from curiosity. Driven by possibility.")
+        founder_title.setObjectName("HeroTitle")
+        founder_message = QLabel(
+            "I created ROMVERSE to make Android ROM development more understandable, more capable, and safer—without taking away the freedom that makes Android special. Whether you are here to build, test, learn, help, or simply explore: thank you for becoming part of its story."
+        )
+        founder_message.setObjectName("Muted")
+        founder_message.setWordWrap(True)
+        founder_copy.addWidget(founder_eyebrow)
+        founder_copy.addWidget(founder_title)
+        founder_copy.addWidget(founder_message)
+        founder_layout.addLayout(founder_copy, 1)
+        founder_signature = QLabel("STEVE\nFOUNDER & CREATOR\nRADFORGE LABS")
+        founder_signature.setObjectName("FounderSignature")
+        founder_signature.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        founder_layout.addWidget(founder_signature)
+        layout.addWidget(self.founder_spotlight)
 
         mission = QLabel(
             "BUILD  •  OPTIMIZE  •  PERFECT\n"
@@ -2482,7 +2577,9 @@ class AboutPage(QWidget):
         websites_heading.setObjectName("Eyebrow")
         websites_heading.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(websites_heading)
-        websites_intro = QLabel("Explore ROMVERSE and the RadForge Labs studio behind the project.")
+        websites_intro = QLabel(
+            "Verified destinations only—ROMVERSE never invents or guesses a creator or community account."
+        )
         websites_intro.setObjectName("Muted")
         websites_intro.setAlignment(Qt.AlignmentFlag.AlignCenter)
         websites_intro.setWordWrap(True)
@@ -2725,6 +2822,62 @@ class AboutPage(QWidget):
         )
         reddit_layout.addWidget(self.reddit_link)
         layout.addWidget(reddit_card)
+        github_card = QWidget()
+        github_card.setObjectName("GitHubCard")
+        github_card.setMinimumHeight(78)
+        github_card.setStyleSheet(
+            "QWidget#GitHubCard { background: rgba(9, 14, 38, 220); "
+            "border: 1px solid rgba(181, 193, 216, 135); "
+            "border-left: 3px solid #D8E2F8; border-radius: 13px; }"
+        )
+        github_layout = QHBoxLayout(github_card)
+        github_layout.setContentsMargins(18, 13, 16, 13)
+        github_layout.setSpacing(14)
+        self.github_icon = QLabel()
+        self.github_icon.setFixedSize(36, 36)
+        self.github_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.github_icon.setAccessibleName("GitHub")
+        self.github_icon.setStyleSheet("background: transparent; border: 0;")
+        github_svg = b"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <rect x="2" y="2" width="20" height="20" rx="6" fill="#D8E2F8"/>
+          <path d="M8 7.5v5.2c0 1.7 1.3 3 3 3h2m3-8.2v3.2c0 1.7-1.3 3-3 3h-2" fill="none" stroke="#111827" stroke-width="1.8" stroke-linecap="round"/>
+          <circle cx="8" cy="6.8" r="1.8" fill="#6D4AFF"/><circle cx="16" cy="6.8" r="1.8" fill="#24C7D9"/><circle cx="11" cy="16" r="1.8" fill="#A855F7"/>
+        </svg>"""
+        github_pixmap = QPixmap()
+        github_pixmap.loadFromData(github_svg, "SVG")
+        self.github_icon.setPixmap(
+            github_pixmap.scaled(
+                34,
+                34,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+        )
+        github_layout.addWidget(self.github_icon)
+        github_text = QVBoxLayout()
+        github_text.setContentsMargins(0, 0, 0, 0)
+        github_text.setSpacing(2)
+        github_title = QLabel("GitHub")
+        github_title.setStyleSheet("color: #EDF4FF; font-size: 14px; font-weight: 750;")
+        github_subtitle = QLabel("SteveTheRad / ROMVERSE source and releases")
+        github_subtitle.setObjectName("Muted")
+        github_text.addWidget(github_title)
+        github_text.addWidget(github_subtitle)
+        github_layout.addLayout(github_text, 1)
+        self.github_link = QPushButton("Open repository  →")
+        self.github_link.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.github_link.setMinimumHeight(42)
+        self.github_link.setAccessibleName("Open the official ROMVERSE GitHub repository")
+        self.github_link.clicked.connect(
+            lambda: self._open_external(GITHUB_URL, "ROMVERSE on GitHub")
+        )
+        self.github_link.setStyleSheet(
+            "background: rgba(28, 35, 54, 205); color: #F3F6FF; font-weight: 750; "
+            "border: 1px solid rgba(216, 226, 248, 160); border-radius: 9px; "
+            "padding: 8px 14px;"
+        )
+        github_layout.addWidget(self.github_link)
+        layout.addWidget(github_card)
         self.external_status = QLabel()
         self.external_status.setObjectName("Warning")
         self.external_status.setAccessibleName("Official link opening status")
@@ -3720,7 +3873,11 @@ class MainWindow(QMainWindow):
         self.device_center.knowledge_requested.connect(self._open_knowledge_query)
         self.stack.addWidget(self.device_center)
         history_store = DiagnosticHistoryStore(workspace, self.activity_store)
-        self.diagnostics_center = DiagnosticsCenter(DiagnosticAnalyzer(), history_store)
+        self.diagnostics_center = DiagnosticsCenter(
+            DiagnosticAnalyzer(),
+            history_store,
+            knowledge_service=self.offline_knowledge_service,
+        )
         self.diagnostics_center.repair_requested.connect(self._open_repair_finding)
         self.diagnostics_center.knowledge_requested.connect(self._open_knowledge_query)
         self.diagnostics_center.knowledge_article_requested.connect(self._open_knowledge_article)
@@ -4266,6 +4423,7 @@ class MainWindow(QMainWindow):
             )
 
         self._apply_experience_mode(self.app_settings.experience_mode)
+        self.diagnostics_center.set_reduced_motion(self.app_settings.reduced_motion)
         self._apply_workspace_shell()
         self._apply_theme(self.app_settings.desktop_theme, persist=False)
         self._update_workspace_breadcrumb("command_deck")
@@ -5850,6 +6008,7 @@ class MainWindow(QMainWindow):
             if button.property("expert_only"):
                 button.setVisible(expert)
         self.device_center.set_experience_mode(mode)
+        self.diagnostics_center.set_experience_mode(mode)
         self.rom_studio.set_experience_mode(mode)
 
     @Slot(str, object)
@@ -6899,6 +7058,7 @@ class MainWindow(QMainWindow):
     @Slot(str)
     def _open_repair_finding(self, finding_id: str) -> None:
         if self.repair_center.open_diagnostic_finding(finding_id):
+            self.diagnostics_center.mark_repair_handoff(finding_id)
             self._navigate_route("recovery_bay")
             return
         self.diagnostics_center.show_repair_handoff_error(finding_id)
@@ -7045,6 +7205,7 @@ class MainWindow(QMainWindow):
         self.about_page.set_privacy_settings(settings)
         self.notification_center.set_enabled(settings.desktop_notifications_enabled)
         self.notification_center.set_reduced_motion(settings.reduced_motion)
+        self.diagnostics_center.set_reduced_motion(settings.reduced_motion)
         self.backup_center.set_default_backup_directory(
             Path(settings.backup_directory) if settings.backup_directory else None
         )

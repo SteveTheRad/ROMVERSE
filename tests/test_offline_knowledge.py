@@ -8,7 +8,12 @@ import pytest
 
 from romverse.device.dna import DeviceDnaService
 from romverse.device.models import AndroidDevice, DeviceState
-from romverse.knowledge.lookup import OfflineKnowledgeService, query_from_device_snapshot
+from romverse.diagnostics.analyzer import DiagnosticAnalyzer
+from romverse.knowledge.lookup import (
+    OfflineKnowledgeService,
+    query_from_device_snapshot,
+    query_from_diagnostic_report,
+)
 from romverse.knowledge.models import (
     DeviceKnowledgeScope,
     KnowledgeArchive,
@@ -219,6 +224,31 @@ def test_connected_device_snapshot_builds_a_private_execution_inert_query(tmp_pa
         "automatic" not in match.safety.casefold() or "no automatic" in match.safety.casefold()
         for match in report.matches
     )
+
+
+def test_diagnostic_report_adds_typed_findings_to_private_local_query(tmp_path) -> None:
+    device = AndroidDevice(
+        "PRIVATE-TRANSPORT-SERIAL",
+        DeviceState.DEVICE,
+        manufacturer="RadForge",
+        model="Reference Phone",
+        battery_percent=5,
+        build_fingerprint="PRIVATE/BUILD/FINGERPRINT",
+    )
+    diagnostic = DiagnosticAnalyzer().analyze(device)
+
+    query = query_from_diagnostic_report(device, diagnostic)
+    lookup = OfflineKnowledgeService(tmp_path / "workspace").scan_after_diagnostic_report(
+        device,
+        diagnostic,
+    )
+
+    assert "battery.low" in query.finding_ids
+    assert "Battery level is low" in query.symptoms
+    assert device.serial not in repr(query)
+    assert device.build_fingerprint not in repr(query)
+    assert lookup.trigger == "diagnostic-report"
+    assert lookup.execution_authority == "none"
 
 
 def test_init_boot_failure_uses_launch_architecture_not_current_android_alone(

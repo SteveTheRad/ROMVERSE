@@ -1364,6 +1364,29 @@ first-launch smoke passed.
     recreation with execution authority `none`. This automates the stable runtime contract but does
     not replace the remaining physical-hardware checks above.
 
+## 2026-09-04 recovery-cockpit and identity-polish checkpoint
+
+- Quantum Optimizer now presents a five-stage recovery cockpit: device evidence, diagnosis,
+  automatic local Archives matching, guided action, and fresh outcome verification. The local
+  Archives query is privacy-bounded, source-tiered, and retains `execution_authority: none`.
+- A Recovery Bay handoff now records the exact finding and phone identity in memory. The next scan
+  compares cleared, remaining, and new findings plus health-score movement; a different phone is
+  rejected and no causal repair claim is made.
+- Guided Mode folds supporting diagnostic evidence and specialist utilities while Architect Mode
+  reveals them. Both retain the same diagnostic evidence and operation boundaries.
+- The New ROMVERSE Project prompt was replaced with a stable 620-by-340 minimum dialog, explicit
+  naming guidance, whitespace normalization, and a disabled primary action until a valid name is
+  present. Visual checks at normal and minimum desktop sizes found no horizontal cockpit overflow.
+- About now includes a dedicated SteveTheRad founder spotlight and the verified ROMVERSE GitHub
+  repository alongside the existing product, studio, Facebook, and Reddit links. The hidden Origin
+  sequence is presented as an accessible comic-universe cinematic with a supporter-focused finale,
+  opt-in sound, complete navigation controls, and an existing reduced-motion path.
+- Ruff format/check and the complete Desktop test suite pass at this checkpoint. These presentation
+  and read-only orchestration improvements add no phone-changing or public-release authority.
+
+The product-wide continuation target and definition of done are recorded in
+`docs/DESIGN_VISION_AND_POLISH_GOAL.md`.
+
 ## Honest feature boundary
 
 The current safe milestone supports read-only Android evidence, local diagnostics, guarded APK

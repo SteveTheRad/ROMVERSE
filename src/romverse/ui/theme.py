@@ -105,6 +105,18 @@ QFrame#AboutTrustDock {
     background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(8,20,34,242),stop:0.5 rgba(18,13,42,240),stop:1 rgba(30,17,23,238));
     border: 1px solid rgba(105, 122, 197, 160); border-top: 2px solid rgba(255, 180, 84, 190); border-radius: 14px;
 }
+QFrame#FounderSpotlight {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(31,15,58,244),stop:.52 rgba(7,24,43,242),stop:1 rgba(4,39,40,238));
+    border: 1px solid rgba(83, 218, 234, 175); border-left: 4px solid #B45CFF; border-radius: 15px;
+}
+QLabel#FounderMonogram {
+    color: #FFFFFF; background: qradialgradient(cx:.38,cy:.32,radius:.82,stop:0 #63ECF8,stop:.48 #5669F2,stop:1 #8B32C8);
+    border: 3px solid rgba(231, 202, 255, 220); border-radius: 43px; font-size: 27px; font-weight: 900; letter-spacing: 1px;
+}
+QLabel#FounderSignature {
+    color: #E7C7FF; background: rgba(19, 12, 41, 205); border: 1px solid rgba(180, 92, 255, 135);
+    border-radius: 9px; padding: 10px 13px; font-size: 9px; font-weight: 850; letter-spacing: .8px;
+}
 QPushButton#AboutTrustAction {
     color: #EAF1FF; background: rgba(5, 10, 23, 232); border: 1px solid rgba(69, 94, 145, 185);
     border-left: 3px solid #60718E; border-radius: 9px; padding: 10px 12px; min-height: 58px;
@@ -120,6 +132,42 @@ QFrame#DiagnosticHandoffBar {
     background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 rgba(20,13,43,238),stop:1 rgba(5,31,42,232));
     border: 1px solid rgba(64, 220, 235, 160); border-left: 3px solid #A855F7; border-radius: 9px;
 }
+QFrame#RecoveryFlightPath {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 rgba(9,14,31,242),stop:.5 rgba(13,10,34,242),stop:1 rgba(4,26,34,238));
+    border: 1px solid rgba(68, 103, 163, 175); border-top: 1px solid rgba(60, 221, 236, 170); border-radius: 12px;
+}
+QFrame#RecoveryStage {
+    background: rgba(4, 9, 19, 215); border: 1px solid rgba(48, 69, 108, 165); border-radius: 9px;
+}
+QFrame#RecoveryStage[state="complete"] { border-left: 3px solid #44E39A; background: rgba(5, 28, 24, 215); }
+QFrame#RecoveryStage[state="active"] { border: 1px solid #42DDEA; border-left: 3px solid #B45CFF; background: rgba(25, 16, 54, 225); }
+QFrame#RecoveryStage[state="attention"] { border-left: 3px solid #FFB454; background: rgba(38, 23, 8, 215); }
+QLabel#RecoveryStageNumber { color: #7182A3; font-size: 9px; font-weight: 900; letter-spacing: 1px; }
+QLabel#RecoveryStageValue { color: #AAB8D2; font-size: 9px; font-weight: 820; letter-spacing: .6px; }
+QFrame#RecoveryStage[state="complete"] QLabel#RecoveryStageNumber, QFrame#RecoveryStage[state="complete"] QLabel#RecoveryStageValue { color: #63E6AE; }
+QFrame#RecoveryStage[state="active"] QLabel#RecoveryStageNumber { color: #D79CFF; }
+QFrame#RecoveryStage[state="active"] QLabel#RecoveryStageValue { color: #F4F7FF; }
+QFrame#RecoveryStage[state="attention"] QLabel#RecoveryStageNumber, QFrame#RecoveryStage[state="attention"] QLabel#RecoveryStageValue { color: #FFBF69; }
+QFrame#RecoveryCockpit {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(25,13,52,250),stop:.44 rgba(8,20,40,248),stop:1 rgba(4,37,42,244));
+    border: 1px solid rgba(70, 225, 238, 185); border-left: 4px solid #B45CFF; border-radius: 15px;
+}
+QFrame#RecoveryVerification {
+    background: rgba(9, 18, 34, 235); border: 1px solid rgba(74, 108, 166, 180); border-left: 4px solid #4F7CFF; border-radius: 10px;
+}
+QFrame#RecoveryVerification[state="complete"] { border-color: rgba(68, 227, 154, 170); border-left-color: #44E39A; background: rgba(5, 31, 25, 225); }
+QFrame#RecoveryVerification[state="attention"] { border-color: rgba(255, 180, 84, 170); border-left-color: #FFB454; background: rgba(39, 24, 8, 225); }
+QFrame#CockpitUtilityBar { background: rgba(5, 11, 23, 220); border: 1px solid rgba(47, 70, 111, 155); border-radius: 9px; }
+QPushButton#CockpitDisclosure { text-align: left; color: #AFC2DF; background: rgba(7, 14, 28, 210); border: 1px solid rgba(49, 75, 119, 165); border-radius: 8px; padding: 9px 12px; }
+QPushButton#CockpitDisclosure:hover, QPushButton#CockpitDisclosure:checked { color: #FFFFFF; border-color: #42DDEA; background: rgba(14, 31, 51, 225); }
+QFrame#CockpitEvidencePanel { background: transparent; border: 0; }
+QLabel#RecoveryBoundary { color: #94EBC4; background: rgba(5, 32, 25, 165); border: 1px solid rgba(68, 227, 154, 95); border-radius: 8px; padding: 8px 10px; }
+QDialog#ProjectNameDialog {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #0B1022,stop:.58 #080D1B,stop:1 #10102A);
+}
+QLabel#DialogTitle { color: #F5F7FF; font-size: 24px; font-weight: 800; }
+QLineEdit#ProjectNameInput { min-height: 34px; padding: 9px 12px; font-size: 15px; border-radius: 10px; border: 1px solid #4869B5; }
+QLineEdit#ProjectNameInput:focus { border: 2px solid #42DDEA; background: #0C1530; }
 QFrame#RequirementsBlueprint {
     background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(12,18,42,246),stop:0.5 rgba(10,25,43,244),stop:1 rgba(20,11,42,242));
     border: 1px solid rgba(82, 117, 187, 185); border-top: 2px solid rgba(53, 222, 239, 180); border-radius: 11px;

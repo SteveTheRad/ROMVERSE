@@ -4,8 +4,9 @@ import os
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QPushButton
+from PySide6.QtWidgets import QApplication, QLabel, QPushButton
 
+from romverse.core.settings import ExperienceMode
 from romverse.device.models import StorageInfo
 from romverse.diagnostics.analyzer import DiagnosticAnalyzer
 from romverse.diagnostics.history import DiagnosticHistoryStore
@@ -152,4 +153,109 @@ def test_optimizer_scan_shows_honest_indeterminate_progress(tmp_path) -> None:
     app.processEvents()
     assert center.scan_status_row.isHidden()
     assert not center.scan_progress.isVisible()
+    center.close()
+
+
+def test_recovery_cockpit_scans_local_archives_automatically(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = DiagnosticsCenter(
+        DiagnosticAnalyzer(),
+        DiagnosticHistoryStore(tmp_path),
+    )
+
+    center.set_devices([device(battery_percent=5)])
+    app.processEvents()
+
+    assert center.offline_report is not None
+    assert center.offline_report.trigger == "diagnostic-report"
+    assert center.offline_report.execution_authority == "none"
+    assert center.flight_stages[0].property("state") == "complete"
+    assert center.flight_stages[2].property("state") == "complete"
+    assert center.flight_stages[3].property("state") == "active"
+    assert center.action_plan_card is not None
+    brain_eyebrow = center.action_plan_card.findChild(QLabel, "KnowledgeBrainEyebrow")
+    assert brain_eyebrow is not None
+    assert "AUTOMATIC LOCAL SCAN" in brain_eyebrow.text()
+    center.close()
+
+
+def test_recovery_cockpit_guided_mode_folds_evidence_and_expert_reveals_it(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = DiagnosticsCenter(
+        DiagnosticAnalyzer(),
+        DiagnosticHistoryStore(tmp_path),
+    )
+    center.set_devices([device(battery_percent=5)])
+    app.processEvents()
+
+    assert center.details_container is not None
+    assert center.details_container.isHidden()
+
+    center.set_experience_mode(ExperienceMode.EXPERT)
+    app.processEvents()
+    assert not center.details_container.isHidden()
+    assert not center.utility_panel.isHidden()
+
+    center.set_experience_mode(ExperienceMode.GUIDED)
+    app.processEvents()
+    assert center.details_container.isHidden()
+    assert center.utility_panel.isHidden()
+    center.close()
+
+
+def test_recovery_cockpit_compares_fresh_evidence_after_guided_handoff(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = DiagnosticsCenter(
+        DiagnosticAnalyzer(),
+        DiagnosticHistoryStore(tmp_path),
+    )
+    center.set_devices([device(battery_percent=5)])
+    center.mark_repair_handoff("battery.low")
+
+    assert center.flight_stages[4].property("state") == "active"
+    assert "will compare fresh evidence" in center.verification_detail.text()
+
+    center.set_devices([device(battery_percent=80)])
+    app.processEvents()
+
+    assert center.verification_banner.property("state") == "complete"
+    assert "no longer reports" in center.verification_title.text()
+    assert "not proof" in center.verification_detail.text()
+    assert center.flight_stages[4].property("state") == "complete"
+    center.close()
+
+
+def test_recovery_cockpit_remains_readable_without_horizontal_scrolling(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = DiagnosticsCenter(
+        DiagnosticAnalyzer(),
+        DiagnosticHistoryStore(tmp_path),
+    )
+    center.resize(900, 700)
+    center.show()
+    center.set_devices([device(battery_percent=5)])
+    app.processEvents()
+
+    assert center.body.horizontalScrollBar().maximum() == 0
+    assert center.action_plan_card is not None
+    assert center.action_plan_card.width() <= center.body.viewport().width()
+    center.close()
+
+
+def test_recovery_cockpit_rejects_outcome_comparison_from_a_different_phone(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = DiagnosticsCenter(
+        DiagnosticAnalyzer(),
+        DiagnosticHistoryStore(tmp_path),
+    )
+    center.set_devices([device(serial="PHONE-A", battery_percent=5)])
+    center.mark_repair_handoff("battery.low")
+
+    center.set_devices([device(serial="PHONE-B", battery_percent=80)])
+    app.processEvents()
+
+    assert center.verification_banner.property("state") == "attention"
+    assert "original phone" in center.verification_title.text()
+    assert "different device" in center.verification_detail.text()
+    assert center._pending_verification_finding == "battery.low"
     center.close()

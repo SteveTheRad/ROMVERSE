@@ -118,6 +118,9 @@ ORIGIN_SCENES = (
             "BUILD. OPTIMIZE. PERFECT.\n\n"
             "Created by SteveTheRad\n"
             "A RadForge Labs Project\n\n"
+            "To every supporter, tester, builder, curious newcomer, and person who shared an idea: "
+            "thank you. Your time, trust, patience, and belief are part of this universe.\n\n"
+            "ROMVERSE is being built for you—and it is better because you are here.\n\n"
             "Made for the people who refuse to stop tinkering.\n\n"
             "27.08.2026"
         ),

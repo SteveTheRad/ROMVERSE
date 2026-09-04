@@ -45,8 +45,31 @@ from romverse.ui.guided_mission import GENESIS_STAGE_ACTIONS, GuidedBuildMission
 from romverse.ui.guided_recipe import RecipeForgeSequence
 from romverse.ui.knowledge_center import KnowledgeGuideDialog
 from romverse.ui.partition_workspace import PartitionWorkspace, _filesystem_required_tools
-from romverse.ui.rom_studio import FirmwareImportResult, ProjectWorker, RomStudio
+from romverse.ui.rom_studio import (
+    FirmwareImportResult,
+    ProjectNameDialog,
+    ProjectWorker,
+    RomStudio,
+)
 from tests.test_guardian_manifest_review import _prepared as _prepared_guardian_manifest
+
+
+def test_new_project_dialog_opens_readable_and_validates_name() -> None:
+    app = QApplication.instance() or QApplication([])
+    dialog = ProjectNameDialog()
+
+    assert dialog.minimumWidth() >= 620
+    assert dialog.minimumHeight() >= 340
+    assert dialog.windowTitle() == "New ROMVERSE project"
+    assert not dialog.create_button.isEnabled()
+
+    dialog.name_input.setText("  HyperOS 4 daily driver  ")
+    app.processEvents()
+
+    assert dialog.create_button.isEnabled()
+    assert dialog.project_name == "HyperOS 4 daily driver"
+    assert dialog.hint.text() == "Ready to create"
+    dialog.close()
 
 
 def test_rom_studio_project_card_uses_authoritative_genesis_state_and_ignores_legacy_summary(

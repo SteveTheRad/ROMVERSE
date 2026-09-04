@@ -326,6 +326,18 @@ archive seed bundles; its verified 454-file, 356,042,016-expanded-byte portable 
 bytes with SHA-256 `b9fffe5e773ba7173a2c83fb2a0da5a4b95f802cf204dbb60cec97cce92c64ac`.
 No phone action was performed.
 
+Archive checkpoint `4597445` extends that exact mainline to 245 offline records from 150 attributed
+sources, including typed Fastboot/fastbootd, dynamic-partition, snapshot, slot, ADB transport,
+host-tool regression and model-scoped community failure evidence. The complete 1,693-test suite,
+focused archive/consumer suites, and Ruff/diff gates pass. The separately installed Python 3.14
+smoke sees all 245 records and the clean-checkout frozen app launches with the committed fourth
+archive seed. Its 251-member wheel is 7,927,886 bytes with SHA-256
+`5ae738644dac772a95968749d5a4b649e79e4c30376b9e7ff8f9d59cd750f5de`. The verified 455-file,
+356,111,734-expanded-byte portable ZIP is 146,895,067 bytes with SHA-256
+`6178b256714825cfd722c688c7af62e4e02d0c159c3ef6ceca2ef1ef7a48d21d`. These records diagnose
+and explain; they cannot authorize, construct, or execute a phone-changing operation. No phone
+action was performed.
+
 ## Required gates
 
 1. Run the complete `pytest`, `ruff check .`, and `ruff format --check .` gates on supported Linux

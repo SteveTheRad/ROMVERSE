@@ -1628,7 +1628,20 @@ The product-wide continuation target and definition of done are recorded in
   reconcile-evidence instruction; neither lineage is selected for publication. Device Atlas disables
   the repeated create button after an exact identity draft is already recorded, removing another
   circular step.
-- All 1,881 Desktop/Python tests and the complete Ruff check gate pass, including core draft,
+- The next Foundry revision now binds the exact source to the current sealed Device DNA profile.
+  Device Atlas offers one explicit attach action and records an immutable `0.3.0` revision containing
+  only allowlisted privacy-safe device identity, hardware SKU, SoC, firmware, slot/partition
+  architecture, region and measured partition records. Region is marked observation-only and never
+  enters Pack match patterns; serials, accounts, paths, credentials, approvals, commands and private
+  files are structurally unavailable to the projection. Reloading reopens the project-local sealed
+  profile and requires the digest and complete projection to match, so even a manually edited and
+  newly content-addressed DNA claim is rejected as an inventory issue. The previous revision remains
+  intact and execution/publication authority stays `none`.
+- A themed 1408-by-422 direct render of a genuine sealed-profile draft confirms the 3/6 experimental
+  state, two-row lane alignment, source/DNA lineage, observation-only region text, measured source
+  versus DNA partition counts, conflict/rejection totals and the permanent zero-authority footer are
+  readable without clipping.
+- All 1,883 Desktop/Python tests and the complete Ruff check gate pass, including core draft,
   Foundry inventory, Device Atlas UI, validation, requirements, Companion parity and navigation
   coverage. A themed 1200-by-600 direct panel
   render confirms the cyan-violet blueprint, two rows of evidence lanes, long identity text, state

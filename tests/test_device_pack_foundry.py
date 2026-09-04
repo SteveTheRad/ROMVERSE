@@ -1,15 +1,21 @@
 from __future__ import annotations
 
 import json
+from importlib.resources import files
 from pathlib import Path
 
 import pytest
 
+from romverse.device.dna import DeviceDnaService
 from romverse.device_packs.drafts import DevicePackDraftService
 from romverse.device_packs.foundry import (
     DevicePackFoundryService,
     FoundryEvidenceState,
 )
+from romverse.device_packs.registry import DevicePackRegistry
+from romverse.device_packs.requirements import ProjectSourceRequirements
+from tests.test_device_dna import _device as _dna_device
+from tests.test_device_dna import _project as _dna_project
 
 
 def _request(pack_id: str = "example.model.identity") -> dict[str, object]:
@@ -107,6 +113,71 @@ def test_foundry_promotes_only_measured_source_lanes_not_flash_authority(
     assert revision.lanes[3].state is FoundryEvidenceState.PARTIAL
     assert revision.lanes[4].state is FoundryEvidenceState.PENDING
     assert revision.execution_authority == "none"
+
+
+def test_foundry_illuminates_sealed_device_dna_without_treating_region_as_matcher(
+    tmp_path: Path,
+) -> None:
+    store, dna_registry, project, inspection = _dna_project(tmp_path)
+    device = _dna_device()
+    profile = DeviceDnaService(store, dna_registry).refresh(
+        project.project_id,
+        device,
+        inspection,
+    )
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    seed = next(pack for pack in registry.packs if pack.pack_id == "xiaomi.hyperos")
+    source = ProjectSourceRequirements(
+        project.project_id,
+        project.name,
+        project.original.sha256,
+        "xiaomi.hyperos",
+        "ota-payload",
+        "b" * 64,
+        "c" * 64,
+        "project-local-build-evidence-only",
+        "Xiaomi",
+        "popsicle",
+        "OS4.0.0.23.XPBCNXM",
+        len(profile.partitions),
+        ("Python", "Payload Dumper", "AVBTool"),
+    )
+    drafts = store.workspace / "device_pack_drafts"
+    service = DevicePackDraftService()
+    request = service.request_from_project_source(seed, device, source, device_dna=profile)
+    service.export(
+        request,
+        drafts,
+        boundary=store.workspace,
+    )
+
+    inventory = DevicePackFoundryService().inspect(drafts, boundary=store.workspace)
+
+    revision = inventory.revisions[0]
+    assert revision.version == "0.3.0"
+    assert revision.device_dna_attached
+    assert revision.device_dna_profile_digest == profile.profile_digest
+    assert revision.device_dna_fact_count > 10
+    assert revision.device_dna_partition_count == 1
+    assert revision.device_dna_region == "China"
+    assert revision.lanes[1].state is FoundryEvidenceState.EVIDENCED
+    assert "observation only" in revision.lanes[1].detail
+    assert revision.lanes[3].state is FoundryEvidenceState.PARTIAL
+    assert revision.evidenced_lane_count == 3
+    assert revision.execution_authority == "none"
+
+    forged = json.loads(json.dumps(request))
+    region = next(
+        fact
+        for fact in forged["device_dna_evidence"]["facts"]
+        if fact["fact_id"] == "software.region"
+    )
+    region["value"] = "Forged region"
+    service.export(forged, drafts, boundary=store.workspace)
+    reloaded = DevicePackFoundryService().inspect(drafts, boundary=store.workspace)
+    assert len(reloaded.revisions) == 1
+    assert len(reloaded.issues) == 1
+    assert "sealed workspace profile" in reloaded.issues[0].reason
 
 
 def test_foundry_detects_distinct_pack_lineages_claiming_the_same_identity(

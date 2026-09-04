@@ -42,6 +42,11 @@ class FoundryDraftRevision:
     build_id: str
     partition_count: int
     source_avb_attached: bool
+    device_dna_attached: bool
+    device_dna_profile_digest: str
+    device_dna_fact_count: int
+    device_dna_partition_count: int
+    device_dna_region: str
     missing_flash_contracts: tuple[str, ...]
     lanes: tuple[FoundryEvidenceLane, ...]
     publication_status: str
@@ -127,6 +132,7 @@ class DevicePackFoundryInventory:
             key=lambda revision: (
                 revision.evidenced_lane_count,
                 revision.source_avb_attached,
+                revision.device_dna_attached,
                 revision.source_bound,
                 revision.sha256,
             ),
@@ -189,6 +195,7 @@ class DevicePackFoundryService:
                     revision.pack_id,
                     revision.evidenced_lane_count,
                     revision.source_avb_attached,
+                    revision.device_dna_attached,
                     revision.sha256,
                 ),
                 reverse=True,
@@ -257,9 +264,16 @@ class DevicePackFoundryService:
             or "cannot activate" not in joined_notes
         ):
             raise ValueError("Device Pack draft safety declaration is incomplete")
-        review = (
-            DevicePackDraftService()._review_document(path, document) if has_context else None
-        )
+        draft_service = DevicePackDraftService()
+        review = draft_service._review_document(path, document) if has_context else None
+        if (
+            review is not None
+            and review.device_dna_attached
+            and not draft_service.verify_device_dna_attachment(document, workspace=boundary)
+        ):
+            raise ValueError(
+                "Device DNA attachment no longer matches the sealed workspace profile"
+            )
         lanes = self._lanes(pack, review)
         return FoundryDraftRevision(
             path,
@@ -275,6 +289,11 @@ class DevicePackFoundryService:
             review.build_id if review is not None else "",
             review.partition_count if review is not None else 0,
             review.source_avb_attached if review is not None else False,
+            review.device_dna_attached if review is not None else False,
+            review.device_dna_profile_digest if review is not None else "",
+            review.device_dna_fact_count if review is not None else 0,
+            review.device_dna_partition_count if review is not None else 0,
+            review.device_dna_region if review is not None else "",
             (
                 review.missing_flash_contracts
                 if review is not None
@@ -289,6 +308,7 @@ class DevicePackFoundryService:
     def _lanes(pack, review) -> tuple[FoundryEvidenceLane, ...]:
         source_bound = review is not None
         avb_bound = source_bound and review.source_avb_attached
+        dna_bound = source_bound and review.device_dna_attached
         alias_count = len(set((*pack.model_patterns, *pack.product_patterns)))
         return (
             FoundryEvidenceLane(
@@ -299,16 +319,31 @@ class DevicePackFoundryService:
             ),
             FoundryEvidenceLane(
                 "variants",
-                "Variant aliases",
-                FoundryEvidenceState.PARTIAL,
-                f"{alias_count} exact model/product identity value(s); region is evidence, not a matcher.",
+                "Observed variant",
+                (
+                    FoundryEvidenceState.EVIDENCED
+                    if dna_bound
+                    else FoundryEvidenceState.PARTIAL
+                ),
+                (
+                    f"Sealed DNA {review.device_dna_profile_digest[:12]}… contributes "
+                    f"{review.device_dna_fact_count} privacy-safe fact(s); "
+                    f"region {review.device_dna_region or 'unconfirmed'} remains observation only."
+                    if dna_bound
+                    else f"{alias_count} exact model/product identity value(s); region is evidence, not a matcher."
+                ),
             ),
             FoundryEvidenceLane(
                 "firmware",
                 "Factory firmware",
                 FoundryEvidenceState.EVIDENCED if source_bound else FoundryEvidenceState.PENDING,
                 (
-                    f"Build {review.build_id} is bound to protected source {review.source_sha256[:12]}…."
+                    f"Build {review.build_id} is bound to protected source {review.source_sha256[:12]}…"
+                    + (
+                        f" and sealed Device DNA {review.device_dna_profile_digest[:12]}…"
+                        if dna_bound
+                        else "."
+                    )
                     if source_bound
                     else "Attach a genuine protected factory/OTA source and source blueprint."
                 ),
@@ -322,8 +357,12 @@ class DevicePackFoundryService:
                 if source_bound
                 else FoundryEvidenceState.PENDING,
                 (
-                    f"{review.partition_count} partition record(s); OEM AVB topology attached."
+                    f"{review.partition_count} source partition record(s), "
+                    f"{review.device_dna_partition_count} DNA record(s); OEM AVB topology attached."
                     if avb_bound
+                    else f"{review.partition_count} source partition record(s), "
+                    f"{review.device_dna_partition_count} DNA record(s); OEM AVB topology pending."
+                    if dna_bound
                     else f"{review.partition_count} partition record(s); OEM AVB topology pending."
                     if source_bound
                     else "Partition, slot, dynamic-group and AVB evidence are pending."

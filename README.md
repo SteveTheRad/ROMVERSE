@@ -296,6 +296,16 @@ visible evidence but is never used alone as the compatibility matcher. The panel
 that publication, build, flash and phone authority are none, and a recorded model draft disables the
 repeated create action instead of leading the user through the same loop again.
 
+When the exact project also has a current sealed Device DNA profile, Device Atlas offers one direct
+**Attach sealed Device DNA revision** action. The new immutable `0.3.0` draft revision carries only an
+allowlisted projection of model/codename, hardware SKU, SoC, firmware, slot/partition architecture,
+region and measured partition facts. Serial numbers, accounts, paths, credentials, approvals,
+commands and private files are structurally excluded; region is explicitly observation-only and is
+never copied into match rules. On every reload, ROMVERSE reopens the project-local sealed DNA profile
+and requires the complete projection and digest to match. A manually edited and newly content-addressed
+claim is therefore rejected by the Foundry rather than being treated as stronger evidence. The prior
+draft remains in revision history and no capability or phone authority changes.
+
 Device Atlas can export an exact physical-test challenge and import the resulting detached
 Ed25519 envelope. Accepted evidence is stored in a bounded workspace vault, reverified on every
 read, and shared consistently with Genesis Sequence and Forge Control. The release trust catalog

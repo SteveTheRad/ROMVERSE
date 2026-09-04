@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from romverse.device.dna import DeviceDnaService
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device_packs.drafts import DevicePackDraftService
 from romverse.device_packs.registry import DevicePackRegistry
@@ -15,6 +16,8 @@ from romverse.rom.avb_evidence import (
     AvbImageEvidence,
     SourceAvbTopologyReceipt,
 )
+from tests.test_device_dna import _device as _dna_device
+from tests.test_device_dna import _project as _dna_project
 
 
 def _request() -> dict[str, object]:
@@ -317,6 +320,99 @@ def test_project_source_draft_binds_local_evidence_and_lists_every_flash_contrac
     )
     with pytest.raises(ValueError, match="does not match"):
         DevicePackDraftService().request_from_project_source(pack, device, mismatched)
+
+
+def test_project_draft_attaches_only_sealed_privacy_safe_device_dna(tmp_path) -> None:
+    store, dna_registry, project, inspection = _dna_project(tmp_path)
+    device = _dna_device()
+    profile = DeviceDnaService(store, dna_registry).refresh(
+        project.project_id,
+        device,
+        inspection,
+    )
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    seed = next(pack for pack in registry.packs if pack.pack_id == "xiaomi.hyperos")
+    source = ProjectSourceRequirements(
+        project.project_id,
+        project.name,
+        project.original.sha256,
+        "xiaomi.hyperos",
+        "ota-payload",
+        "b" * 64,
+        "c" * 64,
+        "project-local-build-evidence-only",
+        "Xiaomi",
+        "popsicle",
+        "OS4.0.0.23.XPBCNXM",
+        len(profile.partitions),
+        ("Python", "Payload Dumper", "AVBTool"),
+    )
+    service = DevicePackDraftService()
+
+    request = service.request_from_project_source(
+        seed,
+        device,
+        source,
+        device_dna=profile,
+    )
+    document = service.build_document(request)
+    encoded = json.dumps(document)
+    dna = document["draft_context"]["device_dna_evidence"]
+
+    assert request["version"] == "0.3.0"
+    assert dna["profile_digest"] == profile.profile_digest
+    assert dna["project_id"] == project.project_id
+    assert dna["source_sha256"] == project.original.sha256
+    assert dna["serial_included"] is False
+    assert dna["region_is_matcher"] is False
+    assert dna["phone_action_allowed"] is False
+    assert dna["authority"] == "device-dna-evidence-only"
+    assert {item["name"] for item in dna["partitions"]} == {"product"}
+    assert all(item["fact_id"] in service.DEVICE_DNA_FACT_IDS for item in dna["facts"])
+    assert document["match"] == {
+        "manufacturers": ["Xiaomi"],
+        "model_patterns": ["2509FPN0BC"],
+        "product_patterns": ["popsicle"],
+    }
+    assert "PRIVATE-SERIAL" not in encoded
+    assert "device.serial" not in encoded
+
+    exported = service.export(request, store.workspace / "device_pack_drafts", boundary=store.workspace)
+    review = service.load_project_draft(
+        store.workspace / "device_pack_drafts",
+        boundary=store.workspace,
+        project_id=project.project_id,
+        source_sha256=project.original.sha256,
+        blueprint_digest="b" * 64,
+    )
+    assert review is not None
+    assert review.output_path == exported.output_path
+    assert review.device_dna_attached
+    assert review.device_dna_profile_digest == profile.profile_digest
+    assert review.device_dna_partition_count == 1
+    assert review.device_dna_fact_count == len(dna["facts"])
+    assert review.device_dna_region == "China"
+
+    tampered_profile = replace(profile, profile_digest="0" * 64)
+    with pytest.raises(ValueError, match="does not match the exact project source"):
+        service.request_from_project_source(
+            seed,
+            device,
+            source,
+            device_dna=tampered_profile,
+        )
+
+    unsafe_request = json.loads(json.dumps(request))
+    unsafe_request["device_dna_evidence"]["facts"].append(
+        {
+            "fact_id": "device.serial",
+            "value": "PRIVATE-SERIAL",
+            "confidence": "high",
+            "evidence_ids": ["device.live"],
+        }
+    )
+    with pytest.raises(ValueError, match="Device DNA fact"):
+        service.build_document(unsafe_request)
 
 
 def test_draft_storage_is_private_and_rejects_linked_inputs_and_directories(tmp_path) -> None:

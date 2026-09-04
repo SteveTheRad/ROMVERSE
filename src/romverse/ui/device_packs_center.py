@@ -491,6 +491,8 @@ class DevicePacksCenter(QWidget):
         )
         if device is not None:
             self._render_live_passport(device, self.active_pack, record=False)
+        if self.active_pack is not None and self.active_report is not None:
+            self._render_pack(self.active_pack, self.active_report)
 
     @staticmethod
     def _profile_matches_device(profile: DeviceDnaProfile, device: AndroidDevice) -> bool:
@@ -1601,6 +1603,21 @@ class DevicePacksCenter(QWidget):
             self._load_current_project_draft(project_source) if project_override else None
         )
         prepared_draft = self.active_project_draft
+        current_dna = self.active_device_dna
+        dna_matches_project = bool(
+            current_dna is not None
+            and project_source is not None
+            and current_dna.project_id == project_source.project_id
+            and current_dna.source_sha256 == project_source.source_sha256
+        )
+        dna_revision_ready = bool(
+            project_override
+            and dna_matches_project
+            and (
+                prepared_draft is None
+                or prepared_draft.device_dna_profile_digest != current_dna.profile_digest
+            )
+        )
         self.active_next_action = (
             None if project_routes_suppressed else self.validation_service.next_safe_action(report)
         )
@@ -1669,6 +1686,8 @@ class DevicePacksCenter(QWidget):
         self.next_action_title = QLabel(
             "Reopen the exact project from ROM Studio"
             if project_source_stale
+            else "Attach the current sealed Device DNA revision"
+            if dna_revision_ready
             else "Exact-source Pack draft prepared"
             if prepared_draft is not None
             else "Prepare the exact-source Device Pack draft"
@@ -1679,6 +1698,10 @@ class DevicePacksCenter(QWidget):
         self.next_action_detail = QLabel(
             "The retained source receipt changed, so ROMVERSE removed every project action."
             if project_source_stale
+            else f"The exact project now has sealed Device DNA {current_dna.profile_digest[:16]}…; "
+            "record its privacy-safe hardware, firmware, slot and partition facts as a new immutable "
+            "draft revision. The existing revision is retained and no authority changes."
+            if dna_revision_ready and current_dna is not None
             else f"ROMVERSE reloaded the private draft for {prepared_draft.build_id} and its "
             f"{prepared_draft.partition_count}-partition source blueprint. This step is complete; "
             f"review the {len(prepared_draft.missing_flash_contracts)} genuinely missing flash "
@@ -1707,6 +1730,8 @@ class DevicePacksCenter(QWidget):
         self.next_action_badge = QLabel(
             "ROUTES LOCKED"
             if project_source_stale
+            else "DNA EVIDENCE READY • NEW REVISION"
+            if dna_revision_ready
             else "DRAFT VERIFIED • FLASH EVIDENCE NEXT"
             if prepared_draft is not None
             else "BUILD READY • PACK DRAFT NEXT"
@@ -1722,6 +1747,8 @@ class DevicePacksCenter(QWidget):
         self.next_action_button = QPushButton(
             "Reopen from ROM Studio"
             if project_source_stale
+            else "Attach sealed Device DNA revision"
+            if dna_revision_ready
             else "Review draft and missing evidence"
             if prepared_draft is not None
             else "Prepare exact-source Pack draft"
@@ -1732,7 +1759,10 @@ class DevicePacksCenter(QWidget):
         self.next_action_button.setToolTip(
             "Reviews the integrity-reloaded draft and its exact missing-contract checklist. "
             "It does not recreate the file, activate flashing, or make a public claim."
-            if prepared_draft is not None
+            if prepared_draft is not None and not dna_revision_ready
+            else "Creates a new immutable draft revision from the current sealed Device DNA. It "
+            "excludes serials and personal data, retains region as observation only, and grants no authority."
+            if dna_revision_ready
             else "Creates a private, source-bound Device Pack development draft with a precise "
             "missing-contract checklist. It cannot activate flashing or make a public claim."
             if project_override
@@ -1740,7 +1770,9 @@ class DevicePacksCenter(QWidget):
             "readiness report. It starts no worker, approval, build, or phone action."
         )
         self.next_action_button.setEnabled(not project_source_stale)
-        if prepared_draft is not None:
+        if dna_revision_ready:
+            self.next_action_button.clicked.connect(self._export_project_pack_draft)
+        elif prepared_draft is not None:
             self.next_action_button.clicked.connect(self._review_project_pack_draft)
         elif project_override:
             self.next_action_button.clicked.connect(self._export_project_pack_draft)
@@ -2258,6 +2290,7 @@ class DevicePacksCenter(QWidget):
                 f"Pack lineage {revision.pack_id} v{revision.version}  •  revision "
                 f"{revision.sha256[:16]}…  •  "
                 f"{'source-bound' if revision.source_bound else 'identity-only'}  •  "
+                f"{'sealed DNA attached' if revision.device_dna_attached else 'DNA pending'}  •  "
                 "region is never used as the compatibility matcher"
             )
             revision_copy.setObjectName("Muted")
@@ -2378,6 +2411,13 @@ class DevicePacksCenter(QWidget):
                 self.active_device,
                 source,
                 self._load_project_source_avb(source),
+                (
+                    self.active_device_dna
+                    if self.active_device_dna is not None
+                    and self.active_device_dna.project_id == source.project_id
+                    and self.active_device_dna.source_sha256 == source.source_sha256
+                    else None
+                ),
             )
             exported = self.draft_service.export(
                 request,
@@ -2394,7 +2434,15 @@ class DevicePacksCenter(QWidget):
                 self._render_pack(self.active_pack, self.active_report)
             self.next_action_feedback.setText(
                 f"EXACT-SOURCE PACK DRAFT READY  •  {exported.output_path}  •  SHA-256 "
-                f"{exported.sha256[:16]}…  •  review required  •  execution authority: none"
+                f"{exported.sha256[:16]}…  •  "
+                + (
+                    "sealed privacy-safe Device DNA attached  •  "
+                    if self.active_device_dna is not None
+                    and self.active_device_dna.project_id == source.project_id
+                    and self.active_device_dna.source_sha256 == source.source_sha256
+                    else ""
+                )
+                + "review required  •  execution authority: none"
             )
             self.next_action_feedback.setObjectName("Good")
         self._repolish(self.next_action_feedback)

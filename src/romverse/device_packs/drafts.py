@@ -6,6 +6,12 @@ import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+from romverse.device.dna import (
+    DeviceDnaProfile,
+    DeviceDnaStore,
+    EvidenceConfidence,
+    validate_device_dna_profile,
+)
 from romverse.device.models import AndroidDevice
 from romverse.device_packs.models import DevicePack
 from romverse.device_packs.registry import DevicePackRegistry
@@ -16,6 +22,7 @@ from romverse.infrastructure.local_store import (
     read_json_object,
 )
 from romverse.rom.avb_evidence import SourceAvbTopologyReceipt
+from romverse.rom.projects import RomProjectStore
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,6 +48,11 @@ class DevicePackDraftReview:
     partition_count: int
     missing_flash_contracts: tuple[str, ...]
     source_avb_attached: bool
+    device_dna_attached: bool
+    device_dna_profile_digest: str
+    device_dna_fact_count: int
+    device_dna_partition_count: int
+    device_dna_region: str
 
 
 class DevicePackDraftService:
@@ -56,6 +68,40 @@ class DevicePackDraftService:
         "Exact AVB execution policy",
         "Exact stock recovery route",
         "Independent physical recovery test",
+    )
+    DEVICE_DNA_FACT_IDS = frozenset(
+        {
+            "identity.manufacturer",
+            "identity.brand",
+            "identity.model",
+            "identity.codename",
+            "identity.product",
+            "identity.vendor_device",
+            "identity.hardware_sku",
+            "soc.platform",
+            "software.android_version",
+            "software.build",
+            "software.live_incremental",
+            "firmware.ota_post_brand",
+            "firmware.ota_post_product",
+            "firmware.ota_post_device",
+            "firmware.ota_post_android",
+            "firmware.ota_post_build_id",
+            "firmware.ota_post_incremental",
+            "firmware.ota_post_sdk",
+            "firmware.ota_post_security_patch",
+            "firmware.upgrade_relationship",
+            "software.region",
+            "software.security_patch",
+            "firmware.package_format",
+            "firmware.adapter",
+            "partition.architecture",
+            "partition.ab_scheme",
+            "boot.active_slot",
+            "security.verified_boot",
+            "capability.fastboot",
+            "capability.recovery",
+        }
     )
 
     def load_request(self, path: Path) -> dict[str, object]:
@@ -124,6 +170,7 @@ class DevicePackDraftService:
         device: AndroidDevice,
         source: ProjectSourceRequirements,
         source_avb: SourceAvbTopologyReceipt | None = None,
+        device_dna: DeviceDnaProfile | None = None,
     ) -> dict[str, object]:
         """Bind a review draft to one revalidated local project source and phone identity."""
 
@@ -150,6 +197,7 @@ class DevicePackDraftService:
             "partition_count": source.partition_count,
             "required_tools": list(source.required_tools),
         }
+        request["version"] = "0.2.0"
         if source_avb is not None:
             receipt_payload = asdict(source_avb)
             receipt_payload.pop("receipt_digest", None)
@@ -207,6 +255,13 @@ class DevicePackDraftService:
                 "authority": "source-evidence-only",
                 "phone_changed": False,
             }
+        if device_dna is not None:
+            request["device_dna_evidence"] = self._device_dna_from_profile(
+                device_dna,
+                device,
+                source,
+            )
+            request["version"] = "0.3.0"
         notes = request["notes"]
         assert isinstance(notes, list)
         notes.extend(
@@ -223,6 +278,13 @@ class DevicePackDraftService:
                 "This exact-source draft is a development handoff, not a flash authorization or public compatibility claim.",
             )
         )
+        if device_dna is not None:
+            notes.extend(
+                (
+                    f"Sealed Device DNA {device_dna.profile_digest[:16]}… contributes only privacy-safe measured facts and partition evidence.",
+                    "Region is retained as an observed firmware fact only and is never added to Device Pack match rules.",
+                )
+            )
         return request
 
     def build_document(self, request: dict[str, object]) -> dict[str, object]:
@@ -240,6 +302,7 @@ class DevicePackDraftService:
             "notes",
             "source_evidence",
             "source_avb_evidence",
+            "device_dna_evidence",
         }
         unexpected = sorted(set(request) - allowed)
         if unexpected:
@@ -259,6 +322,17 @@ class DevicePackDraftService:
         source_avb_evidence = self._validated_source_avb_evidence(
             request.get("source_avb_evidence"), source_evidence
         )
+        device_dna_evidence = self._validated_device_dna_evidence(
+            request.get("device_dna_evidence"), source_evidence
+        )
+        dna_fact_count = (
+            len(device_dna_evidence["facts"]) if device_dna_evidence is not None else 0
+        )
+        dna_partition_count = (
+            len(device_dna_evidence["partitions"])
+            if device_dna_evidence is not None
+            else 0
+        )
         source_detail = (
             f"Strict project-local {source_evidence['source_kind']} evidence binds build "
             f"{source_evidence['build_id']} and {source_evidence['partition_count']} observed "
@@ -268,6 +342,11 @@ class DevicePackDraftService:
         )
         partition_detail = (
             f"A source blueprint records {source_evidence['partition_count']} partitions"
+            + (
+                f" and sealed Device DNA contributes {dna_partition_count} measured partition record(s)"
+                if device_dna_evidence is not None
+                else ""
+            )
             + (
                 f" and verified OEM AVB topology records "
                 f"{len(source_avb_evidence['top_level_chain_partitions'])} top-level chains, but "
@@ -299,7 +378,11 @@ class DevicePackDraftService:
                     "label": "Proposed exact model identity",
                     "status": "limited",
                     "scope": "evidence_only",
-                    "detail": "Connected Android properties are recorded for maintainer review; direct official-source corroboration is still required.",
+                    "detail": (
+                        f"Sealed Device DNA contributes {dna_fact_count} privacy-safe measured facts for maintainer review; direct official-source corroboration is still required."
+                        if device_dna_evidence is not None
+                        else "Connected Android properties are recorded for maintainer review; direct official-source corroboration is still required."
+                    ),
                 },
                 {
                     "capability_id": "firmware_contract",
@@ -345,7 +428,288 @@ class DevicePackDraftService:
             }
             if source_avb_evidence is not None:
                 document["draft_context"]["source_avb_evidence"] = source_avb_evidence
+            if device_dna_evidence is not None:
+                document["draft_context"]["device_dna_evidence"] = device_dna_evidence
         return document
+
+    def _device_dna_from_profile(
+        self,
+        profile: DeviceDnaProfile,
+        device: AndroidDevice,
+        source: ProjectSourceRequirements,
+    ) -> dict[str, object]:
+        if (
+            not validate_device_dna_profile(profile)
+            or profile.schema_version != 2
+            or profile.project_id != source.project_id
+            or profile.source_sha256 != source.source_sha256
+            or profile.bootloader_relock_permitted
+        ):
+            raise ValueError("Device DNA does not match the exact project source")
+        facts = [
+            {
+                "fact_id": fact.fact_id,
+                "value": fact.value,
+                "confidence": fact.confidence.value,
+                "evidence_ids": list(fact.evidence_ids),
+            }
+            for fact in profile.facts
+            if fact.fact_id in self.DEVICE_DNA_FACT_IDS
+            and fact.confidence is not EvidenceConfidence.UNCONFIRMED
+            and fact.value != "Unconfirmed"
+        ]
+        fact_map = {str(fact["fact_id"]): fact for fact in facts}
+        manufacturer = fact_map.get("identity.manufacturer")
+        model = fact_map.get("identity.model")
+        codename = fact_map.get("identity.codename")
+        live_model = str(model["value"]) if model is not None else ""
+        live_codename = str(codename["value"]) if codename is not None else ""
+        live_manufacturer = str(manufacturer["value"]) if manufacturer is not None else ""
+        device_aliases = {
+            _normalized(value)
+            for value in (device.codename, device.product, device.vendor_device)
+            if value.strip()
+        }
+        if (
+            manufacturer is None
+            or model is None
+            or codename is None
+            or "device.live" not in model["evidence_ids"]
+            or "device.live" not in codename["evidence_ids"]
+            or _normalized(live_manufacturer) != _normalized(source.manufacturer)
+            or _normalized(live_model) != _normalized(device.model)
+            or _normalized(live_codename) not in device_aliases
+            or _normalized(live_codename) != _normalized(source.codename)
+        ):
+            raise ValueError("Device DNA needs exact live model and codename evidence")
+        return self._device_dna_projection(profile)
+
+    def _device_dna_projection(self, profile: DeviceDnaProfile) -> dict[str, object]:
+        facts = [
+            {
+                "fact_id": fact.fact_id,
+                "value": fact.value,
+                "confidence": fact.confidence.value,
+                "evidence_ids": list(fact.evidence_ids),
+            }
+            for fact in profile.facts
+            if fact.fact_id in self.DEVICE_DNA_FACT_IDS
+            and fact.confidence is not EvidenceConfidence.UNCONFIRMED
+            and fact.value != "Unconfirmed"
+        ]
+        partitions = [
+            {
+                "name": partition.name,
+                "size_bytes": partition.size_bytes,
+                "filesystem": partition.filesystem,
+                "group": partition.group,
+                "confidence": partition.confidence.value,
+                "evidence_ids": list(partition.evidence_ids),
+            }
+            for partition in profile.partitions
+            if partition.confidence is not EvidenceConfidence.UNCONFIRMED
+        ]
+        return {
+            "schema_version": 1,
+            "project_id": profile.project_id,
+            "source_sha256": profile.source_sha256,
+            "profile_digest": profile.profile_digest,
+            "facts": facts,
+            "partitions": partitions,
+            "authority": "device-dna-evidence-only",
+            "serial_included": False,
+            "region_is_matcher": False,
+            "phone_action_allowed": False,
+        }
+
+    def verify_device_dna_attachment(
+        self,
+        document: dict[str, object],
+        *,
+        workspace: Path,
+    ) -> bool:
+        """Rebind an attached projection to the current sealed project profile."""
+
+        context = document.get("draft_context")
+        if not isinstance(context, dict):
+            return False
+        attached = context.get("device_dna_evidence")
+        if attached is None:
+            return True
+        if not isinstance(attached, dict):
+            return False
+        source_keys = {
+            "project_id",
+            "source_sha256",
+            "source_kind",
+            "blueprint_digest",
+            "plan_digest",
+            "authority",
+            "manufacturer",
+            "codename",
+            "build_id",
+            "partition_count",
+            "required_tools",
+        }
+        if not source_keys.issubset(context):
+            return False
+        try:
+            source = self._validated_source_evidence(
+                {key: context[key] for key in source_keys}
+            )
+            assert source is not None
+            profile = DeviceDnaStore(RomProjectStore(workspace)).load(
+                str(source["project_id"])
+            )
+            if (
+                profile is None
+                or profile.profile_digest != str(attached.get("profile_digest", ""))
+                or profile.source_sha256 != source["source_sha256"]
+            ):
+                return False
+            expected = self._validated_device_dna_evidence(
+                self._device_dna_projection(profile),
+                source,
+            )
+        except (OSError, TypeError, ValueError):
+            return False
+        return expected == attached
+
+    def _validated_device_dna_evidence(
+        self,
+        value: object,
+        source_evidence: dict[str, object] | None,
+    ) -> dict[str, object] | None:
+        if value is None:
+            return None
+        expected = {
+            "schema_version",
+            "project_id",
+            "source_sha256",
+            "profile_digest",
+            "facts",
+            "partitions",
+            "authority",
+            "serial_included",
+            "region_is_matcher",
+            "phone_action_allowed",
+        }
+        if source_evidence is None or not isinstance(value, dict) or set(value) != expected:
+            raise ValueError("Device DNA evidence requires exact project source evidence")
+        raw_facts = value.get("facts")
+        raw_partitions = value.get("partitions")
+        if (
+            value.get("schema_version") != 1
+            or value.get("project_id") != source_evidence["project_id"]
+            or value.get("source_sha256") != source_evidence["source_sha256"]
+            or not _sha256(value.get("profile_digest"))
+            or value.get("authority") != "device-dna-evidence-only"
+            or value.get("serial_included") is not False
+            or value.get("region_is_matcher") is not False
+            or value.get("phone_action_allowed") is not False
+            or not isinstance(raw_facts, list)
+            or not 3 <= len(raw_facts) <= len(self.DEVICE_DNA_FACT_IDS)
+            or not isinstance(raw_partitions, list)
+            or len(raw_partitions) > 256
+        ):
+            raise ValueError("Device DNA evidence is incomplete or unsafe")
+        facts: list[dict[str, object]] = []
+        for item in raw_facts:
+            if not isinstance(item, dict) or set(item) != {
+                "fact_id",
+                "value",
+                "confidence",
+                "evidence_ids",
+            }:
+                raise ValueError("Device DNA fact fields are invalid")
+            fact_id = item.get("fact_id")
+            confidence = item.get("confidence")
+            evidence_ids = _string_list(
+                item.get("evidence_ids"), "Device DNA evidence IDs", allow_empty=True
+            )
+            if (
+                fact_id not in self.DEVICE_DNA_FACT_IDS
+                or confidence not in {"verified", "high", "medium", "low"}
+                or not _bounded_text(item.get("value"), 1_024)
+                or len(evidence_ids) > 16
+                or len(evidence_ids) != len(set(evidence_ids))
+                or any(re.fullmatch(r"[a-z0-9][a-z0-9._-]{0,79}", name) is None for name in evidence_ids)
+            ):
+                raise ValueError("Device DNA fact is incomplete or unsafe")
+            facts.append(
+                {
+                    "fact_id": fact_id,
+                    "value": item["value"],
+                    "confidence": confidence,
+                    "evidence_ids": list(evidence_ids),
+                }
+            )
+        fact_ids = [str(item["fact_id"]) for item in facts]
+        fact_map = {str(item["fact_id"]): item for item in facts}
+        if len(fact_ids) != len(set(fact_ids)) or not {
+            "identity.manufacturer",
+            "identity.model",
+            "identity.codename",
+        }.issubset(fact_map):
+            raise ValueError("Device DNA exact identity facts are incomplete")
+        if (
+            _normalized(str(fact_map["identity.manufacturer"]["value"]))
+            != _normalized(str(source_evidence["manufacturer"]))
+            or _normalized(str(fact_map["identity.codename"]["value"]))
+            != _normalized(str(source_evidence["codename"]))
+        ):
+            raise ValueError("Device DNA identity does not match the project source")
+        partitions: list[dict[str, object]] = []
+        for item in raw_partitions:
+            if not isinstance(item, dict) or set(item) != {
+                "name",
+                "size_bytes",
+                "filesystem",
+                "group",
+                "confidence",
+                "evidence_ids",
+            }:
+                raise ValueError("Device DNA partition fields are invalid")
+            size = item.get("size_bytes")
+            evidence_ids = _string_list(
+                item.get("evidence_ids"), "partition evidence IDs", allow_empty=True
+            )
+            if (
+                re.fullmatch(r"[a-z0-9][a-z0-9._-]{0,79}", str(item.get("name", ""))) is None
+                or (size is not None and (type(size) is not int or not 0 <= size < 2**63))
+                or not _bounded_text(item.get("filesystem"), 128, allow_empty=True)
+                or not _bounded_text(item.get("group"), 128, allow_empty=True)
+                or item.get("confidence") not in {"verified", "high", "medium", "low"}
+                or len(evidence_ids) > 16
+                or len(evidence_ids) != len(set(evidence_ids))
+                or any(re.fullmatch(r"[a-z0-9][a-z0-9._-]{0,79}", name) is None for name in evidence_ids)
+            ):
+                raise ValueError("Device DNA partition is incomplete or unsafe")
+            partitions.append(
+                {
+                    "name": item["name"],
+                    "size_bytes": size,
+                    "filesystem": item["filesystem"],
+                    "group": item["group"],
+                    "confidence": item["confidence"],
+                    "evidence_ids": list(evidence_ids),
+                }
+            )
+        names = [str(item["name"]) for item in partitions]
+        if len(names) != len(set(names)):
+            raise ValueError("Device DNA partition names must be unique")
+        return {
+            "schema_version": 1,
+            "project_id": value["project_id"],
+            "source_sha256": value["source_sha256"],
+            "profile_digest": value["profile_digest"],
+            "facts": facts,
+            "partitions": partitions,
+            "authority": "device-dna-evidence-only",
+            "serial_included": False,
+            "region_is_matcher": False,
+            "phone_action_allowed": False,
+        }
 
     def _validated_source_avb_evidence(
         self,
@@ -570,6 +934,11 @@ class DevicePackDraftService:
                     maximum_bytes=self.MAXIMUM_REQUEST_BYTES,
                 )
                 review = self._review_document(path, document)
+                if review.device_dna_attached and not self.verify_device_dna_attachment(
+                    document,
+                    workspace=boundary,
+                ):
+                    continue
             except (LocalStoreError, OSError, ValueError):
                 continue
             if (
@@ -583,6 +952,7 @@ class DevicePackDraftService:
         reviews.sort(
             key=lambda item: (
                 item.source_avb_attached,
+                item.device_dna_attached,
                 item.sha256,
             ),
             reverse=True,
@@ -638,12 +1008,18 @@ class DevicePackDraftService:
         }
         if "source_avb_evidence" in context:
             expected_context.add("source_avb_evidence")
+        if "device_dna_evidence" in context:
+            expected_context.add("device_dna_evidence")
         if set(context) != expected_context:
             raise ValueError("Device Pack draft context fields are invalid")
         source = self._validated_source_evidence({key: context[key] for key in source_keys})
         assert source is not None
         source_avb = self._validated_source_avb_evidence(
             context.get("source_avb_evidence"),
+            source,
+        )
+        device_dna = self._validated_device_dna_evidence(
+            context.get("device_dna_evidence"),
             source,
         )
         missing = _string_list(context.get("missing_flash_contracts"), "missing contracts")
@@ -676,6 +1052,17 @@ class DevicePackDraftService:
             partition_count=int(source["partition_count"]),
             missing_flash_contracts=missing,
             source_avb_attached=source_avb is not None,
+            device_dna_attached=device_dna is not None,
+            device_dna_profile_digest=(
+                str(device_dna["profile_digest"]) if device_dna is not None else ""
+            ),
+            device_dna_fact_count=(len(device_dna["facts"]) if device_dna is not None else 0),
+            device_dna_partition_count=(
+                len(device_dna["partitions"]) if device_dna is not None else 0
+            ),
+            device_dna_region=(
+                _fact_value(device_dna, "software.region") if device_dna is not None else ""
+            ),
         )
 
 
@@ -724,6 +1111,29 @@ def _identity(value: str, label: str) -> str:
 
 def _sha256(value: object) -> bool:
     return isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value) is not None
+
+
+def _bounded_text(value: object, maximum: int, *, allow_empty: bool = False) -> bool:
+    return bool(
+        isinstance(value, str)
+        and (allow_empty or bool(value))
+        and len(value) <= maximum
+        and all(character.isprintable() or character == "\t" for character in value)
+    )
+
+
+def _normalized(value: str) -> str:
+    return " ".join(value.casefold().split())
+
+
+def _fact_value(evidence: dict[str, object], fact_id: str) -> str:
+    facts = evidence.get("facts")
+    if not isinstance(facts, list):
+        return ""
+    for fact in facts:
+        if isinstance(fact, dict) and fact.get("fact_id") == fact_id:
+            return str(fact.get("value", ""))
+    return ""
 
 
 def _identifier_slug(value: str) -> str:

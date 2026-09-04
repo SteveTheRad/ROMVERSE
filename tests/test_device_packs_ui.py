@@ -186,19 +186,16 @@ def test_studio_handoff_scopes_requirements_to_current_strict_source_blueprint(
         SourceRunner(),
     ).prepare(project.project_id)
     center = DevicePacksCenter(registry, store.workspace, tool_statuses=statuses)
-    center.set_devices(
-        [
-            AndroidDevice(
-                "private-current-source",
-                DeviceState.DEVICE,
-                brand="Xiaomi",
-                manufacturer="Xiaomi",
-                model="2509FPN0BC",
-                product="popsicle_global",
-                codename="popsicle",
-            )
-        ]
+    device = AndroidDevice(
+        "private-current-source",
+        DeviceState.DEVICE,
+        brand="Xiaomi",
+        manufacturer="Xiaomi",
+        model="2509FPN0BC",
+        product="popsicle_global",
+        codename="popsicle",
     )
+    center.set_devices([device])
 
     assert center.open_rom_studio_project(
         project.project_id,
@@ -234,9 +231,22 @@ def test_studio_handoff_scopes_requirements_to_current_strict_source_blueprint(
     labels = [label.text() for label in center.findChildren(QLabel)]
     assert any("Current HyperOS source" in label and "ota-payload" in label for label in labels)
 
+    profile = DeviceDnaService(store, registry).refresh(project.project_id, device)
+    center.set_device_dna(profile)
+    app.processEvents()
+    assert center.next_action_title.text() == "Attach the current sealed Device DNA revision"
+    assert center.next_action_badge.text() == "DNA EVIDENCE READY • NEW REVISION"
+    assert center.next_action_button.text() == "Attach sealed Device DNA revision"
+
     center.next_action_button.click()
     assert "EXACT-SOURCE PACK DRAFT READY" in center.next_action_feedback.text()
+    assert "sealed privacy-safe Device DNA attached" in center.next_action_feedback.text()
     assert center.active_project_draft is not None
+    assert center.active_project_draft.device_dna_attached
+    assert center.active_project_draft.device_dna_profile_digest == profile.profile_digest
+    assert center.active_foundry_revision is not None
+    assert center.active_foundry_revision.device_dna_attached
+    assert center.active_foundry_revision.evidenced_lane_count == 3
     assert center.next_action_title.text() == "Exact-source Pack draft prepared"
     assert center.next_action_badge.text() == "DRAFT VERIFIED • FLASH EVIDENCE NEXT"
     assert center.next_action_button.text() == "Review draft and missing evidence"
@@ -246,6 +256,9 @@ def test_studio_handoff_scopes_requirements_to_current_strict_source_blueprint(
     assert draft["draft_context"]["source_sha256"] == project.original.sha256
     assert draft["draft_context"]["partition_count"] == len(source_blueprint.partitions)
     assert draft["draft_context"]["phone_action_allowed"] is False
+    assert draft["draft_context"]["device_dna_evidence"]["profile_digest"] == profile.profile_digest
+    assert draft["draft_context"]["device_dna_evidence"]["region_is_matcher"] is False
+    assert "private-current-source" not in json.dumps(draft)
 
     assert center.open_rom_studio_project(
         project.project_id,

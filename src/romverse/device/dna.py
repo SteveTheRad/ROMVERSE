@@ -1856,6 +1856,12 @@ def _valid_profile(profile: DeviceDnaProfile) -> bool:
     )
 
 
+def validate_device_dna_profile(profile: DeviceDnaProfile) -> bool:
+    """Verify a sealed Device DNA profile before another subsystem derives evidence from it."""
+
+    return _valid_profile(profile)
+
+
 def _valid_fact(fact: DeviceDnaFact, evidence_ids: set[str]) -> bool:
     return bool(
         isinstance(fact, DeviceDnaFact)

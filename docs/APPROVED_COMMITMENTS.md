@@ -447,6 +447,10 @@ Nothing becomes Implemented and Verified merely because it is listed here.
   artifacts, detects distinct Pack IDs claiming the same exact model/product identity, ranks the
   strongest current-identity revision, and renders six honest evidence lanes without treating region
   alone as compatibility or allowing any draft into the production registry;
+  sealed project Device-DNA-to-Foundry revisions that allowlist privacy-safe identity, hardware,
+  firmware, slot/partition architecture and measured partition facts, structurally exclude serials
+  and personal/command/credential data, retain region as observation rather than a match rule, and
+  rebind the complete attached projection to the current project-local sealed profile on every load;
   Partition Atlas source-AVB inspection that rehashes the exact OTA `vbmeta` pair, distinguishes
   actual chain partitions from other descriptors, binds a strict private receipt to the payload and
   protected source, and carries it into that draft without creating signing or flash authority;

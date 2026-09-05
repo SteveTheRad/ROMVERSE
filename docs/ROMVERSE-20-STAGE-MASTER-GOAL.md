@@ -2,9 +2,37 @@
 
 Complete ROMVERSE as a production-ready Android ROM development, flashing, diagnosis, repair, optimisation, knowledge, collaboration and companion platform. Implement the following agreed stages in order. Preserve ROMVERSE's evidence-first rule: never claim that a build, flash, repair, test or release succeeded without genuine evidence.
 
+## Creator-approved execution and experience amendments — 2026-09-05
+
+The [Guided Experience Contract](ROMVERSE-GUIDED-EXPERIENCE-CONTRACT.md) is normative across all
+twenty stages. It incorporates the creator's latest approvals in ROMVERSE General chat and the
+explicit instruction in Romverse Build to adopt them and resolve conflicting older requirements.
+These amendments supersede older summaries calling for a separate Advanced mode or disabling
+Guardian in Expert Mode. They do not remove any of the twenty capabilities or lower the completion
+standard.
+
+**Maximum capability. Minimum friction. No compromise on safety.** Guided owns the journey:
+perform safe deterministic preparation automatically, diagnose interruptions, prepare and verify
+valid solutions, and continue automatically where the operation and evidence permit. Ask the user
+only for meaningful choices, consequential authorization, necessary physical actions or information
+the app cannot safely determine. Never replace an actionable solution with a generic error or a
+circular evidence checklist.
+
+Use only **Guided** and **Expert**, with one shared operation/session engine and two presentations.
+Guided is calm, spacious and outcome-focused, with technical details available on demand. Expert
+exposes the engineering workspace, pipelines, partitions, evidence, telemetry and direct controls.
+Changing presentation must never restart, duplicate, abandon or authorize an operation. Both retain
+the same exact-target, integrity, permitted-command and truthful-result protections. Risk acceptance
+does not waive those protections. **Bootloader relocking is forbidden without exception**, including
+Expert, recipes, imported procedures, AI/Copilot, repair and recovery.
+
+Keep approved, implemented, verified and released states distinct. Build and prove the representative
+end-to-end workflow before broadening support; preserve verified checkpoints. Developer release
+gates and support-evidence levels must not become unnecessary user-facing certification loops.
+
 ## 1. ROM Studio Guided Flow 2.0
 
-Redesign the core ROM Studio journey as one clear workspace: firmware on the left, connected device on the right, and a central compatibility verdict explaining why the pairing is safe, risky or incompatible. Replace circular “provide evidence” navigation with one obvious next action and expandable in-place blockers with direct solutions. Automatically scan Device DNA and detect upgrade or downgrade status. Present the journey as Scan → Match → Build → Verify → Backup → Flash → Diagnose, with polished stage transitions, meaningful progress and animated verification. Guided Mode must provide warnings and recovery choices without unnecessary lockouts. Expert Mode must remove Guardian restrictions after an explicit risk-acceptance dialog. Add automatic post-flash diagnosis and recovery assistance when booting fails.
+Redesign the core ROM Studio journey as one clear workspace: firmware on the left, connected device on the right, and a central compatibility verdict explaining why the pairing is safe, risky or incompatible. Replace circular “provide evidence” navigation with one obvious next action and expandable in-place blockers with direct solutions. Automatically scan Device DNA and detect upgrade or downgrade status. Present the journey as Scan → Match → Build → Verify → Backup → Flash → Diagnose, with polished stage transitions, meaningful progress and animated verification. Guided Mode must perform safe deterministic preparation in the background and present simple outcomes, unobtrusive progress and technical detail only on demand. It must diagnose interruptions, prepare actionable solutions, verify their result and continue automatically where safe, without unnecessary lockouts or repeated confirmations. Expert Mode exposes the full engineering controls after explicit risk acceptance while retaining the same exact-target, integrity, permitted-command and truthful-reporting protections. Neither mode may relock a bootloader. Use one shared operation session so switching modes changes presentation without restarting, duplicating or losing work. Add automatic post-flash diagnosis and recovery assistance when booting fails; unknown write outcomes require state reconstruction and a valid recovery plan, never a blind retry.
 
 ## 2. Device Intelligence Hub
 
@@ -60,11 +88,11 @@ Let users build reusable workflows without writing scripts. Drag together scan, 
 
 ## 15. Guardian Trust Centre — Security, Keys and Provenance
 
-Provide one place to understand what ROMVERSE trusts and why. Verify firmware hashes, signatures, sources and build provenance. Secure signing keys in an encrypted vault with hardware-backed storage where available. Validate Device Packs, Knowledge Archive updates, tools and application updates. Show permissions granted to connected devices and trusted computers. Maintain tamper-evident history for builds, flashes, overrides and recovery. Detect modified packages, suspicious scripts and unexpected partition operations. Distinguish evidence from assumptions and community claims. Revoke paired devices, certificates and signing authorities. Export independently verifiable audit receipts. In Guided Mode, prevent confirmed incompatibility. In Expert Mode, act as a visible adviser and evidence recorder after accepted risk without trapping users in loops. Present trusted components as illuminated seals in a celestial vault.
+Provide one place to understand what ROMVERSE trusts and why. Verify firmware hashes, signatures, sources and build provenance. Secure signing keys in an encrypted vault with hardware-backed storage where available. Validate Device Packs, Knowledge Archive updates, tools and application updates. Show permissions granted to connected devices and trusted computers. Maintain tamper-evident history for builds, flashes, overrides and recovery. Detect modified packages, suspicious scripts and unexpected partition operations. Distinguish evidence from assumptions and community claims. Revoke paired devices, certificates and signing authorities. Export independently verifiable audit receipts. Both Guided and Expert must retain protection against confirmed incompatibility, changed or invalid execution inputs, forbidden commands and fabricated success. Expert adds direct control, risk review, advice and evidence visibility; it never disables those protections. Advisory uncertainty must remain distinguishable from a failed mandatory check, with actionable alternatives instead of certification loops. Bootloader relocking is permanently forbidden across every subsystem and cannot be approved or overridden. Present trusted components as illuminated seals in a celestial vault.
 
 ## 16. Adaptive Experience System — One App for Every Skill Level
 
-Provide a clear first-run journey explaining devices, firmware and risk in plain language. Guided Mode must focus on recommendations, clear choices and automatic assistance. Advanced Mode must expose build options and detailed evidence. Expert Mode must provide direct control after explicit risk acceptance. Allow switching modes without losing progress. Show contextual explanations only when relevant. Support searchable commands and keyboard-first navigation. Offer adjustable density, text scaling, panel sizing, high contrast, colour-blind-friendly palettes and reduced motion. Supply complete screen-reader labels, focus indicators and accessible confirmation dialogs. Store display preferences separately from safety settings. Smoothly transform between a guided cockpit and professional workstation while preserving ROMVERSE identity.
+Provide a clear first-run journey explaining devices, firmware and risk in plain language. Offer only Guided and Expert modes; advanced capabilities remain available within Expert rather than as a separate third mode. Guided must be the default calm, spacious, goal-oriented experience, with automatic assistance, simple outcomes, restrained cosmic animation and technical information on demand. Expert must visibly expand into an engineering workstation with direct controls, detailed evidence, partitions, pipelines, telemetry, configurable panels and keyboard-first operation after explicit risk acceptance. Both views subscribe to the same application-owned operation session, Guardian protections and evidence. Switching modes must not restart, duplicate, abandon or authorize work, including while installation or boot observation is active. Show contextual explanations only when relevant. Support searchable commands and keyboard-first navigation. Offer adjustable density, text scaling, panel sizing, high contrast, colour-blind-friendly palettes and reduced motion. Supply complete screen-reader labels, focus indicators and accessible confirmation dialogs. Store display preferences separately from safety settings. Smoothly transform between a guided cockpit and professional workstation while preserving ROMVERSE identity and the exact approved logos.
 
 ## 17. Continuity Core — Crash-Safe Reliability Engine
 

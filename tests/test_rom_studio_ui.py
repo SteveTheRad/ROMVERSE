@@ -728,7 +728,7 @@ def test_rom_studio_renders_a_newer_same_device_firmware_as_an_upgrade_candidate
     assert "Phone changed: NO" in studio.upgrade_passport_detail.text()
     profile = studio.device_dna.profiles.load(project.project_id)
     assert profile is not None
-    assert profile.capability("guardian_flash").state is CapabilityState.UNSUPPORTED
+    assert profile.capability("guardian_flash").state is CapabilityState.UNCONFIRMED
     studio.close()
 
 
@@ -2039,7 +2039,7 @@ def test_rom_studio_auto_associates_one_live_oem_as_knowledge_only(tmp_path):
         in profile.capability("device_identity").detail
     )
     assert profile.capability("source_adapter").state is CapabilityState.SUPPORTED
-    assert profile.capability("guardian_flash").state is CapabilityState.UNSUPPORTED
+    assert profile.capability("guardian_flash").state is CapabilityState.UNCONFIRMED
     assert any(
         item.source_ref == "samsung.oneui" and item.confidence.value == "medium"
         for item in profile.evidence

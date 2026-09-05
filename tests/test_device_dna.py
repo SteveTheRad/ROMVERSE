@@ -174,7 +174,8 @@ def test_recognized_source_without_exact_contract_is_caution_not_build_authority
     profile = DeviceDnaService(store, registry).refresh(project.project_id, _device(), report)
 
     assert profile.capability("rom_build").state is CapabilityState.CAUTION
-    assert profile.capability("guardian_flash").state is CapabilityState.UNSUPPORTED
+    assert profile.capability("guardian_flash").state is CapabilityState.UNCONFIRMED
+    assert "execution contract" in profile.capability("guardian_flash").detail
     assert not profile.partitions
     assert any("exact source-bound" in warning for warning in profile.warnings)
 
@@ -202,7 +203,7 @@ def test_device_dna_identifies_newer_same_device_firmware_as_candidate_only(tmp_
     assert relationship.value == ("UPGRADE CANDIDATE • OS4.0.0.23.XPBCNXM → OS4.0.0.25.XPBCNXM")
     assert relationship.confidence is EvidenceConfidence.HIGH
     assert any("version relationship only" in warning for warning in profile.warnings)
-    assert profile.capability("guardian_flash").state is CapabilityState.UNSUPPORTED
+    assert profile.capability("guardian_flash").state is CapabilityState.UNCONFIRMED
 
 
 def test_device_dna_uses_standard_ota_metadata_for_an_unknown_android_brand(tmp_path):
@@ -260,7 +261,31 @@ def test_device_dna_uses_standard_ota_metadata_for_an_unknown_android_brand(tmp_
     assert profile.fact("firmware.upgrade_relationship").value == ("UPGRADE CANDIDATE • AP4A → 200")
     assert any(item.evidence_id == "source.ota_metadata" for item in profile.evidence)
     assert profile.capability("firmware_detection").state is CapabilityState.SUPPORTED
+    assert profile.capability("guardian_flash").state is CapabilityState.UNCONFIRMED
+
+
+def test_missing_pack_does_not_soften_proven_ota_target_mismatch(tmp_path):
+    source = tmp_path / "wrong-target-update.zip"
+    with zipfile.ZipFile(source, "w") as archive:
+        archive.writestr("payload.bin", b"CrAU test payload")
+        archive.writestr(
+            "META-INF/com/android/metadata",
+            b"pre-device=another-device\npost-build-incremental=200",
+        )
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.import_original(store.create("Wrong OTA target").project_id, source)
+    report = RomInspectionService(store).inspect_project(project.project_id)
+
+    profile = DeviceDnaService(store, DevicePackRegistry(())).refresh(
+        project.project_id,
+        _device(),
+        report,
+    )
+
+    assert profile.fact("firmware.upgrade_relationship").value == "INCOMPATIBLE FIRMWARE"
+    assert profile.capability("device_identity").state is CapabilityState.UNSUPPORTED
     assert profile.capability("guardian_flash").state is CapabilityState.UNSUPPORTED
+    assert "proves" in profile.capability("guardian_flash").detail
 
 
 def test_device_dna_preserves_conflicting_ota_evidence_for_offline_diagnosis(tmp_path):
@@ -307,7 +332,7 @@ def test_device_dna_preserves_conflicting_ota_evidence_for_offline_diagnosis(tmp
     assert any(
         "Build timestamp: live 200; OTA 300 (newer)" in warning for warning in profile.warnings
     )
-    assert profile.capability("guardian_flash").state is CapabilityState.UNSUPPORTED
+    assert profile.capability("guardian_flash").state is CapabilityState.UNCONFIRMED
 
 
 def test_device_dna_consumes_current_project_local_source_blueprint_without_flash_authority(
@@ -368,7 +393,7 @@ def test_device_dna_consumes_current_project_local_source_blueprint_without_flas
     assert profile.capability("partition_mapping").state is CapabilityState.CAUTION
     assert profile.capability("rom_build").state is CapabilityState.SUPPORTED
     assert "local baseline" in profile.capability("rom_build").detail
-    assert profile.capability("guardian_flash").state is CapabilityState.UNSUPPORTED
+    assert profile.capability("guardian_flash").state is CapabilityState.UNCONFIRMED
     assert any("Flash authority remains unavailable" in item for item in profile.warnings)
     assert profile.bootloader_relock_permitted is False
 
@@ -405,7 +430,7 @@ def test_device_dna_rejects_blueprint_that_is_not_bound_to_the_exact_project_sou
     assert profile.capability("source_adapter").state is CapabilityState.UNCONFIRMED
     assert profile.capability("tool_resolution").state is CapabilityState.UNCONFIRMED
     assert profile.capability("rom_build").state is CapabilityState.CAUTION
-    assert profile.capability("guardian_flash").state is CapabilityState.UNSUPPORTED
+    assert profile.capability("guardian_flash").state is CapabilityState.UNCONFIRMED
 
 
 def test_unknown_named_payload_is_detected_after_structure_inspection_without_guessing_phone(
@@ -476,7 +501,7 @@ def test_unknown_named_super_archive_selects_fastboot_adapter_without_build_auth
     assert profile.capability("tool_resolution").state is CapabilityState.SUPPORTED
     assert "LP Dump" in profile.fact("firmware.tool_profile").value
     assert profile.capability("rom_build").state is CapabilityState.UNCONFIRMED
-    assert profile.capability("guardian_flash").state is CapabilityState.UNSUPPORTED
+    assert profile.capability("guardian_flash").state is CapabilityState.UNCONFIRMED
 
 
 def test_direct_sparse_super_uses_original_filename_for_adapter_and_tools(tmp_path):
@@ -496,7 +521,7 @@ def test_direct_sparse_super_uses_original_filename_for_adapter_and_tools(tmp_pa
     assert profile.capability("source_adapter").state is CapabilityState.SUPPORTED
     assert profile.capability("tool_resolution").state is CapabilityState.SUPPORTED
     assert "LP Dump" in profile.fact("firmware.tool_profile").value
-    assert profile.capability("guardian_flash").state is CapabilityState.UNSUPPORTED
+    assert profile.capability("guardian_flash").state is CapabilityState.UNCONFIRMED
 
 
 def test_partition_bundle_is_recognized_but_automatic_adapter_stays_caution(tmp_path):

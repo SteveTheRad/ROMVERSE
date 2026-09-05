@@ -353,6 +353,7 @@ class DeviceDnaService:
             exact_pack,
             blueprint,
             ota_metadata,
+            upgrade,
             warnings,
         )
         payload: dict[str, object] = {
@@ -1121,6 +1122,7 @@ def _capability_map(
     exact_pack: bool,
     blueprint: SourceBlueprint | None,
     ota_metadata: AndroidOtaMetadata | None,
+    upgrade: FirmwareUpgradeAssessment,
     warnings: tuple[str, ...],
 ) -> tuple[CapabilityMapEntry, ...]:
     blueprint_codename = str(getattr(blueprint, "codename", "")).strip()
@@ -1233,7 +1235,7 @@ def _capability_map(
     )
     flash_state = (
         CapabilityState.UNSUPPORTED
-        if critical or not exact_pack or mismatch
+        if critical or mismatch or upgrade.relationship is FirmwareRelationship.INCOMPATIBLE
         else CapabilityState.UNCONFIRMED
     )
     root_review = review_root_identity(
@@ -1345,7 +1347,13 @@ def _capability_map(
             "guardian_flash",
             "Guardian flash",
             flash_state,
-            "Final flash authority requires separate device, backup, slot, AVB, recovery, and physical attestation checks.",
+            "Current evidence proves an unsafe or incompatible device/firmware condition."
+            if flash_state is CapabilityState.UNSUPPORTED
+            else "No exact source-bound Device Pack and execution contract is available. "
+            "Compatibility remains unconfirmed and Guardian execution stays locked."
+            if not exact_pack
+            else "Final flash authority requires every exact Pack, signing, recovery, simulation, "
+            "physical-attestation, consent, live-target, and execution gate to pass.",
             ("pack.association",)
             if exact_pack
             else ("source.blueprint",)

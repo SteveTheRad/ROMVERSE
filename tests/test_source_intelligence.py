@@ -148,7 +148,7 @@ def test_source_intelligence_selects_nested_ota_payload_without_static_pack(tmp_
     assert dna.capability("source_adapter").state is CapabilityState.SUPPORTED
     assert dna.capability("tool_resolution").state is CapabilityState.SUPPORTED
     assert dna.capability("rom_build").state is CapabilityState.SUPPORTED
-    assert dna.capability("guardian_flash").state is CapabilityState.UNSUPPORTED
+    assert dna.capability("guardian_flash").state is CapabilityState.UNCONFIRMED
     assert dna.fact("software.build").value == "OS4.0.0.23.XPBCNXM"
     assert dna.fact("software.build").evidence_ids == ("source.blueprint",)
     assert any(item.evidence_id == "source.blueprint" for item in dna.evidence)

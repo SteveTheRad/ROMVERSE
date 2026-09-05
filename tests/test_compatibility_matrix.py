@@ -64,6 +64,22 @@ def test_matrix_marks_possible_without_claiming_proven_compatibility(tmp_path) -
     assert "exact compatibility evidence" in build.warnings[0]
 
 
+def test_missing_flash_contract_is_unknown_not_known_incompatible(tmp_path) -> None:
+    store, registry, project, report = _project(tmp_path, exact=False)
+    profile = DeviceDnaService(store, registry).refresh(project.project_id, _device(), report)
+
+    matrix = CompatibilityMatrixService(store).assess(profile)
+    flash = matrix.decision("guardian_flash")
+    relock = matrix.decision("bootloader_relock")
+
+    assert flash.status is CompatibilityStatus.UNKNOWN
+    assert flash.confidence.value == "unconfirmed"
+    assert not flash.technically_possible
+    assert not flash.proven_compatible
+    assert "will not guess" in flash.warnings[0]
+    assert relock.status is CompatibilityStatus.KNOWN_INCOMPATIBLE
+
+
 def test_matrix_known_mismatch_informs_guardian_without_bypass(tmp_path) -> None:
     store, registry, project, report = _project(tmp_path)
     profile = DeviceDnaService(store, registry).refresh(
@@ -77,6 +93,7 @@ def test_matrix_known_mismatch_informs_guardian_without_bypass(tmp_path) -> None
 
     assert identity.status is CompatibilityStatus.KNOWN_INCOMPATIBLE
     assert not identity.proven_compatible
+    assert matrix.decision("guardian_flash").status is CompatibilityStatus.KNOWN_INCOMPATIBLE
     assert matrix.guardian_advisory_only
 
 

@@ -101,6 +101,48 @@ def test_flash_route_requires_mode_backup_and_separate_guardian_evidence(tmp_pat
     assert wipe.status is NexusPlanStatus.NEEDS_EVIDENCE
 
 
+def test_pathfinder_requests_flash_evidence_without_false_terminal_stop(tmp_path) -> None:
+    store, profile, matrix = _evidence(tmp_path, exact=False, device=True)
+
+    plan = NexusPlanner(store).plan(
+        profile,
+        matrix,
+        NexusObjective.FLASH_DEVICE,
+        flash_mode=FlashMode.DIRTY_FLASH,
+    )
+
+    assert matrix.decision("guardian_flash").status.value == "Unknown"
+    assert plan.status is NexusPlanStatus.NEEDS_EVIDENCE
+    assert any("Confirm Guardian flash" in item for item in plan.research_requirements)
+    assert not any(item.startswith("Stop:") for item in plan.research_requirements)
+    assert plan.route[1].state is RouteStageState.CURRENT
+    assert plan.route[3].state is RouteStageState.BLOCKED
+    assert plan.route[4].state is RouteStageState.BLOCKED
+    assert not plan.execution_authorized
+    assert not plan.bootloader_relock_permitted
+
+
+def test_pathfinder_retains_stop_for_proven_device_source_mismatch(tmp_path) -> None:
+    store, registry, project, report = _project(tmp_path)
+    profile = DeviceDnaService(store, registry).refresh(
+        project.project_id,
+        _device(codename="wrong-device", product="wrong-device"),
+        report,
+    )
+    matrix = CompatibilityMatrixService(store).assess(profile)
+
+    plan = NexusPlanner(store).plan(
+        profile,
+        matrix,
+        NexusObjective.FLASH_DEVICE,
+        flash_mode=FlashMode.DIRTY_FLASH,
+    )
+
+    assert any(item.startswith("Stop:") for item in plan.research_requirements)
+    assert plan.status is NexusPlanStatus.NEEDS_EVIDENCE
+    assert not plan.execution_authorized
+
+
 def test_root_route_uses_ascension_and_keeps_phone_unchanged_during_preparation(tmp_path) -> None:
     store, profile, matrix = _evidence(tmp_path)
 

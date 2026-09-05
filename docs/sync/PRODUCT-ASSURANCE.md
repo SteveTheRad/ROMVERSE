@@ -1,48 +1,51 @@
 # ROMVERSE Product Assurance
 
-## Current reviewed checkpoint: bdb512e
+## Current directive: Future-proofing minimum pre-v1.0 architecture
 
-- Implementation: `bdb512e7e5d271e83c164a4ec7844cd7239e2fbe`
-- Existing assurance handoff: `d801dd0`
-- Status: **APPROVED SAFE STOP; NEXT TASK APPROVED BELOW**
+- Prior approved checkpoint: `bdb512e7e5d271e83c164a4ec7844cd7239e2fbe`
+- Prior assurance handoff: `b3a2bca`
+- Status: **CREATOR DIRECTIVE ACCEPTED — BOUNDED TASK ORDER APPROVED**
 
-### Current decision
+No new Build source checkpoint exists after `b3a2bca`. This record authorizes architecture and
+correctness work only; it does not authorize physical Recovery execution, publication, release, or
+changes to the protected Companion files.
 
-The application-owned Recovery continuation remains approved and complete for its bounded scope:
-durable result → same-incident reassessment → fresh exact-device scan matching → read-only boot
-observation → independent verification. It adds no execution, retry, repair, relock, UI feature,
-hardware, publication, or release authority. The continuous scan-cadence stability window is a
-correct evidence-preserving fix and remains approved.
+### Approved task order
 
-No newer implementation checkpoint exists after this review. The three pre-existing Companion
-files remain outside scope and untouched.
+1. **Durable-schema compatibility inventory — first checkpoint.** Inventory every v1-retained
+   project, evidence, history, Guardian, Recovery, Knowledge, update, Desktop, and Companion-Link
+   record. For each schema record its version, read support, migration or deterministic
+   re-derivation path, audit-only status where applicable, fail-closed behavior, and tests. This
+   must be documentation/contracts/tests first and must not silently rewrite existing records.
 
-### Next smallest approved Stage 1 task
+2. **Neutral Recovery/execution evidence contracts.** Extract dependency-neutral contracts between
+   evidence, Recovery, Guardian, and execution boundaries so Guardian↔Repair/ROM cycles are removed
+   without weakening exact-device binding, consent, UNKNOWN semantics, no-blind-retry, Guardian-only
+   authority, or the absolute no-relock rule. No new execution capability is part of this slice.
 
-Implement only the Windows trusted-launcher anti-TOCTOU correctness contract and deterministic
-software tests. The slice may define and test path/identity binding, protected-source rehash,
-trusted-launcher selection, replacement/race rejection, and fail-closed UNKNOWN behavior using
-local fakes or a simulated Windows boundary. It must not launch a phone command, enable physical
-Recovery execution, add UI, alter consent, add retry, permit relocking, publish, or release.
+3. **Bounded firmware source-evidence adapter protocol.** Define a neutral, evidence-only protocol
+   and deterministic registry, then migrate only the existing OTA payload, Fastboot-super, and
+   partition-bundle handlers. Ambiguous or conflicting matches must fail closed; evidence must
+   never grant execution authority. No new firmware handler or device-changing path is approved.
 
-Acceptance criteria:
+Each checkpoint requires an independent Product Assurance review before the next begins. Windows
+secure Recovery launch and controlled physical hardware verification remain mandatory later release
+gates.
 
-- The launcher binds the exact approved source, project, Device Pack, and execution contract.
-- Replacement, symlink, path, hash, identity, and timing races fail closed before dispatch.
-- Unprovable launcher state is UNKNOWN and cannot advance or retry.
-- Linux/Fedora tests are deterministic and do not claim Windows or hardware verification.
-- Existing Guardian/Recovery authority and v0.2 feature-freeze rules remain unchanged.
-
-Product Assurance must review the resulting committed checkpoint before any physical or Windows
-execution claim. If this contract cannot be tested without enabling real execution, stop and return
-for a narrower design review instead.
-
-### Gate status
+### Freeze and safety gates
 
 - v0.2 Golden Foundation: **CLOSED**
-- Software chain: Recommendation ✓ → Preparation ✓ → Fresh Live Target ✓ → Consent ✓ → Executor ✓
-  → Durable Result ✓ → Recovery Reassessment ✓ → Verification ✓
-- Linux/Fedora software evidence: verified
-- Windows trusted-launcher anti-TOCTOU: outstanding release blocker; task approved above
+- Pre-v1.0 feature freeze: **preserved**
+- Physical execution, phone operation, installation, publication, release, and remote push: **not authorized**
+- Windows trusted-launcher anti-TOCTOU: outstanding release blocker
 - Physical Android hardware verification: outstanding release blocker
-- Physical execution, publication, release, and remote push: not authorized
+- Guardian-only execution, UNKNOWN-on-uncertainty, no blind retry, and no bootloader relocking:
+  mandatory in every checkpoint
+
+### Acceptance criteria for the first checkpoint
+
+- All named retained schemas are inventoried against authoritative repository definitions and tests.
+- Every record has an explicit read/compatibility and failure posture.
+- Any migration or re-derivation is deterministic, auditable, and cannot create authority.
+- No application source behavior, UI scope, execution path, or protected Companion change is
+  introduced merely to complete the inventory.

@@ -1,51 +1,52 @@
 # ROMVERSE Product Assurance
 
-## Reviewed checkpoint: 7438886
+## Reviewed checkpoint: 48dc21b
 
-- Commit: `74388863b2264a641073eda4bbadb70955d525ff`
-- Title: `Inventory durable schema compatibility`
+- Commit: `48dc21bba2c2698086c836a02605b22e788ba9b6`
+- Title: `Extract neutral Recovery evidence contracts`
 - Review status: **APPROVED**
-- Basis: authoritative source, compatibility contract, tests, and `docs/sync/BUILD-STATUS.md`.
+- Basis: authoritative source, contract documentation, adversarial tests, and `docs/sync/BUILD-STATUS.md`.
 
 ### Decision
 
-This satisfies Future-proofing checkpoint 1. The inventory covers 188 retained durable, logical,
-and wire formats across the requested project, evidence, history, Guardian, Recovery, Knowledge,
-update, and Desktop/Companion Link domains. Each entry declares version/read support, migration or
-deterministic re-derivation, audit-only status, fail-closed behavior, authority effect, and test
-ownership.
+This satisfies Future-proofing checkpoint 2. Shared immutable Recovery incident, route,
+preparation, execution-result, boot-observation, and project-evidence records now have neutral
+ownership. Nominal read-only boundaries expose evidence without command, dispatch, approval,
+consent, retry, migration, or write operations. Legacy imports remain aliases to the same class
+objects, preserving existing JSON fields, formats, and versions.
 
-The exhaustive accounting of source formats and packaged JSON identifiers, explicit namespace
-exclusions, audit-only non-authority assertions, and no-relock assertion are the right conservative
-boundary. Importing the inventory performs no migration and grants no execution, consent, retry,
-verification, or repair authority. The Forge version correction is appropriately declarative and
-does not rewrite historical receipts.
+The targeted Guardian↔Repair/ROM owner cycles are removed. Consumer-side validators independently
+recheck exact incident/device/project/source/Pack/transition/action/journal/digest bindings,
+terminal outcome coherence, non-authority, no-retry, independent verification, and permanent
+no-relock. Self-consistent forged evidence, UNKNOWN reinterpretation, cross-device attribution,
+and relock variants remain fail closed.
 
 ### Evidence reviewed
 
-- `src/romverse/core/durable_schemas.py`
-- `docs/DURABLE-SCHEMA-COMPATIBILITY.md`
-- `tests/test_durable_schema_inventory.py`
-- Full Python regression: **2857/2857 passed**; focused schema tests **6/6 passed**.
-- Focused retained-schema Companion tests: **50/50 passed**. The three unrelated protected
-  navigation failures remain outside this slice.
+- `src/romverse/core/recovery_contracts.py`
+- `docs/RECOVERY-EVIDENCE-CONTRACTS.md`
+- Updated Guardian, Recovery, Repair, and boot-observation owners
+- `tests/test_recovery_evidence_contracts.py`: **12/12 passed** independently
+- Full Python regression: **2869/2869 passed**; focused schema/contract/Guardian/Recovery suite:
+  **86/86 passed**
 
 ### Acceptance criteria
 
-- All retained schemas are accounted for with explicit compatibility and failure posture.
-- Migration/re-derivation is declared, deterministic, auditable, and not silently performed.
-- Audit-only records cannot grant authority; no record permits bootloader relocking.
-- No UI, execution path, physical action, release behavior, or protected Companion change added.
+- Dependency-neutral contracts remove mutual owner reachability without alternate authority paths.
+- Exact evidence and same-incident invariants remain independently validated.
+- FAILED and UNKNOWN stay durable, distinct, non-retry states.
+- No runtime migration, new adapter, execution capability, UI, hardware path, or release scope
+  was added.
 
 All criteria are met.
 
 ### Approved next bounded task
 
-Proceed to Future-proofing checkpoint 2: extract neutral Recovery/execution evidence contracts so
-policy and persistence no longer depend cyclically on orchestration or ROM presentation. Preserve
-exact-device and exact-incident binding, Guardian-only execution authority, UNKNOWN-on-uncertainty,
-no blind retry, independent verification, and permanent no-relock. This is contract extraction and
-tests only; it must not add execution capability or runtime migration.
+Proceed to Future-proofing checkpoint 3: define a bounded firmware source-evidence adapter
+protocol and deterministic registry, then migrate only the existing OTA payload, Fastboot-super,
+and partition-bundle evidence handlers. No new format or vendor is approved; ambiguous or
+conflicting matches must fail closed, and evidence must never grant build, flash, device, or
+execution authority.
 
 ### Gate status
 

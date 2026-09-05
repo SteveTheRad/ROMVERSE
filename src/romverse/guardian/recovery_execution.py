@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import os
 import re
 import secrets
 from dataclasses import asdict, dataclass, field, fields
@@ -194,6 +195,7 @@ class GuardianRecoveryExecutionService:
     FORMAT = "romverse.guardian-recovery-execution-claim"
     INTENT_FORMAT = "romverse.guardian-recovery-step-intent"
     RESULT_FORMAT = "romverse.guardian-recovery-step-result"
+    AGGREGATE_RESULT_NAME = "aggregate-result.romverse"
     SCHEMA_VERSION = 1
     MAX_BYTES = 256 * 1024
     EXACT_SEQUENCE_AUTHORITY = "exact-sealed-recovery-adapter-actions-only"
@@ -355,6 +357,7 @@ class GuardianRecoveryExecutionService:
         """Durably record the exact next action before an adapter may dispatch it."""
 
         try:
+            self._require_open_journal(preparation)
             now = self._now()
             claim = self._validate_grant(grant, preparation, now=now, require_unexpired=True)
             step = self._step(preparation, step_order)
@@ -458,6 +461,7 @@ class GuardianRecoveryExecutionService:
                 intent_digest=_digest(payload),
             )
             self._validate_intent(intent, claim, step)
+            self._require_open_journal(preparation)
             exclusive_create_json(
                 self._intent_path(preparation, step.order),
                 {"format": self.INTENT_FORMAT, **asdict(intent)},
@@ -491,6 +495,7 @@ class GuardianRecoveryExecutionService:
         """Persist one observed result exactly once; UNKNOWN never permits advance."""
 
         try:
+            self._require_open_journal(preparation)
             now = self._now()
             claim = self._validate_grant(grant, preparation, now=now, require_unexpired=False)
             step = self._step(preparation, intent.step_order)
@@ -583,6 +588,7 @@ class GuardianRecoveryExecutionService:
                 result_digest=_digest(payload),
             )
             self._validate_result(result, claim, intent, step)
+            self._require_open_journal(preparation)
             exclusive_create_json(
                 self._result_path(preparation, step.order),
                 {"format": self.RESULT_FORMAT, **asdict(result)},
@@ -1021,6 +1027,17 @@ class GuardianRecoveryExecutionService:
 
     def _result_path(self, preparation: GuardianRecoveryPreparation, step_order: int) -> Path:
         return self._root(preparation) / f"step-{step_order:02d}-result.romverse"
+
+    def aggregate_result_path(self, preparation: GuardianRecoveryPreparation) -> Path:
+        """Return the fixed aggregate-result path without granting any authority."""
+
+        return self._root(preparation) / self.AGGREGATE_RESULT_NAME
+
+    def _require_open_journal(self, preparation: GuardianRecoveryPreparation) -> None:
+        if os.path.lexists(self.aggregate_result_path(preparation)):
+            raise RecoveryExecutionValidationError(
+                "Recovery execution already has a durable aggregate result"
+            )
 
     def _root(self, preparation: GuardianRecoveryPreparation) -> Path:
         GuardianRecoveryPreparationService.validate(preparation)

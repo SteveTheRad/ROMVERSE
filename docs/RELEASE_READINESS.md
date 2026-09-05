@@ -2120,6 +2120,27 @@ large-archive hashing can be slow and never silently renews an expired transitio
   installation, Companion or website change, publication or remote push occurred. Approved
   production logos were not edited. Feature freeze remains active and v0.2 remains closed.
 
+## 2026-09-05 Recovery to Guardian exact preparation
+
+- The consequential-owner audit found no genuine ROM Studio-owned phone operation, so ownership was
+  not artificially reassigned. Guardian now prepares the existing exact-stock route from the same
+  sealed incident after Time Machine evidence is current.
+- A shared Recovery boundary requires a fresh exact-phone pseudonym match. Guardian then binds the
+  current project, complete protected-source digest, exact Device Pack ID/version/digest, signed
+  transition/recovery contract, verified evidence receipt and ordered adapter-scoped action sequence
+  into a private tamper-evident preparation.
+- The focused card exposes only the exact prepared sequence and clearly retains independent
+  live-target validation and user confirmation. It grants no approval or execution authority.
+  Returning revalidates every mutable prerequisite and fails closed on any drift.
+- One final affected Fedora/Linux run passes 158 unique tests with zero failures, errors or skips in
+  about 164 seconds. Changed-file Ruff, format, compilation and diff checks pass; the 1440×900
+  focused Guardian render is readable and unclipped.
+- See `RECOVERY_GUARDIAN_EXACT_PREPARATION_2026-09-05.md` for the contract and remaining limits.
+- This is implemented and simulated/tested on Fedora/Linux, not hardware verified or released.
+  Windows was not exercised. No physical phone operation, application restart, package installation,
+  Companion or website change, publication or remote push occurred. Approved production logos were
+  not edited. Feature freeze remains active and v0.2 remains closed.
+
 ## Honest feature boundary
 
 The current safe milestone supports read-only Android evidence, local diagnostics, guarded APK

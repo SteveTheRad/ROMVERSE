@@ -29,6 +29,11 @@ from romverse.guardian.execution_gateway_contract import (
 )
 from romverse.guardian.execution_plan import GuardianExecutionPlan
 from romverse.guardian.manifest_review import GuardianManifestReview
+from romverse.guardian.recovery_preparation import (
+    GuardianRecoveryPreparation,
+    GuardianRecoveryPreparationError,
+    GuardianRecoveryPreparationService,
+)
 from romverse.guardian.runtime_package import (
     VerifiedGuardianRuntimePackage,
     current_guardian_runtime_platform,
@@ -159,6 +164,7 @@ class GuardianCenter(QWidget):
         self._backup_review_identity: tuple[str, str] | None = None
         self._studio_review_identity: tuple[str, str] | None = None
         self._recovery_review_identity: tuple[str, str] | None = None
+        self._recovery_preparation_digest = ""
         self._dashboard_state = (
             "unverified",
             "Guardian's current audit and approval evidence has not yet been verified in this session.",
@@ -532,8 +538,13 @@ class GuardianCenter(QWidget):
         )
         self._repolish(self.dashboard_handoff_badge)
 
-    def open_recovery_review(self, incident: RecoveryIncident, route: RecoveryRoute) -> bool:
-        """Show one sealed Recovery route as context, never as Guardian approval."""
+    def open_recovery_review(
+        self,
+        incident: RecoveryIncident,
+        route: RecoveryRoute,
+        preparation: GuardianRecoveryPreparation | None = None,
+    ) -> bool:
+        """Show one sealed Recovery route, optionally with exact prepared evidence."""
 
         if (
             not isinstance(incident, RecoveryIncident)
@@ -550,15 +561,62 @@ class GuardianCenter(QWidget):
             or not route.requirements
         ):
             return False
+        if preparation is not None:
+            try:
+                GuardianRecoveryPreparationService.validate(preparation)
+            except GuardianRecoveryPreparationError:
+                return False
+            if (
+                preparation.incident_id != incident.incident_id
+                or preparation.incident_record_digest != incident.record_digest
+                or preparation.route_id != route.route_id
+                or preparation.route_kind is not route.kind
+                or preparation.project_id != incident.project_id
+                or preparation.device_key != incident.device_key
+                or preparation.device_pack_id != incident.pack_id
+                or preparation.device_pack_sha256 != incident.pack_sha256
+            ):
+                return False
         self.clear_nexus_review()
         self.clear_backup_review()
         self.clear_studio_review()
+        self.recovery_review_eyebrow.setText(
+            "RECOVERY AUTOPILOT  •  EXACT PREPARATION"
+            if preparation is not None
+            else "RECOVERY AUTOPILOT HANDOFF  •  CONTEXT ONLY"
+        )
         self.recovery_review_title.setText(f"{route.title}  •  {incident.device_name}")
-        self.recovery_review_badge.setText("ADVISORY • ZERO AUTHORITY")
+        self.recovery_review_badge.setText(
+            "PREPARED • ZERO AUTHORITY" if preparation is not None else "ADVISORY • ZERO AUTHORITY"
+        )
         self.recovery_review_badge.setObjectName("Warning")
         self._repolish(self.recovery_review_badge)
         requirements = "\n".join(f"• {item}" for item in route.requirements)
         evidence = "\n".join(f"• {item}" for item in route.evidence) or "• No additional evidence"
+        prepared_detail = ""
+        if preparation is not None:
+            step_rows = "\n".join(
+                f"• {step.order:02d}  {step.operation.value.replace('_', ' ')}  •  "
+                f"{step.from_mode} → {step.to_mode}"
+                + ("  •  MAY WIPE USER DATA" if step.may_wipe_user_data else "")
+                for step in preparation.steps
+            )
+            prepared_detail = (
+                "\nROMVERSE HAS PREPARED THE EXACT RECOVERY PLAN\n"
+                "Guardian still needs a fresh live-phone check and your confirmation before "
+                "anything can act.\n"
+                "EXACT PREPARATION  •  CURRENT + SEALED\n"
+                f"Protected source SHA-256 {preparation.source_original_sha256}\n"
+                f"Device Pack {preparation.device_pack_id} v{preparation.device_pack_version}  •  "
+                f"{preparation.device_pack_sha256[:20]}…\n"
+                f"Signed transition {preparation.transition_contract_id}  •  "
+                f"{preparation.transition_contract_digest[:20]}…\n"
+                f"Recovery adapter {preparation.recovery_adapter_id}  •  "
+                f"evidence {preparation.recovery_evidence_digest[:20]}…\n"
+                f"Prepared operation sequence\n{step_rows}\n"
+                f"Preparation {preparation.preparation_digest[:20]}…  •  "
+                "Guardian live-target validation: required  •  User confirmation: required\n"
+            )
         self.recovery_review_detail.setText(
             f"Incident {incident.incident_id[:12]}…  •  Project "
             f"{incident.project_id or 'not bound'}  •  Device Pack {incident.pack_id}\n"
@@ -566,11 +624,14 @@ class GuardianCenter(QWidget):
             f"PROPOSED ROUTE  •  Rank {route.rank}  •  {route.confidence}% confidence  •  "
             f"{route.risk.value} risk\n{route.summary}\n"
             f"REQUIRED BEFORE ANY ACTION\n{requirements}\n"
-            f"CURRENT EVIDENCE\n{evidence}\n"
+            f"CURRENT EVIDENCE\n{evidence}{prepared_detail}\n"
             "HANDOFF BOUNDARY  •  Context only  •  Approval: none  •  Execution: none  •  "
             "Phone changed: no  •  Bootloader relock: never"
         )
         self._recovery_review_identity = (incident.incident_id, route.route_id)
+        self._recovery_preparation_digest = (
+            preparation.preparation_digest if preparation is not None else ""
+        )
         self.recovery_review.setVisible(True)
         return True
 
@@ -578,10 +639,15 @@ class GuardianCenter(QWidget):
     def recovery_review_identity(self) -> tuple[str, str] | None:
         return self._recovery_review_identity
 
+    @property
+    def recovery_preparation_digest(self) -> str:
+        return self._recovery_preparation_digest
+
     def recovery_review_stopped(self, reason: str) -> None:
         """Expire a Recovery handoff visibly without retaining action authority."""
 
         self._recovery_review_identity = None
+        self._recovery_preparation_digest = ""
         self.recovery_review_title.setText("Recovery route context expired safely")
         self.recovery_review_detail.setText(
             f"{reason}\nReturn to Recovery Bay and rebuild the route from fresh evidence. "
@@ -594,9 +660,11 @@ class GuardianCenter(QWidget):
 
     def clear_recovery_review(self) -> None:
         self._recovery_review_identity = None
+        self._recovery_preparation_digest = ""
         self.recovery_review.setVisible(False)
         self.recovery_review_title.clear()
         self.recovery_review_detail.clear()
+        self.recovery_review_eyebrow.setText("RECOVERY AUTOPILOT HANDOFF  •  CONTEXT ONLY")
         self.recovery_review_badge.setText("ADVISORY • ZERO AUTHORITY")
         self.recovery_review_badge.setObjectName("Warning")
         self._repolish(self.recovery_review_badge)

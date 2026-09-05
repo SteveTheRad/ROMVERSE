@@ -296,6 +296,44 @@ class RecoveryAutopilotService:
         self._save(updated)
         return updated
 
+    def validate_route_handoff(
+        self,
+        incident_id: str,
+        route_id: str,
+        *,
+        owner_route: str = "",
+        device: AndroidDevice | None = None,
+        require_exact_device: bool = False,
+    ) -> tuple[RecoveryIncident, RecoveryRoute]:
+        """Reload one route and, when consequential, bind it to fresh device evidence.
+
+        This is the shared domain boundary for typed route owners.  A UI selection,
+        historical device name, matching model, or earlier route review is never
+        sufficient to assign a phone-changing Recovery route to a current target.
+        """
+
+        incident = self.load(incident_id)
+        if incident.repaired or incident.phone_changed:
+            raise RecoveryAutopilotError("Recovery incident is no longer active")
+        clean_route = self._identifier(route_id, 80, "route identifier")
+        route = next((item for item in incident.routes if item.route_id == clean_route), None)
+        if route is None:
+            raise RecoveryAutopilotError("Recovery route no longer matches this incident")
+        if owner_route and route.owner_route != self._identifier(owner_route, 60, "route owner"):
+            raise RecoveryAutopilotError("Recovery route owner changed after ranking")
+        exact_device_required = require_exact_device or route.changes_device
+        if exact_device_required:
+            if device is None or not incident.device_key:
+                raise RecoveryTargetMismatchError(
+                    "The phone involved in this Recovery incident is not freshly available"
+                )
+            observed_key = self._device_key(device)
+            if not observed_key or not hmac.compare_digest(incident.device_key, observed_key):
+                raise RecoveryTargetMismatchError(
+                    "Fresh device evidence does not match this Recovery incident"
+                )
+        return incident, route
+
     def load(self, incident_id: str) -> RecoveryIncident:
         clean_id = self._hex(incident_id, 32, "incident identifier")
         try:

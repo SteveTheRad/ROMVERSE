@@ -369,13 +369,45 @@ def test_recovery_time_machine_handoff_returns_to_same_incident_and_route(
     store = RomProjectStore(workspace)
     project = store.create("Recovery evidence project", "test.recovery")
     project = store.import_original(project.project_id, source)
+    registry = _recovery_registry()
+    pack = registry.packs[0]
+    assert pack.build_contract is not None
+    write = pack.build_contract.partition_write_contract
+    assert write is not None and write.transition_recovery_contract is not None
+    transition = write.transition_recovery_contract
+    exact_source = replace(
+        pack.build_contract.source,
+        archive_sha256=project.original.sha256,
+    )
+    exact_recovery = replace(
+        transition.recovery,
+        stock_package_sha256=project.original.sha256,
+    )
+    registry = DevicePackRegistry(
+        (
+            replace(
+                pack,
+                build_contract=replace(
+                    pack.build_contract,
+                    source=exact_source,
+                    partition_write_contract=replace(
+                        write,
+                        transition_recovery_contract=replace(
+                            transition,
+                            recovery=exact_recovery,
+                        ),
+                    ),
+                ),
+            ),
+        )
+    )
     phone = _recovery_device(DeviceState.FASTBOOT, boot_completed=False)
     window = MainWindow(
         None,
         logo,
         workspace,
         app_icon_path=logo,
-        pack_registry=_recovery_registry(),
+        pack_registry=registry,
     )
     try:
         window.repair_center.set_devices([phone])
@@ -472,6 +504,58 @@ def test_recovery_time_machine_handoff_returns_to_same_incident_and_route(
         assert window.backup_center.recovery_review_identity is None
         assert window.backup_center.evidence_worker is None
         assert not window.repair_center.autopilot_incident.phone_changed
+
+        window.repair_center._autopilot_show_all_routes = True
+        window.repair_center._render_autopilot()
+        prepared_button = next(
+            button
+            for button in window.repair_center.autopilot_route_buttons
+            if button.property("recovery_route_id") == reranked.route_id
+        )
+        window.guardian_center.request_refresh = lambda: None
+        prepared_button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.guardian_center
+        assert window.guardian_center.recovery_review_identity is not None
+        assert window.guardian_center.recovery_preparation_digest
+        assert window.guardian_center.recovery_review_badge.text() == ("PREPARED • ZERO AUTHORITY")
+        assert (
+            window.guardian_center.recovery_review_eyebrow.text()
+            == "RECOVERY AUTOPILOT  •  EXACT PREPARATION"
+        )
+        prepared_detail = window.guardian_center.recovery_review_detail.text()
+        assert project.original.sha256 in prepared_detail
+        assert "restore stock package" in prepared_detail
+        assert "Guardian live-target validation: required" in prepared_detail
+        assert "User confirmation: required" in prepared_detail
+        assert "Execution: none" in prepared_detail
+        assert "Phone changed: no" in prepared_detail
+
+        window.guardian_center.recovery_return_button.click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.repair_center
+        assert window.repair_center.autopilot_incident is not None
+        assert window.repair_center.autopilot_incident.incident_id == incident.incident_id
+        assert not window.repair_center.autopilot_incident.phone_changed
+
+        window.repair_center._autopilot_show_all_routes = True
+        window.repair_center._render_autopilot()
+        next(
+            button
+            for button in window.repair_center.autopilot_route_buttons
+            if button.property("recovery_route_id") == reranked.route_id
+        ).click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.guardian_center
+        assert window.guardian_center.recovery_preparation_digest
+
+        window.repair_center.set_devices([replace(phone, serial="same-model-substitute")])
+        window._revalidate_guardian_review_contexts()
+        assert window.guardian_center.recovery_review_identity is None
+        assert not window.guardian_center.recovery_preparation_digest
+        assert window.guardian_center.recovery_review_badge.text() == "CONTEXT REFUSED"
+        assert "no longer current" in window.guardian_center.recovery_review_detail.text()
     finally:
         window.companion_center.transport.close()
         window.close()

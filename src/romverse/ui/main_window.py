@@ -120,6 +120,10 @@ from romverse.guardian.manifest_review import (
 )
 from romverse.guardian.planning import GuardianPreflight
 from romverse.guardian.policy import GuardianPolicy
+from romverse.guardian.recovery_preparation import (
+    GuardianRecoveryPreparationError,
+    GuardianRecoveryPreparationService,
+)
 from romverse.infrastructure.process import CommandRunner, SubprocessRunner
 from romverse.infrastructure.provisioning import required_tools_for_source
 from romverse.infrastructure.tools import ToolStatus
@@ -141,7 +145,7 @@ from romverse.nexus.events import (
 )
 from romverse.nexus.planning import NexusPlan, NexusPlanStatus
 from romverse.platform.host import HostPlatform, current_host
-from romverse.repair.autopilot import RecoveryTrigger
+from romverse.repair.autopilot import RecoveryAutopilotError, RecoveryRouteKind, RecoveryTrigger
 from romverse.repair.host import AdbHostRepairReceiptStore, AdbHostRepairService
 from romverse.repair.sessions import RepairSessionStore
 from romverse.repair.templates import RepairAssessmentTemplates, actionable_repair_finding
@@ -6170,6 +6174,18 @@ class MainWindow(QMainWindow):
             self.guardian_center.studio_review_stopped(
                 "The saved Studio manifest no longer matches current project, phone, or readiness evidence."
             )
+        recovery_identity = self.guardian_center.recovery_review_identity
+        preparation_digest = self.guardian_center.recovery_preparation_digest
+        if recovery_identity is not None and preparation_digest:
+            preparation = GuardianRecoveryPreparationService(
+                self.rom_studio.store,
+                self.rom_studio.pack_registry,
+                self.repair_center.autopilot_service,
+            ).load(*recovery_identity, self.repair_center.devices)
+            if preparation is None or preparation.preparation_digest != preparation_digest:
+                self.guardian_center.recovery_review_stopped(
+                    "The exact phone, project, source, Device Pack, evidence, or prepared route is no longer current."
+                )
 
     def _navigation_commands(self) -> tuple[NavigationCommand, ...]:
         """Expose pages and exact nested features available in the current experience."""
@@ -8399,7 +8415,36 @@ class MainWindow(QMainWindow):
             return
         if owner_route == "guardian_core":
             context = self.repair_center.recovery_route_context(route_id, owner_route)
-            if context is None or not self.guardian_center.open_recovery_review(*context):
+            preparation = None
+            if context is not None and context[1].kind is RecoveryRouteKind.EXACT_STOCK_RESTORE:
+                try:
+                    preparation = GuardianRecoveryPreparationService(
+                        self.rom_studio.store,
+                        self.rom_studio.pack_registry,
+                        self.repair_center.autopilot_service,
+                    ).prepare(
+                        context[0].incident_id,
+                        context[1].route_id,
+                        self.repair_center.devices,
+                    )
+                except (
+                    GuardianRecoveryPreparationError,
+                    RecoveryAutopilotError,
+                    ProjectError,
+                    OSError,
+                    TypeError,
+                    ValueError,
+                ) as exc:
+                    self.notification_center.notify(
+                        f"recovery-autopilot.route.{route_id}",
+                        "Recovery preparation needs fresh evidence",
+                        f"{exc}. The incident remains active and no phone action started.",
+                        NotificationKind.ATTENTION,
+                    )
+                    return
+            if context is None or not self.guardian_center.open_recovery_review(
+                *context, preparation
+            ):
                 self.notification_center.notify(
                     f"recovery-autopilot.route.{route_id}",
                     "Recovery route context changed",
@@ -8464,6 +8509,18 @@ class MainWindow(QMainWindow):
                 "The saved incident or route no longer matches current sealed Recovery evidence."
             )
             return
+        preparation_digest = self.guardian_center.recovery_preparation_digest
+        if preparation_digest:
+            preparation = GuardianRecoveryPreparationService(
+                self.rom_studio.store,
+                self.rom_studio.pack_registry,
+                self.repair_center.autopilot_service,
+            ).load(incident_id, route_id, self.repair_center.devices)
+            if preparation is None or preparation.preparation_digest != preparation_digest:
+                self.guardian_center.recovery_review_stopped(
+                    "The exact device, project, source, Device Pack, evidence, or prepared route changed."
+                )
+                return
         if not self._navigate_route(
             "recovery_bay"
         ) or not self.repair_center.restore_recovery_route(incident_id, route_id):

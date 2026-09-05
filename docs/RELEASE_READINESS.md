@@ -2041,6 +2041,20 @@ large-archive hashing can be slow and never silently renews an expired transitio
   Companion or website change, publication or remote push occurred. Approved production logos were
   not edited.
 
+## 2026-09-05 Recovery in-place scan continuation
+
+- Recovery USB reconnect, ADB authorization and bootloader-identity routes now request a fresh
+  read-only scan in place instead of navigating to Command Deck or Device Atlas and leaving the
+  incident behind. Their controls state the specific outcome being checked.
+- Recovery-owned informational guidance is inline rather than modal. Typed external owner routes
+  remain explicit handoffs; no advisory route receives phone-changing authority.
+- One affected run passes all 87 tests with zero failures, errors or skips in 70.599 seconds. See
+  `RECOVERY_IN_PLACE_SCAN_CONTINUATION_2026-09-05.md` for exact behavior and safety boundaries.
+- This is implemented and simulated/tested on Fedora/Linux, not hardware verified or released.
+  Windows was not exercised. No physical phone operation, running-app restart, package installation,
+  Companion or website change, publication or remote push occurred. Approved production logos were
+  not edited.
+
 ## Honest feature boundary
 
 The current safe milestone supports read-only Android evidence, local diagnostics, guarded APK

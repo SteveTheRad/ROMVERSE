@@ -83,6 +83,14 @@ from romverse.rom.recovery_evidence import RecoveryEvidenceAssessment
 from romverse.ui.background import ManagedRunnable, start_background
 from romverse.ui.process_progress import ProcessProgressBar
 
+_IN_PLACE_RECOVERY_SCAN_ROUTES = frozenset(
+    {
+        RecoveryRouteKind.RECONNECT_USB,
+        RecoveryRouteKind.AUTHORIZE_ADB,
+        RecoveryRouteKind.REFRESH_SCAN,
+    }
+)
+
 
 class HostRepairSignals(QObject):
     complete = Signal(object)
@@ -929,11 +937,23 @@ class RepairCenter(QWidget):
         copy.addWidget(summary)
         copy.addWidget(boundary)
         layout.addLayout(copy, 1)
-        button = QPushButton("Review route")
+        button_label = {
+            RecoveryRouteKind.RECONNECT_USB: "Check connection now",
+            RecoveryRouteKind.AUTHORIZE_ADB: "Check authorization now",
+            RecoveryRouteKind.REFRESH_SCAN: "Refresh identity now",
+        }.get(
+            route.kind,
+            "Show guidance" if route.owner_route == "recovery_bay" else "Continue to route",
+        )
+        button = QPushButton(button_label)
         button.setObjectName("Primary" if route.rank == 1 else "")
-        button.setAccessibleName(f"Review Recovery Autopilot route {route.rank}: {route.title}")
+        button.setAccessibleName(
+            f"{button_label} for Recovery Autopilot route {route.rank}: {route.title}"
+        )
         button.setToolTip(
-            "Revalidates this incident route and opens its typed owner. It does not infer or run a phone command."
+            "Requests fresh read-only evidence while keeping this Recovery incident open."
+            if route.kind in _IN_PLACE_RECOVERY_SCAN_ROUTES
+            else "Revalidates this incident route and opens its typed owner. It does not infer or run a phone command."
         )
         button.clicked.connect(
             lambda _checked=False, route_id=route.route_id: self._review_autopilot_route(
@@ -964,23 +984,29 @@ class RepairCenter(QWidget):
             self.digest.setText(f"Recovery route review stopped safely  •  {exc}")
             return
         self._render_autopilot()
+        if route.kind in _IN_PLACE_RECOVERY_SCAN_ROUTES:
+            self.digest.setText(
+                f"{route.title}  •  {route.summary} ROMVERSE is checking fresh read-only "
+                "evidence now and will keep this Recovery incident open."
+            )
+            self.verification_scan_requested.emit()
+            return
         if route.kind is RecoveryRouteKind.HOST_ADB_REPAIR and self.host_repair_plan is not None:
             self._run_host_repair()
             return
         if route.owner_route != "recovery_bay":
             self.autopilot_route_requested.emit(route.owner_route, route.route_id)
             return
-        detail = "\n".join(
-            (
-                route.summary,
-                "",
-                "Required evidence:",
-                *(f"• {item}" for item in route.requirements),
-                "",
-                "This review did not start a phone action.",
-            )
+        requirements = (
+            " Required evidence: " + "; ".join(route.requirements)
+            if route.requirements
+            else ""
         )
-        QMessageBox.information(self, route.title, detail)
+        self.digest.setText(
+            f"{route.title}  •  {route.summary}{requirements} "
+            "This guidance did not start a phone action."
+        )
+        self.autopilot_scan_button.setFocus(Qt.FocusReason.OtherFocusReason)
 
     def _show_autopilot_timeline(self) -> None:
         incident = self.autopilot_incident

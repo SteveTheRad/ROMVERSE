@@ -26,7 +26,11 @@ from romverse.intelligence.online_remediation import (
 )
 from romverse.knowledge.lookup import OfflineKnowledgeService
 from romverse.knowledge.models import KnowledgeFailure
-from romverse.repair.autopilot import RecoveryIncidentState, RecoveryTrigger
+from romverse.repair.autopilot import (
+    RecoveryIncidentState,
+    RecoveryRouteKind,
+    RecoveryTrigger,
+)
 from romverse.repair.host import AdbHostRepairReceiptStore, AdbHostRepairService
 from romverse.repair.templates import RepairAssessmentTemplates, RepairConcern
 from romverse.ui.repair_center import RepairCenter
@@ -701,7 +705,7 @@ def test_recovery_incident_automatically_scans_local_archives_from_typed_failure
     center.close()
 
 
-def test_recovery_autopilot_route_review_opens_owner_without_phone_action(tmp_path) -> None:
+def test_recovery_authorization_route_checks_in_place_without_navigation(tmp_path) -> None:
     app = QApplication.instance() or QApplication([])
     center = RepairCenter(
         DiagnosticAnalyzer(),
@@ -713,15 +717,136 @@ def test_recovery_autopilot_route_review_opens_owner_without_phone_action(tmp_pa
     center.set_devices([device(state=DeviceState.UNAUTHORIZED)])
     center.open_recovery_incident(RecoveryTrigger.DEVICE_MODE)
     requested: list[tuple[str, str]] = []
+    scans = []
     center.autopilot_route_requested.connect(
         lambda owner, route: requested.append((owner, route))
     )
+    center.verification_scan_requested.connect(lambda: scans.append(True))
 
+    assert center.autopilot_route_buttons[0].text() == "Check authorization now"
     center.autopilot_route_buttons[0].click()
     app.processEvents()
 
-    assert requested == [("command_deck", "recovery.authorize_adb")]
+    assert requested == []
+    assert scans == [True]
+    assert "keep this Recovery incident open" in center.digest.text()
     assert center.host_repair_worker is None
+    assert center.autopilot_incident is not None
+    assert center.autopilot_incident.events[-1].event_type == "route_reviewed"
+    assert not center.autopilot_incident.phone_changed
+    center.close()
+
+
+def test_recovery_fastboot_identity_refresh_stays_in_recovery_bay(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = RepairCenter(
+        DiagnosticAnalyzer(),
+        RepairAssessmentTemplates(),
+        GuardianPreflight(),
+        tmp_path,
+        ActivityStore(tmp_path),
+    )
+    center.set_devices([device(state=DeviceState.FASTBOOT)])
+    center.open_recovery_incident(RecoveryTrigger.BOOTLOOP)
+    routes = []
+    scans = []
+    center.autopilot_route_requested.connect(
+        lambda owner, route: routes.append((owner, route))
+    )
+    center.verification_scan_requested.connect(lambda: scans.append(True))
+
+    refresh = next(
+        button
+        for button in center.autopilot_route_buttons
+        if button.text() == "Refresh identity now"
+    )
+    refresh.click()
+    app.processEvents()
+
+    assert routes == []
+    assert scans == [True]
+    assert center.autopilot_incident is not None
+    assert center.autopilot_incident.events[-1].event_type == "route_reviewed"
+    assert "keep this Recovery incident open" in center.digest.text()
+    assert not center.autopilot_incident.phone_changed
+    center.close()
+
+
+def test_recovery_local_guidance_is_inline_instead_of_a_modal_dead_end(
+    tmp_path, monkeypatch
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = RepairCenter(
+        DiagnosticAnalyzer(),
+        RepairAssessmentTemplates(),
+        GuardianPreflight(),
+        tmp_path,
+        ActivityStore(tmp_path),
+    )
+    center.open_recovery_incident(RecoveryTrigger.MANUAL_DIAGNOSIS)
+    modal_calls = []
+    monkeypatch.setattr(
+        QMessageBox,
+        "information",
+        lambda *args, **kwargs: modal_calls.append((args, kwargs)),
+    )
+
+    assert center.autopilot_route_buttons[0].text() == "Show guidance"
+    center.autopilot_route_buttons[0].click()
+    app.processEvents()
+
+    assert modal_calls == []
+    assert "This guidance did not start a phone action" in center.digest.text()
+    assert center.autopilot_incident is not None
+    assert not center.autopilot_incident.phone_changed
+    center.close()
+
+
+def test_recovery_external_owner_route_still_uses_typed_handoff(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = RepairCenter(
+        DiagnosticAnalyzer(),
+        RepairAssessmentTemplates(),
+        GuardianPreflight(),
+        tmp_path,
+        ActivityStore(tmp_path),
+        offline_service=OfflineKnowledgeService(tmp_path),
+    )
+    center.open_recovery_incident(
+        RecoveryTrigger.FLASH_FAILURE,
+        target_device=device(state=DeviceState.FASTBOOT),
+        failure=KnowledgeFailure(
+            phase="source-installation",
+            message="Fastboot transport vanished during super write.",
+            finding_ids=("source.installation.command_outcome_unknown",),
+            partition="super",
+            operation="flash super",
+        ),
+    )
+    incident = center.autopilot_incident
+    assert incident is not None
+    route = next(
+        route
+        for route in incident.routes
+        if route.kind is RecoveryRouteKind.ARCHIVES_REVIEW
+    )
+    center._autopilot_show_all_routes = True
+    center._render_autopilot()
+    requested = []
+    center.autopilot_route_requested.connect(
+        lambda owner, route_id: requested.append((owner, route_id))
+    )
+
+    button = next(
+        button
+        for button in center.autopilot_route_buttons
+        if route.title in button.accessibleName()
+    )
+    assert button.text() == "Continue to route"
+    button.click()
+    app.processEvents()
+
+    assert requested == [("archives", route.route_id)]
     assert center.autopilot_incident is not None
     assert center.autopilot_incident.events[-1].event_type == "route_reviewed"
     assert not center.autopilot_incident.phone_changed

@@ -1,51 +1,56 @@
 # ROMVERSE Product Assurance
 
-## Current directive: Future-proofing minimum pre-v1.0 architecture
+## Reviewed checkpoint: 7438886
 
-- Prior approved checkpoint: `bdb512e7e5d271e83c164a4ec7844cd7239e2fbe`
-- Prior assurance handoff: `b3a2bca`
-- Status: **CREATOR DIRECTIVE ACCEPTED — BOUNDED TASK ORDER APPROVED**
+- Commit: `74388863b2264a641073eda4bbadb70955d525ff`
+- Title: `Inventory durable schema compatibility`
+- Review status: **APPROVED**
+- Basis: authoritative source, compatibility contract, tests, and `docs/sync/BUILD-STATUS.md`.
 
-No new Build source checkpoint exists after `b3a2bca`. This record authorizes architecture and
-correctness work only; it does not authorize physical Recovery execution, publication, release, or
-changes to the protected Companion files.
+### Decision
 
-### Approved task order
+This satisfies Future-proofing checkpoint 1. The inventory covers 188 retained durable, logical,
+and wire formats across the requested project, evidence, history, Guardian, Recovery, Knowledge,
+update, and Desktop/Companion Link domains. Each entry declares version/read support, migration or
+deterministic re-derivation, audit-only status, fail-closed behavior, authority effect, and test
+ownership.
 
-1. **Durable-schema compatibility inventory — first checkpoint.** Inventory every v1-retained
-   project, evidence, history, Guardian, Recovery, Knowledge, update, Desktop, and Companion-Link
-   record. For each schema record its version, read support, migration or deterministic
-   re-derivation path, audit-only status where applicable, fail-closed behavior, and tests. This
-   must be documentation/contracts/tests first and must not silently rewrite existing records.
+The exhaustive accounting of source formats and packaged JSON identifiers, explicit namespace
+exclusions, audit-only non-authority assertions, and no-relock assertion are the right conservative
+boundary. Importing the inventory performs no migration and grants no execution, consent, retry,
+verification, or repair authority. The Forge version correction is appropriately declarative and
+does not rewrite historical receipts.
 
-2. **Neutral Recovery/execution evidence contracts.** Extract dependency-neutral contracts between
-   evidence, Recovery, Guardian, and execution boundaries so Guardian↔Repair/ROM cycles are removed
-   without weakening exact-device binding, consent, UNKNOWN semantics, no-blind-retry, Guardian-only
-   authority, or the absolute no-relock rule. No new execution capability is part of this slice.
+### Evidence reviewed
 
-3. **Bounded firmware source-evidence adapter protocol.** Define a neutral, evidence-only protocol
-   and deterministic registry, then migrate only the existing OTA payload, Fastboot-super, and
-   partition-bundle handlers. Ambiguous or conflicting matches must fail closed; evidence must
-   never grant execution authority. No new firmware handler or device-changing path is approved.
+- `src/romverse/core/durable_schemas.py`
+- `docs/DURABLE-SCHEMA-COMPATIBILITY.md`
+- `tests/test_durable_schema_inventory.py`
+- Full Python regression: **2857/2857 passed**; focused schema tests **6/6 passed**.
+- Focused retained-schema Companion tests: **50/50 passed**. The three unrelated protected
+  navigation failures remain outside this slice.
 
-Each checkpoint requires an independent Product Assurance review before the next begins. Windows
-secure Recovery launch and controlled physical hardware verification remain mandatory later release
-gates.
+### Acceptance criteria
 
-### Freeze and safety gates
+- All retained schemas are accounted for with explicit compatibility and failure posture.
+- Migration/re-derivation is declared, deterministic, auditable, and not silently performed.
+- Audit-only records cannot grant authority; no record permits bootloader relocking.
+- No UI, execution path, physical action, release behavior, or protected Companion change added.
+
+All criteria are met.
+
+### Approved next bounded task
+
+Proceed to Future-proofing checkpoint 2: extract neutral Recovery/execution evidence contracts so
+policy and persistence no longer depend cyclically on orchestration or ROM presentation. Preserve
+exact-device and exact-incident binding, Guardian-only execution authority, UNKNOWN-on-uncertainty,
+no blind retry, independent verification, and permanent no-relock. This is contract extraction and
+tests only; it must not add execution capability or runtime migration.
+
+### Gate status
 
 - v0.2 Golden Foundation: **CLOSED**
-- Pre-v1.0 feature freeze: **preserved**
-- Physical execution, phone operation, installation, publication, release, and remote push: **not authorized**
-- Windows trusted-launcher anti-TOCTOU: outstanding release blocker
-- Physical Android hardware verification: outstanding release blocker
-- Guardian-only execution, UNKNOWN-on-uncertainty, no blind retry, and no bootloader relocking:
-  mandatory in every checkpoint
-
-### Acceptance criteria for the first checkpoint
-
-- All named retained schemas are inventoried against authoritative repository definitions and tests.
-- Every record has an explicit read/compatibility and failure posture.
-- Any migration or re-derivation is deterministic, auditable, and cannot create authority.
-- No application source behavior, UI scope, execution path, or protected Companion change is
-  introduced merely to complete the inventory.
+- Pre-v1.0 feature freeze: preserved
+- Windows secure Recovery launch / anti-TOCTOU: outstanding release blocker
+- Android instrumented and physical hardware verification: outstanding release blockers
+- Physical execution, publication, release, and remote push: not authorized

@@ -344,6 +344,13 @@ QLabel#FlightPlanTitle { color: #F4F7FF; font-size: 20px; font-weight: 780; }
 QLabel#FlightPlanNext { color: #D5B5FF; font-size: 11px; font-weight: 800; letter-spacing: 0.8px; }
 QLabel#FlightPlanWarning { color: #FFBF69; background: rgba(48, 28, 8, 145); border: 1px solid rgba(255, 180, 84, 110); border-radius: 7px; padding: 8px; }
 QLabel#FlightPlanDanger { color: #FF849A; background: rgba(52, 10, 24, 150); border: 1px solid rgba(255, 102, 133, 120); border-radius: 7px; padding: 8px; }
+QLabel#GuidedOperationCard {
+  color: #EAF2FF; background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(14, 18, 45, 245),stop:1 rgba(5, 29, 42, 245));
+  border: 1px solid rgba(67, 220, 238, 150); border-left: 4px solid #B45CFF; border-radius: 13px;
+  padding: 16px 18px; font-size: 13px; font-weight: 650;
+}
+QLabel#GuidedOperationCard[operationState="review-ready"], QLabel#GuidedOperationCard[operationState="completed"] { border-left-color: #44E39A; }
+QLabel#GuidedOperationCard[operationState="attention"] { border-left-color: #FFB454; }
 QFrame#HealthStrip { background: rgba(5, 10, 19, 250); border: 1px solid #294069; border-radius: 8px; }
 QFrame#ProcessStatusRow { background: rgba(4, 10, 21, 225); border: 1px solid rgba(45, 72, 112, 145); border-radius: 8px; }
 QLabel#ProcessStatusIdle { color: #7385A6; font-size: 9px; font-weight: 800; letter-spacing: 1.2px; }

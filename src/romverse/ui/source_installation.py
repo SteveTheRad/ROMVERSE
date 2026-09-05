@@ -2,56 +2,62 @@
 
 from __future__ import annotations
 
-from threading import Event
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import QDialog, QLabel, QMessageBox, QPushButton, QTableWidgetItem
 
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QMessageBox, QTableWidgetItem
-
-from romverse.guardian.source_installation import SourceInstallationPlan, SourceInstallationResult
+from romverse.core.settings import ExperienceMode
+from romverse.guardian.source_installation import SourceInstallationPlan
 from romverse.rom.candidate_installation import CandidateInstallationRecipe
-from romverse.ui.background import ManagedRunnable
-from romverse.ui.local_flash import LocalFlashDialog, LocalFlashSignals
-
-
-class SourceInstallationWorker(ManagedRunnable):
-    def __init__(self, service, device, recipe, *, plan=None):
-        super().__init__()
-        self.service = service
-        self.device = device
-        self.recipe = recipe
-        self.plan = plan
-        self.cancel_requested = Event()
-        self.signals = LocalFlashSignals()
-
-    def execute(self):
-        try:
-            value = (
-                self.service.inspect(self.device, self.recipe)
-                if self.plan is None
-                else self.service.execute(
-                    self.plan,
-                    accepted_digest=self.plan.plan_digest,
-                    risk_accepted=True,
-                    should_cancel=self.cancel_requested.is_set,
-                    progress=self.signals.progress.emit,
-                )
-            )
-            self.signals.complete.emit(value)
-        except Exception as exc:
-            self.signals.failed.emit(str(exc))
+from romverse.ui.local_flash import LocalFlashDialog, LocalTransitionWorker
+from romverse.ui.source_operation_session import (
+    SourceOperationPhase,
+    SourceOperationSession,
+    SourceOperationSnapshot,
+    SourceTransitionReview,
+)
 
 
 class SourceInstallationDialog(LocalFlashDialog):
     """Reuse exact-phone transitions/boot monitoring without pretending this is a subset."""
 
-    def __init__(self, service, devices, parent=None, *, recipe, **kwargs):
+    experience_mode_requested = Signal(object)
+
+    def __init__(
+        self,
+        service,
+        devices,
+        parent=None,
+        *,
+        recipe,
+        session: SourceOperationSession | None = None,
+        experience_mode: ExperienceMode = ExperienceMode.GUIDED,
+        **kwargs,
+    ):
         self.recipe = recipe
         self.preparation = recipe  # Exact source attribution for the recovery handoff.
+        self._owns_session = session is None
+        operation_session = session or SourceOperationSession(
+            service,
+            devices,
+            recipe=recipe,
+            discover=kwargs.get("discover"),
+            transition_service=kwargs.get("transition_service"),
+            boot_service=kwargs.get("boot_service"),
+        )
         super().__init__(service, devices, parent, **kwargs)
+        if self._owns_session:
+            operation_session.setParent(self)
+        self.boot_timer.stop()
+        self.boot_timer.deleteLater()
+        self.session = operation_session
+        self.boot_timer = operation_session.boot_timer
+        self._experience_mode = experience_mode
+        self._details_expanded = experience_mode is ExperienceMode.EXPERT
         self.setWindowTitle("ROMVERSE · Source-declared installation")
         self.eyebrow.setText("GUIDED INSTALLATION  •  PACKAGE PROCEDURE")
         self.title.setText("Review the complete declared installation")
         candidate = isinstance(recipe, CandidateInstallationRecipe)
+        self._candidate_installation = candidate
         if candidate:
             self.setWindowTitle("ROMVERSE · Rebuilt ROM installation")
             self.eyebrow.setText("GUIDED INSTALLATION  •  YOUR REBUILT ROM")
@@ -102,130 +108,70 @@ class SourceInstallationDialog(LocalFlashDialog):
             f"{len(recipe.steps)} declared actions · target slot {recipe.target_slot.upper()}. "
             "Review sends only read-only checks; no installation begins without final confirmation."
         )
+        self.experience_button = QPushButton()
+        self.experience_button.setAccessibleName("Switch Guided or Expert installation view")
+        self.experience_button.clicked.connect(self._request_experience_mode)
+        self.layout().insertWidget(2, self.experience_button)
+        self.guided_summary = QLabel()
+        self.guided_summary.setObjectName("GuidedOperationCard")
+        self.guided_summary.setWordWrap(True)
+        self.guided_summary.setTextFormat(Qt.TextFormat.PlainText)
+        self.guided_summary.setAccessibleName("Guided installation status and exact phone")
+        self.layout().insertWidget(3, self.guided_summary)
+        self.details_button = QPushButton("View technical details")
+        self.details_button.setCheckable(True)
+        self.details_button.setChecked(self._details_expanded)
+        self.details_button.clicked.connect(self._toggle_details)
+        self.layout().insertWidget(self.layout().indexOf(self.images), self.details_button)
+        self.guided_primary = QPushButton()
+        self.guided_primary.setObjectName("Primary")
+        self.guided_primary.setMinimumHeight(46)
+        self.guided_primary.clicked.connect(self._guided_primary_action)
+        self.layout().insertWidget(self.layout().indexOf(self.status), self.guided_primary)
+        operation_session.changed.connect(self._render_session)
+        operation_session.transition_review_ready.connect(self._confirm_transition_review)
+        operation_session.operation_finished.connect(self.operation_finished.emit)
+        operation_session.transition_finished.connect(self.transition_finished.emit)
+        operation_session.boot_finished.connect(self.boot_finished.emit)
+        operation_session.recovery_required.connect(self._session_recovery_required)
+        self.set_experience_mode(experience_mode)
+        self._render_session(operation_session.snapshot())
 
     def _inspect(self):
-        device = self._selected_device()
-        if device is None or self.worker is not None or self.monitoring:
-            return
-        self._invalidate()
-        self.status.setText("Verifying the package, exact phone and every declared write…")
-        self.progress.setRange(0, 0)
-        self._start(SourceInstallationWorker(self.service, device, self.recipe))
+        if hasattr(self, "session"):
+            self.session.review_installation()
+
+    def _refresh_devices(self):
+        if hasattr(self, "session"):
+            self.session.refresh_devices()
+
+    def _selected_device(self):
+        if hasattr(self, "session"):
+            return self.session.selected_device()
+        return super()._selected_device()
+
+    def _invalidate(self, *_args):
+        if not hasattr(self, "session"):
+            return super()._invalidate(*_args)
+        index = self.target.currentIndex()
+        serial = self.session.devices[index].serial if 0 <= index < len(self.session.devices) else ""
+        self.session.select_device(serial)
 
     def _change_mode(self):
-        device = self._selected_device()
-        if device is not None:
-            # Do not copy the original script's 'same super size' identity fallback.
-            identity = device.codename or device.product
-            if identity.casefold() != self.recipe.expected_product.casefold():
-                self.status.setText(
-                    "Identify the exact intended device before preparing a mode change."
-                )
-                return
-        super()._change_mode()
-
-    def _complete(self, value):
-        if isinstance(value, SourceInstallationPlan):
-            self.worker = None
-            self.plan = value
-            lines = [
-                f"TARGET  {value.device_name} · {value.masked_serial}",
-                f"PRODUCT  {value.product} · CURRENT SLOT  {value.current_slot}",
-                f"PROJECT  {value.recipe.project_id}",
-                f"SOURCE SHA-256  {value.recipe.source_sha256}",
-                f"DECLARATION SHA-256  {value.recipe.script_sha256}",
-                f"PLAN  {value.plan_digest}",
-                "",
-                "DATA  "
-                + (
-                    "ERASE metadata and userdata"
-                    if value.recipe.wipe
-                    else "No data erase requested · data preservation and compatibility unproven"
-                ),
-                "FINISH  "
-                + (
-                    "Restart Android and measure boot"
-                    if value.recipe.reboot
-                    else "Stay in bootloader"
-                ),
-                "",
-            ]
-            if isinstance(value.recipe, CandidateInstallationRecipe):
-                lines.extend(
-                    (
-                        f"BASE PACKAGE SHA-256  {value.recipe.procedure_source_sha256}",
-                        f"BUILD RECEIPT  {value.recipe.build_receipt_digest}",
-                        f"COMPOSITION  {value.recipe.composition_digest}",
-                        "SCOPE  2 rebuilt images + 48 exact-base images; local unlocked experimental, not OEM-trusted.",
-                        "",
-                    )
-                )
-            images = {item.member: item for item in value.recipe.images}
-            for index, step in enumerate(value.recipe.steps, 1):
-                lines.append(f"{index}. {step.action} {step.partition or step.slot or 'Android'}")
-                if step.action == "flash":
-                    image = images[step.image_member]
-                    lines.extend((f"   {image.member}", f"   SHA-256: {image.sha256}"))
-                    if step.chunk_size:
-                        lines.append(f"   Transfer chunk limit: {step.chunk_size}")
-            lines.extend(("", "WARNINGS", *value.warnings))
-            self.review.setPlainText("\n".join(lines))
-            self.progress.setRange(0, 100)
-            self.progress.setValue(0)
-            self.status.setText(
-                "Review every action and risk, then explicitly confirm this exact procedure."
-            )
-            self._set_busy(False)
-        elif isinstance(value, SourceInstallationResult):
-            finished = self.worker
-            stop_requested = (
-                isinstance(finished, SourceInstallationWorker)
-                and finished.cancel_requested.is_set()
-            )
-            self.worker = None
-            self.plan = None
-            self.result = value
-            self.review.appendPlainText(
-                f"\nRESULT  {value.state}\n{value.summary}\nReceipt: {value.receipt_path}"
-            )
-            for step in value.results:
-                self.review.appendPlainText(
-                    f"\n{step.action} {step.partition} · exit {step.returncode}\n{step.output}"
-                )
-            if value.observed_device is not None:
-                self._adopt_device(value.observed_device)
-            self.progress.setRange(0, len(self.recipe.steps))
-            self.progress.setValue(value.completed_count)
-            self.progress.setFormat("%v / %m declared actions completed · boot separate")
-            self.status.setText(value.summary)
-            self.operation_finished.emit(value)
-            if (
-                value.state == "completed"
-                and value.reboot_requested
-                and self.boot_service is not None
-                and not stop_requested
-            ):
-                self._start_boot(value.observed_device or self.last_flash_device)
-            else:
-                self._set_busy(False)
-                if stop_requested and value.state == "completed":
-                    self.status.setText(
-                        value.summary
-                        + " Boot monitoring was not started because you requested Stop. "
-                        "Choose Check Android boot when ready."
-                    )
-                if value.phone_change_attempted and value.state != "completed":
-                    self.recovery_requested = True
-                    self.accept()
-        else:
-            super()._complete(value)
+        if not hasattr(self, "session"):
+            return
+        review = self.session.transition_review
+        if review is not None:
+            self._confirm_transition_review(review)
+            return
+        self.session.review_transition(self.mode_target.currentData())
 
     def _confirm_flash(self):
-        plan = self.plan
+        plan = self.session.plan
+        snapshot = self.session.snapshot()
         if (
             not isinstance(plan, SourceInstallationPlan)
-            or self.worker is not None
-            or self.monitoring
+            or snapshot.busy
         ):
             return
         question = QMessageBox(self)
@@ -261,41 +207,310 @@ class SourceInstallationDialog(LocalFlashDialog):
         if question.clickedButton() is not confirm:
             self.status.setText("Installation cancelled. No installation command was sent.")
             return
-        if self.plan is not plan or self.worker is not None or self.monitoring:
-            self.status.setText("The target or plan changed. Review again before confirming.")
-            return
-        self.result = None
-        self.execution_error = ""
-        self.last_attempt_device = self._selected_device()
-        self.last_flash_device = self.last_attempt_device
-        self.boot_report = None
-        self.boot_error = ""
-        self.status.setText(
-            "Preserving the reviewed images, then running the exact confirmed sequence…"
-        )
-        self._start(
-            SourceInstallationWorker(self.service, self.last_attempt_device, self.recipe, plan=plan)
-        )
+        self.session.accept_installation(snapshot.revision, plan.plan_digest)
 
     def _set_busy(self, busy, *, writing=False):
-        writing = writing or (
-            isinstance(self.worker, SourceInstallationWorker) and self.worker.plan is not None
+        if not hasattr(self, "session"):
+            return super()._set_busy(busy, writing=writing)
+        snapshot = self.session.snapshot()
+        target_change_open = (
+            snapshot.can_review or snapshot.phase is SourceOperationPhase.REVIEW_READY
         )
-        super()._set_busy(busy, writing=writing)
-        if writing:
-            self.cancel_button.setText("Stop after current action")
+        self.target.setEnabled(not snapshot.busy and target_change_open)
+        for widget in (self.images, self.add_button, self.remove_button):
+            widget.setEnabled(not snapshot.busy)
+        self.close_button.setEnabled(True)
+        self.close_button.setText("Hide operation" if snapshot.busy else "Close")
+        self.review_button.setEnabled(snapshot.can_review)
+        self.refresh_button.setEnabled(snapshot.can_refresh)
+        self.flash_button.setEnabled(snapshot.can_install)
+        self.mode_target.setEnabled(snapshot.can_change_mode)
+        self.mode_button.setEnabled(
+            snapshot.can_change_mode or self.session.transition_review is not None
+        )
+        self.mode_button.setText(
+            "Confirm mode change…"
+            if self.session.transition_review is not None
+            else "Change mode…"
+        )
+        self.boot_button.setEnabled(snapshot.can_check_boot)
+        transitioning = (
+            isinstance(self.session.worker, LocalTransitionWorker)
+            and self.session.worker.plan is not None
+        )
+        cancellable = snapshot.writing or transitioning or snapshot.monitoring
+        self.cancel_button.setText(
+            "Stop boot check"
+            if snapshot.monitoring
+            else "Stop waiting"
+            if transitioning
+            else "Stop after current action"
+        )
+        self.cancel_button.setVisible(snapshot.busy and cancellable)
+        self.cancel_button.setEnabled(
+            snapshot.busy and cancellable and not snapshot.stop_requested
+        )
+        self.recovery_button.setVisible(snapshot.recovery_available)
+        self.recovery_button.setEnabled(snapshot.recovery_available)
 
     def _cancel(self):
-        if isinstance(self.worker, SourceInstallationWorker):
-            self.worker.cancel_requested.set()
-            self.cancel_button.setEnabled(False)
-            self.status.setText(
-                "Stop requested. The current action will finish; completed changes cannot be undone automatically."
-            )
-        else:
-            super()._cancel()
+        self.session.request_stop()
 
-    def _failed(self, message):
-        if isinstance(self.worker, SourceInstallationWorker) and self.worker.plan is not None:
-            self.execution_error = message
-        super()._failed(message)
+    def _check_boot(self):
+        self.session.check_boot()
+
+    def _poll_boot(self):
+        if hasattr(self, "session"):
+            self.session._poll_boot()
+
+    def _session_recovery_required(self):
+        if self.isVisible() and not self.session.busy:
+            QDialog.accept(self)
+
+    def _open_recovery(self):
+        if self.session.request_recovery():
+            QDialog.accept(self)
+
+    def _confirm_transition_review(self, review):
+        if not isinstance(review, SourceTransitionReview) or not self.isVisible():
+            return
+        question = QMessageBox(self)
+        question.setIcon(QMessageBox.Icon.Warning)
+        question.setTextFormat(Qt.TextFormat.PlainText)
+        question.setWindowTitle("Confirm phone mode change")
+        question.setText(
+            f"Restart {review.plan.device_name} {review.plan.masked_serial} into "
+            f"{review.target.value}?"
+        )
+        question.setInformativeText(
+            "The phone will disconnect briefly. Save your work on it first. This action does not "
+            "flash images, erase data or change the active slot. Android boot will be checked "
+            "separately after reconnection."
+        )
+        question.setDetailedText(
+            "\n".join(
+                (
+                    f"From: {review.plan.source_mode}",
+                    f"Plan: {review.plan.plan_digest}",
+                    *review.plan.warnings,
+                )
+            )
+        )
+        confirm = question.addButton("Restart phone", QMessageBox.ButtonRole.AcceptRole)
+        cancel = question.addButton(QMessageBox.StandardButton.Cancel)
+        question.setDefaultButton(cancel)
+        question.exec()
+        if question.clickedButton() is confirm:
+            self.session.accept_transition(review)
+        else:
+            self.status.setText("Mode change cancelled. No reboot command was sent.")
+
+    def _render_session(self, snapshot):
+        if not isinstance(snapshot, SourceOperationSnapshot):
+            return
+        session = self.session
+        self.worker = session.worker
+        self.plan = session.plan
+        self.result = session.result
+        self.execution_error = session.execution_error
+        self.last_attempt_device = session.last_attempt_device
+        self.last_flash_device = session.last_flash_device
+        self.transition_result = session.transition_result
+        self.transition_error = session.transition_error
+        self.transition_attempt_device = session.transition_attempt_device
+        self.boot_session = session.boot_session
+        self.boot_report = session.boot_report
+        self.boot_device = session.boot_device
+        self.boot_error = session.boot_error
+        self.monitoring = session.monitoring
+        self.recovery_requested = session.recovery_requested
+        self.devices = session.devices
+        labels = [
+            f"{item.display_name} · {item.masked_serial()} · {item.state.value}"
+            for item in session.devices
+        ]
+        current_labels = [self.target.itemText(index) for index in range(self.target.count())]
+        if labels != current_labels:
+            self.target.blockSignals(True)
+            self.target.clear()
+            self.target.addItems(labels)
+            self.target.blockSignals(False)
+        selected_index = next(
+            (
+                index
+                for index, item in enumerate(session.devices)
+                if item.serial == snapshot.selected_serial
+            ),
+            -1,
+        )
+        if self.target.currentIndex() != selected_index:
+            self.target.blockSignals(True)
+            self.target.setCurrentIndex(selected_index)
+            self.target.blockSignals(False)
+        self.status.setText(snapshot.status)
+        if self.review.toPlainText() != snapshot.details:
+            self.review.setPlainText(snapshot.details)
+        if snapshot.progress_indeterminate:
+            self.progress.setRange(0, 0)
+        else:
+            self.progress.setRange(0, max(1, snapshot.progress_total))
+            self.progress.setValue(snapshot.progress_value)
+        self.progress.setFormat(snapshot.progress_format)
+        self._set_busy(snapshot.busy, writing=snapshot.writing)
+        self._render_guided_summary(snapshot)
+        self._apply_details_visibility()
+        if snapshot.phase in {SourceOperationPhase.REVIEW_READY, SourceOperationPhase.COMPLETED}:
+            self.progress.setAccessibleName("Verified installation journey progress")
+
+    def _render_guided_summary(self, snapshot):
+        device = self.session.selected_device()
+        device_name = device.display_name if device is not None else "Connect your Android phone"
+        stage = {
+            SourceOperationPhase.READY: "Ready to prepare",
+            SourceOperationPhase.REFRESHING: "Finding your phone",
+            SourceOperationPhase.REVIEWING: "Checking everything is ready",
+            SourceOperationPhase.REVIEW_READY: "Ready to install",
+            SourceOperationPhase.INSTALLING: "Installing your ROM",
+            SourceOperationPhase.TRANSITION_REVIEWING: "Checking the requested phone mode",
+            SourceOperationPhase.TRANSITION_READY: "One decision is needed",
+            SourceOperationPhase.TRANSITIONING: "Changing phone mode",
+            SourceOperationPhase.BOOT_CHECKING: "Starting Android and checking stability",
+            SourceOperationPhase.COMPLETED: "Your installation journey is complete",
+            SourceOperationPhase.ATTENTION: "ROMVERSE has prepared recovery",
+        }[snapshot.phase]
+        data = (
+            "Data erase is included in this reviewed procedure"
+            if self.recipe.wipe
+            else "No data erase requested; preservation is not guaranteed"
+        )
+        self.guided_summary.setProperty("operationState", snapshot.phase.value)
+        self.guided_summary.setText(
+            f"{stage}\n\n{device_name}\n{len(self.recipe.steps)} verified package actions · {data}"
+        )
+        self.guided_summary.style().unpolish(self.guided_summary)
+        self.guided_summary.style().polish(self.guided_summary)
+        if snapshot.phase is SourceOperationPhase.REVIEW_READY:
+            text, enabled = "Install ROM…", snapshot.can_install
+        elif snapshot.phase is SourceOperationPhase.READY:
+            text, enabled = "Prepare installation", snapshot.can_review
+        elif (
+            snapshot.phase is SourceOperationPhase.COMPLETED
+            and self.session.boot_report is None
+            and self.session.boot_service is not None
+        ):
+            text, enabled = "Check Android boot", snapshot.can_check_boot
+        elif snapshot.phase is SourceOperationPhase.ATTENTION and snapshot.recovery_available:
+            text, enabled = "Open diagnosis and recovery", snapshot.recovery_available
+        elif snapshot.phase is SourceOperationPhase.ATTENTION:
+            text, enabled = "Check readiness again", snapshot.can_review
+        elif snapshot.phase is SourceOperationPhase.COMPLETED:
+            text, enabled = "Finish", True
+        else:
+            text, enabled = stage, False
+        self.guided_primary.setText(text)
+        self.guided_primary.setEnabled(enabled)
+
+    def _guided_primary_action(self):
+        snapshot = self.session.snapshot()
+        if snapshot.phase is SourceOperationPhase.REVIEW_READY:
+            self._confirm_flash()
+        elif snapshot.phase is SourceOperationPhase.READY:
+            self.session.review_installation()
+        elif (
+            snapshot.phase is SourceOperationPhase.COMPLETED
+            and self.session.boot_report is None
+            and self.session.boot_service is not None
+        ):
+            self.session.check_boot()
+        elif snapshot.phase is SourceOperationPhase.ATTENTION and snapshot.recovery_available:
+            self._open_recovery()
+        elif snapshot.phase is SourceOperationPhase.ATTENTION and snapshot.can_review:
+            self.session.review_installation()
+        elif snapshot.phase is SourceOperationPhase.COMPLETED:
+            self.accept()
+
+    def _toggle_details(self, checked):
+        self._details_expanded = bool(checked)
+        self._apply_details_visibility()
+
+    def _apply_details_visibility(self):
+        expanded = self._experience_mode is ExperienceMode.EXPERT or self._details_expanded
+        guided = self._experience_mode is ExperienceMode.GUIDED
+        self.guided_summary.setVisible(guided)
+        self.guided_primary.setVisible(guided)
+        self.details_button.setVisible(guided)
+        self.details_button.setText(
+            "Hide technical details" if expanded else "View technical details"
+        )
+        for widget in (self.mapping_hint, self.images, self.review):
+            widget.setVisible(expanded)
+        self.mode_target.setVisible(not guided)
+        self.mode_button.setVisible(not guided)
+        self.boot_button.setVisible(not guided)
+        self.review_button.setVisible(not guided)
+        self.flash_button.setVisible(not guided)
+        self.recovery_button.setVisible(
+            not guided and self.session.snapshot().recovery_available
+        )
+        choose_target = not guided or len(self.session.devices) != 1
+        self.target_label.setVisible(choose_target)
+        self.target.setVisible(choose_target)
+        self.refresh_button.setVisible(choose_target)
+
+    def set_experience_mode(self, mode):
+        self._experience_mode = ExperienceMode(mode)
+        expert = self._experience_mode is ExperienceMode.EXPERT
+        self.experience_button.setText(
+            "Switch to Guided view" if expert else "Switch to Expert view"
+        )
+        self.eyebrow.setText(
+            "EXPERT INSTALLATION  •  COMPLETE TECHNICAL EVIDENCE"
+            if expert
+            else "GUIDED INSTALLATION  •  ROMVERSE HANDLES THE JOURNEY"
+        )
+        self.title.setText(
+            (
+                "Review your complete ROM installation"
+                if self._candidate_installation
+                else "Review the complete declared installation"
+            )
+            if expert
+            else "Install your rebuilt ROM"
+            if self._candidate_installation
+            else "Install this firmware package"
+        )
+        self._apply_details_visibility()
+
+    def _request_experience_mode(self):
+        selected = (
+            ExperienceMode.GUIDED
+            if self._experience_mode is ExperienceMode.EXPERT
+            else ExperienceMode.EXPERT
+        )
+        if selected is ExperienceMode.EXPERT:
+            from romverse.ui.rom_studio import confirm_expert_mode
+
+            if not confirm_expert_mode(self):
+                return
+        self.set_experience_mode(selected)
+        self.experience_mode_requested.emit(selected)
+
+    def done(self, result):
+        if self._owns_session and self.session.busy:
+            self.status.setText(
+                "This standalone operation must finish or be explicitly stopped before closing."
+            )
+            return
+        QDialog.done(self, result)
+
+    def reject(self):
+        self.done(QDialog.DialogCode.Rejected)
+
+    def closeEvent(self, event):  # noqa: N802
+        if self._owns_session and self.session.busy:
+            event.ignore()
+            self.status.setText(
+                "This standalone operation must finish or be explicitly stopped before closing."
+            )
+            return
+        QDialog.closeEvent(self, event)

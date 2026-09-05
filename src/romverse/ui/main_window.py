@@ -3921,6 +3921,7 @@ class MainWindow(QMainWindow):
         self._audit_store = audit_store or GuardianAuditStore(workspace)
         self._runtime_gateway = gateway
         self._local_flash_dialog = None
+        self._source_operation_session = None
         self._expert_flash_pending = False
         self._pending_local_flash_recovery: tuple[AndroidDevice, str] | None = None
         self._pending_local_flash_recovery_project: tuple[str, str] | None = None
@@ -4780,12 +4781,26 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event) -> None:  # noqa: N802
         """Stop producers before Qt begins destroying their receiving widgets."""
 
+        source_session = self._source_operation_session
+        if source_session is not None and source_session.busy:
+            event.ignore()
+            if self._local_flash_dialog is not None:
+                self._local_flash_dialog.raise_()
+            else:
+                QTimer.singleShot(
+                    0,
+                    lambda active=source_session: self._show_source_operation_session(active),
+                )
+            return
         if self._local_flash_dialog is not None and (
             self._local_flash_dialog.worker is not None or self._local_flash_dialog.monitoring
         ):
             event.ignore()
             self._local_flash_dialog.raise_()
             return
+        if source_session is not None:
+            source_session.dispose()
+            self._source_operation_session = None
         self.timer.stop()
         self._reconnect_timer.stop()
         self._clock_timer.stop()
@@ -4810,6 +4825,10 @@ class MainWindow(QMainWindow):
             self.engine is None
             or self.scanning
             or self._local_flash_dialog is not None
+            or (
+                self._source_operation_session is not None
+                and self._source_operation_session.busy
+            )
             or self._expert_flash_pending
         ):
             return
@@ -6268,6 +6287,10 @@ class MainWindow(QMainWindow):
         self.device_center.set_experience_mode(mode)
         self.diagnostics_center.set_experience_mode(mode)
         self.rom_studio.set_experience_mode(mode)
+        if self._local_flash_dialog is not None and hasattr(
+            self._local_flash_dialog, "set_experience_mode"
+        ):
+            self._local_flash_dialog.set_experience_mode(mode)
 
     @Slot(str, object)
     def _record_rom_operation(self, operation: str, _result: object) -> None:
@@ -6723,6 +6746,93 @@ class MainWindow(QMainWindow):
         if created:
             self._navigate_route("recovery_bay")
 
+    def _activate_source_operation_session(self, session) -> None:
+        previous = self._source_operation_session
+        if previous is session:
+            return
+        if previous is not None:
+            if previous.busy:
+                raise RuntimeError("Another local installation is still active")
+            previous.dispose()
+            previous.deleteLater()
+        self._source_operation_session = session
+        session.operation_finished.connect(self._record_source_installation_result)
+        session.transition_finished.connect(self._record_local_transition_result)
+        session.boot_finished.connect(self._record_local_boot_result)
+        session.quiescent.connect(
+            lambda active=session: self._source_operation_quiescent(active)
+        )
+
+    def _retire_source_operation_session(self, session) -> None:
+        if self._source_operation_session is not session or session.busy:
+            return
+        session.dispose()
+        self._source_operation_session = None
+        session.deleteLater()
+
+    def _source_operation_quiescent(self, session) -> None:
+        """Record a detached operation once its changing or boot work stops."""
+
+        if self._source_operation_session is not session:
+            return
+        self._finish_expert_dialog(session)
+        if self._local_flash_dialog is None:
+            if self.engine is not None:
+                QTimer.singleShot(0, self.scan)
+            else:
+                self._finish_local_flash_recovery([])
+
+    def _resume_source_operation_before_new_device_work(self) -> bool:
+        """Keep a hidden source mission authoritative over new phone operations."""
+
+        session = self._source_operation_session
+        if session is None:
+            return False
+        self.rom_studio.operation_status.setText(
+            "ROMVERSE reopened the current installation so its exact progress and result are not "
+            "replaced by another phone operation."
+        )
+        self._show_source_operation_session(session)
+        return True
+
+    def _show_source_operation_session(self, session) -> None:
+        """Attach a fresh presentation without recreating its plan or worker."""
+
+        from romverse.ui.source_installation import SourceInstallationDialog
+
+        if self._source_operation_session is not session:
+            return
+        if self._local_flash_dialog is not None:
+            self._local_flash_dialog.raise_()
+            return
+        dialog = SourceInstallationDialog(
+            session.service,
+            session.devices,
+            self,
+            recipe=session.recipe,
+            session=session,
+            experience_mode=self._experience_mode,
+            discover=session.discover,
+            transition_service=session.transition_service,
+            boot_service=session.boot_service,
+        )
+        dialog.experience_mode_requested.connect(self._set_experience_mode_from_studio)
+        self._local_flash_dialog = dialog
+        self._reconnect_timer.stop()
+        try:
+            dialog.exec()
+        finally:
+            if self._local_flash_dialog is dialog:
+                self._local_flash_dialog = None
+            dialog.deleteLater()
+        if not session.busy:
+            self._retire_source_operation_session(session)
+        if not session.busy:
+            if self.engine is not None:
+                self.scan()
+            else:
+                self._finish_local_flash_recovery([])
+
     @Slot(str)
     def _open_project_flash(self, project_id: str) -> None:
         """Prepare project images without entering Expert or production-certification setup."""
@@ -6745,8 +6855,25 @@ class MainWindow(QMainWindow):
         )
         from romverse.ui.project_flash import ProjectFlashDialog, ProjectPreparationDialog
         from romverse.ui.source_installation import SourceInstallationDialog
+        from romverse.ui.source_operation_session import SourceOperationSession
 
         project = self.rom_studio.current_project
+        active_source_session = self._source_operation_session
+        if (
+            project is not None
+            and project.original is not None
+            and active_source_session is not None
+            and active_source_session.matches(project_id, project.original.sha256)
+        ):
+            self._show_source_operation_session(active_source_session)
+            return
+        if active_source_session is not None:
+            if active_source_session.busy:
+                self.rom_studio.operation_status.setText(
+                    "Another installation is active. Reopen it before changing projects."
+                )
+                return
+            self._retire_source_operation_session(active_source_session)
         if (
             project is None
             or project.project_id != project_id
@@ -6818,6 +6945,7 @@ class MainWindow(QMainWindow):
         self._local_flash_dialog = preparation_dialog
         self._reconnect_timer.stop()
         dialog = None
+        source_session = None
         try:
             preparation_dialog.exec()
             preparation = preparation_dialog.preparation
@@ -6836,28 +6964,47 @@ class MainWindow(QMainWindow):
                 )
                 return
             if isinstance(preparation, SourceInstallationRecipe):
-                dialog = SourceInstallationDialog(
-                    SourceInstallationExecutor(
-                        candidate_service
-                        if isinstance(preparation, CandidateInstallationRecipe)
-                        else source_service,
-                        local,
-                        self._device_adb_executable,
-                    ),
+                executor = SourceInstallationExecutor(
+                    candidate_service
+                    if isinstance(preparation, CandidateInstallationRecipe)
+                    else source_service,
+                    local,
+                    self._device_adb_executable,
+                )
+                source_session = SourceOperationSession(
+                    executor,
                     tuple(self._observed_devices),
-                    self,
                     recipe=preparation,
                     discover=self.engine.scan if self.engine is not None else None,
                     transition_service=LocalDeviceTransitionService(
                         local, self._device_adb_executable
                     ),
                     boot_service=(
-                        LocalBootService(local, self._device_adb_executable, timeout_seconds=900)
+                        LocalBootService(
+                            local,
+                            self._device_adb_executable,
+                            timeout_seconds=900,
+                        )
                         if self._device_adb_executable is not None
                         else None
                     ),
+                    parent=self,
                 )
-                dialog.operation_finished.connect(self._record_source_installation_result)
+                self._activate_source_operation_session(source_session)
+                dialog = SourceInstallationDialog(
+                    executor,
+                    source_session.devices,
+                    self,
+                    recipe=preparation,
+                    session=source_session,
+                    experience_mode=self._experience_mode,
+                    discover=source_session.discover,
+                    transition_service=source_session.transition_service,
+                    boot_service=source_session.boot_service,
+                )
+                dialog.experience_mode_requested.connect(
+                    self._set_experience_mode_from_studio
+                )
             else:
                 bound = BoundProjectFlashService(preparer, preparation, local)
                 transition = BoundProjectTransitionService(
@@ -6879,19 +7026,25 @@ class MainWindow(QMainWindow):
                     ),
                 )
                 dialog.operation_finished.connect(self._record_local_flash_result)
-            dialog.transition_finished.connect(self._record_local_transition_result)
-            dialog.boot_finished.connect(self._record_local_boot_result)
+                dialog.transition_finished.connect(self._record_local_transition_result)
+                dialog.boot_finished.connect(self._record_local_boot_result)
             self._local_flash_dialog = dialog
             dialog.exec()
         except (OSError, ValueError, ProjectError) as exc:
             QMessageBox.warning(self, "Local installation stopped", str(exc))
         finally:
             self._local_flash_dialog = None
-            if dialog is not None:
+            if dialog is not None and source_session is None:
                 self._finish_expert_dialog(dialog)
-            if self.engine is not None:
+            if source_session is not None and not source_session.busy:
+                self._retire_source_operation_session(source_session)
+            if self.engine is not None and (
+                source_session is None or not source_session.busy
+            ):
                 self.scan()
-            else:
+            elif self.engine is None and (
+                source_session is None or not source_session.busy
+            ):
                 self._finish_local_flash_recovery([])
 
     @Slot(str)
@@ -6902,6 +7055,8 @@ class MainWindow(QMainWindow):
         from romverse.rom.source_installation_history import load_latest_source_installation
         from romverse.ui.source_installation_history import SourceInstallationHistoryDialog
 
+        if self._resume_source_operation_before_new_device_work():
+            return
         project = self.rom_studio.current_project
         if (
             project is None
@@ -7000,6 +7155,9 @@ class MainWindow(QMainWindow):
             self._experience_mode is not ExperienceMode.EXPERT
             or self._local_flash_dialog is not None
         ):
+            self._expert_flash_pending = False
+            return
+        if self._resume_source_operation_before_new_device_work():
             self._expert_flash_pending = False
             return
         if self.scanning:

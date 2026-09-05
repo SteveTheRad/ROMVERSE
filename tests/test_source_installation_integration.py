@@ -24,6 +24,11 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 
 from romverse.core.settings import AppSettings, ExperienceMode
 from romverse.guardian.local_flash import LocalFlashError, LocalFlashService, LocalFlashState
+from romverse.guardian.local_transition import (
+    LocalTransitionPlan,
+    LocalTransitionResult,
+    LocalTransitionTarget,
+)
 from romverse.guardian.source_installation import SourceInstallationExecutor
 from romverse.infrastructure.tools import ToolStatus
 from romverse.rom.local_boot import LocalBootError, LocalBootService
@@ -33,6 +38,7 @@ from romverse.rom.source_installation import SourceInstallationService
 from romverse.ui.main_window import MainWindow
 from romverse.ui.project_flash import ProjectPreparationDialog
 from romverse.ui.source_installation import SourceInstallationDialog
+from romverse.ui.source_operation_session import SourceOperationSession
 from scripts.simulate_source_installation import InstallationPhone
 from scripts.simulate_source_installation import main as simulate_source_installation
 
@@ -476,7 +482,7 @@ def _finish_worker(app, workers):
 
 
 def _review(dialog, app, workers):
-    _click(dialog.review_button)
+    _click(dialog.guided_primary if dialog.guided_primary.isVisible() else dialog.review_button)
     _finish_worker(app, workers)
     assert dialog.plan is not None, dialog.status.text()
     assert dialog.flash_button.isEnabled()
@@ -605,6 +611,195 @@ def test_wipe_variant_requires_explicit_data_loss_confirmation(installation_dial
     _click(dialog.flash_button)
     assert context.phone.changes == []
     assert workers == []
+
+
+def test_app_owned_session_survives_view_and_mode_changes_without_duplicate_execution(
+    installation,
+    monkeypatch,
+):
+    context = installation
+    app = QApplication.instance() or QApplication([])
+    workers = []
+    monkeypatch.setattr("romverse.ui.local_flash.start_background", workers.append)
+    session = SourceOperationSession(
+        _executor(context),
+        (context.phone.device(),),
+        recipe=context.recipe(),
+    )
+    first = SourceInstallationDialog(
+        session.service,
+        session.devices,
+        recipe=session.recipe,
+        session=session,
+        experience_mode=ExperienceMode.GUIDED,
+    )
+    first.show()
+    app.processEvents()
+
+    _click(first.guided_primary)
+    _finish_worker(app, workers)
+    reviewed_plan = session.plan
+    assert reviewed_plan is not None
+    reviewed_revision = session.revision
+    questions = _answer(monkeypatch, accept=True)
+    _click(first.flash_button)
+    assert questions and len(workers) == 1
+    active_worker = session.worker
+    assert active_worker is workers[0]
+    active_status = session.status
+
+    first.set_experience_mode(ExperienceMode.EXPERT)
+    first.set_experience_mode(ExperienceMode.GUIDED)
+    assert session.worker is active_worker
+    assert session.plan is reviewed_plan
+    assert session.revision == reviewed_revision
+    assert context.phone.changes == []
+    assert not session.accept_installation(reviewed_revision, reviewed_plan.plan_digest)
+    assert session.status == active_status
+    assert len(workers) == 1
+
+    _click(first.close_button)
+    app.processEvents()
+    assert not first.isVisible()
+    assert session.busy and session.worker is active_worker
+
+    second = SourceInstallationDialog(
+        session.service,
+        session.devices,
+        recipe=session.recipe,
+        session=session,
+        experience_mode=ExperienceMode.EXPERT,
+    )
+    second.show()
+    app.processEvents()
+    assert second.session is session
+    assert second.plan is reviewed_plan
+    assert second.worker is active_worker
+    assert len(workers) == 1
+
+    _finish_worker(app, workers)
+    assert session.result is not None
+    assert session.result.state == "completed"
+    assert _actual_changes(context.phone) == _expected_changes()
+    assert not session.busy
+    assert not session.snapshot().recovery_available
+    assert not second.recovery_button.isVisible()
+    second.close()
+    first.deleteLater()
+    second.deleteLater()
+    session.dispose()
+    app.processEvents()
+
+
+def test_guided_read_only_check_failure_offers_a_bounded_retry(installation, monkeypatch):
+    context = installation
+    app = QApplication.instance() or QApplication([])
+    workers = []
+    monkeypatch.setattr("romverse.ui.local_flash.start_background", workers.append)
+    executor = _executor(context)
+    inspect = executor.inspect
+
+    def fail_read_only_check(*_args, **_kwargs):
+        raise RuntimeError("The package could not be read completely")
+
+    monkeypatch.setattr(executor, "inspect", fail_read_only_check)
+    session = SourceOperationSession(
+        executor,
+        (context.phone.device(),),
+        recipe=context.recipe(),
+    )
+    dialog = SourceInstallationDialog(
+        executor,
+        session.devices,
+        recipe=session.recipe,
+        session=session,
+        experience_mode=ExperienceMode.GUIDED,
+    )
+    dialog.show()
+    app.processEvents()
+
+    _click(dialog.guided_primary)
+    _finish_worker(app, workers)
+    snapshot = session.snapshot()
+    assert snapshot.phase.value == "attention"
+    assert snapshot.can_review and not snapshot.recovery_available
+    assert dialog.guided_primary.text() == "Check readiness again"
+    assert dialog.guided_primary.isEnabled()
+    assert not dialog.recovery_button.isVisible()
+    assert context.phone.changes == []
+
+    monkeypatch.setattr(executor, "inspect", inspect)
+    _click(dialog.guided_primary)
+    _finish_worker(app, workers)
+    assert session.plan is not None
+    assert dialog.guided_primary.text() == "Install ROM…"
+    assert context.phone.changes == []
+    dialog.close()
+    session.dispose()
+    app.processEvents()
+
+
+def test_completed_bootloader_transition_returns_to_same_installation_journey(
+    installation,
+    monkeypatch,
+    tmp_path,
+):
+    context = installation
+    app = QApplication.instance() or QApplication([])
+    workers = []
+    monkeypatch.setattr("romverse.ui.local_flash.start_background", workers.append)
+
+    class TransitionService:
+        def inspect(self, device, target):
+            return LocalTransitionPlan(
+                plan_digest="1" * 64,
+                plan_id="transition-plan",
+                created_at="2026-09-05T00:00:00+00:00",
+                expires_at="2026-09-05T00:02:00+00:00",
+                device_name=device.display_name,
+                masked_serial=device.masked_serial(),
+                source_mode="android",
+                target=target,
+                warnings=(),
+                command=("adb", "reboot", "bootloader"),
+                device_key="device-key",
+                tools=(),
+                source_device=device,
+            )
+
+        def execute(self, plan, **_kwargs):
+            return LocalTransitionResult(
+                state=LocalFlashState.COMPLETED,
+                summary="The exact phone arrived in bootloader Fastboot.",
+                phone_change_attempted=True,
+                receipt_path=tmp_path / "transition-receipt.json",
+                observed_device=plan.source_device,
+                arrival_verified=True,
+                command_completed=True,
+            )
+
+    session = SourceOperationSession(
+        _executor(context),
+        (context.phone.device(),),
+        recipe=context.recipe(),
+        transition_service=TransitionService(),
+    )
+    assert session.review_transition(LocalTransitionTarget.BOOTLOADER)
+    _finish_worker(app, workers)
+    review = session.transition_review
+    assert review is not None
+    assert session.accept_transition(review)
+    _finish_worker(app, workers)
+
+    snapshot = session.snapshot()
+    assert snapshot.phase.value == "ready"
+    assert snapshot.can_review
+    assert "Continue with installation preparation" in snapshot.status
+    assert session.transition_result is not None
+    assert not snapshot.recovery_available
+    assert context.phone.changes == []
+    session.dispose()
+    app.processEvents()
 
 
 def test_user_confirmed_complete_installation_then_measures_boot_separately(
@@ -787,11 +982,11 @@ def test_guided_main_window_runs_source_route_and_records_exact_outcome(
                 assert isinstance(modal.service, SourceInstallationExecutor)
                 assert window._experience_mode is ExperienceMode.GUIDED
                 assert modal.images.rowCount() == 53
-                _click(modal.review_button)
+                _click(modal.guided_primary)
                 assert modal.plan is not None
                 assert context.phone.changes == []
                 QTimer.singleShot(0, confirm)
-                _click(modal.flash_button)
+                _click(modal.guided_primary)
                 assert "confirmed" in phases
                 assert modal.result.state == outcome, modal.status.text()
                 results.append(modal.result)
@@ -829,6 +1024,7 @@ def test_guided_main_window_runs_source_route_and_records_exact_outcome(
     assert phases == ["prepared", "reviewed", "confirmed"]
     assert len(results) == 1 and not results[0].boot_verified
     assert window._local_flash_dialog is None
+    assert window._source_operation_session is None
     assert window._experience_mode is ExperienceMode.GUIDED
     if outcome == "completed":
         assert _actual_changes(context.phone) == _expected_changes()
@@ -839,3 +1035,101 @@ def test_guided_main_window_runs_source_route_and_records_exact_outcome(
         assert len(incidents) == 1
         assert incidents[0][1]["project_id"] == context.project_id
         assert incidents[0][1]["target_device"].serial == context.phone.serial
+
+
+def test_main_window_retains_hidden_installation_across_experience_switch(
+    installation_desktop,
+    monkeypatch,
+):
+    app, window, context = installation_desktop
+    workers = []
+    monkeypatch.setattr("romverse.ui.local_flash.start_background", workers.append)
+    _answer(monkeypatch, accept=True)
+    phases = []
+    errors = []
+    timer = QTimer()
+    timeout = QTimer()
+    timeout.setSingleShot(True)
+
+    def interact():
+        modal = app.activeModalWidget()
+        try:
+            if isinstance(modal, ProjectPreparationDialog) and "prepared" not in phases:
+                phases.append("prepared")
+                modal.choice.setFocus()
+                QTest.keyClick(modal.choice, Qt.Key.Key_End)
+                _click(modal.prepare_button)
+            elif isinstance(modal, SourceInstallationDialog):
+                session = modal.session
+                if "reviewed" not in phases and session.worker is None and session.plan is None:
+                    phases.append("reviewed")
+                    _click(modal.guided_primary)
+                elif session.worker is not None and session.plan is None and workers:
+                    workers.pop(0).execute()
+                    app.processEvents()
+                elif session.plan is not None and "hidden" not in phases:
+                    phases.append("hidden")
+                    _click(modal.guided_primary)
+                    assert session.worker is not None and len(workers) == 1
+                    _click(modal.close_button)
+        except BaseException as exc:
+            errors.append(exc)
+            timer.stop()
+            if modal is not None:
+                modal.reject()
+
+    def expired():
+        errors.append(AssertionError(f"App-owned session did not detach: {phases}"))
+        if app.activeModalWidget() is not None:
+            app.activeModalWidget().reject()
+
+    timer.timeout.connect(interact)
+    timer.start(1)
+    timeout.timeout.connect(expired)
+    timeout.start(5000)
+    assert window.rom_studio._request_project_flash(context.project_id)
+    timer.stop()
+    timeout.stop()
+    if errors:
+        raise errors[0]
+
+    session = window._source_operation_session
+    assert phases == ["prepared", "reviewed", "hidden"]
+    assert session is not None and session.busy
+    assert window._local_flash_dialog is None
+    retained_worker = session.worker
+    retained_plan = session.plan
+    retained_revision = session.revision
+    window._apply_experience_mode(ExperienceMode.EXPERT)
+    assert session.worker is retained_worker
+    assert session.plan is retained_plan
+    assert session.revision == retained_revision
+    assert context.phone.changes == []
+    reopened = []
+    show_source_operation = window._show_source_operation_session
+    monkeypatch.setattr(window, "_show_source_operation_session", reopened.append)
+    window._open_expert_flash()
+    window._open_source_installation_history(context.project_id)
+    assert reopened == [session, session]
+    assert window._source_operation_session is session
+    assert len(workers) == 1
+    monkeypatch.setattr(window, "_show_source_operation_session", show_source_operation)
+
+    session.boot_service = None
+    workers.pop(0).execute()
+    app.processEvents()
+    assert session.result is not None and session.result.state == "completed"
+    assert not session.busy
+    assert _actual_changes(context.phone) == _expected_changes()
+    assert window._source_operation_session is session
+
+    QTimer.singleShot(
+        0,
+        lambda: (
+            app.activeModalWidget().close_button.click()
+            if isinstance(app.activeModalWidget(), SourceInstallationDialog)
+            else None
+        ),
+    )
+    window._show_source_operation_session(session)
+    assert window._source_operation_session is None

@@ -1877,6 +1877,34 @@ Complete automatic firmware installation and restoration still need exact suppor
 correct transitions/slots/AVB/post-install behavior and independent physical validation. Fresh
 large-archive hashing can be slow and never silently renews an expired transition confirmation.
 
+## 2026-09-05 Shared Guided/Expert source-operation session
+
+- Source-declared and rebuilt-ROM installation now use one application-owned operation session for
+  the exact project/source, selected phone, reviewed plan and revision, worker, progress, result,
+  transition, boot observation and recovery continuation. Hiding and reopening its screen no longer
+  recreates the operation; changing Guided/Expert presentation cannot duplicate commands, change
+  the plan or grant consent.
+- While that mission exists, installation history and the separate Expert image writer reopen it
+  rather than starting competing phone work. Closing an idle mission retires it, preventing a stale
+  review from becoming another reopen loop; closing active work only detaches its presentation.
+- Guided now exposes a compact exact-phone/status card, one contextual next action and optional
+  technical details. Expert retains the complete action table, hashes, logs and direct phone-mode
+  controls against the same session. Both keep command completion, boot observation, readback,
+  subsystem health and release readiness as separate claims.
+- An inert user journey executes the exact 53 declared actions once while the Guided view is hidden,
+  switches presentation and reattaches to the same terminal evidence. A real-MainWindow test covers
+  the same detached lifecycle. Double acceptance cannot create another worker. A read-only check
+  failure offers a bounded retry, while a changing or boot failure continues to exact-device
+  recovery. A stable boot no longer incorrectly exposes recovery as though it were a fault.
+- All 624 affected source/candidate/project/local-installation, Guardian, ROM Studio and First Light
+  regressions pass. The complete Desktop/Python gate passes all 2,670 tests with zero failures,
+  errors or skips in 808.157 seconds. Whole-source Ruff and final diff checks are clean. See
+  `SHARED_SOURCE_OPERATION_SESSION_2026-09-05.md` for the exact boundary.
+- This checkpoint does not yet move project preparation or the manual individual-image route into
+  the shared session and does not provide crash/reboot persistence. No physical-device operation,
+  app restart, packaging, Companion change, website update, publication or remote push was made.
+  Approved production logo files were not edited.
+
 ## Honest feature boundary
 
 The current safe milestone supports read-only Android evidence, local diagnostics, guarded APK

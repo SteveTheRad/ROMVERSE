@@ -22,6 +22,7 @@ from PySide6.QtGui import QFontMetrics
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QLabel
 
+from romverse.core.settings import ExperienceMode
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.guardian.local_flash import LocalFlashService
 from romverse.guardian.source_installation import SourceInstallationExecutor
@@ -258,16 +259,18 @@ def main(argv=None) -> int:
     dialog.resize(760, 720)
     dialog.show()
     app.processEvents()
-    click(dialog.review_button)
+    assert dialog.guided_primary.isVisible()
+    assert not dialog.review_button.isVisible() and not dialog.flash_button.isVisible()
+    click(dialog.guided_primary)
     pump(app, lambda: dialog.plan is not None and dialog.worker is None)
     assert runner.changes == []
     screenshot(app, dialog, root / "simulation-source-review.png")
     confirmation = confirm_next(app, accept=False)
-    click(dialog.flash_button)
+    click(dialog.guided_primary)
     assert not confirmation.isActive() and dialog.worker is None
     assert runner.changes == []
     confirmation = confirm_next(app)
-    click(dialog.flash_button)
+    click(dialog.guided_primary)
     pump(app, lambda: dialog.boot_report is not None and dialog.worker is None)
     assert not confirmation.isActive()
     assert dialog.result.state == "completed" and not dialog.result.boot_verified
@@ -285,7 +288,14 @@ def main(argv=None) -> int:
     assert not dialog.result.boot_verified
     assert store.verify_original(project.project_id).valid
     assert flash.audit.verify().valid
+    retained_session = dialog.session
+    retained_result = dialog.result
+    retained_changes = tuple(runner.changes)
+    dialog.set_experience_mode(ExperienceMode.EXPERT)
     app.processEvents()
+    assert dialog.session is retained_session
+    assert dialog.result is retained_result
+    assert tuple(runner.changes) == retained_changes
     readable = compact_layout(dialog)
     assert readable, (
         "The compact installation results overlap their progress, warning or Close controls."

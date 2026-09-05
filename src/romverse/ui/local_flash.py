@@ -227,6 +227,7 @@ class LocalFlashDialog(QDialog):
 
         target_row = QHBoxLayout()
         target_label = QLabel("Target phone")
+        self.target_label = target_label
         self.target = QComboBox()
         self.target.setAccessibleName("Phone to flash")
         target_label.setBuddy(self.target)

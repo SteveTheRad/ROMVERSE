@@ -103,7 +103,7 @@ from romverse.rom.build_execution import LocalBuildReceipt, LocalDeviceBuildExec
 from romverse.rom.build_inputs import BuildInputPreparation, BuildInputPreparationService
 from romverse.rom.first_light import FirstLightService
 from romverse.rom.forge_autopilot import ResolutionKind, resolution_plan
-from romverse.rom.guided import GuidedMissionStore
+from romverse.rom.guided import VERIFIED_ROM_INSTALLATION_ACTION, GuidedMissionStore
 from romverse.rom.models import ProjectError
 from romverse.rom.readiness import (
     BuildGate,
@@ -1770,9 +1770,9 @@ class BuildControlCenter(QDialog):
                 "ROMVERSE verified the protected source, workspace, toolchain, reproducible "
                 "artifact, and OEM-signature/AVB evidence. The red and amber rows below are "
                 "production certification requirements—not build failures. Finish here, or "
-                "choose Prepare local image installation to inspect source-bound images and "
-                "explicit mappings. That separate user-approved operation is not a certified "
-                "full-ROM installation."
+                "choose Prepare verified ROM installation to inspect the preferred complete "
+                "route or deliberately select a manual image subset. That separate user-approved "
+                "operation is not a production-certified installation."
             )
             guidance.setObjectName("GateCopy")
             guidance.setWordWrap(True)
@@ -1968,16 +1968,16 @@ class BuildControlCenter(QDialog):
         )
         if not self.autopilot_active:
             self.autopilot_button.setText(
-                "Prepare local image installation…"
+                VERIFIED_ROM_INSTALLATION_ACTION
                 if self.report.local_candidate_ready
                 else "Review final Guardian handoff"
                 if self.report.guardian_handoff_ready
                 else "Auto-resolve && continue"
             )
             self.autopilot_button.setToolTip(
-                "Prepare this project's verified image inventory, then explicitly review the "
-                "target, partition mapping, write order, warnings and final consent. Opening "
-                "preparation never writes to the phone or grants production certification."
+                "Verify the best complete ROM route available for this project, or deliberately "
+                "choose a manual image subset. Then review the exact target, actions, warnings "
+                "and final consent. Opening preparation never writes to the phone."
                 if self.report.local_candidate_ready
                 else "Resolve every safe local prerequisite in dependency order. ROMVERSE pauses "
                 "only for authoritative input that software cannot create."
@@ -1987,8 +1987,8 @@ class BuildControlCenter(QDialog):
         self.autopilot_button.style().unpolish(self.autopilot_button)
         self.autopilot_button.style().polish(self.autopilot_button)
         self.footer_action_hint.setText(
-            "Prepare an exact local image subset for your phone. Production certification "
-            "remains separate; no phone action starts until final review and consent."
+            "Verify a complete ROM route when supported, with clearly limited manual subsets as "
+            "an alternative. No phone action starts until final review and consent."
             if self.report.local_candidate_ready
             else "Resolve the first unfinished evidence gate, then reassess automatically."
         )
@@ -2664,8 +2664,9 @@ class BuildControlCenter(QDialog):
         if self.report is not None and self.report.signing_ready:
             self.refresh(self.report)
             self.status.setText(
-                "Local build complete. Choose Prepare local image installation to review exact "
-                "images, or finish here. Certification review remains a separate optional route."
+                "Local build complete. Choose Prepare verified ROM installation to review the "
+                "preferred complete route or a manual image subset, or finish here. Certification "
+                "review remains separate."
             )
             return
         if self.autopilot_active or any(
@@ -2982,12 +2983,12 @@ class BuildControlCenter(QDialog):
         elif self.report is not None and self.report.signing_ready:
             message = (
                 "Local ROM build complete. Phone installation is optional and was not started. "
-                "Choose Prepare local image installation for source-bound images and explicit "
-                "mappings. Production certification remains a separate optional route."
+                "Choose Prepare verified ROM installation for the preferred complete route or a "
+                "clearly limited manual image subset. Production certification remains separate."
             )
-            self.autopilot_button.setText("Prepare local image installation…")
+            self.autopilot_button.setText(VERIFIED_ROM_INSTALLATION_ACTION)
         if self.report is not None and self.report.local_candidate_ready:
-            self.autopilot_button.setText("Prepare local image installation…")
+            self.autopilot_button.setText(VERIFIED_ROM_INSTALLATION_ACTION)
         prefix = f"{completed} safe step(s) completed automatically. " if completed else ""
         self.status.setText(prefix + message)
         if waiting_gate and self.report is not None:

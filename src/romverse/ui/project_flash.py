@@ -132,7 +132,7 @@ class ProjectPreparationDialog(QDialog):
         )
         self.worker: ProjectPreparationWorker | None = operation_session.worker
         self.monitoring = False
-        self.setWindowTitle("ROMVERSE · Prepare installation")
+        self.setWindowTitle("ROMVERSE · Choose installation route")
         self.resize(740, 430)
         self.setMinimumWidth(520)
         if self.screen() is not None:
@@ -151,7 +151,7 @@ class ProjectPreparationDialog(QDialog):
         outer.addWidget(scroll)
         layout.setContentsMargins(24, 22, 24, 22)
         layout.setSpacing(12)
-        eyebrow = QLabel("GUIDED INSTALLATION  •  LOCAL IMAGES")
+        eyebrow = QLabel("GUIDED INSTALLATION  •  VERIFIED ROUTES")
         eyebrow.setObjectName("Eyebrow")
         layout.addWidget(eyebrow)
         title = QLabel("Choose your installation route")
@@ -159,25 +159,34 @@ class ProjectPreparationDialog(QDialog):
         title.setObjectName("SectionTitle")
         layout.addWidget(title)
         introduction = QLabel(
-            "ROMVERSE will verify the saved project evidence and image hashes. "
-            "Your rebuilt candidate and the untouched original are separate choices; "
-            "one is never silently substituted for the other."
-            " A supported package procedure is a separate option for the protected source."
+            "ROMVERSE prefers a complete, understood installation route when one is available. "
+            "Complete routes preserve the package's declared order and slot actions. Manual "
+            "image subsets remain available for explicit specialist mapping and are never "
+            "represented as a full ROM installation."
         )
         introduction.setWordWrap(True)
         layout.addWidget(introduction)
         self.choice = QComboBox()
-        self.choice.setAccessibleName("Project image source")
+        self.choice.setAccessibleName("Installation route")
         if candidate_service is not None:
             self.choice.addItem(
-                "Install my rebuilt ROM · complete procedure", "candidate-installation"
+                "Complete rebuilt ROM · verify exact procedure", "candidate-installation"
             )
-        self.choice.addItem("Rebuilt images · manual partition mapping", "built")
-        self.choice.addItem("Protected original images · manual partition mapping", "protected")
+        self.choice.addItem("Manual rebuilt image subset · explicit mapping", "built")
+        self.choice.addItem("Manual protected-source subset · explicit mapping", "protected")
         if source_service is not None:
             self.choice.addItem(
-                "Follow the package's supported installation procedure", "source-installation"
+                "Complete protected firmware · verify package procedure", "source-installation"
             )
+        preferred = self.choice.findData(
+            "candidate-installation"
+            if candidate_service is not None
+            else "source-installation"
+            if source_service is not None
+            else "built"
+        )
+        if preferred >= 0:
+            self.choice.setCurrentIndex(preferred)
         layout.addWidget(self.choice)
         self.base_controls = QWidget()
         base_layout = QVBoxLayout(self.base_controls)
@@ -208,10 +217,10 @@ class ProjectPreparationDialog(QDialog):
         options.addWidget(self.reboot)
         layout.addWidget(self.source_controls)
         limits = QLabel(
-            "This prepares a manually mapped image operation, not an automatic full-ROM "
-            "upgrade. You must supply the correct partitions, slots and write order. "
-            "No Device Atlas certification is required for this local route. "
-            "Preparing images does not reboot or write your phone."
+            "Manual subset route: this is not a complete ROM installation. You must supply the "
+            "correct partitions, slots and write order. ROMVERSE verifies the selected project "
+            "images, but it does not infer the missing package procedure. Preparation never "
+            "reboots or writes the phone."
         )
         self.limits = limits
         self.manual_limits = limits.text()
@@ -243,6 +252,7 @@ class ProjectPreparationDialog(QDialog):
         actions.addStretch(1)
         actions.addWidget(self.prepare_button)
         outer.addLayout(actions)
+        self._source_mode_changed()
         operation_session.changed.connect(self._render_session)
         operation_session.preparation_finished.connect(self._session_prepared)
         self._restore_request()
@@ -303,18 +313,26 @@ class ProjectPreparationDialog(QDialog):
         self.base_controls.setVisible(candidate)
         self.source_controls.setVisible(source)
         self.limits.setText(
-            "ROMVERSE prepares the complete installation with your rebuilt super and AVB image, "
-            "plus unchanged base firmware checked against the exact build OTA. This is a local, "
-            "unlocked-device experimental route—not an OEM-trusted or physically tested release. "
-            "No phone changes happen during preparation."
+            "Preferred complete route: ROMVERSE composes your rebuilt super and AVB image with "
+            "unchanged base firmware checked against the exact build OTA. It preserves the "
+            "understood package procedure; it is still an unlocked-device experiment, not an "
+            "OEM-trusted or physically tested release. Preparation does not change the phone."
             if candidate
-            else "A supported procedure supplies the complete declared image order, slot actions and "
-            "optional erase/restart steps. ROMVERSE translates it into controlled operations; "
-            "it never runs the package's shell scripts. Keeping data is not a guarantee of "
-            "compatibility. Verification here does not touch the phone."
+            else "Preferred complete route: ROMVERSE verifies that the package has an understood "
+            "procedure with a complete declared image order, slot actions and optional "
+            "erase/restart steps. It translates those declarations into controlled operations "
+            "and never runs the package's shell scripts. Verification does not touch the phone."
             if source
             else self.manual_limits
         )
+        if hasattr(self, "prepare_button"):
+            self.prepare_button.setText(
+                "Verify complete rebuilt ROM"
+                if candidate
+                else "Verify complete firmware route"
+                if source
+                else "Prepare manual image subset"
+            )
         if source:
             available = self.screen().availableGeometry() if self.screen() is not None else None
             desired = 700 if candidate else 580

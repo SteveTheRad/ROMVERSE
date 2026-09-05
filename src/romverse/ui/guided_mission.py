@@ -37,6 +37,7 @@ from romverse.rom.boot_observation import BootObservationService, BootObservatio
 from romverse.rom.debloat import DebloatService
 from romverse.rom.guided import (
     STAGES,
+    VERIFIED_ROM_INSTALLATION_ACTION,
     GuidedAssessment,
     GuidedContext,
     GuidedFailure,
@@ -1225,7 +1226,7 @@ class GuidedBuildMission(QDialog):
         if not busy and stage.stage_id == "flash" and not self.state.install_requested:
             self.action_button.setText("Continue to optional flash setup")
         elif not busy and stage.stage_id == "flash":
-            self.action_button.setText("Prepare local image installation…")
+            self.action_button.setText(VERIFIED_ROM_INSTALLATION_ACTION)
         if not busy and stage.stage_id == "flash" and local_outcome.local_image_state:
             self.action_button.setText("Continue local image workflow…")
         local_boot_available = bool(
@@ -1837,18 +1838,19 @@ class GuidedBuildMission(QDialog):
         dialog.setText("Your local ROM build is complete")
         dialog.setInformativeText(
             "All 13 local build stages have verified evidence. Flashing is a separate optional "
-            "operation. You can finish here or prepare a local image subset from this project's "
-            "verified source and candidate.\n\nYou will choose the exact image-to-partition "
-            "mappings and write order, review compatibility and recovery warnings, and separately "
-            "confirm before any phone write. This is not an automatic full-ROM installation or "
-            "production certification. Opening preparation does not change the phone."
+            "operation. You can finish here or let ROMVERSE verify the best available installation "
+            "route. It prefers a complete, understood ROM procedure; manual verified-image subsets "
+            "remain available when you deliberately need explicit mapping.\n\nYou will review the "
+            "exact route, phone, compatibility and recovery warnings, and separately confirm before "
+            "any phone write. A manual subset is not a full-ROM installation and no route is a "
+            "production certificate. Opening preparation does not change the phone."
         )
         finish = dialog.addButton(
             "Finish local build • Recommended",
             QMessageBox.ButtonRole.AcceptRole,
         )
         continue_flash = dialog.addButton(
-            "Prepare local image installation…",
+            VERIFIED_ROM_INSTALLATION_ACTION,
             QMessageBox.ButtonRole.ActionRole,
         )
         dialog.addButton(QMessageBox.StandardButton.Cancel)

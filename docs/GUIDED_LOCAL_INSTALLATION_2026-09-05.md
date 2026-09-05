@@ -9,8 +9,9 @@ automatic complete-ROM installer, universal device support, or production releas
 
 ## User journey
 
-1. In Forge Control, choose **Prepare local image installation…**, or continue from Genesis's
-   optional installation step. The app stays in Guided Mode.
+1. In Forge Control, choose **Prepare verified ROM installation…**, or continue from Genesis's
+   optional installation step. In the route chooser, the two manual subset choices described here
+   remain explicitly labelled as manual alternatives. The app stays in Guided Mode.
 2. Explicitly choose the saved successful rebuilt candidate or verified extracted images from
    the protected original. A missing rebuilt candidate does not silently select stock images.
 3. ROMVERSE checks the current project, source, inventory and image hashes in the background.

@@ -553,7 +553,7 @@ class SourceOperationSession(QObject):
     def _ready_status(self) -> str:
         if self.recipe is None:
             return (
-                "Choose an installation source, then ROMVERSE will verify it without touching "
+                "Choose an installation route, then ROMVERSE will verify it without touching "
                 "the phone."
             )
         device = self.selected_device()

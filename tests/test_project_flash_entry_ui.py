@@ -7,7 +7,12 @@ from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication, QDialog, QMessageBox, QPushButton
 
 from romverse.core.settings import ExperienceMode
-from romverse.rom.guided import GuidedContext, GuidedMissionEngine, GuidedStageStatus
+from romverse.rom.guided import (
+    VERIFIED_ROM_INSTALLATION_ACTION,
+    GuidedContext,
+    GuidedMissionEngine,
+    GuidedStageStatus,
+)
 from romverse.rom.project_flash import ProjectFlashOutcome, ProjectFlashPreparationService
 from romverse.rom.readiness import BuildGate, GateStatus
 from romverse.rom.source_installation_history import SourceInstallationOutcome
@@ -72,7 +77,7 @@ def test_guided_primary_opens_project_image_preparation_without_certificate_or_a
 
     assert studio.app_settings.experience_mode is ExperienceMode.GUIDED
     assert not control.report.guardian_handoff_ready
-    assert control.autopilot_button.text() == "Prepare local image installation…"
+    assert control.autopilot_button.text() == VERIFIED_ROM_INSTALLATION_ACTION
     control.autopilot_button.click()
     assert requested == []
     assert not control.isVisible()
@@ -174,7 +179,7 @@ def test_genesis_confirmed_setup_closes_then_emits_exact_project_without_mode_ch
     mission.selected_index = 13
     requested = []
     studio.project_flash_requested.connect(requested.append)
-    _answer_next_dialog("Prepare local image installation…")
+    _answer_next_dialog(VERIFIED_ROM_INSTALLATION_ACTION)
     mission._prompt_flash_choice()
     app.processEvents()
 
@@ -195,7 +200,8 @@ def test_genesis_project_changed_during_setup_confirmation_is_not_dispatched(tmp
     studio.project_flash_requested.connect(requested.append)
     other = studio.store.create("Different project")
     _answer_next_dialog(
-        "Prepare local image installation…", before_click=lambda: studio.refresh(other.project_id)
+        VERIFIED_ROM_INSTALLATION_ACTION,
+        before_click=lambda: studio.refresh(other.project_id),
     )
     mission._prompt_flash_choice()
     app.processEvents()
@@ -220,7 +226,7 @@ def test_prepared_forge_does_not_start_installation_or_certificate_resolution_au
 
     assert not control.autopilot_active
     assert requested == []
-    assert control.autopilot_button.text() == "Prepare local image installation…"
+    assert control.autopilot_button.text() == VERIFIED_ROM_INSTALLATION_ACTION
     assert control.resolve_buttons["physical-validation"].text() == "Review release evidence"
     assert not any(
         "consent" in button.text().casefold() for button in control.findChildren(QPushButton)

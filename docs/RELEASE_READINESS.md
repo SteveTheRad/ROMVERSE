@@ -1989,6 +1989,23 @@ large-archive hashing can be slow and never silently renews an expired transitio
   installation, Companion change, website update, publication or remote push occurred. Approved
   production logos were not edited.
 
+## 2026-09-05 Preferred verified ROM installation route
+
+- Genesis and Forge Control now open one consistently named **Prepare verified ROM
+  installation…** journey. The chooser defaults to the complete rebuilt-ROM route when available,
+  otherwise to the complete supported protected-firmware route, and only defaults to manual image
+  mapping when no complete route service exists.
+- Manual rebuilt and protected-source selections remain available but are explicitly described as
+  limited image subsets requiring exact partition, slot and write-order mapping. They are not
+  presented as complete-ROM evidence.
+- One non-overlapping affected regression run passes all 426 tests with zero failures, errors or
+  skips in 82.957 seconds. Changed-file Ruff, compilation and diff checks pass. See
+  `PREFERRED_VERIFIED_INSTALLATION_ROUTE_2026-09-05.md` for exact behavior and boundaries.
+- This is implemented and simulated/tested on Fedora/Linux, not hardware verified or released.
+  Windows was not exercised. No physical phone operation, app restart, package installation,
+  Companion or website change, publication or remote push occurred. Approved production logos were
+  not edited.
+
 ## Honest feature boundary
 
 The current safe milestone supports read-only Android evidence, local diagnostics, guarded APK

@@ -28,9 +28,9 @@ warning, not a fabricated green safety result.
 
 ## User journey
 
-1. Open **Prepare local image installation…** from Forge Control or Genesis. Choose
-   **Follow the package's supported installation procedure**. This uses the protected package,
-   not the rebuilt candidate; the other two choices retain their separate provenance.
+1. Open **Prepare verified ROM installation…** from Forge Control or Genesis. Choose
+   **Complete protected firmware · verify package procedure**. This uses the protected package,
+   not the rebuilt candidate; the manual subset choices retain their separate provenance.
 2. Choose whether to erase user data and whether to restart Android. Erasure is off by default.
    Keeping data is not a compatibility guarantee. Keep an independent backup and recovery route.
 3. Verification freshly hashes the protected archive and every manifest-listed member, checks

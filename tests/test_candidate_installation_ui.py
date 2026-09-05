@@ -38,6 +38,13 @@ def prepared_ui(tmp_path, monkeypatch):
 def test_complete_candidate_preparation_is_available_without_manual_partition_entry(prepared_ui):
     app, dialog, context = prepared_ui
     assert dialog.choice.currentData() == "candidate-installation"
+    assert dialog.choice.accessibleName() == "Installation route"
+    assert dialog.choice.currentText() == "Complete rebuilt ROM · verify exact procedure"
+    assert dialog.prepare_button.text() == "Verify complete rebuilt ROM"
+    assert dialog.choice.itemText(dialog.choice.findData("built")).startswith("Manual rebuilt")
+    assert dialog.choice.itemText(dialog.choice.findData("protected")).startswith(
+        "Manual protected-source"
+    )
     assert dialog.base_controls.isVisible() and dialog.source_controls.isVisible()
     assert not dialog.wipe.isChecked() and dialog.reboot.isChecked()
     dialog.base_choice.setCurrentIndex(dialog.base_choice.findData(context.procedure.project_id))
@@ -47,6 +54,41 @@ def test_complete_candidate_preparation_is_available_without_manual_partition_en
     assert dialog.preparation is not None
     assert len(dialog.preparation.steps) == 53
     assert sum(origin.source_kind == "rebuilt" for origin in dialog.preparation.origins) == 2
+
+
+def test_complete_source_route_is_preferred_when_no_rebuilt_candidate_service(prepared_ui):
+    app, _candidate_dialog, context = prepared_ui
+    dialog = ProjectPreparationDialog(
+        context.service.built,
+        context.project.project_id,
+        source_service=SourceInstallationService(context.store),
+    )
+    dialog.show()
+    app.processEvents()
+
+    assert dialog.choice.currentData() == "source-installation"
+    assert dialog.choice.currentText() == (
+        "Complete protected firmware · verify package procedure"
+    )
+    assert dialog.prepare_button.text() == "Verify complete firmware route"
+    assert dialog.source_controls.isVisible() and not dialog.base_controls.isVisible()
+    assert "Preferred complete route" in dialog.limits.text()
+    dialog.close()
+    app.processEvents()
+
+
+def test_manual_subset_is_default_only_when_no_complete_route_exists(prepared_ui):
+    app, _candidate_dialog, context = prepared_ui
+    dialog = ProjectPreparationDialog(context.service.built, context.project.project_id)
+    dialog.show()
+    app.processEvents()
+
+    assert dialog.choice.currentData() == "built"
+    assert dialog.prepare_button.text() == "Prepare manual image subset"
+    assert "not a complete ROM installation" in dialog.limits.text()
+    assert not dialog.source_controls.isVisible() and not dialog.base_controls.isVisible()
+    dialog.close()
+    app.processEvents()
 
 
 def test_missing_base_has_direct_in_place_action_and_starts_no_worker(prepared_ui):

@@ -14,6 +14,8 @@ from romverse.infrastructure.provisioning import GENESIS_REQUIRED_TOOLS
 from romverse.infrastructure.tools import ToolStatus
 from romverse.rom.workspace_recovery import WorkspaceRecoveryService
 
+VERIFIED_ROM_INSTALLATION_ACTION = "Prepare verified ROM installation…"
+
 
 class GuidedStageStatus(StrEnum):
     COMPLETE = "complete"
@@ -279,12 +281,12 @@ STAGES = (
     GuidedStage(
         "flash",
         14,
-        "Image installation",
+        "ROM installation",
         "Review the phone installation route",
-        "Phone installation is optional and separate from the local build. Choose a supported package procedure or manually map verified project images, then review the exact phone, declared actions, warnings and final consent. A subset operation is not a complete package procedure, and neither result is a production certificate.",
-        "Finish after the local build, or open local image preparation. Review backups and recovery options before any write; do not repeat a completed operation just to turn certification rows green. Bootloader relocking is never offered.",
+        "Phone installation is optional and separate from the local build. ROMVERSE prefers a complete, understood package procedure and keeps manual verified-image subsets as an explicitly limited alternative. Every route still requires exact-phone review, warnings and final consent; no prepared route is a production certificate.",
+        "Finish after the local build, or prepare a verified ROM installation route. Review backups and recovery options before any write; do not repeat a completed operation just to turn certification rows green. Bootloader relocking is never offered.",
         "flash",
-        "Prepare local image installation…",
+        VERIFIED_ROM_INSTALLATION_ACTION,
     ),
     GuidedStage(
         "first_boot",

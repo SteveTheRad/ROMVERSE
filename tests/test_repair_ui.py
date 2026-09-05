@@ -832,6 +832,12 @@ def test_recovery_external_owner_route_still_uses_typed_handoff(tmp_path) -> Non
     )
     center._autopilot_show_all_routes = True
     center._render_autopilot()
+    context = center.recovery_route_context(route.route_id, "archives")
+    assert context is not None
+    assert context[0].incident_id == incident.incident_id
+    assert context[1] == route
+    assert center.recovery_route_context(route.route_id, "guardian_core") is None
+    assert not center.restore_recovery_route("different-incident", route.route_id)
     requested = []
     center.autopilot_route_requested.connect(
         lambda owner, route_id: requested.append((owner, route_id))
@@ -850,6 +856,14 @@ def test_recovery_external_owner_route_still_uses_typed_handoff(tmp_path) -> Non
     assert center.autopilot_incident is not None
     assert center.autopilot_incident.events[-1].event_type == "route_reviewed"
     assert not center.autopilot_incident.phone_changed
+    assert center.restore_recovery_route(incident.incident_id, route.route_id)
+    restored = next(
+        item
+        for item in center.autopilot_route_buttons
+        if item.property("recovery_route_id") == route.route_id
+    )
+    assert restored is not None
+    assert "remains advisory" in center.digest.text()
     center.close()
 
 

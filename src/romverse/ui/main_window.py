@@ -4113,6 +4113,7 @@ class MainWindow(QMainWindow):
         self.repair_center.knowledge_requested.connect(self._open_knowledge_query)
         self.repair_center.knowledge_article_requested.connect(self._open_knowledge_article)
         self.repair_center.diagnostic_requested.connect(self._open_diagnostic_finding)
+        self.guardian_center.recovery_requested.connect(self._return_guardian_recovery)
         self.stack.addWidget(self.repair_center)
         self.device_packs_center = DevicePacksCenter(
             resolved_registry,
@@ -8404,13 +8405,26 @@ class MainWindow(QMainWindow):
     def _open_autopilot_route(self, owner_route: str, route_id: str) -> None:
         """Open the typed route owner without turning a recommendation into execution."""
 
-        if owner_route not in self.page_routes or not self._navigate_route(owner_route):
+        if owner_route not in self.page_routes:
             self.notification_center.notify(
                 f"recovery-autopilot.route.{route_id}",
                 "Recovery route needs attention",
                 "The route owner is unavailable. No scan, approval, repair, or phone action started.",
                 NotificationKind.ATTENTION,
             )
+            return
+        if owner_route == "guardian_core":
+            context = self.repair_center.recovery_route_context(route_id, owner_route)
+            if context is None or not self.guardian_center.open_recovery_review(*context):
+                self.notification_center.notify(
+                    f"recovery-autopilot.route.{route_id}",
+                    "Recovery route context changed",
+                    "Guardian did not accept stale, incomplete, or authority-bearing Recovery "
+                    "context. The current Recovery incident remains active and no action started.",
+                    NotificationKind.ATTENTION,
+                )
+                return
+        if not self._navigate_route(owner_route):
             return
         if owner_route == "guardian_core":
             self.guardian_center.request_refresh()
@@ -8423,6 +8437,23 @@ class MainWindow(QMainWindow):
             "and started no phone command.",
             NotificationKind.INFORMATION,
         )
+
+    @Slot(str, str)
+    def _return_guardian_recovery(self, incident_id: str, route_id: str) -> None:
+        """Return Guardian context to the same active incident and advisory route."""
+
+        context = self.repair_center.recovery_route_context(route_id)
+        if context is None or context[0].incident_id != incident_id:
+            self.guardian_center.recovery_review_stopped(
+                "The saved incident or route no longer matches current sealed Recovery evidence."
+            )
+            return
+        if not self._navigate_route(
+            "recovery_bay"
+        ) or not self.repair_center.restore_recovery_route(incident_id, route_id):
+            self.guardian_center.recovery_review_stopped(
+                "Recovery Bay could not restore the exact current incident and route."
+            )
 
     @Slot(str)
     def _open_repair_finding(self, finding_id: str) -> None:

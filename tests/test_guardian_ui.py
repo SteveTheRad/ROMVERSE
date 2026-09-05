@@ -26,10 +26,23 @@ from romverse.guardian.runtime_package import (
 )
 from romverse.infrastructure.process import CommandResult
 from romverse.nexus.planning import NexusObjective, NexusPlanner
+from romverse.repair.autopilot import (
+    RecoveryAutopilotContext,
+    RecoveryAutopilotService,
+    RecoveryRouteKind,
+    RecoveryTrigger,
+)
+from romverse.rom.recovery_evidence import RecoveryEvidenceAssessment
 from romverse.ui.guardian_center import GuardianCenter
 from romverse.ui.theme import STYLESHEET
 from tests.test_guardian_manifest_review import _prepared as _prepared_manifest
 from tests.test_nexus_planning import _evidence
+from tests.test_recovery_autopilot import (
+    _device as _recovery_device,
+)
+from tests.test_recovery_autopilot import (
+    _registry as _recovery_registry,
+)
 
 
 def _device() -> AndroidDevice:
@@ -473,4 +486,57 @@ def test_guardian_presents_exact_studio_manifest_and_returns_its_identity(tmp_pa
 
     center.studio_return_button.click()
     assert returned == [(project.project_id, manifest.manifest_digest)]
+    center.close()
+
+
+def test_guardian_presents_recovery_route_as_reversible_zero_authority_context(
+    tmp_path,
+) -> None:
+    QApplication.instance() or QApplication([])
+    service = RecoveryAutopilotService(tmp_path, _recovery_registry())
+    incident = service.start(
+        RecoveryAutopilotContext(
+            RecoveryTrigger.BOOTLOOP,
+            device=_recovery_device(DeviceState.FASTBOOT, boot_completed=False),
+            project_id="recovery-project",
+            recovery_evidence=RecoveryEvidenceAssessment(
+                True,
+                True,
+                True,
+                ("external backup verified", "stock recovery verified"),
+            ),
+        )
+    )
+    route = next(
+        item for item in incident.routes if item.kind is RecoveryRouteKind.EXACT_STOCK_RESTORE
+    )
+    center = GuardianCenter(GuardianAuditStore(tmp_path), auto_start=False)
+    returned: list[tuple[str, str]] = []
+    center.recovery_requested.connect(
+        lambda incident_id, route_id: returned.append((incident_id, route_id))
+    )
+
+    assert center.open_recovery_review(incident, route)
+    assert not center.recovery_review.isHidden()
+    assert center.recovery_review.objectName() == "RecoveryReviewCard"
+    assert "QFrame#RecoveryReviewCard" in STYLESHEET
+    assert center.nexus_review.isHidden()
+    assert center.backup_review.isHidden()
+    assert center.studio_review.isHidden()
+    assert center.recovery_review_identity == (incident.incident_id, route.route_id)
+    assert center.recovery_review_badge.text() == "ADVISORY • ZERO AUTHORITY"
+    detail = center.recovery_review_detail.text()
+    assert incident.incident_id[:12] in detail
+    assert incident.project_id in detail
+    assert incident.pack_id in detail
+    assert route.summary in detail
+    assert all(requirement in detail for requirement in route.requirements)
+    assert "Approval: none" in detail
+    assert "Execution: none" in detail
+    assert "Phone changed: no" in detail
+    assert "Bootloader relock: never" in detail
+    assert not incident.phone_changed
+
+    center.recovery_return_button.click()
+    assert returned == [(incident.incident_id, route.route_id)]
     center.close()

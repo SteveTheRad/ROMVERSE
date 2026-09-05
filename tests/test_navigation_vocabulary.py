@@ -66,6 +66,8 @@ from tests.test_apk_center_ui import _ready_plan as _apk_ready_plan
 from tests.test_device_catalog import _payload, _sync
 from tests.test_device_dna import _device, _project, _source
 from tests.test_guardian_manifest_review import _prepared as _prepared_guardian_manifest
+from tests.test_recovery_autopilot import _device as _recovery_device
+from tests.test_recovery_autopilot import _registry as _recovery_registry
 from tests.test_source_intelligence import SourceRunner
 
 
@@ -125,6 +127,69 @@ def test_bootloop_evidence_automatically_opens_recovery_autopilot(tmp_path: Path
         assert window.repair_center.autopilot_card.isVisibleTo(window.repair_center)
         assert window.rom_studio.worker is None
         assert window.repair_center.host_repair_worker is None
+
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_recovery_guardian_handoff_returns_to_same_incident_and_route(tmp_path: Path) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    phone = _recovery_device(DeviceState.FASTBOOT, boot_completed=False)
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        pack_registry=_recovery_registry(),
+    )
+    try:
+        window.repair_center.set_devices([phone])
+        assert window.repair_center.open_recovery_incident(
+            RecoveryTrigger.BOOTLOOP,
+            project_id="recovery-project",
+            target_device=phone,
+        )
+        assert window._navigate_route("recovery_bay")
+        incident = window.repair_center.autopilot_incident
+        assert incident is not None
+        route = next(item for item in incident.routes if item.owner_route == "guardian_core")
+        window.repair_center._autopilot_show_all_routes = True
+        window.repair_center._render_autopilot()
+        window.guardian_center.request_refresh = lambda: None
+        route_button = next(
+            button
+            for button in window.repair_center.autopilot_route_buttons
+            if button.property("recovery_route_id") == route.route_id
+        )
+
+        route_button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.guardian_center
+        assert window.guardian_center.recovery_review_identity == (
+            incident.incident_id,
+            route.route_id,
+        )
+        assert not window.guardian_center.recovery_review.isHidden()
+        guardian_detail = window.guardian_center.recovery_review_detail.text()
+        assert "Approval: none" in guardian_detail
+        assert "Execution: none" in guardian_detail
+        assert "Phone changed: no" in guardian_detail
+
+        window.guardian_center.recovery_return_button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.repair_center
+        assert window.repair_center.autopilot_incident is not None
+        assert window.repair_center.autopilot_incident.incident_id == incident.incident_id
+        assert not window.repair_center.autopilot_incident.phone_changed
+        assert any(
+            button.property("recovery_route_id") == route.route_id
+            for button in window.repair_center.autopilot_route_buttons
+        )
+        assert "remains advisory" in window.repair_center.digest.text()
     finally:
         window.companion_center.transport.close()
         window.close()

@@ -2055,6 +2055,21 @@ large-archive hashing can be slow and never silently renews an expired transitio
   Companion or website change, publication or remote push occurred. Approved production logos were
   not edited.
 
+## 2026-09-05 Recovery to Guardian context and return
+
+- Guardian-owned recovery recommendations now carry the active sealed incident, route, project,
+  Device Pack, diagnosis, evidence and prerequisites into a dedicated contextual Guardian card.
+  The card is advisory, visibly grants zero authority and exposes no execution control.
+- **Return to Recovery incident** revalidates and restores the same incident and ranked route. It
+  does not ask the Guided user to reselect the phone, project, firmware or incident; stale or changed
+  context is refused rather than guessed.
+- One affected run passes all 112 tests with zero failures, errors or skips in about 120.1 seconds.
+  See `RECOVERY_GUARDIAN_CONTEXT_RETURN_2026-09-05.md` for the exact behavior and safety boundary.
+- This is implemented and simulated/tested on Fedora/Linux, not hardware verified or released.
+  Windows was not exercised. No physical phone operation, application restart, package
+  installation, Companion or website change, publication or remote push occurred. Approved
+  production logos were not edited.
+
 ## Honest feature boundary
 
 The current safe milestone supports read-only Android evidence, local diagnostics, guarded APK

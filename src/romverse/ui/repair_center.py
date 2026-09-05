@@ -946,6 +946,7 @@ class RepairCenter(QWidget):
             "Show guidance" if route.owner_route == "recovery_bay" else "Continue to route",
         )
         button = QPushButton(button_label)
+        button.setProperty("recovery_route_id", route.route_id)
         button.setObjectName("Primary" if route.rank == 1 else "")
         button.setAccessibleName(
             f"{button_label} for Recovery Autopilot route {route.rank}: {route.title}"
@@ -1043,6 +1044,52 @@ class RepairCenter(QWidget):
     def _toggle_autopilot_routes(self) -> None:
         self._autopilot_show_all_routes = not self._autopilot_show_all_routes
         self._render_autopilot()
+
+    def recovery_route_context(
+        self, route_id: str, owner_route: str = ""
+    ) -> tuple[RecoveryIncident, RecoveryRoute] | None:
+        """Reload one active advisory route for a typed, zero-authority handoff."""
+
+        service = self.autopilot_service
+        active = self.autopilot_incident
+        if service is None or active is None or active.repaired:
+            return None
+        try:
+            incident = service.load(active.incident_id)
+        except RecoveryAutopilotError:
+            return None
+        route = next((item for item in incident.routes if item.route_id == route_id), None)
+        if route is None or (owner_route and route.owner_route != owner_route):
+            return None
+        self.autopilot_incident = incident
+        return incident, route
+
+    def restore_recovery_route(self, incident_id: str, route_id: str) -> bool:
+        """Return a typed owner to the same still-current Recovery incident and route."""
+
+        context = self.recovery_route_context(route_id)
+        if context is None or context[0].incident_id != incident_id:
+            return False
+        incident, route = context
+        if route.rank > 4:
+            self._autopilot_show_all_routes = True
+        self._render_autopilot()
+        button = next(
+            (
+                item
+                for item in self.autopilot_route_buttons
+                if item.property("recovery_route_id") == route.route_id
+            ),
+            None,
+        )
+        if button is None:
+            return False
+        self.digest.setText(
+            f"Returned to Recovery incident {incident.incident_id[:12]}…  •  "
+            f"{route.title} remains advisory and has not started a phone action."
+        )
+        button.setFocus(Qt.FocusReason.OtherFocusReason)
+        return True
 
     def _request_autopilot_scan(self) -> None:
         if self.autopilot_incident is None or self.autopilot_incident.repaired:

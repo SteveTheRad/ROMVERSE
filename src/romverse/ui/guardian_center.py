@@ -37,6 +37,7 @@ from romverse.guardian.runtime_package import (
     verify_guardian_runtime_package,
 )
 from romverse.nexus.planning import NexusObjective, NexusPlan
+from romverse.repair.autopilot import RecoveryIncident, RecoveryRoute
 from romverse.ui.background import ManagedRunnable, start_background
 from romverse.ui.process_progress import ProcessProgressBar
 
@@ -145,6 +146,7 @@ class GuardianCenter(QWidget):
     nexus_requested = Signal(str, str)
     time_machine_requested = Signal(str, str)
     rom_studio_requested = Signal(str, str)
+    recovery_requested = Signal(str, str)
     dashboard_state_changed = Signal(str, str, bool)
     REFRESH_DEBOUNCE_MS = 250
 
@@ -156,6 +158,7 @@ class GuardianCenter(QWidget):
         self._nexus_review_identity: tuple[str, str] | None = None
         self._backup_review_identity: tuple[str, str] | None = None
         self._studio_review_identity: tuple[str, str] | None = None
+        self._recovery_review_identity: tuple[str, str] | None = None
         self._dashboard_state = (
             "unverified",
             "Guardian's current audit and approval evidence has not yet been verified in this session.",
@@ -217,6 +220,35 @@ class GuardianCenter(QWidget):
         dashboard_layout.addWidget(self.dashboard_handoff_badge)
         self.dashboard_handoff.setVisible(False)
         page.addWidget(self.dashboard_handoff)
+
+        self.recovery_review = QFrame()
+        self.recovery_review.setObjectName("RecoveryReviewCard")
+        recovery_layout = QVBoxLayout(self.recovery_review)
+        recovery_layout.setContentsMargins(20, 16, 20, 16)
+        recovery_layout.setSpacing(8)
+        recovery_header = QHBoxLayout()
+        self.recovery_review_eyebrow = QLabel("RECOVERY AUTOPILOT HANDOFF  •  CONTEXT ONLY")
+        self.recovery_review_eyebrow.setObjectName("Eyebrow")
+        recovery_header.addWidget(self.recovery_review_eyebrow, 1)
+        self.recovery_review_badge = QLabel("ADVISORY • ZERO AUTHORITY")
+        self.recovery_review_badge.setObjectName("Warning")
+        recovery_header.addWidget(self.recovery_review_badge)
+        self.recovery_return_button = QPushButton("Return to Recovery incident")
+        self.recovery_return_button.clicked.connect(self._return_to_recovery)
+        recovery_header.addWidget(self.recovery_return_button)
+        recovery_layout.addLayout(recovery_header)
+        self.recovery_review_title = QLabel()
+        self.recovery_review_title.setObjectName("SectionTitle")
+        recovery_layout.addWidget(self.recovery_review_title)
+        self.recovery_review_detail = QLabel()
+        self.recovery_review_detail.setObjectName("Muted")
+        self.recovery_review_detail.setWordWrap(True)
+        self.recovery_review_detail.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        recovery_layout.addWidget(self.recovery_review_detail)
+        self.recovery_review.setVisible(False)
+        page.addWidget(self.recovery_review)
 
         self.nexus_review = QFrame()
         self.nexus_review.setObjectName("NexusReviewCard")
@@ -500,6 +532,75 @@ class GuardianCenter(QWidget):
         )
         self._repolish(self.dashboard_handoff_badge)
 
+    def open_recovery_review(self, incident: RecoveryIncident, route: RecoveryRoute) -> bool:
+        """Show one sealed Recovery route as context, never as Guardian approval."""
+
+        if (
+            not isinstance(incident, RecoveryIncident)
+            or not isinstance(route, RecoveryRoute)
+            or incident.repaired
+            or not incident.integrity_verified
+            or not incident.device_key
+            or not incident.pack_id
+            or route not in incident.routes
+            or route.owner_route != "guardian_core"
+            or not route.changes_device
+            or not route.confirmation_required
+            or route.execution_authority != "none"
+            or not route.requirements
+        ):
+            return False
+        self.clear_nexus_review()
+        self.clear_backup_review()
+        self.clear_studio_review()
+        self.recovery_review_title.setText(f"{route.title}  •  {incident.device_name}")
+        self.recovery_review_badge.setText("ADVISORY • ZERO AUTHORITY")
+        self.recovery_review_badge.setObjectName("Warning")
+        self._repolish(self.recovery_review_badge)
+        requirements = "\n".join(f"• {item}" for item in route.requirements)
+        evidence = "\n".join(f"• {item}" for item in route.evidence) or "• No additional evidence"
+        self.recovery_review_detail.setText(
+            f"Incident {incident.incident_id[:12]}…  •  Project "
+            f"{incident.project_id or 'not bound'}  •  Device Pack {incident.pack_id}\n"
+            f"RECOVERY DIAGNOSIS  •  {incident.diagnosis}\n"
+            f"PROPOSED ROUTE  •  Rank {route.rank}  •  {route.confidence}% confidence  •  "
+            f"{route.risk.value} risk\n{route.summary}\n"
+            f"REQUIRED BEFORE ANY ACTION\n{requirements}\n"
+            f"CURRENT EVIDENCE\n{evidence}\n"
+            "HANDOFF BOUNDARY  •  Context only  •  Approval: none  •  Execution: none  •  "
+            "Phone changed: no  •  Bootloader relock: never"
+        )
+        self._recovery_review_identity = (incident.incident_id, route.route_id)
+        self.recovery_review.setVisible(True)
+        return True
+
+    @property
+    def recovery_review_identity(self) -> tuple[str, str] | None:
+        return self._recovery_review_identity
+
+    def recovery_review_stopped(self, reason: str) -> None:
+        """Expire a Recovery handoff visibly without retaining action authority."""
+
+        self._recovery_review_identity = None
+        self.recovery_review_title.setText("Recovery route context expired safely")
+        self.recovery_review_detail.setText(
+            f"{reason}\nReturn to Recovery Bay and rebuild the route from fresh evidence. "
+            "Approval: none  •  Execution: none  •  No action started."
+        )
+        self.recovery_review_badge.setText("CONTEXT REFUSED")
+        self.recovery_review_badge.setObjectName("Danger")
+        self._repolish(self.recovery_review_badge)
+        self.recovery_review.setVisible(True)
+
+    def clear_recovery_review(self) -> None:
+        self._recovery_review_identity = None
+        self.recovery_review.setVisible(False)
+        self.recovery_review_title.clear()
+        self.recovery_review_detail.clear()
+        self.recovery_review_badge.setText("ADVISORY • ZERO AUTHORITY")
+        self.recovery_review_badge.setObjectName("Warning")
+        self._repolish(self.recovery_review_badge)
+
     def open_nexus_review(self, plan: NexusPlan, project_name: str) -> bool:
         """Present a validated Nexus plan without approving or executing it."""
 
@@ -515,6 +616,7 @@ class GuardianCenter(QWidget):
             return False
         self.clear_backup_review()
         self.clear_studio_review()
+        self.clear_recovery_review()
         objective = {
             NexusObjective.BUILD_ROM: "Build a ROM",
             NexusObjective.ROOT_ROM: "Prepare optional root",
@@ -594,6 +696,7 @@ class GuardianCenter(QWidget):
             return False
         self.clear_nexus_review()
         self.clear_studio_review()
+        self.clear_recovery_review()
         self.backup_review_title.setText(f"Recovery readiness  •  {clean_name}")
         self.backup_review_badge.setText("ZERO AUTHORITY")
         self.backup_review_badge.setObjectName("Warning")
@@ -678,6 +781,7 @@ class GuardianCenter(QWidget):
             return False
         self.clear_nexus_review()
         self.clear_backup_review()
+        self.clear_recovery_review()
         self.studio_review_title.setText(f"{clean_name}  •  {manifest.device_name}")
         self.studio_review_badge.setText("ZERO AUTHORITY")
         self.studio_review_badge.setObjectName("Warning")
@@ -776,6 +880,10 @@ class GuardianCenter(QWidget):
     def _return_to_time_machine(self) -> None:
         if self._backup_review_identity is not None:
             self.time_machine_requested.emit(*self._backup_review_identity)
+
+    def _return_to_recovery(self) -> None:
+        if self._recovery_review_identity is not None:
+            self.recovery_requested.emit(*self._recovery_review_identity)
 
     def _choose_runtime_package(self) -> None:
         envelope_name, _selected_filter = QFileDialog.getOpenFileName(

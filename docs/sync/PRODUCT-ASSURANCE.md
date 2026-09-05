@@ -1,62 +1,61 @@
 # ROMVERSE Product Assurance
 
-## Reviewed checkpoint: b07bcc6
+## Reviewed checkpoint: aedfc16
 
-- Commit: `b07bcc6ef5695a6d667435caf5d47c1d49b8b42c`
-- Title: `Reassess durable Recovery execution`
+- Commit: `aedfc161491dc209bb220d348c8454e32a85ca9c`
+- Title: `Verify completed Recovery execution`
 - Review status: **APPROVED**
 - Basis: authoritative source, diff, tests, and `docs/sync/BUILD-STATUS.md`.
 
 ### Decision
 
-This is the correct bounded Recovery reassessment boundary. The service consumes only the exact
-persisted aggregate result and independently validates its workspace, incident, preparation,
-identity, Device Pack, outcome, and tamper-evident history bindings. Callers cannot select the
-outcome or reassessment state.
+This is the correct independent Verification boundary. It accepts only the exact completed
+aggregate and same-incident `VERIFYING` reassessment; callers cannot provide a repair outcome,
+override authority, or select an incident state.
 
-Completed execution advances only to `VERIFYING`; it does not claim repair, boot, stability, or
-verification. Known failure stops the same incident in `EMERGENCY`. UNKNOWN remains explicitly
-unknown and requires reconstruction. The executed device-changing route is removed, stale route
-handoff is rejected, and generic refresh cannot reopen or reclassify it. Boot evidence is refused
-until an independent post-repair verification boundary exists.
+Verification requires fresh exact-device ADB evidence and a stable boot observation linked to the
+aggregate digest, with matching build identity, fingerprint, slot, boot-complete state, and uptime
+continuity. Only then is the incident marked `RECOVERED`, repaired, and verified. Failure and
+UNKNOWN remain ineligible and stopped. A valid older linked session may be replaced after restart
+to avoid stale-baseline dead ends; unreadable or tampered history is never overwritten.
 
-No retry, repair, execution authority, UI, hardware path, adapter action, or release behavior was
-added. Exact-device evidence, Guardian separation, feature freeze, v0.2 closure, no-blind-retry,
-and permanent bootloader-relock prohibition remain intact.
+The executed route remains closed, generic refresh cannot reopen it, and no device-changing action,
+retry, relock, UI, hardware execution, or release behavior was added. This preserves exact-device
+evidence, Guardian separation, feature freeze, v0.2 closure, and no-blind-retry safety.
 
 ### Evidence reviewed
 
-- `src/romverse/repair/autopilot.py`: reassessment projection, same-incident event binding,
-  route removal, refresh guard, and boot-evidence gate.
-- `tests/test_recovery_execution_reassessment.py`: completed/failed/UNKNOWN branches, idempotence,
-  route removal, generic-refresh no-reopen, project/identity drift, tampering, and outcome-override
-  rejection.
-- Focused regression: **27/27 passed** for reassessment and aggregate-result coverage. Build
-  reports full regression **2833/2833 passed**, affected **514/514**, and focused chain **84/84**.
+- `src/romverse/repair/autopilot.py`: exact aggregate/reassessment linkage, verification gating,
+  idempotence, and tamper/history checks.
+- `src/romverse/rom/boot_observation.py`: read-only Recovery-linked boot observation.
+- `tests/test_recovery_execution_verification.py`: completed-only eligibility, fresh/stable boot,
+  restart escape, tampered-history refusal, identity/build drift, stale evidence, and API shape.
+- Focused verification/reassessment suite: **21/21 passed**. Build reports full regression
+  **2843/2843 passed**, affected **535/535**, and focused **65/65**.
 
 ### Acceptance criteria
 
-- Completed → `VERIFYING` only; failure → stopped `EMERGENCY`; UNKNOWN → reconstruction.
-- Same incident and exact aggregate digest remain bound in durable history.
-- Executed routes cannot be rerun, reopened, or blindly retried through refresh.
-- No recovery or repair claim is emitted before independent verification.
+- Completed result + same-incident reassessment are mandatory prerequisites.
+- Fresh exact-device boot evidence is independently validated and durably linked.
+- `RECOVERED` is never asserted without the complete evidence set.
+- Failure/UNKNOWN cannot verify, retry, or regain execution authority.
+- Valid old sessions can restart safely; tampered evidence fails closed without overwrite.
 - No pre-v1.0 feature, UI, physical execution, or release scope is introduced.
 
 All criteria are met.
 
 ### Approved next bounded Build task
 
-Proceed with the smallest independent post-repair verification boundary for the completed branch
-only. It must consume the exact aggregate and same-incident reassessment, require fresh exact-device
-and valid boot evidence, preserve failure/UNKNOWN ineligibility, and refuse any repair claim until
-all evidence validates. No UI or physical execution.
+Proceed with only the smallest application-owned orchestration handoff through the existing
+aggregate → reassessment → read-only boot observation → independent verification boundaries.
+Preserve one-decision consent, stopped failure/UNKNOWN states, no retry, and no physical execution.
 
 ### Gate status
 
 - v0.2 Golden Foundation: **CLOSED**
-- Stage 1: Recommendation ✓ → Preparation ✓ → Fresh Live Target ✓ → Consent ✓ → Executor ✓ →
-  Durable Result ✓ → Recovery Reassessment ✓ → Verification ✗
+- Stage 1 consequential chain: Recommendation ✓ → Preparation ✓ → Fresh Live Target ✓ → Consent ✓
+  → Executor ✓ → Durable Result ✓ → Recovery Reassessment ✓ → Verification ✓
 - Linux/Fedora software evidence: verified
-- Windows secure launcher: outstanding
+- Windows trusted-launcher anti-TOCTOU: outstanding release blocker
 - Physical Android hardware verification: outstanding
 - Release/publication: not authorized

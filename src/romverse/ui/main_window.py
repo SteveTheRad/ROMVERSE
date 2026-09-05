@@ -85,6 +85,7 @@ from romverse.core.activity import (
     ActivityStoreError,
     validate_activity_context,
 )
+from romverse.core.privacy import WorkspacePrivacy
 from romverse.core.settings import AppSettings, DesktopTheme, ExperienceMode
 from romverse.device.adb import AdbClient
 from romverse.device.apk_install import ApkInstallService
@@ -7932,7 +7933,15 @@ class MainWindow(QMainWindow):
             else None
         )
         project = self.rom_studio.current_project
-        device = self.rom_studio.devices[0] if len(self.rom_studio.devices) == 1 else None
+        privacy = WorkspacePrivacy(self.rom_studio.store.workspace)
+        device = next(
+            (
+                item
+                for item in self.rom_studio.devices
+                if privacy.pseudonym(item.serial) == report.device_key
+            ),
+            None,
+        )
         recovery_evidence = None
         if project is not None and project.project_id == report.project_id:
             with suppress(OSError, ProjectError):
@@ -7946,6 +7955,11 @@ class MainWindow(QMainWindow):
             message="; ".join(report.knowledge_queries),
             knowledge_report=compatible_report,
             recovery_evidence=recovery_evidence,
+            target_device=device,
+            # A First Light report is permanently bound to its pseudonymous phone.
+            # If that phone is absent, keep the incident unattributed instead of
+            # silently assigning the failure to a newly selected device.
+            allow_current_device_fallback=False,
         )
         if not created:
             return

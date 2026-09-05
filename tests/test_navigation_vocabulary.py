@@ -14,6 +14,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QDialog, QLabel, QPushButton
 
+from romverse.core.privacy import WorkspacePrivacy
 from romverse.core.settings import AppSettings, DesktopTheme, ExperienceMode
 from romverse.device.catalog import (
     GOOGLE_PLAY_CATALOG_URL,
@@ -134,18 +135,21 @@ def test_first_light_failure_automatically_opens_recovery_autopilot(tmp_path: Pa
     logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
     store, registry, project, _report = _project(tmp_path)
     phone = _device(state=DeviceState.DEVICE, boot_completed=True, uptime_seconds=900)
+    other_phone = replace(phone, serial="SECOND-PHONE", model="Different phone")
     window = MainWindow(None, logo, store.workspace, app_icon_path=logo, pack_registry=registry)
     try:
         window.rom_studio.refresh(project.project_id)
-        window.rom_studio.devices = [phone]
-        window.repair_center.set_devices([phone])
+        # Deliberately make another phone the current Recovery Bay selection. The
+        # historical report must still resolve only its own exact device key.
+        window.rom_studio.devices = [other_phone, phone]
+        window.repair_center.set_devices([other_phone, phone])
         report = FirstLightReport(
             schema_version=1,
             report_id="a" * 32,
             project_id=project.project_id,
             created_at=datetime.now(UTC).isoformat(),
             updated_at=datetime.now(UTC).isoformat(),
-            device_key="b" * 20,
+            device_key=WorkspacePrivacy(store.workspace).pseudonym(phone.serial),
             pack_id=project.device_pack_id,
             source_sha256=project.original.sha256,
             guardian_execution_receipt_digest="c" * 64,
@@ -172,9 +176,64 @@ def test_first_light_failure_automatically_opens_recovery_autopilot(tmp_path: Pa
         assert window.stack.currentWidget() is window.repair_center
         assert window.repair_center.autopilot_incident is not None
         assert window.repair_center.autopilot_incident.trigger is RecoveryTrigger.MANUAL_DIAGNOSIS
+        assert window.repair_center.autopilot_incident.device_key == report.device_key
+        assert window.repair_center.autopilot_incident.device_name == phone.display_name
         assert "camera failed" in window.repair_center.autopilot_incident.diagnosis.casefold()
         assert window.rom_studio.worker is None
         assert window.repair_center.host_repair_worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_first_light_failure_stays_unattributed_when_exact_phone_is_absent(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    store, registry, project, _report = _project(tmp_path)
+    report_phone = _device(state=DeviceState.DEVICE, boot_completed=True, uptime_seconds=900)
+    selected_phone = replace(report_phone, serial="NEW-SELECTION", model="Unrelated phone")
+    window = MainWindow(None, logo, store.workspace, app_icon_path=logo, pack_registry=registry)
+    try:
+        window.rom_studio.refresh(project.project_id)
+        window.rom_studio.devices = [selected_phone]
+        window.repair_center.set_devices([selected_phone])
+        report = FirstLightReport(
+            schema_version=1,
+            report_id="f" * 32,
+            project_id=project.project_id,
+            created_at=datetime.now(UTC).isoformat(),
+            updated_at=datetime.now(UTC).isoformat(),
+            device_key=WorkspacePrivacy(store.workspace).pseudonym(report_phone.serial),
+            pack_id=project.device_pack_id,
+            source_sha256=project.original.sha256,
+            guardian_execution_receipt_digest="c" * 64,
+            boot_observation_digest="d" * 64,
+            expected_build_id=report_phone.build_id,
+            observed_build_id=report_phone.build_id,
+            observed_build_fingerprint=report_phone.build_fingerprint,
+            observed_android_version=report_phone.android_version,
+            observed_slot=report_phone.slot_suffix,
+            baseline_scan_id="",
+            baseline_changes=(),
+            subsystems=(),
+            overall=FirstLightOverall.FAILED,
+            knowledge_queries=("Android camera failed after ROM flash",),
+            public_release_ready=False,
+            exportable=True,
+            phone_changed=False,
+            report_digest="e" * 64,
+        )
+
+        window._handle_first_light(report, None)
+        app.processEvents()
+
+        assert window.repair_center.autopilot_incident is not None
+        assert window.repair_center.autopilot_incident.device_key == ""
+        assert window.repair_center.autopilot_incident.device_key != WorkspacePrivacy(
+            store.workspace
+        ).pseudonym(selected_phone.serial)
     finally:
         window.companion_center.transport.close()
         window.close()

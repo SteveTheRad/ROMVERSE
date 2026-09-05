@@ -1,55 +1,52 @@
 # ROMVERSE Product Assurance
 
-## Reviewed checkpoint: b9afd9f
+## Reviewed checkpoint: 3b61639
 
-- Commit: `b9afd9f9377942a0303f4352d290bf109a43e0a1`
-- Title: `Bound firmware source evidence adapters`
-- Review status: **APPROVED — FUTURE-PROOFING 3/3 COMPLETE**
-- Basis: authoritative source, adapter contract, adversarial tests, and `docs/sync/BUILD-STATUS.md`.
+- Commit: `3b61639e16ee21e033ed8eb17cb6b35065142992`
+- Title: `Audit Stage 1 closure evidence`
+- Review status: **APPROVED — CLOSURE AUDIT ACCEPTED**
+- Basis: `docs/STAGE-1-CLOSURE-AUDIT_2026-09-06.md`, repository history, and `docs/sync/BUILD-STATUS.md`.
 
 ### Decision
 
-This satisfies Future-proofing checkpoint 3. The registry is closed, deterministic, and limited
-to the three approved pre-freeze representations: OTA `payload.bin`, Fastboot `super.img`, and
-partition-image bundles. The facade migration preserves the existing handlers, formats, schema
-versions, and public imports without injection, plug-ins, dynamic discovery, commands, device
-selection, or execution authority.
+The closure matrix is accurate. The governed software chain and Future-proofing checkpoints 3/3
+are implemented and Linux-simulated/tested, while Windows trusted launch, production adapter
+enrollment, and controlled physical Android verification remain explicitly open. The absence of
+production dispatch is correctly classified as a deliberate release boundary, not a Guided-flow
+defect.
 
-Immutable workspace-relative snapshots, registration-order independence, exact identity checks,
-and rejection of duplicate, missing, malformed, mixed, conflicting, or ambiguous evidence are
-correct. The established `super.img` plus partition-image fallback remains explicit and bounded.
-Evidence is read/derive-only and cannot create a Device Pack, choose a route or phone, build,
-flash, install, dispatch, consent, retry, or relock.
+The audit preserves Guardian-only authority, exact-device and same-incident binding,
+UNKNOWN/no-blind-retry semantics, independent verification, and the permanent no-relock rule.
+It adds no execution, UI, migration, hardware, publication, or release capability.
 
 ### Evidence reviewed
 
-- `src/romverse/rom/source_evidence_adapters.py`
-- `src/romverse/rom/source_intelligence.py`
-- `docs/FIRMWARE-SOURCE-EVIDENCE-ADAPTERS.md`
-- `tests/test_firmware_source_evidence_adapters.py`: **11/11** adversarial cases passed
-- Full Python regression: **2880/2880 passed**; affected firmware/source regression: **223/223**
+- Closure matrix covering Recommendation through Verification and all three future-proofing
+  checkpoints.
+- Explicit distinction between Linux software evidence, Windows verification, physical hardware,
+  and production adapter enrollment.
+- Prior verified baseline: Python **2880/2880**, affected **223/223**, adapter adversarial **11/11**.
+- Working tree confirms only the three protected unrelated Companion modifications remain.
 
-### Acceptance criteria
+### Approved next bounded Stage 1 task
 
-- Exactly the three approved existing source representations are supported.
-- Ambiguous or conflicting matches fail closed; valid Fastboot fallback remains supported.
-- Retained formats and public compatibility are preserved.
-- No alternate Guardian, Recovery, build, flash, retry, relock, UI, hardware, or release authority
-  path is introduced.
+Implement only the Windows trusted-launcher anti-TOCTOU correctness contract behind the existing
+process-runner protocol, with deterministic Linux-hosted fakes/tests. Bind exact verified package
+identity and artifact bytes without a replaceable path window; reject symlink/reparse, hard-link,
+identity, hash/size, platform, launcher, timing, and unverifiable-state drift before dispatch.
+Preserve fixed protocol/environment, bounded I/O, signer/package/action identity, production/test
+trust separation, and UNKNOWN-on-post-dispatch ambiguity. Do not launch a phone command, wire
+production execution, add UI, alter consent, retry, relock, publish, release, or claim Windows
+verification.
 
-All criteria are met. Future-proofing checkpoints **3/3** are complete.
-
-### Approved next bounded task
-
-Perform a read-only Stage 1 closure audit against the authoritative v0.2 Golden Foundation
-requirements and repository evidence. The audit may identify the smallest remaining already-
-approved gap, but must not begin a new consequential implementation boundary. Any proposed next
-slice requires a new Product Assurance review.
+This is approved as the next slice. A genuine Windows run and controlled physical Android test
+remain separate later evidence gates requiring further review.
 
 ### Gate status
 
 - v0.2 Golden Foundation: **CLOSED**
 - Pre-v1.0 feature freeze: preserved
-- Windows secure Recovery launch / anti-TOCTOU: outstanding release blocker
-- Android instrumented and physical hardware verification: outstanding release blockers
+- Windows trusted-launch anti-TOCTOU: outstanding release blocker; next approved software slice
+- Production adapter enrollment: not implemented/released
+- Physical Android verification: outstanding release blocker
 - Physical execution, publication, release, and remote push: not authorized

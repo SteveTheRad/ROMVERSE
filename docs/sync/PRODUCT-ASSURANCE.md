@@ -1,56 +1,41 @@
 # ROMVERSE Product Assurance
 
-## Reviewed checkpoint: bdb512e
+## Current reviewed checkpoint: bdb512e
 
-- Commit: `bdb512e7e5d271e83c164a4ec7844cd7239e2fbe`
-- Title: `Orchestrate Recovery result verification`
-- Review status: **APPROVED — SAFE STOPPING CHECKPOINT**
-- Basis: authoritative source, diff, tests, and `docs/sync/BUILD-STATUS.md`.
+- Implementation: `bdb512e7e5d271e83c164a4ec7844cd7239e2fbe`
+- Existing assurance handoff: `d801dd0`
+- Status: **APPROVED SAFE STOP; NEXT TASK APPROVED BELOW**
 
-### Decision
+### Current decision
 
-The application-owned `RecoveryOperationSession` correctly carries one exact durable result
-through same-incident reassessment, fresh exact-device scan matching, read-only boot observation,
-and independent verification. It preserves the existing authority separation: the session has no
-execution, retry, repair, or relock authority and accepts no executable route.
+The application-owned Recovery continuation remains approved and complete for its bounded scope:
+durable result → same-incident reassessment → fresh exact-device scan matching → read-only boot
+observation → independent verification. It adds no execution, retry, repair, relock, UI feature,
+hardware, publication, or release authority. The continuous scan-cadence stability window is a
+correct evidence-preserving fix and remains approved.
 
-Completed results alone remain insufficient. Only a fresh exact pseudonymous device, Android/ADB
-evidence, and a continuous qualifying boot-complete window can reach the existing independent
-verification boundary. Failure and UNKNOWN remain stopped. Wrong, ambiguous, changed, or
-cross-device scans are never attributed. The full scan-cadence stability-window correction is
-necessary and safe: it excludes settling samples and validates identity, uptime, fingerprint,
-slot, and boot state across the complete window.
+No newer implementation checkpoint exists after this review. The three pre-existing Companion
+files remain outside scope and untouched.
 
-The session survives presentation changes without creating a second incident. Repair Center
-accepts only the exact durable incident. No UI feature, adapter, command, consent, physical
-execution, publication, or relock path was added.
+### Next smallest approved Stage 1 task
 
-### Evidence reviewed
+Implement only the Windows trusted-launcher anti-TOCTOU correctness contract and deterministic
+software tests. The slice may define and test path/identity binding, protected-source rehash,
+trusted-launcher selection, replacement/race rejection, and fail-closed UNKNOWN behavior using
+local fakes or a simulated Windows boundary. It must not launch a phone command, enable physical
+Recovery execution, add UI, alter consent, add retry, permit relocking, publish, or release.
 
-- `src/romverse/ui/recovery_operation_session.py`: exact-result continuation, split-context and
-  drift rejection, terminal failure/UNKNOWN handling, and no-authority session state.
-- `src/romverse/ui/main_window.py` and `src/romverse/ui/repair_center.py`: application-owned
-  lifecycle and exact-incident handoff.
-- `src/romverse/rom/boot_observation.py`: continuous full-window stability classification.
-- Focused regression: **29/29 passed** for operation session, boot observation, and verification.
-  Build reports full **2851/2851**, affected **650/650**, and focused **40/40**.
+Acceptance criteria:
 
-### Acceptance criteria
+- The launcher binds the exact approved source, project, Device Pack, and execution contract.
+- Replacement, symlink, path, hash, identity, and timing races fail closed before dispatch.
+- Unprovable launcher state is UNKNOWN and cannot advance or retry.
+- Linux/Fedora tests are deterministic and do not claim Windows or hardware verification.
+- Existing Guardian/Recovery authority and v0.2 feature-freeze rules remain unchanged.
 
-- One exact continuation survives screen/Guided/Expert changes without reopening execution.
-- Only exact-device fresh evidence enters read-only observation and independent verification.
-- Normal automatic scan cadence can prove the full stability window without weakening evidence.
-- Failure/UNKNOWN stay stopped; no automatic retry or cross-device attribution exists.
-- No physical execution, new feature scope, or release authorization is introduced.
-
-All criteria are met.
-
-### Safe stopping decision
-
-Build should stop at this committed checkpoint for creator offline handover. No further
-consequential slice is approved by this review. Any future Stage 1 work requires a new Product
-Assurance review and must first address the remaining release evidence rather than enabling
-physical Recovery execution.
+Product Assurance must review the resulting committed checkpoint before any physical or Windows
+execution claim. If this contract cannot be tested without enabling real execution, stop and return
+for a narrower design review instead.
 
 ### Gate status
 
@@ -58,6 +43,6 @@ physical Recovery execution.
 - Software chain: Recommendation ✓ → Preparation ✓ → Fresh Live Target ✓ → Consent ✓ → Executor ✓
   → Durable Result ✓ → Recovery Reassessment ✓ → Verification ✓
 - Linux/Fedora software evidence: verified
-- Windows trusted-launcher anti-TOCTOU: outstanding release blocker
+- Windows trusted-launcher anti-TOCTOU: outstanding release blocker; task approved above
 - Physical Android hardware verification: outstanding release blocker
-- Production execution/release/publication: not authorized
+- Physical execution, publication, release, and remote push: not authorized

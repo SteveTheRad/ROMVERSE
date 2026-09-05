@@ -2,8 +2,8 @@
 
 ## Authoritative implementation checkpoint
 
-- Commit: `b07bcc6ef5695a6d667435caf5d47c1d49b8b42c`
-- Title: `Reassess durable Recovery execution`
+- Commit: `aedfc161491dc209bb220d348c8454e32a85ca9c`
+- Title: `Verify completed Recovery execution`
 - Stage: Stage 1 — v0.2 Golden Foundation, Recovery/Guardian consequential chain
 - Build status: committed and locally verified; Product Assurance review pending
 - Working tree after the implementation commit: only the three pre-existing unrelated Companion
@@ -13,55 +13,63 @@
 
 The software architecture now stands at:
 
-`Recommendation ✓ → Preparation ✓ → Fresh Live Target ✓ → Consent ✓ → Executor ✓ → Durable Result ✓ → Recovery Reassessment ✓ → Verification ✗`
+`Recommendation ✓ → Preparation ✓ → Fresh Live Target ✓ → Consent ✓ → Executor ✓ → Durable Result ✓ → Recovery Reassessment ✓ → Verification ✓`
 
-Executor, Durable Result, and Recovery Reassessment are implemented and simulated/tested only.
-They are not physical-hardware verification or release evidence.
+This is an implemented and simulated/tested software chain. It is not physical-hardware
+verification, production enablement, or release evidence.
 
 ## Exact changes
 
-- Added a Recovery Autopilot reassessment boundary that loads and validates the exact persisted
-  aggregate result itself; callers cannot supply an outcome or choose the reassessment state.
-- A completed exact action sequence advances the same incident only to `VERIFYING`, with an explicit
-  statement that ROMVERSE has not declared the phone repaired.
-- A known execution failure stops the same incident in `EMERGENCY` for diagnosis.
-- An uncertain execution remains explicitly unknown in the incident timeline and requires state
-  reconstruction before any new action.
-- Every reassessment event binds the aggregate result digest into the existing tamper-evident
-  same-incident history.
-- The previously selected device-changing route is removed at reassessment. Stale route handoff,
-  repeated execution, and automatic/blind retry are therefore unavailable.
-- Generic Recovery refresh preserves the sealed project, exact device identity, and Device Pack,
-  and cannot repopulate or reclassify the closed execution route.
-- Boot evidence is refused after execution reassessment until the independent post-repair
-  verification boundary is implemented.
-- Idempotent re-entry returns the same valid reassessment; changed identity, project, Pack, outcome,
-  incident, aggregate, or reassessment evidence fails closed.
-- No UI, adapter action, device command, repair operation, boot verification, execution authority,
+- Added an independent post-Recovery verification boundary that loads the exact persisted completed
+  aggregate and the same incident's exact completed-sequence reassessment. Callers cannot supply a
+  repair outcome, override authority, or choose the incident state.
+- Only `SEQUENCE_COMPLETED_AWAITING_REASSESSMENT` may enter boot observation or verification.
+  Known failure and UNKNOWN remain ineligible and preserve their existing stopped incidents.
+- Added read-only Recovery-linked boot observation. Each load revalidates the exact completed
+  aggregate, project, original source, Device Pack digest, current registry resolution, and
+  pseudonymous physical-device identity.
+- Verification requires fresh exact-device ADB evidence and a stable, post-result boot observation
+  linked to the aggregate digest. The build identity, fingerprint, slot, boot-complete state, and
+  uptime continuity must agree; first-time verification requires the latest sample to be no more
+  than 120 seconds old.
+- Recovery is marked `RECOVERED`, `repaired`, and `verified_reboot` only after the full evidence set
+  validates. The verification event binds the aggregate, reassessment, boot receipt, and fresh
+  device evidence into the same tamper-evident incident.
+- Idempotent re-entry returns the same verified incident only while its exact evidence remains
+  consistent. Drift or history mutation fails closed.
+- An exact completed Recovery operation starts a fresh boot session instead of mixing in an old
+  baseline or earlier installation. This also works after application restart when the older
+  linked receipt remains structurally valid; unreadable or tampered evidence is never overwritten.
+- Generic Recovery refresh still cannot reopen the executed route or reinterpret verification
+  evidence. No automatic or blind retry path was added.
+- No UI, adapter action, device command, execution authority, new confirmation, physical execution,
   or release behavior was added.
 
 Files in the implementation commit:
 
 - `src/romverse/repair/autopilot.py`
-- `tests/test_recovery_execution_reassessment.py`
+- `src/romverse/rom/boot_observation.py`
+- `tests/test_recovery_execution_verification.py`
 
 ## Classification
 
-- Implemented: exact same-incident Recovery execution reassessment and closed-route refresh guard.
-- Simulated/Tested: yes, on Linux/Fedora using deterministic fake adapter, transport, device, and
-  durable journal evidence.
+- Implemented: exact completed-result boot linkage and independent same-incident Recovery
+  verification.
+- Simulated/Tested: yes, on Linux/Fedora using deterministic fake adapters, transports, Android
+  device evidence, durable journals, and boot-observation receipts.
 - Hardware Verified: no.
 - Released: no.
 
 ## Verification evidence
 
-- Full repository regression: **2,833/2,833 passed**.
-- Affected Guardian, Recovery, and Repair regression: **514/514 passed**; included in the full-suite
-  total and not added again.
-- Focused consequential Recovery chain: **84/84 passed**; included in the totals above.
-- New reassessment cases: **11/11 passed**; included in the totals above.
-- Ruff lint: passed for both changed files.
-- Ruff formatting check: passed for both changed files.
+- Full repository regression: **2,843/2,843 passed**.
+- Affected Guardian, Recovery, Repair, and boot-observation regression: **535/535 passed**; included
+  in the full-suite total and not added again.
+- Focused verification/reassessment/result/autopilot/boot suite: **65/65 passed**; included in the
+  totals above.
+- New verification cases: **10/10 passed**; included in the totals above.
+- Ruff lint: passed for all three changed files.
+- Ruff formatting check: passed for all three changed files.
 - Git whitespace/diff check: passed.
 - Current product test failures: none.
 - Approved production logo hashes were rechecked and remain byte-exact:
@@ -71,32 +79,37 @@ Files in the implementation commit:
 
 ## Blockers and remaining limitations
 
-- The independent post-repair verification boundary has not yet been implemented for this chain.
-- Reassessment is not yet wired into Guided presentation or an application-owned operation session.
-- Known failure and UNKNOWN are safely stopped, but later diagnosis/reconstruction orchestration is
-  still required before ROMVERSE can prepare any evidence-backed new recovery action.
+- The complete consequential chain is not yet connected to an application-owned operation session
+  or Guided presentation; this checkpoint establishes domain boundaries only.
+- Post-repair subsystem health checks beyond stable exact-device Android boot evidence remain
+  outside this slice.
+- Known failure and UNKNOWN remain safely stopped, but later diagnosis/reconstruction orchestration
+  is still required before any evidence-backed new recovery action can be prepared.
 - Physical Android hardware behavior is unverified and production physical execution remains
   disabled/not authorized.
 - Windows trusted-launcher anti-TOCTOU verification remains outstanding and is a release blocker.
-- The v0.2 Golden Foundation gate remains closed.
+- The v0.2 Golden Foundation gate remains closed pending Product Assurance review and the remaining
+  Stage 1 release evidence.
 
 ## Guided friction and dead ends
 
-- No new modal or repeated user confirmation was introduced.
-- Technical reassessment machinery remains hidden from Guided Mode.
-- Generic refresh cannot send the user back around the executed route or silently make it eligible
-  again.
-- The eventual Guided continuation after failure/UNKNOWN and the completed-branch verification flow
-  remain unimplemented, so this is not yet a complete end-user recovery journey.
+- No new modal, repeated confirmation, or raw executor detail was introduced.
+- Recovery-linked observation now escapes both an old unlinked baseline and a valid older linked
+  session after restart, closing a persistence dead end without accepting stale evidence.
+- Tampered prior evidence still fails closed and is not overwritten.
+- The domain chain no longer has a missing Verification boundary, but the end-user Guided journey is
+  not complete until application orchestration presents and advances these existing states calmly.
 
 ## Guardian, Recovery, and safety implications
 
-- Only the exact durable aggregate from the same workspace and exact active incident is consumed.
-- Completed commands still do not mean repaired, booted, stable, or verified.
-- Failure and UNKNOWN retain the same incident, stop the changing route, and never gain retry.
-- Generic refresh cannot change the sealed execution incident's project, device identity, or Pack.
-- Post-repair evidence cannot bypass the missing independent verification boundary.
-- Reassessment adds no execution authority and accepts no caller-selected outcome.
+- Completion alone still does not mean recovered; only independent fresh exact-device boot evidence
+  can produce the Recovery claim.
+- Same-model/different-device substitution, source/project/Pack/contract drift, boot identity drift,
+  stale evidence, pre-execution observations, and mutated history fail closed.
+- Failure and UNKNOWN cannot enter boot linkage or verification and never gain automatic retry.
+- Every Recovery boot-receipt load revalidates the exact completed aggregate rather than trusting a
+  persisted digest alone.
+- Verification adds no execution authority and performs no device-changing action.
 - Bootloader relocking remains strictly forbidden with no override path.
 
 ## Platform status
@@ -108,16 +121,17 @@ Files in the implementation commit:
 ## Feature-freeze and version-gate impact
 
 - 5 September 2026 pre-v1.0 feature freeze: compliant. This is the smallest Product
-  Assurance-approved Stage 1 consequential boundary and adds no product feature scope.
+  Assurance-approved Stage 1 verification boundary and adds no product feature scope.
 - v0.2 Golden Foundation: remains **CLOSED**.
 
 ## Next proposed Build task
 
-Implement the smallest independent post-repair verification boundary for the completed-sequence
-branch only. It must bind the exact aggregate result and same-incident reassessment, require fresh
-exact-device evidence and valid boot observation, keep failure/UNKNOWN ineligible, and refuse any
-repair claim until all required evidence validates. Do not add UI or physical execution in that
-slice unless separately approved.
+After Product Assurance reviews this checkpoint, audit and implement only the smallest
+application-owned orchestration handoff needed to move the existing completed aggregate through
+same-incident reassessment, read-only boot observation, and independent verification. Preserve the
+one-decision consent model, keep failure/UNKNOWN stopped, and do not enable physical execution or
+broaden Stage 1. If Product Assurance identifies a remaining correctness boundary first, address
+that narrow boundary instead.
 
 ## External actions
 
@@ -127,17 +141,16 @@ slice unless separately approved.
 - Remote push: none.
 - Website change: none.
 - Companion source change by this Build slice: none.
-- Internal coordination: the existing Product Assurance task was asked to review the prior
-  checkpoint from repository source; it committed approval as `08fa1a1` without changing app source.
-- Local action: scoped implementation commit only.
+- Local action: scoped implementation commit and this repository handoff only.
 
 ## Product Assurance Review Requested
 
-- Confirm that completed → `VERIFYING`, failed → stopped `EMERGENCY`, and UNKNOWN → reconstruction
-  preserve the approved consequential-chain semantics without overstating Recovery success.
-- Confirm that removing the executed route and preventing generic refresh from reopening it is the
-  correct shared-domain no-blind-retry boundary.
-- Confirm whether the proposed completed-branch post-repair verification boundary is the next
-  approved Stage 1 slice.
+- Confirm that exact completed aggregate + same-incident reassessment + fresh linked boot evidence
+  is sufficient for the software-level `RECOVERED` claim without collapsing Durable Result,
+  Reassessment, and Verification into one authority boundary.
+- Confirm that replacing only a structurally valid older boot session after a new exact Recovery
+  result closes the restart dead end while correctly refusing to overwrite tampered history.
+- Confirm whether the proposed application-owned orchestration handoff is the next bounded Stage 1
+  task, or identify a narrower remaining correctness boundary first.
 - Keep Windows trusted-launcher anti-TOCTOU and physical-hardware verification recorded as mandatory
   later release gates.

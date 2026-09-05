@@ -2089,6 +2089,22 @@ large-archive hashing can be slow and never silently renews an expired transitio
   installation, Companion or website change, publication or remote push occurred. Approved
   production logos were not edited.
 
+## 2026-09-05 Recovery in-place boot observation
+
+- Recovery's boot-progress route now requests fresh read-only evidence without leaving the active
+  incident for a generic ROM Studio page. The same Guided journey remains visible and closes only
+  from fresh exact-phone stable-boot proof.
+- The shared Recovery service rejects boot evidence whose current phone, project, Device Pack,
+  build contract, protected source or sample identity differs. Targetless historical receipts have
+  no observation authority, and rejected evidence is not retained.
+- One non-overlapping affected run passes all 151 tests with zero failures, errors or skips in about
+  162 seconds. Changed-file Ruff, compilation and diff checks pass. See
+  `RECOVERY_IN_PLACE_BOOT_OBSERVATION_2026-09-05.md` for the exact boundary and limits.
+- This is implemented and simulated/tested on Fedora/Linux, not hardware verified or released.
+  Windows was not exercised. No physical phone operation, application restart, package
+  installation, Companion or website change, publication or remote push occurred. Approved
+  production logos were not edited. Feature freeze remains active and v0.2 remains closed.
+
 ## Honest feature boundary
 
 The current safe milestone supports read-only Android evidence, local diagnostics, guarded APK

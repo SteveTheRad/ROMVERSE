@@ -68,6 +68,7 @@ from tests.test_device_dna import _device, _project, _source
 from tests.test_guardian_manifest_review import _prepared as _prepared_guardian_manifest
 from tests.test_recovery_autopilot import _device as _recovery_device
 from tests.test_recovery_autopilot import _registry as _recovery_registry
+from tests.test_recovery_autopilot import _verified_boot as _recovery_verified_boot
 from tests.test_source_intelligence import SourceRunner
 
 
@@ -87,7 +88,7 @@ def test_bootloop_evidence_automatically_opens_recovery_autopilot(tmp_path: Path
         window.repair_center.set_devices([phone])
         sample = BootSample(
             datetime.now(UTC).isoformat(),
-            "a" * 20,
+            WorkspacePrivacy(store.workspace).pseudonym(phone.serial),
             DeviceState.FASTBOOT.value,
             False,
             10,
@@ -128,6 +129,66 @@ def test_bootloop_evidence_automatically_opens_recovery_autopilot(tmp_path: Path
         assert window.rom_studio.worker is None
         assert window.repair_center.host_repair_worker is None
 
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_recovery_boot_check_stays_in_journey_and_closes_only_on_fresh_proof(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    phone = _recovery_device(DeviceState.DEVICE, boot_completed=False, uptime_seconds=20)
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        pack_registry=_recovery_registry(),
+    )
+    scans = []
+    window.repair_center.verification_scan_requested.connect(lambda: scans.append(True))
+    try:
+        window.repair_center.set_devices([phone])
+        assert window.repair_center.open_recovery_incident(
+            RecoveryTrigger.BOOTLOOP,
+            project_id="project-one",
+            target_device=phone,
+        )
+        assert window._navigate_route("recovery_bay")
+        incident = window.repair_center.autopilot_incident
+        assert incident is not None
+        observe = next(
+            button
+            for button in window.repair_center.autopilot_route_buttons
+            if button.text() == "Check boot progress now"
+        )
+
+        observe.click()
+        app.processEvents()
+
+        assert scans == [True]
+        assert window.stack.currentWidget() is window.repair_center
+        assert window.repair_center.autopilot_incident is not None
+        assert window.repair_center.autopilot_incident.incident_id == incident.incident_id
+        recovered = replace(phone, boot_completed=True, uptime_seconds=600)
+        window.repair_center.set_devices([recovered])
+        window._handle_boot_observation(
+            _recovery_verified_boot(tmp_path, recovered),
+            None,
+        )
+        app.processEvents()
+
+        closed = window.repair_center.autopilot_incident
+        assert closed is not None
+        assert closed.incident_id == incident.incident_id
+        assert closed.repaired
+        assert closed.verified_reboot
+        assert closed.routes == ()
+        assert not closed.phone_changed
+        assert len(window.repair_center.autopilot_service.list_recent()) == 1
+        assert window.stack.currentWidget() is window.repair_center
     finally:
         window.companion_center.transport.close()
         window.close()
@@ -226,9 +287,7 @@ def test_recovery_time_machine_handoff_returns_to_same_incident_and_route(
         incident = window.repair_center.autopilot_incident
         assert incident is not None
         route = next(
-            item
-            for item in incident.routes
-            if item.kind is RecoveryRouteKind.EXACT_STOCK_RESTORE
+            item for item in incident.routes if item.kind is RecoveryRouteKind.EXACT_STOCK_RESTORE
         )
         assert route.owner_route == "time_machine"
         window.repair_center._autopilot_show_all_routes = True

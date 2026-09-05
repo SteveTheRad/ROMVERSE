@@ -23,7 +23,11 @@ from romverse.infrastructure.local_store import (
     remove_regular_file,
 )
 from romverse.knowledge.models import KnowledgeLookupReport, MatchConfidence
-from romverse.rom.boot_observation import BootObservationReceipt, BootObservationStatus
+from romverse.rom.boot_observation import (
+    BootObservationReceipt,
+    BootObservationService,
+    BootObservationStatus,
+)
 from romverse.rom.recovery_evidence import RecoveryEvidenceAssessment
 
 
@@ -276,9 +280,7 @@ class RecoveryAutopilotService:
             ),
         )
         state = (
-            RecoveryIncidentState.VERIFYING
-            if normalized_outcome == "succeeded"
-            else incident.state
+            RecoveryIncidentState.VERIFYING if normalized_outcome == "succeeded" else incident.state
         )
         updated = self._seal(
             replace(
@@ -328,9 +330,7 @@ class RecoveryAutopilotService:
             except (LocalStoreError, KeyError, TypeError, ValueError):
                 continue
         return tuple(
-            sorted(incidents, key=lambda item: item.updated_at, reverse=True)[
-                : self.MAX_INCIDENTS
-            ]
+            sorted(incidents, key=lambda item: item.updated_at, reverse=True)[: self.MAX_INCIDENTS]
         )
 
     def _assess(
@@ -341,9 +341,7 @@ class RecoveryAutopilotService:
     ) -> RecoveryIncident:
         device = context.device
         project_id = self._project_id(context.project_id)
-        device_key = self._context_device_key(context) or (
-            previous.device_key if previous else ""
-        )
+        device_key = self._context_device_key(context) or (previous.device_key if previous else "")
         device_name = (
             self._text(device.display_name, 120)
             if device is not None
@@ -352,6 +350,7 @@ class RecoveryAutopilotService:
             else "Android device"
         )
         pack = self._pack(device, previous)
+        self._validate_boot_observation(context, project_id, device_key, pack)
         mode = self._mode(device)
         transition = self._transition_contract(pack)
         after_digest = self._digest(
@@ -365,14 +364,13 @@ class RecoveryAutopilotService:
                 "slot_suffix": device.slot_suffix[:32] if device is not None else "",
             }
         )
-        before_digest = (
-            self._optional_hex(context.before_evidence_digest, 64)
-            or (previous.before_evidence_digest if previous is not None else after_digest)
+        before_digest = self._optional_hex(context.before_evidence_digest, 64) or (
+            previous.before_evidence_digest if previous is not None else after_digest
         )
         boot = context.boot_observation
-        boot_digest = (
-            self._optional_hex(boot.receipt_digest, 64) if boot is not None else ""
-        ) or (previous.boot_observation_digest if previous is not None else "")
+        boot_digest = (self._optional_hex(boot.receipt_digest, 64) if boot is not None else "") or (
+            previous.boot_observation_digest if previous is not None else ""
+        )
         archive_digest = (
             self._optional_hex(context.knowledge_report.archive_digest, 64)
             if context.knowledge_report is not None
@@ -511,7 +509,11 @@ class RecoveryAutopilotService:
                 96,
                 RecoveryRouteRisk.LOW,
                 "command_deck",
-                requirements=("Same target phone", "USB data connection", "Fresh Device Engine scan"),
+                requirements=(
+                    "Same target phone",
+                    "USB data connection",
+                    "Fresh Device Engine scan",
+                ),
                 evidence=("No Android transport is currently visible",),
             )
             add(
@@ -546,8 +548,15 @@ class RecoveryAutopilotService:
                     "recovery_bay",
                     confirmation=True,
                     authority="confirmed-host-only",
-                    requirements=("Verified Platform Tools", "Explicit confirmation", "Fresh rescan"),
-                    evidence=("ADB reports the selected transport offline", "No phone command is included"),
+                    requirements=(
+                        "Verified Platform Tools",
+                        "Explicit confirmation",
+                        "Fresh rescan",
+                    ),
+                    evidence=(
+                        "ADB reports the selected transport offline",
+                        "No phone command is included",
+                    ),
                 )
             add(
                 RecoveryRouteKind.RECONNECT_USB,
@@ -588,7 +597,11 @@ class RecoveryAutopilotService:
                 96,
                 RecoveryRouteRisk.INFORMATIONAL,
                 "rom_studio",
-                requirements=("Fresh boot sample", "Stable Android reconnect", "Matching Device DNA"),
+                requirements=(
+                    "Fresh boot sample",
+                    "Stable Android reconnect",
+                    "Matching Device DNA",
+                ),
                 evidence=(
                     f"Android boot-completed signal: {device.boot_completed}",
                     f"Current slot: {device.slot_suffix or 'not reported'}",
@@ -623,9 +636,7 @@ class RecoveryAutopilotService:
                     use_knowledge=True,
                 )
             if write is not None and write.writes:
-                targets = tuple(
-                    f"{rule.partition} ← {rule.artifact}" for rule in write.writes
-                )
+                targets = tuple(f"{rule.partition} ← {rule.artifact}" for rule in write.writes)
                 add(
                     RecoveryRouteKind.IMAGE_RESTORE_REVIEW,
                     "Review exact partition-image restoration",
@@ -792,6 +803,63 @@ class RecoveryAutopilotService:
         if previous is None:
             return False
         return any(event.mode != "adb" for event in previous.events)
+
+    def _validate_boot_observation(
+        self,
+        context: RecoveryAutopilotContext,
+        project_id: str,
+        device_key: str,
+        pack: DevicePack | None,
+    ) -> None:
+        """Refuse boot evidence that is not bound to the fresh exact target."""
+
+        receipt = context.boot_observation
+        if receipt is None:
+            return
+        observed_device_key = self._device_key(context.device)
+        if not observed_device_key:
+            raise RecoveryAutopilotError(
+                "Fresh exact-device evidence is required before boot observation can be attached"
+            )
+        if not device_key or not hmac.compare_digest(device_key, observed_device_key):
+            raise RecoveryTargetMismatchError(
+                "Boot observation does not match this recovery incident"
+            )
+        try:
+            receipt_project_id = self._project_id(receipt.project_id)
+            receipt_digest = self._optional_hex(receipt.receipt_digest, 64)
+            guardian_digest = self._optional_hex(
+                receipt.guardian_execution_receipt_digest,
+                64,
+            )
+        except (TypeError, ValueError) as exc:
+            raise RecoveryAutopilotError("Boot observation evidence is invalid") from exc
+        build = pack.build_contract if pack is not None else None
+        if (
+            receipt.phone_changed
+            or receipt_project_id != project_id
+            or pack is None
+            or build is None
+            or receipt.pack_id != pack.pack_id
+            or receipt.contract_id != build.contract_id
+            or receipt.source_original_sha256 != build.source.archive_sha256
+            or not receipt.samples
+            or any(
+                not isinstance(sample.device_pseudonym, str)
+                or not hmac.compare_digest(sample.device_pseudonym, observed_device_key)
+                for sample in receipt.samples
+            )
+        ):
+            raise RecoveryTargetMismatchError(
+                "Boot observation does not match this recovery incident"
+            )
+        if (
+            receipt.schema_version != BootObservationService.SCHEMA_VERSION
+            or not receipt_digest
+            or receipt.flash_linked != bool(guardian_digest)
+            or receipt.verified_first_boot is not bool(receipt.flash_linked and receipt.stable)
+        ):
+            raise RecoveryAutopilotError("Boot observation evidence is invalid")
 
     @staticmethod
     def _state(
@@ -1070,12 +1138,8 @@ class RecoveryAutopilotService:
             after_evidence_digest=self._hex(
                 item["after_evidence_digest"], 64, "after evidence digest"
             ),
-            boot_observation_digest=self._optional_hex(
-                item["boot_observation_digest"], 64
-            ),
-            knowledge_archive_digest=self._optional_hex(
-                item["knowledge_archive_digest"], 64
-            ),
+            boot_observation_digest=self._optional_hex(item["boot_observation_digest"], 64),
+            knowledge_archive_digest=self._optional_hex(item["knowledge_archive_digest"], 64),
             recovery_evidence_ready=self._boolean(item["recovery_evidence_ready"]),
             routes=routes,
             events=events,
@@ -1166,9 +1230,7 @@ class RecoveryAutopilotService:
                     mode=self._identifier(item["mode"], 40, "device mode"),
                     title=self._text(item["title"], 200),
                     detail=self._text(item["detail"], 1_500),
-                    evidence_digest=self._hex(
-                        item["evidence_digest"], 64, "event evidence digest"
-                    ),
+                    evidence_digest=self._hex(item["evidence_digest"], 64, "event evidence digest"),
                 )
             )
         return tuple(events)
@@ -1181,9 +1243,7 @@ class RecoveryAutopilotService:
                 boundary=self.workspace,
                 maximum_entries=self.MAX_SCAN_ENTRIES,
             )
-            dated = sorted(
-                ((path.stat().st_mtime_ns, path) for path in paths), reverse=True
-            )
+            dated = sorted(((path.stat().st_mtime_ns, path) for path in paths), reverse=True)
             for _modified, path in dated[self.MAX_INCIDENTS :]:
                 remove_regular_file(path, boundary=self.workspace)
         except (FileNotFoundError, LocalStoreError, OSError):
@@ -1270,9 +1330,7 @@ class RecoveryAutopilotService:
         return "" if value == "" else cls._identifier(value, maximum, "optional identifier")
 
     @classmethod
-    def _identifier_tuple(
-        cls, value: object, maximum_items: int, maximum: int
-    ) -> tuple[str, ...]:
+    def _identifier_tuple(cls, value: object, maximum_items: int, maximum: int) -> tuple[str, ...]:
         values = cls._text_tuple(value, maximum_items, maximum)
         normalized = tuple(cls._identifier(item, maximum, "identifier") for item in values)
         if len(set(normalized)) != len(normalized):

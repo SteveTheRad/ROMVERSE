@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import stat
+from dataclasses import replace
 from datetime import UTC, datetime
 
 import pytest
@@ -396,6 +397,8 @@ def _cache_report(confidence: MatchConfidence) -> KnowledgeLookupReport:
         "none",
         ("Device-changing guidance requires fresh confirmation.",),
     )
+
+
 def test_disconnected_incident_is_private_tamper_evident_and_not_repaired(tmp_path) -> None:
     service = RecoveryAutopilotService(tmp_path, _registry())
 
@@ -485,8 +488,7 @@ def test_cache_guidance_requires_scoped_medium_or_better_archive_evidence(tmp_pa
         )
     )
     assert all(
-        route.kind is not RecoveryRouteKind.CACHE_GUIDANCE
-        for route in low_confidence.routes
+        route.kind is not RecoveryRouteKind.CACHE_GUIDANCE for route in low_confidence.routes
     )
 
 
@@ -527,6 +529,99 @@ def test_post_flash_incident_needs_verified_boot_and_same_device_reconnect(tmp_p
     assert recovered.state is RecoveryIncidentState.RECOVERED
     assert recovered.routes == ()
     assert recovered.events[-1].title == "Recovery verified by fresh boot evidence"
+
+
+def test_recovery_rejects_cross_device_boot_receipt_even_with_original_phone_selected(
+    tmp_path,
+) -> None:
+    service = RecoveryAutopilotService(tmp_path, _registry())
+    phone_a = _device(boot_completed=False)
+    opened = service.start(
+        RecoveryAutopilotContext(
+            RecoveryTrigger.BOOTLOOP,
+            device=phone_a,
+            project_id="project-one",
+        )
+    )
+    phone_b = replace(phone_a, serial="SAME-MODEL-PHYSICAL-PHONE-B")
+
+    with pytest.raises(RecoveryTargetMismatchError, match="does not match"):
+        service.refresh(
+            opened.incident_id,
+            RecoveryAutopilotContext(
+                RecoveryTrigger.BOOTLOOP,
+                device=replace(phone_a, boot_completed=True),
+                project_id="project-one",
+                boot_observation=_verified_boot(tmp_path, phone_b),
+            ),
+        )
+
+    preserved = service.load(opened.incident_id)
+    assert preserved.boot_observation_digest == opened.boot_observation_digest
+    assert preserved.device_key == opened.device_key
+    assert not preserved.repaired and not preserved.phone_changed
+
+
+@pytest.mark.parametrize(
+    "change",
+    (
+        {"project_id": "another-project"},
+        {"pack_id": "another.pack"},
+        {"contract_id": "another-contract"},
+        {"source_original_sha256": "d" * 64},
+        {"phone_changed": True},
+    ),
+)
+def test_recovery_rejects_boot_receipt_outside_sealed_operation_identity(tmp_path, change) -> None:
+    service = RecoveryAutopilotService(tmp_path, _registry())
+    phone = _device(boot_completed=False)
+    opened = service.start(
+        RecoveryAutopilotContext(
+            RecoveryTrigger.BOOT_ATTENTION,
+            device=phone,
+            project_id="project-one",
+        )
+    )
+    receipt = replace(_verified_boot(tmp_path, phone), **change)
+
+    with pytest.raises(RecoveryTargetMismatchError, match="does not match"):
+        service.refresh(
+            opened.incident_id,
+            RecoveryAutopilotContext(
+                RecoveryTrigger.BOOT_ATTENTION,
+                device=replace(phone, boot_completed=True),
+                project_id="project-one",
+                boot_observation=receipt,
+            ),
+        )
+
+    assert service.load(opened.incident_id) == opened
+
+
+def test_historical_boot_receipt_grants_no_targetless_observation_authority(tmp_path) -> None:
+    service = RecoveryAutopilotService(tmp_path, _registry())
+    phone = _device()
+    opened = service.start(
+        RecoveryAutopilotContext(
+            RecoveryTrigger.FLASH_FAILURE,
+            project_id="project-one",
+            expected_device_key=service.privacy.pseudonym(phone.serial),
+        )
+    )
+
+    with pytest.raises(RecoveryAutopilotError, match="Fresh exact-device evidence"):
+        service.refresh(
+            opened.incident_id,
+            RecoveryAutopilotContext(
+                RecoveryTrigger.FLASH_FAILURE,
+                project_id="project-one",
+                boot_observation=_verified_boot(tmp_path, phone),
+            ),
+        )
+
+    preserved = service.load(opened.incident_id)
+    assert preserved == opened
+    assert not preserved.repaired and not preserved.phone_changed
 
 
 def test_host_only_repair_result_still_requires_a_fresh_reconnect_scan(tmp_path) -> None:

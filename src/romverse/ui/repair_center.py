@@ -88,6 +88,7 @@ _IN_PLACE_RECOVERY_SCAN_ROUTES = frozenset(
         RecoveryRouteKind.RECONNECT_USB,
         RecoveryRouteKind.AUTHORIZE_ADB,
         RecoveryRouteKind.REFRESH_SCAN,
+        RecoveryRouteKind.OBSERVE_BOOT,
     }
 )
 
@@ -699,9 +700,7 @@ class RepairCenter(QWidget):
             return False
         device = target_device
         if device is None and allow_current_device_fallback:
-            device = self.current_device or (
-                self.devices[0] if len(self.devices) == 1 else None
-            )
+            device = self.current_device or (self.devices[0] if len(self.devices) == 1 else None)
         prior_id = self.autopilot_incident.incident_id if self.autopilot_incident else ""
         self._autopilot_project_id = project_id.strip()[:100]
         self._autopilot_boot_observation = boot_observation
@@ -756,24 +755,28 @@ class RepairCenter(QWidget):
         self,
         receipt: BootObservationReceipt,
         knowledge_report: KnowledgeLookupReport | None = None,
-    ) -> None:
+    ) -> bool:
         """Apply a freshly verified boot receipt to the active incident."""
 
         incident = self.autopilot_incident
-        if incident is None or (
-            incident.project_id and receipt.project_id != incident.project_id
-        ):
-            return
+        if incident is None or (incident.project_id and receipt.project_id != incident.project_id):
+            return False
+        previous_receipt = self._autopilot_boot_observation
+        previous_knowledge = self._autopilot_knowledge_report
         self._autopilot_boot_observation = receipt
         if knowledge_report is not None:
             self._autopilot_knowledge_report = knowledge_report
-        self._refresh_autopilot(self.current_device)
+        if not self._refresh_autopilot(self.current_device):
+            self._autopilot_boot_observation = previous_receipt
+            self._autopilot_knowledge_report = previous_knowledge
+            return False
+        return True
 
-    def _refresh_autopilot(self, device: AndroidDevice | None) -> None:
+    def _refresh_autopilot(self, device: AndroidDevice | None) -> bool:
         service = self.autopilot_service
         incident = self.autopilot_incident
         if service is None or incident is None or incident.repaired:
-            return
+            return False
         context = RecoveryAutopilotContext(
             incident.trigger,
             device=device,
@@ -791,10 +794,10 @@ class RepairCenter(QWidget):
                 "ROMVERSE is waiting for the phone involved in this recovery incident. "
                 "The connected phone was not assigned or changed."
             )
-            return
+            return False
         except RecoveryAutopilotError as exc:
             self.digest.setText(f"Recovery incident refresh stopped safely  •  {exc}")
-            return
+            return False
         recovered_now = updated.repaired and not incident.repaired
         self.autopilot_incident = updated
         self._render_autopilot()
@@ -804,6 +807,7 @@ class RepairCenter(QWidget):
                 "Fresh boot and reconnect evidence completed the Recovery Autopilot incident.",
                 "success",
             )
+        return True
 
     def _render_autopilot(self) -> None:
         incident = self.autopilot_incident
@@ -859,9 +863,7 @@ class RepairCenter(QWidget):
                 widget.setParent(None)
                 widget.deleteLater()
         self.autopilot_route_buttons = []
-        visible_routes = (
-            incident.routes if self._autopilot_show_all_routes else incident.routes[:4]
-        )
+        visible_routes = incident.routes if self._autopilot_show_all_routes else incident.routes[:4]
         for route in visible_routes:
             self._add_autopilot_route(route)
         if len(incident.routes) > 4:
@@ -941,6 +943,7 @@ class RepairCenter(QWidget):
             RecoveryRouteKind.RECONNECT_USB: "Check connection now",
             RecoveryRouteKind.AUTHORIZE_ADB: "Check authorization now",
             RecoveryRouteKind.REFRESH_SCAN: "Refresh identity now",
+            RecoveryRouteKind.OBSERVE_BOOT: "Check boot progress now",
         }.get(
             route.kind,
             "Show guidance" if route.owner_route == "recovery_bay" else "Continue to route",
@@ -957,9 +960,7 @@ class RepairCenter(QWidget):
             else "Revalidates this incident route and opens its typed owner. It does not infer or run a phone command."
         )
         button.clicked.connect(
-            lambda _checked=False, route_id=route.route_id: self._review_autopilot_route(
-                route_id
-            )
+            lambda _checked=False, route_id=route.route_id: self._review_autopilot_route(route_id)
         )
         layout.addWidget(button)
         self.autopilot_route_buttons.append(button)
@@ -999,9 +1000,7 @@ class RepairCenter(QWidget):
             self.autopilot_route_requested.emit(route.owner_route, route.route_id)
             return
         requirements = (
-            " Required evidence: " + "; ".join(route.requirements)
-            if route.requirements
-            else ""
+            " Required evidence: " + "; ".join(route.requirements) if route.requirements else ""
         )
         self.digest.setText(
             f"{route.title}  •  {route.summary}{requirements} "
@@ -1033,11 +1032,7 @@ class RepairCenter(QWidget):
             "Recovery Autopilot • incident timeline + ranked routes",
             "INCIDENT TIMELINE\n\n"
             + "\n\n".join(event_rows)
-            + (
-                "\n\nCURRENT RANKED ROUTES\n\n" + "\n\n".join(route_rows)
-                if route_rows
-                else ""
-            )
+            + ("\n\nCURRENT RANKED ROUTES\n\n" + "\n\n".join(route_rows) if route_rows else "")
             + "\n\nPrivacy: local pseudonymous evidence; raw device serial is not stored.",
         )
 
@@ -1106,13 +1101,14 @@ class RepairCenter(QWidget):
             or not isinstance(assessment, RecoveryEvidenceAssessment)
         ):
             return False
+        previous_assessment = self._autopilot_recovery_evidence
         self._autopilot_recovery_evidence = assessment
-        self._refresh_autopilot(self.current_device)
+        if not self._refresh_autopilot(self.current_device):
+            self._autopilot_recovery_evidence = previous_assessment
+            return False
         updated = self.autopilot_incident
         return bool(
-            updated is not None
-            and updated.incident_id == incident_id
-            and not updated.phone_changed
+            updated is not None and updated.incident_id == incident_id and not updated.phone_changed
         )
 
     def _request_autopilot_scan(self) -> None:
@@ -1854,8 +1850,7 @@ class RepairCenter(QWidget):
         else:
             if report.conflicts:
                 conflict = QLabel(
-                    "CONFLICTING GUIDANCE • STOP BEFORE DEVICE CHANGES\n"
-                    f"{report.safest_answer}"
+                    f"CONFLICTING GUIDANCE • STOP BEFORE DEVICE CHANGES\n{report.safest_answer}"
                 )
                 conflict.setObjectName("Warning")
                 conflict.setWordWrap(True)
@@ -2126,9 +2121,7 @@ class RepairCenter(QWidget):
         self._finish_host_repair_console(result)
         self._record_autopilot_route_result(
             RecoveryRouteKind.HOST_ADB_REPAIR,
-            "succeeded"
-            if result.status is AdbHostRepairStatus.SUCCEEDED
-            else "failed",
+            "succeeded" if result.status is AdbHostRepairStatus.SUCCEEDED else "failed",
             result.summary
             + " A fresh Device Engine scan is still required before recovery can be verified.",
         )

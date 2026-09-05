@@ -34,6 +34,9 @@ from romverse.repair.autopilot import (
 from romverse.repair.host import AdbHostRepairReceiptStore, AdbHostRepairService
 from romverse.repair.templates import RepairAssessmentTemplates, RepairConcern
 from romverse.ui.repair_center import RepairCenter
+from tests.test_recovery_autopilot import _device as _recovery_device
+from tests.test_recovery_autopilot import _registry as _recovery_registry
+from tests.test_recovery_autopilot import _verified_boot
 
 from .test_diagnostics import device
 
@@ -610,9 +613,7 @@ def test_recovery_autopilot_cockpit_opens_from_evidence_and_survives_disconnect(
     assert center.autopilot_card.isVisibleTo(center)
     assert "ADB UNAUTHORIZED" in center.autopilot_title.text()
     assert center.autopilot_route_buttons
-    assert "RECOVERED REQUIRES FRESH BOOT + RECONNECT PROOF" in (
-        center.autopilot_boundary.text()
-    )
+    assert "RECOVERED REQUIRES FRESH BOOT + RECONNECT PROOF" in (center.autopilot_boundary.text())
 
     center.set_devices([])
     app.processEvents()
@@ -718,9 +719,7 @@ def test_recovery_authorization_route_checks_in_place_without_navigation(tmp_pat
     center.open_recovery_incident(RecoveryTrigger.DEVICE_MODE)
     requested: list[tuple[str, str]] = []
     scans = []
-    center.autopilot_route_requested.connect(
-        lambda owner, route: requested.append((owner, route))
-    )
+    center.autopilot_route_requested.connect(lambda owner, route: requested.append((owner, route)))
     center.verification_scan_requested.connect(lambda: scans.append(True))
 
     assert center.autopilot_route_buttons[0].text() == "Check authorization now"
@@ -750,9 +749,7 @@ def test_recovery_fastboot_identity_refresh_stays_in_recovery_bay(tmp_path) -> N
     center.open_recovery_incident(RecoveryTrigger.BOOTLOOP)
     routes = []
     scans = []
-    center.autopilot_route_requested.connect(
-        lambda owner, route: routes.append((owner, route))
-    )
+    center.autopilot_route_requested.connect(lambda owner, route: routes.append((owner, route)))
     center.verification_scan_requested.connect(lambda: scans.append(True))
 
     refresh = next(
@@ -768,6 +765,81 @@ def test_recovery_fastboot_identity_refresh_stays_in_recovery_bay(tmp_path) -> N
     assert center.autopilot_incident is not None
     assert center.autopilot_incident.events[-1].event_type == "route_reviewed"
     assert "keep this Recovery incident open" in center.digest.text()
+    assert not center.autopilot_incident.phone_changed
+    center.close()
+
+
+def test_recovery_boot_observation_checks_in_place_without_owner_navigation(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = RepairCenter(
+        DiagnosticAnalyzer(),
+        RepairAssessmentTemplates(),
+        GuardianPreflight(),
+        tmp_path,
+        ActivityStore(tmp_path),
+    )
+    center.set_devices([device(state=DeviceState.DEVICE, boot_completed=False)])
+    center.open_recovery_incident(RecoveryTrigger.BOOT_ATTENTION)
+    requested: list[tuple[str, str]] = []
+    scans = []
+    center.autopilot_route_requested.connect(lambda owner, route: requested.append((owner, route)))
+    center.verification_scan_requested.connect(lambda: scans.append(True))
+    observe = next(
+        button
+        for button in center.autopilot_route_buttons
+        if button.text() == "Check boot progress now"
+    )
+
+    observe.click()
+    app.processEvents()
+
+    assert requested == []
+    assert scans == [True]
+    assert center.autopilot_incident is not None
+    assert center.autopilot_incident.events[-1].event_type == "route_reviewed"
+    assert "keep this Recovery incident open" in center.digest.text()
+    assert not center.autopilot_incident.phone_changed
+    center.close()
+
+
+def test_recovery_commits_only_exact_matching_boot_observation(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    center = RepairCenter(
+        DiagnosticAnalyzer(),
+        RepairAssessmentTemplates(),
+        GuardianPreflight(),
+        tmp_path,
+        ActivityStore(tmp_path),
+        pack_registry=_recovery_registry(),
+    )
+    phone_a = _recovery_device(DeviceState.DEVICE, boot_completed=False)
+    center.set_devices([phone_a])
+    assert center.open_recovery_incident(
+        RecoveryTrigger.BOOTLOOP,
+        project_id="project-one",
+        target_device=phone_a,
+    )
+    incident = center.autopilot_incident
+    assert incident is not None
+    prior_digest = incident.boot_observation_digest
+    phone_b = replace(phone_a, serial="DIFFERENT-PHYSICAL-PHONE")
+    recovered_phone_a = replace(phone_a, boot_completed=True, uptime_seconds=600)
+    center.set_devices([recovered_phone_a])
+    wrong_receipt = _verified_boot(tmp_path, phone_b)
+
+    assert not center.update_recovery_boot_observation(wrong_receipt)
+    assert center._autopilot_boot_observation is None
+    assert center.autopilot_incident is not None
+    assert center.autopilot_incident.incident_id == incident.incident_id
+    assert center.autopilot_incident.boot_observation_digest == prior_digest
+    assert center.autopilot_incident.device_key == incident.device_key
+    assert not center.autopilot_incident.phone_changed
+
+    assert center.update_recovery_boot_observation(_verified_boot(tmp_path, recovered_phone_a))
+    assert center.autopilot_incident is not None
+    assert center.autopilot_incident.incident_id == incident.incident_id
+    assert center.autopilot_incident.repaired
+    assert center.autopilot_incident.verified_reboot
     assert not center.autopilot_incident.phone_changed
     center.close()
 
@@ -826,9 +898,7 @@ def test_recovery_external_owner_route_still_uses_typed_handoff(tmp_path) -> Non
     incident = center.autopilot_incident
     assert incident is not None
     route = next(
-        route
-        for route in incident.routes
-        if route.kind is RecoveryRouteKind.ARCHIVES_REVIEW
+        route for route in incident.routes if route.kind is RecoveryRouteKind.ARCHIVES_REVIEW
     )
     center._autopilot_show_all_routes = True
     center._render_autopilot()
@@ -867,9 +937,7 @@ def test_recovery_external_owner_route_still_uses_typed_handoff(tmp_path) -> Non
     center.close()
 
 
-def test_recovery_autopilot_keeps_every_ranked_route_reviewable(
-    tmp_path, monkeypatch
-) -> None:
+def test_recovery_autopilot_keeps_every_ranked_route_reviewable(tmp_path, monkeypatch) -> None:
     app = QApplication.instance() or QApplication([])
     center = RepairCenter(
         DiagnosticAnalyzer(),

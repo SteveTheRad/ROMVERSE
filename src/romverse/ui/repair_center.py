@@ -677,6 +677,7 @@ class RepairCenter(QWidget):
         message: str = "",
         boot_observation: BootObservationReceipt | None = None,
         knowledge_report: KnowledgeLookupReport | None = None,
+        failure: KnowledgeFailure | None = None,
         recovery_evidence: RecoveryEvidenceAssessment | None = None,
         target_device: AndroidDevice | None = None,
         allow_current_device_fallback: bool = True,
@@ -695,20 +696,27 @@ class RepairCenter(QWidget):
         self._autopilot_project_id = project_id.strip()[:100]
         self._autopilot_boot_observation = boot_observation
         self._autopilot_recovery_evidence = recovery_evidence
-        self._autopilot_knowledge_report = knowledge_report
         self._autopilot_message = message.replace("\x00", " ").strip()[:1_000]
+        resolved_knowledge = knowledge_report
+        if resolved_knowledge is None and failure is not None and self.offline_service is not None:
+            try:
+                resolved_knowledge = (
+                    self.offline_service.scan_after_device_failure(device, failure, limit=5)
+                    if device is not None
+                    else self.offline_service.scan_after_failure(None, failure, limit=5)
+                )
+            except (OSError, TypeError, ValueError) as exc:
+                self.offline_error = str(exc)[:500]
+        if resolved_knowledge is None and target_device is None and allow_current_device_fallback:
+            resolved_knowledge = self.offline_report
+        self._autopilot_knowledge_report = resolved_knowledge
         context = RecoveryAutopilotContext(
             trigger,
             device=device,
             project_id=self._autopilot_project_id,
             message=self._autopilot_message,
             boot_observation=boot_observation,
-            knowledge_report=knowledge_report
-            or (
-                self.offline_report
-                if target_device is None and allow_current_device_fallback
-                else None
-            ),
+            knowledge_report=resolved_knowledge,
             recovery_evidence=recovery_evidence,
             host_repair_available=self.host_repair_service is not None,
         )

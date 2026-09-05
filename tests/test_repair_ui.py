@@ -25,6 +25,7 @@ from romverse.intelligence.online_remediation import (
     SourceAuthority,
 )
 from romverse.knowledge.lookup import OfflineKnowledgeService
+from romverse.knowledge.models import KnowledgeFailure
 from romverse.repair.autopilot import RecoveryIncidentState, RecoveryTrigger
 from romverse.repair.host import AdbHostRepairReceiptStore, AdbHostRepairService
 from romverse.repair.templates import RepairAssessmentTemplates, RepairConcern
@@ -617,6 +618,44 @@ def test_recovery_autopilot_cockpit_opens_from_evidence_and_survives_disconnect(
     assert center.autopilot_incident.state is RecoveryIncidentState.EMERGENCY
     assert not center.autopilot_incident.repaired
     assert "EMERGENCY" in center.autopilot_badge.text()
+    center.close()
+
+
+def test_recovery_incident_automatically_scans_local_archives_from_typed_failure(
+    tmp_path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = RepairCenter(
+        DiagnosticAnalyzer(),
+        RepairAssessmentTemplates(),
+        GuardianPreflight(),
+        tmp_path,
+        ActivityStore(tmp_path),
+        offline_service=OfflineKnowledgeService(tmp_path),
+    )
+    target = device(state=DeviceState.FASTBOOT)
+
+    created = center.open_recovery_incident(
+        RecoveryTrigger.FLASH_FAILURE,
+        target_device=target,
+        message="A reviewed super write did not return a terminal result.",
+        failure=KnowledgeFailure(
+            phase="source-installation",
+            message="Fastboot transport vanished during super write.",
+            finding_ids=("source.installation.command_outcome_unknown",),
+            partition="super",
+            operation="flash super",
+        ),
+    )
+    app.processEvents()
+
+    assert created
+    assert center._autopilot_knowledge_report is not None
+    assert center._autopilot_knowledge_report.trigger == "source-installation-failure"
+    assert center._autopilot_knowledge_report.execution_authority == "none"
+    assert center.autopilot_incident is not None
+    assert center.autopilot_incident.knowledge_archive_digest
+    assert not center.autopilot_incident.phone_changed
     center.close()
 
 

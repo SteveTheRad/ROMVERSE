@@ -1487,6 +1487,13 @@ def test_guided_main_window_runs_source_route_and_records_exact_outcome(
         assert len(incidents) == 1
         assert incidents[0][1]["project_id"] == context.project_id
         assert incidents[0][1]["target_device"].serial == context.phone.serial
+        assert "Sealed installation evidence" in incidents[0][1]["message"]
+        assert "known failed step 49 flash super" in incidents[0][1]["message"]
+        assert incidents[0][1]["failure"].phase == "source-installation"
+        assert incidents[0][1]["failure"].partition == "super"
+        assert incidents[0][1]["failure"].finding_ids == (
+            "source.installation.command_failed",
+        )
 
 
 def test_main_window_retains_hidden_installation_across_experience_switch(

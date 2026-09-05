@@ -210,7 +210,7 @@ class SourceOperationSession(QObject):
         self.boot_timer.timeout.connect(self._poll_boot)
         self.connection_watch_timer = QTimer(self)
         self.connection_watch_timer.setSingleShot(True)
-        self.connection_watch_timer.setInterval(2000)
+        self.connection_watch_timer.setInterval(1500)
         self.connection_watch_timer.timeout.connect(self._watch_connection)
         self._schedule_connection_watch()
 
@@ -1020,7 +1020,7 @@ class SourceOperationSession(QObject):
             }
         ):
             self.connection_watch_timer.setInterval(
-                5000 if self._connection_watch_failures >= 3 else 2000
+                5000 if self._connection_watch_failures >= 3 else 1500
             )
             self.connection_watch_timer.start()
 

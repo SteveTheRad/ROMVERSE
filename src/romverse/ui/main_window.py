@@ -128,7 +128,7 @@ from romverse.intelligence.synapse import SynapseStore
 from romverse.knowledge.advisor import article_for_key
 from romverse.knowledge.archives import catalog_metrics
 from romverse.knowledge.lookup import OfflineKnowledgeService
-from romverse.knowledge.models import KnowledgeLookupReport
+from romverse.knowledge.models import KnowledgeFailure, KnowledgeLookupReport
 from romverse.knowledge.resolution_memory import ArchivesResolutionMemory
 from romverse.knowledge.updates import KnowledgeUpdateService
 from romverse.legal import load_privacy_document, load_terms_document
@@ -3925,6 +3925,8 @@ class MainWindow(QMainWindow):
         self._expert_flash_pending = False
         self._pending_local_flash_recovery: tuple[AndroidDevice, str] | None = None
         self._pending_local_flash_recovery_project: tuple[str, str] | None = None
+        self._pending_local_flash_recovery_result = None
+        self._pending_local_flash_recovery_trigger = RecoveryTrigger.FLASH_FAILURE
         self._device_adb_executable = adb_executable
         self._device_fastboot_executable = fastboot_executable
         self.scan_interval_seconds = max(scan_interval, 3)
@@ -7302,6 +7304,8 @@ class MainWindow(QMainWindow):
             self._finish_local_flash_recovery([])
 
     def _finish_expert_dialog(self, dialog) -> None:
+        from romverse.guardian.source_installation import SourceInstallationResult
+
         result = dialog.result
         failure_message = ""
         attempted = dialog.last_attempt_device
@@ -7345,6 +7349,9 @@ class MainWindow(QMainWindow):
                 if preparation is not None
                 else None
             )
+            self._pending_local_flash_recovery_result = (
+                result if isinstance(result, SourceInstallationResult) else None
+            )
             self._selected_device_serial = attempted.serial
         elif failure_message and dialog.recovery_requested:
             # Historical failures without an exact connected phone still have a
@@ -7358,6 +7365,8 @@ class MainWindow(QMainWindow):
         self._pending_local_flash_recovery = None
         project_binding = getattr(self, "_pending_local_flash_recovery_project", None)
         self._pending_local_flash_recovery_project = None
+        source_result = getattr(self, "_pending_local_flash_recovery_result", None)
+        self._pending_local_flash_recovery_result = None
         trigger = getattr(
             self, "_pending_local_flash_recovery_trigger", RecoveryTrigger.FLASH_FAILURE
         )
@@ -7381,10 +7390,61 @@ class MainWindow(QMainWindow):
                     # Historical operation attribution only, never a fresh artifact or
                     # installation claim. A changed source cannot inherit this incident.
                     project_id = project.project_id
+        failure = None
+        if project_id and source_result is not None:
+            from romverse.guardian.source_installation import SourceInstallationResult
+            from romverse.rom.source_installation_history import (
+                SourceInstallationOutcome,
+                load_latest_source_installation,
+            )
+
+            try:
+                outcome = load_latest_source_installation(self.rom_studio.store, project_id)
+            except (OSError, ProjectError, TypeError, ValueError):
+                outcome = None
+            if (
+                isinstance(source_result, SourceInstallationResult)
+                and isinstance(outcome, SourceInstallationOutcome)
+                and outcome.matches_result(source_result)
+                and outcome.action_evidence
+            ):
+                message = f"{message} {outcome.recovery_summary()}"
+                failed = outcome.actions("failed")
+                uncertain = outcome.actions("uncertain")
+                focus = (failed or uncertain or outcome.actions("unattempted"))[:1]
+                action = focus[0] if focus else None
+                finding_ids = []
+                if failed:
+                    finding_ids.append("source.installation.command_failed")
+                if uncertain:
+                    finding_ids.append("source.installation.command_outcome_unknown")
+                if trigger in {RecoveryTrigger.BOOTLOOP, RecoveryTrigger.BOOT_ATTENTION}:
+                    finding_ids.append("source.installation.boot_attention")
+                failure = KnowledgeFailure(
+                    phase="source-installation",
+                    message=source_result.summary,
+                    finding_ids=tuple(finding_ids),
+                    partition=(
+                        action.target
+                        if action is not None and action.action in {"flash", "erase"}
+                        else ""
+                    ),
+                    operation=(
+                        f"{action.action} {action.target}"
+                        if action is not None
+                        else "Android boot verification"
+                    ),
+                    verified_inputs=(
+                        f"source SHA-256 {outcome.source_sha256}",
+                        f"recipe SHA-256 {outcome.recipe_digest}",
+                        f"installation record SHA-256 {outcome.record_digest}",
+                    ),
+                )
         self.repair_center.open_recovery_incident(
             trigger,
             project_id=project_id,
             message=message,
+            failure=failure,
             target_device=target,
         )
         self._navigate_route("recovery_bay")

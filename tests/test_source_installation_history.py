@@ -107,6 +107,65 @@ def test_later_valid_failed_installation_replaces_old_success(installation):
     assert outcome.receipt_path == failed.receipt_path
     assert outcome.result == failed
     assert outcome.completed_count < outcome.expected_count
+    assert len(outcome.actions("failed")) == 1
+    assert outcome.actions("failed")[0].target == "abl_a"
+    assert not outcome.actions("uncertain")
+    assert outcome.actions("unattempted")
+    assert outcome.record_digest == _document(failed.receipt_path)["record_digest"]
+    assert outcome.receipt_relative_path.startswith("guardian/source-installation/")
+    assert str(installation.source.store.workspace) not in outcome.recovery_summary()
+
+
+def test_runner_exception_preserves_unknown_inflight_action_without_calling_it_failed(
+    installation, monkeypatch
+):
+    executor = SourceInstallationExecutor(
+        installation.source, installation.flash, installation.adb
+    )
+    plan = executor.inspect(installation.phone.device(), installation.recipe(reboot=False))
+    original_run = executor._run
+
+    def interrupted(command, **kwargs):
+        if "super" in command:
+            raise OSError("simulated transport vanished during command")
+        return original_run(command, **kwargs)
+
+    monkeypatch.setattr(executor, "_run", interrupted)
+    result = executor.execute(plan, accepted_digest=plan.plan_digest, risk_accepted=True)
+    outcome = _load(installation)
+
+    assert result.state is LocalFlashState.FAILED
+    assert outcome.matches_result(result)
+    assert not outcome.actions("failed")
+    assert len(outcome.actions("uncertain")) == 1
+    assert outcome.actions("uncertain")[0].target == "super"
+    assert outcome.actions("unattempted")[0].index > outcome.actions("uncertain")[0].index
+    assert "uncertain in-flight step" in outcome.recovery_summary()
+
+
+def test_restart_rehydrates_sealed_inflight_ledger_instead_of_zero_of_zero(installation):
+    _executor, _plan, completed = _execute(installation)
+    document = _document(completed.receipt_path)
+    document["state"] = "command-in-flight"
+    document["results"] = document["results"][:5]
+    document["in_flight_step"] = 5
+    document["phone_change_attempted"] = True
+    document["phone_state_uncertain"] = True
+    document["reboot_requested"] = False
+    document["android_arrival_verified"] = False
+    document.pop("completed_at")
+    document.pop("summary")
+    _save(completed.receipt_path, document)
+
+    outcome = _load(installation)
+
+    assert outcome.state == "attention" and outcome.result is None
+    assert outcome.completed_count == 5
+    assert outcome.expected_count == 52
+    assert tuple(item.index for item in outcome.actions("completed")) == tuple(range(5))
+    assert tuple(item.index for item in outcome.actions("uncertain")) == (5,)
+    assert tuple(item.index for item in outcome.actions("unattempted")) == tuple(range(6, 52))
+    assert "phone outcome is unconfirmed" in outcome.summary
 
 
 def test_touching_old_success_cannot_hide_later_failed_installation(installation):
@@ -179,6 +238,10 @@ def test_newer_interrupted_record_never_falls_back_to_older_success(installation
     assert outcome.result is None
     assert outcome.device_key == ""
     assert "unconfirmed" in outcome.summary
+    if state == "preparing":
+        assert "No verified ordered action ledger" in outcome.recovery_summary()
+    else:
+        assert outcome.action_evidence
 
 
 @pytest.mark.parametrize(

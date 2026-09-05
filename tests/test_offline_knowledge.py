@@ -269,6 +269,36 @@ def test_diagnostic_report_adds_typed_findings_to_private_local_query(tmp_path) 
     assert lookup.execution_authority == "none"
 
 
+def test_device_failure_combines_device_scope_and_failure_without_execution_authority(
+    tmp_path,
+) -> None:
+    target = AndroidDevice(
+        "PRIVATE-TRANSPORT-SERIAL",
+        DeviceState.FASTBOOT,
+        manufacturer="Xiaomi",
+        model="Xiaomi 17 Pro Max",
+        product="popsicle",
+        codename="popsicle",
+        bootloader_locked=False,
+    )
+    report = OfflineKnowledgeService(tmp_path / "workspace").scan_after_device_failure(
+        target,
+        KnowledgeFailure(
+            phase="source-installation",
+            message="Fastboot transport vanished during the reviewed super write.",
+            finding_ids=("source.installation.command_outcome_unknown",),
+            partition="super",
+            operation="flash super",
+        ),
+        limit=5,
+    )
+
+    assert report.trigger == "source-installation-failure"
+    assert report.execution_authority == "none"
+    assert report.archive_digest
+    assert target.serial not in repr(report)
+
+
 def test_synapse_labels_explicit_conflicts_and_explains_the_safest_answer(tmp_path) -> None:
     source = _source()
     supported = _record("fixture.supported-route")

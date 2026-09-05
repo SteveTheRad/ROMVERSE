@@ -150,6 +150,21 @@ class OfflineKnowledgeService:
             limit=limit,
         )
 
+    def scan_after_device_failure(
+        self,
+        device: AndroidDevice,
+        failure: KnowledgeFailure,
+        *,
+        limit: int = 8,
+    ) -> KnowledgeLookupReport:
+        """Combine current privacy-bounded Device DNA with typed failure evidence."""
+
+        return self.lookup(
+            query_with_failure(query_from_device_snapshot(device), failure),
+            trigger=f"{_bounded(failure.phase, 80) or 'device'}-failure",
+            limit=limit,
+        )
+
     def lookup(
         self,
         query: KnowledgeQuery,

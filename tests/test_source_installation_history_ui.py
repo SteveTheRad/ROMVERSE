@@ -80,6 +80,8 @@ def test_opening_history_never_autostarts_observation_or_installation(history):
     assert dialog._selected_device().serial == context.phone.serial
     assert dialog.preparation is dialog.outcome
     assert "HISTORICAL" in dialog.review.toPlainText()
+    assert "Sealed installation evidence" in dialog.review.toPlainText()
+    assert "known failed none" in dialog.review.toPlainText()
     assert "not fresh" in dialog.boundary.text()
     assert dialog.width() >= 720 and dialog.height() >= 620
 

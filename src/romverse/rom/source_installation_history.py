@@ -26,6 +26,18 @@ from romverse.rom.source_installation import (
 
 
 @dataclass(frozen=True, slots=True)
+class SourceInstallationActionEvidence:
+    index: int
+    action: str
+    target: str
+    status: str
+
+    @property
+    def label(self) -> str:
+        return f"step {self.index + 1} {self.action.replace('_', ' ')} {self.target}".strip()
+
+
+@dataclass(frozen=True, slots=True)
 class SourceInstallationOutcome:
     state: str
     summary: str
@@ -41,6 +53,61 @@ class SourceInstallationOutcome:
     historical: bool = True
     current_artifact_bytes_verified: bool = False
     project_id: str = ""
+    record_digest: str = ""
+    plan_digest: str = ""
+    recipe_digest: str = ""
+    receipt_relative_path: str = ""
+    action_evidence: tuple[SourceInstallationActionEvidence, ...] = ()
+
+    def actions(self, status: str) -> tuple[SourceInstallationActionEvidence, ...]:
+        return tuple(item for item in self.action_evidence if item.status == status)
+
+    def matches_result(self, result: SourceInstallationResult | None) -> bool:
+        recorded = self.result
+        return bool(
+            recorded is not None
+            and result is not None
+            and recorded.receipt_path == result.receipt_path
+            and recorded.state is result.state
+            and recorded.summary == result.summary
+            and recorded.results == result.results
+            and recorded.phone_change_attempted is result.phone_change_attempted
+            and recorded.phone_state_uncertain is result.phone_state_uncertain
+            and recorded.reboot_requested is result.reboot_requested
+            and recorded.android_arrival_verified is result.android_arrival_verified
+        )
+
+    def recovery_summary(self) -> str:
+        if not self.action_evidence or not self.record_digest:
+            return (
+                "No verified ordered action ledger is available. Do not infer completed steps or "
+                "retry this operation automatically."
+            )
+        completed = self.actions("completed")
+        failed = self.actions("failed")
+        uncertain = self.actions("uncertain")
+        unattempted = self.actions("unattempted")
+
+        def describe(items: tuple[SourceInstallationActionEvidence, ...]) -> str:
+            if not items:
+                return "none"
+            if len(items) == 1:
+                return items[0].label
+            indexes = tuple(item.index + 1 for item in items)
+            contiguous = indexes == tuple(range(indexes[0], indexes[-1] + 1))
+            if contiguous:
+                return f"steps {indexes[0]}–{indexes[-1]} ({len(items)} actions)"
+            return ", ".join(item.label for item in items[:4]) + (
+                f", plus {len(items) - 4} more" if len(items) > 4 else ""
+            )
+
+        receipt = self.receipt_relative_path or self.receipt_path.name
+        marker = self.record_digest[:16] + "…" if self.record_digest else "not verified"
+        return (
+            f"Sealed installation evidence: completed {describe(completed)}; "
+            f"known failed {describe(failed)}; uncertain in-flight {describe(uncertain)}; "
+            f"not started {describe(unattempted)}. Receipt {receipt}; record SHA-256 {marker}."
+        )
 
 
 _BASE_FIELDS = {
@@ -128,38 +195,70 @@ def load_latest_source_installation(
                     )
                 continue
             if document.get("state") not in {state.value for state in LocalFlashState}:
-                outcome = _attention(
-                    path,
-                    source,
-                    "The latest installation was interrupted or is unfinished. Its phone outcome is unconfirmed; inspect it before retrying.",
-                    project_id,
-                )
                 # Sealed unfinished intents have trustworthy recorded chronology.
                 # Unsealed/corrupt intents cannot safely be dated or skipped.
                 if not _sealed(document):
-                    return outcome
+                    return _attention(
+                        path,
+                        source,
+                        "The latest installation was interrupted or is unfinished. Its phone outcome is unconfirmed; inspect it before retrying.",
+                        project_id,
+                    )
                 started = _installation_start(document, path)
+                action_evidence = _action_evidence(document)
+                _snapshots(document, _steps(document), path)
+                outcome = SourceInstallationOutcome(
+                    state="attention",
+                    summary=(
+                        "Historical record: the latest installation stopped before a terminal "
+                        "result was sealed, so the phone outcome is unconfirmed. The action ledger "
+                        "below is verified; any in-flight action remains uncertain and must not be "
+                        "retried automatically."
+                    ),
+                    receipt_path=path,
+                    source_sha256=source,
+                    completed_count=sum(
+                        item.status == "completed" for item in action_evidence
+                    ),
+                    expected_count=len(action_evidence),
+                    boot_status="No validated linked boot result",
+                    # An interrupted ledger identifies the operation, not a fresh phone.
+                    # Keep boot-check identity fields empty until a typed terminal result exists.
+                    device_key="",
+                    product="",
+                    project_id=project_id,
+                    record_digest=document["record_digest"],
+                    plan_digest=document["plan_digest"],
+                    recipe_digest=document["recipe_digest"],
+                    receipt_relative_path=path.relative_to(store.workspace).as_posix(),
+                    action_evidence=action_evidence,
+                )
                 candidates.append((started, started, outcome, None))
                 continue
             result = _terminal_result(document, path)
+            action_evidence = _action_evidence(document)
             outcome = SourceInstallationOutcome(
-                result.state.value,
-                (
+                state=result.state.value,
+                summary=(
                     "Historical rebuilt-candidate installation: "
                     if document["format"] == "romverse.candidate-installation"
                     else "Historical installation: "
                 )
                 + result.summary[:800],
-                path,
-                source,
-                result.completed_count,
-                len(document["steps"]),
-                "No linked boot-check record",
-                None,
-                document["device_key"],
-                document["product"],
-                result,
+                receipt_path=path,
+                source_sha256=source,
+                completed_count=result.completed_count,
+                expected_count=len(document["steps"]),
+                boot_status="No linked boot-check record",
+                device_key=document["device_key"],
+                product=document["product"],
+                result=result,
                 project_id=project_id,
+                record_digest=document["record_digest"],
+                plan_digest=document["plan_digest"],
+                recipe_digest=document["recipe_digest"],
+                receipt_relative_path=path.relative_to(store.workspace).as_posix(),
+                action_evidence=action_evidence,
             )
             candidates.append(
                 (_time(document["started_at"]), _time(document["completed_at"]), outcome, document)
@@ -231,6 +330,28 @@ def _installation_start(document, path):
         or not re.fullmatch(r"[a-f0-9]{32}\.json", path.name)
         or document.get("plan_id") != path.stem
         or document.get("script_sha256") != POPSICLE_SCRIPT_SHA256
+        or document.get("product") != "popsicle"
+        or not isinstance(document.get("device_key"), str)
+        or re.fullmatch(r"[a-f0-9]{20}", document["device_key"]) is None
+        or any(
+            not _sha(document.get(key))
+            for key in ("plan_digest", "source_sha256", "recipe_digest", "fastboot_sha256")
+        )
+        or document.get("consent") != "explicit-source-installation-exact-plan"
+        or document.get("initial_slot") not in {"a", "b"}
+        or any(
+            type(document.get(key)) is not bool
+            for key in (
+                "wipe",
+                "reboot",
+                "phone_change_attempted",
+                "phone_state_uncertain",
+                "reboot_requested",
+                "android_arrival_verified",
+            )
+        )
+        or document.get("reboot_requested") is not False
+        or document.get("android_arrival_verified") is not False
         or document.get("state") not in {"preparing", "staging", "prepared", "command-in-flight"}
         or not fields <= set(document) <= fields | _OPTIONAL_FIELDS | {"record_digest"}
         or any(
@@ -410,6 +531,93 @@ def _steps(document):
         elif member:
             raise ValueError("Image assigned to non-write")
     return steps
+
+
+def _action_evidence(document) -> tuple[SourceInstallationActionEvidence, ...]:
+    """Rebuild the ordered command ledger without inferring an unrecorded outcome."""
+
+    steps = _steps(document)
+    raw_results = document.get("results")
+    if not isinstance(raw_results, list) or len(raw_results) > len(steps):
+        raise ValueError("Invalid result count")
+    inflight = document.get("in_flight_step")
+    if inflight is not None and (
+        type(inflight) is not int
+        or inflight != len(raw_results)
+        or inflight >= len(steps)
+        or document.get("state") not in {"command-in-flight", LocalFlashState.FAILED.value}
+    ):
+        raise ValueError("Invalid unfinished step")
+    if document.get("state") in {"preparing", "staging", "prepared"} and (
+        raw_results or inflight is not None
+    ):
+        raise ValueError("Pre-command state claims command evidence")
+    attempted = bool(raw_results or inflight is not None)
+    if document.get("phone_change_attempted") is not attempted or (
+        document.get("phone_state_uncertain") is not attempted
+    ):
+        raise ValueError("Command evidence contradicts the phone-state boundary")
+
+    start = _time(document["started_at"])
+    terminal_end = (
+        _time(document["completed_at"]) if "completed_at" in document else None
+    )
+    previous_end = start
+    result_status: dict[int, str] = {}
+    for index, entry in enumerate(raw_results):
+        step = steps[index]
+        if not isinstance(entry, dict) or set(entry) != {
+            "index",
+            "action",
+            "partition",
+            "command",
+            "started_at",
+            "completed_at",
+            "returncode",
+            "timed_out",
+            "output",
+            "verified_slot",
+        }:
+            raise ValueError("Invalid command result fields")
+        if (
+            type(entry["index"]) is not int
+            or entry["index"] != index
+            or entry["action"] != step["action"]
+            or entry["partition"] != step["partition"]
+            or not isinstance(entry["command"], list)
+            or entry["command"] != _command(step)
+            or type(entry["returncode"]) is not int
+            or type(entry["timed_out"]) is not bool
+            or not isinstance(entry["output"], str)
+            or len(entry["output"]) > 8192
+            or entry["verified_slot"]
+            not in ({"", "a"} if entry["action"] == "set_active" else {""})
+        ):
+            raise ValueError("Invalid ordered command result")
+        entry_start = _time(entry["started_at"])
+        entry_end = _time(entry["completed_at"])
+        if not previous_end <= entry_start <= entry_end or (
+            terminal_end is not None and entry_end > terminal_end
+        ):
+            raise ValueError("Incoherent command times")
+        previous_end = entry_end
+        completed = entry["returncode"] == 0 and not entry["timed_out"]
+        if not completed and index != len(raw_results) - 1:
+            raise ValueError("Commands continued after failure")
+        result_status[index] = "completed" if completed else "failed"
+    if inflight is not None and any(status == "failed" for status in result_status.values()):
+        raise ValueError("Known failure also claims an unknown in-flight command")
+
+    evidence = []
+    for index, step in enumerate(steps):
+        status = result_status.get(index)
+        if status is None:
+            status = "uncertain" if index == inflight else "unattempted"
+        target = step["partition"] or step["slot"] or "Android"
+        evidence.append(
+            SourceInstallationActionEvidence(index, step["action"], target, status)
+        )
+    return tuple(evidence)
 
 
 def _snapshots(document, steps, path):

@@ -1948,6 +1948,26 @@ large-archive hashing can be slow and never silently renews an expired transitio
   phone operation, running-app restart, packaging, Companion change, website update, publication or
   remote push occurred. Approved production logos were not edited.
 
+## 2026-09-05 Source failure and Recovery Autopilot handoff
+
+- Source installation failures now carry the sealed operation evidence into Recovery Bay instead
+  of only a generic error sentence. Every declared action is classified as completed, known failed,
+  uncertain in-flight or not started; a vanished command runner is never silently promoted to a
+  failure, success or safe retry.
+- Safely sealed command-in-flight history survives application restart with its genuine completed
+  and expected counts. It remains historical evidence only and cannot authorize a boot check or
+  claim a current phone identity.
+- Recovery Bay combines the typed failure with privacy-bounded current Device DNA, scans the local
+  Knowledge Archives automatically and preserves the Archive digest and matched record identifiers
+  in its ranked advisory routes. Knowledge still grants no execution authority.
+- All 187 focused source history/UI, recovery, offline knowledge, local lifecycle and complete
+  source-installation journey tests pass. The complete Desktop/Python gate passes all 2,684 tests
+  with zero failures, errors or skips in 825.011 seconds. Whole-change Ruff checks pass. See
+  `SOURCE_FAILURE_RECOVERY_HANDOFF_2026-09-05.md` for the exact behavior and boundaries.
+- This is durable diagnosis evidence, not automatic resumption or physical repair proof. No phone
+  operation, app restart, packaging, Companion change, website update, publication or remote push
+  occurred. Approved production logos were not edited.
+
 ## Honest feature boundary
 
 The current safe milestone supports read-only Android evidence, local diagnostics, guarded APK

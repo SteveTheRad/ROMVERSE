@@ -72,9 +72,11 @@ class SourceInstallationHistoryDialog(LocalFlashDialog):
         )
 
     def _render_history(self):
+        action_ledger = self.outcome.recovery_summary()
         self.review.setPlainText(
             f"HISTORICAL INSTALLATION  ·  {self.outcome.state}\n{self.outcome.summary}\n\n"
             f"Recorded completed actions: {self.outcome.completed_count} / {self.outcome.expected_count}\n"
+            f"{action_ledger}\n"
             f"Saved boot evidence: {self.outcome.boot_status}\n\n"
             f"Project: {self.outcome.project_id}\nSource SHA-256: {self.outcome.source_sha256}\n"
             f"Installation receipt: {self.outcome.receipt_path}\n\n"

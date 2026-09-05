@@ -27,7 +27,7 @@ decision with its own exact-plan confirmation.
 - Android/fastbootd to bootloader uses one reviewed mode-change confirmation. Verified bootloader
   arrival continues directly into read-only package/phone review and stops at **Install ROM…**.
 - Repeated USB discovery errors stay outside Recovery Bay because no phone-changing action occurred.
-  The watcher changes to an actionable cable/Platform Tools explanation and backs off from two to
+  The watcher changes to an actionable cable/Platform Tools explanation and backs off from 1.5 to
   five seconds instead of spinning aggressively.
 - With several connected phones, ROMVERSE automatically selects only one unambiguous recipe match.
   Ambiguous devices receive an explicit **Choose the intended phone…** entry; the app does not pick

@@ -341,6 +341,8 @@ def test_restart_interruption_goes_directly_to_exact_phone_diagnosis_without_ret
     assert incident["project_id"] == context.project_id
     assert incident["target_device"].serial == context.phone.serial
     assert incident["allow_current_device_fallback"] is False
+    outcome = load_latest_source_installation(context.source.store, context.project_id)
+    assert incident["expected_device_key"] == outcome.operation_device_key
     assert incident["failure"].phase == "source-installation"
     assert incident["failure"].finding_ids == (
         "source.installation.command_outcome_unknown",
@@ -363,6 +365,7 @@ def test_restart_interruption_never_borrows_another_phone_for_diagnosis(
         plan, accepted_digest=plan.plan_digest, risk_accepted=True
     )
     _seal_interrupted_command(completed.receipt_path)
+    outcome = load_latest_source_installation(context.source.store, context.project_id)
     other = replace(context.phone.device(), serial="UNRELATED-RESTART-PHONE")
     window._observed_devices = [] if presence == "absent" else [other]
     window.rom_studio.set_devices(window._observed_devices)
@@ -383,7 +386,49 @@ def test_restart_interruption_never_borrows_another_phone_for_diagnosis(
     assert incident["project_id"] == context.project_id
     assert incident["target_device"] is None
     assert incident["allow_current_device_fallback"] is False
+    assert incident["expected_device_key"] == outcome.operation_device_key
     assert "not currently verified as attached" in incident["message"]
+    assert tuple(context.phone.calls) == calls
+    assert tuple(context.phone.changes) == changes
+
+
+def test_same_model_phone_cannot_capture_targetless_incident_before_original_returns(
+    installation_desktop,
+):
+    _app, window, context = installation_desktop
+    executor = SourceInstallationExecutor(context.source, context.flash, context.adb)
+    plan = executor.inspect(context.phone.device(), context.recipe())
+    completed = executor.execute(
+        plan, accepted_digest=plan.plan_digest, risk_accepted=True
+    )
+    _seal_interrupted_command(completed.receipt_path)
+    outcome = load_latest_source_installation(context.source.store, context.project_id)
+    source_sha256 = context.source.store.get(context.project_id).original.sha256
+    original = context.phone.device()
+    other = replace(original, serial="SAME-MODEL-DIFFERENT-PHYSICAL-PHONE")
+    window._observed_devices = [other]
+    window.rom_studio.set_devices([other])
+    calls = tuple(context.phone.calls)
+    changes = tuple(context.phone.changes)
+
+    window._open_source_installation_recovery(context.project_id, source_sha256)
+
+    incident = window.repair_center.autopilot_incident
+    assert incident is not None
+    incident_id = incident.incident_id
+    assert incident.device_key == outcome.operation_device_key
+    assert incident.mode == "disconnected"
+    window.repair_center.set_devices([other])
+    assert window.repair_center.autopilot_incident.incident_id == incident_id
+    assert window.repair_center.autopilot_incident.mode == "disconnected"
+    assert "waiting for the phone involved" in window.repair_center.digest.text()
+
+    window.repair_center.set_devices([original])
+    rebound = window.repair_center.autopilot_incident
+    assert rebound.incident_id == incident_id
+    assert rebound.device_key == outcome.operation_device_key
+    assert rebound.mode == "adb"
+    assert len(window.repair_center.autopilot_service.list_recent()) == 1
     assert tuple(context.phone.calls) == calls
     assert tuple(context.phone.changes) == changes
 

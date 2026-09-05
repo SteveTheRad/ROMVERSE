@@ -7338,6 +7338,7 @@ class MainWindow(QMainWindow):
             # Never assign a sealed operation to whichever unrelated phone happens
             # to be selected after restart.
             allow_current_device_fallback=False,
+            expected_device_key=outcome.operation_device_key,
         )
         self.rom_studio.operation_status.setText(
             "Interrupted-installation diagnosis opened for the exact scanned phone. No write was retried."
@@ -8383,9 +8384,10 @@ class MainWindow(QMainWindow):
             recovery_evidence=recovery_evidence,
             target_device=device,
             # A First Light report is permanently bound to its pseudonymous phone.
-            # If that phone is absent, keep the incident unattributed instead of
-            # silently assigning the failure to a newly selected device.
+            # If that phone is absent, keep the incident operationally targetless
+            # instead of assigning it to a newly selected device.
             allow_current_device_fallback=False,
+            expected_device_key=report.device_key,
         )
         if not created:
             return

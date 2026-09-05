@@ -621,6 +621,48 @@ def test_recovery_autopilot_cockpit_opens_from_evidence_and_survives_disconnect(
     center.close()
 
 
+def test_generic_recovery_refresh_waits_for_sealed_phone_and_reuses_incident(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = RepairCenter(
+        DiagnosticAnalyzer(),
+        RepairAssessmentTemplates(),
+        GuardianPreflight(),
+        tmp_path,
+        ActivityStore(tmp_path),
+    )
+    original = device(serial="SEALED-ORIGINAL-PHONE")
+    other = replace(original, serial="SAME-MODEL-OTHER-PHONE")
+    expected = center.autopilot_service.privacy.pseudonym(original.serial)
+
+    assert center.open_recovery_incident(
+        RecoveryTrigger.FLASH_FAILURE,
+        project_id="interrupted-project",
+        message="Wait for the phone involved in the interrupted installation.",
+        allow_current_device_fallback=False,
+        expected_device_key=expected,
+    )
+    incident_id = center.autopilot_incident.incident_id
+    assert center.autopilot_incident.device_key == expected
+    assert center.autopilot_incident.mode == "disconnected"
+
+    center.set_devices([other])
+    center.set_devices([other])
+    app.processEvents()
+    assert center.autopilot_incident.incident_id == incident_id
+    assert center.autopilot_incident.mode == "disconnected"
+    assert "waiting for the phone involved" in center.digest.text()
+    assert len(center.autopilot_service.list_recent()) == 1
+
+    center.set_devices([original])
+    app.processEvents()
+    assert center.autopilot_incident.incident_id == incident_id
+    assert center.autopilot_incident.device_key == expected
+    assert center.autopilot_incident.mode == "adb"
+    assert len(center.autopilot_service.list_recent()) == 1
+    assert not center.autopilot_incident.phone_changed
+    center.close()
+
+
 def test_recovery_incident_automatically_scans_local_archives_from_typed_failure(
     tmp_path,
 ) -> None:

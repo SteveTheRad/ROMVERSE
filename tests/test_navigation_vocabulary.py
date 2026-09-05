@@ -186,7 +186,7 @@ def test_first_light_failure_automatically_opens_recovery_autopilot(tmp_path: Pa
         window.close()
 
 
-def test_first_light_failure_stays_unattributed_when_exact_phone_is_absent(
+def test_first_light_failure_keeps_sealed_identity_but_stays_targetless_when_phone_absent(
     tmp_path: Path,
 ) -> None:
     app = QApplication.instance() or QApplication([])
@@ -230,7 +230,8 @@ def test_first_light_failure_stays_unattributed_when_exact_phone_is_absent(
         app.processEvents()
 
         assert window.repair_center.autopilot_incident is not None
-        assert window.repair_center.autopilot_incident.device_key == ""
+        assert window.repair_center.autopilot_incident.device_key == report.device_key
+        assert window.repair_center.autopilot_incident.mode == "disconnected"
         assert window.repair_center.autopilot_incident.device_key != WorkspacePrivacy(
             store.workspace
         ).pseudonym(selected_phone.serial)

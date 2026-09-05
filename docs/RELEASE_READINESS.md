@@ -2006,6 +2006,25 @@ large-archive hashing can be slow and never silently renews an expired transitio
   Companion or website change, publication or remote push occurred. Approved production logos were
   not edited.
 
+## 2026-09-05 Recovery exact-device refresh boundary
+
+- Recovery Autopilot now treats pseudonymous incident identity as immutable while target
+  availability remains mutable. Sealed installation and First Light identity is retained even when
+  the phone is absent.
+- The shared Recovery service rejects generic refresh evidence from a different phone before
+  assessment or persistence, including a same-model substitute. An incident with no sealed identity
+  cannot adopt the first available phone.
+- A freshly validated original phone updates the same incident; repeated targetless refreshes do not
+  duplicate it. Guided reports that it is waiting for the phone involved without exposing identity
+  machinery.
+- One final combined affected suite passes all 558 tests with zero failures, errors or skips in
+  351.842 seconds. Changed-file Ruff, compilation and diff checks pass. See
+  `RECOVERY_EXACT_DEVICE_REFRESH_BOUNDARY_2026-09-05.md` for the adversarial matrix and limits.
+- This is implemented and simulated/tested on Fedora/Linux, not hardware verified or released.
+  Windows was not exercised. No physical phone operation, app restart, package installation,
+  Companion or website change, publication or remote push occurred. Approved production logos were
+  not edited.
+
 ## Honest feature boundary
 
 The current safe milestone supports read-only Android evidence, local diagnostics, guarded APK

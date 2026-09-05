@@ -31,6 +31,10 @@ class RecoveryAutopilotError(RuntimeError):
     pass
 
 
+class RecoveryTargetMismatchError(RecoveryAutopilotError):
+    """Fresh device evidence cannot be assigned to the sealed incident identity."""
+
+
 class RecoveryTrigger(StrEnum):
     FLASH_FAILURE = "flash_failure"
     BOOTLOOP = "bootloop"
@@ -112,6 +116,8 @@ class RecoveryIncident:
     updated_at: str
     project_id: str
     trigger: RecoveryTrigger
+    # Immutable pseudonymous incident identity. Device availability is represented
+    # by current mode/evidence and may change without changing this attribution.
     device_key: str
     device_name: str
     pack_id: str
@@ -147,6 +153,10 @@ class RecoveryAutopilotContext:
     recovery_evidence: RecoveryEvidenceAssessment | None = None
     before_evidence_digest: str = ""
     host_repair_available: bool = False
+    # Recovery-only attribution. This never grants boot, write, retry or route
+    # execution authority; it keeps a disconnected incident bound to the phone
+    # for which its sealed evidence was recorded.
+    expected_device_key: str = ""
 
 
 class RecoveryAutopilotService:
@@ -177,7 +187,7 @@ class RecoveryAutopilotService:
     def open(self, context: RecoveryAutopilotContext) -> RecoveryIncident:
         """Start a new incident or refresh the matching unfinished incident."""
 
-        current_key = self._device_key(context.device)
+        current_key = self._context_device_key(context)
         existing = next(
             (
                 incident
@@ -185,9 +195,9 @@ class RecoveryAutopilotService:
                 if not incident.repaired
                 and incident.project_id == self._project_id(context.project_id)
                 and (
-                    not current_key
-                    or not incident.device_key
-                    or incident.device_key == current_key
+                    hmac.compare_digest(incident.device_key, current_key)
+                    if current_key
+                    else not incident.device_key
                 )
             ),
             None,
@@ -211,14 +221,17 @@ class RecoveryAutopilotService:
         current = self.load(incident_id)
         if current.repaired:
             return current
-        current_device_key = self._device_key(context.device)
-        if (
-            current.device_key
-            and current_device_key
-            and not hmac.compare_digest(current.device_key, current_device_key)
-        ):
-            raise RecoveryAutopilotError(
-                "Fresh device evidence does not match this recovery incident"
+        current_device_key = self._context_device_key(context)
+        if current.device_key:
+            if current_device_key and not hmac.compare_digest(
+                current.device_key, current_device_key
+            ):
+                raise RecoveryTargetMismatchError(
+                    "Fresh device evidence does not match this recovery incident"
+                )
+        elif current_device_key:
+            raise RecoveryTargetMismatchError(
+                "This targetless recovery incident has no sealed device identity"
             )
         updated = self._assess(context, current, datetime.now(UTC).isoformat())
         if self._semantic_state(updated) == self._semantic_state(current):
@@ -328,7 +341,9 @@ class RecoveryAutopilotService:
     ) -> RecoveryIncident:
         device = context.device
         project_id = self._project_id(context.project_id)
-        device_key = self._device_key(device) or (previous.device_key if previous else "")
+        device_key = self._context_device_key(context) or (
+            previous.device_key if previous else ""
+        )
         device_name = (
             self._text(device.display_name, 120)
             if device is not None
@@ -947,6 +962,20 @@ class RecoveryAutopilotService:
 
     def _device_key(self, device: AndroidDevice | None) -> str:
         return self.privacy.pseudonym(device.serial) if device is not None and device.serial else ""
+
+    def _context_device_key(self, context: RecoveryAutopilotContext) -> str:
+        try:
+            expected = self._optional_hex(context.expected_device_key, 20)
+        except (TypeError, ValueError) as exc:
+            raise RecoveryAutopilotError(
+                "The recovery incident's sealed device identity is invalid"
+            ) from exc
+        observed = self._device_key(context.device)
+        if expected and observed and not hmac.compare_digest(expected, observed):
+            raise RecoveryTargetMismatchError(
+                "Fresh device evidence does not match this recovery incident"
+            )
+        return expected or observed
 
     @staticmethod
     def _mode(device: AndroidDevice | None) -> str:

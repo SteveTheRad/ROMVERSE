@@ -60,6 +60,7 @@ from romverse.repair.autopilot import (
     RecoveryIncidentState,
     RecoveryRoute,
     RecoveryRouteKind,
+    RecoveryTargetMismatchError,
     RecoveryTrigger,
 )
 from romverse.repair.host import (
@@ -681,6 +682,7 @@ class RepairCenter(QWidget):
         recovery_evidence: RecoveryEvidenceAssessment | None = None,
         target_device: AndroidDevice | None = None,
         allow_current_device_fallback: bool = True,
+        expected_device_key: str = "",
     ) -> bool:
         """Open or refresh one evidence-backed incident without executing a route."""
 
@@ -719,9 +721,16 @@ class RepairCenter(QWidget):
             knowledge_report=resolved_knowledge,
             recovery_evidence=recovery_evidence,
             host_repair_available=self.host_repair_service is not None,
+            expected_device_key=expected_device_key,
         )
         try:
             self.autopilot_incident = service.open(context)
+        except RecoveryTargetMismatchError:
+            self.digest.setText(
+                "ROMVERSE is waiting for the phone involved in this recovery incident. "
+                "The connected phone was not assigned or changed."
+            )
+            return False
         except RecoveryAutopilotError as exc:
             self.digest.setText(f"Recovery incident could not be preserved  •  {exc}")
             return False
@@ -769,6 +778,12 @@ class RepairCenter(QWidget):
         )
         try:
             updated = service.refresh(incident.incident_id, context)
+        except RecoveryTargetMismatchError:
+            self.digest.setText(
+                "ROMVERSE is waiting for the phone involved in this recovery incident. "
+                "The connected phone was not assigned or changed."
+            )
+            return
         except RecoveryAutopilotError as exc:
             self.digest.setText(f"Recovery incident refresh stopped safely  •  {exc}")
             return

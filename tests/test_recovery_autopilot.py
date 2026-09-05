@@ -53,6 +53,7 @@ from romverse.repair.autopilot import (
     RecoveryAutopilotService,
     RecoveryIncidentState,
     RecoveryRouteKind,
+    RecoveryTargetMismatchError,
     RecoveryTrigger,
 )
 from romverse.rom.boot_observation import (
@@ -491,14 +492,15 @@ def test_cache_guidance_requires_scoped_medium_or_better_archive_evidence(tmp_pa
 
 def test_post_flash_incident_needs_verified_boot_and_same_device_reconnect(tmp_path) -> None:
     service = RecoveryAutopilotService(tmp_path, _registry())
+    phone = _device()
     opened = service.start(
         RecoveryAutopilotContext(
             RecoveryTrigger.BOOT_ATTENTION,
             project_id="project-one",
             message="Boot observation detected repeated restart evidence",
+            expected_device_key=service.privacy.pseudonym(phone.serial),
         )
     )
-    phone = _device()
 
     visible_only = service.refresh(
         opened.incident_id,
@@ -581,3 +583,117 @@ def test_known_incident_rejects_a_different_phone_during_refresh(tmp_path) -> No
     preserved = service.load(opened.incident_id)
     assert preserved.device_key == opened.device_key
     assert not preserved.repaired
+
+
+@pytest.mark.parametrize(
+    "other",
+    (
+        {"serial": "SAME-MODEL-DIFFERENT-PHONE"},
+        {
+            "serial": "DIFFERENT-MODEL-PHONE",
+            "manufacturer": "Other",
+            "model": "Different Phone",
+            "product": "different",
+            "codename": "different",
+        },
+    ),
+)
+def test_sealed_targetless_incident_rejects_other_phone_then_binds_original_same_incident(
+    tmp_path, other
+) -> None:
+    service = RecoveryAutopilotService(tmp_path, _registry())
+    original = _device()
+    expected = service.privacy.pseudonym(original.serial)
+    context = RecoveryAutopilotContext(
+        RecoveryTrigger.FLASH_FAILURE,
+        project_id="sealed-interruption",
+        message="Command outcome is unknown; wait for the original phone.",
+        expected_device_key=expected,
+    )
+
+    opened = service.open(context)
+    repeated = service.open(context)
+    assert repeated.incident_id == opened.incident_id
+    assert opened.device_key == expected
+    assert opened.mode == "disconnected"
+
+    with pytest.raises(RecoveryTargetMismatchError, match="does not match"):
+        service.refresh(
+            opened.incident_id,
+            RecoveryAutopilotContext(
+                RecoveryTrigger.FLASH_FAILURE,
+                device=_device(**other),
+                project_id="sealed-interruption",
+            ),
+        )
+
+    preserved = service.load(opened.incident_id)
+    assert preserved.incident_id == opened.incident_id
+    assert preserved.device_key == expected
+    assert preserved.mode == "disconnected"
+
+    attached = service.refresh(
+        opened.incident_id,
+        RecoveryAutopilotContext(
+            RecoveryTrigger.FLASH_FAILURE,
+            device=original,
+            project_id="sealed-interruption",
+        ),
+    )
+    assert attached.incident_id == opened.incident_id
+    assert attached.device_key == expected
+    assert attached.mode == "adb"
+    assert not attached.repaired and not attached.phone_changed
+
+
+def test_unidentified_targetless_incident_cannot_adopt_first_available_phone(tmp_path) -> None:
+    service = RecoveryAutopilotService(tmp_path, _registry())
+    opened = service.start(
+        RecoveryAutopilotContext(
+            RecoveryTrigger.FLASH_FAILURE,
+            project_id="unidentified-interruption",
+        )
+    )
+
+    with pytest.raises(RecoveryTargetMismatchError, match="no sealed device identity"):
+        service.refresh(
+            opened.incident_id,
+            RecoveryAutopilotContext(
+                RecoveryTrigger.FLASH_FAILURE,
+                device=_device(),
+                project_id="unidentified-interruption",
+            ),
+        )
+    assert service.load(opened.incident_id).device_key == ""
+
+
+def test_multiple_targetless_incidents_preserve_distinct_sealed_devices(tmp_path) -> None:
+    service = RecoveryAutopilotService(tmp_path, _registry())
+    phone_a = _device(serial="RECOVERY-PHONE-A")
+    phone_b = _device(serial="RECOVERY-PHONE-B")
+    incident_a = service.open(
+        RecoveryAutopilotContext(
+            RecoveryTrigger.FLASH_FAILURE,
+            project_id="shared-project",
+            expected_device_key=service.privacy.pseudonym(phone_a.serial),
+        )
+    )
+    incident_b = service.open(
+        RecoveryAutopilotContext(
+            RecoveryTrigger.FLASH_FAILURE,
+            project_id="shared-project",
+            expected_device_key=service.privacy.pseudonym(phone_b.serial),
+        )
+    )
+
+    assert incident_a.incident_id != incident_b.incident_id
+    assert incident_a.device_key != incident_b.device_key
+    with pytest.raises(RecoveryTargetMismatchError, match="does not match"):
+        service.refresh(
+            incident_a.incident_id,
+            RecoveryAutopilotContext(
+                RecoveryTrigger.FLASH_FAILURE,
+                device=phone_b,
+                project_id="shared-project",
+            ),
+        )

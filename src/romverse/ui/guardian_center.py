@@ -7,6 +7,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QObject, Qt, QTimer, Signal, Slot
 from PySide6.QtWidgets import (
+    QDialog,
     QFileDialog,
     QFrame,
     QHBoxLayout,
@@ -32,6 +33,11 @@ from romverse.guardian.execution_gateway_contract import (
 )
 from romverse.guardian.execution_plan import GuardianExecutionPlan
 from romverse.guardian.manifest_review import GuardianManifestReview
+from romverse.guardian.recovery_consent import (
+    GuardianRecoveryConsentGrant,
+    GuardianRecoveryConsentReceiptService,
+    RecoveryConsentValidationError,
+)
 from romverse.guardian.recovery_live_target import (
     GuardianRecoveryLiveTargetReceipt,
     GuardianRecoveryLiveTargetReceiptService,
@@ -53,6 +59,7 @@ from romverse.nexus.planning import NexusObjective, NexusPlan
 from romverse.repair.autopilot import RecoveryIncident, RecoveryRoute
 from romverse.ui.background import ManagedRunnable, start_background
 from romverse.ui.process_progress import ProcessProgressBar
+from romverse.ui.recovery_consent import RecoveryConsentDialog
 
 
 @dataclass(frozen=True, slots=True)
@@ -222,6 +229,8 @@ class GuardianCenter(QWidget):
         self._recovery_live_target_service: GuardianRecoveryLiveTargetReceiptService | None = None
         self._recovery_reviewed_device: AndroidDevice | None = None
         self._recovery_live_target_receipt: GuardianRecoveryLiveTargetReceipt | None = None
+        self._recovery_consent_service: GuardianRecoveryConsentReceiptService | None = None
+        self._recovery_consent_grant: GuardianRecoveryConsentGrant | None = None
         self._recovery_target_generation = 0
         self._recovery_technical_text = ""
         self._recovery_details_expanded = False
@@ -366,6 +375,23 @@ class GuardianCenter(QWidget):
         self.recovery_target_button.clicked.connect(self._start_recovery_target_check)
         recovery_target_row.addWidget(self.recovery_target_button)
         recovery_layout.addLayout(recovery_target_row)
+        self.recovery_consent_button = QPushButton("Confirm after phone check")
+        self.recovery_consent_button.setObjectName("Primary")
+        self.recovery_consent_button.setAccessibleName(
+            "Review and record one short-lived decision for this exact Recovery plan"
+        )
+        self.recovery_consent_button.setToolTip(
+            "Shows every sealed Recovery step and data-loss consequence. Recording consent "
+            "does not run Recovery or change the phone."
+        )
+        self.recovery_consent_button.clicked.connect(self._confirm_recovery)
+        self.recovery_consent_button.setVisible(False)
+        self.recovery_consent_button.setEnabled(False)
+        recovery_layout.addWidget(
+            self.recovery_consent_button,
+            0,
+            Qt.AlignmentFlag.AlignRight,
+        )
         self.recovery_review.setVisible(False)
         page.addWidget(self.recovery_review)
         self.recovery_focus_spacer = QWidget()
@@ -793,6 +819,12 @@ class GuardianCenter(QWidget):
         self._recovery_live_target_service = live_target_service
         self._recovery_reviewed_device = reviewed_device
         self._recovery_live_target_receipt = None
+        self._recovery_consent_service = (
+            GuardianRecoveryConsentReceiptService(live_target_service)
+            if live_target_service is not None
+            else None
+        )
+        self._recovery_consent_grant = None
         self._recovery_target_expiry_timer.stop()
         live_check_available = bool(
             preparation is not None
@@ -817,6 +849,9 @@ class GuardianCenter(QWidget):
         self.recovery_target_button.setText(
             "Check exact phone now" if live_check_available else "Open Forge Arsenal"
         )
+        self.recovery_consent_button.setVisible(preparation is not None)
+        self.recovery_consent_button.setEnabled(False)
+        self.recovery_consent_button.setText("Confirm after phone check")
         self.recovery_return_button.setText("Return to Recovery incident")
         self.recovery_return_button.setEnabled(True)
         self._set_recovery_focus(True)
@@ -841,13 +876,19 @@ class GuardianCenter(QWidget):
     def recovery_preparation(self) -> GuardianRecoveryPreparation | None:
         return self._recovery_preparation
 
+    @property
+    def recovery_consent_grant(self) -> GuardianRecoveryConsentGrant | None:
+        return self._recovery_consent_grant
+
     def set_experience_mode(self, mode: ExperienceMode) -> None:
         """Change evidence density without changing Recovery context or worker state."""
 
         self._experience_mode = ExperienceMode(mode)
         if self._recovery_review_identity is not None:
             self._set_recovery_details_expanded(self._experience_mode is ExperienceMode.EXPERT)
-            if self._recovery_live_target_receipt is not None:
+            if self._recovery_consent_grant is not None:
+                self._render_recovery_consent_grant(self._recovery_consent_grant)
+            elif self._recovery_live_target_receipt is not None:
                 self._render_recovery_target_receipt(self._recovery_live_target_receipt)
 
     def _toggle_recovery_details(self) -> None:
@@ -945,8 +986,23 @@ class GuardianCenter(QWidget):
             return True
         current = self._recovery_live_target_service.load(preparation, reviewed_device)
         if current == receipt:
+            grant = self._recovery_consent_grant
+            if grant is not None and self._recovery_consent_service is not None:
+                try:
+                    self._recovery_consent_service.validate_grant(
+                        grant,
+                        preparation,
+                        receipt,
+                        reviewed_device,
+                    )
+                except RecoveryConsentValidationError:
+                    self._recovery_consent_grant = None
+                    self._render_recovery_target_receipt(receipt)
+                    self.recovery_consent_button.setText("Review and confirm Recovery…")
+                    self.recovery_consent_button.setEnabled(True)
             return True
         self._recovery_live_target_receipt = None
+        self._recovery_consent_grant = None
         self._recovery_target_expiry_timer.stop()
         try:
             self._recovery_live_target_service.validate_context(preparation, reviewed_device)
@@ -973,6 +1029,7 @@ class GuardianCenter(QWidget):
         self._recovery_target_generation += 1
         self._recovery_reviewed_device = None
         self._recovery_live_target_receipt = None
+        self._recovery_consent_grant = None
         self._recovery_target_expiry_timer.stop()
         self.recovery_target_status.setObjectName("Warning")
         self.recovery_target_status.setText(
@@ -982,6 +1039,8 @@ class GuardianCenter(QWidget):
         )
         self.recovery_target_button.setText("Waiting for exact phone")
         self.recovery_target_button.setEnabled(False)
+        self.recovery_consent_button.setText("Confirm after phone check")
+        self.recovery_consent_button.setEnabled(False)
         self._repolish(self.recovery_target_status)
 
     def recovery_review_stopped(self, reason: str) -> None:
@@ -993,6 +1052,8 @@ class GuardianCenter(QWidget):
         self._recovery_live_target_service = None
         self._recovery_reviewed_device = None
         self._recovery_live_target_receipt = None
+        self._recovery_consent_service = None
+        self._recovery_consent_grant = None
         self._recovery_target_generation += 1
         self._recovery_technical_text = ""
         self._recovery_details_expanded = False
@@ -1017,6 +1078,8 @@ class GuardianCenter(QWidget):
         self.recovery_technical_detail.clear()
         self.recovery_technical_scroll.setVisible(False)
         self.recovery_technical_button.setVisible(False)
+        self.recovery_consent_button.setVisible(False)
+        self.recovery_consent_button.setEnabled(False)
         self._repolish(self.recovery_review_badge)
         self._repolish(self.recovery_target_status)
         self.recovery_review.setVisible(True)
@@ -1028,6 +1091,8 @@ class GuardianCenter(QWidget):
         self._recovery_live_target_service = None
         self._recovery_reviewed_device = None
         self._recovery_live_target_receipt = None
+        self._recovery_consent_service = None
+        self._recovery_consent_grant = None
         self._recovery_target_generation += 1
         self._recovery_technical_text = ""
         self._recovery_details_expanded = False
@@ -1044,6 +1109,9 @@ class GuardianCenter(QWidget):
         self.recovery_target_button.setVisible(False)
         self.recovery_target_button.setEnabled(False)
         self.recovery_target_button.setText("Check exact phone now")
+        self.recovery_consent_button.setVisible(False)
+        self.recovery_consent_button.setEnabled(False)
+        self.recovery_consent_button.setText("Confirm after phone check")
         self.recovery_return_button.setText("Return to Recovery incident")
         self.recovery_technical_detail.clear()
         self.recovery_technical_scroll.setVisible(False)
@@ -1063,7 +1131,10 @@ class GuardianCenter(QWidget):
         ):
             return
         self._recovery_live_target_receipt = None
+        self._recovery_consent_grant = None
         self.recovery_target_button.setEnabled(False)
+        self.recovery_consent_button.setEnabled(False)
+        self.recovery_consent_button.setText("Confirm after phone check")
         self.recovery_target_status.setObjectName("Muted")
         self.recovery_target_status.setText(
             "CHECKING YOUR PHONE…  •  ROMVERSE is making sure the Recovery plan still matches. "
@@ -1121,6 +1192,8 @@ class GuardianCenter(QWidget):
         self._render_recovery_target_receipt(result)
         self.recovery_target_button.setText("Check exact phone again")
         self.recovery_target_button.setEnabled(True)
+        self.recovery_consent_button.setText("Review and confirm Recovery…")
+        self.recovery_consent_button.setEnabled(self._recovery_consent_service is not None)
         try:
             expires = datetime.fromisoformat(result.expires_at).astimezone(UTC)
             remaining_ms = max(
@@ -1146,6 +1219,7 @@ class GuardianCenter(QWidget):
         if preparation_digest != self._recovery_preparation_digest:
             return
         self._recovery_live_target_receipt = None
+        self._recovery_consent_grant = None
         self._recovery_target_expiry_timer.stop()
         clean = " ".join(str(message).replace("\x00", " ").split())[:500]
         self.recovery_target_status.setObjectName("Danger")
@@ -1172,6 +1246,8 @@ class GuardianCenter(QWidget):
             and self._recovery_live_target_service is not None
             and self._recovery_reviewed_device is not None
         )
+        self.recovery_consent_button.setText("Confirm after phone check")
+        self.recovery_consent_button.setEnabled(False)
         self._repolish(self.recovery_target_status)
 
     @Slot()
@@ -1179,6 +1255,7 @@ class GuardianCenter(QWidget):
         if self._recovery_live_target_receipt is None:
             return
         self._recovery_live_target_receipt = None
+        self._recovery_consent_grant = None
         self.recovery_target_status.setObjectName("Warning")
         self.recovery_target_status.setText(
             "PHONE CHECK EXPIRED  •  Live identity evidence is intentionally short-lived. "
@@ -1189,6 +1266,62 @@ class GuardianCenter(QWidget):
             self._recovery_preparation is not None
             and self._recovery_live_target_service is not None
             and self._recovery_reviewed_device is not None
+        )
+        self.recovery_consent_button.setText("Confirm after phone check")
+        self.recovery_consent_button.setEnabled(False)
+        self._repolish(self.recovery_target_status)
+
+    @Slot()
+    def _confirm_recovery(self) -> None:
+        preparation = self._recovery_preparation
+        live_target = self._recovery_live_target_receipt
+        reviewed_device = self._recovery_reviewed_device
+        service = self._recovery_consent_service
+        if preparation is None or live_target is None or reviewed_device is None or service is None:
+            return
+        dialog = RecoveryConsentDialog(preparation, live_target, self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        try:
+            grant = service.issue(
+                preparation,
+                live_target,
+                reviewed_device,
+                confirmed=True,
+            )
+        except RecoveryConsentValidationError:
+            self._recovery_consent_grant = None
+            self._recovery_live_target_receipt = None
+            self._recovery_target_expiry_timer.stop()
+            self.recovery_target_status.setObjectName("Warning")
+            self.recovery_target_status.setText(
+                "RECOVERY CONSENT STOPPED SAFELY  •  The exact plan or phone check is no longer "
+                "current. ROMVERSE must check the phone again. Nothing changed on the phone."
+            )
+            self.recovery_target_button.setText("Check exact phone again")
+            self.recovery_target_button.setEnabled(True)
+            self.recovery_consent_button.setText("Confirm after phone check")
+            self.recovery_consent_button.setEnabled(False)
+            self._repolish(self.recovery_target_status)
+            return
+        self._recovery_consent_grant = grant
+        self._render_recovery_consent_grant(grant)
+        self.recovery_consent_button.setText("Consent recorded • no action started")
+        self.recovery_consent_button.setEnabled(False)
+
+    def _render_recovery_consent_grant(
+        self,
+        grant: GuardianRecoveryConsentGrant,
+    ) -> None:
+        self.recovery_target_status.setObjectName("Good")
+        self.recovery_target_status.setText(
+            "RECOVERY CONSENT RECORDED  •  You confirmed this exact phone and complete sealed "
+            "plan, including the displayed data-loss risk. No Recovery action started. "
+            "Execution is not available in this build; no action button is hidden."
+            if self._experience_mode is ExperienceMode.GUIDED
+            else f"RECOVERY CONSENT RECORDED  •  Receipt {grant.receipt.receipt_digest[:20]}…  •  "
+            f"valid until {grant.receipt.expires_at}  •  Execution: none  •  Runtime invoked: no  •  "
+            "Phone changed: no"
         )
         self._repolish(self.recovery_target_status)
 

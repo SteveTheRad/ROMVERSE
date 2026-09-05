@@ -2163,6 +2163,28 @@ large-archive hashing can be slow and never silently renews an expired transitio
   push occurred. Approved production logos remain byte-exact. Feature freeze is active,
   bootloader relocking remains forbidden and v0.2 remains closed.
 
+## 2026-09-05 Recovery Guardian one-decision consent
+
+- After exact preparation and a current fresh-phone receipt, Guardian now presents one clear dialog
+  containing every sealed Recovery step, mode transition and data-loss consequence. It has no typed
+  phrase or acknowledgement loop: Cancel records nothing, while **I understand — record consent**
+  records the complete displayed decision.
+- The private receipt binds the exact preparation, live target and expiry, incident/route/project,
+  protected source, Device Pack, signed action set, phone identity/mode/slot and consequence list. A
+  memory-only token is returned while only its digest is persisted.
+- Consent revalidation fails closed on target/preparation/evidence drift, expiry, substitution and
+  tampering. It issues no new ADB/Fastboot command and grants no execution or automatic-retry
+  authority. The UI honestly states that execution is not available in this build.
+- One non-overlapping affected Fedora/Linux run passes 236 unique tests with zero failures, errors
+  or skips in 181.13 seconds. Changed-file Ruff format/lint, compilation and diff checks pass. The
+  820×680 dialog and 1440×900 Guided state are readable and unclipped. See
+  `RECOVERY_GUARDIAN_CONSENT_2026-09-05.md` for the exact boundary.
+- This is implemented and simulated/tested, not hardware verified or released. Windows was not
+  exercised. No executor, physical repair or post-repair proof was added. No physical phone
+  operation, application restart, package installation, Companion or website change, publication
+  or remote push occurred. Approved production logos remain byte-exact. Feature freeze is active,
+  bootloader relocking remains forbidden and v0.2 remains closed.
+
 ## Honest feature boundary
 
 The current safe milestone supports read-only Android evidence, local diagnostics, guarded APK

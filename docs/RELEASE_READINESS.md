@@ -2105,6 +2105,21 @@ large-archive hashing can be slow and never silently renews an expired transitio
   installation, Companion or website change, publication or remote push occurred. Approved
   production logos were not edited. Feature freeze remains active and v0.2 remains closed.
 
+## 2026-09-05 Recovery to Archives context and return
+
+- Recovery's Archives route now seals the exact offline record IDs that informed the ranking,
+  opens only those records in a focused evidence workspace and never substitutes a text-search
+  result.
+- Search/filter drift is disabled during review. Archive refresh revalidates the exact set, and the
+  return action restores the same current Recovery incident and route or visibly expires closed.
+- One non-overlapping affected run passes all 157 tests with zero failures, errors or skips in about
+  132 seconds. A 1440×900 visual inspection is readable and unclipped. See
+  `RECOVERY_ARCHIVES_CONTEXT_RETURN_2026-09-05.md` for exact behavior and boundaries.
+- This is implemented and simulated/tested on Fedora/Linux, not hardware verified or released.
+  Windows was not exercised. No physical phone operation, application restart, package
+  installation, Companion or website change, publication or remote push occurred. Approved
+  production logos were not edited. Feature freeze remains active and v0.2 remains closed.
+
 ## Honest feature boundary
 
 The current safe milestone supports read-only Android evidence, local diagnostics, guarded APK

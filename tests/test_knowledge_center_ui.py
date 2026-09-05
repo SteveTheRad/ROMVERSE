@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+from dataclasses import replace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -10,6 +11,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QFileDialog, QLabel, QMessageBox
 
 from romverse.device.catalog import DeviceCatalogStatus
+from romverse.device.models import DeviceState
 from romverse.diagnostics.analyzer import DiagnosticAnalyzer
 from romverse.intelligence.synapse import (
     SynapseContribution,
@@ -19,7 +21,14 @@ from romverse.intelligence.synapse import (
     SynapseStore,
 )
 from romverse.knowledge.lookup import OfflineKnowledgeService
+from romverse.knowledge.models import KnowledgeQuery
 from romverse.knowledge.resolution_memory import ArchivesResolutionMemory
+from romverse.repair.autopilot import (
+    RecoveryAutopilotContext,
+    RecoveryAutopilotService,
+    RecoveryRouteKind,
+    RecoveryTrigger,
+)
 from romverse.repair.knowledge import knowledge_for
 from romverse.repair.sessions import RepairSessionStore
 from romverse.repair.templates import RepairConcern
@@ -32,6 +41,8 @@ from romverse.ui.knowledge_center import (
 
 from .test_diagnostics import device
 from .test_knowledge_updates import _archive, _service, _write_update
+from .test_recovery_autopilot import _device as _recovery_device
+from .test_recovery_autopilot import _registry as _recovery_registry
 
 
 def test_archives_search_selects_a_verified_guide_and_routes_to_rom_studio() -> None:
@@ -47,6 +58,60 @@ def test_archives_search_selects_a_verified_guide_and_routes_to_rom_studio() -> 
     assert center.open_route.isVisibleTo(center)
     center.open_route.click()
     assert routes == ["rom_studio"]
+    center.close()
+
+
+def test_archives_opens_only_exact_recovery_records_and_refuses_substitution(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    workspace = tmp_path / "workspace"
+    offline = OfflineKnowledgeService(workspace)
+    report = offline.lookup(
+        KnowledgeQuery(
+            error_codes=("HASH_MISMATCH(3)",),
+            symptoms=("verified boot failure after update",),
+        )
+    )
+    recovery = RecoveryAutopilotService(workspace, _recovery_registry())
+    incident = recovery.start(
+        RecoveryAutopilotContext(
+            RecoveryTrigger.BOOTLOOP,
+            device=_recovery_device(DeviceState.RECOVERY, boot_completed=False),
+            project_id="project-one",
+            knowledge_report=report,
+        )
+    )
+    route = next(item for item in incident.routes if item.kind is RecoveryRouteKind.ARCHIVES_REVIEW)
+    center = KnowledgeCenter(offline_service=offline)
+
+    assert center.open_recovery_review(incident, route)
+    opened_ids = tuple(
+        str(center.list.item(row).data(Qt.ItemDataRole.UserRole)).removeprefix("offline:")
+        for row in range(center.list.count())
+    )
+    assert opened_ids == route.knowledge_record_ids
+    assert center.recovery_review_identity == (incident.incident_id, route.route_id)
+    assert center.source_return.text() == "Return to Recovery incident"
+    assert "EXECUTION AUTHORITY NONE" in center.search_status.text()
+    assert "EXECUTION AUTHORITY  •  NONE" in center.detail.toPlainText()
+    assert not center.search.isEnabled()
+
+    center.refresh_offline_archive()
+    assert center.recovery_review_identity == (incident.incident_id, route.route_id)
+    assert (
+        tuple(
+            str(center.list.item(row).data(Qt.ItemDataRole.UserRole)).removeprefix("offline:")
+            for row in range(center.list.count())
+        )
+        == route.knowledge_record_ids
+    )
+
+    center.clear_recovery_review()
+    assert center.search.isEnabled()
+    missing = replace(route, knowledge_record_ids=("missing.recovery-record",))
+    changed = replace(incident, routes=(missing,))
+    assert not center.open_recovery_review(changed, missing)
+    assert center.recovery_review_identity is None
+    assert center.list.count() == len(route.knowledge_record_ids)
     center.close()
 
 

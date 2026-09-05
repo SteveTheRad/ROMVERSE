@@ -63,6 +63,11 @@ from romverse.knowledge.resolution_memory import (
     ArticleResolutionMemory,
 )
 from romverse.knowledge.updates import KnowledgeUpdateError, KnowledgeUpdateService
+from romverse.repair.autopilot import (
+    RecoveryIncident,
+    RecoveryRoute,
+    RecoveryRouteKind,
+)
 from romverse.ui.vocabulary import FEATURES, feature
 
 
@@ -163,7 +168,9 @@ class SynapseConstellation(QWidget):
             zip(points, self._NODES, strict=True)
         ):
             color = QColor(color_name)
-            pulse = 1.0 if self._reduced_motion else (1 + math.sin(self._phase * 1.8 + index) * 0.18)
+            pulse = (
+                1.0 if self._reduced_motion else (1 + math.sin(self._phase * 1.8 + index) * 0.18)
+            )
             radius = 4.2 * pulse
             halo = QColor(color)
             halo.setAlpha(42)
@@ -194,6 +201,7 @@ class SynapseConstellation(QWidget):
             Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom,
             conflict_text,
         )
+
 
 LEGACY_GUIDES = (
     (
@@ -938,6 +946,7 @@ class KnowledgeCenter(QWidget):
         self.offline_sources: dict[str, KnowledgeSource] = {}
         self.visible_offline_matches: dict[str, KnowledgeMatch | None] = {}
         self.visible_offline_conflicts: tuple[KnowledgeConflict, ...] = ()
+        self._recovery_review_context: tuple[RecoveryIncident, RecoveryRoute] | None = None
         self._load_offline_archive()
         self.synapse_knowledge: tuple[SynapseKnowledge, ...] = ()
         self.learning_dialog: SynapseLearningDialog | None = None
@@ -1008,6 +1017,7 @@ class KnowledgeCenter(QWidget):
         layout.addLayout(controls)
 
         quick = QHBoxLayout()
+        self.quick_help_buttons: list[QPushButton] = []
         quick.addWidget(QLabel("Quick help:"))
         for label, query in (
             ("Device IDs", "android device id"),
@@ -1020,6 +1030,7 @@ class KnowledgeCenter(QWidget):
         ):
             button = QPushButton(label)
             button.clicked.connect(lambda _checked=False, value=query: self.search.setText(value))
+            self.quick_help_buttons.append(button)
             quick.addWidget(button)
         quick.addStretch()
         layout.addLayout(quick)
@@ -1090,9 +1101,7 @@ class KnowledgeCenter(QWidget):
             "Reads and verifies a local Ed25519-signed update, shows its exact merge counts, "
             "and asks before changing the private Archive. It never contacts a server or phone."
         )
-        self.update_button.setEnabled(
-            update_service is not None and update_service.configured
-        )
+        self.update_button.setEnabled(update_service is not None and update_service.configured)
         self.update_button.clicked.connect(self._import_signed_update)
         update_layout.addWidget(self.update_button)
         layout.addWidget(self.update_panel)
@@ -1253,9 +1262,124 @@ class KnowledgeCenter(QWidget):
         self.search.setFocus(Qt.FocusReason.OtherFocusReason)
         return True
 
+    def open_recovery_review(self, incident: RecoveryIncident, route: RecoveryRoute) -> bool:
+        """Open only the exact offline records attached to one sealed Recovery route."""
+
+        self.clear_recovery_review()
+        record_ids = tuple(route.knowledge_record_ids) if isinstance(route, RecoveryRoute) else ()
+        if (
+            not isinstance(incident, RecoveryIncident)
+            or not isinstance(route, RecoveryRoute)
+            or incident.repaired
+            or not incident.integrity_verified
+            or route not in incident.routes
+            or route.kind is not RecoveryRouteKind.ARCHIVES_REVIEW
+            or route.owner_route != "archives"
+            or route.changes_device
+            or route.execution_authority != "none"
+            or not record_ids
+            or len(set(record_ids)) != len(record_ids)
+        ):
+            return False
+        self._load_offline_archive()
+        records = tuple(self.offline_records.get(record_id) for record_id in record_ids)
+        if any(record is None for record in records):
+            return False
+
+        self.set_source_context("recovery_bay")
+        self._recovery_review_context = (incident, route)
+        self._set_recovery_focus(True)
+        noun = "record" if len(record_ids) == 1 else "records"
+        self.source_context_detail.setText(
+            f"Recovery incident {incident.incident_id[:12]}… opened {len(record_ids)} exact "
+            f"source-labelled {noun}. Return to the same unchanged incident after review; "
+            "Archives grants no repair, approval, command, or phone authority."
+        )
+        self.source_return.setText("Return to Recovery incident")
+        self.category.setCurrentIndex(0)
+        self.evidence_lane.setCurrentIndex(0)
+        self.search.blockSignals(True)
+        self.search.clear()
+        self.search.blockSignals(False)
+        self.visible_offline_matches = {record_id: None for record_id in record_ids}
+        self.visible_offline_conflicts = ()
+        self.list.blockSignals(True)
+        self.list.clear()
+        for record in records:
+            assert record is not None
+            item = QListWidgetItem(
+                f"{record.title}\nRECOVERY EVIDENCE  •  {record.kind.value.upper()}  •  "
+                f"{record.confidence.value.upper()}"
+            )
+            item.setData(Qt.ItemDataRole.UserRole, f"offline:{record.record_id}")
+            item.setToolTip(
+                f"Exact Recovery record  •  {record.confidence.value}  •  guidance only"
+            )
+            self.list.addItem(item)
+        self.list.blockSignals(False)
+        self.list.setCurrentRow(0)
+        self._show_article(self.list.currentItem(), None)
+        self.search_status.setObjectName("Good")
+        self.search_status.setText(
+            f"{len(record_ids)} exact Recovery evidence record"
+            f"{'s' if len(record_ids) != 1 else ''} opened  •  EXECUTION AUTHORITY NONE"
+        )
+        self.search_status.style().unpolish(self.search_status)
+        self.search_status.style().polish(self.search_status)
+        self.list.setFocus(Qt.FocusReason.OtherFocusReason)
+        return True
+
+    @property
+    def recovery_review_identity(self) -> tuple[str, str] | None:
+        context = self._recovery_review_context
+        return (context[0].incident_id, context[1].route_id) if context is not None else None
+
+    def recovery_review_stopped(self, reason: str) -> None:
+        """Expire an Archives handoff without substituting records or route context."""
+
+        self.clear_source_context()
+        self.list.blockSignals(True)
+        self.list.clear()
+        self.list.blockSignals(False)
+        self.visible_offline_matches = {}
+        self.visible_offline_conflicts = ()
+        self.detail.setText(
+            f"{reason}\n\nReturn to Recovery Bay and reopen current evidence. ROMVERSE did "
+            "not substitute a record, run a repair, approve an action, or change the phone."
+        )
+        self.search_status.setObjectName("Danger")
+        self.search_status.setText("Recovery evidence context expired safely.")
+        self.open_route.setVisible(False)
+        self.open_source.setVisible(False)
+        self.resolution_status.setVisible(False)
+        self.search_status.style().unpolish(self.search_status)
+        self.search_status.style().polish(self.search_status)
+
+    def clear_recovery_review(self) -> None:
+        self._recovery_review_context = None
+        self._set_recovery_focus(False)
+        self.clear_source_context()
+
+    def _set_recovery_focus(self, active: bool) -> None:
+        for widget in (
+            self.synapse_constellation,
+            self.offline_archive_status,
+            self.update_panel,
+            self.device_catalog_status,
+            self.learning_panel,
+        ):
+            widget.setVisible(not active)
+        self.search.setEnabled(not active)
+        self.category.setEnabled(not active)
+        self.evidence_lane.setEnabled(not active)
+        for button in self.quick_help_buttons:
+            button.setEnabled(not active)
+
     def set_source_context(self, route: str) -> None:
         """Keep a safe return path to the workflow that requested Archives guidance."""
 
+        self._recovery_review_context = None
+        self._set_recovery_focus(False)
         normalized = route.strip()[:80]
         if normalized not in FEATURES or normalized == "archives":
             self.clear_source_context()
@@ -1270,6 +1394,8 @@ class KnowledgeCenter(QWidget):
         self.source_context.setVisible(True)
 
     def clear_source_context(self) -> None:
+        self._recovery_review_context = None
+        self._set_recovery_focus(False)
         self.source_context.setProperty("source_route", "")
         self.source_context_detail.clear()
         self.source_return.setText("")
@@ -1315,8 +1441,15 @@ class KnowledgeCenter(QWidget):
     def refresh_offline_archive(self, _report: object = None) -> None:
         """Reload the integrity-checked offline corpus after a DNA or failure scan."""
 
+        recovery_context = self._recovery_review_context
         self._load_offline_archive()
         self._render_offline_archive_status()
+        if recovery_context is not None:
+            if not self.open_recovery_review(*recovery_context):
+                self.recovery_review_stopped(
+                    "The exact Recovery evidence records changed during Archives refresh."
+                )
+            return
         self._filter()
 
     def _filter(self, _value: object = None) -> None:
@@ -1376,9 +1509,7 @@ class KnowledgeCenter(QWidget):
                 if source_id in self.offline_sources
             )
             labels = (
-                match.evidence_labels
-                if match is not None
-                else evidence_labels(record, sources)
+                match.evidence_labels if match is not None else evidence_labels(record, sources)
             )
             item = QListWidgetItem(
                 f"{record.title}\nOFFLINE EVIDENCE  •  {record.kind.value.upper()}  •  "
@@ -1498,11 +1629,7 @@ class KnowledgeCenter(QWidget):
             f"RECORD CONFIDENCE  •  {record.confidence.value.upper()}  •  "
             f"CORROBORATED OUTCOME/REPORT COUNT  •  {record.corroboration_count}",
         ]
-        labels = (
-            match.evidence_labels
-            if match is not None
-            else evidence_labels(record, sources)
-        )
+        labels = match.evidence_labels if match is not None else evidence_labels(record, sources)
         sections.extend(
             (
                 "",

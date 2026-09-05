@@ -4833,10 +4833,7 @@ class MainWindow(QMainWindow):
             self.engine is None
             or self.scanning
             or self._local_flash_dialog is not None
-            or (
-                self._source_operation_session is not None
-                and self._source_operation_session.busy
-            )
+            or (self._source_operation_session is not None and self._source_operation_session.busy)
             or self._expert_flash_pending
         ):
             return
@@ -6777,9 +6774,7 @@ class MainWindow(QMainWindow):
         session.preparation_failed.connect(
             lambda message, active=session: self._source_preparation_failed(active, message)
         )
-        session.quiescent.connect(
-            lambda active=session: self._source_operation_quiescent(active)
-        )
+        session.quiescent.connect(lambda active=session: self._source_operation_quiescent(active))
 
     def _source_preparation_finished(self, session, preparation) -> None:
         """Retain hidden verified preparation without interrupting the user's current screen."""
@@ -7003,9 +6998,7 @@ class MainWindow(QMainWindow):
                 self.rom_studio.tool_statuses,
                 self._runtime_runner,
             )
-            transition_service = LocalDeviceTransitionService(
-                local, self._device_adb_executable
-            )
+            transition_service = LocalDeviceTransitionService(local, self._device_adb_executable)
             boot_service = (
                 LocalBootService(
                     local,
@@ -7084,9 +7077,7 @@ class MainWindow(QMainWindow):
                     transition_service=source_session.transition_service,
                     boot_service=source_session.boot_service,
                 )
-                dialog.experience_mode_requested.connect(
-                    self._set_experience_mode_from_studio
-                )
+                dialog.experience_mode_requested.connect(self._set_experience_mode_from_studio)
             else:
                 self._retire_source_operation_session(source_session)
                 source_session = None
@@ -7122,13 +7113,9 @@ class MainWindow(QMainWindow):
                 self._finish_expert_dialog(dialog)
             if source_session is not None and not source_session.busy:
                 self._retire_source_operation_session(source_session)
-            if self.engine is not None and (
-                source_session is None or not source_session.busy
-            ):
+            if self.engine is not None and (source_session is None or not source_session.busy):
                 self.scan()
-            elif self.engine is None and (
-                source_session is None or not source_session.busy
-            ):
+            elif self.engine is None and (source_session is None or not source_session.busy):
                 self._finish_local_flash_recovery([])
 
     @Slot(str)
@@ -7232,17 +7219,13 @@ class MainWindow(QMainWindow):
         if outcome.recipe_digest:
             verified_inputs.append(f"recipe SHA-256 {outcome.recipe_digest}")
         if outcome.record_digest:
-            verified_inputs.append(
-                f"installation record SHA-256 {outcome.record_digest}"
-            )
+            verified_inputs.append(f"installation record SHA-256 {outcome.record_digest}")
         return KnowledgeFailure(
             phase="source-installation",
             message=outcome.summary,
             finding_ids=tuple(finding_ids),
             partition=(
-                action.target
-                if action is not None and action.action in {"flash", "erase"}
-                else ""
+                action.target if action is not None and action.action in {"flash", "erase"} else ""
             ),
             operation=(
                 f"{action.action} {action.target}"
@@ -7253,9 +7236,7 @@ class MainWindow(QMainWindow):
         )
 
     @Slot(str, str)
-    def _open_source_installation_recovery(
-        self, project_id: str, source_sha256: str
-    ) -> None:
+    def _open_source_installation_recovery(self, project_id: str, source_sha256: str) -> None:
         """Diagnose a sealed installation outcome without boot, write or retry authority."""
 
         from romverse.rom.source_installation_history import (
@@ -7496,10 +7477,7 @@ class MainWindow(QMainWindow):
             and isinstance(preparation, SourceInstallationOutcome)
             and (
                 preparation.state in {"failed", "attention"}
-                or (
-                    preparation.state == "cancelled"
-                    and preparation.completed_count > 0
-                )
+                or (preparation.state == "cancelled" and preparation.completed_count > 0)
             )
         ):
             self._open_source_installation_recovery(
@@ -8285,6 +8263,10 @@ class MainWindow(QMainWindow):
             "companion": "companion_link",
         }
         target = route if route in self.page_routes else aliases.get(route, "")
+        recovery_identity = self.knowledge_center.recovery_review_identity
+        if target == "recovery_bay" and recovery_identity is not None:
+            self._return_archives_recovery(*recovery_identity)
+            return
         self._navigate_route(target or f"knowledge:{route}")
 
     @Slot(str)
@@ -8406,6 +8388,7 @@ class MainWindow(QMainWindow):
     def _open_autopilot_route(self, owner_route: str, route_id: str) -> None:
         """Open the typed route owner without turning a recommendation into execution."""
 
+        archives_context = None
         if owner_route not in self.page_routes:
             self.notification_center.notify(
                 f"recovery-autopilot.route.{route_id}",
@@ -8436,7 +8419,30 @@ class MainWindow(QMainWindow):
                     NotificationKind.ATTENTION,
                 )
                 return
+        elif owner_route == "archives":
+            archives_context = self.repair_center.recovery_route_context(route_id, owner_route)
+            if archives_context is None:
+                self.notification_center.notify(
+                    f"recovery-autopilot.route.{route_id}",
+                    "Recovery evidence context changed",
+                    "Archives did not substitute a missing, changed, or unverified record. The "
+                    "active Recovery incident remains unchanged and no action started.",
+                    NotificationKind.ATTENTION,
+                )
+                return
         if not self._navigate_route(owner_route):
+            return
+        if archives_context is not None and not self.knowledge_center.open_recovery_review(
+            *archives_context
+        ):
+            self._navigate_route("recovery_bay")
+            self.notification_center.notify(
+                f"recovery-autopilot.route.{route_id}",
+                "Recovery evidence context changed",
+                "Archives did not substitute a missing, changed, or unverified record. The "
+                "active Recovery incident remains unchanged and no action started.",
+                NotificationKind.ATTENTION,
+            )
             return
         if owner_route == "guardian_core":
             self.guardian_center.request_refresh()
@@ -8495,6 +8501,25 @@ class MainWindow(QMainWindow):
             )
             return
         self.backup_center.clear_recovery_review()
+
+    @Slot(str, str)
+    def _return_archives_recovery(self, incident_id: str, route_id: str) -> None:
+        """Return exact Archives evidence to its still-current Recovery route."""
+
+        context = self.repair_center.recovery_route_context(route_id, "archives")
+        if context is None or context[0].incident_id != incident_id:
+            self.knowledge_center.recovery_review_stopped(
+                "The saved incident, route, or exact Archives record set is no longer current."
+            )
+            return
+        if not self._navigate_route(
+            "recovery_bay"
+        ) or not self.repair_center.restore_recovery_route(incident_id, route_id):
+            self.knowledge_center.recovery_review_stopped(
+                "Recovery Bay could not restore the exact current incident and evidence route."
+            )
+            return
+        self.knowledge_center.clear_recovery_review()
 
     @Slot(str)
     def _open_repair_finding(self, finding_id: str) -> None:

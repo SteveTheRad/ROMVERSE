@@ -36,6 +36,7 @@ from romverse.intelligence.synapse import (
     SynapseScope,
     SynapseStore,
 )
+from romverse.knowledge.models import KnowledgeQuery
 from romverse.nexus.events import MissionConfidence
 from romverse.nexus.planning import NexusObjective, NexusPlanner
 from romverse.repair.autopilot import RecoveryRouteKind, RecoveryTrigger
@@ -189,6 +190,106 @@ def test_recovery_boot_check_stays_in_journey_and_closes_only_on_fresh_proof(
         assert not closed.phone_changed
         assert len(window.repair_center.autopilot_service.list_recent()) == 1
         assert window.stack.currentWidget() is window.repair_center
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_recovery_archives_handoff_opens_exact_records_and_returns_to_same_incident(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    phone = _recovery_device(DeviceState.RECOVERY, boot_completed=False)
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        pack_registry=_recovery_registry(),
+    )
+    report = window.offline_knowledge_service.lookup(
+        KnowledgeQuery(
+            error_codes=("HASH_MISMATCH(3)",),
+            symptoms=("verified boot failure after update",),
+        )
+    )
+    try:
+        window.repair_center.set_devices([phone])
+        assert window.repair_center.open_recovery_incident(
+            RecoveryTrigger.BOOTLOOP,
+            project_id="project-one",
+            target_device=phone,
+            knowledge_report=report,
+        )
+        assert window._navigate_route("recovery_bay")
+        incident = window.repair_center.autopilot_incident
+        assert incident is not None
+        route = next(
+            item for item in incident.routes if item.kind is RecoveryRouteKind.ARCHIVES_REVIEW
+        )
+        window.repair_center._autopilot_show_all_routes = True
+        window.repair_center._render_autopilot()
+        archives = next(
+            button
+            for button in window.repair_center.autopilot_route_buttons
+            if button.property("recovery_route_id") == route.route_id
+        )
+
+        archives.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.knowledge_center
+        assert window.knowledge_center.recovery_review_identity == (
+            incident.incident_id,
+            route.route_id,
+        )
+        assert window.knowledge_center.source_return.text() == "Return to Recovery incident"
+        opened_ids = tuple(
+            str(window.knowledge_center.list.item(row).data(Qt.ItemDataRole.UserRole)).removeprefix(
+                "offline:"
+            )
+            for row in range(window.knowledge_center.list.count())
+        )
+        assert opened_ids == route.knowledge_record_ids
+
+        window.knowledge_center.source_return.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.repair_center
+        restored = window.repair_center.autopilot_incident
+        assert restored is not None
+        assert restored.incident_id == incident.incident_id
+        assert any(item.route_id == route.route_id for item in restored.routes)
+        assert not restored.phone_changed
+        assert window.knowledge_center.recovery_review_identity is None
+        assert window.rom_studio.worker is None
+        assert window.guardian_center.worker is None
+
+        window.repair_center._autopilot_show_all_routes = True
+        window.repair_center._render_autopilot()
+        archives = next(
+            button
+            for button in window.repair_center.autopilot_route_buttons
+            if button.property("recovery_route_id") == route.route_id
+        )
+        archives.click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.knowledge_center
+        window.repair_center.autopilot_incident = replace(
+            window.repair_center.autopilot_incident,
+            repaired=True,
+            routes=(),
+        )
+
+        window.knowledge_center.source_return.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.knowledge_center
+        assert window.knowledge_center.recovery_review_identity is None
+        assert "expired safely" in window.knowledge_center.search_status.text()
+        assert "did not substitute" in window.knowledge_center.detail.toPlainText()
+        assert window.knowledge_center.list.count() == 0
     finally:
         window.companion_center.transport.close()
         window.close()

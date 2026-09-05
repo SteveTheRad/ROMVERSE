@@ -478,6 +478,13 @@ def test_cache_guidance_requires_scoped_medium_or_better_archive_evidence(tmp_pa
     assert cache.confirmation_required
     assert cache.execution_authority == "none"
     assert "does not assume" in cache.summary
+    archives = next(
+        route for route in trusted.routes if route.kind is RecoveryRouteKind.ARCHIVES_REVIEW
+    )
+    assert archives.knowledge_record_ids == ("test.recovery.cache",)
+    assert archives.evidence == ("Offline Archives: Exact recovery cache guidance (high match)",)
+    assert not archives.changes_device
+    assert archives.execution_authority == "none"
 
     low_confidence = service.start(
         RecoveryAutopilotContext(

@@ -732,7 +732,7 @@ class RecoveryAutopilotService:
                 72,
                 RecoveryRouteRisk.INFORMATIONAL,
                 "archives",
-                evidence=knowledge_evidence,
+                use_knowledge=True,
             )
         add(
             RecoveryRouteKind.AUTHORIZED_SERVICE,

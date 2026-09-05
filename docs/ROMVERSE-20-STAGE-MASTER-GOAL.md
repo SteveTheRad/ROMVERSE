@@ -26,6 +26,28 @@ the same exact-target, integrity, permitted-command and truthful-result protecti
 does not waive those protections. **Bootloader relocking is forbidden without exception**, including
 Expert, recipes, imported procedures, AI/Copilot, repair and recovery.
 
+The locked Companion direction from **Romverse Planning and improvements** is also normative.
+Desktop remains the source of truth and the only execution authority for flashing, wiping,
+rooting, bootloader changes, approvals and other device-changing commands. Companion is a polished,
+real-time, structured view of that shared mission rather than a streamed miniature desktop. Its
+primary navigation is **Home → Live → Archives → Community → More**, with Device DNA available from
+Home and More, a portrait-first experience, and a landscape **Live Desktop** view with optional
+**Follow Desktop** behaviour. It shows the active screen and mission, stage, progress, completed and
+upcoming work, files, verification, Guardian decisions, warnings, privacy-filtered output, Archive
+matches, interruptions and before/after results. Completion, disconnection, warning and required
+desktop-approval events may notify the phone, but the corresponding consequential action remains on
+Desktop.
+
+Community discoveries feed the offline brain through an evidence pipeline, never directly into
+execution: a structured member report becomes **Reported working** after one explicit successful
+result and **Community confirmed** after two independent matching successes. Failed attempts and
+contradictions must also be retained and lower confidence where appropriate. Likes are not evidence.
+Troubleshooting posts may attach a privacy-filtered Device DNA snapshot only after an explicit
+preview and consent; serial numbers, personal identifiers, private paths and personal data are never
+included. High-risk community guidance may enter the Archives as evidence, but remains review-only
+until trusted moderation and the normal exact-device, integrity and permitted-command checks clear
+it.
+
 Keep approved, implemented, verified and released states distinct. Build and prove the representative
 end-to-end workflow before broadening support; preserve verified checkpoints. Developer release
 gates and support-evidence levels must not become unnecessary user-facing certification loops.
@@ -44,7 +66,7 @@ When a flash fails or a device bootloops, automatically enter recovery mode. Det
 
 ## 4. ROMVERSE Synapse — Offline Knowledge Brain
 
-Create one intelligent knowledge system supporting every feature. Store and search verified manufacturer documentation, trusted technical sources and useful community solutions. Match answers automatically using Device DNA, firmware, partition and error information. Include guides, known fixes, flashing procedures, compatibility reports and recovery paths for Android brands and devices. Label every record as official, verified, community-reported, experimental, disputed or outdated; retain its source, affected devices, success evidence and confidence. Learn only from confirmed ROMVERSE diagnoses and outcomes without collecting private user data. Detect conflicting advice, explain the safest answer, support signed knowledge updates and remain fully useful offline. Feed relevant answers into ROM Studio, Device Intelligence and Recovery Autopilot. Present Synapse as an animated cosmic neural archive of device constellations, knowledge galaxies and illuminated solution pathways.
+Create one intelligent knowledge system supporting every feature. Store and search verified manufacturer documentation, trusted technical sources and useful community solutions. Match answers automatically using Device DNA, firmware, partition and error information. Include guides, known fixes, flashing procedures, compatibility reports and recovery paths for Android brands and devices. Label every record as official, verified, reported-working, community-confirmed, experimental, disputed, unsafe, retired or outdated; retain its source, affected devices, success and failure evidence, contradictions, moderation state, recency and confidence. A structured community fix enters as reported-working after one explicit successful result and becomes community-confirmed only after two independent matching successes; likes never count as verification. Learn only from consented, privacy-filtered ROMVERSE diagnoses and outcomes without collecting private user data. Detect conflicting advice, explain the safest answer, support signed knowledge updates and remain fully useful offline. High-risk community records remain evidence and review material until trusted moderation clears them; no knowledge record grants execution authority by itself. Feed relevant answers into ROM Studio, Device Intelligence and Recovery Autopilot. Present Synapse as an animated cosmic neural archive of device constellations, knowledge galaxies and illuminated solution pathways.
 
 ## 5. Command Deck Mission Control
 
@@ -68,11 +90,11 @@ After flashing, prove whether the ROM genuinely works. Detect and measure first 
 
 ## 10. ROMVERSE Galaxy — Community Intelligence Network
 
-Create an optional privacy-respecting network for useful technical discoveries. Submit anonymised Device DNA patterns without serial numbers, IMEI or personal information. Share confirmed fixes, compatibility results, flash outcomes and recovery solutions. Require evidence before treating community reports as confirmed. Separate official, verified-community, experimental and disputed knowledge. Detect duplicate, conflicting or malicious submissions. Build contributor reputation from validated technical work. Download signed knowledge updates for offline use. Let users preview uploads and opt out completely. Feed confirmed findings into Device Atlas, Synapse, Simulation Lab and Recovery Autopilot. Provide compatibility dashboards and unresolved-problem queues. Visualise verified contributions as stars joining device-family constellations.
+Create an optional privacy-respecting network for useful technical discoveries and a first-class Community experience on Companion. Support browsing, searching, posting, replying, voting, saving, following, reporting and member profiles. Troubleshooting posts may attach a Device DNA snapshot only after the user previews and explicitly consents to the exact privacy-filtered fields; exclude serial numbers, IMEI, personal identifiers, private paths and personal information. Share structured fixes, compatibility results, flash outcomes and recovery solutions. One explicit successful test marks a report as reported-working; two independent matching successes mark it community-confirmed. Record failed attempts and contradictions, and never treat likes as verification. Separate discussion from executable knowledge and official, maintainer-verified, community-confirmed, reported-working, experimental, disputed, unsafe and retired evidence. High-risk reports require trusted moderation before becoming actionable guidance. Detect duplicate, conflicting or malicious submissions. Build contributor reputation from validated technical work. Download signed knowledge updates for offline use. Let users preview uploads and opt out completely. Forum instructions never become automatic commands or device actions. Feed confirmed findings into Device Atlas, Synapse, Simulation Lab and Recovery Autopilot. Provide compatibility dashboards and unresolved-problem queues. Visualise verified contributions as stars joining device-family constellations.
 
 ## 11. Companion Link 2.0 — Phone-Side Mission Partner
 
-Make Companion an active second screen for ROMVERSE Desktop. Pair automatically over USB after a clear safety-code dialog showing matching codes and **Confirm** or **Decline** actions on both devices. Maintain an encrypted trusted-device relationship. Display live build, backup, flash and recovery progress. Collect user-approved on-device diagnostics unavailable to desktop tools. Confirm battery, storage, thermal state and user-data backup. Preserve logs and last-known Device DNA if the phone becomes unbootable. Guide required first-boot interactions. Securely transfer APKs, reports, recovery capsules and approved packages. Retain emergency recovery instructions while disconnected. Match the approved ROMVERSE desktop identity, logo, polish and animation. Present the connection as a cyan-violet energy bridge between phone and desktop.
+Make Companion an active second screen for ROMVERSE Desktop. Pair automatically over USB after a clear safety-code dialog showing matching codes and **Confirm** or **Decline** actions on both devices. Maintain an encrypted trusted-device relationship. Desktop remains the source of truth and sole execution authority: Companion cannot flash, wipe, root, unlock, relock, approve or execute commands. Synchronise structured ROMVERSE mission state rather than streaming or shrinking the desktop screen. Use **Home**, **Live**, **Archives**, **Community** and **More** as the primary mobile navigation, with Device DNA available from Home and More. Provide a portrait-first experience plus a landscape **Live Desktop** mode with optional **Follow Desktop** behaviour. Display the active desktop area and mission, live stages and progress, what ROMVERSE is doing and why, completed/current/upcoming steps, files and verification state, Guardian decisions and warnings, privacy-filtered output, Archive matches, errors, interruptions, approval waits and before/after results. Notify for meaningful completion, warning, disconnection and desktop-approval events without moving consequential approval authority to the phone. Collect user-approved on-device diagnostics unavailable to desktop tools. Confirm battery, storage, thermal state and user-data backup. Preserve logs and last-known Device DNA if the phone becomes unbootable. Guide required first-boot interactions. Securely transfer APKs, reports, recovery capsules and approved packages. Retain emergency recovery instructions while disconnected. Match the approved ROMVERSE desktop identity, logo, polish and animation. Present the connection as a cyan-violet energy bridge between phone and desktop.
 
 ## 12. Forge Arsenal — Automatic Toolchain and Driver Doctor
 

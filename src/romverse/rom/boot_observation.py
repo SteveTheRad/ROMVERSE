@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import math
 from dataclasses import asdict, dataclass
@@ -24,6 +25,10 @@ from romverse.rom.models import ProjectError
 from romverse.rom.projects import RomProjectStore
 
 if TYPE_CHECKING:
+    from romverse.guardian.recovery_execution_result import (
+        GuardianRecoveryExecutionResultService,
+    )
+    from romverse.guardian.recovery_preparation import GuardianRecoveryPreparation
     from romverse.knowledge.models import KnowledgeFailure
 
 
@@ -136,6 +141,55 @@ class BootObservationService:
         *,
         verified_flash: VerifiedGuardianExecutionResult | None = None,
     ) -> BootObservationReceipt:
+        now = (observed_at or datetime.now(UTC)).astimezone(UTC)
+        verified_flash_digest = ""
+        if verified_flash is not None:
+            verified_flash_digest = self.verified_flash_digest(
+                project_id,
+                device,
+                verified_flash,
+                observed_at=now,
+            )
+        return self._observe(project_id, device, now, verified_flash_digest)
+
+    def observe_recovery(
+        self,
+        project_id: str,
+        device: AndroidDevice,
+        preparation: GuardianRecoveryPreparation,
+        execution_results: GuardianRecoveryExecutionResultService,
+        observed_at: datetime | None = None,
+    ) -> BootObservationReceipt:
+        """Collect read-only boot evidence linked to one exact completed Recovery result."""
+
+        now = observed_at or datetime.now(UTC)
+        if now.tzinfo is None or now.utcoffset() is None:
+            raise ProjectError("Recovery boot observation time requires a timezone")
+        now = now.astimezone(UTC)
+        digest = self.verified_recovery_digest(
+            project_id,
+            device,
+            preparation,
+            execution_results,
+            observed_at=now,
+        )
+        return self._observe(
+            project_id,
+            device,
+            now,
+            digest,
+            replace_verified_session=True,
+        )
+
+    def _observe(
+        self,
+        project_id: str,
+        device: AndroidDevice,
+        now: datetime,
+        verified_flash_digest: str,
+        *,
+        replace_verified_session: bool = False,
+    ) -> BootObservationReceipt:
         project = self.store.get(project_id)
         pack = next(
             (item for item in self.registry.packs if item.pack_id == project.device_pack_id), None
@@ -145,18 +199,11 @@ class BootObservationService:
         resolution = self.registry.resolve(device)
         if resolution.pack is None or resolution.pack.pack_id != pack.pack_id:
             raise ProjectError("Connected device does not match the project's exact Device Pack")
-        now = (observed_at or datetime.now(UTC)).astimezone(UTC)
         pseudonym = self.privacy.pseudonym(device.serial)
-        verified_flash_digest = ""
-        if verified_flash is not None:
-            verified_flash_digest = self.verified_flash_digest(
-                project_id,
-                device,
-                verified_flash,
-                observed_at=now,
-            )
         previous = self.load(project_id)
         evidence_path = self.store.projects_root / project_id / self.NAME
+        if previous is None and evidence_path.exists() and replace_verified_session:
+            previous = self._load_replaceable_history(project_id)
         if previous is None and evidence_path.exists():
             raise ProjectError(
                 "Existing boot evidence could not be verified and will not be overwritten"
@@ -248,6 +295,56 @@ class BootObservationService:
             maximum_bytes=self.MAX_BYTES,
         )
         return receipt
+
+    def load_recovery(
+        self,
+        project_id: str,
+        device: AndroidDevice,
+        preparation: GuardianRecoveryPreparation,
+        execution_results: GuardianRecoveryExecutionResultService,
+    ) -> BootObservationReceipt | None:
+        """Reload a persisted Recovery-linked boot receipt after exact revalidation."""
+
+        try:
+            self.verified_recovery_digest(
+                project_id,
+                device,
+                preparation,
+                execution_results,
+            )
+        except ProjectError:
+            return None
+        return self.load(project_id)
+
+    def _load_replaceable_history(self, project_id: str) -> BootObservationReceipt | None:
+        """Validate older linked evidence only so a new exact Recovery session may replace it."""
+
+        path = self.store.projects_root / project_id / self.NAME
+        try:
+            data = read_json_object(
+                path,
+                boundary=self.store.projects_root / project_id,
+                maximum_bytes=self.MAX_BYTES,
+            )
+        except (LocalStoreError, OSError, ValueError, TypeError, json.JSONDecodeError):
+            return None
+        digest = data.get("guardian_execution_receipt_digest")
+        if (
+            data.get("format") != self.FORMAT
+            or data.get("schema_version") != self.SCHEMA_VERSION
+            or data.get("flash_linked") is not True
+            or not isinstance(digest, str)
+            or len(digest) != 64
+            or any(char not in "0123456789abcdef" for char in digest)
+        ):
+            return None
+        already_verified = digest in self._verified_flash_digests
+        self._verified_flash_digests.add(digest)
+        try:
+            return self.load(project_id)
+        finally:
+            if not already_verified:
+                self._verified_flash_digests.discard(digest)
 
     def load(
         self,
@@ -467,6 +564,83 @@ class BootObservationService:
             )
         self._verified_flash_digests.add(verified.signed_receipt_sha256)
         return verified.signed_receipt_sha256
+
+    def verified_recovery_digest(
+        self,
+        project_id: str,
+        device: AndroidDevice,
+        preparation: GuardianRecoveryPreparation,
+        execution_results: GuardianRecoveryExecutionResultService,
+        *,
+        observed_at: datetime | None = None,
+    ) -> str:
+        """Validate a completed exact Recovery result for read-only boot linkage."""
+
+        from romverse.guardian.recovery_execution_result import (
+            GuardianRecoveryExecutionResultService,
+            RecoveryExecutionResultState,
+        )
+        from romverse.guardian.recovery_preparation import GuardianRecoveryPreparation
+
+        if (
+            not isinstance(preparation, GuardianRecoveryPreparation)
+            or not isinstance(execution_results, GuardianRecoveryExecutionResultService)
+            or execution_results.store.workspace.resolve() != self.store.workspace.resolve()
+        ):
+            raise ProjectError("Boot observation requires an exact local Recovery result")
+        result = execution_results.load(preparation)
+        if result is None:
+            raise ProjectError("Boot observation requires an exact durable Recovery result")
+        now = (observed_at or datetime.now(UTC)).astimezone(UTC)
+        try:
+            recorded_at = datetime.fromisoformat(result.recorded_at)
+        except ValueError as exc:
+            raise ProjectError("Recovery result has an invalid completion time") from exc
+        project = self.store.get(project_id)
+        pack = next(
+            (
+                item
+                for item in self.registry.packs
+                if item.pack_id == result.device_pack_id
+                and hmac.compare_digest(item.sha256, result.device_pack_sha256)
+            ),
+            None,
+        )
+        resolution = self.registry.resolve(device)
+        if (
+            result.state
+            is not RecoveryExecutionResultState.SEQUENCE_COMPLETED_AWAITING_REASSESSMENT
+            or result.sequence_actions_completed is not True
+            or result.completed_step_count != result.step_count
+            or result.known_failure_recorded is not False
+            or result.unknown_outcome_recorded is not False
+            or result.recovery_verified is not False
+            or result.device_repaired is not False
+            or result.execution_authority != "none"
+            or result.automatic_retry_allowed is not False
+            or result.bootloader_relock_allowed is not False
+            or project.project_id != result.project_id
+            or project_id != result.project_id
+            or project.original is None
+            or not hmac.compare_digest(project.original.sha256, result.source_original_sha256)
+            or project.device_pack_id != result.device_pack_id
+            or pack is None
+            or pack.build_contract is None
+            or resolution.pack is None
+            or resolution.pack.pack_id != pack.pack_id
+            or not hmac.compare_digest(resolution.pack.sha256, pack.sha256)
+            or not device.serial
+            or not hmac.compare_digest(
+                self.privacy.pseudonym(device.serial),
+                result.device_key,
+            )
+            or recorded_at > now
+        ):
+            raise ProjectError(
+                "Boot observation requires a completed Recovery result for this exact project and device"
+            )
+        self._verified_flash_digests.add(result.result_digest)
+        return result.result_digest
 
     @classmethod
     def _parse_sample(cls, value: object) -> BootSample:

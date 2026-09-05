@@ -25,10 +25,12 @@ from romverse.infrastructure.local_store import (
 )
 from romverse.knowledge.models import KnowledgeLookupReport, MatchConfidence
 from romverse.rom.boot_observation import (
+    BootFailureKind,
     BootObservationReceipt,
     BootObservationService,
     BootObservationStatus,
 )
+from romverse.rom.models import ProjectError
 from romverse.rom.recovery_evidence import RecoveryEvidenceAssessment
 
 if TYPE_CHECKING:
@@ -191,6 +193,8 @@ class RecoveryAutopilotService:
     EXECUTION_COMPLETED_EVENT = "recovery_execution_completed"
     EXECUTION_FAILED_EVENT = "recovery_execution_failed"
     EXECUTION_UNKNOWN_EVENT = "recovery_execution_unknown"
+    EXECUTION_VERIFIED_EVENT = "recovery_execution_verified"
+    MAX_RECOVERY_BOOT_EVIDENCE_AGE_SECONDS = 120
     EXECUTION_REASSESSMENT_EVENTS = frozenset(
         {
             EXECUTION_COMPLETED_EVENT,
@@ -415,6 +419,246 @@ class RecoveryAutopilotService:
             )
         return persisted
 
+    def verify_execution_recovery(
+        self,
+        preparation: GuardianRecoveryPreparation,
+        execution_results: GuardianRecoveryExecutionResultService,
+        boot_observations: BootObservationService,
+        device: AndroidDevice,
+    ) -> RecoveryIncident:
+        """Verify one completed Recovery execution from fresh read-only boot evidence."""
+
+        from romverse.guardian.recovery_execution_result import (
+            GuardianRecoveryExecutionResultService,
+            RecoveryExecutionResultState,
+        )
+        from romverse.guardian.recovery_preparation import GuardianRecoveryPreparation
+
+        if (
+            not isinstance(preparation, GuardianRecoveryPreparation)
+            or not isinstance(execution_results, GuardianRecoveryExecutionResultService)
+            or not isinstance(boot_observations, BootObservationService)
+            or not isinstance(device, AndroidDevice)
+        ):
+            raise RecoveryAutopilotError(
+                "Recovery verification requires exact typed evidence inputs"
+            )
+        if (
+            execution_results.store.workspace.resolve() != self.workspace.resolve()
+            or boot_observations.store.workspace.resolve() != self.workspace.resolve()
+        ):
+            raise RecoveryAutopilotError(
+                "Recovery verification evidence belongs to a different workspace"
+            )
+        result = execution_results.load(preparation)
+        if result is None:
+            raise RecoveryAutopilotError(
+                "Recovery verification requires the exact durable execution result"
+            )
+        if (
+            result.state
+            is not RecoveryExecutionResultState.SEQUENCE_COMPLETED_AWAITING_REASSESSMENT
+            or result.sequence_actions_completed is not True
+            or result.completed_step_count != result.step_count
+            or result.known_failure_recorded is not False
+            or result.unknown_outcome_recorded is not False
+            or result.recovery_verified is not False
+            or result.device_repaired is not False
+            or result.execution_authority != "none"
+            or result.automatic_retry_allowed is not False
+            or result.bootloader_relock_allowed is not False
+        ):
+            raise RecoveryAutopilotError(
+                "Only a completed exact sequence can enter Recovery verification"
+            )
+        incident = self.load(result.incident_id)
+        reassessment = self._execution_reassessment_event(incident)
+        if (
+            reassessment is None
+            or reassessment.event_type != self.EXECUTION_COMPLETED_EVENT
+            or reassessment.state is not RecoveryIncidentState.VERIFYING
+            or not hmac.compare_digest(reassessment.evidence_digest, result.result_digest)
+            or incident.incident_id != result.incident_id
+            or incident.project_id != result.project_id
+            or not hmac.compare_digest(incident.device_key, result.device_key)
+            or incident.pack_id != result.device_pack_id
+            or not hmac.compare_digest(incident.pack_sha256, result.device_pack_sha256)
+            or incident.phone_changed
+            or incident.routes
+        ):
+            raise RecoveryAutopilotError(
+                "Recovery verification no longer matches the exact reassessed incident"
+            )
+        observed_key = self._device_key(device)
+        if not observed_key or not hmac.compare_digest(observed_key, result.device_key):
+            raise RecoveryTargetMismatchError(
+                "Fresh device evidence does not match the exact Recovery phone"
+            )
+        now = datetime.now(UTC)
+        receipt = boot_observations.load_recovery(
+            result.project_id,
+            device,
+            preparation,
+            execution_results,
+        )
+        pack = next(
+            (
+                item
+                for item in self.registry.packs
+                if item.pack_id == result.device_pack_id
+                and hmac.compare_digest(item.sha256, result.device_pack_sha256)
+            ),
+            None,
+        )
+        try:
+            project = execution_results.store.get(result.project_id)
+            resolution = self.registry.resolve(device)
+            first_sample_at = datetime.fromisoformat(receipt.samples[0].observed_at)
+            latest_sample_at = datetime.fromisoformat(receipt.samples[-1].observed_at)
+            result_recorded_at = datetime.fromisoformat(result.recorded_at)
+        except (AttributeError, IndexError, ProjectError, TypeError, ValueError) as exc:
+            raise RecoveryAutopilotError(
+                "Recovery verification boot evidence is incomplete or unreadable"
+            ) from exc
+        latest_sample = receipt.samples[-1]
+        build = pack.build_contract if pack is not None else None
+        existing_verification = next(
+            (
+                event
+                for event in reversed(incident.events)
+                if event.event_type == self.EXECUTION_VERIFIED_EVENT
+            ),
+            None,
+        )
+        if (
+            receipt is None
+            or pack is None
+            or build is None
+            or project.original is None
+            or project.project_id != result.project_id
+            or project.device_pack_id != result.device_pack_id
+            or not hmac.compare_digest(project.original.sha256, result.source_original_sha256)
+            or resolution.pack is None
+            or resolution.pack.pack_id != pack.pack_id
+            or not hmac.compare_digest(resolution.pack.sha256, pack.sha256)
+            or not observed_key
+            or not hmac.compare_digest(observed_key, result.device_key)
+            or device.state is not DeviceState.DEVICE
+            or device.boot_completed is not True
+            or receipt.project_id != result.project_id
+            or receipt.pack_id != result.device_pack_id
+            or receipt.contract_id != build.contract_id
+            or not hmac.compare_digest(
+                receipt.source_original_sha256,
+                result.source_original_sha256,
+            )
+            or receipt.status is not BootObservationStatus.STABLE
+            or receipt.stable is not True
+            or receipt.reboot_detected is not False
+            or receipt.flash_linked is not True
+            or not hmac.compare_digest(
+                receipt.guardian_execution_receipt_digest,
+                result.result_digest,
+            )
+            or receipt.verified_first_boot is not True
+            or receipt.phone_changed is not False
+            or receipt.failure_kind is not BootFailureKind.NONE
+            or not receipt.samples
+            or any(
+                not hmac.compare_digest(sample.device_pseudonym, result.device_key)
+                for sample in receipt.samples
+            )
+            or latest_sample.state != DeviceState.DEVICE.value
+            or latest_sample.boot_completed is not True
+            or latest_sample.slot_suffix != device.slot_suffix
+            or latest_sample.build_id != device.build_id
+            or latest_sample.build_fingerprint != device.build_fingerprint
+            or (
+                latest_sample.uptime_seconds is not None
+                and device.uptime_seconds is not None
+                and device.uptime_seconds + 30 < latest_sample.uptime_seconds
+            )
+            or first_sample_at < result_recorded_at
+            or latest_sample_at > now
+            or (
+                existing_verification is None
+                and (now - latest_sample_at).total_seconds()
+                > self.MAX_RECOVERY_BOOT_EVIDENCE_AGE_SECONDS
+            )
+        ):
+            raise RecoveryAutopilotError(
+                "Recovery verification requires fresh stable boot evidence from the exact phone"
+            )
+        evidence_digest = self._digest(
+            {
+                "aggregate_result_digest": result.result_digest,
+                "reassessment_evidence_digest": reassessment.evidence_digest,
+                "boot_observation_digest": receipt.receipt_digest,
+                "device_evidence_digest": self._device_evidence_digest(device),
+            }
+        )
+        if existing_verification is not None:
+            if (
+                incident.state is not RecoveryIncidentState.RECOVERED
+                or incident.repaired is not True
+                or incident.verified_reboot is not True
+                or incident.boot_observation_digest != receipt.receipt_digest
+                or not hmac.compare_digest(
+                    existing_verification.evidence_digest,
+                    evidence_digest,
+                )
+            ):
+                raise RecoveryAutopilotError(
+                    "Recovery verification history changed after completion"
+                )
+            return incident
+        if (
+            incident.state is not RecoveryIncidentState.VERIFYING
+            or incident.repaired
+            or incident.verified_reboot
+        ):
+            raise RecoveryAutopilotError(
+                "Recovery incident is not awaiting independent verification"
+            )
+        detail = (
+            "Fresh exact-device evidence proves Android remained boot-complete on the same build "
+            "and slot across the stability window after the completed Recovery sequence."
+        )
+        event = RecoveryIncidentEvent(
+            sequence=len(incident.events) + 1,
+            observed_at=now.isoformat(),
+            event_type=self.EXECUTION_VERIFIED_EVENT,
+            state=RecoveryIncidentState.RECOVERED,
+            mode="adb",
+            title="Recovery verified by fresh stable boot evidence",
+            detail=detail,
+            evidence_digest=evidence_digest,
+        )
+        updated = self._seal(
+            replace(
+                incident,
+                updated_at=now.isoformat(),
+                mode="adb",
+                state=RecoveryIncidentState.RECOVERED,
+                diagnosis=detail,
+                after_evidence_digest=self._after_evidence_digest(device, pack),
+                boot_observation_digest=receipt.receipt_digest,
+                routes=(),
+                events=(*incident.events, event)[-self.MAX_EVENTS :],
+                repaired=True,
+                verified_reboot=True,
+                phone_changed=False,
+                record_digest="",
+            )
+        )
+        self._save(updated)
+        persisted = self.load(updated.incident_id)
+        if persisted != updated:
+            raise RecoveryAutopilotError(
+                "Recovery verification could not be confirmed after durable recording"
+            )
+        return persisted
+
     def record_route_result(
         self,
         incident_id: str,
@@ -567,18 +811,7 @@ class RecoveryAutopilotService:
             )
         self._validate_boot_observation(context, project_id, device_key, pack)
         mode = self._mode(device)
-        transition = self._transition_contract(pack)
-        after_digest = self._digest(
-            {
-                "device_dna_digest": self._device_evidence_digest(device),
-                "pack_id": pack.pack_id if pack is not None else "",
-                "pack_sha256": pack.sha256 if pack is not None else "",
-                "partition_recovery_contract": (
-                    transition.contract_id if transition is not None else ""
-                ),
-                "slot_suffix": device.slot_suffix[:32] if device is not None else "",
-            }
-        )
+        after_digest = self._after_evidence_digest(device, pack)
         before_digest = self._optional_hex(context.before_evidence_digest, 64) or (
             previous.before_evidence_digest if previous is not None else after_digest
         )
@@ -1270,6 +1503,24 @@ class RecoveryAutopilotService:
         ):
             return None
         return write.transition_recovery_contract
+
+    def _after_evidence_digest(
+        self,
+        device: AndroidDevice | None,
+        pack: DevicePack | None,
+    ) -> str:
+        transition = self._transition_contract(pack)
+        return self._digest(
+            {
+                "device_dna_digest": self._device_evidence_digest(device),
+                "pack_id": pack.pack_id if pack is not None else "",
+                "pack_sha256": pack.sha256 if pack is not None else "",
+                "partition_recovery_contract": (
+                    transition.contract_id if transition is not None else ""
+                ),
+                "slot_suffix": device.slot_suffix[:32] if device is not None else "",
+            }
+        )
 
     def _device_key(self, device: AndroidDevice | None) -> str:
         return self.privacy.pseudonym(device.serial) if device is not None and device.serial else ""

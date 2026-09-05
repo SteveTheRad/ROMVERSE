@@ -153,6 +153,7 @@ from romverse.repair.templates import RepairAssessmentTemplates, actionable_repa
 from romverse.rom.boot_observation import (
     BootFailureKind,
     BootObservationReceipt,
+    BootObservationService,
     BootObservationStatus,
 )
 from romverse.rom.first_light import FirstLightReport, FirstLightService
@@ -189,6 +190,10 @@ from romverse.ui.members_center import MembersCenter
 from romverse.ui.nexus_center import NexusCenter
 from romverse.ui.notifications import DesktopNotificationCenter, NotificationKind
 from romverse.ui.origin_story import ORIGIN_SCENES
+from romverse.ui.recovery_operation_session import (
+    RecoveryOperationSession,
+    RecoveryOperationSessionError,
+)
 from romverse.ui.repair_center import RepairCenter
 from romverse.ui.rom_studio import RomStudio, confirm_expert_mode
 from romverse.ui.terminal_center import TerminalCenter
@@ -3927,6 +3932,7 @@ class MainWindow(QMainWindow):
         self._runtime_gateway = gateway
         self._local_flash_dialog = None
         self._source_operation_session = None
+        self._recovery_operation_session: RecoveryOperationSession | None = None
         self._expert_flash_pending = False
         self._pending_local_flash_recovery: tuple[AndroidDevice, str] | None = None
         self._pending_local_flash_recovery_project: tuple[str, str] | None = None
@@ -4816,6 +4822,9 @@ class MainWindow(QMainWindow):
         if source_session is not None:
             source_session.dispose()
             self._source_operation_session = None
+        if self._recovery_operation_session is not None:
+            self._recovery_operation_session.deleteLater()
+            self._recovery_operation_session = None
         self.timer.stop()
         self._reconnect_timer.stop()
         self._clock_timer.stop()
@@ -4919,6 +4928,7 @@ class MainWindow(QMainWindow):
             )
         self._finish_local_flash_recovery(devices)
         self._resume_pending_source_installation_recovery()
+        self._advance_recovery_operation_session(devices)
 
     @Slot(str)
     def _select_observed_device(self, serial: str) -> None:
@@ -5241,6 +5251,9 @@ class MainWindow(QMainWindow):
             )
         self._finish_local_flash_recovery([])
         self._resume_pending_source_installation_recovery()
+        recovery_session = self._recovery_operation_session
+        if recovery_session is not None:
+            recovery_session.note_scan_unavailable(message)
 
     def _navigate(self, index: int) -> None:
         if index < 0 or index >= self.stack.count():
@@ -6784,6 +6797,68 @@ class MainWindow(QMainWindow):
         )
         if created:
             self._navigate_route("recovery_bay")
+
+    def _begin_recovery_result_handoff(
+        self,
+        preparation,
+        execution_results,
+    ) -> RecoveryOperationSession | None:
+        """Make the app—not a screen—the owner of one existing Recovery result."""
+
+        previous = self._recovery_operation_session
+        if previous is not None:
+            try:
+                result = execution_results.load(preparation)
+                requested_identity = (
+                    preparation.preparation_digest,
+                    result.result_digest,
+                    result.incident_id,
+                )
+            except (AttributeError, OSError, ProjectError, TypeError, ValueError):
+                return None
+            if previous.identity == requested_identity:
+                return previous
+            if not previous.terminal:
+                return None
+        try:
+            session = RecoveryOperationSession(
+                preparation,
+                execution_results,
+                self.repair_center.autopilot_service,
+                BootObservationService(
+                    self.rom_studio.store,
+                    self.rom_studio.pack_registry,
+                ),
+                parent=self,
+            )
+        except (OSError, ProjectError, RecoveryOperationSessionError):
+            return None
+        if previous is not None:
+            previous.deleteLater()
+        self._recovery_operation_session = session
+        session.changed.connect(
+            lambda snapshot, active=session: self._recovery_operation_changed(active, snapshot)
+        )
+        self._recovery_operation_changed(session, session.snapshot())
+        return session
+
+    def _advance_recovery_operation_session(self, devices: list[AndroidDevice]) -> None:
+        """Feed one completed fresh app scan into the retained Recovery continuation."""
+
+        session = self._recovery_operation_session
+        if session is None or session.terminal:
+            return
+        session.accept_scan(tuple(devices))
+
+    def _recovery_operation_changed(self, session, snapshot) -> None:
+        """Present only evidence that still belongs to the app-owned exact session."""
+
+        if (
+            self._recovery_operation_session is not session
+            or snapshot.incident_id != session.incident.incident_id
+        ):
+            return
+        self.repair_center.adopt_recovery_operation_incident(session.incident)
 
     def _activate_source_operation_session(self, session) -> None:
         previous = self._source_operation_session

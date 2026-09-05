@@ -869,34 +869,33 @@ class BootObservationService:
                 else BootFailureKind.NONE,
             )
         if len(samples) >= 2:
-            earlier = samples[-2]
-            elapsed = (
-                datetime.fromisoformat(latest.observed_at)
-                - datetime.fromisoformat(earlier.observed_at)
-            ).total_seconds()
-            uptime_gain = (
-                latest.uptime_seconds - earlier.uptime_seconds
-                if latest.uptime_seconds is not None and earlier.uptime_seconds is not None
-                else -1
-            )
-            same_identity = (
-                latest.build_fingerprint == earlier.build_fingerprint
-                and latest.slot_suffix == earlier.slot_suffix
-                and latest.device_pseudonym == earlier.device_pseudonym
-            )
-            if (
-                elapsed >= cls.STABILITY_WINDOW_SECONDS
-                and uptime_gain >= elapsed - 60
-                and same_identity
-                and earlier.boot_completed is True
-            ):
-                return (
-                    BootObservationStatus.STABLE,
-                    True,
-                    False,
-                    "Android remained boot-complete on the same build and slot across the stability window",
-                    BootFailureKind.NONE,
+            latest_at = datetime.fromisoformat(latest.observed_at)
+            for index, earlier in enumerate(samples[:-1]):
+                stable_window = samples[index:]
+                elapsed = (latest_at - datetime.fromisoformat(earlier.observed_at)).total_seconds()
+                uptime_gain = (
+                    latest.uptime_seconds - earlier.uptime_seconds
+                    if latest.uptime_seconds is not None and earlier.uptime_seconds is not None
+                    else -1
                 )
+                same_identity = bool(
+                    len({sample.build_fingerprint for sample in stable_window}) == 1
+                    and len({sample.slot_suffix for sample in stable_window}) == 1
+                    and len({sample.device_pseudonym for sample in stable_window}) == 1
+                )
+                if (
+                    elapsed >= cls.STABILITY_WINDOW_SECONDS
+                    and uptime_gain >= elapsed - 60
+                    and same_identity
+                    and all(sample.boot_completed is True for sample in stable_window)
+                ):
+                    return (
+                        BootObservationStatus.STABLE,
+                        True,
+                        False,
+                        "Android remained boot-complete on the same build and slot across the stability window",
+                        BootFailureKind.NONE,
+                    )
         return (
             BootObservationStatus.WAITING,
             False,

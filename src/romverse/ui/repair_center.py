@@ -772,6 +772,36 @@ class RepairCenter(QWidget):
             return False
         return True
 
+    def adopt_recovery_operation_incident(self, incident: RecoveryIncident) -> bool:
+        """Render the exact incident owned by the app's Recovery continuation session."""
+
+        service = self.autopilot_service
+        active = self.autopilot_incident
+        if (
+            service is None
+            or not isinstance(incident, RecoveryIncident)
+            or active is None
+            or active.incident_id != incident.incident_id
+        ):
+            return False
+        try:
+            persisted = service.load(incident.incident_id)
+        except RecoveryAutopilotError:
+            return False
+        if persisted != incident:
+            return False
+        recovered_now = persisted.repaired and not active.repaired
+        self.autopilot_incident = persisted
+        self._autopilot_project_id = persisted.project_id
+        self._render_autopilot()
+        if recovered_now:
+            self._record_activity(
+                "Recovery verified",
+                "Fresh exact-device boot evidence completed the same Recovery incident.",
+                "success",
+            )
+        return True
+
     def _refresh_autopilot(self, device: AndroidDevice | None) -> bool:
         service = self.autopilot_service
         incident = self.autopilot_incident

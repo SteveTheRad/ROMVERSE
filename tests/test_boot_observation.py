@@ -211,6 +211,36 @@ def test_boot_observation_requires_time_based_stability_and_never_claims_flash(t
     assert "Guardian write receipt" in service.next_step(stable)
 
 
+def test_boot_observation_uses_a_continuous_boot_complete_window(tmp_path):
+    store, project, registry = _fixture(tmp_path)
+    service = BootObservationService(store, registry)
+    started = datetime(2026, 8, 29, tzinfo=UTC)
+
+    settling = service.observe(
+        project.project_id,
+        _device(boot_completed=False, uptime_seconds=600),
+        started,
+    )
+    assert settling.status is BootObservationStatus.SETTLING
+
+    receipt = settling
+    for elapsed in (60, 120, 180, 240, 300):
+        receipt = service.observe(
+            project.project_id,
+            _device(boot_completed=True, uptime_seconds=600 + elapsed),
+            started + timedelta(seconds=elapsed),
+        )
+    assert receipt.status is BootObservationStatus.WAITING
+
+    stable = service.observe(
+        project.project_id,
+        _device(boot_completed=True, uptime_seconds=960),
+        started + timedelta(seconds=360),
+    )
+    assert stable.status is BootObservationStatus.STABLE
+    assert stable.stable
+
+
 def test_verified_guardian_flash_starts_and_maintains_a_first_boot_session(tmp_path):
     store, project, registry = _fixture(tmp_path)
     service = BootObservationService(store, registry)

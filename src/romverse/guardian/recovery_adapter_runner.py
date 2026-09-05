@@ -12,6 +12,12 @@ from pathlib import Path
 from typing import Protocol
 
 from romverse.device_packs.models import DeviceRecoveryOperation
+from romverse.guardian.invariants import contains_bootloader_lock_action_id
+from romverse.guardian.recovery_adapter_package import (
+    RecoveryAdapterTrustScope,
+    VerifiedGuardianRecoveryAdapterPackage,
+    revalidate_verified_guardian_recovery_adapter_package,
+)
 from romverse.guardian.recovery_execution import (
     GuardianRecoveryExecutionGrant,
     GuardianRecoveryExecutionService,
@@ -79,7 +85,11 @@ class GuardianRecoveryAdapterObservation:
 
 
 class GuardianRecoveryActionAdapter(Protocol):
+    verified_package: VerifiedGuardianRecoveryAdapterPackage
     adapter_id: str
+    adapter_version: int
+    package_sha256: str
+    protocol_version: int
     action_ids: tuple[str, ...]
     bootloader_relock_allowed: bool
     automatic_retry_allowed: bool
@@ -119,11 +129,13 @@ class GuardianRecoveryAdapterRunner:
         *,
         monotonic=None,
         sleeper=None,
+        allow_test_adapter_trust: bool = False,
     ) -> None:
         self.executions = executions
         self.targets = targets or GuardianRecoveryStepTargetService(executions)
         self.monotonic = monotonic or time.monotonic
         self.sleeper = sleeper or time.sleep
+        self.allow_test_adapter_trust = allow_test_adapter_trust is True
 
     def execute_next(
         self,
@@ -135,7 +147,7 @@ class GuardianRecoveryAdapterRunner:
 
         try:
             claim = self.executions.validate_grant(grant, preparation)
-            self._validate_adapter(adapter, preparation)
+            self._validate_adapter(adapter, preparation, claim)
             pending = self._next_step(preparation, claim)
             if isinstance(pending, GuardianRecoveryAdapterRun):
                 return pending
@@ -152,6 +164,7 @@ class GuardianRecoveryAdapterRunner:
                 preparation,
                 step.order,
                 pre_target,
+                adapter.verified_package,
             )
             request = GuardianRecoveryAdapterRequest(
                 claim_id=claim.claim_id,
@@ -384,14 +397,25 @@ class GuardianRecoveryAdapterRunner:
             False,
         )
 
-    @staticmethod
     def _validate_adapter(
+        self,
         adapter: GuardianRecoveryActionAdapter,
         preparation: GuardianRecoveryPreparation,
+        claim,
     ) -> None:
+        from romverse.guardian.recovery_runtime_adapter import (
+            GuardianTrustedRecoveryProcessAdapter,
+        )
+
         expected = tuple(step.adapter_action_id for step in preparation.steps)
         try:
+            verified = revalidate_verified_guardian_recovery_adapter_package(
+                adapter.verified_package
+            )
             adapter_id = adapter.adapter_id
+            adapter_version = adapter.adapter_version
+            package_sha256 = adapter.package_sha256
+            protocol_version = adapter.protocol_version
             action_ids = adapter.action_ids
             relock = adapter.bootloader_relock_allowed
             retry = adapter.automatic_retry_allowed
@@ -399,16 +423,47 @@ class GuardianRecoveryAdapterRunner:
         except AttributeError as exc:
             raise RecoveryAdapterRunnerError("Recovery adapter contract is incomplete") from exc
         if (
-            adapter_id != preparation.recovery_adapter_id
+            not isinstance(adapter, GuardianTrustedRecoveryProcessAdapter)
+            or adapter_id != preparation.recovery_adapter_id
+            or adapter_version != verified.manifest.adapter_version
+            or package_sha256 != verified.package_sha256
+            or protocol_version != verified.manifest.protocol_version
+            or (
+                verified.release_trust_scope is RecoveryAdapterTrustScope.TEST_ONLY
+                and not self.allow_test_adapter_trust
+            )
+            or (
+                verified.release_trust_scope is RecoveryAdapterTrustScope.RADFORGE_PRODUCTION
+                and type(adapter) is not GuardianTrustedRecoveryProcessAdapter
+            )
             or type(action_ids) is not tuple
             or action_ids != expected
+            or action_ids != verified.manifest.supported_action_ids
             or relock is not False
             or retry is not False
             or not callable(invoke)
-            or any(_is_lock_action(item) for item in action_ids)
+            or any(contains_bootloader_lock_action_id(item) for item in action_ids)
         ):
             raise RecoveryAdapterRunnerError(
                 "Recovery adapter is not the exact sealed allowlisted action implementation"
+            )
+        first_intent = self.executions.load_step_intent(preparation, claim, 1)
+        if first_intent is not None and (
+            first_intent.adapter_version != verified.manifest.adapter_version
+            or first_intent.adapter_package_id != verified.manifest.package_id
+            or first_intent.adapter_package_version != verified.manifest.package_version
+            or first_intent.adapter_package_sha256 != verified.package_sha256
+            or first_intent.adapter_artifact_sha256 != verified.manifest.artifact.sha256
+            or first_intent.adapter_release_key_id != verified.release_key_id
+            or first_intent.adapter_release_public_key_sha256 != verified.release_public_key_sha256
+            or first_intent.adapter_release_trust_scope != verified.release_trust_scope.value
+            or first_intent.adapter_protocol_version != verified.manifest.protocol_version
+            or first_intent.adapter_request_schema_version
+            != verified.manifest.request_schema_version
+            or first_intent.adapter_result_schema_version != verified.manifest.result_schema_version
+        ):
+            raise RecoveryAdapterRunnerError(
+                "Recovery adapter package changed after the exact sequence began"
             )
 
     @staticmethod
@@ -434,7 +489,7 @@ class GuardianRecoveryAdapterRunner:
             or request.timeout_seconds != step.timeout_seconds
             or request.may_wipe_user_data is not step.may_wipe_user_data
             or request.target_serial != serial
-            or _is_lock_action(request.adapter_action_id)
+            or contains_bootloader_lock_action_id(request.adapter_action_id)
         ):
             raise RecoveryAdapterRunnerError(
                 "Recovery adapter request does not match the exact prepared action"
@@ -507,11 +562,3 @@ def _text_digest(value: str) -> str:
 
 def _hex(value: object, length: int) -> bool:
     return isinstance(value, str) and bool(re.fullmatch(rf"[0-9a-f]{{{length}}}", value))
-
-
-def _is_lock_action(value: str) -> bool:
-    tokens = re.sub(r"[^a-z0-9]+", " ", value.casefold()).split()
-    return "relock" in tokens or (
-        "lock" in tokens
-        and any(scope in tokens for scope in ("bootloader", "flashing", "oem", "critical"))
-    )

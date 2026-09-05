@@ -12,6 +12,11 @@ from pathlib import Path
 from uuid import uuid4
 
 from romverse.device.models import AndroidDevice
+from romverse.guardian.invariants import contains_bootloader_lock_action_id
+from romverse.guardian.recovery_adapter_package import (
+    VerifiedGuardianRecoveryAdapterPackage,
+    revalidate_verified_guardian_recovery_adapter_package,
+)
 from romverse.guardian.recovery_consent import (
     GuardianRecoveryConsentGrant,
     GuardianRecoveryConsentReceiptService,
@@ -125,6 +130,17 @@ class GuardianRecoveryStepIntent:
     step_order: int
     operation: str
     adapter_action_id: str
+    adapter_version: int
+    adapter_package_id: str
+    adapter_package_version: str
+    adapter_package_sha256: str
+    adapter_artifact_sha256: str
+    adapter_release_key_id: str
+    adapter_release_public_key_sha256: str
+    adapter_release_trust_scope: str
+    adapter_protocol_version: int
+    adapter_request_schema_version: int
+    adapter_result_schema_version: int
     from_mode: str
     to_mode: str
     target_slot: str
@@ -334,6 +350,7 @@ class GuardianRecoveryExecutionService:
         preparation: GuardianRecoveryPreparation,
         step_order: int,
         target_witness,
+        adapter_package: VerifiedGuardianRecoveryAdapterPackage,
     ) -> GuardianRecoveryStepIntent:
         """Durably record the exact next action before an adapter may dispatch it."""
 
@@ -342,6 +359,27 @@ class GuardianRecoveryExecutionService:
             claim = self._validate_grant(grant, preparation, now=now, require_unexpired=True)
             step = self._step(preparation, step_order)
             self._validate_actions(preparation)
+            verified_adapter = revalidate_verified_guardian_recovery_adapter_package(
+                adapter_package
+            )
+            if (
+                verified_adapter.manifest.adapter_id != preparation.recovery_adapter_id
+                or verified_adapter.manifest.supported_action_ids
+                != tuple(item.adapter_action_id for item in preparation.steps)
+                or step.adapter_action_id not in verified_adapter.manifest.supported_action_ids
+            ):
+                raise RecoveryExecutionValidationError(
+                    "Recovery step intent requires the exact verified adapter package"
+                )
+            if step.order > 1:
+                first_intent = self.load_step_intent(preparation, claim, 1)
+                if first_intent is None or not _intent_matches_adapter(
+                    first_intent,
+                    verified_adapter,
+                ):
+                    raise RecoveryExecutionValidationError(
+                        "Recovery adapter package changed after the sequence began"
+                    )
             from romverse.guardian.recovery_step_target import (
                 GuardianRecoveryStepTargetService,
                 GuardianRecoveryStepTargetWitness,
@@ -392,6 +430,19 @@ class GuardianRecoveryExecutionService:
                 "step_order": step.order,
                 "operation": step.operation.value,
                 "adapter_action_id": step.adapter_action_id,
+                "adapter_version": verified_adapter.manifest.adapter_version,
+                "adapter_package_id": verified_adapter.manifest.package_id,
+                "adapter_package_version": verified_adapter.manifest.package_version,
+                "adapter_package_sha256": verified_adapter.package_sha256,
+                "adapter_artifact_sha256": verified_adapter.manifest.artifact.sha256,
+                "adapter_release_key_id": verified_adapter.release_key_id,
+                "adapter_release_public_key_sha256": (verified_adapter.release_public_key_sha256),
+                "adapter_release_trust_scope": verified_adapter.release_trust_scope.value,
+                "adapter_protocol_version": verified_adapter.manifest.protocol_version,
+                "adapter_request_schema_version": (
+                    verified_adapter.manifest.request_schema_version
+                ),
+                "adapter_result_schema_version": (verified_adapter.manifest.result_schema_version),
                 "from_mode": step.from_mode,
                 "to_mode": step.to_mode,
                 "target_slot": step.target_slot,
@@ -842,6 +893,25 @@ class GuardianRecoveryExecutionService:
             or intent.step_order != step.order
             or intent.operation != step.operation.value
             or intent.adapter_action_id != step.adapter_action_id
+            or type(intent.adapter_version) is not int
+            or not 1 <= intent.adapter_version <= 1_000_000
+            or not _identifier(intent.adapter_package_id)
+            or not _version(intent.adapter_package_version)
+            or not _hex(intent.adapter_package_sha256, 64)
+            or not _hex(intent.adapter_artifact_sha256, 64)
+            or not _identifier(intent.adapter_release_key_id)
+            or not _hex(intent.adapter_release_public_key_sha256, 64)
+            or intent.adapter_release_trust_scope
+            not in {
+                "radforge-production",
+                "test-only",
+            }
+            or type(intent.adapter_protocol_version) is not int
+            or intent.adapter_protocol_version != 1
+            or type(intent.adapter_request_schema_version) is not int
+            or intent.adapter_request_schema_version != 1
+            or type(intent.adapter_result_schema_version) is not int
+            or intent.adapter_result_schema_version != 1
             or intent.from_mode != step.from_mode
             or intent.to_mode != step.to_mode
             or intent.target_slot != step.target_slot
@@ -924,7 +994,7 @@ class GuardianRecoveryExecutionService:
         for step in preparation.steps:
             if not step.adapter_action_id.startswith(
                 f"{preparation.recovery_adapter_id}."
-            ) or _is_bootloader_lock_action(step.adapter_action_id):
+            ) or contains_bootloader_lock_action_id(step.adapter_action_id):
                 raise RecoveryExecutionValidationError(
                     "Recovery sequence contains an untrusted or bootloader-locking action"
                 )
@@ -1019,9 +1089,37 @@ def _optional_hex(value: object, length: int) -> bool:
     return value == "" or _hex(value, length)
 
 
-def _is_bootloader_lock_action(value: str) -> bool:
-    tokens = re.sub(r"[^a-z0-9]+", " ", value.casefold()).split()
-    return "relock" in tokens or (
-        "lock" in tokens
-        and any(scope in tokens for scope in ("bootloader", "flashing", "oem", "critical"))
+def _identifier(value: object) -> bool:
+    return isinstance(value, str) and bool(re.fullmatch(r"[a-z0-9][a-z0-9._-]{0,95}", value))
+
+
+def _version(value: object) -> bool:
+    return isinstance(value, str) and bool(
+        re.fullmatch(
+            r"[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?",
+            value,
+        )
+    )
+
+
+def _intent_matches_adapter(
+    intent: GuardianRecoveryStepIntent,
+    package: VerifiedGuardianRecoveryAdapterPackage,
+) -> bool:
+    manifest = package.manifest
+    return bool(
+        intent.adapter_version == manifest.adapter_version
+        and intent.adapter_package_id == manifest.package_id
+        and intent.adapter_package_version == manifest.package_version
+        and hmac.compare_digest(intent.adapter_package_sha256, package.package_sha256)
+        and hmac.compare_digest(intent.adapter_artifact_sha256, manifest.artifact.sha256)
+        and intent.adapter_release_key_id == package.release_key_id
+        and hmac.compare_digest(
+            intent.adapter_release_public_key_sha256,
+            package.release_public_key_sha256,
+        )
+        and intent.adapter_release_trust_scope == package.release_trust_scope.value
+        and intent.adapter_protocol_version == manifest.protocol_version
+        and intent.adapter_request_schema_version == manifest.request_schema_version
+        and intent.adapter_result_schema_version == manifest.result_schema_version
     )

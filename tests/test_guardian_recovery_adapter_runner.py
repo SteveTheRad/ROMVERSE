@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import fields
 from datetime import timedelta
 
@@ -16,8 +17,13 @@ from romverse.guardian.recovery_execution import (
     GuardianRecoveryExecutionService,
     RecoveryStepOutcome,
 )
+from romverse.guardian.recovery_runtime_adapter import (
+    GuardianTrustedRecoveryProcessAdapter,
+    RecoveryAdapterProcessResult,
+)
 from romverse.guardian.recovery_step_target import GuardianRecoveryStepTargetService
 from romverse.infrastructure.process import CommandResult
+from tests._recovery_adapter_trust import make_test_recovery_adapter_package
 from tests.test_guardian_recovery_live_target import _OBSERVED_AT, _live_context
 
 
@@ -97,13 +103,9 @@ class _ModeFastboot:
         )
 
 
-class _Adapter:
-    bootloader_relock_allowed = False
-    automatic_retry_allowed = False
-
+class _AdapterProcess:
     def __init__(self, prepared, transport: _ModeAdb) -> None:
-        self.adapter_id = prepared.recovery_adapter_id
-        self.action_ids = tuple(step.adapter_action_id for step in prepared.steps)
+        self.prepared = prepared
         self.transport = transport
         self.calls = []
         self.outcome = RecoveryStepOutcome.SUCCEEDED
@@ -111,25 +113,123 @@ class _Adapter:
         self.raise_error = False
         self.lose_after_dispatch = False
         self.transient_after_dispatch = 0
+        self.post_mode_override = ""
 
-    def invoke(self, request):
+    def run(self, package, request_bytes, timeout_seconds):
+        request = json.loads(request_bytes)
         self.calls.append(request)
         if self.raise_error:
             raise RuntimeError("simulated adapter interruption")
         if self.lose_after_dispatch:
             self.transport.lost = True
         elif self.outcome is RecoveryStepOutcome.SUCCEEDED:
-            self.transport.mode = request.expected_to_mode
+            self.transport.mode = self.post_mode_override or request["expected_to_mode"]
             self.transport.transient_unavailable_cycles = self.transient_after_dispatch
-        return GuardianRecoveryAdapterObservation(
-            self.adapter_id,
-            request.adapter_action_id,
-            request.step_order,
-            self.outcome,
+        response = {
+            "schema_version": 1,
+            "protocol_version": 1,
+            "request_digest": request["request_digest"],
+            "package_sha256": package.package_sha256,
+            "adapter_id": request["adapter_id"],
+            "adapter_version": package.manifest.adapter_version,
+            "adapter_action_id": request["adapter_action_id"],
+            "step_order": request["step_order"],
+            "outcome": self.outcome.value,
+            "dispatch_started": True,
+            "timed_out": False,
+            "evidence_sha256": f"{request['step_order']}" * 64,
+        }
+        encoded = json.dumps(
+            response,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+            allow_nan=False,
+        ).encode("ascii")
+        return RecoveryAdapterProcessResult(
             True,
+            0,
+            encoded,
+            b"",
             self.timed_out,
-            f"{request.step_order}" * 64,
+            False,
         )
+
+
+class _Adapter(GuardianTrustedRecoveryProcessAdapter):
+    def __init__(self, package, prepared, transport) -> None:
+        self.fixture = _AdapterProcess(prepared, transport)
+        self._action_ids_override = None
+        self._relock_override = False
+        super().__init__(package, self.fixture)
+
+    @property
+    def action_ids(self):
+        return self._action_ids_override or super().action_ids
+
+    @action_ids.setter
+    def action_ids(self, value):
+        self._action_ids_override = value
+
+    @property
+    def bootloader_relock_allowed(self):
+        return self._relock_override
+
+    @bootloader_relock_allowed.setter
+    def bootloader_relock_allowed(self, value):
+        self._relock_override = value
+
+    @property
+    def calls(self):
+        return self.fixture.calls
+
+    @property
+    def outcome(self):
+        return self.fixture.outcome
+
+    @outcome.setter
+    def outcome(self, value):
+        self.fixture.outcome = value
+
+    @property
+    def timed_out(self):
+        return self.fixture.timed_out
+
+    @timed_out.setter
+    def timed_out(self, value):
+        self.fixture.timed_out = value
+
+    @property
+    def raise_error(self):
+        return self.fixture.raise_error
+
+    @raise_error.setter
+    def raise_error(self, value):
+        self.fixture.raise_error = value
+
+    @property
+    def lose_after_dispatch(self):
+        return self.fixture.lose_after_dispatch
+
+    @lose_after_dispatch.setter
+    def lose_after_dispatch(self, value):
+        self.fixture.lose_after_dispatch = value
+
+    @property
+    def transient_after_dispatch(self):
+        return self.fixture.transient_after_dispatch
+
+    @transient_after_dispatch.setter
+    def transient_after_dispatch(self, value):
+        self.fixture.transient_after_dispatch = value
+
+    @property
+    def post_mode_override(self):
+        return self.fixture.post_mode_override
+
+    @post_mode_override.setter
+    def post_mode_override(self, value):
+        self.fixture.post_mode_override = value
 
 
 def _runner_context(tmp_path, monkeypatch):
@@ -161,8 +261,14 @@ def _runner_context(tmp_path, monkeypatch):
         targets,
         monotonic=lambda: elapsed[0],
         sleeper=lambda _seconds: elapsed.__setitem__(0, elapsed[0] + 3600),
+        allow_test_adapter_trust=True,
     )
-    adapter = _Adapter(prepared, adb)
+    package, *_package_details = make_test_recovery_adapter_package(
+        tmp_path / "recovery-adapter",
+        adapter_id=prepared.recovery_adapter_id,
+        action_ids=tuple(step.adapter_action_id for step in prepared.steps),
+    )
+    adapter = _Adapter(package, prepared, adb)
     return runner, executions, grant, prepared, adapter, adb, fastboot, autopilot
 
 
@@ -186,10 +292,10 @@ def test_runner_executes_exactly_one_step_with_pre_and_post_target_evidence(
     assert not run.bootloader_relock_allowed
     assert len(adapter.calls) == 1
     request = adapter.calls[0]
-    assert request.adapter_action_id == prepared.steps[0].adapter_action_id
-    assert request.operation is prepared.steps[0].operation
-    assert request.target_serial == grant.target_serial
-    assert request.stock_package_sha256 == prepared.stock_package_sha256
+    assert request["adapter_action_id"] == prepared.steps[0].adapter_action_id
+    assert request["operation"] == prepared.steps[0].operation.value
+    assert request["target_serial"] == grant.target_serial
+    assert request["stock_package_sha256"] == prepared.stock_package_sha256
     assert run.intent is not None and run.result is not None
     assert run.intent.pre_dispatch_witness_digest
     assert run.result.result_target_witness_digest
@@ -318,6 +424,24 @@ def test_runner_records_known_failure_only_when_exact_target_remains_observable(
     assert executions.load_step_intent(prepared, grant.claim, 2) is None
 
 
+def test_runner_records_success_with_wrong_post_state_as_unknown(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    runner, executions, grant, prepared, adapter, *_rest = _runner_context(
+        tmp_path,
+        monkeypatch,
+    )
+    adapter.post_mode_override = "android"
+
+    result = runner.execute_next(grant, prepared, adapter)
+
+    assert result.state is RecoveryAdapterRunState.STEP_UNKNOWN
+    assert result.result is not None
+    assert result.result.recovery_reassessment_required
+    assert executions.step_outcome(prepared, grant.claim, 1) is RecoveryStepOutcome.UNKNOWN
+
+
 def test_runner_fails_before_intent_on_ambiguous_target_or_adapter_action_set(
     tmp_path,
     monkeypatch,
@@ -338,6 +462,49 @@ def test_runner_fails_before_intent_on_ambiguous_target_or_adapter_action_set(
     with pytest.raises(RecoveryAdapterRunnerError, match="allowlisted"):
         runner.execute_next(grant, prepared, adapter)
     assert not adapter.calls
+    assert executions.load_step_intent(prepared, grant.claim, 1) is None
+
+
+def test_runner_rejects_arbitrary_adapter_implementation_before_intent(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    runner, executions, grant, prepared, adapter, *_rest = _runner_context(
+        tmp_path,
+        monkeypatch,
+    )
+
+    class ArbitraryAdapter:
+        verified_package = adapter.verified_package
+        adapter_id = adapter.adapter_id
+        adapter_version = adapter.adapter_version
+        package_sha256 = adapter.package_sha256
+        protocol_version = adapter.protocol_version
+        action_ids = adapter.action_ids
+        bootloader_relock_allowed = False
+        automatic_retry_allowed = False
+
+        @staticmethod
+        def invoke(_request):
+            raise AssertionError("an arbitrary implementation must never be called")
+
+    with pytest.raises(RecoveryAdapterRunnerError, match="allowlisted"):
+        runner.execute_next(grant, prepared, ArbitraryAdapter())
+    assert executions.load_step_intent(prepared, grant.claim, 1) is None
+
+
+def test_runner_rejects_test_release_trust_unless_explicitly_in_test_mode(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    runner, executions, grant, prepared, adapter, *_rest = _runner_context(
+        tmp_path,
+        monkeypatch,
+    )
+    runner.allow_test_adapter_trust = False
+
+    with pytest.raises(RecoveryAdapterRunnerError, match="allowlisted"):
+        runner.execute_next(grant, prepared, adapter)
     assert executions.load_step_intent(prepared, grant.claim, 1) is None
 
 

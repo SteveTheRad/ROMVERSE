@@ -305,7 +305,7 @@ def test_studio_context_uses_only_typed_exact_source_historical_subset_outcome(
 
 @pytest.mark.parametrize("state,count", [("completed", 53), ("failed", 9), ("attention", 0)])
 @pytest.mark.parametrize("stage_index", [13, 14])
-def test_source_procedure_outcome_opens_history_never_reinstallation(
+def test_source_procedure_outcome_routes_failure_directly_to_diagnosis_never_reinstallation(
     tmp_path, state, count, stage_index
 ):
     app = QApplication.instance() or QApplication([])
@@ -326,16 +326,33 @@ def test_source_procedure_outcome_opens_history_never_reinstallation(
     assert (flash.status is GuidedStageStatus.COMPLETE) == (state == "completed")
     assert boot.status is GuidedStageStatus.ATTENTION
     assert not context.flash_complete and not context.first_boot_verified
-    assert "Historical Android boot" in mission.status_text.text()
-    assert mission.action_button.text() == "Review installation and boot results…"
+    needs_diagnosis = state in {"failed", "attention"}
+    assert (
+        "needs diagnosis" if needs_diagnosis else "Historical Android boot"
+    ) in mission.status_text.text()
+    assert mission.action_button.text() == (
+        "Diagnose interrupted installation…"
+        if needs_diagnosis
+        else "Review installation and boot results…"
+    )
     assert mission.action_button.isEnabled()
-    history, installation, atlas = [], [], []
+    history, recovery, installation, atlas = [], [], [], []
     studio.source_installation_history_requested.connect(history.append)
+    studio.source_installation_recovery_requested.connect(
+        lambda project_id, source_sha256: recovery.append((project_id, source_sha256))
+    )
     studio.project_flash_requested.connect(installation.append)
     studio.device_packs_requested.connect(atlas.append)
     mission.action_button.click()
     app.processEvents()
-    assert history == [studio.current_project.project_id]
+    if needs_diagnosis:
+        assert history == []
+        assert recovery == [
+            (studio.current_project.project_id, studio.current_project.original.sha256)
+        ]
+    else:
+        assert history == [studio.current_project.project_id]
+        assert recovery == []
     assert installation == atlas == []
     assert not mission.isVisible()
     studio.close()
@@ -371,6 +388,32 @@ def test_queued_source_history_rechecks_project_source_and_worker(tmp_path, drif
         studio.worker = object()
     app.processEvents()
     assert history == []
+    studio.worker = None
+    studio.close()
+
+
+@pytest.mark.parametrize("drift", ["project", "source", "worker"])
+def test_queued_source_recovery_rechecks_project_source_and_worker(tmp_path, drift):
+    app = QApplication.instance() or QApplication([])
+    studio = _studio(tmp_path)
+    mission = GuidedBuildMission(studio)
+    recovery = []
+    studio.source_installation_recovery_requested.connect(
+        lambda project_id, source_sha256: recovery.append((project_id, source_sha256))
+    )
+    project = studio.current_project
+    mission._handoff_source_installation_recovery()
+    if drift == "project":
+        studio.refresh(studio.store.create("Other diagnosis").project_id)
+    elif drift == "source":
+        get = studio.store.get
+        studio.store.get = lambda identity: replace(
+            get(identity), original=replace(project.original, sha256="f" * 64)
+        )
+    else:
+        studio.worker = object()
+    app.processEvents()
+    assert recovery == []
     studio.worker = None
     studio.close()
 

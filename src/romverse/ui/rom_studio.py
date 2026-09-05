@@ -672,6 +672,7 @@ class RomStudio(QWidget):
     expert_flash_requested = Signal()
     project_flash_requested = Signal(str)
     source_installation_history_requested = Signal(str)
+    source_installation_recovery_requested = Signal(str, str)
 
     def __init__(
         self,
@@ -2331,6 +2332,26 @@ class RomStudio(QWidget):
             )
             return False
         self.source_installation_history_requested.emit(project_id)
+        return True
+
+    def _request_source_installation_recovery(
+        self, project_id: str, source_sha256: str
+    ) -> bool:
+        """Dispatch sealed interrupted-operation evidence to diagnosis, never execution."""
+
+        project = self.current_project
+        if project is None or project.project_id != project_id or self.worker is not None:
+            return False
+        try:
+            current = self.store.get(project_id)
+        except ProjectError:
+            return False
+        if current.original is None or current.original.sha256 != source_sha256:
+            self.operation_status.setText(
+                "The project source changed. Reopen Genesis before diagnosing this installation."
+            )
+            return False
+        self.source_installation_recovery_requested.emit(project_id, source_sha256)
         return True
 
     def _toggle_architect_mode(self, enabled: bool) -> None:

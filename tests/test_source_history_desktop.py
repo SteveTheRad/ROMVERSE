@@ -6,6 +6,7 @@ import json
 import os
 import zipfile
 from dataclasses import replace
+from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -14,7 +15,10 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtTest import QTest
 
 from romverse.guardian.source_installation import SourceInstallationExecutor
-from romverse.rom.source_installation_history import load_latest_source_installation
+from romverse.rom.source_installation_history import (
+    _digest,
+    load_latest_source_installation,
+)
 from romverse.ui.source_installation_history import SourceInstallationHistoryDialog
 from tests.test_source_installation_integration import installation as installation
 from tests.test_source_installation_integration import installation_desktop as installation_desktop
@@ -48,6 +52,22 @@ def saved_history(installation_desktop, monkeypatch, request):
 
 def _click(widget):
     QTest.mouseClick(widget, Qt.MouseButton.LeftButton)
+
+
+def _seal_interrupted_command(path, *, completed_count=5):
+    document = json.loads(path.read_text())
+    document["state"] = "command-in-flight"
+    document["results"] = document["results"][:completed_count]
+    document["in_flight_step"] = completed_count
+    document["phone_change_attempted"] = True
+    document["phone_state_uncertain"] = True
+    document["reboot_requested"] = False
+    document["android_arrival_verified"] = False
+    document.pop("completed_at")
+    document.pop("summary")
+    document.pop("record_digest")
+    document["record_digest"] = _digest(document)
+    path.write_text(json.dumps(document))
 
 
 def _open(saved, action):
@@ -286,3 +306,184 @@ def test_failed_history_recovery_with_exact_phone_keeps_project_and_device_attri
     assert outcome.source_sha256 == context.source.store.get(context.project_id).original.sha256
     assert tuple(context.phone.calls) == calls
     assert tuple(context.phone.changes) == changes
+
+
+def test_restart_interruption_goes_directly_to_exact_phone_diagnosis_without_retry(
+    installation_desktop, monkeypatch
+):
+    _app, window, context = installation_desktop
+    executor = SourceInstallationExecutor(context.source, context.flash, context.adb)
+    plan = executor.inspect(context.phone.device(), context.recipe())
+    completed = executor.execute(
+        plan, accepted_digest=plan.plan_digest, risk_accepted=True
+    )
+    _seal_interrupted_command(completed.receipt_path)
+    window._observed_devices = [context.phone.device()]
+    window.rom_studio.set_devices([context.phone.device()])
+    calls = tuple(context.phone.calls)
+    changes = tuple(context.phone.changes)
+    incidents = []
+    routes = []
+    source_sha256 = context.source.store.get(context.project_id).original.sha256
+    monkeypatch.setattr(
+        window.repair_center,
+        "open_recovery_incident",
+        lambda *args, **kwargs: incidents.append((args, kwargs)),
+    )
+    monkeypatch.setattr(window, "_navigate_route", routes.append)
+
+    assert window.rom_studio._request_source_installation_recovery(
+        context.project_id, source_sha256
+    )
+
+    assert len(incidents) == 1
+    _args, incident = incidents[0]
+    assert incident["project_id"] == context.project_id
+    assert incident["target_device"].serial == context.phone.serial
+    assert incident["allow_current_device_fallback"] is False
+    assert incident["failure"].phase == "source-installation"
+    assert incident["failure"].finding_ids == (
+        "source.installation.command_outcome_unknown",
+    )
+    assert "uncertain in-flight step 6" in incident["message"]
+    assert "exact operation target is attached" in incident["message"]
+    assert routes == ["recovery_bay"]
+    assert tuple(context.phone.calls) == calls
+    assert tuple(context.phone.changes) == changes
+
+
+@pytest.mark.parametrize("presence", ["absent", "unrelated"])
+def test_restart_interruption_never_borrows_another_phone_for_diagnosis(
+    installation_desktop, monkeypatch, presence
+):
+    _app, window, context = installation_desktop
+    executor = SourceInstallationExecutor(context.source, context.flash, context.adb)
+    plan = executor.inspect(context.phone.device(), context.recipe())
+    completed = executor.execute(
+        plan, accepted_digest=plan.plan_digest, risk_accepted=True
+    )
+    _seal_interrupted_command(completed.receipt_path)
+    other = replace(context.phone.device(), serial="UNRELATED-RESTART-PHONE")
+    window._observed_devices = [] if presence == "absent" else [other]
+    window.rom_studio.set_devices(window._observed_devices)
+    calls = tuple(context.phone.calls)
+    changes = tuple(context.phone.changes)
+    incidents = []
+    source_sha256 = context.source.store.get(context.project_id).original.sha256
+    monkeypatch.setattr(
+        window.repair_center,
+        "open_recovery_incident",
+        lambda *args, **kwargs: incidents.append((args, kwargs)),
+    )
+
+    window._open_source_installation_recovery(context.project_id, source_sha256)
+
+    assert len(incidents) == 1
+    incident = incidents[0][1]
+    assert incident["project_id"] == context.project_id
+    assert incident["target_device"] is None
+    assert incident["allow_current_device_fallback"] is False
+    assert "not currently verified as attached" in incident["message"]
+    assert tuple(context.phone.calls) == calls
+    assert tuple(context.phone.changes) == changes
+
+
+def test_history_recovery_for_interruption_uses_the_direct_diagnosis_handoff(
+    installation_desktop, monkeypatch
+):
+    _app, window, context = installation_desktop
+    executor = SourceInstallationExecutor(context.source, context.flash, context.adb)
+    plan = executor.inspect(context.phone.device(), context.recipe())
+    completed = executor.execute(
+        plan, accepted_digest=plan.plan_digest, risk_accepted=True
+    )
+    _seal_interrupted_command(completed.receipt_path)
+    outcome = load_latest_source_installation(context.source.store, context.project_id)
+    source_sha256 = context.source.store.get(context.project_id).original.sha256
+    requested = []
+    monkeypatch.setattr(
+        window,
+        "_open_source_installation_recovery",
+        lambda project_id, source_sha256: requested.append((project_id, source_sha256)),
+    )
+    dialog = SimpleNamespace(
+        result=None,
+        preparation=outcome,
+        last_attempt_device=context.phone.device(),
+        last_flash_device=context.phone.device(),
+        boot_report=None,
+        boot_error="",
+        execution_error="",
+        transition_error="",
+        transition_attempt_device=None,
+        recovery_requested=True,
+    )
+
+    window._finish_expert_dialog(dialog)
+
+    assert requested == [(context.project_id, source_sha256)]
+    assert window._pending_local_flash_recovery is None
+
+
+def test_restart_diagnosis_waits_for_active_scan_then_opens_once(
+    installation_desktop, monkeypatch
+):
+    _app, window, context = installation_desktop
+    executor = SourceInstallationExecutor(context.source, context.flash, context.adb)
+    plan = executor.inspect(context.phone.device(), context.recipe())
+    completed = executor.execute(
+        plan, accepted_digest=plan.plan_digest, risk_accepted=True
+    )
+    _seal_interrupted_command(completed.receipt_path)
+    source_sha256 = context.source.store.get(context.project_id).original.sha256
+    window._observed_devices = [context.phone.device()]
+    incidents = []
+    monkeypatch.setattr(
+        window.repair_center,
+        "open_recovery_incident",
+        lambda *args, **kwargs: incidents.append((args, kwargs)),
+    )
+    window.scanning = True
+
+    window._open_source_installation_recovery(context.project_id, source_sha256)
+
+    assert window._pending_source_installation_recovery == (
+        context.project_id,
+        source_sha256,
+    )
+    assert incidents == []
+    window.scanning = False
+    window._resume_pending_source_installation_recovery()
+    window._resume_pending_source_installation_recovery()
+    assert len(incidents) == 1
+    assert incidents[0][1]["target_device"].serial == context.phone.serial
+    assert window._pending_source_installation_recovery is None
+
+
+def test_direct_restart_diagnosis_rejects_a_stale_loaded_source_binding(
+    installation_desktop, monkeypatch
+):
+    _app, window, context = installation_desktop
+    executor = SourceInstallationExecutor(context.source, context.flash, context.adb)
+    plan = executor.inspect(context.phone.device(), context.recipe())
+    completed = executor.execute(
+        plan, accepted_digest=plan.plan_digest, risk_accepted=True
+    )
+    _seal_interrupted_command(completed.receipt_path)
+    outcome = load_latest_source_installation(context.source.store, context.project_id)
+    source_sha256 = context.source.store.get(context.project_id).original.sha256
+    monkeypatch.setattr(
+        "romverse.rom.source_installation_history.load_latest_source_installation",
+        lambda *_args, **_kwargs: replace(outcome, source_sha256="f" * 64),
+    )
+    incidents = []
+    monkeypatch.setattr(
+        window.repair_center,
+        "open_recovery_incident",
+        lambda *args, **kwargs: incidents.append((args, kwargs)),
+    )
+
+    window._open_source_installation_recovery(context.project_id, source_sha256)
+
+    assert incidents == []
+    assert "no longer matches" in window.rom_studio.operation_status.text()

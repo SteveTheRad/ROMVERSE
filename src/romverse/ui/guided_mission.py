@@ -1161,13 +1161,23 @@ class GuidedBuildMission(QDialog):
         }[assessment.status]
         local_outcome = getattr(self, "_display_context", GuidedContext())
         if stage.stage_id in {"flash", "first_boot"} and local_outcome.source_installation_state:
-            status_copy = (
-                f"Recorded installation: {local_outcome.source_installation_state}. "
-                f"{local_outcome.source_installation_summary} "
-                f"Historical Android boot: {local_outcome.source_installation_boot_status or 'unverified'}. "
-                "Review results or observe boot without repeating installation. "
-                "Individual phone features still need separate tests."
-            )
+            if self._source_installation_needs_diagnosis(local_outcome):
+                status_copy = (
+                    f"Recorded installation needs diagnosis: "
+                    f"{local_outcome.source_installation_state}. "
+                    f"{local_outcome.source_installation_summary} "
+                    "ROMVERSE will use the sealed action ledger and freshly scanned phone state; "
+                    "it will not repeat an uncertain write."
+                )
+            else:
+                status_copy = (
+                    f"Recorded installation: {local_outcome.source_installation_state}. "
+                    f"{local_outcome.source_installation_summary} "
+                    f"Historical Android boot: "
+                    f"{local_outcome.source_installation_boot_status or 'unverified'}. "
+                    "Review results or observe boot without repeating installation. "
+                    "Individual phone features still need separate tests."
+                )
         elif (
             stage.stage_id == "flash"
             and local_outcome.local_image_state
@@ -1223,13 +1233,21 @@ class GuidedBuildMission(QDialog):
         )
         if local_boot_available:
             self.action_button.setText("Review separate Android boot check…")
-        source_history_available = bool(
+        source_result_available = bool(
             stage.stage_id in {"flash", "first_boot"}
             and local_outcome.source_installation_state
             and not busy
         )
-        if source_history_available:
-            self.action_button.setText("Review installation and boot results…")
+        source_recovery_available = bool(
+            source_result_available
+            and self._source_installation_needs_diagnosis(local_outcome)
+        )
+        if source_result_available:
+            self.action_button.setText(
+                "Diagnose interrupted installation…"
+                if source_recovery_available
+                else "Review installation and boot results…"
+            )
         self.action_button.setToolTip(
             f"What: {stage.explanation}\n\nWhy: {stage.recommendation}\n\n"
             f"Result: {assessment.next_outcome}"
@@ -1244,7 +1262,7 @@ class GuidedBuildMission(QDialog):
             build_control_available
             or root_choice_available
             or local_boot_available
-            or source_history_available
+            or source_result_available
             or (assessment.can_run and not busy and not stage.future_gate)
         )
         if stage.action == "choose-root" and assessment.status is GuidedStageStatus.COMPLETE:
@@ -1660,8 +1678,12 @@ class GuidedBuildMission(QDialog):
         self.live_paused = False
         self._sync_genesis_live()
         self.failure = None
-        if action in {"flash", "first-boot"} and self._context().source_installation_state:
-            self._handoff_source_installation_history()
+        context = self._context()
+        if action in {"flash", "first-boot"} and context.source_installation_state:
+            if self._source_installation_needs_diagnosis(context):
+                self._handoff_source_installation_recovery()
+            else:
+                self._handoff_source_installation_history()
         elif action == "flash" and not self.state.install_requested:
             self._prompt_flash_choice()
         elif action == "new-project":
@@ -1780,8 +1802,12 @@ class GuidedBuildMission(QDialog):
             self.studio._open_build_control(self)
             self._refresh()
         elif action == "flash":
-            if self._context().source_installation_state:
-                self._handoff_source_installation_history()
+            context = self._context()
+            if context.source_installation_state:
+                if self._source_installation_needs_diagnosis(context):
+                    self._handoff_source_installation_recovery()
+                else:
+                    self._handoff_source_installation_history()
                 return
             project = self.studio.current_project
             self._handoff_project_images(
@@ -1894,6 +1920,39 @@ class GuidedBuildMission(QDialog):
             0, lambda: self.studio._request_source_installation_history(project_id, source_sha256)
         )
 
+    @staticmethod
+    def _source_installation_needs_diagnosis(context: GuidedContext) -> bool:
+        state = context.source_installation_state.strip().casefold()
+        return state in {"failed", "attention"} or (
+            state == "cancelled" and context.source_installation_completed_count > 0
+        )
+
+    def _handoff_source_installation_recovery(self) -> None:
+        project = self.studio.current_project
+        if (
+            project is None
+            or project.original is None
+            or self.studio.worker is not None
+            or self.active_operation
+            or self.root_preview_active
+        ):
+            self.status_text.setText(
+                "Wait for the current operation before diagnosing the interrupted installation."
+            )
+            return
+        project_id, source_sha256 = project.project_id, project.original.sha256
+        self.autopilot_active = False
+        self._pause_genesis_live(
+            "Opening exact interrupted-installation diagnosis; no phone command or retry was requested."
+        )
+        super().accept()
+        QTimer.singleShot(
+            0,
+            lambda: self.studio._request_source_installation_recovery(
+                project_id, source_sha256
+            ),
+        )
+
     def _run_first_boot_check(self) -> None:
         project = self.studio.current_project
         if project is None:
@@ -1902,7 +1961,10 @@ class GuidedBuildMission(QDialog):
             return
         context = self._context()
         if context.source_installation_state:
-            self._handoff_source_installation_history()
+            if self._source_installation_needs_diagnosis(context):
+                self._handoff_source_installation_recovery()
+            else:
+                self._handoff_source_installation_history()
             return
         if context.local_image_state and not context.flash_complete:
             self._handoff_project_images(

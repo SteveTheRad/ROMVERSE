@@ -62,6 +62,11 @@ def test_valid_terminal_result_rehydrates_for_separate_exact_phone_boot_validati
     assert outcome.historical and not outcome.current_artifact_bytes_verified
     assert outcome.device_key == installation.flash.privacy.pseudonym(installation.phone.serial)
     assert outcome.product == "popsicle"
+    assert outcome.operation_device_key == outcome.device_key
+    assert outcome.operation_product == outcome.product
+    assert outcome.matches_operation_device(
+        installation.flash.privacy, installation.phone.device()
+    )
     assert outcome.boot_status == "No linked boot-check record"
     assert isinstance(outcome.result, SourceInstallationResult)
     assert outcome.result == result
@@ -160,6 +165,14 @@ def test_restart_rehydrates_sealed_inflight_ledger_instead_of_zero_of_zero(insta
     outcome = _load(installation)
 
     assert outcome.state == "attention" and outcome.result is None
+    assert outcome.device_key == "" and outcome.product == ""
+    assert outcome.operation_device_key == installation.flash.privacy.pseudonym(
+        installation.phone.serial
+    )
+    assert outcome.operation_product == "popsicle"
+    assert outcome.matches_operation_device(
+        installation.flash.privacy, installation.phone.device()
+    )
     assert outcome.completed_count == 5
     assert outcome.expected_count == 52
     assert tuple(item.index for item in outcome.actions("completed")) == tuple(range(5))
@@ -239,8 +252,18 @@ def test_newer_interrupted_record_never_falls_back_to_older_success(installation
     assert outcome.device_key == ""
     assert "unconfirmed" in outcome.summary
     if state == "preparing":
+        assert outcome.operation_device_key == ""
+        assert not outcome.matches_operation_device(
+            installation.flash.privacy, installation.phone.device()
+        )
         assert "No verified ordered action ledger" in outcome.recovery_summary()
     else:
+        assert outcome.operation_device_key == installation.flash.privacy.pseudonym(
+            installation.phone.serial
+        )
+        assert outcome.matches_operation_device(
+            installation.flash.privacy, installation.phone.device()
+        )
         assert outcome.action_evidence
 
 

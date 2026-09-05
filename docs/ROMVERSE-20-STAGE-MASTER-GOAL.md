@@ -2,6 +2,10 @@
 
 Complete ROMVERSE as a production-ready Android ROM development, flashing, diagnosis, repair, optimisation, knowledge, collaboration and companion platform. Implement the following agreed stages in order. Preserve ROMVERSE's evidence-first rule: never claim that a build, flash, repair, test or release succeeded without genuine evidence.
 
+Meaningful engineering checkpoints follow the
+[ROMVERSE Product Assurance sync workflow](ROMVERSE-PRODUCT-ASSURANCE-SYNC.md) without moving
+implementation authority out of the active Build task.
+
 ## Creator-approved execution and experience amendments — 2026-09-05
 
 The [Guided Experience Contract](ROMVERSE-GUIDED-EXPERIENCE-CONTRACT.md) is normative across all

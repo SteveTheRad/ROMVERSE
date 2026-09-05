@@ -1968,6 +1968,27 @@ large-archive hashing can be slow and never silently renews an expired transitio
   operation, app restart, packaging, Companion change, website update, publication or remote push
   occurred. Approved production logos were not edited.
 
+## 2026-09-05 Direct restart recovery for interrupted installation
+
+- Guided failed, uncertain and partially cancelled source-installation outcomes now expose one
+  **Diagnose interrupted installation…** action instead of requiring History followed by another
+  manual recovery choice.
+- A safely sealed restart record retains recovery-only pseudonymous target identity. It can bind a
+  Recovery Autopilot incident to a freshly scanned exact phone, but cannot authorize boot
+  observation, a phone command or a retry. An absent, ambiguous or unrelated phone leaves the
+  incident deliberately unattributed while preserving the exact project/source/action evidence.
+- The handoff creates a typed failure fingerprint, triggers the local Knowledge Archives lookup and
+  preserves known failed, uncertain in-flight and unattempted actions as different facts. A request
+  made during a USB scan resumes once after fresh scan completion. The older History → Recovery path
+  reaches the same diagnosis rather than another navigation-only dead end.
+- One non-overlapping affected regression run passes all 500 tests with zero failures, errors or
+  skips in 167.672 seconds. Changed-file Ruff, compilation and diff checks pass. See
+  `INTERRUPTED_INSTALLATION_DIRECT_RECOVERY_2026-09-05.md` for the exact evidence and boundary.
+- This behavior is implemented and simulated/tested on Fedora/Linux, not hardware verified or
+  released. Windows was not exercised. No physical phone operation, running-app restart, package
+  installation, Companion change, website update, publication or remote push occurred. Approved
+  production logos were not edited.
+
 ## Honest feature boundary
 
 The current safe milestone supports read-only Android evidence, local diagnostics, guarded APK

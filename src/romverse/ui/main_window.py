@@ -3927,6 +3927,7 @@ class MainWindow(QMainWindow):
         self._pending_local_flash_recovery_project: tuple[str, str] | None = None
         self._pending_local_flash_recovery_result = None
         self._pending_local_flash_recovery_trigger = RecoveryTrigger.FLASH_FAILURE
+        self._pending_source_installation_recovery: tuple[str, str] | None = None
         self._device_adb_executable = adb_executable
         self._device_fastboot_executable = fastboot_executable
         self.scan_interval_seconds = max(scan_interval, 3)
@@ -4257,6 +4258,9 @@ class MainWindow(QMainWindow):
         self.rom_studio.project_flash_requested.connect(self._open_project_flash)
         self.rom_studio.source_installation_history_requested.connect(
             self._open_source_installation_history
+        )
+        self.rom_studio.source_installation_recovery_requested.connect(
+            self._open_source_installation_recovery
         )
         self.device_packs_center.rom_studio_requested.connect(
             self._continue_device_atlas_rom_studio
@@ -4908,6 +4912,7 @@ class MainWindow(QMainWindow):
                 NotificationKind.SUCCESS,
             )
         self._finish_local_flash_recovery(devices)
+        self._resume_pending_source_installation_recovery()
 
     @Slot(str)
     def _select_observed_device(self, serial: str) -> None:
@@ -5229,6 +5234,7 @@ class MainWindow(QMainWindow):
                 NotificationKind.ATTENTION,
             )
         self._finish_local_flash_recovery([])
+        self._resume_pending_source_installation_recovery()
 
     def _navigate(self, index: int) -> None:
         if index < 0 or index >= self.stack.count():
@@ -7198,6 +7204,148 @@ class MainWindow(QMainWindow):
                 else:
                     self._finish_local_flash_recovery([])
 
+    def _resume_pending_source_installation_recovery(self) -> None:
+        pending = self._pending_source_installation_recovery
+        if pending is None or self.scanning:
+            return
+        self._pending_source_installation_recovery = None
+        self._open_source_installation_recovery(*pending)
+
+    @staticmethod
+    def _source_installation_knowledge_failure(outcome, trigger: RecoveryTrigger):
+        failed = outcome.actions("failed")
+        uncertain = outcome.actions("uncertain")
+        focus = (failed or uncertain or outcome.actions("unattempted"))[:1]
+        action = focus[0] if focus else None
+        finding_ids = []
+        if failed:
+            finding_ids.append("source.installation.command_failed")
+        if uncertain:
+            finding_ids.append("source.installation.command_outcome_unknown")
+        if not outcome.action_evidence or not outcome.record_digest:
+            finding_ids.append("source.installation.history_unverified")
+        if trigger in {RecoveryTrigger.BOOTLOOP, RecoveryTrigger.BOOT_ATTENTION}:
+            finding_ids.append("source.installation.boot_attention")
+        verified_inputs = [f"source SHA-256 {outcome.source_sha256}"]
+        if outcome.recipe_digest:
+            verified_inputs.append(f"recipe SHA-256 {outcome.recipe_digest}")
+        if outcome.record_digest:
+            verified_inputs.append(
+                f"installation record SHA-256 {outcome.record_digest}"
+            )
+        return KnowledgeFailure(
+            phase="source-installation",
+            message=outcome.summary,
+            finding_ids=tuple(finding_ids),
+            partition=(
+                action.target
+                if action is not None and action.action in {"flash", "erase"}
+                else ""
+            ),
+            operation=(
+                f"{action.action} {action.target}"
+                if action is not None
+                else "Reconstruct saved installation state"
+            ),
+            verified_inputs=tuple(verified_inputs),
+        )
+
+    @Slot(str, str)
+    def _open_source_installation_recovery(
+        self, project_id: str, source_sha256: str
+    ) -> None:
+        """Diagnose a sealed installation outcome without boot, write or retry authority."""
+
+        from romverse.rom.source_installation_history import (
+            SourceInstallationOutcome,
+            load_latest_source_installation,
+        )
+
+        if self._resume_source_operation_before_new_device_work():
+            return
+        project = self.rom_studio.current_project
+        if (
+            project is None
+            or project.project_id != project_id
+            or project.original is None
+            or project.original.sha256 != source_sha256
+        ):
+            self.rom_studio.operation_status.setText(
+                "The selected project or protected source changed. No recovery incident was attributed."
+            )
+            return
+        if self.scanning:
+            self._pending_source_installation_recovery = (project_id, source_sha256)
+            self.rom_studio.operation_status.setText(
+                "Finishing the fresh phone scan before opening interrupted-installation diagnosis…"
+            )
+            return
+        if self._local_flash_dialog is not None:
+            self.rom_studio.operation_status.setText(
+                "Close the current installation view before opening saved-operation diagnosis."
+            )
+            return
+        try:
+            outcome = load_latest_source_installation(self.rom_studio.store, project_id)
+        except (OSError, ProjectError, TypeError, ValueError) as exc:
+            self.rom_studio.operation_status.setText(
+                "Saved installation evidence could not be reconstructed: " + str(exc)
+            )
+            return
+        if not isinstance(outcome, SourceInstallationOutcome):
+            self.rom_studio.operation_status.setText(
+                "No saved installation outcome matches this project and protected source."
+            )
+            return
+        if outcome.project_id != project_id or outcome.source_sha256 != source_sha256:
+            self.rom_studio.operation_status.setText(
+                "Saved installation evidence no longer matches the selected project and source. "
+                "No recovery incident was attributed."
+            )
+            return
+        needs_diagnosis = outcome.state in {"failed", "attention"} or (
+            outcome.state == "cancelled" and outcome.completed_count > 0
+        )
+        if not needs_diagnosis:
+            self.rom_studio.operation_status.setText(
+                "This saved installation no longer needs interruption diagnosis; opening its read-only results."
+            )
+            self._open_source_installation_history(project_id)
+            return
+
+        privacy = WorkspacePrivacy(self.rom_studio.store.workspace)
+        matching = {
+            device.serial: device
+            for device in self._observed_devices
+            if outcome.matches_operation_device(privacy, device)
+        }
+        target = next(iter(matching.values())) if len(matching) == 1 else None
+        connection = (
+            " The freshly scanned exact operation target is attached."
+            if target is not None
+            else " The recorded operation target is not currently verified as attached; reconnect that same phone before any device action."
+        )
+        message = f"{outcome.summary} {outcome.recovery_summary()}{connection}"
+        failure = self._source_installation_knowledge_failure(
+            outcome, RecoveryTrigger.FLASH_FAILURE
+        )
+        self.repair_center.open_recovery_incident(
+            RecoveryTrigger.FLASH_FAILURE,
+            project_id=project_id,
+            message=message,
+            failure=failure,
+            target_device=target,
+            # Never assign a sealed operation to whichever unrelated phone happens
+            # to be selected after restart.
+            allow_current_device_fallback=False,
+        )
+        self.rom_studio.operation_status.setText(
+            "Interrupted-installation diagnosis opened for the exact scanned phone. No write was retried."
+            if target is not None
+            else "Interrupted-installation diagnosis opened without a phone target. Reconnect the recorded phone; no other device was assigned."
+        )
+        self._navigate_route("recovery_bay")
+
     def _continue_project_flash_open(self, project_id: str, source_sha256: str) -> None:
         if not self._expert_flash_pending:
             return
@@ -7305,8 +7453,10 @@ class MainWindow(QMainWindow):
 
     def _finish_expert_dialog(self, dialog) -> None:
         from romverse.guardian.source_installation import SourceInstallationResult
+        from romverse.rom.source_installation_history import SourceInstallationOutcome
 
         result = dialog.result
+        preparation = getattr(dialog, "preparation", None)
         failure_message = ""
         attempted = dialog.last_attempt_device
         trigger = RecoveryTrigger.FLASH_FAILURE
@@ -7338,12 +7488,26 @@ class MainWindow(QMainWindow):
             )
             attempted = dialog.transition_attempt_device
             trigger = RecoveryTrigger.DEVICE_MODE
+        elif (
+            dialog.recovery_requested
+            and isinstance(preparation, SourceInstallationOutcome)
+            and (
+                preparation.state in {"failed", "attention"}
+                or (
+                    preparation.state == "cancelled"
+                    and preparation.completed_count > 0
+                )
+            )
+        ):
+            self._open_source_installation_recovery(
+                preparation.project_id, preparation.source_sha256
+            )
+            return
         elif dialog.recovery_requested:
             self._navigate_route("recovery_bay")
         if failure_message and attempted is not None:
             self._pending_local_flash_recovery = (attempted, failure_message)
             self._pending_local_flash_recovery_trigger = trigger
-            preparation = getattr(dialog, "preparation", None)
             self._pending_local_flash_recovery_project = (
                 (preparation.project_id, preparation.source_sha256)
                 if preparation is not None
@@ -7409,37 +7573,7 @@ class MainWindow(QMainWindow):
                 and outcome.action_evidence
             ):
                 message = f"{message} {outcome.recovery_summary()}"
-                failed = outcome.actions("failed")
-                uncertain = outcome.actions("uncertain")
-                focus = (failed or uncertain or outcome.actions("unattempted"))[:1]
-                action = focus[0] if focus else None
-                finding_ids = []
-                if failed:
-                    finding_ids.append("source.installation.command_failed")
-                if uncertain:
-                    finding_ids.append("source.installation.command_outcome_unknown")
-                if trigger in {RecoveryTrigger.BOOTLOOP, RecoveryTrigger.BOOT_ATTENTION}:
-                    finding_ids.append("source.installation.boot_attention")
-                failure = KnowledgeFailure(
-                    phase="source-installation",
-                    message=source_result.summary,
-                    finding_ids=tuple(finding_ids),
-                    partition=(
-                        action.target
-                        if action is not None and action.action in {"flash", "erase"}
-                        else ""
-                    ),
-                    operation=(
-                        f"{action.action} {action.target}"
-                        if action is not None
-                        else "Android boot verification"
-                    ),
-                    verified_inputs=(
-                        f"source SHA-256 {outcome.source_sha256}",
-                        f"recipe SHA-256 {outcome.recipe_digest}",
-                        f"installation record SHA-256 {outcome.record_digest}",
-                    ),
-                )
+                failure = self._source_installation_knowledge_failure(outcome, trigger)
         self.repair_center.open_recovery_incident(
             trigger,
             project_id=project_id,

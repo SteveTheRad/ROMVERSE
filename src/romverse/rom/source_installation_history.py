@@ -10,6 +10,8 @@ from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path, PurePosixPath
 
+from romverse.core.privacy import WorkspacePrivacy
+from romverse.device.models import AndroidDevice
 from romverse.guardian.local_flash import LocalFlashState
 from romverse.guardian.source_installation import (
     SourceInstallationResult,
@@ -58,6 +60,12 @@ class SourceInstallationOutcome:
     recipe_digest: str = ""
     receipt_relative_path: str = ""
     action_evidence: tuple[SourceInstallationActionEvidence, ...] = ()
+    # Recovery-only historical identity. These fields can attribute a sealed
+    # interruption to a freshly observed phone, but never authorize boot
+    # observation or another write. Boot authority remains device_key/product
+    # plus a typed terminal SourceInstallationResult.
+    operation_device_key: str = ""
+    operation_product: str = ""
 
     def actions(self, status: str) -> tuple[SourceInstallationActionEvidence, ...]:
         return tuple(item for item in self.action_evidence if item.status == status)
@@ -75,6 +83,33 @@ class SourceInstallationOutcome:
             and recorded.phone_state_uncertain is result.phone_state_uncertain
             and recorded.reboot_requested is result.reboot_requested
             and recorded.android_arrival_verified is result.android_arrival_verified
+        )
+
+    def matches_operation_device(
+        self,
+        privacy: WorkspacePrivacy,
+        device: AndroidDevice | None,
+    ) -> bool:
+        """Match sealed operation attribution without granting execution authority."""
+
+        if (
+            device is None
+            or not device.serial
+            or not self.operation_device_key
+            or not self.operation_product
+        ):
+            return False
+        product = self.operation_product.strip().casefold()
+        aliases = {
+            value.strip().casefold()
+            for value in (device.product, device.codename)
+            if value and value.strip()
+        }
+        return bool(
+            privacy.pseudonym(device.serial) == self.operation_device_key
+            and product in aliases
+            and (not device.codename or device.codename.strip().casefold() == product)
+            and (not device.manufacturer or device.manufacturer.strip().casefold() == "xiaomi")
         )
 
     def recovery_summary(self) -> str:
@@ -232,6 +267,8 @@ def load_latest_source_installation(
                     recipe_digest=document["recipe_digest"],
                     receipt_relative_path=path.relative_to(store.workspace).as_posix(),
                     action_evidence=action_evidence,
+                    operation_device_key=document["device_key"],
+                    operation_product=document["product"],
                 )
                 candidates.append((started, started, outcome, None))
                 continue
@@ -259,6 +296,8 @@ def load_latest_source_installation(
                 recipe_digest=document["recipe_digest"],
                 receipt_relative_path=path.relative_to(store.workspace).as_posix(),
                 action_evidence=action_evidence,
+                operation_device_key=document["device_key"],
+                operation_product=document["product"],
             )
             candidates.append(
                 (_time(document["started_at"]), _time(document["completed_at"]), outcome, document)

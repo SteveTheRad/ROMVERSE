@@ -71,6 +71,9 @@ class SourceInstallationHistoryDialog(LocalFlashDialog):
             and (not device.manufacturer or device.manufacturer.strip().casefold() == "xiaomi")
         )
 
+    def _matches_operation(self, device):
+        return self.outcome.matches_operation_device(self.service.privacy, device)
+
     def _render_history(self):
         action_ledger = self.outcome.recovery_summary()
         self.review.setPlainText(
@@ -86,18 +89,31 @@ class SourceInstallationHistoryDialog(LocalFlashDialog):
         self.progress.setRange(0, max(1, self.outcome.expected_count))
         self.progress.setValue(self.outcome.completed_count)
         self.progress.setFormat("%v / %m historical actions · boot separate")
-        if self._matches(self._selected_device()):
+        selected = self._selected_device()
+        if self._matches(selected):
             self.status.setText(
                 "The recorded phone is selected. Start a read-only boot check when ready."
+            )
+        elif self._matches_operation(selected):
+            self.status.setText(
+                "The exact recorded operation target is selected for diagnosis. The saved "
+                "identity cannot authorize a boot check or retry."
             )
         else:
             self.status.setText(
                 "Connect and select the same recorded phone to check boot. Other phones cannot inherit this installation."
             )
         if not isinstance(self.outcome.result, SourceInstallationResult):
-            self.status.setText(
-                "This history has no complete valid transport receipt to link. Open diagnosis and recovery; no boot success will be attached."
-            )
+            if self._matches_operation(selected):
+                self.status.setText(
+                    "The exact interrupted-operation target is selected for diagnosis. No boot "
+                    "check or retry is authorized by this history."
+                )
+            else:
+                self.status.setText(
+                    "This history has no complete valid transport receipt. Open diagnosis and "
+                    "recovery; reconnect the recorded phone for exact attribution."
+                )
 
     def _hide_execution_controls(self):
         for widget in (
@@ -181,7 +197,7 @@ class SourceInstallationHistoryDialog(LocalFlashDialog):
     def _open_recovery(self):
         device = self._selected_device()
         if self.worker is None and not self.monitoring:
-            self.last_attempt_device = device if self._matches(device) else None
+            self.last_attempt_device = device if self._matches_operation(device) else None
             self.last_flash_device = self.last_attempt_device
         super()._open_recovery()
 

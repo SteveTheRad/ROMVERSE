@@ -179,12 +179,24 @@ def test_receipt_modified_after_history_open_cannot_create_unlinked_boot_success
 
 def test_missing_typed_result_displays_history_and_recovery_but_never_starts_boot(history):
     _app, dialog, workers, context, before = history
-    dialog.outcome = replace(dialog.outcome, result=None)
+    dialog.outcome = replace(
+        dialog.outcome,
+        state="attention",
+        result=None,
+        device_key="",
+        product="",
+    )
+    dialog.preparation = dialog.outcome
     dialog._invalidate()
     assert not dialog.boot_button.isEnabled()
     assert dialog.recovery_button.isVisible()
+    assert "exact interrupted-operation target" in dialog.status.text()
     dialog._start_boot(context.phone.device())
     assert workers == []
+    _click(dialog.recovery_button)
+    assert dialog.recovery_requested
+    assert dialog.last_attempt_device.serial == context.phone.serial
+    assert dialog.last_flash_device.serial == context.phone.serial
     assert len(context.phone.changes) == before
 
 

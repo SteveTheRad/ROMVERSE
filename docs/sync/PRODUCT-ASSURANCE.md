@@ -1,52 +1,50 @@
 # ROMVERSE Product Assurance
 
-## Reviewed checkpoint: 48dc21b
+## Reviewed checkpoint: b9afd9f
 
-- Commit: `48dc21bba2c2698086c836a02605b22e788ba9b6`
-- Title: `Extract neutral Recovery evidence contracts`
-- Review status: **APPROVED**
-- Basis: authoritative source, contract documentation, adversarial tests, and `docs/sync/BUILD-STATUS.md`.
+- Commit: `b9afd9f9377942a0303f4352d290bf109a43e0a1`
+- Title: `Bound firmware source evidence adapters`
+- Review status: **APPROVED — FUTURE-PROOFING 3/3 COMPLETE**
+- Basis: authoritative source, adapter contract, adversarial tests, and `docs/sync/BUILD-STATUS.md`.
 
 ### Decision
 
-This satisfies Future-proofing checkpoint 2. Shared immutable Recovery incident, route,
-preparation, execution-result, boot-observation, and project-evidence records now have neutral
-ownership. Nominal read-only boundaries expose evidence without command, dispatch, approval,
-consent, retry, migration, or write operations. Legacy imports remain aliases to the same class
-objects, preserving existing JSON fields, formats, and versions.
+This satisfies Future-proofing checkpoint 3. The registry is closed, deterministic, and limited
+to the three approved pre-freeze representations: OTA `payload.bin`, Fastboot `super.img`, and
+partition-image bundles. The facade migration preserves the existing handlers, formats, schema
+versions, and public imports without injection, plug-ins, dynamic discovery, commands, device
+selection, or execution authority.
 
-The targeted Guardian↔Repair/ROM owner cycles are removed. Consumer-side validators independently
-recheck exact incident/device/project/source/Pack/transition/action/journal/digest bindings,
-terminal outcome coherence, non-authority, no-retry, independent verification, and permanent
-no-relock. Self-consistent forged evidence, UNKNOWN reinterpretation, cross-device attribution,
-and relock variants remain fail closed.
+Immutable workspace-relative snapshots, registration-order independence, exact identity checks,
+and rejection of duplicate, missing, malformed, mixed, conflicting, or ambiguous evidence are
+correct. The established `super.img` plus partition-image fallback remains explicit and bounded.
+Evidence is read/derive-only and cannot create a Device Pack, choose a route or phone, build,
+flash, install, dispatch, consent, retry, or relock.
 
 ### Evidence reviewed
 
-- `src/romverse/core/recovery_contracts.py`
-- `docs/RECOVERY-EVIDENCE-CONTRACTS.md`
-- Updated Guardian, Recovery, Repair, and boot-observation owners
-- `tests/test_recovery_evidence_contracts.py`: **12/12 passed** independently
-- Full Python regression: **2869/2869 passed**; focused schema/contract/Guardian/Recovery suite:
-  **86/86 passed**
+- `src/romverse/rom/source_evidence_adapters.py`
+- `src/romverse/rom/source_intelligence.py`
+- `docs/FIRMWARE-SOURCE-EVIDENCE-ADAPTERS.md`
+- `tests/test_firmware_source_evidence_adapters.py`: **11/11** adversarial cases passed
+- Full Python regression: **2880/2880 passed**; affected firmware/source regression: **223/223**
 
 ### Acceptance criteria
 
-- Dependency-neutral contracts remove mutual owner reachability without alternate authority paths.
-- Exact evidence and same-incident invariants remain independently validated.
-- FAILED and UNKNOWN stay durable, distinct, non-retry states.
-- No runtime migration, new adapter, execution capability, UI, hardware path, or release scope
-  was added.
+- Exactly the three approved existing source representations are supported.
+- Ambiguous or conflicting matches fail closed; valid Fastboot fallback remains supported.
+- Retained formats and public compatibility are preserved.
+- No alternate Guardian, Recovery, build, flash, retry, relock, UI, hardware, or release authority
+  path is introduced.
 
-All criteria are met.
+All criteria are met. Future-proofing checkpoints **3/3** are complete.
 
 ### Approved next bounded task
 
-Proceed to Future-proofing checkpoint 3: define a bounded firmware source-evidence adapter
-protocol and deterministic registry, then migrate only the existing OTA payload, Fastboot-super,
-and partition-bundle evidence handlers. No new format or vendor is approved; ambiguous or
-conflicting matches must fail closed, and evidence must never grant build, flash, device, or
-execution authority.
+Perform a read-only Stage 1 closure audit against the authoritative v0.2 Golden Foundation
+requirements and repository evidence. The audit may identify the smallest remaining already-
+approved gap, but must not begin a new consequential implementation boundary. Any proposed next
+slice requires a new Product Assurance review.
 
 ### Gate status
 

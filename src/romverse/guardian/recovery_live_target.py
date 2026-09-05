@@ -79,6 +79,37 @@ class GuardianRecoveryLiveTargetReceipt:
     receipt_digest: str
 
 
+@dataclass(frozen=True, slots=True)
+class GuardianRecoveryExecutionTargetWitness:
+    """Fresh, memory-only exact-phone evidence collected at executor admission."""
+
+    schema_version: int
+    witness_id: str
+    started_at: str
+    completed_at: str
+    prior_receipt_digest: str
+    preparation_digest: str
+    incident_id: str
+    device_key: str
+    source_original_sha256: str
+    device_pack_sha256: str
+    steps_digest: str
+    observed_entry_mode: str
+    observed_product: str
+    observed_unlocked: bool
+    recorded_prewrite_slot: str
+    discovery_pass_count: int
+    discovery_pass_digests: tuple[str, ...]
+    probe_round_count: int
+    probe_result_count: int
+    probe_results_digest: str
+    identity_verified: bool
+    execution_authority: str
+    runtime_invoked: bool
+    phone_changed: bool
+    witness_digest: str
+
+
 class GuardianRecoveryLiveTargetReceiptService(GuardianLiveTargetReceiptService):
     """Observe one exact Fastboot phone for one current Recovery preparation.
 
@@ -92,6 +123,7 @@ class GuardianRecoveryLiveTargetReceiptService(GuardianLiveTargetReceiptService)
     LATEST_NAME = "live-target.romverse"
     MAX_BYTES = 256 * 1024
     VALIDITY_SECONDS = 120
+    EXECUTION_WITNESS_SCHEMA_VERSION = 1
 
     def __init__(
         self,
@@ -262,6 +294,161 @@ class GuardianRecoveryLiveTargetReceiptService(GuardianLiveTargetReceiptService)
             json.JSONDecodeError,
         ):
             return None
+
+    def revalidate_for_execution(
+        self,
+        preparation: GuardianRecoveryPreparation,
+        current_receipt: GuardianRecoveryLiveTargetReceipt,
+        reviewed_device: AndroidDevice,
+    ) -> GuardianRecoveryExecutionTargetWitness:
+        """Re-observe the exact phone immediately before executor admission.
+
+        This deliberately leaves the approved live-target receipt untouched so its
+        consent binding remains verifiable.  The returned witness is memory-only and
+        grants no authority; a later exclusive executor claim must bind it.
+        """
+
+        try:
+            started = self._now()
+            if self.load(preparation, reviewed_device, now=started) != current_receipt:
+                raise RecoveryLiveTargetValidationError(
+                    "Executor admission requires the current exact live-phone receipt"
+                )
+            specs = self._recovery_probe_specs(preparation)
+            discoveries = [self._discover(preparation.device_key, reviewed_device.serial)]
+            results: list[GuardianLiveTargetProbeResult] = []
+            for round_number in range(1, self.PROBE_ROUND_COUNT + 1):
+                results.extend(
+                    self._probe_round(
+                        reviewed_device.serial,
+                        specs,
+                        round_number,
+                        len(results),
+                    )
+                )
+                discoveries.append(self._discover(preparation.device_key, reviewed_device.serial))
+            completed = self._now()
+            if (
+                completed < started
+                or (completed - started).total_seconds() > self.MAX_OBSERVATION_SECONDS
+            ):
+                raise RecoveryLiveTargetValidationError(
+                    "Executor target revalidation exceeded its bounded observation window"
+                )
+            if len(set(discoveries)) != 1:
+                raise RecoveryLiveTargetValidationError(
+                    "The USB transport changed during executor target revalidation"
+                )
+            observed = self._validate_probe_rounds(
+                specs,
+                tuple(results),
+                preparation.expected_entry_mode,
+            )
+            current_slot = observed.get("current-slot", "")
+            if (
+                self.load(preparation, reviewed_device, now=completed) != current_receipt
+                or observed["product"] != current_receipt.observed_product
+                or observed["unlocked"].casefold() != "yes"
+                or current_slot != current_receipt.recorded_prewrite_slot
+            ):
+                raise RecoveryLiveTargetValidationError(
+                    "The exact Recovery target changed before executor admission"
+                )
+            results_digest = _digest({"probe_results": [asdict(item) for item in results]})
+            payload: dict[str, object] = {
+                "schema_version": self.EXECUTION_WITNESS_SCHEMA_VERSION,
+                "witness_id": uuid4().hex,
+                "started_at": started.isoformat(),
+                "completed_at": completed.isoformat(),
+                "prior_receipt_digest": current_receipt.receipt_digest,
+                "preparation_digest": preparation.preparation_digest,
+                "incident_id": preparation.incident_id,
+                "device_key": preparation.device_key,
+                "source_original_sha256": preparation.source_original_sha256,
+                "device_pack_sha256": preparation.device_pack_sha256,
+                "steps_digest": preparation.steps_digest,
+                "observed_entry_mode": preparation.expected_entry_mode,
+                "observed_product": observed["product"],
+                "observed_unlocked": True,
+                "recorded_prewrite_slot": current_slot,
+                "discovery_pass_count": len(discoveries),
+                "discovery_pass_digests": tuple(discoveries),
+                "probe_round_count": self.PROBE_ROUND_COUNT,
+                "probe_result_count": len(results),
+                "probe_results_digest": results_digest,
+                "identity_verified": True,
+                "execution_authority": "none",
+                "runtime_invoked": False,
+                "phone_changed": False,
+            }
+            witness = GuardianRecoveryExecutionTargetWitness(
+                **payload,
+                witness_digest=_digest(payload),
+            )
+            self.validate_execution_witness(
+                witness,
+                preparation,
+                current_receipt,
+            )
+            return witness
+        except RecoveryLiveTargetValidationError:
+            raise
+        except LiveTargetValidationError as exc:
+            raise RecoveryLiveTargetValidationError(str(exc)) from exc
+        except (LocalStoreError, OSError, TypeError, ValueError, KeyError, ProjectError) as exc:
+            raise RecoveryLiveTargetValidationError(
+                "Executor target revalidation failed closed before any phone-changing action"
+            ) from exc
+
+    @classmethod
+    def validate_execution_witness(
+        cls,
+        witness: GuardianRecoveryExecutionTargetWitness,
+        preparation: GuardianRecoveryPreparation,
+        current_receipt: GuardianRecoveryLiveTargetReceipt,
+    ) -> None:
+        payload = asdict(witness)
+        witness_digest = str(payload.pop("witness_digest", ""))
+        started = _timestamp(witness.started_at)
+        completed = _timestamp(witness.completed_at)
+        if (
+            type(witness.schema_version) is not int
+            or witness.schema_version != cls.EXECUTION_WITNESS_SCHEMA_VERSION
+            or not _hex(witness.witness_id, 32)
+            or completed < started
+            or (completed - started).total_seconds() > cls.MAX_OBSERVATION_SECONDS
+            or witness.prior_receipt_digest != current_receipt.receipt_digest
+            or witness.preparation_digest != preparation.preparation_digest
+            or witness.incident_id != preparation.incident_id
+            or witness.device_key != preparation.device_key
+            or witness.source_original_sha256 != preparation.source_original_sha256
+            or witness.device_pack_sha256 != preparation.device_pack_sha256
+            or witness.steps_digest != preparation.steps_digest
+            or witness.observed_entry_mode != preparation.expected_entry_mode
+            or witness.observed_product != current_receipt.observed_product
+            or witness.observed_unlocked is not True
+            or witness.recorded_prewrite_slot != current_receipt.recorded_prewrite_slot
+            or type(witness.discovery_pass_count) is not int
+            or witness.discovery_pass_count != cls.DISCOVERY_PASS_COUNT
+            or len(witness.discovery_pass_digests) != cls.DISCOVERY_PASS_COUNT
+            or len(set(witness.discovery_pass_digests)) != 1
+            or any(not _hex(item, 64) for item in witness.discovery_pass_digests)
+            or type(witness.probe_round_count) is not int
+            or witness.probe_round_count != cls.PROBE_ROUND_COUNT
+            or type(witness.probe_result_count) is not int
+            or witness.probe_result_count
+            != len(cls._recovery_probe_specs(preparation)) * cls.PROBE_ROUND_COUNT
+            or not _hex(witness.probe_results_digest, 64)
+            or witness.identity_verified is not True
+            or witness.execution_authority != "none"
+            or witness.runtime_invoked is not False
+            or witness.phone_changed is not False
+            or not _hex(witness_digest, 64)
+            or witness_digest != _digest(payload)
+        ):
+            raise RecoveryLiveTargetValidationError(
+                "Executor target witness failed strict validation"
+            )
 
     @classmethod
     def validate(

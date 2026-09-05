@@ -236,6 +236,10 @@ QFrame#RecoveryReviewCard {
     background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(43,25,12,248),stop:0.5 rgba(16,20,43,246),stop:1 rgba(26,12,48,244));
     border: 1px solid rgba(255, 180, 84, 190); border-left: 4px solid #FFB454; border-radius: 11px;
 }
+QFrame#TimeMachineRecoveryReviewCard {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(8,32,42,248),stop:0.5 rgba(13,20,49,246),stop:1 rgba(39,15,51,244));
+    border: 1px solid rgba(74, 222, 235, 190); border-left: 4px solid #42DDEA; border-radius: 11px;
+}
 QFrame#Card[diagnosticFocus="true"] {
     background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 rgba(31,16,58,248),stop:1 rgba(5,31,43,248));
     border: 2px solid #42DDEA; border-left: 4px solid #B45CFF;

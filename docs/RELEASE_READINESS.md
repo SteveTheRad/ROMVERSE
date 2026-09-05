@@ -2070,6 +2070,25 @@ large-archive hashing can be slow and never silently renews an expired transitio
   installation, Companion or website change, publication or remote push occurred. Approved
   production logos were not edited.
 
+## 2026-09-05 Recovery to Time Machine context and return
+
+- A Recovery route missing exact stock-package evidence now opens Time Machine with the sealed
+  incident, exact project, Device Pack, protected-source digest, route requirements and current
+  local evidence. It no longer opens a generic recovery dashboard and abandons the journey.
+- The exact project is selected and protected from accidental reselection. Existing local hashing
+  controls are available in the context card; they copy nothing into the project and send nothing
+  to a phone.
+- Manual return freshly reassesses evidence, re-ranks the same incident through the shared Recovery
+  service and restores the same route. Ready external-backup and stock-package evidence returns
+  automatically. Changed incident, route, project or Pack context is refused.
+- One affected run passes all 130 tests with zero failures, errors or skips in about 127.3 seconds;
+  a 1440×900 visual inspection is readable without clipping. See
+  `RECOVERY_TIME_MACHINE_CONTEXT_RETURN_2026-09-05.md` for exact boundaries.
+- This is implemented and simulated/tested on Fedora/Linux, not hardware verified or released.
+  Windows was not exercised. No physical phone operation, application restart, package
+  installation, Companion or website change, publication or remote push occurred. Approved
+  production logos were not edited.
+
 ## Honest feature boundary
 
 The current safe milestone supports read-only Android evidence, local diagnostics, guarded APK

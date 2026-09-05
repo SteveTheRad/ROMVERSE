@@ -33,9 +33,10 @@ from romverse.nexus.events import (
     MissionConfidence,
     MissionState,
 )
+from romverse.repair.autopilot import RecoveryIncident, RecoveryRoute, RecoveryRouteKind
 from romverse.rom.models import ProjectError, TimeMachineSnapshot
 from romverse.rom.projects import RomProjectStore
-from romverse.rom.recovery_evidence import RecoveryEvidenceService
+from romverse.rom.recovery_evidence import RecoveryEvidenceAssessment, RecoveryEvidenceService
 from romverse.rom.vault import (
     ProjectVaultService,
     RecoveryCapsuleReceipt,
@@ -313,6 +314,7 @@ class BackupCenter(QWidget):
     guardian_requested = Signal(str, str)
     rom_studio_requested = Signal(str, str)
     rom_studio_setup_requested = Signal(str)
+    recovery_requested = Signal(str, str)
 
     def __init__(
         self,
@@ -335,6 +337,7 @@ class BackupCenter(QWidget):
         self.plan_store = GuardianBackupPlanStore(workspace)
         self._selected_plan_id = ""
         self._device_atlas_report_identity: tuple[str, str] | None = None
+        self._recovery_review_context: tuple[RecoveryIncident, RecoveryRoute] | None = None
         self.device: AndroidDevice | None = None
         self.projects = ()
         self.snapshots: tuple[TimeMachineSnapshot, ...] = ()
@@ -402,6 +405,53 @@ class BackupCenter(QWidget):
         dashboard_handoff_layout.addWidget(self.dashboard_handoff_badge)
         self.dashboard_handoff.setVisible(False)
         layout.addWidget(self.dashboard_handoff)
+        self.recovery_review = QFrame()
+        self.recovery_review.setObjectName("TimeMachineRecoveryReviewCard")
+        recovery_review_layout = QVBoxLayout(self.recovery_review)
+        recovery_review_layout.setContentsMargins(20, 16, 20, 16)
+        recovery_review_layout.setSpacing(8)
+        recovery_review_header = QHBoxLayout()
+        self.recovery_review_eyebrow = QLabel(
+            "RECOVERY AUTOPILOT HANDOFF  •  EXACT EVIDENCE PREREQUISITE"
+        )
+        self.recovery_review_eyebrow.setObjectName("Eyebrow")
+        recovery_review_header.addWidget(self.recovery_review_eyebrow, 1)
+        self.recovery_review_badge = QLabel("EVIDENCE NEEDED • ZERO AUTHORITY")
+        self.recovery_review_badge.setObjectName("Warning")
+        recovery_review_header.addWidget(self.recovery_review_badge)
+        self.recovery_return_button = QPushButton("Return to Recovery incident")
+        self.recovery_return_button.clicked.connect(self._return_to_recovery)
+        recovery_review_header.addWidget(self.recovery_return_button)
+        recovery_review_layout.addLayout(recovery_review_header)
+        self.recovery_review_title = QLabel()
+        self.recovery_review_title.setObjectName("SectionTitle")
+        recovery_review_layout.addWidget(self.recovery_review_title)
+        self.recovery_review_detail = QLabel()
+        self.recovery_review_detail.setObjectName("Muted")
+        self.recovery_review_detail.setWordWrap(True)
+        self.recovery_review_detail.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        recovery_review_layout.addWidget(self.recovery_review_detail)
+        recovery_review_actions = QHBoxLayout()
+        self.recovery_backup_button = QPushButton("Register external backup…")
+        self.recovery_backup_button.clicked.connect(
+            lambda: self._choose_recovery_evidence("external_backup")
+        )
+        self.recovery_stock_button = QPushButton("Register exact stock package…")
+        self.recovery_stock_button.setObjectName("Primary")
+        self.recovery_stock_button.clicked.connect(
+            lambda: self._choose_recovery_evidence("stock_recovery")
+        )
+        self.recovery_reverify_button = QPushButton("Reverify evidence")
+        self.recovery_reverify_button.clicked.connect(self._verify_recovery_evidence)
+        recovery_review_actions.addWidget(self.recovery_backup_button)
+        recovery_review_actions.addWidget(self.recovery_stock_button)
+        recovery_review_actions.addWidget(self.recovery_reverify_button)
+        recovery_review_actions.addStretch()
+        recovery_review_layout.addLayout(recovery_review_actions)
+        self.recovery_review.setVisible(False)
+        layout.addWidget(self.recovery_review)
         self.plan_context = QFrame()
         self.plan_context.setObjectName("DiagnosticHandoffBar")
         plan_context_layout = QHBoxLayout(self.plan_context)
@@ -730,6 +780,147 @@ class BackupCenter(QWidget):
         layout.addWidget(boundary)
         self._load_latest_plan()
         self.refresh_local_snapshots()
+
+    def open_recovery_review(self, incident: RecoveryIncident, route: RecoveryRoute) -> bool:
+        """Open one exact Recovery evidence prerequisite without starting work."""
+
+        if (
+            not isinstance(incident, RecoveryIncident)
+            or not isinstance(route, RecoveryRoute)
+            or incident.repaired
+            or not incident.integrity_verified
+            or not incident.device_key
+            or not incident.project_id
+            or not incident.pack_id
+            or route not in incident.routes
+            or route.kind is not RecoveryRouteKind.EXACT_STOCK_RESTORE
+            or route.owner_route != "time_machine"
+            or not route.changes_device
+            or not route.confirmation_required
+            or route.execution_authority != "none"
+            or not route.requirements
+        ):
+            return False
+        try:
+            project = self.rom_store.get(incident.project_id)
+        except (OSError, ProjectError, TypeError, ValueError):
+            return False
+        if project.device_pack_id != incident.pack_id or project.original is None:
+            return False
+        self.refresh_local_snapshots(project.project_id)
+        if str(self.project_selector.currentData() or "") != project.project_id:
+            return False
+        self._recovery_review_context = (incident, route)
+        self.project_selector.setEnabled(False)
+        self.dashboard_handoff.setVisible(False)
+        self.device_atlas_handoff.setVisible(False)
+        self.plan_context.setVisible(False)
+        self._render_recovery_review(
+            self.recovery_evidence.assess(project.project_id, self.device)
+        )
+        self.recovery_review.setVisible(True)
+        self.page_scroll.ensureWidgetVisible(self.recovery_review)
+        self.recovery_stock_button.setFocus(Qt.FocusReason.OtherFocusReason)
+        return True
+
+    @property
+    def recovery_review_identity(self) -> tuple[str, str] | None:
+        context = self._recovery_review_context
+        return (context[0].incident_id, context[1].route_id) if context is not None else None
+
+    def recovery_review_assessment(
+        self, incident_id: str, route_id: str
+    ) -> RecoveryEvidenceAssessment | None:
+        """Reassess only the exact project carried by the current Recovery handoff."""
+
+        context = self._recovery_review_context
+        if context is None or (context[0].incident_id, context[1].route_id) != (
+            incident_id,
+            route_id,
+        ):
+            return None
+        project_id = context[0].project_id
+        if str(self.project_selector.currentData() or "") != project_id:
+            return None
+        try:
+            project = self.rom_store.get(project_id)
+            if project.device_pack_id != context[0].pack_id or project.original is None:
+                return None
+            return self.recovery_evidence.assess(project_id, self.device)
+        except (OSError, ProjectError, TypeError, ValueError):
+            return None
+
+    def recovery_review_stopped(self, reason: str) -> None:
+        """Expire a Recovery prerequisite visibly without retaining stale context."""
+
+        self._recovery_review_context = None
+        self.recovery_review_title.setText("Recovery evidence context expired safely")
+        self.recovery_review_detail.setText(
+            f"{reason}\nReturn to Recovery Bay and rebuild this prerequisite from fresh "
+            "evidence. No file operation, approval, restore, or phone action started."
+        )
+        self.recovery_review_badge.setText("CONTEXT REFUSED")
+        self.recovery_review_badge.setObjectName("Danger")
+        self._repolish(self.recovery_review_badge)
+        self._set_recovery_review_controls(False)
+        self.recovery_return_button.setEnabled(False)
+        self.project_selector.setEnabled(True)
+        self.recovery_review.setVisible(True)
+
+    def clear_recovery_review(self) -> None:
+        self._recovery_review_context = None
+        self.recovery_review.setVisible(False)
+        self.recovery_review_title.clear()
+        self.recovery_review_detail.clear()
+        self.recovery_review_badge.setText("EVIDENCE NEEDED • ZERO AUTHORITY")
+        self.recovery_review_badge.setObjectName("Warning")
+        self._repolish(self.recovery_review_badge)
+        self._set_recovery_review_controls(False)
+        self.recovery_return_button.setEnabled(False)
+        self.project_selector.setEnabled(True)
+
+    def _render_recovery_review(self, assessment: RecoveryEvidenceAssessment) -> None:
+        context = self._recovery_review_context
+        if context is None:
+            return
+        incident, route = context
+        project = self.rom_store.get(incident.project_id)
+        original_sha256 = project.original.sha256 if project.original is not None else ""
+        evidence = "\n".join(f"• {item}" for item in assessment.evidence)
+        requirements = "\n".join(f"• {item}" for item in route.requirements)
+        self.recovery_review_title.setText(f"{route.title}  •  {project.name}")
+        self.recovery_review_detail.setText(
+            f"Incident {incident.incident_id[:12]}…  •  Device {incident.device_name}  •  "
+            f"Device Pack {incident.pack_id}\n"
+            f"EXACT PROJECT  •  {project.project_id}  •  protected source SHA-256 "
+            f"{original_sha256[:16]}…\n"
+            f"WHY YOU ARE HERE  •  {route.summary}\n"
+            f"REQUIRED BEFORE ANY PHONE ACTION\n{requirements}\n"
+            f"CURRENT LOCAL EVIDENCE\n{evidence}\n"
+            "HANDOFF BOUNDARY  •  File selection and hashing only  •  Approval: none  •  "
+            "Execution: none  •  Restore started: no  •  Phone changed: no  •  "
+            "Bootloader relock: never"
+        )
+        self.recovery_review_badge.setText(
+            "EVIDENCE READY • ZERO AUTHORITY"
+            if assessment.ready
+            else "EVIDENCE NEEDED • ZERO AUTHORITY"
+        )
+        self.recovery_review_badge.setObjectName("Good" if assessment.ready else "Warning")
+        self._repolish(self.recovery_review_badge)
+        self.recovery_return_button.setEnabled(True)
+        self._set_recovery_review_controls(self.evidence_worker is None)
+
+    def _set_recovery_review_controls(self, enabled: bool) -> None:
+        active = enabled and self._recovery_review_context is not None
+        self.recovery_backup_button.setEnabled(active)
+        self.recovery_stock_button.setEnabled(active)
+        self.recovery_reverify_button.setEnabled(active)
+
+    def _return_to_recovery(self) -> None:
+        identity = self.recovery_review_identity
+        if identity is not None:
+            self.recovery_requested.emit(*identity)
 
     def open_device_atlas_readiness(self, report: DevicePackValidationReport) -> bool:
         """Show exact zero-authority Device Atlas context without enabling evidence gates."""
@@ -2101,6 +2292,7 @@ class BackupCenter(QWidget):
             assessment = self.recovery_evidence.assess(project_id)
             has_evidence = assessment.external_backup_ready or assessment.stock_recovery_ready
         self.verify_evidence_button.setEnabled(enabled and has_evidence)
+        self._set_recovery_review_controls(enabled)
 
     def _choose_recovery_evidence(self, role: str) -> None:
         project_id = str(self.project_selector.currentData() or "")
@@ -2185,6 +2377,12 @@ class BackupCenter(QWidget):
             else f"recovery-evidence-{operation}"
         )
         self._finish_live_mission(stage, MissionState.SUCCEEDED)
+        context = self._recovery_review_context
+        if context is not None and context[0].project_id == project_id:
+            assessment = self.recovery_evidence.assess(project_id, self.device)
+            self._render_recovery_review(assessment)
+            if assessment.ready:
+                self.recovery_requested.emit(context[0].incident_id, context[1].route_id)
 
     @Slot(str)
     def _recovery_evidence_failed(self, message: str) -> None:

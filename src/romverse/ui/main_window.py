@@ -4183,6 +4183,7 @@ class MainWindow(QMainWindow):
         self.backup_center.rom_studio_setup_requested.connect(
             self._open_time_machine_rom_studio_setup
         )
+        self.backup_center.recovery_requested.connect(self._return_time_machine_recovery)
         self.guardian_center.time_machine_requested.connect(self._return_guardian_time_machine)
         self.guardian_center.rom_studio_requested.connect(self._return_guardian_rom_studio)
         self.stack.addWidget(self.backup_center)
@@ -8424,12 +8425,21 @@ class MainWindow(QMainWindow):
                     NotificationKind.ATTENTION,
                 )
                 return
+        elif owner_route == "time_machine":
+            context = self.repair_center.recovery_route_context(route_id, owner_route)
+            if context is None or not self.backup_center.open_recovery_review(*context):
+                self.notification_center.notify(
+                    f"recovery-autopilot.route.{route_id}",
+                    "Recovery evidence context changed",
+                    "Time Machine did not accept a missing, mismatched, or authority-bearing "
+                    "Recovery prerequisite. The active incident remains unchanged.",
+                    NotificationKind.ATTENTION,
+                )
+                return
         if not self._navigate_route(owner_route):
             return
         if owner_route == "guardian_core":
             self.guardian_center.request_refresh()
-        elif owner_route == "time_machine":
-            self.backup_center.open_dashboard_intent("Rescue & Backup")
         self.notification_center.notify(
             f"recovery-autopilot.route.{route_id}",
             "Recovery route opened for review",
@@ -8454,6 +8464,37 @@ class MainWindow(QMainWindow):
             self.guardian_center.recovery_review_stopped(
                 "Recovery Bay could not restore the exact current incident and route."
             )
+
+    @Slot(str, str)
+    def _return_time_machine_recovery(self, incident_id: str, route_id: str) -> None:
+        """Return exact Time Machine evidence to the same active Recovery route."""
+
+        context = self.repair_center.recovery_route_context(route_id, "time_machine")
+        assessment = self.backup_center.recovery_review_assessment(incident_id, route_id)
+        if context is None or context[0].incident_id != incident_id or assessment is None:
+            self.backup_center.recovery_review_stopped(
+                "The project, incident, route, or Device Pack no longer matches the sealed handoff"
+            )
+            return
+        if not self.repair_center.update_recovery_evidence(incident_id, assessment):
+            self.backup_center.recovery_review_stopped(
+                "Fresh local evidence could not be assigned to the exact active Recovery incident"
+            )
+            return
+        refreshed = self.repair_center.recovery_route_context(route_id)
+        if refreshed is None or refreshed[0].incident_id != incident_id:
+            self.backup_center.recovery_review_stopped(
+                "Recovery re-ranked the incident and the previous route is no longer current"
+            )
+            return
+        if not self._navigate_route(
+            "recovery_bay"
+        ) or not self.repair_center.restore_recovery_route(incident_id, route_id):
+            self.backup_center.recovery_review_stopped(
+                "Recovery Bay could not restore the exact current incident and route"
+            )
+            return
+        self.backup_center.clear_recovery_review()
 
     @Slot(str)
     def _open_repair_finding(self, finding_id: str) -> None:

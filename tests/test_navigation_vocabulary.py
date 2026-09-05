@@ -38,7 +38,7 @@ from romverse.intelligence.synapse import (
 )
 from romverse.nexus.events import MissionConfidence
 from romverse.nexus.planning import NexusObjective, NexusPlanner
-from romverse.repair.autopilot import RecoveryTrigger
+from romverse.repair.autopilot import RecoveryRouteKind, RecoveryTrigger
 from romverse.repair.templates import RepairConcern
 from romverse.rom.boot_observation import (
     BootFailureKind,
@@ -190,6 +190,128 @@ def test_recovery_guardian_handoff_returns_to_same_incident_and_route(tmp_path: 
             for button in window.repair_center.autopilot_route_buttons
         )
         assert "remains advisory" in window.repair_center.digest.text()
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_recovery_time_machine_handoff_returns_to_same_incident_and_route(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    source = tmp_path / "exact-stock.zip"
+    source.write_bytes(b"navigation exact stock fixture")
+    workspace = tmp_path / "workspace"
+    store = RomProjectStore(workspace)
+    project = store.create("Recovery evidence project", "test.recovery")
+    project = store.import_original(project.project_id, source)
+    phone = _recovery_device(DeviceState.FASTBOOT, boot_completed=False)
+    window = MainWindow(
+        None,
+        logo,
+        workspace,
+        app_icon_path=logo,
+        pack_registry=_recovery_registry(),
+    )
+    try:
+        window.repair_center.set_devices([phone])
+        assert window.repair_center.open_recovery_incident(
+            RecoveryTrigger.BOOTLOOP,
+            project_id=project.project_id,
+            target_device=phone,
+        )
+        assert window._navigate_route("recovery_bay")
+        incident = window.repair_center.autopilot_incident
+        assert incident is not None
+        route = next(
+            item
+            for item in incident.routes
+            if item.kind is RecoveryRouteKind.EXACT_STOCK_RESTORE
+        )
+        assert route.owner_route == "time_machine"
+        window.repair_center._autopilot_show_all_routes = True
+        window.repair_center._render_autopilot()
+        route_button = next(
+            button
+            for button in window.repair_center.autopilot_route_buttons
+            if button.property("recovery_route_id") == route.route_id
+        )
+
+        route_button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.backup_center
+        assert window.backup_center.recovery_review_identity == (
+            incident.incident_id,
+            route.route_id,
+        )
+        assert window.backup_center.project_selector.currentData() == project.project_id
+        assert not window.backup_center.project_selector.isEnabled()
+        assert window.backup_center.evidence_worker is None
+        assert window.backup_center.worker is None
+
+        window.backup_center.recovery_return_button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.repair_center
+        assert window.repair_center.autopilot_incident is not None
+        assert window.repair_center.autopilot_incident.incident_id == incident.incident_id
+        assert not window.repair_center.autopilot_incident.phone_changed
+        assert window.backup_center.recovery_review_identity is None
+        assert window.backup_center.project_selector.isEnabled()
+        assert any(
+            button.property("recovery_route_id") == route.route_id
+            for button in window.repair_center.autopilot_route_buttons
+        )
+        assert "remains advisory" in window.repair_center.digest.text()
+
+        window.backup_center.recovery_evidence.register(
+            project.project_id,
+            "external_backup",
+            source,
+        )
+        return_route = next(
+            item
+            for item in window.repair_center.autopilot_incident.routes
+            if item.route_id == route.route_id
+        )
+        assert return_route.owner_route == "time_machine"
+        return_button = next(
+            button
+            for button in window.repair_center.autopilot_route_buttons
+            if button.property("recovery_route_id") == route.route_id
+        )
+        return_button.click()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.backup_center
+        queued = []
+        monkeypatch.setattr("romverse.ui.backup_center.start_background", queued.append)
+
+        window.backup_center._start_recovery_evidence(
+            "register",
+            project.project_id,
+            "stock_recovery",
+            source,
+        )
+        assert len(queued) == 1
+        queued.pop().run()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.repair_center
+        assert window.repair_center.autopilot_incident is not None
+        assert window.repair_center.autopilot_incident.incident_id == incident.incident_id
+        reranked = next(
+            item
+            for item in window.repair_center.autopilot_incident.routes
+            if item.route_id == route.route_id
+        )
+        assert reranked.owner_route == "guardian_core"
+        assert reranked.execution_authority == "none"
+        assert window.backup_center.recovery_review_identity is None
+        assert window.backup_center.evidence_worker is None
+        assert not window.repair_center.autopilot_incident.phone_changed
     finally:
         window.companion_center.transport.close()
         window.close()

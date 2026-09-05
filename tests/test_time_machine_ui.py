@@ -17,10 +17,18 @@ from romverse.core.settings import AppSettings
 from romverse.device.models import AndroidDevice, DeviceState, StorageInfo
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.device_packs.validation import DevicePackValidationService
+from romverse.repair.autopilot import (
+    RecoveryAutopilotContext,
+    RecoveryAutopilotService,
+    RecoveryRouteKind,
+    RecoveryTrigger,
+)
 from romverse.rom.projects import RomProjectStore
 from romverse.ui.backup_center import BackupCenter, TimeMachineWorker
 from romverse.ui.main_window import MainWindow
 from romverse.ui.theme import STYLESHEET
+from tests.test_recovery_autopilot import _device as _recovery_device
+from tests.test_recovery_autopilot import _registry as _recovery_registry
 
 
 def _xiaomi_readiness_report():
@@ -36,6 +44,106 @@ def _xiaomi_readiness_report():
     pack = registry.resolve(device).pack
     assert pack is not None
     return DevicePackValidationService().assess(pack, device)
+
+
+def _recovery_time_machine_context(tmp_path: Path):
+    source = tmp_path / "exact-stock.zip"
+    source.write_bytes(b"exact stock package fixture")
+    workspace = tmp_path / "workspace"
+    store = RomProjectStore(workspace)
+    project = store.create("Exact Recovery Project", "test.recovery")
+    project = store.import_original(project.project_id, source)
+    service = RecoveryAutopilotService(workspace, _recovery_registry())
+    incident = service.start(
+        RecoveryAutopilotContext(
+            RecoveryTrigger.BOOTLOOP,
+            device=_recovery_device(DeviceState.FASTBOOT, boot_completed=False),
+            project_id=project.project_id,
+        )
+    )
+    route = next(
+        item
+        for item in incident.routes
+        if item.kind is RecoveryRouteKind.EXACT_STOCK_RESTORE
+    )
+    assert route.owner_route == "time_machine"
+    return source, workspace, project, incident, route
+
+
+def test_time_machine_carries_recovery_context_to_exact_evidence_and_back(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    source, workspace, project, incident, route = _recovery_time_machine_context(tmp_path)
+    center = BackupCenter(workspace)
+    returned: list[tuple[str, str]] = []
+    center.recovery_requested.connect(
+        lambda incident_id, route_id: returned.append((incident_id, route_id))
+    )
+
+    assert center.open_recovery_review(incident, route)
+    app.processEvents()
+
+    assert center.recovery_review_identity == (incident.incident_id, route.route_id)
+    assert center.recovery_review.isVisibleTo(center)
+    assert center.recovery_review.objectName() == "TimeMachineRecoveryReviewCard"
+    assert "QFrame#TimeMachineRecoveryReviewCard" in STYLESHEET
+    assert center.project_selector.currentData() == project.project_id
+    assert not center.project_selector.isEnabled()
+    assert center.recovery_backup_button.isEnabled()
+    assert center.recovery_stock_button.isEnabled()
+    assert center.recovery_reverify_button.isEnabled()
+    detail = center.recovery_review_detail.text()
+    assert incident.incident_id[:12] in detail
+    assert incident.pack_id in detail
+    assert project.project_id in detail
+    assert project.original is not None
+    assert project.original.sha256[:16] in detail
+    assert route.summary in detail
+    assert "File selection and hashing only" in detail
+    assert "Execution: none" in detail
+    assert "Phone changed: no" in detail
+    assert "Bootloader relock: never" in detail
+    assert center.evidence_worker is None
+    assert not incident.phone_changed
+
+    center.recovery_return_button.click()
+    assert returned == [(incident.incident_id, route.route_id)]
+    assert source.read_bytes() == b"exact stock package fixture"
+    center.close()
+
+
+def test_time_machine_returns_ready_evidence_to_recovery_after_verification(
+    tmp_path, monkeypatch
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    source, workspace, project, incident, route = _recovery_time_machine_context(tmp_path)
+    center = BackupCenter(workspace)
+    center.recovery_evidence.register(project.project_id, "external_backup", source)
+    queued = []
+    monkeypatch.setattr("romverse.ui.backup_center.start_background", queued.append)
+    returned: list[tuple[str, str]] = []
+    center.recovery_requested.connect(
+        lambda incident_id, route_id: returned.append((incident_id, route_id))
+    )
+    assert center.open_recovery_review(incident, route)
+
+    center._start_recovery_evidence(
+        "register",
+        project.project_id,
+        "stock_recovery",
+        source,
+    )
+    assert len(queued) == 1
+    queued.pop().run()
+    app.processEvents()
+
+    assessment = center.recovery_review_assessment(incident.incident_id, route.route_id)
+    assert assessment is not None and assessment.ready
+    assert center.recovery_review_badge.text() == "EVIDENCE READY • ZERO AUTHORITY"
+    assert returned == [(incident.incident_id, route.route_id)]
+    assert center.evidence_worker is None
+    assert source.read_bytes() == b"exact stock package fixture"
+    assert not incident.phone_changed
+    center.close()
 
 
 def test_time_machine_explains_device_atlas_stock_gate_without_inventing_project(

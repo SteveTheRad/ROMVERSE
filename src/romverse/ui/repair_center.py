@@ -1091,6 +1091,30 @@ class RepairCenter(QWidget):
         button.setFocus(Qt.FocusReason.OtherFocusReason)
         return True
 
+    def update_recovery_evidence(
+        self,
+        incident_id: str,
+        assessment: RecoveryEvidenceAssessment,
+    ) -> bool:
+        """Re-rank one active incident from freshly assessed local recovery evidence."""
+
+        incident = self.autopilot_incident
+        if (
+            incident is None
+            or incident.repaired
+            or incident.incident_id != incident_id
+            or not isinstance(assessment, RecoveryEvidenceAssessment)
+        ):
+            return False
+        self._autopilot_recovery_evidence = assessment
+        self._refresh_autopilot(self.current_device)
+        updated = self.autopilot_incident
+        return bool(
+            updated is not None
+            and updated.incident_id == incident_id
+            and not updated.phone_changed
+        )
+
     def _request_autopilot_scan(self) -> None:
         if self.autopilot_incident is None or self.autopilot_incident.repaired:
             return

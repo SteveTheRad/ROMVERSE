@@ -1,9 +1,10 @@
-"""Guided local image preparation; never a claim of a complete ROM install route."""
+"""Choose explicit image mappings or a supported source-declared installation."""
 
 from __future__ import annotations
 
 from PySide6.QtCore import QObject, Qt, Signal, Slot
 from PySide6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDialog,
     QHBoxLayout,
@@ -11,9 +12,11 @@ from PySide6.QtWidgets import (
     QProgressBar,
     QPushButton,
     QVBoxLayout,
+    QWidget,
 )
 
 from romverse.rom.project_flash import ProjectFlashPreparation
+from romverse.rom.source_installation import SourceInstallationRecipe
 from romverse.ui.background import ManagedRunnable, start_background
 from romverse.ui.formatters import human_bytes
 from romverse.ui.local_flash import LocalFlashDialog
@@ -25,18 +28,38 @@ class PreparationSignals(QObject):
 
 
 class ProjectPreparationWorker(ManagedRunnable):
-    def __init__(self, service, project_id: str, candidate_choice: str) -> None:
+    def __init__(
+        self,
+        service,
+        project_id: str,
+        candidate_choice: str,
+        *,
+        source_service=None,
+        wipe=False,
+        reboot=True,
+    ) -> None:
         super().__init__()
         self.service = service
         self.project_id = project_id
         self.candidate_choice = candidate_choice
+        self.source_service = source_service
+        self.wipe = wipe
+        self.reboot = reboot
         self.signals = PreparationSignals()
 
     def execute(self) -> None:
         try:
-            self.signals.complete.emit(
-                self.service.prepare(self.project_id, candidate_choice=self.candidate_choice)
-            )
+            if self.candidate_choice == "source-installation":
+                if self.source_service is None:
+                    raise ValueError("Source installation is unavailable in this context.")
+                value = self.source_service.prepare(
+                    self.project_id, wipe=self.wipe, reboot=self.reboot
+                )
+            else:
+                value = self.service.prepare(
+                    self.project_id, candidate_choice=self.candidate_choice
+                )
+            self.signals.complete.emit(value)
         except Exception as exc:
             self.signals.failed.emit(str(exc))
 
@@ -44,14 +67,15 @@ class ProjectPreparationWorker(ManagedRunnable):
 class ProjectPreparationDialog(QDialog):
     """Choose provenance explicitly, then hash in a managed background worker."""
 
-    def __init__(self, service, project_id: str, parent=None) -> None:
+    def __init__(self, service, project_id: str, parent=None, *, source_service=None) -> None:
         super().__init__(parent)
         self.service = service
         self.project_id = project_id
-        self.preparation: ProjectFlashPreparation | None = None
+        self.source_service = source_service
+        self.preparation: ProjectFlashPreparation | SourceInstallationRecipe | None = None
         self.worker: ProjectPreparationWorker | None = None
         self.monitoring = False
-        self.setWindowTitle("ROMVERSE · Prepare local image installation")
+        self.setWindowTitle("ROMVERSE · Prepare installation")
         self.resize(740, 430)
         self.setMinimumWidth(520)
         if self.screen() is not None:
@@ -65,7 +89,7 @@ class ProjectPreparationDialog(QDialog):
         eyebrow = QLabel("GUIDED INSTALLATION  •  LOCAL IMAGES")
         eyebrow.setObjectName("Eyebrow")
         layout.addWidget(eyebrow)
-        title = QLabel("Choose which images to prepare")
+        title = QLabel("Choose your installation route")
         title.setWordWrap(True)
         title.setObjectName("SectionTitle")
         layout.addWidget(title)
@@ -73,6 +97,7 @@ class ProjectPreparationDialog(QDialog):
             "ROMVERSE will verify the saved project evidence and image hashes. "
             "Your rebuilt candidate and the untouched original are separate choices; "
             "one is never silently substituted for the other."
+            " A supported package procedure is a separate option for the protected source."
         )
         introduction.setWordWrap(True)
         layout.addWidget(introduction)
@@ -80,16 +105,34 @@ class ProjectPreparationDialog(QDialog):
         self.choice.setAccessibleName("Project image source")
         self.choice.addItem("My rebuilt candidate · saved successful build", "built")
         self.choice.addItem("Protected original · verified extracted images", "protected")
+        if source_service is not None:
+            self.choice.addItem(
+                "Follow the package's supported installation procedure", "source-installation"
+            )
         layout.addWidget(self.choice)
+        self.source_controls = QWidget()
+        options = QVBoxLayout(self.source_controls)
+        options.setContentsMargins(0, 0, 0, 0)
+        self.wipe = QCheckBox("Clean installation · erase all phone user data")
+        self.wipe.setAccessibleName("Explicitly select data-erasing clean installation")
+        self.reboot = QCheckBox("Restart Android after installation and check boot")
+        self.reboot.setChecked(True)
+        options.addWidget(self.wipe)
+        options.addWidget(self.reboot)
+        layout.addWidget(self.source_controls)
         limits = QLabel(
             "This prepares a manually mapped image operation, not an automatic full-ROM "
             "upgrade. You must supply the correct partitions, slots and write order. "
             "No Device Atlas certification is required for this local route. "
             "Preparing images does not reboot or write your phone."
         )
+        self.limits = limits
+        self.manual_limits = limits.text()
         limits.setWordWrap(True)
         limits.setObjectName("Warning")
         layout.addWidget(limits)
+        self.choice.currentIndexChanged.connect(self._source_mode_changed)
+        self._source_mode_changed()
         self.status = QLabel("Choose a source, then verify its images.")
         self.status.setWordWrap(True)
         self.status.setTextFormat(Qt.TextFormat.PlainText)
@@ -111,18 +154,45 @@ class ProjectPreparationDialog(QDialog):
         actions.addWidget(self.prepare_button)
         layout.addLayout(actions)
 
+    def _source_mode_changed(self, *_args) -> None:
+        source = self.choice.currentData() == "source-installation"
+        self.source_controls.setVisible(source)
+        self.limits.setText(
+            "A supported procedure supplies the complete declared image order, slot actions and "
+            "optional erase/restart steps. ROMVERSE translates it into controlled operations; "
+            "it never runs the package's shell scripts. Keeping data is not a guarantee of "
+            "compatibility. Verification here does not touch the phone."
+            if source
+            else self.manual_limits
+        )
+        if source:
+            available = self.screen().availableGeometry() if self.screen() is not None else None
+            height = min(580, available.height() - 80) if available is not None else 580
+            self.setMinimumHeight(height)
+            self.resize(self.width(), max(self.height(), height))
+        else:
+            self.setMinimumHeight(0)
+
     def _prepare(self) -> None:
         if self.worker is not None:
             return
         self.preparation = None
         self.choice.setEnabled(False)
+        self.source_controls.setEnabled(False)
         self.prepare_button.setEnabled(False)
         self.close_button.setEnabled(False)
         self.progress.setRange(0, 0)
         self.status.setText(
             "Checking project evidence and hashing images. Large files may take a while…"
         )
-        worker = ProjectPreparationWorker(self.service, self.project_id, self.choice.currentData())
+        worker = ProjectPreparationWorker(
+            self.service,
+            self.project_id,
+            self.choice.currentData(),
+            source_service=self.source_service,
+            wipe=self.wipe.isChecked(),
+            reboot=self.reboot.isChecked(),
+        )
         self.worker = worker
         worker.signals.complete.connect(self._prepared)
         worker.signals.failed.connect(self._failed)
@@ -136,7 +206,7 @@ class ProjectPreparationDialog(QDialog):
         if self.worker is None or self.sender() is not self.worker.signals:
             return
         if (
-            not isinstance(preparation, ProjectFlashPreparation)
+            not isinstance(preparation, (ProjectFlashPreparation, SourceInstallationRecipe))
             or preparation.project_id != self.project_id
         ):
             self._failed(
@@ -159,6 +229,7 @@ class ProjectPreparationDialog(QDialog):
         self.progress.setValue(0)
         self.status.setText(message)
         self.choice.setEnabled(True)
+        self.source_controls.setEnabled(True)
         self.prepare_button.setEnabled(True)
         self.close_button.setEnabled(True)
 

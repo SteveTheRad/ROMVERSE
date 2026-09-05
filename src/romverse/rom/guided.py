@@ -79,6 +79,11 @@ class GuidedContext:
     local_image_summary: str = ""
     local_image_count: int = 0
     local_image_boot_status: str = ""
+    source_installation_state: str = ""
+    source_installation_summary: str = ""
+    source_installation_completed_count: int = 0
+    source_installation_expected_count: int = 0
+    source_installation_boot_status: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -275,8 +280,8 @@ STAGES = (
         "flash",
         14,
         "Image installation",
-        "Review local image installation",
-        "Phone installation is optional and separate from the local build. Prepare verified project images, choose explicit partition mappings and order, then review the exact phone, mode, warnings and final consent. A local subset operation is not an automatic full-ROM installation or production certificate.",
+        "Review the phone installation route",
+        "Phone installation is optional and separate from the local build. Choose a supported package procedure or manually map verified project images, then review the exact phone, declared actions, warnings and final consent. A subset operation is not a complete package procedure, and neither result is a production certificate.",
         "Finish after the local build, or open local image preparation. Review backups and recovery options before any write; do not repeat a completed operation just to turn certification rows green. Bootloader relocking is never offered.",
         "flash",
         "Prepare local image installation…",
@@ -305,6 +310,8 @@ class GuidedMissionEngine:
             complete, evidence, blockers = facts[stage.stage_id]
             if complete:
                 status = GuidedStageStatus.COMPLETE
+            elif stage.stage_id in {"flash", "first_boot"} and context.source_installation_state:
+                status = GuidedStageStatus.ATTENTION
             elif stage.stage_id in {"flash", "first_boot"} and not context.install_requested:
                 status = GuidedStageStatus.FUTURE
             elif stage.stage_id in {"flash", "first_boot"} and context.local_image_state:
@@ -448,6 +455,23 @@ class GuidedMissionEngine:
         context: GuidedContext,
     ) -> dict[str, tuple[bool, tuple[str, ...], tuple[str, ...]]]:
         device = context.device
+        source_complete = (
+            context.source_installation_state == "completed"
+            and context.source_installation_expected_count > 0
+            and context.source_installation_completed_count
+            == context.source_installation_expected_count
+        )
+        source_evidence = (
+            (
+                f"Historical source-declared installation: {context.source_installation_state}",
+                f"{context.source_installation_completed_count} / "
+                f"{context.source_installation_expected_count} declared actions completed",
+                context.source_installation_summary,
+                "Independent image readback and full subsystem certification remain unverified.",
+            )
+            if context.source_installation_state
+            else ()
+        )
         local_image_evidence = (
             (
                 f"Local image subset operation: {context.local_image_state} • "
@@ -710,9 +734,11 @@ class GuidedMissionEngine:
                 ),
             ),
             "flash": (
-                context.flash_complete,
+                context.flash_complete or source_complete,
                 ("Guardian flash receipt verified",)
                 if context.flash_complete
+                else source_evidence
+                if source_evidence
                 else local_image_evidence
                 if local_image_evidence
                 else (
@@ -734,7 +760,14 @@ class GuidedMissionEngine:
                 )
                 if context.guardian_handoff_ready
                 else (),
-                (
+                ()
+                if source_complete or context.flash_complete
+                else (
+                    "Review the recorded procedure outcome and diagnose the exact phone before "
+                    "deciding on any new operation. Do not automatically repeat installation.",
+                )
+                if source_evidence
+                else (
                     "Review the recorded local outcome. Continue the local image workflow only "
                     "if another deliberate operation is needed; do not repeat a completed write.",
                     "Full-firmware, readback and subsystem verification remain separate evidence.",
@@ -752,6 +785,13 @@ class GuidedMissionEngine:
                 ("First boot and health verification appears stable",)
                 if context.flash_complete and context.first_boot_verified
                 else (
+                    f"Historical Android boot observation: "
+                    f"{context.source_installation_boot_status or 'unverified'}",
+                    "Installation completion and measured boot are separate. "
+                    "A stable boot record does not prove calls, camera, Android Auto or other subsystems.",
+                )
+                if source_evidence
+                else (
                     "Local image subset outcome recorded; it does not prove a full-ROM first boot.",
                     f"Separate Android boot observation: {context.local_image_boot_status or 'unverified'}",
                 )
@@ -764,6 +804,12 @@ class GuidedMissionEngine:
                 if context.boot_observation_stable
                 else ("No stable first-boot session has been recorded yet.",),
                 (
+                    "Review the saved outcome or run a separate read-only boot check. "
+                    "There is no need to reinstall to observe Android.",
+                    "Full subsystem validation is still required before this stage is certified.",
+                )
+                if source_evidence
+                else (
                     (
                         "A verified Guardian flash receipt is required before ROMVERSE can classify any later stable sample as first boot."
                         if not context.flash_complete
@@ -789,8 +835,8 @@ class GuidedMissionEngine:
             "recovery": "A local recovery point is verified before later high-risk work.",
             "toolchain": "The build environment is ready to be pinned into provenance records.",
             "build_sign": "A signed, validated ROM artifact will be ready for Guardian review.",
-            "flash": "You can finish the verified local build now or explicitly begin the separate Guardian installation route.",
-            "first_boot": "After an optional successful Guardian flash, ROMVERSE can confirm Android booted and core health checks pass.",
+            "flash": "Review a supported package procedure or explicit image mappings, then separately confirm the exact installation. Saved outcomes remain available without repeating it.",
+            "first_boot": "Observe Android boot without reinstalling, then validate individual phone features. Command completion alone never proves health.",
         }
         return outcomes[stage_id]
 

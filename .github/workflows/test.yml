@@ -73,6 +73,12 @@ jobs:
           tests/test_guardian_runtime_authorization.py
           tests/test_guardian_runtime_execution_claim.py
           tests/test_guardian_runtime_package.py
+          tests/test_source_installation.py
+          tests/test_guardian_source_installation.py
+          tests/test_source_installation_history.py
+          tests/test_source_installation_integration.py
+          tests/test_source_installation_history_ui.py
+          tests/test_source_installation_stop_ui.py
           tests/test_optimizer.py
           tests/test_navigation_vocabulary.py
         env:

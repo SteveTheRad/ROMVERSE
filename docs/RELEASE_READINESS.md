@@ -1,5 +1,17 @@
 # ROMVERSE release readiness
 
+The 2026-09-05 [source-declared installation increment](SOURCE_DECLARED_INSTALLATION_2026-09-05.md)
+adds a supported, separately confirmed 50-image HyperOS package procedure, exact-phone simulated
+execution, measured boot and read-only historical follow-up. This is software and source-integrity
+evidence, not physical device validation, universal firmware support or production release approval.
+
+The local Fedora checkpoint passes 2,398 full-suite tests and a final 233-test changed-area run,
+installed-wheel simulation and self-contained launch/package verification. The native test-lifetime
+crash is reproduced and corrected without weakening runtime policy or excluding tests. Windows
+installation-suite selection is added but not executed here. Repository-wide Ruff lint is clean;
+the complete format gate still reports 26 files. See the linked increment for exact artifacts,
+hashes, sequencing and limitations; this does not satisfy the full release gates below.
+
 ROMVERSE must not be described as production-ready merely because the desktop shell or a
 debug APK opens. A public build is eligible for release only when every applicable gate below
 has current evidence.

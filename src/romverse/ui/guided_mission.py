@@ -1160,7 +1160,15 @@ class GuidedBuildMission(QDialog):
             ),
         }[assessment.status]
         local_outcome = getattr(self, "_display_context", GuidedContext())
-        if (
+        if stage.stage_id in {"flash", "first_boot"} and local_outcome.source_installation_state:
+            status_copy = (
+                f"Recorded installation: {local_outcome.source_installation_state}. "
+                f"{local_outcome.source_installation_summary} "
+                f"Historical Android boot: {local_outcome.source_installation_boot_status or 'unverified'}. "
+                "Review results or observe boot without repeating installation. "
+                "Individual phone features still need separate tests."
+            )
+        elif (
             stage.stage_id == "flash"
             and local_outcome.local_image_state
             and not local_outcome.flash_complete
@@ -1215,6 +1223,13 @@ class GuidedBuildMission(QDialog):
         )
         if local_boot_available:
             self.action_button.setText("Review separate Android boot check…")
+        source_history_available = bool(
+            stage.stage_id in {"flash", "first_boot"}
+            and local_outcome.source_installation_state
+            and not busy
+        )
+        if source_history_available:
+            self.action_button.setText("Review installation and boot results…")
         self.action_button.setToolTip(
             f"What: {stage.explanation}\n\nWhy: {stage.recommendation}\n\n"
             f"Result: {assessment.next_outcome}"
@@ -1229,6 +1244,7 @@ class GuidedBuildMission(QDialog):
             build_control_available
             or root_choice_available
             or local_boot_available
+            or source_history_available
             or (assessment.can_run and not busy and not stage.future_gate)
         )
         if stage.action == "choose-root" and assessment.status is GuidedStageStatus.COMPLETE:
@@ -1644,7 +1660,9 @@ class GuidedBuildMission(QDialog):
         self.live_paused = False
         self._sync_genesis_live()
         self.failure = None
-        if action == "flash" and not self.state.install_requested:
+        if action in {"flash", "first-boot"} and self._context().source_installation_state:
+            self._handoff_source_installation_history()
+        elif action == "flash" and not self.state.install_requested:
             self._prompt_flash_choice()
         elif action == "new-project":
             self.studio._new_project()
@@ -1762,6 +1780,9 @@ class GuidedBuildMission(QDialog):
             self.studio._open_build_control(self)
             self._refresh()
         elif action == "flash":
+            if self._context().source_installation_state:
+                self._handoff_source_installation_history()
+                return
             project = self.studio.current_project
             self._handoff_project_images(
                 project.project_id if project is not None else "",
@@ -1852,6 +1873,27 @@ class GuidedBuildMission(QDialog):
         )
         return True
 
+    def _handoff_source_installation_history(self) -> None:
+        project = self.studio.current_project
+        if (
+            project is None
+            or project.original is None
+            or self.studio.worker is not None
+            or self.active_operation
+            or self.root_preview_active
+        ):
+            self.status_text.setText(
+                "Wait for the current operation before reviewing saved results."
+            )
+            return
+        project_id, source_sha256 = project.project_id, project.original.sha256
+        self.autopilot_active = False
+        self._pause_genesis_live("Reviewing saved installation results; no phone change requested.")
+        super().accept()
+        QTimer.singleShot(
+            0, lambda: self.studio._request_source_installation_history(project_id, source_sha256)
+        )
+
     def _run_first_boot_check(self) -> None:
         project = self.studio.current_project
         if project is None:
@@ -1859,6 +1901,9 @@ class GuidedBuildMission(QDialog):
             self._refresh()
             return
         context = self._context()
+        if context.source_installation_state:
+            self._handoff_source_installation_history()
+            return
         if context.local_image_state and not context.flash_complete:
             self._handoff_project_images(
                 project.project_id,

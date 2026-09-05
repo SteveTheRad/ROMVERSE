@@ -24,6 +24,11 @@ from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device.parsers import parse_adb_devices
 from romverse.guardian.local_flash import LocalFlashResult, LocalFlashService, LocalFlashState
 from romverse.guardian.models import GuardianDecision, OperationClass, OperationRequest, RiskLevel
+from romverse.guardian.source_installation import (
+    SourceInstallationError,
+    SourceInstallationResult,
+    validate_source_installation_boot_binding,
+)
 from romverse.infrastructure.local_store import atomic_write_json, read_json_object
 from romverse.infrastructure.process import CommandResult
 from romverse.rom.models import ProjectError
@@ -81,7 +86,7 @@ class _SessionState:
     adb_sha256: str
     report: LocalBootReport
     flash_binding: dict[str, str] | None
-    flash_result: LocalFlashResult | None
+    flash_result: LocalFlashResult | SourceInstallationResult | None
     samples: list[dict[str, object]] = field(default_factory=list)
     last_probe_tick: float | None = None
     previous: _Sample | None = None
@@ -152,7 +157,9 @@ class LocalBootService:
         self._sessions_lock = threading.Lock()
 
     def begin(
-        self, device: AndroidDevice, flash_result: LocalFlashResult | None = None
+        self,
+        device: AndroidDevice,
+        flash_result: LocalFlashResult | SourceInstallationResult | None = None,
     ) -> LocalBootSession:
         if not isinstance(device, AndroidDevice) or not self.flash.SERIAL.fullmatch(device.serial):
             raise LocalBootError("Choose the exact phone to observe.")
@@ -732,7 +739,16 @@ class LocalBootService:
             maximum_bytes=self.MAX_RECEIPT_BYTES,
         )
 
-    def _flash_binding(self, device: AndroidDevice, result: LocalFlashResult) -> dict[str, str]:
+    def _flash_binding(
+        self, device: AndroidDevice, result: LocalFlashResult | SourceInstallationResult
+    ) -> dict[str, str]:
+        if isinstance(result, SourceInstallationResult):
+            try:
+                return validate_source_installation_boot_binding(self.flash, device, result)
+            except (SourceInstallationError, OSError, TypeError, ValueError) as exc:
+                raise LocalBootError(
+                    "The source installation record is not valid for this phone and result."
+                ) from exc
         if (
             not isinstance(result, LocalFlashResult)
             or not isinstance(result.state, LocalFlashState)

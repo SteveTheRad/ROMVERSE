@@ -3,12 +3,22 @@
 **Build. Optimize. Perfect.**  
 Created by **SteveTheRad** — A **RadForge Labs** Project
 
-ROMVERSE is an online-first Windows, Linux, and Android platform for intelligent firmware
-analysis, diagnostics, repair, optimization, device management, and ROM development. Local
-source evidence remains the safety anchor while verified online services provide current tools,
-Device Packs, compatibility knowledge, and recovery intelligence. This first vertical slice
-is intentionally read-only: it creates a safe workspace, verifies local tooling, detects
-Android devices through ADB, and presents live device details in the PySide6 **Device Portal**.
+ROMVERSE is a Windows, Linux, and Android project for firmware analysis, diagnostics, repair,
+optimization, device management, and ROM development. Local source evidence and offline Archives
+work alongside optional online tools and knowledge. It remains a development build, not a
+production-certified universal Android installer.
+
+The desktop now supports separately confirmed local image operations and a
+[source-declared HyperOS installation procedure](docs/SOURCE_DECLARED_INSTALLATION_2026-09-05.md).
+The supported package route verifies the protected source, displays every declared action and
+records installation and measured boot separately. Its full subsystem-validation follow-up is
+still unfinished. Saved installation results can be reopened for read-only boot follow-up without
+installing again. Software simulations do not establish physical flashing compatibility, and
+unsupported packages need their own adapters.
+
+The first development slice was read-only: it created a protected workspace, verified local
+tooling, detected Android devices through ADB, and presented live details in the PySide6
+**Device Portal**.
 
 The second read-only slice adds ROMVERSE Diagnostics: evidence-backed health/security
 findings, conservative signal scoring, explicit analysis limitations, and privacy-safe

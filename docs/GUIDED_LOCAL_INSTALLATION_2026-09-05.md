@@ -1,5 +1,8 @@
 # Guided local image installation
 
+Follow-up: [source-declared installation](SOURCE_DECLARED_INSTALLATION_2026-09-05.md) adds a
+separate supported package procedure. The manual subset route described below remains distinct.
+
 This increment connects a completed local candidate to a real, separately confirmed image
 operation. It removes the primary-action loop through Device Atlas. It does **not** claim an
 automatic complete-ROM installer, universal device support, or production release readiness.

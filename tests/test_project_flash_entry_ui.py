@@ -10,6 +10,7 @@ from romverse.core.settings import ExperienceMode
 from romverse.rom.guided import GuidedContext, GuidedMissionEngine, GuidedStageStatus
 from romverse.rom.project_flash import ProjectFlashOutcome, ProjectFlashPreparationService
 from romverse.rom.readiness import BuildGate, GateStatus
+from romverse.rom.source_installation_history import SourceInstallationOutcome
 from romverse.ui.build_control import BuildControlCenter
 from romverse.ui.guided_mission import GuidedBuildMission
 from tests.test_build_control_ui import _studio
@@ -299,4 +300,110 @@ def test_studio_context_uses_only_typed_exact_source_historical_subset_outcome(
     assert not context.boot_observation_stable
     if binding == "current":
         assert context.local_image_boot_status == "unverified"
+    studio.close()
+
+
+@pytest.mark.parametrize("state,count", [("completed", 53), ("failed", 9), ("attention", 0)])
+@pytest.mark.parametrize("stage_index", [13, 14])
+def test_source_procedure_outcome_opens_history_never_reinstallation(
+    tmp_path, state, count, stage_index
+):
+    app = QApplication.instance() or QApplication([])
+    studio = _studio(tmp_path)
+    mission = GuidedBuildMission(studio)
+    context = GuidedContext(
+        install_requested=True,
+        source_installation_state=state,
+        source_installation_summary="Historical inert-source procedure outcome.",
+        source_installation_completed_count=count,
+        source_installation_expected_count=53,
+        source_installation_boot_status="stable" if state == "completed" else "unverified",
+    )
+    mission._context = lambda: context
+    mission.selected_index = stage_index
+    mission._refresh()
+    flash, boot = GuidedMissionEngine().assess(context)[13:]
+    assert (flash.status is GuidedStageStatus.COMPLETE) == (state == "completed")
+    assert boot.status is GuidedStageStatus.ATTENTION
+    assert not context.flash_complete and not context.first_boot_verified
+    assert "Historical Android boot" in mission.status_text.text()
+    assert mission.action_button.text() == "Review installation and boot results…"
+    assert mission.action_button.isEnabled()
+    history, installation, atlas = [], [], []
+    studio.source_installation_history_requested.connect(history.append)
+    studio.project_flash_requested.connect(installation.append)
+    studio.device_packs_requested.connect(atlas.append)
+    mission.action_button.click()
+    app.processEvents()
+    assert history == [studio.current_project.project_id]
+    assert installation == atlas == []
+    assert not mission.isVisible()
+    studio.close()
+
+
+def test_source_completed_label_without_complete_measured_action_count_is_not_green():
+    context = GuidedContext(
+        install_requested=True,
+        source_installation_state="completed",
+        source_installation_completed_count=52,
+        source_installation_expected_count=53,
+    )
+    assert GuidedMissionEngine().assess(context)[13].status is GuidedStageStatus.ATTENTION
+
+
+@pytest.mark.parametrize("drift", ["project", "source", "worker"])
+def test_queued_source_history_rechecks_project_source_and_worker(tmp_path, drift):
+    app = QApplication.instance() or QApplication([])
+    studio = _studio(tmp_path)
+    mission = GuidedBuildMission(studio)
+    history = []
+    studio.source_installation_history_requested.connect(history.append)
+    project = studio.current_project
+    mission._handoff_source_installation_history()
+    if drift == "project":
+        studio.refresh(studio.store.create("Other history").project_id)
+    elif drift == "source":
+        get = studio.store.get
+        studio.store.get = lambda identity: replace(
+            get(identity), original=replace(project.original, sha256="f" * 64)
+        )
+    else:
+        studio.worker = object()
+    app.processEvents()
+    assert history == []
+    studio.worker = None
+    studio.close()
+
+
+@pytest.mark.parametrize("binding", ["current", "other-project", "other-source", "untyped"])
+def test_studio_context_uses_only_typed_current_source_procedure_history(
+    tmp_path, monkeypatch, binding
+):
+    QApplication.instance() or QApplication([])
+    studio = _studio(tmp_path)
+    project = studio.current_project
+    outcome = SourceInstallationOutcome(
+        state="completed",
+        summary="Historical UI fixture only.",
+        receipt_path=tmp_path / "fixture.json",
+        source_sha256=project.original.sha256,
+        completed_count=53,
+        expected_count=53,
+        boot_status="Historical stable boot fixture",
+        project_id=project.project_id,
+    )
+    if binding == "other-project":
+        outcome = replace(outcome, project_id="unrelated-project")
+    elif binding == "other-source":
+        outcome = replace(outcome, source_sha256="f" * 64)
+    elif binding == "untyped":
+        outcome = {"state": "completed"}
+    monkeypatch.setattr(
+        "romverse.ui.rom_studio.load_latest_source_installation", lambda *_args: outcome
+    )
+    context = studio.guided_context()
+    assert context.source_installation_state == ("completed" if binding == "current" else "")
+    assert context.source_installation_completed_count == (53 if binding == "current" else 0)
+    assert not context.flash_complete and not context.first_boot_verified
+    assert not context.boot_observation_stable
     studio.close()

@@ -114,6 +114,10 @@ from romverse.rom.recipes import (
     save_run_receipt,
 )
 from romverse.rom.source_identity import identify_firmware_source
+from romverse.rom.source_installation_history import (
+    SourceInstallationOutcome,
+    load_latest_source_installation,
+)
 from romverse.rom.source_intelligence import FirmwareSourceIntelligenceService
 from romverse.rom.upgrade import (
     USER_FIRMWARE_RESPONSIBILITY_NOTICE,
@@ -667,6 +671,7 @@ class RomStudio(QWidget):
     experience_mode_requested = Signal(object)
     expert_flash_requested = Signal()
     project_flash_requested = Signal(str)
+    source_installation_history_requested = Signal(str)
 
     def __init__(
         self,
@@ -2076,6 +2081,16 @@ class RomStudio(QWidget):
             or local_outcome.source_sha256 != project.original.sha256
         ):
             local_outcome = None
+        try:
+            source_outcome = load_latest_source_installation(self.store, project_id)
+        except (OSError, ProjectError):
+            source_outcome = None
+        if not isinstance(source_outcome, SourceInstallationOutcome) or (
+            source_outcome.project_id != project_id
+            or project.original is None
+            or source_outcome.source_sha256 != project.original.sha256
+        ):
+            source_outcome = None
 
         readiness = BuildReadinessService(
             self.store,
@@ -2152,6 +2167,15 @@ class RomStudio(QWidget):
             if local_outcome is not None
             else 0,
             local_image_boot_status=local_outcome.boot_status if local_outcome is not None else "",
+            source_installation_state=source_outcome.state if source_outcome else "",
+            source_installation_summary=source_outcome.summary if source_outcome else "",
+            source_installation_completed_count=source_outcome.completed_count
+            if source_outcome
+            else 0,
+            source_installation_expected_count=source_outcome.expected_count
+            if source_outcome
+            else 0,
+            source_installation_boot_status=source_outcome.boot_status if source_outcome else "",
             required_tools=required_tools_for_source(
                 selected_pack.build_contract
                 if selected_pack is not None
@@ -2290,6 +2314,23 @@ class RomStudio(QWidget):
             )
             return False
         self.project_flash_requested.emit(current.project_id)
+        return True
+
+    def _request_source_installation_history(self, project_id: str, source_sha256: str) -> bool:
+        """Dispatch historical review only; never turn a boot check into installation."""
+        project = self.current_project
+        if project is None or project.project_id != project_id or self.worker is not None:
+            return False
+        try:
+            current = self.store.get(project_id)
+        except ProjectError:
+            return False
+        if current.original is None or current.original.sha256 != source_sha256:
+            self.operation_status.setText(
+                "The project source changed. Reopen its installation history."
+            )
+            return False
+        self.source_installation_history_requested.emit(project_id)
         return True
 
     def _toggle_architect_mode(self, enabled: bool) -> None:

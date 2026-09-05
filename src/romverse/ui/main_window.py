@@ -4253,6 +4253,9 @@ class MainWindow(QMainWindow):
         self.rom_studio.experience_mode_requested.connect(self._set_experience_mode_from_studio)
         self.rom_studio.expert_flash_requested.connect(self._open_expert_flash)
         self.rom_studio.project_flash_requested.connect(self._open_project_flash)
+        self.rom_studio.source_installation_history_requested.connect(
+            self._open_source_installation_history
+        )
         self.device_packs_center.rom_studio_requested.connect(
             self._continue_device_atlas_rom_studio
         )
@@ -6721,13 +6724,19 @@ class MainWindow(QMainWindow):
         """Prepare project images without entering Expert or production-certification setup."""
         from romverse.guardian.local_flash import LocalFlashService
         from romverse.guardian.local_transition import LocalDeviceTransitionService
+        from romverse.guardian.source_installation import SourceInstallationExecutor
         from romverse.rom.local_boot import LocalBootService
         from romverse.rom.project_flash import (
             BoundProjectFlashService,
             BoundProjectTransitionService,
             ProjectFlashPreparationService,
         )
+        from romverse.rom.source_installation import (
+            SourceInstallationRecipe,
+            SourceInstallationService,
+        )
         from romverse.ui.project_flash import ProjectFlashDialog, ProjectPreparationDialog
+        from romverse.ui.source_installation import SourceInstallationDialog
 
         project = self.rom_studio.current_project
         if (
@@ -6766,10 +6775,13 @@ class MainWindow(QMainWindow):
                 audit=self._audit_store,
             )
             preparer = ProjectFlashPreparationService(self.rom_studio.store, self.rom_studio.pack_registry)
+            source_service = SourceInstallationService(self.rom_studio.store)
         except (OSError, ValueError) as exc:
             QMessageBox.warning(self, "Local installation could not open", str(exc))
             return
-        preparation_dialog = ProjectPreparationDialog(preparer, project_id, self)
+        preparation_dialog = ProjectPreparationDialog(
+            preparer, project_id, self, source_service=source_service
+        )
         self._local_flash_dialog = preparation_dialog
         self._reconnect_timer.stop()
         dialog = None
@@ -6788,21 +6800,44 @@ class MainWindow(QMainWindow):
                     "The project or source changed. Prepare the intended project's images again."
                 )
                 return
-            bound = BoundProjectFlashService(preparer, preparation, local)
-            transition = BoundProjectTransitionService(
-                preparer, preparation,
-                LocalDeviceTransitionService(local, self._device_adb_executable),
-            )
-            dialog = ProjectFlashDialog(
-                bound, tuple(self._observed_devices), self, preparation=preparation,
-                discover=self.engine.scan if self.engine is not None else None,
-                transition_service=transition,
-                boot_service=(
-                    LocalBootService(local, self._device_adb_executable)
-                    if self._device_adb_executable is not None else None
-                ),
-            )
-            dialog.operation_finished.connect(self._record_local_flash_result)
+            if isinstance(preparation, SourceInstallationRecipe):
+                dialog = SourceInstallationDialog(
+                    SourceInstallationExecutor(source_service, local, self._device_adb_executable),
+                    tuple(self._observed_devices),
+                    self,
+                    recipe=preparation,
+                    discover=self.engine.scan if self.engine is not None else None,
+                    transition_service=LocalDeviceTransitionService(
+                        local, self._device_adb_executable
+                    ),
+                    boot_service=(
+                        LocalBootService(local, self._device_adb_executable, timeout_seconds=900)
+                        if self._device_adb_executable is not None
+                        else None
+                    ),
+                )
+                dialog.operation_finished.connect(self._record_source_installation_result)
+            else:
+                bound = BoundProjectFlashService(preparer, preparation, local)
+                transition = BoundProjectTransitionService(
+                    preparer,
+                    preparation,
+                    LocalDeviceTransitionService(local, self._device_adb_executable),
+                )
+                dialog = ProjectFlashDialog(
+                    bound,
+                    tuple(self._observed_devices),
+                    self,
+                    preparation=preparation,
+                    discover=self.engine.scan if self.engine is not None else None,
+                    transition_service=transition,
+                    boot_service=(
+                        LocalBootService(local, self._device_adb_executable)
+                        if self._device_adb_executable is not None
+                        else None
+                    ),
+                )
+                dialog.operation_finished.connect(self._record_local_flash_result)
             dialog.transition_finished.connect(self._record_local_transition_result)
             dialog.boot_finished.connect(self._record_local_boot_result)
             self._local_flash_dialog = dialog
@@ -6817,6 +6852,79 @@ class MainWindow(QMainWindow):
                 self.scan()
             else:
                 self._finish_local_flash_recovery([])
+
+    @Slot(str)
+    def _open_source_installation_history(self, project_id: str) -> None:
+        """Saved outcomes and explicit read-only boot checks, never another installation."""
+        from romverse.guardian.local_flash import LocalFlashService
+        from romverse.rom.local_boot import LocalBootService
+        from romverse.rom.source_installation_history import load_latest_source_installation
+        from romverse.ui.source_installation_history import SourceInstallationHistoryDialog
+
+        project = self.rom_studio.current_project
+        if (
+            project is None
+            or project.project_id != project_id
+            or self._local_flash_dialog is not None
+            or self._expert_flash_pending
+        ):
+            return
+        if self.scanning or any(
+            (
+                self.rom_studio.worker,
+                self.apk_installer.active_worker,
+                self.backup_center.media_backup_worker,
+                self.repair_center.host_repair_worker,
+                self.terminal_center._worker,
+            )
+        ):
+            self.rom_studio.operation_status.setText(
+                "Wait for the current scan or operation, then reopen installation results."
+            )
+            return
+        dialog = None
+        try:
+            outcome = load_latest_source_installation(self.rom_studio.store, project_id)
+            if outcome is None:
+                QMessageBox.information(
+                    self,
+                    "No installation history",
+                    "No supported source installation record matches this project's current source.",
+                )
+                return
+            local = LocalFlashService(
+                self._workspace,
+                self._runtime_runner,
+                self._device_fastboot_executable,
+                audit=self._audit_store,
+            )
+            dialog = SourceInstallationHistoryDialog(
+                local,
+                tuple(self._observed_devices),
+                self,
+                outcome=outcome,
+                discover=self.engine.scan if self.engine is not None else None,
+                boot_service=(
+                    LocalBootService(local, self._device_adb_executable, timeout_seconds=900)
+                    if self._device_adb_executable is not None
+                    and self._device_fastboot_executable is not None
+                    else None
+                ),
+            )
+            dialog.boot_finished.connect(self._record_local_boot_result)
+            self._local_flash_dialog = dialog
+            self._reconnect_timer.stop()
+            dialog.exec()
+        except (OSError, ValueError, ProjectError) as exc:
+            QMessageBox.warning(self, "Installation history unavailable", str(exc))
+        finally:
+            self._local_flash_dialog = None
+            if dialog is not None:
+                self._finish_expert_dialog(dialog)
+                if self.engine is not None:
+                    self.scan()
+                else:
+                    self._finish_local_flash_recovery([])
 
     def _continue_project_flash_open(self, project_id: str, source_sha256: str) -> None:
         if not self._expert_flash_pending:
@@ -6941,6 +7049,10 @@ class MainWindow(QMainWindow):
                 if preparation is not None else None
             )
             self._selected_device_serial = attempted.serial
+        elif failure_message and dialog.recovery_requested:
+            # Historical failures without an exact connected phone still have a
+            # useful destination; never attribute them to another selected device.
+            self._navigate_route("recovery_bay")
 
     def _finish_local_flash_recovery(self, devices: list[AndroidDevice]) -> None:
         pending = self._pending_local_flash_recovery
@@ -6981,6 +7093,23 @@ class MainWindow(QMainWindow):
         else:
             self._expert_flash_pending = False
             self._open_expert_flash()
+
+    @Slot(object)
+    def _record_source_installation_result(self, result: object) -> None:
+        from romverse.guardian.source_installation import SourceInstallationResult
+
+        if not isinstance(result, SourceInstallationResult):
+            return
+        self._record_activity(
+            "rom-studio",
+            "Declared installation actions completed · boot separate"
+            if result.state == "completed"
+            else "Source installation needs attention",
+            result.summary,
+            "attention",
+            "ROM Studio",
+        )
+        self.rom_studio.operation_status.setText(result.summary)
 
     @Slot(object)
     def _record_local_flash_result(self, result: object) -> None:

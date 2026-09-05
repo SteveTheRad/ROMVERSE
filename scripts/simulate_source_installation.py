@@ -39,6 +39,7 @@ from romverse.rom.source_installation_history import load_latest_source_installa
 from romverse.ui.project_flash import ProjectPreparationDialog
 from romverse.ui.source_installation import SourceInstallationDialog
 from romverse.ui.source_installation_history import SourceInstallationHistoryDialog
+from romverse.ui.source_operation_session import SourceOperationSession
 from romverse.ui.theme import STYLESHEET, apply_dark_palette
 
 if __package__:
@@ -231,10 +232,23 @@ def main(argv=None) -> int:
     app.setStyle("Fusion")
     apply_dark_palette(app)
     app.setStyleSheet(STYLESHEET)
+    preparer = ProjectFlashPreparationService(store, DevicePackRegistry(()))
+    operation_session = SourceOperationSession(
+        None,
+        (runner.device(),),
+        project_id=project.project_id,
+        source_sha256=project.original.sha256,
+        preparation_service=preparer,
+        source_service=source_service,
+        installation_factory=lambda _preparation: executor,
+        boot_service=boot,
+    )
     chooser = ProjectPreparationDialog(
-        ProjectFlashPreparationService(store, DevicePackRegistry(())),
+        preparer,
         project.project_id,
         source_service=source_service,
+        session=operation_session,
+        source_sha256=project.original.sha256,
     )
     chooser.findChild(QLabel, "Eyebrow").setText("SIMULATION ONLY  •  NO PHYSICAL PHONE")
     chooser.show()
@@ -252,7 +266,11 @@ def main(argv=None) -> int:
     recipe = chooser.preparation
     assert len(recipe.images) == 50 and len(recipe.steps) == 53
     dialog = SourceInstallationDialog(
-        executor, (runner.device(),), recipe=recipe, boot_service=boot
+        executor,
+        (runner.device(),),
+        recipe=recipe,
+        session=operation_session,
+        boot_service=boot,
     )
     dialog.eyebrow.setText("SIMULATION ONLY  •  NO PHYSICAL PHONE")
     dialog.setWindowTitle("ROMVERSE · SIMULATED full procedure · no physical phone")
@@ -374,6 +392,7 @@ def main(argv=None) -> int:
         "audit_valid": True,
         "compact_layout_readable": readable,
         "preparation_warning_readable": preparation_readable,
+        "preparation_and_installation_same_session": dialog.session is operation_session,
         "history_reopened_from_saved_receipt": True,
         "history_open_sent_no_phone_command": True,
         "history_boot_explicitly_requested": True,

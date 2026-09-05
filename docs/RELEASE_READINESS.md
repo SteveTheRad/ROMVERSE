@@ -1905,6 +1905,27 @@ large-archive hashing can be slow and never silently renews an expired transitio
   app restart, packaging, Companion change, website update, publication or remote push was made.
   Approved production logo files were not edited.
 
+## 2026-09-05 Shared source-preparation mission
+
+- ROM Studio now creates the application-owned source-operation mission before source or rebuilt-ROM
+  preparation begins. The exact project/source, selected route, base package, erase/restart choices,
+  preparation worker and verified recipe remain attached to the later review, write, transition,
+  boot and recovery evidence.
+- A supported preparation may continue while its screen is hidden. Reopening the project attaches to
+  the same request and worker; successful work waits inline for **Continue installation** instead of
+  interrupting the user or repeating preparation.
+- Failure reopens the exact retained choice with the real error and a working retry. Mismatched
+  project, source, route, base-package or consequence output is rejected before it can become an
+  installable recipe, with zero phone-changing commands.
+- User-style Qt coverage verifies hidden success, hidden failure, view replacement, experience-mode
+  switching and adversarial changed consequences. All 628 affected regressions pass. The complete
+  Desktop/Python gate passes all 2,674 tests with zero failures, errors or skips in 817.502 seconds;
+  whole-source Ruff and final diff checks are clean. See
+  `SHARED_PREPARATION_MISSION_2026-09-05.md` for the exact evidence and boundaries.
+- Manual individual-image mapping and crash/reboot reconstruction remain separate future work. This
+  checkpoint performed no physical phone operation, app restart, packaging, Companion change,
+  website update, publication or remote push. Approved production logos were not edited.
+
 ## Honest feature boundary
 
 The current safe milestone supports read-only Android evidence, local diagnostics, guarded APK

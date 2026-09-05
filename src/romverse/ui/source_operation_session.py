@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
+from pathlib import Path
 from threading import Event
 
 from PySide6.QtCore import QObject, QTimer, Signal, Slot
@@ -21,6 +23,8 @@ from romverse.guardian.source_installation import (
 )
 from romverse.rom.candidate_installation import CandidateInstallationRecipe
 from romverse.rom.local_boot import LocalBootReport, LocalBootSession
+from romverse.rom.project_flash import ProjectFlashPreparation
+from romverse.rom.source_installation import SourceInstallationRecipe
 from romverse.ui.background import ManagedRunnable
 from romverse.ui.local_flash import (
     LocalBootWorker,
@@ -31,6 +35,9 @@ from romverse.ui.local_flash import (
 
 
 class SourceOperationPhase(StrEnum):
+    CHOOSING = "choosing"
+    PREPARING = "preparing"
+    PREPARED = "prepared"
     READY = "ready"
     REFRESHING = "refreshing"
     REVIEWING = "reviewing"
@@ -76,6 +83,17 @@ class SourceTransitionReview:
     target: LocalTransitionTarget
 
 
+@dataclass(frozen=True, slots=True)
+class ProjectPreparationRequest:
+    project_id: str
+    source_sha256: str
+    candidate_choice: str
+    procedure_project_id: str = ""
+    procedure_path: Path | None = None
+    wipe: bool = False
+    reboot: bool = True
+
+
 class SourceInstallationWorker(ManagedRunnable):
     def __init__(self, service, device, recipe, *, plan=None):
         super().__init__()
@@ -108,6 +126,8 @@ class SourceOperationSession(QObject):
     """Own workers and evidence independently of any Guided or Expert view."""
 
     changed = Signal(object)
+    preparation_finished = Signal(object)
+    preparation_failed = Signal(str)
     transition_review_ready = Signal(object)
     operation_finished = Signal(object)
     transition_finished = Signal(object)
@@ -120,10 +140,16 @@ class SourceOperationSession(QObject):
         service,
         devices,
         *,
-        recipe,
+        recipe=None,
         discover=None,
         transition_service=None,
         boot_service=None,
+        project_id="",
+        source_sha256="",
+        preparation_service=None,
+        source_service=None,
+        candidate_service=None,
+        installation_factory: Callable[[SourceInstallationRecipe], object] | None = None,
         parent=None,
     ) -> None:
         super().__init__(parent)
@@ -131,12 +157,27 @@ class SourceOperationSession(QObject):
         self.devices = tuple(devices)
         self.recipe = recipe
         self.preparation = recipe
+        self.project_id = recipe.project_id if recipe is not None else project_id
+        self.source_sha256 = (
+            recipe.source_sha256 if recipe is not None else source_sha256
+        )
+        self.preparation_service = preparation_service
+        self.source_service = source_service
+        self.candidate_service = candidate_service
+        self.installation_factory = installation_factory
+        self.preparation_request: ProjectPreparationRequest | None = None
+        self.preparation_error = ""
+        self._preparation_worker = None
         self.discover = discover
         self.transition_service = transition_service
         self.boot_service = boot_service
         self.selected_serial = self.devices[0].serial if self.devices else ""
         self.revision = 0
-        self.phase = SourceOperationPhase.READY
+        self.phase = (
+            SourceOperationPhase.READY
+            if recipe is not None
+            else SourceOperationPhase.CHOOSING
+        )
         self.status = self._ready_status()
         self.details = ""
         self.progress_value = 0
@@ -145,13 +186,7 @@ class SourceOperationSession(QObject):
         self.progress_format = "%p%"
         self.plan: SourceInstallationPlan | None = None
         self.result: SourceInstallationResult | None = None
-        self.worker: (
-            SourceInstallationWorker
-            | LocalFlashDiscoveryWorker
-            | LocalTransitionWorker
-            | LocalBootWorker
-            | None
-        ) = None
+        self.worker: ManagedRunnable | None = None
         self.execution_error = ""
         self.last_attempt_device: AndroidDevice | None = None
         self.last_flash_device: AndroidDevice | None = None
@@ -190,9 +225,9 @@ class SourceOperationSession(QObject):
     @property
     def identity(self) -> tuple[str, str, str]:
         return (
-            self.recipe.project_id,
-            self.recipe.source_sha256,
-            self.recipe.script_sha256,
+            self.project_id,
+            self.source_sha256,
+            self.recipe.script_sha256 if self.recipe is not None else "",
         )
 
     def matches(self, project_id: str, source_sha256: str) -> bool:
@@ -215,10 +250,14 @@ class SourceOperationSession(QObject):
         can_retry_read_only_review = (
             self.phase is SourceOperationPhase.ATTENTION and not recoverable
         )
-        preparation_open = self.phase in {
-            SourceOperationPhase.READY,
-            SourceOperationPhase.REVIEW_READY,
-        } or can_retry_read_only_review
+        preparation_open = self.recipe is not None and (
+            self.phase
+            in {
+                SourceOperationPhase.READY,
+                SourceOperationPhase.REVIEW_READY,
+            }
+            or can_retry_read_only_review
+        )
         needs_android_return = bool(
             self.phase is SourceOperationPhase.COMPLETED
             and self.result is not None
@@ -244,6 +283,7 @@ class SourceOperationSession(QObject):
             can_review=(
                 not self.busy
                 and selected is not None
+                and self.recipe is not None
                 and self.plan is None
                 and (
                     self.phase is SourceOperationPhase.READY
@@ -283,7 +323,7 @@ class SourceOperationSession(QObject):
 
     def review_installation(self) -> bool:
         device = self.selected_device()
-        if self.busy or device is None:
+        if self.busy or device is None or self.recipe is None or self.service is None:
             return False
         self._invalidate_review("Verifying the package, exact phone and every declared write…")
         self.phase = SourceOperationPhase.REVIEWING
@@ -297,6 +337,8 @@ class SourceOperationSession(QObject):
             return False
         if (
             plan is None
+            or self.recipe is None
+            or self.service is None
             or device is None
             or revision != self.revision
             or plan_digest != plan.plan_digest
@@ -328,7 +370,12 @@ class SourceOperationSession(QObject):
 
     def review_transition(self, target: LocalTransitionTarget) -> bool:
         device = self.selected_device()
-        if self.busy or device is None or self.transition_service is None:
+        if (
+            self.busy
+            or device is None
+            or self.recipe is None
+            or self.transition_service is None
+        ):
             return False
         identity = device.codename or device.product
         if identity.casefold() != self.recipe.expected_product.casefold():
@@ -416,6 +463,36 @@ class SourceOperationSession(QObject):
         self._emit_changed()
         return True
 
+    def start_preparation(
+        self,
+        worker,
+        request: ProjectPreparationRequest,
+        *,
+        starter,
+    ) -> bool:
+        """Start one exact read-only preparation independently of its screen."""
+
+        if (
+            self.busy
+            or self.recipe is not None
+            or self.preparation_service is None
+            or request.project_id != self.project_id
+            or (self.source_sha256 and request.source_sha256 != self.source_sha256)
+        ):
+            return False
+        self.preparation = None
+        self.preparation_error = ""
+        self.preparation_request = request
+        self._preparation_worker = worker
+        self.phase = SourceOperationPhase.PREPARING
+        self.status = "Checking project evidence and hashing images. Large files may take a while…"
+        self.details = ""
+        self.progress_indeterminate = True
+        self.progress_value = 0
+        self.progress_total = 100
+        self.progress_format = "Verifying project inputs"
+        return self._start(worker, starter=starter)
+
     def dispose(self) -> None:
         """Release an idle historical session; never stop live work implicitly."""
         if self.busy:
@@ -423,6 +500,11 @@ class SourceOperationSession(QObject):
         self.boot_timer.stop()
 
     def _ready_status(self) -> str:
+        if self.recipe is None:
+            return (
+                "Choose an installation source, then ROMVERSE will verify it without touching "
+                "the phone."
+            )
         return (
             f"{len(self.recipe.steps)} declared actions · target slot "
             f"{self.recipe.target_slot.upper()}. Review performs only read-only checks."
@@ -441,16 +523,17 @@ class SourceOperationSession(QObject):
         self.phase = SourceOperationPhase.READY
         self._emit_changed()
 
-    def _start(self, worker) -> bool:
+    def _start(self, worker, *, starter=None) -> bool:
         if self.worker is not None:
             return False
         self.worker = worker
         worker.signals.complete.connect(self._receive_complete)
         worker.signals.failed.connect(self._receive_failed)
-        worker.signals.progress.connect(self._receive_progress)
+        if hasattr(worker.signals, "progress"):
+            worker.signals.progress.connect(self._receive_progress)
         self._emit_changed()
         try:
-            local_flash_ui.start_background(worker)
+            (starter or local_flash_ui.start_background)(worker)
         except RuntimeError as exc:
             self._failed(str(exc))
             return False
@@ -485,6 +568,9 @@ class SourceOperationSession(QObject):
             and finished.cancel_requested.is_set()
         )
         self.worker = None
+        if finished is self._preparation_worker:
+            self._complete_preparation(finished, value)
+            return
         if isinstance(finished, LocalBootWorker):
             if isinstance(value, LocalBootReport):
                 self.boot_session = finished.session
@@ -621,6 +707,21 @@ class SourceOperationSession(QObject):
 
     def _failed(self, message: str) -> None:
         worker = self.worker
+        if worker is self._preparation_worker:
+            self.worker = None
+            self._preparation_worker = None
+            self.preparation = None
+            self.preparation_error = message
+            self.phase = SourceOperationPhase.ATTENTION
+            self.progress_indeterminate = False
+            self.progress_value = 0
+            self.progress_total = 100
+            self.progress_format = "Preparation needs attention"
+            self.status = message
+            self.details = "No phone-changing command was sent."
+            self._emit_changed()
+            self.preparation_failed.emit(message)
+            return
         changing = False
         if isinstance(worker, SourceInstallationWorker) and worker.plan is not None:
             self.result = None
@@ -646,6 +747,81 @@ class SourceOperationSession(QObject):
             self.recovery_requested = True
             self.recovery_required.emit()
         self._finish_quiescent()
+
+    def _complete_preparation(self, finished, value: object) -> None:
+        request = self.preparation_request
+        self._preparation_worker = None
+        worker_matches = bool(
+            request is not None
+            and getattr(finished, "project_id", None) == request.project_id
+            and getattr(finished, "candidate_choice", None) == request.candidate_choice
+            and getattr(finished, "procedure_project_id", None)
+            == request.procedure_project_id
+            and getattr(finished, "procedure_path", None) == request.procedure_path
+            and getattr(finished, "wipe", None) is request.wipe
+            and getattr(finished, "reboot", None) is request.reboot
+        )
+        valid = bool(
+            request is not None
+            and worker_matches
+            and isinstance(value, (ProjectFlashPreparation, SourceInstallationRecipe))
+            and value.project_id == request.project_id == self.project_id
+            and (not self.source_sha256 or value.source_sha256 == self.source_sha256)
+            and (
+                (
+                    request.candidate_choice == "candidate-installation"
+                    and type(value) is CandidateInstallationRecipe
+                )
+                or (
+                    request.candidate_choice == "source-installation"
+                    and type(value) is SourceInstallationRecipe
+                )
+                or (
+                    request.candidate_choice in {"built", "protected"}
+                    and isinstance(value, ProjectFlashPreparation)
+                    and value.candidate_choice == request.candidate_choice
+                )
+            )
+            and (
+                not isinstance(value, SourceInstallationRecipe)
+                or (value.wipe is request.wipe and value.reboot is request.reboot)
+            )
+            and (
+                type(value) is not CandidateInstallationRecipe
+                or not request.procedure_project_id
+                or value.procedure_project_id == request.procedure_project_id
+            )
+        )
+        if not valid:
+            self.worker = finished
+            self._preparation_worker = finished
+            self._failed(
+                "Preparation returned mismatched project evidence. No phone command was sent."
+            )
+            return
+        self.preparation = value
+        self.preparation_error = ""
+        self.progress_indeterminate = False
+        self.progress_value = 100
+        self.progress_total = 100
+        self.progress_format = "Project inputs verified"
+        if isinstance(value, SourceInstallationRecipe):
+            if self.installation_factory is not None:
+                try:
+                    self.service = self.installation_factory(value)
+                except Exception as exc:
+                    self.worker = finished
+                    self._preparation_worker = finished
+                    self._failed(str(exc))
+                    return
+            self.recipe = value
+            self.phase = SourceOperationPhase.READY
+            self.status = self._ready_status()
+        else:
+            self.phase = SourceOperationPhase.PREPARED
+            self.status = "Project images verified. Continue to explicit partition mapping."
+        self._emit_changed()
+        self.preparation_finished.emit(value)
 
     def _start_boot(self, device: AndroidDevice | None) -> bool:
         if (
@@ -843,6 +1019,7 @@ class SourceOperationSession(QObject):
 
 
 __all__ = [
+    "ProjectPreparationRequest",
     "SourceInstallationWorker",
     "SourceOperationPhase",
     "SourceOperationSession",

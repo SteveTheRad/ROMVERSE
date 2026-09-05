@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QObject, Qt, Signal, Slot
+from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -20,13 +20,18 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from romverse.rom.candidate_installation import CandidateInstallationRecipe
 from romverse.rom.models import ProjectError
 from romverse.rom.project_flash import ProjectFlashPreparation
 from romverse.rom.source_installation import SourceInstallationRecipe
 from romverse.ui.background import ManagedRunnable, start_background
 from romverse.ui.formatters import human_bytes
 from romverse.ui.local_flash import LocalFlashDialog
+from romverse.ui.source_operation_session import (
+    ProjectPreparationRequest,
+    SourceOperationPhase,
+    SourceOperationSession,
+    SourceOperationSnapshot,
+)
 
 
 class PreparationSignals(QObject):
@@ -92,17 +97,40 @@ class ProjectPreparationDialog(QDialog):
     """Choose provenance explicitly, then hash in a managed background worker."""
 
     def __init__(
-        self, service, project_id: str, parent=None, *, source_service=None, candidate_service=None
+        self,
+        service,
+        project_id: str,
+        parent=None,
+        *,
+        source_service=None,
+        candidate_service=None,
+        session: SourceOperationSession | None = None,
+        source_sha256: str = "",
     ) -> None:
         super().__init__(parent)
+        self._owns_session = session is None
+        operation_session = session or SourceOperationSession(
+            None,
+            (),
+            project_id=project_id,
+            source_sha256=source_sha256,
+            preparation_service=service,
+            source_service=source_service,
+            candidate_service=candidate_service,
+        )
+        if self._owns_session:
+            operation_session.setParent(self)
+        self.session = operation_session
         self.service = service
         self.project_id = project_id
         self.source_service = source_service
         self.candidate_service = candidate_service
         self.procedure_path: Path | None = None
         self._base_discovery_error = ""
-        self.preparation: ProjectFlashPreparation | SourceInstallationRecipe | None = None
-        self.worker: ProjectPreparationWorker | None = None
+        self.preparation: ProjectFlashPreparation | SourceInstallationRecipe | None = (
+            operation_session.preparation
+        )
+        self.worker: ProjectPreparationWorker | None = operation_session.worker
         self.monitoring = False
         self.setWindowTitle("ROMVERSE · Prepare installation")
         self.resize(740, 430)
@@ -215,6 +243,10 @@ class ProjectPreparationDialog(QDialog):
         actions.addStretch(1)
         actions.addWidget(self.prepare_button)
         outer.addLayout(actions)
+        operation_session.changed.connect(self._render_session)
+        operation_session.preparation_finished.connect(self._session_prepared)
+        self._restore_request()
+        self._render_session(operation_session.snapshot())
 
     def _refresh_base_choices(self) -> None:
         previous = self.base_choice.currentData()
@@ -292,8 +324,72 @@ class ProjectPreparationDialog(QDialog):
         else:
             self.setMinimumHeight(0)
 
+    def _restore_request(self) -> None:
+        request = self.session.preparation_request
+        if request is None:
+            return
+        choice = self.choice.findData(request.candidate_choice)
+        if choice >= 0:
+            self.choice.setCurrentIndex(choice)
+        base = self.base_choice.findData(request.procedure_project_id)
+        if base >= 0:
+            self.base_choice.setCurrentIndex(base)
+        self.procedure_path = request.procedure_path
+        if request.procedure_path is not None:
+            self.base_choice.setCurrentIndex(0)
+            self.base_file_button.setText(
+                f"Change selected package · {request.procedure_path.name}"
+            )
+            self.base_file_button.setToolTip(str(request.procedure_path))
+        self.wipe.setChecked(request.wipe)
+        self.reboot.setChecked(request.reboot)
+
+    def _render_session(self, snapshot: object) -> None:
+        if not isinstance(snapshot, SourceOperationSnapshot):
+            return
+        preparing = snapshot.phase is SourceOperationPhase.PREPARING
+        self.worker = self.session.worker if preparing else None
+        self.preparation = self.session.preparation
+        self.choice.setEnabled(not preparing)
+        self.source_controls.setEnabled(not preparing)
+        self.base_controls.setEnabled(not preparing)
+        self.prepare_button.setEnabled(not preparing)
+        can_hide = preparing and self._can_hide_preparation()
+        self.close_button.setEnabled(not preparing or can_hide)
+        self.close_button.setText("Hide preparation" if can_hide else "Cancel")
+        if preparing:
+            self.progress.setRange(0, 0)
+        else:
+            self.progress.setRange(0, 100)
+            self.progress.setValue(snapshot.progress_value)
+        self.status.setText(
+            self._base_discovery_error
+            if (
+                self._base_discovery_error
+                and snapshot.phase is SourceOperationPhase.CHOOSING
+                and self.session.preparation_request is None
+            )
+            else snapshot.status
+        )
+
+    def _session_prepared(self, preparation: object) -> None:
+        if preparation is not self.session.preparation:
+            return
+        self.preparation = preparation
+        if self.isVisible():
+            QDialog.accept(self)
+
+    def _can_hide_preparation(self) -> bool:
+        request = self.session.preparation_request
+        return bool(
+            not self._owns_session
+            and request is not None
+            and request.candidate_choice
+            in {"candidate-installation", "source-installation"}
+        )
+
     def _prepare(self) -> None:
-        if self.worker is not None:
+        if self.session.busy:
             return
         if (
             self.choice.currentData() == "candidate-installation"
@@ -305,71 +401,34 @@ class ProjectPreparationDialog(QDialog):
             )
             self.base_file_button.setFocus()
             return
-        self.preparation = None
-        self.choice.setEnabled(False)
-        self.source_controls.setEnabled(False)
-        self.base_controls.setEnabled(False)
-        self.prepare_button.setEnabled(False)
-        self.close_button.setEnabled(False)
-        self.progress.setRange(0, 0)
-        self.status.setText(
-            "Checking project evidence and hashing images. Large files may take a while…"
-        )
-        worker = ProjectPreparationWorker(
-            self.service,
-            self.project_id,
-            self.choice.currentData(),
-            source_service=self.source_service,
-            candidate_service=self.candidate_service,
+        request = ProjectPreparationRequest(
+            project_id=self.project_id,
+            source_sha256=self.session.source_sha256,
+            candidate_choice=self.choice.currentData(),
             procedure_project_id=self.base_choice.currentData(),
             procedure_path=self.procedure_path,
             wipe=self.wipe.isChecked(),
             reboot=self.reboot.isChecked(),
         )
-        self.worker = worker
-        worker.signals.complete.connect(self._prepared)
-        worker.signals.failed.connect(self._failed)
-        try:
-            start_background(worker)
-        except RuntimeError as exc:
-            self._show_error(str(exc))
-
-    @Slot(object)
-    def _prepared(self, preparation: object) -> None:
-        if self.worker is None or self.sender() is not self.worker.signals:
-            return
+        worker = ProjectPreparationWorker(
+            self.service,
+            self.project_id,
+            request.candidate_choice,
+            source_service=self.source_service,
+            candidate_service=self.candidate_service,
+            procedure_project_id=request.procedure_project_id,
+            procedure_path=request.procedure_path,
+            wipe=request.wipe,
+            reboot=request.reboot,
+        )
         if (
-            not isinstance(preparation, (ProjectFlashPreparation, SourceInstallationRecipe))
-            or preparation.project_id != self.project_id
-            or (
-                self.choice.currentData() == "candidate-installation"
-                and type(preparation) is not CandidateInstallationRecipe
-            )
-            or (
-                self.choice.currentData() == "source-installation"
-                and type(preparation) is not SourceInstallationRecipe
-            )
-            or (
-                self.choice.currentData() in {"built", "protected"}
-                and (
-                    not isinstance(preparation, ProjectFlashPreparation)
-                    or preparation.candidate_choice != self.choice.currentData()
-                )
-            )
+            not self.session.start_preparation(worker, request, starter=start_background)
+            and not self.session.preparation_error
         ):
-            self._failed(
-                "Preparation returned mismatched project evidence. No phone command was sent."
+            self.status.setText(
+                "Preparation could not start because this mission changed. Reopen the project "
+                "and verify the intended source."
             )
-            return
-        self.worker = None
-        self.preparation = preparation
-        self.accept()
-
-    @Slot(str)
-    def _failed(self, message: str) -> None:
-        if self.worker is None or self.sender() is not self.worker.signals:
-            return
-        self._show_error(message)
 
     def _show_error(self, message: str) -> None:
         self.worker = None
@@ -385,18 +444,18 @@ class ProjectPreparationDialog(QDialog):
         self.close_button.setEnabled(True)
 
     def done(self, result: int) -> None:
-        if self.worker is None:
-            super().done(result)
+        if self.session.busy and not self._can_hide_preparation():
+            return
+        QDialog.done(self, result)
 
     def reject(self) -> None:
-        if self.worker is None:
-            super().reject()
+        self.done(QDialog.DialogCode.Rejected)
 
     def closeEvent(self, event) -> None:  # noqa: N802
-        if self.worker is not None:
+        if self.session.busy and not self._can_hide_preparation():
             event.ignore()
         else:
-            super().closeEvent(event)
+            QDialog.closeEvent(self, event)
 
 
 class ProjectFlashDialog(LocalFlashDialog):

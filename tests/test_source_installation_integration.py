@@ -20,7 +20,7 @@ import pytest
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QImage
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtWidgets import QApplication, QDialog, QMessageBox
 
 from romverse.core.settings import AppSettings, ExperienceMode
 from romverse.guardian.local_flash import LocalFlashError, LocalFlashService, LocalFlashState
@@ -38,7 +38,7 @@ from romverse.rom.source_installation import SourceInstallationService
 from romverse.ui.main_window import MainWindow
 from romverse.ui.project_flash import ProjectPreparationDialog
 from romverse.ui.source_installation import SourceInstallationDialog
-from romverse.ui.source_operation_session import SourceOperationSession
+from romverse.ui.source_operation_session import SourceOperationPhase, SourceOperationSession
 from scripts.simulate_source_installation import InstallationPhone
 from scripts.simulate_source_installation import main as simulate_source_installation
 
@@ -691,6 +691,139 @@ def test_app_owned_session_survives_view_and_mode_changes_without_duplicate_exec
     app.processEvents()
 
 
+def test_app_owned_preparation_survives_view_replacement_with_exact_inputs(
+    installation,
+    monkeypatch,
+):
+    context = installation
+    app = QApplication.instance() or QApplication([])
+    workers = []
+    monkeypatch.setattr("romverse.ui.project_flash.start_background", workers.append)
+    executor = _executor(context)
+    session = SourceOperationSession(
+        None,
+        (context.phone.device(),),
+        project_id=context.project_id,
+        source_sha256=context.source.store.get(context.project_id).original.sha256,
+        preparation_service=object(),
+        source_service=context.source,
+        installation_factory=lambda _preparation: executor,
+    )
+    first = ProjectPreparationDialog(
+        session.preparation_service,
+        context.project_id,
+        source_service=context.source,
+        session=session,
+        source_sha256=session.source_sha256,
+    )
+    first.choice.setCurrentIndex(first.choice.findData("source-installation"))
+    first.show()
+    app.processEvents()
+    _click(first.prepare_button)
+
+    assert session.phase is SourceOperationPhase.PREPARING
+    assert session.preparation_request is not None
+    assert session.preparation_request.candidate_choice == "source-installation"
+    assert session.worker is workers[0]
+    assert first.close_button.text() == "Hide preparation"
+    _click(first.close_button)
+    app.processEvents()
+    assert not first.isVisible() and session.busy
+
+    second = ProjectPreparationDialog(
+        session.preparation_service,
+        context.project_id,
+        source_service=context.source,
+        session=session,
+        source_sha256=session.source_sha256,
+    )
+    second.show()
+    app.processEvents()
+    assert second.choice.currentData() == "source-installation"
+    assert second.worker is session.worker is workers[0]
+    assert second.close_button.text() == "Hide preparation"
+
+    _finish_worker(app, workers)
+    assert second.result() == QDialog.DialogCode.Accepted
+    assert session.recipe is session.preparation
+    assert session.service is executor
+    assert session.phase is SourceOperationPhase.READY
+    assert not session.busy
+    assert context.phone.changes == []
+    first.deleteLater()
+    second.deleteLater()
+    session.dispose()
+    app.processEvents()
+
+
+def test_hidden_preparation_rejects_changed_consequences_and_reopens_for_retry(
+    installation,
+    monkeypatch,
+):
+    context = installation
+    app = QApplication.instance() or QApplication([])
+    workers = []
+    monkeypatch.setattr("romverse.ui.project_flash.start_background", workers.append)
+    requested_recipe = context.recipe(wipe=False, reboot=True)
+
+    class MismatchedSource:
+        def prepare(self, *_args, **_kwargs):
+            return replace(requested_recipe, wipe=True)
+
+    session = SourceOperationSession(
+        None,
+        (context.phone.device(),),
+        project_id=context.project_id,
+        source_sha256=requested_recipe.source_sha256,
+        preparation_service=object(),
+        source_service=MismatchedSource(),
+        installation_factory=lambda _preparation: _executor(context),
+    )
+    first = ProjectPreparationDialog(
+        session.preparation_service,
+        context.project_id,
+        source_service=session.source_service,
+        session=session,
+        source_sha256=session.source_sha256,
+    )
+    first.choice.setCurrentIndex(first.choice.findData("source-installation"))
+    first.show()
+    app.processEvents()
+    _click(first.prepare_button)
+    _click(first.close_button)
+    _finish_worker(app, workers)
+
+    assert session.recipe is None and session.preparation is None
+    assert session.phase is SourceOperationPhase.ATTENTION
+    assert "mismatched project evidence" in session.preparation_error
+    assert context.phone.changes == []
+
+    session.source_service = context.source
+    second = ProjectPreparationDialog(
+        session.preparation_service,
+        context.project_id,
+        source_service=session.source_service,
+        session=session,
+        source_sha256=session.source_sha256,
+    )
+    second.show()
+    app.processEvents()
+    assert second.choice.currentData() == "source-installation"
+    assert not second.wipe.isChecked() and second.reboot.isChecked()
+    assert "mismatched project evidence" in second.status.text()
+    assert second.prepare_button.isEnabled()
+    _click(second.prepare_button)
+    _finish_worker(app, workers)
+    assert session.recipe is session.preparation
+    assert session.recipe.wipe is False and session.recipe.reboot is True
+    assert session.phase is SourceOperationPhase.READY
+    assert context.phone.changes == []
+    first.deleteLater()
+    second.deleteLater()
+    session.dispose()
+    app.processEvents()
+
+
 def test_guided_read_only_check_failure_offers_a_bounded_retry(installation, monkeypatch):
     context = installation
     app = QApplication.instance() or QApplication([])
@@ -854,6 +987,7 @@ def test_reusable_script_uses_actual_managed_workers_and_truthful_compact_artifa
     assert report["installation_receipt_unchanged"] is True
     assert report["compact_layout_readable"] is True
     assert report["preparation_warning_readable"] is True
+    assert report["preparation_and_installation_same_session"] is True
     assert report["dialog_size"] == [760, 720]
     assert report["audit_valid"] is True
     assert report["history_reopened_from_saved_receipt"] is True
@@ -1133,3 +1267,131 @@ def test_main_window_retains_hidden_installation_across_experience_switch(
     )
     window._show_source_operation_session(session)
     assert window._source_operation_session is None
+
+
+def test_main_window_continues_hidden_preparation_in_the_same_mission(
+    installation_desktop,
+    monkeypatch,
+):
+    app, window, context = installation_desktop
+    workers = []
+    monkeypatch.setattr("romverse.ui.project_flash.start_background", workers.append)
+    phases = []
+    errors = []
+    retained = []
+    timer = QTimer()
+    timeout = QTimer()
+    timeout.setSingleShot(True)
+
+    def interact():
+        modal = app.activeModalWidget()
+        try:
+            if isinstance(modal, ProjectPreparationDialog) and "hidden" not in phases:
+                modal.choice.setFocus()
+                QTest.keyClick(modal.choice, Qt.Key.Key_End)
+                assert modal.choice.currentData() == "source-installation"
+                _click(modal.prepare_button)
+                session = window._source_operation_session
+                assert session is not None and session.busy
+                assert session.preparation_request.candidate_choice == "source-installation"
+                retained.append(session)
+                phases.append("hidden")
+                _click(modal.close_button)
+            elif isinstance(modal, SourceInstallationDialog) and "continued" not in phases:
+                assert retained and modal.session is retained[0]
+                assert modal.recipe is retained[0].preparation
+                assert modal.worker is None and modal.plan is None
+                assert window._experience_mode is ExperienceMode.EXPERT
+                assert context.phone.changes == []
+                phases.append("continued")
+                _click(modal.close_button)
+        except BaseException as exc:
+            errors.append(exc)
+            timer.stop()
+            if modal is not None:
+                modal.reject()
+
+    def expired():
+        errors.append(AssertionError(f"Hidden preparation did not continue: {phases}"))
+        if app.activeModalWidget() is not None:
+            app.activeModalWidget().reject()
+
+    timer.timeout.connect(interact)
+    timer.start(1)
+    timeout.timeout.connect(expired)
+    timeout.start(5000)
+    assert window.rom_studio._request_project_flash(context.project_id)
+    assert phases == ["hidden"]
+    session = retained[0]
+    worker = session.worker
+    request = session.preparation_request
+    window._apply_experience_mode(ExperienceMode.EXPERT)
+    assert session.worker is worker and session.preparation_request is request
+    assert len(workers) == 1
+
+    workers.pop(0).execute()
+    app.processEvents()
+    assert phases == ["hidden"]
+    assert window._source_operation_session is session
+    assert session.recipe is session.preparation and not session.busy
+    assert "Preparation verified and retained" in window.rom_studio.operation_status.text()
+    assert app.activeModalWidget() is None
+
+    assert window.rom_studio._request_project_flash(context.project_id)
+    timer.stop()
+    timeout.stop()
+    if errors:
+        raise errors[0]
+    assert phases == ["hidden", "continued"]
+    assert context.phone.changes == []
+    assert window._source_operation_session is None
+
+
+def test_hidden_preparation_failure_is_actionable_and_reopens_exact_choice(
+    installation_desktop,
+    monkeypatch,
+):
+    app, window, context = installation_desktop
+    workers = []
+    monkeypatch.setattr("romverse.ui.project_flash.start_background", workers.append)
+
+    def fail_preparation(*_args, **_kwargs):
+        raise ProjectError("The protected source changed during verification.")
+
+    monkeypatch.setattr(SourceInstallationService, "prepare", fail_preparation)
+
+    def start_and_hide():
+        modal = app.activeModalWidget()
+        if isinstance(modal, ProjectPreparationDialog):
+            modal.choice.setFocus()
+            QTest.keyClick(modal.choice, Qt.Key.Key_End)
+            _click(modal.prepare_button)
+            _click(modal.close_button)
+
+    QTimer.singleShot(0, start_and_hide)
+    assert window.rom_studio._request_project_flash(context.project_id)
+    session = window._source_operation_session
+    assert session is not None and session.busy and len(workers) == 1
+    workers.pop(0).execute()
+    app.processEvents()
+    assert session.phase is SourceOperationPhase.ATTENTION and not session.busy
+    assert session.preparation_request.candidate_choice == "source-installation"
+    assert "Preparation needs attention" in window.rom_studio.operation_status.text()
+    assert "protected source changed" in window.rom_studio.operation_status.text()
+    assert context.phone.changes == []
+
+    reopened = []
+
+    def inspect_and_close():
+        modal = app.activeModalWidget()
+        if isinstance(modal, ProjectPreparationDialog):
+            reopened.append(modal.choice.currentData())
+            assert "protected source changed" in modal.status.text()
+            assert modal.prepare_button.isEnabled()
+            _click(modal.close_button)
+
+    QTimer.singleShot(0, inspect_and_close)
+    assert window.rom_studio._request_project_flash(context.project_id)
+    assert reopened == ["source-installation"]
+    assert window._source_operation_session is None
+    assert context.phone.changes == []

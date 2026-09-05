@@ -882,7 +882,8 @@ class GuidedBuildMission(QDialog):
         )
         if self.root_preview_project_id and self.root_preview_project_id != current_project_id:
             self._reset_root_entry_preview()
-        self.assessments = self.engine.assess(self._context())
+        self._display_context = self._context()
+        self.assessments = self.engine.assess(self._display_context)
         if select_current:
             # Resume at the first stage not supported by real evidence. This deliberately
             # outranks the last page viewed so a stale navigation choice cannot imply progress.
@@ -1154,10 +1155,32 @@ class GuidedBuildMission(QDialog):
                 "Local ROM build complete — phone installation is optional and has not been "
                 "requested. You can finish here without weakening Guardian."
                 if stage.stage_id == "flash"
-                else "Optional post-install verification is deferred until a Guardian flash "
-                "receipt exists."
+                else "Optional post-install verification is deferred. Separate Android boot "
+                "checks are available through the local image workflow."
             ),
         }[assessment.status]
+        local_outcome = getattr(self, "_display_context", GuidedContext())
+        if (
+            stage.stage_id == "flash"
+            and local_outcome.local_image_state
+            and not local_outcome.flash_complete
+        ):
+            status_copy = (
+                f"Local image operation: {local_outcome.local_image_state}. "
+                f"{local_outcome.local_image_summary} "
+                "This is a local subset result, not full-ROM or production certification. "
+                "Review it before deciding whether any further operation is needed."
+            )
+        elif (
+            stage.stage_id == "first_boot"
+            and local_outcome.local_image_state
+            and not local_outcome.first_boot_verified
+        ):
+            status_copy = (
+                "A local image outcome is recorded. Open the separate Android boot check to "
+                "review reconnect and boot observations. Full-ROM, image readback and subsystem "
+                "verification remain separate; this stage has not been certified complete."
+            )
         self.status_text.setText(status_copy)
         self.status_icon.setText(
             {
@@ -1183,12 +1206,15 @@ class GuidedBuildMission(QDialog):
         self.action_button.setText("Processing stage …" if busy else stage.action_label)
         if not busy and stage.stage_id == "flash" and not self.state.install_requested:
             self.action_button.setText("Continue to optional flash setup")
-        if (
-            not busy
-            and stage.stage_id == "flash"
-            and any("handoff prepared" in item.casefold() for item in assessment.evidence)
-        ):
-            self.action_button.setText("Review exact write manifest")
+        elif not busy and stage.stage_id == "flash":
+            self.action_button.setText("Prepare local image installation…")
+        if not busy and stage.stage_id == "flash" and local_outcome.local_image_state:
+            self.action_button.setText("Continue local image workflow…")
+        local_boot_available = bool(
+            stage.stage_id == "first_boot" and local_outcome.local_image_state and not busy
+        )
+        if local_boot_available:
+            self.action_button.setText("Review separate Android boot check…")
         self.action_button.setToolTip(
             f"What: {stage.explanation}\n\nWhy: {stage.recommendation}\n\n"
             f"Result: {assessment.next_outcome}"
@@ -1202,6 +1228,7 @@ class GuidedBuildMission(QDialog):
         self.action_button.setEnabled(
             build_control_available
             or root_choice_available
+            or local_boot_available
             or (assessment.can_run and not busy and not stage.future_gate)
         )
         if stage.action == "choose-root" and assessment.status is GuidedStageStatus.COMPLETE:
@@ -1366,8 +1393,8 @@ class GuidedBuildMission(QDialog):
         self._finish_genesis_live(
             MissionState.SUCCEEDED,
             "Genesis local ROM build is complete.",
-            "All 13 local build stages are verified. Optional Guardian installation and first-boot verification were deliberately deferred; no phone state changed.",
-            "Use the verified local artifact, or reopen Genesis and explicitly continue to Guardian flash setup when an exact write plan is available.",
+            "All 13 local build stages are verified. Optional image installation and full first-boot verification were deferred; finishing this local build did not change the phone.",
+            "Use the verified local artifact, or reopen Genesis to review source-bound image preparation and any previously recorded local outcome.",
             MissionConfidence.VERIFIED,
         )
         super().accept()
@@ -1408,7 +1435,7 @@ class GuidedBuildMission(QDialog):
             self._finish_autopilot(
                 "Local ROM build complete: all 13 build stages are verified. Optional phone "
                 "installation was not started. Choose Finish local build, or explicitly continue "
-                "to Guardian flash setup."
+                "to local image preparation."
             )
             return
         if assessment.status is GuidedStageStatus.LOCKED:
@@ -1735,13 +1762,13 @@ class GuidedBuildMission(QDialog):
             self.studio._open_build_control(self)
             self._refresh()
         elif action == "flash":
-            if self._context().guardian_flash_handoff_ready:
-                self.studio._open_guardian_manifest_review(self)
-            else:
-                # Never leave a visible action as a no-op. Until the mode handoff
-                # exists this opens the evidence resolver, not a phone write.
-                self.studio._open_build_control(self)
-            self._refresh()
+            project = self.studio.current_project
+            self._handoff_project_images(
+                project.project_id if project is not None else "",
+                project.original.sha256
+                if project is not None and project.original is not None
+                else "",
+            )
         else:
             self.failure = GuidedFailure(
                 "This guided action is unavailable",
@@ -1763,33 +1790,67 @@ class GuidedBuildMission(QDialog):
         dialog.setText("Your local ROM build is complete")
         dialog.setInformativeText(
             "All 13 local build stages have verified evidence. Flashing is a separate optional "
-            "operation with its own device, recovery, write-plan, warning, and final-consent "
-            "checks.\n\nYou can finish here, or explicitly enter Guardian flash setup. Entering "
-            "setup does not flash the phone and cannot turn a missing deterministic partition "
-            "write plan into a warning override."
+            "operation. You can finish here or prepare a local image subset from this project's "
+            "verified source and candidate.\n\nYou will choose the exact image-to-partition "
+            "mappings and write order, review compatibility and recovery warnings, and separately "
+            "confirm before any phone write. This is not an automatic full-ROM installation or "
+            "production certification. Opening preparation does not change the phone."
         )
         finish = dialog.addButton(
             "Finish local build • Recommended",
             QMessageBox.ButtonRole.AcceptRole,
         )
         continue_flash = dialog.addButton(
-            "Continue to Guardian flash setup",
+            "Prepare local image installation…",
             QMessageBox.ButtonRole.ActionRole,
         )
         dialog.addButton(QMessageBox.StandardButton.Cancel)
         dialog.setDefaultButton(finish)
+        project = self.studio.current_project
+        project_id = project.project_id if project is not None else ""
+        source_sha256 = (
+            project.original.sha256 if project is not None and project.original is not None else ""
+        )
         dialog.exec()
         if dialog.clickedButton() is finish:
             self._finish_local_build()
             return
         if dialog.clickedButton() is continue_flash:
-            self.state = replace(self.state, install_requested=True, last_error="")
-            if not self._save_state():
-                self._render_stage()
-                return
-            self._refresh(select_current=True)
-            self.studio._open_build_control(self)
-            self._refresh(select_current=True)
+            self._handoff_project_images(project_id, source_sha256)
+
+    def _handoff_project_images(self, project_id: str, source_sha256: str) -> bool:
+        """Save and close Genesis before the desktop opens local image preparation."""
+
+        current = self.studio.current_project
+        if self.studio.worker is not None or self.active_operation or self.root_preview_active:
+            self.status_text.setText("Wait for the current operation before image preparation.")
+            return False
+        if (
+            not project_id
+            or not source_sha256
+            or current is None
+            or current.project_id != project_id
+            or current.original is None
+            or current.original.sha256 != source_sha256
+        ):
+            self.status_text.setText(
+                "The project or protected firmware source is missing or changed. Reopen Genesis."
+            )
+            return False
+        self.autopilot_active = False
+        self.state = replace(self.state, install_requested=True, last_error="")
+        if not self._save_state():
+            self._render_stage()
+            return False
+        self._pause_genesis_live(
+            "Genesis paused for explicit local image preparation; no phone write has started."
+        )
+        super().accept()
+        QTimer.singleShot(
+            0,
+            lambda: self.studio._request_project_flash(project_id, source_sha256=source_sha256),
+        )
+        return True
 
     def _run_first_boot_check(self) -> None:
         project = self.studio.current_project
@@ -1798,6 +1859,12 @@ class GuidedBuildMission(QDialog):
             self._refresh()
             return
         context = self._context()
+        if context.local_image_state and not context.flash_complete:
+            self._handoff_project_images(
+                project.project_id,
+                project.original.sha256 if project.original is not None else "",
+            )
+            return
         if not context.flash_complete:
             self.failure = GuidedFailure(
                 "Guardian flash receipt required",

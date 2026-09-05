@@ -96,6 +96,7 @@ from romverse.rom.models import (
     WorkingCopy,
 )
 from romverse.rom.payloads import PayloadManifest, PayloadService
+from romverse.rom.project_flash import ProjectFlashOutcome, ProjectFlashPreparationService
 from romverse.rom.projects import RomProjectStore
 from romverse.rom.readiness import BuildReadinessService
 from romverse.rom.recipes import (
@@ -665,6 +666,7 @@ class RomStudio(QWidget):
     offline_knowledge_updated = Signal(object)
     experience_mode_requested = Signal(object)
     expert_flash_requested = Signal()
+    project_flash_requested = Signal(str)
 
     def __init__(
         self,
@@ -757,7 +759,7 @@ class RomStudio(QWidget):
         workflow.addStretch()
         self.guided_button = QPushButton("Genesis Sequence")
         self.guided_button.setToolTip(
-            "Enter ROMVERSE Genesis Sequence: a guided journey from trusted firmware through build, Guardian flash, and verified first boot."
+            "Enter ROMVERSE Genesis Sequence: prepare a verified local build, optionally review source-bound image installation, and check separate boot evidence."
         )
         self.guided_button.clicked.connect(self._open_guided_setup)
         workflow.addWidget(self.guided_button)
@@ -2060,6 +2062,21 @@ class RomStudio(QWidget):
             except ProjectError:
                 pass
 
+        # This bounded historical read validates private parent/child receipts and
+        # current recorded source identity. It never grants fresh-byte or phone authority.
+        try:
+            local_outcome = ProjectFlashPreparationService(
+                self.store, self.pack_registry
+            ).load_latest(project_id)
+        except (OSError, ProjectError):
+            local_outcome = None
+        if not isinstance(local_outcome, ProjectFlashOutcome) or (
+            local_outcome.project_id != project_id
+            or project.original is None
+            or local_outcome.source_sha256 != project.original.sha256
+        ):
+            local_outcome = None
+
         readiness = BuildReadinessService(
             self.store,
             self.pack_registry,
@@ -2129,6 +2146,12 @@ class RomStudio(QWidget):
             flash_complete=flash_complete,
             boot_observation_stable=boot_observation_stable,
             first_boot_verified=first_boot_verified,
+            local_image_state=local_outcome.state if local_outcome is not None else "",
+            local_image_summary=local_outcome.summary if local_outcome is not None else "",
+            local_image_count=local_outcome.selected_image_count
+            if local_outcome is not None
+            else 0,
+            local_image_boot_status=local_outcome.boot_status if local_outcome is not None else "",
             required_tools=required_tools_for_source(
                 selected_pack.build_contract
                 if selected_pack is not None
@@ -2241,6 +2264,33 @@ class RomStudio(QWidget):
     def _request_expert_flash(self) -> None:
         if self.app_settings.experience_mode is ExperienceMode.EXPERT:
             self.expert_flash_requested.emit()
+
+    def _request_project_flash(self, project_id: str = "", *, source_sha256: str = "") -> bool:
+        """Open project-bound image preparation, never approve or execute a phone write."""
+
+        project = self.current_project
+        if project is None or (project_id and project.project_id != project_id):
+            self.operation_status.setText(
+                "The selected project changed. Reopen image preparation from the intended project."
+            )
+            return False
+        if self.worker is not None:
+            self.operation_status.setText(
+                "Wait for the current project operation before preparing image installation."
+            )
+            return False
+        try:
+            current = self.store.get(project.project_id)
+        except ProjectError as exc:
+            self.operation_status.setText(str(exc))
+            return False
+        if current.original is None or (source_sha256 and current.original.sha256 != source_sha256):
+            self.operation_status.setText(
+                "The protected firmware source is missing or changed. Review the current source first."
+            )
+            return False
+        self.project_flash_requested.emit(current.project_id)
+        return True
 
     def _toggle_architect_mode(self, enabled: bool) -> None:
         """Make the Studio mode control a genuine persisted Desktop transition."""

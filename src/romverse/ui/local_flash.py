@@ -209,15 +209,18 @@ class LocalFlashDialog(QDialog):
         layout.setContentsMargins(22, 18, 22, 18)
         layout.setSpacing(8)
         eyebrow = QLabel("ARCHITECT MODE  •  DIRECT DEVICE CONTROL")
+        self.eyebrow = eyebrow
         eyebrow.setObjectName("Eyebrow")
         layout.addWidget(eyebrow)
         title = QLabel("Flash or restore partition images")
+        self.title = title
         title.setObjectName("SectionTitle")
         layout.addWidget(title)
         introduction = QLabel(
             "Prepare the phone, review exact image writes, then check Android boot. "
             "Stock images can be used for a manual restore."
         )
+        self.introduction = introduction
         introduction.setWordWrap(True)
         introduction.setObjectName("Muted")
         layout.addWidget(introduction)
@@ -262,6 +265,7 @@ class LocalFlashDialog(QDialog):
             "Write order is top to bottom. Enter explicit slot names such as boot_a when "
             "appropriate. Image filenames alone do not prove device compatibility."
         )
+        self.mapping_hint = mapping_hint
         mapping_hint.setWordWrap(True)
         mapping_hint.setObjectName("Muted")
         layout.addWidget(mapping_hint)
@@ -273,10 +277,12 @@ class LocalFlashDialog(QDialog):
         self.images.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.images.setColumnWidth(0, 230)
         self.images.verticalHeader().setDefaultSectionSize(42)
-        self.images.setMinimumHeight(110)
+        # Both grids scroll; leave room for wrapped status/risks on small displays.
+        self.images.setMinimumHeight(90)
         self.images.cellChanged.connect(self._invalidate)
         layout.addWidget(self.images, 2)
         edits = QHBoxLayout()
+        self.image_actions = edits
         self.add_button = QPushButton("Add image…")
         self.add_button.clicked.connect(self._choose_image)
         self.remove_button = QPushButton("Remove selected")
@@ -299,7 +305,7 @@ class LocalFlashDialog(QDialog):
         layout.addWidget(self.status)
         self.review = QPlainTextEdit()
         self.review.setReadOnly(True)
-        self.review.setMinimumHeight(120)
+        self.review.setMinimumHeight(80)
         self.review.setMaximumBlockCount(5000)
         self.review.setAccessibleName("Flash plan, warnings and operation results")
         self.review.setPlaceholderText(
@@ -315,6 +321,7 @@ class LocalFlashDialog(QDialog):
             "Flashing risks data loss and boot failure. Keep your own backup and correct images. "
             "Write completion, measured boot, image readback and subsystem health are separate results."
         )
+        self.boundary = boundary
         boundary.setObjectName("Warning")
         boundary.setWordWrap(True)
         layout.addWidget(boundary)
@@ -351,6 +358,10 @@ class LocalFlashDialog(QDialog):
         self.images.setItem(row, 1, image_item)
         self.images.setCurrentCell(row, 0)
         self._invalidate()
+
+    def _plan_context(self) -> tuple[str, ...]:
+        """Additional provenance shown inside the exact final-consent review."""
+        return ()
 
     def _choose_image(self) -> None:
         paths, _ = QFileDialog.getOpenFileNames(
@@ -756,6 +767,7 @@ class LocalFlashDialog(QDialog):
         elif isinstance(value, LocalFlashPlan):
             self.plan = value
             lines = [
+                *self._plan_context(),
                 f"TARGET  {value.device_name} · {value.masked_serial}",
                 f"PRODUCT  {value.product}    MODE  {value.mode}",
                 f"PLAN  {value.plan_digest}",

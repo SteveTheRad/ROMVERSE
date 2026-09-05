@@ -75,6 +75,10 @@ class GuidedContext:
     boot_observation_stable: bool = False
     first_boot_verified: bool = False
     required_tools: tuple[str, ...] = ()
+    local_image_state: str = ""
+    local_image_summary: str = ""
+    local_image_count: int = 0
+    local_image_boot_status: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -270,12 +274,12 @@ STAGES = (
     GuidedStage(
         "flash",
         14,
-        "Guardian flash",
-        "Flash with a verified recovery path",
-        "Phone installation is optional and separate from the completed local ROM build. If requested, Guardian re-checks the exact device, battery, bootloader state, partitions, artifact signatures, backups, cable stability, and rollback path before execution.",
-        "Finish safely after the local build, or explicitly continue into Guardian flash setup. Repeating local build steps cannot create missing external certification, and bootloader relocking is never offered.",
+        "Image installation",
+        "Review local image installation",
+        "Phone installation is optional and separate from the local build. Prepare verified project images, choose explicit partition mappings and order, then review the exact phone, mode, warnings and final consent. A local subset operation is not an automatic full-ROM installation or production certificate.",
+        "Finish after the local build, or open local image preparation. Review backups and recovery options before any write; do not repeat a completed operation just to turn certification rows green. Bootloader relocking is never offered.",
         "flash",
-        "Resolve Guardian readiness",
+        "Prepare local image installation…",
     ),
     GuidedStage(
         "first_boot",
@@ -303,6 +307,10 @@ class GuidedMissionEngine:
                 status = GuidedStageStatus.COMPLETE
             elif stage.stage_id in {"flash", "first_boot"} and not context.install_requested:
                 status = GuidedStageStatus.FUTURE
+            elif stage.stage_id in {"flash", "first_boot"} and context.local_image_state:
+                # A measured local subset outcome is actionable context, never proof
+                # that the production flash or full first-boot stage is complete.
+                status = GuidedStageStatus.ATTENTION
             elif stage.stage_id == "flash" and context.guardian_handoff_ready:
                 status = GuidedStageStatus.READY
             elif stage.future_gate:
@@ -440,6 +448,17 @@ class GuidedMissionEngine:
         context: GuidedContext,
     ) -> dict[str, tuple[bool, tuple[str, ...], tuple[str, ...]]]:
         device = context.device
+        local_image_evidence = (
+            (
+                f"Local image subset operation: {context.local_image_state} • "
+                f"{context.local_image_count} selected image(s)",
+                context.local_image_summary,
+                f"Separate Android boot observation: {context.local_image_boot_status or 'unverified'}",
+                "Not a full-ROM installation, independent image readback, or production certificate.",
+            )
+            if context.local_image_state
+            else ()
+        )
         authorized = device is not None and device.state is DeviceState.DEVICE
         observed = context.observed_devices
         device_evidence = (
@@ -694,6 +713,8 @@ class GuidedMissionEngine:
                 context.flash_complete,
                 ("Guardian flash receipt verified",)
                 if context.flash_complete
+                else local_image_evidence
+                if local_image_evidence
                 else (
                     "Local ROM build complete; optional phone installation was not requested",
                     "Flash-only evidence remains separate and does not invalidate the local artifact",
@@ -714,22 +735,27 @@ class GuidedMissionEngine:
                 if context.guardian_handoff_ready
                 else (),
                 (
-                    (
-                        "Open Guardian handoff to choose or verify a backup and review the exact flash mode; no device change occurs."
-                        if context.guardian_handoff_ready
-                        else "Open Guardian readiness to automatically resolve every safe prerequisite."
-                    ),
-                    (
-                        "ROMVERSE has verified the external backup and recovery route."
-                        if context.guardian_handoff_ready
-                        else "ROMVERSE pauses only for a verified backup/recovery action and final device-write approval."
-                    ),
+                    "Review the recorded local outcome. Continue the local image workflow only "
+                    "if another deliberate operation is needed; do not repeat a completed write.",
+                    "Full-firmware, readback and subsystem verification remain separate evidence.",
+                )
+                if local_image_evidence
+                else (
+                    "Prepare the project's source-bound image inventory and explicitly review "
+                    "the phone, partition mappings, order and risks before final consent.",
+                    "Production Device Pack certification is a separate optional review, not "
+                    "a prerequisite for opening local image preparation.",
                 ),
             ),
             "first_boot": (
                 context.flash_complete and context.first_boot_verified,
                 ("First boot and health verification appears stable",)
                 if context.flash_complete and context.first_boot_verified
+                else (
+                    "Local image subset outcome recorded; it does not prove a full-ROM first boot.",
+                    f"Separate Android boot observation: {context.local_image_boot_status or 'unverified'}",
+                )
+                if local_image_evidence
                 else ("Optional post-install verification is deferred with phone installation",)
                 if not context.install_requested
                 else (

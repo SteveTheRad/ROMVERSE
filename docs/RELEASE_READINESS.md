@@ -1805,6 +1805,59 @@ The product-wide continuation target and definition of done are recorded in
   The running user app was not restarted. Separate uncommitted Companion navigation work was
   preserved and is not a newly built or installed Companion release.
 
+## 2026-09-05 Guided project-local image installation
+
+The primary Forge/Genesis installation action now opens source-bound local image preparation
+instead of sending a completed local candidate through the Device Atlas certification loop.
+The app stays in Guided Mode. The user explicitly chooses rebuilt or protected-source images,
+adds a selected subset, enters its destinations/slots/order, and separately confirms each mode
+change and write plan. No image filename or candidate inventory becomes an invented complete-ROM
+installation recipe. See `GUIDED_LOCAL_INSTALLATION_2026-09-05.md` for the implemented journey and
+its remaining boundaries.
+
+Preparation freshly verifies protected source bytes and saved build/image evidence. Direct
+ZIP/TAR images must match actual original archive members, including safely normalized member
+names; OTA images require a source-bound extraction manifest. Known source/phone identity
+contradictions stop the local route. Changed project/receipt/image evidence invalidates consent.
+Project-local parent receipts preserve the original exact-target executor receipts for boot
+binding. Genesis displays bounded historical local/boot outcomes without promoting them to
+full-ROM, readback, first-boot or production certification. A newer interrupted/tampered matching
+operation cannot reveal an older success as the latest outcome. Recovery attribution retains
+the attempted phone and only retains the project when its original source still matches.
+
+Validation evidence:
+
+- The full Desktop/Python regression run completed with 2,196 passes in 555.01 seconds.
+  Five subsequently added cases passed in the final focused reruns; the final collected inventory
+  is 2,201 tests. Final cross-workspace/history hardening and the compact-layout change were also
+  retested explicitly after the full run had imported its runtime modules.
+- The final source passes 107 focused project/Guided/Expert/desktop/lifecycle regressions and
+  whole-source Ruff checks. This includes the final cross-workspace and historical-evidence
+  hardening and compact layout fix. The groups overlap the full regression suite.
+- `scripts/simulate_project_installation.py` drives the production preparation and image dialogs
+  through explicit protected-source selection, a blank destination entered manually, declined
+  confirmation with no write, one confirmed inert write, confirmed Android transition and eleven
+  coherent samples across sixty injected-clock seconds. The flash receipt remains unchanged.
+  It verifies visible review/progress/warning/button geometry at 760×720 and labels every artifact
+  as simulation, not physical or complete-firmware evidence.
+- The final 285-member wheel byte-matches all current runtime modules/assets and its 22 Device
+  Packs. Installed startup, all 19 routes, 281 offline evidence records/170 known fixes, byte-exact
+  populated-workspace reopening and the same real-dialog inert user journey pass. The final
+  self-contained Fedora app passes launch verification; the embedded bytecode of all eight changed
+  runtime modules also matches compilation of the final source.
+- Artifacts are retained under `dist/guided-local-installation-2026-09-05/`.
+  `ROMVERSE-Linux-Guided-Local-Installation-test.zip` contains 460 files and 359,813,698 expanded
+  bytes, SHA-256 `31d974ee04c542cca150dd8b08e19f51b7aa1433844c0f1643f0398c8074c222`.
+  Wheel SHA-256 is `9136b586316cd40bb62d79b5c3a255be25748654cb9f29a467d4df42ecf09564`.
+- The approved application/company logos remain byte-identical. No phone operation, running-app
+  restart, Companion APK build/install, publication or remote push was performed. The three
+  pre-existing Companion navigation changes remain separate and uncommitted.
+
+This removes a real local workflow dead end; it does not finish all twenty master-goal stages.
+Complete automatic firmware installation and restoration still need exact supported recipes,
+correct transitions/slots/AVB/post-install behavior and independent physical validation. Fresh
+large-archive hashing can be slow and never silently renews an expired transition confirmation.
+
 ## Honest feature boundary
 
 The current safe milestone supports read-only Android evidence, local diagnostics, guarded APK
@@ -1813,6 +1866,7 @@ local recovery snapshots, offline Galaxy data, and read-only Companion telemetry
 still requires independent validation of every advertised build contract. Signing, full app-private
 phone backup/restore, public Galaxy synchronization, and certified automatic device flashing remain
 incomplete unless their exact contract is implemented and independently verified. The local Expert
-image workflow above executes user-reviewed writes without claiming production certification or
+and Guided project-local image workflows above execute user-reviewed writes without claiming
+production certification or
 verified recovery. The offline signing ceremony is implemented for an explicitly flash-validated
 Device Pack policy; it does not make any current or future Pack production-certified.

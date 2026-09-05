@@ -1528,31 +1528,40 @@ def test_genesis_presents_completed_local_build_as_100_percent_with_install_defe
     studio.close()
 
 
-def test_genesis_routes_a_prepared_flash_handoff_to_manifest_review_not_forge_loop(tmp_path):
+def test_genesis_local_image_route_never_requires_production_manifest_or_forge_loop(tmp_path):
     app = QApplication.instance() or QApplication([])
     store = RomProjectStore(tmp_path / "workspace")
     project = store.create("Manifest route")
+    source = tmp_path / "source.img"
+    source.write_bytes(b"inert UI source fixture")
+    store.import_original(project.project_id, source)
     studio = RomStudio(store, DevicePackRegistry(()))
     studio.refresh(project.project_id)
     mission = GuidedBuildMission(studio)
     app.processEvents()
     manifest_calls = []
     forge_calls = []
+    image_calls = []
     studio._open_guardian_manifest_review = lambda parent=None: manifest_calls.append(parent)
     studio._open_build_control = lambda parent=None: forge_calls.append(parent)
+    studio.project_flash_requested.connect(image_calls.append)
     mission._refresh = lambda select_current=False: None
     mission.state = replace(mission.state, install_requested=True)
     mission.selected_index = 13
 
     mission._context = lambda: GuidedContext(guardian_flash_handoff_ready=True)
     mission._run_stage()
-    assert manifest_calls == [mission]
+    app.processEvents()
+    assert image_calls == [project.project_id]
+    assert manifest_calls == []
     assert forge_calls == []
 
     mission._context = lambda: GuidedContext(guardian_flash_handoff_ready=False)
     mission._run_stage()
-    assert manifest_calls == [mission]
-    assert forge_calls == [mission]
+    app.processEvents()
+    assert image_calls == [project.project_id, project.project_id]
+    assert manifest_calls == []
+    assert forge_calls == []
     mission.close()
     studio.close()
 

@@ -582,7 +582,7 @@ def test_refresh_removes_stale_cards_and_footer_actions_remain_aligned(tmp_path)
         "Build verified local candidate",
         "Inspect source AVB topology",
         "Offline signing ceremony",
-        "Review optional flash requirements",
+        "Prepare local image installation…",
         "Open Digital Twin verification",
         "Close",
     }
@@ -594,7 +594,7 @@ def test_refresh_removes_stale_cards_and_footer_actions_remain_aligned(tmp_path)
     assert {button.text() for button in visible_footer_buttons} == {
         "Refresh evidence",
         "Export evidence bundle",
-        "Review optional flash requirements",
+        "Prepare local image installation…",
         "Open Digital Twin verification",
         "Close",
     }

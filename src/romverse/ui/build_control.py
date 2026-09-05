@@ -1419,12 +1419,14 @@ class BuildControlCenter(QDialog):
         self.autopilot_button.setToolTip(
             "Resolve every safe local prerequisite in dependency order. ROMVERSE pauses only for authoritative input that software cannot create."
         )
-        self.autopilot_button.clicked.connect(self._start_autopilot)
+        self.autopilot_button.clicked.connect(self._primary_action)
         self.close_button = QPushButton("Close")
         self.close_button.clicked.connect(self.accept)
         self.expert_images_button = QPushButton("Flash / restore images…")
         self.expert_images_button.setObjectName("ForgeSecondaryAction")
-        self.expert_images_button.setVisible(self.studio.app_settings.experience_mode.value == "expert")
+        self.expert_images_button.setVisible(
+            self.studio.app_settings.experience_mode.value == "expert"
+        )
         self.expert_images_button.setToolTip(
             "Open the direct Expert image workflow. Choose and review your own exact partition "
             "images; production Pack certification is a separate process."
@@ -1488,15 +1490,58 @@ class BuildControlCenter(QDialog):
     def _open_expert_images(self) -> None:
         if self.studio.app_settings.experience_mode.value != "expert":
             return
-        if self.autopilot_active or any((
-            self.studio.worker, self.metadata_worker, self.blueprint_worker,
-            self.build_worker, self.avb_worker, self.signing_worker,
-            self.recovery_worker, self.media_backup_worker,
-        )):
+        if self.autopilot_active or any(
+            (
+                self.studio.worker,
+                self.metadata_worker,
+                self.blueprint_worker,
+                self.build_worker,
+                self.avb_worker,
+                self.signing_worker,
+                self.recovery_worker,
+                self.media_backup_worker,
+            )
+        ):
             self.status.setText("Wait for the current operation to finish before image flashing.")
             return
         self.accept()
         QTimer.singleShot(0, self.studio._request_expert_flash)
+
+    def _primary_action(self) -> None:
+        if self.report is not None and self.report.local_candidate_ready:
+            self._open_project_images()
+        else:
+            self._start_autopilot()
+
+    def _open_project_images(self) -> None:
+        """Leave Forge before asking the desktop to prepare exact project images."""
+
+        current = self.studio.current_project
+        if self.autopilot_active or self.studio.worker is not None or self._has_active_worker():
+            self.status.setText(
+                "Wait for the current operation before preparing image installation."
+            )
+            return
+        if (
+            current is None
+            or current.project_id != self.project.project_id
+            or current.original is None
+            or self.project.original is None
+            or current.original.sha256 != self.project.original.sha256
+        ):
+            self.status.setText("The project or protected source changed. Reopen Forge Control.")
+            return
+        project_id = current.project_id
+        source_sha256 = current.original.sha256
+        parent = self.parentWidget()
+        self.accept()
+        if isinstance(parent, GuidedBuildMission):
+            parent._handoff_project_images(project_id, source_sha256)
+        else:
+            QTimer.singleShot(
+                0,
+                lambda: self.studio._request_project_flash(project_id, source_sha256=source_sha256),
+            )
 
     def _set_build_tools_visible(self, visible: bool) -> None:
         self.build_tools_panel.setVisible(visible)
@@ -1724,9 +1769,10 @@ class BuildControlCenter(QDialog):
             guidance = QLabel(
                 "ROMVERSE verified the protected source, workspace, toolchain, reproducible "
                 "artifact, and OEM-signature/AVB evidence. The red and amber rows below are "
-                "phone-installation requirements—not build failures. Finish here, or review "
-                "them once if you explicitly want to prepare a flash. Repeating automatic "
-                "build steps cannot create missing external evidence or a missing write plan."
+                "production certification requirements—not build failures. Finish here, or "
+                "choose Prepare local image installation to inspect source-bound images and "
+                "explicit mappings. That separate user-approved operation is not a certified "
+                "full-ROM installation."
             )
             guidance.setObjectName("GateCopy")
             guidance.setWordWrap(True)
@@ -1922,19 +1968,28 @@ class BuildControlCenter(QDialog):
         )
         if not self.autopilot_active:
             self.autopilot_button.setText(
-                "Review optional flash requirements"
-                if self.report.signing_ready and not self.report.guardian_handoff_ready
+                "Prepare local image installation…"
+                if self.report.local_candidate_ready
                 else "Review final Guardian handoff"
                 if self.report.guardian_handoff_ready
                 else "Auto-resolve && continue"
             )
-        footer_primary = not self.report.signing_ready
+            self.autopilot_button.setToolTip(
+                "Prepare this project's verified image inventory, then explicitly review the "
+                "target, partition mapping, write order, warnings and final consent. Opening "
+                "preparation never writes to the phone or grants production certification."
+                if self.report.local_candidate_ready
+                else "Resolve every safe local prerequisite in dependency order. ROMVERSE pauses "
+                "only for authoritative input that software cannot create."
+            )
+        footer_primary = True
         self.autopilot_button.setProperty("primary", footer_primary)
         self.autopilot_button.style().unpolish(self.autopilot_button)
         self.autopilot_button.style().polish(self.autopilot_button)
         self.footer_action_hint.setText(
-            "The local ROM is complete. Finish here, or deliberately review optional phone-installation requirements above."
-            if self.report.signing_ready
+            "Prepare an exact local image subset for your phone. Production certification "
+            "remains separate; no phone action starts until final review and consent."
+            if self.report.local_candidate_ready
             else "Resolve the first unfinished evidence gate, then reassess automatically."
         )
 
@@ -2606,11 +2661,12 @@ class BuildControlCenter(QDialog):
         QMessageBox.warning(self, "Backup verification stopped safely", message)
 
     def _start_autopilot(self) -> None:
-        if self.report is not None and self.report.guardian_handoff_ready:
-            unresolved = tuple(
-                gate for gate in self.report.gates if gate.status is not GateStatus.PASS
+        if self.report is not None and self.report.signing_ready:
+            self.refresh(self.report)
+            self.status.setText(
+                "Local build complete. Choose Prepare local image installation to review exact "
+                "images, or finish here. Certification review remains a separate optional route."
             )
-            self._show_final_handoff(unresolved)
             return
         if self.autopilot_active or any(
             worker is not None
@@ -2926,11 +2982,12 @@ class BuildControlCenter(QDialog):
         elif self.report is not None and self.report.signing_ready:
             message = (
                 "Local ROM build complete. Phone installation is optional and was not started. "
-                "Review the highlighted flash-only requirement once if you want to prepare an "
-                "install; repeating automatic build resolution cannot create external evidence "
-                "or an undefined partition-write plan."
+                "Choose Prepare local image installation for source-bound images and explicit "
+                "mappings. Production certification remains a separate optional route."
             )
-            self.autopilot_button.setText("Review optional flash requirements")
+            self.autopilot_button.setText("Prepare local image installation…")
+        if self.report is not None and self.report.local_candidate_ready:
+            self.autopilot_button.setText("Prepare local image installation…")
         prefix = f"{completed} safe step(s) completed automatically. " if completed else ""
         self.status.setText(prefix + message)
         if waiting_gate and self.report is not None:
@@ -3047,9 +3104,7 @@ class BuildControlCenter(QDialog):
 
     def _open_first_light(self) -> None:
         if len(self.studio.devices) != 1:
-            self.status.setText(
-                "Connect exactly one authorized target before opening First Light."
-            )
+            self.status.setText("Connect exactly one authorized target before opening First Light.")
             return
         device = self.studio.devices[0]
         boot_service = BootObservationService(self.studio.store, self.studio.pack_registry)
@@ -3967,9 +4022,7 @@ class BuildControlCenter(QDialog):
                     ),
                     state=MissionState.INFORMATION,
                     confidence=(
-                        MissionConfidence.HIGH
-                        if exact_verified
-                        else MissionConfidence.MEDIUM
+                        MissionConfidence.HIGH if exact_verified else MissionConfidence.MEDIUM
                     ),
                     project_id=self.project.project_id,
                     evidence_refs=("knowledge/synapse-cache-v1.json",),

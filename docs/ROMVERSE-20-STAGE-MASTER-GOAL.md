@@ -9,7 +9,8 @@ implementation authority out of the active Build task.
 ## Creator-approved execution and experience amendments — 2026-09-05
 
 The [Guided Experience Contract](ROMVERSE-GUIDED-EXPERIENCE-CONTRACT.md) is normative across all
-twenty stages. It incorporates the creator's latest approvals in ROMVERSE General chat and the
+twenty stages. It incorporates the creator's latest approvals in
+**ROMVERSE — Product Assurance & Strategy** and the
 explicit instruction in Romverse Build to adopt them and resolve conflicting older requirements.
 These amendments supersede older summaries calling for a separate Advanced mode or disabling
 Guardian in Expert Mode. They do not remove any of the twenty capabilities or lower the completion

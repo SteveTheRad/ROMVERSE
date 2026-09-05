@@ -19,6 +19,7 @@ from romverse.rom.source_installation_history import (
     _digest,
     load_latest_source_installation,
 )
+from romverse.ui.guided_mission import GuidedBuildMission
 from romverse.ui.source_installation_history import SourceInstallationHistoryDialog
 from tests.test_source_installation_integration import installation as installation
 from tests.test_source_installation_integration import installation_desktop as installation_desktop
@@ -350,6 +351,46 @@ def test_restart_interruption_goes_directly_to_exact_phone_diagnosis_without_ret
     assert "uncertain in-flight step 6" in incident["message"]
     assert "exact operation target is attached" in incident["message"]
     assert routes == ["recovery_bay"]
+    assert tuple(context.phone.calls) == calls
+    assert tuple(context.phone.changes) == changes
+
+
+def test_opening_genesis_automatically_diagnoses_sealed_interruption_without_retry(
+    installation_desktop, monkeypatch
+):
+    app, window, context = installation_desktop
+    executor = SourceInstallationExecutor(context.source, context.flash, context.adb)
+    plan = executor.inspect(context.phone.device(), context.recipe())
+    completed = executor.execute(
+        plan, accepted_digest=plan.plan_digest, risk_accepted=True
+    )
+    _seal_interrupted_command(completed.receipt_path)
+    outcome = load_latest_source_installation(context.source.store, context.project_id)
+    window._observed_devices = [context.phone.device()]
+    window.rom_studio.set_devices([context.phone.device()])
+    calls = tuple(context.phone.calls)
+    changes = tuple(context.phone.changes)
+    incidents = []
+    routes = []
+    monkeypatch.setattr(
+        window.repair_center,
+        "open_recovery_incident",
+        lambda *args, **kwargs: incidents.append((args, kwargs)),
+    )
+    monkeypatch.setattr(window, "_navigate_route", routes.append)
+
+    mission = GuidedBuildMission(window.rom_studio)
+    mission.show()
+    assert "Checking what happened" in mission.status_text.text()
+    app.processEvents()
+    app.processEvents()
+
+    assert len(incidents) == 1
+    assert incidents[0][1]["project_id"] == context.project_id
+    assert incidents[0][1]["expected_device_key"] == outcome.operation_device_key
+    assert incidents[0][1]["target_device"].serial == context.phone.serial
+    assert routes == ["recovery_bay"]
+    assert not mission.isVisible()
     assert tuple(context.phone.calls) == calls
     assert tuple(context.phone.changes) == changes
 

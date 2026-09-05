@@ -364,6 +364,131 @@ def test_source_procedure_outcome_routes_failure_directly_to_diagnosis_never_rei
     studio.close()
 
 
+def test_genesis_automatically_enters_read_only_diagnosis_for_interrupted_installation(
+    tmp_path,
+):
+    app = QApplication.instance() or QApplication([])
+    studio = _studio(tmp_path)
+    mission = GuidedBuildMission(studio)
+    context = GuidedContext(
+        install_requested=True,
+        source_installation_state="failed",
+        source_installation_summary="Sealed interrupted-installation fixture.",
+        source_installation_completed_count=9,
+        source_installation_expected_count=53,
+    )
+    mission._context = lambda: context
+    recovery, installation, history = [], [], []
+    studio.source_installation_recovery_requested.connect(
+        lambda project_id, source_sha256: recovery.append((project_id, source_sha256))
+    )
+    studio.project_flash_requested.connect(installation.append)
+    studio.source_installation_history_requested.connect(history.append)
+
+    mission.show()
+    assert "Checking what happened" in mission.status_text.text()
+    app.processEvents()
+    app.processEvents()
+
+    assert recovery == [
+        (studio.current_project.project_id, studio.current_project.original.sha256)
+    ]
+    assert installation == history == []
+    assert not mission.isVisible()
+    studio.close()
+
+
+def test_genesis_automatic_diagnosis_is_one_shot_and_rechecks_sealed_binding(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    studio = _studio(tmp_path)
+    mission = GuidedBuildMission(studio)
+    context = GuidedContext(
+        install_requested=True,
+        source_installation_state="attention",
+        source_installation_summary="Sealed attention fixture.",
+        source_installation_completed_count=0,
+        source_installation_expected_count=53,
+    )
+    mission._context = lambda: context
+    recovery = []
+    studio.source_installation_recovery_requested.connect(
+        lambda project_id, source_sha256: recovery.append((project_id, source_sha256))
+    )
+
+    mission.show()
+    mission._schedule_automatic_source_recovery()
+    context = replace(context, source_installation_state="completed")
+    app.processEvents()
+
+    assert recovery == []
+    assert mission.isVisible()
+    assert "did not attribute or retry" in mission.status_text.text()
+    mission.close()
+    studio.close()
+
+
+def test_genesis_waits_until_busy_work_finishes_before_automatic_diagnosis(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    studio = _studio(tmp_path)
+    mission = GuidedBuildMission(studio)
+    context = GuidedContext(
+        install_requested=True,
+        source_installation_state="cancelled",
+        source_installation_summary="Sealed partial cancellation fixture.",
+        source_installation_completed_count=1,
+        source_installation_expected_count=53,
+    )
+    mission._context = lambda: context
+    recovery = []
+    studio.source_installation_recovery_requested.connect(
+        lambda project_id, source_sha256: recovery.append((project_id, source_sha256))
+    )
+    studio.worker = object()
+
+    mission.show()
+    app.processEvents()
+    assert recovery == []
+    assert mission.isVisible()
+
+    studio.worker = None
+    mission._refresh(select_current=True)
+    app.processEvents()
+    app.processEvents()
+    assert len(recovery) == 1
+    assert not mission.isVisible()
+    studio.close()
+
+
+def test_genesis_does_not_auto_route_completed_installation_history(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    studio = _studio(tmp_path)
+    mission = GuidedBuildMission(studio)
+    context = GuidedContext(
+        install_requested=True,
+        source_installation_state="completed",
+        source_installation_summary="Completed historical fixture.",
+        source_installation_completed_count=53,
+        source_installation_expected_count=53,
+        source_installation_boot_status="stable",
+    )
+    mission._context = lambda: context
+    recovery = []
+    studio.source_installation_recovery_requested.connect(
+        lambda project_id, source_sha256: recovery.append((project_id, source_sha256))
+    )
+
+    mission.show()
+    app.processEvents()
+
+    assert recovery == []
+    assert mission.isVisible()
+    mission.selected_index = 13
+    mission._refresh()
+    assert mission.action_button.text() == "Review installation and boot results…"
+    mission.close()
+    studio.close()
+
+
 def test_source_completed_label_without_complete_measured_action_count_is_not_green():
     context = GuidedContext(
         install_requested=True,

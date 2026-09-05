@@ -3,7 +3,7 @@
 Status: creator-approved requirements, 2026-09-05. Implementation remains subject to the full
 twenty-stage master goal and evidence-based acceptance; approval is not proof that a feature ships.
 
-Source: latest approvals in **ROMVERSE General chat**
+Source: latest approvals in **ROMVERSE — Product Assurance & Strategy**
 (`6a92fbe2-b70c-83ec-8f31-11a80ef7f9c1`), explicitly adopted by the creator in **Romverse Build**:
 “add the new approvals in and ofcourse the ones that conflict do what is recommended by you.”
 

@@ -268,6 +268,7 @@ class GuidedBuildMission(QDialog):
         self.root_preview_generation = 0
         self._details_user_choice: bool | None = None
         self._supporting_compact: bool | None = None
+        self._automatic_source_recovery_key: tuple[str, str, str, int, int] | None = None
 
         self.setWindowTitle("ROMVERSE • Genesis Sequence")
         self.setModal(True)
@@ -581,6 +582,10 @@ class GuidedBuildMission(QDialog):
 
     def showEvent(self, event) -> None:
         super().showEvent(event)
+        # Re-read the sealed project outcome on entry. An interrupted installation
+        # should flow straight into read-only diagnosis instead of leaving Guided
+        # users to find and press a second Recovery action.
+        self._refresh(select_current=True)
         parent = self.parentWidget()
         if parent is not None:
             available = parent.window().geometry()
@@ -592,6 +597,7 @@ class GuidedBuildMission(QDialog):
             frame.moveCenter(parent.window().frameGeometry().center())
             self.move(frame.topLeft())
         self._apply_responsive_layout()
+        self._schedule_automatic_source_recovery()
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
@@ -911,6 +917,8 @@ class GuidedBuildMission(QDialog):
         self._render_identity_deck()
         self._sync_genesis_live()
         self._render_stage()
+        if self.isVisible():
+            self._schedule_automatic_source_recovery()
 
     def _phase_status(self, phase: MissionPhase) -> GuidedStageStatus:
         relevant = tuple(
@@ -1928,6 +1936,71 @@ class GuidedBuildMission(QDialog):
         return state in {"failed", "attention"} or (
             state == "cancelled" and context.source_installation_completed_count > 0
         )
+
+    def _source_recovery_key(
+        self, context: GuidedContext
+    ) -> tuple[str, str, str, int, int] | None:
+        project = self.studio.current_project
+        if (
+            project is None
+            or project.original is None
+            or not self._source_installation_needs_diagnosis(context)
+        ):
+            return None
+        return (
+            project.project_id,
+            project.original.sha256,
+            context.source_installation_state.strip().casefold(),
+            context.source_installation_completed_count,
+            context.source_installation_expected_count,
+        )
+
+    def _schedule_automatic_source_recovery(self) -> None:
+        """Queue one evidence-bound diagnosis handoff; never retry an installation."""
+
+        if (
+            not self.isVisible()
+            or self.studio.worker is not None
+            or self.active_operation
+            or self.root_preview_active
+        ):
+            return
+        context = getattr(self, "_display_context", None)
+        if not isinstance(context, GuidedContext):
+            context = self._context()
+        key = self._source_recovery_key(context)
+        if key is None or key == self._automatic_source_recovery_key:
+            return
+        self._automatic_source_recovery_key = key
+        self.status_text.setText(
+            "ROMVERSE found an interrupted installation. Checking what happened… "
+            "No write or retry will run."
+        )
+        QTimer.singleShot(
+            0, lambda expected=key: self._start_automatic_source_recovery(expected)
+        )
+
+    def _start_automatic_source_recovery(
+        self, expected: tuple[str, str, str, int, int]
+    ) -> None:
+        if expected != self._automatic_source_recovery_key:
+            return
+        self._automatic_source_recovery_key = None
+        if (
+            not self.isVisible()
+            or self.studio.worker is not None
+            or self.active_operation
+            or self.root_preview_active
+        ):
+            return
+        context = self._context()
+        if self._source_recovery_key(context) != expected:
+            self.status_text.setText(
+                "The project or protected firmware outcome changed. ROMVERSE did not attribute "
+                "or retry the interrupted installation."
+            )
+            return
+        self._handoff_source_installation_recovery()
 
     def _handoff_source_installation_recovery(self) -> None:
         project = self.studio.current_project

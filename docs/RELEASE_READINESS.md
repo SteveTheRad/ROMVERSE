@@ -2025,6 +2025,22 @@ large-archive hashing can be slow and never silently renews an expired transitio
   Companion or website change, publication or remote push occurred. Approved production logos were
   not edited.
 
+## 2026-09-05 Guided automatic interruption diagnosis
+
+- Genesis now automatically enters read-only Recovery diagnosis when its exact current project and
+  protected source have a sealed failed, attention or partially cancelled installation outcome.
+  Guided briefly says that ROMVERSE found an interruption and is checking what happened; no second
+  Recovery navigation step is required.
+- The queued handoff is one-shot, waits for other project work, and rechecks project, source, state
+  and action-count evidence immediately before dispatch. Drift stops attribution. Completed history
+  remains an explicit read-only results action.
+- One non-overlapping affected regression run passes all 209 tests with zero failures, errors or
+  skips. See `GUIDED_AUTOMATIC_INTERRUPTION_DIAGNOSIS_2026-09-05.md` for exact evidence and limits.
+- This is implemented and simulated/tested on Fedora/Linux, not hardware verified or released.
+  Windows was not exercised. No physical phone operation, running-app restart, package installation,
+  Companion or website change, publication or remote push occurred. Approved production logos were
+  not edited.
+
 ## Honest feature boundary
 
 The current safe milestone supports read-only Android evidence, local diagnostics, guarded APK

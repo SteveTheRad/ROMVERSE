@@ -8,6 +8,7 @@ from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from romverse.core.privacy import WorkspacePrivacy
@@ -29,6 +30,12 @@ from romverse.rom.boot_observation import (
     BootObservationStatus,
 )
 from romverse.rom.recovery_evidence import RecoveryEvidenceAssessment
+
+if TYPE_CHECKING:
+    from romverse.guardian.recovery_execution_result import (
+        GuardianRecoveryExecutionResultService,
+    )
+    from romverse.guardian.recovery_preparation import GuardianRecoveryPreparation
 
 
 class RecoveryAutopilotError(RuntimeError):
@@ -181,6 +188,16 @@ class RecoveryAutopilotService:
     ACTION_OUTCOMES = frozenset(
         {"reviewed", "confirmed", "declined", "started", "succeeded", "failed"}
     )
+    EXECUTION_COMPLETED_EVENT = "recovery_execution_completed"
+    EXECUTION_FAILED_EVENT = "recovery_execution_failed"
+    EXECUTION_UNKNOWN_EVENT = "recovery_execution_unknown"
+    EXECUTION_REASSESSMENT_EVENTS = frozenset(
+        {
+            EXECUTION_COMPLETED_EVENT,
+            EXECUTION_FAILED_EVENT,
+            EXECUTION_UNKNOWN_EVENT,
+        }
+    )
 
     def __init__(self, workspace: Path, registry: DevicePackRegistry) -> None:
         self.workspace = workspace
@@ -225,6 +242,15 @@ class RecoveryAutopilotService:
         current = self.load(incident_id)
         if current.repaired:
             return current
+        execution_reassessment = self._execution_reassessment_event(current)
+        if execution_reassessment is not None:
+            context_project_id = self._project_id(context.project_id)
+            if context_project_id and context_project_id != current.project_id:
+                raise RecoveryAutopilotError(
+                    "Fresh evidence belongs to a different Recovery project"
+                )
+            if not context_project_id and current.project_id:
+                context = replace(context, project_id=current.project_id)
         current_device_key = self._context_device_key(context)
         if current.device_key:
             if current_device_key and not hmac.compare_digest(
@@ -238,10 +264,156 @@ class RecoveryAutopilotService:
                 "This targetless recovery incident has no sealed device identity"
             )
         updated = self._assess(context, current, datetime.now(UTC).isoformat())
+        if execution_reassessment is not None and (
+            updated.incident_id != current.incident_id
+            or updated.project_id != current.project_id
+            or not hmac.compare_digest(updated.device_key, current.device_key)
+            or updated.pack_id != current.pack_id
+            or not hmac.compare_digest(updated.pack_sha256, current.pack_sha256)
+        ):
+            raise RecoveryAutopilotError(
+                "Fresh evidence changed the sealed execution incident identity"
+            )
         if self._semantic_state(updated) == self._semantic_state(current):
             return current
         self._save(updated)
         return updated
+
+    def reassess_execution(
+        self,
+        preparation: GuardianRecoveryPreparation,
+        execution_results: GuardianRecoveryExecutionResultService,
+    ) -> RecoveryIncident:
+        """Consume one exact aggregate without retrying, repairing, or verifying."""
+
+        from romverse.guardian.recovery_execution_result import (
+            GuardianRecoveryExecutionResultService,
+            RecoveryExecutionResultState,
+        )
+        from romverse.guardian.recovery_preparation import GuardianRecoveryPreparation
+
+        if not isinstance(preparation, GuardianRecoveryPreparation) or not isinstance(
+            execution_results, GuardianRecoveryExecutionResultService
+        ):
+            raise RecoveryAutopilotError("Recovery reassessment input is not an exact aggregate")
+        if execution_results.store.workspace.resolve() != self.workspace.resolve():
+            raise RecoveryAutopilotError(
+                "Recovery reassessment evidence belongs to a different workspace"
+            )
+        result = execution_results.load(preparation)
+        if result is None:
+            raise RecoveryAutopilotError(
+                "Recovery reassessment requires the exact durable execution result"
+            )
+        incident = self.load(result.incident_id)
+        mapping = {
+            RecoveryExecutionResultState.SEQUENCE_COMPLETED_AWAITING_REASSESSMENT: (
+                self.EXECUTION_COMPLETED_EVENT,
+                RecoveryIncidentState.VERIFYING,
+                "Recovery actions completed; verification is still required",
+                "The exact Recovery action sequence completed. ROMVERSE has not declared the "
+                "phone repaired; independent fresh post-repair verification is required next.",
+            ),
+            RecoveryExecutionResultState.FAILED_AWAITING_REASSESSMENT: (
+                self.EXECUTION_FAILED_EVENT,
+                RecoveryIncidentState.EMERGENCY,
+                "Recovery execution stopped after a known failure",
+                "The exact Recovery action sequence recorded a known failure at step "
+                f"{result.terminal_step_order}. Execution is stopped for diagnosis; no action "
+                "will be retried automatically.",
+            ),
+            RecoveryExecutionResultState.UNKNOWN_AWAITING_RECONSTRUCTION: (
+                self.EXECUTION_UNKNOWN_EVENT,
+                RecoveryIncidentState.EMERGENCY,
+                "Recovery execution outcome is unknown",
+                "The exact Recovery action sequence has an unknown outcome at step "
+                f"{result.terminal_step_order}. Device state must be reconstructed before any "
+                "new action; ROMVERSE will not blindly retry it.",
+            ),
+        }
+        event_type, state, title, detail = mapping[result.state]
+        latest = self._execution_reassessment_event(incident)
+        if latest is not None:
+            if (
+                latest.event_type != event_type
+                or latest.state is not state
+                or latest.title != title
+                or latest.detail != detail
+                or not hmac.compare_digest(latest.evidence_digest, result.result_digest)
+                or incident.incident_id != result.incident_id
+                or incident.project_id != result.project_id
+                or not hmac.compare_digest(incident.device_key, result.device_key)
+                or incident.pack_id != result.device_pack_id
+                or not hmac.compare_digest(incident.pack_sha256, result.device_pack_sha256)
+                or incident.state is not state
+                or incident.routes
+                or incident.diagnosis != detail
+                or incident.repaired
+                or incident.verified_reboot
+                or incident.phone_changed
+            ):
+                raise RecoveryAutopilotError(
+                    "Recovery incident changed after its execution reassessment"
+                )
+            return incident
+        route = next((item for item in incident.routes if item.route_id == result.route_id), None)
+        if (
+            incident.repaired
+            or incident.phone_changed
+            or not hmac.compare_digest(incident.record_digest, result.incident_record_digest)
+            or incident.incident_id != result.incident_id
+            or incident.project_id != result.project_id
+            or not hmac.compare_digest(incident.device_key, result.device_key)
+            or incident.pack_id != result.device_pack_id
+            or not hmac.compare_digest(incident.pack_sha256, result.device_pack_sha256)
+            or route is None
+            or not route.changes_device
+            or not route.confirmation_required
+            or route.execution_authority != "none"
+            or route.owner_route != "guardian_core"
+            or result.same_incident_preserved is not True
+            or result.recovery_reassessment_required is not True
+            or result.recovery_verified is not False
+            or result.device_repaired is not False
+            or result.execution_authority != "none"
+            or result.automatic_retry_allowed is not False
+            or result.bootloader_relock_allowed is not False
+        ):
+            raise RecoveryAutopilotError(
+                "Recovery aggregate no longer matches the exact active incident"
+            )
+        now = datetime.now(UTC).isoformat()
+        event = RecoveryIncidentEvent(
+            sequence=len(incident.events) + 1,
+            observed_at=now,
+            event_type=event_type,
+            state=state,
+            mode=incident.mode,
+            title=title,
+            detail=detail,
+            evidence_digest=result.result_digest,
+        )
+        updated = self._seal(
+            replace(
+                incident,
+                updated_at=now,
+                state=state,
+                diagnosis=detail,
+                routes=(),
+                events=(*incident.events, event)[-self.MAX_EVENTS :],
+                repaired=False,
+                verified_reboot=False,
+                phone_changed=False,
+                record_digest="",
+            )
+        )
+        self._save(updated)
+        persisted = self.load(updated.incident_id)
+        if persisted != updated:
+            raise RecoveryAutopilotError(
+                "Recovery reassessment could not be verified after durable recording"
+            )
+        return persisted
 
     def record_route_result(
         self,
@@ -388,6 +560,11 @@ class RecoveryAutopilotService:
             else "Android device"
         )
         pack = self._pack(device, previous)
+        execution_reassessment = self._execution_reassessment_event(previous)
+        if execution_reassessment is not None and context.boot_observation is not None:
+            raise RecoveryAutopilotError(
+                "Post-repair evidence requires the independent verification boundary"
+            )
         self._validate_boot_observation(context, project_id, device_key, pack)
         mode = self._mode(device)
         transition = self._transition_contract(pack)
@@ -417,11 +594,24 @@ class RecoveryAutopilotService:
         recovery_ready = bool(
             context.recovery_evidence is not None and context.recovery_evidence.ready
         )
-        verified_reboot = self._verified_reboot(context, previous, device_key)
+        verified_reboot = (
+            False
+            if execution_reassessment is not None
+            else self._verified_reboot(context, previous, device_key)
+        )
         repaired = verified_reboot
-        state = self._state(context, previous, repaired)
-        routes = () if repaired else self._routes(context, pack, mode)
-        diagnosis = self._diagnosis(context, state, mode, pack)
+        if execution_reassessment is not None and not repaired:
+            state = (
+                RecoveryIncidentState.VERIFYING
+                if execution_reassessment.event_type == self.EXECUTION_COMPLETED_EVENT
+                else RecoveryIncidentState.EMERGENCY
+            )
+            routes = ()
+            diagnosis = execution_reassessment.detail
+        else:
+            state = self._state(context, previous, repaired)
+            routes = () if repaired else self._routes(context, pack, mode)
+            diagnosis = self._diagnosis(context, state, mode, pack)
         evidence_digest = self._digest(
             {
                 "trigger": context.trigger.value,
@@ -492,6 +682,21 @@ class RecoveryAutopilotService:
             record_digest="",
         )
         return self._seal(incident)
+
+    def _execution_reassessment_event(
+        self,
+        incident: RecoveryIncident | None,
+    ) -> RecoveryIncidentEvent | None:
+        if incident is None:
+            return None
+        return next(
+            (
+                event
+                for event in reversed(incident.events)
+                if event.event_type in self.EXECUTION_REASSESSMENT_EVENTS
+            ),
+            None,
+        )
 
     def _routes(
         self,

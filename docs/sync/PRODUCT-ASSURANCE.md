@@ -1,68 +1,62 @@
 # ROMVERSE Product Assurance
 
-## Reviewed checkpoint: 3dde44f
+## Reviewed checkpoint: b07bcc6
 
-- Commit: `3dde44fc4cea143d62284fc00c396684ec240bd5`
-- Title: `Record durable Recovery execution result`
+- Commit: `b07bcc6ef5695a6d667435caf5d47c1d49b8b42c`
+- Title: `Reassess durable Recovery execution`
 - Review status: **APPROVED**
 - Basis: authoritative source, diff, tests, and `docs/sync/BUILD-STATUS.md`.
 
 ### Decision
 
-This is the correct bounded Durable Result slice. It creates a deterministic, exclusive,
-tamper-evident projection of the exact Recovery incident without opening a new execution path.
+This is the correct bounded Recovery reassessment boundary. The service consumes only the exact
+persisted aggregate result and independently validates its workspace, incident, preparation,
+identity, Device Pack, outcome, and tamper-evident history bindings. Callers cannot select the
+outcome or reassessment state.
 
-The result service derives only from the sealed preparation, exact execution claim, trusted
-adapter identity, and ordered durable journal. It distinguishes completed sequence, known failure,
-and UNKNOWN awaiting reconstruction; preserves the successful prefix; requires same-incident
-bindings; and closes the journal after aggregate creation. Reload revalidates all exact bindings.
+Completed execution advances only to `VERIFYING`; it does not claim repair, boot, stability, or
+verification. Known failure stops the same incident in `EMERGENCY`. UNKNOWN remains explicitly
+unknown and requires reconstruction. The executed device-changing route is removed, stale route
+handoff is rejected, and generic refresh cannot reopen or reclassify it. Boot evidence is refused
+until an independent post-repair verification boundary exists.
 
-It carries no execution authority, repair or verification claim, automatic retry, or relock
-permission. Missing, malformed, ambiguous, changed, late, hidden, duplicate, or symlinked
-evidence fails closed. Exact-device evidence, Guardian separation, consent binding,
-UNKNOWN-on-uncertainty, no-blind-retry, feature freeze, and the permanent no-relock rule remain
-intact.
+No retry, repair, execution authority, UI, hardware path, adapter action, or release behavior was
+added. Exact-device evidence, Guardian separation, feature freeze, v0.2 closure, no-blind-retry,
+and permanent bootloader-relock prohibition remain intact.
 
 ### Evidence reviewed
 
-- `src/romverse/guardian/recovery_execution_result.py`: derivation, strict reload validation,
-  exclusive creation, exact bindings, and hostile-input rejection.
-- `src/romverse/guardian/recovery_execution.py`: aggregate path and journal mutation lock.
-- `tests/test_guardian_recovery_execution_result.py`: completion, failure, UNKNOWN, prefix,
-  immutability, tamper, duplicate, hidden/late evidence, adapter drift, and identity coverage.
-- Focused regression: **47/47 passed**; Build reports full regression **2822/2822 passed**;
-  Ruff and whitespace/diff checks passed.
+- `src/romverse/repair/autopilot.py`: reassessment projection, same-incident event binding,
+  route removal, refresh guard, and boot-evidence gate.
+- `tests/test_recovery_execution_reassessment.py`: completed/failed/UNKNOWN branches, idempotence,
+  route removal, generic-refresh no-reopen, project/identity drift, tampering, and outcome-override
+  rejection.
+- Focused regression: **27/27 passed** for reassessment and aggregate-result coverage. Build
+  reports full regression **2833/2833 passed**, affected **514/514**, and focused chain **84/84**.
 
 ### Acceptance criteria
 
-- Aggregate is derived from persisted evidence, never caller-supplied state.
-- Exactly one aggregate is recorded; later journal mutation/re-intent is rejected.
-- FAILED/UNKNOWN never advance or trigger retry.
-- Same incident and exact device/source/Pack/adapter/consent bindings remain verifiable.
-- No repair, reassessment, verification, UI, new adapter action, hardware path, or release claim
-  is introduced.
+- Completed → `VERIFYING` only; failure → stopped `EMERGENCY`; UNKNOWN → reconstruction.
+- Same incident and exact aggregate digest remain bound in durable history.
+- Executed routes cannot be rerun, reopened, or blindly retried through refresh.
+- No recovery or repair claim is emitted before independent verification.
+- No pre-v1.0 feature, UI, physical execution, or release scope is introduced.
 
 All criteria are met.
 
 ### Approved next bounded Build task
 
-Proceed with the smallest same-incident Recovery reassessment boundary consuming only this exact
-aggregate result. It may classify the next governed state while preserving UNKNOWN and stopping
-on failure; it must not retry, repair, verify hardware, add execution authority, add UI scope, or
-claim Recovery completion. Post-repair verification remains a later independent gate.
+Proceed with the smallest independent post-repair verification boundary for the completed branch
+only. It must consume the exact aggregate and same-incident reassessment, require fresh exact-device
+and valid boot evidence, preserve failure/UNKNOWN ineligibility, and refuse any repair claim until
+all evidence validates. No UI or physical execution.
 
 ### Gate status
 
 - v0.2 Golden Foundation: **CLOSED**
 - Stage 1: Recommendation ✓ → Preparation ✓ → Fresh Live Target ✓ → Consent ✓ → Executor ✓ →
-  Durable Result ✓ → Recovery Reassessment ✗ → Verification ✗
+  Durable Result ✓ → Recovery Reassessment ✓ → Verification ✗
 - Linux/Fedora software evidence: verified
 - Windows secure launcher: outstanding
 - Physical Android hardware verification: outstanding
 - Release/publication: not authorized
-
-## Historical checkpoint
-
-Adaptive Discovery correction `6de2f822627459cea0e5df4ac8072e6f0f77ae9` remains approved:
-investigable unfamiliar combinations stay `UNCONFIRMED`/`UNKNOWN`; proven mismatch remains
-`UNSUPPORTED` and fail-closed.

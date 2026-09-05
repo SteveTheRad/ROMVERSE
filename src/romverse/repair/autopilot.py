@@ -6,12 +6,33 @@ import json
 import re
 from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime
-from enum import StrEnum
 from pathlib import Path
-from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from romverse.core.privacy import WorkspacePrivacy
+from romverse.core.recovery_contracts import (
+    RECOVERY_BOOT_OBSERVATION_SCHEMA_VERSION,
+    BootFailureKind,
+    BootObservationReceipt,
+    BootObservationStatus,
+    GuardianRecoveryPreparation,
+    RecoveryAutopilotError,
+    RecoveryBootEvidenceStore,
+    RecoveryContractError,
+    RecoveryExecutionResultEvidenceStore,
+    RecoveryExecutionResultState,
+    RecoveryIncident,
+    RecoveryIncidentEvent,
+    RecoveryIncidentEvidenceStore,
+    RecoveryIncidentState,
+    RecoveryRoute,
+    RecoveryRouteKind,
+    RecoveryRouteRisk,
+    RecoveryTargetMismatchError,
+    RecoveryTrigger,
+    validate_recovery_boot_evidence,
+    validate_recovery_execution_result_evidence,
+)
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device_packs.models import DevicePack
 from romverse.device_packs.registry import DevicePackRegistry
@@ -24,135 +45,8 @@ from romverse.infrastructure.local_store import (
     remove_regular_file,
 )
 from romverse.knowledge.models import KnowledgeLookupReport, MatchConfidence
-from romverse.rom.boot_observation import (
-    BootFailureKind,
-    BootObservationReceipt,
-    BootObservationService,
-    BootObservationStatus,
-)
 from romverse.rom.models import ProjectError
 from romverse.rom.recovery_evidence import RecoveryEvidenceAssessment
-
-if TYPE_CHECKING:
-    from romverse.guardian.recovery_execution_result import (
-        GuardianRecoveryExecutionResultService,
-    )
-    from romverse.guardian.recovery_preparation import GuardianRecoveryPreparation
-
-
-class RecoveryAutopilotError(RuntimeError):
-    pass
-
-
-class RecoveryTargetMismatchError(RecoveryAutopilotError):
-    """Fresh device evidence cannot be assigned to the sealed incident identity."""
-
-
-class RecoveryTrigger(StrEnum):
-    FLASH_FAILURE = "flash_failure"
-    BOOTLOOP = "bootloop"
-    BOOT_ATTENTION = "boot_attention"
-    DEVICE_DISCONNECTED = "device_disconnected"
-    DEVICE_MODE = "device_mode"
-    MANUAL_DIAGNOSIS = "manual_diagnosis"
-
-
-class RecoveryIncidentState(StrEnum):
-    MONITORING = "monitoring"
-    EMERGENCY = "emergency"
-    STABILIZING = "stabilizing"
-    VERIFYING = "verifying"
-    RECOVERED = "recovered"
-    SERVICE_REQUIRED = "service_required"
-
-
-class RecoveryRouteRisk(StrEnum):
-    INFORMATIONAL = "informational"
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    DESTRUCTIVE = "destructive"
-
-
-class RecoveryRouteKind(StrEnum):
-    REFRESH_SCAN = "refresh_scan"
-    AUTHORIZE_ADB = "authorize_adb"
-    RECONNECT_USB = "reconnect_usb"
-    OBSERVE_BOOT = "observe_boot"
-    HOST_ADB_REPAIR = "host_adb_repair"
-    PHYSICAL_CHECK = "physical_check"
-    RECOVERY_LOG_REVIEW = "recovery_log_review"
-    CACHE_GUIDANCE = "cache_guidance"
-    SLOT_REVIEW = "slot_review"
-    IMAGE_RESTORE_REVIEW = "image_restore_review"
-    EXACT_STOCK_RESTORE = "exact_stock_restore"
-    DATA_RESET_GUIDANCE = "data_reset_guidance"
-    ARCHIVES_REVIEW = "archives_review"
-    AUTHORIZED_SERVICE = "authorized_service"
-
-
-@dataclass(frozen=True, slots=True)
-class RecoveryRoute:
-    route_id: str
-    kind: RecoveryRouteKind
-    title: str
-    summary: str
-    confidence: int
-    risk: RecoveryRouteRisk
-    rank: int
-    changes_device: bool
-    confirmation_required: bool
-    execution_authority: str
-    owner_route: str
-    requirements: tuple[str, ...]
-    evidence: tuple[str, ...]
-    knowledge_record_ids: tuple[str, ...] = ()
-
-
-@dataclass(frozen=True, slots=True)
-class RecoveryIncidentEvent:
-    sequence: int
-    observed_at: str
-    event_type: str
-    state: RecoveryIncidentState
-    mode: str
-    title: str
-    detail: str
-    evidence_digest: str
-
-
-@dataclass(frozen=True, slots=True)
-class RecoveryIncident:
-    schema_version: int
-    incident_id: str
-    created_at: str
-    updated_at: str
-    project_id: str
-    trigger: RecoveryTrigger
-    # Immutable pseudonymous incident identity. Device availability is represented
-    # by current mode/evidence and may change without changing this attribution.
-    device_key: str
-    device_name: str
-    pack_id: str
-    pack_sha256: str
-    mode: str
-    state: RecoveryIncidentState
-    diagnosis: str
-    before_evidence_digest: str
-    after_evidence_digest: str
-    boot_observation_digest: str
-    knowledge_archive_digest: str
-    recovery_evidence_ready: bool
-    routes: tuple[RecoveryRoute, ...]
-    events: tuple[RecoveryIncidentEvent, ...]
-    repaired: bool
-    verified_reboot: bool
-    phone_changed: bool
-    record_digest: str
-
-    @property
-    def integrity_verified(self) -> bool:
-        return bool(self.record_digest)
 
 
 @dataclass(frozen=True, slots=True)
@@ -172,7 +66,7 @@ class RecoveryAutopilotContext:
     expected_device_key: str = ""
 
 
-class RecoveryAutopilotService:
+class RecoveryAutopilotService(RecoveryIncidentEvidenceStore):
     """Evidence-led recovery triage with a private, tamper-evident incident ledger.
 
     The service ranks routes and records decisions. It deliberately owns no ADB,
@@ -286,21 +180,15 @@ class RecoveryAutopilotService:
     def reassess_execution(
         self,
         preparation: GuardianRecoveryPreparation,
-        execution_results: GuardianRecoveryExecutionResultService,
+        execution_results: RecoveryExecutionResultEvidenceStore,
     ) -> RecoveryIncident:
         """Consume one exact aggregate without retrying, repairing, or verifying."""
 
-        from romverse.guardian.recovery_execution_result import (
-            GuardianRecoveryExecutionResultService,
-            RecoveryExecutionResultState,
-        )
-        from romverse.guardian.recovery_preparation import GuardianRecoveryPreparation
-
         if not isinstance(preparation, GuardianRecoveryPreparation) or not isinstance(
-            execution_results, GuardianRecoveryExecutionResultService
+            execution_results, RecoveryExecutionResultEvidenceStore
         ):
             raise RecoveryAutopilotError("Recovery reassessment input is not an exact aggregate")
-        if execution_results.store.workspace.resolve() != self.workspace.resolve():
+        if execution_results.workspace.resolve() != self.workspace.resolve():
             raise RecoveryAutopilotError(
                 "Recovery reassessment evidence belongs to a different workspace"
             )
@@ -309,6 +197,12 @@ class RecoveryAutopilotService:
             raise RecoveryAutopilotError(
                 "Recovery reassessment requires the exact durable execution result"
             )
+        try:
+            validate_recovery_execution_result_evidence(preparation, result)
+        except RecoveryContractError as exc:
+            raise RecoveryAutopilotError(
+                "Recovery reassessment requires sealed aggregate evidence"
+            ) from exc
         incident = self.load(result.incident_id)
         mapping = {
             RecoveryExecutionResultState.SEQUENCE_COMPLETED_AWAITING_REASSESSMENT: (
@@ -422,30 +316,25 @@ class RecoveryAutopilotService:
     def verify_execution_recovery(
         self,
         preparation: GuardianRecoveryPreparation,
-        execution_results: GuardianRecoveryExecutionResultService,
-        boot_observations: BootObservationService,
+        execution_results: RecoveryExecutionResultEvidenceStore,
+        boot_observations: RecoveryBootEvidenceStore,
         device: AndroidDevice,
     ) -> RecoveryIncident:
         """Verify one completed Recovery execution from fresh read-only boot evidence."""
 
-        from romverse.guardian.recovery_execution_result import (
-            GuardianRecoveryExecutionResultService,
-            RecoveryExecutionResultState,
-        )
-        from romverse.guardian.recovery_preparation import GuardianRecoveryPreparation
-
         if (
             not isinstance(preparation, GuardianRecoveryPreparation)
-            or not isinstance(execution_results, GuardianRecoveryExecutionResultService)
-            or not isinstance(boot_observations, BootObservationService)
+            or not isinstance(execution_results, RecoveryExecutionResultEvidenceStore)
+            or not isinstance(boot_observations, RecoveryBootEvidenceStore)
             or not isinstance(device, AndroidDevice)
         ):
             raise RecoveryAutopilotError(
                 "Recovery verification requires exact typed evidence inputs"
             )
         if (
-            execution_results.store.workspace.resolve() != self.workspace.resolve()
-            or boot_observations.store.workspace.resolve() != self.workspace.resolve()
+            execution_results.workspace.resolve() != self.workspace.resolve()
+            or boot_observations.workspace.resolve() != self.workspace.resolve()
+            or boot_observations.registry is not self.registry
         ):
             raise RecoveryAutopilotError(
                 "Recovery verification evidence belongs to a different workspace"
@@ -455,6 +344,12 @@ class RecoveryAutopilotService:
             raise RecoveryAutopilotError(
                 "Recovery verification requires the exact durable execution result"
             )
+        try:
+            validate_recovery_execution_result_evidence(preparation, result)
+        except RecoveryContractError as exc:
+            raise RecoveryAutopilotError(
+                "Recovery verification requires sealed aggregate evidence"
+            ) from exc
         if (
             result.state
             is not RecoveryExecutionResultState.SEQUENCE_COMPLETED_AWAITING_REASSESSMENT
@@ -501,6 +396,12 @@ class RecoveryAutopilotService:
             preparation,
             execution_results,
         )
+        try:
+            validate_recovery_boot_evidence(receipt)
+        except RecoveryContractError as exc:
+            raise RecoveryAutopilotError(
+                "Recovery verification boot evidence is incomplete or unreadable"
+            ) from exc
         pack = next(
             (
                 item
@@ -511,7 +412,7 @@ class RecoveryAutopilotService:
             None,
         )
         try:
-            project = execution_results.store.get(result.project_id)
+            project = boot_observations.project_evidence(result.project_id)
             resolution = self.registry.resolve(device)
             first_sample_at = datetime.fromisoformat(receipt.samples[0].observed_at)
             latest_sample_at = datetime.fromisoformat(receipt.samples[-1].observed_at)
@@ -534,10 +435,12 @@ class RecoveryAutopilotService:
             receipt is None
             or pack is None
             or build is None
-            or project.original is None
             or project.project_id != result.project_id
             or project.device_pack_id != result.device_pack_id
-            or not hmac.compare_digest(project.original.sha256, result.source_original_sha256)
+            or not hmac.compare_digest(
+                project.source_original_sha256,
+                result.source_original_sha256,
+            )
             or resolution.pack is None
             or resolution.pack.pack_id != pack.pack_id
             or not hmac.compare_digest(resolution.pack.sha256, pack.sha256)
@@ -1330,7 +1233,7 @@ class RecoveryAutopilotService:
                 "Boot observation does not match this recovery incident"
             )
         if (
-            receipt.schema_version != BootObservationService.SCHEMA_VERSION
+            receipt.schema_version != RECOVERY_BOOT_OBSERVATION_SCHEMA_VERSION
             or not receipt_digest
             or receipt.flash_linked != bool(guardian_digest)
             or receipt.verified_first_boot is not bool(receipt.flash_linked and receipt.stable)

@@ -7,18 +7,23 @@ import os
 import re
 from dataclasses import asdict, dataclass, fields
 from datetime import UTC, datetime
-from enum import StrEnum
 from pathlib import Path
 
+from romverse.core.recovery_contracts import (
+    GuardianRecoveryExecutionJournalEntry,
+    GuardianRecoveryExecutionResult,
+    GuardianRecoveryPreparation,
+    RecoveryExecutionResultEvidenceStore,
+    RecoveryExecutionResultState,
+    RecoveryStepOutcome,
+)
 from romverse.guardian.invariants import contains_bootloader_lock_action_id
 from romverse.guardian.recovery_execution import (
     GuardianRecoveryExecutionClaim,
     GuardianRecoveryExecutionService,
     GuardianRecoveryStepIntent,
     RecoveryExecutionValidationError,
-    RecoveryStepOutcome,
 )
-from romverse.guardian.recovery_preparation import GuardianRecoveryPreparation
 from romverse.infrastructure.local_store import (
     LocalStoreConflictError,
     LocalStoreError,
@@ -30,81 +35,6 @@ from romverse.rom.models import ProjectError
 
 class RecoveryExecutionResultValidationError(ProjectError):
     """An aggregate Recovery result could not be derived from exact evidence."""
-
-
-class RecoveryExecutionResultState(StrEnum):
-    SEQUENCE_COMPLETED_AWAITING_REASSESSMENT = "sequence_completed_awaiting_reassessment"
-    FAILED_AWAITING_REASSESSMENT = "failed_awaiting_reassessment"
-    UNKNOWN_AWAITING_RECONSTRUCTION = "unknown_awaiting_reconstruction"
-
-
-@dataclass(frozen=True, slots=True)
-class GuardianRecoveryExecutionJournalEntry:
-    """One ordered intent/result binding used by the aggregate projection."""
-
-    step_order: int
-    adapter_action_id: str
-    intent_digest: str
-    result_digest: str
-    outcome: RecoveryStepOutcome
-
-
-@dataclass(frozen=True, slots=True)
-class GuardianRecoveryExecutionResult:
-    """Derived execution truth; intentionally not a repaired-device claim."""
-
-    schema_version: int
-    record_id: str
-    recorded_at: str
-    evidence_completed_at: str
-    claim_id: str
-    claim_digest: str
-    preparation_id: str
-    preparation_digest: str
-    consent_id: str
-    consent_receipt_digest: str
-    incident_id: str
-    incident_record_digest: str
-    route_id: str
-    project_id: str
-    device_key: str
-    source_original_sha256: str
-    device_pack_id: str
-    device_pack_version: str
-    device_pack_sha256: str
-    transition_contract_digest: str
-    steps_digest: str
-    adapter_id: str
-    adapter_version: int
-    adapter_package_id: str
-    adapter_package_version: str
-    adapter_package_sha256: str
-    adapter_artifact_sha256: str
-    adapter_release_key_id: str
-    adapter_release_public_key_sha256: str
-    adapter_release_trust_scope: str
-    adapter_protocol_version: int
-    adapter_request_schema_version: int
-    adapter_result_schema_version: int
-    step_count: int
-    journal_entry_count: int
-    completed_step_count: int
-    terminal_step_order: int
-    journal_digest: str
-    journal_entries: tuple[GuardianRecoveryExecutionJournalEntry, ...]
-    state: RecoveryExecutionResultState
-    sequence_actions_completed: bool
-    known_failure_recorded: bool
-    unknown_outcome_recorded: bool
-    same_incident_preserved: bool
-    recovery_reassessment_required: bool
-    post_repair_verification_required: bool
-    recovery_verified: bool
-    device_repaired: bool
-    execution_authority: str
-    automatic_retry_allowed: bool
-    bootloader_relock_allowed: bool
-    result_digest: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -119,7 +49,7 @@ class _Projection:
     state: RecoveryExecutionResultState
 
 
-class GuardianRecoveryExecutionResultService:
+class GuardianRecoveryExecutionResultService(RecoveryExecutionResultEvidenceStore):
     """Persist one exclusive deterministic projection of a terminal step journal."""
 
     FORMAT = "romverse.guardian-recovery-execution-result"
@@ -131,6 +61,10 @@ class GuardianRecoveryExecutionResultService:
         self.executions = executions
         self.store = executions.store
         self.clock = clock or (lambda: datetime.now(UTC))
+
+    @property
+    def workspace(self) -> Path:
+        return self.store.workspace.resolve()
 
     def record(
         self,

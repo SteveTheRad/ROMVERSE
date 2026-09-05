@@ -8,10 +8,10 @@ import re
 import secrets
 from dataclasses import asdict, dataclass, field, fields
 from datetime import UTC, datetime, timedelta
-from enum import StrEnum
 from pathlib import Path
 from uuid import uuid4
 
+from romverse.core.recovery_contracts import RecoveryStepOutcome
 from romverse.device.models import AndroidDevice
 from romverse.guardian.invariants import contains_bootloader_lock_action_id
 from romverse.guardian.recovery_adapter_package import (
@@ -46,12 +46,6 @@ from romverse.rom.models import ProjectError
 
 class RecoveryExecutionValidationError(ProjectError):
     """Recovery execution admission or its durable step journal failed closed."""
-
-
-class RecoveryStepOutcome(StrEnum):
-    SUCCEEDED = "succeeded"
-    FAILED = "failed"
-    UNKNOWN = "unknown"
 
 
 @dataclass(frozen=True, slots=True)

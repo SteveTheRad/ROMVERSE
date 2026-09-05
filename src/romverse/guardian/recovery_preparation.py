@@ -4,12 +4,21 @@ import hashlib
 import hmac
 import json
 import re
-from dataclasses import asdict, dataclass, fields
+from dataclasses import asdict, fields
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
 from romverse.core.privacy import WorkspacePrivacy
+from romverse.core.recovery_contracts import (
+    GuardianPreparedRecoveryStep,
+    GuardianRecoveryPreparation,
+    RecoveryContractError,
+    RecoveryIncident,
+    RecoveryIncidentEvidenceStore,
+    RecoveryRoute,
+    RecoveryRouteKind,
+)
 from romverse.device.models import AndroidDevice
 from romverse.device_packs.models import DeviceRecoveryOperation
 from romverse.device_packs.registry import DevicePackRegistry
@@ -19,14 +28,6 @@ from romverse.infrastructure.local_store import (
     ensure_private_directory,
     read_json_object,
 )
-from romverse.repair.autopilot import (
-    RecoveryAutopilotError,
-    RecoveryAutopilotService,
-    RecoveryIncident,
-    RecoveryRoute,
-    RecoveryRouteKind,
-    RecoveryTargetMismatchError,
-)
 from romverse.rom.models import ProjectError
 from romverse.rom.projects import RomProjectStore
 from romverse.rom.recovery_evidence import RecoveryEvidenceService
@@ -34,60 +35,6 @@ from romverse.rom.recovery_evidence import RecoveryEvidenceService
 
 class GuardianRecoveryPreparationError(ProjectError):
     """A Recovery route could not become an exact, zero-authority preparation."""
-
-
-@dataclass(frozen=True, slots=True)
-class GuardianPreparedRecoveryStep:
-    order: int
-    operation: DeviceRecoveryOperation
-    adapter_action_id: str
-    from_mode: str
-    to_mode: str
-    target_slot: str
-    timeout_seconds: int
-    may_wipe_user_data: bool
-
-
-@dataclass(frozen=True, slots=True)
-class GuardianRecoveryPreparation:
-    """Sealed Recovery intent for Guardian review; it can never execute a command."""
-
-    schema_version: int
-    preparation_id: str
-    created_at: str
-    incident_id: str
-    incident_record_digest: str
-    route_id: str
-    route_kind: RecoveryRouteKind
-    project_id: str
-    device_key: str
-    device_name: str
-    expected_product: str
-    expected_entry_mode: str
-    source_original_sha256: str
-    device_pack_id: str
-    device_pack_version: str
-    device_pack_sha256: str
-    transition_contract_id: str
-    transition_contract_digest: str
-    recovery_strategy: str
-    recovery_adapter_id: str
-    stock_package_sha256: str
-    recovery_evidence_digest: str
-    focused_operation: DeviceRecoveryOperation
-    step_count: int
-    steps_digest: str
-    steps: tuple[GuardianPreparedRecoveryStep, ...]
-    may_wipe_user_data: bool
-    recorded_prewrite_slot_required: bool
-    guardian_validation_required: bool
-    user_confirmation_required: bool
-    execution_authority: str
-    runtime_invoked: bool
-    phone_changed: bool
-    bootloader_relock_allowed: bool
-    preparation_status: str
-    preparation_digest: str
 
 
 class GuardianRecoveryPreparationService:
@@ -112,11 +59,15 @@ class GuardianRecoveryPreparationService:
         self,
         store: RomProjectStore,
         registry: DevicePackRegistry,
-        autopilot: RecoveryAutopilotService | None = None,
+        autopilot: RecoveryIncidentEvidenceStore,
     ) -> None:
+        if not isinstance(autopilot, RecoveryIncidentEvidenceStore):
+            raise GuardianRecoveryPreparationError(
+                "Recovery preparation requires the nominal incident evidence boundary"
+            )
         self.store = store
         self.registry = registry
-        self.autopilot = autopilot or RecoveryAutopilotService(store.workspace, registry)
+        self.autopilot = autopilot
         self.evidence = RecoveryEvidenceService(store)
         self.privacy = WorkspacePrivacy(store.workspace)
 
@@ -302,8 +253,7 @@ class GuardianRecoveryPreparationService:
             return preparation
         except (
             GuardianRecoveryPreparationError,
-            RecoveryAutopilotError,
-            RecoveryTargetMismatchError,
+            RecoveryContractError,
             LocalStoreError,
             OSError,
             ProjectError,

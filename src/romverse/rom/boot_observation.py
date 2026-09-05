@@ -4,12 +4,24 @@ import hashlib
 import hmac
 import json
 import math
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 from datetime import UTC, datetime
-from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from romverse.core.privacy import WorkspacePrivacy
+from romverse.core.recovery_contracts import (
+    BootFailureKind,
+    BootObservationReceipt,
+    BootObservationStatus,
+    BootSample,
+    GuardianRecoveryPreparation,
+    RecoveryBootEvidenceStore,
+    RecoveryContractError,
+    RecoveryExecutionResultEvidenceStore,
+    RecoveryExecutionResultState,
+    RecoveryProjectEvidence,
+    validate_recovery_execution_result_evidence,
+)
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.guardian.execution_result_receipt import (
@@ -25,67 +37,10 @@ from romverse.rom.models import ProjectError
 from romverse.rom.projects import RomProjectStore
 
 if TYPE_CHECKING:
-    from romverse.guardian.recovery_execution_result import (
-        GuardianRecoveryExecutionResultService,
-    )
-    from romverse.guardian.recovery_preparation import GuardianRecoveryPreparation
     from romverse.knowledge.models import KnowledgeFailure
 
 
-class BootObservationStatus(StrEnum):
-    WAITING = "waiting"
-    SETTLING = "settling"
-    STABLE = "stable"
-    ATTENTION = "attention"
-
-
-class BootFailureKind(StrEnum):
-    """Evidence-derived failure class used for offline Archives lookup."""
-
-    NONE = "none"
-    DEVICE_MODE = "device_mode"
-    IDENTITY_CHANGED = "identity_changed"
-    REBOOT_LOOP = "reboot_loop"
-    BOOT_TIMEOUT = "boot_timeout"
-    PROBE_INCOMPLETE = "probe_incomplete"
-
-
-@dataclass(frozen=True, slots=True)
-class BootSample:
-    observed_at: str
-    device_pseudonym: str
-    state: str
-    boot_completed: bool | None
-    uptime_seconds: int | None
-    slot_suffix: str
-    build_id: str
-    build_fingerprint: str
-    battery_percent: int | None
-    probe_errors: tuple[str, ...]
-
-
-@dataclass(frozen=True, slots=True)
-class BootObservationReceipt:
-    schema_version: int
-    project_id: str
-    pack_id: str
-    contract_id: str
-    source_original_sha256: str
-    samples: tuple[BootSample, ...]
-    status: BootObservationStatus
-    stable: bool
-    reboot_detected: bool
-    flash_linked: bool
-    guardian_execution_receipt_digest: str
-    verified_first_boot: bool
-    diagnosis: str
-    phone_changed: bool
-    failure_kind: BootFailureKind
-    knowledge_queries: tuple[str, ...]
-    receipt_digest: str
-
-
-class BootObservationService:
+class BootObservationService(RecoveryBootEvidenceStore):
     """Accumulate boot evidence and link it only to a verified Guardian result."""
 
     NAME = "boot-observation.romverse"
@@ -133,6 +88,22 @@ class BootObservationService:
         self.privacy = WorkspacePrivacy(store.workspace)
         self._verified_flash_digests: set[str] = set()
 
+    @property
+    def workspace(self):
+        return self.store.workspace.resolve()
+
+    def project_evidence(self, project_id: str) -> RecoveryProjectEvidence:
+        """Expose only the project identity needed for independent Recovery verification."""
+
+        project = self.store.get(project_id)
+        return RecoveryProjectEvidence(
+            project_id=project.project_id,
+            device_pack_id=project.device_pack_id,
+            source_original_sha256=(
+                project.original.sha256 if project.original is not None else ""
+            ),
+        )
+
     def observe(
         self,
         project_id: str,
@@ -157,7 +128,7 @@ class BootObservationService:
         project_id: str,
         device: AndroidDevice,
         preparation: GuardianRecoveryPreparation,
-        execution_results: GuardianRecoveryExecutionResultService,
+        execution_results: RecoveryExecutionResultEvidenceStore,
         observed_at: datetime | None = None,
     ) -> BootObservationReceipt:
         """Collect read-only boot evidence linked to one exact completed Recovery result."""
@@ -301,7 +272,7 @@ class BootObservationService:
         project_id: str,
         device: AndroidDevice,
         preparation: GuardianRecoveryPreparation,
-        execution_results: GuardianRecoveryExecutionResultService,
+        execution_results: RecoveryExecutionResultEvidenceStore,
     ) -> BootObservationReceipt | None:
         """Reload a persisted Recovery-linked boot receipt after exact revalidation."""
 
@@ -570,27 +541,25 @@ class BootObservationService:
         project_id: str,
         device: AndroidDevice,
         preparation: GuardianRecoveryPreparation,
-        execution_results: GuardianRecoveryExecutionResultService,
+        execution_results: RecoveryExecutionResultEvidenceStore,
         *,
         observed_at: datetime | None = None,
     ) -> str:
         """Validate a completed exact Recovery result for read-only boot linkage."""
 
-        from romverse.guardian.recovery_execution_result import (
-            GuardianRecoveryExecutionResultService,
-            RecoveryExecutionResultState,
-        )
-        from romverse.guardian.recovery_preparation import GuardianRecoveryPreparation
-
         if (
             not isinstance(preparation, GuardianRecoveryPreparation)
-            or not isinstance(execution_results, GuardianRecoveryExecutionResultService)
-            or execution_results.store.workspace.resolve() != self.store.workspace.resolve()
+            or not isinstance(execution_results, RecoveryExecutionResultEvidenceStore)
+            or execution_results.workspace.resolve() != self.workspace
         ):
             raise ProjectError("Boot observation requires an exact local Recovery result")
         result = execution_results.load(preparation)
         if result is None:
             raise ProjectError("Boot observation requires an exact durable Recovery result")
+        try:
+            validate_recovery_execution_result_evidence(preparation, result)
+        except RecoveryContractError as exc:
+            raise ProjectError("Boot observation requires sealed Recovery result evidence") from exc
         now = (observed_at or datetime.now(UTC)).astimezone(UTC)
         try:
             recorded_at = datetime.fromisoformat(result.recorded_at)

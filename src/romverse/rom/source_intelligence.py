@@ -6,7 +6,6 @@ import re
 import struct
 from dataclasses import asdict, dataclass, fields
 from datetime import UTC, datetime, timedelta
-from enum import StrEnum
 from pathlib import Path
 from typing import Protocol
 
@@ -25,13 +24,17 @@ from romverse.rom.source_blueprint import (
     FastbootSourceBlueprintService,
     ProgressCallback,
 )
+from romverse.rom.source_evidence_adapters import (
+    BoundedFirmwareSourceEvidenceAdapter,
+    FirmwareAdapter,
+    FirmwareSourceAnalysis,
+    FirmwareSourceEvidenceAdapterRegistry,
+    FirmwareSourceSnapshot,
+    match_fastboot_super,
+    match_ota_payload,
+    match_partition_bundle,
+)
 from romverse.rom.source_identity import FirmwareSourceIdentity, identify_firmware_source
-
-
-class FirmwareAdapter(StrEnum):
-    OTA_PAYLOAD = "ota-payload"
-    FASTBOOT_SUPER = "fastboot-super"
-    PARTITION_BUNDLE = "partition-bundle"
 
 
 class SourceBlueprint(Protocol):
@@ -51,15 +54,6 @@ class SourceBlueprint(Protocol):
     baseline_candidate_ready: bool
     avb_topology_verified: bool
     blueprint_digest: str
-
-
-@dataclass(frozen=True, slots=True)
-class FirmwareSourceAnalysis:
-    adapter: FirmwareAdapter
-    payload_path: str
-    super_path: str
-    partition_images: tuple[str, ...]
-    explanation: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -174,8 +168,37 @@ class FirmwareSourceIntelligenceService:
         self.store = store
         self.tool_statuses = tool_statuses
         self.runner = runner
+        self._fastboot_source = FastbootSourceBlueprintService(store, tool_statuses, runner)
+        self._adapter_registry = FirmwareSourceEvidenceAdapterRegistry(
+            (
+                BoundedFirmwareSourceEvidenceAdapter(
+                    FirmwareAdapter.OTA_PAYLOAD,
+                    "project-local-build-evidence-only",
+                    match_ota_payload,
+                    self._prepare_ota_adapter,
+                    self._load_ota,
+                ),
+                BoundedFirmwareSourceEvidenceAdapter(
+                    FirmwareAdapter.FASTBOOT_SUPER,
+                    "project-local-build-evidence-only",
+                    match_fastboot_super,
+                    self._prepare_fastboot_adapter,
+                    self._fastboot_source.load,
+                ),
+                BoundedFirmwareSourceEvidenceAdapter(
+                    FirmwareAdapter.PARTITION_BUNDLE,
+                    "project-local-inventory-evidence-only",
+                    match_partition_bundle,
+                    self._prepare_partition_bundle_adapter,
+                    self._load_partition_bundle,
+                ),
+            )
+        )
 
     def analyze(self, project_id: str) -> FirmwareSourceAnalysis:
+        return self._adapter_registry.analyze(self._snapshot(project_id))
+
+    def _snapshot(self, project_id: str) -> FirmwareSourceSnapshot:
         tree = (self.store.working_root / project_id / "tree").resolve()
         if not tree.is_dir():
             raise ProjectError("Create the isolated firmware tree before source analysis")
@@ -191,40 +214,10 @@ class FirmwareSourceIntelligenceService:
                 and path.resolve().is_relative_to(tree)
             )
         )
-        if len(payloads) == 1:
-            return FirmwareSourceAnalysis(
-                FirmwareAdapter.OTA_PAYLOAD,
-                payloads[0].relative_to(self.store.workspace).as_posix(),
-                supers[0].relative_to(self.store.workspace).as_posix() if len(supers) == 1 else "",
-                images,
-                "OTA payload detected; ROMVERSE selected Payload Atlas extraction and OTA provenance rules.",
-            )
-        if len(payloads) > 1:
-            raise ProjectError(
-                "Multiple payload.bin files were found; the firmware source is ambiguous"
-            )
-        if len(supers) == 1:
-            return FirmwareSourceAnalysis(
-                FirmwareAdapter.FASTBOOT_SUPER,
-                "",
-                supers[0].relative_to(self.store.workspace).as_posix(),
-                images,
-                "Fastboot super image detected; ROMVERSE selected sparse-super and logical-partition tools.",
-            )
-        if len(supers) > 1:
-            raise ProjectError(
-                "Multiple super.img files were found; the firmware source is ambiguous"
-            )
-        if images:
-            return FirmwareSourceAnalysis(
-                FirmwareAdapter.PARTITION_BUNDLE,
-                "",
-                "",
-                images,
-                "Raw partition image bundle detected; ROMVERSE selected per-image inspection.",
-            )
-        raise ProjectError(
-            "ROMVERSE could not find payload.bin, super.img, or a supported partition image bundle"
+        return FirmwareSourceSnapshot(
+            tuple(path.relative_to(self.store.workspace).as_posix() for path in payloads),
+            tuple(path.relative_to(self.store.workspace).as_posix() for path in supers),
+            images,
         )
 
     def prepare(
@@ -232,23 +225,40 @@ class FirmwareSourceIntelligenceService:
         project_id: str,
         progress: ProgressCallback | None = None,
     ) -> SourceBlueprint:
-        analysis = self.analyze(project_id)
-        if analysis.adapter is FirmwareAdapter.FASTBOOT_SUPER:
-            return FastbootSourceBlueprintService(
-                self.store, self.tool_statuses, self.runner
-            ).prepare(project_id, progress)
-        if analysis.adapter is FirmwareAdapter.OTA_PAYLOAD:
-            return self._prepare_ota(project_id, progress)
-        return self._prepare_partition_bundle(project_id, analysis, progress)
+        return self._adapter_registry.prepare(project_id, self._snapshot(project_id), progress)
 
     def load(self, project_id: str) -> SourceBlueprint | None:
-        fastboot = FastbootSourceBlueprintService(self.store, self.tool_statuses, self.runner).load(
-            project_id
-        )
-        if fastboot is not None:
-            return fastboot
-        ota = self._load_ota(project_id)
-        return ota if ota is not None else self._load_partition_bundle(project_id)
+        return self._adapter_registry.load(project_id)
+
+    def _prepare_fastboot_adapter(
+        self,
+        project_id: str,
+        analysis: FirmwareSourceAnalysis,
+        progress: ProgressCallback | None,
+    ) -> SourceBlueprint:
+        if analysis.adapter is not FirmwareAdapter.FASTBOOT_SUPER:
+            raise ProjectError("Fastboot evidence adapter received a mismatched source analysis")
+        return self._fastboot_source.prepare(project_id, progress)
+
+    def _prepare_ota_adapter(
+        self,
+        project_id: str,
+        analysis: FirmwareSourceAnalysis,
+        progress: ProgressCallback | None,
+    ) -> OtaPayloadBlueprint:
+        if analysis.adapter is not FirmwareAdapter.OTA_PAYLOAD:
+            raise ProjectError("OTA evidence adapter received a mismatched source analysis")
+        return self._prepare_ota(project_id, progress)
+
+    def _prepare_partition_bundle_adapter(
+        self,
+        project_id: str,
+        analysis: FirmwareSourceAnalysis,
+        progress: ProgressCallback | None,
+    ) -> PartitionBundleBlueprint:
+        if analysis.adapter is not FirmwareAdapter.PARTITION_BUNDLE:
+            raise ProjectError("Partition evidence adapter received a mismatched source analysis")
+        return self._prepare_partition_bundle(project_id, analysis, progress)
 
     def _prepare_ota(
         self,

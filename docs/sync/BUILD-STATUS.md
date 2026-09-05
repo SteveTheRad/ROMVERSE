@@ -2,59 +2,71 @@
 
 ## Authoritative implementation checkpoint
 
-- Commit: `74388863b2264a641073eda4bbadb70955d525ff`
-- Title: `Inventory durable schema compatibility`
-- Stage: Stage 1 — v0.2 Golden Foundation, Future-proofing checkpoint 1 of 3
-- Milestone: durable-schema compatibility inventory
+- Commit: `48dc21bba2c2698086c836a02605b22e788ba9b6`
+- Title: `Extract neutral Recovery evidence contracts`
+- Stage: Stage 1 — v0.2 Golden Foundation, Future-proofing checkpoint 2 of 3
+- Milestone: neutral Recovery/execution evidence contracts
 - Build status: committed and locally verified; Product Assurance review requested
 - Working tree after the implementation commit: only the three pre-existing unrelated Companion
   modifications remain. This slice did not edit, stage, discard, or commit them.
 
 ## Exact changes
 
-- Added a dependency-neutral compatibility inventory covering **188** retained durable, logical,
-  and wire formats across project, evidence, history, Guardian, Recovery, Knowledge, update, and
-  Desktop/Companion Link domains.
-- Each entry declares its current version, supported read versions, migration or deterministic
-  re-derivation policy, audit-only treatment, fail-closed behavior, authority effect,
-  implementation marker, and compatibility-test owner.
-- Added exhaustive checks that account for every retained `romverse.*` source format and packaged
-  JSON `format` identifier, while explicitly excluding package namespaces that are not records.
-- Added safety assertions that audit-only records never grant authority and that no retained schema
-  permits bootloader lock/relock authority.
-- Documented the compatibility contract and the boundary between an inventory declaration and
-  actual runtime migration. Importing the inventory performs no migration and imports no schema
-  owner.
-- Corrected the declared current Forge bundle version to `3`; the Forge receipt remains version
-  `2`, matching their implementations.
+- Added a dependency-neutral contract module containing immutable Recovery incident, route,
+  preparation, execution-result, boot-observation, and minimal project-evidence records.
+- Added nominal read-only boundaries for incident evidence, aggregate execution-result evidence,
+  and boot evidence. These boundaries expose no command, dispatch, approval, consent, retry,
+  migration, or write operation.
+- Moved shared evidence model ownership out of Repair, Guardian persistence, and ROM boot services
+  while preserving legacy imports as aliases to the same class objects and preserving all JSON
+  field sets, format identifiers, and schema versions.
+- Removed the mutual Guardian-preparation/Repair and Repair/Guardian-result dependencies. Repair no
+  longer imports the concrete boot-observation or Guardian Recovery services; Guardian preparation
+  no longer imports Repair orchestration.
+- Added independent consumer-side validation of preparation, aggregate result, and boot evidence.
+  It rechecks digests, exact incident/device/project/source/Device Pack/transition/action bindings,
+  journal order and terminal state, completion/failure/UNKNOWN coherence, non-authority, no retry,
+  independent-verification requirements, and permanent relock prohibition.
+- Replaced Repair's access to Guardian's project store with a minimal project-identity evidence
+  record supplied by the read-only boot-evidence owner.
+- Documented ownership, trust, compatibility, UNKNOWN, no-retry, and no-relock rules.
 
 Files in the implementation commit:
 
-- `src/romverse/core/durable_schemas.py`
-- `docs/DURABLE-SCHEMA-COMPATIBILITY.md`
-- `tests/test_durable_schema_inventory.py`
+- `src/romverse/core/recovery_contracts.py`
+- `src/romverse/guardian/recovery_preparation.py`
+- `src/romverse/guardian/recovery_execution.py`
+- `src/romverse/guardian/recovery_execution_result.py`
+- `src/romverse/repair/autopilot.py`
+- `src/romverse/rom/boot_observation.py`
+- `tests/test_recovery_evidence_contracts.py`
+- `docs/RECOVERY-EVIDENCE-CONTRACTS.md`
 
 ## Classification
 
-- Implemented: the durable-schema compatibility inventory, its contract documentation, and
-  exhaustive inventory/authority tests.
-- Simulated/Tested: yes, on Linux/Fedora through the full Python regression and focused Companion
-  retained-record JVM tests.
+- Implemented: dependency-neutral Recovery/execution evidence records, nominal read-only owner
+  boundaries, independent fail-closed validators, legacy API aliases, and owner-cycle removal.
+- Simulated/Tested: yes, on Linux/Fedora using deterministic local projects, simulated devices,
+  trusted test adapters, durable journals/results, Recovery incidents, and boot receipts.
 - Hardware Verified: no.
 - Released: no.
 
 ## Verification evidence
 
-- Full Python repository regression: **2,857/2,857 passed**. This total includes the new focused
-  durable-schema tests (**6/6**) and all affected Python coverage; those tests are not added again.
-- Focused Companion retained-schema JVM tests: **50/50 passed** across device DNA, Link integrity,
-  history, cache/optimizer history, Galaxy, first-boot, and transfer-offer records.
-- Full Companion JVM attempt: **160/163 passed**. The three failures are confined to the protected,
-  pre-existing `CompanionNavigationTest` working-tree modification and are reported as an observed
-  unrelated limitation, not added to the passing totals above.
-- Android instrumented Link vault tests: not run; no emulator or physical device was used.
-- Ruff lint and formatting checks: passed for all checkpoint Python files.
-- Git whitespace/diff inspection: passed.
+- Full Python repository regression: **2,869/2,869 passed**.
+- Focused schema, contract, Guardian, Recovery, boot-observation, and operation-session regression:
+  **86/86 passed**; included in the full-suite total and not added again.
+- New neutral-contract and adversarial cases: **12/12 passed**; included in both totals above.
+- New cases prove dependency neutrality and lack of mutual owner reachability, legacy import
+  identity, nominal-reader enforcement, no command/retry surface, self-consistent authority/retry/
+  relock/incident/device forgery rejection, UNKNOWN preservation, exact action binding, boot receipt
+  tamper rejection, and minimal project-evidence exposure.
+- Durable-schema inventory: **6/6 passed**; schema count remains 188 and no retained format changed.
+- Ruff lint for all source and tests: passed.
+- Ruff formatting and Git whitespace checks: passed.
+- Companion tests were not rerun because this slice did not touch Companion. The prior checkpoint's
+  focused retained-schema result remains **50/50 passed**; its three protected navigation-test
+  failures remain unrelated, unmodified working-tree work and are not counted here.
 - Approved production assets remain byte-exact:
   - ROMVERSE PNG: `ab9286ce69e77abd82fe88105df70680186a4eb992289580c23f5d362c132a18`
   - ROMVERSE ICO: `bcfe1c5b960de2327c5e706cc22b872923c8ce2c254aa0b125c4f9b1dd4036b2`
@@ -62,52 +74,55 @@ Files in the implementation commit:
 
 ## Blockers and remaining limitations
 
-- The inventory declares compatibility policy; it does not silently add runtime migrations or
-  claim that every historical artifact has been exercised on every platform.
-- Three full Companion JVM failures remain in protected, unrelated navigation work. This Build
-  slice did not repair or absorb that work.
+- Future-proofing checkpoint 3, the bounded firmware source-evidence adapter protocol and
+  deterministic registry, has not started.
+- The neutral contracts do not add runtime migration, adapter dispatch, execution capability, or
+  physical-device authority.
+- Three full Companion JVM failures remain in protected, unrelated navigation work.
 - Android instrumented tests and physical Android behavior remain unverified.
 - Windows secure Recovery launch and anti-TOCTOU behavior remain unverified mandatory release
   blockers.
 - Controlled physical-hardware verification remains a mandatory release blocker.
-- v0.2 Golden Foundation remains closed pending Product Assurance review and later evidence.
+- v0.2 Golden Foundation remains closed pending Product Assurance review and later release evidence.
 
 ## Guided friction and dead ends
 
-- No Guided UI, route, dialog, execution, or user decision changed in this checkpoint.
-- No new user-facing dead end was introduced. Missing or incompatible durable evidence continues
-  to fail closed under its owning runtime policy; this inventory does not manufacture authority or
-  present speculative recovery actions.
+- No Guided UI, route, dialog, confirmation, execution, or user decision changed.
+- No new user-facing dead end was introduced. Existing Recovery outcomes and messages are
+  preserved; malformed or mismatched evidence fails closed at the shared contract boundary.
 
 ## Guardian, Recovery, and safety implications
 
-- This checkpoint changes no Guardian or Recovery execution behavior and grants no build, flash,
-  device, consent, retry, or verification authority.
-- Exact-device, exact-incident, digest, evidence-integrity, independent-verification, UNKNOWN,
-  no-blind-retry, and Guardian-only execution-gate invariants remain unchanged.
-- Audit-only evidence is explicitly classified as non-authoritative.
-- Bootloader locking and relocking remain permanently prohibited; the inventory contains no valid
-  relock authority or migration path.
+- Guardian remains the sole execution gate. Evidence and context may cross owner boundaries;
+  authority does not.
+- Preparation remains zero authority. Aggregate command completion remains audit-only and cannot
+  claim repair; only the existing same-incident reassessment and independent fresh boot proof may
+  establish Recovery.
+- Exact-device, exact-incident, source, Device Pack, transition, action-sequence, journal, and
+  digest bindings are independently revalidated by consumers.
+- Known failure and UNKNOWN remain distinct, durable, non-retry states. UNKNOWN cannot be silently
+  converted to success or failure and never permits blind retry.
+- Bootloader locking and relocking remain permanently prohibited, including self-consistent forged
+  evidence; there is no override or authorization path.
 
 ## Platform status
 
-- Linux/Fedora: full Python regression passed; focused Companion retained-schema JVM tests passed
-  with the pinned Java 17 toolchain.
-- Windows: not run. Secure trusted Recovery launch remains outstanding.
+- Linux/Fedora: full Python software regression passed.
+- Windows: not run. Secure trusted Recovery launch and anti-TOCTOU verification remain outstanding.
 - Android emulator/physical hardware: not run.
 
 ## Feature-freeze and version-gate impact
 
-- 5 September 2026 pre-v1.0 feature freeze: compliant. This is foundation/correctness inventory
-  work only and adds no product capability, format, vendor, route, or execution path.
+- 5 September 2026 pre-v1.0 feature freeze: compliant. This is contract extraction and correctness
+  testing only; it adds no product feature, source format, vendor, route, or execution path.
 - v0.2 Golden Foundation: remains **CLOSED**.
 
 ## Next proposed Build task
 
-Stop at this safe committed checkpoint. After Product Assurance approves this inventory, the next
-bounded task is future-proofing checkpoint 2: extract neutral Recovery/execution evidence contracts
-so policy and persistence no longer depend cyclically on orchestration or ROM presentation. Do not
-begin that slice before checkpoint review, and do not broaden Stage 1.
+After Product Assurance approval, begin Future-proofing checkpoint 3 only: introduce a bounded
+firmware source-evidence adapter protocol and deterministic registry, then migrate the existing OTA
+payload, Fastboot-super, and partition-bundle evidence handlers behind it. Add no format or vendor;
+multiple matches must fail as ambiguous; evidence must grant no build, flash, or device authority.
 
 ## External actions
 
@@ -118,15 +133,14 @@ begin that slice before checkpoint review, and do not broaden Stage 1.
 - Website change: none.
 - Source-data migration: none.
 - Companion source change by this Build slice: none.
-- Local action: scoped source/docs/tests commit, local lint/tests, Gradle test compilation, and this
-  repository handoff only.
+- Local action: scoped source/docs/tests commit, lint, collection, and local software tests only.
 
 ## Product Assurance Review Requested
 
-- Confirm that the 188-format inventory is complete and its read/migration/re-derivation,
-  audit-only, failure, and authority policies are conservative enough for pre-v1.0 durability.
-- Confirm that the dependency-neutral inventory boundary does not itself perform migration or
-  weaken any Guardian/Recovery invariant.
-- Approve or correct the proposed next bounded task: neutral Recovery/execution evidence-contract
-  extraction, while retaining Windows secure launch and controlled hardware verification as
-  mandatory release blockers.
+- Confirm the neutral contract module and nominal read-only boundaries remove the targeted owner
+  cycles without weakening exact evidence or creating an alternate authority path.
+- Confirm that independent validators adequately defend future reader implementations against
+  self-consistent forged state, cross-device attribution, UNKNOWN reinterpretation, blind retry,
+  fabricated Recovery, and relock variants.
+- Approve or correct Future-proofing checkpoint 3 as the next bounded Build task while retaining
+  Windows secure launch and controlled physical verification as mandatory release blockers.

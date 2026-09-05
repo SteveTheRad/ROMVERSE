@@ -25,6 +25,7 @@ from PySide6.QtWidgets import QApplication, QLabel
 from romverse.core.settings import ExperienceMode
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.guardian.local_flash import LocalFlashService
+from romverse.guardian.local_transition import LocalDeviceTransitionService
 from romverse.guardian.source_installation import SourceInstallationExecutor
 from romverse.infrastructure.process import CommandResult
 from romverse.rom.local_boot import LocalBootService
@@ -219,8 +220,10 @@ def main(argv=None) -> int:
     )
     source_service = SourceInstallationService(store)
     runner = InstallationPhone()
+    runner.mode = "android"
     flash = LocalFlashService(store.workspace, runner, root / "fastboot")
     executor = SourceInstallationExecutor(source_service, flash, root / "adb")
+    transitions = LocalDeviceTransitionService(flash, root / "adb")
     start = datetime.now(UTC)
     boot = LocalBootService(
         flash,
@@ -241,7 +244,9 @@ def main(argv=None) -> int:
         preparation_service=preparer,
         source_service=source_service,
         installation_factory=lambda _preparation: executor,
+        transition_service=transitions,
         boot_service=boot,
+        guided_automation=True,
     )
     chooser = ProjectPreparationDialog(
         preparer,
@@ -270,6 +275,7 @@ def main(argv=None) -> int:
         (runner.device(),),
         recipe=recipe,
         session=operation_session,
+        transition_service=transitions,
         boot_service=boot,
     )
     dialog.eyebrow.setText("SIMULATION ONLY  •  NO PHYSICAL PHONE")
@@ -279,8 +285,15 @@ def main(argv=None) -> int:
     app.processEvents()
     assert dialog.guided_primary.isVisible()
     assert not dialog.review_button.isVisible() and not dialog.flash_button.isVisible()
+    assert dialog.guided_primary.text() == "Restart phone to bootloader…"
+    screenshot(app, dialog, root / "simulation-source-android-handoff.png")
+    transition_confirmation = confirm_next(app)
     click(dialog.guided_primary)
     pump(app, lambda: dialog.plan is not None and dialog.worker is None)
+    assert not transition_confirmation.isActive()
+    assert runner.mode == "bootloader"
+    assert dialog.transition_result is not None
+    assert dialog.transition_result.arrival_verified
     assert runner.changes == []
     screenshot(app, dialog, root / "simulation-source-review.png")
     confirmation = confirm_next(app, accept=False)
@@ -367,6 +380,10 @@ def main(argv=None) -> int:
         "production_certified": False,
         "clock": "injected accelerated simulation clock",
         "source_procedure_explicitly_selected": True,
+        "initial_simulated_mode": "android",
+        "bootloader_restart_explicitly_confirmed": True,
+        "bootloader_arrival_observed": dialog.transition_result.arrival_verified,
+        "read_only_review_continued_automatically": True,
         "decline_sent_no_mutating_command": True,
         "source_declared_complete_procedure": True,
         "simulated_action_count": len(runner.changes),

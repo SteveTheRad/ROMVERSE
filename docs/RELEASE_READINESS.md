@@ -1926,6 +1926,28 @@ large-archive hashing can be slow and never silently renews an expired transitio
   checkpoint performed no physical phone operation, app restart, packaging, Companion change,
   website update, publication or remote push. Approved production logos were not edited.
 
+## 2026-09-05 Guided connection and bootloader handoff
+
+- Guided complete-source installation no longer repeats a bootloader-only readiness check while the
+  correct phone is still in Android. It presents one **Restart phone to bootloader…** action, uses
+  the existing exact-target transition review and confirmation, observes arrival, and automatically
+  continues only the read-only installation review. **Install ROM…** remains a separate exact-plan
+  authorization.
+- Missing, unauthorized, offline, unstable, ambiguous and known-wrong USB devices now have distinct
+  actionable states. A retained timer detects on-phone ADB approval/reconnection without manual
+  Refresh, backs off after repeated scan errors, never guesses between ambiguous devices, and adopts
+  only one unambiguous product/manufacturer match. Region alone is not treated as incompatibility.
+- The inert source-installation simulation now starts in Android and exercises the production
+  transition service before review, including a visibly labelled handoff screenshot and a declined
+  installation with zero image writes. Six new user-style cases cover the complete decision and
+  detection boundary.
+- All 634 affected regressions pass. The complete Desktop/Python gate passes all 2,680 tests with
+  zero failures, errors or skips in 821.354 seconds; whole-source Ruff and final diff checks are
+  clean. See `GUIDED_CONNECTION_HANDOFF_2026-09-05.md` for exact evidence and limitations.
+- The watcher is not crash/reboot persistence and this checkpoint is not physical-device proof. No
+  phone operation, running-app restart, packaging, Companion change, website update, publication or
+  remote push occurred. Approved production logos were not edited.
+
 ## Honest feature boundary
 
 The current safe milestone supports read-only Android evidence, local diagnostics, guarded APK

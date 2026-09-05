@@ -23,6 +23,7 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog, QMessageBox
 
 from romverse.core.settings import AppSettings, ExperienceMode
+from romverse.device.models import DeviceState
 from romverse.guardian.local_flash import LocalFlashError, LocalFlashService, LocalFlashState
 from romverse.guardian.local_transition import (
     LocalTransitionPlan,
@@ -935,6 +936,311 @@ def test_completed_bootloader_transition_returns_to_same_installation_journey(
     app.processEvents()
 
 
+def test_guided_android_route_confirms_bootloader_once_then_continues_read_only(
+    installation,
+    monkeypatch,
+    tmp_path,
+):
+    context = installation
+    app = QApplication.instance() or QApplication([])
+    workers = []
+    transition_calls = []
+    monkeypatch.setattr("romverse.ui.local_flash.start_background", workers.append)
+    android = replace(
+        context.phone.device(),
+        state=DeviceState.DEVICE,
+        transport="usb",
+        connection_note="Connected over authorized ADB",
+    )
+
+    class TransitionService:
+        def inspect(self, device, target):
+            transition_calls.append(("inspect", device.serial, target))
+            return LocalTransitionPlan(
+                plan_digest="2" * 64,
+                plan_id="guided-transition-plan",
+                created_at="2026-09-05T00:00:00+00:00",
+                expires_at="2026-09-05T00:02:00+00:00",
+                device_name=device.display_name,
+                masked_serial=device.masked_serial(),
+                source_mode="android",
+                target=target,
+                warnings=(),
+                command=("adb", "reboot", "bootloader"),
+                device_key="device-key",
+                tools=(),
+                source_device=device,
+            )
+
+        def execute(self, plan, **_kwargs):
+            transition_calls.append(("execute", plan.source_device.serial, plan.target))
+            return LocalTransitionResult(
+                state=LocalFlashState.COMPLETED,
+                summary="The exact phone arrived in bootloader Fastboot.",
+                phone_change_attempted=True,
+                receipt_path=tmp_path / "guided-transition-receipt.json",
+                observed_device=replace(
+                    plan.source_device,
+                    state=DeviceState.BOOTLOADER,
+                    transport="usb-fastboot",
+                    connection_note="Observed in bootloader Fastboot",
+                ),
+                arrival_verified=True,
+                command_completed=True,
+            )
+
+    session = SourceOperationSession(
+        _executor(context),
+        (android,),
+        recipe=context.recipe(),
+        transition_service=TransitionService(),
+        guided_automation=True,
+    )
+    dialog = SourceInstallationDialog(
+        session.service,
+        session.devices,
+        recipe=session.recipe,
+        session=session,
+        experience_mode=ExperienceMode.GUIDED,
+        transition_service=session.transition_service,
+    )
+    dialog.show()
+    app.processEvents()
+
+    assert dialog.guided_primary.text() == "Restart phone to bootloader…"
+    assert dialog.guided_primary.isEnabled()
+    assert "connected in Android" in dialog.status.text()
+    questions = _answer(monkeypatch, accept=True)
+    _click(dialog.guided_primary)
+    _finish_worker(app, workers)
+    assert len(workers) == 1 and session.phase is SourceOperationPhase.TRANSITIONING
+    _finish_worker(app, workers)
+    assert len(workers) == 1 and session.phase is SourceOperationPhase.REVIEWING
+    _finish_worker(app, workers)
+
+    assert len(questions) == 1
+    assert "bootloader" in questions[0]
+    assert transition_calls == [
+        ("inspect", android.serial, LocalTransitionTarget.BOOTLOADER),
+        ("execute", android.serial, LocalTransitionTarget.BOOTLOADER),
+    ]
+    assert session.plan is not None
+    assert session.phase is SourceOperationPhase.REVIEW_READY
+    assert dialog.guided_primary.text() == "Install ROM…"
+    assert context.phone.changes == []
+    dialog.close()
+    session.dispose()
+    app.processEvents()
+
+
+def test_guided_usb_watch_continues_after_authorization_without_manual_refresh(
+    installation,
+    monkeypatch,
+):
+    context = installation
+    app = QApplication.instance() or QApplication([])
+    workers = []
+    monkeypatch.setattr("romverse.ui.local_flash.start_background", workers.append)
+    unauthorized = replace(
+        context.phone.device(),
+        state=DeviceState.UNAUTHORIZED,
+        transport="usb",
+        connection_note="Unlock the phone and accept the USB debugging prompt.",
+    )
+    discoveries = [(unauthorized,), (context.phone.device(),)]
+
+    def discover():
+        return list(discoveries.pop(0))
+
+    session = SourceOperationSession(
+        _executor(context),
+        (unauthorized,),
+        recipe=context.recipe(),
+        discover=discover,
+        guided_automation=True,
+    )
+    dialog = SourceInstallationDialog(
+        session.service,
+        session.devices,
+        recipe=session.recipe,
+        session=session,
+        experience_mode=ExperienceMode.GUIDED,
+        discover=discover,
+    )
+    dialog.show()
+    app.processEvents()
+    assert dialog.guided_primary.text() == "Approve USB debugging on phone"
+    assert not dialog.guided_primary.isEnabled()
+    assert session.connection_watch_timer.isActive()
+
+    QTest.qWait(2100)
+    assert session.phase is SourceOperationPhase.REFRESHING
+    assert len(workers) == 1
+    _finish_worker(app, workers)
+    assert session.phase is SourceOperationPhase.READY
+    assert "approve its USB debugging prompt" in session.status
+    assert session.connection_watch_timer.isActive()
+
+    session.connection_watch_timer.stop()
+    session._watch_connection()
+    _finish_worker(app, workers)
+    assert session.phase is SourceOperationPhase.REVIEWING
+    assert len(workers) == 1
+    _finish_worker(app, workers)
+    assert session.phase is SourceOperationPhase.REVIEW_READY
+    assert session.plan is not None
+    assert discoveries == []
+    assert context.phone.changes == []
+    dialog.close()
+    session.dispose()
+    app.processEvents()
+
+
+def test_guided_usb_watch_backs_off_repeated_detection_errors_without_recovery(
+    installation,
+    monkeypatch,
+):
+    context = installation
+    app = QApplication.instance() or QApplication([])
+    workers = []
+    monkeypatch.setattr("romverse.ui.local_flash.start_background", workers.append)
+
+    def discover():
+        raise RuntimeError("ADB transport is temporarily unavailable")
+
+    session = SourceOperationSession(
+        _executor(context),
+        (context.phone.device(),),
+        recipe=context.recipe(),
+        discover=discover,
+        guided_automation=True,
+    )
+    for attempt in range(3):
+        session.connection_watch_timer.stop()
+        session._watch_connection()
+        _finish_worker(app, workers)
+        assert session.phase is SourceOperationPhase.READY
+        assert not session.snapshot().recovery_available
+        assert session.connection_watch_timer.isActive()
+        assert session._connection_watch_failures == attempt + 1
+
+    assert session.connection_watch_timer.interval() == 5000
+    assert "repeatedly failed" in session.status
+    assert "ADB transport is temporarily unavailable" in session.details
+    assert context.phone.changes == []
+    session.connection_watch_timer.stop()
+    session.dispose()
+    app.processEvents()
+
+
+def test_guided_never_guesses_between_multiple_unmatched_phones(installation):
+    context = installation
+    app = QApplication.instance() or QApplication([])
+    devices = (
+        replace(
+            context.phone.device(),
+            serial="OTHER-SIMULATED-0002",
+            product="komodo",
+            codename="komodo",
+        ),
+        replace(
+            context.phone.device(),
+            serial="OTHER-SIMULATED-0003",
+            product="e3q",
+            codename="e3q",
+        ),
+    )
+    session = SourceOperationSession(
+        _executor(context),
+        devices,
+        recipe=context.recipe(),
+        guided_automation=True,
+    )
+    dialog = SourceInstallationDialog(
+        session.service,
+        session.devices,
+        recipe=session.recipe,
+        session=session,
+        experience_mode=ExperienceMode.GUIDED,
+    )
+    dialog.show()
+    app.processEvents()
+
+    assert session.selected_serial == ""
+    assert session.selected_device() is None
+    assert "will not guess" in session.status
+    assert dialog.guided_primary.text() == "Choose the intended phone"
+    assert not dialog.guided_primary.isEnabled()
+    assert not session.review_installation()
+    assert context.phone.changes == []
+    dialog.close()
+    session.dispose()
+    app.processEvents()
+
+
+@pytest.mark.parametrize("conflict", ["product", "manufacturer"])
+def test_guided_wrong_phone_keeps_watching_and_adopts_one_exact_match(
+    installation,
+    monkeypatch,
+    conflict,
+):
+    context = installation
+    app = QApplication.instance() or QApplication([])
+    workers = []
+    monkeypatch.setattr("romverse.ui.local_flash.start_background", workers.append)
+    wrong = replace(
+        context.phone.device(),
+        serial="OTHER-SIMULATED-0002",
+        **(
+            {"product": "komodo", "codename": "komodo"}
+            if conflict == "product"
+            else {"manufacturer": "Samsung"}
+        ),
+    )
+
+    def discover():
+        return [wrong, context.phone.device()]
+
+    session = SourceOperationSession(
+        _executor(context),
+        (wrong,),
+        recipe=context.recipe(),
+        discover=discover,
+        guided_automation=True,
+    )
+    dialog = SourceInstallationDialog(
+        session.service,
+        session.devices,
+        recipe=session.recipe,
+        session=session,
+        experience_mode=ExperienceMode.GUIDED,
+        discover=discover,
+    )
+    dialog.show()
+    app.processEvents()
+
+    assert session.selected_identity_conflicts()
+    assert "does not match popsicle" in session.status
+    assert dialog.guided_primary.text() == "Connect the matching phone"
+    assert not dialog.guided_primary.isEnabled()
+    assert dialog.target.isVisible()
+    assert session.connection_watch_timer.isActive()
+
+    session.connection_watch_timer.stop()
+    session._watch_connection()
+    _finish_worker(app, workers)
+    assert session.selected_serial == context.phone.serial
+    assert session.phase is SourceOperationPhase.REVIEWING
+    assert len(workers) == 1
+    _finish_worker(app, workers)
+    assert session.phase is SourceOperationPhase.REVIEW_READY
+    assert session.plan is not None
+    assert context.phone.changes == []
+    dialog.close()
+    session.dispose()
+    app.processEvents()
+
+
 def test_user_confirmed_complete_installation_then_measures_boot_separately(
     installation_dialog, monkeypatch
 ):
@@ -978,6 +1284,10 @@ def test_reusable_script_uses_actual_managed_workers_and_truthful_compact_artifa
     assert report["simulated_action_count"] == 53
     assert report["simulated_image_write_count"] == 50
     assert report["simulated_actions"] == [list(item) for item in _expected_changes()]
+    assert report["initial_simulated_mode"] == "android"
+    assert report["bootloader_restart_explicitly_confirmed"] is True
+    assert report["bootloader_arrival_observed"] is True
+    assert report["read_only_review_continued_automatically"] is True
     assert report["decline_sent_no_mutating_command"] is True
     assert report["explicit_wipe_selected"] is False
     assert report["installation_result_boot_verified"] is False
@@ -1001,7 +1311,14 @@ def test_reusable_script_uses_actual_managed_workers_and_truthful_compact_artifa
     assert report["history_installation_receipt_unchanged"] is True
     assert report["history_compact_layout_readable"] is True
     assert report["history_dialog_size"] == [760, 720]
-    for name in ("preparation", "review", "stable-boot", "history", "history-stable-boot"):
+    for name in (
+        "preparation",
+        "android-handoff",
+        "review",
+        "stable-boot",
+        "history",
+        "history-stable-boot",
+    ):
         captured = QImage(str(output / f"simulation-source-{name}.png"))
         assert not captured.isNull()
     assert json.loads(capsys.readouterr().out)["simulation_only"] is True
@@ -1116,7 +1433,8 @@ def test_guided_main_window_runs_source_route_and_records_exact_outcome(
                 assert isinstance(modal.service, SourceInstallationExecutor)
                 assert window._experience_mode is ExperienceMode.GUIDED
                 assert modal.images.rowCount() == 53
-                _click(modal.guided_primary)
+                if modal.plan is None:
+                    _click(modal.guided_primary)
                 assert modal.plan is not None
                 assert context.phone.changes == []
                 QTimer.singleShot(0, confirm)
@@ -1195,12 +1513,14 @@ def test_main_window_retains_hidden_installation_across_experience_switch(
                 _click(modal.prepare_button)
             elif isinstance(modal, SourceInstallationDialog):
                 session = modal.session
-                if "reviewed" not in phases and session.worker is None and session.plan is None:
-                    phases.append("reviewed")
-                    _click(modal.guided_primary)
-                elif session.worker is not None and session.plan is None and workers:
-                    workers.pop(0).execute()
-                    app.processEvents()
+                if "reviewed" not in phases:
+                    if session.worker is None and session.plan is None:
+                        _click(modal.guided_primary)
+                    if session.worker is not None and session.plan is None and workers:
+                        workers.pop(0).execute()
+                        app.processEvents()
+                    if session.plan is not None:
+                        phases.append("reviewed")
                 elif session.plan is not None and "hidden" not in phases:
                     phases.append("hidden")
                     _click(modal.guided_primary)
@@ -1300,7 +1620,8 @@ def test_main_window_continues_hidden_preparation_in_the_same_mission(
             elif isinstance(modal, SourceInstallationDialog) and "continued" not in phases:
                 assert retained and modal.session is retained[0]
                 assert modal.recipe is retained[0].preparation
-                assert modal.worker is None and modal.plan is None
+                assert modal.worker is None and modal.plan is retained[0].plan
+                assert modal.plan is not None
                 assert window._experience_mode is ExperienceMode.EXPERT
                 assert context.phone.changes == []
                 phases.append("continued")

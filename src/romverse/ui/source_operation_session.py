@@ -11,7 +11,7 @@ from threading import Event
 from PySide6.QtCore import QObject, QTimer, Signal, Slot
 
 import romverse.ui.local_flash as local_flash_ui
-from romverse.device.models import AndroidDevice
+from romverse.device.models import AndroidDevice, DeviceState
 from romverse.guardian.local_transition import (
     LocalTransitionPlan,
     LocalTransitionResult,
@@ -150,6 +150,7 @@ class SourceOperationSession(QObject):
         source_service=None,
         candidate_service=None,
         installation_factory: Callable[[SourceInstallationRecipe], object] | None = None,
+        guided_automation: bool = False,
         parent=None,
     ) -> None:
         super().__init__(parent)
@@ -165,13 +166,14 @@ class SourceOperationSession(QObject):
         self.source_service = source_service
         self.candidate_service = candidate_service
         self.installation_factory = installation_factory
+        self.guided_automation = bool(guided_automation)
         self.preparation_request: ProjectPreparationRequest | None = None
         self.preparation_error = ""
         self._preparation_worker = None
         self.discover = discover
         self.transition_service = transition_service
         self.boot_service = boot_service
-        self.selected_serial = self.devices[0].serial if self.devices else ""
+        self.selected_serial = self._discovered_serial(self.devices, "")
         self.revision = 0
         self.phase = (
             SourceOperationPhase.READY
@@ -201,10 +203,16 @@ class SourceOperationSession(QObject):
         self.monitoring = False
         self._boot_stop_requested = False
         self.recovery_requested = False
+        self._connection_watch_failures = 0
         self.boot_timer = QTimer(self)
         self.boot_timer.setSingleShot(True)
         self.boot_timer.setInterval(5000)
         self.boot_timer.timeout.connect(self._poll_boot)
+        self.connection_watch_timer = QTimer(self)
+        self.connection_watch_timer.setSingleShot(True)
+        self.connection_watch_timer.setInterval(2000)
+        self.connection_watch_timer.timeout.connect(self._watch_connection)
+        self._schedule_connection_watch()
 
     @property
     def busy(self) -> bool:
@@ -312,13 +320,54 @@ class SourceOperationSession(QObject):
             None,
         )
 
+    def required_transition(self) -> LocalTransitionTarget | None:
+        """Return the one phone-mode action needed by the complete source recipe."""
+
+        device = self.selected_device()
+        if (
+            self.recipe is None
+            or device is None
+            or self.transition_service is None
+            or self.busy
+            or self.selected_identity_conflicts()
+        ):
+            return None
+        if device.state in {DeviceState.DEVICE, DeviceState.FASTBOOTD}:
+            return LocalTransitionTarget.BOOTLOADER
+        return None
+
+    def selected_identity_conflicts(self) -> bool:
+        device = self.selected_device()
+        return device is not None and self._identity_conflicts(device)
+
+    def _identity_conflicts(self, device: AndroidDevice) -> bool:
+        if self.recipe is None:
+            return False
+        known = {
+            value.strip().casefold()
+            for value in (device.product, device.codename)
+            if value.strip()
+        }
+        expected_product = self.recipe.expected_product.strip().casefold()
+        expected_manufacturer = self.recipe.expected_manufacturer.strip().casefold()
+        manufacturer = device.manufacturer.strip().casefold()
+        return bool(
+            (known and expected_product not in known)
+            or (
+                manufacturer
+                and expected_manufacturer
+                and manufacturer != expected_manufacturer
+            )
+        )
+
     def select_device(self, serial: str) -> bool:
         if self.busy or serial == self.selected_serial:
             return False
         if serial and not any(item.serial == serial for item in self.devices):
             return False
         self.selected_serial = serial
-        self._invalidate_review("Review this phone before installation.")
+        self._invalidate_review(self._ready_status())
+        self._schedule_connection_watch()
         return True
 
     def review_installation(self) -> bool:
@@ -484,6 +533,7 @@ class SourceOperationSession(QObject):
         self.preparation_error = ""
         self.preparation_request = request
         self._preparation_worker = worker
+        self.connection_watch_timer.stop()
         self.phase = SourceOperationPhase.PREPARING
         self.status = "Checking project evidence and hashing images. Large files may take a while…"
         self.details = ""
@@ -498,12 +548,49 @@ class SourceOperationSession(QObject):
         if self.busy:
             raise RuntimeError("A live installation session cannot be discarded")
         self.boot_timer.stop()
+        self.connection_watch_timer.stop()
 
     def _ready_status(self) -> str:
         if self.recipe is None:
             return (
                 "Choose an installation source, then ROMVERSE will verify it without touching "
                 "the phone."
+            )
+        device = self.selected_device()
+        if device is None:
+            if self.devices:
+                return (
+                    "Choose the intended phone. More than one USB device is available and "
+                    "ROMVERSE will not guess which one may be changed."
+                )
+            return (
+                "Connect the intended phone by USB. ROMVERSE will detect it automatically; "
+                "no phone-changing command is sent."
+            )
+        if device.state is DeviceState.UNAUTHORIZED:
+            return (
+                "Unlock the intended phone and approve its USB debugging prompt. ROMVERSE is "
+                "watching for that exact USB device and will continue after authorization."
+            )
+        if device.state in {DeviceState.OFFLINE, DeviceState.UNKNOWN}:
+            return (
+                "Reconnect the intended phone with a data-capable USB cable. ROMVERSE is watching "
+                "for a stable connection and will continue when it can verify the device."
+            )
+        if self.selected_identity_conflicts():
+            return (
+                f"The connected phone does not match {self.recipe.expected_product}. Connect the "
+                "matching phone; ROMVERSE is watching and will not guess or change this device."
+            )
+        if device.state is DeviceState.DEVICE:
+            return (
+                "The intended phone is connected in Android. Confirm one restart to bootloader "
+                "before ROMVERSE performs the read-only installation review."
+            )
+        if device.state is DeviceState.FASTBOOTD:
+            return (
+                "The intended phone is in fastbootd. Confirm one restart to bootloader before "
+                "ROMVERSE performs the read-only installation review."
             )
         return (
             f"{len(self.recipe.steps)} declared actions · target slot "
@@ -672,7 +759,11 @@ class SourceOperationSession(QObject):
                 return
             if value.state == "completed" and finished.target is not LocalTransitionTarget.ANDROID:
                 self.phase = SourceOperationPhase.READY
-                self.status = value.summary + " Continue with installation preparation."
+                self.status = value.summary + (
+                    " Continuing the read-only installation review."
+                    if self.guided_automation
+                    else " Continue with installation preparation."
+                )
             else:
                 self.phase = (
                     SourceOperationPhase.COMPLETED
@@ -681,26 +772,25 @@ class SourceOperationSession(QObject):
                 )
             if self.recovery_requested:
                 self.recovery_required.emit()
+            if (
+                self.guided_automation
+                and value.state == "completed"
+                and finished.target is LocalTransitionTarget.BOOTLOADER
+                and self.review_installation()
+            ):
+                return
             self._finish_quiescent()
             return
         if isinstance(value, tuple) and all(isinstance(item, AndroidDevice) for item in value):
             previous = self.selected_serial
+            self._connection_watch_failures = 0
             self.devices = value
-            self.selected_serial = (
-                previous
-                if any(item.serial == previous for item in value)
-                else value[0].serial
-                if value
-                else ""
-            )
-            self.status = (
-                "Choose the intended phone, then review the installation."
-                if value
-                else "No phone detected. Connect it in Android, Fastboot or fastbootd and refresh."
-            )
+            self.selected_serial = self._discovered_serial(value, previous)
+            self.status = self._ready_status()
             self.phase = SourceOperationPhase.READY
             self.progress_indeterminate = False
             self._emit_changed()
+            self._advance_guided_preparation()
             return
         self.worker = finished
         self._failed("The operation returned an unsupported result. Recheck the phone state.")
@@ -723,6 +813,26 @@ class SourceOperationSession(QObject):
             self.preparation_failed.emit(message)
             return
         changing = False
+        if isinstance(worker, LocalFlashDiscoveryWorker):
+            self.worker = None
+            self.plan = None
+            self._connection_watch_failures += 1
+            self.phase = SourceOperationPhase.READY
+            self.progress_indeterminate = False
+            self.progress_value = 0
+            self.progress_total = 100
+            self.progress_format = "Waiting for USB"
+            self.status = (
+                "USB detection repeatedly failed. Check the data cable and Android Platform "
+                "Tools; ROMVERSE will keep watching at a slower rate."
+                if self._connection_watch_failures >= 3
+                else "ROMVERSE could not read the USB connection yet and will check again "
+                "automatically."
+            )
+            self.details = message
+            self._emit_changed()
+            self._schedule_connection_watch()
+            return
         if isinstance(worker, SourceInstallationWorker) and worker.plan is not None:
             self.result = None
             self.execution_error = message
@@ -815,6 +925,9 @@ class SourceOperationSession(QObject):
                     self._failed(str(exc))
                     return
             self.recipe = value
+            self.selected_serial = self._discovered_serial(
+                self.devices, self.selected_serial
+            )
             self.phase = SourceOperationPhase.READY
             self.status = self._ready_status()
         else:
@@ -822,6 +935,100 @@ class SourceOperationSession(QObject):
             self.status = "Project images verified. Continue to explicit partition mapping."
         self._emit_changed()
         self.preparation_finished.emit(value)
+        self._advance_guided_preparation(deferred=True)
+
+    def _discovered_serial(
+        self, devices: tuple[AndroidDevice, ...], previous: str
+    ) -> str:
+        expected = self.recipe.expected_product.casefold() if self.recipe is not None else ""
+        previous_device = next(
+            (item for item in devices if item.serial == previous), None
+        )
+        if previous_device is not None and not self._identity_conflicts(previous_device):
+            return previous
+        exact = [
+            item
+            for item in devices
+            if expected
+            and expected
+            in {
+                item.product.strip().casefold(),
+                item.codename.strip().casefold(),
+            }
+            and not self._identity_conflicts(item)
+        ]
+        if len(exact) == 1:
+            return exact[0].serial
+        if previous_device is not None:
+            return previous
+        return devices[0].serial if len(devices) == 1 else ""
+
+    def _advance_guided_preparation(self, *, deferred: bool = False) -> None:
+        """Continue safe inspection, never a reboot or write, when inputs permit."""
+
+        if deferred:
+            QTimer.singleShot(0, self._advance_guided_preparation)
+            return
+        if (
+            not self.guided_automation
+            or self.busy
+            or self.recipe is None
+            or self.plan is not None
+            or self.phase is not SourceOperationPhase.READY
+        ):
+            return
+        device = self.selected_device()
+        if (
+            self._connection_watch_failures
+            or device is None
+            or self.selected_identity_conflicts()
+            or device.state in {
+                DeviceState.UNAUTHORIZED,
+                DeviceState.OFFLINE,
+                DeviceState.UNKNOWN,
+            }
+        ):
+            self.status = self._ready_status()
+            self._emit_changed()
+            self._schedule_connection_watch()
+            return
+        if device.state in {DeviceState.DEVICE, DeviceState.FASTBOOTD}:
+            self.status = self._ready_status()
+            self._emit_changed()
+            return
+        if device.is_fastboot:
+            self.review_installation()
+
+    def _schedule_connection_watch(self) -> None:
+        if (
+            not self.guided_automation
+            or self.discover is None
+            or self.recipe is None
+            or self.busy
+            or self.phase is not SourceOperationPhase.READY
+        ):
+            return
+        device = self.selected_device()
+        if (
+            self._connection_watch_failures
+            or device is None
+            or self.selected_identity_conflicts()
+            or device.state in {
+                DeviceState.UNAUTHORIZED,
+                DeviceState.OFFLINE,
+                DeviceState.UNKNOWN,
+            }
+        ):
+            self.connection_watch_timer.setInterval(
+                5000 if self._connection_watch_failures >= 3 else 2000
+            )
+            self.connection_watch_timer.start()
+
+    def _watch_connection(self) -> None:
+        if self.busy or self.discover is None:
+            return
+        if not self.refresh_devices():
+            self._schedule_connection_watch()
 
     def _start_boot(self, device: AndroidDevice | None) -> bool:
         if (

@@ -7023,6 +7023,7 @@ class MainWindow(QMainWindow):
                 discover=self.engine.scan if self.engine is not None else None,
                 transition_service=transition_service,
                 boot_service=boot_service,
+                guided_automation=True,
                 parent=self,
             )
             self._activate_source_operation_session(source_session)

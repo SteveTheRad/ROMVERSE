@@ -6,6 +6,8 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QDialog, QLabel, QMessageBox, QPushButton, QTableWidgetItem
 
 from romverse.core.settings import ExperienceMode
+from romverse.device.models import DeviceState
+from romverse.guardian.local_transition import LocalTransitionTarget
 from romverse.guardian.source_installation import SourceInstallationPlan
 from romverse.rom.candidate_installation import CandidateInstallationRecipe
 from romverse.ui.local_flash import LocalFlashDialog, LocalTransitionWorker
@@ -51,6 +53,11 @@ class SourceInstallationDialog(LocalFlashDialog):
         self.boot_timer.deleteLater()
         self.session = operation_session
         self.boot_timer = operation_session.boot_timer
+        self.target.blockSignals(True)
+        for index, device in enumerate(operation_session.devices):
+            self.target.setItemData(index, device.serial)
+        self.target.setCurrentIndex(self.target.findData(operation_session.selected_serial))
+        self.target.blockSignals(False)
         self._experience_mode = experience_mode
         self._details_expanded = experience_mode is ExperienceMode.EXPERT
         self.setWindowTitle("ROMVERSE · Source-declared installation")
@@ -153,8 +160,14 @@ class SourceInstallationDialog(LocalFlashDialog):
     def _invalidate(self, *_args):
         if not hasattr(self, "session"):
             return super()._invalidate(*_args)
-        index = self.target.currentIndex()
-        serial = self.session.devices[index].serial if 0 <= index < len(self.session.devices) else ""
+        serial = self.target.currentData()
+        if serial is None:
+            index = self.target.currentIndex()
+            serial = (
+                self.session.devices[index].serial
+                if 0 <= index < len(self.session.devices)
+                else ""
+            )
         self.session.select_device(serial)
 
     def _change_mode(self):
@@ -325,24 +338,26 @@ class SourceInstallationDialog(LocalFlashDialog):
         self.monitoring = session.monitoring
         self.recovery_requested = session.recovery_requested
         self.devices = session.devices
-        labels = [
-            f"{item.display_name} · {item.masked_serial()} · {item.state.value}"
+        choices = [
+            (
+                f"{item.display_name} · {item.masked_serial()} · {item.state.value}",
+                item.serial,
+            )
             for item in session.devices
         ]
-        current_labels = [self.target.itemText(index) for index in range(self.target.count())]
-        if labels != current_labels:
+        if len(session.devices) > 1 and not snapshot.selected_serial:
+            choices.insert(0, ("Choose the intended phone…", ""))
+        current_choices = [
+            (self.target.itemText(index), self.target.itemData(index))
+            for index in range(self.target.count())
+        ]
+        if choices != current_choices:
             self.target.blockSignals(True)
             self.target.clear()
-            self.target.addItems(labels)
+            for label, serial in choices:
+                self.target.addItem(label, serial)
             self.target.blockSignals(False)
-        selected_index = next(
-            (
-                index
-                for index, item in enumerate(session.devices)
-                if item.serial == snapshot.selected_serial
-            ),
-            -1,
-        )
+        selected_index = self.target.findData(snapshot.selected_serial)
         if self.target.currentIndex() != selected_index:
             self.target.blockSignals(True)
             self.target.setCurrentIndex(selected_index)
@@ -376,7 +391,11 @@ class SourceInstallationDialog(LocalFlashDialog):
             SourceOperationPhase.TRANSITIONING: "Changing phone mode",
             SourceOperationPhase.BOOT_CHECKING: "Starting Android and checking stability",
             SourceOperationPhase.COMPLETED: "Your installation journey is complete",
-            SourceOperationPhase.ATTENTION: "ROMVERSE has prepared recovery",
+            SourceOperationPhase.ATTENTION: (
+                "ROMVERSE has prepared recovery"
+                if snapshot.recovery_available
+                else "One issue needs attention"
+            ),
         }[snapshot.phase]
         data = (
             "Data erase is included in this reviewed procedure"
@@ -389,7 +408,25 @@ class SourceInstallationDialog(LocalFlashDialog):
         )
         self.guided_summary.style().unpolish(self.guided_summary)
         self.guided_summary.style().polish(self.guided_summary)
-        if snapshot.phase is SourceOperationPhase.REVIEW_READY:
+        identity_conflict = self.session.selected_identity_conflicts()
+        required_transition = self.session.required_transition()
+        if device is None:
+            text, enabled = (
+                "Choose the intended phone"
+                if self.session.devices
+                else "Connect phone by USB"
+            ), False
+        elif device.state is DeviceState.UNAUTHORIZED:
+            text, enabled = "Approve USB debugging on phone", False
+        elif device.state in {DeviceState.OFFLINE, DeviceState.UNKNOWN}:
+            text, enabled = "Reconnect phone by USB", False
+        elif identity_conflict:
+            text, enabled = "Connect the matching phone", False
+        elif required_transition is LocalTransitionTarget.BOOTLOADER:
+            text, enabled = "Restart phone to bootloader…", (
+                snapshot.can_change_mode or self.session.transition_review is not None
+            )
+        elif snapshot.phase is SourceOperationPhase.REVIEW_READY:
             text, enabled = "Install ROM…", snapshot.can_install
         elif snapshot.phase is SourceOperationPhase.READY:
             text, enabled = "Prepare installation", snapshot.can_review
@@ -412,7 +449,12 @@ class SourceInstallationDialog(LocalFlashDialog):
 
     def _guided_primary_action(self):
         snapshot = self.session.snapshot()
-        if snapshot.phase is SourceOperationPhase.REVIEW_READY:
+        required_transition = self.session.required_transition()
+        if self.session.transition_review is not None:
+            self._confirm_transition_review(self.session.transition_review)
+        elif required_transition is not None:
+            self.session.review_transition(required_transition)
+        elif snapshot.phase is SourceOperationPhase.REVIEW_READY:
             self._confirm_flash()
         elif snapshot.phase is SourceOperationPhase.READY:
             self.session.review_installation()
@@ -452,7 +494,11 @@ class SourceInstallationDialog(LocalFlashDialog):
         self.recovery_button.setVisible(
             not guided and self.session.snapshot().recovery_available
         )
-        choose_target = not guided or len(self.session.devices) != 1
+        choose_target = (
+            not guided
+            or len(self.session.devices) != 1
+            or self.session.selected_identity_conflicts()
+        )
         self.target_label.setVisible(choose_target)
         self.target.setVisible(choose_target)
         self.refresh_button.setVisible(choose_target)

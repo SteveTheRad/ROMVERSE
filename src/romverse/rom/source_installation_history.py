@@ -14,6 +14,7 @@ from romverse.guardian.local_flash import LocalFlashState
 from romverse.guardian.source_installation import (
     SourceInstallationResult,
     SourceInstallationStepResult,
+    validate_source_installation_provenance,
 )
 from romverse.infrastructure.local_store import read_json_object
 from romverse.rom.models import ProjectError
@@ -143,7 +144,12 @@ def load_latest_source_installation(
             result = _terminal_result(document, path)
             outcome = SourceInstallationOutcome(
                 result.state.value,
-                "Historical installation: " + result.summary[:800],
+                (
+                    "Historical rebuilt-candidate installation: "
+                    if document["format"] == "romverse.candidate-installation"
+                    else "Historical installation: "
+                )
+                + result.summary[:800],
                 path,
                 source,
                 result.completed_count,
@@ -217,15 +223,16 @@ def _recent(root: Path) -> list[Path]:
 
 
 def _installation_start(document, path):
+    candidate = validate_source_installation_provenance(document)
+    fields = _BASE_FIELDS | ({"candidate_provenance"} if candidate else set())
     if (
-        document.get("format") != "romverse.source-installation"
-        or type(document.get("schema_version")) is not int
+        type(document.get("schema_version")) is not int
         or document["schema_version"] != 1
         or not re.fullmatch(r"[a-f0-9]{32}\.json", path.name)
         or document.get("plan_id") != path.stem
         or document.get("script_sha256") != POPSICLE_SCRIPT_SHA256
         or document.get("state") not in {"preparing", "staging", "prepared", "command-in-flight"}
-        or not _BASE_FIELDS <= set(document) <= _BASE_FIELDS | _OPTIONAL_FIELDS | {"record_digest"}
+        or not fields <= set(document) <= fields | _OPTIONAL_FIELDS | {"record_digest"}
         or any(
             document.get(key) is not False
             for key in ("boot_verified", "readback_verified", "production_certification")
@@ -236,12 +243,13 @@ def _installation_start(document, path):
 
 
 def _terminal_result(document: dict, path: Path) -> SourceInstallationResult:
+    candidate = validate_source_installation_provenance(document)
+    fields = _TERMINAL_FIELDS | ({"candidate_provenance"} if candidate else set())
     if (
-        not _TERMINAL_FIELDS <= set(document) <= _TERMINAL_FIELDS | _OPTIONAL_FIELDS
+        not fields <= set(document) <= fields | _OPTIONAL_FIELDS
         or not _sealed(document)
         or not re.fullmatch(r"[a-f0-9]{32}\.json", path.name)
         or document["plan_id"] != path.stem
-        or document["format"] != "romverse.source-installation"
         or type(document["schema_version"]) is not int
         or document["schema_version"] != 1
         or document["script_sha256"] != POPSICLE_SCRIPT_SHA256

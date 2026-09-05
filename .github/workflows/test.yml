@@ -79,6 +79,14 @@ jobs:
           tests/test_source_installation_integration.py
           tests/test_source_installation_history_ui.py
           tests/test_source_installation_stop_ui.py
+          tests/test_base_image_compatibility.py
+          tests/test_candidate_avb.py
+          tests/test_candidate_installation.py
+          tests/test_guardian_candidate_installation.py
+          tests/test_candidate_installation_history.py
+          tests/test_candidate_installation_integration.py
+          tests/test_candidate_installation_ui.py
+          tests/test_candidate_installation_desktop.py
           tests/test_optimizer.py
           tests/test_navigation_vocabulary.py
         env:

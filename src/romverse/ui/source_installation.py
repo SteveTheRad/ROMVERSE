@@ -8,6 +8,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QMessageBox, QTableWidgetItem
 
 from romverse.guardian.source_installation import SourceInstallationPlan, SourceInstallationResult
+from romverse.rom.candidate_installation import CandidateInstallationRecipe
 from romverse.ui.background import ManagedRunnable
 from romverse.ui.local_flash import LocalFlashDialog, LocalFlashSignals
 
@@ -50,6 +51,11 @@ class SourceInstallationDialog(LocalFlashDialog):
         self.setWindowTitle("ROMVERSE · Source-declared installation")
         self.eyebrow.setText("GUIDED INSTALLATION  •  PACKAGE PROCEDURE")
         self.title.setText("Review the complete declared installation")
+        candidate = isinstance(recipe, CandidateInstallationRecipe)
+        if candidate:
+            self.setWindowTitle("ROMVERSE · Rebuilt ROM installation")
+            self.eyebrow.setText("GUIDED INSTALLATION  •  YOUR REBUILT ROM")
+            self.title.setText("Review your complete ROM installation")
         self.introduction.setText(recipe.label)
         self.introduction.setTextFormat(Qt.TextFormat.PlainText)
         self.mapping_hint.setText(
@@ -60,6 +66,11 @@ class SourceInstallationDialog(LocalFlashDialog):
         self.remove_button.hide()
         self.images.setHorizontalHeaderLabels(("Declared action", "Destination / source member"))
         self.images.setRowCount(len(recipe.steps))
+        rebuilt_members = (
+            {item.member for item in recipe.origins if item.source_kind == "rebuilt"}
+            if candidate
+            else set()
+        )
         for index, step in enumerate(recipe.steps):
             target = (
                 f"{step.partition} ← {step.image_member}"
@@ -70,6 +81,8 @@ class SourceInstallationDialog(LocalFlashDialog):
                 if step.action == "erase"
                 else "Android"
             )
+            if step.image_member in rebuilt_members:
+                target = f"{step.partition} ← YOUR REBUILT IMAGE"
             for column, text in enumerate((step.action.replace("_", " "), target)):
                 item = QTableWidgetItem(text)
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
@@ -80,7 +93,7 @@ class SourceInstallationDialog(LocalFlashDialog):
             (
                 "DATA WILL BE ERASED. "
                 if recipe.wipe
-                else "User data is kept, but compatibility is unproven. "
+                else "No data erase requested; data preservation and compatibility are unproven. "
             )
             + "Keep an independent backup and recovery route. Boot, readback and subsystem health "
             "are measured separately; procedure recognition is not a safety certificate."
@@ -127,7 +140,7 @@ class SourceInstallationDialog(LocalFlashDialog):
                 + (
                     "ERASE metadata and userdata"
                     if value.recipe.wipe
-                    else "Keep user data · compatibility unproven"
+                    else "No data erase requested · data preservation and compatibility unproven"
                 ),
                 "FINISH  "
                 + (
@@ -137,6 +150,16 @@ class SourceInstallationDialog(LocalFlashDialog):
                 ),
                 "",
             ]
+            if isinstance(value.recipe, CandidateInstallationRecipe):
+                lines.extend(
+                    (
+                        f"BASE PACKAGE SHA-256  {value.recipe.procedure_source_sha256}",
+                        f"BUILD RECEIPT  {value.recipe.build_receipt_digest}",
+                        f"COMPOSITION  {value.recipe.composition_digest}",
+                        "SCOPE  2 rebuilt images + 48 exact-base images; local unlocked experimental, not OEM-trusted.",
+                        "",
+                    )
+                )
             images = {item.member: item for item in value.recipe.images}
             for index, step in enumerate(value.recipe.steps, 1):
                 lines.append(f"{index}. {step.action} {step.partition or step.slot or 'Android'}")
@@ -216,7 +239,7 @@ class SourceInstallationDialog(LocalFlashDialog):
             (
                 "ALL PHONE USER DATA WILL BE ERASED.\n\n"
                 if plan.recipe.wipe
-                else "User data is kept, but boot/data compatibility is unproven.\n\n"
+                else "No data erase requested; data preservation and boot/data compatibility are unproven.\n\n"
             )
             + "This changes the active slot and writes boot-critical firmware and the full super container. "
             + (

@@ -4044,9 +4044,7 @@ class MainWindow(QMainWindow):
         self.raw_terminal_feed = RawTerminalFeed()
         self._live_missions: dict[str, str] = {}
         self.device_center = DeviceCenter(workspace, self.activity_store, self.nexus_events)
-        self.device_center.mission_state_changed.connect(
-            self.cosmic_background.set_activity_state
-        )
+        self.device_center.mission_state_changed.connect(self.cosmic_background.set_activity_state)
         self.cosmic_background.set_activity_state(self.device_center.mission_visual_state)
         self.device_center.knowledge_requested.connect(self._open_knowledge_query)
         self.stack.addWidget(self.device_center)
@@ -4807,7 +4805,12 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def scan(self) -> None:
-        if self.engine is None or self.scanning or self._local_flash_dialog is not None or self._expert_flash_pending:
+        if (
+            self.engine is None
+            or self.scanning
+            or self._local_flash_dialog is not None
+            or self._expert_flash_pending
+        ):
             return
         self._reconnect_timer.stop()
         self.scanning = True
@@ -6725,6 +6728,10 @@ class MainWindow(QMainWindow):
         from romverse.guardian.local_flash import LocalFlashService
         from romverse.guardian.local_transition import LocalDeviceTransitionService
         from romverse.guardian.source_installation import SourceInstallationExecutor
+        from romverse.rom.candidate_installation import (
+            CandidateInstallationRecipe,
+            CandidateInstallationService,
+        )
         from romverse.rom.local_boot import LocalBootService
         from romverse.rom.project_flash import (
             BoundProjectFlashService,
@@ -6740,48 +6747,73 @@ class MainWindow(QMainWindow):
 
         project = self.rom_studio.current_project
         if (
-            project is None or project.project_id != project_id or project.original is None
-            or self._local_flash_dialog is not None or self._expert_flash_pending
+            project is None
+            or project.project_id != project_id
+            or project.original is None
+            or self._local_flash_dialog is not None
+            or self._expert_flash_pending
         ):
             return
         source_sha256 = project.original.sha256
         if self.scanning:
             self._expert_flash_pending = True
-            self.rom_studio.operation_status.setText("Waiting for the current phone scan to finish…")
-            QTimer.singleShot(200, lambda: self._continue_project_flash_open(project_id, source_sha256))
+            self.rom_studio.operation_status.setText(
+                "Waiting for the current phone scan to finish…"
+            )
+            QTimer.singleShot(
+                200, lambda: self._continue_project_flash_open(project_id, source_sha256)
+            )
             return
-        if any((
-            self.rom_studio.worker,
-            self.apk_installer.active_worker,
-            self.backup_center.media_backup_worker,
-            self.repair_center.host_repair_worker,
-            self.terminal_center._worker,
-        )):
+        if any(
+            (
+                self.rom_studio.worker,
+                self.apk_installer.active_worker,
+                self.backup_center.media_backup_worker,
+                self.repair_center.host_repair_worker,
+                self.terminal_center._worker,
+            )
+        ):
             QMessageBox.information(
-                self, "Finish the current operation",
+                self,
+                "Finish the current operation",
                 "Wait for the active device or project operation before preparing image installation.",
             )
             return
         if self._device_fastboot_executable is None:
             QMessageBox.information(
-                self, "Fastboot is required",
+                self,
+                "Fastboot is required",
                 "Locate Android Platform Tools in Forge Arsenal, then return to prepare installation.",
             )
             self._navigate_route("forge_arsenal")
             return
         try:
             local = LocalFlashService(
-                self._workspace, self._runtime_runner, self._device_fastboot_executable,
+                self._workspace,
+                self._runtime_runner,
+                self._device_fastboot_executable,
                 audit=self._audit_store,
             )
-            preparer = ProjectFlashPreparationService(self.rom_studio.store, self.rom_studio.pack_registry)
+            preparer = ProjectFlashPreparationService(
+                self.rom_studio.store, self.rom_studio.pack_registry
+            )
             source_service = SourceInstallationService(self.rom_studio.store)
-        except (OSError, ValueError) as exc:
+            candidate_service = CandidateInstallationService(
+                self.rom_studio.store,
+                self.rom_studio.pack_registry,
+                self.rom_studio.tool_statuses,
+                self._runtime_runner,
+            )
+            preparation_dialog = ProjectPreparationDialog(
+                preparer,
+                project_id,
+                self,
+                source_service=source_service,
+                candidate_service=candidate_service,
+            )
+        except (OSError, ValueError, ProjectError) as exc:
             QMessageBox.warning(self, "Local installation could not open", str(exc))
             return
-        preparation_dialog = ProjectPreparationDialog(
-            preparer, project_id, self, source_service=source_service
-        )
         self._local_flash_dialog = preparation_dialog
         self._reconnect_timer.stop()
         dialog = None
@@ -6792,7 +6824,9 @@ class MainWindow(QMainWindow):
             if preparation is None:
                 return
             if (
-                current is None or current.project_id != project_id or current.original is None
+                current is None
+                or current.project_id != project_id
+                or current.original is None
                 or current.original.sha256 != source_sha256
                 or preparation.source_sha256 != source_sha256
             ):
@@ -6802,7 +6836,13 @@ class MainWindow(QMainWindow):
                 return
             if isinstance(preparation, SourceInstallationRecipe):
                 dialog = SourceInstallationDialog(
-                    SourceInstallationExecutor(source_service, local, self._device_adb_executable),
+                    SourceInstallationExecutor(
+                        candidate_service
+                        if isinstance(preparation, CandidateInstallationRecipe)
+                        else source_service,
+                        local,
+                        self._device_adb_executable,
+                    ),
                     tuple(self._observed_devices),
                     self,
                     recipe=preparation,
@@ -6931,13 +6971,19 @@ class MainWindow(QMainWindow):
             return
         project = self.rom_studio.current_project
         if (
-            project is None or project.project_id != project_id or project.original is None
+            project is None
+            or project.project_id != project_id
+            or project.original is None
             or project.original.sha256 != source_sha256
         ):
             self._expert_flash_pending = False
-            self.rom_studio.operation_status.setText("The selected project changed. Open installation again.")
+            self.rom_studio.operation_status.setText(
+                "The selected project changed. Open installation again."
+            )
         elif self.scanning:
-            QTimer.singleShot(200, lambda: self._continue_project_flash_open(project_id, source_sha256))
+            QTimer.singleShot(
+                200, lambda: self._continue_project_flash_open(project_id, source_sha256)
+            )
         else:
             self._expert_flash_pending = False
             self._open_project_flash(project_id)
@@ -6949,48 +6995,62 @@ class MainWindow(QMainWindow):
         from romverse.rom.local_boot import LocalBootService
         from romverse.ui.local_flash import LocalFlashDialog
 
-        if self._experience_mode is not ExperienceMode.EXPERT or self._local_flash_dialog is not None:
+        if (
+            self._experience_mode is not ExperienceMode.EXPERT
+            or self._local_flash_dialog is not None
+        ):
             self._expert_flash_pending = False
             return
         if self.scanning:
             if not self._expert_flash_pending:
                 self._expert_flash_pending = True
-                self.rom_studio.operation_status.setText("Waiting for the current phone scan to finish…")
+                self.rom_studio.operation_status.setText(
+                    "Waiting for the current phone scan to finish…"
+                )
                 QTimer.singleShot(200, self._continue_expert_flash_open)
             return
         self._expert_flash_pending = False
-        if any((
-            self.rom_studio.worker,
-            self.apk_installer.active_worker,
-            self.backup_center.media_backup_worker,
-            self.repair_center.host_repair_worker,
-            self.terminal_center._worker,
-        )):
+        if any(
+            (
+                self.rom_studio.worker,
+                self.apk_installer.active_worker,
+                self.backup_center.media_backup_worker,
+                self.repair_center.host_repair_worker,
+                self.terminal_center._worker,
+            )
+        ):
             QMessageBox.information(
-                self, "Finish the current operation",
+                self,
+                "Finish the current operation",
                 "A device or project operation is running. Wait for its result before opening image flashing.",
             )
             return
         fastboot = self._device_fastboot_executable
         if fastboot is None:
             QMessageBox.information(
-                self, "Fastboot is required",
+                self,
+                "Fastboot is required",
                 "Open Forge Arsenal to install or locate Android Platform Tools, then return to image flashing.",
             )
             self._navigate_route("forge_arsenal")
             return
         try:
-            service = LocalFlashService(self._workspace, self._runtime_runner, fastboot, audit=self._audit_store)
+            service = LocalFlashService(
+                self._workspace, self._runtime_runner, fastboot, audit=self._audit_store
+            )
         except (OSError, ValueError) as exc:
             QMessageBox.warning(self, "Image flashing could not open", str(exc))
             return
         dialog = LocalFlashDialog(
-            service, tuple(self._observed_devices), self,
+            service,
+            tuple(self._observed_devices),
+            self,
             discover=self.engine.scan if self.engine is not None else None,
             transition_service=LocalDeviceTransitionService(service, self._device_adb_executable),
             boot_service=(
                 LocalBootService(service, self._device_adb_executable)
-                if self._device_adb_executable is not None else None
+                if self._device_adb_executable is not None
+                else None
             ),
         )
         dialog.operation_finished.connect(self._record_local_flash_result)
@@ -7017,7 +7077,8 @@ class MainWindow(QMainWindow):
             failure_message = dialog.boot_report.summary
             attempted = dialog.boot_device
             trigger = (
-                RecoveryTrigger.BOOTLOOP if dialog.boot_report.failure_kind == "reboot_loop"
+                RecoveryTrigger.BOOTLOOP
+                if dialog.boot_report.failure_kind == "reboot_loop"
                 else RecoveryTrigger.BOOT_ATTENTION
             )
         elif dialog.boot_error:
@@ -7035,7 +7096,9 @@ class MainWindow(QMainWindow):
                 + dialog.execution_error
             )
         elif dialog.transition_error:
-            failure_message = "The requested phone mode was not verified. " + dialog.transition_error
+            failure_message = (
+                "The requested phone mode was not verified. " + dialog.transition_error
+            )
             attempted = dialog.transition_attempt_device
             trigger = RecoveryTrigger.DEVICE_MODE
         elif dialog.recovery_requested:
@@ -7046,7 +7109,8 @@ class MainWindow(QMainWindow):
             preparation = getattr(dialog, "preparation", None)
             self._pending_local_flash_recovery_project = (
                 (preparation.project_id, preparation.source_sha256)
-                if preparation is not None else None
+                if preparation is not None
+                else None
             )
             self._selected_device_serial = attempted.serial
         elif failure_message and dialog.recovery_requested:
@@ -7061,14 +7125,19 @@ class MainWindow(QMainWindow):
         self._pending_local_flash_recovery = None
         project_binding = getattr(self, "_pending_local_flash_recovery_project", None)
         self._pending_local_flash_recovery_project = None
-        trigger = getattr(self, "_pending_local_flash_recovery_trigger", RecoveryTrigger.FLASH_FAILURE)
+        trigger = getattr(
+            self, "_pending_local_flash_recovery_trigger", RecoveryTrigger.FLASH_FAILURE
+        )
         self._pending_local_flash_recovery_trigger = RecoveryTrigger.FLASH_FAILURE
         attempted, message = pending
         fresh = next((item for item in devices if item.serial == attempted.serial), None)
         target = fresh or AndroidDevice(
-            attempted.serial, DeviceState.UNKNOWN,
-            manufacturer=attempted.manufacturer, model=attempted.model,
-            product=attempted.product, codename=attempted.codename,
+            attempted.serial,
+            DeviceState.UNKNOWN,
+            manufacturer=attempted.manufacturer,
+            model=attempted.model,
+            product=attempted.product,
+            codename=attempted.codename,
             connection_note="Last selected operation target; current connection state is unknown.",
         )
         project_id = ""
@@ -7081,7 +7150,9 @@ class MainWindow(QMainWindow):
                     project_id = project.project_id
         self.repair_center.open_recovery_incident(
             trigger,
-            project_id=project_id, message=message, target_device=target,
+            project_id=project_id,
+            message=message,
+            target_device=target,
         )
         self._navigate_route("recovery_bay")
 
@@ -7117,9 +7188,17 @@ class MainWindow(QMainWindow):
 
         if not isinstance(result, LocalFlashResult):
             return
-        title = "Image writes completed · boot unverified" if result.state == "completed" else "Image writing stopped"
+        title = (
+            "Image writes completed · boot unverified"
+            if result.state == "completed"
+            else "Image writing stopped"
+        )
         self._record_activity(
-            "rom-studio", title, result.summary, "attention", "ROM Studio",
+            "rom-studio",
+            title,
+            result.summary,
+            "attention",
+            "ROM Studio",
         )
         self.rom_studio.operation_status.setText(result.summary)
 
@@ -7130,8 +7209,11 @@ class MainWindow(QMainWindow):
         if not isinstance(result, LocalTransitionResult):
             return
         self._record_activity(
-            "rom-studio", "Phone mode observed" if result.state == "completed" else "Phone mode needs attention",
-            result.summary, "attention", "ROM Studio",
+            "rom-studio",
+            "Phone mode observed" if result.state == "completed" else "Phone mode needs attention",
+            result.summary,
+            "attention",
+            "ROM Studio",
         )
         self.rom_studio.operation_status.setText(result.summary)
 
@@ -7142,10 +7224,17 @@ class MainWindow(QMainWindow):
         if not isinstance(result, LocalBootReport):
             return
         stable = result.status == "stable" and result.boot_observed
-        title = "Android boot observed · subsystem tests pending" if stable else "Android boot check ended"
+        title = (
+            "Android boot observed · subsystem tests pending"
+            if stable
+            else "Android boot check ended"
+        )
         self._record_activity(
-            "rom-studio", title, result.summary,
-            "success" if stable else "attention", "ROM Studio",
+            "rom-studio",
+            title,
+            result.summary,
+            "success" if stable else "attention",
+            "ROM Studio",
         )
         self.rom_studio.operation_status.setText(result.summary)
 
@@ -8046,9 +8135,7 @@ class MainWindow(QMainWindow):
         self.diagnostics_center.set_reduced_motion(settings.reduced_motion)
         self.knowledge_center.set_reduced_motion(settings.reduced_motion)
         self.galaxy_center.set_reduced_motion(settings.reduced_motion)
-        self.galaxy_center.set_contribution_opt_in(
-            settings.synapse_contributions_enabled
-        )
+        self.galaxy_center.set_contribution_opt_in(settings.synapse_contributions_enabled)
         self.backup_center.set_default_backup_directory(
             Path(settings.backup_directory) if settings.backup_directory else None
         )

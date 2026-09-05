@@ -1,5 +1,12 @@
 # ROMVERSE release readiness
 
+The newer [rebuilt-candidate installation increment](REBUILT_CANDIDATE_INSTALLATION_2026-09-05.md)
+adds exact base comparison, actual AVB-content verification, two-rebuilt/48-base composition,
+mixed-origin staging, distinct historical evidence and the desktop route. Its focused tests and
+real-archive read-only measurements are recorded separately. It is newer than the packaged/full-suite
+checkpoint below; those earlier results must not be attributed to this increment. Shared operation
+sessions, automatic Guided remediation, full subsystem follow-up and physical validation remain open.
+
 The 2026-09-05 [source-declared installation increment](SOURCE_DECLARED_INSTALLATION_2026-09-05.md)
 adds a supported, separately confirmed 50-image HyperOS package procedure, exact-phone simulated
 execution, measured boot and read-only historical follow-up. This is software and source-integrity

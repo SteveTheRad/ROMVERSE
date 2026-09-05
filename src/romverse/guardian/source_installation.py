@@ -17,6 +17,7 @@ import stat
 import threading
 import zipfile
 from collections.abc import Callable
+from contextlib import ExitStack
 from dataclasses import asdict, dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
@@ -35,6 +36,10 @@ from romverse.infrastructure.local_store import (
     read_json_object,
 )
 from romverse.infrastructure.process import CommandResult
+from romverse.rom.candidate_installation import (
+    CandidateInstallationRecipe,
+    candidate_composition_payload,
+)
 from romverse.rom.source_installation import (
     POPSICLE_PHYSICAL_PARTITIONS,
     POPSICLE_SCRIPT_SHA256,
@@ -108,6 +113,7 @@ class SourceInstallationResult:
 
 class SourceInstallationExecutor:
     FORMAT = "romverse.source-installation"
+    CANDIDATE_FORMAT = "romverse.candidate-installation"
     MAX_JOURNAL_BYTES = 2 * 1024 * 1024
     MAX_STEPS = 128
     PLAN_VALID_FOR_SECONDS = 900
@@ -132,6 +138,7 @@ class SourceInstallationExecutor:
         self, device: AndroidDevice, recipe: SourceInstallationRecipe
     ) -> SourceInstallationPlan:
         self.source_service.verify(recipe)
+        _recipe_provenance(recipe)
         if (
             not isinstance(device, AndroidDevice)
             or not self.flash.SERIAL.fullmatch(device.serial)
@@ -363,7 +370,11 @@ class SourceInstallationExecutor:
                     )
                 state = LocalFlashState.COMPLETED
                 summary = (
-                    f"Fastboot completed the source's {len(entries)} declared installation steps. "
+                    (
+                        f"Fastboot completed the rebuilt candidate's {len(entries)} reviewed installation steps. "
+                        if type(plan.recipe) is CandidateInstallationRecipe
+                        else f"Fastboot completed the source's {len(entries)} declared installation steps. "
+                    )
                     + (
                         "Android reboot was requested. "
                         if rebooted
@@ -417,6 +428,8 @@ class SourceInstallationExecutor:
             return output
 
     def _stage(self, plan, journal, journal_path, cancel, notify):
+        candidate = _recipe_provenance(plan.recipe)
+        origins = {item["member"]: item for item in candidate["origins"]} if candidate else {}
         images = {item.member: item for item in plan.recipe.images}
         unique = {item.sha256: item for item in images.values()}
         required = sum(item.size_bytes for item in unique.values()) + 8 * 1024 * 1024
@@ -454,7 +467,10 @@ class SourceInstallationExecutor:
                 if cancel():
                     raise _Cancelled
                 measured.update(chunk)
-            if measured.hexdigest() != plan.recipe.source_sha256:
+            archive_sha256 = (
+                candidate["procedure_source_sha256"] if candidate else plan.recipe.source_sha256
+            )
+            if measured.hexdigest() != archive_sha256:
                 raise SourceInstallationError("The protected source changed after review.")
             archive_stream.seek(0)
             with zipfile.ZipFile(archive_stream) as source:
@@ -464,41 +480,48 @@ class SourceInstallationExecutor:
                     if cancel():
                         raise _Cancelled
                     matches = [item for item in members if item.filename == member]
-                    if len(matches) != 1 or matches[0].file_size != image.size_bytes:
+                    origin = origins.get(member)
+                    rebuilt = origin is not None and origin["source_kind"] == "rebuilt"
+                    if len(matches) != 1 or (
+                        not rebuilt and matches[0].file_size != image.size_bytes
+                    ):
                         raise SourceInstallationError(
                             "An installation image is missing, duplicated or resized."
                         )
-                    if image.sha256 in done:
+                    if image.sha256 in done and not rebuilt:
                         continue
                     notify(
                         0, len(plan.recipe.steps), f"Preserving reviewed image {Path(member).name}…"
                     )
-                    target_fd = os.open(
-                        paths[member],
-                        os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
-                        0o600,
-                    )
-                    digest = hashlib.sha256()
-                    size = 0
-                    with os.fdopen(target_fd, "wb") as target, source.open(matches[0]) as stream:
-                        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-                            if cancel():
-                                raise _Cancelled
-                            size += len(chunk)
-                            if size > image.size_bytes:
+                    with ExitStack() as stack:
+                        if rebuilt:
+                            # The base archive's super/child images are deliberately
+                            # never opened for replacement roles, even on failure.
+                            path = self._rebuilt_path(origin["relative_path"])
+                            fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+                            stream = stack.enter_context(os.fdopen(fd, "rb"))
+                            original_stat = os.fstat(stream.fileno())
+                            if (
+                                not stat.S_ISREG(original_stat.st_mode)
+                                or original_stat.st_size != image.size_bytes
+                            ):
                                 raise SourceInstallationError(
-                                    "An installation image exceeded its reviewed size."
+                                    "A rebuilt installation image is missing or resized."
                                 )
-                            digest.update(chunk)
-                            target.write(chunk)
-                        target.flush()
-                        os.fsync(target.fileno())
-                        if size != image.size_bytes or digest.hexdigest() != image.sha256:
+                        else:
+                            stream = stack.enter_context(source.open(matches[0]))
+                        self._copy_snapshot(
+                            stream, paths[member], image, cancel, create=image.sha256 not in done
+                        )
+                        if rebuilt and (
+                            _file_identity(original_stat)
+                            != _file_identity(os.fstat(stream.fileno()))
+                            or _file_identity(original_stat) != _file_identity(path.stat())
+                            or self._rebuilt_path(origin["relative_path"]) != path
+                        ):
                             raise SourceInstallationError(
-                                "An installation image differs from the reviewed source."
+                                "A rebuilt image changed while its private snapshot was prepared."
                             )
-                        if os.name != "nt":
-                            os.fchmod(target.fileno(), 0o400)
                     self._verify_snapshot(paths[member], image)
                     done.add(image.sha256)
             after = os.fstat(archive_stream.fileno())
@@ -519,6 +542,47 @@ class SourceInstallationExecutor:
         journal.update(state="prepared", snapshots_verified=True)
         self._save(journal_path, journal)
         return paths
+
+    def _rebuilt_path(self, relative_path):
+        _relative_member(relative_path, canonical=True)
+        selected = self.workspace / relative_path
+        path = self.flash._image_path(selected)
+        if not path.is_relative_to(self.workspace) or path != selected:
+            raise SourceInstallationError("A rebuilt image is outside the reviewed workspace.")
+        return path
+
+    @staticmethod
+    def _copy_snapshot(stream, path, image, cancel, *, create):
+        # Even an identical-byte duplicate replacement must be read and verified;
+        # deduplication never substitutes missing/stale input with a base image.
+        with ExitStack() as stack:
+            target = None
+            if create:
+                fd = os.open(
+                    path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600
+                )
+                target = stack.enter_context(os.fdopen(fd, "wb"))
+            digest, size = hashlib.sha256(), 0
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                if cancel():
+                    raise _Cancelled
+                size += len(chunk)
+                if size > image.size_bytes:
+                    raise SourceInstallationError(
+                        "An installation image exceeded its reviewed size."
+                    )
+                digest.update(chunk)
+                if target is not None:
+                    target.write(chunk)
+            if size != image.size_bytes or digest.hexdigest() != image.sha256:
+                raise SourceInstallationError(
+                    "An installation image differs from the reviewed source."
+                )
+            if target is not None:
+                target.flush()
+                os.fsync(target.fileno())
+                if os.name != "nt":
+                    os.fchmod(target.fileno(), 0o400)
 
     def _verify_snapshot(self, path, image):
         if self.flash._image_path(path) != path or self.flash._hash_file(path, image=True) != (
@@ -701,8 +765,10 @@ class SourceInstallationExecutor:
         return "".join(char for char in value if char in "\n\t" or ord(char) >= 32).strip()
 
     def _journal(self, plan):
+        candidate = _recipe_provenance(plan.recipe)
         return {
-            "format": self.FORMAT,
+            "format": self.CANDIDATE_FORMAT if candidate else self.FORMAT,
+            **({"candidate_provenance": candidate} if candidate else {}),
             "schema_version": 1,
             "plan_id": plan.plan_id,
             "plan_digest": plan.plan_digest,
@@ -737,6 +803,202 @@ class SourceInstallationExecutor:
         atomic_write_json(
             path, content, boundary=self.workspace, maximum_bytes=self.MAX_JOURNAL_BYTES
         )
+
+
+def _file_identity(info):
+    return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
+def _relative_member(value, *, canonical=False):
+    if (
+        not isinstance(value, str)
+        or not value
+        or value.startswith("/")
+        or "\\" in value
+        or ":" in value
+        or any(ord(char) < 32 or ord(char) == 127 for char in value)
+    ):
+        raise SourceInstallationError("Invalid candidate image path.")
+    path = PurePosixPath(value)
+    if (
+        ".." in path.parts
+        or path.as_posix() in {"", "."}
+        or (canonical and path.as_posix() != value)
+    ):
+        raise SourceInstallationError("Invalid candidate image path.")
+    return path
+
+
+def _recipe_provenance(recipe):
+    if type(recipe) is SourceInstallationRecipe:
+        return None
+    if type(recipe) is not CandidateInstallationRecipe:
+        raise SourceInstallationError("The installation recipe type is not supported.")
+    payload = candidate_composition_payload(recipe)
+    document = {
+        "format": SourceInstallationExecutor.CANDIDATE_FORMAT,
+        "schema_version": 1,
+        "candidate_provenance": payload,
+        "recipe_digest": recipe.recipe_digest,
+        **{
+            name: getattr(recipe, name)
+            for name in ("project_id", "source_sha256", "script_sha256", "wipe", "reboot")
+        },
+        "steps": [asdict(step) for step in recipe.steps],
+    }
+    validate_source_installation_provenance(document)
+    return payload
+
+
+def validate_source_installation_provenance(document) -> bool:
+    """Validate typed historical composition, without touching tools or image bytes.
+
+    Digests provide local consistency, not publisher authentication. Candidate
+    records require their complete provenance; original records cannot contain it.
+    Live execution separately verifies current source/build/base/AVB receipts.
+    """
+    if type(document.get("schema_version")) is not int or document["schema_version"] != 1:
+        raise SourceInstallationError("The installation evidence version is not supported.")
+    if document.get("format") == SourceInstallationExecutor.FORMAT:
+        if "candidate_provenance" in document:
+            raise SourceInstallationError("Candidate evidence cannot be labeled original firmware.")
+        return False
+    if document.get("format") != SourceInstallationExecutor.CANDIDATE_FORMAT:
+        raise SourceInstallationError("The installation evidence type is not supported.")
+    payload = document.get("candidate_provenance")
+    expected_fields = set(CandidateInstallationRecipe.__dataclass_fields__) - {
+        "archive_path",
+        "recipe_digest",
+    }
+    if (
+        not isinstance(payload, dict)
+        or set(payload) != expected_fields
+        or not _sha(document.get("recipe_digest"))
+        or _digest(payload) != document["recipe_digest"]
+        or type(payload["composition_version"]) is not int
+        or payload["composition_version"] != 1
+        or any(
+            _digest(payload[name]) != _digest(document.get(name))
+            for name in ("project_id", "source_sha256", "script_sha256", "steps", "wipe", "reboot")
+        )
+        or any(
+            not isinstance(payload[name], str)
+            or not re.fullmatch(r"[a-z0-9-]{1,64}", payload[name])
+            for name in ("project_id", "procedure_project_id")
+        )
+        or payload["project_id"] == payload["procedure_project_id"]
+        or any(
+            not _sha(payload[name])
+            for name in (
+                "source_sha256",
+                "procedure_source_sha256",
+                "procedure_recipe_digest",
+                "base_receipt_digest",
+                "build_receipt_digest",
+                "build_plan_digest",
+                "build_pack_sha256",
+                "avb_receipt_digest",
+                "checksums_sha256",
+            )
+        )
+        or any(
+            payload[name] != "" and not _sha(payload[name])
+            for name in ("build_recipe_digest", "build_toolchain_digest")
+        )
+        or payload["script_sha256"] != POPSICLE_SCRIPT_SHA256
+        or payload["expected_product"] != "popsicle"
+        or not isinstance(payload["expected_manufacturer"], str)
+        or payload["expected_manufacturer"].casefold() != "xiaomi"
+        or payload["target_slot"] != "a"
+        or payload["requires_critical_unlock"] is not True
+        or any(type(payload[name]) is not bool for name in ("wipe", "reboot"))
+        or not isinstance(payload["label"], str)
+        or not 0 < len(payload["label"]) <= 1024
+        or not isinstance(payload["warnings"], (list, tuple))
+        or len(payload["warnings"]) > 64
+        or any(not isinstance(item, str) or len(item) > 8192 for item in payload["warnings"])
+    ):
+        raise SourceInstallationError("The rebuilt installation provenance is missing or changed.")
+    script = _relative_member(payload["script_member"])
+    checksums = _relative_member(payload["checksums_member"])
+    if script.name != "flash_all.sh" or checksums != script.parent / "SHA256SUMS":
+        raise SourceInstallationError("The rebuilt installation changed its base procedure.")
+    images, origins = payload["images"], payload["origins"]
+    roles = (*POPSICLE_PHYSICAL_PARTITIONS, "super", "vbmeta_system", "vbmeta")
+    if any(not isinstance(items, (list, tuple)) or len(items) != 50 for items in (images, origins)):
+        raise SourceInstallationError(
+            "The rebuilt installation needs exactly 50 explicit image origins."
+        )
+    rebuilt_roots = set()
+    for image, origin, role in zip(images, origins, roles, strict=True):
+        if (
+            not isinstance(image, dict)
+            or set(image) != {"member", "sha256", "size_bytes", "expanded_size_bytes"}
+            or not _sha(image["sha256"])
+            or any(
+                type(image[name]) is not int or not 0 < image[name] <= 1024**4
+                for name in ("size_bytes", "expanded_size_bytes")
+            )
+            or _relative_member(image["member"]) != script.parent / "images" / f"{role}.img"
+            or not isinstance(origin, dict)
+            or set(origin) != {"member", "source_kind", "relative_path"}
+            or origin["member"] != image["member"]
+        ):
+            raise SourceInstallationError("The rebuilt installation image origins are invalid.")
+        if role in {"super", "vbmeta_system"}:
+            relative = _relative_member(origin["relative_path"], canonical=True)
+            if (
+                origin["source_kind"] != "rebuilt"
+                or len(relative.parts) != 5
+                or relative.parts[:3] != ("working_roms", payload["project_id"], "build-candidates")
+                or not re.fullmatch(r"[a-f0-9]{32}", relative.parts[3])
+                or relative.name != f"{role}.img"
+            ):
+                raise SourceInstallationError("A rebuilt image is not its exact build-output role.")
+            rebuilt_roots.add(relative.parent)
+        elif origin["source_kind"] != "base-package" or origin["relative_path"] != "":
+            raise SourceInstallationError("An unchanged base image has an unexpected source.")
+    if len(rebuilt_roots) != 1:
+        raise SourceInstallationError("The rebuilt images belong to different build plans.")
+    expected = [
+        {"action": "set_active", "partition": "", "image_member": "", "slot": "a", "chunk_size": ""}
+    ]
+    for image, role in zip(images, roles, strict=True):
+        expected.append(
+            {
+                "action": "flash",
+                "partition": "super" if role == "super" else role + "_a",
+                "image_member": image["member"],
+                "slot": "",
+                "chunk_size": "700M" if role == "super" else "",
+            }
+        )
+    if payload["wipe"]:
+        expected.extend(
+            {"action": "erase", "partition": part, "image_member": "", "slot": "", "chunk_size": ""}
+            for part in ("metadata", "userdata")
+        )
+    expected.append(dict(expected[0]))
+    if payload["reboot"]:
+        expected.append(
+            {"action": "reboot", "partition": "", "image_member": "", "slot": "", "chunk_size": ""}
+        )
+    if _digest(payload["steps"]) != _digest(expected):
+        raise SourceInstallationError(
+            "The rebuilt installation changed the reviewed procedure order."
+        )
+    snapshots = document.get("image_snapshots")
+    if snapshots is not None and (
+        not isinstance(snapshots, list)
+        or len(snapshots) != len(images)
+        or any(
+            not isinstance(snapshot, dict)
+            or any(snapshot.get(name) != image[name] for name in image)
+            for snapshot, image in zip(snapshots, images, strict=True)
+        )
+    ):
+        raise SourceInstallationError("Private images do not match the rebuilt composition.")
+    return True
 
 
 def _now() -> str:
@@ -818,6 +1080,9 @@ def validate_source_installation_boot_binding(
         "production_certification",
         "record_digest",
     }
+    candidate = validate_source_installation_provenance(document)
+    if candidate:
+        required.add("candidate_provenance")
     if not required <= set(document) <= required | {"snapshots_verified", "image_snapshots"}:
         raise SourceInstallationError("The installation journal fields do not match its contract.")
     aliases = {
@@ -832,8 +1097,7 @@ def validate_source_installation_boot_binding(
             "The known phone identity contradicts this installation receipt."
         )
     if (
-        document["format"] != SourceInstallationExecutor.FORMAT
-        or type(document["schema_version"]) is not int
+        type(document["schema_version"]) is not int
         or document["schema_version"] != 1
         or document["plan_id"] != path.stem
         or document["device_key"] != flash.privacy.pseudonym(device.serial)

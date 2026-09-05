@@ -525,7 +525,8 @@ def test_user_sees_all_declared_actions_but_declining_sends_no_mutating_command(
     text = dialog.review.toPlainText()
     assert dialog.recipe.source_sha256 in text
     assert "700M" in text and "super" in text
-    assert "Keep user data" in text
+    assert "No data erase requested" in text
+    assert "data preservation and compatibility unproven" in text
     questions = _answer(monkeypatch, accept=False)
     _click(dialog.flash_button)
     assert "changes the active slot" in questions[0]

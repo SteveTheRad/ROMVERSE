@@ -16,6 +16,13 @@ still unfinished. Saved installation results can be reopened for read-only boot 
 installing again. Software simulations do not establish physical flashing compatibility, and
 unsupported packages need their own adapters.
 
+The [rebuilt-ROM installation route](docs/REBUILT_CANDIDATE_INSTALLATION_2026-09-05.md)
+now composes the exact build's two rebuilt images with 48 verified unchanged base images.
+Guided preparation selects or imports the base package in place, checks actual AVB content,
+and retains distinct candidate provenance through confirmed installation and read-only history.
+This local unlocked experimental route is not OEM-trusted or physically validated. Seamless
+shared Guided/Expert sessions and automatic recovery orchestration remain in development.
+
 The first development slice was read-only: it created a protected workspace, verified local
 tooling, detected Android devices through ADB, and presented live details in the PySide6
 **Device Portal**.

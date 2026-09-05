@@ -2,19 +2,26 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from PySide6.QtCore import QObject, Qt, Signal, Slot
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,
+    QFileDialog,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QProgressBar,
     QPushButton,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
 
+from romverse.rom.candidate_installation import CandidateInstallationRecipe
+from romverse.rom.models import ProjectError
 from romverse.rom.project_flash import ProjectFlashPreparation
 from romverse.rom.source_installation import SourceInstallationRecipe
 from romverse.ui.background import ManagedRunnable, start_background
@@ -35,6 +42,9 @@ class ProjectPreparationWorker(ManagedRunnable):
         candidate_choice: str,
         *,
         source_service=None,
+        candidate_service=None,
+        procedure_project_id="",
+        procedure_path=None,
         wipe=False,
         reboot=True,
     ) -> None:
@@ -43,13 +53,27 @@ class ProjectPreparationWorker(ManagedRunnable):
         self.project_id = project_id
         self.candidate_choice = candidate_choice
         self.source_service = source_service
+        self.candidate_service = candidate_service
+        self.procedure_project_id = procedure_project_id
+        self.procedure_path = procedure_path
         self.wipe = wipe
         self.reboot = reboot
         self.signals = PreparationSignals()
 
     def execute(self) -> None:
         try:
-            if self.candidate_choice == "source-installation":
+            if self.candidate_choice == "candidate-installation":
+                if self.candidate_service is None:
+                    raise ValueError("Rebuilt installation is unavailable in this context.")
+                procedure = self.procedure_project_id
+                if self.procedure_path is not None:
+                    procedure = self.candidate_service.import_procedure(self.procedure_path)
+                if not procedure:
+                    raise ValueError("Choose the base installation package for this rebuilt ROM.")
+                value = self.candidate_service.prepare(
+                    self.project_id, procedure, wipe=self.wipe, reboot=self.reboot
+                )
+            elif self.candidate_choice == "source-installation":
                 if self.source_service is None:
                     raise ValueError("Source installation is unavailable in this context.")
                 value = self.source_service.prepare(
@@ -67,11 +91,16 @@ class ProjectPreparationWorker(ManagedRunnable):
 class ProjectPreparationDialog(QDialog):
     """Choose provenance explicitly, then hash in a managed background worker."""
 
-    def __init__(self, service, project_id: str, parent=None, *, source_service=None) -> None:
+    def __init__(
+        self, service, project_id: str, parent=None, *, source_service=None, candidate_service=None
+    ) -> None:
         super().__init__(parent)
         self.service = service
         self.project_id = project_id
         self.source_service = source_service
+        self.candidate_service = candidate_service
+        self.procedure_path: Path | None = None
+        self._base_discovery_error = ""
         self.preparation: ProjectFlashPreparation | SourceInstallationRecipe | None = None
         self.worker: ProjectPreparationWorker | None = None
         self.monitoring = False
@@ -83,7 +112,15 @@ class ProjectPreparationDialog(QDialog):
             self.setMinimumWidth(min(520, available.width() - 40))
             self.resize(min(740, available.width() - 40), min(430, available.height() - 80))
         self.setModal(True)
-        layout = QVBoxLayout(self)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        content = QWidget()
+        layout = QVBoxLayout(content)
+        scroll.setWidget(content)
+        outer.addWidget(scroll)
         layout.setContentsMargins(24, 22, 24, 22)
         layout.setSpacing(12)
         eyebrow = QLabel("GUIDED INSTALLATION  •  LOCAL IMAGES")
@@ -103,13 +140,35 @@ class ProjectPreparationDialog(QDialog):
         layout.addWidget(introduction)
         self.choice = QComboBox()
         self.choice.setAccessibleName("Project image source")
-        self.choice.addItem("My rebuilt candidate · saved successful build", "built")
-        self.choice.addItem("Protected original · verified extracted images", "protected")
+        if candidate_service is not None:
+            self.choice.addItem(
+                "Install my rebuilt ROM · complete procedure", "candidate-installation"
+            )
+        self.choice.addItem("Rebuilt images · manual partition mapping", "built")
+        self.choice.addItem("Protected original images · manual partition mapping", "protected")
         if source_service is not None:
             self.choice.addItem(
                 "Follow the package's supported installation procedure", "source-installation"
             )
         layout.addWidget(self.choice)
+        self.base_controls = QWidget()
+        base_layout = QVBoxLayout(self.base_controls)
+        base_layout.setContentsMargins(0, 0, 0, 0)
+        base_hint = QLabel(
+            "Base installation package · supplies the unchanged firmware and installation order. "
+            "ROMVERSE checks it against your build and inserts the rebuilt images automatically."
+        )
+        base_hint.setWordWrap(True)
+        base_layout.addWidget(base_hint)
+        self.base_choice = QComboBox()
+        self.base_choice.setAccessibleName("Base installation package")
+        base_layout.addWidget(self.base_choice)
+        self.base_file_button = QPushButton("Choose a base package ZIP…")
+        self.base_file_button.clicked.connect(self._choose_base_file)
+        base_layout.addWidget(self.base_file_button)
+        self._refresh_base_choices()
+        self.base_choice.currentIndexChanged.connect(self._base_choice_changed)
+        layout.addWidget(self.base_controls)
         self.source_controls = QWidget()
         options = QVBoxLayout(self.source_controls)
         options.setContentsMargins(0, 0, 0, 0)
@@ -133,7 +192,9 @@ class ProjectPreparationDialog(QDialog):
         layout.addWidget(limits)
         self.choice.currentIndexChanged.connect(self._source_mode_changed)
         self._source_mode_changed()
-        self.status = QLabel("Choose a source, then verify its images.")
+        self.status = QLabel(
+            self._base_discovery_error or "Choose a source, then verify its images."
+        )
         self.status.setWordWrap(True)
         self.status.setTextFormat(Qt.TextFormat.PlainText)
         layout.addWidget(self.status)
@@ -144,6 +205,7 @@ class ProjectPreparationDialog(QDialog):
         layout.addWidget(self.progress)
         layout.addStretch(1)
         actions = QHBoxLayout()
+        actions.setContentsMargins(24, 8, 24, 20)
         self.close_button = QPushButton("Cancel")
         self.close_button.clicked.connect(self.reject)
         self.prepare_button = QPushButton("Verify and continue")
@@ -152,13 +214,69 @@ class ProjectPreparationDialog(QDialog):
         actions.addWidget(self.close_button)
         actions.addStretch(1)
         actions.addWidget(self.prepare_button)
-        layout.addLayout(actions)
+        outer.addLayout(actions)
+
+    def _refresh_base_choices(self) -> None:
+        previous = self.base_choice.currentData()
+        self.base_choice.clear()
+        self.base_choice.addItem("Select an imported base package, or choose a ZIP below", "")
+        if self.candidate_service is None:
+            return
+        store = self.candidate_service.store
+        try:
+            for project in store.list_projects():
+                if project.project_id != self.project_id and project.original is not None:
+                    self.base_choice.addItem(project.name, project.project_id)
+            if not previous:
+                receipt = self.candidate_service.base.load(self.project_id)
+                previous = receipt.procedure_project_id if receipt is not None else ""
+            self._base_discovery_error = ""
+        except (OSError, ValueError, ProjectError):
+            self._base_discovery_error = (
+                "The saved project/base selection could not be read. Check the selected ROM project "
+                "and choose its base package; preparation will verify the current files again."
+            )
+        index = self.base_choice.findData(previous)
+        if index > 0:
+            self.base_choice.setCurrentIndex(index)
+        elif self.base_choice.count() == 2:
+            self.base_choice.setCurrentIndex(1)
+
+    def _choose_base_file(self) -> None:
+        name, _ = QFileDialog.getOpenFileName(
+            self,
+            "Choose the base installation package",
+            "",
+            "Firmware installation package (*.zip)",
+        )
+        if not name:
+            return
+        self.procedure_path = Path(name)
+        self.base_choice.setCurrentIndex(0)
+        self.base_file_button.setText(f"Change selected package · {self.procedure_path.name}")
+        self.base_file_button.setToolTip(str(self.procedure_path))
+        self.status.setText(
+            "Selected package will be protected and checked when you continue. No phone action."
+        )
+
+    def _base_choice_changed(self, *_args) -> None:
+        if self.base_choice.currentData():
+            self.procedure_path = None
+            self.base_file_button.setText("Choose a base package ZIP…")
+            self.base_file_button.setToolTip("")
 
     def _source_mode_changed(self, *_args) -> None:
-        source = self.choice.currentData() == "source-installation"
+        candidate = self.choice.currentData() == "candidate-installation"
+        source = self.choice.currentData() in {"source-installation", "candidate-installation"}
+        self.base_controls.setVisible(candidate)
         self.source_controls.setVisible(source)
         self.limits.setText(
-            "A supported procedure supplies the complete declared image order, slot actions and "
+            "ROMVERSE prepares the complete installation with your rebuilt super and AVB image, "
+            "plus unchanged base firmware checked against the exact build OTA. This is a local, "
+            "unlocked-device experimental route—not an OEM-trusted or physically tested release. "
+            "No phone changes happen during preparation."
+            if candidate
+            else "A supported procedure supplies the complete declared image order, slot actions and "
             "optional erase/restart steps. ROMVERSE translates it into controlled operations; "
             "it never runs the package's shell scripts. Keeping data is not a guarantee of "
             "compatibility. Verification here does not touch the phone."
@@ -167,7 +285,8 @@ class ProjectPreparationDialog(QDialog):
         )
         if source:
             available = self.screen().availableGeometry() if self.screen() is not None else None
-            height = min(580, available.height() - 80) if available is not None else 580
+            desired = 700 if candidate else 580
+            height = min(desired, available.height() - 80) if available is not None else desired
             self.setMinimumHeight(height)
             self.resize(self.width(), max(self.height(), height))
         else:
@@ -176,9 +295,20 @@ class ProjectPreparationDialog(QDialog):
     def _prepare(self) -> None:
         if self.worker is not None:
             return
+        if (
+            self.choice.currentData() == "candidate-installation"
+            and self.procedure_path is None
+            and not self.base_choice.currentData()
+        ):
+            self.status.setText(
+                "Choose the base package below; ROMVERSE will verify and map it for you."
+            )
+            self.base_file_button.setFocus()
+            return
         self.preparation = None
         self.choice.setEnabled(False)
         self.source_controls.setEnabled(False)
+        self.base_controls.setEnabled(False)
         self.prepare_button.setEnabled(False)
         self.close_button.setEnabled(False)
         self.progress.setRange(0, 0)
@@ -190,6 +320,9 @@ class ProjectPreparationDialog(QDialog):
             self.project_id,
             self.choice.currentData(),
             source_service=self.source_service,
+            candidate_service=self.candidate_service,
+            procedure_project_id=self.base_choice.currentData(),
+            procedure_path=self.procedure_path,
             wipe=self.wipe.isChecked(),
             reboot=self.reboot.isChecked(),
         )
@@ -208,6 +341,21 @@ class ProjectPreparationDialog(QDialog):
         if (
             not isinstance(preparation, (ProjectFlashPreparation, SourceInstallationRecipe))
             or preparation.project_id != self.project_id
+            or (
+                self.choice.currentData() == "candidate-installation"
+                and type(preparation) is not CandidateInstallationRecipe
+            )
+            or (
+                self.choice.currentData() == "source-installation"
+                and type(preparation) is not SourceInstallationRecipe
+            )
+            or (
+                self.choice.currentData() in {"built", "protected"}
+                and (
+                    not isinstance(preparation, ProjectFlashPreparation)
+                    or preparation.candidate_choice != self.choice.currentData()
+                )
+            )
         ):
             self._failed(
                 "Preparation returned mismatched project evidence. No phone command was sent."
@@ -230,6 +378,9 @@ class ProjectPreparationDialog(QDialog):
         self.status.setText(message)
         self.choice.setEnabled(True)
         self.source_controls.setEnabled(True)
+        self.base_controls.setEnabled(True)
+        if self.procedure_path is None:
+            self._refresh_base_choices()
         self.prepare_button.setEnabled(True)
         self.close_button.setEnabled(True)
 

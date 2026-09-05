@@ -62,6 +62,8 @@ class GuardianRecoveryPreparation:
     project_id: str
     device_key: str
     device_name: str
+    expected_product: str
+    expected_entry_mode: str
     source_original_sha256: str
     device_pack_id: str
     device_pack_version: str
@@ -215,6 +217,8 @@ class GuardianRecoveryPreparationService:
             "project_id": project.project_id,
             "device_key": incident.device_key,
             "device_name": incident.device_name,
+            "expected_product": device.product,
+            "expected_entry_mode": steps[0].from_mode,
             "source_original_sha256": project.original.sha256,
             "device_pack_id": pack.pack_id,
             "device_pack_version": pack.version,
@@ -327,6 +331,8 @@ class GuardianRecoveryPreparationService:
             or not _clean(preparation.project_id, 100)
             or not _hex(preparation.device_key, 20)
             or not _clean(preparation.device_name, 120)
+            or not _clean(preparation.expected_product, 120)
+            or preparation.expected_entry_mode not in {"bootloader", "fastbootd"}
             or not _hex(preparation.source_original_sha256, 64)
             or not _clean(preparation.device_pack_id, 128)
             or not _clean(preparation.device_pack_version, 80)
@@ -491,6 +497,8 @@ class GuardianRecoveryPreparationService:
                 and preparation.project_id == project.project_id
                 and preparation.device_key == incident.device_key
                 and preparation.device_name == incident.device_name
+                and preparation.expected_product == device.product
+                and preparation.expected_entry_mode == current_steps[0].from_mode
                 and preparation.source_original_sha256 == project.original.sha256
                 and preparation.device_pack_id == pack.pack_id
                 and preparation.device_pack_version == pack.version
@@ -562,7 +570,12 @@ def _hex(value: object, length: int) -> bool:
 
 
 def _clean(value: object, maximum: int) -> bool:
-    return isinstance(value, str) and 1 <= len(value) <= maximum and "\x00" not in value
+    return bool(
+        type(value) is str
+        and 1 <= len(value) <= maximum
+        and value == value.strip()
+        and not any(ord(character) < 32 or ord(character) == 127 for character in value)
+    )
 
 
 def _aware_timestamp(value: object) -> bool:

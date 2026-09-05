@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from contextlib import suppress
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Qt, QTimer, Signal, Slot
@@ -14,12 +14,15 @@ from PySide6.QtWidgets import (
     QLabel,
     QPushButton,
     QScrollArea,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
 
 from romverse.applications.receipts import ApkReceiptRead, ApkReceiptStore
 from romverse.backup.plans import BackupPlanRead, GuardianBackupPlanStore
+from romverse.core.settings import ExperienceMode
+from romverse.device.models import AndroidDevice
 from romverse.guardian.approval import ApprovalRecord, ApprovalStore, ApprovalVerification
 from romverse.guardian.audit import AuditVerification, GuardianAuditStore
 from romverse.guardian.execution_gateway_contract import (
@@ -29,6 +32,11 @@ from romverse.guardian.execution_gateway_contract import (
 )
 from romverse.guardian.execution_plan import GuardianExecutionPlan
 from romverse.guardian.manifest_review import GuardianManifestReview
+from romverse.guardian.recovery_live_target import (
+    GuardianRecoveryLiveTargetReceipt,
+    GuardianRecoveryLiveTargetReceiptService,
+    RecoveryLiveTargetValidationError,
+)
 from romverse.guardian.recovery_preparation import (
     GuardianRecoveryPreparation,
     GuardianRecoveryPreparationError,
@@ -147,11 +155,54 @@ class GuardianRuntimePackageWorker(ManagedRunnable):
                 self.signals.failed.emit(f"{type(exc).__name__}: {exc}")
 
 
+class RecoveryLiveTargetSignals(QObject):
+    complete = Signal(int, str, object)
+    failed = Signal(int, str, str)
+
+
+class RecoveryLiveTargetWorker(ManagedRunnable):
+    """Run one bounded read-only Recovery target check off the UI thread."""
+
+    def __init__(
+        self,
+        service: GuardianRecoveryLiveTargetReceiptService,
+        preparation: GuardianRecoveryPreparation,
+        device: AndroidDevice,
+        attempt_number: int,
+    ) -> None:
+        super().__init__()
+        self.service = service
+        self.preparation = preparation
+        self.device = device
+        self.attempt_number = attempt_number
+        self.signals = RecoveryLiveTargetSignals()
+
+    @Slot()
+    def execute(self) -> None:
+        try:
+            result = self.service.observe(self.preparation, self.device)
+            with suppress(RuntimeError):
+                self.signals.complete.emit(
+                    self.attempt_number,
+                    self.preparation.preparation_digest,
+                    result,
+                )
+        except Exception as exc:
+            with suppress(RuntimeError):
+                self.signals.failed.emit(
+                    self.attempt_number,
+                    self.preparation.preparation_digest,
+                    f"{type(exc).__name__}: {exc}",
+                )
+
+
 class GuardianCenter(QWidget):
     nexus_requested = Signal(str, str)
     time_machine_requested = Signal(str, str)
     rom_studio_requested = Signal(str, str)
     recovery_requested = Signal(str, str)
+    recovery_home_requested = Signal()
+    toolchain_requested = Signal()
     dashboard_state_changed = Signal(str, str, bool)
     REFRESH_DEBOUNCE_MS = 250
 
@@ -160,11 +211,23 @@ class GuardianCenter(QWidget):
         self.audit = audit
         self.worker: GuardianCenterWorker | None = None
         self.runtime_worker: GuardianRuntimePackageWorker | None = None
+        self.recovery_target_worker: RecoveryLiveTargetWorker | None = None
+        self._experience_mode = ExperienceMode.GUIDED
         self._nexus_review_identity: tuple[str, str] | None = None
         self._backup_review_identity: tuple[str, str] | None = None
         self._studio_review_identity: tuple[str, str] | None = None
         self._recovery_review_identity: tuple[str, str] | None = None
         self._recovery_preparation_digest = ""
+        self._recovery_preparation: GuardianRecoveryPreparation | None = None
+        self._recovery_live_target_service: GuardianRecoveryLiveTargetReceiptService | None = None
+        self._recovery_reviewed_device: AndroidDevice | None = None
+        self._recovery_live_target_receipt: GuardianRecoveryLiveTargetReceipt | None = None
+        self._recovery_target_generation = 0
+        self._recovery_technical_text = ""
+        self._recovery_details_expanded = False
+        self._recovery_target_expiry_timer = QTimer(self)
+        self._recovery_target_expiry_timer.setSingleShot(True)
+        self._recovery_target_expiry_timer.timeout.connect(self._expire_recovery_target_receipt)
         self._dashboard_state = (
             "unverified",
             "Guardian's current audit and approval evidence has not yet been verified in this session.",
@@ -245,16 +308,73 @@ class GuardianCenter(QWidget):
         recovery_layout.addLayout(recovery_header)
         self.recovery_review_title = QLabel()
         self.recovery_review_title.setObjectName("SectionTitle")
+        self.recovery_review_title.setTextFormat(Qt.TextFormat.PlainText)
         recovery_layout.addWidget(self.recovery_review_title)
         self.recovery_review_detail = QLabel()
         self.recovery_review_detail.setObjectName("Muted")
+        self.recovery_review_detail.setTextFormat(Qt.TextFormat.PlainText)
         self.recovery_review_detail.setWordWrap(True)
         self.recovery_review_detail.setTextInteractionFlags(
             Qt.TextInteractionFlag.TextSelectableByMouse
         )
         recovery_layout.addWidget(self.recovery_review_detail)
+        self.recovery_technical_button = QPushButton("View technical details")
+        self.recovery_technical_button.setAccessibleName(
+            "Show technical evidence for this Recovery plan"
+        )
+        self.recovery_technical_button.clicked.connect(self._toggle_recovery_details)
+        recovery_layout.addWidget(self.recovery_technical_button, 0, Qt.AlignmentFlag.AlignLeft)
+        self.recovery_technical_detail = QLabel()
+        self.recovery_technical_detail.setObjectName("EvidencePanel")
+        self.recovery_technical_detail.setTextFormat(Qt.TextFormat.PlainText)
+        self.recovery_technical_detail.setWordWrap(True)
+        self.recovery_technical_detail.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        self.recovery_technical_scroll = QScrollArea()
+        self.recovery_technical_scroll.setObjectName("RecoveryTechnicalScroll")
+        self.recovery_technical_scroll.setAccessibleName(
+            "Scrollable technical evidence for this Recovery plan"
+        )
+        self.recovery_technical_scroll.setWidgetResizable(True)
+        self.recovery_technical_scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        self.recovery_technical_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.recovery_technical_scroll.setMaximumHeight(300)
+        self.recovery_technical_scroll.setWidget(self.recovery_technical_detail)
+        self.recovery_technical_scroll.setVisible(False)
+        recovery_layout.addWidget(self.recovery_technical_scroll)
+        recovery_target_row = QHBoxLayout()
+        self.recovery_target_status = QLabel()
+        self.recovery_target_status.setObjectName("Muted")
+        self.recovery_target_status.setTextFormat(Qt.TextFormat.PlainText)
+        self.recovery_target_status.setWordWrap(True)
+        self.recovery_target_status.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        recovery_target_row.addWidget(self.recovery_target_status, 1)
+        self.recovery_target_button = QPushButton("Check exact phone now")
+        self.recovery_target_button.setObjectName("Primary")
+        self.recovery_target_button.setAccessibleName(
+            "Run the read-only exact-phone check for this Recovery preparation"
+        )
+        self.recovery_target_button.setToolTip(
+            "Uses only USB discovery and allowlisted Fastboot identity reads. It cannot flash, "
+            "reboot, wipe, unlock, relock, approve, or run Recovery."
+        )
+        self.recovery_target_button.clicked.connect(self._start_recovery_target_check)
+        recovery_target_row.addWidget(self.recovery_target_button)
+        recovery_layout.addLayout(recovery_target_row)
         self.recovery_review.setVisible(False)
         page.addWidget(self.recovery_review)
+        self.recovery_focus_spacer = QWidget()
+        self.recovery_focus_spacer.setSizePolicy(
+            QSizePolicy.Policy.Preferred,
+            QSizePolicy.Policy.Expanding,
+        )
+        self.recovery_focus_spacer.setVisible(False)
+        page.addWidget(self.recovery_focus_spacer, 1)
 
         self.nexus_review = QFrame()
         self.nexus_review.setObjectName("NexusReviewCard")
@@ -418,9 +538,9 @@ class GuardianCenter(QWidget):
         metrics.addWidget(self.approval_card, 1)
         page.addLayout(metrics)
 
-        recent_title = QLabel("Recent Guardian decisions")
-        recent_title.setObjectName("SectionTitle")
-        page.addWidget(recent_title)
+        self.recent_title = QLabel("Recent Guardian decisions")
+        self.recent_title.setObjectName("SectionTitle")
+        page.addWidget(self.recent_title)
         self.body = QScrollArea()
         self.body.setWidgetResizable(True)
         self.body_content = QWidget()
@@ -431,13 +551,13 @@ class GuardianCenter(QWidget):
         self.body.setWidget(self.body_content)
         page.addWidget(self.body, 1)
 
-        boundary = QLabel(
+        self.boundary = QLabel(
             "Guardian records operation metadata and outcomes only. Device serials, stdout, and stderr are excluded. "
             "A failed integrity check blocks subsequent execution through this gateway."
         )
-        boundary.setObjectName("Muted")
-        boundary.setWordWrap(True)
-        page.addWidget(boundary)
+        self.boundary.setObjectName("Muted")
+        self.boundary.setWordWrap(True)
+        page.addWidget(self.boundary)
         if auto_start:
             self.refresh()
         else:
@@ -451,6 +571,23 @@ class GuardianCenter(QWidget):
         """Return the latest bounded Guardian summary owned by this page."""
 
         return self._dashboard_state
+
+    def _set_recovery_focus(self, active: bool) -> None:
+        """Fold unrelated Guardian dashboard surfaces during one Recovery handoff."""
+
+        visible = not active
+        self.refresh_button.setVisible(visible)
+        self.hero.setVisible(visible)
+        self.progress.setVisible(visible)
+        self.runtime_package_card.setVisible(visible)
+        self.total_card.setVisible(visible)
+        self.allowed_card.setVisible(visible)
+        self.denied_card.setVisible(visible)
+        self.approval_card.setVisible(visible)
+        self.recent_title.setVisible(visible)
+        self.body.setVisible(visible)
+        self.boundary.setVisible(visible)
+        self.recovery_focus_spacer.setVisible(active)
 
     def open_dashboard_intent(self, action: str) -> bool:
         """Present the exact Guardian state claimed by Command Deck without authorizing work."""
@@ -543,6 +680,8 @@ class GuardianCenter(QWidget):
         incident: RecoveryIncident,
         route: RecoveryRoute,
         preparation: GuardianRecoveryPreparation | None = None,
+        live_target_service: GuardianRecoveryLiveTargetReceiptService | None = None,
+        reviewed_device: AndroidDevice | None = None,
     ) -> bool:
         """Show one sealed Recovery route, optionally with exact prepared evidence."""
 
@@ -577,6 +716,7 @@ class GuardianCenter(QWidget):
                 or preparation.device_pack_sha256 != incident.pack_sha256
             ):
                 return False
+        self._recovery_target_generation += 1
         self.clear_nexus_review()
         self.clear_backup_review()
         self.clear_studio_review()
@@ -617,7 +757,21 @@ class GuardianCenter(QWidget):
                 f"Preparation {preparation.preparation_digest[:20]}…  •  "
                 "Guardian live-target validation: required  •  User confirmation: required\n"
             )
+        consequence = (
+            "IMPORTANT  •  This prepared route may erase user data."
+            if preparation is not None and preparation.may_wipe_user_data
+            else "This review does not claim that personal data is guaranteed safe."
+        )
         self.recovery_review_detail.setText(
+            f"ROMVERSE {'prepared' if preparation is not None else 'identified'} this Recovery "
+            f"route for {incident.device_name}.\n"
+            f"WHY  •  {incident.diagnosis}\n"
+            f"PROPOSED  •  {route.summary}\n"
+            f"{consequence}\n"
+            "Before anything can change, Guardian must freshly recognize the exact phone and "
+            "you must confirm the complete Recovery plan. No action has started."
+        )
+        self._recovery_technical_text = (
             f"Incident {incident.incident_id[:12]}…  •  Project "
             f"{incident.project_id or 'not bound'}  •  Device Pack {incident.pack_id}\n"
             f"RECOVERY DIAGNOSIS  •  {incident.diagnosis}\n"
@@ -628,11 +782,47 @@ class GuardianCenter(QWidget):
             "HANDOFF BOUNDARY  •  Context only  •  Approval: none  •  Execution: none  •  "
             "Phone changed: no  •  Bootloader relock: never"
         )
+        self.recovery_technical_detail.setText(self._recovery_technical_text)
+        self.recovery_technical_button.setVisible(True)
+        self._set_recovery_details_expanded(self._experience_mode is ExperienceMode.EXPERT)
         self._recovery_review_identity = (incident.incident_id, route.route_id)
         self._recovery_preparation_digest = (
             preparation.preparation_digest if preparation is not None else ""
         )
+        self._recovery_preparation = preparation
+        self._recovery_live_target_service = live_target_service
+        self._recovery_reviewed_device = reviewed_device
+        self._recovery_live_target_receipt = None
+        self._recovery_target_expiry_timer.stop()
+        live_check_available = bool(
+            preparation is not None
+            and live_target_service is not None
+            and isinstance(reviewed_device, AndroidDevice)
+        )
+        if live_check_available:
+            self._render_recovery_target_ready()
+        else:
+            self.recovery_target_status.setText(
+                "READ-ONLY PHONE CHECK NOT AVAILABLE  •  Verified ADB and Fastboot tools are "
+                "required. This preparation remains sealed; no phone action started."
+                if preparation is not None
+                else "This advisory route has no exact prepared operation or live-phone check."
+            )
+        self.recovery_target_status.setObjectName(
+            "Good" if live_check_available else "Warning" if preparation is not None else "Muted"
+        )
+        self._repolish(self.recovery_target_status)
+        self.recovery_target_button.setVisible(preparation is not None)
+        self.recovery_target_button.setEnabled(preparation is not None)
+        self.recovery_target_button.setText(
+            "Check exact phone now" if live_check_available else "Open Forge Arsenal"
+        )
+        self.recovery_return_button.setText("Return to Recovery incident")
+        self.recovery_return_button.setEnabled(True)
+        self._set_recovery_focus(True)
         self.recovery_review.setVisible(True)
+        if live_check_available:
+            self._start_recovery_target_check()
         return True
 
     @property
@@ -643,11 +833,171 @@ class GuardianCenter(QWidget):
     def recovery_preparation_digest(self) -> str:
         return self._recovery_preparation_digest
 
+    @property
+    def recovery_live_target_receipt(self) -> GuardianRecoveryLiveTargetReceipt | None:
+        return self._recovery_live_target_receipt
+
+    @property
+    def recovery_preparation(self) -> GuardianRecoveryPreparation | None:
+        return self._recovery_preparation
+
+    def set_experience_mode(self, mode: ExperienceMode) -> None:
+        """Change evidence density without changing Recovery context or worker state."""
+
+        self._experience_mode = ExperienceMode(mode)
+        if self._recovery_review_identity is not None:
+            self._set_recovery_details_expanded(self._experience_mode is ExperienceMode.EXPERT)
+            if self._recovery_live_target_receipt is not None:
+                self._render_recovery_target_receipt(self._recovery_live_target_receipt)
+
+    def _toggle_recovery_details(self) -> None:
+        self._set_recovery_details_expanded(not self._recovery_details_expanded)
+
+    def _set_recovery_details_expanded(self, expanded: bool) -> None:
+        self._recovery_details_expanded = bool(expanded and self._recovery_technical_text)
+        self.recovery_technical_scroll.setVisible(self._recovery_details_expanded)
+        self.recovery_technical_button.setText(
+            "Hide technical details"
+            if self._recovery_details_expanded
+            else "View technical details"
+        )
+        self.recovery_technical_button.setAccessibleName(
+            "Hide technical evidence for this Recovery plan"
+            if self._recovery_details_expanded
+            else "Show technical evidence for this Recovery plan"
+        )
+
+    def _render_recovery_target_receipt(
+        self,
+        receipt: GuardianRecoveryLiveTargetReceipt,
+    ) -> None:
+        self.recovery_target_status.setObjectName("Good")
+        if self._experience_mode is ExperienceMode.GUIDED:
+            self.recovery_target_status.setText(
+                "EXACT PHONE VERIFIED  •  Guardian freshly confirmed that the connected "
+                "Fastboot phone matches this Recovery plan. Nothing changed on the phone. "
+                "Recovery confirmation remains locked."
+            )
+        else:
+            slot = (
+                f"  •  recorded pre-write slot {receipt.recorded_prewrite_slot.upper()}"
+                if receipt.recorded_prewrite_slot
+                else ""
+            )
+            self.recovery_target_status.setText(
+                f"EXACT PHONE CONFIRMED  •  {receipt.observed_product}  •  "
+                f"{receipt.observed_entry_mode.upper()}  •  bootloader unlocked{slot}\n"
+                f"Receipt {receipt.receipt_digest[:20]}…  •  valid until {receipt.expires_at}  •  "
+                "Recovery consent: locked  •  Execution: none  •  Phone changed: no"
+            )
+        self._repolish(self.recovery_target_status)
+
+    def _render_recovery_target_ready(self) -> None:
+        self.recovery_target_status.setText(
+            "READY TO CHECK YOUR PHONE  •  ROMVERSE can now make sure this Recovery plan still "
+            "matches the connected phone. Recovery confirmation remains locked."
+            if self._experience_mode is ExperienceMode.GUIDED
+            else "READY FOR READ-ONLY PHONE CHECK  •  ROMVERSE will confirm one exact Fastboot "
+            "phone and its product, unlock and mode evidence. Recovery consent remains locked."
+        )
+
+    def revalidate_recovery_live_target(
+        self,
+        preparation: GuardianRecoveryPreparation,
+        reviewed_device: AndroidDevice,
+    ) -> bool:
+        """Refresh retained read-only evidence against the latest exact-device scan."""
+
+        if (
+            preparation.preparation_digest != self._recovery_preparation_digest
+            or self._recovery_preparation is None
+            or self._recovery_live_target_service is None
+        ):
+            return False
+        self._recovery_preparation = preparation
+        self._recovery_reviewed_device = reviewed_device
+        receipt = self._recovery_live_target_receipt
+        if self.recovery_target_worker is not None and receipt is None:
+            return True
+        if receipt is None:
+            try:
+                self._recovery_live_target_service.validate_context(
+                    preparation,
+                    reviewed_device,
+                )
+            except RecoveryLiveTargetValidationError:
+                self.recovery_target_status.setObjectName("Warning")
+                self.recovery_target_status.setText(
+                    "WAITING FOR THE EXACT FASTBOOT PHONE  •  ROMVERSE will enable the read-only "
+                    "check automatically after the phone involved in this Recovery incident is "
+                    "freshly recognized in the required mode."
+                )
+                self.recovery_target_button.setText("Check exact phone now")
+                self.recovery_target_button.setEnabled(False)
+                self._repolish(self.recovery_target_status)
+                return False
+            self.recovery_target_status.setObjectName("Good")
+            self._render_recovery_target_ready()
+            self.recovery_target_button.setText("Check exact phone now")
+            self.recovery_target_button.setEnabled(True)
+            self._repolish(self.recovery_target_status)
+            self._start_recovery_target_check()
+            return True
+        current = self._recovery_live_target_service.load(preparation, reviewed_device)
+        if current == receipt:
+            return True
+        self._recovery_live_target_receipt = None
+        self._recovery_target_expiry_timer.stop()
+        try:
+            self._recovery_live_target_service.validate_context(preparation, reviewed_device)
+        except RecoveryLiveTargetValidationError:
+            self.recovery_live_target_unavailable()
+        else:
+            self.recovery_target_status.setObjectName("Warning")
+            self.recovery_target_status.setText(
+                "PHONE CHECK NO LONGER CURRENT  •  ROMVERSE is repeating the short-lived "
+                "read-only check against the latest exact-phone scan. Nothing has changed on "
+                "the phone."
+            )
+            self.recovery_target_button.setText("Check exact phone again")
+            self.recovery_target_button.setEnabled(True)
+            self._repolish(self.recovery_target_status)
+            self._start_recovery_target_check()
+        return False
+
+    def recovery_live_target_unavailable(self) -> None:
+        """Revoke retained live evidence while preserving immutable Recovery intent."""
+
+        if self._recovery_preparation is None:
+            return
+        self._recovery_target_generation += 1
+        self._recovery_reviewed_device = None
+        self._recovery_live_target_receipt = None
+        self._recovery_target_expiry_timer.stop()
+        self.recovery_target_status.setObjectName("Warning")
+        self.recovery_target_status.setText(
+            "WAITING FOR THE PHONE IN THIS RECOVERY INCIDENT  •  Connect only that phone in "
+            "the required Fastboot mode. ROMVERSE will continue the read-only check "
+            "automatically after a fresh exact match. Nothing has changed on any phone."
+        )
+        self.recovery_target_button.setText("Waiting for exact phone")
+        self.recovery_target_button.setEnabled(False)
+        self._repolish(self.recovery_target_status)
+
     def recovery_review_stopped(self, reason: str) -> None:
         """Expire a Recovery handoff visibly without retaining action authority."""
 
         self._recovery_review_identity = None
         self._recovery_preparation_digest = ""
+        self._recovery_preparation = None
+        self._recovery_live_target_service = None
+        self._recovery_reviewed_device = None
+        self._recovery_live_target_receipt = None
+        self._recovery_target_generation += 1
+        self._recovery_technical_text = ""
+        self._recovery_details_expanded = False
+        self._recovery_target_expiry_timer.stop()
+        self._set_recovery_focus(True)
         self.recovery_review_title.setText("Recovery route context expired safely")
         self.recovery_review_detail.setText(
             f"{reason}\nReturn to Recovery Bay and rebuild the route from fresh evidence. "
@@ -655,19 +1005,192 @@ class GuardianCenter(QWidget):
         )
         self.recovery_review_badge.setText("CONTEXT REFUSED")
         self.recovery_review_badge.setObjectName("Danger")
+        self.recovery_target_status.setObjectName("Danger")
+        self.recovery_target_status.setText(
+            "PHONE CHECK VOID  •  This Recovery context is no longer current. No retained "
+            "receipt or action authority remains."
+        )
+        self.recovery_target_button.setVisible(False)
+        self.recovery_target_button.setEnabled(False)
+        self.recovery_return_button.setText("Return to Recovery Bay")
+        self.recovery_return_button.setEnabled(True)
+        self.recovery_technical_detail.clear()
+        self.recovery_technical_scroll.setVisible(False)
+        self.recovery_technical_button.setVisible(False)
         self._repolish(self.recovery_review_badge)
+        self._repolish(self.recovery_target_status)
         self.recovery_review.setVisible(True)
 
     def clear_recovery_review(self) -> None:
         self._recovery_review_identity = None
         self._recovery_preparation_digest = ""
+        self._recovery_preparation = None
+        self._recovery_live_target_service = None
+        self._recovery_reviewed_device = None
+        self._recovery_live_target_receipt = None
+        self._recovery_target_generation += 1
+        self._recovery_technical_text = ""
+        self._recovery_details_expanded = False
+        self._recovery_target_expiry_timer.stop()
+        self._set_recovery_focus(False)
         self.recovery_review.setVisible(False)
         self.recovery_review_title.clear()
         self.recovery_review_detail.clear()
         self.recovery_review_eyebrow.setText("RECOVERY AUTOPILOT HANDOFF  •  CONTEXT ONLY")
         self.recovery_review_badge.setText("ADVISORY • ZERO AUTHORITY")
         self.recovery_review_badge.setObjectName("Warning")
+        self.recovery_target_status.clear()
+        self.recovery_target_status.setObjectName("Muted")
+        self.recovery_target_button.setVisible(False)
+        self.recovery_target_button.setEnabled(False)
+        self.recovery_target_button.setText("Check exact phone now")
+        self.recovery_return_button.setText("Return to Recovery incident")
+        self.recovery_technical_detail.clear()
+        self.recovery_technical_scroll.setVisible(False)
+        self.recovery_technical_button.setVisible(False)
+        self.recovery_technical_button.setText("View technical details")
         self._repolish(self.recovery_review_badge)
+
+    def _start_recovery_target_check(self) -> None:
+        if self._recovery_preparation is not None and self._recovery_live_target_service is None:
+            self.toolchain_requested.emit()
+            return
+        if (
+            self.recovery_target_worker is not None
+            or self._recovery_live_target_service is None
+            or self._recovery_preparation is None
+            or self._recovery_reviewed_device is None
+        ):
+            return
+        self._recovery_live_target_receipt = None
+        self.recovery_target_button.setEnabled(False)
+        self.recovery_target_status.setObjectName("Muted")
+        self.recovery_target_status.setText(
+            "CHECKING YOUR PHONE…  •  ROMVERSE is making sure the Recovery plan still matches. "
+            "Nothing can change on the phone during this check."
+            if self._experience_mode is ExperienceMode.GUIDED
+            else "Checking the exact Fastboot phone with read-only identity probes… No flash, "
+            "reboot, wipe, unlock, relock, approval or Recovery action can run."
+        )
+        self._repolish(self.recovery_target_status)
+        self._recovery_target_generation += 1
+        attempt_number = self._recovery_target_generation
+        worker = RecoveryLiveTargetWorker(
+            self._recovery_live_target_service,
+            self._recovery_preparation,
+            self._recovery_reviewed_device,
+            attempt_number,
+        )
+        self.recovery_target_worker = worker
+        worker.signals.complete.connect(self._recovery_target_check_complete)
+        worker.signals.failed.connect(self._recovery_target_check_failed)
+        start_background(worker)
+
+    @Slot(int, str, object)
+    def _recovery_target_check_complete(
+        self,
+        attempt_number: int,
+        preparation_digest: str,
+        result: object,
+    ) -> None:
+        self.recovery_target_worker = None
+        if attempt_number != self._recovery_target_generation:
+            if self._recovery_reviewed_device is not None:
+                QTimer.singleShot(0, self._start_recovery_target_check)
+            return
+        preparation = self._recovery_preparation
+        if preparation is None or preparation_digest != self._recovery_preparation_digest:
+            return
+        if (
+            not isinstance(result, GuardianRecoveryLiveTargetReceipt)
+            or result.preparation_digest != preparation.preparation_digest
+            or self._recovery_preparation_digest != preparation.preparation_digest
+            or not result.identity_verified
+            or result.recovery_consent_available
+            or result.execution_authority != "none"
+            or result.runtime_invoked
+            or result.phone_changed
+        ):
+            self._recovery_target_check_failed(
+                attempt_number,
+                preparation_digest,
+                "The returned evidence did not match this exact Recovery preparation",
+            )
+            return
+        self._recovery_live_target_receipt = result
+        self._render_recovery_target_receipt(result)
+        self.recovery_target_button.setText("Check exact phone again")
+        self.recovery_target_button.setEnabled(True)
+        try:
+            expires = datetime.fromisoformat(result.expires_at).astimezone(UTC)
+            remaining_ms = max(
+                1,
+                int((expires - datetime.now(UTC)).total_seconds() * 1000) + 50,
+            )
+        except ValueError:
+            remaining_ms = 1
+        self._recovery_target_expiry_timer.start(min(remaining_ms, 2_147_483_647))
+
+    @Slot(int, str, str)
+    def _recovery_target_check_failed(
+        self,
+        attempt_number: int,
+        preparation_digest: str,
+        message: str,
+    ) -> None:
+        self.recovery_target_worker = None
+        if attempt_number != self._recovery_target_generation:
+            if self._recovery_reviewed_device is not None:
+                QTimer.singleShot(0, self._start_recovery_target_check)
+            return
+        if preparation_digest != self._recovery_preparation_digest:
+            return
+        self._recovery_live_target_receipt = None
+        self._recovery_target_expiry_timer.stop()
+        clean = " ".join(str(message).replace("\x00", " ").split())[:500]
+        self.recovery_target_status.setObjectName("Danger")
+        if self._experience_mode is ExperienceMode.GUIDED:
+            self.recovery_target_status.setText(
+                "PHONE CHECK NEEDS ATTENTION  •  ROMVERSE could not prove that the connected "
+                "phone and mode still match this Recovery plan. Reconnect the phone involved in "
+                "the incident in Fastboot, then try again. Nothing changed on the phone."
+            )
+            if clean:
+                self._recovery_technical_text = (
+                    f"{self._recovery_technical_text}\nLIVE PHONE CHECK FAILURE\n{clean}"
+                )
+                self.recovery_technical_detail.setText(self._recovery_technical_text)
+        else:
+            self.recovery_target_status.setText(
+                f"PHONE CHECK STOPPED SAFELY  •  {clean or 'The exact phone was not verified.'}\n"
+                "No receipt remains current. No flash, reboot, wipe, approval, Recovery action or "
+                "phone change was attempted."
+            )
+        self.recovery_target_button.setText("Retry exact phone check")
+        self.recovery_target_button.setEnabled(
+            self._recovery_preparation is not None
+            and self._recovery_live_target_service is not None
+            and self._recovery_reviewed_device is not None
+        )
+        self._repolish(self.recovery_target_status)
+
+    @Slot()
+    def _expire_recovery_target_receipt(self) -> None:
+        if self._recovery_live_target_receipt is None:
+            return
+        self._recovery_live_target_receipt = None
+        self.recovery_target_status.setObjectName("Warning")
+        self.recovery_target_status.setText(
+            "PHONE CHECK EXPIRED  •  Live identity evidence is intentionally short-lived. "
+            "Check the exact phone again before any later Recovery confirmation."
+        )
+        self.recovery_target_button.setText("Check exact phone again")
+        self.recovery_target_button.setEnabled(
+            self._recovery_preparation is not None
+            and self._recovery_live_target_service is not None
+            and self._recovery_reviewed_device is not None
+        )
+        self._repolish(self.recovery_target_status)
 
     def open_nexus_review(self, plan: NexusPlan, project_name: str) -> bool:
         """Present a validated Nexus plan without approving or executing it."""
@@ -952,6 +1475,8 @@ class GuardianCenter(QWidget):
     def _return_to_recovery(self) -> None:
         if self._recovery_review_identity is not None:
             self.recovery_requested.emit(*self._recovery_review_identity)
+        else:
+            self.recovery_home_requested.emit()
 
     def _choose_runtime_package(self) -> None:
         envelope_name, _selected_filter = QFileDialog.getOpenFileName(

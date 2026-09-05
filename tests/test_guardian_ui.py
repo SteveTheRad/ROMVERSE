@@ -525,7 +525,13 @@ def test_guardian_presents_recovery_route_as_reversible_zero_authority_context(
     assert center.studio_review.isHidden()
     assert center.recovery_review_identity == (incident.incident_id, route.route_id)
     assert center.recovery_review_badge.text() == "ADVISORY • ZERO AUTHORITY"
-    detail = center.recovery_review_detail.text()
+    summary = center.recovery_review_detail.text()
+    detail = center.recovery_technical_detail.text()
+    assert "Before anything can change" in summary
+    assert "No action has started" in summary
+    assert not center.recovery_technical_detail.isVisibleTo(center)
+    center.recovery_technical_button.click()
+    assert center.recovery_technical_detail.isVisibleTo(center)
     assert incident.incident_id[:12] in detail
     assert incident.project_id in detail
     assert incident.pack_id in detail

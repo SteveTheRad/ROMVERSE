@@ -2141,6 +2141,28 @@ large-archive hashing can be slow and never silently renews an expired transitio
   Companion or website change, publication or remote push occurred. Approved production logos were
   not edited. Feature freeze remains active and v0.2 remains closed.
 
+## 2026-09-05 Recovery Guardian fresh live target
+
+- Guardian now automatically creates a two-minute, read-only exact-phone receipt for the sealed
+  Recovery preparation. Three stable USB discovery passes and two identical allowlisted Fastboot
+  probe rounds bind the incident, route, project, protected source, Device Pack, signed prepared
+  action set, exact pseudonymous phone, mode and applicable slot.
+- Missing, substitute and ambiguous phones remain targetless. A disconnect during the background
+  check invalidates its generation so a late result is discarded; the original freshly recognized
+  phone starts a new check automatically. No scan result can adopt another physical phone.
+- Guided hides technical identity machinery and presents one checking, verified or actionable
+  waiting state. Expert exposes the bounded receipt evidence. Missing tools route to Forge Arsenal,
+  stale context returns to Recovery Bay and both 1440×900 focused renders are readable and
+  unclipped.
+- One non-overlapping affected Fedora/Linux run passes 228 unique tests with zero failures, errors
+  or skips in 181.04 seconds. Changed-file Ruff format/lint, compilation and diff checks pass. See
+  `RECOVERY_GUARDIAN_LIVE_TARGET_2026-09-05.md` for the exact binding and adversarial matrix.
+- This is implemented and simulated/tested, not hardware verified or released. Windows was not
+  exercised. Recovery consent and execution remain absent. No physical phone operation,
+  application restart, package installation, Companion or website change, publication or remote
+  push occurred. Approved production logos remain byte-exact. Feature freeze is active,
+  bootloader relocking remains forbidden and v0.2 remains closed.
+
 ## Honest feature boundary
 
 The current safe milestone supports read-only Android evidence, local diagnostics, guarded APK

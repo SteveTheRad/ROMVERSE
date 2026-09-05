@@ -67,6 +67,8 @@ def test_preparation_binds_current_incident_phone_project_source_pack_and_action
     assert prepared.route_id == route.route_id
     assert prepared.project_id == project.project_id
     assert prepared.device_key == incident.device_key
+    assert prepared.expected_product == phone.product
+    assert prepared.expected_entry_mode == "bootloader"
     assert prepared.source_original_sha256 == project.original.sha256
     assert prepared.device_pack_id == incident.pack_id
     assert prepared.device_pack_sha256 == incident.pack_sha256

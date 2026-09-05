@@ -26,7 +26,10 @@ from romverse.device.catalog import (
 from romverse.device.identity import IdentityAuthority
 from romverse.device.models import AndroidDevice, DeviceState, StorageInfo
 from romverse.device_packs.registry import DevicePackRegistry
+from romverse.guardian.audit import GuardianAuditStore
+from romverse.guardian.gateway import ExecutionGateway
 from romverse.guardian.manifest_review import GuardianManifestReviewService
+from romverse.guardian.policy import GuardianPolicy
 from romverse.infrastructure.process import CommandResult
 from romverse.infrastructure.tools import ToolStatus
 from romverse.intelligence.online_remediation import ErrorFingerprint, OnlineRemediationService
@@ -335,7 +338,7 @@ def test_recovery_guardian_handoff_returns_to_same_incident_and_route(tmp_path: 
             route.route_id,
         )
         assert not window.guardian_center.recovery_review.isHidden()
-        guardian_detail = window.guardian_center.recovery_review_detail.text()
+        guardian_detail = window.guardian_center.recovery_technical_detail.text()
         assert "Approval: none" in guardian_detail
         assert "Execution: none" in guardian_detail
         assert "Phone changed: no" in guardian_detail
@@ -512,7 +515,13 @@ def test_recovery_time_machine_handoff_returns_to_same_incident_and_route(
             for button in window.repair_center.autopilot_route_buttons
             if button.property("recovery_route_id") == reranked.route_id
         )
+        audit = GuardianAuditStore(workspace)
+        window._runtime_gateway = ExecutionGateway(GuardianPolicy(workspace), SourceRunner(), audit)
+        window._device_adb_executable = tmp_path / "inert-adb-fixture"
+        window._device_fastboot_executable = tmp_path / "inert-fastboot-fixture"
         window.guardian_center.request_refresh = lambda: None
+        recovery_checks = []
+        monkeypatch.setattr("romverse.ui.guardian_center.start_background", recovery_checks.append)
         prepared_button.click()
         app.processEvents()
 
@@ -524,13 +533,25 @@ def test_recovery_time_machine_handoff_returns_to_same_incident_and_route(
             window.guardian_center.recovery_review_eyebrow.text()
             == "RECOVERY AUTOPILOT  •  EXACT PREPARATION"
         )
-        prepared_detail = window.guardian_center.recovery_review_detail.text()
+        prepared_detail = window.guardian_center.recovery_technical_detail.text()
         assert project.original.sha256 in prepared_detail
         assert "restore stock package" in prepared_detail
         assert "Guardian live-target validation: required" in prepared_detail
         assert "User confirmation: required" in prepared_detail
         assert "Execution: none" in prepared_detail
         assert "Phone changed: no" in prepared_detail
+        assert window.guardian_center.recovery_target_button.isVisibleTo(window.guardian_center)
+        assert not window.guardian_center.recovery_target_button.isEnabled()
+        assert window.guardian_center.hero.isHidden()
+        assert window.guardian_center.runtime_package_card.isHidden()
+        assert window.guardian_center.body.isHidden()
+        assert "CHECKING YOUR PHONE" in (window.guardian_center.recovery_target_status.text())
+        assert len(recovery_checks) == 1
+        recovery_checks.pop().run()
+        app.processEvents()
+        assert "PHONE CHECK NEEDS ATTENTION" in (
+            window.guardian_center.recovery_target_status.text()
+        )
 
         window.guardian_center.recovery_return_button.click()
         app.processEvents()
@@ -549,13 +570,38 @@ def test_recovery_time_machine_handoff_returns_to_same_incident_and_route(
         app.processEvents()
         assert window.stack.currentWidget() is window.guardian_center
         assert window.guardian_center.recovery_preparation_digest
+        sealed_preparation_digest = window.guardian_center.recovery_preparation_digest
+        assert len(recovery_checks) == 1
+        recovery_checks.pop().run()
+        app.processEvents()
 
-        window.repair_center.set_devices([replace(phone, serial="same-model-substitute")])
+        substitute = replace(phone, serial="same-model-substitute")
+        window.repair_center.set_devices([substitute])
         window._revalidate_guardian_review_contexts()
-        assert window.guardian_center.recovery_review_identity is None
-        assert not window.guardian_center.recovery_preparation_digest
-        assert window.guardian_center.recovery_review_badge.text() == "CONTEXT REFUSED"
-        assert "no longer current" in window.guardian_center.recovery_review_detail.text()
+        assert window.guardian_center.recovery_review_identity == (
+            incident.incident_id,
+            reranked.route_id,
+        )
+        assert window.guardian_center.recovery_preparation_digest == sealed_preparation_digest
+        assert window.guardian_center.recovery_review_badge.text() == "PREPARED • ZERO AUTHORITY"
+        assert "WAITING FOR THE PHONE IN THIS RECOVERY INCIDENT" in (
+            window.guardian_center.recovery_target_status.text()
+        )
+        assert not window.guardian_center.recovery_target_button.isEnabled()
+
+        window.repair_center.set_devices([phone, substitute])
+        window._revalidate_guardian_review_contexts()
+        app.processEvents()
+        assert window.guardian_center.recovery_preparation_digest == sealed_preparation_digest
+        assert "WAITING FOR THE PHONE IN THIS RECOVERY INCIDENT" in (
+            window.guardian_center.recovery_target_status.text()
+        )
+
+        window.repair_center.set_devices([phone])
+        window._revalidate_guardian_review_contexts()
+        app.processEvents()
+        assert len(recovery_checks) == 1
+        assert "CHECKING YOUR PHONE" in window.guardian_center.recovery_target_status.text()
     finally:
         window.companion_center.transport.close()
         window.close()

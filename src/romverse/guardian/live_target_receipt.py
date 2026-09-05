@@ -153,12 +153,12 @@ class GuardianLiveTargetReceiptService:
 
             discoveries: list[str] = []
             results: list[GuardianLiveTargetProbeResult] = []
-            discoveries.append(self._discover(gateway, reviewed_device.serial))
+            discoveries.append(self._discover(gateway.device_key, reviewed_device.serial))
             for round_number in range(1, self.PROBE_ROUND_COUNT + 1):
                 results.extend(
                     self._probe_round(reviewed_device.serial, specs, round_number, len(results))
                 )
-                discoveries.append(self._discover(gateway, reviewed_device.serial))
+                discoveries.append(self._discover(gateway.device_key, reviewed_device.serial))
 
             completed = self._now()
             if (
@@ -372,7 +372,7 @@ class GuardianLiveTargetReceiptService:
         except (TypeError, ValueError, KeyError, ProjectError) as exc:
             raise LiveTargetValidationError("Live-target receipt failed strict validation") from exc
 
-    def _discover(self, gateway: GuardianExecutionGatewayContract, serial: str) -> str:
+    def _discover(self, device_key: str, serial: str) -> str:
         adb_result = self.adb.devices()
         fastboot_result = self.fastboot.devices()
         if not adb_result.ok or not fastboot_result.ok:
@@ -386,10 +386,7 @@ class GuardianLiveTargetReceiptService:
                 "Live-target verification requires exactly one Fastboot device and no ADB target"
             )
         found = fastboot_devices[0]
-        if (
-            found["serial"] != serial
-            or self.privacy.pseudonym(found["serial"]) != gateway.device_key
-        ):
+        if found["serial"] != serial or self.privacy.pseudonym(found["serial"]) != device_key:
             raise LiveTargetValidationError(
                 "The connected Fastboot target is not the reviewed device"
             )
@@ -408,7 +405,7 @@ class GuardianLiveTargetReceiptService:
         )
         return _digest(
             {
-                "device_key": gateway.device_key,
+                "device_key": device_key,
                 "transport": "usb-fastboot",
                 "transport_token": transport_token,
             }

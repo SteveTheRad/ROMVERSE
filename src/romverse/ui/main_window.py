@@ -120,6 +120,7 @@ from romverse.guardian.manifest_review import (
 )
 from romverse.guardian.planning import GuardianPreflight
 from romverse.guardian.policy import GuardianPolicy
+from romverse.guardian.recovery_live_target import GuardianRecoveryLiveTargetReceiptService
 from romverse.guardian.recovery_preparation import (
     GuardianRecoveryPreparationError,
     GuardianRecoveryPreparationService,
@@ -4118,6 +4119,7 @@ class MainWindow(QMainWindow):
         self.repair_center.knowledge_article_requested.connect(self._open_knowledge_article)
         self.repair_center.diagnostic_requested.connect(self._open_diagnostic_finding)
         self.guardian_center.recovery_requested.connect(self._return_guardian_recovery)
+        self.guardian_center.recovery_home_requested.connect(self._open_recovery_home)
         self.stack.addWidget(self.repair_center)
         self.device_packs_center = DevicePacksCenter(
             resolved_registry,
@@ -4239,6 +4241,7 @@ class MainWindow(QMainWindow):
         toolchain_index = self.stack.addWidget(self.toolchain_center)
         self.toolchain_index = toolchain_index
         self.toolchain_center.statuses_changed.connect(self._tool_statuses_changed)
+        self.guardian_center.toolchain_requested.connect(self._open_guardian_recovery_toolchain)
         self.toolchain_center.device_pack_setup_requested.connect(self._setup_device_pack_toolchain)
         self.toolchain_center.device_pack_continue_requested.connect(
             self._continue_device_pack_toolchain
@@ -6177,15 +6180,27 @@ class MainWindow(QMainWindow):
         recovery_identity = self.guardian_center.recovery_review_identity
         preparation_digest = self.guardian_center.recovery_preparation_digest
         if recovery_identity is not None and preparation_digest:
-            preparation = GuardianRecoveryPreparationService(
+            preparation = self.guardian_center.recovery_preparation
+            if preparation is None or preparation.preparation_digest != preparation_digest:
+                self.guardian_center.recovery_review_stopped(
+                    "The sealed Recovery preparation is no longer available."
+                )
+                return
+            reviewed_device = self._current_recovery_reviewed_device(preparation.device_key)
+            if reviewed_device is None:
+                self.guardian_center.recovery_live_target_unavailable()
+                return
+            current = GuardianRecoveryPreparationService(
                 self.rom_studio.store,
                 self.rom_studio.pack_registry,
                 self.repair_center.autopilot_service,
-            ).load(*recovery_identity, self.repair_center.devices)
-            if preparation is None or preparation.preparation_digest != preparation_digest:
+            ).load(*recovery_identity, [reviewed_device])
+            if current is None or current.preparation_digest != preparation_digest:
                 self.guardian_center.recovery_review_stopped(
                     "The exact phone, project, source, Device Pack, evidence, or prepared route is no longer current."
                 )
+            else:
+                self.guardian_center.revalidate_recovery_live_target(current, reviewed_device)
 
     def _navigation_commands(self) -> tuple[NavigationCommand, ...]:
         """Expose pages and exact nested features available in the current experience."""
@@ -6309,6 +6324,7 @@ class MainWindow(QMainWindow):
                 button.setVisible(expert)
         self.device_center.set_experience_mode(mode)
         self.diagnostics_center.set_experience_mode(mode)
+        self.guardian_center.set_experience_mode(mode)
         self.rom_studio.set_experience_mode(mode)
         if self._local_flash_dialog is not None and hasattr(
             self._local_flash_dialog, "set_experience_mode"
@@ -8416,17 +8432,37 @@ class MainWindow(QMainWindow):
         if owner_route == "guardian_core":
             context = self.repair_center.recovery_route_context(route_id, owner_route)
             preparation = None
+            recovery_live_target_service = None
+            recovery_reviewed_device = None
             if context is not None and context[1].kind is RecoveryRouteKind.EXACT_STOCK_RESTORE:
                 try:
-                    preparation = GuardianRecoveryPreparationService(
+                    preparation_service = GuardianRecoveryPreparationService(
                         self.rom_studio.store,
                         self.rom_studio.pack_registry,
                         self.repair_center.autopilot_service,
-                    ).prepare(
+                    )
+                    preparation = preparation_service.prepare(
                         context[0].incident_id,
                         context[1].route_id,
                         self.repair_center.devices,
                     )
+                    recovery_reviewed_device = self._current_recovery_reviewed_device(
+                        preparation.device_key
+                    )
+                    if recovery_reviewed_device is None:
+                        raise GuardianRecoveryPreparationError(
+                            "Reconnect the one exact phone involved in this Recovery incident"
+                        )
+                    if (
+                        self._runtime_gateway is not None
+                        and self._device_adb_executable is not None
+                        and self._device_fastboot_executable is not None
+                    ):
+                        recovery_live_target_service = GuardianRecoveryLiveTargetReceiptService(
+                            preparation_service,
+                            AdbClient(self._device_adb_executable, self._runtime_gateway),
+                            FastbootClient(self._device_fastboot_executable, self._runtime_gateway),
+                        )
                 except (
                     GuardianRecoveryPreparationError,
                     RecoveryAutopilotError,
@@ -8443,7 +8479,10 @@ class MainWindow(QMainWindow):
                     )
                     return
             if context is None or not self.guardian_center.open_recovery_review(
-                *context, preparation
+                *context,
+                preparation,
+                recovery_live_target_service,
+                recovery_reviewed_device,
             ):
                 self.notification_center.notify(
                     f"recovery-autopilot.route.{route_id}",
@@ -8497,6 +8536,39 @@ class MainWindow(QMainWindow):
             "ROMVERSE opened the existing typed owner. The ranking granted no execution authority "
             "and started no phone command.",
             NotificationKind.INFORMATION,
+        )
+
+    def _current_recovery_reviewed_device(self, device_key: str) -> AndroidDevice | None:
+        """Select one scan record by pseudonymous key; authority stays in Recovery services."""
+
+        privacy = WorkspacePrivacy(self._workspace)
+        scanned: dict[str, AndroidDevice] = {}
+        for device in self.repair_center.devices:
+            if device.serial:
+                scanned.setdefault(device.serial, device)
+        if len(scanned) != 1:
+            return None
+        device = next(iter(scanned.values()))
+        return device if privacy.pseudonym(device.serial) == device_key else None
+
+    @Slot()
+    def _open_recovery_home(self) -> None:
+        """Keep a stale Guardian handoff recoverable without reusing its old identity."""
+
+        self._navigate_route("recovery_bay")
+
+    @Slot()
+    def _open_guardian_recovery_toolchain(self) -> None:
+        """Route a missing read-only Recovery prerequisite to its real tool owner."""
+
+        if not self._navigate_route("forge_arsenal"):
+            return
+        self.notification_center.notify(
+            "recovery-autopilot.guardian-tools",
+            "Recovery phone check needs Android Platform Tools",
+            "Locate or repair verified ADB and Fastboot here, then return to the same active "
+            "Recovery incident. No phone action started.",
+            NotificationKind.ATTENTION,
         )
 
     @Slot(str, str)

@@ -14,6 +14,10 @@ from romverse.guardian.recovery_execution import (
     RecoveryStepOutcome,
 )
 from romverse.guardian.recovery_preparation import GuardianRecoveryPreparationService
+from romverse.guardian.recovery_step_target import (
+    GuardianRecoveryStepTargetService,
+    RecoveryStepTargetPhase,
+)
 from tests.test_guardian_recovery_consent import _consent_context
 from tests.test_guardian_recovery_live_target import _OBSERVED_AT
 
@@ -128,22 +132,36 @@ def test_executor_journal_preserves_unknown_and_forbids_blind_retry_or_advance(
     )
     grant = service.admit(prepared, target, consent, phone)
 
-    intent = service.record_step_intent(grant, prepared, 1)
+    targets = GuardianRecoveryStepTargetService(service, clock=service.clock)
+    pre_first = targets.observe(
+        grant,
+        prepared,
+        1,
+        RecoveryStepTargetPhase.PRE_DISPATCH,
+    )
+    intent = service.record_step_intent(grant, prepared, 1, pre_first)
     assert intent.adapter_action_id == prepared.steps[0].adapter_action_id
     assert intent.outcome_at_record_time == RecoveryStepOutcome.UNKNOWN.value
     assert service.step_outcome(prepared, grant.claim, 1) is RecoveryStepOutcome.UNKNOWN
 
     with pytest.raises(RecoveryExecutionValidationError, match="must not be retried"):
-        service.record_step_intent(grant, prepared, 1)
+        service.record_step_intent(grant, prepared, 1, pre_first)
+    pre_second = targets.observe(
+        grant,
+        prepared,
+        2,
+        RecoveryStepTargetPhase.PRE_DISPATCH,
+    )
     substitute_grant = GuardianRecoveryExecutionGrant(
         grant.claim,
         "same-model-different-physical-phone",
+        replace(phone, serial="same-model-different-physical-phone"),
         grant.ephemeral_token,
     )
     with pytest.raises(RecoveryExecutionValidationError, match="exact target"):
-        service.record_step_intent(substitute_grant, prepared, 2)
+        service.record_step_intent(substitute_grant, prepared, 2, pre_second)
     with pytest.raises(RecoveryExecutionValidationError, match="previous step"):
-        service.record_step_intent(grant, prepared, 2)
+        service.record_step_intent(grant, prepared, 2, pre_second)
 
     reloaded = GuardianRecoveryExecutionService(service.consents, clock=service.clock)
     assert reloaded.step_outcome(prepared, grant.claim, 1) is RecoveryStepOutcome.UNKNOWN
@@ -160,7 +178,13 @@ def test_executor_journal_preserves_unknown_and_forbids_blind_retry_or_advance(
     assert unknown.recovery_reassessment_required
     assert not unknown.next_step_allowed
     with pytest.raises(RecoveryExecutionValidationError, match="previous step"):
-        service.record_step_intent(grant, prepared, 2)
+        service.record_step_intent(grant, prepared, 2, pre_second)
+    post_first = targets.observe(
+        grant,
+        prepared,
+        1,
+        RecoveryStepTargetPhase.POST_DISPATCH,
+    )
     with pytest.raises(RecoveryExecutionValidationError, match="cannot be replaced"):
         service.record_step_result(
             grant,
@@ -170,6 +194,7 @@ def test_executor_journal_preserves_unknown_and_forbids_blind_retry_or_advance(
             operation_dispatched=True,
             observed_result_sha256="b" * 64,
             observed_next_mode=prepared.steps[0].to_mode,
+            post_target_witness=post_first,
         )
 
 
@@ -182,7 +207,20 @@ def test_executor_advances_only_after_durable_exact_step_success(
         monkeypatch,
     )
     grant = service.admit(prepared, target, consent, phone)
-    first = service.record_step_intent(grant, prepared, 1)
+    targets = GuardianRecoveryStepTargetService(service, clock=service.clock)
+    pre_first = targets.observe(
+        grant,
+        prepared,
+        1,
+        RecoveryStepTargetPhase.PRE_DISPATCH,
+    )
+    post_first = targets.observe(
+        grant,
+        prepared,
+        1,
+        RecoveryStepTargetPhase.POST_DISPATCH,
+    )
+    first = service.record_step_intent(grant, prepared, 1, pre_first)
     with pytest.raises(RecoveryExecutionValidationError, match="conflicts"):
         service.record_step_result(
             grant,
@@ -192,6 +230,7 @@ def test_executor_advances_only_after_durable_exact_step_success(
             operation_dispatched=False,
             observed_result_sha256="c" * 64,
             observed_next_mode=prepared.steps[0].to_mode,
+            post_target_witness=post_first,
         )
     result = service.record_step_result(
         grant,
@@ -201,17 +240,29 @@ def test_executor_advances_only_after_durable_exact_step_success(
         operation_dispatched=True,
         observed_result_sha256="c" * 64,
         observed_next_mode=prepared.steps[0].to_mode,
+        post_target_witness=post_first,
     )
 
     assert result.next_step_allowed
     assert not result.recovery_reassessment_required
-    second = service.record_step_intent(grant, prepared, 2)
+    pre_second = targets.observe(
+        grant,
+        prepared,
+        2,
+        RecoveryStepTargetPhase.PRE_DISPATCH,
+    )
+    second = service.record_step_intent(grant, prepared, 2, pre_second)
     assert second.step_order == 2
     assert second.adapter_action_id == prepared.steps[1].adapter_action_id
     assert service.step_outcome(prepared, grant.claim, 2) is RecoveryStepOutcome.UNKNOWN
 
     with pytest.raises(RecoveryExecutionValidationError, match="not part"):
-        service.record_step_intent(grant, prepared, prepared.step_count + 1)
+        service.record_step_intent(
+            grant,
+            prepared,
+            prepared.step_count + 1,
+            pre_second,
+        )
 
 
 def test_executor_rejects_tamper_and_has_no_dispatch_or_relock_surface(
@@ -246,14 +297,35 @@ def test_executor_rejects_tamper_and_has_no_dispatch_or_relock_surface(
     assert "fastboot." not in source
     assert "adb." not in source
 
-    relock_step = replace(
-        prepared.steps[0],
-        adapter_action_id=f"{prepared.recovery_adapter_id}.bootloader_lock",
-    )
-    relock_preparation = replace(prepared, steps=(relock_step, *prepared.steps[1:]))
-    with pytest.raises(RecoveryExecutionValidationError, match="bootloader-locking"):
-        service._validate_actions(relock_preparation)
+    for suffix in ("bootloader_lock", "flashing.lock", "oem-lock", "relock"):
+        relock_step = replace(
+            prepared.steps[0],
+            adapter_action_id=f"{prepared.recovery_adapter_id}.{suffix}",
+        )
+        relock_preparation = replace(prepared, steps=(relock_step, *prepared.steps[1:]))
+        with pytest.raises(RecoveryExecutionValidationError, match="bootloader-locking"):
+            service._validate_actions(relock_preparation)
     assert grant.claim.bootloader_relock_allowed is False
+
+
+def test_executor_rejects_stale_step_target_witness(tmp_path, monkeypatch) -> None:
+    service, consent, target, prepared, phone, *_rest = _execution_context(
+        tmp_path,
+        monkeypatch,
+    )
+    grant = service.admit(prepared, target, consent, phone)
+    targets = GuardianRecoveryStepTargetService(service, clock=service.clock)
+    witness = targets.observe(
+        grant,
+        prepared,
+        1,
+        RecoveryStepTargetPhase.PRE_DISPATCH,
+    )
+    service.clock = lambda: _OBSERVED_AT + timedelta(seconds=71)
+
+    with pytest.raises(RecoveryExecutionValidationError, match="not fresh"):
+        service.record_step_intent(grant, prepared, 1, witness)
+    assert service.load_step_intent(prepared, grant.claim, 1) is None
 
 
 def test_executor_claim_load_rejects_duplicate_json_key(tmp_path, monkeypatch) -> None:

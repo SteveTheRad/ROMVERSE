@@ -100,6 +100,7 @@ class GuardianRecoveryExecutionGrant:
 
     claim: GuardianRecoveryExecutionClaim
     target_serial: str = field(repr=False)
+    reviewed_device: AndroidDevice = field(repr=False)
     ephemeral_token: str = field(repr=False)
 
 
@@ -116,6 +117,11 @@ class GuardianRecoveryStepIntent:
     preparation_digest: str
     device_key: str
     steps_digest: str
+    pre_dispatch_witness_digest: str
+    target_revalidated_at: str
+    observed_from_mode: str
+    observed_product: str
+    observed_slot: str
     step_order: int
     operation: str
     adapter_action_id: str
@@ -149,6 +155,9 @@ class GuardianRecoveryStepResult:
     outcome: RecoveryStepOutcome
     operation_dispatched: bool
     observed_result_sha256: str
+    result_target_witness_digest: str
+    target_observed_at: str
+    target_observation_phase: str
     observed_next_mode: str
     next_step_allowed: bool
     recovery_reassessment_required: bool
@@ -173,6 +182,7 @@ class GuardianRecoveryExecutionService:
     MAX_BYTES = 256 * 1024
     EXACT_SEQUENCE_AUTHORITY = "exact-sealed-recovery-adapter-actions-only"
     MAX_CLAIM_SECONDS = 6 * 60 * 60
+    STEP_WITNESS_VALIDITY_SECONDS = 10
 
     def __init__(
         self,
@@ -291,7 +301,12 @@ class GuardianRecoveryExecutionService:
                 boundary=self.store.workspace,
                 maximum_bytes=self.MAX_BYTES,
             )
-            return GuardianRecoveryExecutionGrant(claim, reviewed_device.serial, token)
+            return GuardianRecoveryExecutionGrant(
+                claim,
+                reviewed_device.serial,
+                reviewed_device,
+                token,
+            )
         except LocalStoreConflictError as exc:
             raise RecoveryExecutionValidationError(
                 "This exact Recovery preparation already has an execution claim"
@@ -318,6 +333,7 @@ class GuardianRecoveryExecutionService:
         grant: GuardianRecoveryExecutionGrant,
         preparation: GuardianRecoveryPreparation,
         step_order: int,
+        target_witness,
     ) -> GuardianRecoveryStepIntent:
         """Durably record the exact next action before an adapter may dispatch it."""
 
@@ -326,6 +342,32 @@ class GuardianRecoveryExecutionService:
             claim = self._validate_grant(grant, preparation, now=now, require_unexpired=True)
             step = self._step(preparation, step_order)
             self._validate_actions(preparation)
+            from romverse.guardian.recovery_step_target import (
+                GuardianRecoveryStepTargetService,
+                GuardianRecoveryStepTargetWitness,
+                RecoveryStepTargetPhase,
+            )
+
+            if not isinstance(target_witness, GuardianRecoveryStepTargetWitness):
+                raise RecoveryExecutionValidationError(
+                    "Recovery step intent requires fresh exact-target evidence"
+                )
+            GuardianRecoveryStepTargetService.validate(
+                target_witness,
+                claim,
+                preparation,
+                step,
+                RecoveryStepTargetPhase.PRE_DISPATCH,
+            )
+            witness_completed = _timestamp(target_witness.completed_at)
+            if (
+                not 0
+                <= (now - witness_completed).total_seconds()
+                <= self.STEP_WITNESS_VALIDITY_SECONDS
+            ):
+                raise RecoveryExecutionValidationError(
+                    "Recovery step target evidence is not fresh enough for dispatch"
+                )
             if step.order > 1:
                 previous = self.load_step_result(preparation, claim, step.order - 1)
                 if previous is None or previous.outcome is not RecoveryStepOutcome.SUCCEEDED:
@@ -342,6 +384,11 @@ class GuardianRecoveryExecutionService:
                 "preparation_digest": preparation.preparation_digest,
                 "device_key": claim.device_key,
                 "steps_digest": preparation.steps_digest,
+                "pre_dispatch_witness_digest": target_witness.witness_digest,
+                "target_revalidated_at": target_witness.completed_at,
+                "observed_from_mode": target_witness.observed_mode,
+                "observed_product": target_witness.observed_product,
+                "observed_slot": target_witness.observed_slot,
                 "step_order": step.order,
                 "operation": step.operation.value,
                 "adapter_action_id": step.adapter_action_id,
@@ -388,6 +435,7 @@ class GuardianRecoveryExecutionService:
         operation_dispatched: bool,
         observed_result_sha256: str,
         observed_next_mode: str,
+        post_target_witness=None,
     ) -> GuardianRecoveryStepResult:
         """Persist one observed result exactly once; UNKNOWN never permits advance."""
 
@@ -400,6 +448,40 @@ class GuardianRecoveryExecutionService:
                 raise RecoveryExecutionValidationError(
                     "Recovery result does not match the durable current step intent"
                 )
+            from romverse.guardian.recovery_step_target import (
+                GuardianRecoveryStepTargetService,
+                GuardianRecoveryStepTargetWitness,
+                RecoveryStepTargetPhase,
+            )
+
+            if post_target_witness is not None:
+                if not isinstance(post_target_witness, GuardianRecoveryStepTargetWitness):
+                    raise RecoveryExecutionValidationError(
+                        "Recovery result target evidence is malformed"
+                    )
+                witness_phase = (
+                    RecoveryStepTargetPhase.POST_DISPATCH
+                    if outcome is RecoveryStepOutcome.SUCCEEDED
+                    else RecoveryStepTargetPhase.PRE_DISPATCH
+                )
+                GuardianRecoveryStepTargetService.validate(
+                    post_target_witness,
+                    claim,
+                    preparation,
+                    step,
+                    witness_phase,
+                )
+                witness_completed = _timestamp(post_target_witness.completed_at)
+                if (
+                    post_target_witness.observed_mode != observed_next_mode
+                    or not 0
+                    <= (now - witness_completed).total_seconds()
+                    <= self.STEP_WITNESS_VALIDITY_SECONDS
+                    or witness_completed < _timestamp(intent.recorded_at)
+                ):
+                    raise RecoveryExecutionValidationError(
+                        "Recovery result does not match its fresh post-dispatch target evidence"
+                    )
             if (
                 not isinstance(outcome, RecoveryStepOutcome)
                 or type(operation_dispatched) is not bool
@@ -409,6 +491,7 @@ class GuardianRecoveryExecutionService:
                     outcome is RecoveryStepOutcome.SUCCEEDED
                     and (operation_dispatched is not True or observed_next_mode != step.to_mode)
                 )
+                or (outcome is RecoveryStepOutcome.SUCCEEDED and post_target_witness is None)
             ):
                 raise RecoveryExecutionValidationError(
                     "Recovery step result is incomplete or conflicts with the sealed action"
@@ -429,6 +512,15 @@ class GuardianRecoveryExecutionService:
                 "outcome": outcome,
                 "operation_dispatched": operation_dispatched,
                 "observed_result_sha256": observed_result_sha256,
+                "result_target_witness_digest": (
+                    post_target_witness.witness_digest if post_target_witness is not None else ""
+                ),
+                "target_observed_at": (
+                    post_target_witness.completed_at if post_target_witness is not None else ""
+                ),
+                "target_observation_phase": (
+                    witness_phase.value if post_target_witness is not None else "none"
+                ),
                 "observed_next_mode": observed_next_mode,
                 "next_step_allowed": next_allowed,
                 "recovery_reassessment_required": not next_allowed,
@@ -471,6 +563,31 @@ class GuardianRecoveryExecutionService:
             return None
         result = self.load_step_result(preparation, claim, step_order)
         return RecoveryStepOutcome.UNKNOWN if result is None else result.outcome
+
+    def validate_grant(
+        self,
+        grant: GuardianRecoveryExecutionGrant,
+        preparation: GuardianRecoveryPreparation,
+        *,
+        now: datetime | None = None,
+    ) -> GuardianRecoveryExecutionClaim:
+        """Validate current in-memory authority without touching the phone."""
+
+        return self._validate_grant(
+            grant,
+            preparation,
+            now=now or self._now(),
+            require_unexpired=True,
+        )
+
+    @staticmethod
+    def step(
+        preparation: GuardianRecoveryPreparation,
+        step_order: int,
+    ) -> GuardianPreparedRecoveryStep:
+        """Return only a member of the exact sealed Recovery sequence."""
+
+        return GuardianRecoveryExecutionService._step(preparation, step_order)
 
     def load_claim(
         self,
@@ -586,6 +703,8 @@ class GuardianRecoveryExecutionService:
         if (
             not isinstance(grant, GuardianRecoveryExecutionGrant)
             or not grant.target_serial
+            or not isinstance(grant.reviewed_device, AndroidDevice)
+            or grant.reviewed_device.serial != grant.target_serial
             or not _hex(grant.ephemeral_token, 64)
         ):
             raise RecoveryExecutionValidationError("Recovery execution grant is malformed")
@@ -603,6 +722,15 @@ class GuardianRecoveryExecutionService:
         ):
             raise RecoveryExecutionValidationError(
                 "Recovery execution grant no longer identifies the exact target"
+            )
+        current_preparation = self.preparations.load(
+            preparation.incident_id,
+            preparation.route_id,
+            [grant.reviewed_device],
+        )
+        if current_preparation != preparation:
+            raise RecoveryExecutionValidationError(
+                "Recovery preparation or one of its mutable prerequisites changed"
             )
         if require_unexpired and now > _timestamp(current.expires_at):
             raise RecoveryExecutionValidationError("Recovery execution grant expired")
@@ -702,6 +830,15 @@ class GuardianRecoveryExecutionService:
             or intent.preparation_digest != claim.preparation_digest
             or intent.device_key != claim.device_key
             or intent.steps_digest != claim.steps_digest
+            or not _hex(intent.pre_dispatch_witness_digest, 64)
+            or not _timestamp(intent.target_revalidated_at)
+            or intent.observed_from_mode != step.from_mode
+            or intent.observed_product != claim.expected_product
+            or intent.observed_slot not in {"", "a", "b"}
+            or (
+                claim.recorded_prewrite_slot
+                and intent.observed_slot != claim.recorded_prewrite_slot
+            )
             or intent.step_order != step.order
             or intent.operation != step.operation.value
             or intent.adapter_action_id != step.adapter_action_id
@@ -748,6 +885,27 @@ class GuardianRecoveryExecutionService:
             or type(result.operation_dispatched) is not bool
             or (succeeded and result.operation_dispatched is not True)
             or not _hex(result.observed_result_sha256, 64)
+            or not (
+                (succeeded and _hex(result.result_target_witness_digest, 64))
+                or (not succeeded and _optional_hex(result.result_target_witness_digest, 64))
+            )
+            or not (
+                (
+                    result.result_target_witness_digest
+                    and bool(_timestamp(result.target_observed_at))
+                )
+                or (not result.result_target_witness_digest and not result.target_observed_at)
+            )
+            or result.target_observation_phase not in {"none", "pre_dispatch", "post_dispatch"}
+            or (
+                result.result_target_witness_digest
+                and result.target_observation_phase
+                != ("post_dispatch" if succeeded else "pre_dispatch")
+            )
+            or (
+                not result.result_target_witness_digest
+                and result.target_observation_phase != "none"
+            )
             or result.observed_next_mode not in {"android", "bootloader", "fastbootd", "unknown"}
             or (succeeded and result.observed_next_mode != step.to_mode)
             or result.next_step_allowed is not succeeded
@@ -764,12 +922,9 @@ class GuardianRecoveryExecutionService:
     @staticmethod
     def _validate_actions(preparation: GuardianRecoveryPreparation) -> None:
         for step in preparation.steps:
-            normalized = re.sub(r"[^a-z0-9]+", " ", step.adapter_action_id.casefold()).strip()
-            if (
-                not step.adapter_action_id.startswith(f"{preparation.recovery_adapter_id}.")
-                or "relock" in normalized.split()
-                or ("lock" in normalized.split() and "bootloader" in normalized.split())
-            ):
+            if not step.adapter_action_id.startswith(
+                f"{preparation.recovery_adapter_id}."
+            ) or _is_bootloader_lock_action(step.adapter_action_id):
                 raise RecoveryExecutionValidationError(
                     "Recovery sequence contains an untrusted or bootloader-locking action"
                 )
@@ -858,3 +1013,15 @@ def _timestamp(value: str) -> datetime:
 
 def _hex(value: object, length: int) -> bool:
     return isinstance(value, str) and bool(re.fullmatch(rf"[0-9a-f]{{{length}}}", value))
+
+
+def _optional_hex(value: object, length: int) -> bool:
+    return value == "" or _hex(value, length)
+
+
+def _is_bootloader_lock_action(value: str) -> bool:
+    tokens = re.sub(r"[^a-z0-9]+", " ", value.casefold()).split()
+    return "relock" in tokens or (
+        "lock" in tokens
+        and any(scope in tokens for scope in ("bootloader", "flashing", "oem", "critical"))
+    )

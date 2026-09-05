@@ -2,8 +2,8 @@
 
 ## Authoritative implementation checkpoint
 
-- Commit: `aedfc161491dc209bb220d348c8454e32a85ca9c`
-- Title: `Verify completed Recovery execution`
+- Commit: `bdb512e7e5d271e83c164a4ec7844cd7239e2fbe`
+- Title: `Orchestrate Recovery result verification`
 - Stage: Stage 1 — v0.2 Golden Foundation, Recovery/Guardian consequential chain
 - Build status: committed and locally verified; Product Assurance review pending
 - Working tree after the implementation commit: only the three pre-existing unrelated Companion
@@ -11,65 +11,76 @@
 
 ## Milestone state
 
-The software architecture now stands at:
+The implemented software chain remains:
 
 `Recommendation ✓ → Preparation ✓ → Fresh Live Target ✓ → Consent ✓ → Executor ✓ → Durable Result ✓ → Recovery Reassessment ✓ → Verification ✓`
 
-This is an implemented and simulated/tested software chain. It is not physical-hardware
-verification, production enablement, or release evidence.
+This checkpoint adds the application-owned continuation through the already approved Durable
+Result, Recovery Reassessment, read-only boot observation, and independent Verification
+boundaries. It does not enable physical execution or change any earlier authority boundary.
 
 ## Exact changes
 
-- Added an independent post-Recovery verification boundary that loads the exact persisted completed
-  aggregate and the same incident's exact completed-sequence reassessment. Callers cannot supply a
-  repair outcome, override authority, or choose the incident state.
-- Only `SEQUENCE_COMPLETED_AWAITING_REASSESSMENT` may enter boot observation or verification.
-  Known failure and UNKNOWN remain ineligible and preserve their existing stopped incidents.
-- Added read-only Recovery-linked boot observation. Each load revalidates the exact completed
-  aggregate, project, original source, Device Pack digest, current registry resolution, and
-  pseudonymous physical-device identity.
-- Verification requires fresh exact-device ADB evidence and a stable, post-result boot observation
-  linked to the aggregate digest. The build identity, fingerprint, slot, boot-complete state, and
-  uptime continuity must agree; first-time verification requires the latest sample to be no more
-  than 120 seconds old.
-- Recovery is marked `RECOVERED`, `repaired`, and `verified_reboot` only after the full evidence set
-  validates. The verification event binds the aggregate, reassessment, boot receipt, and fresh
-  device evidence into the same tamper-evident incident.
-- Idempotent re-entry returns the same verified incident only while its exact evidence remains
-  consistent. Drift or history mutation fails closed.
-- An exact completed Recovery operation starts a fresh boot session instead of mixing in an old
-  baseline or earlier installation. This also works after application restart when the older
-  linked receipt remains structurally valid; unreadable or tampered evidence is never overwritten.
-- Generic Recovery refresh still cannot reopen the executed route or reinterpret verification
-  evidence. No automatic or blind retry path was added.
-- No UI, adapter action, device command, execution authority, new confirmation, physical execution,
-  or release behavior was added.
+- Added an application-owned `RecoveryOperationSession` for one exact sealed Recovery preparation,
+  durable result, incident, local evidence store, and Device Pack registry. The session survives
+  screen and Guided/Expert presentation changes while the main window remains open.
+- The session begins by loading the exact durable result and invoking the existing same-incident
+  reassessment. It rejects split workspaces/registries, incident/result/Pack drift, executable
+  routes, phone-change evidence, retry authority, execution authority, or relock authority.
+- Completed results wait for fresh Android evidence. Known failure and UNKNOWN results become
+  terminal stopped states and cannot enter boot observation or trigger an automatic retry.
+- Each completed application scan is matched only to the sealed pseudonymous physical-device
+  identity. Missing, wrong, same-model/different, non-Android, conflicting, or ambiguous evidence
+  remains waiting and is never attributed to the incident.
+- Only a fresh exact ADB-authorized Android target enters the existing read-only Recovery boot
+  observation boundary. Stable evidence then enters the existing independent verification
+  boundary; only that boundary may mark the same incident recovered.
+- The main application owns exactly one active Recovery continuation and feeds it complete fresh
+  scan results independently of which screen is open. A competing result cannot replace a
+  non-terminal session.
+- Repair Center accepts updates only for its current exact incident and only when the supplied
+  incident is byte-for-byte equal to the durable record. A recovery activity entry is emitted only
+  on the genuine transition to repaired.
+- Corrected a real automatic-flow dead end in boot classification. Frequent application scans are
+  persisted at one-minute intervals, so comparing only the last two samples could never prove the
+  five-minute stability requirement. The classifier now validates an entire qualifying continuous
+  boot-complete window, including uptime, build fingerprint, slot, and pseudonymous identity.
+- A settling sample cannot be counted as boot-complete time; ROMVERSE waits until a later full
+  five-minute boot-complete window exists. Existing reboot and identity-drift detection remains
+  fail-closed.
+- No adapter, runner, command, consent, retry, hidden execution, phone write, or bootloader-relock
+  surface exists in the application session.
 
 Files in the implementation commit:
 
-- `src/romverse/repair/autopilot.py`
 - `src/romverse/rom/boot_observation.py`
-- `tests/test_recovery_execution_verification.py`
+- `src/romverse/ui/main_window.py`
+- `src/romverse/ui/recovery_operation_session.py`
+- `src/romverse/ui/repair_center.py`
+- `tests/test_boot_observation.py`
+- `tests/test_recovery_operation_session.py`
 
 ## Classification
 
-- Implemented: exact completed-result boot linkage and independent same-incident Recovery
-  verification.
-- Simulated/Tested: yes, on Linux/Fedora using deterministic fake adapters, transports, Android
-  device evidence, durable journals, and boot-observation receipts.
+- Implemented: application-owned exact-result continuation from durable result through
+  reassessment, fresh scan matching, read-only boot observation, and independent same-incident
+  verification; continuous-window boot classification.
+- Simulated/Tested: yes, on Linux/Fedora with deterministic local Recovery evidence, fake adapters,
+  simulated Android device scans, durable journals, boot receipts, and offscreen desktop UI.
 - Hardware Verified: no.
 - Released: no.
 
 ## Verification evidence
 
-- Full repository regression: **2,843/2,843 passed**.
-- Affected Guardian, Recovery, Repair, and boot-observation regression: **535/535 passed**; included
-  in the full-suite total and not added again.
-- Focused verification/reassessment/result/autopilot/boot suite: **65/65 passed**; included in the
-  totals above.
-- New verification cases: **10/10 passed**; included in the totals above.
-- Ruff lint: passed for all three changed files.
-- Ruff formatting check: passed for all three changed files.
+- Full repository regression: **2,851/2,851 passed**.
+- Affected Guardian, Recovery, boot-observation, Repair, device-selection, source-installation,
+  local-flash, project-flash, and Guided/Expert lifecycle regression: **650/650 passed**; included in
+  the full-suite total and not added again.
+- Focused operation-session, verification, reassessment, and boot-observation suite: **40/40
+  passed**; included in the totals above.
+- New checkpoint cases: **8/8 passed**; included in the totals above.
+- Ruff lint: passed for all six changed files.
+- Ruff formatting: applied and passed for all six changed files.
 - Git whitespace/diff check: passed.
 - Current product test failures: none.
 - Approved production logo hashes were rechecked and remain byte-exact:
@@ -79,38 +90,46 @@ Files in the implementation commit:
 
 ## Blockers and remaining limitations
 
-- The complete consequential chain is not yet connected to an application-owned operation session
-  or Guided presentation; this checkpoint establishes domain boundaries only.
+- Production physical Recovery execution remains disabled and was not wired or exercised. The new
+  handoff accepts only an already durable result; no real runner invokes it in this checkpoint.
+- Known failure and UNKNOWN remain safely stopped. Evidence-backed diagnosis/reconstruction
+  orchestration is still required before any new Recovery action may be prepared.
 - Post-repair subsystem health checks beyond stable exact-device Android boot evidence remain
   outside this slice.
-- Known failure and UNKNOWN remain safely stopped, but later diagnosis/reconstruction orchestration
-  is still required before any evidence-backed new recovery action can be prepared.
-- Physical Android hardware behavior is unverified and production physical execution remains
-  disabled/not authorized.
+- Physical Android hardware behavior is unverified.
 - Windows trusted-launcher anti-TOCTOU verification remains outstanding and is a release blocker.
-- The v0.2 Golden Foundation gate remains closed pending Product Assurance review and the remaining
-  Stage 1 release evidence.
+- The v0.2 Golden Foundation gate remains closed pending Product Assurance review and remaining
+  platform/hardware/release evidence.
 
 ## Guided friction and dead ends
 
-- No new modal, repeated confirmation, or raw executor detail was introduced.
-- Recovery-linked observation now escapes both an old unlinked baseline and a valid older linked
-  session after restart, closing a persistence dead end without accepting stale evidence.
-- Tampered prior evidence still fails closed and is not overwritten.
-- The domain chain no longer has a missing Verification boundary, but the end-user Guided journey is
-  not complete until application orchestration presents and advances these existing states calmly.
+- The application now retains one exact Recovery continuation across screen and experience-mode
+  changes; users do not need to reopen or manually refresh a particular page to preserve it.
+- Wrong, absent, ambiguous, or non-Android phones keep the incident waiting for the original phone;
+  they do not create a second incident, steal attribution, or produce a retry prompt.
+- Scan failure preserves the continuation and automatically resumes when fresh exact-phone evidence
+  becomes available.
+- The five-minute stability check now works with normal automatic scan cadence and no longer circles
+  indefinitely because only the last minute of evidence was compared.
+- No new modal or confirmation chain was introduced. Session machinery remains hidden from Guided;
+  Repair Center continues to render the same durable incident.
+- Failure, UNKNOWN, boot-attention, and malformed-evidence states stop safely rather than looping or
+  presenting a blind Retry action.
 
 ## Guardian, Recovery, and safety implications
 
-- Completion alone still does not mean recovered; only independent fresh exact-device boot evidence
-  can produce the Recovery claim.
-- Same-model/different-device substitution, source/project/Pack/contract drift, boot identity drift,
-  stale evidence, pre-execution observations, and mutated history fail closed.
-- Failure and UNKNOWN cannot enter boot linkage or verification and never gain automatic retry.
-- Every Recovery boot-receipt load revalidates the exact completed aggregate rather than trusting a
-  persisted digest alone.
-- Verification adds no execution authority and performs no device-changing action.
-- Bootloader relocking remains strictly forbidden with no override path.
+- Convenience, presentation context, and scan evidence flow into the session; execution authority
+  does not. The session's authority is permanently `none`.
+- Same-model/different-device substitution, ambiguous duplicate evidence, source/project/Pack
+  drift, build/fingerprint/slot drift, reboot evidence, stale or malformed state, and split local
+  evidence contexts fail closed.
+- Completion still does not mean recovered. Only the existing independent Verification boundary,
+  after a fresh exact-device continuous boot window, may mark the same incident recovered.
+- Durable SUCCESS evidence is preserved. Failure and UNKNOWN cannot enter verification, regain
+  authority, or trigger an automatic retry.
+- No raw serial is placed in the public session snapshot.
+- Bootloader relocking remains strictly forbidden with no Guided, Expert, Recovery, session, or
+  execution override path.
 
 ## Platform status
 
@@ -121,17 +140,16 @@ Files in the implementation commit:
 ## Feature-freeze and version-gate impact
 
 - 5 September 2026 pre-v1.0 feature freeze: compliant. This is the smallest Product
-  Assurance-approved Stage 1 verification boundary and adds no product feature scope.
+  Assurance-approved Stage 1 application orchestration slice and corrects an evidence-proven
+  automatic-flow dead end without adding product scope.
 - v0.2 Golden Foundation: remains **CLOSED**.
 
 ## Next proposed Build task
 
-After Product Assurance reviews this checkpoint, audit and implement only the smallest
-application-owned orchestration handoff needed to move the existing completed aggregate through
-same-incident reassessment, read-only boot observation, and independent verification. Preserve the
-one-decision consent model, keep failure/UNKNOWN stopped, and do not enable physical execution or
-broaden Stage 1. If Product Assurance identifies a remaining correctness boundary first, address
-that narrow boundary instead.
+Stop at this safe committed checkpoint for creator offline handover. Before any next consequential
+slice, Product Assurance should review this implementation and select the smallest remaining Stage
+1 correctness/release-gate task. Do not enable physical Recovery execution, broaden Stage 1, or
+start a new feature slice without that review.
 
 ## External actions
 
@@ -141,16 +159,16 @@ that narrow boundary instead.
 - Remote push: none.
 - Website change: none.
 - Companion source change by this Build slice: none.
-- Local action: scoped implementation commit and this repository handoff only.
+- Local action: scoped implementation commit, local lint/tests, and this repository handoff only.
 
 ## Product Assurance Review Requested
 
-- Confirm that exact completed aggregate + same-incident reassessment + fresh linked boot evidence
-  is sufficient for the software-level `RECOVERED` claim without collapsing Durable Result,
-  Reassessment, and Verification into one authority boundary.
-- Confirm that replacing only a structurally valid older boot session after a new exact Recovery
-  result closes the restart dead end while correctly refusing to overwrite tampered history.
-- Confirm whether the proposed application-owned orchestration handoff is the next bounded Stage 1
-  task, or identify a narrower remaining correctness boundary first.
-- Keep Windows trusted-launcher anti-TOCTOU and physical-hardware verification recorded as mandatory
-  later release gates.
+- Confirm that the application-owned session preserves all authority boundaries while correctly
+  carrying one exact durable result through reassessment, fresh scan matching, boot observation,
+  and independent verification.
+- Confirm that using the full application scan set, rather than selected-screen device state,
+  correctly prevents cross-device attribution and Guided navigation dead ends.
+- Confirm the continuous boot-complete window classifier closes the automatic cadence dead end
+  without weakening reboot, identity, slot, uptime, or boot-complete evidence requirements.
+- Select the next smallest Stage 1 task after this creator-requested stopping checkpoint; retain
+  Windows trusted-launcher and physical-hardware verification as mandatory release blockers.

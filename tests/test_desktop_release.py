@@ -14,12 +14,23 @@ from romverse.release import (
     build_release_manifest,
     create_signed_release_envelope,
     load_release_json,
+    release_version_order,
     validate_release_manifest,
     verify_release_artifacts,
     verify_release_bundle,
     verify_signed_release_envelope,
     write_release_json,
 )
+
+
+def test_release_version_order_accepts_pep_440_alpha_identity() -> None:
+    alpha = release_version_order("0.2.0a1")
+
+    assert alpha > release_version_order("0.1.0")
+    assert alpha < release_version_order("0.2.0a2")
+    assert release_version_order("0.2.0a10") < release_version_order("0.2.0b1")
+    assert release_version_order("0.2.0b1") < release_version_order("0.2.0rc1")
+    assert alpha < release_version_order("0.2.0")
 
 
 def _manifest(tmp_path: Path) -> tuple[dict[str, object], Path]:

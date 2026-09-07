@@ -3,7 +3,7 @@
 ## Authoritative checkpoint
 
 - Product Assurance authorization/base: `292cd09131c3b788c88a2ef66041e358c8615494`.
-- Evidence checkpoint: `ac22e2d57226069a8959ef93b43067fa3d539e57`.
+- Evidence checkpoint: `ac22e2db430ab603d1b8ee0bc891c70b5ff33889`.
 - Final handoff checkpoint: the follow-up commit containing this resolved status document on
   `linux/stage1-desktop-readiness`.
 - Stage: Stage 1 — v0.2 Golden Foundation, Companion first-run/offline acceptance.

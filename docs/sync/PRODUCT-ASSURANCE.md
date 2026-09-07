@@ -1,5 +1,86 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 1ecb0d1
+
+- Handoff commit: `1ecb0d1`
+- Implementation commit: `f61cbc54c203283e457a346bd327a99bec29d880`
+- Product Assurance authorization: `44a3332d975583747e576bfa2967c1bb0bfb0014`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — COMPANION STALE-RESULT INVALIDATION VERIFIED**
+
+### Decision
+
+The minimum Companion correctness repair is accepted. A reset, newer request, or Activity teardown
+now invalidates the older pairing generation before that worker can update current presentation,
+persist a token, or restore pairing preferences. The direct product Link milestone remains verified,
+and its retained evidence count is now stated exactly as 13 observations total / 12 authenticated.
+
+This repair adds no user decision, retry, network authority, execution authority, or feature. It
+closes the observed `APPROVAL TIMEOUT • TRY AGAIN` overwrite without repeating the product journey.
+
+### Independent repository and verification evidence
+
+- `f61cbc5` changes only `MainActivity.kt` and one new local unit test. `1ecb0d1` changes only the
+  Build handoff. Desktop source, Windows work, protocol, assets, and protected original-checkout
+  changes are untouched.
+- The synchronized generation gate gives each submitted request one current identity. Reset calls
+  invalidate before clearing session state, a newer begin supersedes the older identity, and
+  `onDestroy` closes the gate.
+- Initial request presentation, polling, telemetry/transfer collection, token-vault persistence,
+  paired preferences, late failure, and timeout all require the same current generation. A stale
+  worker exits or its main-thread action is rejected.
+- The deterministic regression proves stale timeout and stale approval cannot replace reset state or
+  restore token/preferences; only the newer attempt can apply; teardown rejects its pending result.
+- Product Assurance independently read the generated JUnit XML: the new gate test passed 1/1 and the
+  retained Link security tests passed 7/7, with zero failure, error, or skip. Android lint produced no
+  blocking error. Git whitespace and remote ancestry are clean.
+- Automatic retrieval of SDK Platform 35 revision 2 and Build-Tools 34.0.0 occurred only inside the
+  already dedicated removable-data Android toolchain. It did not change repository dependencies,
+  Fedora packages, user-wide SDK state, host security, or application behavior. Removing and
+  redownloading those valid components would add risk and waste, so no cleanup or follow-up is
+  required.
+
+### Safety, freeze, and Guided-friction review
+
+- Certificate pinning, exact safety-code comparison, Companion confirmation, separate Desktop
+  approval, remembered-session behavior, revocation, and privacy-filtered telemetry are preserved.
+- Link still grants no flash, wipe, root, unlock, relock, Recovery, command, or Guardian authority.
+- UNKNOWN-on-uncertainty, no blind retry, exact-device evidence, and permanent no-relock are unchanged.
+- No additional dialog, confirmation, route, or technical dead end was introduced.
+- The feature freeze is preserved: this is a bounded correctness repair to an existing Link flow.
+
+### Acceptance criteria result
+
+- Stale reset/new-attempt/teardown result rejection: **PASS**
+- Stale token/preference restoration prevention: **PASS**
+- Focused Android unit and security regression: **8/8 PASS**
+- Android compile/lint admission: **PASS; zero blocking lint errors**
+- Evidence wording: **CORRECTED — 13 total / 12 authenticated**
+- Emulator/full-journey/broad-suite repetition: **NOT PERFORMED; NOT REQUIRED**
+- Physical, Recovery, signing, publication, release, or relock action: **NONE**
+
+### Approved next bounded task
+
+Linux stops at this clean approved checkpoint. The remaining emulator-versus-physical-USB
+classification defect is assigned to the Windows branch as the single owner because that branch now
+contains the completed Desktop listener lifecycle correction in the same source subsystem. Linux must
+not duplicate it or begin unrelated work merely to stay busy.
+
+Further Linux Stage-1 product work now crosses a creator-controlled gate: controlled physical Android
+verification and production Recovery trust/enrollment remain unauthorized. Product Assurance will
+assign a Linux task only after a non-overlapping freeze-safe correction appears or Steve explicitly
+authorizes the next physical/production boundary.
+
+### Gate status
+
+- Fedora runnable development build and inert Guided journey: **VERIFIED**
+- Companion standalone and direct Desktop Link: **VERIFIED**
+- Companion stale-result invalidation: **VERIFIED**
+- Emulator/physical-USB Desktop classification: **ASSIGNED TO WINDOWS NEXT**
+- Windows Device Engine readiness: **listener correction complete; stale OS prompt still requires human dismissal**
+- v0.2 Golden Foundation: **CLOSED pending physical, production-trust, signing, and release gates**
+- Physical hardware, production Recovery/trust, signing, publication, and release: not authorized
+
 ## Reviewed checkpoint: c4bcdfa
 
 - Handoff commit: `c4bcdfa6b46e377c4947b8e5f1a9de52012edd45`

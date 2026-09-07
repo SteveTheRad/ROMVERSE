@@ -1,5 +1,82 @@
 # ROMVERSE Build Status
 
+## Pinned Windows development build and fresh no-phone readiness — Product Assurance review requested
+
+- Product Assurance approval: `a561c1f5bc5ab370c810a728a28a1a935e34c96f`.
+- Approved checkpoint: `6dbe7ef7f3cf0b9afe8c5ad1ccca88a93ea05284`.
+- Platform Tools pin implementation: `1908689733771a97dc1ec6e845adc4f169cb943f`.
+- Branch: `windows-launcher-authorized-work`.
+- Status: exactly one new unsigned Windows development build was produced from the approved source.
+  In one fresh disposable workspace, the existing visible Platform Tools setup accepted the approved
+  archive digest, reached the truthful ready/no-device Command Deck, and retained that state after
+  one normal restart. Stop for independent Product Assurance review.
+
+### Exactly one approved unsigned build
+
+- Exact command, run once:
+  `.venv\\Scripts\\python.exe scripts\\build_desktop_executable.py --output-directory build\\windows-dev-platform-tools-pin --work-directory build\\windows-dev-platform-tools-pin-pyinstaller`
+- Result: successful with PyInstaller `6.22.2`, Python `3.12.10`, and
+  `Windows-11-10.0.26200-SP0` on Windows 11 Home 64-bit.
+- Executable:
+  `build/windows-dev-platform-tools-pin/ROMVERSE/ROMVERSE.exe`.
+- Size: `6,269,143` bytes.
+- SHA-256: `dded5c0daa92a280349e931e7138cb2d63113ef2f9f94327a6c29fe03010c22b`.
+- Authenticode status: `NotSigned`, as required for this development-only checkpoint.
+- No second build, installer, ZIP, APK, signature, publication, or release was produced.
+
+### One fresh visible Platform Tools setup
+
+- Fresh workspace, confirmed absent before first launch:
+  `C:\\Work\\ROMVERSE-Platform-Tools-Pin-Fresh-20260908`.
+- Both launches used the new executable with:
+  `--workspace C:\\Work\\ROMVERSE-Platform-Tools-Pin-Fresh-20260908 --skip-onboarding`.
+- The first launch truthfully showed `Device Engine needs attention` and
+  `Resolve Platform Tools`. The visible setup was opened exactly once and selected only the existing
+  ROMVERSE-managed ADB / Windows Platform Tools requirement.
+- ROMVERSE reported:
+  `Downloaded and prepared: platform-tools (45f4d63113e8…) ROMVERSE refreshed the tool inventory automatically.`
+- The retained managed receipt binds the exact official source
+  `https://dl.google.com/android/repository/platform-tools-latest-windows.zip` to archive size
+  `8,044,989` bytes and SHA-256
+  `45f4d63113e895ebde0c90f194099a4676b6ac653bd28d54314a9e022bbc1a99`.
+- The installed package reports `Pkg.Revision=37.0.1`. The exact workspace-local component hashes
+  are:
+  - `adb.exe`: `b4a6b455702684652cccf7b46258b29e653538904359a58fd4931cf3ef286b3f`;
+  - `fastboot.exe`: `b2d9cbff4ce9ae7eb448cfc831bafc867935f50f5be38f8f81057fd7eb3b8d86`.
+- Closing setup performed only the approved workspace-local host verification before the Command
+  Deck changed to `Connect your Android device`, `No Android device detected`, and
+  `No device connected`. No `Scan for device` or other device control was selected.
+
+### One normal restart and truthful retained state
+
+- ROMVERSE closed cleanly after the first ready state. Process inspection confirmed no remaining
+  `ROMVERSE.exe` before the one restart.
+- The same executable and workspace were launched exactly once more. The restarted Command Deck
+  again showed `Connect your Android device`, `No Android device detected`, `No device connected`,
+  and `No Android transport is visible` without reopening setup or redownloading the archive.
+- ROMVERSE then closed cleanly again. `logs/crash/runtime-fault.log` records two starts and two clean
+  closes with no runtime fault.
+- The no-phone readiness route generated only bounded, read-only, host-targeted empty inventory
+  records: three `adb devices -l` and eight `fastboot devices -l` checks. All returned without a
+  device target; the audit contains zero non-host targets and zero non-read-only operations.
+
+### Verification reuse, scope, and safety
+
+- Per the approved bounded task, no test suite was rerun. Product Assurance approval `a561c1f`
+  already records the accepted focused result of **36/36 passed**, Ruff success, and whitespace
+  success for the exact pinned source at checkpoint `6dbe7ef`.
+- This checkpoint changes only this Build handoff. Protected Companion files remain clean and
+  untouched; no application, Guardian, Device Engine, Recovery, launcher, test, or release source
+  changed.
+- No phone or emulator was present, requested, awaited, connected, selected, or targeted. No
+  device-scoped ADB/Fastboot, Recovery, APK installation, production adapter/trust, driver,
+  firewall, global PATH, signing, publication, release, force-push, destructive action, blind retry,
+  unlock, lock, or relock occurred.
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty,
+  independent verification, feature freeze, and permanent no-relock remain intact.
+- Stop for independent Product Assurance review. Do not begin another correction, product slice,
+  hardware task, packaging task, or release activity until an exact matching verdict is committed.
+
 ## Windows Platform Tools 37.0.1 archive pin — Product Assurance review requested
 
 - Product Assurance approval: `08826543ace12b621828f86e74877dcdd20e8e0c`

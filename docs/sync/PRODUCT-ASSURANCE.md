@@ -1,5 +1,61 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 6c8411c — fresh-user Guided onboarding
+
+- Handoff commit: `6c8411c`
+- Implementation commit: `eaa3d615912a4eefddd44ee3b032562047ddadc3`
+- Product Assurance authorization/base: `4528cea4cb4331afd78392f41edc91c56a8a57e2`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — GUIDED FIRST-RUN INTENT CORRECTED**
+
+### Decision and evidence
+
+The first-run defect was real and the correction is the minimum truthful fix. The wizard now names
+the exact internal alpha, explicitly selects Guided Mode, explains that setup performs no phone
+action, and hands that typed selection into the settings saved before Command Deck opens. It does
+not grant Guardian, device, build, installation or Recovery authority.
+
+Product Assurance inspected the exact source/test diff and confirmed that only application startup,
+the setup wizard and one focused launch/settings regression changed. Build's focused result of
+**5/5 passed**, Ruff success and Git whitespace success are accepted as proportional evidence. The
+Product Assurance checkout does not contain the project's isolated test dependencies, so no
+independent pytest result is claimed. Direct inspection confirms the settings handoff flows through
+the existing `launch_settings` persistence boundary and the production-widget journey remains
+no-engine/no-device with managed auto-start disabled.
+
+The unchanged Fedora and Windows ZIPs remain valid evidence for the earlier alpha packaging and
+no-device startup checkpoints, but they predate this correction and must not be represented as
+containing the improved onboarding. Refresh each platform artifact exactly once after synchronizing
+this approved source; do not repeat broad suites or unrelated journeys.
+
+### Vision, freeze and safety result
+
+- Guided friction and internal-alpha truthfulness: **PASS**
+- Feature freeze: **PASS — minimum first-run intent correction only**
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN, no blind retry,
+  independent verification and permanent no-relock: **PRESERVED**
+- Phone, Recovery, signing, publication and release activity: **NONE**
+
+### Approved next bounded task
+
+Refresh the Fedora `0.2.0-alpha.1` unsigned development artifact exactly once from this approved
+source. Verify its versioned filename, SHA-256/tree and one fresh first-run Guided/no-phone journey
+that observes the corrected alpha identity and reaches the truthful Platform Tools or no-device
+state. Do not run a full suite or another source correction unless that exact packaged journey finds
+a concrete defect. Update the Build handoff, commit and push, then stop for Product Assurance.
+
+In parallel, Windows may synchronize only `eaa3d61` onto the approved Windows branch, run the same
+focused launch/settings tests plus lint/whitespace, and refresh its unsigned alpha executable/ZIP
+exactly once. No phone/emulator target, device-scoped ADB/Fastboot, Recovery, Companion change,
+system installation, signing, publication, release, merge/history rewrite, force-push or relock.
+
+### Gate status
+
+- Fresh-user Guided source journey: **VERIFIED**
+- Refreshed Fedora and Windows alpha artifacts containing the correction: **NEXT PLATFORM MILESTONE**
+- v0.2 Golden Foundation: **CLOSED**
+- Physical hardware, production Recovery/trust, signing, publication and release: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: 677dc0b — cross-platform alpha source convergence
 
 - Handoff commit: `677dc0b`

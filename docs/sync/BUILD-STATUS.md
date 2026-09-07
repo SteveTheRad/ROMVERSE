@@ -1,5 +1,83 @@
 # ROMVERSE Build Status
 
+## Windows Platform Tools 37.0.1 archive pin — Product Assurance review requested
+
+- Product Assurance approval: `08826543ace12b621828f86e74877dcdd20e8e0c`
+- Approved checkpoint: `894f588d0e488654332e9feb088b943293b44428`
+- Implementation commit: `1908689733771a97dc1ec6e845adc4f169cb943f`
+- Branch: `windows-launcher-authorized-work`
+- Status: the exact approved Windows Platform Tools 37.0.1 archive pin is implemented and focused-
+  tested. The existing ready workspace remains accepted without receipt changes or redownload. Stop
+  for independent Product Assurance review.
+
+### Exact bounded correction
+
+- Official Windows source retained exactly:
+  `https://dl.google.com/android/repository/platform-tools-latest-windows.zip`.
+- Approved version: `37.0.1`.
+- Approved archive SHA-256:
+  `45f4d63113e895ebde0c90f194099a4676b6ac653bd28d54314a9e022bbc1a99`.
+- `install_official_archive` binds that source to the approved digest internally. A caller may omit
+  the digest or supply the same approved value, but cannot substitute another purported pin.
+- The complete bounded download is hashed and compared before ZIP parsing, staging-directory
+  creation, extraction, receipt publication, or replacement of the previous managed package.
+- A mismatch fails with the actionable message that Windows Platform Tools 37.0.1 did not match the
+  approved SHA-256 and a ROMVERSE pin update is required. It does not learn or approve the observed
+  digest.
+- The production worker passes the same explicit approved digest for Windows. Linux behavior remains
+  unchanged and does not inherit the Windows pin.
+- The production receipt verifier independently requires the exact same digest whenever the receipt
+  names the official Windows Platform Tools source. A self-recorded different digest cannot activate.
+- Existing canonical/legacy path handling, source/schema/size bounds, exact file set, per-file hashes,
+  containment, regular-file, no-link/no-junction, and idempotent workspace-local PATH gates remain.
+
+### Focused Windows verification
+
+- Exact final command:
+  `.venv\\Scripts\\python.exe -m pytest tests/test_toolchain_download.py tests/test_toolchain_progress.py::test_forge_arsenal_unknown_length_download_stays_indeterminate tests/test_toolchain_progress.py::test_forge_arsenal_worker_pins_windows_platform_tools -q --basetemp build/pytest-platform-tools-pin-20260908-final`
+- Result: **36/36 passed** on Windows 11 x64 / Python 3.12.10.
+- Correct-digest coverage proves the bounded archive reaches the existing extraction, receipt, and
+  activation gates only when it matches its approved digest.
+- Wrong-digest coverage proves failure occurs before extraction/publication and retains the prior
+  package unchanged; the temporary partial file is removed.
+- Receipt coverage proves a Windows receipt with any other archive digest cannot activate even when
+  its per-file hashes are internally consistent.
+- Worker coverage proves Windows routes the exact official source, `adb.exe`/`fastboot.exe`, and the
+  approved 37.0.1 digest together; the adjacent Linux progress test proves no Windows pin leaks into
+  the Linux route.
+- Existing focused receipt security/persistence coverage remains included in the 36 passing cases.
+- Ruff lint passed for the source and both affected test files. The changed download test file is
+  Ruff-formatted. `git diff --check` passed. No broad suite was run.
+
+### Existing workspace and build evidence reused
+
+- Source-backed production verification still accepts the retained receipt at:
+  `C:\\Work\\ROMVERSE-Link-Lazy-Frozen-20260907\\tools\\downloads\\platform-tools\\managed-package.romverse`.
+- The receipt remains 520 bytes with its original `8 September 2026 05:24:02` timestamp, proving the
+  correction did not edit it or redownload Platform Tools.
+- The previously verified unsigned executable remains:
+  `build/windows-dev-receipt-fixed/ROMVERSE/ROMVERSE.exe`, size `6,268,565` bytes, SHA-256
+  `c6dcafcf56164b75c896c6195417299f9caebc8d2f60d592c73a7e0c2b2b11b9`.
+- Product Assurance explicitly allowed reuse unless the source correction strictly required a new
+  build. The digest gate and worker/verifier behavior were decisively exercised in-process, while the
+  ready/no-device runtime and restart evidence were already accepted at `0882654`; therefore no
+  duplicate build, app launch, or user journey was performed.
+
+### Safety, scope, and next gate
+
+- Only `src/romverse/ui/toolchain_center.py`, the two focused toolchain test files, and this handoff
+  changed. Protected Companion files remain clean and untouched.
+- No phone, emulator, network ADB target, USB target, physical-device request/wait, ADB/Fastboot
+  execution, Recovery action, APK/driver/package installation, global PATH or firewall/security
+  change, production trust/signing, publication, release, destructive action, force-push, blind
+  retry, or bootloader lock/relock occurred.
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty,
+  independent verification, feature freeze, and permanent no-relock remain intact.
+- If Google changes the moving archive, acquisition now remains blocked until a separately reviewed
+  ROMVERSE update changes the approved version and digest.
+- Stop for independent Product Assurance review. Do not begin another product, runtime, hardware,
+  signing, or release slice without the exact matching committed verdict.
+
 ## Windows managed-receipt persistence correction — Product Assurance review requested
 
 - Product Assurance correction: `a556d7da7b4d3525bc5fb1a516cbcdcedaaed799`

@@ -2,221 +2,278 @@
 
 ## Authoritative checkpoint
 
-- Source and Product Assurance authorization commit:
-  `1bc798bbca7a0f6a88dfa2514a25f130245c3d33`
+- Implementation commit: `b86aca25e5cf2078fdcae375812e59f0327d89b5`
+- Title: `Update Link instrumentation confirmation flow`
+- Product Assurance authorization commit:
+  `a015b2fdd7e7cc2c23cd1ad5f44ed8e8ddcb8f0a`
 - Branch: `linux/stage1-desktop-readiness`
 - Stage: Stage 1 — v0.2 Golden Foundation contained Desktop-to-Companion Link integration
-- Milestone result: **FAILED EXISTING LINK INSTRUMENTATION — 11 PASS / 1 FAIL / 0 SKIP**
-- Scope result: approved environment correction worked; fixture reached `ready`; existing Link test
-  failed before pairing; all evidence preserved and no retry or product change attempted
-- Working-tree target state: clean after this handoff commit. The separate original checkout's
-  three protected Companion changes and pre-existing Windows launcher drafts were not edited,
-  staged, discarded, built from, or committed.
+- Milestone result: **VERIFIED — 12 PASS / 0 FAIL / 0 SKIP**
+- Scope result: the stale instrumentation interaction now follows the current visible safety-code
+  confirmation path; the complete contained TLS Link journey passes without changing production
+  application behavior.
+- Working-tree target state: clean after the implementation commit except for this handoff update.
+  The separate original checkout's three protected Companion changes and pre-existing Windows
+  launcher drafts were not edited, staged, discarded, built from, or committed.
 
-## Product Assurance authorization
+## Repository coordination
 
-- Product Assurance verdict `1bc798b` validated the prior pre-endpoint environment stop and
-  authorized one repeat using only the existing verified ROMVERSE virtual-environment interpreter.
-- The required result was 12 passes, zero failures, and zero skips with two fresh health snapshots,
-  encrypted-session reconnection, paired-state UI evidence, and `execution_authority: none`.
-- Any source-resolution, dependency, target, artifact, TLS, pin, safety-code, test, fixture, runtime,
-  or emulator failure required an immediate evidence-preserving stop without another retry or any
-  app, test, fixture, environment, protocol, or host-security change.
+- The latest exact Linux branch and Product Assurance handoff were fetched before work.
+- `docs/sync/PRODUCT-ASSURANCE.md` authorized only the bounded existing-test correction recorded
+  above.
+- `docs/sync/AUTONOMOUS-BUILD-PROTOCOL.md` is not present on the Linux branch. Its committed version
+  at `origin/windows-launcher-authorized-work` was read directly without checking out, merging, or
+  modifying Windows work. This checkpoint follows its separate-branch, scoped-commit, evidence,
+  push, and mandatory-stop rules.
+- Git/source truth was used as authority; no chat-to-chat injection or concurrent application-source
+  editing occurred.
 
-## Source and dependency resolution proof
+## Exact change
 
-The exact approved invocation context was verified before starting the emulator:
+Only
+`companion/app/src/androidTest/kotlin/com/radforge/romverse/companion/MainActivityInstrumentedTest.kt`
+changed:
 
-- Interpreter:
+- The existing TLS Link test explicitly opens the existing Link destination.
+- It populates only the existing endpoint, certificate fingerprint, and six-digit code fields.
+- It proves the retired direct checkbox path remains unchecked, disabled, and non-clickable.
+- It activates the existing `CONNECT WIRELESSLY` action.
+- It inspects the real visible/accessibility confirmation dialog and requires its title, prompt,
+  exact certificate-derived safety code, read-only encrypted-Link explanation, explicit statement
+  that no flash/root/wipe/unlock/relock/command authority is granted, and visible
+  `YES • CODE MATCHES` action.
+- It confirms through that visible accessibility action; no reflection, private-field access,
+  preference mutation, test-only production hook, or direct confirmation-state bypass is used.
+- All pre-existing post-confirmation assertions remain: TLS pinning, two fresh health snapshots,
+  encrypted remembered-session storage and reconnection, schema-six Live Console, Device DNA,
+  Ascension, `Execution authority: NONE`, and permanent bootloader-relock prohibition.
+
+No production Activity, navigation, transport, fixture, protocol, dependency, Gradle, asset,
+Device Pack, Recovery adapter, desktop runtime, or approved logo changed.
+
+## Build and artifact admission
+
+The approved application source was unchanged. The instrumentation APK alone was rebuilt with the
+existing offline Android/Gradle toolchain:
+
+- Build tasks: 64 actionable; 4 executed and 60 up to date.
+- Build result: successful.
+- Application APK:
+  `companion/app/build/outputs/apk/debug/app-debug.apk`
+  - Size: 9,060,239 bytes
+  - SHA-256: `62bc530d5f077e3e34ad71002caa24303a584bf4661f56d2cc338c976bfb5a2b`
+  - Inventory: 874 ZIP entries
+  - Result: byte-identical to the Product Assurance-approved application APK
+- Instrumentation APK:
+  `companion/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk`
+  - Size: 411,737 bytes
+  - SHA-256: `5239d6d7efc4b4ce574cc3c9c84cc62783c8e22bfccee306921108711949df5c`
+  - Inventory: 9 ZIP entries; ZIP integrity passed
+  - Package: `com.radforge.romverse.companion.test`
+  - Minimum / target / compile SDK: 26 / 35 / 35
+  - Debuggable AndroidJUnitRunner package targeting the Companion application
+  - Signer: one Android Debug RSA-2048 certificate
+  - Certificate SHA-256:
+    `b1e1bd6e1c199d6bc1649998546a20559e3b0f979cb401ef487b0cde7f993cb1`
+  - APK signature: v2 verified; v1, v3, v3.1, v4, and source stamp absent
+
+Both hashes were revalidated immediately before emulator installation. No artifact was installed
+on a phone or host system.
+
+## Contained runtime admission
+
+- Host: Fedora Linux with SELinux Enforcing and unchanged.
+- Existing clean AVD: `romverse_api35_clean`, Android 15 / API 35 / x86-64, Pixel 7 profile.
+- Launch: one visible host-GPU emulator, wiped data, snapshots disabled, no audio, no metrics.
+- Sole admitted target: `emulator-5556:device`.
+- Guest admission: `sys.boot_completed=1` and `ro.kernel.qemu=1`.
+- No physical, simultaneous, ambiguous, unauthorized, or changing Android target appeared.
+- Existing verified interpreter:
   `/run/media/stevetherad/Data/ROMVERSE-Recovered-2026-09-01/source/.venv/bin/python`
-- Python: 3.14.7
-- User-site packages: disabled with `PYTHONNOUSERSITE=1`
-- Explicit `PYTHONPATH`:
-  `/run/media/stevetherad/Data/ROMVERSE-Linux-Desktop-Readiness/src`
-- `cryptography`: exactly 46.0.7, resolved from the existing virtual environment's `site-packages`
-- `romverse`, `romverse.companion.pairing`, `security`, `telemetry`, and `transport`: all resolved
-  beneath the clean `ROMVERSE-Linux-Desktop-Readiness/src` directory
-- No ROMVERSE application module resolved from the separate protected original checkout
-- Exact fixture script:
-  `/run/media/stevetherad/Data/ROMVERSE-Linux-Desktop-Readiness/scripts/companion_link_emulator_fixture.py`
+- Python 3.14.7 with `PYTHONNOUSERSITE=1`; `cryptography` 46.0.7 came from that existing
+  environment, while all ROMVERSE modules resolved only from this clean Linux worktree.
+- No package or environment was installed, removed, upgraded, downgraded, or mutated.
 
-No package was installed, removed, upgraded, downgraded, or otherwise modified. No environment was
-created or mutated.
+The committed fixture used one ephemeral TLS identity and reported:
 
-## Emulator, target, and artifact admission
+- State order: `ready` → `approved` → `first-health-snapshot` → `complete`.
+- Certificate SHA-256:
+  `d3b34103b3fd66d5f8e0b22f45bd548136375f6c3cb4bf7bb89b5ea2d61d4da1`
+- Exact displayed safety code: `D3B3-4103-B3FD-66D5-F8E0-B22F`.
+- Model: `sdk_gphone64_x86_64`.
+- Final health: `OPTIMAL`.
+- Execution authority: `none` at ready and complete.
 
-- Existing isolated AVD: `romverse_api35_clean`, Android 15 / API 35 / x86-64, Pixel 7 profile
-- Launch: visible window, host GPU, port 5556, wiped data, snapshots disabled, no audio, no metrics
-- Host renderer: AMD Radeon RX 9070 XT through RADV/Mesa
-- Host SELinux: Enforcing and unchanged
-- Boot result: successful in 16,917 ms
-- Sole admitted target: `emulator-5556:device`
-- Guest before shutdown: `ro.kernel.qemu=1`, `sys.boot_completed=1`
+The one-time pairing code remains only in an expired external evidence log and is not stored in the
+repository. The captured sequence shows the device still unpaired while the real safety dialog is
+visible; approval follows the explicit visible affirmative action. No unexpected client or request
+was observed.
 
-Before launch, ADB reported no target. The emulator remained the sole target for the complete
-bounded run. After controlled shutdown, ADB again reported no target. No physical, simultaneous,
-ambiguous, unauthorized, or changing target appeared.
+Containment remains honest: the production local-network fixture briefly bound `0.0.0.0:8765` and
+used its existing discovery behavior. Containment came from ephemeral identity, short lifetime,
+explicit approval, bounded execution, and zero authority—not from loopback or network-namespace
+isolation. Product Assurance previously accepted that boundary for this one run.
 
-The exact approved APK hashes were revalidated immediately before successful emulator installation:
-
-- Application APK SHA-256:
-  `62bc530d5f077e3e34ad71002caa24303a584bf4661f56d2cc338c976bfb5a2b`
-- Instrumentation APK SHA-256:
-  `ec6776528384b26c29b748299f80285474cc64ed40fe2b2519efa6b4040a86b5`
-
-## Contained fixture evidence
-
-The exact committed fixture started with the approved environment and emitted:
-
-- State: `ready`
-- Emulator endpoint: `10.0.2.2:8765`
-- Pairing-code lifetime: 3 minutes
-- Ephemeral certificate SHA-256:
-  `82abd2d7c8d47c7d42f203752f47e7987f065d50ea34f143d4aaf7a8c427d072`
-- Safety code: `82AB-D2D7-C8D4-7C7D-42F2-0375`
-- Execution authority: `none`
-
-The one-time pairing code remains only in the external short-lived log and is not copied into the
-repository. No reusable bearer credential was created.
-
-The fixture remained at `ready`; it emitted no `approved`, `first-health-snapshot`, `complete`, or
-`timeout` state. It received no pairing request and no health snapshot. It was interrupted and
-closed immediately after the test failure, and no process or TCP listener remained.
-
-Full fixture log:
-
-- Path:
-  `/run/media/stevetherad/Data/ROMVERSE-Android-Emulator-Toolchain/romverse-link-fixture-success.log`
-- Size / lines: 237 bytes / 1 line
-- SHA-256: `07d6cbdb23d72d8b22e98841a9afcd579e81016ac742eb1d142dfc95b0d19632`
-
-Containment limitation requiring review: the committed `CompanionTransport` bound its short-lived
-listener to `0.0.0.0:8765` and starts its existing discovery broadcaster. No pairing request or
-external connection was observed, the ephemeral endpoint lived only for this bounded run, and it
-was closed immediately on failure; however, the binding is broader than loopback and must not be
-misrepresented as network-namespace isolation. Build did not change the committed fixture or host
-firewall to narrow it.
-
-## Exact instrumentation result
-
-The runner received only the ephemeral `romverseLinkHost`, `romverseLinkCode`, and
-`romverseLinkFingerprint` values from that fixture.
+## Exact integration result
 
 - Runner:
   `com.radforge.romverse.companion.test/androidx.test.runner.AndroidJUnitRunner`
-- Complete inventory: 12 tests
-- Passed: 11
-- Failed: 1
-- Skipped: 0
-- Duration: 8.464 seconds
-- Final result: `FAILURES!!!` / `Tests run: 12, Failures: 1`
-- Failure:
-  `tlsPinnedLinkCarriesLiveConsoleAndReconnectsAfterRecreation`
-- Exception: `java.util.NoSuchElementException: Collection contains no element matching the predicate`
-- Boundary: failure occurred while locating the expected pairing input in the launched Activity,
-  before any fixture pairing request, approval, health snapshot, TLS-pinned telemetry exchange, or
-  encrypted remembered session existed
+- Complete inventory: 12 tests.
+- Passed: 12.
+- Failed: 0.
+- Skipped/assumption-failed: 0.
+- Duration: 18.737 seconds.
+- Final result: `OK (12 tests)`.
+- No suite, class, or test was isolated, repeated, reordered, excluded, or weakened after the run.
 
-Full runner log:
+The passing Link test demonstrated:
 
-- Path:
-  `/run/media/stevetherad/Data/ROMVERSE-Android-Emulator-Toolchain/romverse-link-instrumentation-runner.log`
-- Size / lines: 13,562 bytes / 236 lines
-- SHA-256: `ca19e7914c5ef971c1080697c6f62aa132e513e7e307370fc80d78f1c8fae7bd`
-- Raw terminal status codes: 11 success (`0`), 1 failure (`-2`), 0 assumption skips (`-4`)
+1. explicit navigation to Link;
+2. endpoint, certificate pin, and one-time code entry;
+3. disabled legacy bypass;
+4. exact safety-code dialog and no-command copy;
+5. affirmative visible confirmation;
+6. TLS-pinned pairing;
+7. two fresh health snapshots;
+8. schema-six Live Console evidence;
+9. Device DNA and Ascension evidence;
+10. encrypted remembered-session reconnection after Activity recreation;
+11. execution authority remaining NONE; and
+12. bootloader relocking remaining forbidden.
 
-The AndroidRuntime error-only log is empty (0 bytes; SHA-256
-`e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`).
-The failure is an instrumentation assertion/setup failure, not an Android process crash.
+The Android error-priority log contains emulator/system keystore, task-persister, binder, and Google
+speech-service noise. It contains no ROMVERSE `FATAL EXCEPTION`, ROMVERSE process crash,
+instrumentation failure, or test failure.
 
-## Unmet acceptance criteria
+## External evidence
 
-- 12 passes / zero failures / zero skips: not met.
-- Fixture pairing approval: not reached.
-- Two fresh Companion health snapshots: not reached.
-- TLS pin and safety-code runtime exchange: not reached.
-- Encrypted-session reconnect after Activity recreation: not reached.
-- Paired Link, schema-six Live Console, Device DNA, and Ascension UI evidence: not reached.
-- `execution_authority: none`: positively emitted by the fixture; no execution authority existed,
-  but the post-pairing UI boundary was not reached.
+External evidence is deliberately outside Git and contains no production credential:
 
-No visual paired-state evidence was captured because the failure-stop boundary preceded pairing.
-No standalone static or host-side test was substituted for the failed integration result.
+- Fixture log: 444 bytes / 4 lines
+  - SHA-256: `9ddcbda1f97f062772239f89cc92a36b9387b7ed21921b8d2701378a95f8072b`
+- Runner log: 8,958 bytes / 179 lines
+  - SHA-256: `4490e6b7199de0e36c477528823a3083cae4237caba24717bbe269fa2e1a9a45`
+- Error-priority log: 3,864 bytes / 40 lines
+  - SHA-256: `9c84f7c70b508c235622a3bd628751fddbb081e0fa34ac6667117af9144153b6`
+- Screenshot sequence: 90 bounded PNG frames plus `SHA256SUMS`
+  - Confirmation dialog frame 26 SHA-256:
+    `3b2f0455cb7532304e1e85c5752a575e69b07f5f5d430b7e870b53f49a5447f7`
+  - Confirmation dialog frame 27 SHA-256:
+    `248c9484b67eea451633b3cd8cc683be4a6ef5782a4365b75f7d270d969cb238`
+  - Live Console frame 36 SHA-256:
+    `6ad329f5809c950d0c084aa7e5e221c68142ddb33851fd1d39bff9b4165a434f`
+  - Full frame manifest SHA-256:
+    `b8622616e42a9e1bd2fd464cde46ce1cb38938a44cac0716b0ec271df6cb7d9a`
+  - Readable 25-frame Link sequence contact sheet SHA-256:
+    `4ab2ec8c5670abe980676c3d6637b9b0907c043905ba8241c9c405367d3ceae8`
+
+The screenshot sampler captured the current dialog and Live Console but did not hold the transient
+paired Link, Device DNA, or Ascension pages long enough for a separate static frame. Their existing
+runtime assertions all passed; no second execution was performed merely to manufacture screenshots.
+
+## Non-double-counted regression evidence
+
+- Current affected Companion integration: **12/12 passed**. This is the complete current
+  instrumentation inventory and the only new runtime total for this correction.
+- Current build/static admission: instrumentation Kotlin compilation, debug application assembly,
+  debug instrumentation assembly, APK integrity, identity, signature, Git whitespace, and exact
+  one-file diff checks all passed.
+- The prior runnable Fedora checkpoint's full Linux Python regression remains
+  **2,881/2,881 passed** at implementation commit
+  `1300dde1b79304149b8acfafe0e3f272d800cd37`. It was not rerun or added to the 12 Android tests
+  because this correction changes only Android instrumentation test interaction, not Desktop or
+  Python runtime source.
+- The prior 79-test Recovery/UI/state and 240-test Fedora Desktop/build/package focused groups are
+  subsets of that 2,881-test result and are not counted again.
+
+## Runnable Fedora product status
+
+The already approved runnable Fedora development checkpoint remains intact:
+
+- Source, isolated wheel, one-folder executable, and extracted portable ZIP startup/shutdown passed.
+- All 19 canonical Desktop routes opened.
+- Project opening, durable persistence, Guided/Expert shared state, and the complete inert
+  **Scan → Match → Prepare → Consent → Result → Reassessment → Verification** journey passed.
+- Local development artifacts remain unsigned, ignored outputs; nothing was published or installed
+  system-wide.
+- This Android test-only correction changes none of that source or evidence.
 
 ## Classification
 
-- Implemented: no ROMVERSE implementation change.
-- Simulated/Tested: genuine API-35 emulator, exact debug APKs, real ephemeral TLS fixture startup,
-  and complete 12-test instrumentation execution with one genuine failure.
-- Hardware Verified: no physical Android hardware was used.
-- Contained Link Runtime Verified: no.
+- Implemented: current Companion Link instrumentation now exercises the authoritative confirmation
+  UX instead of a retired bypass.
+- Simulated/Tested: genuine API-35 emulator, real ephemeral TLS fixture, exact development APKs,
+  complete 12-test runtime, visual capture, and prior Fedora inert Guided journey.
+- Hardware Verified: Fedora host build/launch is genuine host verification. No physical Android
+  hardware or phone operation occurred; emulator evidence is not hardware verification.
 - Released: no.
 
-## Blocker and next decision
+## Guided friction and remaining limitations
 
-The approved Python-environment correction is successful. The remaining blocker is inside the
-existing contained Link instrumentation path: the Link test launches `MainActivity` and cannot find
-the expected pairing input before it can contact the ready fixture.
+- The stale test-only pre-pairing dead end is resolved; the contained Link journey now completes.
+- The user retains one meaningful safety-code decision. The legacy checkbox cannot be activated and
+  no additional confirmation chain was introduced.
+- Raw executor machinery is not exposed and no execution authority was added.
+- A production-signed Recovery adapter, controlled physical phone verification, Windows release
+  readiness, and release signing remain separate mandatory gates.
+- The Fedora artifact is still a local development package, not an RPM, Flatpak, signed installer,
+  or release.
+- Network containment retains the previously reviewed short-lived LAN-listener limitation.
 
-Build did not rerun the suite, isolate or skip the failing test, change its order, modify Activity
-state, navigate manually, alter the app/test/fixture, or weaken the 12/12 acceptance target. Product
-Assurance must inspect the committed UI/test contract and authorize a specific bounded correction
-or additional read-only diagnosis before any further attempt.
+## Guardian, Recovery, and safety implications
 
-## Guided friction and safety implications
+- Guardian remains the only execution gate.
+- Pairing, UI confirmation, telemetry, fixture text, preparation, consent, historical identity, and
+  this test grant no flash, wipe, root, unlock, relock, Recovery, or command authority.
+- Exact-device evidence and same-incident attribution remain unchanged.
+- UNKNOWN remains durable, never advances, and never triggers blind or automatic retry.
+- Independent Recovery reassessment and verification remain mandatory.
+- Bootloader locking/relocking remains permanently prohibited with no Guided, Expert, Recovery,
+  adapter, server, Recipe, test, or model override.
 
-- The integration test encountered a pre-pairing UI reachability dead end: the expected pairing
-  input was absent from the Activity view hierarchy used by the test.
-- No end user flow was changed, and this checkpoint does not yet prove whether the dead end affects
-  interactive user navigation or only the committed instrumentation setup.
-- Guardian remains the sole execution gate.
-- Fixture authority remained `none`; no flash, wipe, root, unlock, relock, approval, Recovery, or
-  arbitrary-command authority existed.
-- Exact-device evidence, UNKNOWN-on-uncertainty, no blind retry, consent separation, durable
-  evidence, and independent verification remain unchanged.
-- Bootloader locking/relocking remains permanently prohibited with no override.
+## Platform and version-gate status
 
-## Platform and gate status
-
-- Fedora Desktop runnable build and inert Guided journey: Product Assurance verified.
-- Companion standalone API-35 emulator runtime: Product Assurance verified.
-- Contained Desktop/Companion Link integration: failed before pairing; not verified.
-- Physical Android, production trust, production signing, production Recovery, publication, and
-  release: outstanding and not authorized.
-- Windows: remains on its separate track; no platform merge or duplicate work occurred.
-- v0.2 Golden Foundation: remains **CLOSED**.
-- 5 September 2026 pre-v1.0 feature freeze: preserved; no source, dependency, behavior, protocol,
-  test, asset, or authority change occurred.
+- Fedora/Linux Desktop: genuinely built, launched, packaged, reopened, and fully regressed at the
+  approved runnable Fedora checkpoint; unchanged here.
+- Companion Android: standalone and contained TLS Link behavior genuinely verified on one API-35
+  emulator; no physical-hardware claim.
+- Windows: separate working branch and Product Assurance track; no Linux merge, duplication, or new
+  Windows verification claim in this checkpoint.
+- 5 September 2026 pre-v1.0 feature freeze: compliant. This is the exact minimum test correction
+  requested by Product Assurance and adds no product feature or execution capability.
+- v0.2 Golden Foundation: remains **CLOSED** pending production trust/signing, controlled physical
+  hardware, Windows, Recovery, and release gates.
 
 ## Next proposed Build task
 
-Stop for Product Assurance review. Do not rerun instrumentation, change navigation or pairing state,
-modify or weaken the test, fixture, app, protocol, environment, or host security, use a phone,
-enable Recovery, merge platforms, publish, or release without a new explicit verdict.
+Stop for Product Assurance review of this contained Link checkpoint. Do not begin another
+consequential slice, merge a platform branch, perform a phone operation, enable production Recovery,
+or publish/release until the repository verdict authorizes the next bounded direction.
 
 ## External actions
 
-- Existing verified Python environment: used read-only; no package/environment mutation.
-- Visible host-GPU emulator launch: one successful bounded session.
-- Exact approved APK installation: emulator only.
-- Fixture endpoint: one short-lived ephemeral instance; closed immediately on failure.
-- Instrumentation: one complete 12-test run with 11 pass / 1 fail / 0 skip.
-- Physical phone connection/operation: none.
-- Emulator shutdown: controlled; post-run ADB inventory empty.
-- Host security or SELinux change: none.
-- ROMVERSE source/test/fixture/config/resource/asset change: none.
-- Protected Companion file or Windows launcher change: none.
-- Production signing, production trust, or Recovery execution: none.
+- Physical phone connection or operation: none.
+- ADB/Fastboot against physical hardware: none.
+- APK installation: application and instrumentation APKs installed only inside the wiped emulator.
+- APK installation on a phone: none.
+- System-wide package installation or dependency change: none.
+- Fixture: one short-lived TLS instance; completed normally and closed.
+- Emulator: one clean host-GPU session; controlled shutdown; final ADB inventory empty.
+- Final TCP listener on port 8765: none.
+- Host security, firewall, or SELinux change: none.
+- Production Recovery execution/trust/signing: none.
+- Protected Companion or Windows draft change: none.
+- Approved logo or asset change: none.
 - Website change: none.
-- Publication/release: none.
-- Remote action: normal push of only this `docs/sync/BUILD-STATUS.md` handoff on
-  `linux/stage1-desktop-readiness`; no force-push and no unrelated branch push.
+- Publication/release/merge/force-push: none.
+- Remote action: normal push of only this scoped Linux branch checkpoint is intended after this
+  handoff commit; no unrelated branch will be pushed.
 
 ## Product Assurance Review Requested
 
-- Review the precise pre-pairing `NoSuchElementException`, test/UI route expectations, and whether
-  the correct bounded fix belongs in app navigation state, test setup, or an existing fixture input.
-- Review the committed fixture's `0.0.0.0` listener/discovery behavior against the intended contained
-  emulator-only scope before authorizing another runtime attempt.
-- Confirm no Link integration, snapshot, reconnect, physical-hardware, Recovery, production trust,
-  signing, release, or publication claim is permitted from this result.
+- Confirm the correction faithfully exercises the current one-decision Link confirmation contract
+  and closes the stale-test dead end without weakening the application safety flow.
+- Confirm the exact 12/12 run, ordered zero-authority fixture evidence, APK admission, and bounded
+  visual evidence satisfy the contained Link integration checkpoint.
+- Confirm the approved runnable Fedora development build remains valid and v0.2 correctly remains
+  closed pending the existing production, Windows, hardware, and release gates.

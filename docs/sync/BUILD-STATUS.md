@@ -2,168 +2,158 @@
 
 ## Authoritative checkpoint
 
-- Implementation commit: `f61cbc54c203283e457a346bd327a99bec29d880`
-- Title: `Invalidate stale Companion Link attempts`
-- Product Assurance authorization: `44a3332d975583747e576bfa2967c1bb0bfb0014`
-- Branch: `linux/stage1-desktop-readiness`
-- Stage: Stage 1 — v0.2 Golden Foundation Companion Link correctness
-- Milestone: minimum Companion stale-result invalidation correction
-- Product result: an older pairing request can no longer overwrite current presentation or
-  authorization state after reset, a newer attempt, or Activity teardown.
-- Working-tree target state: clean after the implementation commit except for this handoff update.
-  The separate original checkout's protected Companion modifications and Windows launcher drafts
-  remain unchanged and uncommitted there.
+- Product implementation remains unchanged at `f61cbc54c203283e457a346bd327a99bec29d880`.
+- Physical-journey authorization and checkpoint base: `c4043b871d7029ffd513bdda33d8e7a1fb5de103`.
+- Branch: `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation controlled physical Android verification.
+- Milestone: production Fedora Device Engine / First Light read-only journey against one explicitly
+  authorized physical USB target.
+- This handoff is the only repository change in the checkpoint commit. Product source, tests,
+  packaging, assets, Companion, Windows launcher work, and the protected original checkout are
+  unchanged.
 
-## Exact changes
+## Exact journey and observed product result
 
-- Added a bounded, synchronized generation gate to the existing Companion Link pairing lifecycle.
-- Every valid new pairing submission receives a fresh attempt identity and invalidates any older
-  request generation.
-- Visible pairing reset invalidates the current generation before clearing the session, UI, and
-  remembered trust state.
-- Activity teardown permanently closes its generation gate, so its pending worker cannot update the
-  destroyed presentation or restore authorization.
-- Initial request results, polling, late success, secure-storage failure, and final timeout are
-  accepted only for the current generation.
-- Session-token vault persistence and pairing-preference writes now occur within the guarded main
-  thread completion boundary. Reset/new-attempt events and late authorization writes therefore have
-  deterministic ordering; the final current user action wins.
-- Added one deterministic local unit regression that proves an older timeout and approval cannot
-  replace reset state, restore a token, or restore pairing preferences; it also proves a newer attempt
-  accepts only its own result and teardown rejects its pending result.
-- Corrected the retained direct-product evidence wording: the Desktop log contains **13 total
-  snapshot observations, of which 12 are authenticated**. The first is the expected unauthenticated
-  waiting observation. The milestone required two authenticated observations.
-- No Desktop source, protocol, certificate-pinning rule, safety-code behavior, consent surface,
-  telemetry schema, Recovery path, Guardian policy, approved asset, Windows source, or build/release
-  configuration changed.
+- Launched the existing production Fedora Desktop through `romverse.app.main` with
+  `--skip-onboarding` and a fresh isolated `/tmp` workspace.
+- The production UI's automatic reconnect-safe Device Engine path retained exactly one authorized
+  target through its identity-stabilization and completed telemetry passes.
+- The UI visibly reported `Connected via ADB`, `CONNECTED • READ ONLY`, `Xiaomi 17 Pro Max`,
+  codename `popsicle`, and `Android 17`.
+- Privacy-safe Device DNA evidence reported model `2509FPN0BC`, product/codename `popsicle`, API 37,
+  build `CP2A.260605.016`, ROM `OS4.0.0.32.XPBCNXM`, security patch `2026-08-01`, boot complete,
+  active slot `_a`, Verified Boot `orange`, bootloader unlocked, no active root evidence, Companion
+  present, and zero probe errors.
+- The production ROM Studio navigation control was activated through its visible Qt button. In the
+  fresh workspace it truthfully showed `No ROM projects yet`, `AWAITING PROTECTED FIRMWARE`, and
+  Device DNA awaiting an evidence-backed protected firmware import.
+- First Light remained **NOT STARTED**. No exact project, successful Guardian execution, linked boot
+  observation, or verified first boot existed, so ROMVERSE did not manufacture First Light or
+  Recovery success.
+- Guardian remained `unverified`; Guardian verification was false and execution authority remained
+  `none`. Device Pack readiness separately remained flash-locked.
+- ROMVERSE closed cleanly and no ROMVERSE or Fastboot process remained.
+
+## Privacy-safe evidence
+
+- Raw device serial was used only transiently in memory to enforce same-target continuity and was
+  never printed into this handoff, evidence JSON, screenshots, or workspace records.
+- A post-run byte-for-byte scan found **0 raw-serial occurrences** in the isolated workspace.
+- The evidence uses only a one-way SHA-256 target token truncated to 24 hexadecimal characters:
+  `e0e6a3bd1e06a7b52df30300`.
+- External local evidence (not staged or published):
+  - Command Deck screenshot SHA-256:
+    `f3968b87acb810cb4bdb340cc616b988f11280360071c0d8e5bb05753bca6f0c`.
+  - ROM Studio screenshot SHA-256:
+    `d120386c0ae344119e93bfec0c771f47760c1b598aedb8fdd950dd5a96215e33`.
+  - Sanitized UI evidence JSON SHA-256:
+    `43f624c2e8c07fdca292898232f4d2364bf8f0fe1489f3ddb320179d3f772827`.
+- The fresh workspace also recorded its normal redacted activity, Device Atlas readiness, offline
+  archive matches, and guidance-only remediation receipts. Its activity ledger explicitly says
+  `nothing uploaded` for the offline lookup.
 
 ## Result classification
 
-- Implemented: Companion request-generation invalidation, guarded UI/authorization result
-  application, and deterministic regression coverage.
-- Simulated/Tested: pure deterministic lifecycle regression plus existing Link security invariants;
-  Android compilation and static analysis passed.
-- Hardware Verified: no. No emulator or physical Android target was started for this correction.
+- Implemented: no new implementation; this checkpoint verifies the existing product.
+- Simulated/Tested: no simulator, emulator, fixture, or mocked device was used for this checkpoint.
+- Hardware Verified: **yes, narrowly** — one real authorized Xiaomi 17 Pro Max was identified over
+  explicit physical USB and its production read-only ADB telemetry was rendered by the Fedora UI.
+- Not Hardware Verified: First Light, Guardian execution, Recovery execution/result/reassessment,
+  flashing, reboot/mode transition, Companion installation, production trust, signing, or release.
 - Released: no.
 
 ## Non-double-counted verification
 
-- Focused current Android unit result: **8/8 passed**.
-  - `LinkPairAttemptGateTest`: 1/1.
-  - Existing `DesktopLinkSecurityTest`: 7/7.
-- The first isolated 1/1 run of the new regression is a subset of the final 8/8 run and is not added.
-- `:app:compileDebugKotlin` and test compilation: passed as part of the focused test gate.
-- `:app:lintDebug`: passed; zero blocking Android lint result.
-- Git whitespace validation: passed.
-- No APK rebuild, instrumentation run, emulator journey, broad Android inventory, Fedora journey, or
-  Python regression was repeated.
-- Prior evidence remains unchanged and is not added to this checkpoint:
-  - Companion instrumentation inventory: **12/12 passed** at `b86aca2`.
+- Current checkpoint: one completed production Fedora UI physical journey; no automated test suite
+  was rerun because the journey exposed no correctness defect requiring a focused regression.
+- The verification session used two short UI launches: the first captured only the expected bounded
+  identity-stabilization snapshot and closed; the second completed that same reconnect-safe product
+  journey and produced the evidence above. These are **not** counted as two completed journeys.
+- The earlier creator-authorized read-only admission/preflight that established the one explicit USB
+  target is already captured by Product Assurance in `c4043b8` and is not counted again.
+- Retained prior accepted regression evidence remains unchanged and is not added here:
   - Full Fedora/Linux Python regression: **2,881/2,881 passed** at `1300dde`.
-  - The prior 79-test and 240-test groups remain subsets of that 2,881 result.
-
-## Corrected direct-product evidence
-
-- Direct real Fedora Desktop-to-Companion Link remains verified at handoff `c4bcdfa` and Product
-  Assurance review `44a3332`.
-- Both products displayed the same certificate-derived safety code and retained their explicit
-  approval boundaries.
-- The retained 17-event Desktop log contains ready, approved, 13 snapshot observations,
-  reconnected, and reset in order.
-- Snapshot observation 1 is unauthenticated waiting state; observations 2 through 13 are the
-  **12 authenticated observations**.
-- Every retained event reports `execution_authority: none`.
-- Remembered-session reconnect, visible revocation, and old-credential rejection remain verified.
+  - Companion focused unit/security result: **8/8 passed** at `f61cbc5`.
 
 ## Guided friction and dead ends
 
-- The observed stale `APPROVAL TIMEOUT • TRY AGAIN` overwrite after a visible reset is corrected at
-  its source boundary. Late approval, rejection, network failure, and timeout from an invalidated
-  request are ignored rather than presented as retry, success, or current state.
-- This adds no confirmation, modal, new route, or user decision. The one existing phone identity
-  confirmation and separate Desktop approval remain unchanged.
-- Emulator multicast discovery previously required the existing manual endpoint/fingerprint/code
-  route. That emulator-only usability limitation is unchanged and was not in this correction.
-- Product Assurance identified emulator-versus-physical-USB classification as a separate Desktop
-  defect. It remains queued for one owner after the active Windows listener lifecycle checkpoint;
-  Linux did not duplicate or begin it.
+- Target identification and Device DNA presentation completed without a dialog or user decision
+  after USB authorization was already present.
+- The fresh workspace correctly stops at project creation/protected firmware import. This is an
+  actionable prerequisite, not a circular route and not execution readiness.
+- First Light is correctly unavailable until the exact project has a successful Guardian-linked
+  execution and independently verified first boot. No extra confirmation or false success appeared.
+- The Command Deck started its existing automatic repair-research presentation for the observed
+  unlocked-bootloader security posture. It completed with two source-attributed, guidance-only
+  candidates and `execution_authority: guidance-only`. This did not block navigation or grant phone
+  authority, but Product Assurance should confirm whether this automatic presentation is the desired
+  calm Guided behavior on first discovery.
 
 ## Guardian, Recovery, and safety implications
 
-- A stale Link worker can no longer restore a bearer token, pairing preferences, trusted state, or
-  success presentation after the current lifecycle invalidates it.
-- Certificate pinning, exact safety-code comparison, explicit confirmation, remembered-session
-  behavior, reset/revocation, and read-only telemetry are preserved.
-- Companion Link retains zero flash, root, wipe, unlock, relock, command, Recovery, or Guardian
-  authority.
-- Guardian remains the only execution gate.
-- Exact-device evidence, same-incident Recovery, durable UNKNOWN, no blind retry, and independent
-  reassessment/verification were not changed.
+- Guardian granted no execution authority. The scan was read-only and Device Atlas explicitly kept
+  flash locked despite matching the device to an existing Device Pack identity.
+- No project/source/consent/preparation/executor/result/reassessment/verification chain was created.
+- Exact-device continuity failed closed in the external observation harness if target count,
+  authorization state, or the sealed one-way target identity changed.
+- UNKNOWN-on-uncertainty, no blind retry, same-incident Recovery, independent verification, and
+  Guardian-only authority were unchanged.
 - Bootloader locking/relocking remains permanently prohibited with no override.
 
 ## Platform and version-gate status
 
-- Fedora runnable development build and inert Guided journey: **VERIFIED** and unchanged.
-- Companion standalone API-35 runtime: **VERIFIED** at the prior checkpoint.
-- Direct Fedora Desktop-to-Companion product Link: **VERIFIED**.
-- Companion reset-versus-late-result presentation: correction implemented and focused-tested; now
-  awaiting independent Product Assurance review.
-- Windows optional-listener lifecycle: separate active Windows correction; untouched here.
-- Physical Android hardware and production Recovery/trust/signing: not run or authorized.
-- 5 September 2026 pre-v1.0 feature freeze: preserved. This is the minimum correctness repair to an
-  existing asynchronous presentation/authorization boundary, not a new feature.
-- v0.2 Golden Foundation remains **CLOSED** pending the existing Windows, physical, production-trust,
-  signing, and release gates.
-
-## Environment note
-
-The first focused Gradle invocation discovered that the dedicated removable-data Android SDK did not
-contain SDK Platform 35 revision 2 or Build-Tools 34.0.0. Android's build tooling automatically
-downloaded those two components into
-`/run/media/stevetherad/Data/ROMVERSE-Android-Emulator-Toolchain`. No Fedora system package, user-wide
-SDK, application dependency declaration, repository source, firewall, SELinux policy, or host
-security setting changed. The automatic dedicated-toolchain provisioning was not required again and
-is disclosed for Product Assurance because this slice was intended to be dependency-neutral.
+- Fedora production Desktop startup, read-only physical USB Device Engine, privacy masking, visible
+  Command Deck state, ROM Studio navigation, and clean shutdown: **HARDWARE VERIFIED** for this one
+  authorized phone and host only.
+- Windows: unchanged; no Windows claim is made by this checkpoint.
+- Companion hardware workflow: not exercised. The app only observed that the Companion package was
+  present; it did not launch, pair, update, or install it.
+- 5 September 2026 pre-v1.0 feature freeze: preserved. No product capability or UI was added.
+- v0.2 Golden Foundation remains **CLOSED**. This closes only the bounded Linux read-only physical
+  discovery evidence gap; production Recovery/trust, signing, Windows release readiness, packaging,
+  publication, and release gates remain open.
 
 ## Blockers and remaining limitations
 
-- The corrected behavior has deterministic JVM coverage and Android compile/lint evidence, but was
-  not rerun through an emulator because Product Assurance explicitly prohibited repeating the full
-  journey and did not require a bounded emulator run when the defect could be proven deterministically.
-- The separate Desktop emulator/USB source-classification correction remains queued.
-- Windows release readiness, physical-device verification, production-signed Recovery adapter trust,
-  release signing, packaging, publication, and release remain open gates.
+- First Light cannot be hardware-verified in a fresh empty workspace and must not be fabricated; it
+  still requires an exact project, protected firmware, successful Guardian execution, linked boot
+  evidence, reassessment, and independent verification.
+- The observed phone/host result cannot be generalized to every Android device or Windows.
+- Production Recovery execution, trust enrollment, physical flashing, signing, packaging,
+  publication, and release remain outside this authorization.
 
 ## Next proposed Build task
 
-Stop for independent Product Assurance review of this exact implementation and handoff. Do not begin
-the Desktop source-classification correction, another Companion slice, a full journey, broad suites,
-hardware operation, Recovery, signing, packaging, publication, or release without the next repository
-verdict.
+Stop for independent Product Assurance review of this exact physical read-only checkpoint. Do not
+start another hardware journey or consequential slice until repository review authorizes it.
 
 ## External actions
 
-- Physical phone connection/operation: none.
-- Emulator start or APK installation: none.
-- Firmware, partition, bootloader, flash, wipe, root, unlock, relock, or Recovery operation: none.
-- Production execution/trust/signing: none.
-- System-wide installation or dependency change: none.
-- Dedicated Android SDK auto-provisioning: Platform 35 revision 2 and Build-Tools 34.0.0, as disclosed
-  above.
-- Desktop source or Windows branch change: none.
-- Protected original-checkout Companion/Windows draft change: none.
-- Website, logo, publication, release, merge, or force-push: none.
-- Remote action: normal push of the scoped implementation and this handoff is intended after final
+- Physical phone: read-only ADB identity and health-property probes only, through the production
+  Device Engine. The phone was released immediately after the completed snapshot.
+- Phone mutation: none — no APK install, reboot, mode transition, Fastboot/Recovery entry, flash,
+  wipe, unlock, root, trust enrollment, signing, locking, or relocking.
+- Automatic intelligence: the enabled existing product service evaluated source-attributed guidance
+  for the unlocked-bootloader posture and wrote a guidance-only receipt in the isolated workspace.
+  Its configured provider path attempted bounded public search GET requests to Reddit and Android
+  Stack Exchange using non-serial device/error fingerprint text during the short launches. No raw
+  serial, account credential, local file, private evidence, or command was sent; no candidate from
+  those community searches was accepted into the resulting receipt. The resulting official-catalog
+  guidance granted no action or execution authority.
+- Host mutation: fresh isolated `/tmp` workspace and local evidence files only; no system-wide
+  install, dependency change, firewall/SELinux change, or persistent settings change.
+- Publication/release/merge/force-push: none.
+- Remote action: only the normal push of this documentation-only Linux checkpoint is intended after
   repository verification.
+- Protected Companion files, original-checkout Windows drafts, website, logos, and unrelated work:
+  untouched.
 
 ## Product Assurance Review Requested
 
-- Confirm the generation gate and guarded main-thread persistence satisfy reset/new-attempt/teardown
-  stale-result invalidation without adding Guided friction.
-- Confirm the 8/8 focused tests, Android compile, and lint gates are proportional and sufficient.
-- Confirm the evidence count is now exact: 13 total observations / 12 authenticated.
-- Review the disclosed automatic provisioning of two components into the dedicated removable-data
-  Android SDK and determine whether any follow-up environment action is required.
-- Keep the emulator/physical-USB classification defect assigned to one owner after the Windows
-  checkpoint; Linux requests no authorization to begin it here.
+- Confirm the production UI evidence satisfies the authorized physical Device Engine / First Light
+  boundary while correctly treating First Light as not started rather than successful.
+- Confirm the two-launch stabilization disclosure is acceptable as one completed bounded journey.
+- Review the automatic guidance-only repair-research presentation on first discovery for Guided
+  calmness; no implementation change is requested by Build at this checkpoint.
+- Confirm Linux may remain stopped with v0.2 closed pending the remaining platform, production-trust,
+  signing, Recovery, packaging, and release gates.

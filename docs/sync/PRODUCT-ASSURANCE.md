@@ -1,5 +1,75 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 96edc08 — corrected local-build durable resume
+
+- Handoff commit: `96edc08`
+- Correction implementation: `dcd73cca2fdeedc0992c5dd6793a6297eccd76e9`
+- Required correction: `54bdefcdfdeafc34578c64c35ee0b7ab83d47e85`
+- Original implementation: `3475b45d653ef2ed9ca49802804f385e6c00cdb5`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — EXACT LOCAL-BUILD INTERRUPTION/RESUME VERIFIED**
+
+### Decision
+
+Both held findings are corrected exactly. A stop already requested at a durable boundary dispatches
+nothing and leaves resumable evidence; a request received during a bounded step still pauses only
+after that step is observed and checkpointed. Completed logs now have their own exact path, size,
+nanosecond mtime and SHA-256 evidence and must survive the same strict revalidation as outputs.
+
+This closes the demonstrated restart loop without adding blind retry, weakening UNKNOWN or granting
+any device authority. Conservative UNKNOWN after an already-recorded intent remains the correct
+boundary even when the underlying host command may have reported failure, because ROMVERSE cannot
+durably prove which side effects preceded that report.
+
+### Independent repository and acceptance evidence
+
+- `dcd73cc` changes only the local-build executor and its focused contract tests; `96edc08` changes
+  only the Build handoff. The correction is an exact descendant of `54bdefc` and Git whitespace
+  checks pass.
+- The pre-intent callback is checked before checkpoint revalidation, intent recording and dispatch.
+  The existing post-step check remains after output/log evidence is durably recorded.
+- Attempt parsing and validation require one unique log-evidence entry for every completed-step log.
+  Resumption verifies exact containment under the versioned log directory, regular non-symlink file
+  type, size, mtime and SHA-256 before any next intent.
+- Build's focused correction result: **19/19 passed**. Ruff and whitespace checks passed. The earlier
+  accepted 66-case affected result and one production-UI simulated journey are not double-counted.
+- Schema-three attempt evidence is corrected in place because it was neither approved nor released;
+  final successful local-build receipts remain schema two and versions 1/2 remain read-compatible.
+
+### Vision, freeze and safety result
+
+- Existing Guided workflow and restart recovery: **PASS**
+- Evidence integrity and exact-prefix continuation: **PASS**
+- UNKNOWN-on-uncertainty and zero blind redispatch: **PASS**
+- Feature freeze: **PASS — minimum correctness repair only**
+- Guardian-only authority, exact-device evidence, consent separation, same-incident Recovery,
+  independent verification and permanent no-relock: **PRESERVED**
+- Physical phone, ADB/Fastboot target, Recovery, production trust/signing, publication and release:
+  **NONE**
+
+### Approved next bounded task
+
+Begin the creator-approved **v0.2.0-alpha.1 development identity** checkpoint on Linux only. Update
+the authoritative package/runtime and visible desktop version identity from `0.1.0`/`v0.1` to the
+PEP 440 package version `0.2.0a1` and the user-facing label `0.2.0-alpha.1`. Update only directly
+coupled build commands, filename expectations and focused version/readiness tests; do not rewrite
+historical reports, Device Pack versions, fixture package versions or unrelated protocol versions.
+
+Produce exactly one unsigned Fedora development artifact from the approved source, verify its exact
+versioned filename/hash and one bounded startup/no-device smoke, and record it as an internal alpha
+development build—not a signed, published or production release. Do not rerun the full suite or a
+duplicate Guided/Recovery journey. Commit and push the platform-neutral identity/source changes and
+Linux handoff, then stop for Product Assurance so Windows can synchronize the approved local-resume
+and alpha identity changes once and perform one consolidated Windows rebuild.
+
+### Gate status
+
+- Fedora local-build interruption/resume: **VERIFIED**
+- Windows synchronization of local-resume correction: **BATCH WITH ALPHA IDENTITY AFTER REVIEW**
+- Next milestone: **v0.2.0-alpha.1 INTERNAL DEVELOPMENT BUILD**
+- v0.2 Golden Foundation: **CLOSED**
+- Physical hardware, production Recovery/trust, signing, publication and release: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: d9f9f9f — local-build durable resume
 
 - Handoff commit: `d9f9f9f`

@@ -382,6 +382,7 @@ class DeviceEngine:
                 "emulator": "Connected to a local Android emulator (read-only inspection)",
                 "network": "Connected over network ADB (read-only inspection)",
                 "usb": "Connected over physical USB ADB (read-only inspection)",
+                "adb": "Connected over an unconfirmed local ADB transport (read-only inspection)",
             }.get(transport, "Connected over ADB (read-only inspection)"),
             errors=tuple(errors),
             boot_completed=(boot_completed_value == "1") if boot_completed_value else None,
@@ -470,7 +471,9 @@ def _adb_transport(
         for key in ("ro.kernel.qemu", "ro.boot.qemu", "ro.hardware.virtual_device")
     ):
         return "emulator"
-    return "usb"
+    if discovered.get("usb", "").strip():
+        return "usb"
+    return "adb"
 
 
 def _positive_int(value: str) -> int | None:

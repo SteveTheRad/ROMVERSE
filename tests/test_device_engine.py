@@ -16,7 +16,7 @@ class FakeAdbRunner:
             (
                 "devices",
                 "-l",
-            ): "List of devices attached\nSERIAL123 device product:test model:Rad_Phone device:rad transport_id:1\nWAIT unauthorized usb:1-2\n",
+            ): "List of devices attached\nSERIAL123 device usb:1-2.3 product:test model:Rad_Phone device:rad transport_id:1\nWAIT unauthorized usb:1-2\n",
             ("-s", "SERIAL123", "shell", "getprop"): "\n".join(
                 [
                     "[ro.product.manufacturer]: [RadForge]",
@@ -161,6 +161,7 @@ def test_adb_connection_source_distinguishes_emulator_network_and_physical_usb()
         ("emulator-5554", False, False, "emulator"),
         ("LOCALQEMU", True, False, "emulator"),
         ("192.168.1.17:5555", False, False, "network"),
+        ("LOCALADB", False, False, "adb"),
         ("SERIAL123", False, True, "usb"),
     )
 
@@ -175,6 +176,8 @@ def test_adb_connection_source_distinguishes_emulator_network_and_physical_usb()
             assert "emulator" in device.connection_note.lower()
         elif expected == "network":
             assert "network adb" in device.connection_note.lower()
+        elif expected == "adb":
+            assert "unconfirmed local adb" in device.connection_note.lower()
         else:
             assert "physical usb" in device.connection_note.lower()
 

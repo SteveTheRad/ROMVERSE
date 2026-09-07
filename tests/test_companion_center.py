@@ -415,11 +415,12 @@ def test_usb_evidence_never_masquerades_as_encrypted_companion_pairing(tmp_path)
     center.shutdown()
 
 
-def test_virtual_and_network_adb_never_enable_or_claim_physical_usb(tmp_path) -> None:
+def test_non_usb_adb_never_enables_or_claims_physical_usb(tmp_path) -> None:
     QApplication.instance() or QApplication([])
     cases = (
         ("emulator-5554", "emulator", "Local Android emulator"),
         ("192.168.1.17:5555", "network", "Network ADB"),
+        ("LOCALADB", "adb", "Unconfirmed ADB transport"),
     )
 
     for serial, transport, source in cases:
@@ -459,6 +460,14 @@ def test_virtual_and_network_adb_never_enable_or_claim_physical_usb(tmp_path) ->
         assert "Paired • read-only wireless telemetry enabled" in center.state.text()
         assert "USB also connected" not in center.state.text()
         assert "Physical USB" not in center.instructions.text()
+        assert not center.usb_pair.isEnabled()
+
+        center.reset_pairing()
+
+        assert center.state.text() == "Not paired"
+        assert "USB" not in center.state.text()
+        assert not center._usb_ready
+        assert center._usb_serial == ""
         assert not center.usb_pair.isEnabled()
         center.shutdown()
 

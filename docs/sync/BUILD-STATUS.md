@@ -1,5 +1,124 @@
 # ROMVERSE Build Status
 
+## Windows Platform Tools readiness — actionable blocked checkpoint
+
+- Product Assurance authorization: `6bbb86a8cad296a88392b808f0a9787c0c661afd`
+- Reviewed Windows checkpoint: `bd5dd95f7e1308dff917713f9549f09ef93cf2a4`
+- Branch: `windows-launcher-authorized-work`
+- Frozen executable reused without rebuilding:
+  `build/windows-dev-frozen/ROMVERSE/ROMVERSE.exe`
+- Existing readiness workspace reused:
+  `C:\\Work\\ROMVERSE-Link-Lazy-Frozen-20260907`
+- Status: the stale Windows Security prompt is gone and the existing Resolve Platform Tools journey
+  was exercised. The download completed with matching file hashes, but ROMVERSE rejected its own
+  Windows-generated managed-package receipt, so Platform Tools remain inactive after restart. This
+  is the required specific actionable blocked result; stop for independent Product Assurance review.
+
+### Genuine Windows journey evidence
+
+- The prior stale `PickerHost.exe`/Windows Security blocker was absent before interaction. Windows
+  process inspection found no `PickerHost.exe` and no security prompt was automated.
+- The real frozen ROMVERSE window exposed `Resolve Platform Tools`. The existing flow selected only
+  ADB, wrote `logs/toolchain-install-plan.json`, and downloaded the Windows Platform Tools archive
+  into the workspace-local managed-tool directory.
+- The setup dialog reported:
+  `Downloaded and prepared: platform-tools (45f4d63113e8…) ROMVERSE refreshed the tool inventory automatically.`
+- At the required run boundary, Steve explicitly confirmed the local version/readiness checks. No
+  phone was connected or selected.
+- The restarted frozen process used the same executable and workspace and reached Command Deck, but
+  still truthfully rendered `Device Engine needs attention` and
+  `Verified Android Platform Tools are not active yet.` It did not claim readiness.
+- The restarted ROMVERSE process owned zero TCP listening endpoints and zero UDP endpoints during
+  the final read-only inspection.
+
+### Download and integrity evidence
+
+- Managed receipt:
+  `C:\\Work\\ROMVERSE-Link-Lazy-Frozen-20260907\\tools\\downloads\\platform-tools\\managed-package.romverse`
+- Declared source:
+  `https://dl.google.com/android/repository/platform-tools-latest-windows.zip`
+- Archive size: `8,044,989` bytes.
+- Recorded archive SHA-256:
+  `45f4d63113e895ebde0c90f194099a4676b6ac653bd28d54314a9e022bbc1a99`.
+- Downloaded `source.properties`: `Pkg.Revision=37.0.1`.
+- `adb.exe` measured SHA-256:
+  `b4a6b455702684652cccf7b46258b29e653538904359a58fd4931cf3ef286b3f`;
+  this exactly matches the receipt.
+- `fastboot.exe` measured SHA-256:
+  `b2d9cbff4ce9ae7eb448cfc831bafc867935f50f5be38f8f81057fd7eb3b8d86`;
+  this exactly matches the receipt.
+- No downloaded executable was invoked manually and no ADB/Fastboot device operation was run.
+
+### Exact actionable blocker
+
+- The downloader records each required file with
+  `str(candidate.relative_to(staging))`. On Windows this serializes native backslashes, producing
+  `platform-tools\\adb.exe` and `platform-tools\\fastboot.exe` in the receipt.
+- `_contained_receipt_file` rejects every receipt entry containing a backslash before it can resolve
+  or hash the file.
+- A read-only invocation of the production receipt path against the exact workspace returned:
+  `verified_managed_directories(...) == ()` and `verified_managed_package_roots(...) == ()`.
+- Therefore `activate_verified_managed_tools` adds no managed directory to the frozen process PATH;
+  the subsequent tool inventory cannot locate the downloaded pair. The fail-closed UI state is
+  correct, and persistence remains correctly not-ready rather than becoming a false success.
+- The frozen artifact's relevant receipt/tool-verifier source is unchanged between its implementation
+  commit `c0b140bbebe7b8fd107819c911703ac9a07e2954` and this checkpoint.
+
+### Pinning limitation discovered during the approved acceptance gate
+
+- The existing Platform Tools route uses Google's moving `platform-tools-latest-windows.zip` URL.
+  It records the measured archive digest after download, but current source does not compare that
+  digest with a predeclared approved Platform Tools digest before extraction or activation.
+- Accordingly, Windows Build does **not** claim that this acquisition satisfied Product Assurance's
+  `pinned` condition. Matching receipt/file hashes prove download-to-workspace consistency, not an
+  independently approved upstream version pin.
+
+### Verification classification and commands
+
+- Genuine Windows: frozen app interaction, workspace-local download, dialog outcome, fresh process
+  restart observation, fail-closed Command Deck state, filesystem hashes, and zero listener check.
+- Read-only source-backed probe:
+  `.venv\\Scripts\\python.exe -c "...verified_managed_directories(...); verified_managed_package_roots(...)"`
+  returned two empty tuples for the exact readiness workspace.
+- Repository history check:
+  `git log c0b140b..HEAD -- src/romverse/ui/toolchain_center.py src/romverse/infrastructure/tools.py`
+  returned no changes.
+- Repository status before this handoff edit: clean at
+  `6bbb86a8cad296a88392b808f0a9787c0c661afd`, exactly matching
+  `origin/windows-launcher-authorized-work`.
+- Tests run: none. No source changed and the acceptance result is direct genuine-Windows evidence;
+  repeating the accepted listener/build/journey suites would not alter this receipt incompatibility.
+- Build/rebuild/package: none. The previously approved frozen executable was reused exactly.
+
+### Safety and scope
+
+- No phone, emulator, network ADB target, USB target, or physical device was connected or operated.
+- No device-scoped ADB/Fastboot command, Recovery command, APK install, production adapter, production
+  trust, signing, publication, release, merge, force-push, destructive action, blind retry, or
+  bootloader lock/relock occurred.
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty,
+  independent reassessment/verification, feature freeze, and permanent no-relock remain unchanged.
+- Protected Companion files and all application source remain untouched at this checkpoint.
+
+### Precise next proposed correction
+
+Product Assurance should review and, if approved, authorize one bounded Platform Tools receipt/pin
+correction only:
+
+1. Serialize newly generated managed-package paths canonically with forward slashes (for example,
+   `candidate.relative_to(staging).as_posix()`) while preserving the existing linked-path, boundary,
+   regular-file, exact-file-set, and hash gates.
+2. Define and enforce an approved version/digest pin for the Windows Platform Tools archive before
+   extraction or activation; do not accept a digest merely because the same download wrote it into
+   its own receipt.
+3. Add deterministic Windows-path and wrong-digest cases proving fail-closed behavior, then run only
+   the focused managed-tool tests plus lint.
+4. Reuse the existing frozen executable/build evidence until Product Assurance explicitly decides
+   whether a corrected source build is required. Do not edit the external receipt by hand, operate a
+   phone, or advance Device Engine authority.
+
+Stop here for Product Assurance. Do not implement this correction without the matching verdict.
+
 ## Fail-closed ADB transport default — Product Assurance review requested
 
 - Implementation commit: `efeb854e9203ee39f8849a2b7bd2f5ee6a4a7197`

@@ -2,278 +2,266 @@
 
 ## Authoritative checkpoint
 
-- Implementation commit: `b86aca25e5cf2078fdcae375812e59f0327d89b5`
-- Title: `Update Link instrumentation confirmation flow`
-- Product Assurance authorization commit:
-  `a015b2fdd7e7cc2c23cd1ad5f44ed8e8ddcb8f0a`
+- Source and Product Assurance authorization commit:
+  `db6fcc14b8fd446ed06e4f31100f17ff0e1b37c8`
+- Reviewed implementation commit:
+  `b86aca25e5cf2078fdcae375812e59f0327d89b5`
+- Prior handoff commit:
+  `e091a555c8ad95d79c4969b6ce77b492d5f7f600`
 - Branch: `linux/stage1-desktop-readiness`
-- Stage: Stage 1 — v0.2 Golden Foundation contained Desktop-to-Companion Link integration
-- Milestone result: **VERIFIED — 12 PASS / 0 FAIL / 0 SKIP**
-- Scope result: the stale instrumentation interaction now follows the current visible safety-code
-  confirmation path; the complete contained TLS Link journey passes without changing production
-  application behavior.
-- Working-tree target state: clean after the implementation commit except for this handoff update.
-  The separate original checkout's three protected Companion changes and pre-existing Windows
-  launcher drafts were not edited, staged, discarded, built from, or committed.
+- Stage: Stage 1 — v0.2 Golden Foundation real-product Desktop/Companion operability
+- Milestone result: **DIRECT FEDORA DESKTOP ↔ COMPANION LINK VERIFIED**
+- Product source result: unchanged; this checkpoint commits evidence/handoff only.
+- Working-tree target state: clean before this handoff update. The separate original checkout's
+  three protected Companion modifications and Windows launcher drafts were not edited, staged,
+  discarded, built from, or committed.
 
-## Repository coordination
+## Product Assurance scope
 
-- The latest exact Linux branch and Product Assurance handoff were fetched before work.
-- `docs/sync/PRODUCT-ASSURANCE.md` authorized only the bounded existing-test correction recorded
-  above.
-- `docs/sync/AUTONOMOUS-BUILD-PROTOCOL.md` is not present on the Linux branch. Its committed version
-  at `origin/windows-launcher-authorized-work` was read directly without checking out, merging, or
-  modifying Windows work. This checkpoint follows its separate-branch, scoped-commit, evidence,
-  push, and mandatory-stop rules.
-- Git/source truth was used as authority; no chat-to-chat injection or concurrent application-source
-  editing occurred.
+Product Assurance commit `db6fcc1` closed the fixture-backed Companion Link milestone and authorized
+one direct journey using the real Fedora Desktop and real Companion production Link surfaces. It
+explicitly prohibited implementation/redesign, a fixture, private-state injection, dependency
+installation, physical hardware, Recovery, platform merge, signing, publication, and release.
 
-## Exact change
+`docs/sync/AUTONOMOUS-BUILD-PROTOCOL.md` remains absent from this Linux branch. Its committed version
+on `origin/windows-launcher-authorized-work` was read directly without checking out or merging
+Windows work. Repository, separation, scoped-handoff, and mandatory-stop rules were preserved.
 
-Only
-`companion/app/src/androidTest/kotlin/com/radforge/romverse/companion/MainActivityInstrumentedTest.kt`
-changed:
+## Actual applications and environment
 
-- The existing TLS Link test explicitly opens the existing Link destination.
-- It populates only the existing endpoint, certificate fingerprint, and six-digit code fields.
-- It proves the retired direct checkbox path remains unchecked, disabled, and non-clickable.
-- It activates the existing `CONNECT WIRELESSLY` action.
-- It inspects the real visible/accessibility confirmation dialog and requires its title, prompt,
-  exact certificate-derived safety code, read-only encrypted-Link explanation, explicit statement
-  that no flash/root/wipe/unlock/relock/command authority is granted, and visible
-  `YES • CODE MATCHES` action.
-- It confirms through that visible accessibility action; no reflection, private-field access,
-  preference mutation, test-only production hook, or direct confirmation-state bypass is used.
-- All pre-existing post-confirmation assertions remain: TLS pinning, two fresh health snapshots,
-  encrypted remembered-session storage and reconnection, schema-six Live Console, Device DNA,
-  Ascension, `Execution authority: NONE`, and permanent bootloader-relock prohibition.
+- Fedora Desktop: current source application launched through `romverse.app.main` from the clean
+  Linux worktree in one isolated temporary workspace.
+- Desktop workspace:
+  `/run/media/stevetherad/Data/ROMVERSE-Android-Emulator-Toolchain/evidence/direct-product-link-2026-09-07.BfV2nq/desktop-workspace.4iyCPc`
+- Companion: unchanged approved debug APK installed only in one wiped API-35 x86-64 emulator.
+- Companion APK SHA-256:
+  `62bc530d5f077e3e34ad71002caa24303a584bf4661f56d2cc338c976bfb5a2b`
+- Sole Android target: `emulator-5556:device`, with `sys.boot_completed=1` and `ro.kernel.qemu=1`.
+- Host SELinux: Enforcing and unchanged.
+- Desktop endpoint: one production TLS listener on the displayed local endpoint and port 8765.
+- Desktop certificate SHA-256:
+  `77068174fc55234143b7019aa2ffa466a6723dcd984e95eb3b9b121fba9a322d`
+- Safety code displayed by both applications:
+  `7706-8174-FC55-2341-43B7-019A`.
+- The short-lived pairing code is omitted from repository evidence and the retained event log.
 
-No production Activity, navigation, transport, fixture, protocol, dependency, Gradle, asset,
-Device Pack, Recovery adapter, desktop runtime, or approved logo changed.
+No instrumentation APK, fixture server, test-only application hook, private preference mutation,
+transport approval call, pairing-state injection, or production execution adapter participated.
 
-## Build and artifact admission
+## UI-operation method
 
-The approved application source was unchanged. The instrumentation APK alone was rebuilt with the
-existing offline Android/Gradle toolchain:
+Fedora's system accessibility inventory did not expose the Qt window. An external, uncommitted
+evidence driver therefore launched the real `romverse.app.main` window, navigated via its visible
+`Open ROMVERSE Link` action, and used Qt mouse events on the existing visible Generate, safety
+checkbox, Approve, and Reset buttons. It observed pending/approved state and the existing public
+snapshot signal only for timing/evidence; it never invoked transport pairing/approval/reset methods,
+altered preferences, or injected state.
 
-- Build tasks: 64 actionable; 4 executed and 60 up to date.
-- Build result: successful.
-- Application APK:
-  `companion/app/build/outputs/apk/debug/app-debug.apk`
-  - Size: 9,060,239 bytes
-  - SHA-256: `62bc530d5f077e3e34ad71002caa24303a584bf4661f56d2cc338c976bfb5a2b`
-  - Inventory: 874 ZIP entries
-  - Result: byte-identical to the Product Assurance-approved application APK
-- Instrumentation APK:
-  `companion/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk`
-  - Size: 411,737 bytes
-  - SHA-256: `5239d6d7efc4b4ce574cc3c9c84cc62783c8e22bfccee306921108711949df5c`
-  - Inventory: 9 ZIP entries; ZIP integrity passed
-  - Package: `com.radforge.romverse.companion.test`
-  - Minimum / target / compile SDK: 26 / 35 / 35
-  - Debuggable AndroidJUnitRunner package targeting the Companion application
-  - Signer: one Android Debug RSA-2048 certificate
-  - Certificate SHA-256:
-    `b1e1bd6e1c199d6bc1649998546a20559e3b0f979cb401ef487b0cde7f993cb1`
-  - APK signature: v2 verified; v1, v3, v3.1, v4, and source stamp absent
+Companion was operated through visible Android screen taps and text entry. All endpoint,
+fingerprint, one-time-code, confirmation, navigation, restart, and presentation actions went through
+the unchanged application UI. Screenshots are captures of the actual running applications.
 
-Both hashes were revalidated immediately before emulator installation. No artifact was installed
-on a phone or host system.
+## Demonstrated direct product journey
 
-## Contained runtime admission
+1. Desktop opened its real ROMVERSE Link page in the isolated workspace.
+2. Desktop generated a short-lived code and visibly displayed its endpoint, full certificate
+   fingerprint, derived safety code, disabled approval controls, and Guardian boundary.
+3. Companion opened its real Link page. Emulator multicast discovery did not auto-fill the current
+   host endpoint, so the existing manual endpoint, fingerprint, and code fields were used.
+4. Companion derived and displayed the exact same safety code as Desktop.
+5. Companion presented its real `CONFIRM DESKTOP IDENTITY` dialog. The dialog retained Yes/No
+   choices and explicitly stated that the Link grants no flash, root, wipe, unlock, relock, or
+   command authority.
+6. The affirmative Companion decision submitted the genuine TLS-pinned request. Desktop visibly
+   changed to `Wireless request received • approve device`.
+7. Desktop's real safety checkbox and `Approve device` action were selected only after that request.
+8. Both products reached genuine paired state. Desktop displayed
+   `Paired • read-only wireless telemetry enabled`; Companion displayed
+   `Paired • two-way health sync active` and `PAIRED`.
+9. Desktop received 13 distinct authenticated snapshot observations over the bounded session. The
+   first two alone satisfy the milestone; later observations prove sustained operation and are not
+   counted as separate tests.
+10. The visible Desktop health panel reported Android 15/API 35, battery, storage, RAM, Vitalis
+    `OPTIMAL`, Guardian health 100/100, privacy scope, root/bootloader evidence, and
+    `authority none`.
+11. Companion's actual Live Console displayed a trusted redacted Link-v6 ledger, the encrypted Link
+    event, `Execution authority: NONE`, and `Bootloader relock: NEVER`.
+12. Companion was stopped and reopened without a new code or approval. Its Home screen returned as
+    `ROMVERSE Link • securely paired`, and fresh authenticated snapshots continued through the same
+    Desktop listener and certificate identity.
+13. Desktop's visible `Reset wireless pairing` control revoked the session. No new authenticated
+    snapshot was accepted afterward.
+14. Companion was reopened again. Home displayed `ROMVERSE Link • not connected`; its Link page
+    displayed `Trusted Desktop remembered • approval required`, `ENTER NEW LINK CODE`, and preserved
+    only the pinned identity. The old credential did not reconnect.
+15. After reset, Desktop's remembered-session record was absent. Only the workspace TLS certificate
+    and private key remained; no bearer token or token digest session record survived.
 
-- Host: Fedora Linux with SELinux Enforcing and unchanged.
-- Existing clean AVD: `romverse_api35_clean`, Android 15 / API 35 / x86-64, Pixel 7 profile.
-- Launch: one visible host-GPU emulator, wiped data, snapshots disabled, no audio, no metrics.
-- Sole admitted target: `emulator-5556:device`.
-- Guest admission: `sys.boot_completed=1` and `ro.kernel.qemu=1`.
-- No physical, simultaneous, ambiguous, unauthorized, or changing Android target appeared.
-- Existing verified interpreter:
-  `/run/media/stevetherad/Data/ROMVERSE-Recovered-2026-09-01/source/.venv/bin/python`
-- Python 3.14.7 with `PYTHONNOUSERSITE=1`; `cryptography` 46.0.7 came from that existing
-  environment, while all ROMVERSE modules resolved only from this clean Linux worktree.
-- No package or environment was installed, removed, upgraded, downgraded, or mutated.
+## Result classification
 
-The committed fixture used one ephemeral TLS identity and reported:
-
-- State order: `ready` → `approved` → `first-health-snapshot` → `complete`.
-- Certificate SHA-256:
-  `d3b34103b3fd66d5f8e0b22f45bd548136375f6c3cb4bf7bb89b5ea2d61d4da1`
-- Exact displayed safety code: `D3B3-4103-B3FD-66D5-F8E0-B22F`.
-- Model: `sdk_gphone64_x86_64`.
-- Final health: `OPTIMAL`.
-- Execution authority: `none` at ready and complete.
-
-The one-time pairing code remains only in an expired external evidence log and is not stored in the
-repository. The captured sequence shows the device still unpaired while the real safety dialog is
-visible; approval follows the explicit visible affirmative action. No unexpected client or request
-was observed.
-
-Containment remains honest: the production local-network fixture briefly bound `0.0.0.0:8765` and
-used its existing discovery behavior. Containment came from ephemeral identity, short lifetime,
-explicit approval, bounded execution, and zero authority—not from loopback or network-namespace
-isolation. Product Assurance previously accepted that boundary for this one run.
-
-## Exact integration result
-
-- Runner:
-  `com.radforge.romverse.companion.test/androidx.test.runner.AndroidJUnitRunner`
-- Complete inventory: 12 tests.
-- Passed: 12.
-- Failed: 0.
-- Skipped/assumption-failed: 0.
-- Duration: 18.737 seconds.
-- Final result: `OK (12 tests)`.
-- No suite, class, or test was isolated, repeated, reordered, excluded, or weakened after the run.
-
-The passing Link test demonstrated:
-
-1. explicit navigation to Link;
-2. endpoint, certificate pin, and one-time code entry;
-3. disabled legacy bypass;
-4. exact safety-code dialog and no-command copy;
-5. affirmative visible confirmation;
-6. TLS-pinned pairing;
-7. two fresh health snapshots;
-8. schema-six Live Console evidence;
-9. Device DNA and Ascension evidence;
-10. encrypted remembered-session reconnection after Activity recreation;
-11. execution authority remaining NONE; and
-12. bootloader relocking remaining forbidden.
-
-The Android error-priority log contains emulator/system keystore, task-persister, binder, and Google
-speech-service noise. It contains no ROMVERSE `FATAL EXCEPTION`, ROMVERSE process crash,
-instrumentation failure, or test failure.
-
-## External evidence
-
-External evidence is deliberately outside Git and contains no production credential:
-
-- Fixture log: 444 bytes / 4 lines
-  - SHA-256: `9ddcbda1f97f062772239f89cc92a36b9387b7ed21921b8d2701378a95f8072b`
-- Runner log: 8,958 bytes / 179 lines
-  - SHA-256: `4490e6b7199de0e36c477528823a3083cae4237caba24717bbe269fa2e1a9a45`
-- Error-priority log: 3,864 bytes / 40 lines
-  - SHA-256: `9c84f7c70b508c235622a3bd628751fddbb081e0fa34ac6667117af9144153b6`
-- Screenshot sequence: 90 bounded PNG frames plus `SHA256SUMS`
-  - Confirmation dialog frame 26 SHA-256:
-    `3b2f0455cb7532304e1e85c5752a575e69b07f5f5d430b7e870b53f49a5447f7`
-  - Confirmation dialog frame 27 SHA-256:
-    `248c9484b67eea451633b3cd8cc683be4a6ef5782a4365b75f7d270d969cb238`
-  - Live Console frame 36 SHA-256:
-    `6ad329f5809c950d0c084aa7e5e221c68142ddb33851fd1d39bff9b4165a434f`
-  - Full frame manifest SHA-256:
-    `b8622616e42a9e1bd2fd464cde46ce1cb38938a44cac0716b0ec271df6cb7d9a`
-  - Readable 25-frame Link sequence contact sheet SHA-256:
-    `4ab2ec8c5670abe980676c3d6637b9b0907c043905ba8241c9c405367d3ceae8`
-
-The screenshot sampler captured the current dialog and Live Console but did not hold the transient
-paired Link, Device DNA, or Ascension pages long enough for a separate static frame. Their existing
-runtime assertions all passed; no second execution was performed merely to manufacture screenshots.
-
-## Non-double-counted regression evidence
-
-- Current affected Companion integration: **12/12 passed**. This is the complete current
-  instrumentation inventory and the only new runtime total for this correction.
-- Current build/static admission: instrumentation Kotlin compilation, debug application assembly,
-  debug instrumentation assembly, APK integrity, identity, signature, Git whitespace, and exact
-  one-file diff checks all passed.
-- The prior runnable Fedora checkpoint's full Linux Python regression remains
-  **2,881/2,881 passed** at implementation commit
-  `1300dde1b79304149b8acfafe0e3f272d800cd37`. It was not rerun or added to the 12 Android tests
-  because this correction changes only Android instrumentation test interaction, not Desktop or
-  Python runtime source.
-- The prior 79-test Recovery/UI/state and 240-test Fedora Desktop/build/package focused groups are
-  subsets of that 2,881-test result and are not counted again.
-
-## Runnable Fedora product status
-
-The already approved runnable Fedora development checkpoint remains intact:
-
-- Source, isolated wheel, one-folder executable, and extracted portable ZIP startup/shutdown passed.
-- All 19 canonical Desktop routes opened.
-- Project opening, durable persistence, Guided/Expert shared state, and the complete inert
-  **Scan → Match → Prepare → Consent → Result → Reassessment → Verification** journey passed.
-- Local development artifacts remain unsigned, ignored outputs; nothing was published or installed
-  system-wide.
-- This Android test-only correction changes none of that source or evidence.
-
-## Classification
-
-- Implemented: current Companion Link instrumentation now exercises the authoritative confirmation
-  UX instead of a retired bypass.
-- Simulated/Tested: genuine API-35 emulator, real ephemeral TLS fixture, exact development APKs,
-  complete 12-test runtime, visual capture, and prior Fedora inert Guided journey.
-- Hardware Verified: Fedora host build/launch is genuine host verification. No physical Android
-  hardware or phone operation occurred; emulator evidence is not hardware verification.
+- Implemented: no new application implementation. Existing Desktop and Companion product surfaces
+  were used unchanged.
+- Simulated/Tested: genuine real-product integration on one API-35 emulator, including production
+  local TLS, certificate pinning, both visible approval boundaries, authenticated telemetry,
+  remembered-session reconnect, and revocation. The Android target is simulated and is not phone
+  hardware evidence.
+- Hardware Verified: Fedora host launch and networking are genuine host verification. No physical
+  Android device or firmware operation occurred.
 - Released: no.
 
-## Guided friction and remaining limitations
+## Acceptance evidence
 
-- The stale test-only pre-pairing dead end is resolved; the contained Link journey now completes.
-- The user retains one meaningful safety-code decision. The legacy checkbox cannot be activated and
-  no additional confirmation chain was introduced.
-- Raw executor machinery is not exposed and no execution authority was added.
-- A production-signed Recovery adapter, controlled physical phone verification, Windows release
-  readiness, and release signing remain separate mandatory gates.
-- The Fedora artifact is still a local development package, not an RPM, Flatpak, signed installer,
-  or release.
-- Network containment retains the previously reviewed short-lived LAN-listener limitation.
+- Direct pairing without fixture/private-state injection: passed.
+- Exact safety-code equality on both actual applications: passed.
+- Companion affirmative/decline dialog retained: passed; affirmative path used.
+- Separate Desktop request, safety checkbox, and approval boundary: passed.
+- At least two fresh authenticated snapshots: passed; 13 distinct timestamps observed during the
+  bounded session.
+- Structured/privacy-filtered Live Console: passed visibly.
+- `execution_authority: none`: passed in every retained Desktop event and visible Companion console.
+- Remembered-session reconnection: passed after Companion process restart without another pairing
+  code or approval.
+- Session duplication: not observed; one Desktop listener, one certificate identity, one approved
+  state, and one continuing stream existed.
+- Explicit revocation: passed through the real Desktop Reset control.
+- Old-credential reconnect after revocation: rejected; Companion required a new Link code after
+  restart, Desktop accepted no later snapshot, and its remembered-session file was absent.
+- Bootloader relock: remained `NEVER`; no relock path or command existed.
+- Android crash/ANR scan: no ROMVERSE `FATAL EXCEPTION`, process crash, or ANR found.
+- Final containment: Desktop closed, Companion stopped, emulator shut down, ADB empty, and no port
+  8765 listener or ROMVERSE/emulator process remained.
+
+## Evidence inventory
+
+External evidence root:
+`/run/media/stevetherad/Data/ROMVERSE-Android-Emulator-Toolchain/evidence/direct-product-link-2026-09-07.BfV2nq`
+
+- Redacted Desktop event log: 17 lines / 9,751 bytes; contains no pairing-code field or any code used
+  during setup.
+  - SHA-256: `082aa7090499f3f7ef565b47f86d24177ec68a8f1ee5814c9a06fb26e3c4fcfe`
+- Desktop paired state:
+  - SHA-256: `b4c247c243e64ce1f08764b499f03532af9d8513f54bda267361f002f7026bf8`
+- Desktop authenticated health snapshot:
+  - SHA-256: `5c865cbc6178e7e265c8d44ccd42da1203794953a1979a8ca22128feccf3ea6c`
+- Desktop continuing after Companion reopen:
+  - SHA-256: `bc3d95072b84016a0e6da6b4da37d3e827b7869d329f6fceadad686a51d98032`
+- Desktop after visible reset:
+  - SHA-256: `27d18912dd766c2dad24376182c9d0ed994238eeb6dfa8323d2c74a2863a4026`
+- Companion exact safety-code dialog:
+  - SHA-256: `6c76cfc58d03594ea0793d2f0e296e6b98d9fa77f5a6f751c49fc9515678ace9`
+- Companion paired state:
+  - SHA-256: `7674dbe5a1a7d20179004809119a7dc921982a923e269ee528a8a73ca5f12586`
+- Companion structured Live Console:
+  - SHA-256: `eee446876d2e34adedffa06497f32d54c5126b40ccdccfd9590b1f7e917224f9`
+- Companion remembered-session reopen:
+  - SHA-256: `ab909ed34ea76b4285e92c8b608025a1d26332755c1c54397430346dc63868ca`
+- Companion after revocation and restart:
+  - SHA-256: `f6ea325e3d9f00497ecc59bf788849daaf264ad1adf3acfd2d77e742ec5d14ff`
+- Android error-priority log:
+  - SHA-256: `e7d7bf631669eefc490c94bf56652a0ed41bc29071e4f36e8d36c1a52d47314c`
+  - Contains emulator/system service noise but no ROMVERSE fatal/ANR signature.
+
+Raw local setup screenshots that display a now-revoked one-time pairing code are not referenced as
+shareable evidence. No pairing code, bearer token, TLS private key, or private preference content is
+written to this repository handoff.
+
+## Proportional verification
+
+No broad regression, build, APK rebuild, or architecture test was repeated. The Product Assurance
+authorization was a tangible direct-product operability milestone, and the unchanged approved
+artifacts were reused.
+
+Prior non-double-counted evidence remains valid and unchanged:
+
+- Companion instrumentation inventory: **12/12 passed** at implementation commit `b86aca2`.
+- Full Fedora/Linux Python regression: **2,881/2,881 passed** at implementation commit `1300dde`.
+- The prior 79-test Recovery/UI/state and 240-test Fedora build/package groups remain subsets of the
+  2,881-test run and are not added again.
+
+## Harness setup observations
+
+Before the completed journey, two external-driver-only timing mistakes stopped Desktop after a valid
+pending request but before its UI approval:
+
+1. the driver evaluated the safety checkbox before Desktop's one-second UI timer enabled it;
+2. the next driver mouse event landed in the empty middle of the wide checkbox row instead of its
+   visible indicator.
+
+Both attempts stopped before Desktop approval, created no session token, and were explicitly reset
+through Companion's visible Reset control. Only the external driver was corrected; ROMVERSE source,
+state contracts, transport, APK, and security behavior were unchanged. The third attempt clicked the
+actual visible indicator and completed the approved product journey.
+
+These are not claimed as application failures or additional tests. They are retained for audit so
+the checkpoint does not hide setup history.
+
+## Guided friction and remaining limitation
+
+- Emulator multicast did not auto-fill the live Desktop identity. The existing manual endpoint,
+  fingerprint, and code route worked and was understandable, but emulator discovery remains a
+  usability limitation rather than a zero-friction proof.
+- After the first pre-approval attempt was visibly reset, its already-running Companion request later
+  changed the button label to `APPROVAL TIMEOUT • TRY AGAIN`. The same existing button still opened
+  the correct safety dialog and did not block the successful journey. This suggests a late asynchronous
+  presentation update can overwrite reset copy and merits Product Assurance triage; no source change
+  was authorized or made here.
+- Direct integration remains emulator evidence, not physical-phone verification.
+- Production Recovery adapters, production signing/trust, Windows release readiness, physical
+  hardware, and release publishing remain separate mandatory gates.
 
 ## Guardian, Recovery, and safety implications
 
 - Guardian remains the only execution gate.
-- Pairing, UI confirmation, telemetry, fixture text, preparation, consent, historical identity, and
-  this test grant no flash, wipe, root, unlock, relock, Recovery, or command authority.
-- Exact-device evidence and same-incident attribution remain unchanged.
-- UNKNOWN remains durable, never advances, and never triggers blind or automatic retry.
-- Independent Recovery reassessment and verification remain mandatory.
-- Bootloader locking/relocking remains permanently prohibited with no Guided, Expert, Recovery,
-  adapter, server, Recipe, test, or model override.
+- Link carried bounded health/mission evidence only. Pairing, safety confirmation, telemetry,
+  remembered identity, and reconnect granted no device-changing authority.
+- Exact certificate pinning and both user decisions remained intact.
+- Reset revoked authorization while preserving only the non-authoritative pinned identity needed to
+  explain that a new code is required.
+- UNKNOWN-on-uncertainty, no blind retry, exact-device attribution, same-incident Recovery,
+  independent reassessment/verification, and durable evidence were not changed.
+- Bootloader locking/relocking remains permanently prohibited with no override.
 
 ## Platform and version-gate status
 
-- Fedora/Linux Desktop: genuinely built, launched, packaged, reopened, and fully regressed at the
-  approved runnable Fedora checkpoint; unchanged here.
-- Companion Android: standalone and contained TLS Link behavior genuinely verified on one API-35
-  emulator; no physical-hardware claim.
-- Windows: separate working branch and Product Assurance track; no Linux merge, duplication, or new
-  Windows verification claim in this checkpoint.
-- 5 September 2026 pre-v1.0 feature freeze: compliant. This is the exact minimum test correction
-  requested by Product Assurance and adds no product feature or execution capability.
-- v0.2 Golden Foundation: remains **CLOSED** pending production trust/signing, controlled physical
-  hardware, Windows, Recovery, and release gates.
+- Fedora Desktop runnable development build and inert Guided Recovery journey: verified at the
+  approved prior checkpoint and unchanged.
+- Fedora Desktop ↔ Companion product Link: verified on the real Fedora application and one API-35
+  emulator using unchanged production Link surfaces.
+- Physical Android hardware: not run and not claimed.
+- Windows: remains a separate working branch and Product Assurance track; no merge, duplicate work,
+  or Windows claim occurred.
+- 5 September 2026 feature freeze: preserved; only a repository evidence/handoff document changes.
+- v0.2 Golden Foundation: remains **CLOSED** pending Windows, physical, production trust/signing,
+  Recovery, and release gates.
 
 ## Next proposed Build task
 
-Stop for Product Assurance review of this contained Link checkpoint. Do not begin another
-consequential slice, merge a platform branch, perform a phone operation, enable production Recovery,
-or publish/release until the repository verdict authorizes the next bounded direction.
+Stop for Product Assurance review. Do not correct the observed late timeout-label race, start a new
+consequential slice, merge platforms, connect a phone, enable Recovery, rebuild artifacts, publish,
+or release without the next exact repository verdict.
 
 ## External actions
 
-- Physical phone connection or operation: none.
-- ADB/Fastboot against physical hardware: none.
-- APK installation: application and instrumentation APKs installed only inside the wiped emulator.
-- APK installation on a phone: none.
-- System-wide package installation or dependency change: none.
-- Fixture: one short-lived TLS instance; completed normally and closed.
-- Emulator: one clean host-GPU session; controlled shutdown; final ADB inventory empty.
-- Final TCP listener on port 8765: none.
-- Host security, firewall, or SELinux change: none.
-- Production Recovery execution/trust/signing: none.
-- Protected Companion or Windows draft change: none.
-- Approved logo or asset change: none.
-- Website change: none.
+- Physical phone connection/operation: none.
+- Firmware, partition, bootloader, flash, wipe, root, unlock, relock, or Recovery operation: none.
+- ADB actions: exact emulator admission; approved APK install to the wiped emulator; visible app
+  launch, taps/text, presentation stop/reopen, screenshots, log capture, and controlled emulator
+  shutdown only. No ADB/Fastboot device-changing command was run.
+- APK installation on physical hardware: none.
+- System-wide package/dependency/environment change: none.
+- Production trust/signing: none.
+- Website or approved-logo change: none.
+- Companion/Desktop production source change: none.
+- Protected Companion/Windows draft change: none.
 - Publication/release/merge/force-push: none.
-- Remote action: normal push of only this scoped Linux branch checkpoint is intended after this
-  handoff commit; no unrelated branch will be pushed.
+- Remote action: normal push of only this evidence handoff is intended after commit.
 
 ## Product Assurance Review Requested
 
-- Confirm the correction faithfully exercises the current one-decision Link confirmation contract
-  and closes the stale-test dead end without weakening the application safety flow.
-- Confirm the exact 12/12 run, ordered zero-authority fixture evidence, APK admission, and bounded
-  visual evidence satisfy the contained Link integration checkpoint.
-- Confirm the approved runnable Fedora development build remains valid and v0.2 correctly remains
-  closed pending the existing production, Windows, hardware, and release gates.
+- Confirm the real-product UI evidence closes the direct Fedora Desktop ↔ Companion Link milestone.
+- Confirm remembered-session reconnect and post-reset rejection are sufficiently demonstrated without
+  overstating emulator evidence as physical hardware verification.
+- Triage the observed late `APPROVAL TIMEOUT • TRY AGAIN` presentation overwrite after a visible
+  reset and decide whether it warrants a future minimum correctness correction.
+- Confirm v0.2 remains closed and the next task must stay within the existing feature freeze and
+  platform/hardware/release gates.

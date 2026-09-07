@@ -8,7 +8,9 @@ from subprocess import CompletedProcess
 
 import pytest
 
+from romverse import DISPLAY_VERSION, PACKAGE_VERSION, __version__
 from romverse.app import build_parser
+from romverse.ui.main_window import DESKTOP_SIDEBAR_VERSION, DESKTOP_WINDOW_TITLE
 from scripts.build_desktop_executable import pyinstaller_arguments, windows_build_path
 from scripts.package_desktop_bundle import package_bundle, verify_bundle_archive
 from scripts.smoke_frozen_desktop import smoke_frozen_desktop
@@ -24,6 +26,16 @@ def test_release_extra_contains_frontend_backend_and_native_bundler() -> None:
     assert any(item.startswith("pyinstaller>=") for item in release)
 
 
+def test_alpha_package_runtime_and_visible_desktop_identity_match() -> None:
+    repository = Path(__file__).resolve().parents[1]
+    document = tomllib.loads((repository / "pyproject.toml").read_text(encoding="utf-8"))
+
+    assert document["project"]["version"] == PACKAGE_VERSION == __version__ == "0.2.0a1"
+    assert DISPLAY_VERSION == "0.2.0-alpha.1"
+    assert DESKTOP_WINDOW_TITLE == "ROMVERSE Studio 0.2.0-alpha.1"
+    assert DESKTOP_SIDEBAR_VERSION == "ROMVERSE  0.2.0-alpha.1"
+
+
 def _bundle(tmp_path: Path) -> Path:
     root = tmp_path / "ROMVERSE"
     (root / "_internal" / "romverse" / "assets").mkdir(parents=True)
@@ -36,7 +48,7 @@ def _bundle(tmp_path: Path) -> Path:
 
 def test_desktop_bundle_packages_and_verifies_exact_tree(tmp_path: Path) -> None:
     root = _bundle(tmp_path)
-    output = tmp_path / "ROMVERSE-Desktop-0.1.0-linux-x86_64.zip"
+    output = tmp_path / "ROMVERSE-Desktop-0.2.0-alpha.1-linux-x86_64.zip"
 
     digest, count, total = package_bundle(root, "linux-x86_64", output)
 

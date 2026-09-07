@@ -3,8 +3,9 @@
 ## Authoritative checkpoint
 
 - Product Assurance authorization/base: `292cd09131c3b788c88a2ef66041e358c8615494`.
-- Evidence checkpoint: the first scoped commit containing this handoff on
-  `linux/stage1-desktop-readiness` (resolved in the follow-up handoff commit).
+- Evidence checkpoint: `ac22e2d57226069a8959ef93b43067fa3d539e57`.
+- Final handoff checkpoint: the follow-up commit containing this resolved status document on
+  `linux/stage1-desktop-readiness`.
 - Stage: Stage 1 — v0.2 Golden Foundation, Companion first-run/offline acceptance.
 - Working tree at checkpoint: clean apart from ignored local Gradle/emulator output.
 
@@ -66,7 +67,7 @@
 
 - Verified in production state policy: disconnected Link state does not masquerade as paired,
   secure, synced or execution-ready; it provides a concrete discovery or network action.
-- Verified in navigation policy: invalid/fresh saved route state falls safely to Home.
+- Verified in navigation policy: invalid or absent saved route state falls safely to Home.
 - Remaining friction: the new-user internal-alpha and zero-execution-authority message is not
   presented at initial Home entry. It requires the protected UI reconciliation above.
 - No pairing loop or false live-sync claim was found in the focused offline state path.

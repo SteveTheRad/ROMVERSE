@@ -1,102 +1,128 @@
 # ROMVERSE Product Assurance
 
-## Reviewed checkpoint: b76843c
+## Reviewed checkpoint: b482de8
 
-- Handoff commit: `b76843c6ca79b7a17ef31a905d202d6298f8c528`
-- Implementation commit: `1300dde1b79304149b8acfafe0e3f272d800cd37`
-- Title: `Assemble runnable Fedora recovery journey`
+- Handoff commit: `b482de8813143037a1ade3ca97cff123932b7caf`
+- Evidence commit: `67ff3a29a3f06b84c3b43989b61cd37e9dcff587`
+- Built source baseline: `550a27563aeca4b52a1f519291eefe84e481a431`
+- Title: `Record Companion debug APK readiness`
 - Branch: `linux/stage1-desktop-readiness`
-- Approved base: `fdb1692b0a5056cce0992b9045cd6f3a55cabf97`
-- Review status: **APPROVED — RUNNABLE FEDORA DEVELOPMENT CHECKPOINT VERIFIED**
+- Review status: **APPROVED — COMPANION DEBUG APK READINESS VERIFIED**
 
 ### Decision
 
-The checkpoint provides a genuine runnable Fedora development build and a complete inert
-product-level Guided Recovery journey. The source launcher, wheel, one-folder executable, and
-portable ZIP are sufficient for this local development milestone. They are correctly classified as
-unsigned development artifacts rather than an installer, native package, release, or hardware proof.
+The committed Companion baseline reproducibly assembles as a genuine local Android-debug-signed APK
+using the pinned offline Java 17, Gradle 8.11.1, Android Gradle Plugin 8.7.3, Kotlin 2.0.21, and
+Android SDK 35 toolchain. The artifact identity, version, SDK bounds, archive integrity, signer,
+certificate, and locked brand assets are exact and independently reproducible.
 
-The simulator traverses the production Scan → Match → Prepare → Consent → Result → Reassessment →
-Verification services with a disposable workspace, synthetic evidence, an in-memory target, and
-ephemeral test-only adapter trust. The aggregate Result remains explicitly unverified until fresh
-same-incident boot evidence completes verification. No ADB/Fastboot executable, external adapter
-process, physical device, production trust root, automatic retry, or bootloader-relock path is used.
+This is correctly classified as development readiness, not Android runtime, hardware, production
+signing, publication, or release evidence. No Companion source, resource, manifest, build
+configuration, behavior, brand asset, Desktop runtime, or execution boundary changed. The
+checkpoint is therefore compliant with the pre-v1.0 feature freeze.
 
-The work is feature-freeze compliant: it assembles and demonstrates the already approved Stage 1
-chain without changing `src/romverse`, schema, production Device Packs, execution authority, UI, or
-release behavior. Native RPM/Flatpak/desktop-entry integration and production adapter/hardware work
-remain later, separately authorized release gates rather than defects in this checkpoint.
+### Repository and artifact evidence
 
-### Repository and implementation evidence
+- The checkpoint is exactly two documentation-only commits descended from the approved `550a275`
+  base. Only `docs/COMPANION-DEBUG-APK-READINESS.md` and `docs/sync/BUILD-STATUS.md` changed.
+- The dedicated worktree is clean. The three protected Companion modifications and the old Windows
+  launcher drafts remain isolated in the original checkout and were not built, edited, staged,
+  discarded, or committed.
+- APK: `companion/app/build/outputs/apk/debug/app-debug.apk`
+- Application ID / label: `com.radforge.romverse.companion` / `ROMVERSE Companion`
+- Version name / code: `0.2.0-alpha.5` / `8`
+- Minimum / target / compile SDK: `26` / `35` / `35`
+- Size / ZIP members: 9,060,239 bytes / 874
+- APK SHA-256:
+  `62bc530d5f077e3e34ad71002caa24303a584bf4661f56d2cc338c976bfb5a2b`
+- Signing: one Android Debug RSA-2048 signer; APK Signature Scheme v2 verified; no SourceStamp.
+- Debug certificate SHA-256:
+  `b1e1bd6e1c199d6bc1649998546a20559e3b0f979cb401ef487b0cde7f993cb1`
+- Approved ROMVERSE and RadForge Labs logo members inside the APK are byte-identical to their
+  committed sources at the recorded `ab9286...` and `d82ff1...` hashes.
 
-- The handoff is exactly two commits descended from the approved `fdb1692` base. The implementation
-  adds only `docs/FEDORA-DEVELOPMENT-BUILD.md`, `scripts/simulate_guided_recovery.py`, and its focused
-  integration test; the handoff changes only `docs/sync/BUILD-STATUS.md`.
-- The dedicated Linux worktree is clean. The original checkout still contains only the three known
-  protected Companion modifications and the pre-existing Windows launcher drafts; none appears in
-  this branch or checkpoint.
-- Git whitespace verification passes across the complete checkpoint diff.
-- Build recorded a final Linux regression of **2,881/2,881 passed** in 920.49 seconds, with no
-  failures, skips, or xfails. Product Assurance observed that full process run to completion and
-  independently reran the new focused journey test successfully.
-- Product Assurance independently launched the frozen executable in offscreen release-smoke mode,
-  extracted and launched the portable ZIP, and verified both wheel and ZIP archive integrity.
-- Independently observed artifact digests match the handoff:
-  - wheel: `df40c6ca9da96154050f07dd4fa8a336b035ff394c68bf56c52d41b6c0cdddcc`
-  - executable: `b94dc7788b4cce09d4a30e5aff44d6bf1104c717bac9bf843267538c5e1a68ea`
-  - portable ZIP: `dd73842d1de7c18f545b6a4cba7141f758ad3802c8e98877a54de81cdc3afed2`
-- The durable demonstration report records all seven stages, three exact adapter actions, project
-  reopening, explicit `recovery_verified: false` at Result, and final same-incident `RECOVERED` only
-  after stable fresh boot evidence. It also records no physical-device change, production execution,
-  retry authority, persisted test key, or relock authority.
+### Verification reviewed
+
+- Build's clean offline gate completed successfully: `clean testDebugUnitTest lintDebug
+  assembleDebug`; 52 actionable tasks, 51 executed and one up-to-date.
+- Companion JVM tests: **162/162 passed** across 30 suites.
+- Existing ROMVERSE Link/Lifeline subset: **29/29 passed**; correctly counted only within the 162.
+- Distinct Desktop-side Companion/Link regression: **120/120 passed**.
+- Android lint: zero fatal/error findings and 331 visible warnings; none was suppressed or
+  reclassified for this checkpoint.
+- Product Assurance independently verified the APK hash, size, 874-member ZIP integrity,
+  package/version/SDK metadata, exact debug signer/certificate, and both packaged logo hashes.
+- Product Assurance independently reran all Companion JVM tests with Gradle `--rerun-tasks`:
+  **162/162 passed** across 30 suites.
+- Git whitespace verification passes for the complete checkpoint.
+
+### Lint and security judgment
+
+The 331 warning-only findings do not block this artifact-assembly checkpoint. The one
+`CustomX509TrustManager` warning was inspected rather than dismissed generically. The existing
+ROMVERSE Link implementation requires a single certificate, checks its validity, compares the
+complete SHA-256 certificate pin in constant time, rejects client certificates, and repeats the
+exact pin check through the hostname verifier. The warning therefore does not demonstrate disabled
+certificate validation in this local pinned-link design. It remains visible for formal pre-release
+security review and must not be silently suppressed.
+
+The remaining warning groups are existing localization, drawing-allocation, compatibility, icon,
+and unused-resource debt. Fixing them would be a separate behavior/UI-quality task and is not
+authorized under this assembly checkpoint.
 
 ### Guided friction and safety judgment
 
-- Guided reaches a result without a circular prerequisite or repeated consequential confirmation.
-- Consent remains one scoped decision and grants no execution authority by itself.
-- Result and Reassessment do not claim repair; exact fresh verification is still required.
-- Missing, changed, stale, or ambiguous target evidence remains fail-closed.
-- FAILED and UNKNOWN remain durable stop states with no blind or automatic retry.
+- Existing ROMVERSE Link readiness, USB-assist state, trust classification, Lifeline progression,
+  and Lifeline session-integrity behavior passed their committed deterministic tests.
+- No new route, confirmation, warning, dead end, or execution surface was introduced.
+- Companion grants no flash, wipe, root, unlock, relock, approval, or arbitrary-command authority.
 - Guardian remains the sole execution gate.
+- Exact-device evidence, UNKNOWN-on-uncertainty, no blind retry, and independent verification remain
+  unchanged.
 - Bootloader locking and relocking remain permanently prohibited with no override.
 
 ### Acceptance criteria satisfied
 
-- Runnable Fedora source and frozen development launches: satisfied.
-- Portable development bundle integrity and extracted launch: satisfied.
-- Complete inert Guided journey through production service boundaries: satisfied.
-- Durable exact-incident result, reassessment, and independent verification: satisfied.
-- Full Linux regression and focused journey coverage: satisfied.
-- Feature freeze, platform truthfulness, protected-file isolation, and release-gate preservation:
-  satisfied.
+- Clean offline Companion debug APK assembly: satisfied.
+- Exact package, version, SDK, archive, debug signer, and certificate identity: satisfied.
+- Approved brand-asset byte preservation: satisfied.
+- Existing JVM and Desktop-side Link/Lifeline behavior: satisfied.
+- Honest lint classification and visible technical debt: satisfied.
+- Protected-file isolation, feature freeze, and release-gate preservation: satisfied.
+- Android runtime, instrumentation execution, emulator, and physical hardware: not claimed.
 
 ### Approved next bounded task
 
-Produce a clean development-signed **Companion debug APK readiness checkpoint** from the committed
-approved baseline. This is an artifact-assembly and existing-behavior verification task, not a new
-feature slice.
+Produce a local **Companion Android instrumentation APK readiness bundle** from the same committed
+approved baseline. This is the final pre-runtime artifact gate; it is not authorization to install
+or execute either APK.
 
-The task may run the pinned Java 17/Gradle/Android toolchain, Companion JVM tests, lint/build checks,
-and `assembleDebug`; verify the APK package identity, archive integrity, version metadata, debug
-signing classification, and SHA-256; and exercise existing inert ROMVERSE Link/Lifeline state through
-the committed non-hardware test boundaries. It may make only a minimum build-readiness correction if
-the committed baseline cannot assemble, and must return for Product Assurance before expanding that
-correction.
+Run the pinned offline toolchain to compile the existing `androidTest` sources and assemble the
+debug application APK plus debug instrumentation APK. Verify and record:
 
-It must not edit, stage, discard, or commit the three protected Companion files in the original
-checkout; install an APK; connect to or operate a phone/emulator; use a production signing key;
-change Companion behavior or branding; merge a platform branch; publish; or release. If the protected
-files are required for a future Companion feature checkpoint, ownership must first be resolved in a
-separate reviewed handoff.
+- exact application and instrumentation APK paths, sizes, SHA-256 digests, and ZIP integrity;
+- instrumentation package, target package, runner, SDK metadata, debug classification, signer,
+  certificate, and signature schemes;
+- the exact committed instrumentation test classes included and successful compile/package tasks;
+- that the application APK identity and locked brand assets remain unchanged;
+- that no source, manifest, Gradle configuration, or protected Companion file changed.
+
+If the committed baseline cannot assemble the instrumentation APK, report the exact blocker and
+return for Product Assurance before changing source or build configuration. Do not manufacture new
+tests merely to increase totals.
+
+Do not install an APK, start an emulator, connect to or operate a phone, run ADB, use a production
+signing key, edit the three protected Companion files, change behavior or branding, merge a platform
+branch, download dependencies, publish, or release.
 
 ### Gate status
 
 - v0.2 Golden Foundation: **CLOSED**
-- Fedora runnable development build: **VERIFIED**
-- Fedora inert end-to-end Guided Recovery journey: **VERIFIED**
+- Fedora runnable development build and inert Guided journey: **VERIFIED**
+- Companion debug APK build readiness: **VERIFIED**
+- Companion instrumentation APK readiness: **NEXT APPROVED BOUNDED TASK**
+- Companion Android runtime/emulator/physical verification: outstanding; not authorized here
 - Windows runnable development build and inert journey: **IN PROGRESS on separate Windows track**
-- Companion debug APK readiness: **NEXT APPROVED BOUNDED TASK**
-- Companion hardware/instrumented verification: outstanding; not authorized here
 - Production adapter enrollment and physical Android Recovery: outstanding release gates
 - Pre-v1.0 feature freeze: preserved
-- Physical execution, APK installation, production signing, publication, and release: not authorized
+- APK installation, physical execution, production signing, publication, and release: not authorized

@@ -1,5 +1,138 @@
 # ROMVERSE Build Status
 
+## Android connection-source truthfulness — Product Assurance review requested
+
+- Implementation commit: `e685eee873c170821f876c049d14625961c9bf40`
+- Product Assurance authorization: `a27b1858f53fe41a81e50354b88703561cf6a825`
+- Branch target: `windows-launcher-authorized-work`
+- Working branch: `pa/windows-runnable-review`
+- Stage: Stage 1 — v0.2 Golden Foundation Device Engine/Companion truthfulness
+- Status: the bounded source/test correction is implemented and Linux-host verified; stop for
+  independent Product Assurance review.
+
+### Exact correction
+
+- Device Engine now classifies ADB connection source conservatively:
+  - serials containing a network endpoint remain `network`;
+  - `emulator-*` serials are `emulator` immediately;
+  - read-only `ro.kernel.qemu`, `ro.boot.qemu`, or `ro.hardware.virtual_device` proof promotes a
+    local-looking target to `emulator` as soon as `getprop` completes;
+  - the existing remaining local Android path stays `usb`.
+- Reconnect-safe scanning no longer puts an `emulator-*` target through the physical-USB
+  stabilization path or emits a temporary USB snapshot for it.
+- Device Engine connection notes distinguish local emulator, network ADB, and physical USB. An
+  emulator/network transport failure no longer presents cable troubleshooting.
+- Companion Center sets `_usb_ready`, retains a USB serial, and enables USB-assisted pairing only
+  for a normal `DeviceState.DEVICE` snapshot whose exact observed transport is `usb`.
+- Emulator and network ADB snapshots still supply existing read-only development telemetry, but
+  render their real source and never present `USB connected`, `USB also connected`, or
+  `USB read-only evidence remains available`.
+- Unauthorized, offline, multiple-target, and no-selection states remain fail-closed and now use
+  transport-neutral or source-specific wording rather than inventing a cable.
+- The genuine physical-USB route remains unchanged: it still reports USB evidence, supports the
+  separate Link approval flow, and enables USB assist only when Companion is actually installed.
+- Unconditional fallback copy now says Device Engine remains read-only rather than claiming USB
+  evidence is available when no physical USB target has been established.
+- No Companion Android source, Link protocol, Windows launcher, Guardian, Recovery, artifact,
+  packaging, or approved asset changed.
+
+### Classification
+
+- Implemented: Desktop Device Engine transport classification and Companion Center readiness/copy.
+- Simulated/Tested: deterministic fake-ADB and offscreen Qt tests on Fedora/Linux against this exact
+  Windows-branch worktree.
+- Hardware Verified: no. No Android target, emulator, Windows app, or physical cable was used.
+- Released: no.
+
+### Focused verification
+
+- Final directly affected result: **10/10 passed**.
+- Device Engine coverage proves:
+  - genuine local physical ADB remains `usb`;
+  - `emulator-5554` is `emulator`;
+  - a nonstandard local serial with fresh QEMU evidence is `emulator`;
+  - `192.168.1.17:5555` remains `network`;
+  - reconnect-safe scan never stabilizes an emulator as physical USB;
+  - physical USB stabilization/cache behavior remains intact.
+- Companion Center coverage proves:
+  - physical USB retains its existing read-only and USB-assisted pairing route;
+  - local emulator and network ADB provide telemetry without `_usb_ready`, retained USB serial, USB
+    assist, or physical-cable presentation;
+  - paired emulator/network state never gains `USB also connected`;
+  - emulator unauthorized, network offline, and mixed multiple-target states remain fail-closed;
+  - physical disconnect clears readiness and presents a neutral no-target state.
+- Ruff lint: passed for the exact four changed source/test files.
+- Ruff formatting: all four files already formatted.
+- Git whitespace validation: passed.
+- The first 9/9 run is a subset of the final 10/10 result and is not added.
+- No full suite, broad Device Engine file, broad Companion Center file, app journey, executable/ZIP
+  rebuild, or artifact verification was run.
+- The existing verified listener lifecycle result remains 21 passed / 1 unrelated deselected and is
+  not counted again.
+
+### Guided friction and safety implications
+
+- The prior direct Fedora journey's emulator can no longer be presented as physical USB evidence.
+- Virtual/network development remains usable and read-only without enabling a cable-only shortcut.
+- Genuine physical USB behavior, multiple/unauthorized/offline fail-closed handling, wireless Link,
+  certificate pinning, safety-code comparison, separate approval, session revocation, and
+  `execution_authority: none` remain intact.
+- Guardian remains the only execution authority. No connection label grants device-changing power.
+- Exact-device evidence, consent separation, durable UNKNOWN, no blind retry, same-incident Recovery,
+  and independent reassessment/verification are unchanged.
+- Bootloader locking/relocking remains permanently prohibited with no override.
+
+### Platform, freeze, and gate status
+
+- Fedora runnable build, inert Guided journey, and direct Companion Link: previously verified and
+  unchanged.
+- Windows runnable development build, inert Guided journey, and intent-bound optional listener:
+  previously verified and unchanged.
+- This source correction: verified on Linux using the existing Python 3.14.7/PySide6 environment
+  with this worktree explicitly first on `PYTHONPATH`; no genuine Windows execution is claimed.
+- Windows Device Engine/toolchain readiness remains paused for Steve's human dismissal of the stale
+  Windows Security prompt. This task did not interact with it.
+- 5 September 2026 feature freeze: preserved; this is a minimum truthfulness/safety correction to
+  existing connection-source behavior.
+- v0.2 Golden Foundation remains **CLOSED** pending physical, production-trust, signing, and release
+  gates.
+
+### Blockers and limitations
+
+- No real emulator, network ADB target, or physical USB device was used; current evidence is
+  deterministic software verification, not hardware proof.
+- Windows-native regression for this correction was not run because ownership was temporarily
+  transferred specifically for Linux-hosted source verification after the Windows runner timed out.
+- The stale Windows Security prompt and Windows Device Engine readiness continuation remain outside
+  this task.
+
+### Next task
+
+Stop for independent Product Assurance review. Do not start Windows app interaction, Device Engine
+readiness, another source correction, hardware work, Recovery, signing, packaging, publication, or
+release without the next repository verdict.
+
+### External actions
+
+- Physical phone/emulator/network ADB connection or operation: none.
+- ADB/Fastboot command: none.
+- Windows application/prompt interaction: none.
+- Executable/ZIP/APK rebuild or installation: none.
+- Dependency, package, driver, firewall, SELinux, PATH, or host-security change: none.
+- Recovery, firmware, partition, flash, wipe, root, unlock, relock, signing, publication, release,
+  merge, or force-push: none.
+- Linux branch and Companion Android source: untouched.
+- Remote action: normal push of this scoped implementation and handoff to
+  `origin/windows-launcher-authorized-work` is intended after final verification.
+
+### Product Assurance questions
+
+- Confirm the classifier and Companion Center boundary close the emulator/physical-USB truthfulness
+  defect without weakening genuine USB or wireless Link behavior.
+- Confirm the focused 10/10 Linux-hosted result and lint/format gates are proportional.
+- Confirm no Windows-native rerun or hardware check is required before assigning the next bounded
+  task.
+
 ## Intent-bound Companion Link correction — checkpoint blocked by stale Windows prompt
 
 - Reviewed checkpoint: `f8413bfe465e8bfd33d62a0a6cd92d3aa6572167`

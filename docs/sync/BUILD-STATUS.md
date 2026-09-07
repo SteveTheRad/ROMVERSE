@@ -1,5 +1,74 @@
 # ROMVERSE Build Status
 
+## Windows Device Engine / toolchain operability blocker — Product Assurance review requested
+
+- Approved readiness checkpoint: `7642cad98d2501588d9b6829b132c01c1f8798b7`
+- Product Assurance authorization: `f5a06a7664c67c35d14a20286c1acc9ee1b6ba2e`
+  (`Approve Windows development readiness`)
+- Blocker evidence commit: `ae13356696915189ad73e9b3cd9bfdfcefa11b3b`
+- Branch: `windows-launcher-authorized-work`
+- Status: specific actionable operating-system permission blocker captured; unchanged product could
+  not complete its Device Engine readiness journey without a prohibited Windows Security action.
+
+### Fresh isolated workspace and exact initial state
+
+- Frozen executable reused unchanged:
+  `build/windows-dev-frozen/ROMVERSE/ROMVERSE.exe`.
+- Fresh isolated workspace:
+  `C:\Work\ROMVERSE-Toolchain-Readiness-20260907-1246`.
+- Workspace did not exist before launch and initialized successfully.
+- Real visible Command Deck state:
+  - `Device Engine needs attention`;
+  - `Verified Android Platform Tools are not active yet`;
+  - `DEVICE ENGINE ERROR`;
+  - `Resolve Platform Tools` was the existing actionable product control;
+  - device remained `NOT CONNECTED` and Guardian remained `VERIFY REQUIRED`.
+- Host PATH discovery found no `adb` and no `fastboot` executable. Therefore there were no paths,
+  versions, hashes, or competing installations to record.
+- The isolated workspace's `tools` directory contained no files. No toolchain manifest, managed
+  acquisition receipt, or install plan existed before action.
+
+### Exact blocker
+
+Before the `Resolve Platform Tools` control could be exercised, Windows Security opened a modal:
+`Do you want to allow public and private networks to access this app?` for unsigned
+`ROMVERSE.exe`. The permission window covered and blocked the ROMVERSE workspace.
+
+Computer-use policy prohibits automating Windows Security or permission dialogs, and this bounded
+task explicitly prohibited changing global Windows security. Neither `Allow` nor `Cancel` was
+selected. No attempt was made to bypass or dismiss the permission surface, and the ROMVERSE process
+was stopped after evidence capture.
+
+- Screenshot: `docs/evidence/windows-toolchain-readiness-blocked.png`
+- Screenshot SHA-256: `85a2e6fcfde4f4c0742eb8aaa795cbe2d05cec7d996ea2114e262d05f60b3e7e`
+- Screenshot size: 138,563 bytes.
+- The image is readable and records both the truthful missing-tools state and the exact blocking
+  Windows Security prompt.
+
+### Result and precise review question
+
+The unchanged product did not reach ready state and did not begin its declared workspace-local,
+integrity-checked Platform Tools acquisition. This is not a failed download: the acquisition action
+was never safely reachable. Restart persistence and executable/provenance receipts cannot be claimed
+because no receipt was created.
+
+Product Assurance should determine the next smallest authorized path: either require a human to
+choose the non-expansive Windows Security outcome before Build continues, or authorize a separate
+minimum product correction that prevents an unrelated inbound-listener permission surface from
+blocking the host-toolchain readiness journey. Build must not infer either authority.
+
+### Scope and safety
+
+- No application source, test, executable, ZIP, dependency, system package, driver, global PATH,
+  or Windows security setting was changed.
+- No download, tool acquisition, install plan, manual source, or unverified executable ran.
+- No phone was connected or operated; no ADB/Fastboot device command, USB-driver action, Recovery
+  command, APK installation, production trust, signing, publication, release, retry, or relock
+  occurred.
+- Protected Companion files were not edited, staged, discarded, tested, or committed.
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty, no
+  blind retry, independent verification, feature freeze, and permanent no-relock remain intact.
+
 ## Portable raw-ZIP regression correction — Product Assurance review requested
 
 - Reviewed checkpoint: `20e0c3312ef5d995694f66119295007d1f8d2dac`

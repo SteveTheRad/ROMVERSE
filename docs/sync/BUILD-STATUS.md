@@ -3,8 +3,9 @@
 ## Authoritative checkpoint
 
 - Product Assurance authorization/base: `fc24870124004a250c1bd54b215280fe8c599e74`.
-- Evidence checkpoint: the first scoped commit containing this handoff on
-  `linux/stage1-desktop-readiness` (resolved in the follow-up handoff commit).
+- Evidence checkpoint: `41580a949689087618a08fb0930422f45dfeba7d`.
+- Final handoff checkpoint: the follow-up commit containing this resolved status document on
+  `linux/stage1-desktop-readiness`.
 - Stage: Stage 1 — v0.2 Golden Foundation, unfamiliar-firmware Guided intake acceptance.
 - Working tree at checkpoint: clean apart from ignored local test output.
 

@@ -1,123 +1,108 @@
 # ROMVERSE Product Assurance
 
-## Reviewed checkpoint: 7479c2c
+## Reviewed checkpoint: 5f17720
 
-- Handoff commit: `7479c2c11450ca1e88f863db523498f5df4a7b8b`
-- Product Assurance authorization:
-  `74da8577b09e5cccd33c2128f56e41b12189311c`
-- Title: `Record Companion emulator runtime verification`
+- Handoff commit: `5f17720d98f4c028908f7151051d093dc3923e48`
+- Prior Product Assurance authorization:
+  `14468a5ed96ef8e63eeab5d227317808999dad11`
+- Title: `Record contained Link fixture environment blocker`
 - Branch: `linux/stage1-desktop-readiness`
-- Review status: **APPROVED — COMPANION API-35 EMULATOR RUNTIME VERIFIED**
+- Review status: **APPROVED — PRE-ENDPOINT FAILURE STOP VERIFIED; EXISTING ENVIRONMENT RETRY AUTHORIZED**
 
 ### Decision
 
-The exact approved Companion debug application and instrumentation artifacts have now completed a
-genuine Android 15 / API-35 emulator runtime gate. Product Assurance independently verified the
-committed scope, raw runner log, artifact and evidence hashes, visible screenshots, privacy-curtain
-capture, host enforcement state, post-run target inventory, and absence of a new emulator crash.
+Build stopped at the exact required boundary. The sole emulator and approved APKs were admitted,
+but the contained Desktop Link fixture failed during Python import before an endpoint, certificate,
+pairing code, safety code, token, approval, application launch, or instrumentation run existed.
+This is an invocation-environment mismatch, not a Companion, Link, TLS, or runtime failure.
 
-The result is honestly bounded: 11 tests passed, none failed, and the one contained Desktop Link
-fixture test assumption-skipped because the separate fixture was not part of this run. That skip is
-neither a pass nor a ROMVERSE failure. It remains the next concrete integration boundary.
+Product Assurance independently verified that the repository declares `cryptography>=46,<47`, the
+default `/usr/bin/python` 3.14.7 cannot discover that module, and the preserved traceback and hash
+match the handoff. No product or dependency change is necessary.
+
+An existing ROMVERSE virtual environment already contains Python 3.14.7 and `cryptography 46.0.7`,
+which satisfies the committed dependency range. One repeat of the exact contained Link runtime is
+authorized using only that existing interpreter and its installed dependency set. No package
+installation, environment creation, upgrade, downgrade, or dependency mutation is authorized.
 
 ### Independent evidence
 
-- Commit `7479c2c` changes only `docs/sync/BUILD-STATUS.md`; the dedicated worktree is clean and
+- Commit `5f17720` changes only `docs/sync/BUILD-STATUS.md`; the dedicated worktree is clean and
   matches `origin/linux/stage1-desktop-readiness`.
-- The approved application APK SHA-256 remained
-  `62bc530d5f077e3e34ad71002caa24303a584bf4661f56d2cc338c976bfb5a2b`.
-- The approved instrumentation APK SHA-256 remained
-  `ec6776528384b26c29b748299f80285474cc64ed40fe2b2519efa6b4040a86b5`.
-- The sole admitted target was `emulator-5556`, reporting Android 15, API 35, x86-64,
-  `ro.kernel.qemu=1`, and completed boot.
-- Android Emulator 37.1.11 launched once through the approved visible `-gpu host` path using the
-  existing clean, wiped, snapshot-disabled API-35 AVD.
-- The raw 217-line runner log is 11,760 bytes and independently hashes to
-  `fffa36efb5fa3d4a456de165f0fb4be37c3bdd120e9400dc7d5b006be383d51f`.
-- Raw status codes independently count 11 success completions and one assumption skip; the runner
-  ends `OK (12 tests)` with code `-1`.
-- The assumption is explicit: the test requires the contained Desktop Link fixture. It was not
-  hidden, weakened, rewritten, or counted as passed.
-- Cold launch completed in 359 ms and the app-scoped AndroidRuntime error log remained empty.
+- Preserved fixture error log: 843 bytes / 10 lines; SHA-256
+  `550e2d72b964a80a1c464e76f8fe0321e9111bd2993e78ac8478c7bf6b2864eb`.
+- Preserved fixture stdout is empty; no fixture state or credential was emitted.
+- The traceback ends at `from cryptography import x509` with
+  `ModuleNotFoundError: No module named 'cryptography'`.
+- `/usr/bin/python` is 3.14.7 and independently reports no discoverable `cryptography` module.
+- Existing interpreter:
+  `/run/media/stevetherad/Data/ROMVERSE-Recovered-2026-09-01/source/.venv/bin/python`.
+- That interpreter independently imports `cryptography 46.0.7`, within the exact declared
+  `>=46,<47` range.
+- The existing virtual environment is used only as a dependency runtime. `PYTHONPATH` must point
+  explicitly to the clean `ROMVERSE-Linux-Desktop-Readiness/src`, and the fixture script must be
+  the exact committed file in that same clean worktree. Do not import ROMVERSE application source
+  from the separate original checkout.
 
-### Independent visual review
+### Safety and classification
 
-The preserved screenshots are readable and their recorded hashes match. They visibly confirm:
-
-- the approved ROMVERSE branding and Command Deck Guided shell;
-- one coherent navigation drawer and the existing destination set;
-- Guided and Expert Settings state, including the permanent bootloader-relock prohibition;
-- persisted Expert presentation and expanded Vitalis evidence;
-- correct Privacy Curtain protection: the Companion app region is black while Android system bars
-  remain visible.
-
-The evidence supports a runtime pass for existing emulator-safe UI and lifecycle behavior. It does
-not imply physical-device, manufacturer, USB, production-trust, or release verification.
-
-### Post-run and safety verification
-
-- SELinux remains Enforcing; no policy or enforcement change occurred.
-- ADB reports no target after the controlled emulator shutdown.
-- No emulator/Android/Companion coredump was recorded during the successful authorized session.
-- No Companion source, test, manifest, dependency, resource, behavior, or brand asset changed.
-- The protected original-checkout Companion changes and old Windows drafts remain untouched.
-- Guardian remains the sole execution gate; Companion has no flash, wipe, root, unlock, relock,
-  approval, or arbitrary-command authority.
-- UNKNOWN-on-uncertainty, no blind retry, exact-target evidence, and consent separation remain
+- Contained Link instrumentation remains **0 run / 0 pass / 0 fail / 0 skip** for this failed
+  attempt; no integration claim is made.
+- The prior approved standalone Companion runtime remains valid and is not affected.
+- The emulator was shut down and ADB is empty after the failure.
+- SELinux remains Enforcing; no host-policy or package change occurred.
+- No Companion source, tests, fixture, protocol, dependency declaration, resource, or brand asset
+  changed.
+- Guardian remains the sole execution gate; the fixture grants no execution or device-changing
+  authority.
+- Exact-target evidence, UNKNOWN-on-uncertainty, no blind retry, and consent separation remain
   unchanged.
 - Bootloader locking and relocking remain permanently prohibited with no override.
 - The pre-v1.0 feature freeze is preserved.
 
-### Acceptance criteria satisfied
-
-- Exact approved artifacts revalidated immediately before install: satisfied.
-- One exact disposable emulator target and no physical target: satisfied.
-- Complete existing standalone instrumentation inventory executed honestly: satisfied, with
-  11 pass / 0 fail / 1 explicit assumption skip.
-- Readable app launch, branding, navigation, presentation continuity, and technical evidence:
-  satisfied.
-- Privacy Curtain secure-capture boundary: satisfied.
-- Clean shutdown, empty target inventory, enforcing host, and no app changes: satisfied.
-- Physical hardware, paired Desktop Link, production Recovery, signing, publication, and release:
-  not claimed.
-
 ### Approved next bounded task
 
-Complete the one remaining **contained Desktop-to-Companion Link integration runtime** using the
-already committed `scripts/companion_link_emulator_fixture.py`. This is verification of an existing
-encrypted read-only feature, not a new implementation slice or a generic test expansion.
+Repeat exactly the previously approved contained Desktop-to-Companion Link runtime once, changing
+only the Python executable used to start the committed fixture.
 
-Use the same isolated official API-35 toolchain and exact approved APK hashes. Start one clean,
-visible-window host-GPU emulator with SELinux enforcing and require exactly the sole
-`emulator-5556` target. Start one instance of the contained fixture from the approved committed
-source and record its short-lived endpoint, pairing-code lifetime, certificate fingerprint, safety
-code, and explicit `execution_authority: none` output without placing reusable credentials in the
-repository.
+Invoke the exact clean-worktree fixture with the existing verified virtual-environment interpreter,
+explicit clean-worktree `PYTHONPATH`, and user-site packages disabled. Before starting the emulator
+or fixture, prove with that exact invocation context that:
 
-Pass only those fixture values as the existing instrumentation runner arguments and execute the
-complete packaged 12-test suite once. Require 12 passes, zero failures, and zero skips. Preserve the
-full fixture and runner logs and their hashes. Confirm the fixture receives two fresh Companion
-health snapshots, the remembered encrypted session reconnects after Activity recreation, and the
-existing Companion UI renders the paired state, schema-six Live Console, Device DNA, and Ascension
-Guardian boundary. Capture bounded readable screenshots where practical.
+- `romverse.__file__` and the relevant `romverse.companion` modules resolve under
+  `/run/media/stevetherad/Data/ROMVERSE-Linux-Desktop-Readiness/src`;
+- `cryptography.__version__` is exactly `46.0.7` and its module resolves from the existing virtual
+  environment's site-packages; and
+- no ROMVERSE application module resolves from the separate original checkout.
 
-On any target ambiguity, artifact mismatch, TLS/pin/safety-code failure, test failure or skip,
-fixture timeout, runtime error, or emulator failure, preserve evidence and stop without changing
-the app, tests, fixture, host security, or transport contract.
+Then use the same isolated API-35 toolchain, exact approved APK hashes, clean visible host-GPU AVD,
+SELinux enforcing, and sole exact `emulator-5556` admission. Start one fixture instance, pass only
+its ephemeral endpoint/code/fingerprint values to the existing runner, and execute the complete
+12-test suite once. Require 12 passes, zero failures, and zero skips, two fresh health snapshots,
+encrypted-session reconnection after Activity recreation, and `execution_authority: none`.
 
-Do not connect or operate a physical phone; expose the fixture beyond the local emulator path;
-grant execution authority; enable Recovery; use production signing; change protected files;
-merge platform branches; publish; or release. Shut down the emulator and fixture, confirm ADB is
-empty, update `docs/sync/BUILD-STATUS.md`, commit and push the exact checkpoint on
-`linux/stage1-desktop-readiness`, and stop for independent Product Assurance review.
+Preserve full fixture and runner logs and hashes and capture bounded readable Link, Live Console,
+Device DNA, and Ascension Guardian-boundary evidence where practical. Shut down the fixture and
+emulator and confirm ADB is empty.
+
+Any dependency mismatch, source-resolution mismatch, target ambiguity, artifact mismatch,
+TLS/pinning/safety-code failure, test failure or skip, fixture timeout, runtime error, or emulator
+failure ends the task without another retry or any code/environment change.
+
+Do not install or modify packages; create or mutate an environment; import ROMVERSE source from the
+original checkout; change the app/tests/fixture/protocol; use a phone; expose the endpoint beyond
+the contained emulator route; grant execution authority; enable Recovery; use production signing;
+change protected files; merge platforms; publish; or release.
+
+Update `docs/sync/BUILD-STATUS.md`, commit and push the exact checkpoint on
+`linux/stage1-desktop-readiness`, then stop for independent Product Assurance review.
 
 ### Gate status
 
 - v0.2 Golden Foundation: **CLOSED pending remaining release gates**
-- Fedora runnable development build and inert Guided journey: **VERIFIED**
-- Companion debug and instrumentation APK artifact readiness: **VERIFIED**
+- Fedora runnable build and inert Guided journey: **VERIFIED**
 - Companion standalone API-35 emulator runtime: **VERIFIED**
-- Contained Desktop/Companion Link integration: **NEXT APPROVED BOUNDED TASK**
+- Contained Desktop/Companion Link integration: **ENVIRONMENT-ONLY RETRY AUTHORIZED**
 - Companion physical-device verification: outstanding; not authorized
-- Windows runnable development build and inert journey: separate Windows correction track
+- Windows runnable development build: separate correction track in progress
 - Production Recovery, signing, publication, and release: outstanding and not authorized

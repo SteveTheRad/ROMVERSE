@@ -1,5 +1,96 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 20e0c33
+
+- Handoff commit: `20e0c3312ef5d995694f66119295007d1f8d2dac`
+- Correction implementation: `0e2f895dfcb3507fdbda5c1a3f74096361aedf3d`
+- Previous Product Assurance correction: `a924b2067b83d797be3742b3bdb81f02ac06a045`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **CORRECTION REQUIRED — WINDOWS READINESS FUNCTIONALLY VERIFIED; ONE CROSS-PLATFORM TEST ASSERTION REMAINS**
+
+### Decision
+
+The four requested Windows readiness corrections are materially complete and independently verified.
+The real Windows launcher is stable across 100 fresh processes, the visible frozen application is
+readable, the private project artifacts have a Windows-native owner/SYSTEM-only ACL, and the source
+parser rejects a ZIP member whose raw name contains a literal backslash.
+
+Approval is held only because the new ZIP regression contains one Windows-specific expectation about
+Python's normalized `ZipInfo.filename`. On Linux, `ZipInfo.orig_filename` and `ZipInfo.filename` both
+retain the literal backslash; the production parser still correctly rejects the raw unsafe member.
+This is a test portability defect, not an application defect. The exact minimum correction below does
+not authorize any product-source, artifact, UI, launcher, packaging, or journey change.
+
+### Repository and independent evidence
+
+- `0e2f895` changes only the approved launcher, private-file, ZIP-validation, test, and visible-evidence
+  surfaces; `20e0c33` changes only `docs/sync/BUILD-STATUS.md`.
+- The Windows worktree was clean at the handoff and the protected Companion files were unchanged.
+- Product Assurance independently ran the decisive Windows launcher/project/source cases:
+  **24/24 passed**.
+- Product Assurance independently repeated the exact handle/path test in 100 fresh Windows pytest
+  processes: **100/100 passed**, with no failure.
+- Native identity now compares volume serial, 64-bit file index, link count, size, last-write FILETIME,
+  and creation FILETIME for both handles. Reparse rejection, single-link enforcement, the pinned
+  write/delete-denying handle, one attempt, and fail-closed dispatch remain intact.
+- The committed 1456x939 visible frozen-window evidence is readable and contains no square glyphs.
+  Its SHA-256 is
+  `346cbdbd3510ab812fbb203eb66457ca2f4db4053bc1ae7576aa64cb166c12f8`.
+- The four private Windows artifacts are tested against exactly two non-inherited Full Control ACEs:
+  Owner Rights and Local System. Existing POSIX `0600` behavior remains present.
+- Product Assurance independently verified the rebuilt unsigned development ZIP on Windows:
+  SHA-256 `747d5b40dbc76f5fab3e777f40bbd3d586bcfb72eaeccadd6647df57996af239`.
+- The persisted inert-journey report remains simulation-only, records 53 actions/50 inert writes,
+  preserves decline-before-acceptance and separate boot verification, and records no physical command,
+  wipe, relock, or retry.
+- Product Assurance independently ran the focused project/source/launcher suite on Linux:
+  **80 passed, 2 skipped, 1 failed**. The only failure is the host-specific assertion that
+  `ZipInfo.filename` must equal `windows/boot.img`; Linux correctly returns the raw
+  `windows\\boot.img`. The subsequent `ProjectError` rejection remains the intended contract.
+
+### Required minimum correction
+
+Modify only
+`tests/test_source_installation.py::test_literal_backslash_archive_path_is_rejected_before_windows_normalization`:
+
+- Keep the unconditional assertion that `member.orig_filename == r"windows\boot.img"`.
+- Make the `member.filename` expectation accurately reflect host behavior: normalized forward slash
+  on Windows and retained literal backslash on non-Windows hosts, or remove that secondary assertion
+  where normalization is not part of the safety contract.
+- Keep the cross-platform call to `SourceInstallationService.prepare` and its required `ProjectError`
+  path rejection.
+- Do not change production source, the fixture's raw unsafe name, accepted-path validation, the
+  Windows launcher, ACL implementation, application, artifact, or documentation outside the handoff.
+
+### Acceptance criteria
+
+- The corrected single ZIP regression passes on Windows and Linux while still proving the raw literal
+  backslash is rejected.
+- The same focused Linux suite completes with **81 passed, 2 skipped** and no failure.
+- The directly affected Windows source-installation test file passes.
+- No frozen rebuild, ZIP rebuild, visible launch, inert Guided journey, broad regression, dependency
+  change, or physical-device action is required because product code and accepted artifacts are
+  unchanged.
+- Commit the single test correction and updated `docs/sync/BUILD-STATUS.md`, push the branch, and stop
+  for Product Assurance review.
+
+### Approved next bounded task
+
+Apply only the portable ZIP-test assertion correction above. After it passes on both hosts, Product
+Assurance may close Windows development readiness without repeating already-valid build, visual,
+launcher, ACL, archive, or journey evidence.
+
+### Gate status
+
+- v0.2 Golden Foundation: **CLOSED**
+- Fedora runnable development build and inert Guided journey: **VERIFIED**
+- Windows unsigned frozen artifact and inert Guided journey: **VERIFIED**
+- Windows completed development-readiness gate: **HELD ONLY FOR ONE TEST-PORTABILITY CORRECTION**
+- Guardian/exact-device/UNKNOWN/no-blind-retry/no-relock invariants: preserved
+- Physical Android/Recovery verification: outstanding; not authorized here
+- Pre-v1.0 feature freeze: preserved
+- Production signing, publication, and release: not authorized
+
 ## Reviewed checkpoint: 824d6e7
 
 - Handoff commit: `824d6e7b3f59e16d9d2bffe3e6f1049ddc55470b`

@@ -1,5 +1,128 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: c4bcdfa
+
+- Handoff commit: `c4bcdfa6b46e377c4947b8e5f1a9de52012edd45`
+- Product Assurance authorization: `db6fcc14b8fd446ed06e4f31100f17ff0e1b37c8`
+- Reviewed implementation: unchanged from `b86aca25e5cf2078fdcae375812e59f0327d89b5`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **CORRECTION REQUIRED — DIRECT PRODUCT LINK VERIFIED; MINIMUM PRESENTATION RACE REPAIR**
+
+### Decision
+
+The direct real Fedora Desktop-to-real Companion product Link milestone is accepted. The unchanged
+applications completed the production TLS pairing path through both visible identity decisions,
+delivered sustained authenticated telemetry, restored one remembered session, revoked it through the
+visible Desktop control, and rejected the old credential after Companion restart. No fixture,
+instrumentation hook, private-state injection, physical phone, or execution authority participated.
+
+One observed Companion presentation race requires a minimum correction before Linux advances: after
+a visible reset invalidated an in-flight request, that older request's eventual timeout overwrote the
+current button copy with `APPROVAL TIMEOUT • TRY AGAIN`. The button still opened the correct safety
+dialog and no stale credential or authority was restored, so this is not a pairing or Guardian failure.
+It is nevertheless untruthful stale UI state and should be fixed in the existing flow.
+
+Product Assurance also corrects two evidence/wording points without rejecting the milestone:
+
+- The retained Desktop event log contains 13 snapshot observations total. The first is the expected
+  unauthenticated waiting state and the following **12 are authenticated**, not 13 authenticated
+  observations. Twelve still exceeds the required two.
+- The Desktop described the sole API-35 emulator as `USB also connected` and later claimed USB
+  read-only evidence remained. Repository inspection shows `DeviceEngine` classifies any ADB serial
+  without a colon as `usb`, and `CompanionCenter.set_device_snapshot` sets `_usb_ready` for every
+  normal `device` snapshot. This is a real connection-source classification defect, not physical-USB
+  evidence. Its Desktop source overlaps the active Windows Companion lifecycle slice, so it is queued
+  for one coordinated correction after that Windows checkpoint rather than duplicated now.
+
+### Independent repository and runtime evidence
+
+- Commit `c4bcdfa` changes only `docs/sync/BUILD-STATUS.md`; product source, tests, APK, Desktop
+  artifacts, protected original-checkout files, and Windows work are unchanged.
+- Product Assurance independently inspected the redacted 17-event Desktop log. Its SHA-256 is
+  `082aa7090499f3f7ef565b47f86d24177ec68a8f1ee5814c9a06fb26e3c4fcfe`.
+  The order is ready, approved, 13 observations, reconnected, reset; every event reports
+  `execution_authority: none`.
+- Observation one visibly says it is waiting for an authenticated phone snapshot; observations two
+  through thirteen contain authenticated health state. No pairing code, bearer token, private key,
+  or raw serial is present in the redacted log.
+- Product Assurance independently matched the recorded hashes for the paired Desktop, authenticated
+  Desktop snapshot, reconnect, reset, Companion safety dialog, paired screen, Live Console,
+  remembered reopen, revoked reopen, and Android error log.
+- The actual screens show the same certificate-derived code on both products. Companion's Live
+  Console visibly retains `Execution authority: NONE` and `Bootloader relock: NEVER`; after revocation
+  it requires a new Link code.
+- After the run ADB was empty and no emulator, ROMVERSE process, or port-8765 listener remained.
+  SELinux stayed enforcing. No physical target, host-security change, dependency install, Recovery,
+  signing, publication, or release action occurred.
+- Repository inspection localizes the stale Companion copy to the in-flight polling thread in
+  `MainActivity.kt`, which unconditionally writes the timeout label after the request is no longer
+  approved. The visible reset can complete while that older thread is still pending.
+
+### Vision, Guided friction, freeze, and safety review
+
+- This proves the existing products can pair directly and sustain their intended read-only health
+  channel. It is meaningful operability progress, not another fixture or broad-test checkpoint.
+- Both identity decisions remain meaningful. Reset and revocation remain effective despite the stale
+  label; no hidden approval, retry, or authority path was observed.
+- Guardian-only execution, exact-device attribution, consent separation, UNKNOWN-on-uncertainty,
+  no blind retry, independent reassessment/verification, and permanent no-relock remain unchanged.
+- The feature freeze is preserved. The required change is a correctness repair to an existing
+  asynchronous presentation boundary, not a new feature.
+
+### Required minimum correction
+
+Correct only the existing Companion Link request-generation/presentation lifecycle:
+
+1. Give an in-flight Link request a bounded attempt identity, cancellation state, or equivalent
+   existing-state check so a visible reset, a newer request, or Activity teardown makes an older
+   request unable to update current UI or pairing preferences.
+2. A late approval, rejection, network error, or timeout from an invalidated attempt must be ignored
+   for presentation and authorization. Do not turn it into a retry, success, or replacement request.
+3. Preserve certificate pinning, exact safety-code comparison, explicit confirmation, remembered
+   session behavior, reset/revocation, read-only telemetry, and zero execution authority.
+4. Add the smallest deterministic affected test proving reset followed by an older timeout cannot
+   overwrite the reset/new-request state. Retain current Link assertions; do not weaken timing or
+   safety checks.
+5. Correct `docs/sync/BUILD-STATUS.md` to say 13 observations total / 12 authenticated.
+
+Expected scope is the minimum relevant Companion Activity source, its directly affected test, and
+the handoff wording. Do not change Desktop Companion source in this Linux task while the Windows
+listener lifecycle correction is active. Do not rerun the full Fedora journey, broad Python suite,
+or unrelated Android inventory.
+
+### Acceptance criteria
+
+- A deterministic focused test proves a reset/new attempt invalidates the old asynchronous
+  presentation result and that no stale approval/token/preferences are restored.
+- Directly affected Android compile/static/test gates pass. Rebuild only the affected development APK
+  if the test requires it; do not repeatedly rebuild artifacts.
+- If a bounded emulator check is necessary, use one emulator, reproduce only reset-versus-late-result,
+  and shut it down afterward. Do not repeat the entire direct Link milestone.
+- `BUILD-STATUS.md` truthfully records 13 total observations and 12 authenticated observations.
+- No Desktop source, Windows branch, physical phone, mutating ADB/Fastboot command, Recovery,
+  production trust/signing, firewall policy, publication, release, or relock action occurs.
+- Commit and push the exact correction/handoff, then stop for independent Product Assurance review.
+
+### Approved next bounded task
+
+Implement only the minimum Companion stale-result invalidation correction above. This keeps the Linux
+track on functioning product behavior while Windows independently finishes its already-active Desktop
+listener lifecycle correction. The queued emulator-versus-physical-USB classification defect must not
+be started by Linux until Product Assurance has reviewed that Windows checkpoint and assigned one
+owner.
+
+### Gate status
+
+- Fedora runnable development build and inert Guided journey: **VERIFIED**
+- Companion standalone API-35 runtime: **VERIFIED**
+- Contained fixture-backed Companion Link: **VERIFIED**
+- Direct Fedora Desktop-to-Companion product Link: **VERIFIED**
+- Companion reset-versus-late-result presentation: **MINIMUM CORRECTION REQUIRED**
+- Emulator/physical-USB Desktop classification: **QUEUED; SINGLE OWNER AFTER WINDOWS CHECKPOINT**
+- Windows optional-listener lifecycle: **SEPARATE ACTIVE CORRECTION**
+- v0.2 Golden Foundation: **CLOSED pending remaining Windows, physical, production-trust, signing, and release gates**
+- Physical hardware, production Recovery/trust, signing, publication, and release: not authorized
+
 ## Reviewed checkpoint: e091a55
 
 - Handoff commit: `e091a555c8ad95d79c4969b6ce77b492d5f7f600`

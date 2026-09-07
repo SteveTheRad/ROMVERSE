@@ -1,5 +1,118 @@
 # ROMVERSE Build Status
 
+## Windows minimum-readiness correction checkpoint — Product Assurance review requested
+
+- Reviewed checkpoint: `824d6e7b3f59e16d9d2bffe3e6f1049ddc55470b`
+- Product Assurance correction verdict: `a924b2067b83d797be3742b3bdb81f02ac06a045`
+  (`Require minimum Windows readiness correction`)
+- Correction implementation: `0e2f895dfcb3507fdbda5c1a3f74096361aedf3d`
+- Branch: `windows-launcher-authorized-work`
+- Status: all four required minimum corrections implemented and verified on the real Windows host;
+  stop for independent Product Assurance review
+
+### 1. Exact Windows launcher identity stabilization
+
+- Cause: CPython's `os.fstat` and path `lstat` independently converted the same NTFS timestamps to
+  nanoseconds with intermittent sub-millisecond differences. The comparison could therefore reject
+  the same locked file even though device/file identity, size, and file bytes were unchanged.
+- Correction: both the pinned descriptor and a second non-write/non-delete-sharing path handle now
+  use `GetFileInformationByHandle`. The exact comparison fields are native volume serial, 64-bit
+  file index, link count, 64-bit size, last-write `FILETIME`, and creation `FILETIME`.
+- Reparse-component rejection, `FILE_FLAG_OPEN_REPARSE_POINT`, single-link requirement, regular-file
+  requirement, byte-exact hash/size verification, write/delete-denying pinned handle through process
+  creation, fixed launch surface, one attempt, and fail-closed behavior remain unchanged.
+- One captured successful identity comparison:
+  - volume serial: `951229823` / `951229823`
+  - file index: `281474977206815` / `281474977206815`
+  - link count: `1` / `1`
+  - size: `33` / `33`
+  - last-write FILETIME: `134332548504913093` / `134332548504913093`
+  - creation FILETIME: `134332548504913093` / `134332548504913093`
+  - the original pinned descriptor identity also remained equal after hashing.
+- Required fresh-process repetition: **100/100 passed**, zero failures; 0.870–1.167 seconds per
+  process, 0.919-second mean.
+- The first repetition harness attempt is excluded because its parent `--basetemp` directory had
+  not been created, making all processes fail during pytest setup before the test ran. After the
+  short parent root was explicitly created, the authoritative 100 consecutive runs above passed.
+- Full Windows launcher file after the repetition: **21/21 passed** in 0.58s.
+
+### 2. Real visible frozen-window readability
+
+- Evidence: `docs/evidence/windows-frozen-visible-readable.png`
+- Screenshot SHA-256: `346cbdbd3510ab812fbb203eb66457ca2f4db4053bc1ae7576aa64cb166c12f8`
+- Capture: the actual rebuilt frozen `ROMVERSE.exe` main window on Windows, 1456×939, title
+  `ROMVERSE Studio v0.1`, captured through the Win32 window rendering surface while visible.
+- Result: headings, navigation, controls, status labels, project and Guardian content are readable;
+  no square glyphs are present. The prior square-glyph screenshots are classified as an offscreen
+  Qt backend limitation. No font, branding, layout, or application UI change was required.
+- The visible application accepted a normal close request and exited normally.
+
+### 3. Windows-native private-file contract
+
+- Windows local evidence writes now publish a protected DACL with exactly two non-inherited Full
+  Control allow ACEs: Owner Rights (`S-1-3-4`) and Local System (`S-1-5-18`). Inherited broad access
+  is removed. ACL application happens to the private temporary file before atomic publication, or
+  before an exclusive record becomes usable; failure is fail-closed.
+- The project manifest, working-copy record, snapshot record, and snapshot artifact each produced:
+  `(('S-1-3-4', 2032127, False), ('S-1-5-18', 2032127, False))`.
+- The tests require exactly those two Full Control (`0x1f01ff`) non-inherited ACEs on Windows.
+- Existing POSIX `0600` assertions and behavior remain unchanged.
+
+### 4. Literal-backslash ZIP fixture
+
+- The fixture now writes a normal equal-length member and patches both the local header and central
+  directory name bytes to a literal `windows\\boot.img`, avoiding Windows `zipfile` writer
+  normalization.
+- The test proves `ZipInfo.orig_filename` retains the literal backslash while `filename` is
+  normalized. Source parsing now validates `orig_filename` through the existing `_safe_member`
+  boundary, so the raw unsafe path is rejected before normalization can hide it.
+- Accepted-path validation was not weakened.
+
+### Correction verification
+
+- Focused launcher/project/source tests: **83 passed** in 4.82s.
+- Required launcher repetition: **100/100 passed** in fresh pytest processes.
+- Full launcher contract file: **21 passed** in 0.58s.
+- Final affected regression — local store, desktop bundle, project store, source installation,
+  source integration, Guided mission, and Windows launcher: **185 passed** in 245.88s.
+- Follow-up exact four-artifact ACL cases: **2 passed** in 0.46s (a subset, not added to 185).
+- Ruff lint, Ruff formatting, and Git whitespace checks: passed.
+- Source startup smoke after correction: passed, exit 0.
+- Rebuilt frozen startup smoke: passed.
+- Exact development ZIP verification: 305 files, 164,589,574 expanded bytes.
+
+### Rebuilt unsigned artifact
+
+- Executable: `build/windows-dev-frozen/ROMVERSE/ROMVERSE.exe`
+- Archive: `dist/ROMVERSE-Desktop-0.1.0-windows-x86_64-dev.zip`
+- Archive size: 73,449,374 bytes
+- SHA-256: `747d5b40dbc76f5fab3e777f40bbd3d586bcfb72eaeccadd6647df57996af239`
+- Classification: unsigned Windows development build only; not production-ready, signed,
+  published, or released.
+
+### Reverified inert Guided journey
+
+- Completed `Scan → Match → Prepare → Consent → Result → Reassessment → Verification`.
+- Simulation only; `physical_phone_changed=false`, `production_certified=false`.
+- Exact simulated Xiaomi/`popsicle` target; 53 actions and 50 inert image writes.
+- Consent decline sent no changing command; later acceptance remained explicit.
+- No wipe, relock, blind retry, or physical command.
+- Independent stable-boot observation: 60 simulated seconds, 11 samples; audit valid; installation
+  receipt remained separate and unchanged.
+- Guided/Expert used the same operation session; history reopening sent zero commands and made zero
+  additional changes.
+- Report: `C:\Work\ROMVERSE-Windows-Guided-Correction-20260907\simulation-report.json`.
+- Receipt SHA-256: `bcc1d234ac7d9a5f70a7856ef6b9821e28d7574bf25e43a943deb10588124bae`.
+
+### Safety and scope confirmation
+
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty, no
+  blind retry, independent verification, feature freeze, and permanent no-relock are preserved.
+- No phone connection or operation, Recovery command, APK installation, production trust
+  enrollment, physical execution, production signing, publication, release, or force-push occurred.
+- Protected Companion files were not edited, staged, discarded, tested, or committed.
+- No feature, installer, platform merge, production adapter, or expanded product scope was added.
+
 ## Runnable Windows development checkpoint — Product Assurance review requested
 
 - Branch: `windows-launcher-authorized-work`

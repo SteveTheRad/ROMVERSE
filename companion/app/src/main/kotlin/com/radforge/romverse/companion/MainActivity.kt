@@ -122,6 +122,39 @@ private data class CompanionOriginScene(
     val durationMs: Long,
 )
 
+internal class LinkPairAttemptGate {
+    private var generation = 0L
+    private var closed = false
+
+    @Synchronized
+    fun begin(): Long {
+        check(!closed) { "Link pairing lifecycle is closed" }
+        generation += 1
+        return generation
+    }
+
+    @Synchronized
+    fun invalidate() {
+        generation += 1
+    }
+
+    @Synchronized
+    fun close() {
+        closed = true
+        generation += 1
+    }
+
+    @Synchronized
+    fun runIfCurrent(attempt: Long, action: () -> Unit): Boolean {
+        if (closed || attempt != generation) return false
+        action()
+        return true
+    }
+
+    @Synchronized
+    fun isCurrent(attempt: Long): Boolean = !closed && attempt == generation
+}
+
 class MainActivity : ComponentActivity() {
     private companion object {
         const val GALAXY_DRAFT_TITLE = "topic_draft_title_v1"
@@ -264,6 +297,7 @@ class MainActivity : ComponentActivity() {
     private var linkFlightProgress: ProgressBar? = null
     private var linkFlightLastSync: TextView? = null
     private var linkFlightAction: Button? = null
+    private val linkPairAttemptGate = LinkPairAttemptGate()
     private var telemetryRetryAttempt = 0
     private var activityResumed = false
     private var lastNetworkOnline = false
@@ -1132,21 +1166,31 @@ class MainActivity : ComponentActivity() {
                     code.error = "Enter the PC address and six-digit code"
                     return@setOnClickListener
                 }
+                val attempt = linkPairAttemptGate.begin()
                 text = "CONNECTING…"
                 Thread {
                     val requestId = postPairRequest(host, candidate, certificateSha256)
                     runOnUiThread {
-                        text = if (requestId != null) "WAITING FOR PC APPROVAL" else "RETRY WIRELESS PAIRING"
-                        if (requestId != null) logActivity("Wireless pairing request sent")
+                        linkPairAttemptGate.runIfCurrent(attempt) {
+                            text = if (requestId != null) {
+                                "WAITING FOR PC APPROVAL"
+                            } else {
+                                "RETRY WIRELESS PAIRING"
+                            }
+                            if (requestId != null) logActivity("Wireless pairing request sent")
+                        }
                     }
                     if (requestId != null) {
-                        var approved = false
                         repeat(60) {
+                            if (!linkPairAttemptGate.isCurrent(attempt)) return@Thread
                             Thread.sleep(1000)
+                            if (!linkPairAttemptGate.isCurrent(attempt)) return@Thread
                             val status = getPairStatus(host, requestId, certificateSha256)
+                            if (!linkPairAttemptGate.isCurrent(attempt)) return@Thread
                             val telemetry = if (status.state == "approved" && status.sessionToken.isNotBlank()) {
                                 getTelemetrySummary(host, status.sessionToken, certificateSha256)
                             } else TelemetryResult()
+                            if (!linkPairAttemptGate.isCurrent(attempt)) return@Thread
                             if (status.state == "approved" && telemetry.summary != null) {
                                 val transferInbox = getDesktopTransferOffers(
                                     host,
@@ -1158,73 +1202,76 @@ class MainActivity : ComponentActivity() {
                                     status.sessionToken,
                                     certificateSha256,
                                 )
-                                if (!linkSessionVault.store(status.sessionToken)) {
-                                    runOnUiThread {
-                                        clearWirelessSession(forgetTrustedDesktop = true)
-                                        text = "SECURE STORAGE FAILED • PAIR AGAIN"
-                                        pairingState.text =
-                                            "Desktop verified • secure session could not be preserved"
-                                        logActivity("Wireless pairing stopped because secure storage failed")
-                                    }
-                                    return@Thread
-                                }
-                                approved = true
+                                if (!linkPairAttemptGate.isCurrent(attempt)) return@Thread
                                 runOnUiThread {
-                                    text = "PAIRED"
-                                    background = successBackground()
-                                    setTextColor("#72FFB2".toColorInt())
-                                    pairingState.text = if (phoneSync.accepted) {
-                                        "Paired • two-way health sync active"
-                                    } else {
-                                        "Paired • Desktop telemetry active • phone sync retrying"
-                                    }
-                                    desktopAscensionStatus = telemetry.ascension
-                                    desktopLiveConsoleStatus = telemetry.liveConsole
-                                    desktopDeviceDnaStatus = telemetry.deviceDna
-                                    preserveLastKnownDeviceDna(telemetry.deviceDna)
-                                    desktopTransferOffers = transferInbox.offers
-                                    desktopTelemetry.text = if (phoneSync.accepted) {
-                                        "${telemetry.summary}  •  phone health synced"
-                                    } else telemetry.summary
-                                    telemetryHost = host
-                                    telemetryToken = status.sessionToken
-                                    telemetryCertificateSha256 = certificateSha256
-                                    scheduleTelemetryRefresh(desktopTelemetry)
-                                    pairingPrefs.edit()
-                                        .putBoolean("paired", true)
-                                        .putString("paired_host", host)
-                                        .putString("certificate_sha256", certificateSha256)
-                                        .putInt(
-                                            "link_protocol_version",
-                                            DesktopLinkSecurity.PROTOCOL_VERSION,
-                                        )
-                                        .putLong(
-                                            "session_expires_at_epoch_ms",
-                                            System.currentTimeMillis() + status.expiresInSeconds * 1000L,
-                                        )
-                                        .putBoolean("desktop_trusted", true)
-                                        .apply()
-                                    telemetryRetryAttempt = 0
-                                    pendingUsbPairingAssist = null
-                                    code.text?.clear()
-                                    refreshHomeHero()
-                                    refreshTransferInboxCard()
-                                    if (phoneSync.accepted) {
-                                        pairingPrefs.edit()
-                                            .putLong(
-                                                LAST_SUCCESSFUL_LINK_SYNC_KEY,
-                                                System.currentTimeMillis(),
+                                    linkPairAttemptGate.runIfCurrent(attempt) currentAttempt@{
+                                        if (!linkSessionVault.store(status.sessionToken)) {
+                                            clearWirelessSession(forgetTrustedDesktop = true)
+                                            text = "SECURE STORAGE FAILED • PAIR AGAIN"
+                                            pairingState.text =
+                                                "Desktop verified • secure session could not be preserved"
+                                            logActivity(
+                                                "Wireless pairing stopped because secure storage failed",
                                             )
+                                            return@currentAttempt
+                                        }
+                                        text = "PAIRED"
+                                        background = successBackground()
+                                        setTextColor("#72FFB2".toColorInt())
+                                        pairingState.text = if (phoneSync.accepted) {
+                                            "Paired • two-way health sync active"
+                                        } else {
+                                            "Paired • Desktop telemetry active • phone sync retrying"
+                                        }
+                                        desktopAscensionStatus = telemetry.ascension
+                                        desktopLiveConsoleStatus = telemetry.liveConsole
+                                        desktopDeviceDnaStatus = telemetry.deviceDna
+                                        preserveLastKnownDeviceDna(telemetry.deviceDna)
+                                        desktopTransferOffers = transferInbox.offers
+                                        desktopTelemetry.text = if (phoneSync.accepted) {
+                                            "${telemetry.summary}  •  phone health synced"
+                                        } else telemetry.summary
+                                        telemetryHost = host
+                                        telemetryToken = status.sessionToken
+                                        telemetryCertificateSha256 = certificateSha256
+                                        scheduleTelemetryRefresh(desktopTelemetry)
+                                        pairingPrefs.edit()
+                                            .putBoolean("paired", true)
+                                            .putString("paired_host", host)
+                                            .putString("certificate_sha256", certificateSha256)
+                                            .putInt(
+                                                "link_protocol_version",
+                                                DesktopLinkSecurity.PROTOCOL_VERSION,
+                                            )
+                                            .putLong(
+                                                "session_expires_at_epoch_ms",
+                                                System.currentTimeMillis() +
+                                                    status.expiresInSeconds * 1000L,
+                                            )
+                                            .putBoolean("desktop_trusted", true)
                                             .apply()
+                                        telemetryRetryAttempt = 0
+                                        pendingUsbPairingAssist = null
+                                        code.text?.clear()
+                                        refreshHomeHero()
+                                        refreshTransferInboxCard()
+                                        if (phoneSync.accepted) {
+                                            pairingPrefs.edit()
+                                                .putLong(
+                                                    LAST_SUCCESSFUL_LINK_SYNC_KEY,
+                                                    System.currentTimeMillis(),
+                                                )
+                                                .apply()
+                                        }
+                                        refreshLinkFlightPath()
+                                        logActivity("Wireless pairing approved")
                                     }
-                                    refreshLinkFlightPath()
-                                    logActivity("Wireless pairing approved")
                                 }
                                 return@Thread
                             }
                         }
-                        if (!approved) {
-                            runOnUiThread {
+                        runOnUiThread {
+                            linkPairAttemptGate.runIfCurrent(attempt) {
                                 pendingUsbPairingAssist = null
                                 text = "APPROVAL TIMEOUT • TRY AGAIN"
                                 refreshLinkFlightPath()
@@ -6897,6 +6944,7 @@ Guardian: ACTIVE (read-only)
     } else null
 
     private fun clearWirelessSession(forgetTrustedDesktop: Boolean) {
+        linkPairAttemptGate.invalidate()
         pendingUsbPairingAssist = null
         pendingTransferOffer = null
         desktopTransferOffers = emptyList()
@@ -6950,6 +6998,7 @@ Guardian: ACTIVE (read-only)
     }
 
     override fun onDestroy() {
+        linkPairAttemptGate.close()
         linkSafetyDialog?.dismiss()
         linkSafetyDialog = null
         pendingUsbPairingAssist = null

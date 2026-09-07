@@ -1,5 +1,68 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 49821cc — refreshed Fedora Guided alpha
+
+- Handoff commit: `49821cc`
+- Packaged-run correction: `64ad510532a18b5e26a6feec46791069aee0e8ec`
+- Artifact source/authorization base: `b59c3d86a24fdc08d8531ac2414ff6f97b4ee498`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — FEDORA GUIDED ALPHA REFRESH VERIFIED**
+
+### Decision and independent evidence
+
+The refreshed Fedora artifact contains the approved internal-alpha/Guided onboarding correction and
+completed one real packaged first-run journey into a truthful no-phone Command Deck. Product
+Assurance independently rehashed the canonical ZIP as
+`cc9f1c7df7b9147e4a2e8bc1a3ac4b8acb5441ece9fd495854f725322fee9ac0`, confirmed its
+`150,947,822`-byte size and mode `0644`, and reran complete ZIP integrity verification successfully.
+
+The journey found one genuine presentation defect: a static subtitle claimed one live device and
+one active project while the authoritative cards showed neither. `64ad510` is the minimum correct
+repair. It changes only that neutral status text, exposes the label for focused verification and
+adds one regression. Build's focused **1/1 passed**, Ruff success and whitespace success are
+proportional. Product Assurance also instantiated the corrected production `DeviceCenter` directly
+and independently confirmed the false claims are absent.
+
+The exactly-once refreshed ZIP correctly was not rebuilt again. It contains the approved onboarding
+correction but predates only the neutral subtitle fix; this limitation is explicit and must remain
+visible. The source fix should be synchronized to Windows now and included naturally in the next
+cross-platform artifact batch, not trigger another immediate rebuild cycle.
+
+### Vision, freeze and safety result
+
+- Real Fedora packaged first-run Guided/no-phone journey: **PASS**
+- Command Deck truthfulness correction: **PASS**
+- Feature freeze: **PASS — first concrete presentation defect only**
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN, no blind retry,
+  independent verification and permanent no-relock: **PRESERVED**
+- Phone, Recovery, signing, publication and release activity: **NONE**
+
+### Approved next bounded task
+
+Move to one fresh, no-phone **Companion first-run/offline user journey** using the existing approved
+debug Companion baseline. Prefer an already available repository-managed emulator; do not download
+or install an emulator/system image merely for this checkpoint. If no runnable emulator is already
+available, exercise the production Android presentation/state path through the narrowest existing
+local JVM/UI harness. Verify that a new user can identify the internal development build, understand
+that Companion has no execution authority, reach Home, and see a truthful disconnected ROMVERSE
+Link/device state without a dead action, false pairing/readiness claim or technical loop. Record the
+first concrete defect and implement only its minimum freeze-safe correction with one focused
+regression; if no defect appears, commit evidence only. Do not run the full Companion suite or
+rebuild the APK unless a correction requires one later batched artifact refresh. Commit and push,
+then stop for Product Assurance.
+
+Windows is separately authorized to synchronize only `64ad510`, run its one focused subtitle test
+plus lint/whitespace and stop without rebuilding. No physical phone, device-scoped ADB/Fastboot,
+Recovery, Companion execution authority, signing, publication, release, force-push or relock.
+
+### Gate status
+
+- Fedora v0.2.0-alpha.1 onboarding-corrected development artifact: **VERIFIED**
+- Windows v0.2.0-alpha.1 onboarding-corrected development artifact: **VERIFIED at `ab0f299`**
+- Neutral Command Deck subtitle in current source: **VERIFIED; PACKAGE AT NEXT BATCH**
+- Next user-facing milestone: **COMPANION FIRST-RUN/OFFLINE JOURNEY**
+- Physical hardware, production Recovery/trust, signing, publication and release: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: 6c8411c — fresh-user Guided onboarding
 
 - Handoff commit: `6c8411c`

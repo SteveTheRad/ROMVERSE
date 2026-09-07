@@ -1,5 +1,82 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: d9f9f9f — local-build durable resume
+
+- Handoff commit: `d9f9f9f`
+- Implementation commit: `3475b45d653ef2ed9ca49802804f385e6c00cdb5`
+- Product Assurance authorization/base: `9cb181ae3d6359a89569de5278fc816ea0397009`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **CORRECTION REQUIRED — RESUME DESIGN ACCEPTED; TWO EXACT BOUNDARY GAPS**
+
+### Decision
+
+The schema-three local-build attempt, exact completed-step prefix, output hashing, retained-toolchain
+binding, UNKNOWN/no-retry handling and reopened Forge presentation are the correct minimum repair for
+the demonstrated restart loop. The production-UI simulation is useful and honestly non-consequential.
+
+Approval is held for two narrow mismatches between the claimed contract and the implementation. A
+stop request that already exists before a new step may still record intent and dispatch that step,
+and completed log bytes are not included in the hash-verified checkpoint even though the handoff
+claims that they are. Neither issue warrants redesign, schema expansion beyond the proposed
+unreleased version three, a broad suite or another full journey.
+
+### Independent repository evidence
+
+- `3475b45` changes only the local-build attempt/executor, durable inventory, background shutdown,
+  Forge presentation and focused tests. `d9f9f9f` changes only the Build handoff. Companion, Device
+  Engine, Guardian, Recovery, physical transport, signing and release source are untouched.
+- Step intent is durably written before `_execute_step`; a caught post-intent result becomes UNKNOWN
+  and no later call can redispatch it. Completed output artifacts are bound by relative path, size,
+  nanosecond mtime and SHA-256 and are revalidated before continuation.
+- The final successful local-build receipt remains schema two. Proposed attempt versions 1/2 remain
+  read-compatible and schema three grants no phone or Guardian authority.
+- Build's focused result of **66/66 passed**, Ruff success, one final simulated production-UI journey
+  and Git whitespace success are accepted as proportional evidence. Product Assurance could not
+  rerun the suite from this checkout because its isolated test environment is not present; the
+  source, tests and committed evidence were reviewed directly.
+
+### Required minimum correction
+
+1. Before recording a new `step-intent`, check the cooperative stop callback at the current durable
+   boundary. If stop is already requested, leave the existing `ready` or `step-complete` checkpoint
+   intact, dispatch zero additional adapter calls and report the normal paused/resumable state. Keep
+   the existing post-step check so a request received during a running bounded step pauses after that
+   step is observed and checkpointed. Add one focused test proving a pre-requested stop performs zero
+   runner calls and remains resumable from zero completed steps.
+2. Bind every completed step log to the schema-three checkpoint with the same exact path/size/mtime/
+   SHA-256 treatment already used for output artifacts, and revalidate it before resume. A changed,
+   missing, linked or out-of-bound log must make the checkpoint invalid and dispatch nothing. Add one
+   focused tampered-log regression. Because schema three is not approved or released, correct its
+   proposed shape in place rather than opening another migration/version family.
+3. Update only the affected Build handoff wording and counts, commit the correction, push the same
+   branch and stop for Product Assurance. Do not add a discard/retry UI or reinterpret a known local
+   command failure; conservative UNKNOWN after any already-recorded intent remains accepted.
+
+### Acceptance criteria
+
+- Pre-requested shutdown at a durable boundary records no new intent and dispatches no step.
+- A request arriving during a step still permits only that bounded step to finish and checkpoint,
+  then pauses before the next intent.
+- Every completed output and log is hash-bound and revalidated; tamper or disappearance fails closed
+  with zero resume dispatch.
+- Existing exact-prefix resume, no redispatch, UNKNOWN/no-retry, legacy attempt-read compatibility,
+  final schema-two receipt, reopened Forge presentation and durable inventory tests remain passing.
+- Run only the directly affected focused tests, lint and whitespace checks. No phone, ADB/Fastboot
+  target, Recovery, new feature, broad simulation, full suite, signing, publication or relock.
+
+### Approved next bounded task
+
+Apply only the two corrections above and return the exact checkpoint for review. Windows must not
+sync `3475b45` until the corrected Linux checkpoint is approved.
+
+### Gate status
+
+- Local-build durable exact-prefix resume architecture: **ACCEPTED**
+- Linux interruption/restart checkpoint: **HELD FOR TWO MINIMUM CORRECTIONS**
+- Windows synchronization: **WAITING FOR CORRECTED APPROVED LINUX SOURCE**
+- v0.2 Golden Foundation: **CLOSED**
+- Physical hardware, production Recovery/trust, signing, publication and release: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: 17750ca — simulated AVB / Guardian boundary
 
 - Handoff commit: `17750ca`

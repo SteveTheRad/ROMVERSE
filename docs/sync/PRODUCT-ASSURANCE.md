@@ -1,52 +1,102 @@
 # ROMVERSE Product Assurance
 
-## Reviewed checkpoint: 3b61639
+## Reviewed checkpoint: b76843c
 
-- Commit: `3b61639e16ee21e033ed8eb17cb6b35065142992`
-- Title: `Audit Stage 1 closure evidence`
-- Review status: **APPROVED — CLOSURE AUDIT ACCEPTED**
-- Basis: `docs/STAGE-1-CLOSURE-AUDIT_2026-09-06.md`, repository history, and `docs/sync/BUILD-STATUS.md`.
+- Handoff commit: `b76843c6ca79b7a17ef31a905d202d6298f8c528`
+- Implementation commit: `1300dde1b79304149b8acfafe0e3f272d800cd37`
+- Title: `Assemble runnable Fedora recovery journey`
+- Branch: `linux/stage1-desktop-readiness`
+- Approved base: `fdb1692b0a5056cce0992b9045cd6f3a55cabf97`
+- Review status: **APPROVED — RUNNABLE FEDORA DEVELOPMENT CHECKPOINT VERIFIED**
 
 ### Decision
 
-The closure matrix is accurate. The governed software chain and Future-proofing checkpoints 3/3
-are implemented and Linux-simulated/tested, while Windows trusted launch, production adapter
-enrollment, and controlled physical Android verification remain explicitly open. The absence of
-production dispatch is correctly classified as a deliberate release boundary, not a Guided-flow
-defect.
+The checkpoint provides a genuine runnable Fedora development build and a complete inert
+product-level Guided Recovery journey. The source launcher, wheel, one-folder executable, and
+portable ZIP are sufficient for this local development milestone. They are correctly classified as
+unsigned development artifacts rather than an installer, native package, release, or hardware proof.
 
-The audit preserves Guardian-only authority, exact-device and same-incident binding,
-UNKNOWN/no-blind-retry semantics, independent verification, and the permanent no-relock rule.
-It adds no execution, UI, migration, hardware, publication, or release capability.
+The simulator traverses the production Scan → Match → Prepare → Consent → Result → Reassessment →
+Verification services with a disposable workspace, synthetic evidence, an in-memory target, and
+ephemeral test-only adapter trust. The aggregate Result remains explicitly unverified until fresh
+same-incident boot evidence completes verification. No ADB/Fastboot executable, external adapter
+process, physical device, production trust root, automatic retry, or bootloader-relock path is used.
 
-### Evidence reviewed
+The work is feature-freeze compliant: it assembles and demonstrates the already approved Stage 1
+chain without changing `src/romverse`, schema, production Device Packs, execution authority, UI, or
+release behavior. Native RPM/Flatpak/desktop-entry integration and production adapter/hardware work
+remain later, separately authorized release gates rather than defects in this checkpoint.
 
-- Closure matrix covering Recommendation through Verification and all three future-proofing
-  checkpoints.
-- Explicit distinction between Linux software evidence, Windows verification, physical hardware,
-  and production adapter enrollment.
-- Prior verified baseline: Python **2880/2880**, affected **223/223**, adapter adversarial **11/11**.
-- Working tree confirms only the three protected unrelated Companion modifications remain.
+### Repository and implementation evidence
 
-### Approved next bounded Stage 1 task
+- The handoff is exactly two commits descended from the approved `fdb1692` base. The implementation
+  adds only `docs/FEDORA-DEVELOPMENT-BUILD.md`, `scripts/simulate_guided_recovery.py`, and its focused
+  integration test; the handoff changes only `docs/sync/BUILD-STATUS.md`.
+- The dedicated Linux worktree is clean. The original checkout still contains only the three known
+  protected Companion modifications and the pre-existing Windows launcher drafts; none appears in
+  this branch or checkpoint.
+- Git whitespace verification passes across the complete checkpoint diff.
+- Build recorded a final Linux regression of **2,881/2,881 passed** in 920.49 seconds, with no
+  failures, skips, or xfails. Product Assurance observed that full process run to completion and
+  independently reran the new focused journey test successfully.
+- Product Assurance independently launched the frozen executable in offscreen release-smoke mode,
+  extracted and launched the portable ZIP, and verified both wheel and ZIP archive integrity.
+- Independently observed artifact digests match the handoff:
+  - wheel: `df40c6ca9da96154050f07dd4fa8a336b035ff394c68bf56c52d41b6c0cdddcc`
+  - executable: `b94dc7788b4cce09d4a30e5aff44d6bf1104c717bac9bf843267538c5e1a68ea`
+  - portable ZIP: `dd73842d1de7c18f545b6a4cba7141f758ad3802c8e98877a54de81cdc3afed2`
+- The durable demonstration report records all seven stages, three exact adapter actions, project
+  reopening, explicit `recovery_verified: false` at Result, and final same-incident `RECOVERED` only
+  after stable fresh boot evidence. It also records no physical-device change, production execution,
+  retry authority, persisted test key, or relock authority.
 
-Implement only the Windows trusted-launcher anti-TOCTOU correctness contract behind the existing
-process-runner protocol, with deterministic Linux-hosted fakes/tests. Bind exact verified package
-identity and artifact bytes without a replaceable path window; reject symlink/reparse, hard-link,
-identity, hash/size, platform, launcher, timing, and unverifiable-state drift before dispatch.
-Preserve fixed protocol/environment, bounded I/O, signer/package/action identity, production/test
-trust separation, and UNKNOWN-on-post-dispatch ambiguity. Do not launch a phone command, wire
-production execution, add UI, alter consent, retry, relock, publish, release, or claim Windows
-verification.
+### Guided friction and safety judgment
 
-This is approved as the next slice. A genuine Windows run and controlled physical Android test
-remain separate later evidence gates requiring further review.
+- Guided reaches a result without a circular prerequisite or repeated consequential confirmation.
+- Consent remains one scoped decision and grants no execution authority by itself.
+- Result and Reassessment do not claim repair; exact fresh verification is still required.
+- Missing, changed, stale, or ambiguous target evidence remains fail-closed.
+- FAILED and UNKNOWN remain durable stop states with no blind or automatic retry.
+- Guardian remains the sole execution gate.
+- Bootloader locking and relocking remain permanently prohibited with no override.
+
+### Acceptance criteria satisfied
+
+- Runnable Fedora source and frozen development launches: satisfied.
+- Portable development bundle integrity and extracted launch: satisfied.
+- Complete inert Guided journey through production service boundaries: satisfied.
+- Durable exact-incident result, reassessment, and independent verification: satisfied.
+- Full Linux regression and focused journey coverage: satisfied.
+- Feature freeze, platform truthfulness, protected-file isolation, and release-gate preservation:
+  satisfied.
+
+### Approved next bounded task
+
+Produce a clean development-signed **Companion debug APK readiness checkpoint** from the committed
+approved baseline. This is an artifact-assembly and existing-behavior verification task, not a new
+feature slice.
+
+The task may run the pinned Java 17/Gradle/Android toolchain, Companion JVM tests, lint/build checks,
+and `assembleDebug`; verify the APK package identity, archive integrity, version metadata, debug
+signing classification, and SHA-256; and exercise existing inert ROMVERSE Link/Lifeline state through
+the committed non-hardware test boundaries. It may make only a minimum build-readiness correction if
+the committed baseline cannot assemble, and must return for Product Assurance before expanding that
+correction.
+
+It must not edit, stage, discard, or commit the three protected Companion files in the original
+checkout; install an APK; connect to or operate a phone/emulator; use a production signing key;
+change Companion behavior or branding; merge a platform branch; publish; or release. If the protected
+files are required for a future Companion feature checkpoint, ownership must first be resolved in a
+separate reviewed handoff.
 
 ### Gate status
 
 - v0.2 Golden Foundation: **CLOSED**
+- Fedora runnable development build: **VERIFIED**
+- Fedora inert end-to-end Guided Recovery journey: **VERIFIED**
+- Windows runnable development build and inert journey: **IN PROGRESS on separate Windows track**
+- Companion debug APK readiness: **NEXT APPROVED BOUNDED TASK**
+- Companion hardware/instrumented verification: outstanding; not authorized here
+- Production adapter enrollment and physical Android Recovery: outstanding release gates
 - Pre-v1.0 feature freeze: preserved
-- Windows trusted-launch anti-TOCTOU: outstanding release blocker; next approved software slice
-- Production adapter enrollment: not implemented/released
-- Physical Android verification: outstanding release blocker
-- Physical execution, publication, release, and remote push: not authorized
+- Physical execution, APK installation, production signing, publication, and release: not authorized

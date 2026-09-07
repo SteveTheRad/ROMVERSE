@@ -4,6 +4,7 @@
 
 - Commit: `ea292e75db8de3d2ed44feb0e8fb070c70ebf849`
 - Title: `Add Windows trusted Recovery launcher contract`
+- Deterministic coverage commit: `7124a89aefac8cf6e957a0805d4576f2a960ea0c`
 - Base: `fdb1692b0a5056cce0992b9045cd6f3a55cabf97` (`Approve Stage 1 closure audit`)
 - Branch: `windows-launcher-authorized-work`
 - Stage: Stage 1 — Windows trusted-launcher anti-TOCTOU correctness contract
@@ -38,9 +39,9 @@ Files in the implementation commit:
 
 Host: Windows 11 x64, Python 3.12.10, pytest 9.1.1.
 
-- Focused Windows launcher contract tests: **19/19 passed**.
-- Combined affected Recovery launcher/package/runner regression: **59 passed, 2 skipped** from 61
-  collected tests. This total includes the 19 focused tests and is not added to it.
+- Focused Windows launcher contract tests: **21/21 passed**.
+- Combined affected Recovery launcher/package/runner regression: **61 passed, 2 skipped** from 63
+  collected tests. This total includes the 21 focused tests and is not added to it.
 - Existing affected regression excluding the focused file: **40 passed, 2 skipped**.
 - The two skips are existing Linux-only sealed-memfd path-substitution and timeout tests; they are
   not claimed as Windows evidence.
@@ -82,12 +83,14 @@ publication gates.
 - Physical execution enablement: none.
 - Production adapter enrollment: none.
 - Publication/release: none.
-- Remote push: none.
+- Working branch publication: `origin/windows-launcher-authorized-work` only; no force-push,
+  release or publication of an application artifact.
 - Companion source change: none.
 
 ### Product Assurance review requested
 
-Review implementation commit `ea292e75db8de3d2ed44feb0e8fb070c70ebf849` against
+Review implementation commit `ea292e75db8de3d2ed44feb0e8fb070c70ebf849` and deterministic coverage
+commit `7124a89aefac8cf6e957a0805d4576f2a960ea0c` against
 `docs/WINDOWS-RECOVERY-LAUNCH-CONTRACT.md`, particularly Windows handle-sharing semantics,
 reparse/hard-link rejection, final path-to-handle identity, fixed process surface, timeout/output
 uncertainty and production/test launcher separation. Do not begin another feature or consequential

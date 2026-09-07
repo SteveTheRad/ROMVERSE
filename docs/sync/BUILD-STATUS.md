@@ -1,5 +1,43 @@
 # ROMVERSE Build Status
 
+## Portable raw-ZIP regression correction — Product Assurance review requested
+
+- Reviewed checkpoint: `20e0c3312ef5d995694f66119295007d1f8d2dac`
+- Product Assurance correction: `8a4461d21be1a9a7d45cf4420b132a0b3dd90cf7`
+- Exact test-only correction: `7353b0df797f37354864ace65b889e488c7a9b56`
+- Branch: `windows-launcher-authorized-work`
+- Status: the sole cross-platform assertion defect is corrected; stop for independent Product
+  Assurance review.
+
+### Exact change and evidence
+
+- Modified only
+  `tests/test_source_installation.py::test_literal_backslash_archive_path_is_rejected_before_windows_normalization`.
+- Retained the unconditional raw-name assertion:
+  `member.orig_filename == r"windows\boot.img"`.
+- Removed only the secondary `member.filename` assertion because Python normalizes that field to a
+  forward slash on Windows but retains the literal backslash on non-Windows hosts. That host detail
+  is not part of the safety contract.
+- Retained the manually constructed raw unsafe ZIP member and the required cross-platform
+  `SourceInstallationService.prepare` `ProjectError` rejection.
+- Single corrected regression on Windows: **1 passed** in 0.17s.
+- Directly affected Windows source-installation file: **32 passed** in 1.46s.
+- Ruff lint, Ruff formatting, and Git whitespace checks: passed.
+- The Linux focused-suite result is left for independent Product Assurance reproduction; removing
+  the sole host-specific assertion does not conditionalize or skip the safety test.
+
+### Scope and safety
+
+- No production source, accepted-path validation, launcher, ACL code, application, artifact, UI,
+  packaging, journey evidence, dependency, or unrelated documentation changed.
+- No frozen rebuild, ZIP rebuild, visible launch, inert Guided rerun, or broad regression was
+  performed, as Product Assurance explicitly said they were unnecessary for this test-only change.
+- No phone connection or operation, Recovery command, APK installation, production trust,
+  physical execution, signing, publication, release, relock, force-push, or protected Companion
+  file change occurred.
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty, no
+  blind retry, independent verification, feature freeze, and permanent no-relock remain intact.
+
 ## Windows minimum-readiness correction checkpoint — Product Assurance review requested
 
 - Reviewed checkpoint: `824d6e7b3f59e16d9d2bffe3e6f1049ddc55470b`

@@ -2,121 +2,129 @@
 
 ## Authoritative checkpoint
 
-- Linux implementation commit: `eaa3d615912a4eefddd44ee3b032562047ddadc3`.
-- Product Assurance authorization/base: `4528cea4cb4331afd78392f41edc91c56a8a57e2`.
+- Packaged-run correction commit: `64ad510532a18b5e26a6feec46791069aee0e8ec`.
+- Approved onboarding implementation contained in the artifact: `eaa3d615912a4eefddd44ee3b032562047ddadc3`.
+- Artifact build repository state and Product Assurance authorization/base:
+  `b59c3d86a24fdc08d8531ac2414ff6f97b4ee498`.
 - Handoff checkpoint: the commit containing this document on
   `linux/stage1-desktop-readiness`.
-- Stage: Stage 1 — v0.2 Golden Foundation, fresh-user Fedora onboarding/readiness.
-- Working tree: clean apart from ignored previously accepted build output after the handoff commit
-  is created.
+- Stage: Stage 1 — v0.2 Golden Foundation, refreshed Fedora first-run alpha artifact.
+- Working tree: clean apart from ignored local build/evidence output after the handoff commit is
+  created.
 
-## First concrete onboarding defect
+## Refreshed Fedora development artifact
 
-- The existing frozen alpha opened its real first-run dialog without `--skip-onboarding`, but that
-  dialog exposed only `Initialize ROMVERSE`.
-- It did not identify `0.2.0-alpha.1` as an internal development build and did not make the initial
-  Guided choice explicit. A new user therefore could not verify the approved alpha/mode state before
-  entering Command Deck, even though the underlying fresh settings defaulted to Guided.
-- This was a truthful-intent defect, not an execution or device-safety bypass.
+- The Fedora `0.2.0-alpha.1` artifact was rebuilt and packaged exactly once from the approved
+  `b59c3d8` repository state.
+- File: `dist/ROMVERSE-Desktop-0.2.0-alpha.1-linux-x86_64.zip`.
+- SHA-256: `cc9f1c7df7b9147e4a2e8bc1a3ac4b8acb5441ece9fd495854f725322fee9ac0`.
+- Archive size: `150947822` bytes; mode `0644`.
+- Verified contents: `460` regular files, `360254930` expanded bytes, expected
+  `ROMVERSE/ROMVERSE` executable present, safe member validation and CRC verification passed.
+- Exactly one packaged `0.2.0-alpha.1` Fedora artifact exists in `dist`.
+- Classification: **unsigned internal development artifact only**. It is not signed, published,
+  released or production-authorized.
 
-## Exact implementation changes
+## Exact packaged first-run journey
 
-- First-run now displays `0.2.0-alpha.1 • INTERNAL DEVELOPMENT` with an accessibility identity.
-- The onboarding explanation states that Guided is the selected evidence-bound workflow, no phone
-  is required during setup, the setup screen cannot perform phone or install actions, and Command
-  Deck will truthfully report missing Platform Tools or device state.
-- The only completing action is now `Continue in Guided Mode`, with an explicit accessibility name.
-- The wizard's selected mode is typed as `ExperienceMode.GUIDED`, and application startup carries
-  that exact selection into the settings used by Command Deck. Expert entry remains separate behind
-  its existing risk warning.
-- One focused Qt regression drives the corrected production widgets from onboarding through Guided
-  Command Deck, opens the existing ADB/Platform Tools prerequisite path with managed auto-start
-  disabled, and returns to the truthful no-engine/no-device Command Deck state.
+- Launched the refreshed frozen executable without `--skip-onboarding`, using a new disposable
+  config/workspace, Fedora's local Qt VNC display backend and an empty executable-search path.
+- The real packaged onboarding visibly displayed `0.2.0-alpha.1 • INTERNAL DEVELOPMENT`, the
+  no-phone/setup boundary and the exact `Continue in Guided Mode` action.
+- Activated that real packaged Guided action. The same frozen process opened Command Deck with:
+  - `GUIDED • ARCANA` visibly selected;
+  - sidebar identity `ROMVERSE 0.2.0-alpha.1`;
+  - `DEVICE: NOT CONNECTED`, no active project and `GUARDIAN: VERIFY REQUIRED`;
+  - a visible `Resolve Platform Tools` host prerequisite;
+  - `No Android device is connected. ROM Studio remains available for safe local firmware work.`
+- No dead button or navigation loop prevented entry. The bounded process was terminated after the
+  evidence capture; no Android executable was discoverable and no phone/device action started.
+- Packaged onboarding screenshot SHA-256:
+  `b537e2a8292a5308bca92024795a1526b3ee03c23e5560538ca809b31e31d258`.
+- Packaged Command Deck screenshot SHA-256:
+  `b4bc20a93ee6f49c479169ba882f160a392ad96f52afe6ad9e8e89e2b6ff1aa9`.
 
-## Acceptance evidence
+## First concrete packaged-run defect and correction
 
-- Existing unsigned frozen artifact entry: launched with a fresh disposable config and workspace,
-  without `--skip-onboarding`, with an empty executable-search path. It remained alive at the real
-  onboarding boundary until the bounded three-second harness termination; ADB and Fastboot were
-  undiscoverable and no workspace/device operation began.
-- Pre-correction production-widget inspection confirmed the exact visible gap: no alpha/internal
-  identity, no Guided wording and only `Initialize ROMVERSE`.
-- Corrected source-level production journey: **1/1 passed** — internal-alpha identity visible,
-  Guided selected and carried forward, Command Deck reachable, no phone/engine/scan present,
-  `Resolve Platform Tools` offered, its exact ADB prerequisite dialog invoked without installation,
-  and Command Deck remained reachable with a clear host prerequisite.
-- The previously accepted frozen artifact was not rebuilt or modified. It proves the packaged
-  first-run entry point; the minimum source correction was rerun through the production Qt widgets
-  as explicitly permitted by Product Assurance.
+- Command Deck's static subtitle still claimed `One live device, one active project` while the
+  authoritative cards correctly showed no device and no project. This was a misleading status claim
+  visible only after the packaged Guided transition.
+- `DeviceCenter` now uses the evidence-neutral subtitle `Current device, project, and
+  evidence-derived next action at a glance.` and exposes that label for focused verification.
+- One focused regression proves the empty Command Deck no longer claims a live device or active
+  project.
+- Per the exactly-once refresh instruction, the Fedora artifact was not rebuilt a second time after
+  this minimum source correction. The artifact contains the approved onboarding correction but not
+  the subsequent neutral subtitle; `64ad510` is the authoritative corrected source.
 
 ## Result classification
 
-- Implemented: yes — minimum first-run alpha/Guided intent correction.
-- Simulated/Tested: yes — one bounded frozen-entry check and one corrected production-widget Qt
-  journey.
+- Implemented: yes — minimum truthful Command Deck subtitle correction after the exact packaged run.
+- Simulated/Tested: yes — real packaged first-run UI journey plus one source-level focused regression.
 - Hardware Verified: no.
 - Released: no.
 
 ## Non-double-counted verification
 
-- Focused `tests/test_app_launch_settings.py`: **5/5 passed**, comprising one new onboarding journey
-  regression and four neighboring launch/settings contracts.
-- Ruff: **PASS** for both changed source files and the focused test module.
-- Git whitespace checks: **PASS** before the implementation commit and handoff.
-- No full/broad suite, Guided ROM/Recovery journey, artifact rebuild, packaging run or second
-  corrected onboarding journey was performed.
+- Refreshed artifact build/package: **1/1 completed**.
+- Real packaged first-run Guided/no-phone journey: **1/1 completed**.
+- Focused subtitle regression: **1/1 passed**.
+- Ruff: **PASS** for the changed source and focused test module.
+- Git whitespace checks: **PASS** before the correction commit and handoff.
+- Artifact integrity/tree verification: **PASS** with the exact digest, size and member counts above.
+- No full suite, earlier journey replay, second artifact build/package or unrelated UI regression
+  campaign was run.
 
 ## Guided friction and remaining boundaries
 
-- Fixed: a fresh user now knowingly enters the exact internal alpha in Guided Mode instead of
-  pressing an ambiguous initialization action.
-- Fixed: the onboarding message establishes that no phone is needed and that Command Deck—not a
-  success claim—will own any Platform Tools/device prerequisite.
-- No dead button, misleading readiness claim or navigation loop remained in the bounded corrected
-  journey.
-- The accepted frozen ZIP predates this small source correction and intentionally remains unchanged
-  pending Product Assurance direction on when to batch the next artifact rebuild.
+- Verified: corrected internal-alpha onboarding reaches Guided Command Deck without a dead button,
+  false device readiness or technical loop.
+- Fixed in authoritative source: the contradictory static `one live device / one active project`
+  subtitle found by this packaged run.
+- Remaining packaging boundary: the exactly-once refreshed ZIP predates only the one-line subtitle
+  correction. It must not be represented as containing `64ad510` until a later authorized rebuild.
 
 ## Guardian, Recovery and safety implications
 
-- Onboarding grants no Guardian, build, device, flash, Recovery, installation, signing,
-  publication or release authority.
+- Onboarding and Command Deck presentation grant no Guardian, build, device, flash, Recovery,
+  installation, signing, publication or release authority.
 - UNKNOWN-on-uncertainty, no blind retry, exact-device evidence, consent separation, same-incident
   Recovery and independent verification remain unchanged.
-- Expert mode was not entered; its existing warning/acceptance boundary is unchanged.
+- Expert mode was not entered. Production Recovery execution was not invoked.
 - Bootloader locking/relocking remains permanently prohibited with no override.
 
 ## Platform and version-gate status
 
-- Fedora/Linux: frozen first-run entry and corrected source-level onboarding/readiness journey are
-  genuinely software-tested on Fedora 44 x86-64; this is not hardware verification.
-- Windows: unchanged; no new Windows execution claim is made.
+- Fedora/Linux: refreshed unsigned artifact and its exact first-run Guided/no-phone journey are
+  genuinely software-verified on Fedora 44 x86-64; this is not hardware verification.
+- Windows: unchanged; no new Windows claim is made.
 - Physical Android: not used; no hardware claim is made.
-- 5 September 2026 feature freeze: compliant. This is the minimum correction for the first concrete
-  misleading onboarding intent found by the approved journey.
-- v0.2 Golden Foundation remains **CLOSED**. No release gate changed.
+- 5 September 2026 feature freeze: compliant. Only the first misleading packaged-run status string
+  received its minimum focused correction.
+- v0.2 Golden Foundation remains **CLOSED**. No signing, publication or release gate changed.
 
 ## External actions
 
 - Physical phone, emulator, USB target, device-scoped ADB/Fastboot, Recovery, flash, install, APK
   transfer and device operation: none.
-- Managed tool auto-install, package/dependency/system installation, artifact rebuild, signing,
-  publication, release, merge and force-push: none.
-- Remote action: only the normal push of the scoped Linux implementation and handoff commits to the
-  existing Linux working branch is intended.
+- Managed tool auto-install, package/dependency/system installation, signing, publication, release,
+  merge and force-push: none.
+- Fedora artifact refresh: exactly one authorized local build/package replacement; no distribution
+  or installation occurred.
+- Remote action: only the normal push of the scoped correction and handoff commits to the existing
+  Linux working branch is intended.
 - The three protected Companion files, original-checkout Windows launcher drafts, website, assets
   and unrelated user work were untouched.
 
 ## Next proposed Build task
 
-Stop for independent Product Assurance review. Do not begin another consequential slice or rebuild
-either platform artifact until directed.
+Stop for independent Product Assurance review. Do not rebuild either platform artifact or begin
+another consequential slice.
 
 ## Product Assurance Review Requested
 
-- Confirm the explicit Guided/internal-alpha onboarding correction is the minimum appropriate fix
-  for the first observed intent gap.
-- Confirm the split evidence—unchanged frozen first-run entry plus corrected source-level production
-  widget journey—is sufficient under the instruction not to rebuild this artifact yet.
-- Advise whether this source correction should be batched into a later cross-platform artifact
-  rebuild or requires a dedicated development-artifact refresh.
+- Confirm the refreshed artifact and real packaged first-run evidence satisfy the approved Fedora
+  platform milestone.
+- Confirm `64ad510` is the minimum freeze-safe correction for the first packaged-run defect.
+- Decide when the one-line post-build subtitle correction should be incorporated into a later
+  batched development artifact without violating this checkpoint's exactly-once refresh boundary.

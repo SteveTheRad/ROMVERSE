@@ -1,108 +1,118 @@
 # ROMVERSE Product Assurance
 
-## Reviewed checkpoint: 5f17720
+## Reviewed checkpoint: 1e0d4fe
 
-- Handoff commit: `5f17720d98f4c028908f7151051d093dc3923e48`
+- Handoff commit: `1e0d4fec65d9b2affc4174e8b40e5a6865187df3`
 - Prior Product Assurance authorization:
-  `14468a5ed96ef8e63eeab5d227317808999dad11`
-- Title: `Record contained Link fixture environment blocker`
+  `1bc798bbca7a0f6a88dfa2514a25f130245c3d33`
+- Title: `Record contained Link instrumentation failure`
 - Branch: `linux/stage1-desktop-readiness`
-- Review status: **APPROVED — PRE-ENDPOINT FAILURE STOP VERIFIED; EXISTING ENVIRONMENT RETRY AUTHORIZED**
+- Review status: **CORRECTION REQUIRED — STALE TEST INTERACTION; APPLICATION SAFETY FLOW RETAINED**
 
 ### Decision
 
-Build stopped at the exact required boundary. The sole emulator and approved APKs were admitted,
-but the contained Desktop Link fixture failed during Python import before an endpoint, certificate,
-pairing code, safety code, token, approval, application launch, or instrumentation run existed.
-This is an invocation-environment mismatch, not a Companion, Link, TLS, or runtime failure.
+The environment correction worked exactly: clean-worktree ROMVERSE source and the existing verified
+dependency environment were separated correctly, the exact emulator and APK admission passed, and
+the committed fixture reached a genuine TLS-ready state with `execution_authority: none`.
 
-Product Assurance independently verified that the repository declares `cryptography>=46,<47`, the
-default `/usr/bin/python` 3.14.7 cannot discover that module, and the preserved traceback and hash
-match the handoff. No product or dependency change is necessary.
+The remaining failure is independently localized to an outdated instrumentation interaction. The
+test still searches for and directly checks a checkbox whose text begins
+`I confirmed the Link safety code`. The current application intentionally no longer exposes that
+bypass. Its internal confirmation checkbox is disabled and the real user journey requires the
+visible `CONFIRM DESKTOP IDENTITY` dialog and affirmative `YES • CODE MATCHES` action.
 
-An existing ROMVERSE virtual environment already contains Python 3.14.7 and `cryptography 46.0.7`,
-which satisfies the committed dependency range. One repeat of the exact contained Link runtime is
-authorized using only that existing interpreter and its installed dependency set. No package
-installation, environment creation, upgrade, downgrade, or dependency mutation is authorized.
+The application behavior is the safer and authoritative contract. Do not weaken or alter it. The
+minimum correction is confined to the existing Link instrumentation test so it navigates through
+and asserts the current meaningful safety confirmation before pairing.
 
 ### Independent evidence
 
-- Commit `5f17720` changes only `docs/sync/BUILD-STATUS.md`; the dedicated worktree is clean and
-  matches `origin/linux/stage1-desktop-readiness`.
-- Preserved fixture error log: 843 bytes / 10 lines; SHA-256
-  `550e2d72b964a80a1c464e76f8fe0321e9111bd2993e78ac8478c7bf6b2864eb`.
-- Preserved fixture stdout is empty; no fixture state or credential was emitted.
-- The traceback ends at `from cryptography import x509` with
-  `ModuleNotFoundError: No module named 'cryptography'`.
-- `/usr/bin/python` is 3.14.7 and independently reports no discoverable `cryptography` module.
-- Existing interpreter:
-  `/run/media/stevetherad/Data/ROMVERSE-Recovered-2026-09-01/source/.venv/bin/python`.
-- That interpreter independently imports `cryptography 46.0.7`, within the exact declared
-  `>=46,<47` range.
-- The existing virtual environment is used only as a dependency runtime. `PYTHONPATH` must point
-  explicitly to the clean `ROMVERSE-Linux-Desktop-Readiness/src`, and the fixture script must be
-  the exact committed file in that same clean worktree. Do not import ROMVERSE application source
-  from the separate original checkout.
+- Commit `1e0d4fe` changes only `docs/sync/BUILD-STATUS.md`; the worktree is clean and matches the
+  remote branch.
+- The fixture log hash and runner log hash independently match the handoff:
+  `07d6cbdb23d72d8b22e98841a9afcd579e81016ac742eb1d142dfc95b0d19632` and
+  `ca19e7914c5ef971c1080697c6f62aa132e513e7e307370fc80d78f1c8fae7bd`.
+- The raw runner records 11 success completions, one failure, zero assumption skips, and
+  `FAILURES!!!` for 12 tests.
+- The one failure is a `NoSuchElementException` inside
+  `tlsPinnedLinkCarriesLiveConsoleAndReconnectsAfterRecreation`, before any pairing request.
+- The committed test directly searches for the retired checkbox text and sets `isChecked = true`.
+- The committed application instead renders `Safety code confirmation is waiting`, keeps the
+  checkbox disabled/non-clickable, and exposes a dialog containing the derived safety code, an
+  explicit no-device-command explanation, a decline action, and `YES • CODE MATCHES`.
+- The three pairing inputs and the Link route remain present; no evidence supports an application
+  navigation or TLS defect at this boundary.
 
-### Safety and classification
+### Fixture containment classification
 
-- Contained Link instrumentation remains **0 run / 0 pass / 0 fail / 0 skip** for this failed
-  attempt; no integration claim is made.
-- The prior approved standalone Companion runtime remains valid and is not affected.
-- The emulator was shut down and ADB is empty after the failure.
-- SELinux remains Enforcing; no host-policy or package change occurred.
-- No Companion source, tests, fixture, protocol, dependency declaration, resource, or brand asset
-  changed.
-- Guardian remains the sole execution gate; the fixture grants no execution or device-changing
-  authority.
-- Exact-target evidence, UNKNOWN-on-uncertainty, no blind retry, and consent separation remain
-  unchanged.
-- Bootloader locking and relocking remain permanently prohibited with no override.
-- The pre-v1.0 feature freeze is preserved.
+The fixture uses the production local-network transport, which binds a short-lived TLS listener to
+all local interfaces and emits the existing discovery broadcast. It is therefore contained by
+ephemeral identity, short-lived code, explicit approval, bounded duration, and zero execution
+authority—not by a private network namespace or loopback-only bind.
+
+That behavior must be described honestly. It does not require a production transport change in
+this correction: no external request was observed, no reusable token existed, the unapproved
+fixture accepted no telemetry, and the process/listener closed immediately after failure. The next
+run must retain the same brief bounded lifetime, never expose its code externally, and verify no
+unexpected request appears before the explicit in-emulator confirmation.
+
+### Required minimum correction
+
+Modify only
+`companion/app/src/androidTest/kotlin/com/radforge/romverse/companion/MainActivityInstrumentedTest.kt`
+within the clean Linux worktree:
+
+1. In the existing TLS-pinned Link test, explicitly open the existing Link destination before
+   interacting with its fields.
+2. Populate only the fixture endpoint, certificate fingerprint, and six-digit pairing code.
+3. Remove the stale direct-checkbox mutation.
+4. Activate the existing `CONNECT WIRELESSLY` action and require the real confirmation dialog.
+5. Assert the displayed safety code exactly matches the code derived from the supplied certificate
+   fingerprint and assert the dialog retains its read-only/no-command authority explanation.
+6. Select `YES • CODE MATCHES` through the visible/accessibility UI surface. Do not use reflection,
+   private-field access, test-only application hooks, preference mutation, or another bypass.
+7. Confirm the fixture receives no pairing request before that explicit affirmative action.
+8. Preserve all existing post-pairing assertions: TLS pin, two fresh health snapshots, encrypted
+   remembered-session storage/reconnection, schema-six Live Console, Device DNA, Ascension,
+   `Execution authority: NONE`, and permanent bootloader-relock prohibition.
+
+Do not modify `MainActivity.kt`, navigation, production transport, fixture behavior, protocol,
+dependencies, Gradle configuration, or any protected original-checkout file. This is a correctness
+repair to stale test interaction only, not a feature change.
+
+### Acceptance criteria
+
+- The exact test-source diff is limited to the interaction/assertion changes above.
+- The instrumentation APK is rebuilt from the unchanged approved application source; its new hash,
+  package/target/runner identities, debug signer and certificate are recorded and independently
+  verified. The application APK must remain byte-identical at its approved hash.
+- Relevant compile/static gates pass without weakening or removing an assertion.
+- One clean API-35 host-GPU runtime uses the same exact-target, SELinux-enforcing, verified Python
+  environment, ephemeral fixture, and artifact admission boundaries.
+- The complete 12-test suite passes 12/12 with zero failure and zero skip.
+- The fixture emits `ready`, then no request before explicit visible confirmation, then `approved`,
+  two fresh health snapshots, and `complete`, always with `execution_authority: none`.
+- Bounded readable evidence shows the paired Link state and current confirmation path; Live Console,
+  Device DNA, and Ascension evidence remain truthful.
+- Fixture and emulator are shut down; ADB is empty; no unexpected client or listener remains.
+
+Any failure ends the task without another source change or retry.
 
 ### Approved next bounded task
 
-Repeat exactly the previously approved contained Desktop-to-Companion Link runtime once, changing
-only the Python executable used to start the committed fixture.
-
-Invoke the exact clean-worktree fixture with the existing verified virtual-environment interpreter,
-explicit clean-worktree `PYTHONPATH`, and user-site packages disabled. Before starting the emulator
-or fixture, prove with that exact invocation context that:
-
-- `romverse.__file__` and the relevant `romverse.companion` modules resolve under
-  `/run/media/stevetherad/Data/ROMVERSE-Linux-Desktop-Readiness/src`;
-- `cryptography.__version__` is exactly `46.0.7` and its module resolves from the existing virtual
-  environment's site-packages; and
-- no ROMVERSE application module resolves from the separate original checkout.
-
-Then use the same isolated API-35 toolchain, exact approved APK hashes, clean visible host-GPU AVD,
-SELinux enforcing, and sole exact `emulator-5556` admission. Start one fixture instance, pass only
-its ephemeral endpoint/code/fingerprint values to the existing runner, and execute the complete
-12-test suite once. Require 12 passes, zero failures, and zero skips, two fresh health snapshots,
-encrypted-session reconnection after Activity recreation, and `execution_authority: none`.
-
-Preserve full fixture and runner logs and hashes and capture bounded readable Link, Live Console,
-Device DNA, and Ascension Guardian-boundary evidence where practical. Shut down the fixture and
-emulator and confirm ADB is empty.
-
-Any dependency mismatch, source-resolution mismatch, target ambiguity, artifact mismatch,
-TLS/pinning/safety-code failure, test failure or skip, fixture timeout, runtime error, or emulator
-failure ends the task without another retry or any code/environment change.
-
-Do not install or modify packages; create or mutate an environment; import ROMVERSE source from the
-original checkout; change the app/tests/fixture/protocol; use a phone; expose the endpoint beyond
-the contained emulator route; grant execution authority; enable Recovery; use production signing;
-change protected files; merge platforms; publish; or release.
-
-Update `docs/sync/BUILD-STATUS.md`, commit and push the exact checkpoint on
+Implement only the minimum test correction above, rebuild only what is required for the debug
+instrumentation artifact, and perform its one exact contained integration run. Update
+`docs/sync/BUILD-STATUS.md`, commit and push the exact checkpoint on
 `linux/stage1-desktop-readiness`, then stop for independent Product Assurance review.
+
+No physical phone, application behavior change, production Recovery, production trust/signing,
+platform merge, publication, or release is authorized.
 
 ### Gate status
 
 - v0.2 Golden Foundation: **CLOSED pending remaining release gates**
 - Fedora runnable build and inert Guided journey: **VERIFIED**
 - Companion standalone API-35 emulator runtime: **VERIFIED**
-- Contained Desktop/Companion Link integration: **ENVIRONMENT-ONLY RETRY AUTHORIZED**
-- Companion physical-device verification: outstanding; not authorized
+- Contained Desktop/Companion Link integration: **MINIMUM TEST CORRECTION REQUIRED**
 - Windows runnable development build: separate correction track in progress
-- Production Recovery, signing, publication, and release: outstanding and not authorized
+- Physical hardware, production Recovery, signing, publication, and release: not authorized

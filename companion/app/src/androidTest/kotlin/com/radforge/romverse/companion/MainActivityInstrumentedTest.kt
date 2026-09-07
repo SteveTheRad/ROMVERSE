@@ -8,6 +8,7 @@ import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
@@ -354,6 +355,12 @@ class MainActivityInstrumentedTest {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             waitForIdle()
             scenario.onActivity { activity ->
+                descendants(activity.window.decorView)
+                    .single { it.contentDescription?.toString() == "Link" }
+                    .performClick()
+            }
+            waitForIdle()
+            scenario.onActivity { activity ->
                 val views = descendants(activity.window.decorView)
                 views.filterIsInstance<EditText>()
                     .single { it.hint?.toString().orEmpty().startsWith("PC address") }
@@ -364,13 +371,45 @@ class MainActivityInstrumentedTest {
                 views.filterIsInstance<EditText>()
                     .single { it.hint?.toString() == "000000" }
                     .setText(code)
-                views.filterIsInstance<CheckBox>()
-                    .single { it.text.toString().startsWith("I confirmed the Link safety code") }
-                    .isChecked = true
+                val safetyConfirmation = views.filterIsInstance<CheckBox>()
+                    .single { it.text.toString() == "Safety code confirmation is waiting" }
+                assertFalse(safetyConfirmation.isChecked)
+                assertFalse(safetyConfirmation.isEnabled)
+                assertFalse(safetyConfirmation.isClickable)
                 views.filterIsInstance<Button>()
                     .single { it.text.toString() == "CONNECT WIRELESSLY" }
                     .performClick()
             }
+            waitForIdle()
+
+            val expectedSafetyCode = requireNotNull(
+                DesktopLinkSecurity.safetyCode(fingerprint),
+            )
+            val confirmationNodes = waitForAccessibility(5_000L) { nodes ->
+                val texts = nodes.map { it.text?.toString().orEmpty() }
+                texts.contains("CONFIRM DESKTOP IDENTITY") &&
+                    texts.contains("Does this code match ROMVERSE Desktop?") &&
+                    texts.contains(expectedSafetyCode) &&
+                    texts.any {
+                        it.contains("This approves a read-only encrypted Link") &&
+                            it.contains(
+                                "it grants no flash, root, wipe, unlock, relock, or command authority",
+                            )
+                    } &&
+                    nodes.any {
+                        it.contentDescription?.toString() ==
+                            "ROMVERSE Link safety code $expectedSafetyCode"
+                    } &&
+                    texts.contains("YES • CODE MATCHES")
+            } ?: error("The Link safety confirmation dialog did not expose its required content")
+            SystemClock.sleep(500L)
+            val affirmative = confirmationNodes.single {
+                it.text?.toString() == "YES • CODE MATCHES" &&
+                    it.isVisibleToUser &&
+                    it.isClickable
+            }
+            assertTrue(affirmative.performAction(AccessibilityNodeInfo.ACTION_CLICK))
+            waitForIdle()
 
             assertTrue(waitUntil(scenario, 20_000L) { views ->
                 textValues(views).any { it == "Paired • two-way health sync active" }
@@ -481,6 +520,32 @@ class MainActivityInstrumentedTest {
 
     private fun textValues(views: List<View>): List<String> =
         views.filterIsInstance<TextView>().map { it.text.toString() }
+
+    private fun waitForAccessibility(
+        timeoutMillis: Long,
+        predicate: (List<AccessibilityNodeInfo>) -> Boolean,
+    ): List<AccessibilityNodeInfo>? {
+        val deadline = SystemClock.elapsedRealtime() + timeoutMillis
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        while (SystemClock.elapsedRealtime() < deadline) {
+            val root = automation.rootInActiveWindow
+            if (root != null) {
+                val nodes = accessibilityDescendants(root)
+                if (predicate(nodes)) return nodes
+            }
+            SystemClock.sleep(100L)
+        }
+        return null
+    }
+
+    private fun accessibilityDescendants(root: AccessibilityNodeInfo): List<AccessibilityNodeInfo> =
+        buildList {
+            fun collect(node: AccessibilityNodeInfo) {
+                add(node)
+                repeat(node.childCount) { index -> node.getChild(index)?.let(::collect) }
+            }
+            collect(root)
+        }
 
     private fun descendants(root: View): List<View> = buildList {
         fun collect(view: View) {

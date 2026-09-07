@@ -107,6 +107,13 @@ from romverse.ui.background import (
 from romverse.ui.process_progress import ProcessProgressBar
 
 AVBTOOL_SOURCE = "https://android.googlesource.com/platform/external/avb/+/refs/heads/main/avbtool.py?format=TEXT"
+WINDOWS_PLATFORM_TOOLS_SOURCE = (
+    "https://dl.google.com/android/repository/platform-tools-latest-windows.zip"
+)
+WINDOWS_PLATFORM_TOOLS_VERSION = "37.0.1"
+WINDOWS_PLATFORM_TOOLS_ARCHIVE_SHA256 = (
+    "45f4d63113e895ebde0c90f194099a4676b6ac653bd28d54314a9e022bbc1a99"
+)
 MAX_MANAGED_SCRIPT_BYTES = 4 * 1024 * 1024
 MAX_MANAGED_ARCHIVE_BYTES = 250 * 1024 * 1024
 MAX_MANAGED_EXPANDED_BYTES = 1024 * 1024 * 1024
@@ -201,11 +208,21 @@ def install_official_archive(
     required_files: tuple[str, ...],
     opener=None,
     *,
+    expected_archive_sha256: str | None = None,
     boundary: Path | None = None,
     progress: DownloadProgress | None = None,
 ) -> tuple[Path, str]:
     """Download, bound, validate, atomically extract, and receipt an official ZIP."""
 
+    if source == WINDOWS_PLATFORM_TOOLS_SOURCE:
+        if expected_archive_sha256 not in {
+            None,
+            WINDOWS_PLATFORM_TOOLS_ARCHIVE_SHA256,
+        }:
+            raise ValueError("requested Windows Platform Tools pin is not approved")
+        expected_archive_sha256 = WINDOWS_PLATFORM_TOOLS_ARCHIVE_SHA256
+    if expected_archive_sha256 is not None and not _is_sha256(expected_archive_sha256):
+        raise ValueError("approved archive SHA-256 is invalid")
     open_url = opener or urllib.request.urlopen
     boundary = _prepare_managed_destination(destination, boundary)
     partial_descriptor, partial_name = tempfile.mkstemp(
@@ -234,6 +251,20 @@ def install_official_archive(
             os.fsync(stream.fileno())
         if progress is not None:
             progress(0, 0)
+        archive_sha256 = digest.hexdigest()
+        if (
+            expected_archive_sha256 is not None
+            and archive_sha256 != expected_archive_sha256
+        ):
+            approved_label = (
+                f"Windows Platform Tools {WINDOWS_PLATFORM_TOOLS_VERSION}"
+                if source == WINDOWS_PLATFORM_TOOLS_SOURCE
+                else name
+            )
+            raise ValueError(
+                f"{name} does not match the approved {approved_label} SHA-256; "
+                "a ROMVERSE pin update is required"
+            )
         with zipfile.ZipFile(partial) as package:
             members = package.infolist()
             if len(members) > MAX_MANAGED_ARCHIVE_ENTRIES:
@@ -270,7 +301,7 @@ def install_official_archive(
             "schema_version": 1,
             "name": name,
             "source": source,
-            "archive_sha256": digest.hexdigest(),
+            "archive_sha256": archive_sha256,
             "archive_bytes": total,
             "files": matched,
         }
@@ -294,7 +325,7 @@ def install_official_archive(
             raise
         with suppress(OSError):
             shutil.rmtree(previous)
-        return target, digest.hexdigest()
+        return target, archive_sha256
     finally:
         partial.unlink(missing_ok=True)
         staging = destination / f".{name}.extracting"
@@ -648,7 +679,7 @@ def _validate_managed_package_receipt(
         expected_sources = {
             "platform-tools": {
                 "https://dl.google.com/android/repository/platform-tools-latest-linux.zip",
-                "https://dl.google.com/android/repository/platform-tools-latest-windows.zip",
+                WINDOWS_PLATFORM_TOOLS_SOURCE,
             },
             "google-usb-driver": {
                 "https://dl.google.com/android/repository/latest_usb_driver_windows.zip"
@@ -658,6 +689,10 @@ def _validate_managed_package_receipt(
         shape_valid = (
             receipt.get("source") in expected_sources
             and _is_sha256(receipt.get("archive_sha256"))
+            and (
+                receipt.get("source") != WINDOWS_PLATFORM_TOOLS_SOURCE
+                or receipt.get("archive_sha256") == WINDOWS_PLATFORM_TOOLS_ARCHIVE_SHA256
+            )
             and type(archive_bytes) is int
             and 0 < archive_bytes <= MAX_MANAGED_ARCHIVE_BYTES
         )
@@ -743,7 +778,7 @@ def _validate_managed_package_receipt(
     legacy_windows_source = bool(
         package == "platform-tools"
         and receipt.get("source")
-        == "https://dl.google.com/android/repository/platform-tools-latest-windows.zip"
+        == WINDOWS_PLATFORM_TOOLS_SOURCE
     )
     if any(
         not isinstance(relative, str) or not _is_sha256(expected)
@@ -2492,16 +2527,23 @@ class ToolchainDownloadWorker(ManagedRunnable):
             return report
 
         self.signals.phase.emit("Preparing the approved tool plan…", False)
-        packages: dict[str, tuple[str, tuple[str, ...]]] = {}
+        packages: dict[str, tuple[str, tuple[str, ...], str | None]] = {}
         if "ADB" in self.selected or "Fastboot" in self.selected:
             platform_name = "windows" if self.host.name.lower() == "windows" else "linux"
             executables = (
                 ("adb.exe", "fastboot.exe") if platform_name == "windows" else ("adb", "fastboot")
             )
-            packages["platform-tools"] = (
-                f"https://dl.google.com/android/repository/platform-tools-latest-{platform_name}.zip",
-                executables,
+            source = (
+                WINDOWS_PLATFORM_TOOLS_SOURCE
+                if platform_name == "windows"
+                else "https://dl.google.com/android/repository/platform-tools-latest-linux.zip"
             )
+            approved_sha256 = (
+                WINDOWS_PLATFORM_TOOLS_ARCHIVE_SHA256
+                if platform_name == "windows"
+                else None
+            )
+            packages["platform-tools"] = (source, executables, approved_sha256)
         managed: list[str] = []
         partition_names = {"simg2img", "LP Make", "LP Unpack", "LP Dump"}
         if partition_names.intersection(self.selected):
@@ -2600,7 +2642,7 @@ class ToolchainDownloadWorker(ManagedRunnable):
             return
         self.destination.mkdir(parents=True, exist_ok=True)
         downloaded: list[str] = []
-        for name, (url, required_files) in packages.items():
+        for name, (url, required_files, expected_archive_sha256) in packages.items():
             try:
                 label = f"Downloading and verifying official {name}…"
                 self.signals.phase.emit(label, False)
@@ -2609,6 +2651,7 @@ class ToolchainDownloadWorker(ManagedRunnable):
                     url,
                     self.destination,
                     required_files,
+                    expected_archive_sha256=expected_archive_sha256,
                     boundary=self.boundary,
                     progress=measured_progress(label),
                 )

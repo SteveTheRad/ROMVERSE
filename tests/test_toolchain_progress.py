@@ -14,8 +14,10 @@ from romverse.infrastructure.toolchain_offline import (
     OfflineToolFile,
 )
 from romverse.infrastructure.tools import ToolStatus
-from romverse.platform.host import LinuxHost
+from romverse.platform.host import LinuxHost, WindowsHost
 from romverse.ui.toolchain_center import (
+    WINDOWS_PLATFORM_TOOLS_ARCHIVE_SHA256,
+    WINDOWS_PLATFORM_TOOLS_SOURCE,
     ToolchainCenter,
     ToolchainDownloadWorker,
     ToolchainSetupDialog,
@@ -485,9 +487,19 @@ def test_forge_arsenal_worker_routes_fedora_system_plan_through_authorized_insta
 def test_forge_arsenal_unknown_length_download_stays_indeterminate(tmp_path, monkeypatch) -> None:
     QApplication.instance() or QApplication([])
 
-    def install(name, _url, destination, required_files, *, boundary, progress):
+    def install(
+        name,
+        _url,
+        destination,
+        required_files,
+        *,
+        expected_archive_sha256,
+        boundary,
+        progress,
+    ):
         assert name == "platform-tools"
         assert required_files == ("adb", "fastboot")
+        assert expected_archive_sha256 is None
         assert boundary == tmp_path
         progress(0, 0)
         progress(512, 0)
@@ -513,3 +525,47 @@ def test_forge_arsenal_unknown_length_download_stays_indeterminate(tmp_path, mon
     download_phases = [item for item in phases if "platform-tools" in item[0]]
     assert download_phases
     assert all(not determinate for _label, determinate in download_phases)
+
+
+def test_forge_arsenal_worker_pins_windows_platform_tools(tmp_path, monkeypatch) -> None:
+    QApplication.instance() or QApplication([])
+    calls = []
+
+    def install(
+        name,
+        url,
+        destination,
+        required_files,
+        *,
+        expected_archive_sha256,
+        boundary,
+        progress,
+    ):
+        calls.append((name, url, destination, required_files, expected_archive_sha256, boundary))
+        progress(1, 1)
+        progress(0, 0)
+        return destination / name, expected_archive_sha256
+
+    monkeypatch.setattr("romverse.ui.toolchain_center.install_official_archive", install)
+    worker = ToolchainDownloadWorker(
+        WindowsHost(),
+        ["ADB", "Fastboot"],
+        tmp_path / "tools" / "downloads",
+        boundary=tmp_path,
+    )
+    completed = []
+    worker.signals.complete.connect(completed.append)
+
+    worker.run()
+
+    assert calls == [
+        (
+            "platform-tools",
+            WINDOWS_PLATFORM_TOOLS_SOURCE,
+            tmp_path / "tools" / "downloads",
+            ("adb.exe", "fastboot.exe"),
+            WINDOWS_PLATFORM_TOOLS_ARCHIVE_SHA256,
+            tmp_path,
+        )
+    ]
+    assert completed == ["Downloaded and prepared: platform-tools (45f4d63113e8…)"]

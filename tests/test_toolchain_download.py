@@ -252,6 +252,7 @@ def test_official_archive_is_content_addressed_and_only_activates_while_unchange
         tmp_path,
         ("adb", "fastboot"),
         opener,
+        expected_archive_sha256=hashlib.sha256(payload).hexdigest(),
         progress=lambda done, total: progress.append((done, total)),
     )
 
@@ -269,11 +270,47 @@ def test_official_archive_is_content_addressed_and_only_activates_while_unchange
     assert verified_managed_directories(tmp_path) == ()
 
 
-def _legacy_windows_platform_tools(tmp_path):
+def test_official_archive_wrong_digest_preserves_prior_package(tmp_path):
+    existing = tmp_path / "platform-tools"
+    existing.mkdir()
+    (existing / "keep.txt").write_text("retain approved package", encoding="utf-8")
     payload = _platform_tools_zip(windows=True)
+
+    with pytest.raises(
+        ValueError,
+        match="approved Windows Platform Tools 37.0.1 SHA-256.*pin update is required",
+    ):
+        install_official_archive(
+            "platform-tools",
+            toolchain_center.WINDOWS_PLATFORM_TOOLS_SOURCE,
+            tmp_path,
+            ("adb.exe", "fastboot.exe"),
+            lambda _url, timeout: _StreamingResponse(payload),
+        )
+
+    assert (existing / "keep.txt").read_text(encoding="utf-8") == "retain approved package"
+    assert not tuple(tmp_path.glob(".platform-tools.*.zip.part"))
+
+
+def test_windows_platform_tools_pin_is_approved_37_0_1_digest():
+    assert toolchain_center.WINDOWS_PLATFORM_TOOLS_VERSION == "37.0.1"
+    assert (
+        toolchain_center.WINDOWS_PLATFORM_TOOLS_ARCHIVE_SHA256
+        == "45f4d63113e895ebde0c90f194099a4676b6ac653bd28d54314a9e022bbc1a99"
+    )
+
+
+def _legacy_windows_platform_tools(tmp_path, monkeypatch):
+    payload = _platform_tools_zip(windows=True)
+    approved_sha256 = hashlib.sha256(payload).hexdigest()
+    monkeypatch.setattr(
+        toolchain_center,
+        "WINDOWS_PLATFORM_TOOLS_ARCHIVE_SHA256",
+        approved_sha256,
+    )
     installed, _digest = install_official_archive(
         "platform-tools",
-        "https://dl.google.com/android/repository/platform-tools-latest-windows.zip",
+        toolchain_center.WINDOWS_PLATFORM_TOOLS_SOURCE,
         tmp_path,
         ("adb.exe", "fastboot.exe"),
         lambda _url, timeout: _StreamingResponse(payload),
@@ -292,7 +329,10 @@ def test_legacy_windows_receipt_activates_exact_verified_pair_without_redownload
     monkeypatch,
 ):
     workspace = tmp_path / "workspace"
-    installed, _receipt_path = _legacy_windows_platform_tools(workspace / "tools" / "downloads")
+    installed, _receipt_path = _legacy_windows_platform_tools(
+        workspace / "tools" / "downloads",
+        monkeypatch,
+    )
     managed_directory = installed / "platform-tools"
     monkeypatch.setenv("PATH", os.pathsep.join(("first", "second")))
 
@@ -317,8 +357,12 @@ def test_legacy_windows_receipt_activates_exact_verified_pair_without_redownload
         r"platform-tools/adb.exe",
     ),
 )
-def test_legacy_windows_receipt_rejects_unsafe_or_ambiguous_paths(tmp_path, unsafe):
-    installed, receipt_path = _legacy_windows_platform_tools(tmp_path)
+def test_legacy_windows_receipt_rejects_unsafe_or_ambiguous_paths(
+    tmp_path,
+    monkeypatch,
+    unsafe,
+):
+    installed, receipt_path = _legacy_windows_platform_tools(tmp_path, monkeypatch)
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     adb_digest = receipt["files"].pop(r"platform-tools\adb.exe")
     receipt["files"][unsafe] = adb_digest
@@ -327,8 +371,8 @@ def test_legacy_windows_receipt_rejects_unsafe_or_ambiguous_paths(tmp_path, unsa
     assert verified_managed_directories(tmp_path) == ()
 
 
-def test_legacy_windows_receipt_rejects_hash_tamper(tmp_path):
-    _installed, receipt_path = _legacy_windows_platform_tools(tmp_path)
+def test_legacy_windows_receipt_rejects_hash_tamper(tmp_path, monkeypatch):
+    _installed, receipt_path = _legacy_windows_platform_tools(tmp_path, monkeypatch)
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     receipt["files"][r"platform-tools\adb.exe"] = "0" * 64
     receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
@@ -337,7 +381,7 @@ def test_legacy_windows_receipt_rejects_hash_tamper(tmp_path):
 
 
 def test_legacy_windows_receipt_rejects_linked_component(tmp_path, monkeypatch):
-    installed, _receipt_path = _legacy_windows_platform_tools(tmp_path)
+    installed, _receipt_path = _legacy_windows_platform_tools(tmp_path, monkeypatch)
     linked = installed / "platform-tools"
     original_is_symlink = Path.is_symlink
     monkeypatch.setattr(
@@ -345,6 +389,18 @@ def test_legacy_windows_receipt_rejects_linked_component(tmp_path, monkeypatch):
         "is_symlink",
         lambda path: path == linked or original_is_symlink(path),
     )
+
+    assert verified_managed_directories(tmp_path) == ()
+
+
+def test_windows_platform_tools_receipt_requires_approved_archive_digest(
+    tmp_path,
+    monkeypatch,
+):
+    _installed, receipt_path = _legacy_windows_platform_tools(tmp_path, monkeypatch)
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    receipt["archive_sha256"] = "0" * 64
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
 
     assert verified_managed_directories(tmp_path) == ()
 

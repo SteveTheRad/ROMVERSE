@@ -1,5 +1,63 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 61efda1 — pinned Windows development build readiness
+
+- Handoff commit: `61efda1`
+- Approved source checkpoint: `6dbe7ef`
+- Platform Tools pin implementation: `1908689733771a97dc1ec6e845adc4f169cb943f`
+- Product Assurance authorization: `a561c1f`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — PINNED WINDOWS BUILD READY WITHOUT A DEVICE**
+
+### Decision
+
+The first runnable Windows artifact containing the approved Platform Tools pin is accepted. One
+fresh visible setup acquired exactly the approved 37.0.1 archive, activated the workspace-local
+ADB/Fastboot pair, reached a truthful ready/no-device Command Deck, and retained that state after one
+normal restart. This closes the Windows no-phone toolchain-readiness slice without broadening device
+or Recovery authority.
+
+### Independent evidence and acceptance
+
+- `61efda1` changes only the Build handoff. Application source remains the already approved
+  `1908689`; protected Companion and unrelated source are untouched.
+- Product Assurance independently rehashed the new executable as
+  `dded5c0daa92a280349e931e7138cb2d63113ef2f9f94327a6c29fe03010c22b`.
+- Independent Windows rehashes match the recorded managed components: ADB
+  `b4a6b455702684652cccf7b46258b29e653538904359a58fd4931cf3ef286b3f` and Fastboot
+  `b2d9cbff4ce9ae7eb448cfc831bafc867935f50f5be38f8f81057fd7eb3b8d86`.
+- The runtime log contains exactly two starts and two clean closes with no recorded fault. The second
+  launch reused the verified receipt and did not reopen setup or redownload.
+- Exactly one unsigned development build and one affected setup/restart journey: **PASS**
+- Approved archive source/size/digest/version and canonical receipt: **PASS**
+- Ready/no-device truthfulness with only host-targeted empty discovery: **PASS**
+- Phone/emulator/device-scoped operation, Recovery, driver/firewall/global PATH, signing, release,
+  destructive action, force-push, or relock: **NONE**
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN, no blind retry,
+  feature freeze, and permanent no-relock: **PRESERVED**
+
+### Approved next bounded task
+
+Synchronize only the two already Product-Assurance-approved platform-neutral Linux correctness
+commits into the Windows branch: `392b21e` (truthful Forge Control pause label) followed by
+`37e2ee2` (refreeze exact source-derived inputs before planning). The branch comparison shows these
+are the only missing commits affecting the four relevant Guided/Forge source and test files after the
+shared base `fdb1692`; do not copy documentation histories or unrelated Linux work.
+
+Integrate without rewriting either branch, resolve only genuine context differences, and run the two
+exact focused regressions on Windows plus lint/whitespace. Then run one source-level, no-phone,
+production-UI `SIMULATED` affected-segment check proving the Windows Guided label and final-tree plan
+behavior. Do not rebuild the executable yet; batch the next artifact build with a later material
+Windows milestone. No phone/emulator target, ADB/Fastboot device command, Recovery, Companion change,
+driver/firewall/global PATH change, signing, publication, release, force-push, or relock. Update the
+Build handoff, commit and push, then stop for Product Assurance.
+
+### Gate status
+
+- Pinned Windows runnable development build and no-device readiness: **VERIFIED**
+- Approved platform-neutral Linux Guided/Forge fixes on Windows: **NEXT SYNC SLICE**
+- Physical hardware, production Recovery/trust, signing, publication, and release: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: 6dbe7ef — Windows Platform Tools archive pin
 
 - Handoff commit: `6dbe7ef`

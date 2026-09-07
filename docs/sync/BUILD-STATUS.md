@@ -2,177 +2,183 @@
 
 ## Authoritative checkpoint
 
-- Implementation commit: `1300dde1b79304149b8acfafe0e3f272d800cd37`
-- Title: `Assemble runnable Fedora recovery journey`
+- Evidence commit: `67ff3a29a3f06b84c3b43989b61cd37e9dcff587`
+- Title: `Record Companion debug APK readiness`
+- Built source baseline: `550a27563aeca4b52a1f519291eefe84e481a431`
 - Branch: `linux/stage1-desktop-readiness`
-- Approved base: `fdb1692b0a5056cce0992b9045cd6f3a55cabf97`
-- Stage: Stage 1 — v0.2 Golden Foundation tangible Fedora product assembly
-- Milestone: runnable Fedora development build plus one complete inert Guided Recovery journey
-- Build status: implementation and full Linux regression complete; stop for Product Assurance review
-- Working tree target state: clean after this handoff commit. The separate original checkout's protected
-  Companion changes and Windows launcher drafts were not edited, staged, discarded, or committed.
+- Stage: Stage 1 — v0.2 Golden Foundation tangible Companion artifact assembly
+- Milestone: clean development-signed Companion debug APK readiness
+- Build status: artifact assembled and verified; stop for Product Assurance review
+- Working tree target state: clean after this handoff commit. The separate original checkout's
+  three protected Companion modifications and pre-existing Windows launcher drafts were not edited,
+  staged, discarded, built, or committed.
+
+## Product Assurance authorization
+
+- Fedora runnable checkpoint `b76843c` / implementation `1300dde` was approved by verdict
+  `550a275`.
+- The verdict authorized only a clean Companion debug APK readiness checkpoint from the committed
+  baseline, using pinned local tools and non-hardware tests.
+- No behavior, branding, version, production signing, installation, emulator, phone, publication,
+  release, platform merge, or production execution change was authorized or performed.
 
 ## Exact changes
 
-- Added `docs/FEDORA-DEVELOPMENT-BUILD.md` with source-launch, offscreen smoke, wheel, one-folder
-  executable, portable ZIP, and inert Guided Recovery commands for Fedora. The workflow installs
-  nothing system-wide and makes no release claim.
-- Added `scripts/simulate_guided_recovery.py`, a product-level simulation that imports no test code
-  and traverses the production Recovery boundaries:
-  **Scan → Match → Prepare → Consent → Result → Reassessment → Verification**.
-- The simulator uses a new disposable workspace, tiny synthetic evidence, an in-memory device
-  transport, a strict machine-readable adapter response, and an ephemeral Ed25519 test-only trust
-  identity. It invokes no ADB/Fastboot executable, subprocess adapter, physical phone, production
-  adapter, or existing ROMVERSE workspace.
-- Added `tests/test_guided_recovery_simulation.py` to prove the journey reaches exact verified
-  same-incident Recovery, keeps the Result boundary explicitly unverified, reopens the project,
-  persists the report, retains no raw simulated serial, permits no retry, and contains no relock.
-- No `src/romverse` application runtime, approved asset, Companion source, Windows launcher source,
-  schema, Device Pack, production adapter, or release behavior changed.
+- Added `docs/COMPANION-DEBUG-APK-READINESS.md` with the pinned toolchain, reproducible clean build
+  command, exact package/version/signature/artifact evidence, non-overlapping test results, and
+  remaining hardware/release boundaries.
+- Updated this repository handoff with the completed checkpoint evidence.
+- No Companion source, test, manifest, Gradle configuration, resource, logo, Desktop application
+  source, Windows launcher, Device Pack, protocol, schema, or release behavior changed.
+- No build-readiness correction was required.
 
-## Runnable Fedora artifacts
+## Runnable Companion artifact
 
-- Source launcher: `python -m romverse --workspace <development-workspace> --skip-onboarding`
-- Wheel: `build/wheel/romverse-0.1.0-py3-none-any.whl`
-  - SHA-256: `df40c6ca9da96154050f07dd4fa8a336b035ff394c68bf56c52d41b6c0cdddcc`
-  - Verified inventory: 308 members and 22 bundled Device Packs.
-- One-folder executable: `build/frozen/ROMVERSE/ROMVERSE`
-  - SHA-256: `b94dc7788b4cce09d4a30e5aff44d6bf1104c717bac9bf843267538c5e1a68ea`
-- Portable development ZIP: `dist/ROMVERSE-Desktop-0.1.0-linux-x86_64.zip`
-  - SHA-256: `dd73842d1de7c18f545b6a4cba7141f758ad3802c8e98877a54de81cdc3afed2`
-  - Verified inventory: 460 files; 360,241,874 expanded bytes; no extracted symbolic links.
-- Artifacts are local ignored build outputs and are deliberately not committed, signed, published,
-  installed system-wide, or represented as releases.
+- Artifact: `companion/app/build/outputs/apk/debug/app-debug.apk`
+- Application ID: `com.radforge.romverse.companion`
+- Label: `ROMVERSE Companion`
+- Version name/code: `0.2.0-alpha.5` / `8`
+- Minimum / target / compile SDK: `26` / `35` / `35`
+- Size: 9,060,239 bytes
+- APK entries: 874
+- SHA-256: `62bc530d5f077e3e34ad71002caa24303a584bf4661f56d2cc338c976bfb5a2b`
+- Manifest classification: `android:debuggable=true`
+- Signing classification: one Android Debug signer, RSA 2048, APK Signature Scheme v2 verified
+- Debug certificate SHA-256:
+  `b1e1bd6e1c199d6bc1649998546a20559e3b0f979cb401ef487b0cde7f993cb1`
+- Production signed: no
+- Installed: no
+- Released: no
 
-## Demonstrated workflow
+## Brand-lock evidence
 
-- Fedora source startup and controlled shutdown: passed offscreen through the real app entry point.
-- Isolated wheel installation/startup/shutdown/uninstall: passed in a disposable virtual
-  environment; project manifest remained byte-exact after uninstall.
-- Frozen executable startup/shutdown: passed from the build directory and again after extracting
-  the portable ZIP.
-- Navigation: all 19 canonical Desktop routes opened through the installed application smoke.
-- Project opening and persistence: a populated workspace reopened byte-exact; the Guided Recovery
-  simulator also reopened its project and exact incident from durable storage.
-- Guided/Expert shared state: the application-owned Recovery session remained the same session
-  across a Guided-to-Expert mode change and continued to verification in the final full suite.
-- Inert Guided Recovery: one exact simulated device was scanned and matched; a three-step
-  source-bound preparation was consented once; three durable successes produced an unverified
-  aggregate Result; same-incident Reassessment entered `VERIFYING`; only a fresh stable exact-device
-  boot observation advanced the existing incident to `RECOVERED` and verified reboot.
+- Approved ROMVERSE logo source and APK member SHA-256:
+  `ab9286ce69e77abd82fe88105df70680186a4eb992289580c23f5d362c132a18`
+- Approved RadForge Labs logo source and APK member SHA-256:
+  `d82ff146aab1f18474005d1a2d9ce0c3944467ae30ff7cb4fb3284387daa95cb`
+- Each packaged member is byte-identical to its committed approved source. Neither logo was
+  replaced, regenerated, redrawn, recoloured, cropped, distorted, or substituted.
 
 ## Classification
 
-- Implemented: Fedora development build/launch documentation, reproducible inert Guided Recovery
-  assembly, durable JSON demonstration report, and regression coverage.
-- Simulated/Tested: the complete Guided Recovery journey and every phone/adapter observation in it.
-  Simulation uses production services but is not hardware proof or production execution authority.
-- Hardware Verified: no Android hardware operation occurred. Genuine Fedora host build and process
-  launch were verified; this is host-platform verification, not phone verification.
-- Released: no. The artifacts are unsigned local development outputs only.
+- Implemented: no new product behavior. The committed Companion baseline assembled without a
+  correction; only reproducible readiness documentation and this handoff were added.
+- Simulated/Tested: Companion domain behavior through JVM and Desktop-side non-hardware tests,
+  including committed ROMVERSE Link and Lifeline state.
+- Hardware Verified: no. No APK ran on Android, an emulator, or a physical phone.
+- Released: no. This is a local Android-debug-signed development artifact.
 
 ## Verification evidence
 
-- Final full Linux Python regression: **2,881/2,881 passed** in 920.49 seconds.
-- Focused affected Recovery/UI/state regression: **79/79 passed**. This is a subset of the full
-  2,881 and is not added to it.
-- Earlier focused Fedora Desktop/build/package regression: **240/240 passed**. This is also a
-  subset of the final full result and is not added to it.
-- New product simulation executed directly and completed all seven requested stages with three
-  strict adapter actions, no external process, no raw serial persistence, and final exact-incident
-  verification.
-- Wheel validation, installed-app smoke, frozen-app smoke, extracted-portable smoke, isolated
-  uninstall preservation check, Ruff over `src`, `scripts`, and `tests`, and Git whitespace check:
-  all passed.
-- No failed, skipped, or xfailed item appeared in the final Linux run.
+- Pinned build host: genuine Fedora Linux 44 x86-64.
+- Pinned Java: Eclipse Temurin 17.0.20.1+1.
+- Pinned Gradle: 8.11.1.
+- Android Gradle Plugin / Kotlin plugin: 8.7.3 / 2.0.21.
+- Android SDK platform / build tools: 35 / 35.0.0.
+- Dependency mode: offline.
+- Clean Gradle gate:
+  `clean testDebugUnitTest lintDebug assembleDebug` — **BUILD SUCCESSFUL** in 34 seconds;
+  52 actionable tasks, 51 executed and 1 up-to-date.
+- Companion JVM tests: **162/162 passed** across 30 suites.
+- ROMVERSE Link/Lifeline JVM evidence: **29/29 passed** across
+  `CompanionLinkReadinessTest`, `CompanionUsbPairingAssistTest`,
+  `DesktopLinkSecurityTest`, `LifelinePlanTest`, and `LifelineSessionIntegrityTest`.
+  These 29 are a subset of 162 and are not added to it.
+- Desktop-side Companion/Link regression: **120/120 passed** across 11 Python suites. This is a
+  distinct host-side suite and is reported separately rather than combined with JVM totals.
+- Android lint: completed successfully with **0 fatal/error findings** and 331 existing warnings.
+  The warnings are retained honestly: 297 `SetTextI18n`, 17 `DrawAllocation`, 5
+  `ViewConstructor`, 3 `ApplySharedPref`, 2 each `IconLocation`,
+  `MonochromeLauncherIcon`, `ObsoleteSdkInt`, and `UnusedResources`, and 1
+  `CustomX509TrustManager`.
+- APK ZIP integrity: passed with no compressed-data error.
+- APK package identity and SDK/version metadata: independently read from the built manifest.
+- APK signature: verified with pinned build-tools 35.0.0 `apksigner`; exactly one Android Debug
+  signer and no SourceStamp.
+- Approved logo bytes: compared between source and APK; exact SHA-256 matches.
+- Git whitespace check: passed.
 
 ## Blockers and remaining limitations
 
-- No production-signed Recovery adapter is enrolled and physical Recovery execution remains
-  disabled. This is an intentional release gate, not a Guided loop.
-- No Android physical device was used for Recovery or post-repair verification.
-- The Fedora artifact is not an RPM, Flatpak, signed installer, or published release; native desktop
-  entry/install/uninstall integration remains outside this development-build checkpoint.
-- PyInstaller reported a missing optional `xxsubtype` hidden-import warning and that its executable
-  icon option is Windows/macOS-specific. Neither caused a Fedora launch or bundled-asset failure;
-  native package-shell icon integration is not claimed here.
-- The separate Windows branch has genuine approved Windows trusted-launcher verification, but its
-  broader repository portability baseline is incomplete and is not claimed by this Linux checkpoint.
-- Companion Android instrumentation and hardware behavior were not exercised.
+- The APK has not run on Android. Activity instrumentation, Android lifecycle, rendering,
+  accessibility, emulator, USB, manufacturer-specific, and physical hardware evidence remain
+  unverified in this checkpoint.
+- Debug signing is not production signing. The debug certificate and `debuggable=true` APK must
+  never be promoted or represented as a public release.
+- Android lint has 331 warnings, although no fatal/error finding and no build failure. They remain
+  visible technical debt rather than being suppressed or reclassified.
+- The Android SDK printed a metadata-version compatibility warning because installed SDK metadata is
+  newer than this command-line parser understands. Compilation, lint, packaging, signature
+  validation, and archive validation still completed successfully; no SDK download was attempted.
+- The separate original checkout's protected Companion modifications are not part of this artifact.
+  Their ownership must be resolved before any later feature checkpoint uses them.
+- Production Recovery adapter enrollment and controlled physical Android Recovery remain separate
+  release blockers.
 
 ## Guided friction and dead ends
 
-- No dead end or circular gate occurred in the demonstrated inert journey.
-- Guided retains one consequential consent decision. Result and Reassessment remain calm,
-  non-authoritative continuation boundaries rather than additional confirmations.
-- A completed adapter sequence does not claim repair. The session waits for the exact phone and
-  only continues after fresh stable verification evidence.
-- Wrong, missing, stale, or ambiguous identity still fails closed. FAILED and UNKNOWN still stop
-  without a retry offer.
-- Real Recovery cannot proceed until separately authorized production-adapter and physical-hardware
-  gates exist; ROMVERSE must continue to present that limitation truthfully.
+- This artifact-only checkpoint changes no Guided or Expert UI behavior and introduces no new
+  confirmation, route, gate, or dead end.
+- Existing inert Link readiness, USB-assist decision state, Desktop trust classification, Lifeline
+  plan progression, and Lifeline session-integrity behavior all passed their committed JVM tests.
+- Hardware pairing, Activity navigation, and live Lifeline behavior are deliberately not inferred
+  from JVM results; they require separately authorized Android runtime evidence.
 
 ## Guardian, Recovery, and safety implications
 
-- Guardian remains the only execution gate. Convenience, UI state, consent, preparation, adapter
-  text, and historical identity grant no execution authority.
-- Preparation and consent explicitly retain `execution_authority: none`.
-- The aggregate Result explicitly retains `recovery_verified: false`; independent boot evidence is
-  required before the incident becomes recovered.
-- Exact-device and same-incident attribution are preserved through every stage.
-- UNKNOWN remains durable and cannot trigger a blind or automatic retry.
-- Bootloader locking/relocking remains permanently prohibited with no override. The simulation
-  Device Pack, adapter allowlist, report, and assertions all retain `bootloader_relock_allowed: false`.
-- The test-only signing private key exists only in memory and is never written to the workspace,
-  fixtures, report, source, or logs.
+- Guardian remains the only execution gate.
+- Companion state grants no flash, wipe, root, unlock, relock, or arbitrary command authority.
+- Exact-device evidence, UNKNOWN/no-blind-retry behavior, independent verification, and
+  source-bound Recovery evidence are unchanged.
+- Bootloader locking/relocking remains permanently prohibited with no override.
+- Debug assembly and debug signing grant no production execution or release authority.
 
 ## Platform status
 
-- Fedora/Linux: genuinely built, launched, shut down, packaged, extracted, reopened, and fully
-  regressed on Fedora. Local development readiness checkpoint complete.
-- Windows: the trusted-launcher contract is genuinely Windows-verified on the separate authoritative
-  Windows branch and Product Assurance approved it. The full Windows repository baseline remains
-  incomplete; no Windows work was duplicated here.
-- Android physical hardware: not run and not claimed.
+- Fedora Desktop: runnable development build and inert Guided Recovery journey are Product
+  Assurance approved.
+- Fedora Companion build host: genuine clean offline build, JVM/lint/package/signature/archive
+  verification complete.
+- Android runtime/emulator/physical phone: not used and not claimed.
+- Windows: remains on its separate authorized branch; no platform merge or duplicate work occurred.
 
 ## Feature-freeze and version-gate impact
 
-- 5 September 2026 pre-v1.0 feature freeze: compliant. This assembles and demonstrates the already
-  approved Stage 1 chain and fixes no unrelated behavior; it adds no product feature, vendor,
-  firmware format, Device Pack, production adapter, execution authority, or release surface.
-- v0.2 Golden Foundation: remains **CLOSED** as recorded by the latest Product Assurance verdict.
-  This checkpoint supplies tangible Fedora development-build evidence and does not reopen a safety
-  or architecture boundary.
-- Release gate: unchanged. Production adapter enrollment and controlled physical Android
-  verification remain mandatory separate gates.
+- 5 September 2026 pre-v1.0 feature freeze: compliant. This is artifact assembly and existing
+  behavior verification, with no product feature or runtime change.
+- v0.2 Golden Foundation: remains **CLOSED**.
+- Companion debug APK readiness: completed for Product Assurance review.
+- Public release gate: unchanged; production signing, Android runtime/instrumentation, representative
+  physical hardware, and release review remain outstanding.
 
 ## Next proposed Build task
 
-Stop for Product Assurance review of this runnable Fedora checkpoint. Do not begin another
-consequential slice or merge a platform branch. After approval, choose only the next bounded task
-that Product Assurance and the creator authorize from repository truth.
+Stop for Product Assurance review of this exact Companion debug APK readiness checkpoint. Do not
+install or distribute the APK, start a Companion feature slice, alter the protected Companion
+files, merge a platform branch, or begin hardware testing without the next explicit authorization.
 
 ## External actions
 
-- Physical phone operation: none.
-- ADB/Fastboot command against hardware: none.
+- Physical phone connection/operation: none.
+- Emulator connection/operation: none.
+- ADB command: none.
 - APK installation: none.
-- System-wide package installation: none.
-- Disposable virtual-environment action: the locally built wheel was installed, launched, then
-  uninstalled inside an isolated temporary venv; no user/system environment was changed.
+- System-wide package/tool installation: none.
+- Dependency download: none; Gradle ran offline.
+- Production signing: none.
 - Production Recovery execution: none.
 - Publication/release: none.
 - Website change: none.
-- Companion source change: none.
-- Windows launcher source change: none.
+- Companion source/resource/asset change: none.
+- Windows launcher change: none.
 - Remote action: normal push of only `linux/stage1-desktop-readiness` for checkpoint review; no
   force-push and no unrelated branch push.
 
 ## Product Assurance Review Requested
 
-- Confirm the local wheel, one-folder executable, portable ZIP, and documented source launcher are
-  sufficient for the requested runnable Fedora development-build milestone.
-- Confirm the product-level inert journey faithfully demonstrates the existing Stage 1 Guided
-  chain without misclassifying simulation as hardware verification or broadening the feature freeze.
-- Confirm that native RPM/Flatpak/desktop-entry integration and production adapter/hardware work
-  remain later, separately authorized release gates rather than defects in this checkpoint.
+- Confirm that the exact debug APK identity, signing classification, archive integrity, brand-lock
+  evidence, JVM/lint/host-side results, and SHA-256 satisfy the bounded readiness milestone.
+- Confirm that the 331 warning-only lint findings may remain visible technical debt for this
+  artifact checkpoint rather than requiring an unapproved behavior/UI cleanup.
+- Confirm that no Android runtime or hardware claim is implied and identify the next bounded
+  master-goal task, if any, after this checkpoint.

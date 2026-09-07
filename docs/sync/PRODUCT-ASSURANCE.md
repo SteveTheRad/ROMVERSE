@@ -1,5 +1,34 @@
 # ROMVERSE Product Assurance
 
+## Authorized synchronization: v0.2.0-alpha.1 consolidated Windows build
+
+- Linux Product Assurance approval: `87af660`
+- Approved Linux handoff: `679b0d8`
+- Approved source commits, in order: `3475b45`, `dcd73cc`, `07b5b17`, `9e6762a`
+- Windows base approval: `06e9dea`
+- Branch: `windows-launcher-authorized-work`
+- Authorization status: **APPROVED NEXT BOUNDED WINDOWS MILESTONE**
+
+### Exact task
+
+Synchronize only the four approved platform-neutral source/test commits above without copying Linux
+handoff/assurance history or merging/rewriting either branch. Retain the accepted Windows launcher,
+Platform Tools pin and all Windows-specific correctness work. Run only the focused local-resume,
+version-identity and prerelease-parser checks plus lint/whitespace.
+
+Produce exactly one consolidated unsigned Windows `0.2.0-alpha.1` development build and one matching
+ZIP. Verify their hashes and exact archive tree, then run one bounded no-phone startup/no-device
+smoke. Record the result in the Windows Build handoff, commit and push, and stop for Product
+Assurance. Do not repeat the broad suite or Guided journey; do not target a phone/emulator, invoke
+device-scoped ADB/Fastboot or Recovery, change Companion, drivers, firewall or global PATH, sign,
+publish, release, force-push or relock.
+
+### Gate status
+
+- Fedora v0.2.0-alpha.1 internal development build: **VERIFIED AT `87af660`**
+- Windows v0.2.0-alpha.1 consolidated development build: **AUTHORIZED NOW**
+- Public release, production trust/signing and physical Recovery: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: 7c52c02 — Windows Guided/Forge synchronization
 
 - Handoff commit: `7c52c02bb6bc2be77ae1d9cfb39d27730f8aaba0`

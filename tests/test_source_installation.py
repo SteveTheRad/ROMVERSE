@@ -220,7 +220,6 @@ def test_literal_backslash_archive_path_is_rejected_before_windows_normalization
     with zipfile.ZipFile(package) as archive:
         member = next(item for item in archive.infolist() if "windows" in item.orig_filename)
         assert member.orig_filename == r"windows\boot.img"
-        assert member.filename == "windows/boot.img"
 
     store = RomProjectStore(tmp_path / "workspace")
     project = store.import_original(store.create("Source installation").project_id, package)

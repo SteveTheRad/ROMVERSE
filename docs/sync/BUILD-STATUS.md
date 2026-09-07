@@ -1,5 +1,124 @@
 # ROMVERSE Build Status
 
+## Runnable Windows development checkpoint — Product Assurance review requested
+
+- Branch: `windows-launcher-authorized-work`
+- Approved starting checkpoint: `1d679d5b2f78bd153cd2d349047bd5a3217c116b`
+  (`Approve Windows trusted launcher checkpoint`)
+- Autonomous-protocol baseline: `4b1382fb81a74c81535dd085f5219dd7a0486e63`
+- Minimum Windows blocker correction: `2b121c1` (`Make Windows development build runnable`)
+- Committed portability audit: `a20402e110a181c1bf2c6bf138a2e1e69c9ba573`
+- Status: unsigned Windows development build is runnable; inert Guided journey completed; stop for
+  independent Product Assurance review
+
+### Runnable artifact
+
+- Executable: `build/windows-dev-frozen/ROMVERSE/ROMVERSE.exe`
+- Development archive: `dist/ROMVERSE-Desktop-0.1.0-windows-x86_64-dev.zip`
+- SHA-256: `e442685566f9f2012a19bfe848cf8234469b994b46d92e41ddddb93a1272fba2`
+- Archive size: 73,445,618 bytes; 305 files; 164,585,215 expanded bytes
+- Classification: unsigned development build only; not signed, production-ready, published, or
+  released
+
+### Exact Windows evidence
+
+Host: Windows 11 Home x64, Python 3.12.10, pytest 9.1.1, Ruff 0.16.6,
+PyInstaller 6.22.2.
+
+- Source startup smoke:
+  `.venv\Scripts\python.exe -m romverse --workspace C:\Work\ROMVERSE-Dev-Smoke
+  --skip-onboarding --release-smoke` — passed, exit 0, 3.75s.
+- Frozen build:
+  `.venv\Scripts\python.exe scripts/build_desktop_executable.py --output-directory
+  build/windows-dev-frozen --work-directory build/windows-dev-pyinstaller` — passed. No
+  non-system `icu*.dll` was bundled.
+- Frozen startup smoke:
+  `.venv\Scripts\python.exe scripts/smoke_frozen_desktop.py
+  build/windows-dev-frozen/ROMVERSE/ROMVERSE.exe C:\Work\ROMVERSE-Frozen-Smoke-Fixed` — passed,
+  5.97s.
+- Visible Windows launch: `ROMVERSE Studio v0.1` opened a responding main window, initialized a
+  fresh workspace, accepted `CloseMainWindow`, and exited normally.
+- Static checks: Ruff lint, Ruff formatting, and Git whitespace checks passed.
+
+### Bounded full Windows portability triage
+
+- Collected: 2,901 tests across 214 files at `4b1382f`.
+- Limit: 60 seconds per file group; both groups reaching the bound were reproduced node-by-node
+  with a 20-second limit.
+- Completed-group events: 2,398 passed, 314 failed, 80 errors, 18 skipped.
+- Including individual timeout-group reproductions: 2,460 passed, 344 failed, 80 errors,
+  18 skipped; zero individual timeouts or stalls. There are 2,902 outcome events for 2,901 nodes
+  because one OTA metadata node emitted both setup and teardown errors.
+- Full commands, all failure/error/skip identities, timeouts, harness limitations, and
+  classifications are in `docs/WINDOWS-PORTABILITY-AUDIT-2026-09-07.md` at commit `a20402e`.
+- Environment limitations: an inherited global pytest-temp ACL, MAX_PATH with long temp roots, and
+  one oversized OTA process environment. The authoritative pass used unique short temp roots.
+
+### Minimum confirmed corrections
+
+- Windows NTFS handle/path creation timestamps can differ only in sub-millisecond rounding for the
+  same file. Source verification now retains device, file index, size, and modification-time
+  binding on Windows while leaving POSIX creation-time comparison strict.
+- PyInstaller inherited a non-system Poppler ICU 78 directory from the host PATH, which shadowed
+  the Windows ICU API shim and prevented QtCore loading. The build now removes only non-system PATH
+  entries containing `icuuc.dll`, then restores PATH after packaging.
+- The approved trusted-launcher implementation and contract were not modified.
+
+### Affected and final regression
+
+- Source/Guided affected run after the identity fix: 149 passed, 2 failed in 583.66s. Both failures
+  were pre-existing Windows fixture assertions; source integration and Guided mission passed.
+- Focused source/build run: 40 passed, 1 failed; the one failure is the same Windows ZIP writer
+  backslash-normalization fixture.
+- Final relevant command:
+  `.venv\Scripts\python.exe -m pytest -o addopts='' --basetemp C:\Work\rvfinal
+  tests/test_desktop_bundle.py tests/test_app_launch_settings.py tests/test_workspace.py
+  tests/test_rom_projects.py tests/test_rom_studio_ui.py tests/test_expert_lifecycle_desktop.py
+  tests/test_source_installation.py tests/test_source_installation_integration.py
+  tests/test_guided_mission.py tests/test_guardian_recovery_windows_launcher.py
+  tests/test_guardian_recovery_runtime_adapter.py`
+- Final result: **250 passed, 4 failed, 2 skipped in 314.90s**.
+- Two failures are POSIX mode-bit assertions, one is the Windows ZIP fixture, and one launcher
+  handle/path check failed once in the combined run then passed immediately when reproduced alone
+  (**1 passed in 0.45s**). The latter is reported as transient evidence for independent review,
+  not silently treated as a pass. The two skips are Linux-only sealed-memfd tests.
+
+### Simulated Guided journey
+
+The inert local simulation completed:
+`Scan → Match → Prepare → Consent → Result → Reassessment → Verification`.
+
+- Exact simulated `popsicle`/Xiaomi identity matched the reviewed recipe.
+- Prepare exposed 53 actions including 50 inert image writes.
+- Declining consent sent zero mutating commands; later acceptance remained explicit.
+- Result was durably recorded; no wipe, relock, retry, or physical command occurred.
+- Independent boot observation was stable for 60 simulated seconds over 11 samples; the audit and
+  unchanged receipt were verified without automatically promoting the installation result to
+  boot-verified.
+- Guided and Expert retained the same `SourceOperationSession`; reopening history sent zero
+  commands and made zero additional changes.
+- Evidence report:
+  `C:\Work\ROMVERSE-Windows-Guided-Simulation-20260907\simulation-report.json`.
+- Receipt SHA-256: `e5a8a09ee3119a40d32cc938983ddd3932561fbfbd2f01f9c58211034a814bff`.
+
+### Remaining failures and precise next proposal
+
+No remaining failure blocks the unsigned desktop application from building, opening, persisting a
+workspace, navigating, or completing the inert journey. The next bounded task, only after Product
+Assurance approval, should make the remaining test fixtures platform-aware: use Windows ACL
+semantics instead of POSIX mode bits, construct an actually ambiguous ZIP member without Windows
+writer normalization, and investigate/repeat the transient launcher identity comparison without
+weakening fail-closed behavior.
+
+### Safety and scope confirmation
+
+- Guardian-only authority, exact-device evidence, separate consent, UNKNOWN-on-uncertainty, no
+  blind retry, independent verification, feature freeze, and permanent no-relock remain intact.
+- No phone connection or operation, Recovery command, APK installation, production adapter,
+  physical execution, production signing, application publication, or release occurred.
+- Protected Companion files were not edited, staged, discarded, tested, or committed.
+- No force-push was used.
+
 ## Authoritative Windows launcher checkpoint
 
 - Commit: `ea292e75db8de3d2ed44feb0e8fb070c70ebf849`

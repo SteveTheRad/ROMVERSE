@@ -1,5 +1,59 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 17750ca — simulated AVB / Guardian boundary
+
+- Handoff commit: `17750ca`
+- Product implementation: unchanged at `37e2ee27d9373d90e6a3cd71cb31fcadb64f415b`
+- Product Assurance authorization: `12b32d5`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — STRICT PRE-GUARDIAN BOUNDARY VERIFIED**
+
+### Decision
+
+The production UI correctly accepts exact test-only source AVB identity for simulation while keeping
+Guardian handoff and flash readiness false. The missing Device Pack write/readback/transition/AVB/
+recovery contracts, independent physical recovery evidence, and operation scope are real safety
+requirements—not a Guided defect. No correction or broader synthetic Device Pack is warranted.
+
+### Independent evidence and acceptance
+
+- `17750ca` changes only the Build handoff; no product, test, policy, key, adapter, package, or asset
+  source changed.
+- The journey derived and reloaded the protected source, build, candidate and AVB evidence through
+  production services and one inert adapter; it did not inject a Guardian manifest or completed
+  authority state.
+- Local candidate and simulation-only signer gates passed; Device Pack flash and physical-validation
+  gates remained blocked; Guardian handoff, flash readiness and relock remained false.
+- The result is clearly labelled `SIMULATED`, reports zero physical targets,
+  `production_execution_authority: none` and `phone_changed: false`.
+- Correct strict stop without a speculative fix or repeated suite: **PASS**
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN, no blind retry,
+  independent verification, feature freeze, and permanent no-relock: **PRESERVED**
+- Phone/device/Recovery/production-signing/release activity: **NONE**
+
+### Approved next bounded task
+
+Shift to one non-duplicative, offline Fedora **SIMULATED interruption-and-resume journey** for the
+existing local-build workflow. In a disposable workspace, use valid sanitized source-derived inputs
+and inert adapters to begin a local build, interrupt it at one durable boundary, close/reopen the
+production UI, and verify that ROMVERSE reloads only committed evidence, never invents success, and
+does not blindly retry an ambiguous or incomplete operation. Resume only when the existing contracts
+explicitly permit it from the exact verified checkpoint.
+
+Identify the first concrete user-facing recovery/resume defect and implement only its minimum freeze-
+safe correction; rerun only the affected segment and focused test. Do not construct additional
+Device Pack execution authority, Guardian consent, Recovery success, physical evidence, or production
+signing to force progress. If current behavior is already correct, commit the truthful handoff with no
+source change. No phone, ADB/Fastboot target, mode transition, signing, publication, release, or
+relock. Commit and push, then stop for Product Assurance.
+
+### Gate status
+
+- Simulated local candidate and AVB verification: **VERIFIED**
+- Guardian handoff absent required execution/recovery evidence: **CORRECTLY BLOCKED**
+- Local-build interruption/restart truthfulness: **NEXT OFFLINE SLICE**
+- Physical execution, production trust/signing, publication, and release: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: 44199de — source-derived simulated Forge candidate
 
 - Handoff commit: `44199de`

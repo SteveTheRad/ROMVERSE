@@ -1,5 +1,90 @@
 # ROMVERSE Build Status
 
+## Fail-closed ADB transport default — Product Assurance review requested
+
+- Implementation commit: `efeb854e9203ee39f8849a2b7bd2f5ee6a4a7197`
+- Product Assurance correction: `47b3262945fb2738e02c98b78d5cfd8ce9e3da59`
+- Branch target: `windows-launcher-authorized-work`
+- Working branch: `pa/windows-runnable-review`
+- Stage: Stage 1 — v0.2 Golden Foundation Device Engine/Companion truthfulness
+- Status: required minimum follow-up implemented and focused-tested; stop for independent review.
+
+### Exact correction
+
+- `_adb_transport` now returns physical `usb` only when the current parsed ADB discovery row carries
+  a non-empty `usb:` field.
+- Network endpoint serials still take precedence as `network`; `emulator-*` and positive QEMU/virtual
+  properties still classify as `emulator`.
+- A local-looking serial with no explicit USB, emulator, or QEMU evidence now remains stable
+  non-authorizing `adb` evidence and is described as an unconfirmed local ADB transport.
+- The original physical Device Engine fixture now contains explicit `usb:1-2.3` evidence rather than
+  relying on serial shape.
+- The focused Device Engine case now proves explicit USB, emulator serial, QEMU evidence, network ADB,
+  and unconfirmed local ADB independently.
+- The existing Companion Center non-USB test now includes the unconfirmed `adb` case and proves that
+  emulator, network, and unconfirmed local ADB retain telemetry but never gain `_usb_ready`, a USB
+  serial, USB assist, `USB connected`, or `USB also connected` before pairing, after wireless pairing,
+  or after reset.
+- No Companion Center production source change was necessary because its prior exact
+  `device.transport == "usb"` boundary already fails closed for `adb`.
+- No other source, Companion Android, Link protocol, Windows launcher, Guardian, Recovery, artifact,
+  packaging, or approved asset changed.
+
+### Classification and focused verification
+
+- Implemented: fail-closed Device Engine ADB transport default and explicit evidence fixture.
+- Simulated/Tested: deterministic fake-ADB and offscreen Qt verification on Fedora/Linux against this
+  exact Windows-branch worktree.
+- Hardware Verified: no.
+- Released: no.
+- Final directly affected result: **10/10 passed**.
+- Ruff lint: passed for the four directly inspected Device Engine/Companion Center source/test files.
+- Ruff formatting: all four files already formatted.
+- Git whitespace validation: passed.
+- Earlier 10/10 correction evidence is superseded by this final run and is not double-counted.
+- No broad suite, complete test file, journey, application launch, artifact build, or package check
+  was run.
+
+### Guided, Guardian, and safety impact
+
+- Absence of USB evidence can no longer become a physical-cable claim or USB-assist capability.
+- Unconfirmed local ADB remains useful for read-only telemetry while authority stays closed.
+- Genuine explicitly observed USB, emulator, QEMU, network, multiple, unauthorized, offline, Link,
+  and reset behavior remain intact.
+- Guardian remains the only execution authority; connection labels grant none.
+- Exact-device evidence, consent separation, durable UNKNOWN, no blind retry, same-incident Recovery,
+  and independent reassessment/verification are unchanged.
+- Bootloader locking/relocking remains permanently prohibited with no override.
+
+### Platform, freeze, blockers, and next task
+
+- Fedora and Windows runnable/inert Guided checkpoints remain previously verified and unchanged.
+- This correction is Linux-host verified only; no genuine Windows or Android hardware claim is made.
+- Windows Device Engine readiness remains paused for Steve's human dismissal of the stale Windows
+  Security prompt. This task did not interact with it.
+- 5 September 2026 feature freeze: preserved; this is the exact minimum truthfulness correction.
+- v0.2 Golden Foundation remains **CLOSED** pending physical, production-trust, signing, and release
+  gates.
+- Stop for independent Product Assurance review. Do not begin another source/platform/hardware slice.
+
+### External actions
+
+- Physical phone, emulator, network ADB target, ADB/Fastboot command, Windows app, or Windows prompt:
+  none.
+- Build/rebuild, executable/ZIP/APK installation, dependency/package/driver/PATH/security change:
+  none.
+- Recovery, firmware, partition, flash, wipe, root, unlock, relock, signing, publication, release,
+  merge, or force-push: none.
+- Linux branch and Companion Android source: untouched.
+- Remote action: normal push of this implementation and handoff to
+  `origin/windows-launcher-authorized-work` is intended after final repository verification.
+
+### Product Assurance questions
+
+- Confirm explicit discovery `usb:` is now the only physical USB classification path.
+- Confirm the unconfirmed local `adb` path remains read-only and cannot enable or claim USB assist.
+- Confirm the final 10/10 focused result and lint/format checks close this correction.
+
 ## Android connection-source truthfulness — Product Assurance review requested
 
 - Implementation commit: `e685eee873c170821f876c049d14625961c9bf40`

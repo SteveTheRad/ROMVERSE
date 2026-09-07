@@ -1,5 +1,96 @@
 # ROMVERSE Build Status
 
+## Intent-bound Companion Link correction — checkpoint blocked by stale Windows prompt
+
+- Reviewed checkpoint: `f8413bfe465e8bfd33d62a0a6cd92d3aa6572167`
+- Product Assurance correction: `b0ba30681623e0fc97617f607fbb24dfa7d3cf73`
+- Correction implementation: `c0b140bbebe7b8fd107819c911703ac9a07e2954`
+- Branch: `windows-launcher-authorized-work`
+- Status: the approved listener lifecycle correction, focused Windows verification, and single
+  frozen rebuild are complete. The resumed Device Engine readiness action remains blocked only by
+  the still-open Windows Security notification created before this correction; no security decision
+  was automated.
+
+### Minimum listener lifecycle correction
+
+- Fresh `CompanionTransport` construction now creates the existing TLS identity and remembered-
+  session broker without constructing, binding, listening on, or advertising a network server.
+- Fresh `CompanionCenter` construction leaves the endpoint idle while keeping the existing
+  `Generate wireless code` and eligible USB-assisted pairing actions available.
+- An existing explicit pairing action invokes one bounded `start()` operation. Repeated pairing
+  actions reuse the same live server and discovery thread; a failed operation records one bounded
+  unavailable state and is not retried automatically.
+- A still-valid remembered approved session resumes the endpoint during construction. A failed
+  resume remains unavailable rather than rendering a live approved Link.
+- TLS identity, short-lived pairing code, exact safety-code comparison, Desktop approval,
+  read-only telemetry, session reset/revocation, transfer revocation, clean shutdown, privacy
+  filtering, and `execution_authority: none` are unchanged.
+
+### Focused Windows verification
+
+- Command:
+  `.venv\\Scripts\\python.exe -m pytest tests/test_companion_transport.py tests/test_companion_center.py -k "not keeps_pairing_controls_readable" -vv --basetemp build/pytest-companion-lifecycle-final`
+- Result: **21 passed, 1 deselected in 8.68 seconds** on Windows 11 / Python 3.12.10.
+- The selected set includes the new deterministic fresh-idle, one-explicit-start, bounded startup-
+  failure, remembered-session resume, TLS transport, revocation, privacy, and shutdown evidence.
+- The one deselected test is
+  `test_companion_link_keeps_pairing_controls_readable_in_a_scroll_surface`. It is the exact
+  unrelated Windows baseline failure already recorded in
+  `docs/WINDOWS-PORTABILITY-AUDIT-2026-09-07.md` as the pre-correction `12 passed, 1 failed`
+  Companion Center result; this lifecycle correction did not alter its consent layout.
+- Ruff command:
+  `.venv\\Scripts\\python.exe -m ruff check src/romverse/companion/transport.py src/romverse/ui/companion_center.py tests/test_companion_transport.py tests/test_companion_center.py`
+- Ruff result: passed. `git diff --check`: passed.
+- Linux reproduction is not claimed by Windows Build and remains for independent Product Assurance.
+
+### Real source and frozen startup evidence
+
+- Source launch used fresh workspace
+  `C:\\Work\\ROMVERSE-Link-Lazy-Source-20260907` and reached the real visible Command Deck with
+  `Device Engine needs attention` and `Resolve Platform Tools` present.
+- The source process owned **zero TCP listening endpoints and zero UDP endpoints** before any Link
+  action. No Link discovery thread or inbound listener was observed.
+- The single authorized frozen rebuild command was:
+  `.venv\\Scripts\\python.exe scripts/build_desktop_executable.py --output-directory build/windows-dev-frozen --work-directory build/windows-dev-pyinstaller`.
+- PyInstaller 6.22.2 completed successfully once using Python 3.12.10 on
+  `Windows-11-10.0.26200-SP0`. No ZIP was rebuilt.
+- Corrected unsigned development executable:
+  `build/windows-dev-frozen/ROMVERSE/ROMVERSE.exe`
+  - size: `6,266,277` bytes;
+  - SHA-256: `0d54ed4588c6337a7bee194ee9b3541593fe3e8ab9222f35489d339a5eae6cc9`.
+- Frozen launch used fresh workspace
+  `C:\\Work\\ROMVERSE-Link-Lazy-Frozen-20260907` and again reached the real visible Command Deck
+  with `Resolve Platform Tools` present.
+- Frozen PID `43080` owned **zero TCP listening endpoints and zero UDP endpoints** before any Link
+  action. Only an unrelated outbound online-status connection was present.
+
+### Exact remaining external blocker
+
+- Windows still shows the pre-existing `Windows Security` firewall notification for `ROMVERSE.exe`.
+  Its authoritative process is `PickerHost.exe` PID `38940`, created at **2026-09-07 20:52:22
+  +10:00**—about three hours before the corrected source and frozen launches.
+- The same PID and creation time persisted across both corrected launches. No new firewall prompt
+  process was created, and the corrected processes had no inbound listener or Link discovery socket.
+  This establishes that the corrected fresh startup did not request a new Link firewall decision.
+- Computer-use policy and Product Assurance both prohibit Build from acting on Windows Security.
+  The old modal intercepts the `Resolve Platform Tools` control, so the readiness journey cannot
+  safely continue until Steve manually chooses **Cancel**. Build did not select Allow or Cancel,
+  dismiss or terminate the prompt, change firewall policy, or use a port workaround.
+- After Steve dismisses the stale prompt, resume the existing frozen workspace and existing rebuilt
+  executable. Do not rebuild again. Open `Resolve Platform Tools`, capture the product's declared
+  toolchain state, and continue only the approved workspace-local integrity-checked readiness flow.
+
+### Scope and safety
+
+- The implementation commit changes only Desktop Companion transport/center source and their
+  directly affected tests. This handoff changes only this Build Status document.
+- Protected Companion Android files are unchanged and unstaged.
+- No firewall/security policy, system package, system-wide tool, driver, global PATH, phone,
+  ADB/Fastboot device operation, Recovery command, relock, APK, production trust, signing,
+  publication, release, force-push, or destructive history change occurred.
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty, no
+  blind retry, independent verification, feature freeze, and permanent no-relock remain intact.
+
 ## Windows Device Engine / toolchain operability blocker — Product Assurance review requested
 
 - Approved readiness checkpoint: `7642cad98d2501588d9b6829b132c01c1f8798b7`

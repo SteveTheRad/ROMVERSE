@@ -2,183 +2,209 @@
 
 ## Authoritative checkpoint
 
-- Evidence commit: `67ff3a29a3f06b84c3b43989b61cd37e9dcff587`
-- Title: `Record Companion debug APK readiness`
-- Built source baseline: `550a27563aeca4b52a1f519291eefe84e481a431`
+- Evidence commit: `507872cb3bd8cebab8c210af7de5fb2ef00e14f5`
+- Title: `Record Companion instrumentation APK readiness`
+- Built source baseline and Product Assurance authorization:
+  `5057d62543de32cf6a3058f77a48d54136d00b16`
 - Branch: `linux/stage1-desktop-readiness`
 - Stage: Stage 1 — v0.2 Golden Foundation tangible Companion artifact assembly
-- Milestone: clean development-signed Companion debug APK readiness
-- Build status: artifact assembled and verified; stop for Product Assurance review
-- Working tree target state: clean after this handoff commit. The separate original checkout's
-  three protected Companion modifications and pre-existing Windows launcher drafts were not edited,
-  staged, discarded, built, or committed.
+- Milestone: local Companion debug application plus Android instrumentation APK readiness bundle
+- Build status: both artifacts assembled and verified; stop for Product Assurance review
+- Working-tree target state: clean after this handoff commit. The separate original checkout's
+  three protected Companion changes and pre-existing Windows launcher drafts were not edited,
+  staged, discarded, built from, or committed.
 
 ## Product Assurance authorization
 
-- Fedora runnable checkpoint `b76843c` / implementation `1300dde` was approved by verdict
-  `550a275`.
-- The verdict authorized only a clean Companion debug APK readiness checkpoint from the committed
-  baseline, using pinned local tools and non-hardware tests.
-- No behavior, branding, version, production signing, installation, emulator, phone, publication,
-  release, platform merge, or production execution change was authorized or performed.
+- Product Assurance verdict `5057d62` approved the preceding Companion debug APK checkpoint and
+  authorized only the final pre-runtime instrumentation artifact gate.
+- Authorization covered offline compilation of existing `androidTest` sources, assembly and
+  inspection of the debug app and instrumentation APKs, and documentation of exact evidence.
+- APK installation/execution, emulator or phone use, ADB, dependency download, behavior or branding
+  changes, production signing, platform merge, publication, and release remained prohibited and did
+  not occur.
 
 ## Exact changes
 
-- Added `docs/COMPANION-DEBUG-APK-READINESS.md` with the pinned toolchain, reproducible clean build
-  command, exact package/version/signature/artifact evidence, non-overlapping test results, and
-  remaining hardware/release boundaries.
+- Added `docs/COMPANION-INSTRUMENTATION-APK-READINESS.md` with the pinned build command, exact app
+  and instrumentation package metadata, artifact hashes, archive integrity, signer evidence,
+  compiled test inventory, brand-lock evidence, and runtime limitations.
 - Updated this repository handoff with the completed checkpoint evidence.
-- No Companion source, test, manifest, Gradle configuration, resource, logo, Desktop application
-  source, Windows launcher, Device Pack, protocol, schema, or release behavior changed.
-- No build-readiness correction was required.
+- No Companion source, test, manifest, Gradle configuration, resource, logo, application behavior,
+  Desktop source, Windows launcher, Device Pack, schema, protocol, or release behavior changed.
+- The committed baseline assembled successfully; no build-readiness correction was required.
 
-## Runnable Companion artifact
+## Companion APK readiness bundle
 
-- Artifact: `companion/app/build/outputs/apk/debug/app-debug.apk`
-- Application ID: `com.radforge.romverse.companion`
-- Label: `ROMVERSE Companion`
+### Debug application APK
+
+- Path: `companion/app/build/outputs/apk/debug/app-debug.apk`
+- Application ID / label: `com.radforge.romverse.companion` / `ROMVERSE Companion`
 - Version name/code: `0.2.0-alpha.5` / `8`
 - Minimum / target / compile SDK: `26` / `35` / `35`
-- Size: 9,060,239 bytes
-- APK entries: 874
+- Size / ZIP entries: 9,060,239 bytes / 874
 - SHA-256: `62bc530d5f077e3e34ad71002caa24303a584bf4661f56d2cc338c976bfb5a2b`
-- Manifest classification: `android:debuggable=true`
-- Signing classification: one Android Debug signer, RSA 2048, APK Signature Scheme v2 verified
-- Debug certificate SHA-256:
+- Manifest classification: debuggable
+- Identity and digest: unchanged from the approved preceding checkpoint
+
+### Debug instrumentation APK
+
+- Path: `companion/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk`
+- Instrumentation package: `com.radforge.romverse.companion.test`
+- Target package: `com.radforge.romverse.companion`
+- Runner: `androidx.test.runner.AndroidJUnitRunner`
+- Variant: `debugAndroidTest`
+- Minimum / target / compile SDK: `26` / `35` / `35`
+- Size / ZIP entries: 383,843 bytes / 9
+- SHA-256: `ec6776528384b26c29b748299f80285474cc64ed40fe2b2519efa6b4040a86b5`
+- Manifest classification: debuggable
+
+Both APK archives passed ZIP integrity validation without a compressed-data error.
+
+## Signing evidence
+
+Both APKs verify with the same local development signer:
+
+- Signers: 1
+- Certificate DN: `C=US, O=Android, CN=Android Debug`
+- Certificate SHA-256:
   `b1e1bd6e1c199d6bc1649998546a20559e3b0f979cb401ef487b0cde7f993cb1`
-- Production signed: no
-- Installed: no
-- Released: no
+- Key: RSA 2048
+- APK Signature Scheme v2: verified
+- APK Signature Schemes v1 / v3 / v3.1 / v4: not present
+- SourceStamp: absent
+- Production signing: not used
+
+## Included instrumentation inventory
+
+DEX inspection verified all committed instrumentation classes in the instrumentation APK:
+
+- `CompanionUpgradeContinuityInstrumentedTest` — 1 committed test method
+- `LinkSessionVaultInstrumentedTest` — 3 committed test methods
+- `MainActivityInstrumentedTest` — 8 committed test methods
+
+Total: 3 classes and 12 committed instrumentation test methods compiled and packaged. They were not
+executed, so they are not reported as runtime test passes.
 
 ## Brand-lock evidence
 
-- Approved ROMVERSE logo source and APK member SHA-256:
+- Approved ROMVERSE logo source and packaged-member SHA-256:
   `ab9286ce69e77abd82fe88105df70680186a4eb992289580c23f5d362c132a18`
-- Approved RadForge Labs logo source and APK member SHA-256:
+- Approved RadForge Labs logo source and packaged-member SHA-256:
   `d82ff146aab1f18474005d1a2d9ce0c3944467ae30ff7cb4fb3284387daa95cb`
-- Each packaged member is byte-identical to its committed approved source. Neither logo was
-  replaced, regenerated, redrawn, recoloured, cropped, distorted, or substituted.
+- Both packaged members are byte-identical to their committed approved sources. Neither logo was
+  edited, regenerated, replaced, recoloured, cropped, distorted, or substituted.
 
 ## Classification
 
-- Implemented: no new product behavior. The committed Companion baseline assembled without a
-  correction; only reproducible readiness documentation and this handoff were added.
-- Simulated/Tested: Companion domain behavior through JVM and Desktop-side non-hardware tests,
-  including committed ROMVERSE Link and Lifeline state.
-- Hardware Verified: no. No APK ran on Android, an emulator, or a physical phone.
-- Released: no. This is a local Android-debug-signed development artifact.
+- Implemented: no new application behavior. The committed instrumentation suite compiled and both
+  debug APK artifacts assembled without correction; only evidence documentation was added.
+- Simulated/Tested: compilation, packaging, metadata, archive, signature, DEX-inventory, and
+  brand-byte verification on the genuine Fedora host. The instrumentation tests were not run.
+- Hardware Verified: no. Neither APK ran on an emulator or physical Android device.
+- Released: no. Both artifacts are local Android-debug-signed development outputs.
 
 ## Verification evidence
 
-- Pinned build host: genuine Fedora Linux 44 x86-64.
-- Pinned Java: Eclipse Temurin 17.0.20.1+1.
-- Pinned Gradle: 8.11.1.
+- Pinned host: genuine Fedora Linux 44 x86-64.
+- Pinned Java / Gradle: Eclipse Temurin 17.0.20.1+1 / Gradle 8.11.1.
 - Android Gradle Plugin / Kotlin plugin: 8.7.3 / 2.0.21.
 - Android SDK platform / build tools: 35 / 35.0.0.
 - Dependency mode: offline.
 - Clean Gradle gate:
-  `clean testDebugUnitTest lintDebug assembleDebug` — **BUILD SUCCESSFUL** in 34 seconds;
-  52 actionable tasks, 51 executed and 1 up-to-date.
-- Companion JVM tests: **162/162 passed** across 30 suites.
-- ROMVERSE Link/Lifeline JVM evidence: **29/29 passed** across
-  `CompanionLinkReadinessTest`, `CompanionUsbPairingAssistTest`,
-  `DesktopLinkSecurityTest`, `LifelinePlanTest`, and `LifelineSessionIntegrityTest`.
-  These 29 are a subset of 162 and are not added to it.
-- Desktop-side Companion/Link regression: **120/120 passed** across 11 Python suites. This is a
-  distinct host-side suite and is reported separately rather than combined with JVM totals.
-- Android lint: completed successfully with **0 fatal/error findings** and 331 existing warnings.
-  The warnings are retained honestly: 297 `SetTextI18n`, 17 `DrawAllocation`, 5
-  `ViewConstructor`, 3 `ApplySharedPref`, 2 each `IconLocation`,
-  `MonochromeLauncherIcon`, `ObsoleteSdkInt`, and `UnusedResources`, and 1
-  `CustomX509TrustManager`.
-- APK ZIP integrity: passed with no compressed-data error.
-- APK package identity and SDK/version metadata: independently read from the built manifest.
-- APK signature: verified with pinned build-tools 35.0.0 `apksigner`; exactly one Android Debug
-  signer and no SourceStamp.
-- Approved logo bytes: compared between source and APK; exact SHA-256 matches.
-- Git whitespace check: passed.
+  `clean compileDebugAndroidTestKotlin assembleDebug assembleDebugAndroidTest` —
+  **BUILD SUCCESSFUL** in 16 seconds; **65/65 actionable tasks executed**.
+- Successful relevant boundaries include `compileDebugAndroidTestKotlin`,
+  `compileDebugAndroidTestJavaWithJavac`, `packageDebugAndroidTest`, and
+  `assembleDebugAndroidTest`.
+- Application and instrumentation package/SDK metadata were read from their built manifests.
+- Both APK signatures were verified with pinned build-tools 35.0.0 `apksigner`.
+- All three committed test classes were found in the packaged DEX inventory.
+- Application identity and hash remained exact relative to the preceding approved checkpoint.
+- Both source-to-APK approved logo hash comparisons passed.
+- Git whitespace validation passed.
+- The SDK emitted its existing metadata-parser version warning; compilation and packaging remained
+  successful and no dependency was downloaded.
 
 ## Blockers and remaining limitations
 
-- The APK has not run on Android. Activity instrumentation, Android lifecycle, rendering,
-  accessibility, emulator, USB, manufacturer-specific, and physical hardware evidence remain
-  unverified in this checkpoint.
-- Debug signing is not production signing. The debug certificate and `debuggable=true` APK must
-  never be promoted or represented as a public release.
-- Android lint has 331 warnings, although no fatal/error finding and no build failure. They remain
-  visible technical debt rather than being suppressed or reclassified.
-- The Android SDK printed a metadata-version compatibility warning because installed SDK metadata is
-  newer than this command-line parser understands. Compilation, lint, packaging, signature
-  validation, and archive validation still completed successfully; no SDK download was attempted.
-- The separate original checkout's protected Companion modifications are not part of this artifact.
-  Their ownership must be resolved before any later feature checkpoint uses them.
+- The 12 packaged instrumentation tests have not run. Activity lifecycle, rendering, Android
+  storage, navigation continuity, accessibility, emulator, USB, manufacturer-specific, and physical
+  phone behavior remain unverified by this checkpoint.
+- Debug signing is not production signing. These debuggable artifacts must not be promoted or
+  represented as public release packages.
+- The original checkout's protected Companion changes are deliberately not part of these artifacts.
 - Production Recovery adapter enrollment and controlled physical Android Recovery remain separate
-  release blockers.
+  mandatory release blockers.
 
 ## Guided friction and dead ends
 
-- This artifact-only checkpoint changes no Guided or Expert UI behavior and introduces no new
-  confirmation, route, gate, or dead end.
-- Existing inert Link readiness, USB-assist decision state, Desktop trust classification, Lifeline
-  plan progression, and Lifeline session-integrity behavior all passed their committed JVM tests.
-- Hardware pairing, Activity navigation, and live Lifeline behavior are deliberately not inferred
-  from JVM results; they require separately authorized Android runtime evidence.
+- This artifact checkpoint changes no Guided or Expert UI, route, warning, confirmation, state, or
+  execution surface and introduces no new dead end.
+- The existing committed Activity and Link/Lifeline instrumentation coverage is present in the APK,
+  but its behavior cannot be inferred from compilation. Runtime verification requires a separately
+  authorized emulator or hardware checkpoint.
 
 ## Guardian, Recovery, and safety implications
 
-- Guardian remains the only execution gate.
-- Companion state grants no flash, wipe, root, unlock, relock, or arbitrary command authority.
-- Exact-device evidence, UNKNOWN/no-blind-retry behavior, independent verification, and
-  source-bound Recovery evidence are unchanged.
+- Guardian remains the sole execution gate.
+- Companion grants no flash, wipe, root, unlock, relock, approval, or arbitrary-command authority.
+- Exact-device evidence, UNKNOWN-on-uncertainty, no blind retry, source-bound evidence, and
+  independent verification remain unchanged.
 - Bootloader locking/relocking remains permanently prohibited with no override.
-- Debug assembly and debug signing grant no production execution or release authority.
+- Debug compilation, packaging, and signing grant no runtime, production execution, or release
+  authority.
 
 ## Platform status
 
 - Fedora Desktop: runnable development build and inert Guided Recovery journey are Product
-  Assurance approved.
-- Fedora Companion build host: genuine clean offline build, JVM/lint/package/signature/archive
-  verification complete.
+  Assurance verified.
+- Fedora Companion build host: genuine clean offline application and instrumentation APK assembly
+  plus static artifact verification complete.
 - Android runtime/emulator/physical phone: not used and not claimed.
-- Windows: remains on its separate authorized branch; no platform merge or duplicate work occurred.
+- Windows: remains on its separate authorized track; no platform merge or duplicate work occurred.
 
 ## Feature-freeze and version-gate impact
 
-- 5 September 2026 pre-v1.0 feature freeze: compliant. This is artifact assembly and existing
-  behavior verification, with no product feature or runtime change.
+- 5 September 2026 pre-v1.0 feature freeze: compliant. This is assembly of existing committed tests
+  and evidence documentation only, with no feature, behavior, dependency, format, or authority
+  change.
 - v0.2 Golden Foundation: remains **CLOSED**.
-- Companion debug APK readiness: completed for Product Assurance review.
-- Public release gate: unchanged; production signing, Android runtime/instrumentation, representative
-  physical hardware, and release review remain outstanding.
+- Companion debug application APK readiness: Product Assurance verified.
+- Companion instrumentation APK artifact readiness: complete for Product Assurance review.
+- Android runtime/emulator/physical verification: outstanding and not authorized by this checkpoint.
+- Public release gate: unchanged; production signing, runtime instrumentation, representative
+  hardware, security review, and release approval remain outstanding.
 
 ## Next proposed Build task
 
-Stop for Product Assurance review of this exact Companion debug APK readiness checkpoint. Do not
-install or distribute the APK, start a Companion feature slice, alter the protected Companion
-files, merge a platform branch, or begin hardware testing without the next explicit authorization.
+Stop for Product Assurance review of this exact Companion instrumentation artifact checkpoint. Do
+not install or execute either APK, start an emulator, use a phone or ADB, change Companion behavior,
+alter protected files, merge a platform branch, publish, or release without a new explicit verdict.
 
 ## External actions
 
 - Physical phone connection/operation: none.
-- Emulator connection/operation: none.
+- Emulator start/operation: none.
 - ADB command: none.
-- APK installation: none.
+- APK installation/execution: none.
 - System-wide package/tool installation: none.
 - Dependency download: none; Gradle ran offline.
 - Production signing: none.
 - Production Recovery execution: none.
 - Publication/release: none.
 - Website change: none.
-- Companion source/resource/asset change: none.
+- Companion source/test/manifest/configuration/resource/asset change: none.
 - Windows launcher change: none.
 - Remote action: normal push of only `linux/stage1-desktop-readiness` for checkpoint review; no
   force-push and no unrelated branch push.
 
 ## Product Assurance Review Requested
 
-- Confirm that the exact debug APK identity, signing classification, archive integrity, brand-lock
-  evidence, JVM/lint/host-side results, and SHA-256 satisfy the bounded readiness milestone.
-- Confirm that the 331 warning-only lint findings may remain visible technical debt for this
-  artifact checkpoint rather than requiring an unapproved behavior/UI cleanup.
-- Confirm that no Android runtime or hardware claim is implied and identify the next bounded
-  master-goal task, if any, after this checkpoint.
+- Confirm the exact application and instrumentation APK paths, hashes, metadata, signatures,
+  packaged-test inventory, ZIP integrity, and brand-lock evidence satisfy the final pre-runtime
+  artifact gate.
+- Confirm that the 12 instrumentation test methods are correctly classified as compiled/packaged,
+  not runtime passed.
+- Confirm no Android runtime, emulator, phone, production signing, or release claim is implied and
+  identify the next bounded master-goal task, if any.

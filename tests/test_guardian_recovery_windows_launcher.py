@@ -147,7 +147,7 @@ def test_exact_package_artifact_fixed_protocol_and_environment_are_bound(
 ) -> None:
     package, _artifact = _windows_package(tmp_path / "package")
     _pretend_windows(monkeypatch)
-    _fake_pinned_launcher(monkeypatch, package)
+    descriptor = _fake_pinned_launcher(monkeypatch, package)
     calls = []
 
     class FakeProcess:
@@ -183,11 +183,16 @@ def test_exact_package_artifact_fixed_protocol_and_environment_are_bound(
         "LANG": "C",
         "LC_ALL": "C",
     }
+    with pytest.raises(OSError):
+        os.fstat(descriptor)
 
 
-@pytest.mark.parametrize("replacement", (b"MZ-short", b"MZ\x00same-size-different-content!!"))
-def test_hash_or_size_drift_fails_before_dispatch(tmp_path, monkeypatch, replacement) -> None:
+@pytest.mark.parametrize("drift", ("size", "hash"))
+def test_hash_or_size_drift_fails_before_dispatch(tmp_path, monkeypatch, drift) -> None:
     package, artifact = _windows_package(tmp_path / "package")
+    original = artifact.read_bytes()
+    replacement = original[:-1] if drift == "size" else bytes([original[0] ^ 1]) + original[1:]
+    assert (len(replacement) == len(original)) is (drift == "hash")
     artifact.write_bytes(replacement)
     _pretend_windows(monkeypatch)
     dispatched = []
@@ -202,6 +207,38 @@ def test_hash_or_size_drift_fails_before_dispatch(tmp_path, monkeypatch, replace
     assert dispatched == []
 
 
+@pytest.mark.parametrize(
+    "changed_package",
+    (
+        lambda package: replace(package, package_sha256="0" * 64),
+        lambda package: replace(package, release_key_id="test.substituted-signer"),
+    ),
+    ids=("package-identity", "signer-identity"),
+)
+def test_package_and_signer_identity_drift_fail_before_dispatch(
+    tmp_path,
+    monkeypatch,
+    changed_package,
+) -> None:
+    package, _artifact = _windows_package(tmp_path / "package")
+    _pretend_windows(monkeypatch)
+    pinned = []
+    monkeypatch.setattr(
+        WindowsSubprocessRecoveryAdapterProcessRunner,
+        "_pinned_executable",
+        staticmethod(lambda *_args: pinned.append(True)),
+    )
+
+    with pytest.raises(RecoveryRuntimeAdapterError, match="could not be pinned"):
+        WindowsSubprocessRecoveryAdapterProcessRunner().run(
+            changed_package(package),
+            b"{}",
+            30,
+        )
+
+    assert pinned == []
+
+
 def test_reparse_and_symlink_style_paths_fail_closed() -> None:
     reparse = SimpleNamespace(st_file_attributes=0x400)
     ordinary = SimpleNamespace(st_file_attributes=0)
@@ -209,11 +246,22 @@ def test_reparse_and_symlink_style_paths_fail_closed() -> None:
     assert WindowsSubprocessRecoveryAdapterProcessRunner._is_reparse(reparse)
     assert not WindowsSubprocessRecoveryAdapterProcessRunner._is_reparse(ordinary)
 
+    class ReparsePath:
+        def lstat(self):
+            return reparse
+
+        @property
+        def parent(self):
+            return self
+
+    with pytest.raises(RecoveryRuntimeAdapterError, match="reparse point"):
+        WindowsSubprocessRecoveryAdapterProcessRunner._reject_reparse_path(ReparsePath())
+
 
 def test_path_replacement_identity_race_stops_before_popen(tmp_path, monkeypatch) -> None:
     package, _artifact = _windows_package(tmp_path / "package")
     _pretend_windows(monkeypatch)
-    _fake_pinned_launcher(monkeypatch, package, path_matches=False)
+    descriptor = _fake_pinned_launcher(monkeypatch, package, path_matches=False)
     dispatched = []
     monkeypatch.setattr(
         "romverse.guardian.recovery_runtime_adapter.subprocess.Popen",
@@ -224,6 +272,8 @@ def test_path_replacement_identity_race_stops_before_popen(tmp_path, monkeypatch
         WindowsSubprocessRecoveryAdapterProcessRunner().run(package, b"{}", 30)
 
     assert dispatched == []
+    with pytest.raises(OSError):
+        os.fstat(descriptor)
 
 
 @pytest.mark.skipif(os.name != "nt", reason="Windows handle identity is host-specific")
@@ -402,7 +452,7 @@ def test_malformed_or_ambiguous_results_become_unknown(tmp_path, body) -> None:
 def test_process_start_failure_has_no_automatic_retry(tmp_path, monkeypatch) -> None:
     package, _artifact = _windows_package(tmp_path / "package")
     _pretend_windows(monkeypatch)
-    _fake_pinned_launcher(monkeypatch, package)
+    descriptor = _fake_pinned_launcher(monkeypatch, package)
     attempts = []
 
     def unavailable(*_args, **_kwargs):
@@ -416,6 +466,8 @@ def test_process_start_failure_has_no_automatic_retry(tmp_path, monkeypatch) -> 
     assert not result.started
     assert result.returncode == 127
     assert attempts == [True]
+    with pytest.raises(OSError):
+        os.fstat(descriptor)
 
 
 def test_launcher_has_no_caller_command_authority_and_relock_is_permanently_rejected(

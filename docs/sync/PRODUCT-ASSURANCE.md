@@ -1,5 +1,64 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 44199de — source-derived simulated Forge candidate
+
+- Handoff commit: `44199de`
+- Implementation commit: `37e2ee27d9373d90e6a3cd71cb31fcadb64f415b`
+- Product Assurance authorization: `68b6902`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — SOURCE-DERIVED LOCAL CANDIDATE PATH VERIFIED**
+
+### Decision
+
+The Forge sequencing correction is sound. Exact input preparation legitimately changes the
+source-derived working tree, so freezing that final tree in the same successful background operation
+is the correct evidence boundary. It prevents ROMVERSE from rejecting its own newly prepared inputs
+while retaining the separate Device Pack execution-plan revalidation before any local build.
+
+The simulated journey produced a reloaded schema-two local-build receipt and byte-verified outputs
+without promoting placeholder AVB material into signing, Guardian, Recovery, or execution authority.
+That is the correct truthful boundary for this slice.
+
+### Independent evidence and acceptance
+
+- `37e2ee2` changes only `RebuildMetadataWorker` and one focused regression; `44199de` changes only
+  the Build handoff. No Device Pack policy, executor contract, Guardian, Recovery, phone transport,
+  signing, release, Companion, Windows, or asset source changed.
+- The worker refreezes only after `prepare(...)` succeeds and before announcing completion. Existing
+  planner hashing and the later exact execution-plan checks remain intact.
+- The focused regression recreates the old ordering, adds one source-derived input, runs the worker,
+  and proves the new final plan verifies and contains that exact file.
+- `git diff --check 68b6902..44199de` passes. Build used one defect reproduction, one corrected
+  affected rerun, and one focused test rather than a broad or duplicate suite.
+- Simulated local candidate with three verified outputs: **PASS**
+- Guardian handoff and flash readiness remain false without valid AVB/signing evidence: **PASS**
+- Feature freeze, exact evidence, UNKNOWN, no blind retry, Guardian-only authority, and no-relock:
+  **PRESERVED**
+- Physical phone/device/Recovery/signing/release activity: **NONE**
+
+### Approved next bounded task
+
+Run one production-UI **SIMULATED** Fedora continuation from the verified local candidate using valid
+test-only AVB material and the repository's existing strict, non-consequential adapters. Exercise
+candidate AVB verification and the review-only Guardian manifest handoff as far as the current
+product truthfully permits. Test keys and placeholder signatures must remain explicitly simulation-
+only and must never satisfy production signer, runtime-trust, live-target, consent, Recovery, or
+execution authority.
+
+Identify the first concrete user-facing dead end or correctness defect in that existing flow and
+implement only its minimum freeze-safe correction. Rerun only the affected segment and focused test.
+If the strict product correctly stops before Guardian handoff, record the exact missing evidence
+instead of forging a receipt or weakening validation. No real phone, ADB/Fastboot target, physical
+mode transition, production key/trust, signing ceremony, Recovery action, publication, release, or
+relock. Commit and push the handoff, then stop for Product Assurance.
+
+### Gate status
+
+- Fedora source-derived simulated local candidate: **VERIFIED**
+- Simulated AVB and review-only Guardian handoff: **NEXT BOUNDED SLICE**
+- v0.2 Golden Foundation: **CLOSED**
+- Physical execution, production trust/signing, publication, and release: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: 99c961e — simulated Fedora Guided Forge boundary
 
 - Handoff commit: `99c961e`

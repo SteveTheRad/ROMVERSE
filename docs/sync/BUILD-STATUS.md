@@ -1,6 +1,99 @@
 # ROMVERSE Build Status
 
-## Authoritative checkpoint
+## Authoritative Windows launcher checkpoint
+
+- Commit: `ea292e75db8de3d2ed44feb0e8fb070c70ebf849`
+- Title: `Add Windows trusted Recovery launcher contract`
+- Base: `fdb1692b0a5056cce0992b9045cd6f3a55cabf97` (`Approve Stage 1 closure audit`)
+- Branch: `windows-launcher-authorized-work`
+- Stage: Stage 1 — Windows trusted-launcher anti-TOCTOU correctness contract
+- Build status: implemented, committed and Windows-hosted deterministic tests passed; Product
+  Assurance review pending
+
+### Exact changes
+
+- Added `WindowsSubprocessRecoveryAdapterProcessRunner` behind the existing package/request/timeout
+  process-runner protocol.
+- Revalidates the signed package, platform, exact artifact name, byte length and SHA-256 before
+  opening the Windows launch boundary.
+- Rejects reparse path components, non-regular files and hard-linked artifacts.
+- Opens the exact artifact with `CreateFileW`, without following the final reparse point, while
+  denying write/delete sharing; the handle remains open through process creation.
+- Binds the path and open handle to the same device/inode, link count, size, modification time and
+  creation time immediately before dispatch.
+- Preserves fixed protocol arguments/environment, no shell, bounded request/output, bounded timeout,
+  no automatic retry and UNKNOWN-on-ambiguous-result behavior.
+- Requires the exact platform launcher class for production-trust packages; test-only fake runners
+  remain explicitly separate.
+- Added the normative Windows launch contract and deterministic adversarial tests.
+- Added no production adapter enrollment, UI, consent, physical execution or phone integration.
+
+Files in the implementation commit:
+
+- `src/romverse/guardian/recovery_runtime_adapter.py`
+- `docs/WINDOWS-RECOVERY-LAUNCH-CONTRACT.md`
+- `tests/test_guardian_recovery_windows_launcher.py`
+
+### Verification evidence
+
+Host: Windows 11 x64, Python 3.12.10, pytest 9.1.1.
+
+- Focused Windows launcher contract tests: **19/19 passed**.
+- Combined affected Recovery launcher/package/runner regression: **59 passed, 2 skipped** from 61
+  collected tests. This total includes the 19 focused tests and is not added to it.
+- Existing affected regression excluding the focused file: **40 passed, 2 skipped**.
+- The two skips are existing Linux-only sealed-memfd path-substitution and timeout tests; they are
+  not claimed as Windows evidence.
+- Ruff lint and formatting checks for the launcher source and new tests: passed.
+- Git whitespace/diff check: passed.
+- An optional full-repository Windows baseline was stopped after 67% when an unrelated integration
+  test stalled. It had already exposed numerous pre-existing Windows/platform-fixture failures
+  outside this slice, so it is not reported as a passing or completed regression.
+
+### Classification and limitations
+
+- Implemented: Windows trusted-launcher anti-TOCTOU software boundary and contract.
+- Windows-hosted deterministic verification: yes. Tests exercised real Windows file-handle,
+  hard-link and replacement-lock behavior with inert local bytes; process dispatch used fakes.
+- Linux regression: not rerun on Linux. Existing Linux-only cases were skipped honestly.
+- Production adapter verified: no.
+- Physical Android hardware verified: no.
+- Released or published: no.
+
+Passing these tests does not claim that a production Recovery executable or phone command ran. It
+does not open production enrollment, physical execution, hardware verification, release or
+publication gates.
+
+### Guardian and safety invariants
+
+- Guardian remains the only higher-level execution gate.
+- Callers cannot supply executable paths, commands, arguments, environment overrides or retries.
+- Start failure is attempted once only.
+- Timeout, truncation, malformed/ambiguous results and contradictory identity become failure or
+  `UNKNOWN`, never inferred success.
+- Bootloader locking/relocking remains permanently prohibited with no override.
+- Protected Companion files were not edited, staged, discarded, tested or committed.
+
+### External actions
+
+- Physical phone operation: none.
+- Recovery command execution: none.
+- Package/APK installation: none.
+- Physical execution enablement: none.
+- Production adapter enrollment: none.
+- Publication/release: none.
+- Remote push: none.
+- Companion source change: none.
+
+### Product Assurance review requested
+
+Review implementation commit `ea292e75db8de3d2ed44feb0e8fb070c70ebf849` against
+`docs/WINDOWS-RECOVERY-LAUNCH-CONTRACT.md`, particularly Windows handle-sharing semantics,
+reparse/hard-link rejection, final path-to-handle identity, fixed process surface, timeout/output
+uncertainty and production/test launcher separation. Do not begin another feature or consequential
+slice until this review is complete.
+
+## Historical Stage 1 closure checkpoint
 
 - Commit: `3b61639e16ee21e033ed8eb17cb6b35065142992`
 - Title: `Audit Stage 1 closure evidence`

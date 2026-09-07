@@ -1475,7 +1475,8 @@ def test_genesis_opens_forge_control_as_a_visible_child_and_releases_autopilot(
 
     assert not mission.autopilot_active
     assert mission.auto_button.text() == "Auto-resolve && continue"
-    assert "visible Guardian review" in mission.status_text.text()
+    assert "paused at Forge Control" in mission.status_text.text()
+    assert "Guardian review" not in mission.status_text.text()
     assert opened_with == [mission, mission]
 
     mission.close()

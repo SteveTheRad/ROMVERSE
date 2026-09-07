@@ -1,118 +1,123 @@
 # ROMVERSE Product Assurance
 
-## Reviewed checkpoint: 08aaa64
+## Reviewed checkpoint: 7479c2c
 
-- Handoff commit: `08aaa6489608ff73acb3c08224ddb071a97784c2`
-- Prior Product Assurance authorization:
-  `972ab5a5b62ded74846cdec2cdf8e5465b60a00d`
-- Title: `Record Companion emulator launch blocker`
+- Handoff commit: `7479c2c11450ca1e88f863db523498f5df4a7b8b`
+- Product Assurance authorization:
+  `74da8577b09e5cccd33c2128f56e41b12189311c`
+- Title: `Record Companion emulator runtime verification`
 - Branch: `linux/stage1-desktop-readiness`
-- Review status: **APPROVED — EXTERNAL HOST-RUNTIME BLOCKER VALIDATED; ONE HOST-GPU ATTEMPT AUTHORIZED**
+- Review status: **APPROVED — COMPANION API-35 EMULATOR RUNTIME VERIFIED**
 
 ### Decision
 
-Build complied with the exact failure-stop requirement. The approved application and
-instrumentation APKs were not installed or executed, no Android target was admitted, no ROMVERSE
-source or configuration changed, and no physical device was connected. The two failures occurred
-inside Android Emulator 37.1.11's rendering process before Android boot and therefore do not count
-as a ROMVERSE application or instrumentation failure.
+The exact approved Companion debug application and instrumentation artifacts have now completed a
+genuine Android 15 / API-35 emulator runtime gate. Product Assurance independently verified the
+committed scope, raw runner log, artifact and evidence hashes, visible screenshots, privacy-curtain
+capture, host enforcement state, post-run target inventory, and absence of a new emulator crash.
 
-Product Assurance independently confirms the abnormal terminations and the immediately preceding
-Fedora SELinux denials. The current evidence supports an external emulator/host-policy
-incompatibility classification, but not a conclusive root cause. Runtime verification remains
-outstanding and no pass claim is permitted.
+The result is honestly bounded: 11 tests passed, none failed, and the one contained Desktop Link
+fixture test assumption-skipped because the separate fixture was not part of this run. That skip is
+neither a pass nor a ROMVERSE failure. It remains the next concrete integration boundary.
 
-One minimum, bounded remediation is approved: run the existing clean AVD once with the current
-official emulator's visible window and host GPU renderer. This exercises the available AMD/Mesa
-graphics path instead of the two failed headless software-rendering paths. It must not weaken the
-host or guest security posture and must stop on any pre-ADB failure.
+### Independent evidence
 
-### Independent repository and host evidence
-
-- The handoff commit changes only `docs/sync/BUILD-STATUS.md` and descends from the approved
-  `972ab5a` checkpoint.
-- The dedicated Linux worktree is clean and exactly matches
-  `origin/linux/stage1-desktop-readiness` at `08aaa64` before this review.
-- The protected original-checkout Companion changes and old Windows launcher drafts remain
-  isolated and untouched.
-- Android Emulator identity independently confirmed:
-  `37.1.11.0`, build `15917651`.
-- Current host: Fedora 44, kernel `7.1.13-200.fc44.x86_64`, SELinux enforcing, KVM available.
-- Available graphics include AMD Radeon RX 9070/9070 XT/9070 GRE and integrated Radeon graphics,
-  both using the `amdgpu` driver; the active desktop session is Wayland with an X display also
-  available.
-
-### Independent failure-evidence verification
-
-System coredump metadata independently confirms:
-
-- PID 178629: `qemu-system-x86_64-headless`, exact `romverse_api35_clean` launch with
-  `-gpu swiftshader_indirect`, terminated by SIGSEGV; retained coredump 351.3 MiB.
-- PID 179962: `qemu-system-x86_64-headless`, exact clean launch with `-gpu off`, terminated by
-  SIGSEGV; retained coredump 353.2 MiB.
-- Both failures occurred in `RenderThread` before any ADB-visible target appeared.
-- The Fedora audit journal records repeated enforcing-mode `{ execheap }` denials for the exact
-  process immediately before each abnormal termination.
-- The second coredump loaded Lavapipe/LLVM rendering modules despite `-gpu off`, explaining why
-  that attempt did not establish an independent hardware-rendering path.
-
-No finding authorizes disabling SELinux, changing SELinux enforcement, adding an allow rule,
-granting executable-heap permission, or treating the denial as a ROMVERSE defect.
-
-### Evidence integrity and safety judgment
-
-- The application APK remains exactly
+- Commit `7479c2c` changes only `docs/sync/BUILD-STATUS.md`; the dedicated worktree is clean and
+  matches `origin/linux/stage1-desktop-readiness`.
+- The approved application APK SHA-256 remained
   `62bc530d5f077e3e34ad71002caa24303a584bf4661f56d2cc338c976bfb5a2b`.
-- The instrumentation APK remains exactly
+- The approved instrumentation APK SHA-256 remained
   `ec6776528384b26c29b748299f80285474cc64ed40fe2b2519efa6b4040a86b5`.
-- Instrumentation result remains **0 run / 0 pass / 0 fail / 0 skip**.
-- No static or packaging result may be substituted for missing runtime evidence.
-- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty, no
-  blind retry, and independent verification remain unchanged.
+- The sole admitted target was `emulator-5556`, reporting Android 15, API 35, x86-64,
+  `ro.kernel.qemu=1`, and completed boot.
+- Android Emulator 37.1.11 launched once through the approved visible `-gpu host` path using the
+  existing clean, wiped, snapshot-disabled API-35 AVD.
+- The raw 217-line runner log is 11,760 bytes and independently hashes to
+  `fffa36efb5fa3d4a456de165f0fb4be37c3bdd120e9400dc7d5b006be383d51f`.
+- Raw status codes independently count 11 success completions and one assumption skip; the runner
+  ends `OK (12 tests)` with code `-1`.
+- The assumption is explicit: the test requires the contained Desktop Link fixture. It was not
+  hidden, weakened, rewritten, or counted as passed.
+- Cold launch completed in 359 ms and the app-scoped AndroidRuntime error log remained empty.
+
+### Independent visual review
+
+The preserved screenshots are readable and their recorded hashes match. They visibly confirm:
+
+- the approved ROMVERSE branding and Command Deck Guided shell;
+- one coherent navigation drawer and the existing destination set;
+- Guided and Expert Settings state, including the permanent bootloader-relock prohibition;
+- persisted Expert presentation and expanded Vitalis evidence;
+- correct Privacy Curtain protection: the Companion app region is black while Android system bars
+  remain visible.
+
+The evidence supports a runtime pass for existing emulator-safe UI and lifecycle behavior. It does
+not imply physical-device, manufacturer, USB, production-trust, or release verification.
+
+### Post-run and safety verification
+
+- SELinux remains Enforcing; no policy or enforcement change occurred.
+- ADB reports no target after the controlled emulator shutdown.
+- No emulator/Android/Companion coredump was recorded during the successful authorized session.
+- No Companion source, test, manifest, dependency, resource, behavior, or brand asset changed.
+- The protected original-checkout Companion changes and old Windows drafts remain untouched.
+- Guardian remains the sole execution gate; Companion has no flash, wipe, root, unlock, relock,
+  approval, or arbitrary-command authority.
+- UNKNOWN-on-uncertainty, no blind retry, exact-target evidence, and consent separation remain
+  unchanged.
 - Bootloader locking and relocking remain permanently prohibited with no override.
 - The pre-v1.0 feature freeze is preserved.
 
-### Minimum acceptance criteria for the approved attempt
+### Acceptance criteria satisfied
 
-1. Revalidate both approved APK hashes and confirm `adb devices -l` reports no target before launch.
-2. Use the existing isolated toolchain, exact API-35 AVD, port 5556, clean wiped data, no snapshot,
-   no audio, no metrics, and **one visible-window `-gpu host` launch**. Do not use `-no-window`,
-   SwiftShader, Lavapipe, GPU-off, or a second renderer variant in this task.
-3. Keep SELinux enforcing. Do not change host policy, create an allow rule, set permissive mode,
-   grant executable-heap authority, use a container to evade policy, or modify the emulator or
-   system image.
-4. If the emulator fails before one exact ADB target becomes available, preserve the exact command,
-   logs, journal evidence, and any coredump, confirm no target remains, and return immediately for
-   Product Assurance. Do not change ROMVERSE or try another emulator revision.
-5. If it boots, require exactly one unambiguous `emulator-5556` target and reject every physical,
-   simultaneous, unauthorized, or changing target. Revalidate the APK hashes immediately before
-   installation.
-6. Install only those two exact debug APKs, run the exact
-   `com.radforge.romverse.companion.test/androidx.test.runner.AndroidJUnitRunner` suite, and record
-   the complete runner output and honest pass/fail/skip count.
-7. Launch the application and capture readable visible-window evidence of the existing branding,
-   Guided shell, navigation, privacy curtain, and Guided/Expert continuity already covered by the
-   packaged tests. Do not change the app to obtain a pass.
-8. Confirm that no phone, Recovery adapter, production trust, production signing, device mutation,
-   publication, release, protected-file change, or platform merge occurred.
+- Exact approved artifacts revalidated immediately before install: satisfied.
+- One exact disposable emulator target and no physical target: satisfied.
+- Complete existing standalone instrumentation inventory executed honestly: satisfied, with
+  11 pass / 0 fail / 1 explicit assumption skip.
+- Readable app launch, branding, navigation, presentation continuity, and technical evidence:
+  satisfied.
+- Privacy Curtain secure-capture boundary: satisfied.
+- Clean shutdown, empty target inventory, enforcing host, and no app changes: satisfied.
+- Physical hardware, paired Desktop Link, production Recovery, signing, publication, and release:
+  not claimed.
 
 ### Approved next bounded task
 
-Perform exactly the one host-GPU emulator attempt defined above. A successful boot may continue
-directly through installation, all 12 existing instrumentation tests, application launch, and the
-bounded visible smoke in the same isolated emulator session. A pre-ADB launch failure, ambiguous
-target, APK mismatch, test failure, or runtime failure ends the task and requires a new Product
-Assurance checkpoint before any further remediation.
+Complete the one remaining **contained Desktop-to-Companion Link integration runtime** using the
+already committed `scripts/companion_link_emulator_fixture.py`. This is verification of an existing
+encrypted read-only feature, not a new implementation slice or a generic test expansion.
 
-Update `docs/sync/BUILD-STATUS.md`, commit and push the exact checkpoint on
-`linux/stage1-desktop-readiness`, then stop for independent Product Assurance review.
+Use the same isolated official API-35 toolchain and exact approved APK hashes. Start one clean,
+visible-window host-GPU emulator with SELinux enforcing and require exactly the sole
+`emulator-5556` target. Start one instance of the contained fixture from the approved committed
+source and record its short-lived endpoint, pairing-code lifetime, certificate fingerprint, safety
+code, and explicit `execution_authority: none` output without placing reusable credentials in the
+repository.
+
+Pass only those fixture values as the existing instrumentation runner arguments and execute the
+complete packaged 12-test suite once. Require 12 passes, zero failures, and zero skips. Preserve the
+full fixture and runner logs and their hashes. Confirm the fixture receives two fresh Companion
+health snapshots, the remembered encrypted session reconnects after Activity recreation, and the
+existing Companion UI renders the paired state, schema-six Live Console, Device DNA, and Ascension
+Guardian boundary. Capture bounded readable screenshots where practical.
+
+On any target ambiguity, artifact mismatch, TLS/pin/safety-code failure, test failure or skip,
+fixture timeout, runtime error, or emulator failure, preserve evidence and stop without changing
+the app, tests, fixture, host security, or transport contract.
+
+Do not connect or operate a physical phone; expose the fixture beyond the local emulator path;
+grant execution authority; enable Recovery; use production signing; change protected files;
+merge platform branches; publish; or release. Shut down the emulator and fixture, confirm ADB is
+empty, update `docs/sync/BUILD-STATUS.md`, commit and push the exact checkpoint on
+`linux/stage1-desktop-readiness`, and stop for independent Product Assurance review.
 
 ### Gate status
 
-- v0.2 Golden Foundation: **CLOSED**
+- v0.2 Golden Foundation: **CLOSED pending remaining release gates**
 - Fedora runnable development build and inert Guided journey: **VERIFIED**
 - Companion debug and instrumentation APK artifact readiness: **VERIFIED**
-- Companion emulator runtime verification: **OUTSTANDING; ONE HOST-GPU ATTEMPT AUTHORIZED**
+- Companion standalone API-35 emulator runtime: **VERIFIED**
+- Contained Desktop/Companion Link integration: **NEXT APPROVED BOUNDED TASK**
 - Companion physical-device verification: outstanding; not authorized
-- Windows runnable development build and inert journey: separate Windows track
+- Windows runnable development build and inert journey: separate Windows correction track
 - Production Recovery, signing, publication, and release: outstanding and not authorized

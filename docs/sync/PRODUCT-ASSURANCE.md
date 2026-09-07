@@ -1,5 +1,83 @@
 # ROMVERSE Product Assurance
 
+## Runtime checkpoint: 6bbb86a — Windows managed-tool restart persistence
+
+- Repository tip under test: `6bbb86a8cad296a88392b808f0a9787c0c661afd`
+- Approved Build handoff continued: `bd5dd95f7e1308dff917713f9549f09ef93cf2a4`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **CORRECTION REQUIRED — WINDOWS RECEIPT SELF-INVALIDATES AFTER INSTALL**
+
+### Decision
+
+Steve cleared the stale Windows Security prompt and exercised the approved frozen `Resolve Platform
+Tools` journey. The acquisition itself succeeded: ROMVERSE downloaded the official Windows Platform
+Tools package into its workspace, wrote its managed-package receipt, and both `adb.exe` and
+`fastboot.exe` start and report Platform Tools `37.0.1-15733141`. No phone was connected or targeted.
+
+The Device Engine nevertheless remains in `ERROR` after closing and reopening the exact workspace.
+This is a reproducible product correctness defect, not a user setup failure. On Windows,
+`install_managed_archive` records `Path.relative_to(...)` with backslash-separated file names, while
+`_contained_receipt_file` rejects every receipt entry containing a backslash. The production
+verifier therefore returns no verified directories and activates no managed tools for the receipt
+that the same executable just created.
+
+### Independent evidence
+
+- Frozen executable under test:
+  `C:\Work\ROMVERSE-Windows\build\windows-dev-frozen\ROMVERSE\ROMVERSE.exe`.
+- Exact workspace under test: `C:\Work\ROMVERSE-Link-Lazy-Frozen-20260907`.
+- Receipt source:
+  `https://dl.google.com/android/repository/platform-tools-latest-windows.zip`.
+- Receipt archive SHA-256:
+  `45f4d63113e895ebde0c90f194099a4676b6ac653bd28d54314a9e022bbc1a99`.
+- Receipt entries are `platform-tools\\adb.exe` and `platform-tools\\fastboot.exe`; their recorded
+  hashes match the installed files.
+- Direct read-only execution reports ADB `37.0.1-15733141` and Fastboot
+  `37.0.1-15733141` from the workspace-local paths.
+- Direct execution of the repository's production receipt/activation functions against that exact
+  workspace returns `verified=()` and `activated=()`.
+- No global PATH, system package, driver, firewall rule, phone, ADB/Fastboot target operation,
+  Recovery action, signing, publication, release, or relock action occurred.
+
+### Minimum exact correction
+
+1. Emit new managed-package receipt file names in one platform-neutral canonical relative form.
+2. Preserve the existing containment, regular-file, no-link, exact-hash, schema, and bounded-read
+   gates. Do not make backslashes generally trustworthy path syntax.
+3. Add a narrowly bounded, fail-closed compatibility path or migration for receipts already emitted
+   by ROMVERSE on Windows. It may accept only demonstrably relative Windows path components, must
+   reject drive-qualified, rooted, UNC, empty, dot, parent-traversal, linked, and escaping paths, and
+   must still verify every declared file hash before activation. The existing verified download must
+   not be trusted merely because ROMVERSE previously wrote it.
+4. Add focused tests proving canonical new receipts survive Windows-style creation/restart, the exact
+   legacy receipt shape is recoverable without redownloading, and traversal/link/hash-tamper cases
+   remain rejected.
+5. Run only the affected receipt/download/activation tests plus lint and whitespace checks. One new
+   unsigned Windows development build is authorized after those checks; do not rebuild the ZIP or
+   repeat unrelated suites and journeys.
+6. Reuse the existing workspace and already-downloaded package. Confirm Device Engine recognizes the
+   exact ADB/Fastboot pair, then close and reopen once to prove persistence. Commit the Build handoff
+   and stop for independent review.
+
+This is a frozen-feature correctness correction. It adds no capability, decision, execution route,
+or authority and must not weaken Guardian, Recovery, or managed-tool provenance.
+
+### Acceptance criteria
+
+- New receipt paths are platform-neutral and deterministic: **REQUIRED**
+- Existing Windows receipt is accepted only through bounded safe normalization/migration: **REQUIRED**
+- Drive/root/UNC/traversal/link/hash-tamper rejection remains fail-closed: **REQUIRED**
+- Existing package activates without another download: **REQUIRED**
+- Device Engine ready state and one restart persistence check: **REQUIRED**
+- No phone, global installation, production trust, Recovery, signing, release, or relock: **REQUIRED**
+
+### Approved next bounded task
+
+Perform only the minimum Windows managed-package receipt portability correction above, verify it with
+the focused security and persistence tests, make one unsigned development build, and resume the exact
+existing workspace without redownloading Platform Tools. Record the truthful ready or newly specific
+blocked result in `docs/sync/BUILD-STATUS.md`, commit and push, then stop for Product Assurance.
+
 ## Reviewed checkpoint: bd5dd95
 
 - Handoff commit: `bd5dd95`

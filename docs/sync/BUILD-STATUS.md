@@ -2,129 +2,116 @@
 
 ## Authoritative checkpoint
 
-- Packaged-run correction commit: `64ad510532a18b5e26a6feec46791069aee0e8ec`.
-- Approved onboarding implementation contained in the artifact: `eaa3d615912a4eefddd44ee3b032562047ddadc3`.
-- Artifact build repository state and Product Assurance authorization/base:
-  `b59c3d86a24fdc08d8531ac2414ff6f97b4ee498`.
-- Handoff checkpoint: the commit containing this document on
-  `linux/stage1-desktop-readiness`.
-- Stage: Stage 1 — v0.2 Golden Foundation, refreshed Fedora first-run alpha artifact.
-- Working tree: clean apart from ignored local build/evidence output after the handoff commit is
-  created.
+- Product Assurance authorization/base: `292cd09131c3b788c88a2ef66041e358c8615494`.
+- Evidence checkpoint: the first scoped commit containing this handoff on
+  `linux/stage1-desktop-readiness` (resolved in the follow-up handoff commit).
+- Stage: Stage 1 — v0.2 Golden Foundation, Companion first-run/offline acceptance.
+- Working tree at checkpoint: clean apart from ignored local Gradle/emulator output.
 
-## Refreshed Fedora development artifact
+## Exact scope and outcome
 
-- The Fedora `0.2.0-alpha.1` artifact was rebuilt and packaged exactly once from the approved
-  `b59c3d8` repository state.
-- File: `dist/ROMVERSE-Desktop-0.2.0-alpha.1-linux-x86_64.zip`.
-- SHA-256: `cc9f1c7df7b9147e4a2e8bc1a3ac4b8acb5441ece9fd495854f725322fee9ac0`.
-- Archive size: `150947822` bytes; mode `0644`.
-- Verified contents: `460` regular files, `360254930` expanded bytes, expected
-  `ROMVERSE/ROMVERSE` executable present, safe member validation and CRC verification passed.
-- Exactly one packaged `0.2.0-alpha.1` Fedora artifact exists in `dist`.
-- Classification: **unsigned internal development artifact only**. It is not signed, published,
-  released or production-authorized.
+- Attempted the approved fresh no-phone journey with the existing repository-managed API 35
+  `romverse_api35_clean` emulator and the existing debug APK baseline.
+- The emulator initialized its virtual hardware but exited before registering
+  `emulator-5556` with ADB. No APK was installed, launched, rebuilt or changed.
+- Per the approved fallback, exercised the existing production Companion presentation/state
+  policies through focused JVM tests and inspected their `MainActivity` wiring read-only.
+- Home is the safe default route. An unpaired/no-desktop state remains explicit and actionable:
+  it reports discovery/network/USB-only state rather than secure pairing or readiness.
+- Existing knowledge and device evidence reports explicitly carry `Execution authority: NONE`.
+- Existing source shows `Companion 0.2.0-alpha.5 • Internal Alpha` in About and identifies the
+  app as ROMVERSE Companion on Home.
 
-## Exact packaged first-run journey
+## First concrete defect and protected overlap
 
-- Launched the refreshed frozen executable without `--skip-onboarding`, using a new disposable
-  config/workspace, Fedora's local Qt VNC display backend and an empty executable-search path.
-- The real packaged onboarding visibly displayed `0.2.0-alpha.1 • INTERNAL DEVELOPMENT`, the
-  no-phone/setup boundary and the exact `Continue in Guided Mode` action.
-- Activated that real packaged Guided action. The same frozen process opened Command Deck with:
-  - `GUIDED • ARCANA` visibly selected;
-  - sidebar identity `ROMVERSE 0.2.0-alpha.1`;
-  - `DEVICE: NOT CONNECTED`, no active project and `GUARDIAN: VERIFY REQUIRED`;
-  - a visible `Resolve Platform Tools` host prerequisite;
-  - `No Android device is connected. ROM Studio remains available for safe local firmware work.`
-- No dead button or navigation loop prevented entry. The bounded process was terminated after the
-  evidence capture; no Android executable was discoverable and no phone/device action started.
-- Packaged onboarding screenshot SHA-256:
-  `b537e2a8292a5308bca92024795a1526b3ee03c23e5560538ca809b31e31d258`.
-- Packaged Command Deck screenshot SHA-256:
-  `b4bc20a93ee6f49c479169ba882f160a392ad96f52afe6ad9e8e89e2b6ff1aa9`.
-
-## First concrete packaged-run defect and correction
-
-- Command Deck's static subtitle still claimed `One live device, one active project` while the
-  authoritative cards correctly showed no device and no project. This was a misleading status claim
-  visible only after the packaged Guided transition.
-- `DeviceCenter` now uses the evidence-neutral subtitle `Current device, project, and
-  evidence-derived next action at a glance.` and exposes that label for focused verification.
-- One focused regression proves the empty Command Deck no longer claims a live device or active
-  project.
-- Per the exactly-once refresh instruction, the Fedora artifact was not rebuilt a second time after
-  this minimum source correction. The artifact contains the approved onboarding correction but not
-  the subsequent neutral subtitle; `64ad510` is the authoritative corrected source.
+- A completely new user does not see the `Internal Alpha` classification or a concise
+  no-execution-authority disclosure on first entry to Home. The alpha classification exists only
+  in About; authority explanations appear later in Link/knowledge/backup surfaces.
+- The minimum product correction belongs in the initial Home/first-run presentation owned by
+  `companion/app/src/main/kotlin/com/radforge/romverse/companion/MainActivity.kt`.
+- That exact file has protected, unrelated uncommitted user work in the original authoritative
+  checkout, alongside protected `CompanionNavigation.kt` and `CompanionNavigationTest.kt` changes.
+- Those files were inspected read-only and were not edited, staged, discarded or committed.
+  Applying a parallel UI correction now would create overlapping Companion histories, so this is
+  a truthful blocker handoff rather than a competing implementation.
+- Nearest non-overlapping follow-up: after the protected Companion work is reconciled into one
+  authoritative branch, add one concise first-entry internal-development/no-authority disclosure
+  to Home (or a one-screen first-run gate), then verify it with one focused presentation test and
+  one real emulator/rendered journey.
 
 ## Result classification
 
-- Implemented: yes — minimum truthful Command Deck subtitle correction after the exact packaged run.
-- Simulated/Tested: yes — real packaged first-run UI journey plus one source-level focused regression.
+- Implemented: no product-source change; evidence/handoff only.
+- Simulated/Tested: yes — focused production-state JVM verification; no rendered emulator claim.
 - Hardware Verified: no.
 - Released: no.
 
 ## Non-double-counted verification
 
-- Refreshed artifact build/package: **1/1 completed**.
-- Real packaged first-run Guided/no-phone journey: **1/1 completed**.
-- Focused subtitle regression: **1/1 passed**.
-- Ruff: **PASS** for the changed source and focused test module.
-- Git whitespace checks: **PASS** before the correction commit and handoff.
-- Artifact integrity/tree verification: **PASS** with the exact digest, size and member counts above.
-- No full suite, earlier journey replay, second artifact build/package or unrelated UI regression
-  campaign was run.
+- `CompanionLinkReadinessTest`: **10/10 passed**.
+- `CompanionNavigationTest`: **4/4 passed**.
+- `DeviceAtlasKnowledgeTest`: **15/15 passed**.
+- Total focused JVM result: **29/29 passed**, zero skipped/failures/errors.
+- The initial attempt with Fedora's Java 25 failed before tests because the Android Gradle
+  toolchain requires the repository-managed Java 17. The exact same focused invocation passed
+  with the existing JDK 17; this was a host-toolchain setup failure, not a product-test failure.
+- Emulator rendered journey: **not completed**; the existing virtual device exited before ADB
+  registration. No emulator/system image was downloaded or installed.
+- Existing debug APK remained byte-identical at SHA-256
+  `62bc530d5f077e3e34ad71002caa24303a584bf4661f56d2cc338c976bfb5a2b`, size `9060239`
+  bytes. It was not rebuilt.
+- No full Companion suite, instrumentation suite or APK build was run.
 
-## Guided friction and remaining boundaries
+## Guided friction and remaining dead ends
 
-- Verified: corrected internal-alpha onboarding reaches Guided Command Deck without a dead button,
-  false device readiness or technical loop.
-- Fixed in authoritative source: the contradictory static `one live device / one active project`
-  subtitle found by this packaged run.
-- Remaining packaging boundary: the exactly-once refreshed ZIP predates only the one-line subtitle
-  correction. It must not be represented as containing `64ad510` until a later authorized rebuild.
+- Verified in production state policy: disconnected Link state does not masquerade as paired,
+  secure, synced or execution-ready; it provides a concrete discovery or network action.
+- Verified in navigation policy: invalid/fresh saved route state falls safely to Home.
+- Remaining friction: the new-user internal-alpha and zero-execution-authority message is not
+  presented at initial Home entry. It requires the protected UI reconciliation above.
+- No pairing loop or false live-sync claim was found in the focused offline state path.
 
 ## Guardian, Recovery and safety implications
 
-- Onboarding and Command Deck presentation grant no Guardian, build, device, flash, Recovery,
-  installation, signing, publication or release authority.
-- UNKNOWN-on-uncertainty, no blind retry, exact-device evidence, consent separation, same-incident
-  Recovery and independent verification remain unchanged.
-- Expert mode was not entered. Production Recovery execution was not invoked.
+- Companion remains evidence/diagnosis only and receives no flash, root, wipe, unlock, relock,
+  command or Recovery execution authority.
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty,
+  no blind retry, same-incident Recovery and independent verification remain unchanged.
 - Bootloader locking/relocking remains permanently prohibited with no override.
 
 ## Platform and version-gate status
 
-- Fedora/Linux: refreshed unsigned artifact and its exact first-run Guided/no-phone journey are
-  genuinely software-verified on Fedora 44 x86-64; this is not hardware verification.
-- Windows: unchanged; no new Windows claim is made.
+- Fedora/Linux JVM state verification: genuinely passed with the existing repository-managed
+  JDK 17 and Android/Gradle toolchain.
+- Fedora Android emulator: unavailable for a rendered claim because it exited before exposing its
+  virtual serial. This is a host/emulator limitation, not Hardware Verified evidence.
+- Windows: unchanged; no Windows claim is made.
 - Physical Android: not used; no hardware claim is made.
-- 5 September 2026 feature freeze: compliant. Only the first misleading packaged-run status string
-  received its minimum focused correction.
-- v0.2 Golden Foundation remains **CLOSED**. No signing, publication or release gate changed.
+- 5 September 2026 feature freeze: compliant. No feature or application-source change occurred.
+- v0.2 Golden Foundation remains **CLOSED**. No execution, signing, publication or release gate
+  changed.
 
 ## External actions
 
-- Physical phone, emulator, USB target, device-scoped ADB/Fastboot, Recovery, flash, install, APK
-  transfer and device operation: none.
-- Managed tool auto-install, package/dependency/system installation, signing, publication, release,
-  merge and force-push: none.
-- Fedora artifact refresh: exactly one authorized local build/package replacement; no distribution
-  or installation occurred.
-- Remote action: only the normal push of the scoped correction and handoff commits to the existing
-  Linux working branch is intended.
-- The three protected Companion files, original-checkout Windows launcher drafts, website, assets
-  and unrelated user work were untouched.
+- Physical phone, device-scoped ADB/Fastboot, Recovery, flash, install, APK transfer and device
+  operation: none.
+- Emulator APK installation or app-data mutation: none.
+- Package/tool/system-image download or installation, production build, signing, publication,
+  release, merge, history rewrite and force-push: none.
+- Remote action: only normal pushes of this scoped evidence and handoff to the existing Linux
+  working branch.
+- The three protected Companion files, Windows launcher drafts, website, assets and unrelated user
+  work were untouched.
 
 ## Next proposed Build task
 
-Stop for independent Product Assurance review. Do not rebuild either platform artifact or begin
-another consequential slice.
+Stop for independent Product Assurance review. Do not begin another Companion UI slice until the
+protected Companion work is reconciled into the authoritative repository history.
 
 ## Product Assurance Review Requested
 
-- Confirm the refreshed artifact and real packaged first-run evidence satisfy the approved Fedora
-  platform milestone.
-- Confirm `64ad510` is the minimum freeze-safe correction for the first packaged-run defect.
-- Decide when the one-line post-build subtitle correction should be incorporated into a later
-  batched development artifact without violating this checkpoint's exactly-once refresh boundary.
+- Confirm the 29 focused production-state checks are sufficient evidence for the non-rendered
+  portions of this bounded offline journey.
+- Confirm the missing first-entry internal-alpha/no-authority disclosure is the first concrete
+  defect and that implementation must wait for protected `MainActivity.kt` reconciliation.
+- Decide which task owns that reconciliation and the later one-screen rendered acceptance journey.

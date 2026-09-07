@@ -8,8 +8,8 @@
 - Base: `fdb1692b0a5056cce0992b9045cd6f3a55cabf97` (`Approve Stage 1 closure audit`)
 - Branch: `windows-launcher-authorized-work`
 - Stage: Stage 1 — Windows trusted-launcher anti-TOCTOU correctness contract
-- Build status: implemented, committed and Windows-hosted deterministic tests passed; Product
-  Assurance review pending
+- Build status: implemented, committed, independently reproduced on Windows and fully regression-
+  tested on Linux; Product Assurance review pending
 
 ### Exact changes
 
@@ -45,6 +45,15 @@ Host: Windows 11 x64, Python 3.12.10, pytest 9.1.1.
 - Existing affected regression excluding the focused file: **40 passed, 2 skipped**.
 - The two skips are existing Linux-only sealed-memfd path-substitution and timeout tests; they are
   not claimed as Windows evidence.
+- Linux Build independently reproduced the exact pushed checkpoint at
+  `f94bd7389526d373f6233ceb41406e7ae3b4fc9a` on Fedora 44, kernel 7.1.13, Python 3.14.7:
+  - Combined affected Recovery regression: **61 passed, 2 skipped** from 63 collected tests. The
+    skips are the two Windows-host-specific handle-identity and sharing-lock cases.
+  - Full Linux Python regression: **2,899 passed, 2 skipped** from 2,901 collected tests. The
+    affected 61-pass result is a subset of this total and is not added again.
+- Linux Build also reran the combined affected suite over authenticated SSH on the real Legion and
+  independently reproduced **61 passed, 2 skipped**. This is the same suite already reported above,
+  so it is corroborating evidence and is not counted again.
 - Ruff lint and formatting checks for the launcher source and new tests: passed.
 - Git whitespace/diff check: passed.
 - An optional full-repository Windows baseline was stopped after 67% when an unrelated integration
@@ -56,7 +65,8 @@ Host: Windows 11 x64, Python 3.12.10, pytest 9.1.1.
 - Implemented: Windows trusted-launcher anti-TOCTOU software boundary and contract.
 - Windows-hosted deterministic verification: yes. Tests exercised real Windows file-handle,
   hard-link and replacement-lock behavior with inert local bytes; process dispatch used fakes.
-- Linux regression: not rerun on Linux. Existing Linux-only cases were skipped honestly.
+- Linux regression: full suite passed at the exact pushed checkpoint; the two Windows-only cases
+  were skipped honestly and are covered by genuine Windows-hosted evidence.
 - Production adapter verified: no.
 - Physical Android hardware verified: no.
 - Released or published: no.

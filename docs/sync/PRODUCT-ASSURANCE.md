@@ -1,5 +1,74 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 679b0d8 — Fedora v0.2.0-alpha.1 development build
+
+- Handoff commit: `679b0d8`
+- Accepted implementation: `07b5b1721282b2af59abdc8eae0bd152b5361e81`,
+  `9e6762aa8cf25b06b64c57486fbe4cd719155d91`
+- Product Assurance authorization/base: `817e264cd37e74d0d49b8d627b12b3a523b89cf1`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — FEDORA v0.2.0-alpha.1 DEVELOPMENT ARTIFACT VERIFIED**
+
+### Decision
+
+ROMVERSE now has one coherent internal alpha identity: PEP 440 package/runtime version `0.2.0a1`
+and user-facing version `0.2.0-alpha.1`. The visible desktop, Qt metadata and network/update user
+agents derive from that authoritative identity. The valid alpha version also passes the corrected
+release-order parser and no longer aborts startup.
+
+The single Fedora ZIP is accepted as an unsigned internal development artifact. It is not a signed
+release candidate, public release, hardware-verification result or authorization to update an
+installed production system.
+
+### Independent repository and artifact evidence
+
+- `07b5b17` changes only authoritative version identity, directly visible desktop identity,
+  version-derived user agents, current build guidance and focused bundle tests. `9e6762a` changes
+  only the release-version parser and its focused ordering regression. Historical reports, Device
+  Pack versions, fixture package/protocol identities, Companion and safety/execution code are
+  untouched.
+- Numeric PEP 440 `a`, `b` and `rc` stages order before the matching stable version and in their
+  expected progression. Existing stable and hyphenated-label formats remain accepted.
+- Build's focused result: **42/42 passed**; Ruff and whitespace checks passed. Product Assurance
+  independently rehashed the artifact as
+  `fb02858c5b8001ab03a8c3015210c74c66c26a00365844a7ab192a02b6116ea9`, confirmed its
+  `150947125`-byte size and successfully retested every ZIP member.
+- Product Assurance independently reran the frozen application with an empty executable-search path
+  and offscreen Qt in a fresh disposable workspace: **startup/no-device smoke passed**.
+
+### Vision, freeze and safety result
+
+- Internal alpha version coherence and truthful development classification: **PASS**
+- Fedora runnable artifact and bounded no-device startup: **PASS**
+- Feature freeze: **PASS — milestone identity plus directly exposed startup correction only**
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN, no blind retry,
+  independent verification and permanent no-relock: **PRESERVED**
+- Phone, Recovery, production trust/signing, publication and release activity: **NONE**
+
+### Approved next bounded task
+
+On `windows-launcher-authorized-work`, synchronize only the approved platform-neutral source/test
+commits `3475b45` then `dcd73cc` (durable local-build resume and its exact correction), followed by
+`07b5b17` then `9e6762a` (alpha identity and parser correction). Do not copy Linux handoff/assurance
+history or merge/rewrite either branch. Resolve only genuine Windows context differences and retain
+the already approved Windows launcher and Platform Tools work.
+
+Run the exact focused resume/version/parser regressions on Windows plus lint/whitespace. Then produce
+exactly one consolidated unsigned Windows `0.2.0-alpha.1` development build and one matching ZIP,
+verify their exact hashes/tree, and run one bounded no-phone startup/no-device smoke. Do not repeat
+the full Guided journey or broad suite. Update the Windows Build handoff, commit and push, then stop
+for Product Assurance. No phone/emulator target, device-scoped ADB/Fastboot, Recovery, Companion
+change, driver/firewall/global PATH change, production signing, publication, release, force-push or
+relock.
+
+### Gate status
+
+- Fedora v0.2.0-alpha.1 internal development build: **VERIFIED**
+- Windows v0.2.0-alpha.1 consolidated build: **NEXT PLATFORM MILESTONE**
+- Cross-platform public v0.2 release: **NOT CLAIMED**
+- v0.2 Golden Foundation: **CLOSED**
+- Physical hardware, production Recovery/trust, signing, publication and release: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: 96edc08 — corrected local-build durable resume
 
 - Handoff commit: `96edc08`

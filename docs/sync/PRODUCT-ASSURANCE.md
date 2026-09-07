@@ -1,5 +1,70 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 99c961e — simulated Fedora Guided Forge boundary
+
+- Handoff commit: `99c961e`
+- Implementation commit: `392b21eb90966b09f089ed9b8f3dac29e5fedf8d`
+- Product Assurance authorization: `15092ce`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — GUIDED FORGE PAUSE IS TRUTHFUL**
+
+### Decision
+
+The ordinary-user simulation found one real presentation defect and corrected only that defect.
+Genesis now names Forge Control when the local build/sign stage pauses and retains Guardian review
+only for the optional phone-install stage. The consequential chain, evidence requirements, and all
+authority boundaries are unchanged.
+
+Stopping at missing exact Partition Atlas inputs and verified Fakeroot is the correct result for the
+minimal sanitized OTA fixture. The product did not turn incomplete synthetic evidence into a build,
+signature, consent, Recovery result, reassessment, or verification claim. No additional work is
+required for this exact fixture.
+
+### Independent repository evidence
+
+- `392b21e` changes seven lines in `guided_mission.py` and the exact focused ROM Studio regression;
+  `99c961e` changes only the Build handoff.
+- The stage ID selects the user-facing review-surface name without changing stage selection,
+  readiness, modal ownership, automatic advancement, or live-console authority.
+- The focused regression requires `paused at Forge Control` and excludes the stale Guardian label.
+- Build recorded one pre-fix discovery run, one post-fix affected rerun, and one focused test pass;
+  no broad suite or duplicated milestone was claimed. `git diff --check 15092ce..99c961e` passes.
+- The production-UI report remains explicitly `SIMULATED`, records
+  `production_execution_authority: none`, and contains no physical target or phone operation.
+
+### Safety and acceptance result
+
+- Correct build-stage surface and no false Guardian direction: **PASS**
+- Truthful stop on missing source-derived partition/build evidence: **PASS**
+- Feature freeze and existing Guided flow: **PRESERVED**
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN, no blind retry,
+  independent verification, and permanent no-relock: **UNCHANGED**
+- Phone, ADB/Fastboot target, Recovery, install, flash, signing, publication, release: **NONE**
+
+### Approved next bounded task
+
+Continue one new, non-duplicative Fedora production-UI **SIMULATED** journey from the Forge Control
+boundary toward a verified local candidate. Use a disposable workspace and only the smallest
+sanitized source-derived partition/image fixtures and injected non-consequential build adapters
+already supported by the repository. Do not inject completed internal state, forge receipts, weaken
+image/tool/evidence validation, or reuse the 722-byte source to claim progress it cannot support.
+
+Exercise existing Partition Atlas, Fakeroot/toolchain, build-plan, candidate preparation, AVB and
+Guardian handoff behavior only as far as valid evidence permits. Identify the first concrete
+user-facing dead end or correctness defect after the now-approved Forge pause and implement only its
+minimum freeze-safe correction. Rerun only the affected segment and focused tests. If the supported
+production services correctly stop on evidence that cannot be represented safely by sanitized
+fixtures, record that exact boundary without inventing completion. Label all results `SIMULATED`;
+they grant no hardware, production, signing, release, Recovery, or execution authority. Commit and
+push the handoff, then stop for Product Assurance.
+
+### Gate status
+
+- Fedora protected-source through Forge Control Guided journey: **SIMULATED AND VERIFIED**
+- Source-derived local candidate through Guardian handoff: **NEXT SIMULATED INTEGRATION SLICE**
+- v0.2 Golden Foundation: **CLOSED**
+- Physical execution, production trust/signing, publication, and release: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: 27538d8
 
 - Handoff commit: `27538d8`

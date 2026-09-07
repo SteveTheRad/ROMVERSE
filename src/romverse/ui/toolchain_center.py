@@ -15,7 +15,7 @@ import zipfile
 from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 from PySide6.QtCore import QObject, Qt, QTimer, QUrl, Signal, Slot
 from PySide6.QtGui import QDesktopServices
@@ -262,7 +262,7 @@ def install_official_archive(
             if len(candidates) != 1:
                 raise ValueError(f"official package must contain one required file: {required}")
             candidate = candidates[0]
-            matched[str(candidate.relative_to(staging))] = _file_sha256(candidate)
+            matched[candidate.relative_to(staging).as_posix()] = _file_sha256(candidate)
             if required in {"adb", "fastboot"} and os.name != "nt":
                 candidate.chmod(0o700)
         receipt = {
@@ -479,21 +479,50 @@ def validate_offline_managed_packages(root: Path, packages: tuple[str, ...]) -> 
     return verified == set(packages)
 
 
-def _contained_receipt_file(directory: Path, relative: str) -> Path:
+def _receipt_path_parts(
+    relative: str,
+    *,
+    allow_legacy_windows: bool = False,
+) -> tuple[str, ...]:
+    """Parse one canonical receipt path or the exact legacy Windows form."""
+
+    if not relative or "\x00" in relative:
+        raise ValueError("managed receipt references a file outside its package")
+    if "\\" in relative:
+        if not allow_legacy_windows or "/" in relative:
+            raise ValueError("managed receipt references a file outside its package")
+        legacy = PureWindowsPath(relative)
+        if legacy.drive or legacy.root or legacy.is_absolute():
+            raise ValueError("managed receipt references a file outside its package")
+        parts = tuple(relative.split("\\"))
+    else:
+        canonical = PurePosixPath(relative)
+        if canonical.is_absolute():
+            raise ValueError("managed receipt references a file outside its package")
+        parts = tuple(relative.split("/"))
+    if any(part in {"", ".", ".."} or ":" in part for part in parts):
+        raise ValueError("managed receipt references a file outside its package")
+    return parts
+
+
+def _contained_receipt_file(
+    directory: Path,
+    relative: str,
+    *,
+    allow_legacy_windows: bool = False,
+) -> Path:
     """Resolve a receipt entry only when it is a real file inside its package."""
 
-    path = Path(relative)
-    if not relative or path.is_absolute() or "\\" in relative or ".." in path.parts:
-        raise ValueError("managed receipt references a file outside its package")
+    parts = _receipt_path_parts(relative, allow_legacy_windows=allow_legacy_windows)
     root = directory.resolve(strict=True)
     candidate = directory
-    for index, part in enumerate(path.parts):
+    for index, part in enumerate(parts):
         candidate /= part
         details = candidate.lstat()
         is_junction = bool(getattr(candidate, "is_junction", lambda: False)())
         if candidate.is_symlink() or is_junction:
             raise ValueError("managed receipt references a linked path")
-        final = index == len(path.parts) - 1
+        final = index == len(parts) - 1
         if final and not stat.S_ISREG(details.st_mode):
             raise ValueError("managed receipt does not reference a regular file")
         if not final and not stat.S_ISDIR(details.st_mode):
@@ -711,15 +740,33 @@ def _validate_managed_package_receipt(
         or not 0 < len(files) <= MAX_MANAGED_PACKAGE_FILES
     ):
         raise ValueError("managed package receipt is invalid")
+    legacy_windows_source = bool(
+        package == "platform-tools"
+        and receipt.get("source")
+        == "https://dl.google.com/android/repository/platform-tools-latest-windows.zip"
+    )
+    if any(
+        not isinstance(relative, str) or not _is_sha256(expected)
+        for relative, expected in files.items()
+    ):
+        raise ValueError("managed package file manifest is invalid")
+    path_forms = {"\\" in relative for relative in files}
+    if len(path_forms) != 1:
+        raise ValueError("managed package path forms are ambiguous")
+    allow_legacy_windows = path_forms == {True} and legacy_windows_source
     verified: list[Path] = []
+    basenames: set[str] = set()
     for relative, expected in files.items():
-        if not isinstance(relative, str) or not _is_sha256(expected):
-            raise ValueError("managed package file manifest is invalid")
-        path = _contained_receipt_file(directory, relative)
+        parts = _receipt_path_parts(relative, allow_legacy_windows=allow_legacy_windows)
+        path = _contained_receipt_file(
+            directory,
+            relative,
+            allow_legacy_windows=allow_legacy_windows,
+        )
         if _file_sha256(path) != expected:
             raise ValueError("managed file hash mismatch")
         verified.append(path.parent)
-    basenames = {Path(str(relative)).name for relative in files}
+        basenames.add(parts[-1])
     allowed_basenames = {
         "platform-tools": ({"adb", "fastboot"}, {"adb.exe", "fastboot.exe"}),
         "google-usb-driver": ({"android_winusb.inf"},),

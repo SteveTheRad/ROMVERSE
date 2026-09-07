@@ -4,6 +4,7 @@ import io
 import json
 import os
 import zipfile
+from pathlib import Path
 
 import pytest
 
@@ -132,11 +133,12 @@ class _StreamingResponse:
         return self.stream.read(limit)
 
 
-def _platform_tools_zip() -> bytes:
+def _platform_tools_zip(*, windows: bool = False) -> bytes:
+    suffix = ".exe" if windows else ""
     stream = io.BytesIO()
     with zipfile.ZipFile(stream, "w") as package:
-        package.writestr("platform-tools/adb", b"verified adb")
-        package.writestr("platform-tools/fastboot", b"verified fastboot")
+        package.writestr(f"platform-tools/adb{suffix}", b"verified adb")
+        package.writestr(f"platform-tools/fastboot{suffix}", b"verified fastboot")
     return stream.getvalue()
 
 
@@ -256,6 +258,7 @@ def test_official_archive_is_content_addressed_and_only_activates_while_unchange
     assert digest == hashlib.sha256(payload).hexdigest()
     receipt = json.loads((installed / "managed-package.romverse").read_text())
     assert receipt["archive_sha256"] == digest
+    assert set(receipt["files"]) == {"platform-tools/adb", "platform-tools/fastboot"}
     assert verified_managed_directories(tmp_path) == (installed / "platform-tools",)
     if os.name != "nt":
         assert installed.stat().st_mode & 0o077 == 0
@@ -263,6 +266,86 @@ def test_official_archive_is_content_addressed_and_only_activates_while_unchange
     assert progress == [(0, len(payload)), (len(payload), len(payload)), (0, 0)]
 
     (installed / "platform-tools" / "adb").write_bytes(b"tampered")
+    assert verified_managed_directories(tmp_path) == ()
+
+
+def _legacy_windows_platform_tools(tmp_path):
+    payload = _platform_tools_zip(windows=True)
+    installed, _digest = install_official_archive(
+        "platform-tools",
+        "https://dl.google.com/android/repository/platform-tools-latest-windows.zip",
+        tmp_path,
+        ("adb.exe", "fastboot.exe"),
+        lambda _url, timeout: _StreamingResponse(payload),
+    )
+    receipt_path = installed / "managed-package.romverse"
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    receipt["files"] = {
+        name.replace("/", "\\"): digest for name, digest in receipt["files"].items()
+    }
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+    return installed, receipt_path
+
+
+def test_legacy_windows_receipt_activates_exact_verified_pair_without_redownload(
+    tmp_path,
+    monkeypatch,
+):
+    workspace = tmp_path / "workspace"
+    installed, _receipt_path = _legacy_windows_platform_tools(workspace / "tools" / "downloads")
+    managed_directory = installed / "platform-tools"
+    monkeypatch.setenv("PATH", os.pathsep.join(("first", "second")))
+
+    assert verified_managed_directories(
+        workspace / "tools" / "downloads",
+        boundary=workspace,
+    ) == (managed_directory,)
+    assert activate_verified_managed_tools(workspace) == (managed_directory,)
+    assert activate_verified_managed_tools(workspace) == (managed_directory,)
+    assert os.environ["PATH"].split(os.pathsep).count(str(managed_directory)) == 1
+
+
+@pytest.mark.parametrize(
+    "unsafe",
+    (
+        r"C:\platform-tools\adb.exe",
+        r"\platform-tools\adb.exe",
+        r"\\server\share\adb.exe",
+        r"platform-tools\\adb.exe",
+        r"platform-tools\.\adb.exe",
+        r"platform-tools\..\adb.exe",
+        r"platform-tools/adb.exe",
+    ),
+)
+def test_legacy_windows_receipt_rejects_unsafe_or_ambiguous_paths(tmp_path, unsafe):
+    installed, receipt_path = _legacy_windows_platform_tools(tmp_path)
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    adb_digest = receipt["files"].pop(r"platform-tools\adb.exe")
+    receipt["files"][unsafe] = adb_digest
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+
+    assert verified_managed_directories(tmp_path) == ()
+
+
+def test_legacy_windows_receipt_rejects_hash_tamper(tmp_path):
+    _installed, receipt_path = _legacy_windows_platform_tools(tmp_path)
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    receipt["files"][r"platform-tools\adb.exe"] = "0" * 64
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+
+    assert verified_managed_directories(tmp_path) == ()
+
+
+def test_legacy_windows_receipt_rejects_linked_component(tmp_path, monkeypatch):
+    installed, _receipt_path = _legacy_windows_platform_tools(tmp_path)
+    linked = installed / "platform-tools"
+    original_is_symlink = Path.is_symlink
+    monkeypatch.setattr(
+        Path,
+        "is_symlink",
+        lambda path: path == linked or original_is_symlink(path),
+    )
+
     assert verified_managed_directories(tmp_path) == ()
 
 

@@ -15,6 +15,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from romverse import DISPLAY_VERSION
+from romverse.core.settings import ExperienceMode
 from romverse.infrastructure.tools import ToolStatus
 
 
@@ -25,6 +27,7 @@ class SetupWizard(QDialog):
         self.setMinimumSize(700, 610)
         self.setModal(True)
         self.selected_workspace = workspace
+        self.selected_experience_mode = ExperienceMode.GUIDED
 
         root = QVBoxLayout(self)
         root.setContentsMargins(44, 38, 44, 38)
@@ -45,14 +48,23 @@ class SetupWizard(QDialog):
         brand.setObjectName("Brand")
         brand.setAlignment(Qt.AlignmentFlag.AlignCenter)
         root.addWidget(brand)
+        build_identity = QLabel(f"{DISPLAY_VERSION}  •  INTERNAL DEVELOPMENT")
+        build_identity.setObjectName("Warning")
+        build_identity.setAccessibleName(
+            f"ROMVERSE {DISPLAY_VERSION} internal development build"
+        )
+        build_identity.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        root.addWidget(build_identity)
         tagline = QLabel("BUILD. OPTIMIZE. PERFECT.")
         tagline.setObjectName("Eyebrow")
         tagline.setAlignment(Qt.AlignmentFlag.AlignCenter)
         root.addWidget(tagline)
 
         intro = QLabel(
-            "This milestone safely identifies connected Android devices and initializes your local studio. "
-            "It cannot flash, unlock, reboot, install, delete, or modify your phone."
+            "Continue in Guided Mode for ROMVERSE's clear, evidence-bound workflow. No phone is "
+            "required during setup, and this screen cannot scan, flash, unlock, reboot, install, "
+            "delete, or modify a phone. Command Deck will truthfully show whether Android Platform "
+            "Tools or a connected device still need attention."
         )
         intro.setWordWrap(True)
         intro.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -99,8 +111,9 @@ class SetupWizard(QDialog):
         credit.setObjectName("Muted")
         credit.setAlignment(Qt.AlignmentFlag.AlignCenter)
         root.addWidget(credit)
-        start = QPushButton("Initialize ROMVERSE")
+        start = QPushButton("Continue in Guided Mode")
         start.setObjectName("Primary")
+        start.setAccessibleName("Choose Guided Mode and open Command Deck")
         start.clicked.connect(self._accept)
         root.addWidget(start)
 

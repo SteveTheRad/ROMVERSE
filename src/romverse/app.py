@@ -134,6 +134,10 @@ def main(argv: list[str] | None = None) -> int:
             if wizard.exec() != QDialog.DialogCode.Accepted:
                 return 0
             default_workspace = wizard.selected_workspace
+            settings = replace(
+                settings,
+                experience_mode=wizard.selected_experience_mode,
+            )
 
         workspace = WorkspaceInitializer().initialize(default_workspace).root
         # Managed executables are never trusted merely because they exist. Activate only

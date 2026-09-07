@@ -1,5 +1,89 @@
 # ROMVERSE Build Status
 
+## Consolidated Windows v0.2.0-alpha.1 development build — Product Assurance review requested
+
+- Product Assurance authorization: `018d07cbae87f4afb472ca8abff8ddaf6d636c15`.
+- Windows base: `06e9deaf31b0d061543e2a9b20ea2fecf806ff91`.
+- Approved synchronized implementation commits:
+  - `fc11d38` — durable exact local-build resume, from Linux `3475b45`;
+  - `3654646` — pre-intent stop and log binding, from Linux `dcd73cc`;
+  - `ae2c91b` — `0.2.0a1` package / `0.2.0-alpha.1` desktop identity, from Linux `07b5b17`;
+  - `dd1572d` — alpha release-version ordering, from Linux `9e6762a`.
+- Windows portability correction: `a5527a0`.
+- Branch: `windows-launcher-authorized-work`.
+- Status: one consolidated unsigned Windows alpha development build and one matching ZIP are
+  complete, focused-tested and no-device smoke-verified. Stop for independent Product Assurance.
+
+### Exact synchronization and Windows correction
+
+- The four approved platform-neutral commits were applied in their required order without merging
+  Linux handoff/assurance history. The Fedora-only development guide remained absent from the
+  Windows branch; the existing Windows PyInstaller path-sanitization test was retained alongside the
+  new alpha identity test.
+- The first focused Windows run exposed two genuine portability issues in the synchronized local-
+  build coverage. POSIX mode bits were not a valid Windows privacy assertion, and the toolchain
+  snapshot's redundant 106-character staging component could exceed the ordinary Windows path
+  limit in a realistic nested project workspace.
+- `a5527a0` replaces only those assumptions: local-build attempt/final receipts now use the already
+  approved Windows owner-only ACL verifier in the test, slash-independent versioned-tool path
+  matching is retained, and the unpublished staging directory is shortened to a UUID-based
+  `.stage-*` name. The final slot still binds the full approved SHA-256, and the receipt/hash/source
+  checks are unchanged.
+
+### Focused Windows verification
+
+- Final affected selection: **48/48 passed** across local-build contract/resume, cooperative
+  shutdown, durable schema inventory, reopened Forge resume/UNKNOWN presentation, desktop bundle /
+  visible alpha identity and release-version ordering.
+- Ruff checks: **PASS** for all synchronized and corrected source/test files.
+- Git whitespace check: **PASS**.
+- Earlier runs were not counted: the first found the two corrected portability issues; one harness
+  invocation used a missing temporary parent; a later single failure identified the literal-slash
+  test assumption. No broad suite or duplicate Guided journey was run.
+
+### Windows alpha artifact
+
+- Classification: **unsigned internal development artifact only**; not published or released.
+- Executable:
+  `build/windows-alpha-0.2.0-alpha.1/ROMVERSE/ROMVERSE.exe`.
+- Executable size: `6,280,733` bytes.
+- Executable SHA-256:
+  `bcd30985ca8590e323039ea3e037cbb382d6147b2a63f3e592d5b9233e13aa60`.
+- Authenticode: `NotSigned`, as required for this checkpoint.
+- ZIP: `dist/ROMVERSE-Desktop-0.2.0-alpha.1-windows-x86_64.zip`.
+- ZIP size: `72,428,464` bytes.
+- ZIP SHA-256:
+  `11aac7b0425417abda5049d26ebbb1c601649dcd49cf111ab7170751abaf9ccd`.
+- Exact archive verification: **PASS** — 262 regular files, 162,252,868 expanded bytes, expected
+  `ROMVERSE/ROMVERSE.exe` present and safe tree verification completed.
+- Fresh frozen startup/no-device smoke: **1/1 passed** with a new disposable workspace, offscreen Qt
+  and an executable-search path containing no ADB/Fastboot. No target was discovered or contacted.
+
+### Scope, safety and release truthfulness
+
+- The build contains the approved Windows launcher, digest-pinned Platform Tools acquisition,
+  Guided/Forge corrections, durable local-build resume and exact `0.2.0-alpha.1` identity.
+- No phone or emulator was present, requested, selected or targeted. No device-scoped ADB/Fastboot,
+  Recovery, install, flash, Companion change, driver/firewall/global PATH change, production trust,
+  signing, publication, release, force-push, lock or relock occurred.
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty, no
+  blind retry, independent verification, feature freeze and permanent no-relock remain preserved.
+- Protected Companion files remain clean and untouched.
+
+### Gate status
+
+- Fedora v0.2.0-alpha.1 internal development build: **VERIFIED at `87af660`**.
+- Windows v0.2.0-alpha.1 internal development build: **IMPLEMENTED AND REVIEW REQUESTED**.
+- Cross-platform public release, production signing/trust and physical Recovery: **NOT CLAIMED OR
+  AUTHORIZED**.
+
+## Product Assurance Review Requested
+
+Review the exact synchronization, `a5527a0` Windows path/ACL portability correction, focused 48-case
+result, artifact hashes/tree and frozen no-device smoke. Confirm or correct the Windows internal
+alpha milestone before any further rebuild, platform merge, signing, publication, release or
+physical-device work.
+
 ## Approved platform-neutral Guided/Forge synchronization — Product Assurance review requested
 
 - Product Assurance approval: `a0740bd0d718d82e1c3c649aee86aec1564652e2`.

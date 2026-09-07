@@ -1,5 +1,82 @@
 # ROMVERSE Build Status
 
+## Refreshed Windows v0.2.0-alpha.1 Guided onboarding — Product Assurance review requested
+
+- Product Assurance authorization: Linux assurance commit `b59c3d8`.
+- Approved upstream onboarding implementation: Linux `eaa3d615912a4eefddd44ee3b032562047ddadc3`.
+- Windows synchronization commit: `74064de`.
+- Branch: `windows-launcher-authorized-work`.
+- Status: the approved source correction is synchronized, focused-tested and included in exactly
+  one refreshed unsigned Windows alpha executable and canonical ZIP. Stop for independent Product
+  Assurance.
+
+### Exact synchronization and focused verification
+
+- Only `src/romverse/app.py`, `src/romverse/ui/setup_wizard.py` and
+  `tests/test_app_launch_settings.py` changed. The applied patch is the approved Linux onboarding
+  patch; no Linux handoff/assurance history, Companion source or unrelated branch history was
+  copied or merged.
+- Focused `tests/test_app_launch_settings.py`: **5/5 passed** on Windows.
+- Ruff for the three changed files: **PASS**.
+- Git whitespace check: **PASS**.
+- No broad suite, full Guided ROM journey or Recovery test was run.
+
+### Refreshed unsigned Windows alpha
+
+- Build command, run exactly once:
+  `.venv\\Scripts\\python.exe scripts\\build_desktop_executable.py --output-directory
+  build\\windows-alpha-0.2.0-alpha.1-guided --work-directory
+  build\\windows-alpha-0.2.0-alpha.1-guided-pyinstaller`.
+- Executable:
+  `build/windows-alpha-0.2.0-alpha.1-guided/ROMVERSE/ROMVERSE.exe`.
+- Executable size: `6,281,239` bytes.
+- Executable SHA-256:
+  `7ee304d55731fa6ca291f8e9d780246642e37c79c6331ce3ba8ee6718a1532c1`.
+- Authenticode: `NotSigned`, as required for this internal checkpoint.
+- Canonical ZIP: `dist/ROMVERSE-Desktop-0.2.0-alpha.1-windows-x86_64.zip`.
+- ZIP size: `72,689,076` bytes.
+- ZIP SHA-256:
+  `17eb961d8022d0b0774bb1cc616b9a9746961c0805552d4210430df39069b863`.
+- Archive tree: **PASS** — 262 entries, 162,253,374 expanded bytes, expected
+  `ROMVERSE/ROMVERSE.exe` present and no absolute or parent-traversal member found.
+
+### Bounded first-run evidence
+
+- The executable was launched once with a fresh dedicated `ROMVERSE_HOME` and a host path containing
+  no ADB/Fastboot. After five seconds it remained alive and responsive at the unapplied first-run
+  boundary, then the harness terminated it. No onboarding completion settings or device operation
+  were created.
+- Because a process launched through the SSH service has no interactive desktop UI Automation
+  surface, no visible-widget claim is made from that packaged process. Instead, the built
+  PyInstaller payload was independently inspected and contains all four required corrected strings:
+  `INTERNAL DEVELOPMENT`, `Continue in Guided Mode`, `No phone is required during setup`, and the
+  accessible action `Choose Guided Mode and open Command Deck`.
+- The focused production-widget test supplies the exact corrected interaction evidence: Guided is
+  selected and carried forward, Command Deck opens, the Platform Tools route opens with managed
+  auto-start disabled, and the state remains no-engine/no-device.
+
+### Scope, safety and release truthfulness
+
+- This refresh replaces the stale canonical Windows alpha ZIP with the artifact containing the
+  approved onboarding correction. The earlier artifact remains historical evidence only.
+- No phone/emulator, device-scoped ADB/Fastboot, managed download, Recovery, Companion change,
+  driver/firewall/global PATH change, production signing/trust, publication, release, force-push,
+  lock or relock occurred.
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty, no
+  blind retry, independent verification, feature freeze and permanent no-relock remain preserved.
+
+### Gate status
+
+- Windows v0.2.0-alpha.1 onboarding-corrected artifact: **IMPLEMENTED AND REVIEW REQUESTED**.
+- Fedora matching refresh: proceeding independently on its authorized Linux branch.
+- Public release, production signing/trust and physical Recovery: **NOT AUTHORIZED**.
+
+## Product Assurance Review Requested
+
+Review the exact source synchronization, focused 5-case result, executable/ZIP hashes and split
+packaged/source-level first-run evidence. Confirm or correct the refreshed Windows internal alpha
+before further Windows product work.
+
 ## Consolidated Windows v0.2.0-alpha.1 development build — Product Assurance review requested
 
 - Product Assurance authorization: `018d07cbae87f4afb472ca8abff8ddaf6d636c15`.

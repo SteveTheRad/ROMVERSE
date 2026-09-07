@@ -1,5 +1,104 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: ddd9714
+
+- Handoff commit: `ddd9714402f59a4a521aa725d535c173e4b5ad3d`
+- Implementation commit: `c0b140bbebe7b8fd107819c911703ac9a07e2954`
+- Product Assurance authorization: `b0ba30681623e0fc97617f607fbb24dfa7d3cf73`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — COMPANION LINK LISTENER IS INTENT-BOUND**
+
+### Decision
+
+The optional Companion Link no longer binds, listens, or advertises during a fresh unpaired Windows
+startup. One existing explicit pairing action starts the endpoint once; a valid remembered session
+may resume it; failure remains bounded and unavailable. The corrected source and rebuilt frozen
+application reached Command Deck with zero TCP listeners and zero UDP endpoints before Link intent.
+
+The still-visible Windows Security notification is the original pre-correction `PickerHost.exe`
+instance, not a new prompt created by either corrected launch. Product Assurance cannot automate or
+dismiss an operating-system security decision. Steve should choose **Cancel** when present so the
+Device Engine readiness journey can resume without granting unnecessary inbound access.
+
+That stale prompt does not block the next source-only correctness task. To prevent duplicate platform
+work, this Windows branch is now the single owner of the already-recorded emulator-versus-physical-USB
+classification defect in the same Desktop subsystem.
+
+### Independent repository and verification evidence
+
+- `c0b140b` changes only Companion transport/center source and their directly affected tests;
+  `ddd9714` changes only the Build handoff. Companion Android source and protected files are untouched.
+- `CompanionTransport` now creates its TLS identity without constructing a server. Its locked
+  `start()` performs one bounded bind/TLS/thread transition, reuses an existing live endpoint, and
+  records a terminal unavailable result after failure rather than looping.
+- `CompanionCenter` resumes only a valid approved session. Fresh/unpaired construction keeps Generate
+  available and the endpoint idle; explicit generation starts Link before producing a pairing code.
+- Windows Build reports 21 focused tests passed with one pre-existing layout test deliberately outside
+  this lifecycle slice; Ruff and whitespace checks passed.
+- Product Assurance independently reproduced the exact selected transport/center group on Fedora
+  against the pushed source: **21 passed, 1 deselected**, followed by a clean Ruff result. The initial
+  reproduction accidentally resolved an older editable install; it was discarded and rerun with the
+  current worktree explicitly first on the import path. Only the current-source result is accepted.
+- Source and the once-rebuilt frozen application each owned zero inbound TCP and zero UDP endpoints
+  before Link intent. The frozen executable is unsigned development evidence at SHA-256
+  `0d54ed4588c6337a7bee194ee9b3541593fe3e8ab9222f35489d339a5eae6cc9`.
+- The retained stale prompt process predates both corrected launches by hours; no new prompt process
+  appeared. No firewall rule, Allow/Cancel choice, global PATH, system package, phone, device command,
+  Recovery, signing, publication, release, or relock action occurred.
+
+### Safety, freeze, and Guided-friction review
+
+- Optional Link no longer interrupts an unrelated offline Device Engine journey at application start.
+- TLS identity, exact safety-code comparison, separate approval, read-only telemetry, revocation,
+  shutdown, privacy filtering, and `execution_authority: none` remain intact.
+- One terminal start failure is explained in the existing UI and is not retried automatically.
+- Guardian-only execution, exact-device evidence, UNKNOWN-on-uncertainty, no blind retry, and the
+  permanent no-relock rule are unchanged.
+- This is a lifecycle correctness repair within the existing Link feature and preserves the freeze.
+
+### Acceptance criteria result
+
+- Fresh unpaired construction owns no listener/discovery endpoint: **PASS**
+- Explicit intent starts one endpoint; repeated intent does not duplicate it: **PASS**
+- Bounded fail-closed start and clean shutdown: **PASS**
+- Valid remembered-session resume: **PASS**
+- Windows focused verification: **21 PASS / 1 unrelated deselected**
+- Independent Fedora reproduction: **21 PASS / 1 unrelated deselected**
+- Fresh corrected source/frozen startup without a new firewall prompt: **PASS**
+- Device Engine readiness completion: **WAITING FOR HUMAN DISMISSAL OF STALE OS PROMPT**
+
+### Approved next bounded task
+
+Correct only the Desktop's existing connection-source truthfulness on
+`windows-launcher-authorized-work`; do not interact with the stale Windows Security prompt:
+
+1. Classify a local Android emulator distinctly from physical USB using current ADB discovery and
+   read-only device evidence. Treat `emulator-*`/confirmed QEMU evidence conservatively as virtual;
+   never promote it to physical USB evidence. Preserve network ADB as non-USB.
+2. In Companion Center, set physical-USB readiness and enable USB-assisted pairing only for a normal
+   Android target whose observed transport is genuinely `usb`.
+3. An emulator or network ADB snapshot may still provide read-only development telemetry, but it must
+   never render `USB connected`, `USB also connected`, `USB read-only evidence remains available`, or
+   another physical-cable claim.
+4. Preserve the current genuine physical-USB path, multiple/unauthorized/offline fail-closed states,
+   wireless Link behavior, and all Guardian/Recovery boundaries.
+5. Add only focused Device Engine and Companion Center tests covering emulator, network ADB, and
+   physical USB. Run the smallest affected tests and lint. Do not rebuild the executable/ZIP, rerun
+   the Guided or Link journeys, or launch the app while the stale OS prompt remains.
+
+Commit and push the exact source/test/handoff checkpoint, then stop for independent review. Linux is
+explicitly not authorized to duplicate this correction.
+
+### Gate status
+
+- Fedora runnable build and direct Companion Link: **VERIFIED**
+- Windows runnable development build and inert Guided journey: **VERIFIED**
+- Optional Link listener lifecycle: **VERIFIED**
+- Emulator/physical-USB classification: **WINDOWS NEXT BOUNDED CORRECTION**
+- Windows Device Engine/toolchain readiness: **PAUSED FOR HUMAN CANCEL OF STALE OS PROMPT**
+- v0.2 Golden Foundation: **CLOSED pending physical, production-trust, signing, and release gates**
+- Physical hardware, production Recovery/trust, signing, publication, and release: not authorized
+
 ## Reviewed checkpoint: f8413bf
 
 - Handoff commit: `f8413bfe465e8bfd33d62a0a6cd92d3aa6572167`

@@ -1,5 +1,88 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: bd5dd95
+
+- Handoff commit: `bd5dd95`
+- Implementation commit: `efeb854e9203ee39f8849a2b7bd2f5ee6a4a7197`
+- Product Assurance correction: `47b3262945fb2738e02c98b78d5cfd8ce9e3da59`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — ANDROID CONNECTION-SOURCE TRUTHFULNESS VERIFIED**
+
+### Decision
+
+The fail-closed transport default is corrected exactly. Device Engine now calls a target physical USB
+only when the current parsed ADB discovery row contains explicit `usb:` evidence. Standard emulator,
+fresh QEMU, and network evidence retain their distinct classifications; a local-looking serial with
+none of those signals remains non-authorizing `adb` evidence.
+
+Companion Center already treats every non-`usb` classification as read-only development telemetry,
+with no retained USB serial, USB assist, physical-cable copy, or `USB also connected` state. The
+original false emulator/USB evidence from the direct Fedora journey can no longer recur through this
+boundary.
+
+### Independent repository and verification evidence
+
+- `efeb854` changes one Device Engine helper and the two exact focused test files: 18 additions and
+  three deletions. `bd5dd95` changes only the Build handoff. No Companion Android, Link transport,
+  Windows launcher, Guardian, Recovery, artifact, packaging, or asset source changed.
+- `_adb_transport` now uses explicit discovery `usb` evidence after network, standard-emulator, and
+  positive QEMU checks; its only remaining fallback is stable `adb`, not `usb`.
+- The physical test fixture now provides `usb:1-2.3`. A new `LOCALADB` case proves that absence of
+  USB/emulator/QEMU evidence produces `adb` and an unconfirmed read-only connection note.
+- Companion tests include that unconfirmed case before wireless pairing, after pairing, and after
+  reset. It never gains `_usb_ready`, `_usb_serial`, USB assist, or physical-USB copy.
+- Product Assurance independently reproduced six focused test nodes covering the complete submitted
+  cases; all passed. Ruff and whitespace passed. The Build handoff's broader focused selection reports
+  10/10 passed and is consistent with the inspected changes.
+- The correction required no Windows-native rerun: it is deterministic parsing/presentation logic,
+  introduces no Windows API or artifact difference, and the changed source was independently executed
+  from the exact pushed worktree. Repeating it solely for platform labeling would add no decisive
+  evidence.
+- No app, prompt, emulator, network target, cable, phone, ADB/Fastboot command, artifact, Recovery,
+  signing, publication, release, or relock action occurred.
+
+### Safety, freeze, and Guided-friction review
+
+- Absence of evidence now remains unconfirmed instead of becoming a cable claim or capability.
+- Genuine explicit USB behavior remains available; virtual and network development remain useful and
+  read-only.
+- Guardian-only authority, exact-device evidence, consent separation, durable UNKNOWN, no blind
+  retry, same-incident reassessment/verification, and permanent no-relock remain intact.
+- No new user decision, route, retry, or feature was introduced. The feature freeze is preserved.
+
+### Acceptance criteria result
+
+- Explicit `usb:` evidence is required for physical USB: **PASS**
+- Unproven local ADB is stable, unconfirmed, and non-authorizing: **PASS**
+- Unproven local ADB cannot enable or claim USB assist: **PASS**
+- Emulator, QEMU, network, explicit USB, and disconnect behavior retained: **PASS**
+- Focused tests/lint/whitespace: **PASS**
+- Duplicate build, journey, broad suite, or hardware execution: **NONE**
+
+### Approved next bounded task
+
+Resume the already-approved real Windows Device Engine/toolchain readiness journey only after Steve
+manually chooses **Cancel** on the stale pre-correction Windows Security prompt. Reuse the corrected
+frozen executable and existing fresh readiness workspace; do not rebuild again. Exercise only the
+existing `Resolve Platform Tools` flow, accepting only its declared workspace-local, pinned,
+integrity-checked tool acquisition. Capture the truthful ready or specific actionable blocked result
+and restart persistence, then commit the handoff and stop for review.
+
+Until the human prompt dismissal occurs, Windows must remain idle at this clean checkpoint. Linux is
+also clean at its current approved gate; its remaining Stage-1 work requires separate explicit
+physical-device or production-trust authorization. Do not manufacture another test/source loop merely
+to keep either task busy.
+
+### Gate status
+
+- Fedora runnable build, inert Guided journey, and direct Companion Link: **VERIFIED**
+- Companion stale-result invalidation: **VERIFIED**
+- Windows runnable build, inert Guided journey, and intent-bound optional Link: **VERIFIED**
+- Android connection-source truthfulness: **VERIFIED**
+- Windows Device Engine/toolchain readiness: **WAITING FOR STEVE TO CANCEL STALE OS PROMPT**
+- v0.2 Golden Foundation: **CLOSED pending physical, production-trust, signing, and release gates**
+- Physical hardware, production Recovery/trust, signing, publication, and release: not authorized
+
 ## Reviewed checkpoint: f23ac64
 
 - Handoff commit: `f23ac64`

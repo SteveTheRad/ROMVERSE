@@ -96,6 +96,7 @@ class LocalBuildAttempt:
     active_step_id: str
     completed_steps: tuple[BuildStepReceipt, ...]
     artifacts: tuple[BuildCheckpointArtifact, ...]
+    logs: tuple[BuildCheckpointArtifact, ...]
     toolchain_manifest_digest: str
     failure: str
     phone_changed: bool
@@ -197,6 +198,7 @@ class LocalDeviceBuildExecutor:
                         attempt.active_step_id,
                         attempt.completed_steps,
                         attempt.artifacts,
+                        attempt.logs,
                         attempt.toolchain_manifest_digest,
                         (
                             "The application stopped after dispatch may have begun; the exact "
@@ -217,6 +219,7 @@ class LocalDeviceBuildExecutor:
             started = attempt.started_at
             step_receipts = list(attempt.completed_steps)
             artifacts = {item.path: item for item in attempt.artifacts}
+            log_evidence = {item.path: item for item in attempt.logs}
         else:
             toolchain_manifest_digest, locked_tool_hashes, tools = self._capture_toolchain(
                 project_id,
@@ -227,6 +230,7 @@ class LocalDeviceBuildExecutor:
             started = _now()
             step_receipts = []
             artifacts: dict[str, BuildCheckpointArtifact] = {}
+            log_evidence: dict[str, BuildCheckpointArtifact] = {}
             self._record_attempt(
                 self._attempt(
                     project_id,
@@ -237,13 +241,26 @@ class LocalDeviceBuildExecutor:
                     "",
                     (),
                     (),
+                    (),
                     toolchain_manifest_digest,
                     "",
                 )
             )
 
+        def pause_at_current_boundary() -> None:
+            if pause_requested is not None and pause_requested():
+                raise ProjectError(
+                    f"Local build paused after {len(step_receipts)} verified step(s). "
+                    "Reopen Forge Control to continue from this exact checkpoint."
+                )
+
         for step in plan.steps[len(step_receipts) :]:
+            pause_at_current_boundary()
             self._assert_checkpoint_artifacts(artifacts.values(), output_root)
+            self._assert_checkpoint_artifacts(
+                log_evidence.values(),
+                output_root / "logs",
+            )
             intent = self._attempt(
                 project_id,
                 plan,
@@ -253,6 +270,7 @@ class LocalDeviceBuildExecutor:
                 step.step_id,
                 tuple(step_receipts),
                 tuple(sorted(artifacts.values(), key=lambda item: item.path)),
+                tuple(sorted(log_evidence.values(), key=lambda item: item.path)),
                 toolchain_manifest_digest,
                 "",
             )
@@ -271,6 +289,8 @@ class LocalDeviceBuildExecutor:
                 for relative in step.outputs:
                     artifact = self._checkpoint_artifact(relative, output_root)
                     artifacts[artifact.path] = artifact
+                log = self._checkpoint_artifact(step_receipt.log_path, output_root / "logs")
+                log_evidence[log.path] = log
                 self._record_attempt(
                     self._attempt(
                         project_id,
@@ -281,6 +301,7 @@ class LocalDeviceBuildExecutor:
                         "",
                         tuple(step_receipts),
                         tuple(sorted(artifacts.values(), key=lambda item: item.path)),
+                        tuple(sorted(log_evidence.values(), key=lambda item: item.path)),
                         toolchain_manifest_digest,
                         "",
                     )
@@ -297,6 +318,7 @@ class LocalDeviceBuildExecutor:
                         step.step_id,
                         tuple(step_receipts),
                         tuple(sorted(artifacts.values(), key=lambda item: item.path)),
+                        tuple(sorted(log_evidence.values(), key=lambda item: item.path)),
                         toolchain_manifest_digest,
                         failure,
                     )
@@ -305,11 +327,7 @@ class LocalDeviceBuildExecutor:
                     f"Local build stopped with an UNKNOWN result at {failure}. "
                     "ROMVERSE will not retry it automatically."
                 ) from exc
-            if pause_requested is not None and pause_requested():
-                raise ProjectError(
-                    f"Local build paused after {len(step_receipts)} verified step(s). "
-                    "Reopen Forge Control to continue from this exact checkpoint."
-                )
+            pause_at_current_boundary()
 
         self._assert_locked_tools(tools, locked_tool_hashes)
         outputs = tuple(
@@ -343,6 +361,7 @@ class LocalDeviceBuildExecutor:
                 "",
                 tuple(step_receipts),
                 tuple(sorted(artifacts.values(), key=lambda item: item.path)),
+                tuple(sorted(log_evidence.values(), key=lambda item: item.path)),
                 toolchain_manifest_digest,
                 "",
             )
@@ -607,11 +626,14 @@ class LocalDeviceBuildExecutor:
                 return None
             raw_steps = data.pop("completed_steps")
             raw_artifacts = data.pop("artifacts")
+            raw_logs = data.pop("logs")
             if (
                 not isinstance(raw_steps, list)
                 or not isinstance(raw_artifacts, list)
+                or not isinstance(raw_logs, list)
                 or len(raw_steps) > self.MAX_STEPS
                 or len(raw_artifacts) > self.MAX_OUTPUTS
+                or len(raw_logs) > self.MAX_STEPS
                 or any(
                     not isinstance(item, dict)
                     or set(item) != {field.name for field in fields(BuildStepReceipt)}
@@ -621,6 +643,11 @@ class LocalDeviceBuildExecutor:
                     not isinstance(item, dict)
                     or set(item) != {field.name for field in fields(BuildCheckpointArtifact)}
                     for item in raw_artifacts
+                )
+                or any(
+                    not isinstance(item, dict)
+                    or set(item) != {field.name for field in fields(BuildCheckpointArtifact)}
+                    for item in raw_logs
                 )
             ):
                 return None
@@ -646,7 +673,21 @@ class LocalDeviceBuildExecutor:
                 )
                 for item in raw_artifacts
             )
-            return LocalBuildAttempt(**data, completed_steps=steps, artifacts=artifacts)
+            logs = tuple(
+                BuildCheckpointArtifact(
+                    str(item["path"]),
+                    int(item["size_bytes"]),
+                    int(item["modified_ns"]),
+                    str(item["sha256"]),
+                )
+                for item in raw_logs
+            )
+            return LocalBuildAttempt(
+                **data,
+                completed_steps=steps,
+                artifacts=artifacts,
+                logs=logs,
+            )
         except (TypeError, ValueError, KeyError):
             return None
 
@@ -664,6 +705,7 @@ class LocalDeviceBuildExecutor:
         for receipt in steps:
             for relative, size in receipt.output_sizes:
                 expected_artifacts[relative] = size
+        expected_logs = {receipt.log_path for receipt in steps}
         state_shape = (
             (attempt.state == "ready" and not steps and not attempt.active_step_id)
             or (attempt.state == "step-complete" and bool(steps) and not attempt.active_step_id)
@@ -706,6 +748,8 @@ class LocalDeviceBuildExecutor:
             )
             or {item.path for item in attempt.artifacts} != set(expected_artifacts)
             or len({item.path for item in attempt.artifacts}) != len(attempt.artifacts)
+            or {item.path for item in attempt.logs} != expected_logs
+            or len({item.path for item in attempt.logs}) != len(attempt.logs)
             or any(
                 not _relative_path(item.path)
                 or type(item.size_bytes) is not int
@@ -716,35 +760,37 @@ class LocalDeviceBuildExecutor:
                 or item.size_bytes != expected_artifacts.get(item.path)
                 for item in attempt.artifacts
             )
+            or any(
+                not _relative_path(item.path)
+                or type(item.size_bytes) is not int
+                or item.size_bytes <= 0
+                or type(item.modified_ns) is not int
+                or item.modified_ns <= 0
+                or not _sha256_value(item.sha256)
+                for item in attempt.logs
+            )
         ):
             return "The local-build checkpoint shape or exact plan binding is invalid."
         output_root = self._output_root(plan.project_id, plan.plan_id)
-        for artifact in attempt.artifacts:
-            try:
-                path = self._workspace_path(artifact.path, must_exist=True)
-                stat_result = path.stat()
-                if (
-                    not path.is_relative_to(output_root)
-                    or not path.is_file()
-                    or path.is_symlink()
-                    or stat_result.st_size != artifact.size_bytes
-                    or stat_result.st_mtime_ns != artifact.modified_ns
-                    or _sha256(path) != artifact.sha256
-                ):
-                    return "A checkpointed local-build artifact changed."
-            except (OSError, ProjectError):
-                return "A checkpointed local-build artifact is unavailable."
-        for receipt in steps:
-            try:
-                log = self._workspace_path(receipt.log_path, must_exist=True)
-                if (
-                    not log.is_relative_to(output_root / "logs")
-                    or not log.is_file()
-                    or log.is_symlink()
-                ):
-                    return "A checkpointed local-build log is invalid."
-            except (OSError, ProjectError):
-                return "A checkpointed local-build log is unavailable."
+        for label, boundary, evidence in (
+            ("artifact", output_root, attempt.artifacts),
+            ("log", output_root / "logs", attempt.logs),
+        ):
+            for expected in evidence:
+                try:
+                    path = self._workspace_path(expected.path, must_exist=True)
+                    stat_result = path.stat()
+                    if (
+                        not path.is_relative_to(boundary)
+                        or not path.is_file()
+                        or path.is_symlink()
+                        or stat_result.st_size != expected.size_bytes
+                        or stat_result.st_mtime_ns != expected.modified_ns
+                        or _sha256(path) != expected.sha256
+                    ):
+                        return f"A checkpointed local-build {label} changed."
+                except (OSError, ProjectError):
+                    return f"A checkpointed local-build {label} is unavailable."
         return None
 
     @staticmethod
@@ -1156,6 +1202,7 @@ class LocalDeviceBuildExecutor:
         active_step_id: str,
         completed_steps: tuple[BuildStepReceipt, ...],
         artifacts: tuple[BuildCheckpointArtifact, ...],
+        logs: tuple[BuildCheckpointArtifact, ...],
         toolchain_manifest_digest: str,
         failure: str,
     ) -> LocalBuildAttempt:
@@ -1171,6 +1218,7 @@ class LocalDeviceBuildExecutor:
             "active_step_id": active_step_id,
             "completed_steps": [asdict(step) for step in completed_steps],
             "artifacts": [asdict(item) for item in artifacts],
+            "logs": [asdict(item) for item in logs],
             "toolchain_manifest_digest": toolchain_manifest_digest,
             "failure": failure[:1_000],
             "phone_changed": False,
@@ -1187,6 +1235,7 @@ class LocalDeviceBuildExecutor:
             active_step_id,
             completed_steps,
             artifacts,
+            logs,
             toolchain_manifest_digest,
             str(payload["failure"]),
             False,

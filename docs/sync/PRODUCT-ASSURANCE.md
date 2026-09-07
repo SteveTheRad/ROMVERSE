@@ -1,5 +1,103 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 7642cad
+
+- Handoff commit: `7642cad98d2501588d9b6829b132c01c1f8798b7`
+- Test correction: `7353b0df797f37354864ace65b889e488c7a9b56`
+- Product Assurance authorization: `8a4461d21be1a9a7d45cf4420b132a0b3dd90cf7`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — WINDOWS DEVELOPMENT READINESS VERIFIED**
+
+### Decision
+
+The final portability defect is corrected exactly as authorized. The raw unsafe ZIP member remains
+constructed and asserted through `ZipInfo.orig_filename`, and the cross-platform production boundary
+still rejects it. Only the irrelevant host-specific `ZipInfo.filename` expectation was removed.
+
+Combined with the previously verified native trusted launcher, readable frozen UI, private Windows
+ACLs, exact development archive, source/frozen startup, and inert Guided journey, this closes the
+Windows unsigned development-readiness gate. It does not authorize production signing, release,
+physical Android operation, or Recovery execution.
+
+### Independent evidence
+
+- `7353b0d` deletes exactly one assertion from
+  `tests/test_source_installation.py`; `7642cad` changes only the Build handoff. Production source,
+  accepted-path validation, application, launcher, ACLs, artifacts, and protected Companion files
+  are unchanged.
+- Windows Build ran the corrected regression (**1 passed**) and the directly affected complete source-
+  installation file (**32/32 passed**); its worktree and remote matched at the handoff.
+- Product Assurance independently ran the exact previously failing Linux-focused group at the pushed
+  checkpoint: **81 passed, 2 Windows-host skips, 0 failures**. The unsafe raw backslash member is
+  still rejected on Linux without conditionalizing or skipping its safety contract.
+- Previously accepted evidence remains applicable because no product or artifact byte changed:
+  - native exact Windows launcher identity: **100/100 fresh processes** and focused launcher pass;
+  - frozen visible window: readable, no square glyphs;
+  - owner/SYSTEM-only private-file ACL contract;
+  - unsigned development ZIP SHA-256
+    `747d5b40dbc76f5fab3e777f40bbd3d586bcfb72eaeccadd6647df57996af239`;
+  - source and frozen startup smoke;
+  - simulation-only full Guided
+    `Scan → Match → Prepare → Consent → Result → Reassessment → Verification` journey with no phone,
+    wipe, relock, retry, or physical command.
+
+### Vision, freeze, and safety review
+
+- The correction is test-only and removes no safety assertion that belongs to the product contract.
+- Guardian-only authority, exact-device evidence, one meaningful consent, durable UNKNOWN, no blind
+  retry, independent reassessment/verification, and permanent no-relock remain preserved.
+- Guided friction is unchanged; no extra user decision or technical dead end was introduced.
+- The pre-v1.0 feature freeze is preserved. The artifact remains an unsigned local development build,
+  not a release candidate or production package.
+
+### Approved next bounded task
+
+Prove the real Windows application's existing **Device Engine / toolchain readiness** journey on the
+Legion host, so the runnable UI advances from its current “needs attention” state to a truthful usable
+development state without a phone:
+
+1. Use the already verified frozen Windows development application and a fresh isolated workspace.
+   Do not rebuild the executable or ZIP and do not rerun the Guided journey or broad regression.
+2. Open the existing Device Engine/Forge Arsenal readiness surface and record the actual missing,
+   detected, or conflicting Android tool state before any action.
+3. Exercise only existing product behavior. If tools are already available, verify their exact paths,
+   versions, integrity/provenance receipts, and restart persistence. If the product's existing pinned,
+   integrity-checked, workspace-local acquisition flow is required, it may obtain only those declared
+   development tools into its isolated workspace. Do not perform an unverified/manual download.
+4. Demonstrate that the real frozen UI reaches a truthful ready—or specific actionable blocked—state
+   for its existing Android development toolchain and that reopening the app preserves the evidence.
+5. Capture readable before/after Windows evidence and the exact local receipts. Keep all claims scoped:
+   no connected-device, USB-driver, Fastboot communication, or physical-hardware verification claim
+   is permitted without a phone.
+
+This is a real Windows operability milestone, not authorization to implement a new tool manager. Do
+not edit application source, install system-wide software or drivers, change global PATH/security,
+connect or operate a phone, enable Recovery, sign, publish, or release. If the unchanged product cannot
+complete its own existing readiness journey, commit the smallest reproducible blocker and handoff,
+then stop for Product Assurance rather than modifying code or looping tests.
+
+### Acceptance criteria
+
+- The real frozen Windows application visibly and truthfully completes its existing host-toolchain
+  readiness journey, or preserves one precise product blocker for review.
+- Any acquired bytes are declared by the existing product manifest, integrity verified, and confined
+  to the isolated ROMVERSE workspace; no broad host mutation occurs.
+- Restarted UI state agrees with exact executable/version/provenance receipts.
+- No phone, driver installation, ADB/Fastboot device operation, Recovery execution, relock, blind
+  retry, production signing, publication, or release occurs.
+- Update `docs/sync/BUILD-STATUS.md`, commit and push the bounded checkpoint, and stop for independent
+  review. Do not substitute more tests for the actual visible product journey.
+
+### Gate status
+
+- Fedora runnable development build and inert Guided journey: **VERIFIED**
+- Windows unsigned frozen build and inert Guided journey: **VERIFIED**
+- Windows native launcher, archive, visible UI, and private ACL readiness: **VERIFIED**
+- Windows Device Engine/toolchain operability: **NEXT BOUNDED MILESTONE**
+- Companion API-35 and fixture-backed Link runtime: **VERIFIED on Linux track**
+- v0.2 Golden Foundation: **CLOSED pending physical, production-trust, signing, and release gates**
+- Physical hardware, production Recovery/trust, signing, publication, and release: not authorized
+
 ## Reviewed checkpoint: 20e0c33
 
 - Handoff commit: `20e0c3312ef5d995694f66119295007d1f8d2dac`

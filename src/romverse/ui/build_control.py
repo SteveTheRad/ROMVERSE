@@ -101,6 +101,7 @@ from romverse.rom.avb_evidence import (
 from romverse.rom.boot_observation import BootObservationService
 from romverse.rom.build_execution import LocalBuildReceipt, LocalDeviceBuildExecutor
 from romverse.rom.build_inputs import BuildInputPreparation, BuildInputPreparationService
+from romverse.rom.builds import RomBuildPlanner
 from romverse.rom.first_light import FirstLightService
 from romverse.rom.forge_autopilot import ResolutionKind, resolution_plan
 from romverse.rom.guided import VERIFIED_ROM_INSTALLATION_ACTION, GuidedMissionStore
@@ -1057,7 +1058,12 @@ class RebuildMetadataWorker(ManagedRunnable):
     @Slot()
     def execute(self) -> None:
         try:
-            self.signals.complete.emit(self.service.prepare(self.project_id, self.contract))
+            result = self.service.prepare(self.project_id, self.contract)
+            # Exact input preparation expands source-derived partition trees. Freeze that
+            # final tree in the same background operation so the next exact build-plan
+            # boundary cannot reject the inputs ROMVERSE just prepared as unexpected drift.
+            RomBuildPlanner(self.service.store).plan(self.project_id)
+            self.signals.complete.emit(result)
         except (OSError, ProjectError) as exc:
             self.signals.failed.emit(str(exc))
 

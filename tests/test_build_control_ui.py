@@ -61,6 +61,7 @@ from romverse.ui.build_control import (
     GuardianManifestReviewDialog,
     PhoneBackupGuideDialog,
     PhoneMediaBackupDialog,
+    RebuildMetadataWorker,
     SourceBlueprintWorker,
 )
 from romverse.ui.rom_studio import RomStudio
@@ -101,6 +102,46 @@ def _studio(tmp_path) -> RomStudio:
         for name in ("Python", "Git", "7-Zip", "Unzip", "Make", "Java", "AVBTool")
     )
     return RomStudio(store, DevicePackRegistry((pack,)), tools)
+
+
+def test_exact_input_worker_refreezes_the_final_source_derived_tree(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    source = tmp_path / "rom.zip"
+    with zipfile.ZipFile(source, "w") as archive:
+        archive.writestr("payload.bin", b"source payload")
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.import_original(store.create("Final input freeze").project_id, source)
+    inspection = RomInspectionService(store)
+    inspection.inspect_project(project.project_id)
+    store.create_working_copy(project.project_id)
+    inspection.extract_project_tree(project.project_id)
+    planner = RomBuildPlanner(store)
+    planner.plan(project.project_id)
+
+    prepared = SimpleNamespace(project_id=project.project_id, phone_changed=False)
+
+    class Inputs:
+        def __init__(self):
+            self.store = store
+
+        def prepare(self, project_id, _contract):
+            generated = store.working_root / project_id / "tree" / "partition_files"
+            generated.mkdir()
+            (generated / "source-derived.input").write_bytes(b"bounded input")
+            return prepared
+
+    completed = []
+    failed = []
+    worker = RebuildMetadataWorker(Inputs(), project.project_id, object())
+    worker.signals.complete.connect(completed.append)
+    worker.signals.failed.connect(failed.append)
+
+    worker.execute()
+
+    assert completed == [prepared]
+    assert failed == []
+    assert planner.verify_tree(project.project_id).valid
+    assert "partition_files/source-derived.input" in planner.load(project.project_id).input_files
 
 
 def test_smart_solution_opens_exact_forge_review_without_starting_work(tmp_path) -> None:

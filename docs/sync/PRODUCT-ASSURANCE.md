@@ -1,5 +1,97 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 894f588 — Windows managed receipt persistence
+
+- Handoff commit: `894f588d0e488654332e9feb088b943293b44428`
+- Implementation commit: `b881d5ac128bc4e6f3d03be1781ec200037ef00a`
+- Product Assurance correction: `a556d7da7b4d3525bc5fb1a516cbcdcedaaed799`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — WINDOWS MANAGED RECEIPT PERSISTENCE VERIFIED**
+
+### Decision
+
+The Windows receipt self-invalidation defect is corrected within the exact approved boundary. New
+managed-package receipts use canonical forward-slash paths. The compatibility path accepts
+backslashes only for the exact official Windows Platform Tools package/source and still applies the
+strict schema, bounded receipt, exact file-set, per-component `lstat`, no-link/no-junction,
+regular-file, resolved-containment, and exact-hash gates. It does not reinterpret arbitrary Windows
+paths as trusted.
+
+The already-downloaded ADB/Fastboot pair was accepted without editing its receipt or downloading it
+again. The corrected unsigned development build reached a truthful ready/no-device state and retained
+that state after one normal restart. This is a frozen-feature portability correction, not a new
+feature or an expansion of execution authority.
+
+### Independent repository and runtime evidence
+
+- `b881d5a` changes only `src/romverse/ui/toolchain_center.py` and
+  `tests/test_toolchain_download.py`; `894f588` changes only the Build handoff. Protected Companion,
+  Device Engine, Guardian, Recovery, launcher, and release source are untouched.
+- Product Assurance inspected the exact parser/verifier path and independently reran the focused
+  suite on the Windows host: **31/31 passed**. Ruff passed for both changed files and
+  `git diff --check a556d7d..894f588` passed.
+- Coverage includes canonical creation, exact legacy Windows activation, idempotent PATH activation,
+  drive/root/UNC/empty/dot/traversal/mixed-form rejection, hash tamper, and linked-component
+  rejection. Existing archive containment, candidate bounds, schema/source, and exact-file-set
+  coverage remains in the same focused file.
+- Build evidence records one successful Windows 11 x64 unsigned development build, genuine Command
+  Deck readiness before and after restart, exact workspace-local ADB/Fastboot `37.0.1-15733141`, and
+  zero phone/device operations.
+- Product Assurance independently fetched the declared official Windows archive on 8 September
+  2026. It matched the retained receipt exactly: 8,044,989 bytes, SHA-256
+  `45f4d63113e895ebde0c90f194099a4676b6ac653bd28d54314a9e022bbc1a99`, and
+  `Pkg.Revision=37.0.1`.
+
+### Safety, freeze, and Guided-friction review
+
+- A failed receipt, unsafe path, link/junction, unexpected file set, or file mutation still produces
+  no managed activation. No uncertainty becomes success.
+- The user-facing failure was repaired without requiring a second download, global PATH change,
+  system installation, or manual receipt surgery.
+- No real phone, ADB/Fastboot target command, Recovery action, production adapter/trust, signing,
+  release, destructive action, force-push, blind retry, or relock occurred.
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty,
+  independent reassessment/verification, feature freeze, and permanent no-relock remain intact.
+
+### Acceptance criteria result
+
+- Canonical deterministic new receipt paths: **PASS**
+- Exact legacy Windows receipt recovered through bounded compatibility: **PASS**
+- Drive/root/UNC/traversal/link/hash-tamper rejection: **PASS**
+- Existing package activated without redownload: **PASS**
+- Device Engine ready before and after one restart: **PASS**
+- Focused tests/lint/whitespace and genuine Windows evidence: **PASS**
+
+### Retained provenance gate
+
+The current archive URL contains `latest`. The receipt proves exact download-to-install consistency,
+and Product Assurance independently reproduced its current bytes, but the downloader does not compare
+those bytes with a pre-approved digest before extraction. Therefore this checkpoint proves Windows
+development readiness only. It must not be treated as independently pinned tool provenance for a
+physical Recovery/execution or public-release claim.
+
+### Approved next bounded task
+
+Add only the missing Windows Platform Tools archive pin to the existing managed acquisition route.
+Bind the approved Windows package to SHA-256
+`45f4d63113e895ebde0c90f194099a4676b6ac653bd28d54314a9e022bbc1a99` (Platform Tools 37.0.1),
+compare the completed archive before extraction/publication, and require the verifier to match the
+same approved digest already present in the receipt. Preserve the current official source, strict
+path/file/hash gates, existing legacy receipt, and ready workspace. If Google changes the moving
+archive, fail closed with a clear update-required message; do not learn or approve a new digest from
+the download itself. Add only focused correct-digest/wrong-digest/preserve-prior-package tests, run
+the directly affected Windows tests and lint, and reuse the current build/runtime evidence unless the
+source change strictly requires one new unsigned build. No phone, device command, driver/firewall
+change, broad suite, duplicate user journey, signing, publication, release, or relock. Commit and
+push the exact checkpoint, then stop for Product Assurance.
+
+### Gate status
+
+- Windows runnable build and Device Engine no-device readiness: **VERIFIED FOR DEVELOPMENT**
+- Windows managed receipt persistence: **VERIFIED**
+- Windows Platform Tools independently pinned acquisition: **NEXT BOUNDED SAFETY CORRECTION**
+- Physical hardware, production Recovery/trust, signing, publication, and release: **NOT AUTHORIZED**
+
 ## Runtime checkpoint: 6bbb86a — Windows managed-tool restart persistence
 
 - Repository tip under test: `6bbb86a8cad296a88392b808f0a9787c0c661afd`

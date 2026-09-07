@@ -1,5 +1,58 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 677dc0b — cross-platform alpha source convergence
+
+- Handoff commit: `677dc0b`
+- Linux convergence implementation: `7ea47d24fab13a4df43745dc95954f425ca3a890`
+- Approved Windows source: `a5527a04fe4b6183b903b209206b4eab40220f11`
+- Product Assurance authorization/base: `87af66065ea679919d603e056d40dce7b6ee07b5`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — v0.2.0-alpha.1 SOURCE CONVERGED**
+
+### Decision and evidence
+
+The Linux product-source blob for `toolchain_versions.py` is byte-identical to the approved Windows
+source blob (`2676599b64d8c104e35fc69d315988b27d69f94b`). Only the short unpublished staging-name
+hunk was imported. Windows ACL assertions, branch history and handoff documents were not copied.
+
+Build's focused Linux result of **22/22 passed**, Ruff success and Git whitespace success are
+sufficient. The final digest-bound slot, source-byte verification, private staging, atomic
+publication, retained receipt and cleanup behavior remain unchanged. Rebuilding the Fedora or
+Windows alpha artifacts solely for this host-temporary path correction would add cost without
+material user/runtime evidence and is not required.
+
+### Safety and gate result
+
+- Cross-platform internal-alpha source convergence: **PASS**
+- Feature freeze: **PASS — exact approved portability correction only**
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN, no blind retry,
+  independent verification and permanent no-relock: **PRESERVED**
+- Phone, Recovery, signing, publication and release activity: **NONE**
+
+### Approved next bounded task
+
+Run one fresh ordinary-user **Fedora v0.2.0-alpha.1 first-run/onboarding journey** using the existing
+unsigned frozen development artifact and a new disposable workspace. Do not skip onboarding. Verify
+that the user can choose Guided mode, understand the internal-alpha/no-device state, reach the
+Command Deck, open the existing Platform Tools resolution route if offered, and return to a truthful
+ready/no-phone or actionable-host-prerequisite state without a dead button, misleading success or
+technical loop.
+
+This is one user-facing acceptance journey, not a broad test campaign. Record the first concrete
+onboarding/navigation/readiness defect and implement only its minimum freeze-safe correction with
+one focused regression; if no defect appears, commit a truthful evidence-only handoff. Reuse the
+current artifact unless a correction makes one source-level rerun necessary; do not rebuild/package
+either platform yet. No phone/emulator target, device-scoped ADB/Fastboot, Recovery, Companion
+change, signing, publication, release, force-push or relock. Commit and push, then stop for Product
+Assurance.
+
+### Gate status
+
+- Fedora and Windows v0.2.0-alpha.1 development artifacts: **VERIFIED**
+- Cross-platform alpha source convergence: **VERIFIED**
+- Fresh-user Fedora onboarding/readiness: **NEXT USER-FACING MILESTONE**
+- Production/public v0.2, physical Recovery and production signing/trust: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: 679b0d8 — Fedora v0.2.0-alpha.1 development build
 
 - Handoff commit: `679b0d8`

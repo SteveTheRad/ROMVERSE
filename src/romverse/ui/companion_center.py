@@ -164,7 +164,9 @@ class CompanionCenter(QWidget):
         elif self.transport.available:
             network_text = "Link endpoint idle  •  Choose Generate wireless code to start."
         else:
-            network_text = "Wireless pairing unavailable on this computer  •  USB read-only features remain active"
+            network_text = (
+                "Wireless pairing unavailable on this computer  •  Device Engine remains read-only"
+            )
         self.network_status = QLabel(network_text)
         self.network_status.setObjectName("Muted")
         self.network_status.setWordWrap(True)
@@ -264,7 +266,7 @@ class CompanionCenter(QWidget):
         self.reset_link.setMinimumHeight(36)
         self.reset_link.setEnabled(False)
         self.reset_link.setToolTip(
-            "Immediately revoke the remembered wireless session and pending handoff offers on this computer. USB evidence and original files are not changed."
+            "Immediately revoke the remembered wireless session and pending handoff offers on this computer. Device Engine evidence and original files are not changed."
         )
         self.reset_link.clicked.connect(self.reset_pairing)
         import_summary = QPushButton("Import phone summary")
@@ -354,7 +356,7 @@ class CompanionCenter(QWidget):
         observed_devices: list[AndroidDevice] | None = None,
         scan_error: str = "",
     ) -> None:
-        """Reflect selected authority separately from read-only USB detection."""
+        """Reflect selected authority separately from read-only connection evidence."""
 
         self._sync_approved_state()
         observed = list(devices if observed_devices is None else observed_devices)
@@ -362,23 +364,23 @@ class CompanionCenter(QWidget):
         if device is None:
             if scan_error.strip():
                 self.device_status.setText(
-                    "Desktop device link: USB scan unavailable  •  Device Engine is retrying"
+                    "Desktop device link: Android scan unavailable  •  Device Engine is retrying"
                 )
             elif len(observed) > 1:
                 self.device_status.setText(
-                    f"Desktop device link: {len(observed)} USB devices detected  •  choose one in Device Center"
+                    f"Desktop device link: {len(observed)} Android targets detected  •  choose one in Device Center"
                 )
             elif observed:
                 self.device_status.setText(
-                    "Desktop device link: USB device detected  •  select it in Device Center"
+                    "Desktop device link: Android target detected  •  select it in Device Center"
                 )
             elif self._approved:
                 self.device_status.setText(
-                    "Desktop device link: wireless Companion active  •  USB is disconnected"
+                    "Desktop device link: wireless Companion active  •  no local target selected"
                 )
             else:
                 self.device_status.setText(
-                    "Desktop device link: no USB device detected  •  wireless pairing remains available"
+                    "Desktop device link: no Android target detected  •  wireless pairing remains available"
                 )
             self._usb_ready = False
             self._usb_serial = ""
@@ -394,16 +396,22 @@ class CompanionCenter(QWidget):
                 self.generate.setEnabled(self.transport.available)
             return
         if device.state is not DeviceState.DEVICE:
+            source = self._connection_source_label(device)
             if device.state is DeviceState.UNAUTHORIZED:
                 state = "authorization required"
                 instruction = (
                     "Unlock the phone and approve this computer's USB debugging fingerprint, "
                     "then refresh the read-only scan."
+                    if device.transport.casefold() == "usb"
+                    else "Authorize this ADB target, then refresh the read-only scan."
                 )
             elif device.state is DeviceState.OFFLINE:
                 state = "ADB offline"
                 instruction = (
                     "ADB can see the phone but cannot read it. Reconnect USB or restart ADB, then "
+                    "refresh the scan."
+                    if device.transport.casefold() == "usb"
+                    else "ADB can see this target but cannot read it. Restore its connection, then "
                     "refresh the scan."
                 )
             elif device.is_fastboot:
@@ -425,7 +433,7 @@ class CompanionCenter(QWidget):
                     "refresh the scan."
                 )
             self.device_status.setText(
-                f"Desktop device link: {device.display_name} detected  •  {state}"
+                f"Desktop device link: {device.display_name} detected via {source}  •  {state}"
             )
             self._usb_ready = False
             self._usb_serial = ""
@@ -434,13 +442,15 @@ class CompanionCenter(QWidget):
             if self._approved:
                 self._render_approved_state(restored=self._approved_restored)
             elif not self._pairing_code_active():
-                self.state.setText(f"USB detected • {state}")
+                self.state.setText(f"{source} detected • {state}")
                 self.instructions.setText(instruction)
                 self.generate.setEnabled(self.transport.available)
             return
+        source = self._connection_source_label(device)
+        physical_usb = device.transport.casefold() == "usb"
         companion = "installed" if device.companion_installed else "not installed"
         self.device_status.setText(
-            f"Desktop device link: {device.display_name}  •  Companion {companion}"
+            f"Desktop device link: {device.display_name} via {source}  •  Companion {companion}"
         )
         self._telemetry = replace(
             self._telemetry,
@@ -450,19 +460,35 @@ class CompanionCenter(QWidget):
             storage_total_bytes=device.storage.total_bytes,
             guardian_active=True,
         )
-        self._usb_ready = True
-        self._usb_serial = device.serial
-        self._usb_companion_installed = device.companion_installed
+        self._usb_ready = physical_usb
+        self._usb_serial = device.serial if physical_usb else ""
+        self._usb_companion_installed = device.companion_installed if physical_usb else False
         self._update_usb_assist_button()
         if self._approved:
             self._render_approved_state(restored=self._approved_restored)
         elif not self._pairing_code_active():
-            self.state.setText("USB connected • wireless Link not paired")
-            self.instructions.setText(
-                "USB supplies Desktop with read-only device evidence. Encrypted Companion Link is separate; "
-                "generate a wireless code for the phone's live view."
-            )
+            if physical_usb:
+                self.state.setText("USB connected • wireless Link not paired")
+                self.instructions.setText(
+                    "USB supplies Desktop with read-only device evidence. Encrypted Companion Link is separate; "
+                    "generate a wireless code for the phone's live view."
+                )
+            else:
+                self.state.setText(f"{source} connected • wireless Link not paired")
+                self.instructions.setText(
+                    f"{source} supplies read-only development telemetry. Encrypted Companion Link "
+                    "remains separate; cable-assisted pairing is unavailable for this source."
+                )
             self.generate.setEnabled(self.transport.available)
+
+    @staticmethod
+    def _connection_source_label(device: AndroidDevice) -> str:
+        return {
+            "emulator": "Local Android emulator",
+            "network": "Network ADB",
+            "usb": "Physical USB",
+            "usb-fastboot": "Physical USB fastboot",
+        }.get(device.transport.casefold(), "Unconfirmed ADB transport")
 
     def set_ascension_status(self, status: AscensionCompanionStatus) -> None:
         """Publish bounded root status; never commands, full hashes, paths, or approvals."""
@@ -665,17 +691,17 @@ class CompanionCenter(QWidget):
         if not self.transport.available:
             self.state.setText("Wireless pairing unavailable")
             self.instructions.setText(
-                "This computer denied local network access. USB read-only Companion features still work."
+                "This computer denied local network access. Device Engine remains read-only and separate."
             )
             return
         if not self.transport.start():
             self.state.setText("Wireless pairing unavailable")
             self.instructions.setText(
                 "ROMVERSE could not safely open the encrypted local pairing endpoint. "
-                "USB read-only Companion features still work."
+                "Device Engine remains read-only and separate."
             )
             self.network_status.setText(
-                "Wireless pairing unavailable on this computer  •  USB read-only features remain active"
+                "Wireless pairing unavailable on this computer  •  Device Engine remains read-only"
             )
             self.generate.setEnabled(False)
             self._update_usb_assist_button()
@@ -1171,8 +1197,13 @@ class CompanionCenter(QWidget):
         self.state.setText(state)
         self.instructions.setText(
             "This workspace remembers the approved Companion for read-only health/activity telemetry "
-            "and user-confirmed download handoffs. USB evidence remains a separate input. Guardian still "
-            "blocks device-changing actions."
+            "and user-confirmed download handoffs. "
+            + (
+                "Physical USB evidence remains a separate input. "
+                if self._usb_ready
+                else "Device Engine evidence remains a separate read-only input. "
+            )
+            + "Guardian still blocks device-changing actions."
         )
         self._expiry_timer.stop()
         self._pairing = None
@@ -1292,7 +1323,11 @@ class CompanionCenter(QWidget):
         self._record_link_note(
             title="Companion Link pairing reset",
             summary="The remembered wireless Companion authorization was revoked locally.",
-            explanation="ROMVERSE cleared the pending request, stored session digest, cached wireless telemetry, and pending download offers. USB read-only evidence and original files were not changed.",
+            explanation=(
+                "ROMVERSE cleared the pending request, stored session digest, cached wireless "
+                "telemetry, and pending download offers. Device Engine evidence and original "
+                "files were not changed."
+            ),
             next_action="Generate a new wireless code only when you want to pair Companion again.",
             state=MissionState.INFORMATION,
             confidence=MissionConfidence.VERIFIED,
@@ -1305,7 +1340,10 @@ class CompanionCenter(QWidget):
         self._record_link_note(
             title="Encrypted Companion Link needs attention",
             summary="ROMVERSE could not open the encrypted wireless Link endpoint.",
-            explanation="The TLS identity or local listener could not be initialized safely. USB read-only features remain available.",
+            explanation=(
+                "The TLS identity or local listener could not be initialized safely. Device "
+                "Engine remains a separate read-only surface."
+            ),
             next_action="Review ROMVERSE settings, local permissions, and port availability before retrying wireless Link.",
             state=MissionState.ATTENTION,
             confidence=MissionConfidence.UNCONFIRMED,

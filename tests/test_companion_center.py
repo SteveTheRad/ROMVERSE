@@ -415,6 +415,88 @@ def test_usb_evidence_never_masquerades_as_encrypted_companion_pairing(tmp_path)
     center.shutdown()
 
 
+def test_virtual_and_network_adb_never_enable_or_claim_physical_usb(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    cases = (
+        ("emulator-5554", "emulator", "Local Android emulator"),
+        ("192.168.1.17:5555", "network", "Network ADB"),
+    )
+
+    for serial, transport, source in cases:
+        center = CompanionCenter(workspace=tmp_path / transport)
+        target = AndroidDevice(
+            serial,
+            DeviceState.DEVICE,
+            transport=transport,
+            model="Development target",
+            companion_installed=True,
+        )
+
+        center.set_device_snapshot([target])
+
+        assert not center._usb_ready
+        assert center._usb_serial == ""
+        assert not center.usb_pair.isEnabled()
+        assert source in center.device_status.text()
+        assert center.state.text() == f"{source} connected • wireless Link not paired"
+        assert "USB connected" not in center.state.text()
+        assert "USB also connected" not in center.state.text()
+        assert "USB" not in center.instructions.text()
+
+        center.generate_code()
+        pairing = center._pairing
+        assert pairing is not None
+        request_id = center.transport._sessions.request(
+            pairing,
+            pairing.code,
+            "127.0.0.1",
+        )
+        assert request_id
+        center._update_expiry()
+        center.safety_confirm.setChecked(True)
+        center.approve_device()
+
+        assert "Paired • read-only wireless telemetry enabled" in center.state.text()
+        assert "USB also connected" not in center.state.text()
+        assert "Physical USB" not in center.instructions.text()
+        assert not center.usb_pair.isEnabled()
+        center.shutdown()
+
+
+def test_nonready_virtual_and_network_targets_remain_fail_closed_without_usb_claims(
+    tmp_path,
+) -> None:
+    QApplication.instance() or QApplication([])
+    cases = (
+        ("emulator-5554", "emulator", DeviceState.UNAUTHORIZED, "Local Android emulator"),
+        ("192.168.1.17:5555", "network", DeviceState.OFFLINE, "Network ADB"),
+    )
+
+    for serial, transport, state, source in cases:
+        center = CompanionCenter(workspace=tmp_path / f"{transport}-{state.value}")
+        target = AndroidDevice(serial, state, transport=transport, model="Development target")
+
+        center.set_device_snapshot([target])
+
+        assert not center._usb_ready
+        assert not center.usb_pair.isEnabled()
+        assert center.state.text().startswith(f"{source} detected")
+        assert "USB" not in center.state.text()
+        assert "USB" not in center.instructions.text()
+        center.shutdown()
+
+    center = CompanionCenter(workspace=tmp_path / "multiple")
+    observed = [
+        AndroidDevice("emulator-5554", DeviceState.DEVICE, transport="emulator"),
+        AndroidDevice("192.168.1.17:5555", DeviceState.DEVICE, transport="network"),
+    ]
+    center.set_device_snapshot([], observed_devices=observed)
+    assert not center._usb_ready
+    assert "2 Android targets detected" in center.device_status.text()
+    assert "USB" not in center.device_status.text()
+    center.shutdown()
+
+
 def test_disconnected_usb_state_does_not_linger_as_connected(tmp_path) -> None:
     QApplication.instance() or QApplication([])
     center = CompanionCenter(workspace=tmp_path)
@@ -431,7 +513,7 @@ def test_disconnected_usb_state_does_not_linger_as_connected(tmp_path) -> None:
 
     assert not center._usb_ready
     assert center.state.text() == "Not paired"
-    assert "no USB device detected" in center.device_status.text()
+    assert "no Android target detected" in center.device_status.text()
     assert center.generate.isEnabled()
     center.shutdown()
 

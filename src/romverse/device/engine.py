@@ -91,7 +91,7 @@ class DeviceEngine:
         for item in discovered:
             serial = item["serial"]
             state = coerce_device_state(item["state"])
-            transport = "network" if ":" in serial else "usb"
+            transport = _adb_transport(item)
             token = f"{state.value}:{item.get('transport_id', '')}:{item.get('usb', '')}"
             if state is not DeviceState.DEVICE or transport != "usb":
                 snapshots.append(self._inspect(item))
@@ -209,15 +209,24 @@ class DeviceEngine:
     def _inspect(self, discovered: dict[str, str]) -> AndroidDevice:
         serial = discovered["serial"]
         state = coerce_device_state(discovered["state"])
+        transport = _adb_transport(discovered)
         base = {
             "serial": serial,
             "state": state,
-            "transport": "network" if ":" in serial else "usb",
+            "transport": transport,
         }
         if state is not DeviceState.DEVICE:
             note = {
-                DeviceState.UNAUTHORIZED: "Unlock the phone and accept the USB debugging prompt.",
-                DeviceState.OFFLINE: "Reconnect USB or restart the ADB server.",
+                DeviceState.UNAUTHORIZED: (
+                    "Unlock the phone and accept the USB debugging prompt."
+                    if transport == "usb"
+                    else "Authorize this ADB target before ROMVERSE reads device evidence."
+                ),
+                DeviceState.OFFLINE: (
+                    "Reconnect USB or restart the ADB server."
+                    if transport == "usb"
+                    else "The ADB target is offline; restore its connection and refresh."
+                ),
             }.get(state, f"Device is in {state.value} state; detailed inspection is unavailable.")
             return AndroidDevice(
                 **base,
@@ -231,6 +240,8 @@ class DeviceEngine:
         try:
             properties = self._probe(serial, "adb.getprop", ("shell", "getprop"), errors)
             props = parse_getprop(properties)
+            transport = _adb_transport(discovered, props)
+            base["transport"] = transport
             battery_raw = self._probe(
                 serial, "adb.battery", ("shell", "dumpsys", "battery"), errors
             )
@@ -268,6 +279,9 @@ class DeviceEngine:
                 connection_note=(
                     "USB reconnect is unstable; ROMVERSE stopped detailed probes and will retry "
                     "with backoff. Check the cable or move the phone to a different USB controller."
+                    if transport == "usb"
+                    else "ADB transport became unstable; ROMVERSE stopped detailed probes and "
+                    "will retry with backoff without claiming a physical USB connection."
                 ),
                 errors=(str(exc),),
             )
@@ -364,7 +378,11 @@ class DeviceEngine:
             root_manager_evidence="allowlisted-package-presence",
             companion_installed=bool(companion_raw.strip()) if companion_raw else False,
             companion_version="Detected" if companion_raw.strip() else "Not installed",
-            connection_note="Connected over ADB (read-only inspection)",
+            connection_note={
+                "emulator": "Connected to a local Android emulator (read-only inspection)",
+                "network": "Connected over network ADB (read-only inspection)",
+                "usb": "Connected over physical USB ADB (read-only inspection)",
+            }.get(transport, "Connected over ADB (read-only inspection)"),
             errors=tuple(errors),
             boot_completed=(boot_completed_value == "1") if boot_completed_value else None,
             uptime_seconds=parse_uptime(uptime_raw),
@@ -422,7 +440,7 @@ class DeviceEngine:
         return AndroidDevice(
             discovered["serial"],
             coerce_device_state(discovered["state"]),
-            transport="usb",
+            transport=_adb_transport(discovered),
             model=discovered.get("model", "").replace("_", " "),
             product=discovered.get("product", ""),
             codename=discovered.get("device", ""),
@@ -435,6 +453,24 @@ class DeviceEngine:
 
 class _DeviceTransportLost(RuntimeError):
     pass
+
+
+def _adb_transport(
+    discovered: dict[str, str],
+    properties: dict[str, str] | None = None,
+) -> str:
+    serial = discovered["serial"].strip()
+    if ":" in serial:
+        return "network"
+    if serial.casefold().startswith("emulator-"):
+        return "emulator"
+    properties = properties or {}
+    if any(
+        _property_bool(properties.get(key, "")) is True
+        for key in ("ro.kernel.qemu", "ro.boot.qemu", "ro.hardware.virtual_device")
+    ):
+        return "emulator"
+    return "usb"
 
 
 def _positive_int(value: str) -> int | None:

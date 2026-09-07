@@ -86,11 +86,40 @@ class FakeAdbRunner:
         )
 
 
+class AdbTransportRunner(FakeAdbRunner):
+    def __init__(self, serial: str, *, qemu: bool = False, usb: bool = False) -> None:
+        self.serial = serial
+        self.qemu = qemu
+        self.usb = usb
+
+    def run(self, args, timeout=10):
+        call = tuple(args)
+        if tuple(args[1:]) == ("devices", "-l"):
+            usb = " usb:1-2.3" if self.usb else ""
+            return CommandResult(
+                call,
+                0,
+                "List of devices attached\n"
+                f"{self.serial} device{usb} product:test model:Rad_Phone "
+                "device:rad transport_id:1\n",
+                "",
+            )
+        translated = list(args)
+        if len(translated) >= 3 and translated[1:3] == ["-s", self.serial]:
+            translated[2] = "SERIAL123"
+        result = super().run(translated, timeout)
+        stdout = result.stdout
+        if tuple(args[1:]) == ("-s", self.serial, "shell", "getprop") and self.qemu:
+            stdout += "\n[ro.kernel.qemu]: [1]\n"
+        return CommandResult(call, result.returncode, stdout, result.stderr, result.timed_out)
+
+
 def test_device_engine_builds_real_snapshot_and_preserves_unauthorized():
     gateway = ExecutionGateway(MilestoneOnePolicy(), FakeAdbRunner())
     devices = DeviceEngine(AdbClient(Path("adb"), gateway)).scan()
     assert len(devices) == 2
     phone = devices[0]
+    assert phone.transport == "usb"
     assert phone.manufacturer == "RadForge"
     assert phone.brand == "ROMVERSE"
     assert phone.marketing_name == "ROMVERSE One"
@@ -125,6 +154,40 @@ def test_device_engine_builds_real_snapshot_and_preserves_unauthorized():
     assert phone.masked_serial() == "••••L123"
     assert devices[1].state is DeviceState.UNAUTHORIZED
     assert "accept" in devices[1].connection_note.lower()
+
+
+def test_adb_connection_source_distinguishes_emulator_network_and_physical_usb():
+    cases = (
+        ("emulator-5554", False, False, "emulator"),
+        ("LOCALQEMU", True, False, "emulator"),
+        ("192.168.1.17:5555", False, False, "network"),
+        ("SERIAL123", False, True, "usb"),
+    )
+
+    for serial, qemu, usb, expected in cases:
+        runner = AdbTransportRunner(serial, qemu=qemu, usb=usb)
+        gateway = ExecutionGateway(MilestoneOnePolicy(), runner)
+
+        device = DeviceEngine(AdbClient(Path("adb"), gateway)).scan()[0]
+
+        assert device.transport == expected
+        if expected == "emulator":
+            assert "emulator" in device.connection_note.lower()
+        elif expected == "network":
+            assert "network adb" in device.connection_note.lower()
+        else:
+            assert "physical usb" in device.connection_note.lower()
+
+
+def test_reconnect_safe_scan_never_stabilizes_an_emulator_as_usb():
+    runner = AdbTransportRunner("emulator-5554", qemu=True)
+    gateway = ExecutionGateway(MilestoneOnePolicy(), runner)
+    engine = DeviceEngine(AdbClient(Path("adb"), gateway))
+
+    device = engine.scan_reconnect_safe()[0]
+
+    assert device.transport == "emulator"
+    assert "stable transport cycle" not in device.connection_note
 
 
 class RootManagerRunner(FakeAdbRunner):

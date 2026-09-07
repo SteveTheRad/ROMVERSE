@@ -1,5 +1,69 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 27538d8
+
+- Handoff commit: `27538d8`
+- Product implementation: unchanged at `f61cbc54c203283e457a346bd327a99bec29d880`
+- Physical authorization: `c4043b871d7029ffd513bdda33d8e7a1fb5de103`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — LINUX PHYSICAL READ-ONLY DEVICE ENGINE VERIFIED**
+
+### Decision
+
+The bounded real Fedora Device Engine / First Light observation is accepted. The production UI
+retained one exact authorized physical USB target, rendered privacy-safe Device DNA truthfully,
+kept Guardian and First Light fail-closed, and shut down cleanly. The phone is released and this
+authorization is exhausted; no further physical-device action is implied.
+
+The automatic repair-research presentation remained guidance-only, did not block navigation, sent no
+raw serial or private evidence, and granted no authority. It is acceptable for this checkpoint. Its
+calmness and relevance should be observed during the next ordinary-user simulated journey rather
+than opening a separate audit loop.
+
+### Independent evidence
+
+- `27538d8` changes only `docs/sync/BUILD-STATUS.md`; product source, tests, packages, assets,
+  Companion, Windows work, and protected unrelated changes are untouched.
+- Product Assurance visually inspected the retained Command Deck and ROM Studio captures. They show
+  the named phone, `CONNECTED • READ ONLY`, Android 17, the protected-firmware prerequisite, no
+  active project, `NOT YET VERIFIED`, and Guardian `NOT YET READY` without a false success state.
+- The screenshot and sanitized-JSON SHA-256 values exactly match the handoff:
+  `f3968b87acb810cb4bdb340cc616b988f11280360071c0d8e5bb05753bca6f0c`,
+  `d120386c0ae344119e93bfec0c771f47760c1b598aedb8fdd950dd5a96215e33`, and
+  `43f624c2e8c07fdca292898232f4d2364bf8f0fe1489f3ddb320179d3f772827`.
+- Sanitized evidence records one USB target, zero device errors, Guardian unverified, execution
+  authority `none`, and First Light `NOT STARTED`.
+- A direct byte search found zero raw-serial occurrences in the retained workspace/evidence scope.
+- No repeated suite was needed because the unchanged product journey exposed no implementation
+  defect. Existing 2,881-test Fedora and focused Companion evidence remains non-double-counted.
+
+### Safety and gate result
+
+- Exact physical USB observation: **PASS**
+- Privacy-safe Device DNA and raw-serial exclusion: **PASS**
+- Guardian no-authority and First Light fail-closed truthfulness: **PASS**
+- ROM Studio protected-original prerequisite: **PASS**
+- Phone mutation, APK install, mode change, Recovery/Fastboot, flashing, signing, release, relock:
+  **NONE**
+- v0.2 Golden Foundation: **CLOSED; physical read-only discovery gap now verified on one device**
+
+### Approved next bounded task
+
+Run one ordinary-user, production-UI **SIMULATED** Fedora ROM Studio journey in a disposable isolated
+workspace. Use only sanitized synthetic firmware/Device DNA fixtures and injected non-consequential
+ADB/Fastboot/Recovery adapters; no real phone may be connected or targeted. Exercise the existing
+flow from project creation and protected-original import through evidence-derived Device DNA,
+Matrix/Nexus/Pathfinder presentation, candidate build/preparation, Guardian gating, and inert
+Recovery/result presentation as far as the current product truthfully supports.
+
+The purpose is to identify the first concrete user-facing dead end or correctness defect in an
+existing pre-v1.0 flow. If one appears, implement only its minimum freeze-safe correction and rerun
+only the affected segment. If the product correctly stops at a prerequisite, record that truthful
+boundary instead of inventing completion. Label all evidence `SIMULATED`; it grants no hardware,
+production, signing, release, or execution claim. Do not run broad suites, repeat accepted journeys,
+or create a general architecture/audit task. Commit and push the Build handoff, then stop for
+independent Product Assurance review.
+
 ## Creator-authorized physical checkpoint: 2026-09-08
 
 - Base checkpoint: `c415391`

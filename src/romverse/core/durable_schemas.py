@@ -649,8 +649,8 @@ DURABLE_SCHEMA_INVENTORY: tuple[DurableSchemaSpec, ...] = (
     _spec(
         "romverse.local-build-attempt",
         H,
-        1,
-        (1,),
+        3,
+        (1, 2, 3),
         "src/romverse/rom/build_execution.py",
         '"romverse.local-build-attempt"',
         "tests/test_build_contracts.py",

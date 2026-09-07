@@ -45,6 +45,7 @@ from romverse.rom.avb_evidence import (
     SourceAvbEvidenceService,
     SourceAvbTopologyReceipt,
 )
+from romverse.rom.build_execution import LocalBuildResumeState, LocalDeviceBuildExecutor
 from romverse.rom.builds import RomBuildPlanner
 from romverse.rom.inspection import RomInspectionService
 from romverse.rom.projects import RomProjectStore
@@ -654,6 +655,43 @@ def test_refresh_removes_stale_cards_and_footer_actions_remain_aligned(tmp_path)
         for right in footer_buttons[index + 1 :]
     )
     assert all(button.width() >= button.sizeHint().width() for button in footer_buttons)
+    control.close()
+    studio.close()
+
+
+def test_reopened_forge_surfaces_exact_resume_and_blocks_unknown_retry(
+    tmp_path, monkeypatch
+) -> None:
+    QApplication.instance() or QApplication([])
+    state = LocalBuildResumeState(
+        "resumable",
+        1,
+        7,
+        "",
+        "1 of 7 local-build steps have durable hash-verified evidence.",
+    )
+    monkeypatch.setattr(LocalDeviceBuildExecutor, "resume_state", lambda *_args: state)
+    studio = _studio(tmp_path)
+    control = BuildControlCenter(studio, auto_start=False)
+
+    assert control.build_button.isEnabled()
+    assert control.build_button.text() == "Resume verified local build"
+    assert "1 of 7 steps verified" in control.status.text()
+
+    unknown = LocalBuildResumeState(
+        "unknown",
+        1,
+        7,
+        "verify-erofs",
+        "The result of verify-erofs is UNKNOWN. ROMVERSE will not retry it automatically.",
+    )
+    monkeypatch.setattr(LocalDeviceBuildExecutor, "resume_state", lambda *_args: unknown)
+    control.refresh()
+
+    assert not control.build_button.isEnabled()
+    assert control.build_button.text() == "Local build needs review"
+    assert "UNKNOWN" in control.status.text()
+    assert "No automatic retry" in control.status.text()
     control.close()
     studio.close()
 

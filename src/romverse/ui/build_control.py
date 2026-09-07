@@ -7,6 +7,7 @@ from contextlib import suppress
 from dataclasses import asdict, is_dataclass
 from datetime import datetime
 from pathlib import Path
+from threading import Event
 
 from PySide6.QtCore import QObject, Qt, QTimer, Signal, Slot
 from PySide6.QtWidgets import (
@@ -1074,11 +1075,22 @@ class LocalBuildWorker(ManagedRunnable):
         self.executor = executor
         self.project_id = project_id
         self.signals = RebuildMetadataSignals()
+        self._pause_requested = Event()
+
+    def request_stop(self) -> None:
+        """Pause only after the current local step has a durable verified boundary."""
+
+        self._pause_requested.set()
 
     @Slot()
     def execute(self) -> None:
         try:
-            self.signals.complete.emit(self.executor.execute(self.project_id))
+            self.signals.complete.emit(
+                self.executor.execute(
+                    self.project_id,
+                    pause_requested=self._pause_requested.is_set,
+                )
+            )
         except (OSError, ProjectError) as exc:
             self.signals.failed.emit(str(exc))
 
@@ -1998,6 +2010,7 @@ class BuildControlCenter(QDialog):
             if self.report.local_candidate_ready
             else "Resolve the first unfinished evidence gate, then reassess automatically."
         )
+        self._apply_local_build_resume_state()
 
     @staticmethod
     def _resolution_button_label(remediation) -> str:
@@ -3597,14 +3610,7 @@ class BuildControlCenter(QDialog):
             or self.signing_worker is not None
         ):
             return
-        executor = LocalDeviceBuildExecutor(
-            self.studio.store,
-            self.studio.pack_registry,
-            self.studio.tool_statuses,
-            self.studio.filesystem_service.runner
-            if self.studio.filesystem_service is not None
-            else SubprocessRunner(),
-        )
+        executor = self._local_build_executor()
         self.build_worker = LocalBuildWorker(executor, self.project.project_id)
         self.build_worker.signals.complete.connect(self._build_complete)
         self.build_worker.signals.failed.connect(self._build_failed)
@@ -3660,12 +3666,48 @@ class BuildControlCenter(QDialog):
         self.signing_button.setEnabled(True)
         self.close_button.setEnabled(True)
         self.status.setText(message)
+        self._apply_local_build_resume_state()
         self._finish_preparation_console("forge-local-candidate", MissionState.FAILED)
         if self.autopilot_active and self.autopilot_waiting_for == "local-build":
             self._finish_autopilot(f"Local build stopped safely: {message}")
         else:
             QMessageBox.warning(self, "Local build stopped safely", message)
         self._source_online_guidance(message, "local-build")
+
+    def _local_build_executor(self) -> LocalDeviceBuildExecutor:
+        return LocalDeviceBuildExecutor(
+            self.studio.store,
+            self.studio.pack_registry,
+            self.studio.tool_statuses,
+            self.studio.filesystem_service.runner
+            if self.studio.filesystem_service is not None
+            else SubprocessRunner(),
+        )
+
+    def _apply_local_build_resume_state(self) -> None:
+        if self.build_worker is not None:
+            return
+        state = self._local_build_executor().resume_state(self.project.project_id)
+        if state.state == "resumable":
+            self.build_button.setEnabled(True)
+            self.build_button.setText("Resume verified local build")
+            self.build_button.setToolTip(
+                f"Resume after {state.completed_steps} of {state.total_steps} exact local steps. "
+                "Every saved artifact and tool identity is revalidated before continuing; no "
+                "phone transport is available."
+            )
+            self.status.setText(
+                f"Local build safely paused  •  {state.completed_steps} of "
+                f"{state.total_steps} steps verified  •  choose Resume verified local build  •  "
+                "phone changed: NO"
+            )
+        elif state.state in {"unknown", "invalid"}:
+            self.build_button.setEnabled(False)
+            self.build_button.setText("Local build needs review")
+            self.build_button.setToolTip(state.detail)
+            self.status.setText(state.detail + " No automatic retry is available.")
+        else:
+            self.build_button.setText("Build verified local candidate")
 
     def _has_exact_avb_contract(self) -> bool:
         project = self.studio.store.get(self.project.project_id)

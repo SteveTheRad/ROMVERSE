@@ -1,5 +1,108 @@
 # ROMVERSE Build Status
 
+## Windows managed-receipt persistence correction — Product Assurance review requested
+
+- Product Assurance correction: `a556d7da7b4d3525bc5fb1a516cbcdcedaaed799`
+- Implementation commit: `b881d5ac128bc4e6f3d03be1781ec200037ef00a`
+- Integration commit preserving the concurrent Build/Assurance history:
+  `6150e0ba2ef5a47514132972dc4887c13bd7706d`
+- Branch: `windows-launcher-authorized-work`
+- Status: the exact bounded receipt portability correction is implemented, focused-tested, built
+  once, and genuinely Windows-verified against the existing workspace. Device Engine recognizes the
+  existing ADB/Fastboot pair before and after one restart. Stop for independent Product Assurance.
+
+### Exact correction
+
+- `install_official_archive` now serializes every newly generated managed-package entry with a
+  canonical forward-slash relative path.
+- Receipt parsing separates canonical POSIX-form entries from one compatibility path. Backslashes
+  are accepted only when every entry uses the legacy form and the package is the exact official
+  Windows Platform Tools package/source already emitted by ROMVERSE.
+- A legacy component is rejected if it is drive-qualified, rooted, UNC, empty, `.`, `..`, contains
+  `:`, mixes slash forms, or attempts to leave the package.
+- The existing per-component `lstat`, no-symlink/no-junction, regular-file, resolved-boundary,
+  exact-file-set, schema/source, bounded receipt, and exact-file-hash checks still run after parsing.
+- Existing Windows receipts are verified in place; no receipt was edited and no package was
+  redownloaded. The original receipt and install plan retain their `05:24:02` and `05:24:01`
+  timestamps, respectively, from before the corrected build and launches.
+- No Companion, Device Engine, Guardian, Recovery, launcher, project, artifact contract, or product
+  behavior outside managed-package path portability changed.
+
+### Focused Windows verification
+
+- Final command:
+  `.venv\\Scripts\\python.exe -m pytest tests/test_toolchain_download.py -q --basetemp build/pytest-toolchain-receipt-20260908-final`
+- Final result: **31/31 passed** on Windows 11 x64 / Python 3.12.10.
+- The new deterministic coverage proves:
+  - canonical new receipt entries are `platform-tools/adb` and `platform-tools/fastboot`;
+  - the exact legacy `platform-tools\\adb.exe` / `platform-tools\\fastboot.exe` pair activates from
+    the existing receipt form without redownload and without duplicating PATH entries;
+  - drive, rooted, UNC, empty-component, dot, traversal, mixed-form, hash-tamper, and linked-component
+    inputs remain rejected.
+- The same file retains the existing archive traversal, ambiguous-binary, redirected-root, linked
+  package, candidate-flood, schema/source, exact-file-set, tamper, and boundary tests.
+- Two intermediate test-authoring runs reported **24 passed / 7 failed** because the new fixture
+  looked up a double-backslash literal instead of the exact one-backslash legacy key. The test data
+  was corrected; no product relaxation was made. The first run also encountered the known default
+  pytest temp-root cleanup permission error, so all decisive runs used a repository-local basetemp.
+- Ruff lint passed for both changed files. Ruff format passed for the changed test file. The source
+  file's pre-existing unrelated format-check findings remain unchanged and were not mechanically
+  reformatted outside this correction. `git diff --check` passed.
+- A source-backed production probe against the real workspace returned the exact managed Platform
+  Tools directory from both `verified_managed_directories` and `activate_verified_managed_tools`.
+
+### One authorized unsigned Windows build
+
+- Exact command:
+  `.venv\\Scripts\\python.exe scripts\\build_desktop_executable.py --output-directory build\\windows-dev-receipt-fixed --work-directory build\\windows-dev-receipt-fixed-pyinstaller`
+- Result: successful once with PyInstaller 6.22.2, Python 3.12.10, and
+  `Windows-11-10.0.26200-SP0`.
+- Executable:
+  `build/windows-dev-receipt-fixed/ROMVERSE/ROMVERSE.exe`
+- Size: `6,268,565` bytes.
+- SHA-256: `c6dcafcf56164b75c896c6195417299f9caebc8d2f60d592c73a7e0c2b2b11b9`.
+- Authenticode status: `NotSigned`, as required for this development checkpoint.
+- No ZIP, installer, APK, production signature, publication, or release was produced.
+
+### Genuine ready state and restart persistence
+
+- Both launches used the exact existing workspace:
+  `C:\\Work\\ROMVERSE-Link-Lazy-Frozen-20260907`.
+- First corrected launch reached the real Command Deck with `Connect your Android device`,
+  `Scan for device`, `No Android device detected`, and `No device connected`. The former
+  `Resolve Platform Tools`, `Device Engine needs attention`, and Platform Tools inactive error were
+  absent.
+- ROMVERSE was closed normally with the exact app window and reopened once. The restarted process
+  rendered the same ready/no-device state, proving restart persistence without redownload.
+- Exact workspace-local versions:
+  - ADB protocol `1.0.41`, Platform Tools `37.0.1-15733141`;
+  - Fastboot `37.0.1-15733141`.
+- The final restarted ROMVERSE process owned zero TCP listeners and zero UDP endpoints and was then
+  closed at the review checkpoint.
+- No phone, emulator, network ADB target, USB target, or physical device was connected, selected, or
+  operated. The only direct tool executions were the approved local `adb version` and
+  `fastboot --version` checks; no device-scoped command ran.
+
+### Provenance limitation retained for review
+
+- This correction follows Product Assurance commit `a556d7d` exactly and does not alter download
+  provenance or source selection. The existing route still records the measured digest from Google's
+  official moving `platform-tools-latest-windows.zip` URL rather than comparing it with a separately
+  predeclared upstream digest. Windows Build makes no stronger independent pinning claim; Product
+  Assurance should explicitly decide whether the existing receipt/source contract is sufficient.
+
+### Safety, scope, and next gate
+
+- Protected Companion files are clean and untouched. Only managed receipt source/tests and this
+  Build handoff changed after the same-branch assurance integration.
+- No physical execution, device authority, Recovery command, APK install, production adapter/trust,
+  global PATH or package installation, driver/firewall/security change, signing, publication,
+  release, destructive action, force-push, blind retry, or bootloader lock/relock occurred.
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty,
+  independent verification, feature freeze, and permanent no-relock remain intact.
+- Stop for independent Product Assurance review. Do not begin another correction, product slice,
+  hardware task, or release activity until the exact matching verdict is committed.
+
 ## Windows Platform Tools readiness — actionable blocked checkpoint
 
 - Product Assurance authorization: `6bbb86a8cad296a88392b808f0a9787c0c661afd`

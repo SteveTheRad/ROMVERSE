@@ -372,6 +372,108 @@ def ensure_private_directory(directory: Path, *, boundary: Path) -> Path:
         os.close(descriptor)
 
 
+def ensure_private_file(path: Path) -> None:
+    """Apply the host's owner-private contract to an existing regular file."""
+
+    if os.name == "nt":
+        _set_windows_private_file_acl(path)
+        return
+    path.chmod(0o600)
+
+
+def windows_private_file_acl(path: Path) -> tuple[tuple[str, int, bool], ...]:
+    """Return allow-ACE identities for a Windows private file, for contract checks."""
+
+    if os.name != "nt":
+        raise OSError("Windows ACL inspection requires Windows")
+
+    import ctypes
+    from ctypes import wintypes
+
+    class AclSizeInformation(ctypes.Structure):
+        _fields_ = (
+            ("ace_count", wintypes.DWORD),
+            ("acl_bytes_in_use", wintypes.DWORD),
+            ("acl_bytes_free", wintypes.DWORD),
+        )
+
+    advapi32 = ctypes.WinDLL("advapi32", use_last_error=True)
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    local_free = kernel32.LocalFree
+    local_free.argtypes = (ctypes.c_void_p,)
+    local_free.restype = ctypes.c_void_p
+    security_descriptor = ctypes.c_void_p()
+    dacl = ctypes.c_void_p()
+    get_security = advapi32.GetNamedSecurityInfoW
+    get_security.argtypes = (
+        wintypes.LPWSTR,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        ctypes.c_void_p,
+        ctypes.c_void_p,
+        ctypes.POINTER(ctypes.c_void_p),
+        ctypes.c_void_p,
+        ctypes.POINTER(ctypes.c_void_p),
+    )
+    get_security.restype = wintypes.DWORD
+    result = get_security(
+        str(path),
+        1,  # SE_FILE_OBJECT
+        0x00000004,  # DACL_SECURITY_INFORMATION
+        None,
+        None,
+        ctypes.byref(dacl),
+        None,
+        ctypes.byref(security_descriptor),
+    )
+    if result:
+        raise OSError(result, "Windows private-file ACL could not be read")
+    try:
+        information = AclSizeInformation()
+        get_acl_information = advapi32.GetAclInformation
+        get_acl_information.argtypes = (
+            ctypes.c_void_p,
+            ctypes.c_void_p,
+            wintypes.DWORD,
+            wintypes.DWORD,
+        )
+        get_acl_information.restype = wintypes.BOOL
+        if not get_acl_information(
+            dacl,
+            ctypes.byref(information),
+            ctypes.sizeof(information),
+            2,  # AclSizeInformation
+        ):
+            raise OSError(ctypes.get_last_error(), "Windows private-file ACL is invalid")
+        get_ace = advapi32.GetAce
+        get_ace.argtypes = (ctypes.c_void_p, wintypes.DWORD, ctypes.POINTER(ctypes.c_void_p))
+        get_ace.restype = wintypes.BOOL
+        convert_sid = advapi32.ConvertSidToStringSidW
+        convert_sid.argtypes = (ctypes.c_void_p, ctypes.POINTER(wintypes.LPWSTR))
+        convert_sid.restype = wintypes.BOOL
+        entries: list[tuple[str, int, bool]] = []
+        for index in range(information.ace_count):
+            ace = ctypes.c_void_p()
+            if not get_ace(dacl, index, ctypes.byref(ace)):
+                raise OSError(ctypes.get_last_error(), "Windows private-file ACE is invalid")
+            raw = ctypes.cast(ace, ctypes.POINTER(ctypes.c_ubyte))
+            ace_type = raw[0]
+            ace_flags = raw[1]
+            if ace_type != 0:  # ACCESS_ALLOWED_ACE_TYPE
+                continue
+            access_mask = ctypes.cast(ace.value + 4, ctypes.POINTER(wintypes.DWORD)).contents.value
+            sid_text = wintypes.LPWSTR()
+            if not convert_sid(ace.value + 8, ctypes.byref(sid_text)):
+                raise OSError(ctypes.get_last_error(), "Windows private-file SID is invalid")
+            try:
+                entries.append((sid_text.value, access_mask, bool(ace_flags & 0x10)))
+            finally:
+                local_free(sid_text)
+        return tuple(entries)
+    finally:
+        local_free(security_descriptor)
+
+
 def remove_regular_file(
     path: Path,
     *,
@@ -479,9 +581,8 @@ def _atomic_write_bytes_portable(path: Path, payload: bytes, *, boundary: Path) 
             with suppress(OSError):
                 os.close(descriptor)
             raise
+        ensure_private_file(temporary)
         os.replace(temporary, target)
-        with suppress(PermissionError):
-            target.chmod(0o600)
         with suppress(OSError):
             directory_fd = os.open(parent, os.O_RDONLY)
             try:
@@ -526,8 +627,7 @@ def _exclusive_create_bytes_portable(path: Path, payload: bytes, *, boundary: Pa
             with suppress(OSError):
                 os.close(descriptor)
             raise
-        with suppress(PermissionError):
-            target.chmod(0o600)
+        ensure_private_file(target)
         with suppress(OSError):
             directory_fd = os.open(parent, os.O_RDONLY)
             try:
@@ -541,6 +641,79 @@ def _exclusive_create_bytes_portable(path: Path, payload: bytes, *, boundary: Pa
         if isinstance(exc, LocalStoreError):
             raise
         raise LocalStoreError(f"Exclusive local evidence write failed: {exc}") from exc
+
+
+def _set_windows_private_file_acl(path: Path) -> None:
+    import ctypes
+    from ctypes import wintypes
+
+    advapi32 = ctypes.WinDLL("advapi32", use_last_error=True)
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    local_free = kernel32.LocalFree
+    local_free.argtypes = (ctypes.c_void_p,)
+    local_free.restype = ctypes.c_void_p
+    security_descriptor = ctypes.c_void_p()
+    convert = advapi32.ConvertStringSecurityDescriptorToSecurityDescriptorW
+    convert.argtypes = (
+        wintypes.LPCWSTR,
+        wintypes.DWORD,
+        ctypes.POINTER(ctypes.c_void_p),
+        ctypes.c_void_p,
+    )
+    convert.restype = wintypes.BOOL
+    if not convert(
+        "D:P(A;;FA;;;OW)(A;;FA;;;SY)",
+        1,  # SDDL_REVISION_1
+        ctypes.byref(security_descriptor),
+        None,
+    ):
+        raise OSError(ctypes.get_last_error(), "Windows private-file ACL could not be built")
+    try:
+        dacl_present = wintypes.BOOL()
+        dacl_defaulted = wintypes.BOOL()
+        dacl = ctypes.c_void_p()
+        get_dacl = advapi32.GetSecurityDescriptorDacl
+        get_dacl.argtypes = (
+            ctypes.c_void_p,
+            ctypes.POINTER(wintypes.BOOL),
+            ctypes.POINTER(ctypes.c_void_p),
+            ctypes.POINTER(wintypes.BOOL),
+        )
+        get_dacl.restype = wintypes.BOOL
+        if (
+            not get_dacl(
+                security_descriptor,
+                ctypes.byref(dacl_present),
+                ctypes.byref(dacl),
+                ctypes.byref(dacl_defaulted),
+            )
+            or not dacl_present
+        ):
+            raise OSError(ctypes.get_last_error(), "Windows private-file ACL has no DACL")
+        set_security = advapi32.SetNamedSecurityInfoW
+        set_security.argtypes = (
+            wintypes.LPWSTR,
+            wintypes.DWORD,
+            wintypes.DWORD,
+            ctypes.c_void_p,
+            ctypes.c_void_p,
+            ctypes.c_void_p,
+            ctypes.c_void_p,
+        )
+        set_security.restype = wintypes.DWORD
+        result = set_security(
+            str(path),
+            1,  # SE_FILE_OBJECT
+            0x80000004,  # PROTECTED_DACL_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION
+            None,
+            None,
+            dacl,
+            None,
+        )
+        if result:
+            raise OSError(result, "Windows private-file ACL could not be applied")
+    finally:
+        local_free(security_descriptor)
 
 
 def _read_json_object_portable(

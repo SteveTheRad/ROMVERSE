@@ -16,6 +16,7 @@ from romverse.infrastructure.local_store import (
     atomic_write_json,
     bounded_regular_files,
     ensure_private_directory,
+    ensure_private_file,
     read_json_object,
 )
 from romverse.rom.models import (
@@ -435,7 +436,7 @@ class RomProjectStore:
                 os.fsync(output_stream.fileno())
             if copied != source_size:
                 raise ProjectError("Time Machine snapshot copy ended before the source")
-            temporary.chmod(0o600)
+            ensure_private_file(temporary)
             copied_digest = _sha256(temporary, phase_progress(source_size * 2))
             source_after = source.stat()
             if (

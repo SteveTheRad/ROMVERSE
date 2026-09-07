@@ -466,7 +466,9 @@ class WindowsSubprocessRecoveryAdapterProcessRunner:
             raise
         try:
             opened = os.fstat(descriptor)
-            identity = WindowsSubprocessRecoveryAdapterProcessRunner._identity(opened)
+            identity = WindowsSubprocessRecoveryAdapterProcessRunner._descriptor_identity(
+                descriptor
+            )
             if (
                 not stat.S_ISREG(opened.st_mode)
                 or WindowsSubprocessRecoveryAdapterProcessRunner._is_reparse(opened)
@@ -485,9 +487,9 @@ class WindowsSubprocessRecoveryAdapterProcessRunner:
                             "Windows Recovery adapter exceeded its exact package size"
                         )
                     digest.update(block)
-            final = os.fstat(descriptor)
             if (
-                WindowsSubprocessRecoveryAdapterProcessRunner._identity(final) != identity
+                WindowsSubprocessRecoveryAdapterProcessRunner._descriptor_identity(descriptor)
+                != identity
                 or size != package.manifest.artifact.size_bytes
                 or digest.hexdigest() != package.manifest.artifact.sha256
             ):
@@ -513,9 +515,11 @@ class WindowsSubprocessRecoveryAdapterProcessRunner:
             return (
                 not WindowsSubprocessRecoveryAdapterProcessRunner._is_reparse(path_details)
                 and path_details.st_nlink == 1
-                and WindowsSubprocessRecoveryAdapterProcessRunner._identity(path_details)
+                and stat.S_ISREG(opened.st_mode)
+                and WindowsSubprocessRecoveryAdapterProcessRunner._path_identity(artifact)
                 == identity
-                and WindowsSubprocessRecoveryAdapterProcessRunner._identity(opened) == identity
+                and WindowsSubprocessRecoveryAdapterProcessRunner._descriptor_identity(descriptor)
+                == identity
             )
         except OSError:
             return False
@@ -540,14 +544,88 @@ class WindowsSubprocessRecoveryAdapterProcessRunner:
         return bool(attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400))
 
     @staticmethod
-    def _identity(details: os.stat_result) -> tuple[int, int, int, int, int, int]:
+    def _descriptor_identity(descriptor: int) -> tuple[int, int, int, int, int, int]:
+        import msvcrt
+
+        return WindowsSubprocessRecoveryAdapterProcessRunner._handle_identity(
+            msvcrt.get_osfhandle(descriptor)
+        )
+
+    @staticmethod
+    def _path_identity(artifact: Path) -> tuple[int, int, int, int, int, int]:
+        import ctypes
+        from ctypes import wintypes
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        create_file = kernel32.CreateFileW
+        create_file.argtypes = (
+            wintypes.LPCWSTR,
+            wintypes.DWORD,
+            wintypes.DWORD,
+            wintypes.LPVOID,
+            wintypes.DWORD,
+            wintypes.DWORD,
+            wintypes.HANDLE,
+        )
+        create_file.restype = wintypes.HANDLE
+        close_handle = kernel32.CloseHandle
+        close_handle.argtypes = (wintypes.HANDLE,)
+        close_handle.restype = wintypes.BOOL
+        handle = create_file(
+            str(artifact),
+            0x00000080,  # FILE_READ_ATTRIBUTES
+            0x00000001,  # FILE_SHARE_READ; pinned handle already denies write/delete
+            None,
+            3,  # OPEN_EXISTING
+            0x00200000,  # FILE_FLAG_OPEN_REPARSE_POINT
+            None,
+        )
+        invalid_handle = ctypes.c_void_p(-1).value
+        if handle in {None, invalid_handle}:
+            raise OSError(ctypes.get_last_error(), "Windows adapter path could not be opened")
+        try:
+            return WindowsSubprocessRecoveryAdapterProcessRunner._handle_identity(int(handle))
+        finally:
+            close_handle(handle)
+
+    @staticmethod
+    def _handle_identity(handle: int) -> tuple[int, int, int, int, int, int]:
+        """Return one Win32-native identity without CPython timestamp conversion."""
+
+        import ctypes
+        from ctypes import wintypes
+
+        class ByHandleFileInformation(ctypes.Structure):
+            _fields_ = (
+                ("file_attributes", wintypes.DWORD),
+                ("creation_time", wintypes.FILETIME),
+                ("last_access_time", wintypes.FILETIME),
+                ("last_write_time", wintypes.FILETIME),
+                ("volume_serial_number", wintypes.DWORD),
+                ("file_size_high", wintypes.DWORD),
+                ("file_size_low", wintypes.DWORD),
+                ("number_of_links", wintypes.DWORD),
+                ("file_index_high", wintypes.DWORD),
+                ("file_index_low", wintypes.DWORD),
+            )
+
+        info = ByHandleFileInformation()
+        get_information = ctypes.WinDLL("kernel32", use_last_error=True).GetFileInformationByHandle
+        get_information.argtypes = (wintypes.HANDLE, ctypes.POINTER(ByHandleFileInformation))
+        get_information.restype = wintypes.BOOL
+        if not get_information(handle, ctypes.byref(info)):
+            raise OSError(ctypes.get_last_error(), "Windows adapter identity could not be read")
+
+        def filetime(value: wintypes.FILETIME) -> int:
+            return (value.dwHighDateTime << 32) | value.dwLowDateTime
+
         return (
-            details.st_dev,
-            details.st_ino,
-            details.st_nlink,
-            details.st_size,
-            details.st_mtime_ns,
-            details.st_ctime_ns,
+            info.volume_serial_number,
+            (info.file_index_high << 32) | info.file_index_low,
+            info.number_of_links,
+            (info.file_size_high << 32) | info.file_size_low,
+            filetime(info.last_write_time),
+            filetime(info.creation_time),
         )
 
     @staticmethod

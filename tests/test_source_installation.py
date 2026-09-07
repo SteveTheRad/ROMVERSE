@@ -201,13 +201,31 @@ def test_tampered_recipe_cannot_create_unreviewed_partition_write(tmp_path):
         "../outside.img",
         "outputs/popsicle/../escape.img",
         "/absolute.img",
-        "windows\\boot.img",
     ],
 )
 def test_ambiguous_and_unsafe_archive_paths_are_rejected(tmp_path, extra):
     _store, project, service = _import(tmp_path, extras=((extra, b"untrusted"),))
     with pytest.raises(ProjectError, match="ambiguous|path"):
         service.prepare(project.project_id)
+
+
+def test_literal_backslash_archive_path_is_rejected_before_windows_normalization(tmp_path):
+    package = _package(tmp_path, extras=(("windows/boot.img", b"untrusted"),))
+    encoded = package.read_bytes()
+    safe_name = b"windows/boot.img"
+    unsafe_name = b"windows\\boot.img"
+    assert encoded.count(safe_name) == 2  # local header and central directory
+    package.write_bytes(encoded.replace(safe_name, unsafe_name))
+
+    with zipfile.ZipFile(package) as archive:
+        member = next(item for item in archive.infolist() if "windows" in item.orig_filename)
+        assert member.orig_filename == r"windows\boot.img"
+        assert member.filename == "windows/boot.img"
+
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.import_original(store.create("Source installation").project_id, package)
+    with pytest.raises(ProjectError, match="path"):
+        SourceInstallationService(store).prepare(project.project_id)
 
 
 def test_multiple_installer_roots_are_not_guessed(tmp_path):

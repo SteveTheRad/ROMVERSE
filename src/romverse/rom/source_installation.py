@@ -207,7 +207,10 @@ class SourceInstallationService:
             raise ProjectError("The source ZIP has an empty or excessively large member inventory.")
         members: dict[str, zipfile.ZipInfo] = {}
         for item in entries:
-            normalized = _safe_member(item.filename.rstrip("/"))
+            # ZipInfo.filename normalizes the host separator on construction. Validate
+            # orig_filename so a literal backslash from the archive cannot become an
+            # apparently safe forward-slash path on Windows.
+            normalized = _safe_member(item.orig_filename.rstrip("/"))
             if normalized in members:
                 raise ProjectError("The source ZIP contains duplicate or ambiguous member paths.")
             mode = item.external_attr >> 16

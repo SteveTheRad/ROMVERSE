@@ -8,9 +8,22 @@ from unittest.mock import patch
 
 import pytest
 
-from romverse.infrastructure.local_store import LocalStoreError
+from romverse.infrastructure.local_store import LocalStoreError, windows_private_file_acl
 from romverse.rom.models import ProjectError
 from romverse.rom.projects import RomProjectStore
+
+
+def _assert_private_file(path: Path) -> None:
+    if os.name == "nt":
+        entries = windows_private_file_acl(path)
+        assert len(entries) == 2
+        assert {sid for sid, _mask, _inherited in entries} == {
+            "S-1-3-4",  # OWNER RIGHTS
+            "S-1-5-18",  # LOCAL SYSTEM
+        }
+        assert all(mask == 0x1F01FF and not inherited for _sid, mask, inherited in entries)
+        return
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
 
 
 def test_create_and_reload_versioned_project(tmp_path):
@@ -24,7 +37,7 @@ def test_create_and_reload_versioned_project(tmp_path):
     assert data["format"] == "romverse.project"
     assert data["schema_version"] == 2
     assert len(data["manifest_digest"]) == 64
-    assert stat.S_IMODE(manifest.stat().st_mode) == 0o600
+    _assert_private_file(manifest)
 
 
 def test_project_manifest_rejects_extra_oversized_and_symlinked_records(tmp_path):
@@ -305,7 +318,7 @@ def test_working_copy_and_snapshot_are_verified_and_deduplicated(tmp_path):
     assert working.schema_version == 2
     assert len(working.record_digest) == 64
     working_record = store.projects_root / project.project_id / "working-copy.romverse"
-    assert stat.S_IMODE(working_record.stat().st_mode) == 0o600
+    _assert_private_file(working_record)
     assert json.loads(working_record.read_text())["format"] == "romverse.working-copy"
     assert store.working_copy(project.project_id) == working
     snapshot = store.create_snapshot(project.project_id)
@@ -313,8 +326,8 @@ def test_working_copy_and_snapshot_are_verified_and_deduplicated(tmp_path):
     assert len(snapshot.record_digest) == 64
     snapshot_record = store.snapshots_root / project.project_id / f"{snapshot.snapshot_id}.romverse"
     snapshot_artifact = store.workspace / snapshot.workspace_path
-    assert stat.S_IMODE(snapshot_record.stat().st_mode) == 0o600
-    assert stat.S_IMODE(snapshot_artifact.stat().st_mode) == 0o600
+    _assert_private_file(snapshot_record)
+    _assert_private_file(snapshot_artifact)
     verify_progress = []
     assert store.verify_snapshot(
         snapshot, progress=lambda done, total: verify_progress.append((done, total))

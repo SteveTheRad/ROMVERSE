@@ -1,5 +1,106 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: f8413bf
+
+- Handoff commit: `f8413bfe465e8bfd33d62a0a6cd92d3aa6572167`
+- Evidence commit: `ae13356696915189ad73e9b3cd9bfdfcefa11b3b`
+- Product Assurance authorization: `f5a06a7664c67c35d14a20286c1acc9ee1b6ba2e`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **CORRECTION REQUIRED — OPTIONAL LINK LISTENER BLOCKS UNRELATED WINDOWS STARTUP**
+
+### Decision
+
+Build stopped at the correct boundary. The real frozen application starts with a truthful missing-
+Platform-Tools state, but a Windows Security firewall dialog for inbound `ROMVERSE.exe` networking
+appears before the user can select `Resolve Platform Tools`. Automating that operating-system security
+decision or silently changing firewall policy is not acceptable.
+
+Repository inspection identifies the product cause: every `CompanionCenter` construction immediately
+constructs, binds, listens on, and starts the wireless `CompanionTransport` plus LAN discovery even in
+a fresh workspace with no remembered Companion session and before the user opens or requests Link.
+ROMVERSE Link is optional. It must not open an inbound network surface—or trigger a system permission
+prompt—while the user is pursuing an unrelated offline Device Engine action.
+
+This is a minimum Guided-friction and least-authority lifecycle correction within the existing Link
+feature, not a new feature and not a request to weaken Windows security.
+
+### Independent evidence
+
+- `ae13356` contains only the blocker screenshot; `f8413bf` contains only the Build handoff. The
+  application, frozen artifact, tests, host policy, and protected Companion files are unchanged.
+- Product Assurance independently verified the screenshot hash
+  `85a2e6fcfde4f4c0742eb8aaa795cbe2d05cec7d996ea2114e262d05f60b3e7e` and visually confirmed the
+  real Command Deck's `Device Engine needs attention` / `Resolve Platform Tools` state beneath the
+  modal Windows Security prompt.
+- The fresh isolated workspace had no Android tool bytes or receipts; host PATH contained neither
+  `adb` nor `fastboot`. No tool acquisition began, so no false readiness claim exists.
+- Source inspection confirms `CompanionCenter.__init__` unconditionally calls
+  `self.transport.start()`. `CompanionTransport` has already created and activated an
+  `0.0.0.0` HTTP server socket during construction, and `start()` launches both the HTTPS serving
+  thread and broadcast discovery thread.
+- The product was closed, no ROMVERSE process remained, and no firewall choice, global PATH change,
+  download, driver, phone, ADB/Fastboot device command, or Recovery action occurred.
+
+### Required minimum correction
+
+Correct only the existing Desktop Companion-Link network lifecycle:
+
+1. In a fresh workspace with no remembered approved session, constructing/opening ROMVERSE must not
+   bind or listen on an inbound Companion socket, start LAN discovery, or request firewall access.
+2. Start the existing Link endpoint only after the user invokes an existing pairing action such as
+   `Generate wireless code` or an eligible USB-pairing action. The UI must remain able to present that
+   action before a socket is opened and must surface a bounded unavailable result if startup fails.
+3. Preserve legitimate remembered-session reconnection. A previously explicit, still-valid approved
+   Link may resume according to the existing contract; fresh/unpaired startup may not manufacture that
+   authorization.
+4. Preserve TLS identity, short-lived code, exact safety-code comparison, Desktop approval,
+   read-only telemetry, revocation/reset, shutdown, fixed bounded listener behavior, privacy filtering,
+   and `execution_authority: none`.
+5. Add/update only directly affected lifecycle tests proving no fresh-start listener/discovery, one
+   explicit start on pairing intent, fail-closed startup error, remembered-session behavior, and clean
+   shutdown. Do not redesign Link or Device Engine.
+
+Expected scope is the minimum relevant Desktop Companion transport/center source and its focused
+tests, plus required build/handoff evidence. Do not alter Windows Firewall, add an exemption, suppress
+the system prompt, use a different port as a workaround, disable TLS, change Companion Android source,
+or touch Guardian/Recovery authority.
+
+### Acceptance criteria
+
+- A focused deterministic test proves a fresh unpaired `CompanionCenter` owns no listening socket or
+  discovery thread until an existing explicit pairing action is invoked.
+- The directly affected Companion transport/center tests pass on Windows and Linux; no broad suite is
+  required.
+- One Windows source launch in a fresh isolated workspace reaches the visible Command Deck and
+  `Resolve Platform Tools` without an unsolicited firewall dialog or Companion listener.
+- Rebuild the unsigned frozen development executable once from the corrected source, then repeat that
+  same fresh-workspace startup. Do not rebuild/repackage repeatedly and do not rerun the inert Guided
+  journey.
+- Resume the already approved real Device Engine/toolchain readiness journey in that corrected frozen
+  application. If a new genuine product blocker appears, preserve it and stop; do not loop or broaden
+  the change.
+- No firewall/security policy change, system-wide install, global PATH mutation, phone, driver,
+  ADB/Fastboot device operation, Recovery execution, relock, production signing, publication, or
+  release occurs.
+- Update `docs/sync/BUILD-STATUS.md`, commit and push the exact correction/result, and stop for
+  independent review.
+
+### Approved next bounded task
+
+Implement only the lazy, intent-bound Companion listener lifecycle correction above and use the
+single corrected frozen build to continue the interrupted Windows Device Engine readiness journey.
+Testing is acceptance evidence for that product outcome, not a new test campaign.
+
+### Gate status
+
+- Fedora runnable development build and inert Guided journey: **VERIFIED**
+- Windows runnable development build and inert Guided journey: **VERIFIED**
+- Windows Device Engine/toolchain operability: **BLOCKED BY MINIMUM OPTIONAL-NETWORK LIFECYCLE DEFECT**
+- Windows Firewall/security change: **NOT AUTHORIZED OR REQUIRED**
+- Companion Android source: separate Linux integration track; unchanged here
+- v0.2 Golden Foundation: **CLOSED pending physical, production-trust, signing, and release gates**
+- Physical hardware, production Recovery/trust, signing, publication, and release: not authorized
+
 ## Reviewed checkpoint: 7642cad
 
 - Handoff commit: `7642cad98d2501588d9b6829b132c01c1f8798b7`

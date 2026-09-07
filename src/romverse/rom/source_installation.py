@@ -400,7 +400,12 @@ class SourceInstallationService:
 
     @staticmethod
     def _fingerprint(info):
-        return info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns
+        # CPython's Windows handle-stat and path-stat implementations can expose the
+        # same NTFS creation time with different sub-millisecond rounding. Device and
+        # file indexes still provide same-file identity; size and mtime retain the
+        # content-race guard. Keep the stricter ctime comparison on POSIX hosts.
+        ctime_ns = None if os.name == "nt" else info.st_ctime_ns
+        return info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, ctime_ns
 
 
 def _safe_member(name: str) -> str:

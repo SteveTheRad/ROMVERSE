@@ -9,7 +9,7 @@ from subprocess import CompletedProcess
 import pytest
 
 from romverse.app import build_parser
-from scripts.build_desktop_executable import pyinstaller_arguments
+from scripts.build_desktop_executable import pyinstaller_arguments, windows_build_path
 from scripts.package_desktop_bundle import package_bundle, verify_bundle_archive
 from scripts.smoke_frozen_desktop import smoke_frozen_desktop
 
@@ -93,6 +93,24 @@ def test_pyinstaller_build_collects_package_data_and_submodules(tmp_path: Path) 
     assert "--collect-data=romverse" in arguments
     assert "--collect-submodules=romverse" in arguments
     assert str(repository / "src" / "romverse" / "__main__.py") == arguments[-1]
+
+
+def test_windows_build_path_rejects_only_non_system_icu_shadow(tmp_path: Path) -> None:
+    system_root = tmp_path / "Windows"
+    system32 = system_root / "System32"
+    shadow = tmp_path / "third-party"
+    ordinary = tmp_path / "ordinary"
+    for directory in (system32, shadow, ordinary):
+        directory.mkdir(parents=True)
+    (system32 / "icuuc.dll").write_bytes(b"windows-api-shim")
+    (shadow / "icuuc.dll").write_bytes(b"unrelated-icu-runtime")
+
+    sanitized = windows_build_path(
+        ";".join((str(shadow), str(ordinary), str(system32))),
+        system_root,
+    )
+
+    assert sanitized.split(";") == [str(ordinary), str(system32)]
 
 
 def test_release_smoke_flag_is_explicit_and_phone_neutral() -> None:

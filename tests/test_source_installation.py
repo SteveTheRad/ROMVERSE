@@ -8,6 +8,7 @@ import struct
 import zipfile
 from dataclasses import replace
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -62,6 +63,25 @@ def _import(tmp_path, **kwargs):
 def test_fixture_is_the_complete_exact_reviewed_script():
     assert hashlib.sha256(SCRIPT.read_bytes()).hexdigest() == POPSICLE_SCRIPT_SHA256
     assert len(POPSICLE_PHYSICAL_PARTITIONS) == 47
+
+
+def test_windows_fingerprint_ignores_only_creation_time_rounding(monkeypatch):
+    shared = {
+        "st_dev": 7,
+        "st_ino": 11,
+        "st_size": 13,
+        "st_mtime_ns": 17,
+    }
+    monkeypatch.setattr(os, "name", "nt")
+
+    assert SourceInstallationService._fingerprint(
+        SimpleNamespace(**shared, st_ctime_ns=19)
+    ) == SourceInstallationService._fingerprint(SimpleNamespace(**shared, st_ctime_ns=23))
+    assert SourceInstallationService._fingerprint(
+        SimpleNamespace(**shared, st_ctime_ns=19)
+    ) != SourceInstallationService._fingerprint(
+        SimpleNamespace(**{**shared, "st_mtime_ns": 29}, st_ctime_ns=19)
+    )
 
 
 @pytest.mark.parametrize(

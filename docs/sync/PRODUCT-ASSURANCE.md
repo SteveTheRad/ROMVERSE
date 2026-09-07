@@ -1,5 +1,46 @@
 # ROMVERSE Product Assurance
 
+## Creator-authorized physical checkpoint: 2026-09-08
+
+- Base checkpoint: `c415391`
+- Branch: `linux/stage1-desktop-readiness`
+- Authorization status: **APPROVED — ONE CONTROLLED READ-ONLY PHYSICAL ANDROID JOURNEY**
+
+### Decision
+
+Steve connected a phone to the Linux host immediately after Product Assurance requested explicit
+authorization for controlled read-only physical Android verification. Read-only preflight observed
+exactly one authorized ADB target with explicit `usb:3-1` transport evidence, product/device identity
+`popsicle`, and model `2509FPN0BC`. The raw serial is intentionally not recorded here.
+
+This authorizes one bounded real-product Device Engine / First Light observation journey on Linux.
+It does not authorize a build, flash, wipe, unlock, reboot, Recovery or Fastboot transition, APK
+installation, root action, production trust enrollment, signing, publication, release, or relock.
+
+### Approved next bounded task
+
+Using the existing approved Fedora development build and a fresh isolated workspace, exercise the
+production Device Engine / First Light read-only discovery path against the one current physical USB
+target. Require one unambiguous authorized target throughout. Capture only product-generated,
+privacy-safe evidence for target classification, observable mode/identity, Device DNA/First Light
+state, Guardian authority state, and any truthful actionable blocker. Do not persist the raw serial.
+
+Do not issue a state-changing device command, install the Companion APK, enter another device mode,
+or manufacture execution readiness. If the target changes, multiplies, disconnects, becomes
+unauthorized, or any evidence is uncertain, classify the result as `UNKNOWN` or specifically blocked
+and stop. Reuse existing accepted tests; run only a focused check if the journey exposes a concrete
+defect. Commit and push the Build handoff, then stop for independent Product Assurance review.
+
+### Acceptance criteria
+
+- Exactly one explicit physical USB target remains unambiguous: **REQUIRED**
+- Production UI truthfully identifies the observable target and mode: **REQUIRED**
+- First Light / Device DNA evidence is read-only, bounded, and privacy-safe: **REQUIRED**
+- Guardian grants no execution authority: **REQUIRED**
+- Uncertainty, disconnect, authorization loss, or identity change fails closed: **REQUIRED**
+- No APK, reboot, mode transition, flashing, Recovery, trust enrollment, signing, release, or relock:
+  **REQUIRED**
+
 ## Reviewed checkpoint: 1ecb0d1
 
 - Handoff commit: `1ecb0d1`

@@ -1,5 +1,71 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 7c52c02 — Windows Guided/Forge synchronization
+
+- Handoff commit: `7c52c02bb6bc2be77ae1d9cfb39d27730f8aaba0`
+- Synchronized implementation commits: `ab2c650b6391c4f1f369df712c0d5258452ca5f6`,
+  `e73f72dd36f975fd504b2f6b2663cc42e3e8f869`
+- Approved upstream commits: `392b21eb90966b09f089ed9b8f3dac29e5fedf8d`,
+  `37e2ee27d9373d90e6a3cd71cb31fcadb64f415b`
+- Previous Windows approval: `a0740bd0d718d82e1c3c649aee86aec1564652e2`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — PLATFORM-NEUTRAL GUIDED/FORGE CORRECTIONS SYNCHRONIZED**
+
+### Decision
+
+The Windows branch now contains the two already approved platform-neutral correctness fixes without
+copying Linux-only handoff history or broadening product scope. The Guided build-stage pause names
+Forge Control truthfully, and exact source-derived inputs are refrozen only after successful
+preparation and before the worker reports completion. Both patches are byte-independent but
+patch-identical to their approved Linux sources.
+
+### Independent repository evidence
+
+- Stable patch ID `f0de2e4427782bafaa91d1b0d62e5a306f56b560d` matches for `ab2c650` and
+  `392b21e`; stable patch ID `13bb12c29e7e442ae67f4ccfaf562f5084fb2cac` matches for
+  `e73f72d` and `37e2ee2`.
+- `ab2c650` changes only `guided_mission.py` and its exact focused UI regression. `e73f72d`
+  changes only `build_control.py` and its exact final-tree regression. `7c52c02` changes only the
+  Build handoff. Protected Companion files and all launcher, Device Engine, Guardian, Recovery,
+  packaging, signing and release source remain untouched.
+- Product Assurance inspected the exact diffs and confirmed the build-stage/optional-install label
+  distinction and the successful-preparation ordering. The later exact planner verification remains
+  present; failure still exits through the existing managed error path.
+- Build's Windows focused result: **2/2 passed**. Ruff and Git whitespace checks passed. One bounded
+  source-level production-UI affected segment also passed and remained explicitly `SIMULATED` with
+  zero physical targets, zero ADB/Fastboot commands and no execution authority.
+
+### Vision, freeze and safety result
+
+- Approved vision and Guided friction: **PASS** — the user is directed to the surface that actually
+  owns the blocked build requirement.
+- Evidence integrity: **PASS** — the plan binds the final prepared source-derived tree rather than a
+  stale pre-preparation snapshot.
+- Feature freeze: **PASS** — these are previously approved correctness fixes, not a new feature.
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty, no
+  blind retry, independent verification and permanent no-relock: **PRESERVED**.
+- Physical phone, Recovery, production trust/signing, publication and release activity: **NONE**.
+
+### Approved next bounded task
+
+Do not duplicate the Linux track's active local-build interruption/resume journey. Keep this clean
+Windows checkpoint ready and monitor the authoritative `linux/stage1-desktop-readiness` branch for
+that journey's Product Assurance verdict. When it is approved, synchronize only any resulting
+platform-neutral source/test correction onto Windows and run its exact focused Windows acceptance
+check. If the Linux checkpoint contains no product source change, do not manufacture a Windows
+change or rebuild; record the no-op comparison and return for the next material cross-platform
+slice. Do not merge Linux documentation history, run a broad suite, rebuild the executable, target
+a phone/emulator, invoke Recovery, change Companion, sign, publish, release, force-push or relock.
+
+### Gate status
+
+- Pinned Windows runnable development build and no-device readiness: **VERIFIED**
+- Approved platform-neutral Guided/Forge fixes on Windows: **VERIFIED**
+- Linux interruption/restart truthfulness: **ACTIVE INDEPENDENT TRACK; WINDOWS MUST NOT DUPLICATE**
+- Next consolidated unsigned Windows artifact: **DEFERRED UNTIL THE NEXT MATERIAL SOURCE MILESTONE**
+- v0.2 Golden Foundation: **CLOSED**
+- Physical hardware, production Recovery/trust, signing, publication and release: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: 61efda1 — pinned Windows development build readiness
 
 - Handoff commit: `61efda1`

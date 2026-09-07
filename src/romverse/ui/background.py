@@ -157,6 +157,13 @@ class BackgroundTaskSupervisor(QObject):
         self._shutting_down = True
         self.pool.clear()
         workers = tuple(self._active.values()) + tuple(self._retired)
+        # Workers with durable local checkpoints may cooperatively stop only after
+        # their current bounded step has been observed and saved. Operations without
+        # this contract retain their existing shutdown behavior.
+        for worker in workers:
+            request_stop = getattr(worker, "request_stop", None)
+            if callable(request_stop):
+                request_stop()
         # No result callback should target a page while its widget tree is closing.
         # Disconnecting the GUI bridges is thread-safe; the operation bodies remain
         # bounded and are allowed to unwind normally below.

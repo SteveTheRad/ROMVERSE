@@ -383,7 +383,10 @@ def test_local_executor_builds_versioned_candidate_and_verifies_every_partition(
     assert all(f"build-candidates/{plan.plan_id}" in item.path for item in receipt.outputs)
     assert not any("adb" in call[0] or "fastboot" in call[0] for call in runner.calls)
     attempt = store.projects_root / project.project_id / executor.ATTEMPT_NAME
-    assert json.loads(attempt.read_text())["status"] == "success"
+    attempt_payload = json.loads(attempt.read_text())
+    assert attempt_payload["state"] == "success"
+    assert attempt_payload["schema_version"] == 3
+    assert len(attempt_payload["completed_steps"]) == 7
     assert stat.S_IMODE(attempt.stat().st_mode) == 0o600
     output_receipt = (
         store.working_root
@@ -477,7 +480,15 @@ def test_local_build_preserves_strict_schema_one_receipt_compatibility(tmp_path)
     )
     executor.execute(project.project_id)
     attempt = store.projects_root / project.project_id / executor.ATTEMPT_NAME
-    payload = json.loads(attempt.read_text())
+    output_receipt = (
+        store.working_root
+        / project.project_id
+        / "build-candidates"
+        / DeviceBuildContractService(store, registry, tools).load(project.project_id).plan_id
+        / executor.RECEIPT_NAME
+    )
+    payload = json.loads(output_receipt.read_text())
+    payload["format"] = "romverse.local-build-attempt"
     payload["schema_version"] = 1
     payload.pop("toolchain_manifest_digest")
     unsigned = {key: value for key, value in payload.items() if key != "format"}
@@ -530,10 +541,74 @@ def test_local_executor_stops_when_a_locked_tool_changes_during_build(tmp_path):
 
     attempt = store.projects_root / project.project_id / executor.ATTEMPT_NAME
     payload = json.loads(attempt.read_text())
-    assert payload["status"] == "failed"
-    assert payload["schema_version"] == 2
+    assert payload["state"] == "unknown"
+    assert payload["schema_version"] == 3
+    assert payload["active_step_id"] == "rebuild-erofs"
     assert len(payload["toolchain_manifest_digest"]) == 64
     assert payload["phone_changed"] is False
+
+
+def test_local_build_resumes_only_from_a_hash_verified_step_boundary(tmp_path):
+    store, project, registry, _tools, _metadata, partitions = _fixture(tmp_path)
+    tools = _executable_tools(tmp_path / "tools")
+    DeviceBuildContractService(store, registry, tools).create_plan(project.project_id)
+    first_runner = _BuildRunner(partitions / "system.img")
+    first = LocalDeviceBuildExecutor(store, registry, tools, first_runner)
+
+    with pytest.raises(ProjectError, match="paused after 1 verified step"):
+        first.execute(project.project_id, pause_requested=lambda: True)
+
+    state = first.resume_state(project.project_id)
+    assert state.state == "resumable"
+    assert state.completed_steps == 1
+    assert state.total_steps == 7
+    attempt = json.loads(
+        (store.projects_root / project.project_id / first.ATTEMPT_NAME).read_text()
+    )
+    assert attempt["state"] == "step-complete"
+    assert attempt["active_step_id"] == ""
+    assert [step["step_id"] for step in attempt["completed_steps"]] == ["rebuild-erofs"]
+    assert len(attempt["artifacts"]) == 1
+
+    second_runner = _BuildRunner(partitions / "system.img")
+    reopened = LocalDeviceBuildExecutor(store, registry, tools, second_runner)
+    receipt = reopened.execute(project.project_id)
+
+    assert receipt.status == "success"
+    assert reopened.load_receipt(project.project_id) == receipt
+    assert all("fakeroot" not in Path(call[0]).name for call in second_runner.calls)
+    assert any("fsck.erofs" in Path(call[0]).name for call in second_runner.calls)
+
+
+def test_in_flight_local_build_becomes_unknown_and_is_never_retried(tmp_path):
+    store, project, registry, _tools, _metadata, partitions = _fixture(tmp_path)
+    tools = _executable_tools(tmp_path / "tools")
+    DeviceBuildContractService(store, registry, tools).create_plan(project.project_id)
+
+    class InterruptedRunner(_BuildRunner):
+        def run(self, args, timeout=10, cwd=None):
+            self.calls.append(tuple(map(str, args)))
+            raise KeyboardInterrupt
+
+    interrupted_runner = InterruptedRunner(partitions / "system.img")
+    interrupted = LocalDeviceBuildExecutor(store, registry, tools, interrupted_runner)
+    with pytest.raises(KeyboardInterrupt):
+        interrupted.execute(project.project_id)
+
+    state = interrupted.resume_state(project.project_id)
+    assert state.state == "unknown"
+    assert state.active_step_id == "rebuild-erofs"
+    retry_runner = _BuildRunner(partitions / "system.img")
+    reopened = LocalDeviceBuildExecutor(store, registry, tools, retry_runner)
+    with pytest.raises(ProjectError, match="outcome is UNKNOWN"):
+        reopened.execute(project.project_id)
+
+    assert retry_runner.calls == []
+    attempt = json.loads(
+        (store.projects_root / project.project_id / reopened.ATTEMPT_NAME).read_text()
+    )
+    assert attempt["state"] == "unknown"
+    assert attempt["active_step_id"] == "rebuild-erofs"
 
 
 def test_local_build_executes_preserved_managed_version_when_active_source_updates(
@@ -563,9 +638,7 @@ def test_local_build_executes_preserved_managed_version_when_active_source_updat
         encoding="utf-8",
     )
     tools = tuple(
-        ToolStatus("AVBTool", True, str(managed_avb), "1")
-        if item.name == "AVBTool"
-        else item
+        ToolStatus("AVBTool", True, str(managed_avb), "1") if item.name == "AVBTool" else item
         for item in tools
     )
     DeviceBuildContractService(store, registry, tools).create_plan(project.project_id)

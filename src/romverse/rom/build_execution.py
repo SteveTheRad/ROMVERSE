@@ -6,6 +6,7 @@ import os
 import platform
 import re
 import shutil
+from collections.abc import Callable, Iterable
 from dataclasses import asdict, dataclass, fields
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -16,6 +17,7 @@ from romverse.infrastructure.local_store import atomic_write_json, read_json_obj
 from romverse.infrastructure.process import CommandResult, CommandRunner
 from romverse.infrastructure.toolchain_evidence import (
     ToolchainEvidenceError,
+    ToolchainEvidenceManifest,
     ToolchainEvidenceService,
 )
 from romverse.infrastructure.toolchain_versions import (
@@ -71,6 +73,44 @@ class LocalBuildReceipt:
     toolchain_manifest_digest: str = ""
 
 
+@dataclass(frozen=True, slots=True)
+class BuildCheckpointArtifact:
+    path: str
+    size_bytes: int
+    modified_ns: int
+    sha256: str
+
+
+@dataclass(frozen=True, slots=True)
+class LocalBuildAttempt:
+    """Durable local-only step boundary; it never grants device authority."""
+
+    schema_version: int
+    project_id: str
+    plan_id: str
+    plan_digest: str
+    contract_id: str
+    started_at: str
+    updated_at: str
+    state: str
+    active_step_id: str
+    completed_steps: tuple[BuildStepReceipt, ...]
+    artifacts: tuple[BuildCheckpointArtifact, ...]
+    toolchain_manifest_digest: str
+    failure: str
+    phone_changed: bool
+    attempt_digest: str
+
+
+@dataclass(frozen=True, slots=True)
+class LocalBuildResumeState:
+    state: str
+    completed_steps: int
+    total_steps: int
+    active_step_id: str
+    detail: str
+
+
 class LocalDeviceBuildExecutor:
     """Execute an exact Device Pack plan locally; this class has no device transport."""
 
@@ -80,6 +120,7 @@ class LocalDeviceBuildExecutor:
     MAX_RECEIPT_BYTES = 2 * 1024 * 1024
     MAX_STEPS = 128
     MAX_OUTPUTS = 64
+    ATTEMPT_SCHEMA_VERSION = 3
     TOOL_MAP = {
         "fakeroot": "Fakeroot",
         "fsck.erofs": "EROFS Verifier",
@@ -105,7 +146,12 @@ class LocalDeviceBuildExecutor:
         self.runner = runner
         self.contracts = DeviceBuildContractService(store, registry, tool_statuses)
 
-    def execute(self, project_id: str) -> LocalBuildReceipt:
+    def execute(
+        self,
+        project_id: str,
+        *,
+        pause_requested: Callable[[], bool] | None = None,
+    ) -> LocalBuildReceipt:
         plan = self.contracts.verify_for_execution(project_id)
         project = self.store.get(project_id)
         pack = next(
@@ -115,16 +161,10 @@ class LocalDeviceBuildExecutor:
         if pack is None or pack.build_contract is None:
             raise ProjectError("Exact Device Pack build contract is unavailable")
         contract = pack.build_contract
-        tools = self._verified_tools()
-        toolchain_manifest_digest, locked_tool_hashes, tools = self._capture_toolchain(
-            project_id,
-            tools,
-        )
         output_root = self._output_root(project_id, plan.plan_id)
-        if output_root.exists():
-            raise ProjectError(
-                "This versioned build output already exists; create a fresh plan before retrying"
-            )
+        completed = self.load_receipt(project_id)
+        if completed is not None:
+            return completed
         required_free = (
             contract.super_size_bytes
             + sum(rule.source_size_bytes for rule in contract.partitions)
@@ -137,32 +177,164 @@ class LocalDeviceBuildExecutor:
                 f"Local build requires at least {_byte_label(required_free)} free; "
                 f"{_byte_label(free)} is available"
             )
-        output_root.mkdir(parents=True)
         logs = output_root / "logs"
-        logs.mkdir()
-        started = _now()
-        step_receipts: list[BuildStepReceipt] = []
-        active_step = "preflight"
-        try:
-            for step in plan.steps:
-                active_step = step.step_id
-                step_receipts.append(
-                    self._execute_step(
-                        step,
+        current_tools = self._verified_tools()
+        if output_root.exists():
+            attempt = self._load_current_attempt(project_id, plan, contract)
+            if attempt is None:
+                raise ProjectError(
+                    "An incomplete local build exists without a valid checkpoint. "
+                    "ROMVERSE will not guess, overwrite it, or retry it automatically."
+                )
+            if attempt.state in {"step-intent", "unknown"}:
+                if attempt.state == "step-intent":
+                    attempt = self._attempt(
+                        project_id,
                         plan,
                         contract,
-                        tools,
-                        locked_tool_hashes,
-                        output_root,
-                        logs,
+                        attempt.started_at,
+                        "unknown",
+                        attempt.active_step_id,
+                        attempt.completed_steps,
+                        attempt.artifacts,
+                        attempt.toolchain_manifest_digest,
+                        (
+                            "The application stopped after dispatch may have begun; the exact "
+                            "step result is unknown."
+                        ),
+                    )
+                    self._record_attempt(attempt)
+                raise ProjectError(
+                    f"Local build outcome is UNKNOWN at {attempt.active_step_id}. "
+                    "ROMVERSE will not blindly retry an action whose completion cannot be proven."
+                )
+            manifest, locked_tool_hashes, tools = self._resume_toolchain(
+                project_id,
+                current_tools,
+                attempt.toolchain_manifest_digest,
+            )
+            toolchain_manifest_digest = manifest.manifest_digest
+            started = attempt.started_at
+            step_receipts = list(attempt.completed_steps)
+            artifacts = {item.path: item for item in attempt.artifacts}
+        else:
+            toolchain_manifest_digest, locked_tool_hashes, tools = self._capture_toolchain(
+                project_id,
+                current_tools,
+            )
+            output_root.mkdir(parents=True)
+            logs.mkdir()
+            started = _now()
+            step_receipts = []
+            artifacts: dict[str, BuildCheckpointArtifact] = {}
+            self._record_attempt(
+                self._attempt(
+                    project_id,
+                    plan,
+                    contract,
+                    started,
+                    "ready",
+                    "",
+                    (),
+                    (),
+                    toolchain_manifest_digest,
+                    "",
+                )
+            )
+
+        for step in plan.steps[len(step_receipts) :]:
+            self._assert_checkpoint_artifacts(artifacts.values(), output_root)
+            intent = self._attempt(
+                project_id,
+                plan,
+                contract,
+                started,
+                "step-intent",
+                step.step_id,
+                tuple(step_receipts),
+                tuple(sorted(artifacts.values(), key=lambda item: item.path)),
+                toolchain_manifest_digest,
+                "",
+            )
+            self._record_attempt(intent)
+            try:
+                step_receipt = self._execute_step(
+                    step,
+                    plan,
+                    contract,
+                    tools,
+                    locked_tool_hashes,
+                    output_root,
+                    logs,
+                )
+                step_receipts.append(step_receipt)
+                for relative in step.outputs:
+                    artifact = self._checkpoint_artifact(relative, output_root)
+                    artifacts[artifact.path] = artifact
+                self._record_attempt(
+                    self._attempt(
+                        project_id,
+                        plan,
+                        contract,
+                        started,
+                        "step-complete",
+                        "",
+                        tuple(step_receipts),
+                        tuple(sorted(artifacts.values(), key=lambda item: item.path)),
+                        toolchain_manifest_digest,
+                        "",
                     )
                 )
-            self._assert_locked_tools(tools, locked_tool_hashes)
-            outputs = tuple(
-                self._output_receipt(output_root / name, name, project_id)
-                for name in plan.expected_outputs
-            )
-            receipt = self._receipt(
+            except (OSError, ProjectError) as exc:
+                failure = f"{step.step_id}: {exc}"
+                self._record_attempt(
+                    self._attempt(
+                        project_id,
+                        plan,
+                        contract,
+                        started,
+                        "unknown",
+                        step.step_id,
+                        tuple(step_receipts),
+                        tuple(sorted(artifacts.values(), key=lambda item: item.path)),
+                        toolchain_manifest_digest,
+                        failure,
+                    )
+                )
+                raise ProjectError(
+                    f"Local build stopped with an UNKNOWN result at {failure}. "
+                    "ROMVERSE will not retry it automatically."
+                ) from exc
+            if pause_requested is not None and pause_requested():
+                raise ProjectError(
+                    f"Local build paused after {len(step_receipts)} verified step(s). "
+                    "Reopen Forge Control to continue from this exact checkpoint."
+                )
+
+        self._assert_locked_tools(tools, locked_tool_hashes)
+        outputs = tuple(
+            self._output_receipt(output_root / name, name, project_id)
+            for name in plan.expected_outputs
+        )
+        receipt = self._receipt(
+            project_id,
+            plan,
+            contract,
+            started,
+            "success",
+            "",
+            tuple(step_receipts),
+            outputs,
+            toolchain_manifest_digest,
+        )
+        atomic_write_json(
+            output_root / self.RECEIPT_NAME,
+            {"format": "romverse.local-build-receipt", **asdict(receipt)},
+            boundary=self.store.workspace,
+            maximum_bytes=self.MAX_RECEIPT_BYTES,
+        )
+        self._record_attempt(
+            self._attempt(
                 project_id,
                 plan,
                 contract,
@@ -170,32 +342,12 @@ class LocalDeviceBuildExecutor:
                 "success",
                 "",
                 tuple(step_receipts),
-                outputs,
+                tuple(sorted(artifacts.values(), key=lambda item: item.path)),
                 toolchain_manifest_digest,
+                "",
             )
-            atomic_write_json(
-                output_root / self.RECEIPT_NAME,
-                {"format": "romverse.local-build-receipt", **asdict(receipt)},
-                boundary=self.store.workspace,
-                maximum_bytes=self.MAX_RECEIPT_BYTES,
-            )
-            self._record_attempt(receipt)
-            return receipt
-        except (OSError, ProjectError) as exc:
-            failure = f"{active_step}: {exc}"
-            receipt = self._receipt(
-                project_id,
-                plan,
-                contract,
-                started,
-                "failed",
-                failure,
-                tuple(step_receipts),
-                (),
-                toolchain_manifest_digest,
-            )
-            self._record_attempt(receipt)
-            raise ProjectError(f"Local build stopped safely at {failure}") from exc
+        )
+        return receipt
 
     def load_receipt(self, project_id: str) -> LocalBuildReceipt | None:
         path = self.store.projects_root / project_id / self.ATTEMPT_NAME
@@ -206,10 +358,39 @@ class LocalDeviceBuildExecutor:
                 maximum_bytes=self.MAX_RECEIPT_BYTES,
             )
             schema_version = data.get("schema_version")
+            if schema_version == self.ATTEMPT_SCHEMA_VERSION:
+                plan = self.contracts.load(project_id)
+                project = self.store.get(project_id)
+                pack = next(
+                    (
+                        item
+                        for item in self.registry.packs
+                        if item.pack_id == project.device_pack_id
+                    ),
+                    None,
+                )
+                if plan is None or pack is None or pack.build_contract is None:
+                    return None
+                attempt = self._parse_attempt(data)
+                if (
+                    attempt is None
+                    or attempt.state != "success"
+                    or self._validate_attempt(attempt, plan, pack.build_contract) is not None
+                ):
+                    return None
+                data = read_json_object(
+                    self._output_root(project_id, plan.plan_id) / self.RECEIPT_NAME,
+                    boundary=self.store.workspace,
+                    maximum_bytes=self.MAX_RECEIPT_BYTES,
+                )
+                schema_version = data.get("schema_version")
+                receipt_format = "romverse.local-build-receipt"
+            else:
+                receipt_format = "romverse.local-build-attempt"
             expected = {"format", *(field.name for field in fields(LocalBuildReceipt))}
             if schema_version == 1:
                 expected.remove("toolchain_manifest_digest")
-            if set(data) != expected or data.pop("format") != "romverse.local-build-attempt":
+            if set(data) != expected or data.pop("format") != receipt_format:
                 return None
             if schema_version == 1:
                 data["toolchain_manifest_digest"] = ""
@@ -322,6 +503,249 @@ class LocalDeviceBuildExecutor:
             except (OSError, ProjectError):
                 return None
         return receipt
+
+    def resume_state(self, project_id: str) -> LocalBuildResumeState:
+        """Describe only a strictly verified local checkpoint for the reopened UI."""
+
+        try:
+            plan = self.contracts.load(project_id)
+            attempt_path = self.store.projects_root / project_id / self.ATTEMPT_NAME
+            if plan is None:
+                return LocalBuildResumeState(
+                    "invalid" if attempt_path.exists() else "none",
+                    0,
+                    0,
+                    "",
+                    (
+                        "Saved local-build evidence exists without a current exact plan."
+                        if attempt_path.exists()
+                        else ""
+                    ),
+                )
+            project = self.store.get(project_id)
+            pack = next(
+                (item for item in self.registry.packs if item.pack_id == project.device_pack_id),
+                None,
+            )
+            if pack is None or pack.build_contract is None:
+                return LocalBuildResumeState("none", 0, 0, "", "")
+            output_root = self._output_root(project_id, plan.plan_id)
+            if not output_root.exists():
+                return LocalBuildResumeState("none", 0, len(plan.steps), "", "")
+            plan = self.contracts.verify_for_execution(project_id)
+            if self.load_receipt(project_id) is not None:
+                return LocalBuildResumeState(
+                    "complete",
+                    len(plan.steps),
+                    len(plan.steps),
+                    "",
+                    "The verified local candidate is complete.",
+                )
+            attempt = self._load_current_attempt(project_id, plan, pack.build_contract)
+            if attempt is None:
+                return LocalBuildResumeState(
+                    "invalid",
+                    0,
+                    len(plan.steps),
+                    "",
+                    "Incomplete local-build files exist without a valid exact checkpoint.",
+                )
+            if attempt.state in {"step-intent", "unknown"}:
+                return LocalBuildResumeState(
+                    "unknown",
+                    len(attempt.completed_steps),
+                    len(plan.steps),
+                    attempt.active_step_id,
+                    (
+                        f"The result of {attempt.active_step_id} is UNKNOWN. "
+                        "ROMVERSE will not retry it automatically."
+                    ),
+                )
+            return LocalBuildResumeState(
+                "resumable",
+                len(attempt.completed_steps),
+                len(plan.steps),
+                "",
+                (
+                    f"{len(attempt.completed_steps)} of {len(plan.steps)} local-build steps have "
+                    "durable hash-verified evidence."
+                ),
+            )
+        except (OSError, ProjectError, ToolchainEvidenceError, VersionedToolchainError):
+            return LocalBuildResumeState(
+                "invalid",
+                0,
+                0,
+                "",
+                "The saved local-build checkpoint no longer matches the exact current project.",
+            )
+
+    def _load_current_attempt(
+        self,
+        project_id: str,
+        plan: DeviceBuildExecutionPlan,
+        contract: DeviceBuildContract,
+    ) -> LocalBuildAttempt | None:
+        try:
+            payload = read_json_object(
+                self.store.projects_root / project_id / self.ATTEMPT_NAME,
+                boundary=self.store.workspace,
+                maximum_bytes=self.MAX_RECEIPT_BYTES,
+            )
+            attempt = self._parse_attempt(payload)
+            if attempt is None or self._validate_attempt(attempt, plan, contract) is not None:
+                return None
+            return attempt
+        except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError):
+            return None
+
+    def _parse_attempt(self, payload: dict[str, object]) -> LocalBuildAttempt | None:
+        try:
+            data = dict(payload)
+            expected = {"format", *(field.name for field in fields(LocalBuildAttempt))}
+            if set(data) != expected or data.pop("format") != "romverse.local-build-attempt":
+                return None
+            raw_steps = data.pop("completed_steps")
+            raw_artifacts = data.pop("artifacts")
+            if (
+                not isinstance(raw_steps, list)
+                or not isinstance(raw_artifacts, list)
+                or len(raw_steps) > self.MAX_STEPS
+                or len(raw_artifacts) > self.MAX_OUTPUTS
+                or any(
+                    not isinstance(item, dict)
+                    or set(item) != {field.name for field in fields(BuildStepReceipt)}
+                    for item in raw_steps
+                )
+                or any(
+                    not isinstance(item, dict)
+                    or set(item) != {field.name for field in fields(BuildCheckpointArtifact)}
+                    for item in raw_artifacts
+                )
+            ):
+                return None
+            steps = tuple(
+                BuildStepReceipt(
+                    str(item["step_id"]),
+                    str(item["label"]),
+                    str(item["tool"]),
+                    str(item["started_at"]),
+                    str(item["completed_at"]),
+                    int(item["returncode"]),
+                    str(item["log_path"]),
+                    tuple((str(name), int(size)) for name, size in item["output_sizes"]),
+                )
+                for item in raw_steps
+            )
+            artifacts = tuple(
+                BuildCheckpointArtifact(
+                    str(item["path"]),
+                    int(item["size_bytes"]),
+                    int(item["modified_ns"]),
+                    str(item["sha256"]),
+                )
+                for item in raw_artifacts
+            )
+            return LocalBuildAttempt(**data, completed_steps=steps, artifacts=artifacts)
+        except (TypeError, ValueError, KeyError):
+            return None
+
+    def _validate_attempt(
+        self,
+        attempt: LocalBuildAttempt,
+        plan: DeviceBuildExecutionPlan,
+        contract: DeviceBuildContract,
+    ) -> str | None:
+        unsigned = asdict(attempt)
+        digest = str(unsigned.pop("attempt_digest"))
+        steps = attempt.completed_steps
+        expected_steps = plan.steps[: len(steps)]
+        expected_artifacts: dict[str, int] = {}
+        for receipt in steps:
+            for relative, size in receipt.output_sizes:
+                expected_artifacts[relative] = size
+        state_shape = (
+            (attempt.state == "ready" and not steps and not attempt.active_step_id)
+            or (attempt.state == "step-complete" and bool(steps) and not attempt.active_step_id)
+            or (
+                attempt.state in {"step-intent", "unknown"}
+                and len(steps) < len(plan.steps)
+                and attempt.active_step_id == plan.steps[len(steps)].step_id
+            )
+            or (
+                attempt.state == "success"
+                and len(steps) == len(plan.steps)
+                and not attempt.active_step_id
+            )
+        )
+        if (
+            type(attempt.schema_version) is not int
+            or attempt.schema_version != self.ATTEMPT_SCHEMA_VERSION
+            or attempt.project_id != plan.project_id
+            or attempt.plan_id != plan.plan_id
+            or attempt.plan_digest != plan.plan_digest
+            or attempt.contract_id != contract.contract_id
+            or not _aware_timestamp(attempt.started_at)
+            or not _aware_timestamp(attempt.updated_at)
+            or not state_shape
+            or attempt.phone_changed is not False
+            or not _sha256_value(attempt.toolchain_manifest_digest)
+            or not _sha256_value(digest)
+            or _json_digest(unsigned) != digest
+            or not isinstance(attempt.failure, str)
+            or len(attempt.failure) > 1_000
+            or "\x00" in attempt.failure
+            or len(steps) > len(plan.steps)
+            or any(not self._valid_step(item) for item in steps)
+            or any(
+                receipt.step_id != step.step_id
+                or receipt.label != step.label
+                or receipt.tool != step.tool
+                or tuple(path for path, _size in receipt.output_sizes) != step.outputs
+                for receipt, step in zip(steps, expected_steps, strict=True)
+            )
+            or {item.path for item in attempt.artifacts} != set(expected_artifacts)
+            or len({item.path for item in attempt.artifacts}) != len(attempt.artifacts)
+            or any(
+                not _relative_path(item.path)
+                or type(item.size_bytes) is not int
+                or item.size_bytes < 0
+                or type(item.modified_ns) is not int
+                or item.modified_ns <= 0
+                or not _sha256_value(item.sha256)
+                or item.size_bytes != expected_artifacts.get(item.path)
+                for item in attempt.artifacts
+            )
+        ):
+            return "The local-build checkpoint shape or exact plan binding is invalid."
+        output_root = self._output_root(plan.project_id, plan.plan_id)
+        for artifact in attempt.artifacts:
+            try:
+                path = self._workspace_path(artifact.path, must_exist=True)
+                stat_result = path.stat()
+                if (
+                    not path.is_relative_to(output_root)
+                    or not path.is_file()
+                    or path.is_symlink()
+                    or stat_result.st_size != artifact.size_bytes
+                    or stat_result.st_mtime_ns != artifact.modified_ns
+                    or _sha256(path) != artifact.sha256
+                ):
+                    return "A checkpointed local-build artifact changed."
+            except (OSError, ProjectError):
+                return "A checkpointed local-build artifact is unavailable."
+        for receipt in steps:
+            try:
+                log = self._workspace_path(receipt.log_path, must_exist=True)
+                if (
+                    not log.is_relative_to(output_root / "logs")
+                    or not log.is_file()
+                    or log.is_symlink()
+                ):
+                    return "A checkpointed local-build log is invalid."
+            except (OSError, ProjectError):
+                return "A checkpointed local-build log is unavailable."
+        return None
 
     @staticmethod
     def _valid_step(item: BuildStepReceipt) -> bool:
@@ -571,6 +995,32 @@ class LocalDeviceBuildExecutor:
             isolated,
         )
 
+    def _resume_toolchain(
+        self,
+        project_id: str,
+        tools: dict[str, Path],
+        manifest_digest: str,
+    ) -> tuple[ToolchainEvidenceManifest, dict[str, str], dict[str, Path]]:
+        try:
+            service = ToolchainEvidenceService(
+                self.store.workspace,
+                platform.system() or os.name,
+            )
+            manifest = service.load_private(manifest_digest)
+            if (
+                not manifest.complete
+                or manifest.scope != f"local-build:{project_id}"
+                or manifest.execution_authority != "none"
+                or manifest.phone_changed
+            ):
+                raise ToolchainEvidenceError("The saved local-build toolchain is no longer valid")
+            isolated = VersionedToolchainStore(self.store.workspace).isolate(tools, manifest)
+            hashes = {item.name: item.sha256 for item in manifest.tools if item.state == "verified"}
+            self._assert_locked_tools(isolated, hashes)
+            return manifest, hashes, isolated
+        except (OSError, ValueError, ToolchainEvidenceError, VersionedToolchainError) as exc:
+            raise ProjectError(f"Exact saved build toolchain proof failed: {exc}") from exc
+
     @staticmethod
     def _assert_locked_tools(tools: dict[str, Path], expected: dict[str, str]) -> None:
         if set(tools) != set(expected):
@@ -622,6 +1072,35 @@ class LocalDeviceBuildExecutor:
             _sha256(resolved),
         )
 
+    def _checkpoint_artifact(
+        self,
+        relative: str,
+        output_root: Path,
+    ) -> BuildCheckpointArtifact:
+        path = self._workspace_path(relative, must_exist=True)
+        if not path.is_relative_to(output_root) or not path.is_file() or path.is_symlink():
+            raise ProjectError("A local-build checkpoint artifact escaped its versioned output")
+        details = path.stat()
+        return BuildCheckpointArtifact(
+            relative,
+            details.st_size,
+            details.st_mtime_ns,
+            _sha256(path),
+        )
+
+    def _assert_checkpoint_artifacts(
+        self,
+        artifacts: Iterable[BuildCheckpointArtifact],
+        output_root: Path,
+    ) -> None:
+        for expected in artifacts:
+            actual = self._checkpoint_artifact(expected.path, output_root)
+            if actual != expected:
+                raise ProjectError(
+                    f"Checkpointed local-build artifact changed before the next step: "
+                    f"{Path(expected.path).name}"
+                )
+
     def _receipt(
         self,
         project_id: str,
@@ -667,7 +1146,54 @@ class LocalDeviceBuildExecutor:
             toolchain_manifest_digest,
         )
 
-    def _record_attempt(self, receipt: LocalBuildReceipt) -> None:
+    def _attempt(
+        self,
+        project_id: str,
+        plan: DeviceBuildExecutionPlan,
+        contract: DeviceBuildContract,
+        started_at: str,
+        state: str,
+        active_step_id: str,
+        completed_steps: tuple[BuildStepReceipt, ...],
+        artifacts: tuple[BuildCheckpointArtifact, ...],
+        toolchain_manifest_digest: str,
+        failure: str,
+    ) -> LocalBuildAttempt:
+        payload = {
+            "schema_version": self.ATTEMPT_SCHEMA_VERSION,
+            "project_id": project_id,
+            "plan_id": plan.plan_id,
+            "plan_digest": plan.plan_digest,
+            "contract_id": contract.contract_id,
+            "started_at": started_at,
+            "updated_at": _now(),
+            "state": state,
+            "active_step_id": active_step_id,
+            "completed_steps": [asdict(step) for step in completed_steps],
+            "artifacts": [asdict(item) for item in artifacts],
+            "toolchain_manifest_digest": toolchain_manifest_digest,
+            "failure": failure[:1_000],
+            "phone_changed": False,
+        }
+        return LocalBuildAttempt(
+            self.ATTEMPT_SCHEMA_VERSION,
+            project_id,
+            plan.plan_id,
+            plan.plan_digest,
+            contract.contract_id,
+            started_at,
+            str(payload["updated_at"]),
+            state,
+            active_step_id,
+            completed_steps,
+            artifacts,
+            toolchain_manifest_digest,
+            str(payload["failure"]),
+            False,
+            _json_digest(payload),
+        )
+
+    def _record_attempt(self, receipt: LocalBuildAttempt | LocalBuildReceipt) -> None:
         atomic_write_json(
             self.store.projects_root / receipt.project_id / self.ATTEMPT_NAME,
             {"format": "romverse.local-build-attempt", **asdict(receipt)},

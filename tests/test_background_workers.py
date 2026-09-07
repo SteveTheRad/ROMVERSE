@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from threading import Event
 
 from PySide6.QtCore import QObject, QThread, Signal
 from PySide6.QtWidgets import QApplication
@@ -25,6 +26,22 @@ class ProbeWorker(ManagedRunnable):
     def execute(self) -> None:
         application = QApplication.instance()
         self.signals.complete.emit(QThread.currentThread() is not application.thread())
+
+
+class StoppableProbeWorker(ManagedRunnable):
+    def __init__(self) -> None:
+        super().__init__()
+        self.signals = ProbeSignals()
+        self.stop = Event()
+        self.stop_requested = False
+
+    def request_stop(self) -> None:
+        self.stop_requested = True
+        self.stop.set()
+
+    def execute(self) -> None:
+        self.stop.wait(timeout=2)
+        self.signals.complete.emit(self.stop_requested)
 
 
 def test_managed_worker_disables_qt_auto_delete_and_is_supervised_until_exit() -> None:
@@ -85,3 +102,14 @@ def test_shutdown_drains_workers_and_allows_a_fresh_supervisor() -> None:
         application.processEvents()
         time.sleep(0.005)
     assert background_supervisor().active_count == 0
+
+
+def test_shutdown_requests_a_durable_worker_stop_before_waiting() -> None:
+    QApplication.instance() or QApplication([])
+    worker = StoppableProbeWorker()
+    start_background(worker)
+
+    shutdown_background_tasks()
+
+    assert worker.stop_requested
+    assert worker.stop.is_set()

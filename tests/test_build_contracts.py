@@ -387,6 +387,7 @@ def test_local_executor_builds_versioned_candidate_and_verifies_every_partition(
     assert attempt_payload["state"] == "success"
     assert attempt_payload["schema_version"] == 3
     assert len(attempt_payload["completed_steps"]) == 7
+    assert len(attempt_payload["logs"]) == 7
     assert stat.S_IMODE(attempt.stat().st_mode) == 0o600
     output_receipt = (
         store.working_root
@@ -555,8 +556,12 @@ def test_local_build_resumes_only_from_a_hash_verified_step_boundary(tmp_path):
     first_runner = _BuildRunner(partitions / "system.img")
     first = LocalDeviceBuildExecutor(store, registry, tools, first_runner)
 
+    pause_checks = iter((False, True))
     with pytest.raises(ProjectError, match="paused after 1 verified step"):
-        first.execute(project.project_id, pause_requested=lambda: True)
+        first.execute(
+            project.project_id,
+            pause_requested=lambda: next(pause_checks, True),
+        )
 
     state = first.resume_state(project.project_id)
     assert state.state == "resumable"
@@ -569,6 +574,7 @@ def test_local_build_resumes_only_from_a_hash_verified_step_boundary(tmp_path):
     assert attempt["active_step_id"] == ""
     assert [step["step_id"] for step in attempt["completed_steps"]] == ["rebuild-erofs"]
     assert len(attempt["artifacts"]) == 1
+    assert len(attempt["logs"]) == 1
 
     second_runner = _BuildRunner(partitions / "system.img")
     reopened = LocalDeviceBuildExecutor(store, registry, tools, second_runner)
@@ -578,6 +584,58 @@ def test_local_build_resumes_only_from_a_hash_verified_step_boundary(tmp_path):
     assert reopened.load_receipt(project.project_id) == receipt
     assert all("fakeroot" not in Path(call[0]).name for call in second_runner.calls)
     assert any("fsck.erofs" in Path(call[0]).name for call in second_runner.calls)
+
+
+def test_pre_requested_local_build_stop_dispatches_nothing_and_stays_resumable(tmp_path):
+    store, project, registry, _tools, _metadata, partitions = _fixture(tmp_path)
+    tools = _executable_tools(tmp_path / "tools")
+    DeviceBuildContractService(store, registry, tools).create_plan(project.project_id)
+    runner = _BuildRunner(partitions / "system.img")
+    executor = LocalDeviceBuildExecutor(store, registry, tools, runner)
+
+    with pytest.raises(ProjectError, match="paused after 0 verified step"):
+        executor.execute(project.project_id, pause_requested=lambda: True)
+
+    assert runner.calls == []
+    state = executor.resume_state(project.project_id)
+    assert state.state == "resumable"
+    assert state.completed_steps == 0
+    attempt = json.loads(
+        (store.projects_root / project.project_id / executor.ATTEMPT_NAME).read_text()
+    )
+    assert attempt["state"] == "ready"
+    assert attempt["active_step_id"] == ""
+    assert attempt["completed_steps"] == []
+    assert attempt["artifacts"] == []
+    assert attempt["logs"] == []
+
+
+def test_tampered_checkpoint_log_blocks_resume_without_dispatch(tmp_path):
+    store, project, registry, _tools, _metadata, partitions = _fixture(tmp_path)
+    tools = _executable_tools(tmp_path / "tools")
+    DeviceBuildContractService(store, registry, tools).create_plan(project.project_id)
+    first = LocalDeviceBuildExecutor(
+        store, registry, tools, _BuildRunner(partitions / "system.img")
+    )
+    pause_checks = iter((False, True))
+    with pytest.raises(ProjectError, match="paused after 1 verified step"):
+        first.execute(
+            project.project_id,
+            pause_requested=lambda: next(pause_checks, True),
+        )
+    attempt = json.loads(
+        (store.projects_root / project.project_id / first.ATTEMPT_NAME).read_text()
+    )
+    log = store.workspace / attempt["logs"][0]["path"]
+    log.write_text("tampered local-build log", encoding="utf-8")
+
+    runner = _BuildRunner(partitions / "system.img")
+    reopened = LocalDeviceBuildExecutor(store, registry, tools, runner)
+    assert reopened.resume_state(project.project_id).state == "invalid"
+    with pytest.raises(ProjectError, match="without a valid checkpoint"):
+        reopened.execute(project.project_id)
+
+    assert runner.calls == []
 
 
 def test_in_flight_local_build_becomes_unknown_and_is_never_retried(tmp_path):

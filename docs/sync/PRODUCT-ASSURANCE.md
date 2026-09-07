@@ -1,5 +1,76 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 6dbe7ef — Windows Platform Tools archive pin
+
+- Handoff commit: `6dbe7ef`
+- Implementation commit: `1908689733771a97dc1ec6e845adc4f169cb943f`
+- Product Assurance authorization: `08826543ace12b621828f86e74877dcdd20e8e0c`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — WINDOWS PLATFORM TOOLS ACQUISITION IS DIGEST-PINNED**
+
+### Decision
+
+The Windows managed acquisition route now binds the official archive to the separately approved
+Platform Tools 37.0.1 SHA-256 before ZIP parsing, extraction, receipt publication, or replacement of
+a prior package. The verifier independently requires the same digest from retained receipts. A
+moving upstream `latest` response can therefore no longer approve itself or silently replace the
+reviewed bytes.
+
+The implementation remains within the exact frozen-feature safety correction. Linux acquisition is
+unchanged, and the existing verified Windows workspace remains accepted without receipt mutation or
+redownload.
+
+### Independent repository and verification evidence
+
+- `1908689` changes only the managed-tool source and two focused test files; `6dbe7ef` changes only
+  the Build handoff. Protected Companion, Device Engine, Guardian, Recovery, launcher, and release
+  code are untouched.
+- Product Assurance inspected the exact download, worker, and receipt-verifier paths and
+  independently reran the submitted Windows selection: **36/36 passed**. Ruff passed for all three
+  affected files and `git diff --check 0882654..6dbe7ef` passed.
+- The exact approved source is bound to SHA-256
+  `45f4d63113e895ebde0c90f194099a4676b6ac653bd28d54314a9e022bbc1a99`.
+  Product Assurance independently retrieved the official bytes for the preceding approval and
+  confirmed that digest, 8,044,989-byte size, and `Pkg.Revision=37.0.1`.
+- Wrong content fails before extraction/publication, removes the partial file, retains the prior
+  package, and reports that a reviewed ROMVERSE pin update is required. It does not learn the
+  received digest.
+- A receipt naming the approved Windows source cannot activate with a different archive digest even
+  if its per-file hashes are internally consistent. Existing canonical/legacy path, exact file-set,
+  hash, containment, and link/junction gates remain active.
+
+### Safety and acceptance result
+
+- Pre-extraction approved digest enforcement: **PASS**
+- Receipt revalidation against the independent pin: **PASS**
+- Wrong digest preserves prior package and fails closed: **PASS**
+- Windows-only scope; no Linux policy leak: **PASS**
+- Existing workspace retained without mutation or download: **PASS**
+- Phone/device action, Recovery, signing, release, destructive change, blind retry, relock: **NONE**
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN, feature freeze, and
+  permanent no-relock: **UNCHANGED**
+
+### Approved next bounded task
+
+Produce exactly one new unsigned Windows development build from this approved source so the runnable
+artifact contains the archive pin. In one fresh disposable no-phone workspace, exercise only the
+existing visible Platform Tools setup once, allowing one official Windows archive acquisition. The
+artifact must accept only the approved digest, reach the truthful ready/no-device Command Deck state,
+and retain that state after one normal restart. If the upstream bytes changed, capture the clear
+fail-closed update-required result and do not change the pin.
+
+Reuse the accepted focused tests and do not run another broad suite or repeat unrelated Guided,
+Companion, Recovery, or packaging work. Do not connect, request, or target a phone or emulator; do
+not run device-scoped ADB/Fastboot, change drivers/firewall/global PATH, produce an installer/ZIP,
+sign, publish, release, force-push, or relock. Record the exact artifact hash and truthful runtime
+result in `docs/sync/BUILD-STATUS.md`, commit and push, then stop for Product Assurance.
+
+### Gate status
+
+- Windows managed receipt persistence and pinned Platform Tools source: **VERIFIED**
+- Current runnable artifact containing the new pin: **NEXT BOUNDED WINDOWS BUILD**
+- Physical hardware, production Recovery/trust, signing, publication, and release: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: 894f588 — Windows managed receipt persistence
 
 - Handoff commit: `894f588d0e488654332e9feb088b943293b44428`

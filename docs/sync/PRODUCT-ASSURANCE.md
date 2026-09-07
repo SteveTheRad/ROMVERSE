@@ -1,5 +1,89 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: f23ac64
+
+- Handoff commit: `f23ac64`
+- Implementation commit: `e685eee873c170821f876c049d14625961c9bf40`
+- Product Assurance authorization: `a27b1858f53fe41a81e50354b88703561cf6a825`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **CORRECTION REQUIRED — UNPROVEN LOCAL ADB STILL DEFAULTS TO PHYSICAL USB**
+
+### Decision
+
+The correction successfully separates standard `emulator-*`, confirmed QEMU, network ADB, and
+explicit `usb:` discovery evidence throughout Device Engine and Companion Center. Virtual/network
+targets no longer enable USB assist or display physical-cable claims, and genuine explicit USB
+evidence preserves the existing route.
+
+One remaining default prevents approval: `_adb_transport` still returns `usb` for every local-looking
+ADB serial that is not network and does not expose emulator/QEMU evidence—even when the discovery row
+contains no `usb:` evidence. The implementation test reinforces that assumption by expecting the
+original `SERIAL123` fixture, whose row has no `usb:` field, to be physical USB.
+
+A serial shape and absence of emulator evidence do not prove a cable. This can still recreate the
+exact false `Physical USB`, USB-assist, and `USB also connected` claims for a nonstandard local
+virtual/forwarded transport. The required adjustment is small and stays within the approved source
+boundary: unproven local ADB must remain explicitly unconfirmed, while an observed `usb:` field keeps
+the physical route unchanged.
+
+### Independent evidence
+
+- `e685eee` changes only Device Engine, Companion Center, and their two focused test files;
+  `f23ac64` changes only the Build handoff. Companion Android, Windows launcher, Link protocol,
+  Guardian, Recovery, artifacts, and protected files are untouched.
+- `_adb_transport` correctly prioritizes network serials, standard emulator serials, and positive
+  QEMU properties, but its final unconditional `return "usb"` converts absence of evidence into a
+  physical claim.
+- `parse_adb_devices` retains the discovery row's `usb` field. The new explicit-USB fixture already
+  supplies `usb:1-2.3`, so the product has a direct evidence signal available without new probing.
+- Companion Center's `_usb_ready` and USB-assist boundary are correctly restricted to
+  `device.transport == "usb"`; correcting Device Engine's last default therefore closes the path
+  without redesigning the UI.
+- Product Assurance independently reproduced six focused test nodes covering physical, emulator,
+  QEMU, network, fail-closed UI, and disconnect cases; all passed. Ruff and whitespace passed. This
+  confirms the submitted behavior while also showing the missing no-USB/no-QEMU case is not tested.
+- No Windows app, prompt, emulator, network target, cable, phone, ADB/Fastboot command, artifact,
+  Recovery, signing, publication, release, or relock action participated.
+
+### Required minimum correction
+
+1. In `_adb_transport`, return physical `usb` only when current ADB discovery contains a non-empty
+   `usb` field. Retain network precedence, `emulator-*`, and positive QEMU/virtual-device evidence.
+2. A local-looking serial with neither explicit USB nor emulator evidence must return one stable
+   non-authorizing value such as `adb` or `unknown`, never `usb`.
+3. Companion Center must present that value as an unconfirmed ADB transport, retain read-only
+   telemetry, keep `_usb_ready` false, retain no USB serial, disable USB assist, and make no cable or
+   physical-USB claim before or after wireless pairing/reset.
+4. Update the original Device Engine fixture to include explicit `usb:` evidence if that case is
+   intended to prove physical USB. Add one focused no-USB/no-QEMU case proving fail-closed unknown
+   classification and Companion presentation.
+5. Retain current emulator, QEMU, network, explicit-USB, multiple, unauthorized, offline, Link,
+   Guardian, Recovery, UNKNOWN, no-retry, and no-relock behavior.
+
+Run only the directly affected focused tests and lint. Do not run a broad suite, start an app or
+target, rebuild artifacts, interact with the stale Windows Security prompt, or modify any other
+subsystem. Commit and push the exact correction/handoff, then stop for independent review.
+
+### Acceptance criteria
+
+- Explicit discovery `usb:` evidence maps to `usb`; unproven local ADB does not.
+- Unproven local ADB never enables or describes physical USB/USB assist.
+- Existing standard emulator, QEMU, network, and explicit USB focused cases remain passing.
+- No duplicate journey, build, broad regression, platform interaction, or hardware operation occurs.
+
+### Approved next bounded task
+
+Implement only the evidence-default correction above. The temporarily assigned local Build worker
+remains the single owner; Linux application/Companion work stays untouched.
+
+### Gate status
+
+- Windows intent-bound optional listener: **VERIFIED**
+- Emulator/network versus physical USB: **PARTIAL; ONE FAIL-CLOSED DEFAULT CORRECTION REQUIRED**
+- Windows Device Engine readiness: **PAUSED FOR HUMAN CANCEL OF STALE OS PROMPT**
+- v0.2 Golden Foundation: **CLOSED pending physical, production-trust, signing, and release gates**
+- Physical hardware, production Recovery/trust, signing, publication, and release: not authorized
+
 ## Reviewed checkpoint: ddd9714
 
 - Handoff commit: `ddd9714402f59a4a521aa725d535c173e4b5ad3d`

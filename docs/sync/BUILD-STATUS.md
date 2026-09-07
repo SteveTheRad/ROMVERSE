@@ -1,5 +1,84 @@
 # ROMVERSE Build Status
 
+## Approved platform-neutral Guided/Forge synchronization — Product Assurance review requested
+
+- Product Assurance approval: `a0740bd0d718d82e1c3c649aee86aec1564652e2`.
+- Reviewed Windows checkpoint: `61efda1847f2f740eeb5874918c3f2c5fcf2f125`.
+- Approved upstream commits, applied in order:
+  - `392b21eb90966b09f089ed9b8f3dac29e5fedf8d` — truthful Forge Control pause label;
+  - `37e2ee27d9373d90e6a3cd71cb31fcadb64f415b` — refreeze exact source-derived inputs before planning.
+- Windows synchronization commits:
+  - `ab2c650b6391c4f1f369df712c0d5258452ca5f6` — patch-identical to `392b21e`;
+  - `e73f72dd36f975fd504b2f6b2663cc42e3e8f869` — patch-identical to `37e2ee2`.
+- Branch: `windows-launcher-authorized-work`.
+- Status: the two already approved platform-neutral patches are synchronized without Linux handoff,
+  approval, simulation, or unrelated branch history. Focused Windows checks and one inert source-level
+  affected segment pass. Stop for independent Product Assurance review.
+
+### Exact synchronized scope
+
+- `src/romverse/ui/guided_mission.py` now names `Forge Control` when automatic Genesis pauses at the
+  local build/sign stage; the separate optional install stage still names `Guardian review`.
+- `src/romverse/ui/build_control.py` refreezes the deterministic build plan after successful exact
+  input preparation has produced the final source-derived tree and before the worker reports
+  completion.
+- `tests/test_rom_studio_ui.py` and `tests/test_build_control_ui.py` contain the two matching focused
+  regressions.
+- Stable patch IDs match their approved upstream sources exactly:
+  - Guided label: `f0de2e4427782afaa91d1b0d62e5a306f56b560d`;
+  - final-tree refreeze: `13bb12c29e7e442ae67f4ccfaf562f5084fb2cac`.
+- No conflict resolution or context adaptation was required. No Linux documentation history was
+  copied or merged.
+
+### Exact focused Windows verification
+
+- Command:
+  `.venv\\Scripts\\python.exe -m pytest tests/test_rom_studio_ui.py::test_genesis_opens_forge_control_as_a_visible_child_and_releases_autopilot tests/test_build_control_ui.py::test_exact_input_worker_refreezes_the_final_source_derived_tree -q --basetemp build\\pytest-platform-neutral-sync-20260908`
+- Result: **2/2 passed** on Windows.
+- Lint command:
+  `.venv\\Scripts\\python.exe -m ruff check src/romverse/ui/guided_mission.py src/romverse/ui/build_control.py tests/test_rom_studio_ui.py tests/test_build_control_ui.py`
+- Lint result: **PASS — all checks passed**.
+- Whitespace command: `git diff --check a0740bd..e73f72d`.
+- Whitespace result: **PASS**.
+- No broad suite, unrelated regression, executable rebuild, packaging, or duplicate Guided journey
+  was run.
+
+### One source-level no-phone affected segment
+
+- Classification: **SIMULATED**. This is source-level production-UI behavior with an offscreen Qt
+  surface, production `GuidedBuildMission`, `RomStudio`, `RebuildMetadataWorker`, project store,
+  inspection service, and deterministic planner. It is not executable-artifact, physical-device, or
+  production verification.
+- Fresh disposable workspace:
+  `C:\\Work\\ROMVERSE-Platform-Neutral-Sync-Simulated-20260908`.
+- Sanitized 144-byte source SHA-256:
+  `71cab237b8afc882b2f45c274d88c56f59ea0f43339bb0c12f6f0d9744ca1cfd`.
+- One execution result: **PASS**.
+- Observed Guided text:
+  `Automatic Genesis paused at Forge Control. Complete its highlighted requirement, then choose Auto-resolve & continue again.`
+  The affected build stage did not name Guardian review, and Forge Control was opened as the Guided
+  child surface.
+- The inert exact-input service added `partition_files/source-derived.input`. The production worker
+  refroze the final tree; the reloaded plan contained that exact file and verified successfully.
+- Recorded safety result: `phone_changed: false`, `physical_targets: 0`,
+  `adb_fastboot_commands: []`, `production_execution_authority: none`, no Guardian authority, no
+  Recovery execution, and `bootloader_relock: false`.
+
+### Scope and safety handoff
+
+- The synchronized commits and this handoff are the only Windows-branch changes after `a0740bd`.
+  Protected Companion files remain clean and untouched.
+- The previously accepted pinned unsigned executable was not rebuilt or launched. No artifact,
+  installer, ZIP, APK, production signature, publication, or release was produced.
+- No phone or emulator was present, requested, awaited, connected, selected, or targeted. No ADB or
+  Fastboot command ran; no device scan, Recovery action, driver/firewall/global PATH change,
+  production adapter/trust, destructive action, force-push, unlock, lock, or relock occurred.
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty, no
+  blind retry, independent verification, feature freeze, and permanent no-relock remain intact.
+- Stop for independent Product Assurance review. Do not rebuild the Windows executable or begin
+  another product, hardware, packaging, signing, or release slice until a matching verdict is
+  committed.
+
 ## Pinned Windows development build and fresh no-phone readiness — Product Assurance review requested
 
 - Product Assurance approval: `a561c1f5bc5ab370c810a728a28a1a935e34c96f`.

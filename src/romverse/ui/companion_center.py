@@ -112,9 +112,11 @@ class CompanionCenter(QWidget):
             identity_root,
             self.transfer_service,
         )
-        self.transport.start()
         self._approved = self.transport.approved
         self._approved_restored = self._approved
+        if self._approved and not self.transport.start():
+            self._approved = False
+            self._approved_restored = False
         self._record_link_availability()
         application = QApplication.instance()
         if application is not None:
@@ -154,15 +156,18 @@ class CompanionCenter(QWidget):
         self.device_status = QLabel("Desktop device link: waiting for a read-only scan")
         self.device_status.setObjectName("Muted")
         page.addWidget(self.device_status)
-        if self.transport.available:
+        if self.transport.running:
             network_text = (
                 f"Encrypted pairing endpoint: https://{self._local_address()}:{self.transport.port}"
                 "  •  TLS 1.2+  •  same trusted network required"
             )
+        elif self.transport.available:
+            network_text = "Link endpoint idle  •  Choose Generate wireless code to start."
         else:
             network_text = "Wireless pairing unavailable on this computer  •  USB read-only features remain active"
         self.network_status = QLabel(network_text)
         self.network_status.setObjectName("Muted")
+        self.network_status.setWordWrap(True)
         page.addWidget(self.network_status)
         self.identity_status = QLabel(
             (
@@ -663,6 +668,23 @@ class CompanionCenter(QWidget):
                 "This computer denied local network access. USB read-only Companion features still work."
             )
             return
+        if not self.transport.start():
+            self.state.setText("Wireless pairing unavailable")
+            self.instructions.setText(
+                "ROMVERSE could not safely open the encrypted local pairing endpoint. "
+                "USB read-only Companion features still work."
+            )
+            self.network_status.setText(
+                "Wireless pairing unavailable on this computer  •  USB read-only features remain active"
+            )
+            self.generate.setEnabled(False)
+            self._update_usb_assist_button()
+            self._record_link_availability()
+            return
+        self.network_status.setText(
+            f"Encrypted pairing endpoint: https://{self._local_address()}:{self.transport.port}"
+            "  •  TLS 1.2+  •  same trusted network required"
+        )
         self.transport.reset()
         self._refresh_transfer_state()
         self._pairing = create_pairing_code()
@@ -1184,7 +1206,7 @@ class CompanionCenter(QWidget):
         )
 
     def _sync_approved_state(self) -> None:
-        approved = self.transport.approved
+        approved = self.transport.approved and self.transport.running
         if approved and not self._approved:
             self._render_approved_state(restored=True)
             return

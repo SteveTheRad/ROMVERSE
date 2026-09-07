@@ -70,9 +70,8 @@ def vitalis_remote_snapshot_payload() -> dict[str, object]:
 def test_transport_validates_tls_pairing_and_approval(tmp_path) -> None:
     pairing = create_pairing_code()
     transport = CompanionTransport(lambda: pairing, identity_root=tmp_path)
-    if not transport.available:
+    if not transport.start():
         pytest.skip("execution environment denies local sockets")
-    transport.start()
     try:
         request = urllib.request.Request(
             endpoint(transport, "/pair"),
@@ -149,9 +148,8 @@ def test_transport_validates_tls_pairing_and_approval(tmp_path) -> None:
 def test_transport_rejects_unapproved_telemetry_and_unknown_requests() -> None:
     pairing = create_pairing_code()
     transport = CompanionTransport(lambda: pairing)
-    if not transport.available:
+    if not transport.start():
         pytest.skip("execution environment denies local sockets")
-    transport.start()
     try:
         with pytest.raises(urllib.error.HTTPError) as telemetry_error:
             open_link(endpoint(transport, "/telemetry"))
@@ -171,24 +169,31 @@ def test_transport_rejects_unapproved_telemetry_and_unknown_requests() -> None:
 
 
 def test_transport_unavailability_does_not_block_the_app(monkeypatch) -> None:
+    attempts = 0
+
     def denied_server(*_args, **_kwargs):
+        nonlocal attempts
+        attempts += 1
         raise PermissionError("local sockets denied")
 
     monkeypatch.setattr("romverse.companion.transport.CompanionHTTPServer", denied_server)
     transport = CompanionTransport(lambda: None)
 
-    assert not transport.available
+    assert transport.available
     assert transport.port == 0
+    assert not transport.running
+    assert attempts == 0
+    assert not transport.start()
+    assert attempts == 2
+    assert not transport.available
     assert "denied" in transport.availability_error
-    transport.start()
     transport.close()
 
 
 def test_transport_rejects_unauthorized_remote_telemetry_before_reading_body() -> None:
     transport = CompanionTransport(lambda: None)
-    if not transport.available:
+    if not transport.start():
         pytest.skip("execution environment denies local sockets")
-    transport.start()
     try:
         request = urllib.request.Request(
             endpoint(transport, "/companion/telemetry"),
@@ -208,9 +213,8 @@ def test_transport_rejects_unauthorized_remote_telemetry_before_reading_body() -
 def test_transport_bounds_pairing_and_remote_telemetry_requests() -> None:
     pairing = create_pairing_code()
     transport = CompanionTransport(lambda: pairing)
-    if not transport.available:
+    if not transport.start():
         pytest.skip("execution environment denies local sockets")
-    transport.start()
     try:
         pair_request = urllib.request.Request(
             endpoint(transport, "/pair"),
@@ -282,9 +286,8 @@ def test_transport_bounds_pairing_and_remote_telemetry_requests() -> None:
 
 def test_transport_advertises_and_serves_only_its_exact_tls_identity(tmp_path) -> None:
     transport = CompanionTransport(lambda: None, identity_root=tmp_path)
-    if not transport.available:
+    if not transport.start():
         pytest.skip("execution environment denies local sockets")
-    transport.start()
     try:
         payload = transport.discovery_payload
         assert payload == {
@@ -311,9 +314,8 @@ def test_transport_advertises_and_serves_only_its_exact_tls_identity(tmp_path) -
 def test_transport_remembers_approved_phone_across_desktop_restart(tmp_path) -> None:
     pairing = create_pairing_code()
     first = CompanionTransport(lambda: pairing, identity_root=tmp_path)
-    if not first.available:
+    if not first.start():
         pytest.skip("execution environment denies local sockets")
-    first.start()
     try:
         pair_request = urllib.request.Request(
             endpoint(first, "/pair"),
@@ -334,9 +336,8 @@ def test_transport_remembers_approved_phone_across_desktop_restart(tmp_path) -> 
         first.close()
 
     restarted = CompanionTransport(lambda: None, identity_root=tmp_path)
-    if not restarted.available:
+    if not restarted.start():
         pytest.skip("execution environment denies local sockets")
-    restarted.start()
     try:
         telemetry_request = urllib.request.Request(
             endpoint(restarted, "/telemetry"),
@@ -364,9 +365,8 @@ def test_transport_serves_staged_payload_only_to_the_approved_tls_session(tmp_pa
         identity_root=workspace / "config" / "companion-link",
         transfer_service=transfers,
     )
-    if not transport.available:
+    if not transport.start():
         pytest.skip("execution environment denies local sockets")
-    transport.start()
     try:
         unauthenticated = urllib.request.Request(endpoint(transport, "/companion/transfers"))
         with pytest.raises(urllib.error.HTTPError) as unauthorized_error:

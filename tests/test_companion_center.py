@@ -250,7 +250,11 @@ def test_companion_center_requires_matching_tls_safety_code_before_approval(tmp_
     center = CompanionCenter(store, workspace=tmp_path)
 
     assert center.transport.available
-    assert "https://" in center.network_status.text()
+    assert center.transport.port == 0
+    assert not center.transport.running
+    assert center.transport._server is None
+    assert center.transport._discovery_thread is None
+    assert "endpoint idle" in center.network_status.text()
     assert center.transport.safety_code in center.identity_status.text()
     assert center.transport.certificate_sha256 in center.identity_status.text()
     assert not center.approve.isEnabled()
@@ -260,6 +264,14 @@ def test_companion_center_requires_matching_tls_safety_code_before_approval(tmp_
     assert store.list_recent() == ()
 
     center.generate_code()
+    assert center.transport.running
+    assert center.transport.port > 0
+    assert "https://" in center.network_status.text()
+    server = center.transport._server
+    discovery_thread = center.transport._discovery_thread
+    center.generate_code()
+    assert center.transport._server is server
+    assert center.transport._discovery_thread is discovery_thread
     assert center.copy_button.isEnabled()
     assert center.reset_link.isEnabled()
     assert any(item.title == "Encrypted Companion pairing opened" for item in store.list_recent())
@@ -279,6 +291,37 @@ def test_companion_center_requires_matching_tls_safety_code_before_approval(tmp_
     assert "30 days" in center.expiry.text()
     assert "12 hours" not in center.expiry.text()
     assert any(item.title == "Encrypted Companion Link approved" for item in store.list_recent())
+    center.shutdown()
+    assert not center.transport.running
+    assert discovery_thread is not None and not discovery_thread.is_alive()
+
+
+def test_companion_center_reports_one_bounded_listener_start_failure(tmp_path, monkeypatch) -> None:
+    QApplication.instance() or QApplication([])
+    attempts = 0
+
+    def denied_server(*_args, **_kwargs):
+        nonlocal attempts
+        attempts += 1
+        raise PermissionError("local sockets denied")
+
+    monkeypatch.setattr("romverse.companion.transport.CompanionHTTPServer", denied_server)
+    center = CompanionCenter(workspace=tmp_path)
+
+    assert center.generate.isEnabled()
+    assert center.transport._server is None
+    center.generate_code()
+
+    assert attempts == 2
+    assert center._pairing is None
+    assert center.state.text() == "Wireless pairing unavailable"
+    assert not center.generate.isEnabled()
+    assert not center.transport.running
+    assert center.transport._discovery_thread is None
+    assert "denied" in center.transport.availability_error
+
+    center.generate_code()
+    assert attempts == 2
     center.shutdown()
 
 
@@ -302,6 +345,7 @@ def test_companion_center_restores_and_can_revoke_remembered_pairing(tmp_path) -
 
     restarted = CompanionCenter(workspace=tmp_path)
     assert restarted.transport.approved
+    assert restarted.transport.running
     assert restarted.transport._sessions.authorize(token)
     assert "Remembered pairing active" in restarted.state.text()
     assert restarted.generate.text() == "Replace wireless pairing code"

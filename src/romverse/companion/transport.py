@@ -319,34 +319,25 @@ class CompanionTransport:
             def log_message(self, *_args: object) -> None:
                 return
 
+        self._handler_class = Handler
         self._server: ThreadingHTTPServer | None = None
         self._identity: LinkTlsIdentity | None = None
         self._temporary_identity: TemporaryDirectory[str] | None = None
         self._availability_error = ""
-        server: ThreadingHTTPServer | None = None
         try:
             if identity_root is None:
                 self._temporary_identity = TemporaryDirectory(prefix="romverse-link-")
                 identity_root = Path(self._temporary_identity.name)
-            identity = LinkTlsIdentity.load_or_create(identity_root)
-            try:
-                server = CompanionHTTPServer(("0.0.0.0", self.DEFAULT_PORT), Handler)
-            except OSError:
-                # Keep the app usable if another ROMVERSE instance owns the default port.
-                server = CompanionHTTPServer(("0.0.0.0", 0), Handler)
-            server.socket = identity.server_context().wrap_socket(server.socket, server_side=True)
-            self._identity = identity
-            self._server = server
+            self._identity = LinkTlsIdentity.load_or_create(identity_root)
         except (LinkSecurityError, OSError, ssl.SSLError) as error:
-            # Wireless ROMVERSE Link is optional. An invalid identity, local firewall,
-            # sandbox, or restricted account must not prevent the rest of ROMVERSE opening.
-            if server is not None:
-                with suppress(OSError):
-                    server.server_close()
+            # Wireless ROMVERSE Link is optional. An invalid identity must not
+            # prevent the rest of ROMVERSE opening.
             self._availability_error = str(error) or error.__class__.__name__
         self._thread: threading.Thread | None = None
         self._discovery_stop = threading.Event()
         self._discovery_thread: threading.Thread | None = None
+        self._start_lock = threading.Lock()
+        self._start_attempted = False
         self._close_lock = threading.Lock()
         self._closed = False
 
@@ -356,7 +347,9 @@ class CompanionTransport:
 
     @property
     def available(self) -> bool:
-        return self._server is not None
+        return bool(
+            self._identity is not None and not self._availability_error and not self._closed
+        )
 
     @property
     def availability_error(self) -> str:
@@ -419,21 +412,57 @@ class CompanionTransport:
             self._remote_snapshot = None
             self._remote_received_at = None
 
-    def start(self) -> None:
-        if self._server is None or self._thread is not None or self._closed:
-            return
-        self._thread = threading.Thread(
-            target=self._server.serve_forever,
-            name="romverse-companion-https",
-            daemon=True,
-        )
-        self._thread.start()
-        self._discovery_thread = threading.Thread(
-            target=self._broadcast,
-            name="romverse-companion-discovery",
-            daemon=True,
-        )
-        self._discovery_thread.start()
+    def start(self) -> bool:
+        """Start the optional Link endpoint once, after explicit or remembered intent."""
+
+        with self._start_lock:
+            if self.running:
+                return True
+            if self._closed or self._identity is None or self._availability_error:
+                return False
+            if self._start_attempted:
+                return False
+            self._start_attempted = True
+            server: ThreadingHTTPServer | None = None
+            try:
+                try:
+                    server = CompanionHTTPServer(
+                        ("0.0.0.0", self.DEFAULT_PORT), self._handler_class
+                    )
+                except OSError:
+                    # Keep the app usable if another ROMVERSE instance owns the default port.
+                    server = CompanionHTTPServer(("0.0.0.0", 0), self._handler_class)
+                server.socket = self._identity.server_context().wrap_socket(
+                    server.socket, server_side=True
+                )
+                self._server = server
+                self._thread = threading.Thread(
+                    target=server.serve_forever,
+                    name="romverse-companion-https",
+                    daemon=True,
+                )
+                self._thread.start()
+                self._discovery_thread = threading.Thread(
+                    target=self._broadcast,
+                    name="romverse-companion-discovery",
+                    daemon=True,
+                )
+                self._discovery_thread.start()
+                return True
+            except (OSError, RuntimeError, ssl.SSLError) as error:
+                if server is not None:
+                    if self._thread is not None and self._thread.is_alive():
+                        with suppress(OSError):
+                            server.shutdown()
+                    with suppress(OSError):
+                        server.server_close()
+                if self._thread is not None and self._thread.is_alive():
+                    self._thread.join(timeout=2.0)
+                self._server = None
+                self._thread = None
+                self._discovery_thread = None
+                self._availability_error = str(error) or error.__class__.__name__
+                return False
 
     def close(self) -> None:
         with self._close_lock:

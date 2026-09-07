@@ -1515,12 +1515,15 @@ class GuidedBuildMission(QDialog):
                 self.autopilot_active = True
                 QTimer.singleShot(0, self._advance_autopilot)
             else:
+                review_surface = (
+                    "Forge Control" if before_stage == "build_sign" else "Guardian review"
+                )
                 self.status_text.setText(
-                    "Automatic Genesis paused at the visible Guardian review. Complete its "
+                    f"Automatic Genesis paused at {review_surface}. Complete its "
                     "highlighted requirement, then choose Auto-resolve & continue again."
                 )
                 self._pause_genesis_live(
-                    "Genesis paused at the visible Guardian review for authoritative evidence or consent."
+                    f"Genesis paused at {review_surface} for authoritative evidence or consent."
                 )
             return
 

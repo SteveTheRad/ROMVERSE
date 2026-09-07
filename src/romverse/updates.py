@@ -19,6 +19,7 @@ from uuid import uuid4
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
+from romverse import __version__
 from romverse.infrastructure.local_store import (
     LocalStoreError,
     atomic_write_json,
@@ -393,7 +394,7 @@ class DesktopUpdateService:
         _validate_https_url(url)
         request = urllib.request.Request(
             url,
-            headers={"Accept": "application/json", "User-Agent": "ROMVERSE/0.1"},
+            headers={"Accept": "application/json", "User-Agent": f"ROMVERSE/{__version__}"},
         )
         try:
             with self._opener(request, timeout=15) as response:
@@ -419,7 +420,7 @@ class DesktopUpdateService:
     ) -> None:
         _raise_if_update_cancelled(should_cancel)
         _validate_https_url(url)
-        request = urllib.request.Request(url, headers={"User-Agent": "ROMVERSE/0.1"})
+        request = urllib.request.Request(url, headers={"User-Agent": f"ROMVERSE/{__version__}"})
         digest = hashlib.sha256()
         written = 0
         try:

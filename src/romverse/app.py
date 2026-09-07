@@ -11,7 +11,7 @@ from PySide6.QtCore import QLockFile, Qt, QTimer
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QDialog
 
-from romverse import __version__
+from romverse import DISPLAY_VERSION, __version__
 from romverse.core.runtime_stability import GuiThreadGarbageCollector, RuntimeCrashGuard
 from romverse.core.settings import AppSettings, SettingsStore
 from romverse.core.workspace import WorkspaceInitializer
@@ -94,6 +94,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     app = QApplication(sys.argv[:1])
     app.setApplicationName("ROMVERSE")
+    app.setApplicationVersion(DISPLAY_VERSION)
     app.setOrganizationName("RadForge Labs")
     app.setStyle("Fusion")
     apply_dark_palette(app)

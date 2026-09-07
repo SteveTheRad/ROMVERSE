@@ -29,13 +29,16 @@ QT_QPA_PLATFORM=offscreen python -m romverse \
 
 ```bash
 python -m build --wheel --outdir build/wheel
-python scripts/verify_wheel.py build/wheel/romverse-0.1.0-py3-none-any.whl
-python scripts/build_desktop_executable.py --clean --output build/frozen
+python scripts/verify_wheel.py build/wheel/romverse-0.2.0a1-py3-none-any.whl
+python scripts/build_desktop_executable.py \
+  --output-directory build/frozen \
+  --work-directory build/pyinstaller
 QT_QPA_PLATFORM=offscreen python scripts/smoke_frozen_desktop.py \
-  build/frozen/ROMVERSE/ROMVERSE
+  build/frozen/ROMVERSE/ROMVERSE /tmp/romverse-frozen-smoke
 python scripts/package_desktop_bundle.py \
-  --source build/frozen/ROMVERSE \
-  --output dist/ROMVERSE-Desktop-0.1.0-linux-x86_64.zip
+  build/frozen/ROMVERSE \
+  --platform linux-x86_64 \
+  --output dist/ROMVERSE-Desktop-0.2.0-alpha.1-linux-x86_64.zip
 ```
 
 The runnable binary is `build/frozen/ROMVERSE/ROMVERSE`. The ZIP is a local

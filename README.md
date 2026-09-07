@@ -1,4 +1,4 @@
-# ROMVERSE v0.1
+# ROMVERSE 0.2.0-alpha.1
 
 **Build. Optimize. Perfect.**  
 Created by **SteveTheRad** — A **RadForge Labs** Project
@@ -1635,7 +1635,7 @@ python scripts/smoke_frozen_desktop.py \
 python scripts/package_desktop_bundle.py \
   build/frozen/ROMVERSE \
   --platform linux-x86_64 \
-  --output dist/ROMVERSE-Desktop-0.1.0-linux-x86_64.zip
+  --output dist/ROMVERSE-Desktop-0.2.0-alpha.1-linux-x86_64.zip
 ```
 
 ## Development

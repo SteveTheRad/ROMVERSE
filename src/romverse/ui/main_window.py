@@ -74,7 +74,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from romverse import __version__
+from romverse import DISPLAY_VERSION
 from romverse.ascension.companion import AscensionCompanionStatusService
 from romverse.ascension.releases import OfficialRootReleaseService
 from romverse.backup.media import PhoneMediaBackupService
@@ -228,6 +228,8 @@ RADFORGE_LABS_URL = "https://radforgelabs.com/"
 FACEBOOK_URL = "https://www.facebook.com/ROMVERSEOfficial"
 REDDIT_URL = "https://www.reddit.com/user/ROMVERSE/"
 GITHUB_URL = "https://github.com/SteveTheRad/ROMVERSE"
+DESKTOP_WINDOW_TITLE = f"ROMVERSE Studio {DISPLAY_VERSION}"
+DESKTOP_SIDEBAR_VERSION = f"ROMVERSE  {DISPLAY_VERSION}"
 
 DESKTOP_THEMES: dict[DesktopTheme, tuple[str, str]] = {
     DesktopTheme.NEBULA_FLOW: ("Nebula Flow", ""),
@@ -2425,7 +2427,7 @@ class AboutPage(QWidget):
         build_facts = QHBoxLayout()
         build_facts.setSpacing(10)
         for label, value, accent in (
-            ("DESKTOP BUILD", __version__, "#63ECF8"),
+            ("DESKTOP BUILD", DISPLAY_VERSION, "#63ECF8"),
             ("CHANNEL", "INTERNAL ALPHA", "#B45CFF"),
             ("SAFETY", "GUARDIAN BOUNDARY", "#72FFB2"),
             ("ABOUT AUTHORITY", "NAVIGATION ONLY", "#FFB454"),
@@ -3975,7 +3977,7 @@ class MainWindow(QMainWindow):
         self._scan_failure_count = 0
         self._workspace_shell_state = WorkspaceShellState()
         self._experience_mode = self.app_settings.experience_mode
-        self.setWindowTitle("ROMVERSE Studio v0.1")
+        self.setWindowTitle(DESKTOP_WINDOW_TITLE)
         self.setWindowIcon(QIcon(str(app_icon_path or logo_path)))
         self.resize(1440, 900)
         self.setMinimumSize(1080, 700)
@@ -4497,7 +4499,7 @@ class MainWindow(QMainWindow):
         device_row.addLayout(device_text, 1)
         mini_layout.addLayout(device_row)
         side.addWidget(self.sidebar_device_card)
-        self.sidebar_version = QLabel("ROMVERSE  v0.1.0")
+        self.sidebar_version = QLabel(DESKTOP_SIDEBAR_VERSION)
         self.sidebar_version.setStyleSheet(
             "color:#B45CFF; font-weight:800; padding:8px 4px 2px 4px;"
         )

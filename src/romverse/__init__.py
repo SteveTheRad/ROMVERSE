@@ -1,3 +1,6 @@
 """ROMVERSE desktop application."""
 
-__version__ = "0.1.0"
+PACKAGE_VERSION = "0.2.0a1"
+DISPLAY_VERSION = "0.2.0-alpha.1"
+
+__version__ = PACKAGE_VERSION

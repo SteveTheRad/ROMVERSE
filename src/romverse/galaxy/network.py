@@ -22,6 +22,7 @@ from typing import Protocol
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
+from romverse import __version__
 from romverse.galaxy.intelligence import (
     GalaxyContribution,
     GalaxyEvidenceClass,
@@ -115,7 +116,7 @@ class UrllibGalaxyTransport:
         request = urllib.request.Request(
             trusted_url,
             data=body,
-            headers={"User-Agent": "ROMVERSE/0.1 Galaxy", **headers},
+            headers={"User-Agent": f"ROMVERSE/{__version__} Galaxy", **headers},
             method=method,
         )
         try:

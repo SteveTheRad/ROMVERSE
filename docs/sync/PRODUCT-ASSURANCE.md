@@ -1,5 +1,58 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 14328a0 — refreshed Windows Guided alpha
+
+- Handoff commit: `14328a0`
+- Windows synchronization commit: `74064de`
+- Approved upstream implementation: Linux `eaa3d615912a4eefddd44ee3b032562047ddadc3`
+- Product Assurance authorization: Linux `b59c3d8`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — WINDOWS GUIDED ALPHA REFRESH VERIFIED**
+
+### Decision and independent evidence
+
+The Windows source patch has the exact stable patch ID of the approved Linux onboarding correction,
+`e12aa36177cdccfc2d26942ee0f64bee79880c22`. No Linux handoff history or unrelated source was
+merged. Build's focused **5/5 passed**, Ruff success and whitespace success are proportional to this
+three-file synchronization.
+
+Product Assurance independently rehashed the refreshed executable and canonical ZIP on the Windows
+host. The executable is `6,281,239` bytes with SHA-256
+`7ee304d55731fa6ca291f8e9d780246642e37c79c6331ce3ba8ee6718a1532c1` and Authenticode status
+`NotSigned`. The ZIP is `72,689,076` bytes with SHA-256
+`17eb961d8022d0b0774bb1cc616b9a9746961c0805552d4210430df39069b863`; it contains 262 entries,
+162,253,374 expanded bytes, exactly one expected executable and no absolute or parent-traversal
+member.
+
+The split first-run evidence is accepted. The refreshed executable remained alive and responsive at
+the fresh unapplied onboarding boundary with no ADB/Fastboot on its host path. The packaged
+PyInstaller module contains the required internal-alpha, Guided/no-phone and accessible-action text;
+the focused production-widget test proves the exact Guided-to-Command-Deck interaction. Because the
+SSH-launched process has no interactive desktop automation surface, no unobserved visible-window
+claim is made.
+
+### Vision, freeze and safety result
+
+- Windows internal-alpha artifact and corrected onboarding payload: **PASS**
+- Guided friction and truthful no-phone prerequisite state: **PASS**
+- Feature freeze: **PASS — exact approved platform-neutral correction and one artifact refresh**
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN, no blind retry,
+  independent verification and permanent no-relock: **PRESERVED**
+- Phone, Recovery, production signing/trust, publication and release activity: **NONE**
+
+### Approved next bounded task
+
+Do not rebuild or retest the Windows alpha again. Await the matching Fedora refresh review, then use
+the two approved artifacts as the cross-platform baseline for the next single user-facing milestone.
+Until that handoff is committed, Windows may perform only read-only synchronization checks; it must
+not begin physical-device, Recovery, signing, publication or release work.
+
+### Gate status
+
+- Windows v0.2.0-alpha.1 onboarding-corrected development artifact: **VERIFIED**
+- Matching Fedora refresh: **IN PROGRESS ON THE AUTHORIZED LINUX BRANCH**
+- Cross-platform public release, production trust/signing and physical Recovery: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: 785bb02 — Windows v0.2.0-alpha.1 development build
 
 - Handoff commit: `785bb0208e0f44dbe49b38b64d3d891e5ac8432e`

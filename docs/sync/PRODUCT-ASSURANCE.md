@@ -1,5 +1,76 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 785bb02 — Windows v0.2.0-alpha.1 development build
+
+- Handoff commit: `785bb0208e0f44dbe49b38b64d3d891e5ac8432e`
+- Synchronized source commits: `fc11d38`, `3654646`, `ae2c91b`, `dd1572d`
+- Windows portability correction: `a5527a04fe4b6183b903b209206b4eab40220f11`
+- Product Assurance authorization/base: `018d07cbae87f4afb472ca8abff8ddaf6d636c15`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — WINDOWS v0.2.0-alpha.1 DEVELOPMENT ARTIFACT VERIFIED**
+
+### Decision
+
+The Windows branch now contains the approved durable local-build resume and alpha identity changes,
+retains the accepted Windows launcher and pinned Platform Tools work, and produces a coherent
+unsigned `0.2.0-alpha.1` development artifact. This completes the intended cross-platform internal
+alpha milestone; it does not open signing, publication, production Recovery or physical execution.
+
+The Windows portability correction is accepted. The full digest remains in the final versioned-tool
+slot and receipt; shortening only the unpublished random staging directory removes an ordinary
+Windows path-limit failure without changing source, hash, isolation or atomic-publication checks.
+The focused receipt assertions now use the previously approved owner-only Windows ACL contract
+instead of POSIX mode bits.
+
+### Independent repository and artifact evidence
+
+- `fc11d38`, `3654646` and `dd1572d` have stable patch IDs identical to approved Linux commits
+  `3475b45`, `dcd73cc` and `9e6762a`. `ae2c91b` contains the approved alpha source/test identity
+  while correctly omitting the Fedora-only guide and preserving the existing Windows PyInstaller
+  test import.
+- `a5527a0` changes only the staging component in `toolchain_versions.py` and portable assertions in
+  the directly affected build-contract test. It does not weaken exact tool identity or filesystem
+  privacy.
+- Final focused Windows result: **48/48 passed**. Ruff and Git whitespace checks passed. No broad
+  suite or duplicate Guided journey was run.
+- Executable: `6,280,733` bytes, SHA-256
+  `bcd30985ca8590e323039ea3e037cbb382d6147b2a63f3e592d5b9233e13aa60`, Authenticode
+  `NotSigned` as required.
+- ZIP: `72,428,464` bytes, SHA-256
+  `11aac7b0425417abda5049d26ebbb1c601649dcd49cf111ab7170751abaf9ccd`; exact safe-tree
+  verification passed for 262 files / 162,252,868 expanded bytes.
+- One fresh frozen no-device startup smoke passed with no ADB/Fastboot discoverable. No phone,
+  emulator or Recovery action was involved.
+
+### Vision, freeze and safety result
+
+- Windows runnable alpha identity and packaging: **PASS**
+- Durable resume, Windows ACL privacy and ordinary-path portability: **PASS**
+- Feature freeze: **PASS — approved milestone and directly exposed portability correction**
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN, no blind retry,
+  independent verification and permanent no-relock: **PRESERVED**
+- Signing, publication, release, phone mutation and production Recovery: **NONE**
+
+### Approved next bounded task
+
+On Linux, synchronize only the platform-neutral product-source hunk from `a5527a0` that shortens the
+unpublished versioned-tool staging directory. Do not import the Windows ACL/test adaptations or
+Windows branch history. Run the existing focused toolchain-version and local-build contract tests,
+lint/whitespace, commit the tiny convergence correction and return for Product Assurance. Do not
+rebuild either alpha artifact; their exact committed source identities remain recorded truthfully.
+
+After that no-op-equivalent convergence, Product Assurance will select the next existing user-facing
+pre-v1.0 workflow rather than opening packaging/test loops. No phone, Recovery, Companion change,
+signing, publication, release, force-push or relock.
+
+### Gate status
+
+- Fedora v0.2.0-alpha.1 internal development build: **VERIFIED**
+- Windows v0.2.0-alpha.1 internal development build: **VERIFIED**
+- Cross-platform internal alpha milestone: **ACHIEVED**
+- Production/public v0.2 release: **NOT CLAIMED OR AUTHORIZED**
+- Physical hardware and production Recovery/trust/signing: **OUTSTANDING**
+
 ## Authorized synchronization: v0.2.0-alpha.1 consolidated Windows build
 
 - Linux Product Assurance approval: `87af660`

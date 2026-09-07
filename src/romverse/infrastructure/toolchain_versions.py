@@ -107,7 +107,9 @@ class VersionedToolchainStore:
             self._verify_slot(slot, item)
             return executable
         parent = slot.parent
-        staging = parent / f".{item.sha256}.{uuid4().hex}.staging"
+        # The destination slot already binds the complete SHA-256. Keep the unique
+        # unpublished staging component short enough for ordinary Windows paths.
+        staging = parent / f".stage-{uuid4().hex}"
         try:
             ensure_private_directory(parent, boundary=self.workspace)
             ensure_private_directory(staging, boundary=self.workspace)

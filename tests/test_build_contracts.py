@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shutil
 import stat
 import zipfile
@@ -22,6 +23,7 @@ from romverse.device_packs.models import (
     PartitionBuildRule,
 )
 from romverse.device_packs.registry import DevicePackRegistry
+from romverse.infrastructure.local_store import windows_private_file_acl
 from romverse.infrastructure.process import CommandResult
 from romverse.infrastructure.provisioning import GENESIS_REQUIRED_TOOLS
 from romverse.infrastructure.toolchain_evidence import ToolchainEvidenceService
@@ -36,6 +38,19 @@ from romverse.rom.projects import RomProjectStore
 
 def _sha(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
+
+
+def _assert_private_file(path: Path) -> None:
+    if os.name == "nt":
+        entries = windows_private_file_acl(path)
+        assert len(entries) == 2
+        assert {sid for sid, _mask, _inherited in entries} == {
+            "S-1-3-4",  # OWNER RIGHTS
+            "S-1-5-18",  # LOCAL SYSTEM
+        }
+        assert all(mask == 0x1F01FF and not inherited for _sid, mask, inherited in entries)
+        return
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
 
 
 def _fixture(tmp_path):
@@ -388,7 +403,7 @@ def test_local_executor_builds_versioned_candidate_and_verifies_every_partition(
     assert attempt_payload["schema_version"] == 3
     assert len(attempt_payload["completed_steps"]) == 7
     assert len(attempt_payload["logs"]) == 7
-    assert stat.S_IMODE(attempt.stat().st_mode) == 0o600
+    _assert_private_file(attempt)
     output_receipt = (
         store.working_root
         / project.project_id
@@ -396,7 +411,7 @@ def test_local_executor_builds_versioned_candidate_and_verifies_every_partition(
         / plan.plan_id
         / executor.RECEIPT_NAME
     )
-    assert stat.S_IMODE(output_receipt.stat().st_mode) == 0o600
+    _assert_private_file(output_receipt)
     manifest = ToolchainEvidenceService(store.workspace, "Linux").load_private(
         receipt.toolchain_manifest_digest
     )
@@ -708,7 +723,7 @@ def test_local_build_executes_preserved_managed_version_when_active_source_updat
     assert receipt.status == "success"
     avb_calls = [call for call in runner.calls if "avbtool" in Path(call[0]).name]
     assert avb_calls
-    assert all("tools/versioned" in call[0] for call in avb_calls)
+    assert all("/tools/versioned/" in call[0].replace("\\", "/") for call in avb_calls)
     preserved = Path(avb_calls[0][0])
     assert preserved.read_bytes() == b"original managed avbtool"
     assert old_digest in preserved.parts

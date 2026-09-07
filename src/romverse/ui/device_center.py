@@ -301,12 +301,12 @@ class DeviceCenter(QWidget):
         title_row.addWidget(title)
         title_row.addStretch()
         text.addLayout(title_row)
-        deck_subtitle = QLabel(
-            "One live device, one active project, one evidence-derived next action."
+        self.deck_subtitle = QLabel(
+            "Current device, project, and evidence-derived next action at a glance."
         )
-        deck_subtitle.setObjectName("Muted")
-        deck_subtitle.setWordWrap(True)
-        text.addWidget(deck_subtitle)
+        self.deck_subtitle.setObjectName("Muted")
+        self.deck_subtitle.setWordWrap(True)
+        text.addWidget(self.deck_subtitle)
         header.addLayout(text, 1)
         self.scan_status_row = QFrame()
         self.scan_status_row.setObjectName("ProcessStatusRow")

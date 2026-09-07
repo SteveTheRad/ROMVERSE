@@ -28,7 +28,11 @@ RELEASE_CHANNELS = frozenset({"development", "release-candidate", "stable"})
 RELEASE_PLATFORMS = frozenset({"python-any", "linux-x86_64", "windows-x86_64"})
 RELEASE_ARTIFACT_KINDS = frozenset({"wheel", "archive", "installer"})
 
-_VERSION = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?")
+_VERSION = re.compile(
+    r"(?P<major>[0-9]+)\.(?P<minor>[0-9]+)\.(?P<patch>[0-9]+)"
+    r"(?:(?P<pep_stage>a|b|rc)(?P<pep_number>[0-9]+)"
+    r"|-(?P<label>[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*))?"
+)
 _IDENTIFIER = re.compile(r"[a-z0-9][a-z0-9._-]{0,95}")
 _FILENAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._+-]{0,159}")
 _SHA256 = re.compile(r"[0-9a-f]{64}")
@@ -159,9 +163,25 @@ def _valid_version(value: Any, label: str = "Release version") -> str:
 
 
 def _version_order(version: str) -> tuple[int, int, int, int, str]:
-    core, separator, prerelease = version.partition("-")
-    major, minor, patch = (int(part) for part in core.split("."))
-    return major, minor, patch, 0 if separator else 1, prerelease
+    match = _VERSION.fullmatch(version)
+    if match is None:
+        raise ReleaseValidationError("Release version is invalid")
+    pep_stage = match["pep_stage"]
+    label = match["label"]
+    if pep_stage is not None:
+        stage_order = {"a": 0, "b": 1, "rc": 2}[pep_stage]
+        prerelease = f"0{stage_order}{int(match['pep_number']):020d}"
+    elif label is not None:
+        prerelease = f"1{label}"
+    else:
+        prerelease = ""
+    return (
+        int(match["major"]),
+        int(match["minor"]),
+        int(match["patch"]),
+        0 if prerelease else 1,
+        prerelease,
+    )
 
 
 def release_version_order(version: str) -> tuple[int, int, int, int, str]:

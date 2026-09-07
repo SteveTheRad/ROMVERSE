@@ -1,5 +1,67 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 7785a25 — Companion offline acceptance blocker
+
+- Final handoff commit: `7785a25`
+- Evidence checkpoint: `ac22e2db430ab603d1b8ee0bc891c70b5ff33889`
+- Product Assurance authorization/base: `292cd09131c3b788c88a2ef66041e358c8615494`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — EVIDENCE ACCEPTED; UI CORRECTION DEFERRED FOR PROTECTED OVERLAP**
+
+### Decision and independent evidence
+
+The non-rendered offline evidence is sufficient for this bounded pass. Product Assurance inspected
+the retained Gradle XML results and confirmed **29/29 passed** with zero skips, failures or errors:
+10 Link readiness, 4 navigation and 15 Device Atlas/Knowledge cases. The existing debug APK remains
+byte-identical at `9,060,239` bytes and SHA-256
+`62bc530d5f077e3e34ad71002caa24303a584bf4661f56d2cc338c976bfb5a2b`.
+
+No emulator-rendered claim is accepted: the existing API 35 virtual device exited before ADB
+registration and no APK was installed. The production-state checks support only the stated facts:
+Home is the safe fallback, disconnected Link does not pretend to be paired, and evidence surfaces
+carry zero execution authority.
+
+The identified first-entry defect is valid. Internal-alpha identity is available in About and
+authority boundaries exist in deeper surfaces, but neither is concise at the initial Home entry.
+The minimum fix belongs in `MainActivity.kt`. Product Assurance independently confirmed that the
+original authoritative checkout has protected uncommitted changes in exactly that file, plus the
+related navigation source/test. Build correctly made no competing Companion edit. This is a scoped
+overlap, not a creator decision and not a reason to stop unrelated product progress.
+
+### Vision, freeze and safety result
+
+- Companion offline state truthfulness: **PASS AT POLICY/JVM LEVEL**
+- Rendered first-run journey: **NOT VERIFIED**
+- First-entry internal-alpha/no-authority disclosure: **CORRECTION REQUIRED AFTER RECONCILIATION**
+- Protected user work preservation: **PASS**
+- Feature freeze and Guardian/no-relock invariants: **PRESERVED**
+- Physical phone, APK install, Recovery, signing, publication and release activity: **NONE**
+
+### Approved next bounded task
+
+Keep the Companion correction parked until the protected `MainActivity.kt`/navigation work is
+reconciled into authoritative history. Continue instead with one fresh, no-phone **unfamiliar
+firmware intake journey** on Linux using a new disposable ROM workspace and a bounded synthetic
+firmware archive that is not represented by a known device recipe. Drive the real Guided/ROM Studio
+presentation from project creation through protected source import, automatic inspection,
+evidence-derived Device DNA and Compatibility Matrix/next-action presentation. Verify that
+`UNCONFIRMED` permits safe further investigation rather than becoming `UNSUPPORTED`, that no device
+or execution authority is invented, and that the user reaches Recipe Forge/readiness or one clear
+evidence-gathering action without a dead button or technical loop.
+
+Record only the first concrete defect and apply only its minimum freeze-safe correction with one
+focused regression; if the journey is clean, commit an evidence-only handoff. Do not run a full
+suite, build/package either desktop app or Companion APK, use an emulator/phone, download tools,
+begin Guardian/Recovery/install, sign, publish, release, force-push or relock. Commit and push, then
+stop for Product Assurance.
+
+### Gate status
+
+- Companion offline policy baseline: **VERIFIED**
+- Companion rendered first entry and disclosure: **WAITING FOR PROTECTED-SOURCE RECONCILIATION**
+- Windows and Fedora internal alpha baselines: **VERIFIED; NO REBUILD LOOP**
+- Next core product milestone: **EVIDENCE-DERIVED UNFAMILIAR FIRMWARE INTAKE**
+
 ## Reviewed checkpoint: 49821cc — refreshed Fedora Guided alpha
 
 - Handoff commit: `49821cc`

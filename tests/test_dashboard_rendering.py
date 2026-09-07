@@ -36,6 +36,19 @@ from romverse.ui.mini_chart import MiniChart
 from romverse.ui.origin_story import ORIGIN_SCENES, origin_total_duration_ms
 
 
+def test_empty_command_deck_header_does_not_claim_a_live_device_or_project(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    center = DeviceCenter(tmp_path)
+
+    assert center.deck_subtitle.text() == (
+        "Current device, project, and evidence-derived next action at a glance."
+    )
+    assert "One live device" not in center.deck_subtitle.text()
+    assert "one active project" not in center.deck_subtitle.text()
+
+    center.close()
+
+
 def test_connected_dashboard_builds_all_approved_contextual_mission_cards(tmp_path) -> None:
     app = QApplication.instance() or QApplication([])
     center = DeviceCenter(tmp_path)

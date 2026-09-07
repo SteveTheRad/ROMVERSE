@@ -6,6 +6,7 @@ import os
 import re
 import secrets
 import signal
+import stat
 import subprocess
 import sys
 import threading
@@ -268,6 +269,312 @@ class SubprocessRecoveryAdapterProcessRunner:
             raise
 
 
+class WindowsSubprocessRecoveryAdapterProcessRunner:
+    """Launch one exact Windows adapter while its verified file identity is locked."""
+
+    MAX_STDOUT_BYTES = SubprocessRecoveryAdapterProcessRunner.MAX_STDOUT_BYTES
+    MAX_STDERR_BYTES = SubprocessRecoveryAdapterProcessRunner.MAX_STDERR_BYTES
+    MAX_REQUEST_BYTES = SubprocessRecoveryAdapterProcessRunner.MAX_REQUEST_BYTES
+    FIXED_ARGUMENTS = SubprocessRecoveryAdapterProcessRunner.FIXED_ARGUMENTS
+
+    def run(
+        self,
+        package: VerifiedGuardianRecoveryAdapterPackage,
+        request_bytes: bytes,
+        timeout_seconds: int,
+    ) -> RecoveryAdapterProcessResult:
+        descriptor = -1
+        try:
+            current = revalidate_verified_guardian_recovery_adapter_package(package)
+            if (
+                os.name != "nt"
+                or sys.platform != "win32"
+                or current.manifest.platform != "windows-x86_64"
+                or current.artifact_path.suffix.casefold() != ".exe"
+                or not isinstance(request_bytes, bytes)
+                or not 1 <= len(request_bytes) <= self.MAX_REQUEST_BYTES
+                or type(timeout_seconds) is not int
+                or not 1 <= timeout_seconds <= 3600
+            ):
+                raise RecoveryRuntimeAdapterError(
+                    "Recovery adapter process launch is unavailable for this exact boundary"
+                )
+            descriptor, identity = self._pinned_executable(current)
+            if not self._path_matches_descriptor(current.artifact_path, descriptor, identity):
+                raise RecoveryRuntimeAdapterError(
+                    "Recovery adapter path identity changed before Windows launch"
+                )
+        except RecoveryRuntimeAdapterError:
+            if descriptor >= 0:
+                os.close(descriptor)
+            raise
+        except (RecoveryAdapterPackageValidationError, OSError, TypeError, ValueError) as exc:
+            if descriptor >= 0:
+                os.close(descriptor)
+            raise RecoveryRuntimeAdapterError(
+                "Recovery adapter executable could not be pinned before Windows launch"
+            ) from exc
+
+        try:
+            try:
+                process = subprocess.Popen(
+                    (str(current.artifact_path), *self.FIXED_ARGUMENTS),
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    cwd=self._windows_directory(),
+                    env=self._fixed_environment(),
+                    shell=False,
+                    close_fds=True,
+                    creationflags=(
+                        getattr(subprocess, "CREATE_NO_WINDOW", 0)
+                        | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+                    ),
+                )
+            except OSError:
+                return RecoveryAdapterProcessResult(False, 127, b"", b"", False, False)
+            stdout, stderr, timed_out, truncated = self._bounded_communication(
+                process,
+                request_bytes,
+                timeout_seconds,
+            )
+            return RecoveryAdapterProcessResult(
+                True,
+                int(process.returncode if process.returncode is not None else 126),
+                stdout[: self.MAX_STDOUT_BYTES],
+                stderr[: self.MAX_STDERR_BYTES],
+                timed_out,
+                truncated,
+            )
+        finally:
+            os.close(descriptor)
+
+    @classmethod
+    def _bounded_communication(
+        cls,
+        process: subprocess.Popen,
+        request_bytes: bytes,
+        timeout_seconds: int,
+    ) -> tuple[bytes, bytes, bool, bool]:
+        buffers = [bytearray(), bytearray()]
+        truncated = [False, False]
+
+        def drain(stream, index: int, limit: int) -> None:
+            while True:
+                block = stream.read(8192)
+                if not block:
+                    return
+                remaining = max(limit - len(buffers[index]), 0)
+                buffers[index].extend(block[:remaining])
+                if len(block) > remaining:
+                    truncated[index] = True
+
+        if process.stdin is None or process.stdout is None or process.stderr is None:
+            raise RecoveryRuntimeAdapterError("Recovery adapter process pipes were not isolated")
+        readers = (
+            threading.Thread(
+                target=drain,
+                args=(process.stdout, 0, cls.MAX_STDOUT_BYTES),
+                daemon=True,
+            ),
+            threading.Thread(
+                target=drain,
+                args=(process.stderr, 1, cls.MAX_STDERR_BYTES),
+                daemon=True,
+            ),
+        )
+        for reader in readers:
+            reader.start()
+        with suppress(BrokenPipeError, OSError):
+            process.stdin.write(request_bytes)
+            process.stdin.flush()
+        with suppress(OSError):
+            process.stdin.close()
+        timed_out = False
+        try:
+            process.wait(timeout=timeout_seconds)
+        except subprocess.TimeoutExpired:
+            timed_out = True
+            with suppress(OSError):
+                process.kill()
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                with suppress(OSError):
+                    process.terminate()
+                process.wait(timeout=5)
+        for reader in readers:
+            reader.join(timeout=5)
+        for reader, stream in zip(
+            readers,
+            (process.stdout, process.stderr),
+            strict=True,
+        ):
+            if reader.is_alive():
+                truncated[0] = True
+                truncated[1] = True
+                with suppress(OSError):
+                    stream.close()
+        return bytes(buffers[0]), bytes(buffers[1]), timed_out, any(truncated)
+
+    @staticmethod
+    def _pinned_executable(
+        package: VerifiedGuardianRecoveryAdapterPackage,
+    ) -> tuple[int, tuple[int, int, int, int, int, int]]:
+        """Deny write/delete sharing while hashing and launching the exact file handle."""
+
+        import ctypes
+        import msvcrt
+        from ctypes import wintypes
+
+        artifact = package.artifact_path
+        WindowsSubprocessRecoveryAdapterProcessRunner._reject_reparse_path(artifact)
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        create_file = kernel32.CreateFileW
+        create_file.argtypes = (
+            wintypes.LPCWSTR,
+            wintypes.DWORD,
+            wintypes.DWORD,
+            wintypes.LPVOID,
+            wintypes.DWORD,
+            wintypes.DWORD,
+            wintypes.HANDLE,
+        )
+        create_file.restype = wintypes.HANDLE
+        close_handle = kernel32.CloseHandle
+        close_handle.argtypes = (wintypes.HANDLE,)
+        close_handle.restype = wintypes.BOOL
+        handle = create_file(
+            str(artifact),
+            0x80000000,  # GENERIC_READ
+            0x00000001,  # FILE_SHARE_READ; deny write and delete sharing
+            None,
+            3,  # OPEN_EXISTING
+            0x00200000 | 0x08000000,  # OPEN_REPARSE_POINT | SEQUENTIAL_SCAN
+            None,
+        )
+        invalid_handle = ctypes.c_void_p(-1).value
+        if handle in {None, invalid_handle}:
+            raise OSError(ctypes.get_last_error(), "Windows adapter handle could not be opened")
+        try:
+            descriptor = msvcrt.open_osfhandle(
+                int(handle),
+                os.O_RDONLY | getattr(os, "O_BINARY", 0),
+            )
+        except Exception:
+            close_handle(handle)
+            raise
+        try:
+            opened = os.fstat(descriptor)
+            identity = WindowsSubprocessRecoveryAdapterProcessRunner._identity(opened)
+            if (
+                not stat.S_ISREG(opened.st_mode)
+                or WindowsSubprocessRecoveryAdapterProcessRunner._is_reparse(opened)
+                or opened.st_nlink != 1
+            ):
+                raise RecoveryRuntimeAdapterError(
+                    "Windows Recovery adapter must be one unlinked non-reparse regular file"
+                )
+            digest = hashlib.sha256()
+            size = 0
+            with os.fdopen(descriptor, "rb", closefd=False) as stream:
+                for block in iter(lambda: stream.read(1024 * 1024), b""):
+                    size += len(block)
+                    if size > package.manifest.artifact.size_bytes:
+                        raise RecoveryRuntimeAdapterError(
+                            "Windows Recovery adapter exceeded its exact package size"
+                        )
+                    digest.update(block)
+            final = os.fstat(descriptor)
+            if (
+                WindowsSubprocessRecoveryAdapterProcessRunner._identity(final) != identity
+                or size != package.manifest.artifact.size_bytes
+                or digest.hexdigest() != package.manifest.artifact.sha256
+            ):
+                raise RecoveryRuntimeAdapterError(
+                    "Windows Recovery adapter changed while its launch handle was pinned"
+                )
+            os.lseek(descriptor, 0, os.SEEK_SET)
+            return descriptor, identity
+        except Exception:
+            os.close(descriptor)
+            raise
+
+    @staticmethod
+    def _path_matches_descriptor(
+        artifact: Path,
+        descriptor: int,
+        identity: tuple[int, int, int, int, int, int],
+    ) -> bool:
+        try:
+            WindowsSubprocessRecoveryAdapterProcessRunner._reject_reparse_path(artifact)
+            path_details = artifact.lstat()
+            opened = os.fstat(descriptor)
+            return (
+                not WindowsSubprocessRecoveryAdapterProcessRunner._is_reparse(path_details)
+                and path_details.st_nlink == 1
+                and WindowsSubprocessRecoveryAdapterProcessRunner._identity(path_details)
+                == identity
+                and WindowsSubprocessRecoveryAdapterProcessRunner._identity(opened) == identity
+            )
+        except OSError:
+            return False
+
+    @staticmethod
+    def _reject_reparse_path(path: Path) -> None:
+        candidate = path
+        while True:
+            details = candidate.lstat()
+            if WindowsSubprocessRecoveryAdapterProcessRunner._is_reparse(details):
+                raise RecoveryRuntimeAdapterError(
+                    "Windows Recovery adapter path contains a reparse point"
+                )
+            parent = candidate.parent
+            if parent == candidate:
+                return
+            candidate = parent
+
+    @staticmethod
+    def _is_reparse(details: os.stat_result) -> bool:
+        attributes = getattr(details, "st_file_attributes", 0)
+        return bool(attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400))
+
+    @staticmethod
+    def _identity(details: os.stat_result) -> tuple[int, int, int, int, int, int]:
+        return (
+            details.st_dev,
+            details.st_ino,
+            details.st_nlink,
+            details.st_size,
+            details.st_mtime_ns,
+            details.st_ctime_ns,
+        )
+
+    @staticmethod
+    def _windows_directory() -> str:
+        import ctypes
+        from ctypes import wintypes
+
+        buffer = ctypes.create_unicode_buffer(32768)
+        get_windows_directory = ctypes.WinDLL("kernel32", use_last_error=True).GetWindowsDirectoryW
+        get_windows_directory.argtypes = (wintypes.LPWSTR, wintypes.UINT)
+        get_windows_directory.restype = wintypes.UINT
+        length = get_windows_directory(buffer, len(buffer))
+        if not 0 < length < len(buffer):
+            raise RecoveryRuntimeAdapterError("Windows system directory could not be resolved")
+        return buffer.value
+
+    @classmethod
+    def _fixed_environment(cls) -> dict[str, str]:
+        windows = cls._windows_directory()
+        return {
+            "SystemRoot": windows,
+            "WINDIR": windows,
+            "LANG": "C",
+            "LC_ALL": "C",
+        }
+
+
 class GuardianTrustedRecoveryProcessAdapter:
     """The only adapter accepted by the governed runner: signed package + fixed protocol."""
 
@@ -287,9 +594,13 @@ class GuardianTrustedRecoveryProcessAdapter:
             ) from exc
         if not callable(run):
             raise RecoveryRuntimeAdapterError("Recovery adapter launcher is invalid")
+        required_runner = {
+            "linux-x86_64": SubprocessRecoveryAdapterProcessRunner,
+            "windows-x86_64": WindowsSubprocessRecoveryAdapterProcessRunner,
+        }.get(verified.manifest.platform)
         if (
             verified.release_trust_scope is RecoveryAdapterTrustScope.RADFORGE_PRODUCTION
-            and type(process_runner) is not SubprocessRecoveryAdapterProcessRunner
+            and type(process_runner) is not required_runner
         ):
             raise RecoveryRuntimeAdapterError(
                 "Production Recovery adapters require the sealed fixed launcher"

@@ -1,5 +1,39 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 6cb22cf — Windows Command Deck truthfulness convergence
+
+- Handoff commit: `6cb22cf`
+- Windows synchronization commit: `0f64dd3b`
+- Approved upstream correction: Linux `64ad510532a18b5e26a6feec46791069aee0e8ec`
+- Product Assurance authorization: Linux `292cd09`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — COMMAND DECK SOURCE CONVERGED**
+
+### Decision and evidence
+
+The Windows correction has the exact stable patch ID of the approved Linux source,
+`f43ea1fd1e6402522f15a53c941450718ed88e44`. It removes the false pre-device/pre-project claim and
+adds only the focused presentation regression. Build's Windows **1/1 passed**, Ruff success and Git
+whitespace success are sufficient for this exact two-file synchronization.
+
+No artifact rebuild is required or authorized. Both current internal alpha artifacts retain their
+truthfully documented prior subtitle; the corrected neutral text will enter the next normal
+cross-platform artifact batch after additional useful product work, avoiding a packaging loop.
+
+### Safety and gate result
+
+- Cross-platform Command Deck source truthfulness: **PASS**
+- Feature freeze: **PASS — exact approved presentation correction only**
+- Guardian authority, exact-device evidence, UNKNOWN/no-blind-retry and permanent no-relock:
+  **UNCHANGED**
+- Phone, Recovery, Companion, signing, publication and release activity: **NONE**
+
+### Approved next bounded task
+
+Windows should remain at this clean approved source baseline while the authorized Linux task runs
+the single Companion first-run/offline journey. Do not rebuild or retest Windows again until a new
+cross-platform source change or user-facing milestone creates material evidence to collect.
+
 ## Reviewed checkpoint: 14328a0 — refreshed Windows Guided alpha
 
 - Handoff commit: `14328a0`

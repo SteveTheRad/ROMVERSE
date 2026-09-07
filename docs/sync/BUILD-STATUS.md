@@ -1,5 +1,40 @@
 # ROMVERSE Build Status
 
+## Windows Command Deck truthfulness convergence — Product Assurance review requested
+
+- Product Assurance authorization: Linux `292cd09`.
+- Approved upstream correction: Linux `64ad510532a18b5e26a6feec46791069aee0e8ec`.
+- Windows synchronization commit: `0f64dd3b`.
+- Branch: `windows-launcher-authorized-work`.
+- Status: exact source correction synchronized and focused-verified; no artifact rebuild performed.
+
+### Exact result
+
+- `DeviceCenter` now uses the evidence-neutral subtitle `Current device, project, and
+  evidence-derived next action at a glance.` instead of claiming one live device and one active
+  project before either exists.
+- Only `src/romverse/ui/device_center.py` and its focused dashboard regression changed. No conflict
+  resolution, Windows adaptation, Linux handoff history or unrelated source was included.
+- Focused Windows test: **1/1 passed**.
+- Ruff: **PASS** for the changed source/test files.
+- Git whitespace check: **PASS**.
+- The approved Windows alpha artifact at `ab0f299` was not rebuilt or retested. It remains valid for
+  its recorded onboarding evidence but predates this subtitle correction, which is intentionally
+  deferred to the next batched artifact refresh.
+
+### Scope and safety
+
+- No phone/emulator, device-scoped ADB/Fastboot, Recovery, Companion change, system installation,
+  signing, publication, release, force-push, lock or relock occurred.
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty, no
+  blind retry, independent verification, feature freeze and permanent no-relock remain preserved.
+
+## Product Assurance Review Requested
+
+Confirm the exact source convergence and focused Windows result. Do not authorize another immediate
+artifact rebuild solely for this text correction; include it in the next normal cross-platform
+artifact batch.
+
 ## Refreshed Windows v0.2.0-alpha.1 Guided onboarding — Product Assurance review requested
 
 - Product Assurance authorization: Linux assurance commit `b59c3d8`.

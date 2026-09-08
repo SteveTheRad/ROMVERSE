@@ -1,5 +1,64 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 2d27723 — unfamiliar-firmware Guided intake
+
+- Final handoff commit: `2d27723`
+- Evidence checkpoint: `41580a949689087618a08fb0930422f45dfeba7d`
+- Product Assurance authorization/base: `fc24870124004a250c1bd54b215280fe8c599e74`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — EVIDENCE-DERIVED UNFAMILIAR INTAKE VERIFIED**
+
+### Decision and evidence
+
+The bounded journey satisfies the requested Adaptive Discovery foundation milestone. One synthetic
+archive with no exact Device Pack/recipe match passed through the production Guided ROM Studio
+controls and existing service boundaries: protected import, automatic bounded inspection,
+source-derived Device DNA, persisted Compatibility Matrix, isolated working copy, safe tree and an
+inert Recipe Forge readiness handoff.
+
+The classification stayed truthful. `guardian_flash` remained Device DNA `UNCONFIRMED` and Matrix
+`Unknown`; it did not become `UNSUPPORTED`, known-incompatible or a terminal stop. The UI continued
+safe local evidence gathering while displaying `EXECUTION AUTHORITY: NONE`. No known device name,
+Pack, live target, consent, signature, execution or hardware result was invented.
+
+No product-source change exists in this checkpoint, and none is required. Build's single
+production-widget journey plus **5/5 focused regressions** is proportional evidence; the repository
+diff contains only the Build handoff and passes whitespace validation. The evidence is correctly
+classified as simulated UI/service behavior, not packaged-app, hardware, build-output or Recovery
+verification.
+
+### Vision, freeze and safety result
+
+- Evidence-derived unfamiliar firmware intake: **PASS**
+- `UNCONFIRMED` remains investigable rather than unsupported: **PASS**
+- Guided next-action clarity through Recipe Forge readiness: **PASS**
+- Feature freeze: **PASS — evidence-only checkpoint**
+- Guardian-only authority, exact-device evidence, UNKNOWN/no-blind-retry and permanent no-relock:
+  **PRESERVED**
+
+### Approved next bounded task
+
+Run one fresh, no-phone **Recipe Forge to durable local-build completion journey** using a new
+disposable project and bounded synthetic unfamiliar firmware/input tree. Start from the existing
+Recipe Forge-ready state, create one minimal deterministic recipe through the real production UI,
+preview the exact change, apply it transactionally, run the existing local build path, and verify
+the durable result/receipt and reopened project state after one normal application-level restart or
+service reload. Stop before signing, Guardian, installation or any device action. The final UI must
+distinguish local build completion from install/flash success and offer one clear next action.
+
+Use existing tools only. Record the first concrete defect and implement only its minimum
+freeze-safe correction with one focused regression; if clean, commit evidence only. Reuse prior
+resume/UNKNOWN evidence rather than retesting interruption cases. Do not run a full suite, rebuild
+desktop/Companion packages, use an emulator/phone, touch protected Companion or original-checkout
+Windows drafts, download tools, sign, publish, release, force-push or relock. Commit and push, then
+stop for Product Assurance.
+
+### Gate status
+
+- Unfamiliar firmware evidence intake: **VERIFIED**
+- Next core user milestone: **RECIPE FORGE TO DURABLE LOCAL BUILD**
+- Physical device, production Recovery/trust, signing, publication and release: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: 7785a25 — Companion offline acceptance blocker
 
 - Final handoff commit: `7785a25`

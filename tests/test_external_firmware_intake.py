@@ -2,13 +2,18 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import zipfile
 from pathlib import Path
 
+import pytest
 from PySide6.QtWidgets import QApplication
 
 from romverse.device_packs.registry import DevicePackRegistry
+from romverse.rom import external_intake
 from romverse.rom.external_intake import ExternalFirmwareIntakeService
+from romverse.rom.inspection import RomInspector
+from romverse.rom.models import ProjectError
 from romverse.rom.projects import RomProjectStore
 from romverse.ui.rom_studio import RomStudio
 
@@ -68,6 +73,62 @@ def test_external_intake_hashes_and_inspects_without_copying_or_authority(tmp_pa
     assert store.get(project.project_id).original is None
     assert not store.originals_root.exists() or not tuple(store.originals_root.iterdir())
     assert ExternalFirmwareIntakeService(store).load(project.project_id) == receipt
+
+
+def test_external_intake_does_not_reopen_selected_path_for_inspection(
+    tmp_path, monkeypatch
+) -> None:
+    source = _source(tmp_path / "firmware.zip")
+    expected = _sha256(source)
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.create("One descriptor")
+    original_open = Path.open
+
+    def reject_source_reopen(path: Path, *args, **kwargs):
+        if path == source:
+            raise AssertionError("selected firmware path was reopened")
+        return original_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", reject_source_reopen)
+
+    receipt = ExternalFirmwareIntakeService(store).inspect(project.project_id, source)
+
+    assert receipt.source_sha256 == expected
+    assert receipt.container == "zip"
+    assert receipt.partition_signals == ("super",)
+
+
+def test_external_intake_replacement_cannot_mix_path_metadata_with_open_descriptor(
+    tmp_path, monkeypatch
+) -> None:
+    source = _source(tmp_path / "firmware.zip")
+    original_digest = _sha256(source)
+    replacement = tmp_path / "replacement.zip"
+    with zipfile.ZipFile(replacement, "w") as archive:
+        archive.writestr("images/vbmeta.img", b"replacement-vbmeta")
+    replacement.chmod(0o444)
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.create("Directory entry replacement")
+    observed = {}
+
+    class ReplacingInspector(RomInspector):
+        def inspect_stream(self, stream, expected_sha256, source_name):
+            os.replace(replacement, source)
+            report = super().inspect_stream(stream, expected_sha256, source_name)
+            observed["digest"] = expected_sha256
+            observed["partitions"] = report.partition_signals
+            return report
+
+    monkeypatch.setattr(external_intake, "RomInspector", ReplacingInspector)
+
+    with pytest.raises(ProjectError, match="changed during bounded inspection"):
+        ExternalFirmwareIntakeService(store).inspect(project.project_id, source)
+
+    assert observed == {"digest": original_digest, "partitions": ("super",)}
+    assert _sha256(source) != original_digest
+    assert not (
+        store.projects_root / project.project_id / ExternalFirmwareIntakeService.RECEIPT_NAME
+    ).exists()
 
 
 def test_external_intake_load_fails_closed_after_source_drift(tmp_path) -> None:

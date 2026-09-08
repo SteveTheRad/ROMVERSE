@@ -118,13 +118,17 @@ class ExternalFirmwareIntakeService:
                     completed += len(chunk)
                     if progress is not None and completed < path_before.st_size:
                         progress(completed, path_before.st_size)
+                report = RomInspector().inspect_stream(
+                    stream,
+                    digest.hexdigest(),
+                    source.name,
+                )
                 stream_after = os.fstat(stream.fileno())
                 if completed != path_before.st_size or not _same_file(stream_before, stream_after):
-                    raise ProjectError("External firmware changed while it was being hashed")
+                    raise ProjectError("External firmware changed while it was being inspected")
         except OSError as exc:
             raise ProjectError("External firmware could not be read safely") from exc
 
-        report = RomInspector().inspect(source, digest.hexdigest(), source.name)
         try:
             path_after = source.stat()
         except OSError as exc:

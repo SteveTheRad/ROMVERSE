@@ -1,5 +1,129 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows packaged Genesis explicit-consent correction — Product Assurance review requested
+
+- Product Assurance verdict: `6bc50c40a679b432398d58e557a08209fd2176b0` — `Approve Windows
+  saved-project startup`, matching checkpoint `239a9a3a6382a3d632bf046749bc72647e128e29`
+  exactly.
+- Accepted package source: `6fc79f65769366f3b31ddea7244bb9119bb05158`; approved base
+  `b892178d4555e3c57d031576db9d3c8b8163071b`.
+- Minimum correction commit: `bb13daf830822be87b5f0edc58292f2b259af544` — `Require explicit
+  Genesis tool setup consent`.
+- Branch: `windows-launcher-authorized-work`.
+- Status: **CORRECTION IMPLEMENTED — THE PACKAGED CHECK EXPOSED AN AUTOMATIC-INSTALL CONSENT
+  BYPASS; GUIDED GENESIS NOW ALWAYS OPENS FORGE IN REVIEW-ONLY MODE, WITH 5/5 FOCUSED NATIVE
+  WINDOWS REGRESSIONS PASSING. NO CORRECTED PACKAGE HAS BEEN BUILT OR REPLAYED.**
+
+### Exact packaged failure evidence
+
+- Reused without rebuilding the approved unsigned executable
+  `build/windows-stage5-tool-repair-2ba78b0a/ROMVERSE/ROMVERSE.exe`, 6,319,605 bytes, SHA-256
+  `5784de7a491c0b151ddb727beecf64c7ca4132760c5a687d9a22981e172899bc`, against the exact saved
+  workspace `C:\Work\ROMVERSE-Windows-Adaptive-Discovery-3fe32432-20260909` with
+  `--skip-onboarding`. The managed `tools` directory contained zero files before launch.
+- The one package session restored project `Windows Synthetic Discovery 20260909`, protected
+  source `synthetic-unfamiliar-firmware.zip` / `85e734ea89c706d3…`, stage 5 of 15, Device DNA
+  UNCONFIRMED and the expected **Scan device & refresh DNA** next action.
+- The nested Genesis dialog exposed the exact accessibility control
+  `QApplication.GuidedBuildMission.MissionFooter.MissionAction` with accessible name
+  `Scan device refresh DNA`. Windows did not expose that nested modal as a separately targetable
+  window; two direct indexed accessibility invocations failed before input with a stale nested-node
+  cache error. A fresh screenshot and the same accessibility tree identified the exact button, and
+  one screenshot-grounded activation of that same control was performed. No other Genesis action
+  was activated.
+- Forge Arsenal opened with only ADB and Fastboot listed, but it immediately disabled both choices,
+  changed the primary action to **Installing, please wait …**, disabled Close, and overwrote the
+  exact project/stage purpose with download progress. Build had not selected either requirement or
+  pressed **Install and verify requirements**. This failed the required actionable-choice,
+  preserved-context and clear-cancellation contract.
+- Normal `Alt+F4` cancellation was issued immediately. The pinned 8,044,989-byte Platform Tools
+  archive had nevertheless already verified at SHA-256
+  `45f4d63113e895ebde0c90f194099a4676b6ac653bd28d54314a9e022bbc1a99` and extracted before the
+  dialog closed. Once those tools became visible, the existing scheduled Device Engine issued six
+  unbound `fastboot.exe devices -l` inventory polls, all read-only, target `host`, return code 0,
+  non-timeout and empty. No ADB command was recorded. No selector, phone, emulator, device state,
+  firmware or authority was present or changed.
+- ROMVERSE and both child dialogs then closed normally. No `ROMVERSE.exe` or workspace-local
+  ADB/Fastboot process remains. The unrelated pre-existing detached ADB server from
+  `C:\Work\ROMVERSE-Link-Lazy-Frozen-20260907` remains untouched.
+
+### Minimum correction and focused native evidence
+
+- Root cause: `RomStudio._resolve_required_tools()` inherited the global
+  `auto_download_verified_tools=true` preference for a Guided consent checkpoint. Its dialog
+  therefore scheduled installation at open and auto-closed after verification, bypassing the
+  required explicit install action.
+- `RomStudio._resolve_required_tools()` now accepts a narrow optional `auto_start` override while
+  preserving the existing preference for all unchanged callers. `GuidedBuildMission` alone passes
+  `auto_start=False`; Forge therefore remains open with its scoped requirements, purpose,
+  **Install and verify requirements** button and Close path until the user explicitly acts.
+- The focused regression records that the Guided resolver passes both `auto_start=False` and
+  `auto_close=False` even while the application default remains automatic. Existing direct scan,
+  successful Forge-to-one-scan continuity, declined-Forge retry and the unrelated default-auto
+  Partition Atlas behavior remain covered.
+- Exact successful commands and totals:
+  - `.venv\Scripts\python.exe -m pytest
+    tests\test_rom_studio_ui.py::test_genesis_device_stage_requests_a_fresh_scan_and_rebuilds_device_dna
+    tests\test_rom_studio_ui.py::test_genesis_device_stage_repairs_platform_tools_then_resumes_one_scan
+    tests\test_rom_studio_ui.py::test_genesis_device_stage_retains_retry_when_platform_tools_repair_is_declined
+    tests\test_rom_studio_ui.py::test_genesis_tool_resolution_fails_closed_when_required_reader_remains_missing
+    --basetemp .pytest-tmp-guided-consent -q` — **4 passed**.
+  - `.venv\Scripts\python.exe -m pytest
+    tests\test_rom_studio_ui.py::test_partition_atlas_resolves_its_missing_tool_and_continues
+    --basetemp .pytest-tmp-guided-default -q` — **1 passed**.
+  - `.venv\Scripts\python.exe -m ruff check src\romverse\ui\rom_studio.py
+    src\romverse\ui\guided_mission.py tests\test_rom_studio_ui.py` — **passed**.
+  - `git diff --check` — **passed**.
+- One earlier invocation reached four passing assertions but exited during pytest's global temporary
+  cleanup with `PermissionError: WinError 5` on the unrelated system path
+  `C:\Users\steve\AppData\Local\Temp\pytest-of-steve\pytest-current`. The exact four cases were
+  rerun successfully with the bounded repository-local `--basetemp` above. `pytest-timeout` is not
+  installed, so an attempted `--timeout=60` invocation collected no tests and is not counted.
+- No broader suite, unchanged artifact rebuild or corrected-package replay was performed.
+
+### Workspace restoration and preserved boundaries
+
+- The unintended generated Platform Tools tree, install plan and six-entry command audit were moved
+  intact to the recoverable evidence quarantine
+  `C:\Work\ROMVERSE-Windows-Checkpoint-6bc50c40-Quarantine-20260909`; direct deletion was not used.
+  The exact saved workspace again contains zero managed-tool files and no
+  `toolchain-install-plan.json`, `guardian-audit.jsonl` or Guardian audit lock.
+- The Guided record and Live Console ledger were restored to their pre-session payloads. Every
+  project/authority record again matches the accepted bytes:
+  `project.romverse` `43d0be47945aa2ec5a27f11ef8a94a809a9ef4cb9f23ea4a1424773990902fd3`,
+  `guided-mission.json` `56dcc316220c22f3784d5e10fda39df47a3b96a763bbab702eba369e40b4d511`,
+  `inspection.romverse` `cd98bfd4120977d9d9dd59e8e8a9684bc66dd511f51a4f8a4f6e14581763afd1`,
+  `device-dna.romverse` `a9cda907fe28d783549a37dc09328ba12ba9f11a02a704c1c43b32f3a56c6046`,
+  `compatibility-matrix.romverse`
+  `6e6f9dc82619f2940f1b3a56aea4322b35458669b54da7d53be950641feb7a81`,
+  `working-copy.romverse` `98b0d92596c2d6acc413a7325ec9a68eb7f34c4f54c8bed3206f9b291ca23749`,
+  `working-tree-index.romverse`
+  `154d60fcbe230b4b2c449959e9cb481f110ba9637f5c7e69cd1195369115f490`, and
+  `route-record.romverse` `c1c5ed2c1584a11889d1c3ad759ac86ffee7ba85406c28405c3e395cb8df3b95`.
+- The valid Live Console ledger again contains 18 pre-session events and its recomputed ledger
+  digest is `7188aa9552495207a720ca573c1ec38284f368c381136969233e07527586224b`.
+  The runtime record alone advanced normally from four to five complete start/clean-close pairs;
+  it is 385 bytes with SHA-256
+  `970f2eee34b6d2ef6b732c87f27f0ffd7e183e8a0d77e28a79eaf946e857f2d6`.
+- Protected Companion files remain untouched. The untracked user patch remains byte-identical at
+  8,272 bytes, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- The automatic download and six empty Fastboot inventory polls are reported as a checkpoint
+  failure, not presented as authorized execution. No phone or emulator was requested, awaited,
+  discovered, connected, operated or targeted. No APK/device installation, firmware change, ROM
+  build/signing, consent, Guardian/Recovery execution, publication, release, lock, relock,
+  force-push or destructive cleanup occurred. UNKNOWN/UNCONFIRMED, exact-device evidence,
+  Guardian-only authority and permanent no-relock remain intact.
+
+### Proposed next bounded task
+
+Product Assurance should independently review correction `bb13daf830822be87b5f0edc58292f2b259af544`,
+the 5/5 focused native results, the packaged consent-bypass evidence and exact workspace restoration.
+If approved, authorize exactly one unsigned corrected-package build and one fresh no-phone
+Forge-handoff/cancel verification with the managed tools directory empty. Do not reuse or activate
+the quarantined binaries, and do not authorize any ADB/Fastboot command, install action, physical
+device, APK, signing, Guardian/Recovery execution, publication, release, lock or relock.
+
 ## Windows corrected-package saved-project startup — Product Assurance review requested
 
 - Product Assurance verdict: `b892178d4555e3c57d031576db9d3c8b8163071b` — `Approve Windows

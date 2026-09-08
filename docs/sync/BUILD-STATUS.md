@@ -1,5 +1,88 @@
 # ROMVERSE Product Assurance Sync
 
+## Packaged Windows Recovery Archives journey — Product Assurance review requested
+
+- Product Assurance verdict: `738b774e889318759c147568cc4a1c8c13d3907c` — `Approve Windows
+  Recovery Archives parity`, matching checkpoint
+  `b09e15a63e6e68e75d198a0c0fed0cf31f678337` exactly.
+- Branch: `windows-launcher-authorized-work`.
+- Status: **PASS — ONE NEW UNSIGNED WINDOWS PACKAGE COMPLETED THE SINGLE AUTHORIZED NO-PHONE
+  RECOVERY BAY → PRIVATE LOCAL ARCHIVES → COMMAND DECK JOURNEY, RETAINING THE EXACT SYMPTOM AND
+  LOCAL SOURCE WITH AUTHORITY NONE, AN IDLE MISSION AND NO SPONTANEOUS TOOL OR COMMAND ACTIVITY.**
+
+### Exact single Windows package
+
+- Built exactly once with `.venv\Scripts\python.exe scripts\build_desktop_executable.py
+  --output-directory C:\Work\ROMVERSE-Windows\build\windows-recovery-archives-b09e15a6
+  --work-directory
+  C:\Work\ROMVERSE-Windows\build\windows-recovery-archives-b09e15a6-pyinstaller`.
+- Build succeeded on Windows 11 build `26200` with Python `3.12.10` and PyInstaller `6.22.2`.
+  The one-folder package at `build/windows-recovery-archives-b09e15a6/ROMVERSE` contains 305
+  files totalling 164,645,528 bytes. `ROMVERSE.exe` is 6,321,193 bytes, Authenticode `NotSigned`,
+  SHA-256 `d7eb55e38e2daad6b35a74c6c3f081b7cf83ba9b1b5ecdb0ebfefa4a7b37804a`.
+- No second build, installer, ZIP, signed artifact, publication or release was produced.
+
+### One connected packaged journey
+
+- Created the fresh isolated workspace
+  `C:\Work\ROMVERSE-Windows-Recovery-Archives-b09e15a6-20260909`; it contained zero files before
+  launch and no workspace-managed Platform Tools. Launched the new executable exactly once with
+  that exact `--workspace` and `--skip-onboarding`.
+- Startup showed Command Deck with no connected device, `MISSION: IDLE`, Guardian verification
+  required and the missing-Platform-Tools state. Neither **Resolve Platform Tools** nor
+  **Connect Device** was activated.
+- The sidebar accessibility action for **Open Recovery Bay** was twice rejected before effect due
+  unavailable element geometry; fresh reobservation confirmed Command Deck remained unchanged.
+  One fresh screenshot-bound activation of that exact visible sidebar control then opened Recovery
+  Bay. No unrelated control was activated and the journey was not duplicated.
+- Entered the exact symptom `adb unauthorized` and activated **Search local Archives** once.
+  ROMVERSE Archives reported one verified guide, five offline evidence records, zero explicit
+  conflicts and selected **ADB authorization is pending on the phone**. The page retained its
+  Recovery Bay source as **SOURCE WORKFLOW • NAVIGATION ONLY**, reported **OFFLINE BRAIN READY**
+  and **EXECUTION AUTHORITY: NONE**, and stated that Archives navigation starts no worker, repair,
+  build or phone action. The window's global connectivity badge remained merely host status; no
+  online lookup or worker started.
+- Activated **Open Command Deck** once. The landing displayed
+  **Recovery Bay Archives • adb unauthorized**, retained the compatible local guide as the source,
+  showed **LOCAL GUIDE • AUTHORITY NONE**, `DEVICE: NOT CONNECTED`, `PROJECT: NONE`,
+  `MISSION: IDLE` and Guardian verification required. The existing **Connect Device** discovery
+  action and **Resolve Platform Tools** action were enabled; both remained untouched.
+- After a bounded five-second observation, the workspace still contained zero managed-tool files
+  and no toolchain install plan, Guardian audit/lock, execution plan, approval, consent or command
+  manifest. It contained only the normal workspace identity, local Companion-link certificate/key,
+  private local Archives snapshot, two empty ledger locks and runtime log. The 77-byte runtime log
+  records one start and one clean close, SHA-256
+  `9b548079f50e029991471fdbf93e92807fb82adb17319871cb9ab421e7b7f499`.
+- ROMVERSE closed normally and no `ROMVERSE.exe` process remains. The one pre-existing detached
+  ADB server from `C:\Work\ROMVERSE-Link-Lazy-Frozen-20260907` remained the same PID `49872` and
+  exact path before, during and after the journey; it was never queried, targeted or stopped. No
+  Fastboot process or new ADB process appeared.
+
+### Preserved evidence and boundaries
+
+- Per verdict `738b774e`, the independently accepted focused route case was not replayed and no
+  broad suite was run. Test total for this package-only checkpoint: **0 tests run**. No source or
+  test file changed; `git diff --check` passes for the handoff.
+- Protected Companion source files and Knowledge/UI Design Lab/Linux work remain untouched. The
+  fresh workspace's ordinary local Companion-link identity files are runtime-local and grant no
+  production trust or device authority. The untracked user patch remains byte-identical at 8,272
+  bytes, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone or emulator was requested, awaited, discovered, connected, operated or targeted. No
+  tool acquisition/install, ADB/Fastboot command, APK/device installation, firmware change, ROM
+  signing, plan, approval, Guardian/Recovery execution, publication, release, lock, relock,
+  force-push or destructive action occurred. Exact-device evidence, UNKNOWN-on-uncertainty,
+  consent separation, no blind retry, Guardian-only authority, independent verification and
+  permanent no-relock remain intact.
+
+### Proposed next bounded task
+
+Product Assurance should independently verify the package hash/signature, the fresh-workspace
+contents, single connected UI journey, retained exact symptom/local source, authority-none and idle
+landing, unchanged external ADB process and clean close. Build must not rebuild or relaunch this
+package, activate discovery/tool installation or infer device/execution authority while that review
+is pending.
+
 ## Windows Recovery Archives context parity — Product Assurance review requested
 
 - Product Assurance verdict: `87c5c6806a73f0f6896bb2a5d558a8e1178a91c5` — `Approve Windows

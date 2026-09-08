@@ -1,5 +1,46 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows Stage 1 reachable-actions checkpoint
+
+- Implementation: `5fd9ad009f037a3bbd5835371a7fab5fb061d3e0` —
+  `Keep Windows Stage 1 actions reachable`.
+- Five production surfaces now honor the viewport instead of forcing hidden horizontal content:
+  Command Deck, Forge Control, Device Atlas, ROMVERSE Link, and Forge Control's footer. Explicit
+  user sizing is no longer silently reduced when Forge Control first opens.
+- Smart Solution verified-outcome persistence no longer repeats a 64-character target filename in
+  its private atomic staging name. Deep but valid Windows workspaces therefore retain the existing
+  content-addressed final record without crossing the legacy Windows path boundary or collapsing
+  into a generic silent revalidation failure.
+- The multi-device Link status consistently says `Android targets` because observed transports may
+  be USB, network ADB, emulator, or otherwise unconfirmed; selection still grants no authority.
+
+### Focused Windows evidence
+
+- The seven exact previously failing UI/action nodes now pass: two Forge Control layout/actions,
+  compact Command Deck, Device Atlas passport, ROMVERSE Link pairing surface, multi-target evidence
+  truthfulness, and Smart Solution → exact Platform Tools review/outcome persistence.
+- Result: **7/7 passed** using fresh short Windows pytest roots. No complete suite was repeated.
+- One representative `Scan → Match → Prepare → Consent → Result → Reassessment → Verification`
+  journey passed through the existing production-service-backed inert simulator:
+  `tests/test_guided_recovery_simulation.py` — **1/1 passed**, explicitly **SIMULATED**.
+- Ruff lint passed for all six changed source/test files. Four files are Ruff-format clean; the two
+  large UI modules retain only their already recorded whole-tree formatter baseline and were not
+  mechanically reformatted outside this defect. Git whitespace checks passed.
+- The preceding genuine supported-entry source launch remains the runtime baseline. One final
+  Windows source launch/smoke is reserved for the end of the broader Stage 1 action audit.
+
+### Preserved boundaries
+
+- The separate UI Design Lab and all Companion Android files remain untouched. The pre-existing
+  untracked patch remains byte-identical at SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone/emulator target, device-changing command, flash, wipe, unlock, root, relock, Recovery,
+  production signing, publication, release, package rebuild, force-push, or destructive action
+  occurred. Guardian-only authority, separate consent, exact-device evidence,
+  UNKNOWN-on-uncertainty, no blind retry, feature freeze, and permanent no-relock are preserved.
+- Windows Build continues immediately with the remaining shipped Stage 1 screen/action audit; this
+  checkpoint does not claim that broader goal complete.
+
 ## Windows shared-core convergence and runnable-source checkpoint
 
 ### Exact integration

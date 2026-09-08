@@ -1,5 +1,70 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: af7f440 — packaged Windows Start-ROM-Project continuity
+
+- Reviewed commit: `af7f44052beb0b8acb20dd34e11c33709311eef2`
+- Approved base: `0e6638b35447da8a479fc8a26ef231d62ee03e88`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — THE CURRENT PACKAGED WINDOWS APP COMPLETES THE SAFE PROJECT START**
+
+### Decision
+
+Product Assurance inspected the documentation-only handoff, independently verified the exact
+staged archive, extracted executable, inert input, protected copy, durable records, runtime log and
+both retained native captures. The unsigned GitHub-produced Windows application launched normally,
+created one no-phone project, imported and hashed one deterministic inert boot image, inspected it
+read-only, persisted the next Guided stage and closed cleanly. No Windows packaging, path,
+persistence or frozen-runtime correction is required.
+
+The background ROM Studio project card visibly remaining at `2/15` while durable state, project
+detail and reopened Genesis correctly show `3/15` is a real platform-neutral repaint/continuity
+defect, not evidence loss. It is assigned to the Linux product line in its matching Product
+Assurance verdict so it is corrected once rather than duplicated here.
+
+### Independent evidence and acceptance
+
+- The staged archive is exactly **77,500,118 bytes**, SHA-256
+  `1445bfe4f8429ee0f13ddb25c6b9e8956394230a41086ff9ee187888194801f0`; the normal unsigned
+  executable is **6,866,758 bytes**, SHA-256
+  `12e582d8b531f4bff84fea9cf33e28b00575ccafd754e52ae175f8daacbde93c`, in a 308-file bundle.
+- The 169-byte inert source and protected copy are byte-identical at SHA-256
+  `ffc2048bb6181a62086328cae7509ea211821d802d490c99787e280e2836fbcb`. The project and inspection
+  records bind that exact digest; inspection is complete/read-only and identifies `android_boot`
+  with partition signal `boot`.
+- The persisted mission is at `workspace`, has no error, and keeps build/install authority false.
+  The activity ledger contains exactly one protected-import success. The runtime log contains one
+  start and one clean close.
+- Independent visual inspection confirms the accurate no-device/unconfirmed state, protected
+  source continuity, the ready task-04 working-tree action and the recorded stale background card.
+- No phone/emulator, ADB/Fastboot command, build, Recovery, flash, wipe, unlock, root, relock, APK,
+  signing, publication or release occurred. The protected untracked patch remains untouched.
+
+### Approved next bounded Windows task
+
+Exercise and, only if necessary, repair the existing Windows **Resolve Platform Tools** journey that
+previously appeared not to install for the creator. Start from a fresh ROMVERSE-managed tool
+directory with no phone connected. Through the normal current Windows application, invoke the one
+existing managed-install action and require ROMVERSE to download the official Android SDK Platform
+Tools, verify the expected archive/tool identities, install only inside its managed directory,
+refresh the Device Engine in-process and reach the truthful ready/waiting-for-device state without
+an unexplained error, global PATH edit, administrator requirement or flashing command.
+
+Inspect first and reuse existing installer evidence. If the journey already passes, change no
+source; if a genuine Windows-specific download, extraction, path, launcher, refresh or error-routing
+defect appears, apply only the minimum correction and run directly affected checks plus one clean
+native no-phone journey. Do not connect a phone, dispatch ADB/Fastboot to hardware, duplicate the
+Linux refresh correction, rebuild/package the full app, resume the external candidate job, or
+broaden dependency features. Commit/push one bounded checkpoint and stop for review.
+
+### Gate status
+
+- Packaged Windows project creation/import/inspection continuity: **VERIFIED**
+- Platform-neutral post-dialog card refresh: **ASSIGNED ONCE TO LINUX**
+- Windows managed Platform Tools self-repair: **NEXT BOUNDED WINDOWS TASK**
+- GitHub-hosted unsigned-candidate job: **EXTERNAL ACCOUNT GATE OUTSTANDING**
+- Physical hardware, signing, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: f5b9c99 — current desktop identity and efficient CI coordination
 
 - Handoff commit: `f5b9c994b49e58b19b742b039b4e572abf3d2c6d`

@@ -1,5 +1,84 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 88e8ffc — packaged simulated Guided journey
+
+- Handoff commit: `88e8ffcd76268c7babb25e7d4842e251abf55a4b`
+- Implementation commit: `d10500eea47bb88e870db70cff5b74069cfa3c7c`
+- Approved base: `5d3e36fdb8a3bf436a7e078e8f72d5504da45173`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **CORRECTION REQUIRED — SIMULATION BOUNDARY ACCEPTED; ACCESSIBILITY CRASH MUST BE FIXED**
+
+### Decision
+
+Product Assurance independently inspected the four-file implementation, reran the exact focused
+selection at **4/4 passed**, reproduced the executable/source/tool hashes and inspected the durable
+Device DNA, Compatibility Matrix and Build Readiness evidence. The explicit development fixture is
+correctly simulation-transport-only, visibly labelled, isolated from physical Device Engine, APK and
+Terminal consumers, and incapable of granting exact-target, Guardian, Recovery or flash authority.
+The packaged journey validly reaches a local-only, execution-locked, non-flashable unchanged OEM
+baseline with `execution_authority: none`. Those parts are accepted.
+
+The checkpoint cannot yet be approved because the first genuine packaged journey crashed in Qt's
+accessibility cache while an AT-SPI client traversed the Guided dialog and invoked the normal entry.
+The retained trace places the application path at `RomStudioPanel._open_guided_setup`, whose current
+stack-local `GuidedBuildMission(...).exec()` opens a nested event loop. A clean pointer-driven retry
+does not erase an accessibility-path crash or prove it fixed. Disabling accessibility or requiring
+pointer input would violate the product contract.
+
+The post-return Genesis handoff also says `NO BUILD OR PHONE ACTION STARTED` after durable local build
+evidence exists. Phone safety remains correct, but the build statement is contradictory and should be
+corrected in the same narrow dialog-return/handoff area.
+
+### Accepted evidence
+
+- Independent focused verification passed **4/4**: explicit phone-neutral flags, inert fixed fixture,
+  ROM Studio-only scan isolation, and rejection of forged simulation success bound to another tree.
+- The packaged executable is mode `0755`, 6,322,320 bytes and independently matches SHA-256
+  `7f6f061cc4cc20ecff20ea974466ae3fe654d17cc48f2196c0298cbad5e87929`.
+- The protected 9,110,512,435-byte OTA source independently matches SHA-256
+  `24bf9292a19b95c0b3d1db62853491d8bf0e967d6e4c24052cea6c5684e2960e`.
+- Managed Payload Dumper independently matches SHA-256
+  `6e87cedaf0a5fb821a0721a071e942ae6e9957233b28346b35d87f02cb85321d`.
+- The exact plan records `local_only: true`, `flashable: false`, `execution_locked: true` and
+  `execution_authority: none`; Build Readiness records a local candidate but `flash_ready: false`.
+- Device DNA and Compatibility Matrix bind `device.simulation`; Guardian flash remains unknown/
+  unconfirmed and no observed physical-device collection or selected serial exists.
+- No phone, ADB/Fastboot device dispatch, APK, system installation, new signed/flashable candidate,
+  Guardian/Recovery execution, publication, release, lock or relock occurred.
+
+### Minimum exact correction and acceptance criteria
+
+1. Replace only the Guided mission's stack-local blocking `exec()` path with a retained,
+   single-instance non-blocking modal lifecycle. Reuse the established retained-dialog pattern:
+   keep a strong owner reference, raise/activate an already-open mission, call `open()`, and on
+   `finished` clear the exact instance then refresh the project and Genesis handoff once. Do not
+   suppress Qt accessibility, disable AT-SPI, catch a native crash, or switch acceptance to pointer
+   input only.
+2. Correct the same Genesis return copy so it never claims no build action after local Build
+   Readiness/Forge evidence exists. State the truthful combination (local build evidence recorded;
+   no installation or phone action started) while preserving the existing no-authority semantics.
+3. Add only focused lifecycle/copy coverage: opening is non-blocking, repeated entry reuses one
+   mission, close performs one refresh and releases the reference, and pre-build versus post-build
+   copy stays truthful. Keep the accepted simulation isolation and exact-tree adversary unchanged.
+4. Repackage once, then perform one focused Fedora XWayland reproduction with an AT-SPI client
+   traversing the dialog tree and invoking the Guided entry. Open/close the mission through its
+   normal accessible action and require a clean runtime record with no new fatal trace. Do not replay
+   firmware import, Payload Dumper download or the full 9 GB Guided-to-Forge journey.
+
+Commit/push only this minimum correction, focused tests and updated handoff, then stop for review.
+Do not change the accepted Device DNA fixture/boundary, broaden simulation, create a new feature or
+screen, connect a phone, issue a device command, install an APK, build/sign/flash firmware, grant
+Guardian/Recovery authority, publish, release, lock or relock. The hidden development flag remains
+an unsigned-development facility; signed release packaging must reject or omit it before release.
+
+### Gate status
+
+- Explicit ROM Studio-only simulation and zero physical authority: **VERIFIED**
+- Packaged local Guided-to-Forge continuity: **FUNCTIONALLY VERIFIED**
+- Accessible Guided dialog lifecycle and truthful post-build copy: **CORRECTION REQUIRED**
+- Physical hardware, signing, Guardian/Recovery execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: c58fe38 — packaged Platform Tools self-repair
 
 - Reviewed commit: `c58fe383391a7c1a6d3335173d921f657d36f052`

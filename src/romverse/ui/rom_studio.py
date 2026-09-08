@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 import shutil
+import zipfile
 from contextlib import suppress
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime
@@ -153,6 +154,13 @@ class FirmwareImportResult:
     inspection: RomInspectionReport
 
 
+def _validate_selected_firmware_copy(path: Path, original_name: str) -> None:
+    if Path(original_name).suffix.casefold() == ".zip" and not zipfile.is_zipfile(path):
+        raise ProjectError(
+            "Selected .zip file is not a valid ZIP archive or Android firmware package"
+        )
+
+
 class ProjectWorker(ManagedRunnable):
     def __init__(
         self,
@@ -208,6 +216,7 @@ class ProjectWorker(ManagedRunnable):
                     self.project_id,
                     self.source,
                     progress=publish_import_copy,
+                    validate_copy=_validate_selected_firmware_copy,
                 )
                 if self.inspection is None:
                     raise ProjectError("Automatic firmware detection is unavailable")

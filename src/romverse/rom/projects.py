@@ -30,6 +30,7 @@ from romverse.rom.models import (
 )
 
 ProgressCallback = Callable[[int, int], None]
+ImportValidator = Callable[[Path, str], None]
 
 
 class RomProjectStore:
@@ -161,6 +162,7 @@ class RomProjectStore:
         project_id: str,
         source: Path,
         progress: ProgressCallback | None = None,
+        validate_copy: ImportValidator | None = None,
     ) -> RomProject:
         project = self.get(project_id)
         if project.original is not None:
@@ -199,6 +201,8 @@ class RomProjectStore:
                 or before.st_ino != after.st_ino
             ):
                 raise ProjectError("Selected original changed while it was being protected")
+            if validate_copy is not None:
+                validate_copy(temporary, source.name)
             sha256 = digest.hexdigest()
             safe_name = _safe_filename(source.name)
             destination = self.originals_root / f"{sha256[:16]}-{safe_name}"

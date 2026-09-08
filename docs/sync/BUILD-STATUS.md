@@ -1,5 +1,107 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows invalid local firmware rejection — Product Assurance review requested
+
+- Product Assurance verdict: `44f94d6ad7486d0f6fdc83df54afd7f3794b5e44` — `Approve Windows
+  firmware picker cancellation`, matching checkpoint
+  `5464eb8ddd68b0c9908ae95da021342d25fc4fe9` exactly.
+- Accepted artifact base: `66dca72494fb1a6eb96d0e75210a7dbee901ad1d` — `Advance Genesis
+  after project creation`.
+- Branch: `windows-launcher-authorized-work`.
+- Status: **CORRECTION COMPLETE — THE APPROVED PACKAGED INVALID-INPUT JOURNEY EXPOSED ONE
+  FAIL-CLOSED DEFECT; THE MINIMUM SOURCE CORRECTION AND ONE FOCUSED NATIVE WINDOWS TEST PASS**.
+
+### Exact bounded packaged Windows observation
+
+- Reused the approved unsigned one-folder artifact without rebuilding or repackaging:
+  `build/windows-project-route-7c6d83ff/ROMVERSE/ROMVERSE.exe`, 6,318,778 bytes, SHA-256
+  `437fbdcddc8bff346bcc5cba11a02f067f7f13eba61a116ef26b385a99af493b`, Authenticode
+  `NotSigned`.
+- Reused the exact isolated saved-project workspace once:
+  `C:\Work\ROMVERSE-Windows-Project-Entry-Corrected-7c6d83ff-20260909`. Created one inert local
+  fixture outside the repository at
+  `C:\Work\ROMVERSE-Invalid-Firmware-44f94d6a\not-android-firmware.zip`: 85 bytes, SHA-256
+  `2792972f20c4b1aa401c677e1fe9369c9f4be1b8081fbf60a472bcfd3ccc7217`. Its plain-text content is
+  intentionally neither a ZIP nor Android firmware.
+- Narrow local Windows UI Automation continued the exact saved project to `SCAN / TASK 02 OF 15`,
+  invoked the existing enabled `Choose firmware…` action once, entered only that fixture in the
+  native `Choose original firmware` picker, and accepted the existing protected-original notice.
+- The packaged app reproduced a genuine fail-closed defect. It displayed `PACKAGE METADATA
+  REJECTED` and `Android OTA ZIP container is malformed`, but simultaneously retained the fixture
+  as a protected original, marked 3 of 15 stages verified, and advanced to task 4, `Prepare an
+  isolated working tree`. The chooser was therefore no longer available at task 2. No further
+  stage or action was invoked.
+- Guided closed through its normal `Save & exit` control and the main app closed normally. No
+  `ROMVERSE.exe` process remains. No post-rejection image was retained because the persisted
+  project evidence records the failure precisely and the correction requires a new package before
+  the visible journey can truthfully pass.
+
+### Minimum correction and focused native Windows verification
+
+- `RomProjectStore.import_original` now accepts a bounded copy validator and applies it to the
+  completed workspace-local temporary copy before content-addressed placement or manifest update.
+  Any validator failure removes the temporary copy through the existing exception cleanup path.
+- The ROM Studio import worker supplies one narrow validator: a file selected as `.zip` must be a
+  structurally valid ZIP. The reproduced plain-text `.zip` now fails with `Selected .zip file is not
+  a valid ZIP archive or Android firmware package` before a protected source, inspection report,
+  Device DNA, compatibility evidence or Guided progress can be persisted. Direct project-store
+  callers retain their existing format-neutral behavior; no firmware identity is inferred and no
+  execution authority is added.
+- Exact native Windows test command:
+  `$env:PYTHONPATH='src'; $env:QT_QPA_PLATFORM='windows'; .venv\Scripts\python.exe -m pytest -p
+  no:cacheprovider --basetemp C:\Work\ROMVERSE-Pytest-InvalidFirmware-44f94d6a
+  tests/test_rom_studio_ui.py::test_firmware_import_worker_rejects_malformed_zip_without_retaining_state
+  -q`.
+- Result: **1/1 passed** on native Windows Qt. The regression proves no completion signal, the
+  exact visible failure text, `original` remains null, `original_roms` remains empty, and no
+  inspection report is saved. Focused Ruff passed for the two changed source files and the test;
+  Git whitespace validation passed.
+- One earlier invocation reached the same passing assertion but pytest exited during session
+  cleanup with a host-only `PermissionError` on the pre-existing global
+  `C:\Users\steve\AppData\Local\Temp\pytest-of-steve\pytest-current` link. The isolated explicit
+  `--basetemp` rerun above completed with exit code 0; this was an environment cleanup problem, not
+  a product or test failure.
+
+### Persisted failure evidence and limitations
+
+- The failed packaged run is deliberately reported as failure evidence, not rewritten into a
+  passing result. Its 693-byte project manifest records the wrongly retained original and has
+  SHA-256 `02908c53c73a3723fc607c8ec00fe09b40542c35ae9e7ce79bee68985c4d7a72`; the 439-byte Guided
+  record remains at `workspace` and has SHA-256
+  `866c9601c0c8726929d64ec13d903d9c4ffd051e1abb6a09fec2a09c72246f9c`.
+- The workspace contains exactly one wrongly retained 85-byte protected source and zero files in
+  `working_roms`, `builds`, Forge, Guardian or Recovery paths. The inspection, Device DNA and
+  compatibility records produced by the defect remain available for independent review at SHA-256
+  `fa30bd67476e981eacc9643b69ec883ba8bda627be7930b5c9e105858e9d5638`,
+  `d4ea96b6d67ca630298c8cc8c304c0f86f82255beeedf256d0c70a75796b290f`, and
+  `df4ad9c812b56c2e18257c5070d369f80e3accb9c87de2cc4fb579628e9b8ce9` respectively.
+- This launch appended 78 scheduled, unbound, read-only empty host-discovery observations: 39
+  `adb devices -l` and 39 `fastboot devices -l`. All returned 0 without timeout, serial selector or
+  device-changing argument. The complete 204-record audit is 117,233 bytes, SHA-256
+  `e19e8dda0153cacdb46ec887fc6c3ff6b09f94faacd3bfc4d4e960da2bfebe80`. The runtime record contains
+  five start/clean-close pairs, 385 bytes, SHA-256
+  `970f2eee34b6d2ef6b732c87f27f0ffd7e183e8a0d77e28a79eaf946e857f2d6`.
+- The source correction has not been packaged or replayed through the visible app because this
+  checkpoint authorizes only the minimum correction and one focused native Windows test after a
+  genuine dead end. The accepted executable therefore remains unchanged and still contains the
+  reproduced defect.
+- The protected Companion files remain untouched. The untracked user patch remains present and
+  byte-identical at SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone or emulator was requested, awaited, connected, discovered, operated or targeted. No real
+  firmware, download, APK, ROM build/signing, candidate creation, Guardian/Recovery execution,
+  publication, release, lock, relock, force-push or destructive cleanup occurred.
+
+### Proposed next bounded task
+
+Product Assurance should independently review the reproduced packaged failure, exact correction,
+focused native Windows regression, persisted evidence hashes, clean process exit, repository scope
+and preserved untracked patch. If approved, authorize exactly one new unsigned Windows development
+build containing this correction and one fresh disposable no-phone replay of only the same invalid
+fixture journey, verifying the visible error, null `original`, no retained source/candidate, task 2
+incomplete, chooser actionable after acknowledgement, and one normal close. No further Windows
+action is proposed until this checkpoint receives a matching repository verdict.
+
 ## Windows native firmware-picker cancellation continuity — Product Assurance review requested
 
 - Product Assurance verdict: `a82fefbb8368aa3f64057d0e13fb90e726fa640c` — `Approve Windows

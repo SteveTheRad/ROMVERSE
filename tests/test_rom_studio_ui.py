@@ -839,6 +839,34 @@ def test_firmware_import_worker_automatically_inspects_before_device_dna(tmp_pat
     studio.close()
 
 
+def test_firmware_import_worker_rejects_malformed_zip_without_retaining_state(tmp_path):
+    source = tmp_path / "not-android-firmware.zip"
+    source.write_bytes(b"ROMVERSE deterministic invalid firmware fixture")
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.create("Invalid firmware rejection")
+    completed = []
+    failures = []
+    worker = ProjectWorker(
+        store,
+        "import",
+        project.project_id,
+        source,
+        RomInspectionService(store),
+    )
+    worker.signals.complete.connect(completed.append)
+    worker.signals.failed.connect(failures.append)
+
+    worker.run()
+
+    assert completed == []
+    assert failures == [
+        "Selected .zip file is not a valid ZIP archive or Android firmware package"
+    ]
+    assert store.get(project.project_id).original is None
+    assert tuple(store.originals_root.iterdir()) == ()
+    assert RomInspectionService(store).load_report(project.project_id) is None
+
+
 def test_rom_studio_surfaces_the_same_verified_source_blueprint_as_forge(
     tmp_path,
     monkeypatch,

@@ -1,5 +1,96 @@
 # ROMVERSE Product Assurance Sync
 
+## Native Windows managed Platform Tools self-repair checkpoint
+
+- Product Assurance verdict: `0dbd29a76155dce7f823d1d16fa04b71dd6adae8` —
+  `Approve packaged Windows project journey [skip ci]`, matching checkpoint
+  `af7f44052beb0b8acb20dd34e11c33709311eef2` exactly.
+- Current normal unsigned application reused without rebuild:
+  `C:\Work\ROMVERSE-Native-Start-0e6638b\app\ROMVERSE\ROMVERSE.exe`, **6,866,758 bytes**,
+  SHA-256 `12e582d8b531f4bff84fea9cf33e28b00575ccafd754e52ae175f8daacbde93c`,
+  Authenticode `NotSigned`.
+- Result: **PASS — THE EXISTING WINDOWS RESOLVE PLATFORM TOOLS JOURNEY DOWNLOADED AND VERIFIED THE
+  PINNED OFFICIAL ARCHIVE, INSTALLED IT ONLY IN THE FRESH ROMVERSE WORKSPACE, REFRESHED DEVICE ENGINE
+  IN-PROCESS, AND REACHED THE TRUTHFUL READY/WAITING-FOR-DEVICE STATE**. No Windows-specific defect
+  appeared, so no source, test, executable or package correction was justified.
+
+### One fresh normal-application journey
+
+- ROMVERSE launched once as the standard unelevated user against fresh disposable workspace
+  `C:\Work\ROMVERSE-Platform-SelfRepair-0dbd29a\workspace` and isolated settings root
+  `C:\Work\ROMVERSE-Platform-SelfRepair-0dbd29a\settings`. Before launch the workspace's managed
+  directory did not exist, and the process inherited only Windows system directories in `PATH` so
+  no global or previously managed ADB/Fastboot copy could satisfy readiness.
+- Windows accessibility observed the real `ROMVERSE Studio 0.2.0-alpha.1` Command Deck with
+  `DEVICE ENGINE ERROR`, `Verified Android Platform Tools are not active yet`, and the reachable
+  existing `Resolve Platform Tools` action. Invoking that action once opened the actual
+  `ROMVERSE • Start Device Engine` / Forge Arsenal Setup dialog and its one selected ADB managed
+  requirement. No manual source or second install action was selected.
+- The existing managed acquisition reported `Downloading and verifying official platform-tools…`,
+  then completed with `Downloaded and prepared: platform-tools (45f4d63113e8…)` and `ROMVERSE
+  refreshed the tool inventory automatically.` No UAC, administrator, installer, driver, firewall,
+  registry, security-policy or global-PATH action appeared or was used.
+- Closing the completed setup returned to the same process. Within the bounded observation window,
+  production receipt validation and Device Engine refresh changed the Command Deck to
+  `Connect your Android device`, `No Android device detected`, `NOT CONNECTED`, `No Android
+  transport is visible`, two visible `Waiting for device` surfaces, and the enabled normal
+  `Scan for device` continuation. No unexplained error remained and no manual scan was selected.
+- The retained native capture is
+  `C:\Work\ROMVERSE-Platform-SelfRepair-0dbd29a\ready-no-device.jpg`, SHA-256
+  `3f3039c6da3ba7cec80471e346b466cc7b98e2fa17267cadf052cf46fe2b192c`. The window then accepted
+  normal accessibility Close, the sole process exited, and its fault log contains exactly one
+  `ROMVERSE runtime started` followed by one `ROMVERSE runtime closed cleanly`.
+
+### Exact managed identity and bounded command evidence
+
+- The 518-byte workspace-local receipt at
+  `tools\downloads\platform-tools\managed-package.romverse` has SHA-256
+  `ca716618aac9b8c178985b952334ee64e748b19b90ccdd099aa86a94e955bf95`. It binds the official
+  source `https://dl.google.com/android/repository/platform-tools-latest-windows.zip` to exactly
+  **8,044,989 bytes** and approved archive SHA-256
+  `45f4d63113e895ebde0c90f194099a4676b6ac653bd28d54314a9e022bbc1a99`.
+- `source.properties` reports `Pkg.Revision=37.0.1`. The receipt and independent post-close file
+  hashes agree exactly for the workspace-local pair: ADB is **8,273,560 bytes**, SHA-256
+  `b4a6b455702684652cccf7b46258b29e653538904359a58fd4931cf3ef286b3f`; Fastboot is
+  **2,429,080 bytes**, SHA-256
+  `b2d9cbff4ce9ae7eb448cfc831bafc867935f50f5be38f8f81057fd7eb3b8d86`. The complete managed
+  directory contains 15 files / **17,529,916 bytes** and remains wholly under the disposable
+  workspace.
+- The install plan records Windows, required/selected tool `ADB`, zero manual requirements, and
+  the existing contract-scoped managed-download policy. Neither the persisted user PATH nor machine
+  PATH contains the disposable root after the journey.
+- While the ready screen was retained and the clean close was exercised, the production waiting
+  loop wrote **9** chained Guardian records over 69 seconds. Every record is the same successful,
+  untargeted, read-only host probe `fastboot.exe devices -l`: allowed 9/9, target `host` 9/9,
+  return code 0 in 9/9, timeouts 0, device identifiers 0, mutating operations 0. These are periodic
+  successful empty discovery polls, not retries of an uncertain result; no ADB command was recorded
+  and no user-triggered scan occurred. The audit SHA-256 is
+  `ad6fa72a015ec7b5a70bc600654c41d7d5b581bb59f66da74d52083c7de3ff92`.
+
+### Verification, scope and next gate
+
+- Direct genuine-Windows acceptance was the approved check. No regression was rerun because the
+  existing current app completed the exact journey and no defect required correction; no broad
+  suite, unchanged-test loop, rebuild, archive repeat, package or source edit occurred.
+- The first accessibility invocation reported an unknown tool-side outcome; immediate independent
+  re-observation proved the dialog had not opened and the UI was unchanged. One refreshed
+  screenshot-bound click then invoked the action exactly once. Closing the completed modal also
+  required a refreshed screenshot-bound click after its indexed accessibility action left the
+  dialog visibly unchanged. No uncertain ROMVERSE operation was repeated.
+- No phone or emulator was requested, connected, discovered, operated or targeted. No
+  serial-selected or mutating ADB/Fastboot command, Recovery, flash, wipe, unlock, root, relock, APK
+  installation, production adapter/trust/signing, publication, release, force-push or destructive
+  action occurred. Guardian-only authority, exact-device evidence, consent separation,
+  UNKNOWN-on-uncertainty, no blind retry, independent verification, feature freeze and permanent
+  no-relock remain intact.
+- The protected Companion files have no staged or working-tree diff. The pre-existing untracked
+  `0001-Preserve-local-build-completion-across-restart.patch` remains untracked and byte-identical at
+  SHA-256 `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- Precise proposed next task: independent Product Assurance review of this documentation-only
+  Windows managed-self-repair checkpoint. Do not begin a source correction, another acquisition,
+  another app journey, a rebuild or the externally blocked GitHub candidate job unless a matching
+  repository verdict explicitly authorizes that bounded work.
+
 ## Packaged Windows Start-ROM-Project continuity checkpoint
 
 - Product Assurance verdict: `0e6638b35447da8a479fc8a26ef231d62ee03e88` —

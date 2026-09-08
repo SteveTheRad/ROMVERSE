@@ -1,5 +1,78 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — explicit ambiguous ROM Mission ownership
+
+### Authoritative checkpoint
+
+- Product Assurance approval/base: `4e9c772` — approved exact ROM Mission project selection.
+- Tested implementation: `f869f59e97aab0854ed8456b8c0dbbabe08305a7` — `Require explicit
+  ambiguous ROM project choice`.
+- Final handoff: the follow-up commit containing this document on
+  `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation, adjacent existing Device Intelligence Hub ambiguous
+  saved-project ownership journey.
+
+### Exact behavior
+
+- When the current ROM Studio project does not match Device Intelligence's current exact Pack and
+  multiple saved projects do, `Start ROM Mission` now presents one local, non-editable project
+  choice. Each choice includes its saved name, exact project ID and protected-source filename or
+  truthful `firmware not imported` status.
+- ROMVERSE continues only with the user's explicitly selected saved owner, refreshes that
+  project's current DNA/Compatibility evidence, then passes through the already-approved
+  independent Device Intelligence → ROM Studio validation.
+- Cancellation remains on Device Intelligence, reports that the choice was cancelled and starts no
+  worker. No project or evidence is changed by presenting or cancelling the choice.
+- The existing zero-friction automatic path remains limited to exactly one matching saved project.
+  Zero matches now stop truthfully on Device Intelligence instead of opening an unrelated current
+  project. Zero and multiple matches are never guessed.
+
+### Verification without double-counting
+
+- Focused real-widget coverage: **3/3 passed** — the multiple-match selection/cancellation journey,
+  the sole-match automatic journey and the existing exact Device Intelligence mission handoff.
+- The new journey uses a temporary isolated workspace and sanitized synthetic device evidence. It
+  proves both matching projects are offered, explicit selection enters Guided with the selected
+  exact owner, and cancellation retains the unrelated current project while remaining on Device
+  Intelligence. No worker starts in either choice operation.
+- Ruff static and format checks: **2/2 changed implementation/test files passed**.
+- `git diff --check`: passed.
+- No broad regression, package build, screenshot loop or physical-device test was run.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** explicit local owner choice for multiple exact Pack-matching saved projects;
+  truthful zero-match refusal.
+- **Simulated/Tested:** three focused synthetic Qt widget journeys.
+- **Hardware Verified:** none for this checkpoint.
+- **Released:** no.
+- Guided friction: one choice appears only when ownership is genuinely ambiguous. This is a local
+  context selection, not a consequential confirmation; the single-match path remains automatic.
+- Project selection grants no compatibility, build, consent, Guardian or execution authority.
+  `UNCONFIRMED` remains advisory `Unknown`.
+- Exact-device/DNA/Matrix validation, Guardian separation, UNKNOWN-on-uncertainty, no blind retry,
+  same-incident Recovery, independent verification and permanent no-relock remain unchanged.
+- Fedora/Linux: actual offscreen Qt journeys verified. Windows: not run or claimed; Windows work
+  was untouched.
+- Feature freeze: compliant minimum completion of the existing saved-project ownership journey.
+  v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and release blockers.
+- Protected Companion work, Windows work, Knowledge work, UI Design Lab, website and unrelated
+  files were not modified, staged, discarded or committed.
+- Physical phone access, ADB/Fastboot invocation, APK action, firmware operation, build/flash/boot,
+  partition/slot/wipe/unlock/lock/relock, installation, signing, publication and release: **none**.
+- External action after verification: one normal push of the scoped commits to the existing Linux
+  branch only; no force-push.
+
+### Next proposed Build task
+
+Stop for Product Assurance review. Continue only with the next approved adjacent existing Device
+Intelligence journey; do not broaden Stage 1 or cross a consequential boundary.
+
+### Product Assurance Review Requested
+
+- Confirm the chooser is a proportionate local context decision, the cancellation path is calm and
+  inert, and the explicit zero-match refusal closes the remaining ownership guess.
+
 ## Linux product checkpoint — exact saved-project ownership for ROM Mission
 
 ### Authoritative checkpoint

@@ -1,5 +1,106 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — automatic exact-project Recipes preparation
+
+### Authoritative checkpoint and scope
+
+- Tested implementation: `18a0537992b04a8e5e5373fe069da12f70af24a6` — `Automatically
+  prepare exact Recipes inputs`.
+- Final handoff: the follow-up commit containing this document on
+  `linux/stage1-desktop-readiness`; the branch was clean immediately after the implementation
+  commit and will be pushed normally after this handoff is committed.
+- Approved base: `b13481a62fe4d7abd0d2986550318d860cf88b38` — creator Guided Experience
+  contract lock.
+- Stage: Stage 1 — v0.2 Golden Foundation, one existing Command Deck Recipes automatic-resolution
+  gap only.
+- Exact implementation files: `src/romverse/ui/rom_studio.py` and
+  `tests/test_navigation_vocabulary.py`. No other implementation, platform or product file changed.
+
+### Exact implemented behavior
+
+- An exact selected project with a protected original and current valid structure inspection may
+  now satisfy the already-required Recipe Forge contained-tree prerequisite automatically.
+- Before starting, ROMVERSE rejects critical inspection findings and proves an extraction budget.
+  If an isolated baseline is also missing, admission reserves space for that baseline in addition
+  to the extracted tree and retained Guardian reserve. Missing/invalid evidence or insufficient
+  storage starts no worker and leaves a direct Source Lab continuation visible.
+- After admission, ROMVERSE runs only the existing bounded local `working-copy` producer when
+  needed, independently reloads its durable evidence at the existing completion boundary, then
+  re-admits and runs only the existing bounded `extract` producer. Each worker remains bound to the
+  exact project ID; progress states explicitly state that the protected source and phone are
+  unchanged.
+- Only the independently accepted contained-tree result resumes the original Recipes request and
+  opens the existing Recipe Forge. Navigation creates no recipe and grants no build, approval,
+  Guardian, device or execution authority.
+- A known producer exception records `FAILED`, preserves any already-verified baseline, returns to
+  the focused Source Lab continuation and schedules no retry. Project/evidence drift stops the
+  coordinator rather than adopting another project or guessing. Existing UNKNOWN-on-uncertainty
+  and interrupted-workspace recovery semantics were not changed.
+
+### Verification without double-counting
+
+- One bounded affected run: **5/5 unique tests passed** across
+  `tests/test_navigation_vocabulary.py` and `tests/test_rom_studio_ui.py`.
+- Real offscreen MainWindow success journey: exact project → Recipes → measured isolated baseline
+  producer → measured contained-tree producer → independently reloaded evidence → automatic return
+  to Recipe Forge. The RecipeStore stays empty and no modal appears.
+- Real offscreen MainWindow bounded-failure journey: baseline succeeds, extraction producer raises a
+  deterministic known failure, baseline remains valid, tree/recipe remain absent, failure is
+  visible, and zero retry workers are queued.
+- Admission adversary: a deterministic insufficient-resource result starts zero workers and creates
+  neither a working baseline nor a tree.
+- Adjacent existing no-project Command Deck routing and already-ready ROM Studio handoff journeys
+  also passed in the same five-test run.
+- Ruff static check: both changed implementation/test files passed. Ruff format check: both changed
+  files passed. `git diff --check`: passed.
+- No broad regression was run, as Product Assurance explicitly constrained this checkpoint to
+  focused affected tests. The five-test total is not combined with or double-counted against any
+  earlier suite.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** exact Recipes local-prerequisite admission, sequencing, producer-result
+  revalidation, bounded-stop behavior and automatic destination resume.
+- **Simulated/Tested:** 5 sanitized Linux-hosted Qt/store journeys; no device or hardware simulation
+  was presented as physical verification.
+- **Hardware Verified:** no. **Released:** no.
+- Guided friction removed: a safely resolvable inspected project no longer strands the user at two
+  technical Source Lab controls. Remaining intentional stops are missing/invalid source or
+  inspection evidence, critical structure findings, insufficient storage, producer failure, drift,
+  or a busy exact project.
+- Guardian/Recovery: no device boundary, Recovery adapter, consent, execution, durable-result or
+  verification contract changed. Guardian-only authority, exact-device evidence,
+  UNKNOWN-on-uncertainty, no blind retry, same-incident handling, independent verification and
+  permanent no-relock remain authoritative.
+- Fedora/Linux: genuinely tested in the existing Fedora Qt development runtime. Windows: not run or
+  claimed; Windows launcher work was not inspected or modified. Physical Android: not used.
+- Feature freeze: compliant foundation/correctness repair to one existing Stage 1 journey; no new
+  screen, format, product capability or architecture was introduced.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all existing release gates.
+- Current blockers/limitations: Product Assurance has not yet independently reviewed this
+  checkpoint; missing evidence and unsafe/insufficient-resource states intentionally remain manual
+  evidence-resolution stops; no hardware or Windows claim exists.
+- Protected Companion work, Windows launcher work, Knowledge/UI Design Lab, website and unrelated
+  files were not modified, staged, discarded or committed.
+- Physical phone access, ADB/Fastboot, APK installation, firmware operation, build/flash/boot,
+  partition/slot/wipe/unlock/lock/relock, package installation, publication and release: **none**.
+  External action after final verification: one normal push of this scoped Linux branch only; no
+  force-push and no unrelated remote change.
+
+### Next proposed Build task
+
+Stop for Product Assurance review. Do not begin another consequential slice. Continue only from the
+next bounded direction recorded in `docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm that the whole-sequence storage admission, exact-project coordinator and existing
+  producer completion checks are sufficient for this reversible local preparation boundary.
+- Confirm that a proven producer exception should remain `FAILED` while process/transport ambiguity
+  retains the existing `UNKNOWN`/recovery treatment, with no automatic retry.
+- Confirm the Guided success resume and bounded Source Lab failure continuation close exactly the
+  approved Recipes gap without expanding Stage 1.
+
 ## Linux product checkpoint — connected exact-project Recipes handoff
 
 ### Authoritative checkpoint

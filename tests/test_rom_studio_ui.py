@@ -9,7 +9,8 @@ from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import QTimer
+from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
 
 from romverse.ascension.entry import AscensionEntryBrief, AscensionEntryState
 from romverse.ascension.models import AscensionMethod
@@ -179,6 +180,66 @@ def test_genesis_flight_plan_uses_the_same_evidence_assessment_as_the_sequence(t
     assert plan.root_route == "Unrooted build"
     assert not plan.recovery_ready
     assert not plan.guardian_ready
+    studio.close()
+
+
+def test_rom_studio_refreshes_project_and_genesis_handoff_after_modal_journey(
+    tmp_path, monkeypatch
+):
+    app = QApplication.instance() or QApplication([])
+    source = tmp_path / "boot.img"
+    source.write_bytes(b"ANDROID!" + b"\0" * 4096)
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.create("Modal continuity")
+    studio = RomStudio(store, DevicePackRegistry(()))
+    studio.refresh(project.project_id)
+    completions = []
+    studio.operation_completed.connect(lambda operation, result: completions.append(operation))
+
+    monkeypatch.setattr(
+        QFileDialog,
+        "getOpenFileName",
+        lambda *_args, **_kwargs: (str(source), ""),
+    )
+    monkeypatch.setattr(
+        QMessageBox,
+        "question",
+        lambda *_args, **_kwargs: QMessageBox.StandardButton.Yes,
+    )
+    monkeypatch.setattr(
+        "romverse.ui.rom_studio.start_background",
+        lambda worker: worker.run(),
+    )
+
+    def complete_one_real_genesis_stage() -> None:
+        mission = app.activeModalWidget()
+        assert isinstance(mission, GuidedBuildMission)
+        assert mission.selected_index == 1
+        mission._run_stage()
+        assert mission.selected_index == 3
+        mission.accept()
+
+    QTimer.singleShot(0, complete_one_real_genesis_stage)
+    assert studio.open_dashboard_intent("Build ROM")
+    app.processEvents()
+
+    durable = GuidedMissionStore(store.projects_root / project.project_id).load()
+    flight = studio.genesis_flight_plan()
+    current = store.get(project.project_id)
+    assert durable.selected_stage == "workspace"
+    assert current.original is not None
+    assert current.original.sha256 == studio.current_project.original.sha256
+    assert flight.stage_number == 4
+    assert "GENESIS • 4/15 • WORKING LAB" in studio.project_list.item(0).text()
+    assert "Stage 4/15: Prepare an isolated working tree" in (
+        studio.dashboard_handoff_detail.text()
+    )
+    assert studio.dashboard_handoff_badge.text() == "CURRENT STAGE"
+    assert completions == ["import"]
+    assert len(tuple(store.originals_root.iterdir())) == 1
+    assert RomBuildPlanner(store).load(project.project_id) is None
+    assert studio.worker is None
+    assert studio.devices == []
     studio.close()
 
 

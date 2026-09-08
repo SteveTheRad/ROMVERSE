@@ -1309,6 +1309,27 @@ class RomStudio(QWidget):
         from romverse.ui.guided_mission import GuidedBuildMission
 
         GuidedBuildMission(self).exec()
+        preferred_id = self.current_project.project_id if self.current_project is not None else ""
+        self.refresh(preferred_id)
+        self._refresh_visible_genesis_handoff()
+
+    def _refresh_visible_genesis_handoff(self) -> None:
+        """Repaint a Genesis entry card from the mission's newly durable state."""
+
+        title = self.dashboard_handoff_title.text()
+        if self.dashboard_handoff.isHidden() or "Genesis Sequence" not in title:
+            return
+        flight = self.genesis_flight_plan()
+        needs_attention = flight.has_saved_error or flight.status is GuidedStageStatus.ATTENTION
+        self._show_dashboard_handoff(
+            title,
+            f"{flight.project_name}  •  Stage {flight.stage_number}/{flight.stage_total}: "
+            f"{flight.stage_title}  •  {flight.progress_percent}% verified. Genesis returned "
+            "to this exact saved project state; NO BUILD OR PHONE ACTION STARTED.",
+            "ATTENTION" if needs_attention else "CURRENT STAGE",
+            ready=not needs_attention,
+            eyebrow=self.dashboard_handoff_eyebrow.text(),
+        )
 
     def open_dashboard_intent(self, action: str) -> bool:
         """Preserve one Command Deck intent after navigation into ROM Studio.

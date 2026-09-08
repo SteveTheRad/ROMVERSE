@@ -1,5 +1,68 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows post-Genesis refresh convergence checkpoint
+
+- Product Assurance verdict: `c6f5c623f7d1e98824f39e2e1ed318851648af81` —
+  `Approve Windows restart scan continuity [skip ci]`, matching checkpoint
+  `9dfdde8ba88f421858087dc97d555c386b575ee1` exactly.
+- Approved platform-neutral implementation source:
+  `ac772057c6dc9510bf4d30f7e7a1c296f446352c` —
+  `Refresh ROM Studio after Genesis returns`.
+- Result: **PASS — THE EXACT TWO-FILE APPROVED POST-GENESIS REFRESH CORRECTION IS CONVERGED ON THE
+  WINDOWS ENGINEERING LINE AND ALL FOUR DIRECTLY AFFECTED WINDOWS UI/CONTINUITY CHECKS PASS**.
+
+### Exact bounded convergence
+
+- Only `src/romverse/ui/rom_studio.py` and `tests/test_rom_studio_ui.py` carry implementation/test
+  changes: **83 insertions and 1 deletion**, exactly matching the approved commit's two-file diff
+  size. No Linux commit, branch history, handoff document or later Linux change was merged,
+  cherry-picked or imported.
+- The approved Linux hunk's context included an unrelated earlier Linux-only
+  `_open_guided_setup(..., start_new_project=...)` signature that is absent from this Windows line.
+  The changed lines themselves had no semantic conflict: the identical 21-line approved refresh
+  addition was placed immediately after this branch's existing `GuidedBuildMission(self).exec()`
+  call, preserving the Windows call signature and importing no unrelated Linux behavior.
+- When Genesis returns, ROM Studio now reloads the exact current project/list/detail state and then,
+  only for a currently visible Genesis handoff, repaints the card from the same durable
+  `GenesisFlightPlan`. The card retains its originating title/eyebrow, distinguishes saved-error
+  attention from current stage, and explicitly states that no build or phone action started.
+- The exact approved deterministic test imports one inert local boot image through the real modal
+  mission, requires durable stage `workspace`, one protected original, one `import` completion,
+  stage 4 in the shared flight plan/project row/handoff, no build plan, no worker and no device.
+
+### Exact native Windows verification
+
+- Command, with repository source selected explicitly and native Windows Qt forced:
+  `$env:PYTHONPATH='src'; $env:QT_QPA_PLATFORM='windows'; .venv\Scripts\python.exe -m pytest -q
+  tests/test_rom_studio_ui.py::test_rom_studio_project_card_uses_authoritative_genesis_state_and_ignores_legacy_summary
+  tests/test_rom_studio_ui.py::test_genesis_flight_plan_uses_the_same_evidence_assessment_as_the_sequence
+  tests/test_rom_studio_ui.py::test_rom_studio_refreshes_project_and_genesis_handoff_after_modal_journey
+  tests/test_rom_studio_ui.py::test_rom_studio_command_deck_handoffs_report_exact_ready_workflows
+  --basetemp C:\Work\ROMVERSE-Pytest-Genesis-Convergence-c6f5c623 -p no:cacheprovider`.
+  Result: **4/4 passed, 0 failed, 0 errors, 0 skipped**.
+- Focused Ruff lint over the two changed files passed. Git whitespace validation passed.
+- An extra non-required whole-file `ruff format --check` accepted the changed test file but reported
+  that `rom_studio.py` would reflow two pre-existing statements at lines 2380 and 3659, far outside
+  the approved line-1309 refresh hunk. Those unrelated formatting lines were not changed. This is
+  not a focused-test or whitespace failure and does not justify broadening the convergence diff.
+- No broad suite, package, frozen-app launch, scan, managed-tool acquisition, Linux test or CI matrix
+  ran.
+
+### Scope, safety and next gate
+
+- No phone or emulator was requested, connected, discovered, operated or targeted. No ADB/Fastboot,
+  Recovery, flash, wipe, unlock, root, relock, APK installation, build/device/Guardian authority,
+  production adapter/trust/signing, publication, release, force-push or destructive action occurred.
+  Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty, no
+  blind retry, independent verification, feature freeze and permanent no-relock remain intact.
+- The protected Companion files have no staged or working-tree diff. The pre-existing untracked
+  `0001-Preserve-local-build-completion-across-restart.patch` remains untracked and byte-identical at
+  SHA-256 `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- Precise proposed next task: independent Product Assurance review of this two-file Windows
+  convergence checkpoint and its exact 4/4 focused result. Do not package/launch another app,
+  scan/acquire tools, import later Linux changes, resume the external candidate job or begin another
+  correction unless a matching repository verdict explicitly authorizes it.
+
 ## Windows managed-tool restart and bounded no-phone scan checkpoint
 
 - Product Assurance verdict: `c22726ae1b2ba80f113241314dbc14a72df2dbdc` —

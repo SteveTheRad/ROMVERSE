@@ -1,5 +1,62 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 95624150 — explicit Genesis tool-setup consent
+
+- Reviewed checkpoint: `956241505d868030355ff4fc5ca8ad62a9953e5e`
+- Accepted correction: `bb13daf830822be87b5f0edc58292f2b259af544`
+- Approved base: `6bc50c40a679b432398d58e557a08209fd2176b0`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — GUIDED TOOL REPAIR REQUIRES THE VISIBLE USER ACTION**
+
+### Decision
+
+Product Assurance confirms the packaged run exposed a real Guided-consent defect: entering the
+stage-five missing-tools handoff inherited the global automatic-download preference and began a
+managed installation before the user selected requirements or activated the visible install action.
+The minimum correction is appropriately scoped. Guided Genesis alone now forces review-only Forge
+setup, while unchanged callers retain their existing preference behavior. No further source
+correction is required before one corrected-package verification.
+
+### Independent evidence and acceptance
+
+- The source diff adds a narrow optional `auto_start` override, derives `auto_close` from the same
+  effective choice, and passes `False` only from the Guided Genesis missing-tool boundary.
+- Product Assurance independently reran the exact five native Windows focused cases: **5/5 passed**.
+  Ruff independently passes all three changed files and Git whitespace is clean.
+- The restored saved workspace independently contains zero managed-tool files and no install plan
+  or Guardian audit. Its five-pair runtime record is 385 bytes and matches SHA-256
+  `970f2eee34b6d2ef6b732c87f27f0ffd7e183e8a0d77e28a79eaf946e857f2d6`.
+- The recoverable quarantine exists. The protected untracked patch remains 8,272 bytes with SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- The unintended download and six empty Fastboot inventories remain classified as failed-checkpoint
+  evidence, not authorization. They found no target and changed no phone, firmware or authority.
+
+### Approved next bounded Windows task
+
+Build exactly one unsigned Windows package from correction `bb13daf8`. With the exact saved
+stage-five workspace still empty of managed tools, launch that corrected package once using
+`--skip-onboarding`, activate only **Scan device & refresh DNA**, and verify Forge opens in
+review-only mode with exactly the missing ADB/Fastboot requirements, the retained project/stage
+purpose, enabled requirement choices, enabled **Install and verify requirements**, and a working
+Close/cancel path. Do not select a requirement or activate installation. Wait briefly to prove no
+download, extraction, install-plan creation, ADB/Fastboot process or command audit occurs
+spontaneously, then close Forge and ROMVERSE normally.
+
+Require all saved project/authority records to remain byte-identical and the user patch to remain
+untouched. Run no broad suite and do not replay the five passing cases. If the corrected package
+alone exposes a genuine mismatch, apply only its minimum correction and one focused check;
+otherwise change only the Build handoff. Commit/push one checkpoint and stop for review. No phone,
+emulator, ADB/Fastboot command, APK installation, firmware change, ROM build/signing,
+Guardian/Recovery execution, publication, release, lock or relock is authorized.
+
+### Gate status
+
+- Guided explicit tool-setup consent correction: **VERIFIED IN NATIVE WINDOWS SOURCE**
+- Corrected packaged Forge review/cancel behavior: **NEXT BOUNDED WINDOWS TASK**
+- Linux work: **OWNED BY LINUX; DO NOT DUPLICATE**
+- Physical hardware, tool installation, execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 239a9a3a — corrected-package saved-project startup
 
 - Reviewed commit: `239a9a3a6382a3d632bf046749bc72647e128e29`

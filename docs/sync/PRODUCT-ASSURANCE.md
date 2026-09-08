@@ -1,5 +1,62 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 86d974f — requested Simulation verifies its exact current tree
+
+- Handoff commit: `86d974fefe5c2965a324bf7802a15adfb87560be`
+- Implementation commit: `e931cb9649bb33507bd5ac31089c455cf93582c9`
+- Approved base: `86efa4d`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — ONE REQUEST COMPLETES INDEPENDENT TREE VERIFICATION**
+
+### Decision
+
+Product Assurance inspected the complete three-file diff and independently reran the seven exact
+affected journeys. A newly completed or safely reloaded exact `BuildPlan` now invokes the existing
+read-only current-tree verifier once, with no second technical Verify click. The complete immutable
+requested plan remains memory-bound during the continuation; the terminal boundary reloads the
+durable plan, requires full equality and accepts only a typed verification result whose expected
+and successful actual digests match that exact plan.
+
+Exact success becomes visibly `VERIFIED` while the plan remains execution-locked. Tree drift,
+forged or internally inconsistent success evidence, plan/project drift, malformed or interrupted
+evidence and known verification failure all stop visibly, preserve the plan/tree and schedule no
+retry. No later build, Guardian, consent, device or execution authority is inferred.
+
+### Independent evidence and acceptance
+
+- Product Assurance reran the new-plan, saved-plan, interrupted-transaction, tree-drift,
+  forged-success, resource-denial and locked-planner journeys: **7/7 passed**.
+- Ruff check and format verification passed for all three changed files; Git whitespace validation
+  passed; the branch and working tree were clean at review.
+- Acceptance criteria are satisfied: exact project/plan binding, one existing verifier invocation,
+  durable full-plan equality, typed expected/actual digest validation, visible verified result,
+  evidence-preserving bounded stops and zero blind retry.
+- No real build, signing, phone, ADB/Fastboot, APK, firmware-device action, Guardian/Recovery
+  authority, Windows/Companion/Knowledge/UI Design Lab work, packaging, publication, release or
+  bootloader relock occurred.
+
+### Approved next bounded Linux task
+
+Close the immediate post-verification continuity defect without starting work the user did not
+request. After Pre-Build Simulation reaches exact `VERIFIED`, replace the now-redundant Verify-plan
+focus/next guidance with the existing enabled **Forge Bundle** continuation and explain that it is
+the next intentional local action: an unsigned, non-bootable, non-flashable intermediate. Do not
+automatically create the bundle from a Simulation request.
+
+Reuse the existing controls and services; add no screen, engine or feature. Preserve current
+service-side revalidation so changed tree/plan evidence cannot be forged into a bundle. Verify one
+real-widget successful handoff and one drifted/stopped journey plus only directly affected checks.
+Do not run a real phone-capable build, use a phone/ADB/Fastboot, grant Guardian or execution
+authority, overlap Windows packaging/Knowledge/UI Design Lab/Companion work, run a broad suite,
+package the desktop app, publish or release. Commit/push one bounded checkpoint and stop for review.
+
+### Gate status
+
+- Automatic exact current-tree verification: **VERIFIED**
+- Direct intentional handoff from verified Simulation to existing Forge Bundle: **NEXT BOUNDED LINUX TASK**
+- Phone-capable build and consequential device action: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 6101618 — requested Simulation completes its inert dry run
 
 - Handoff commit: `610161836716f95581a554dd9461a602d029d0db`

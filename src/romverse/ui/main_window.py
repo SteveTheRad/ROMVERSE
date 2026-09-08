@@ -8856,11 +8856,19 @@ class MainWindow(QMainWindow):
 
     @Slot(str)
     def _handle_dashboard_action(self, action: str) -> None:
-        if action == "Continue Genesis":
+        if action in {"Build ROM", "Continue Genesis"}:
+            report = self.device_packs_center.active_report
+            if report is not None and self.device_packs_center.active_device is not None:
+                if self._navigate_route("device_atlas"):
+                    self._continue_device_atlas_rom_studio(
+                        report.report_id,
+                        report.report_digest,
+                    )
+                return
             if self._navigate_route("rom_studio"):
                 self.rom_studio.open_dashboard_intent("Build ROM")
             return
-        if action in {"Build ROM", "Pre-Build Simulation", "Recipes"}:
+        if action in {"Pre-Build Simulation", "Recipes"}:
             if self._navigate_route("rom_studio") and not self.rom_studio.open_dashboard_intent(
                 action
             ):

@@ -1941,6 +1941,62 @@ def test_device_atlas_project_requirements_connect_back_to_exact_studio_and_forg
         window.close()
 
 
+def test_command_deck_primary_rom_action_uses_shared_exact_device_mission_context(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    store, registry, matching_project, _report = _project(tmp_path)
+    unrelated_project = store.create("Unrelated Command Deck project", "another.device.pack")
+    window = MainWindow(
+        None,
+        logo,
+        store.workspace,
+        app_icon_path=logo,
+        pack_registry=registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    opened_contexts = []
+    monkeypatch.setattr(
+        window.rom_studio,
+        "_open_guided_setup",
+        lambda: opened_contexts.append(window.rom_studio.guided_context()),
+    )
+    phone = _device(serial="COMMAND-DECK-PHONE-5187")
+    try:
+        window.rom_studio.refresh(unrelated_project.project_id)
+        window._scan_complete([phone])
+        app.processEvents()
+        report = window.device_packs_center.active_report
+        assert report is not None
+        assert window.stack.currentWidget() is window.device_center
+
+        window.device_center.primary_action_buttons["Start ROM Project"].click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.rom_studio
+        assert window.rom_studio.current_project is not None
+        assert window.rom_studio.current_project.project_id == matching_project.project_id
+        assert len(opened_contexts) == 1
+        context = opened_contexts[0]
+        assert context.device is not None and context.device.serial == phone.serial
+        assert context.device_pack_id == report.pack_id
+        profile = window.rom_studio.device_dna.profiles.load(matching_project.project_id)
+        matrix = window.rom_studio.compatibility.matrices.load(matching_project.project_id)
+        assert profile is not None and matrix is not None
+        assert matrix.device_dna_digest == profile.profile_digest
+        assert matrix.decision("guardian_flash").status.value == "Unknown"
+        assert any(profile.profile_digest[:16] in item for item in context.device_dna_evidence)
+        assert any("Guardian Flash: Unknown" in item for item in context.device_dna_evidence)
+        assert matching_project.name in window.rom_studio.dashboard_handoff_detail.text()
+        assert unrelated_project.name not in window.rom_studio.dashboard_handoff_detail.text()
+        assert window.rom_studio.worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
 def test_rom_studio_command_deck_device_evidence_round_trip_is_exact(
     tmp_path: Path,
     monkeypatch,

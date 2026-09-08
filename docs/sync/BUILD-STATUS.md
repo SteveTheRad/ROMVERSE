@@ -1,5 +1,102 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux packaged checkpoint — Guided Genesis tool setup remains consent-bound
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `3dfe7f2` approved the Guided Genesis explicit-consent source
+  checkpoint `bdecefc` and authorized exactly one corrected unsigned Linux development package and
+  one fresh isolated no-phone stage-five journey. No application source or test changed in this
+  checkpoint; `3dfe7f2` is therefore the exact authoritative source exercised by the package.
+- Stage: Stage 1 — v0.2 Golden Foundation, packaged acceptance evidence for the existing Guided
+  stage-five verified-tool consent boundary. This is verification only, not new capability.
+- Exactly one PyInstaller package was built on Fedora 44 with kernel 7.1.13, Python 3.14.7 and
+  PyInstaller 6.22.2. Executable:
+  `build/linux-pa-guided-consent-3dfe7f2/frozen/ROMVERSE/ROMVERSE`, 6,325,072 bytes, mode `0755`,
+  SHA-256 `0652664ee0c85a15ddc60deae76c264abdc53cdca0f21811a038287940396b55`.
+  It is an ignored, unsigned local development artifact. PyInstaller completed successfully with
+  only its standard optional `xxsubtype` hidden-import warning and Linux icon notice.
+
+### One packaged Guided consent journey
+
+- The package launched exactly once against the fresh isolated root
+  `/tmp/romverse-pa-guided-consent-WUV7JURF`, with `XDG_CONFIG_HOME` isolated and `PATH` set to its
+  empty `empty-path` directory. Its schema-5 settings explicitly enabled
+  `auto_download_verified_tools`, selected Guided mode, disabled online intelligence and had
+  SHA-256 `663863def2401275cf2f9f9e4830ad8ae45d41ed6f6121fdc543e15c85372511`.
+- The fresh synthetic project `linux-guided-consent-boundary-b3a6314a` used only the inert local
+  368-byte `synthetic-stage5.zip`, SHA-256
+  `aa9118656d078c7b256cc60a381d2b823c560ee86ac044fe701ac7f5224146e9`, and entered Genesis at
+  stage 5 with the enabled **Scan device & refresh DNA** action.
+- Activating that action once opened Forge Arsenal in review mode. ADB and Fastboot were selected,
+  **Install and verify requirements** remained enabled, and Forge displayed the exact pending
+  purpose: verify Android Platform Tools for the exact project and protected-source prefix before
+  one read-only device scan, with no phone-changing command authorized.
+- After five seconds Forge remained in review mode; no installation state appeared. The install
+  action was never activated. Forge was cancelled exactly once, returning Genesis to the same
+  enabled **Scan device & refresh DNA** retry with **Forge Arsenal still needs attention**. No
+  worker, scan, target, plan, approval, consent or execution authority was created.
+- Genesis was saved and exited once, and ROMVERSE then closed normally. The runtime record contains
+  exactly one start/clean-close pair, SHA-256
+  `c9a5cb9322615534d8a5ad7255f55888b66be1b4b82c6ab0116e1910585d64c3`.
+
+### Durable evidence and verification without double-counting
+
+- The final Guided mission remains at `selected_stage: device`, with build-plan verification false,
+  install request false, root choice undecided and no last error. Its record digest is
+  `f4412aadbfe654f49c03644cbaf76ba336a9751e51e94891d3ea735d89146229`; file SHA-256
+  `a9ea1cb818ac6f4e81ce8633072fc88b7eebb47253e347dccad7f1a25520d805`.
+- The integrity-checked Live Console ledger contains four events: three attention events and the
+  retained initial Genesis running event. Sources are Genesis Sequence (2), Compatibility Matrix
+  (1) and Device DNA (1). File SHA-256
+  `0aa41c105fddc21a789cb677202d7bf32958cfb5feeae42fdfb58e608fcf6ceb`.
+- The workspace `tools/` directory remained empty. No `toolchain-install-plan.json`, Guardian audit,
+  activity event, device command, device scan or ROMVERSE child process exists.
+- No tests were rerun: application source was unchanged and Product Assurance already accepted the
+  exact focused **5/5** source/UI cases at `bdecefc`. This checkpoint adds one packaged acceptance
+  journey and does not double-count those five tests.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** unchanged approved `bdecefc` explicit-consent boundary as contained in
+  authoritative source `3dfe7f2`; no implementation change in this checkpoint.
+- **Simulated/Tested:** one genuine packaged Fedora no-phone Guided journey using an inert synthetic
+  project/source and an intentionally empty executable path. No device state was simulated as
+  hardware evidence.
+- **Hardware Verified:** no. No phone or emulator was connected, discovered, scanned or operated.
+- **Released:** no. The package is unsigned, ignored and local only.
+- Blockers/failures: none in the bounded journey. Forge remained review-only despite the enabled
+  global automatic verified-tool preference, and cancellation restored the intended retry.
+- Guided friction/dead ends: one meaningful tool-setup decision is shown with its exact read-only
+  purpose. Declining does not strand the user, start hidden work or consume authority; the same
+  stage-five scan action remains available.
+- Guardian/Recovery/safety: no Guardian or Recovery boundary was entered. Review, preference and
+  retained project context grant no execution authority. Exact-device evidence, UNKNOWN/no blind
+  retry, independent verification, Guardian-only authority and permanent no-relock are unchanged.
+- Linux/Fedora: package build and journey were genuinely performed on Fedora 44/XWayland. Windows
+  and physical Android were not run.
+- Feature freeze: compliant verification-only checkpoint; no feature or product surface changed.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and remaining gates.
+- External actions: this documentation-only handoff is committed and pushed normally. No download,
+  tool acquisition/removal, system or APK installation, ADB/Fastboot invocation, phone/emulator
+  operation, APK/firmware action, signing, Guardian/Recovery execution, publication, release,
+  merge, force-push, lock or relock occurred. One unrelated host `adb` server process (PID 16484)
+  was already present before the journey, outside the package's empty `PATH`; it was not queried,
+  used, stopped or modified. Companion, Knowledge/UI Design Lab, Windows and unrelated work were
+  not modified, staged or committed.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another consequential slice until the
+verdict for this exact packaged Guided consent checkpoint is recorded in
+`docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm the package proves the enabled global automatic preference cannot bypass the explicit
+  Guided Forge decision, that exact purpose is visible before action, and that cancellation restores
+  the same usable retry without work or authority.
+
 ## Linux source-parity checkpoint — Guided Genesis tool setup requires explicit consent
 
 ### Authoritative checkpoint and scope

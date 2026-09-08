@@ -1,5 +1,95 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — Guided Toolchain resolution continuity
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `3295905d27119d7435811c57c6408bba587a0937` approved the
+  one-choice unchanged Customize route and authorized only the existing Toolchain stage.
+- Implementation commit: `5976ced726f4297cee7032a88f2b5d7d2defe711` — `Complete Guided
+  toolchain resolution` on `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation, existing source-scoped Toolchain action only.
+- Exact files: `src/romverse/ui/guided_mission.py`, `src/romverse/ui/rom_studio.py`,
+  `tests/test_rom_studio_ui.py`, and `tests/test_app_launch_settings.py`.
+
+### Real isolated resolution and concrete correction
+
+- The exact OTA route required only Python, Payload Dumper and AVBTool. Fresh host verification
+  found Python 3.14.7 and system AVBTool 1.4.0 valid; Payload Dumper was the sole missing managed
+  dependency.
+- One normal Toolchain action in a disposable isolated workspace downloaded and receipt-verified
+  Payload Dumper 2.0.2. It resolved to the private managed-tools directory with package digest
+  prefix `6e87cedaf0a5…`; no system package manager, administrator prompt or global PATH change ran.
+- That journey exposed two concrete continuity defects: the successfully completed automatic setup
+  dialog remained open until a second manual Close action, and Guided visibly and durably remained
+  on completed Toolchain while its evidence-derived current stage was Build Readiness.
+- Automatic managed resolution now requests automatic dialog close only when the existing
+  `auto_download_verified_tools` preference is enabled. When automatic downloads are disabled, the
+  dialog remains explicitly user-controlled as before.
+- A successful Toolchain action clears stale error state, selects the evidence-derived Build
+  Readiness stage and persists it. An unresolved dependency remains on Toolchain with one durable,
+  precise `toolchain:` blocker instead of being silently treated as complete.
+
+### Verification without double-counting
+
+- Final directly affected regression selection: **28/28 passed**. This comprises the complete
+  Guided mission/state suite, the same simulated Device DNA → unchanged route → Toolchain real-
+  widget journey, managed resolver continuation, fail-closed missing-tool behavior, empty automatic
+  setup closure and manual-download-preference preservation.
+- The corrected deterministic UI journey invoked resolution once, verified exactly `Python`,
+  `Payload Dumper`, and `AVBTool`, advanced to and persisted Build Readiness, and created no build
+  plan.
+- Exact project/source identity, unchanged/unrooted choice and
+  `SIMULATION ONLY • NOT HARDWARE VERIFIED` classification remained intact. Guardian handoff,
+  flash handoff and flash-complete remained false; no Recipe, boot observation or Guardian
+  directory appeared.
+- Ruff lint and Git whitespace validation passed for all four changed files. An earlier overlapping
+  4/4 development run is not added to the final total. No broad suite, CI matrix, build, package or
+  native application smoke was run.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** automatic managed-setup closure and truthful success/failure persistence at the
+  existing Toolchain boundary.
+- **Simulated/Tested:** corrected normal Qt route and **28/28** non-overlapping affected checks.
+  The pre-correction reproduction performed one real managed Payload Dumper download and host
+  verification in a disposable workspace; it is not hardware evidence.
+- **Hardware Verified:** no. Device evidence remains explicitly simulated.
+- **Released:** no.
+- Blockers/failures: none after the bounded correction. Build Readiness is the truthful next stage
+  and remains outside this checkpoint. A missing managed/system tool continues to fail closed with
+  an actionable persisted blocker.
+- Guided friction/dead ends: the redundant post-download Close action and completed-Toolchain stop
+  are closed for automatic managed setup. Manual preference mode remains deliberately manual.
+- Guardian/Recovery/safety: Toolchain evidence grants no phone, Guardian, consent, build or
+  execution authority. Exact-device evidence, UNKNOWN-on-uncertainty, no blind retry,
+  same-incident Recovery, independent verification and permanent no-relock remain intact.
+- Linux/Fedora: genuine host-tool verification and isolated managed download were performed; final
+  corrected behavior was verified with focused offscreen Qt tests. Windows was not run. Physical
+  Android was not connected or operated.
+- Feature freeze: compliant minimum continuity/error-recovery correction to an approved existing
+  Stage 1 action; no feature, screen, format, adapter, Device Pack, build route or execution
+  capability was added.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all release gates.
+- External actions: one outbound read-only official managed-package download occurred in a
+  disposable workspace, which was removed automatically. One normal push of this scoped
+  implementation and handoff to the existing Linux branch is the only remote write. No phone,
+  ADB/Fastboot, APK, firmware/device operation, actual candidate build, system/global installation,
+  signing, publication, release, merge, force-push, lock or relock occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin Build Readiness or another
+consequential slice until the verdict for `5976ced` is recorded in
+`docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm automatic close is correctly bound to the existing automatic-download preference while
+  manual mode remains user-controlled.
+- Confirm the truthful success continuation, durable failure blocker and 28/28 affected selection
+  are sufficient for this Toolchain-only checkpoint.
+
 ## Linux product checkpoint — one-choice unchanged Guided route
 
 ### Authoritative checkpoint and scope

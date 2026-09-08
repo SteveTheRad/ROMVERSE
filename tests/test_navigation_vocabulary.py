@@ -3025,6 +3025,48 @@ def test_command_deck_repair_uses_exact_current_diagnostic_plan(tmp_path: Path) 
         window.close()
 
 
+def test_command_deck_no_phone_diagnose_opens_truthful_owner_without_scan(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    try:
+        diagnose = window.device_center.primary_action_buttons["Diagnose Problem"]
+        assert diagnose.isEnabled()
+        assert window.device_center.selected_device() is None
+        assert window.diagnostics_center.current_device is None
+        assert window.diagnostics_center.current_report is None
+
+        diagnose.click()
+        app.processEvents()
+
+        owner = window.diagnostics_center
+        assert window.stack.currentWidget() is owner
+        assert not owner.dashboard_handoff.isHidden()
+        assert owner.dashboard_handoff_badge.text() == "EVIDENCE NEEDED"
+        assert owner.dashboard_handoff_title.text() == (
+            "Health Review needs fresh Device Engine evidence"
+        )
+        assert (
+            "NO SCAN, OPTIMIZATION, CLEANUP, OR PHONE ACTION STARTED"
+            in owner.dashboard_handoff_detail.text()
+        )
+        assert owner.refresh.isEnabled()
+        assert owner.current_device is None
+        assert owner.current_report is None
+        assert owner.scan_progress.isHidden()
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
 def test_command_deck_repair_uses_honest_general_intake_without_warning(tmp_path: Path) -> None:
     app = QApplication.instance() or QApplication([])
     logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"

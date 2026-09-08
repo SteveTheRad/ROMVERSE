@@ -200,7 +200,7 @@ def test_command_deck_projects_one_exact_action_and_five_primary_mission_routes(
     assert center._next_action_key == "Connect Device"
     assert center.primary_action_buttons["Connect Device"].property("recommended") is True
     assert not center.primary_action_buttons["Resume Mission"].isEnabled()
-    assert not center.primary_action_buttons["Diagnose Problem"].isEnabled()
+    assert center.primary_action_buttons["Diagnose Problem"].isEnabled()
     assert not center.primary_action_buttons["Recover Device"].isEnabled()
 
     refreshes: list[bool] = []

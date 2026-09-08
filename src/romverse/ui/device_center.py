@@ -898,9 +898,10 @@ class DeviceCenter(QWidget):
             "Resume Mission": bool(
                 self._project_name or active_action == "Live Operations"
             ),
-            "Diagnose Problem": bool(
-                selected is not None and selected.state is DeviceState.DEVICE
-            ),
+            # Diagnosis is a safe navigation route even before Device Engine has
+            # current evidence.  The owning page remains responsible for
+            # requiring a fresh authorized device before making any claim.
+            "Diagnose Problem": True,
             "Recover Device": bool(selected is not None or self._repair_finding_id),
         }
         active_alias = {
@@ -941,7 +942,6 @@ class DeviceCenter(QWidget):
         if not enabled:
             return {
                 "Resume Mission": "Create or open a ROM project before resuming a mission.",
-                "Diagnose Problem": "Connect and authorize Android before running diagnostics.",
                 "Recover Device": "Connect a device or open a typed diagnostic finding first.",
             }.get(action, "This action needs more current evidence.")
         return {

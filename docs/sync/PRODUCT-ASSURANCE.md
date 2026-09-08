@@ -1,5 +1,55 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: d54885c — shared current-version CI coordination
+
+- Reviewed commit: `d54885c57ca8b842ae385191cfd8eb52d03263ca`
+- Approved base: `b845c5b`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — LINUX AND WINDOWS NOW SHARE THE REVIEWED CI CONTRACT**
+
+### Decision
+
+Product Assurance inspected the sole workflow-file change and independently proved that its Git
+blob is byte-identical to the already reviewed Windows workflow at `73d22d0`. Package metadata now
+drives the current wheel, both desktop archives, unsigned manifest and source-bound release ID;
+coordination-only sync commits no longer consume a full matrix and newer same-ref runs supersede
+older ones. Product, test, packaging and other meaningful changes still run CI.
+
+### Independent evidence and acceptance
+
+- Current and reviewed workflow blobs both resolve to
+  `47737ad426420b3d58009c81058c29f0884a696f`.
+- Independent metadata/path assertions accepted `0.2.0a1`, both sync-only filters, cancellation and
+  metadata-derived artifact paths; no legacy `0.1.0` literal remains. Git whitespace validation
+  passed and the branch is clean/synchronized.
+- The successful cross-platform artifact evidence from GitHub run `34226226022` remains applicable
+  to this exact workflow. No redundant matrix or product suite was launched.
+- No application, test, package, Companion, Guardian, Recovery, Knowledge, UI Design Lab or device
+  file changed. No phone, ADB/Fastboot, signing, installation, publication or release occurred.
+
+### Approved next bounded Linux task
+
+Correct the concrete platform-neutral continuity defect exposed by the approved packaged Windows
+journey: after a successful modal Genesis journey advances persisted project/mission state, the
+underlying ROM Studio project list and selected-project handoff card must refresh immediately from
+that same durable state when the dialog returns. It must not remain at an earlier stage while ROM
+Studio detail and reopened Genesis show the newer stage.
+
+Apply the minimum UI/state-refresh correction on this Linux product line. Preserve the exact
+project/source/mission identity; do not repeat firmware import, duplicate activity events, start a
+build, infer compatibility or create device/execution authority. Prove it with one focused
+real-widget journey that advances the existing deterministic no-phone project once, returns from
+Genesis and observes all visible owners agreeing, plus directly affected tests and one clean
+no-phone launch if needed. Do not run a broad suite or package another desktop artifact. Commit/push
+one bounded implementation and handoff for review.
+
+### Gate status
+
+- Current-version cross-platform CI identity/coordination: **VERIFIED**
+- Post-Genesis project-card continuity: **NEXT BOUNDED LINUX TASK**
+- Physical hardware, signing, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 36e627f — current unsigned Fedora development artifact
 
 - Handoff commit: `36e627fb90806be01ac3e7cee16b2c1b9c43994a`

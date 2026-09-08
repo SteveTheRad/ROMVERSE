@@ -1,5 +1,104 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux correction checkpoint — projectless accessible Save & exit closes cleanly
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `b2df7d5943b9e55a16ad6e80a15871b9a1cf70d1` approved the
+  retained accessible Guided lifecycle and authorized only a correctly settled projectless
+  **Save & exit** reproduction plus the minimum correction if it remained inert.
+- Implementation commit: `49dbd23f9a0532bd660f1e7f1625cee951e52a32` — `Close
+  projectless Guided mission cleanly` on `linux/stage1-desktop-readiness`.
+- Exact files: `src/romverse/ui/guided_mission.py` and `tests/test_rom_studio_ui.py`.
+- Stage: Stage 1 — v0.2 Golden Foundation, one enabled Guided close-action continuity correction
+  only. No other dialog, simulation, project or authority behavior changed.
+
+### Reproduction and minimum correction
+
+- The exact previously approved package was launched once in fresh projectless no-phone workspace
+  `/tmp/romverse-save-pre-b2df7d5.ADovLr`. AT-SPI opened Genesis, invoked the enabled
+  **Save & exit** control and allowed a bounded ten-second event-settlement window. The dialog
+  remained visible, confirming the action was genuinely inert rather than merely observed too soon.
+  The reproduction then closed normally and its runtime log contains one clean start/close pair.
+- Root cause: `GuidedBuildMission._save_state()` returned false whenever no current project existed,
+  including the initial project-creation stage where there is no durable progress to preserve.
+  `accept()` therefore correctly refused to close after a failed save, but this specific initial
+  state is intentionally projectless and has nothing that can or should be persisted.
+- Minimum correction: when no current project exists, `_save_state()` now succeeds only at exact
+  stage index zero. **Save & exit** can therefore perform its documented close semantics before a
+  project exists. If project context disappears at any later stage, saving still fails closed.
+- The focused regression proves the dialog closes, releases the retained owner reference, leaves
+  the project collection empty and creates no project directory/evidence.
+
+### Verification without double-counting
+
+- Final directly affected selection: **8/8 passed** — the seven accepted simulation, exact-tree,
+  non-blocking lifecycle, single-instance, one-refresh and truthful-copy checks plus the new exact
+  projectless close/no-evidence regression.
+- Ruff and Git whitespace validation passed for both changed files. The intentionally failing
+  first test assertion during development is not counted; it showed that an absent projects
+  directory is stronger no-evidence state than an empty one and the assertion was corrected.
+- Exactly one corrected PyInstaller package was built after the source change on Fedora 44 with
+  Python 3.14.7 and PyInstaller 6.22.2. Executable:
+  `build/linux-pa-projectless-b2df7d5/frozen/ROMVERSE/ROMVERSE`, 6,323,080 bytes, mode `0755`,
+  SHA-256 `cabd03e677626cfd4489d657aee414d2acbb6f77d613ff0cbcac3add6e5b3c16`.
+  It remains an ignored unsigned local development artifact.
+
+### Corrected packaged AT-SPI reproduction
+
+- The corrected package ran once, unelevated, through Fedora XWayland in fresh projectless no-phone
+  workspace `/tmp/romverse-save-post-b2df7d5.jQjxyS` with development simulation enabled but never
+  invoked.
+- AT-SPI traversed **1,977** initial accessible nodes and pressed the normal
+  **Build ROM: Create Project** action. Genesis opened and settled in **250 ms**; the client then
+  traversed **2,070** nodes and pressed the sole visible enabled **Save & exit** control.
+- Genesis closed and returned to the projectless Command Deck in **250 ms**, with no Escape,
+  pointer workaround, confirmation or second attempt. The accessible tree returned to 1,977 nodes.
+- A normal `WM_DELETE_WINDOW` then closed the main app. No packaged process remained and
+  `logs/crash/runtime-fault.log` contains exactly one runtime start followed by one clean close,
+  with no fatal Python/Qt trace.
+- Project, original-ROM, build, recipe, snapshot, backup and APK stores each contain **zero files**.
+  No project manifest, Guided mission record or other ROM evidence was created.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** exact projectless stage-zero Save & exit semantics with all later missing-project
+  states still fail closed.
+- **Simulated/Tested:** 8/8 focused checks and one genuine corrected packaged Fedora AT-SPI
+  open/press/close journey.
+- **Hardware Verified:** no. USB inventory showed no Android phone; no physical evidence was used.
+- **Released:** no. The corrected executable is unsigned and local only.
+- Blockers/failures: none in the corrected bounded journey. The pre-correction inert action is
+  retained as expected reproduction evidence and the post-correction action settled cleanly.
+- Guided friction/dead ends: the enabled projectless **Save & exit** action now performs exactly its
+  visible semantics without creating evidence or requiring an undocumented workaround.
+- Guardian/Recovery/safety: no project, device, target, consent, command, Recovery incident, build,
+  signing, flash or execution authority was created. UNKNOWN/no-blind-retry, exact-device and
+  exact-incident evidence, independent verification, Guardian-only authority and permanent
+  no-relock remain unchanged.
+- Linux/Fedora: focused tests, packaging and both bounded reproductions were genuinely run on Fedora
+  44/XWayland. Windows and physical Android were not run.
+- Feature freeze: compliant one-condition correctness fix; no new feature, screen, dialog, Device
+  Pack, adapter, simulation scope or production capability.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all remaining gates.
+- External actions: the scoped branch is pushed normally with this handoff. No network download,
+  firmware journey/import, project creation, phone connection/operation, ADB/Fastboot dispatch,
+  APK/system installation, firmware build/sign/flash, Guardian/Recovery execution, publication,
+  release, merge, force-push, lock or relock occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another consequential slice until the
+verdict for this exact projectless accessible-close correction is recorded in
+`docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm the ten-second pre-correction reproduction, exact stage-zero save rule, 8/8 focused
+  checks and one clean 250 ms packaged AT-SPI close satisfy the bounded continuity gate.
+- Confirm zero files in every project/ROM artifact store proves the action closed without creating
+  evidence or authority.
+
 ## Linux correction checkpoint — retained accessible Guided dialog lifecycle
 
 ### Authoritative checkpoint and scope

@@ -1,5 +1,74 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: f322168 — managed Payload Dumper clears Stage 10
+
+- Reviewed checkpoint: `f3221684151427f8beb4a1e05f449171ba7946ae`
+- Approved base: `ce0c112`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — ONE VERIFIED MANAGED TOOL CLEARS THE EXACT BLOCKER**
+
+### Decision
+
+Product Assurance independently inspected the package, install plan, managed-tool receipt,
+executable, mission state and preserved project evidence. The existing Forge action selected and
+acquired only Payload Dumper, verified its official release archive and executable digests,
+activated it only inside the running ROMVERSE process, and then freshly verified the complete
+source-scoped profile. Stage 10 cleared and the same mission advanced exactly once to saved Stage
+11. No source changed, so correctly no package or test was rebuilt/replayed.
+
+The Stage-11 lock after restart is truthful: the process-ephemeral simulated device context is no
+longer live. It does not invalidate the durable source, Recipe, Debloat, root-choice or tool
+evidence and grants no build/device authority by itself.
+
+### Independent evidence and acceptance
+
+- The reused package independently remains SHA-256
+  `5b097d706ec42fddab3b49f534b8ccc7a1579446469bff1099ba8dda66966744`.
+- The install plan independently matches SHA-256
+  `bfc307f5a07ed31f1ac6a9bf763578ea0879ab427139672ec7c8ccc72f659cc2`,
+  lists the exact 15-tool profile, selects only Payload Dumper, and requests no manual or system
+  package.
+- Managed Payload Dumper 2.0.2 is 9,302,960 bytes, mode `0700`, and independently matches SHA-256
+  `6e87cedaf0a5fb821a0721a071e942ae6e9957233b28346b35d87f02cb85321d`.
+  Its mode-`0600` receipt matches SHA-256
+  `6cf6a056d805a3e938788d209d86c57b066acfd1d0b73c0394c97629e1b4287c`
+  and binds the official release URL, archive digest and executable digest.
+- The schema-6 mission now records `selected_stage: build_plan`, `root_choice: skip`,
+  `recipe_validated: true`, `install_requested: false`, no error and no verified build plan.
+- Protected source, working property, Recipe, Recipe receipt and zero-change Debloat receipt remain
+  byte-identical to the prior accepted evidence.
+- No phone/emulator, system/global install, APK/device or firmware action, build/signing,
+  Guardian/Recovery execution, publication, release, Companion, Knowledge/UI Design Lab, Windows,
+  force-push, lock or relock occurred.
+
+### Approved next bounded Linux task
+
+Continue forward from the same saved Stage-11 project using the exact accepted package—do not
+rebuild, recreate or replay any completed stage. Launch once with the existing explicit
+`--development-device-simulation` boundary and use its existing scan action once only to restore
+the deterministic process-ephemeral ROM Studio fixture. Require visible **SIMULATION ONLY • NO
+HARDWARE**, no physical-device selection, and zero Guardian/Recovery/execution authority.
+
+Then operate only Stage 11 **Create and verify plan** once. Require one deterministic local plan
+bound to the unchanged protected source, current working-tree digest, validated Recipe receipt,
+zero-change Debloat receipt, explicit unrooted choice and the freshly verified 15-tool profile.
+The result must remain local-only, non-flashable and execution-locked. Persist the next stage only
+after independent plan verification; do not execute a build or operate Stage 12.
+
+If the existing package cannot complete this boundary, retain Stage 11 and record one exact
+blocker. Do not change source, rebuild/package, repeat tests, retry blindly, use a real phone or
+emulator, issue physical ADB/Fastboot commands, install another tool/APK, build/sign firmware,
+grant Guardian/Recovery authority, publish, release, touch Companion/Knowledge/UI Design Lab/
+Windows work, force-push, lock or relock. Commit/push one evidence handoff and stop for review.
+
+### Gate status
+
+- Managed Payload Dumper acquisition and Stage-10 completion: **VERIFIED**
+- Deterministic simulation-bound Stage-11 plan: **NEXT BOUNDED LINUX TASK**
+- Windows current-source integration: **SYNCHRONIZED STANDBY**
+- Physical hardware, build/sign/install execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 500a11a — saved Stage-10 host review continuity
 
 - Reviewed checkpoint: `500a11a50ddbe0b8ee8aada7ddc40080ef4e1f1f`

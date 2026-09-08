@@ -1,5 +1,84 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — connected exact-project Recipes handoff
+
+### Authoritative checkpoint
+
+- Product Assurance approval/base: `1f05268` — approved connected Simulation continuity and
+  authorized the bounded existing Recipes handoff inspection.
+- Creator connected-journey contract remained acceptance criteria only: retain exact context and
+  open an existing resolvable prerequisite without weakening consequential safety boundaries.
+- Tested implementation: `68c7cf5d6c7d5c44e65dccc905fb55ae80a1fd8b` — `Connect Recipes to
+  exact project prerequisite`.
+- Final handoff: the follow-up commit containing this document on
+  `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation, existing Command Deck Recipes handoff.
+
+### Reproduced defect and exact correction
+
+- Command Deck's Recipes action always opened Recipe Forge, even when the exact current project
+  lacked its contained working tree. ROM Studio truthfully described the prerequisite, but the
+  responsible preparation action remained in Source Lab, leaving the user at a non-resolving tab.
+- Recipes now retains the exact current project and opens Source Lab when project creation, source
+  import, working-copy creation or safe-tree preparation is the current existing prerequisite. The
+  appropriate existing control receives focus.
+- Once the exact project's protected source and contained tree exist, the same action opens Recipe
+  Forge and focuses its existing guided entry. If those inputs are complete but a bounded Studio
+  worker is active, Recipe Forge remains visible with the existing truthful wait prerequisite.
+- Navigation does not open the recipe designer modal, create a recipe, preview/apply an operation,
+  mutate firmware or start any worker.
+
+### Verification without double-counting
+
+- One final bounded run: **4/4 unique focused tests passed** — the new exact-project two-state
+  Recipes journey, the existing Command Deck route journey, the adjacent connected Simulation
+  journey and the existing ready ROM Studio Simulation/Recipes handoff journey.
+- New sanitized real MainWindow coverage proves an unprepared project opens Source Lab on that same
+  project with working-copy preparation available; after test-created contained-tree evidence, the
+  same project opens Recipe Forge with a truthful `READY` explanation.
+- Before and after both navigation actions, `RecipeStore` remains empty, the genuine event ledger
+  is unchanged, no ROM Studio worker exists and no modal decision opens.
+- Ruff static check: **2/2 changed implementation/test files passed**. Ruff format check: **2/2
+  passed**. `git diff --check`: passed.
+- No broad regression, package build, screenshot loop or physical-device test was run.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** exact-project routing to Recipe Forge or its current existing Source Lab
+  prerequisite.
+- **Simulated/Tested:** four sanitized synthetic Qt widget/store journeys.
+- **Hardware Verified:** none for this checkpoint.
+- **Released:** no.
+- Guided friction/dead end: a prerequisite no longer leaves the user inside an unusable Recipe
+  Forge tab or requires rediscovery of Source Lab/project context.
+- This is navigation only. It creates no recipe/result, changes no project/firmware, starts no build,
+  infers no compatibility and issues no device command.
+- Exact-device/source/project evidence, Guardian-only authority, applicable consent,
+  UNKNOWN-on-uncertainty, durable intent/result, no blind retry, same-incident Recovery,
+  independent verification and permanent no-relock remain unchanged.
+- Fedora/Linux: actual offscreen Qt widget/store journeys verified. Windows: not run or claimed;
+  Windows managed-tool recovery work was untouched.
+- Feature freeze: compliant correction to an existing Stage 1 journey. v0.2 Golden Foundation
+  remains **CLOSED** pending Product Assurance and release blockers.
+- Protected Companion work, Windows work, Knowledge work, UI Design Lab, website and unrelated
+  files were not modified, staged, discarded or committed.
+- Physical phone access, ADB/Fastboot invocation, APK action, firmware operation, build/flash/boot,
+  partition/slot/wipe/unlock/lock/relock, installation, signing, publication and release: **none**.
+- External action after verification: one normal push of the scoped commits to the existing Linux
+  branch only; no force-push.
+
+### Next proposed Build task
+
+Stop for Product Assurance review. Continue only from its next bounded existing-journey direction;
+do not broaden Stage 1.
+
+### Product Assurance Review Requested
+
+- Confirm direct Source Lab prerequisite focus and exact-project Recipe Forge routing are the
+  minimum correction for the existing Recipes dead end.
+- Confirm navigation remains strictly inert because the RecipeStore, ledger, worker and modal state
+  remain unchanged.
+
 ## Linux product checkpoint — connected exact-input Simulation handoff
 
 ### Authoritative checkpoint

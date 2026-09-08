@@ -58,6 +58,7 @@ from PySide6.QtWidgets import (
     QGraphicsOpacityEffect,
     QGridLayout,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QLineEdit,
     QMainWindow,
@@ -5538,6 +5539,36 @@ class MainWindow(QMainWindow):
             )
             if len(matching_projects) == 1:
                 self.rom_studio.refresh(matching_projects[0].project_id)
+            elif len(matching_projects) > 1:
+                labels = tuple(
+                    f"{project.name}  •  {project.project_id}  •  "
+                    f"{project.original.original_name if project.original is not None else 'firmware not imported'}"
+                    for project in matching_projects
+                )
+                choice, accepted = QInputDialog.getItem(
+                    self,
+                    "Choose ROM Mission project",
+                    "More than one saved project matches this phone. Choose the project to continue:",
+                    labels,
+                    0,
+                    False,
+                )
+                if not accepted:
+                    self.device_packs_center.next_action_handoff_stopped(
+                        "Project choice cancelled — Device Intelligence and saved projects are unchanged"
+                    )
+                    return
+                if choice not in labels:
+                    self.device_packs_center.next_action_handoff_stopped(
+                        "The selected ROM project no longer matches the current saved choices"
+                    )
+                    return
+                self.rom_studio.refresh(matching_projects[labels.index(choice)].project_id)
+            else:
+                self.device_packs_center.next_action_handoff_stopped(
+                    "No saved ROM project matches this phone's current Device Pack; create a new project from ROM Studio"
+                )
+                return
         profile = self.device_packs_center.active_device_dna
         project = self.rom_studio.current_project
         stored_profile = (

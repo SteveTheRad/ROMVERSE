@@ -1620,6 +1620,83 @@ def test_device_atlas_rom_mission_selects_the_one_matching_saved_project(
         window.close()
 
 
+def test_device_atlas_rom_mission_requires_choice_between_matching_saved_projects(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    store, registry, selected_project, _report = _project(tmp_path)
+    second_match = store.create("Second matching project", selected_project.device_pack_id)
+    unrelated_project = store.create("Unrelated project", "another.device.pack")
+    window = MainWindow(
+        None,
+        logo,
+        store.workspace,
+        app_icon_path=logo,
+        pack_registry=registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    opened_contexts = []
+    choices = []
+
+    def choose_project(_parent, title, prompt, items, _current, _editable):
+        choices.append((title, prompt, tuple(items)))
+        selected = next(item for item in items if selected_project.project_id in item)
+        return selected, True
+
+    monkeypatch.setattr("romverse.ui.main_window.QInputDialog.getItem", choose_project)
+    monkeypatch.setattr(
+        window.rom_studio,
+        "_open_guided_setup",
+        lambda: opened_contexts.append(window.rom_studio.guided_context()),
+    )
+    phone = _device(serial="CURRENT-PHONE-4671")
+    try:
+        window.rom_studio.refresh(unrelated_project.project_id)
+        window._scan_complete([phone])
+        app.processEvents()
+        report = window.device_packs_center.active_report
+        assert report is not None
+
+        window._navigate_route("device_atlas")
+        window.device_packs_center.continue_button.click()
+        app.processEvents()
+
+        assert choices and choices[0][0] == "Choose ROM Mission project"
+        assert selected_project.project_id in " ".join(choices[0][2])
+        assert second_match.project_id in " ".join(choices[0][2])
+        assert window.stack.currentWidget() is window.rom_studio
+        assert window.rom_studio.current_project is not None
+        assert window.rom_studio.current_project.project_id == selected_project.project_id
+        assert len(opened_contexts) == 1
+        assert opened_contexts[0].device is not None
+        assert opened_contexts[0].device.serial == phone.serial
+        assert opened_contexts[0].device_pack_id == report.pack_id
+        assert window.rom_studio.worker is None
+
+        window.rom_studio.refresh(unrelated_project.project_id)
+        window._navigate_route("device_atlas")
+        monkeypatch.setattr(
+            "romverse.ui.main_window.QInputDialog.getItem",
+            lambda *_args: ("", False),
+        )
+        window.device_packs_center.continue_button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.device_packs_center
+        assert window.rom_studio.current_project is not None
+        assert window.rom_studio.current_project.project_id == unrelated_project.project_id
+        assert len(opened_contexts) == 1
+        assert "Project choice cancelled" in (
+            window.device_packs_center.next_action_feedback.text()
+        )
+        assert window.rom_studio.worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
 def test_rom_studio_preserves_exact_project_into_time_machine_and_device_atlas(
     tmp_path: Path,
 ) -> None:

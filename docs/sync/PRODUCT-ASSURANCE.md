@@ -1,5 +1,65 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: bae42c2 — truthful empty Activity Center
+
+- Reviewed commit: `bae42c2702954590dd237bc9154dee4b468359b4`
+- Accepted unchanged source/package: `ca983ecd30724723574d7fdd6ae02ca107e3be3e`
+- Approved base: `b52af3b`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — EMPTY ACTIVITY REMAINS EMPTY, PRIVATE AND NON-AUTHORITATIVE**
+
+### Decision
+
+Product Assurance independently reproduced the unchanged executable, final runtime and audit
+hashes, classified the gap-free audit and inventoried the fresh workspace. Activity Center's one
+explicit refresh preserved four truthful zero metrics and a 0-of-0 ledger, created no event or
+source action, kept search/filter controls usable, and prevented export from fabricating an
+artifact. No correction or replay is required.
+
+### Independent evidence and acceptance
+
+- The executable independently matches SHA-256
+  `0a47f9af3dea4c0f64983fdd4afc9d1fa01dfcc96185680e94f098b1cb19dde7`.
+- The final audit independently matches
+  `a4b0e8a5e87758ea5cd52870c51899f6baf86dba4b44d128db3dd9d5e5dd784f` and is a gap-free
+  48-record sequence: 24 ADB and 24 Fastboot read-only `devices -l` inventories, all host-targeted,
+  untimed-out and return code 0.
+- The runtime record contains one clean start/close pair and independently matches
+  `c9a5cb9322615534d8a5ad7255f55888b66be1b4b82c6ab0116e1910585d64c3`; no package process
+  remains.
+- The workspace contains only the zero-byte Activity lock at that ledger boundary: there is no
+  Activity/Live Console ledger, export, project, snapshot, backup, APK, build or working-ROM file.
+- No phone, download, firmware/APK operation, installation, approval, consent, build/signing,
+  Guardian/Recovery execution, publication, release, lock or relock occurred.
+
+### Approved next bounded Linux task
+
+Reuse the current package once in a fresh no-phone workspace and open **App Launchpad** through
+normal Guided navigation. Select the existing local debug Companion artifact
+`companion/app/build/outputs/apk/debug/app-debug.apk` read-only and invoke only its local inspection
+path. Require ROMVERSE to bind the exact APK name/size/SHA-256, report its bounded container and
+signature/tool evidence truthfully, retain the completed local inspection when no phone is present,
+and expose the exact device prerequisite without creating approval or install authority.
+
+Do not press an approval or install action and do not rebuild, alter, copy into the repository, or
+install the APK. This is one positive local APK-inspection/no-phone continuity journey, not a
+Companion source task, broad APK test or physical-device simulation. Reuse the package unless a
+genuine false identity, inert action, lost inspection, crash or unsafe progression appears; if one
+appears, apply only its minimum Desktop correction and focused test, then package/relaunch at most
+once. Record exact APK/runtime/audit evidence, commit/push one handoff and stop for review. Do not
+modify Knowledge/UI Design Lab or protected Companion/Windows work. No phone, APK installation,
+firmware operation, build/signing, Guardian/Recovery execution, publication, release, lock or
+relock is authorized.
+
+### Gate status
+
+- Activity Center empty-ledger/privacy behavior: **VERIFIED**
+- Positive local APK inspection with no phone: **NEXT BOUNDED LINUX TASK**
+- Windows stage-5 Device DNA/tool continuity: **OWNED BY WINDOWS; DO NOT DUPLICATE**
+- Physical hardware, installation/restore, signing, Guardian/Recovery execution, publication and
+  release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 72a0c1b — Guardian verifies current no-phone evidence
 
 - Reviewed commit: `72a0c1b43370e9badb6afc85205fd1922592f3ee`

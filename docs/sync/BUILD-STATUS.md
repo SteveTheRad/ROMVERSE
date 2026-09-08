@@ -1,5 +1,79 @@
 # ROMVERSE Product Assurance Sync
 
+## Exact packaged Windows screen-content observation — Product Assurance review requested
+
+- Product Assurance verdict: `04be4fd4b5feb90ce481a75b993df6cbd8fe5765` — `Approve Windows
+  Platform Tools self-repair`, matching checkpoint
+  `c249d777ed76a28120700548aa1cefb08d9a9045` exactly.
+- Accepted source/artifact: `120af840b02bfa7ced40cb173541b5711deff2d3`;
+  branch: `windows-launcher-authorized-work`.
+- Status: **PASS — ONE UNELEVATED INTERACTIVE LAUNCH AND DIRECT LOCAL SCREENSHOT PROVE THE
+  ACCEPTED PACKAGED APP RENDERS COMMAND DECK, GUIDED ENTRY, AND TRUTHFUL ACTIONABLE NO-DEVICE
+  STATE WITHOUT A DEVICE ENGINE ERROR OR INERT PLATFORM TOOLS PREREQUISITE**.
+- The exact accepted executable and prepared workspace were reused. No build, package, tool
+  installation, integration replay, test suite, or second launch occurred.
+
+### One exact packaged launch and direct screenshot inspection
+
+- Executable:
+  `C:\Work\ROMVERSE-Windows\build\windows-120af840\ROMVERSE\ROMVERSE.exe`, size
+  `6,318,781` bytes, SHA-256
+  `6fb2f134156fa0f4ff619ea2138d2b89fe3f6f31eaa68c90556c7ab912313627`, Authenticode
+  `NotSigned`.
+- Prepared private no-phone workspace:
+  `C:\Work\ROMVERSE-Resolve-Platform-Tools-3c8b7218-20260909-1608`.
+- The artifact launched once as the current unelevated interactive user with `--workspace` bound
+  to that exact workspace and `--skip-onboarding`. The process exposed the responsive native
+  top-level window `ROMVERSE Studio 0.2.0-alpha.1`, handle `6226584`, at
+  `1456x939@232,35`.
+- Product Assurance explicitly required the host's local screen-capture path and prohibited another
+  external Computer Use RPC attempt. One ordinary Win32 desktop capture copied only the ROMVERSE
+  window bounds into
+  `C:\Work\ROMVERSE-Resolve-Platform-Tools-3c8b7218-20260909-1608\evidence-packaged-screen-04be4fd4\romverse-command-deck.png`.
+  The PNG is `225,412` bytes with SHA-256
+  `c979fd190fee5e40b94b922904770e18e68b45ff701c62d484e9f896e03d7b33`.
+- Direct image inspection confirms the native packaged frame and app identity, `Command Deck`
+  route/title, `GUIDED • ARCANA` entry, `Connect your Android device` next-best action,
+  enabled `Scan for device`, `No Android device detected`, `NOT CONNECTED`,
+  `No Android transport is visible`, and `Waiting for device` in both the sidebar and status bar.
+  There is no `Device Engine error`, `Resolve Platform Tools`, missing-tool warning, target identity,
+  readiness claim, consent claim, or execution-authority claim. The visible Guardian language stays
+  `VERIFY REQUIRED` / `NOT YET READY`.
+- No app control was clicked. The normal top-level close request was accepted, the process exited
+  within ten seconds, and zero `ROMVERSE.exe` processes remained. The 77-byte runtime record
+  contains exactly `ROMVERSE runtime started` followed by `ROMVERSE runtime closed cleanly` and
+  has SHA-256 `9b548079f50e029991471fdbf93e92807fb82adb17319871cb9ab421e7b7f499`.
+
+### Bounded no-phone runtime evidence
+
+- The ordinary packaged runtime retained its configured eight-second host-monitor interval while
+  the screenshot was transferred for direct inspection. Across the single 27.6-second launch it
+  recorded four periodic pairs: four unbound `adb devices -l` and four unbound
+  `fastboot devices -l` calls. These are scheduled read-only monitoring cycles, not failure retries.
+- All eight new records are category `read_only`, risk `none`, target `host`, return code `0`, and
+  non-timeout. Durations were 422–500 ms. Every inventory was empty; there was no serial selector,
+  network/device target, identity probe, target command, state change, automatic failure retry, or
+  ambiguity advancement. The complete continuous 12-record audit (including the four previously
+  approved source-integration records) has SHA-256
+  `5e994fa14d5cf2e6ec897b5e7dcd6f535ab4099c3e5a31d83f0b9ada91c2a97d`.
+
+### Scope, safety, and next gate
+
+- The screenshot showed no defect, so no source/test correction, regression, rebuild, repackaging,
+  or relaunch was justified. This Build handoff is the only intended repository change.
+- Protected Companion files remain clean and untouched. The preserved untracked
+  `0001-Preserve-local-build-completion-across-restart.patch` remains byte-identical at SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone or emulator was requested, awaited, connected, discovered, selected, operated, or
+  targeted. No device-changing command, APK, ROM build/signing, Guardian/Recovery authority,
+  Recovery, flash, wipe, unlock, root, lock, relock, driver/system install, production trust,
+  publication, release, destructive action, force-push, or blind retry occurred.
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty,
+  independent verification, feature freeze, and permanent no-relock remain intact.
+- Precise proposed next task: independent Product Assurance review of this exact one-launch visual
+  checkpoint. Windows Build stops here and assumes no further product, packaging, hardware,
+  signing, publication, or release task until a new repository verdict matches this pushed commit.
+
 ## Windows private Platform Tools self-repair — Product Assurance review requested
 
 - Product Assurance verdict: `3c8b7218e975570c5c2923abb13063c05dd04d4b` — `Approve Windows

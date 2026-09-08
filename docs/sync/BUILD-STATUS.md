@@ -1,5 +1,85 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows corrected-package saved-project startup — Product Assurance review requested
+
+- Product Assurance verdict: `b892178d4555e3c57d031576db9d3c8b8163071b` — `Approve Windows
+  packaged handoff fallback`, matching checkpoint `154e5e4f9aee9ea9be6633483dd64cca9b70ea02`
+  exactly.
+- Accepted correction/package source: `6fc79f65769366f3b31ddea7244bb9119bb05158`;
+  approved base `fabb17f1747d53e0590b1c50f2d7fb1969e823dc`.
+- Branch: `windows-launcher-authorized-work`.
+- Status: **PASS — ONE ACCESSIBILITY-ONLY PACKAGED STARTUP RESTORED THE EXACT SAVED PROJECT,
+  COMMAND DECK, STAGE 5, 5-OF-15 PROGRESS, DEVICE DNA UNCONFIRMED AND THE EXPECTED NEXT ACTION,
+  THEN CLOSED CLEANLY WITHOUT AN IN-APP ACTION OR PROJECT/AUTHORITY MUTATION**.
+
+### Exact one-session saved-project startup
+
+- Reused, without rebuilding or repackaging, the approved unsigned executable
+  `build/windows-stage5-tool-repair-2ba78b0a/ROMVERSE/ROMVERSE.exe`, 6,319,605 bytes, SHA-256
+  `5784de7a491c0b151ddb727beecf64c7ca4132760c5a687d9a22981e172899bc`.
+- Launched it exactly once with `--workspace
+  C:\Work\ROMVERSE-Windows-Adaptive-Discovery-3fe32432-20260909 --skip-onboarding`. The returned
+  Windows target was the unique executable-bound window `ROMVERSE Studio 0.2.0-alpha.1`.
+- Build requested only the target window's accessibility state, with screenshots disabled. No
+  activation, click, coordinate, navigation, scroll, typing or other in-app input was performed.
+  The accessibility tree independently exposed:
+  - `Current Desktop page: Command Deck`;
+  - active project `Windows Synthetic Discovery 20260909`;
+  - `CURRENT ROUTE • STAGE 05 OF 15` and `Genesis progress: 5 of 15 stages verified`;
+  - `DEVICE DNA` = `UNCONFIRMED`, device link `Not connected`, and zero retained scans;
+  - `NEXT • Scan device & refresh DNA`;
+  - Guardian `VERIFY REQUIRED` / `NOT YET READY`, plus the explicit statement that no build,
+    flash, backup, recovery or other ROMVERSE operation was running.
+- The target-derived accessibility state was sufficient despite LegionSpace remaining open; no
+  focus recovery or covered-coordinate interaction was needed. Forge Arsenal was not opened and
+  the scan action was not invoked.
+- The targeted ROMVERSE window received only the approved normal `Alt+F4` close. A bounded
+  two-second window-inventory poll confirmed the exact executable-bound window disappeared, and
+  no `ROMVERSE.exe` process remains.
+
+### Exact persistence and authority evidence
+
+- The runtime record advanced exactly once from three start/clean-close pairs (231 bytes,
+  `30feaa6b43ac81c3e426cd89b1366323359c203a3e4d399727d797fd3674f8b7`) to four
+  start/clean-close pairs (308 bytes, SHA-256
+  `ca9bd51d66c5abab7574d1c649527847435581fcc864c4b1d1d12d86ac226def`). There is no fault entry
+  or unmatched start.
+- Every project/authority record remained byte-identical across the session:
+  `project.romverse` `43d0be47945aa2ec5a27f11ef8a94a809a9ef4cb9f23ea4a1424773990902fd3`,
+  `guided-mission.json` `56dcc316220c22f3784d5e10fda39df47a3b96a763bbab702eba369e40b4d511`,
+  `inspection.romverse` `cd98bfd4120977d9d9dd59e8e8a9684bc66dd511f51a4f8a4f6e14581763afd1`,
+  `device-dna.romverse` `a9cda907fe28d783549a37dc09328ba12ba9f11a02a704c1c43b32f3a56c6046`,
+  `compatibility-matrix.romverse`
+  `6e6f9dc82619f2940f1b3a56aea4322b35458669b54da7d53be950641feb7a81`,
+  `working-copy.romverse` `98b0d92596c2d6acc413a7325ec9a68eb7f34c4f54c8bed3206f9b291ca23749`,
+  `working-tree-index.romverse`
+  `154d60fcbe230b4b2c449959e9cb481f110ba9637f5c7e69cd1195369115f490`, and
+  `route-record.romverse` `c1c5ed2c1584a11889d1c3ad759ac86ffee7ba85406c28405c3e395cb8df3b95`.
+- Workspace `tools` still contains zero files. No project candidate, build plan, command manifest,
+  consent record or Guardian audit exists. UNKNOWN/UNCONFIRMED and no execution authority remain
+  intact.
+- The pre-existing detached ADB server from
+  `C:\Work\ROMVERSE-Link-Lazy-Frozen-20260907\tools\downloads\platform-tools\platform-tools\adb.EXE`
+  remained outside this checkpoint. Build did not start, query, target or stop it and issued no
+  ADB/Fastboot command.
+- The protected Companion files remain untouched. The untracked user patch remains present and
+  byte-identical at 8,272 bytes, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone or emulator was requested, awaited, discovered, connected, operated or targeted. No
+  tool download/install, APK/device installation, firmware change, ROM build/signing, consent,
+  Guardian/Recovery execution, publication, release, lock, relock, force-push or destructive
+  cleanup occurred.
+
+### Verification scope and next gate
+
+- Verdict `b892178d` explicitly authorized one startup observation and forbade a Forge attempt,
+  screen sweep, source change, rebuild and test rerun. Accordingly, no source changed, no package
+  was rebuilt and no test or linter was rerun. The evidence is genuine native Windows packaged
+  accessibility state, not a Linux simulation.
+- Only this Build handoff document changed. Product Assurance should independently verify the exact
+  saved-project startup, clean runtime delta, unchanged project/authority hashes and scoped commit,
+  then record the next bounded Windows task. Build stops here without replaying the package.
+
 ## Windows packaged Genesis Forge handoff — bounded environmental fallback review requested
 
 - Product Assurance verdict: `fabb17f1747d53e0590b1c50f2d7fb1969e823dc` — `Approve Windows

@@ -1,5 +1,62 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: ddb280d — fresh Guided project continuity
+
+- Handoff commit: `ddb280db3dc8d2c6314eedd2ffd110ea0a1f33b4`
+- Implementation commit: `c15f0d3434591bd667ac26b33fb16554457597c8`
+- Approved base: `e0a91f6`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — GENESIS ADVANCES AFTER VERIFIED PROJECT CREATION**
+
+### Decision
+
+Product Assurance inspected the full diff and independently reran the three exact affected
+journeys. The one-line production correction reselects the first stage lacking evidence after a
+successful project-creation action, matching the existing completion behavior used elsewhere in
+Genesis. It removes an unnecessary `Next` click while preserving project-name and firmware-file
+selection as intentional human inputs. Cancellation, failure and evidence assessment are unchanged.
+
+The representative fresh-workspace journey uses the real Command Deck, Genesis actions, project
+and inspection stores, import/working-copy/extract producers and Simulation coordinator. It proves
+durable exact-source ownership and reload through current Simulation readiness without fabricating
+a BuildPlan or device state.
+
+### Independent evidence and acceptance
+
+- Product Assurance reran the fresh production-service journey, evidence-driven Genesis UI and
+  transient-new-project cancellation checks: **3/3 passed**.
+- Ruff check passed for both changed files and Git whitespace validation passed. The unchanged
+  formatter drift in `guided_mission.py` remains outside the one-line production hunk.
+- The source fixture remains byte-identical; the protected copy, manifest, inspection, isolated
+  working copy and contained tree reload durably under the same exact project ID.
+- No BuildPlan/build, phone, ADB/Fastboot, APK, firmware-device action, Windows/Companion/Knowledge/
+  UI work, packaging, publication, release or bootloader relock occurred.
+
+### Approved next bounded Linux task
+
+Close the next concrete continuation gap in the existing **Pre-Build Simulation** action. After the
+user has intentionally requested Simulation and ROMVERSE has safely prepared and revalidated the
+exact project prerequisites, resume the original request into the existing bounded dry-run
+operation rather than stopping at a second technical button. Reuse the current plan/dry-run service
+and UI; do not create a parallel simulation engine. Run it at most once for the exact current
+project/source/evidence, preserve visible progress, independently validate the typed result and
+present the existing result/next continuation.
+
+Missing choices or evidence, admission failure, project/source drift, a known dry-run failure or
+ambiguous/interrupted completion must stop actionably with preserved progress and no automatic
+retry. Do not start a real build, infer device compatibility, grant Guardian or execution
+authority, use a phone/ADB/Fastboot, overlap Windows/Knowledge/UI Design Lab/Companion work, run a
+broad suite, package, publish or release. Verify one successful automatic dry-run resume and one
+bounded stop/failure journey plus only directly affected focused tests. Commit/push one bounded
+checkpoint and stop for review.
+
+### Gate status
+
+- Fresh project → firmware → inspected source → prepared Simulation readiness: **VERIFIED**
+- Automatic completion of the requested bounded dry run: **NEXT BOUNDED LINUX TASK**
+- Real build and consequential device action: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 7193aa3 — automatic exact-project Simulation preparation
 
 - Handoff commit: `7193aa3e3c607710e68991e206370a79a679202b`

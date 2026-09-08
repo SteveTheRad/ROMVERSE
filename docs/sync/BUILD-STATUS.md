@@ -1,5 +1,95 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux correction checkpoint — seamless Forge plan rollover with preserved evidence
+
+### Authoritative checkpoint and scope
+
+- Product Assurance correction/base: `b20efa7dad3cab4b1ad124156c93f3052b0a248f` required the
+  stale-receipt route to preserve exact historical evidence and remain actionable.
+- Implementation commit: `b648e418d61f7dfa7906f20871b030f838706074` — `Preserve Forge
+  evidence through plan rollover` on `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation, minimum Forge continuity/correctness correction only.
+- Exact files: `src/romverse/rom/forge.py`, `src/romverse/ui/rom_studio.py`,
+  `tests/test_build_control_ui.py`, and `tests/test_forge_bundle.py`.
+
+### Exact correction
+
+- On the user's existing explicit **Forge Bundle** action, a valid `latest` receipt from a
+  different exact Build Readiness generation is first independently verified, then exclusively
+  preserved in the project's private, content-addressed `forge-history` directory. Its immutable
+  archive remains in place.
+- History creation is non-overwriting. An existing content address is accepted only when its
+  parsed receipt mapping is exactly identical; malformed evidence, read ambiguity or a collision
+  fails closed without replacing history or `latest`.
+- The previous `latest` receipt remains present until the current-plan bundle is completely
+  created and its new receipt is atomically installed. A failure after historical preservation
+  leaves both the old `latest` and historical receipt recoverable; no success or retry is inferred.
+- Current and historical receipts can be verified through one exact verification boundary without
+  changing the latest evidence pointer. Historical loading validates its SHA-256 content address,
+  receipt schema and project identity before returning evidence.
+- ROM Studio now keeps the existing Forge action focused and actionable for a stale generation,
+  truthfully explains preservation and starts no work automatically. One explicit choice starts
+  one existing Forge worker; its established automatic verifier then verifies the current result.
+  No additional confirmation or screen was added.
+
+### Verification without double-counting
+
+- Final directly affected regression selection: **30/30 passed**. It contains the complete
+  17-check Device Build contract suite, four Forge schema/history checks, three exact Forge
+  Control/UI checks and the six durable-schema inventory checks.
+- The connected same-tree adversary creates schema-3 plan A, Forge A and Device Build plan A; then
+  replaces the current plan with schema-3 plan B whose tree digest is identical but whose exact
+  Guided-choice and plan digests differ.
+- A simulated insufficient-space interruption after preservation proves Forge A remains `latest`,
+  its history receipt loads and verifies independently, and no replacement receipt is inferred.
+- The old Device Build admission remains rejected with **zero runner calls**. One explicit UI
+  Forge choice then starts exactly one plan-B Forge worker and the existing verifier, produces a
+  verified current plan-B receipt, and retains both plan-A and plan-B immutable archives plus the
+  independently verifiable plan-A history receipt.
+- A collision adversary replaces a history path with different bytes and proves a repeat preserve
+  attempt fails without overwriting those bytes or the valid latest receipt.
+- Python compilation, Ruff lint and Git whitespace validation passed for all four changed files.
+  Earlier overlapping focused runs are not added to the final total. No broad suite, desktop
+  package, native-app smoke, CI matrix or hardware workflow ran.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** exact stale-generation history preservation, fail-closed collision handling,
+  latest-pointer continuity and the actionable one-choice Forge rollover route.
+- **Simulated/Tested:** deterministic Linux service and offscreen Qt journey; **30/30** unique
+  directly affected checks.
+- **Hardware Verified:** no. No physical hardware claim was made.
+- **Released:** no.
+- Blockers/failures: none within the bounded correction. Signing, Guardian review, physical
+  execution and release remain closed and were not attempted.
+- Guided friction/dead ends: the stale-receipt loop is removed. Guided/Command Deck can now use the
+  existing deliberate Forge action without manual file management while preserving prior evidence.
+- Guardian/Recovery/safety: Forge evidence remains local, unsigned, non-bootable, non-flashable and
+  grants no consent, Guardian, device, flash or execution authority. Exact-device evidence,
+  same-incident Recovery, UNKNOWN-on-uncertainty, no blind retry, independent verification and
+  permanent no-relock remain unchanged.
+- Linux/Fedora: Python and offscreen Qt verification passed genuinely on Linux. Windows and
+  physical Android hardware were not run.
+- Feature freeze: compliant minimum correction to an existing Stage 1 continuity defect; no new
+  product feature, screen, adapter, Device Pack, signing path or execution capability.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all release gates.
+- External actions: the scoped implementation and this handoff are committed and the existing
+  branch is pushed normally. No phone, ADB/Fastboot, APK, firmware/device operation, system/global
+  installation, real candidate, signing, Guardian consent/execution, publication, release, merge,
+  force-push, lock or relock occurred. Test artifacts existed only in disposable test workspaces.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another consequential slice until the
+verdict for `b648e41` is recorded in `docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm that private content-addressed preservation, exact-equality collision handling and the
+  old-latest-until-new-success ordering satisfy the continuity and evidence-retention invariant.
+- Confirm that the connected interruption and success adversaries prove the former Guided dead end
+  is removed without weakening exact Build Plan or Device Build admission.
+
 ## Linux correction checkpoint — durable exact-plan identity through Forge
 
 ### Authoritative checkpoint and scope

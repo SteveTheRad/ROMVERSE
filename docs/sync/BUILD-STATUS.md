@@ -1,5 +1,92 @@
 # ROMVERSE Build Status
 
+## Refreshed Windows alpha artifact — packaged UI journey incomplete; Product Assurance review requested
+
+- Product Assurance authorization:
+  `f75b9f6db9e9aec06df1918495d9153f049fa27a`, approving Windows checkpoint `88f0b160`.
+- Approved source/build base: `f75b9f6db9e9aec06df1918495d9153f049fa27a`.
+- Branch: `windows-launcher-authorized-work`.
+- Status: exactly one refreshed unsigned Windows `0.2.0-alpha.1` internal-development build and
+  one canonical ZIP were produced and structurally verified. Packaged startup, clean shutdown and
+  one restart pass, but the required interactive packaged Guided journey is **INCOMPLETE** because
+  the host's trusted Windows app-control RPC service is not configured. No alternate keystroke/UI
+  automation was used, and no runtime presentation claim is invented. Stop for Product Assurance.
+
+### Exactly one refreshed unsigned build
+
+- Command, run exactly once:
+  `.venv\\Scripts\\python.exe scripts\\build_desktop_executable.py --output-directory build\\windows-alpha-0.2.0-alpha.1-signing-preparation --work-directory build\\windows-alpha-0.2.0-alpha.1-signing-preparation-pyinstaller`
+- Result: **PASS** with PyInstaller `6.22.2`, Python `3.12.10`, and
+  `Windows-11-10.0.26200-SP0`.
+- Executable:
+  `build/windows-alpha-0.2.0-alpha.1-signing-preparation/ROMVERSE/ROMVERSE.exe`.
+- Executable size: `6,285,439` bytes.
+- Executable SHA-256:
+  `84eb54a8934e982a6660c6f09f5a65517e94934384fc7f4858546404eb7a7194`.
+- Authenticode: **NotSigned**, as required for this internal-development checkpoint.
+- No rebuild was performed.
+
+### Exactly one canonical bundle
+
+- Command, run exactly once:
+  `.venv\\Scripts\\python.exe scripts\\package_desktop_bundle.py build\\windows-alpha-0.2.0-alpha.1-signing-preparation\\ROMVERSE --platform windows-x86_64 --output dist\\ROMVERSE-Desktop-0.2.0-alpha.1-windows-x86_64.zip`
+- ZIP:
+  `dist/ROMVERSE-Desktop-0.2.0-alpha.1-windows-x86_64.zip`.
+- ZIP size: `73,469,641` bytes.
+- ZIP SHA-256:
+  `bdf144fb716a6193a5d9a910a244c8d9363b66731c43c61dd7827efd3b04cc8a`.
+- Safe archive verification: **PASS** — 305 unique regular-file members, `164,609,774`
+  expanded bytes, exactly one expected `ROMVERSE/ROMVERSE.exe`, successful CRC validation, and no
+  link, absolute, duplicate, parent-traversal, directory, oversized, or missing-executable member.
+- The archive was verified again before extraction. The extracted executable has the same SHA-256
+  and remains `NotSigned`.
+
+### Bounded no-phone packaged evidence
+
+- Disposable root:
+  `C:\\Work\\ROMVERSE-Windows-Packaged-Journey-f75b9f6d`.
+- The extracted packaged executable launched successfully, remained responsive, and displayed the
+  native top-level title `Welcome to ROMVERSE` on the first fresh launch.
+- The installed Computer Use client was initialized as required, but its trusted RPC service
+  returned `Trusted RPC service is not configured: sky`. Native app input was therefore unavailable.
+  The onboarding window was closed through its normal window-close request and exited cleanly.
+- No substitute SendKeys, guessed coordinates, direct PowerShell UI Automation, accessibility
+  injection, or unobserved click was attempted.
+- The packaged `--skip-onboarding --release-smoke` lifecycle then initialized the disposable
+  workspace and closed cleanly. One normal restart against the same workspace returned exit code
+  `0`; the runtime log records exactly two starts and two clean closes.
+- Durable restart evidence: seven workspace files before and after, with workspace-manifest SHA-256
+  unchanged at `74f2c14de0e18ec9b3c5218ad47908647354b622ce3971fe782f6201cd0158f9`.
+- Packaged startup/shutdown/restart: **PASS**.
+- Interactive Guided entry, Command Deck, Platform Tools remediation presentation, one offline
+  Knowledge/Device DNA lookup, and candidate/signing-preparation presentation: **NOT EXECUTED**.
+  Their accepted source evidence was not repeated and is not relabeled as packaged evidence.
+- No concrete ROMVERSE runtime or Guided defect was established, so no product correction or
+  second build is justified.
+
+### Precise next proposed action
+
+Enable or restore the trusted Windows app-control RPC service, then run exactly one bounded
+interactive journey against this already built and verified artifact in a new disposable no-phone
+workspace. Do not rebuild or repackage. Exercise only the five approved visible checkpoints and one
+clean restart; if they pass, append the evidence-only handoff and return for review. If a concrete
+ROMVERSE defect appears, apply only its minimum freeze-safe fix with one focused regression and use
+the single conditionally authorized rebuild.
+
+### Scope and safety handoff
+
+- The pre-existing untracked patch
+  `0001-Preserve-local-build-completion-across-restart.patch` remains unchanged, unstaged and
+  uncommitted. Protected Companion files remain clean and untouched.
+- No phone/emulator was present, requested, awaited, connected, selected, or targeted. No
+  ADB/Fastboot device command, system-wide installation, consent/admission, Guardian execution,
+  Recovery, real signing, production trust, publication, release, destructive action, force-push,
+  unlock, lock, or relock occurred.
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty, no
+  blind retry, independent verification, feature freeze, and permanent no-relock remain preserved.
+- Stop for independent Product Assurance review of the verified artifact and explicit packaged-UI
+  evidence limitation.
+
 ## Windows same-file identity portability correction — Product Assurance review requested
 
 - Product Assurance correction authorization:

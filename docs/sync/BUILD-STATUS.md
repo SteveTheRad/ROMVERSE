@@ -1,5 +1,84 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — Time Machine reaches the exact missing-project owner
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `97f9e5c` approved the invalid local APK rejection journey,
+  corrected its retained audit total to 134 without replay, and authorized one fresh no-phone,
+  no-project Time Machine prerequisite handoff.
+- Exact unchanged implementation/package source: `ca983ecd30724723574d7fdd6ae02ca107e3be3e`.
+- Exact unchanged package:
+  `build/linux-pa-health-scan-7100108/frozen/ROMVERSE/ROMVERSE`, 6,323,000 bytes, mode `0755`,
+  SHA-256 `0a47f9af3dea4c0f64983fdd4afc9d1fa01dfcc96185680e94f098b1cb19dde7`.
+- Stage: Stage 1 — v0.2 Golden Foundation, one evidence-only packaged cross-surface continuity
+  check. No application source, test or package changed in this checkpoint.
+
+### One bounded packaged Time Machine journey
+
+- The unchanged package ran once, unelevated, through Fedora XWayland in fresh workspace
+  `/tmp/romverse-time-machine-97f9e5c.eJ2red`, with no simulated or physical phone.
+- The existing **Open Time Machine** action opened the correct owner. The visible state was
+  truthful: no device was connected; there was no ROM Studio project, baseline snapshot, local
+  phone backup or recovery project; unavailable backup, snapshot, recovery-evidence and capsule
+  controls were disabled.
+- Exactly one local setup action was enabled: **Create project in ROM Studio**. Its explanation
+  required a protected project and verified baseline snapshot before returning to Time Machine.
+- Invoking that action once opened ROM Studio with the explicit
+  **TIME MACHINE HANDOFF • EXACT MISSING RECOVERY PREREQUISITE** context. It stated that no ROM
+  project exists, named project creation and protected-firmware import as the next prerequisites,
+  showed the **PROJECT REQUIRED** badge, and exposed the enabled **New project** route.
+- The handoff explicitly confirmed that no dialog or worker started automatically and that no
+  project, snapshot, restore, build or phone action started. The fresh workspace retained zero
+  project, snapshot and backup files and no Activity or Live Console ledger.
+- ROMVERSE closed normally through the desktop window-close action. No package process remained;
+  the runtime log contains exactly one start/clean-close pair, SHA-256
+  `c9a5cb9322615534d8a5ad7255f55888b66be1b4b82c6ab0116e1910585d64c3`, with no fatal trace.
+- The final audit contains 88 successful read-only, no-target host-discovery records: 44 ADB and
+  44 Fastboot `devices -l` probes. Every record is allowed, untimed-out, return code 0 and
+  serial-selector-free. None originated from the Time Machine handoff or created device identity,
+  project state or execution authority.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** no new behavior; this checkpoint verifies the shipped Time Machine
+  missing-project handoff against its packaged Fedora runtime.
+- **Simulated/Tested:** one genuine packaged Fedora no-phone/no-project cross-surface journey. No
+  test suite was run or double-counted because no source changed.
+- **Hardware Verified:** no. No Android phone was connected, discovered, selected or operated.
+- **Released:** no. The package remains an unsigned local development artifact.
+- Blockers/failures: none in the bounded journey. Time Machine truthfully disables unavailable
+  work and reaches the actionable owning ROM Studio prerequisite without creating anything.
+- Guided friction/dead ends: the empty Time Machine surface supplies one clear enabled setup action;
+  ROM Studio receives the exact context and immediately exposes **New project** without a modal,
+  terminal instruction, generic destination or silent stop.
+- Guardian/Recovery/safety: the handoff carries context only. It grants no backup, snapshot,
+  restore, build, consent, incident, write or execution authority. UNKNOWN/no-blind-retry,
+  exact-device and exact-incident evidence, independent verification, Guardian-only authority and
+  permanent no-relock remain unchanged.
+- Linux/Fedora: genuinely verified on Fedora 44/XWayland. Windows and physical Android were not run.
+- Feature freeze: compliant evidence-only Stage 1 check; no feature, UI, format, Device Pack,
+  adapter, knowledge or production capability changed.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all remaining gates.
+- External actions: this scoped branch is pushed normally with this documentation-only handoff.
+  Normal no-target read-only ADB/Fastboot inventory occurred. No phone operation, simulated device,
+  firmware/APK work, project creation, APK/system installation, backup/restore, build/sign/flash,
+  Guardian/Recovery execution, publication, release, merge, force-push, lock or relock occurred.
+  Protected Companion and Windows launcher files were not modified, staged or committed.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another consequential slice until the
+verdict for this exact Time Machine prerequisite handoff is recorded in
+`docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm the truthful empty state, single enabled setup action, exact ROM Studio handoff and zero
+  project/worker persistence satisfy the no-project Time Machine continuity gate.
+- Confirm the 88 audit records are normal unbound periodic inventory only and do not alter this
+  context-only safety verdict.
+
 ## Linux product checkpoint — invalid local APK is rejected without install authority
 
 ### Authoritative checkpoint and scope

@@ -1,5 +1,82 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: cb929ac — read-only popsicle Device DNA hardware acceptance
+
+- Handoff commit: `cb929ac178fc1c099027eb46ca3263a8d9a3f10a`
+- Evidence commit: `60e7e85b260b9ae368bd81733c02febdc014babe`
+- Product Assurance authorization/base: `bccc0b1eb7fc3585a8c65006d07076f334f6b2d8`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — REAL ADB DEVICE DNA OBSERVATION VERIFIED**
+
+### Decision and independent evidence
+
+The checkpoint remained within the exact read-only authorization. Its complete repository diff
+changes only `docs/sync/BUILD-STATUS.md`; no application, test, Device Pack, Companion, Windows or
+Adaptive source changed. The production run recorded exactly fourteen Guardian-allowed operations:
+two ADB discovery calls, two Fastboot discovery calls and ten fixed ADB detail probes. Product
+Assurance independently inspected the corresponding redacted audit tail and verified the complete
+active/archive chain as valid at 28,005 entries. All fourteen scoped records are read-only, the raw
+transport identity is redacted, and the two expected absent-package results are ordinary known
+non-zero observations rather than uncertain device failures.
+
+Product Assurance also independently loaded the durable local stores through their strict production
+loaders. The latest pseudonymous passport record digest is
+`1217107ab1e2b287d3576fc3a672c93b6e14aea58de2325444fb8e98d32af092`, Device DNA digest is
+`73016d262e6957bdc7383a861fa6933b7a15dbec9db05fcbfa2a0b399092601b`, and Compatibility Matrix
+digest is `4cd90f4391d03c6f0ef9166cbec78f9072088229814f1045bc2a55d2df944e02`, exactly matching the
+handoff. The observation truthfully proves one Xiaomi `popsicle` / `2509FPN0BC` Android target on
+Fedora. It does not prove a Fastboot target, source compatibility, consent, execution or Recovery.
+The Pack relationship remains advisory and `guardian_flash` remains `UNCONFIRMED`, which is correct.
+
+### Vision, freeze and safety result
+
+- Real production ADB Device Engine, Device Intelligence, Device DNA and Compatibility Matrix:
+  **HARDWARE VERIFIED FOR THIS ONE READ-ONLY OBSERVATION**
+- Exact-device privacy binding and audit integrity: **PASS**
+- Feature freeze: **PASS — evidence-only acceptance; no product code changed**
+- Guardian authority, UNKNOWN-on-uncertainty, no blind retry and permanent no-relock: **PRESERVED**
+- Fresh Live Target, installation, flash, wipe, Recovery and release: **NOT VERIFIED OR AUTHORIZED**
+
+### Approved next bounded task — one Fastboot identity round trip
+
+Steve explicitly requested this physical Fastboot test on 8 September 2026. Perform one bounded
+production-path Android-to-bootloader-Fastboot-to-Android round trip on the same currently connected
+`popsicle` phone. This authorization covers two exact mode-change commands only: the existing
+`LocalDeviceTransitionService` may send one reviewed ADB reboot to bootloader and, after the exact
+Fastboot target is verified, one reviewed Fastboot reboot back to Android. Use its one-use plan,
+tool-hash revalidation, pseudonymous exact-target binding, durable transition journal, bounded
+arrival observation and Guardian audit. The creator's request supplies consent for this exact
+round trip only; it grants no installation or flashing consent.
+
+In bootloader Fastboot, exercise the production `DeviceEngine` identity path once. Allow only
+Fastboot discovery and the existing fixed reads for `product`, `current-slot`, `unlocked`, `secure`
+and `is-userspace`. Confirm one unambiguous target, no simultaneous ADB target, expected `popsicle`
+product identity, bootloader rather than fastbootd mode, and agreement or explicit uncertainty for
+slot/unlock/security evidence. Persist only the existing privacy-safe identity evidence. Do not use
+`getvar all`, enumerate arbitrary partitions, fetch or upload any bytes, create a source-bound Fresh
+Live Target receipt, or promote this observation into compatibility or execution authority.
+
+After the single return-to-Android command, use the existing bounded ADB observation to confirm the
+same product/codename and record whether normal Android transport returned. Do not repeat either
+mode-change command if a command result or resulting mode is unknown. If Fastboot uses a changed
+transport identity, arrival times out, any identity conflicts, or Android does not return within the
+bounded observation, stop and report the measured state for recovery/reassessment; do not guess,
+retry or issue an alternative command.
+
+Absolutely no unlock/lock/relock, critical unlock change, slot change, erase, wipe, format, flash,
+boot, update, partition read/write, APK action, root/debloat action, firmware execution, consent for
+another operation, signing, publication or release. Run no broad test suite and do not rehash the
+11.8 GB package. Record the exact redacted operation count and outcomes, update
+`docs/sync/BUILD-STATUS.md`, commit/push, and stop for Product Assurance. If the phone is no longer
+connected, report that one physical blocker and continue no device command.
+
+### Gate status
+
+- ADB Device DNA observation: **APPROVED / HARDWARE VERIFIED**
+- Fastboot identity observation and reversible round trip: **AUTHORIZED NOW — EXACT BOUNDED SCOPE**
+- Partition enumeration, Fresh Live Target, installation, execution and Recovery: **NOT AUTHORIZED**
+- Bootloader relocking: **PERMANENTLY PROHIBITED**
+
 ## Current hardware authorization — one fresh read-only popsicle observation
 
 - Authorization base: `ddfbdb7` on `linux/stage1-desktop-readiness`.

@@ -1,5 +1,136 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux correction checkpoint — bounded Fastboot source reacquisition
+
+### Authoritative checkpoint
+
+- Product Assurance correction/base:
+  `1a33372cac002c6142b8ac0d86eb71b099ef8c57` — `Require bounded Fastboot return reobservation`.
+- Tested implementation commit:
+  `03dc954fc0c5ec7f113c9696b6358c3500ab4349` — `Bound Fastboot source reacquisition`.
+- Final handoff: the follow-up commit containing this document on
+  `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation, minimum Fastboot return-plan correctness correction.
+
+### Exact correction
+
+- `LocalDeviceTransitionService` now treats a successful but completely empty Fastboot product
+  response as one narrowly typed transient observation. It permits at most one fresh,
+  non-dispatching reacquisition; that reacquisition performs a new exact-target discovery plus new
+  product and mode reads and reuses no historical Device Engine fact.
+- A Fastboot-source transition plan can now be created only after **two complete, identical** live
+  observations agree on exact serial, product identity and known bootloader/Fastbootd mode.
+- A second empty product, absent/duplicate/changed target, changed product or mode, missing mode,
+  failed discovery, failed product command, timeout, malformed/conflicting value or tool drift still
+  rejects before plan creation and before any reboot command.
+- The general Fastboot parser was not widened. Arrival observation and executor revalidation remain
+  strict. No historical/pseudonymous identity was converted into live execution authority.
+
+### Verification
+
+- Focused `tests/test_guardian_local_transition.py`: **43/43 unique tests passed**.
+- New adversarial coverage proves:
+  1. one successful-empty product read may be followed by two complete identical observations;
+  2. repeated empty product reads stop after one reacquisition with no reboot;
+  3. discovery failure, product-command failure and missing mode do not reacquire or reboot;
+  4. changed product or bootloader/userspace mode rejects with no reboot.
+- Ruff static check: **2/2 changed source/test files passed**.
+- Ruff format check: **2/2 changed source/test files passed**.
+- `git diff --check`: passed.
+- No broad or overlapping regression suite was run or double-counted. The firmware was not hashed
+  or inspected.
+
+### Hardware disposition
+
+- The correction was implemented, tested and committed before any possible hardware use, as
+  required.
+- Steve manually returned the phone from the earlier stopped attempt, then explicitly authorized a
+  fresh Fastboot acceptance when needed. Build ran one complete corrected production-path round
+  trip with no retry.
+- Reconnect-safe Device Engine observation first re-established the same pseudonymous Android
+  `popsicle`. One reviewed Android-to-bootloader plan then completed and sealed journal
+  `0e57c25452224b978fa29fe90cd45912.json`, digest
+  `ca436f6393e045a82136f67b7bd3451ee68398391cec9421d432b26eac169325`.
+- The fixed Device Engine Fastboot scan found exactly one bootloader target and no ADB target. It
+  reported `popsicle`, slot `a`, and unlocked bootloader; all five authorized fixed variables were
+  queried once. The pseudonymous Fastboot passport digest is
+  `a436de0dae35b4fdd522f50c7d33d06778f128f5351a964d2a6c515824c477cd`.
+- The corrected return review then earned **two complete identical fresh Fastboot source
+  observations** before plan creation. No transient empty response occurred in this hardware run,
+  so the one-reacquisition branch remains adversarially software-tested rather than hardware-hit.
+- Exactly one reviewed Fastboot reboot returned the same pseudonymous phone to Android. Journal
+  `b546399e5ab648cda8f0f6257045d914.json` completed with
+  `command_completed=true`, `arrival_verified=true`, `phone_state_uncertain=false`, and digest
+  `6865b376662edb1f96fd4cac6c79d5f9b64dd4fb9467112c4711f69484f9149c`.
+- A new, uncached reconnect-safe Device Engine completed two Android discovery cycles and confirmed
+  USB Android state, product/codename `popsicle`, and HyperOS `OS4.0.0.32.XPBCNXM`. The final
+  privacy-safe passport digest is
+  `0d1dc13d75ba5053e39a61090a74102e347657c64d0608a0128bc191cd2ae3cd`.
+- The acceptance recorded exactly **104 redacted Guardian operations**: **102 read-only** bounded
+  discovery/identity/arrival observations and **2 state-changing reboot commands**. All had
+  measurable non-timeout results; the complete active/archive audit chain passed at sequence 181.
+
+### Classification
+
+- **Implemented:** bounded one-time successful-empty product reacquisition and two-identical-source
+  observation requirement.
+- **Simulated/Tested:** 43 deterministic transition tests on Fedora Linux, including the required
+  new adversarial cases.
+- **Hardware Verified:** one complete corrected Android → bootloader Fastboot → Android production
+  round trip on the same pseudonymous `popsicle`, including two-identical Fastboot source review and
+  final uncached reconnect-safe Android identity. The transient-empty reacquisition branch itself
+  was not encountered on hardware.
+- **Released:** no. Nothing was packaged, signed, installed, published or released.
+
+### Guardian, Recovery and Guided impact
+
+- The correction removes the identified one-read transient dead end without permitting a reboot on
+  incomplete identity. Guided may reacquire once silently, then remains truthful and actionable.
+- Plan creation, one-use consent, executor revalidation and command dispatch remain separate. The
+  reacquisition grants only source-observation evidence.
+- UNKNOWN-on-uncertainty, no blind retry, exact-device binding, same-incident attribution,
+  independent verification and Guardian-only authority remain unchanged.
+- Bootloader locking/relocking remains permanently prohibited and has no valid path.
+- No Fresh Live Target, compatibility, source, installation, executor, Recovery or partition
+  authority was created.
+
+### Platform, freeze and version gate
+
+- Fedora/Linux: correction implemented and deterministically verified.
+- Physical Android: complete corrected round trip and exact final Android return verified on the
+  connected Xiaomi 17 Pro Max.
+- Windows: not tested or claimed.
+- Feature freeze: compliant. This is the minimum Product Assurance-required correctness correction,
+  with no new product capability or expanded parser/command surface.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance review and any separately
+  approved hardware acceptance.
+
+### Preservation and external actions
+
+- Protected Companion files, Windows launcher work, website, Adaptive work, external firmware and
+  unrelated user files were not edited, staged, discarded or committed.
+- Physical phone actions after the correction commit: exactly one ADB reboot to bootloader, one
+  Fastboot reboot to Android, and bounded allowlisted ADB/Fastboot observations. No dispatch was
+  repeated.
+- APK action, file transfer, firmware/source action, flash/boot-image/update, partition enumeration
+  or read/write, fetch/upload, slot change, erase/wipe/format, unlock/lock/relock, root/debloat,
+  signing, publication and release: **none**.
+- External action after verification: one normal push of the scoped correction and handoff commits
+  to the existing Linux branch only; no force-push.
+
+### Next proposed Build task
+
+Stop for Product Assurance. Do not run another phone command or begin the queued external-package
+metadata task until the latest verdict is reviewed.
+
+### Product Assurance Review Requested
+
+- Confirm the one-reacquisition maximum and two-complete-identical observation rule close the
+  transient product-read dead end without weakening exact live identity authority.
+- Confirm the complete corrected hardware round trip and final uncached Android observation satisfy
+  this recovery acceptance while the transient-empty branch remains correctly classified as
+  software-tested only.
+
 ## Linux hardware checkpoint — Fastboot round trip stopped fail-closed
 
 ### Authoritative checkpoint

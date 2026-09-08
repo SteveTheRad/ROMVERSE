@@ -98,3 +98,28 @@ def test_main_window_binds_every_action_surface_to_the_same_selected_device(
     finally:
         window.companion_center.transport.close()
         window.close()
+
+
+def test_main_window_empty_scan_settles_on_actionable_waiting_state(tmp_path: Path) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path,
+        app_icon_path=logo,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    try:
+        window._scan_complete([])
+        app.processEvents()
+
+        assert window.connection_state.text() == "⌁  Waiting for device"
+        assert window.sidebar_device_state.text() == "●  Waiting for device"
+        assert window.device_center._device_engine_error == ""
+        assert window.device_center.status_badge.text() == "NOT CONNECTED"
+        assert window.device_center.next_button.text() == "Scan for device"
+        assert window.device_center.next_button.isEnabled()
+    finally:
+        window.companion_center.transport.close()
+        window.close()

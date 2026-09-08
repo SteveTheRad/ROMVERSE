@@ -5060,13 +5060,13 @@ class MainWindow(QMainWindow):
             self.sidebar_device_name.setText(f"{observed_count} Android devices")
             self.sidebar_device_detail.setText("Choose one in Command Deck")
         else:
-            self.connection_state.setText("⌁  No device connected")
+            self.connection_state.setText("⌁  Waiting for device")
             self.connection_state.setObjectName("Warning")
             self.connection_device.setText("Device: —")
             self.connection_android.setText("Android —")
             self._device_uptime_seconds = None
             self._device_uptime_seen_at = time.monotonic()
-            self.sidebar_device_state.setText("●  No device connected")
+            self.sidebar_device_state.setText("●  Waiting for device")
             self.sidebar_device_state.setObjectName("Warning")
             self.sidebar_device_image.setVisible(False)
             self.sidebar_device_name.setText("Android device")

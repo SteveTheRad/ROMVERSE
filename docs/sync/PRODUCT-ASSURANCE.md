@@ -1,5 +1,59 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 40f3d15 — projectless accessible Guided close
+
+- Handoff commit: `40f3d1566bbee2e4e3b04d0c207acdd0e1f92e6f`
+- Implementation commit: `49dbd23f9a0532bd660f1e7f1625cee951e52a32`
+- Approved base: `b2df7d5943b9e55a16ad6e80a15871b9a1cf70d1`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — PROJECTLESS SAVE & EXIT IS ACCESSIBLE AND CREATES NO EVIDENCE**
+
+### Decision
+
+Product Assurance inspected the exact one-condition correction and independently reran the final
+selection at **8/8 passed**. Stage-zero projectless save now truthfully succeeds because no durable
+state exists to preserve, allowing the existing action to close; any later missing-project state
+still fails closed. The corrected packaged AT-SPI action returned to Command Deck promptly, without
+Escape, duplicate input, created evidence or a fatal trace. No further correction is required.
+
+### Independent evidence and acceptance
+
+- The new regression proves one visible close releases the retained dialog, leaves the project list
+  empty and does not even create the projects directory.
+- The corrected executable is mode `0755`, 6,323,080 bytes and independently matches SHA-256
+  `cabd03e677626cfd4489d657aee414d2acbb6f77d613ff0cbcac3add6e5b3c16`.
+- The fresh runtime record independently matches SHA-256
+  `c9a5cb9322615534d8a5ad7255f55888b66be1b4b82c6ab0116e1910585d64c3` and contains exactly
+  one start and one clean close with no fatal trace.
+- Independent inventory found zero files across project, original-ROM, working-ROM, build, recipe,
+  snapshot, backup and APK stores.
+- No project, firmware, device identity, phone command, APK, build/signing, Guardian/Recovery
+  execution, publication, release, lock or relock occurred.
+
+### Approved next bounded Linux task
+
+Use this exact corrected package once with the already completed isolated simulated-project workspace
+from the accepted `88e8ffc` journey. Do not replay firmware import, extraction, tool acquisition,
+Build Readiness or Forge. Relaunch with the explicit development simulation boundary, verify the
+existing exact project and 13/13 local-build evidence are restored, use only the existing Continue/
+Genesis handoff to reopen the saved post-build state, then close it normally. Confirm the returned
+handoff now states `LOCAL BUILD EVIDENCE RECORDED; NO INSTALLATION OR PHONE ACTION STARTED`, retains
+the unchanged local-only/non-flashable candidate, and starts no worker, install or phone action.
+
+This is one persistence/resume journey, not another build or broad test cycle. Capture only the
+minimum durable/UI evidence and one clean appended lifecycle pair. If one genuine resume, context or
+copy dead end appears, apply its minimum correction and one focused check; otherwise make no source
+change or package. Do not download, connect a phone, issue device commands, install an APK, sign or
+flash firmware, grant Guardian/Recovery authority, publish, release, lock or relock. Commit/push one
+bounded checkpoint and stop for review.
+
+### Gate status
+
+- Projectless accessible Save & exit and zero evidence creation: **VERIFIED**
+- Persisted full local-project/Genesis post-build resume: **NEXT BOUNDED LINUX TASK**
+- Physical hardware, signing, Guardian/Recovery execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 77e4fff — accessible Guided dialog lifecycle
 
 - Handoff commit: `77e4fffebc8dff82af07ea3b7025f95e03454f3f`

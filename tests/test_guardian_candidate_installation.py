@@ -49,14 +49,25 @@ def candidate(installation, tmp_path):
     ota.write_bytes(b"INERT BUILD OTA SOURCE IDENTITY ONLY")
     project = store.import_original(store.create("SIMULATION rebuilt OTA").project_id, ota)
     base = installation.recipe()
-    output = store.working_root / project.project_id / "build-candidates" / ("c" * 32)
-    output.mkdir(parents=True)
+    outputs = {
+        "super": store.working_root
+        / project.project_id
+        / "signed-assembly"
+        / (("6" * 16) + "-" + ("c" * 8))
+        / "super.img",
+        "vbmeta_system": store.projects_root
+        / project.project_id
+        / "signing-evidence"
+        / ("d" * 16)
+        / "vbmeta_system.img",
+    }
     built_bytes, origins, images = {}, [], []
     for image in base.images:
         role = PurePosixPath(image.member).stem
         if role in {"super", "vbmeta_system"}:
             contents = (f"INERT SOURCE INSTALLATION IMAGE REBUILT {role}\n".encode()) * 7
-            path = output / f"{role}.img"
+            path = outputs[role]
+            path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(contents)
             built_bytes[role] = contents
             image = replace(
@@ -67,7 +78,7 @@ def candidate(installation, tmp_path):
             )
             origins.append(
                 CandidateImageOrigin(
-                    image.member, "rebuilt", path.relative_to(store.workspace).as_posix()
+                    image.member, "signed-final", path.relative_to(store.workspace).as_posix()
                 )
             )
         else:
@@ -80,7 +91,7 @@ def candidate(installation, tmp_path):
     recipe = seal_recipe(
         CandidateInstallationRecipe(
             **values,
-            composition_version=1,
+            composition_version=2,
             procedure_project_id=base.project_id,
             procedure_source_sha256=base.source_sha256,
             procedure_recipe_digest=base.recipe_digest,
@@ -91,6 +102,8 @@ def candidate(installation, tmp_path):
             build_recipe_digest="",
             build_toolchain_digest="",
             avb_receipt_digest="5" * 64,
+            signing_receipt_digest="6" * 64,
+            signed_assembly_receipt_digest="7" * 64,
             origins=tuple(origins),
         )
     )
@@ -118,7 +131,7 @@ def candidate(installation, tmp_path):
         adb=installation.adb,
         store=store,
         built_bytes=built_bytes,
-        output=output,
+        outputs=outputs,
         service=service,
     )
 
@@ -186,7 +199,7 @@ def test_stale_rebuilt_input_stops_before_first_changing_command_without_base_fa
     candidate, role, drift
 ):
     plan = preview(candidate)
-    path = candidate.output / f"{role}.img"
+    path = candidate.outputs[role]
     if drift == "missing":
         path.unlink()
     else:
@@ -265,13 +278,13 @@ def test_invalid_composition_roles_or_authority_are_rejected_even_when_resealed(
             "traversal": "../" + value,
             "absolute": "/" + value,
             "wrong-project": value.replace(recipe.project_id, recipe.procedure_project_id),
-            "wrong-plan": value.replace("c" * 32, "d" * 32),
+            "wrong-plan": value.replace("6" * 16, "f" * 16),
         }[change]
         origins[-3] = replace(origins[-3], relative_path=value)
     elif change == "relock":
         recipe = replace(recipe, steps=(*recipe.steps, replace(recipe.steps[0], action="lock")))
     else:
-        recipe = replace(recipe, composition_version=2)
+        recipe = replace(recipe, composition_version=3)
     recipe = seal_recipe(replace(recipe, origins=tuple(origins)))
     with pytest.raises(SourceInstallationError):
         candidate.executor.inspect(candidate.phone.device(), recipe)
@@ -296,7 +309,7 @@ def test_source_input_change_after_all_staging_cannot_change_private_write_bytes
     def change_originals(_command):
         if len(candidate.phone.changes) == 1:
             for role in candidate.built_bytes:
-                (candidate.output / f"{role}.img").write_bytes(b"unreviewed changed build input")
+                candidate.outputs[role].write_bytes(b"unreviewed changed build input")
 
     monkeypatch.setattr(candidate.phone, "on_change", change_originals)
     result = execute(candidate)
@@ -326,7 +339,7 @@ def test_candidate_does_not_relax_device_or_unlock_checks(candidate, field, valu
 
 def test_rebuilt_symlink_never_uses_archive_fallback(candidate, tmp_path):
     plan = preview(candidate)
-    target = candidate.output / "super.img"
+    target = candidate.outputs["super"]
     other = tmp_path / "outside-super.img"
     target.rename(other)
     try:

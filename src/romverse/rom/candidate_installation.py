@@ -22,8 +22,13 @@ from romverse.rom.base_image_compatibility import BaseImageCompatibilityService
 from romverse.rom.build_execution import LocalDeviceBuildExecutor
 from romverse.rom.builds import RomBuildPlanner
 from romverse.rom.models import ProjectError
-from romverse.rom.project_flash import ProjectFlashPreparationService
+from romverse.rom.project_flash import ProjectFlashImage, ProjectFlashPreparationService
 from romverse.rom.projects import RomProjectStore
+from romverse.rom.release_forge import ReleaseForgeService, SignedAssemblyReceipt
+from romverse.rom.signing_ceremony import (
+    OfflineSigningCeremonyService,
+    OfflineSigningReceipt,
+)
 from romverse.rom.source_installation import (
     SourceInstallationRecipe,
     SourceInstallationService,
@@ -57,6 +62,8 @@ class CandidateInstallationRecipe(SourceInstallationRecipe):
     build_recipe_digest: str
     build_toolchain_digest: str
     avb_receipt_digest: str
+    signing_receipt_digest: str
+    signed_assembly_receipt_digest: str
     origins: tuple[CandidateImageOrigin, ...]
 
     @property
@@ -73,7 +80,7 @@ class CandidateInstallationService:
     inspection, immutable-plan consent and private image staging.
     """
 
-    COMPOSITION_VERSION = 1
+    COMPOSITION_VERSION = 2
     REBUILT_ROLES = ("super", "vbmeta_system")
     OUTPUT_ROLES = ("product", "vbmeta_system", "super")
     WARNINGS = (
@@ -92,6 +99,8 @@ class CandidateInstallationService:
         *,
         base_service: BaseImageCompatibilityService | None = None,
         avb_service: CandidateAvbService | None = None,
+        signing_service: OfflineSigningCeremonyService | None = None,
+        release_service: ReleaseForgeService | None = None,
     ) -> None:
         self.store = store
         self.registry = registry
@@ -105,6 +114,28 @@ class CandidateInstallationService:
             avb_service = CandidateAvbService(store, registry, tool_statuses, runner)
         self.avb = avb_service
         self.built = ProjectFlashPreparationService(store, registry)
+        if signing_service is None:
+            avbtool = next(
+                (
+                    Path(item.path)
+                    for item in self.tools
+                    if item.name == "AVBTool" and item.available and item.path
+                ),
+                None,
+            )
+            signing_service = (
+                OfflineSigningCeremonyService(
+                    store,
+                    registry,
+                    self.tools,
+                    avbtool,
+                    runner,
+                )
+                if avbtool is not None
+                else None
+            )
+        self.signing = signing_service
+        self.release = release_service or ReleaseForgeService(store, registry, self.tools)
 
     def import_procedure(self, selected_path: Path) -> str:
         """Protect an explicitly selected package, reusing an exact existing source.
@@ -233,6 +264,12 @@ class CandidateInstallationService:
             raise ProjectError("The rebuilt ROM needs its current exact build outputs and plan.")
         pack = packs[0]
         contract = pack.build_contract
+        signing = self.signing.load_receipt(project_id) if self.signing is not None else None
+        assembly = (
+            self.release.load_signed_assembly(project_id, build=build, signing=signing)
+            if build is not None and signing is not None
+            else None
+        )
         if (
             contract is None
             or base.build_project_id != project_id
@@ -256,6 +293,21 @@ class CandidateInstallationService:
         ):
             raise ProjectError(
                 "The build, AVB and base-image evidence do not describe one exact ROM."
+            )
+        if (
+            type(signing) is not OfflineSigningReceipt
+            or type(assembly) is not SignedAssemblyReceipt
+            or signing.project_id != project_id
+            or signing.pack_id != pack.pack_id
+            or signing.pack_sha256 != pack.sha256
+            or signing.contract_id != contract.contract_id
+            or signing.local_build_receipt_digest != build.receipt_digest
+            or assembly.project_id != project_id
+            or assembly.build_receipt_digest != build.receipt_digest
+            or assembly.signing_receipt_digest != signing.receipt_digest
+        ):
+            raise ProjectError(
+                "The exact offline-signed artifacts and signed final super assembly are required."
             )
         if (
             base.execution_authority != "none"
@@ -294,6 +346,68 @@ class CandidateInstallationService:
                 "The rebuilt images differ from the verified AVB/build relationships."
             )
 
+        signed = {artifact.name: artifact for artifact in signing.artifacts}
+        if set(signed) != {"product.img", "vbmeta_system.img"} or len(signed) != len(
+            signing.artifacts
+        ):
+            raise ProjectError("The final signed artifact roles are missing or ambiguous.")
+        product = signed["product.img"]
+        child = signed["vbmeta_system.img"]
+        signed_paths = {item.name: PurePosixPath(item.path) for item in signing.artifacts}
+        signed_root = (
+            "projects",
+            project_id,
+            "signing-evidence",
+            signing.request_digest[:16],
+        )
+        assembly_path = PurePosixPath(assembly.super_path)
+        if any(
+            len(path.parts) != 5
+            or path.parts[:4] != signed_root
+            or path.name != name
+            for name, path in signed_paths.items()
+        ) or (
+            len(assembly_path.parts) != 5
+            or assembly_path.parts[:3] != ("working_roms", project_id, "signed-assembly")
+            or not assembly_path.parts[3].startswith(signing.receipt_digest[:16])
+            or assembly_path.name != "super.img"
+        ):
+            raise ProjectError("The final signed artifact paths are not their sealed roles.")
+        signed_inputs = tuple(item for item in assembly.inputs if item.signed)
+        if (
+            len(signed_inputs) != 1
+            or signed_inputs[0].partition != "product"
+            or signed_inputs[0].source_path != product.path
+            or signed_inputs[0].sha256 != product.sha256
+            or signed_inputs[0].size_bytes != product.size_bytes
+            or assembly.super_size_bytes != contract.super_size_bytes
+        ):
+            raise ProjectError(
+                "The signed final super does not contain the exact signed product artifact."
+            )
+        final_outputs = {
+            "product.img": ProjectFlashImage(
+                self.store.workspace / product.path,
+                product.name,
+                product.sha256,
+                product.size_bytes,
+            ),
+            "vbmeta_system.img": ProjectFlashImage(
+                self.store.workspace / child.path,
+                child.name,
+                child.sha256,
+                child.size_bytes,
+            ),
+            "super.img": ProjectFlashImage(
+                self.store.workspace / assembly.super_path,
+                "super.img",
+                assembly.super_sha256,
+                assembly.super_size_bytes,
+            ),
+        }
+        for name, output in final_outputs.items():
+            self._rebuilt_image(output, f"images/{name}", self.store.workspace)
+
         comparisons = {row.member: row for row in base.comparisons}
         images: list[SourceInstallImage] = []
         origins: list[CandidateImageOrigin] = []
@@ -303,8 +417,8 @@ class CandidateInstallationService:
             if role in self.REBUILT_ROLES:
                 if role in seen_roles:
                     raise ProjectError("The base procedure duplicates a rebuilt image role.")
-                output = outputs[f"{role}.img"]
-                rebuilt = self._rebuilt_image(output, original.member, output_root)
+                output = final_outputs[f"{role}.img"]
+                rebuilt = self._rebuilt_image(output, original.member, self.store.workspace)
                 if role == "super" and (
                     rebuilt.expanded_size_bytes != contract.super_size_bytes
                     or original.expanded_size_bytes != contract.super_size_bytes
@@ -316,7 +430,7 @@ class CandidateInstallationService:
                 origins.append(
                     CandidateImageOrigin(
                         original.member,
-                        "rebuilt",
+                        "signed-final",
                         output.path.relative_to(self.store.workspace).as_posix(),
                     )
                 )
@@ -373,6 +487,8 @@ class CandidateInstallationService:
             build_recipe_digest=plan.recipe_digest,
             build_toolchain_digest=build.toolchain_manifest_digest,
             avb_receipt_digest=avb.receipt_digest,
+            signing_receipt_digest=signing.receipt_digest,
+            signed_assembly_receipt_digest=assembly.receipt_digest,
             origins=tuple(origins),
         )
         return replace(recipe, recipe_digest=_composition_digest(recipe))

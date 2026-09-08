@@ -481,7 +481,7 @@ class SourceInstallationExecutor:
                         raise _Cancelled
                     matches = [item for item in members if item.filename == member]
                     origin = origins.get(member)
-                    rebuilt = origin is not None and origin["source_kind"] == "rebuilt"
+                    rebuilt = origin is not None and origin["source_kind"] == "signed-final"
                     if len(matches) != 1 or (
                         not rebuilt and matches[0].file_size != image.size_bytes
                     ):
@@ -876,7 +876,7 @@ def validate_source_installation_provenance(document) -> bool:
         or not _sha(document.get("recipe_digest"))
         or _digest(payload) != document["recipe_digest"]
         or type(payload["composition_version"]) is not int
-        or payload["composition_version"] != 1
+        or payload["composition_version"] != 2
         or any(
             _digest(payload[name]) != _digest(document.get(name))
             for name in ("project_id", "source_sha256", "script_sha256", "steps", "wipe", "reboot")
@@ -898,6 +898,8 @@ def validate_source_installation_provenance(document) -> bool:
                 "build_plan_digest",
                 "build_pack_sha256",
                 "avb_receipt_digest",
+                "signing_receipt_digest",
+                "signed_assembly_receipt_digest",
                 "checksums_sha256",
             )
         )
@@ -929,7 +931,6 @@ def validate_source_installation_provenance(document) -> bool:
         raise SourceInstallationError(
             "The rebuilt installation needs exactly 50 explicit image origins."
         )
-    rebuilt_roots = set()
     for image, origin, role in zip(images, origins, roles, strict=True):
         if (
             not isinstance(image, dict)
@@ -947,19 +948,33 @@ def validate_source_installation_provenance(document) -> bool:
             raise SourceInstallationError("The rebuilt installation image origins are invalid.")
         if role in {"super", "vbmeta_system"}:
             relative = _relative_member(origin["relative_path"], canonical=True)
-            if (
-                origin["source_kind"] != "rebuilt"
-                or len(relative.parts) != 5
-                or relative.parts[:3] != ("working_roms", payload["project_id"], "build-candidates")
-                or not re.fullmatch(r"[a-f0-9]{32}", relative.parts[3])
-                or relative.name != f"{role}.img"
-            ):
-                raise SourceInstallationError("A rebuilt image is not its exact build-output role.")
-            rebuilt_roots.add(relative.parent)
+            valid_final = (
+                origin["source_kind"] == "signed-final"
+                and len(relative.parts) == 5
+                and relative.name == f"{role}.img"
+                and (
+                    (
+                        role == "super"
+                        and relative.parts[:3]
+                        == ("working_roms", payload["project_id"], "signed-assembly")
+                        and relative.parts[3].startswith(
+                            payload["signing_receipt_digest"][:16]
+                        )
+                    )
+                    or (
+                        role == "vbmeta_system"
+                        and relative.parts[:3]
+                        == ("projects", payload["project_id"], "signing-evidence")
+                    )
+                )
+                and bool(re.fullmatch(r"[a-f0-9-]{8,64}", relative.parts[3]))
+            )
+            if not valid_final:
+                raise SourceInstallationError(
+                    "A rebuilt image is not its exact final signed role."
+                )
         elif origin["source_kind"] != "base-package" or origin["relative_path"] != "":
             raise SourceInstallationError("An unchanged base image has an unexpected source.")
-    if len(rebuilt_roots) != 1:
-        raise SourceInstallationError("The rebuilt images belong to different build plans.")
     expected = [
         {"action": "set_active", "partition": "", "image_member": "", "slot": "a", "chunk_size": ""}
     ]

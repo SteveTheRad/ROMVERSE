@@ -116,6 +116,8 @@ def test_current_build_source_change_does_not_show_prior_candidate_as_current(
         "build-receipt",
         "base-receipt",
         "avb-receipt",
+        "signing-receipt",
+        "signed-assembly-receipt",
         "procedure-source",
         "image-hash",
         "snapshot-hash",
@@ -140,12 +142,21 @@ def test_forged_or_unknown_candidate_evidence_never_rehydrates_as_original_sourc
     elif mutation == "original-label":
         record["format"] = "romverse.source-installation"
     elif mutation == "version":
-        payload["composition_version"] = 2
-    elif mutation in {"build-receipt", "base-receipt", "avb-receipt", "procedure-source"}:
+        payload["composition_version"] = 3
+    elif mutation in {
+        "build-receipt",
+        "base-receipt",
+        "avb-receipt",
+        "signing-receipt",
+        "signed-assembly-receipt",
+        "procedure-source",
+    }:
         field = {
             "build-receipt": "build_receipt_digest",
             "base-receipt": "base_receipt_digest",
             "avb-receipt": "avb_receipt_digest",
+            "signing-receipt": "signing_receipt_digest",
+            "signed-assembly-receipt": "signed_assembly_receipt_digest",
             "procedure-source": "procedure_source_sha256",
         }[mutation]
         payload[field] = "f" * 64

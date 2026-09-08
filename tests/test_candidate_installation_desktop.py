@@ -183,7 +183,7 @@ def test_guided_desktop_keeps_real_candidate_authority_through_confirmation(
                 assert recipe.project_id == context.project.project_id
                 assert recipe.source_sha256 == context.project.original.sha256
                 assert len(recipe.images) == 50 and len(recipe.steps) == 53
-                assert sum(row.source_kind == "rebuilt" for row in recipe.origins) == 2
+                assert sum(row.source_kind == "signed-final" for row in recipe.origins) == 2
                 assert sum(row.source_kind == "base-package" for row in recipe.origins) == 48
                 assert not recipe.wipe and recipe.reboot
                 assert modal.images.rowCount() == 53
@@ -285,3 +285,74 @@ def test_guided_candidate_preparation_cancel_never_prepares_or_contacts_phone(ca
     assert desktop.window._local_flash_dialog is None
     assert desktop.window._experience_mode is ExperienceMode.GUIDED
     assert not desktop.routes
+
+
+def test_guided_no_phone_final_signed_preparation_reloads_and_waits(candidate_desktop):
+    desktop = candidate_desktop
+    app, window, context, phone = desktop.app, desktop.window, desktop.context, desktop.phone
+    window._observed_devices = []
+    window.rom_studio.set_devices([])
+    phases, errors = [], []
+    timer, timeout = QTimer(), QTimer()
+    timeout.setSingleShot(True)
+
+    def interact():
+        modal = app.activeModalWidget()
+        try:
+            if isinstance(modal, ProjectPreparationDialog) and "prepare" not in phases:
+                phases.append("prepare")
+                modal.base_choice.setCurrentIndex(
+                    modal.base_choice.findData(context.procedure.project_id)
+                )
+                modal.prepare_button.click()
+            elif isinstance(modal, SourceInstallationDialog) and "wait" not in phases:
+                phases.append("wait")
+                recipe = modal.recipe
+                reconstructed = CandidateInstallationService(
+                    context.store,
+                    context.registry,
+                    context.tools,
+                    context.runner,
+                ).prepare(context.project.project_id, context.procedure.project_id)
+                assert reconstructed == recipe
+                assert recipe.signing_receipt_digest == context.signing.receipt_digest
+                assert recipe.signed_assembly_receipt_digest == context.assembly.receipt_digest
+                assert all(
+                    "build-candidates" not in origin.relative_path
+                    for origin in recipe.origins
+                    if origin.source_kind == "signed-final"
+                )
+                assert modal.session.selected_device() is None
+                assert modal.session.plan is None and modal.session.result is None
+                assert "Connect the intended phone by USB" in modal.status.text()
+                assert modal.guided_primary.text() == "Connect phone by USB"
+                assert not modal.guided_primary.isEnabled()
+                modal.close_button.click()
+        except BaseException as exc:
+            errors.append(exc)
+            timer.stop()
+            if modal is not None:
+                modal.reject()
+
+    def expired():
+        errors.append(AssertionError(f"No-phone final-signed journey did not finish: {phases}"))
+        modal = app.activeModalWidget()
+        if modal is not None:
+            modal.reject()
+
+    timer.timeout.connect(interact)
+    timeout.timeout.connect(expired)
+    timer.start(1)
+    timeout.start(10000)
+    try:
+        assert window.rom_studio._request_project_flash(context.project.project_id)
+    finally:
+        timer.stop()
+        timeout.stop()
+        timer.timeout.disconnect(interact)
+        timeout.timeout.disconnect(expired)
+    if errors:
+        raise errors[0]
+    assert phases == ["prepare", "wait"]
+    assert not phone.calls and not phone.changes and not phone.written
+    assert window._local_flash_dialog is None

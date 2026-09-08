@@ -12,16 +12,24 @@ import json
 import os
 import shutil
 import struct
-from dataclasses import replace
+from dataclasses import asdict, replace
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-from romverse.device_packs.models import AvbHashtreeParameters, DynamicPartitionGroup
+from romverse.device_packs.models import (
+    AvbExecutionPolicy,
+    AvbHashtreeParameters,
+    AvbPolicyAuthority,
+    AvbPolicyMode,
+    DynamicPartitionGroup,
+)
 from romverse.device_packs.registry import DevicePackRegistry
 from romverse.guardian.local_flash import LocalFlashService, LocalFlashState
 from romverse.guardian.source_installation import SourceInstallationExecutor
+from romverse.infrastructure.local_store import atomic_write_json
 from romverse.infrastructure.process import CommandResult
 from romverse.rom.base_image_compatibility import REQUIRED_PARTITIONS, BaseImageCompatibilityService
 from romverse.rom.build_contracts import DeviceBuildContractService
@@ -30,6 +38,15 @@ from romverse.rom.builds import RomBuildPlanner
 from romverse.rom.candidate_avb import CandidateAvbService
 from romverse.rom.candidate_installation import CandidateInstallationService
 from romverse.rom.models import ProjectError
+from romverse.rom.release_forge import (
+    ReleaseForgeService,
+    SignedAssemblyInput,
+    SignedAssemblyReceipt,
+)
+from romverse.rom.release_forge import (
+    _digest as release_digest,
+)
+from romverse.rom.signing_ceremony import OfflineSigningCeremonyService
 from scripts.simulate_source_installation import InstallationPhone
 from tests.test_base_image_compatibility import _fixture as base_fixture
 from tests.test_base_image_compatibility import _integer
@@ -42,6 +59,20 @@ from tests.test_source_installation_integration import _actual_changes, _expecte
 
 SUPER_SIZE = 262144
 SUPER_MAGIC = b"SIMULATED SUPER - NOT ANDROID\n"
+SIGNED_INFO = """Minimum libavb version:   1.0
+Algorithm:                SHA256_RSA4096
+Public key (sha1):        ffffffffffffffffffffffffffffffffffffffff
+Rollback Index:           42
+Flags:                    0
+Rollback Index Location:  2
+Descriptors:
+    Hashtree descriptor:
+      Partition Name:        product
+    Hashtree descriptor:
+      Partition Name:        system
+    Hashtree descriptor:
+      Partition Name:        system_ext
+"""
 
 
 def _sha(data):
@@ -135,8 +166,15 @@ class InertBuildTools:
                 _, descriptors[0] = _partition("product", b"Z")
             Path(command[command.index("--output") + 1]).write_bytes(_meta(descriptors))
         elif executable == "avbtool" and command[1] == "info_image":
-            assert command[2] == "--image" and Path(command[3]).name == "vbmeta_system.img"
-            output = "Algorithm: NONE\n"
+            assert command[2] == "--image" and Path(command[3]).name in {
+                "product.img",
+                "vbmeta_system.img",
+            }
+            output = (
+                SIGNED_INFO
+                if "romverse-signing-" in str(Path(command[3]).parent.name)
+                else "Algorithm: NONE\n"
+            )
         elif executable == "lpmake":
             images = {}
             for index, arg in enumerate(command):
@@ -275,6 +313,24 @@ def _fixture(tmp_path, key, *, fault=""):
         vbmeta_descriptor_partitions=("product", "system", "system_ext"),
         top_level_vbmeta_sha256=_sha(raw["root"]),
         vbmeta_system_sha256=_sha(raw["source_child"]),
+        avb_execution_policy=AvbExecutionPolicy(
+            AvbPolicyMode.SIGNED_CUSTOM_RECHAIN,
+            AvbPolicyAuthority.FLASH_VALIDATED,
+            contract.source.build_id,
+            "preserve_exact_source",
+            "vbmeta_system",
+            "SHA256_RSA4096",
+            42,
+            2,
+            0,
+            False,
+            False,
+            True,
+            "a",
+            "b",
+            "a" * 64,
+            "f" * 40,
+        ),
     )
     context.registry = DevicePackRegistry(
         (
@@ -298,6 +354,78 @@ def _fixture(tmp_path, key, *, fault=""):
     context.build = LocalDeviceBuildExecutor(
         store, context.registry, context.tools, context.runner
     ).execute(project.project_id)
+    avbtool = next(Path(tool.path) for tool in context.tools if tool.name == "AVBTool")
+    signing_service = OfflineSigningCeremonyService(
+        store,
+        context.registry,
+        context.tools,
+        avbtool,
+        context.runner,
+    )
+    signing_parent = tmp_path / "external-signing"
+    signing_parent.mkdir()
+    signing_request = signing_service.export_request(project.project_id, signing_parent)
+    context.signing = signing_service.import_signed_bundle(
+        project.project_id, Path(signing_request.output_path)
+    )
+    build_outputs = {item.name: item for item in context.build.outputs}
+    assembly_root = (
+        store.working_root
+        / project.project_id
+        / "signed-assembly"
+        / context.signing.receipt_digest[:16]
+    )
+    assembly_root.mkdir(parents=True)
+    signed_super = assembly_root / "super.img"
+    shutil.copyfile(store.workspace / build_outputs["super.img"].path, signed_super)
+    signed_product = next(
+        item for item in context.signing.artifacts if item.name == "product.img"
+    )
+    assembly_inputs = [
+        SignedAssemblyInput(
+            "product",
+            signed_product.path,
+            signed_product.size_bytes,
+            signed_product.sha256,
+            True,
+        )
+    ]
+    for name in ("system", "system_ext"):
+        path = working / "partitions" / f"{name}.img"
+        assembly_inputs.append(
+            SignedAssemblyInput(
+                name,
+                path.relative_to(store.workspace).as_posix(),
+                path.stat().st_size,
+                _sha(path.read_bytes()),
+                False,
+            )
+        )
+    assembly_payload = {
+        "schema_version": 1,
+        "project_id": project.project_id,
+        "created_at": datetime.now(UTC).isoformat(),
+        "build_receipt_digest": context.build.receipt_digest,
+        "signing_receipt_digest": context.signing.receipt_digest,
+        "inputs": [asdict(item) for item in assembly_inputs],
+        "super_path": signed_super.relative_to(store.workspace).as_posix(),
+        "super_size_bytes": signed_super.stat().st_size,
+        "super_sha256": _sha(signed_super.read_bytes()),
+        "lpdump_sha256": "9" * 64,
+        "verified": True,
+        "phone_changed": False,
+    }
+    context.assembly = SignedAssemblyReceipt(
+        **{key: value for key, value in assembly_payload.items() if key != "inputs"},
+        inputs=tuple(assembly_inputs),
+        receipt_digest=release_digest(assembly_payload),
+    )
+    atomic_write_json(
+        store.projects_root / project.project_id / ReleaseForgeService.ASSEMBLY_NAME,
+        {"format": ReleaseForgeService.ASSEMBLY_FORMAT, **asdict(context.assembly)},
+        boundary=store.workspace,
+        maximum_bytes=ReleaseForgeService.MAX_RECORD_BYTES,
+    )
     context.service = CandidateInstallationService(
         store, context.registry, context.tools, context.runner
     )
@@ -317,11 +445,23 @@ def test_real_build_base_avb_and_candidate_boundaries_compose_two_plus_48(tmp_pa
     assert type(context.service.base) is BaseImageCompatibilityService
     assert type(context.service.avb) is CandidateAvbService
     assert len(recipe.images) == 50 and len(recipe.steps) == 53
-    assert sum(origin.source_kind == "rebuilt" for origin in recipe.origins) == 2
+    assert sum(origin.source_kind == "signed-final" for origin in recipe.origins) == 2
     assert sum(origin.source_kind == "base-package" for origin in recipe.origins) == 48
     assert recipe.steps == context.recipe.steps
     assert recipe.base_receipt_digest == base.receipt_digest == avb.base_receipt_digest
     assert recipe.avb_receipt_digest == avb.receipt_digest
+    assert recipe.signing_receipt_digest == context.signing.receipt_digest
+    assert recipe.signed_assembly_receipt_digest == context.assembly.receipt_digest
+    final_origins = {
+        Path(origin.member).name: origin
+        for origin in recipe.origins
+        if origin.source_kind == "signed-final"
+    }
+    assert final_origins["super.img"].relative_path == context.assembly.super_path
+    assert final_origins["vbmeta_system.img"].relative_path == next(
+        item.path for item in context.signing.artifacts if item.name == "vbmeta_system.img"
+    )
+    assert all("build-candidates" not in item.relative_path for item in final_origins.values())
     assert recipe.build_receipt_digest == avb.build_receipt_digest == context.build.receipt_digest
     assert avb.root_algorithm == "SHA256_RSA2048" and avb.child_algorithm == "NONE"
     assert not avb.oem_trusted and not avb.candidate_signed and not avb.phone_changed
@@ -383,6 +523,49 @@ def test_exact_preparation_survives_service_reconstruction_without_resealing(
     assert reconstructed.base_receipt_digest == first.base_receipt_digest
     assert reconstructed.avb_receipt_digest == first.avb_receipt_digest
     assert tuple((path.read_bytes(), path.stat().st_mtime_ns) for path in records) == saved
+
+
+@pytest.mark.parametrize("role", ["product", "vbmeta_system", "super"])
+def test_final_signed_artifact_drift_cannot_inherit_candidate_preparation(
+    tmp_path, signing_key, role
+):
+    context = _fixture(tmp_path, signing_key)
+    _prepare(context)
+    if role == "super":
+        path = context.store.workspace / context.assembly.super_path
+    else:
+        path = context.store.workspace / next(
+            item.path for item in context.signing.artifacts if item.name == f"{role}.img"
+        )
+    before = path.stat()
+    content = path.read_bytes()
+    path.write_bytes(bytes([content[0] ^ 1]) + content[1:])
+    os.utime(path, ns=(before.st_atime_ns, before.st_mtime_ns))
+
+    reconstructed = CandidateInstallationService(
+        context.store, context.registry, context.tools, context.runner
+    )
+    with pytest.raises(ProjectError):
+        reconstructed.prepare(context.project.project_id, context.procedure.project_id)
+
+
+@pytest.mark.parametrize(
+    "record_name",
+    [OfflineSigningCeremonyService.RECEIPT_NAME, ReleaseForgeService.ASSEMBLY_NAME],
+)
+def test_missing_final_signed_receipt_keeps_candidate_preparation_locked(
+    tmp_path, signing_key, record_name
+):
+    context = _fixture(tmp_path, signing_key)
+    _prepare(context)
+    record = context.store.projects_root / context.project.project_id / record_name
+    record.rename(context.store.workspace / f"retained-{record.name}")
+
+    reconstructed = CandidateInstallationService(
+        context.store, context.registry, context.tools, context.runner
+    )
+    with pytest.raises(ProjectError, match="offline-signed artifacts.*signed final super"):
+        reconstructed.prepare(context.project.project_id, context.procedure.project_id)
 
 
 @pytest.mark.parametrize(
@@ -510,7 +693,7 @@ def test_real_candidate_runtime_writes_all_53_steps_with_exact_mixed_origins(tmp
         origin = origins[step.image_member]
         expected[step.partition] = (
             (context.store.workspace / origin.relative_path).read_bytes()
-            if origin.source_kind == "rebuilt"
+            if origin.source_kind == "signed-final"
             else context.images[f"images/{Path(step.image_member).name}"]
         )
     phone = InertCandidatePhone(expected)

@@ -76,6 +76,10 @@ from romverse.rom.boot_observation import BootObservationService, BootObservatio
 from romverse.rom.builds import BuildPlan, RomBuildPlanner
 from romverse.rom.debloat import DebloatService
 from romverse.rom.dna import DnaStore, derive_dna
+from romverse.rom.external_intake import (
+    ExternalFirmwareIntakeReceipt,
+    ExternalFirmwareIntakeService,
+)
 from romverse.rom.filesystems import FilesystemManifest, PartitionFilesystemService
 from romverse.rom.forge import ForgeBundleReceipt, ForgeBundleService
 from romverse.rom.guided import (
@@ -206,6 +210,12 @@ class ProjectWorker(ManagedRunnable):
                 report = self.inspection.inspect_project(self.project_id)
                 emit_progress(100)
                 result = FirmwareImportResult(imported, report)
+            elif self.operation == "external-intake" and self.source is not None:
+                result = ExternalFirmwareIntakeService(self.store).inspect(
+                    self.project_id,
+                    self.source,
+                    progress=progress,
+                )
             elif self.operation == "verify":
                 result = self.store.verify_original(self.project_id, progress=progress)
             elif self.operation == "inspect" and self.inspection is not None:
@@ -688,6 +698,7 @@ class RomStudio(QWidget):
         super().__init__()
         self.store = store
         self.inspection = RomInspectionService(store)
+        self.external_intake = ExternalFirmwareIntakeService(store)
         self.device_dna = DeviceDnaService(store, pack_registry)
         self.compatibility = CompatibilityMatrixService(store)
         self.pack_registry = pack_registry
@@ -793,7 +804,8 @@ class RomStudio(QWidget):
         locked = QLabel("Original protection active")
         locked.setObjectName("Good")
         copy = QLabel(
-            "Imports are copied into Original ROMs, hashed while streaming, marked read-only, and never extracted in place."
+            "Inspect external firmware in place for authority-free evidence, or deliberately import "
+            "a separate hashed, read-only workspace original. Neither path extracts the source in place."
         )
         copy.setObjectName("Muted")
         copy.setWordWrap(True)
@@ -953,6 +965,13 @@ class RomStudio(QWidget):
         self.command_tabs.setDocumentMode(True)
         self.command_tabs.setMovable(False)
         self.command_tabs.setUsesScrollButtons(True)
+        self.external_intake_button = QPushButton("Inspect firmware in place…")
+        self.external_intake_button.setToolTip(
+            "Hash and inspect an external firmware package without copying, extracting, "
+            "changing it, or granting build, device, or execution authority."
+        )
+        self.external_intake_button.setEnabled(False)
+        self.external_intake_button.clicked.connect(self._inspect_external)
         self.import_button = QPushButton("Import original…")
         self.import_button.setToolTip(
             "Copy, SHA-256 hash, protect, and automatically inspect firmware in the workspace."
@@ -1082,6 +1101,7 @@ class RomStudio(QWidget):
         )
         self.expert_flash_button.clicked.connect(self._request_expert_flash)
         action_buttons = (
+            self.external_intake_button,
             self.import_button,
             self.verify_button,
             self.inspect_button,
@@ -1104,6 +1124,7 @@ class RomStudio(QWidget):
             self.expert_flash_button,
         )
         hover_help = {
+            "Inspect firmware in place…": "Create project-bound, read-only package evidence without copying or extracting the selected firmware. All build and device actions remain locked.",
             "Import original…": "Load firmware into protected Original ROMs. ROMVERSE copies, hashes, protects, and automatically inspects the source without modifying it.",
             "Verify integrity": "Recalculate the protected original SHA-256 and confirm it is unchanged.",
             "Inspect structure": "Read safe container metadata without extracting or changing files.",
@@ -1141,6 +1162,7 @@ class RomStudio(QWidget):
                 "SOURCE LAB",
                 "Protect, identify, and isolate the exact firmware source.",
                 (
+                    self.external_intake_button,
                     self.import_button,
                     self.verify_button,
                     self.inspect_button,
@@ -2401,11 +2423,15 @@ class RomStudio(QWidget):
             )
             focus = self.new_button
         elif project.original is None:
+            external = self.external_intake.load(project.project_id)
             detail = (
-                f"{project.name} is selected and needs its protected firmware source before "
-                "guided preparation can continue."
+                f"{project.name} has read-only external evidence; the protected-source, build, "
+                "device, and execution boundaries remain locked."
+                if external is not None
+                else f"{project.name} is selected and needs firmware evidence before guided "
+                "preparation can continue."
             )
-            focus = self.import_button
+            focus = self.external_intake_button
         else:
             detail = (
                 f"{project.name} is selected with protected source evidence. Source Lab is "
@@ -2447,11 +2473,15 @@ class RomStudio(QWidget):
                 detail = "Create or select an exact ROM project to begin protected source work."
                 focus = self.new_button
             elif project.original is None:
+                external = self.external_intake.load(project.project_id)
                 detail = (
-                    f"{project.name} is ready for its exact firmware source to be copied, hashed, "
-                    "protected, and bounded-inspected."
+                    f"{project.name} has authority-free external firmware evidence ready for a "
+                    "fresh read-only reinspection."
+                    if external is not None
+                    else f"{project.name} is ready for read-only in-place firmware inspection or "
+                    "a later deliberate protected import."
                 )
-                focus = self.import_button
+                focus = self.external_intake_button
             else:
                 report = self.inspection.load_report(project.project_id)
                 tree_ready = self.inspection.working_tree_exists(project.project_id)
@@ -3076,6 +3106,7 @@ class RomStudio(QWidget):
             self.original_detail.setText(
                 "Original firmware remains outside ROMVERSE until you explicitly choose a file."
             )
+            self.external_intake_button.setEnabled(False)
             self.import_button.setEnabled(False)
             self.verify_button.setEnabled(False)
             self.inspect_button.setEnabled(False)
@@ -3174,9 +3205,12 @@ class RomStudio(QWidget):
         self.build_control_button.setEnabled(self.worker is None)
         self._update_guidance(project)
         self.project_name.setText(project.name)
+        external = self.external_intake.load(project.project_id)
         source_identity = (
             identify_firmware_source(project.original.original_name).summary
             if project.original is not None
+            else external.package_type
+            if external is not None
             else "Awaiting protected source"
         )
         self.project_meta.setText(
@@ -3186,13 +3220,34 @@ class RomStudio(QWidget):
             f"Manifest  •  projects/{project.project_id}/{self.store.MANIFEST_NAME}\n\n"
             f"Guided validation\n{self._validation_summary(project)}"
         )
-        self._render_upgrade_passport(project)
-        self._render_device_dna(dna)
+        self._render_upgrade_passport(project, external)
+        self._render_device_dna(dna, external)
         if project.original is None:
-            self.original_name.setText("No original imported")
-            self.original_detail.setText(
-                "Importing creates a separate protected workspace copy; the selected source file is not modified."
+            self.external_intake_button.setEnabled(self.worker is None)
+            self.external_intake_button.setText(
+                "Reinspect external firmware in place"
+                if external is not None
+                else "Inspect firmware in place…"
             )
+            if external is None:
+                self.original_name.setText("No original imported")
+                self.original_detail.setText(
+                    "Choose read-only inspection to hash and classify a file in place, or import "
+                    "a separate protected workspace copy."
+                )
+                self.inspection_detail.setText(
+                    "Not inspected. Read-only intake does not copy or extract the selected source."
+                )
+            else:
+                self.original_name.setText("External firmware inspected • not imported")
+                self.original_detail.setText(
+                    f"Name  •  {external.source_name}\n"
+                    f"Size  •  {human_bytes(external.source_size_bytes)}\n"
+                    f"SHA-256  •  {external.source_sha256}\n"
+                    "Storage  •  Original external path; no workspace copy\n"
+                    "Authority  •  Evidence only; build, device, Guardian, and execution: LOCKED"
+                )
+                self._render_external_intake(external)
             self.import_button.setEnabled(self.worker is None)
             self.verify_button.setEnabled(False)
             self.inspect_button.setEnabled(False)
@@ -3215,10 +3270,9 @@ class RomStudio(QWidget):
             self.partition_button.setToolTip(
                 "Import and prepare an OTA payload before opening Partition Atlas."
             )
-            self.inspection_detail.setText(
-                "Not inspected. Import an original to enable bounded metadata inspection."
-            )
         else:
+            self.external_intake_button.setEnabled(False)
+            self.external_intake_button.setText("Inspect firmware in place…")
             self.original_name.setText(project.original.original_name)
             self.original_detail.setText(
                 f"Size  •  {human_bytes(project.original.size_bytes)}\n"
@@ -3462,12 +3516,26 @@ class RomStudio(QWidget):
                 self.compatibility_matrix_updated.emit(matrix)
         return profile
 
-    def _render_device_dna(self, profile: DeviceDnaProfile | None) -> None:
+    def _render_device_dna(
+        self,
+        profile: DeviceDnaProfile | None,
+        external: ExternalFirmwareIntakeReceipt | None = None,
+    ) -> None:
         if profile is None:
-            self.device_dna_detail.setText(
-                "Device DNA is unavailable. Import protected firmware; ROMVERSE will preserve "
-                "unknown findings as unconfirmed rather than guess."
-            )
+            if external is None:
+                self.device_dna_detail.setText(
+                    "Device DNA is unavailable. Import protected firmware; ROMVERSE will preserve "
+                    "unknown findings as unconfirmed rather than guess."
+                )
+            else:
+                self.device_dna_detail.setText(
+                    "Read-only package evidence is available, but no protected source or exact "
+                    "device identity exists.\n"
+                    "guardian_flash  •  UNCONFIRMED\n"
+                    "Compatibility Matrix  •  Unknown\n"
+                    "Device model, build, channel, upgrade relationship, and Device Pack match "
+                    "remain unconfirmed. No build or phone authority was created."
+                )
             return
         facts = []
         for fact_id in (
@@ -3557,8 +3625,45 @@ class RomStudio(QWidget):
             f"Profile digest: {profile.profile_digest[:16]}…  •  Bootloader relock: NEVER"
         )
 
-    def _render_upgrade_passport(self, project: RomProject) -> None:
+    def _render_upgrade_passport(
+        self,
+        project: RomProject,
+        external: ExternalFirmwareIntakeReceipt | None = None,
+    ) -> None:
         if project.original is None:
+            if external is not None:
+                known_identity = ", ".join(
+                    value
+                    for value in (
+                        external.manufacturer,
+                        external.codename,
+                        external.build_id,
+                        f"Android {external.android_version}"
+                        if external.android_version
+                        else "",
+                        external.region,
+                    )
+                    if value
+                )
+                known = (
+                    f"{external.container.replace('_', ' ')} container, "
+                    f"{human_bytes(external.source_size_bytes)}, exact SHA-256 "
+                    f"{external.source_sha256[:16]}…"
+                )
+                if known_identity:
+                    known += f", filename identity: {known_identity}"
+                self._set_upgrade_passport(
+                    "attention",
+                    "READ-ONLY SOURCE EVIDENCE • RELATIONSHIP UNCONFIRMED",
+                    f"Known  •  {known}\n"
+                    "Unconfirmed  •  Exact device, firmware channel, Device Pack compatibility, "
+                    "upgrade/downgrade relationship, and installation route\n"
+                    "Next  •  Reinspect this external source in place, or deliberately import a "
+                    "protected copy in a later workflow.\n"
+                    "Authority  •  Evidence only  •  Protected source: NO  •  Build/install/flash: "
+                    "LOCKED  •  Phone changed: NO  •  Bootloader relock: NEVER",
+                )
+                return
             self._set_upgrade_passport(
                 "attention",
                 "AWAITING PROTECTED FIRMWARE",
@@ -4158,6 +4263,22 @@ class RomStudio(QWidget):
             parameters = (("key", key), ("value", value))
         return RecipeStep(step_id, operation, target, parameters)
 
+    def _inspect_external(self) -> None:
+        if self.current_project is None or self.current_project.original is not None:
+            return
+        existing = self.external_intake.load(self.current_project.project_id)
+        if existing is not None:
+            self._start_worker("external-intake", Path(existing.source_path))
+            return
+        selected, _filter = QFileDialog.getOpenFileName(
+            self,
+            "Choose firmware for read-only inspection",
+            str(Path.home()),
+            "Android firmware (*.zip *.img *.bin *.tar *.md5 *.tgz *.xz);;All files (*)",
+        )
+        if selected:
+            self._start_worker("external-intake", Path(selected))
+
     def _import_original(self) -> None:
         if self.current_project is None:
             return
@@ -4226,6 +4347,7 @@ class RomStudio(QWidget):
         self.operation_started.emit(operation)
         self.new_button.setEnabled(False)
         self.project_list.setEnabled(False)
+        self.external_intake_button.setEnabled(False)
         self.import_button.setEnabled(False)
         self.verify_button.setEnabled(False)
         self.inspect_button.setEnabled(False)
@@ -4248,6 +4370,7 @@ class RomStudio(QWidget):
         self.progress.begin(
             determinate=operation
             in {
+                "external-intake",
                 "verify",
                 "working-copy",
                 "forge-bundle",
@@ -4256,6 +4379,8 @@ class RomStudio(QWidget):
         self.operation_status.setText(
             "Copying the protected source with measured byte progress, then automatically detecting its structure without inventing an inspection percentage…"
             if operation == "import"
+            else "Hashing the external firmware in place with measured byte progress, then reading bounded container metadata without copying, extracting, or granting authority…"
+            if operation == "external-intake"
             else "Recomputing SHA-256 with measured bytes, then inspecting bounded structure metadata without inventing a percentage…"
             if operation == "inspect"
             else "Creating isolated working copy…"
@@ -4345,6 +4470,7 @@ class RomStudio(QWidget):
 
         expected_types: dict[str, type | tuple[type, ...]] = {
             "import": FirmwareImportResult,
+            "external-intake": ExternalFirmwareIntakeReceipt,
             "verify": ArtifactVerification,
             "inspect": RomInspectionReport,
             "working-copy": WorkingCopy,
@@ -4379,6 +4505,9 @@ class RomStudio(QWidget):
                     or self.inspection.load_report(project_id) != result.inspection
                 ):
                     return "ROM Studio rejected changed firmware-import evidence"
+            elif isinstance(result, ExternalFirmwareIntakeReceipt):
+                if self.external_intake.load(project_id) != result:
+                    return "ROM Studio rejected changed external firmware-intake evidence"
             elif isinstance(result, RomInspectionReport):
                 if self.inspection.load_report(project_id) != result:
                     return "ROM Studio rejected changed structure-inspection evidence"
@@ -4527,6 +4656,12 @@ class RomStudio(QWidget):
                 "Device DNA and the Capability Map were refreshed from the saved evidence."
             )
             project_id = result.project.project_id
+        elif isinstance(result, ExternalFirmwareIntakeReceipt):
+            self.operation_status.setText(
+                "External firmware hashed and bounded-inspected in place. No copy, extraction, "
+                "build, device action, or execution authority was created."
+            )
+            project_id = result.project_id
         elif isinstance(result, RomProject):
             self.operation_status.setText("Original copied, hashed, and protected successfully.")
             project_id = result.project_id
@@ -4635,6 +4770,7 @@ class RomStudio(QWidget):
             (
                 RomProject,
                 FirmwareImportResult,
+                ExternalFirmwareIntakeReceipt,
                 RomInspectionReport,
                 Path,
                 WorkingCopy,
@@ -4739,6 +4875,24 @@ class RomStudio(QWidget):
             f"Partition signals  •  {partitions}\n"
             f"Metadata signals  •  {metadata}\n"
             f"Structural findings  •  {critical} critical, {warnings} warning"
+        )
+
+    def _render_external_intake(self, receipt: ExternalFirmwareIntakeReceipt) -> None:
+        partitions = ", ".join(receipt.partition_signals) or "None detected"
+        metadata = ", ".join(receipt.metadata_signals) or "None detected"
+        completeness = "complete" if receipt.inspection_complete else "bounded/incomplete"
+        self.inspection_detail.setText(
+            "External read-only evidence  •  no copy or extraction\n"
+            f"Container  •  {receipt.container.replace('_', ' ')}  |  "
+            f"Entries  •  {receipt.entry_count:,}  |  "
+            f"Expanded metadata size  •  {human_bytes(receipt.uncompressed_bytes)}\n"
+            f"Partition signals  •  {partitions}\n"
+            f"Metadata signals  •  {metadata}\n"
+            f"Structural findings  •  {receipt.critical_count} critical, "
+            f"{receipt.warning_count} warning, {receipt.information_count} information  •  "
+            f"inspection {completeness}\n"
+            "Known  •  File identity, size, SHA-256, container, and bounded structure above\n"
+            "Unconfirmed  •  Device match, build/channel identity, compatibility, and upgrade route"
         )
 
     def _render_time_machine(self, project_id: str) -> None:

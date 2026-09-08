@@ -462,7 +462,14 @@ class BuildReadinessService:
                 Path(avb_status.path),
                 SubprocessRunner(),
             ).load_receipt(project_id)
-        device = next((item for item in devices if item.state is DeviceState.DEVICE), None)
+        device = next(
+            (
+                item
+                for item in devices
+                if item.state is DeviceState.DEVICE and not item.is_simulated
+            ),
+            None,
+        )
         resolution = self.registry.resolve(device) if device is not None else None
         attestation = (
             self.attestation_store.load_exact(pack, device)

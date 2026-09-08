@@ -1009,7 +1009,9 @@ class GuidedBuildMission(QDialog):
             self.device_identity_title.setText(device.display_name)
             current_build = device.rom_display or device.build_id or "Build unconfirmed"
             self.device_identity_detail.setText(
-                f"{device.codename or 'Codename unconfirmed'}  •  {current_build}"
+                "SIMULATION ONLY • NOT HARDWARE VERIFIED"
+                if device.is_simulated
+                else f"{device.codename or 'Codename unconfirmed'}  •  {current_build}"
             )
 
         verdict = (

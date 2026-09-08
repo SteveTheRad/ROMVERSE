@@ -22,6 +22,7 @@ from romverse.guardian.manifest_review import GuardianManifestReviewService
 from romverse.infrastructure.provisioning import GENESIS_REQUIRED_TOOLS
 from romverse.infrastructure.tools import ToolStatus
 from romverse.intelligence.online_remediation import ErrorFingerprint, OnlineRemediationService
+from romverse.nexus.compatibility import CompatibilityStatus
 from romverse.nexus.events import LiveConsoleEventStore, MissionState
 from romverse.rom.builds import RomBuildPlanner
 from romverse.rom.forge import ForgeBundleService
@@ -1808,6 +1809,73 @@ def test_genesis_device_stage_requests_a_fresh_scan_and_rebuilds_device_dna(tmp_
     assert mission.assessments[4].status is GuidedStageStatus.COMPLETE
     assert mission.stage_buttons[4].text().endswith("Device DNA")
     mission.close()
+    studio.close()
+
+
+def test_genesis_simulated_device_continues_visibly_without_hardware_authority(tmp_path):
+    from tests.test_device_dna import _device, _pack, _source
+
+    app = QApplication.instance() or QApplication([])
+    source = _source(tmp_path)
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.create("Simulated compatibility", "xiaomi.popsicle.test")
+    project = store.import_original(project.project_id, source)
+    registry = DevicePackRegistry((_pack(project.original.sha256),))
+    inspection = RomInspectionService(store)
+    inspection.inspect_project(project.project_id)
+    store.create_working_copy(project.project_id)
+    inspection.extract_project_tree(project.project_id)
+    studio = RomStudio(store, registry)
+    studio.refresh(project.project_id)
+    studio.device_scan_available = True
+    scan_requests = []
+    studio.device_scan_requested.connect(lambda: scan_requests.append(True))
+    mission = GuidedBuildMission(studio)
+
+    assert mission.assessments[mission.selected_index].stage.stage_id == "device"
+    mission.action_button.click()
+    assert scan_requests == [True]
+    assert mission.active_operation == "device-scan"
+
+    simulated = _device(
+        transport="simulation",
+        connection_note="SIMULATION ONLY • NOT HARDWARE VERIFIED",
+    )
+    studio.set_devices([simulated])
+    studio.device_scan_finished.emit(True, "Deterministic device simulation completed.")
+    app.processEvents()
+
+    profile = studio.device_dna.profiles.load(project.project_id)
+    matrix = studio.compatibility.matrices.load(project.project_id)
+    assert profile is not None
+    assert matrix is not None
+    assert any(item.evidence_id == "device.simulation" for item in profile.evidence)
+    assert all(item.evidence_id != "device.live" for item in profile.evidence)
+    assert matrix.decision("device_identity").status is CompatibilityStatus.LIMITED_EVIDENCE
+    assert matrix.decision("guardian_flash").status is CompatibilityStatus.UNKNOWN
+    assert matrix.guardian_advisory_only
+    assert not matrix.bootloader_relock_permitted
+    assert "SIMULATION ONLY • NOT HARDWARE VERIFIED" in studio.device_dna_detail.text()
+    assert mission.device_identity_detail.text() == "SIMULATION ONLY • NOT HARDWARE VERIFIED"
+    assert mission.assessments[4].status is GuidedStageStatus.COMPLETE
+    assert mission.assessments[mission.selected_index].stage.stage_id == "customize"
+
+    context = studio.guided_context()
+    assert context.device is simulated
+    assert not context.guardian_handoff_ready
+    assert not context.guardian_flash_handoff_ready
+    assert not context.flash_complete
+    assert store.verify_original(project.project_id).valid
+    assert RomBuildPlanner(store).load(project.project_id) is None
+    project_root = store.projects_root / project.project_id
+    assert not (project_root / "boot-observation.romverse").exists()
+    assert not (project_root / "guardian").exists()
+
+    mission.accept()
+    persisted = GuidedMissionStore(project_root).load()
+    assert persisted.selected_stage == "customize"
+    assert studio.current_project.project_id == project.project_id
+    assert studio.current_project.original.sha256 == project.original.sha256
     studio.close()
 
 

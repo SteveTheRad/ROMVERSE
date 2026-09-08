@@ -498,18 +498,32 @@ def _evidence(
             )
         )
     if device is not None:
-        receipt = DeviceIdentityResolver(store.workspace, registry).load(device)
+        simulated = device.is_simulated
+        receipt = (
+            None if simulated else DeviceIdentityResolver(store.workspace, registry).load(device)
+        )
         results.append(
             DeviceDnaEvidence(
-                "device.live",
-                "device-identity-receipt" if receipt is not None else "live-adb-properties",
+                "device.simulation" if simulated else "device.live",
+                "deterministic-device-simulation"
+                if simulated
+                else "device-identity-receipt"
+                if receipt is not None
+                else "live-adb-properties",
                 device.masked_serial(),
                 (
-                    f"Identity receipt {receipt.receipt_id}; authority={receipt.authority.value}."
+                    "SIMULATION ONLY • NOT HARDWARE VERIFIED. Deterministic fixture observations "
+                    "grant no live-target, consent, Guardian, or execution authority."
+                    if simulated
+                    else f"Identity receipt {receipt.receipt_id}; authority={receipt.authority.value}."
                     if receipt is not None
                     else "Read-only Android properties reported by the connected device."
                 ),
-                EvidenceConfidence.VERIFIED if receipt is not None else EvidenceConfidence.HIGH,
+                EvidenceConfidence.UNCONFIRMED
+                if simulated
+                else EvidenceConfidence.VERIFIED
+                if receipt is not None
+                else EvidenceConfidence.HIGH,
             )
         )
     if pack is not None:
@@ -539,10 +553,17 @@ def _facts(
     ota_metadata: AndroidOtaMetadata | None,
     upgrade: FirmwareUpgradeAssessment,
 ) -> tuple[DeviceDnaFact, ...]:
+    simulated = bool(device and device.is_simulated)
     live_confidence = (
-        EvidenceConfidence.HIGH if device is not None else EvidenceConfidence.UNCONFIRMED
+        EvidenceConfidence.UNCONFIRMED
+        if simulated
+        else EvidenceConfidence.HIGH
+        if device is not None
+        else EvidenceConfidence.UNCONFIRMED
     )
-    live_evidence = ("device.live",) if device is not None else ()
+    live_evidence = (
+        (("device.simulation",) if simulated else ("device.live",)) if device is not None else ()
+    )
     source_confidence = _source_confidence(source)
     source_evidence = ("source.filename",)
     blueprint_evidence = ("source.blueprint",) if blueprint is not None else ()
@@ -618,6 +639,19 @@ def _facts(
         manager_evidence=device.root_manager_evidence if device else "",
     )
     return (
+        *(
+            (
+                _fact(
+                    "device.evidence_class",
+                    "Device evidence class",
+                    "SIMULATION ONLY • NOT HARDWARE VERIFIED",
+                    EvidenceConfidence.VERIFIED,
+                    ("device.simulation",),
+                ),
+            )
+            if simulated
+            else ()
+        ),
         _fact(
             "identity.marketing_name",
             "Device name",
@@ -1034,6 +1068,11 @@ def _warnings(
     upgrade: FirmwareUpgradeAssessment,
 ) -> tuple[str, ...]:
     warnings: list[str] = []
+    if device is not None and device.is_simulated:
+        warnings.append(
+            "SIMULATION ONLY • NOT HARDWARE VERIFIED. Simulated Device DNA and compatibility "
+            "evidence cannot grant live-target, consent, Guardian, or execution authority."
+        )
     blueprint_codename = str(getattr(blueprint, "codename", "")).strip()
     source_codename = (
         " | ".join(ota_metadata.target_devices)
@@ -1125,6 +1164,8 @@ def _capability_map(
     upgrade: FirmwareUpgradeAssessment,
     warnings: tuple[str, ...],
 ) -> tuple[CapabilityMapEntry, ...]:
+    simulated = bool(device and device.is_simulated)
+    device_evidence = "device.simulation" if simulated else "device.live"
     blueprint_codename = str(getattr(blueprint, "codename", "")).strip()
     source_codename = (
         " | ".join(ota_metadata.target_devices)
@@ -1161,6 +1202,8 @@ def _capability_map(
     identity_state = (
         CapabilityState.UNSUPPORTED
         if mismatch
+        else CapabilityState.CAUTION
+        if simulated
         else CapabilityState.SUPPORTED
         if device and device.codename and device.model
         else CapabilityState.CAUTION
@@ -1251,10 +1294,12 @@ def _capability_map(
             identity_state,
             "Live and firmware identity agree."
             if identity_state is CapabilityState.SUPPORTED and (source_codename or exact_pack)
+            else "Simulated device and firmware identity agree; physical hardware remains unverified."
+            if simulated and not mismatch
             else "Live device identity is supported; the firmware target identity remains unconfirmed."
             if identity_state is CapabilityState.SUPPORTED and device
             else _first_warning(warnings),
-            (("device.live",) + target_identity_evidence) if device else target_identity_evidence,
+            ((device_evidence,) + target_identity_evidence) if device else target_identity_evidence,
         ),
         CapabilityMapEntry(
             "firmware_detection",
@@ -1371,7 +1416,7 @@ def _capability_map(
             )
             else CapabilityState.UNCONFIRMED,
             root_review.summary,
-            ("device.live",) if device else (),
+            (device_evidence,) if device else (),
         ),
         CapabilityMapEntry(
             "bootloader_relock",

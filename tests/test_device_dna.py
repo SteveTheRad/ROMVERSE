@@ -152,6 +152,30 @@ def test_device_dna_combines_live_source_inspection_and_exact_pack_evidence(tmp_
     assert profile.bootloader_relock_permitted is False
 
 
+def test_simulated_device_dna_is_durable_non_hardware_evidence(tmp_path):
+    store, registry, project, report = _project(tmp_path)
+    simulated = _device(
+        transport="simulation",
+        connection_note="SIMULATION ONLY • NOT HARDWARE VERIFIED",
+    )
+
+    profile = DeviceDnaService(store, registry).refresh(project.project_id, simulated, report)
+
+    evidence = next(item for item in profile.evidence if item.evidence_id == "device.simulation")
+    assert all(item.evidence_id != "device.live" for item in profile.evidence)
+    assert evidence.source_type == "deterministic-device-simulation"
+    assert evidence.confidence is EvidenceConfidence.UNCONFIRMED
+    assert "NOT HARDWARE VERIFIED" in evidence.detail
+    assert profile.fact("device.evidence_class").value == (
+        "SIMULATION ONLY • NOT HARDWARE VERIFIED"
+    )
+    assert profile.capability("device_identity").state is CapabilityState.CAUTION
+    assert profile.capability("guardian_flash").state is CapabilityState.UNCONFIRMED
+    assert any("NOT HARDWARE VERIFIED" in warning for warning in profile.warnings)
+    assert DeviceDnaStore(store).load(project.project_id) == profile
+    assert not (store.projects_root / project.project_id / "boot-observation.romverse").exists()
+
+
 def test_device_dna_keeps_manager_presence_separate_from_active_root(tmp_path):
     store, registry, project, report = _project(tmp_path)
     device = _device(

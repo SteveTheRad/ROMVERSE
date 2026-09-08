@@ -1,5 +1,66 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 9aa73d8 — managed APK identity repair
+
+- Reviewed commit: `9aa73d8b17caee72863e7dd255b0d3998ce77a04`
+- Accepted unchanged source/package: `ca983ecd30724723574d7fdd6ae02ca107e3be3e`
+- Approved base: `4eb7cb1`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — MANAGED IDENTITY TOOLS REPAIRED WITHOUT DEVICE AUTHORITY**
+
+### Decision
+
+Product Assurance independently verified the exact private AAPT2/apksig receipts and activated
+artifacts, reran both tools against the unchanged APK, and confirmed that ROMVERSE's automatic
+reinspection promoted only tool-proven identity and signer facts. Approval and installation stayed
+disabled, no phone or execution authority existed, and the APK/package bytes remained unchanged.
+The bounded managed-tool repair is approved without replay.
+
+### Independent evidence and acceptance
+
+- The unchanged APK independently remains 9,060,239 bytes with SHA-256
+  `62bc530d5f077e3e34ad71002caa24303a584bf4661f56d2cc338c976bfb5a2b`; the Desktop executable
+  remains `0a47f9af3dea4c0f64983fdd4afc9d1fa01dfcc96185680e94f098b1cb19dde7`.
+- Official Google Maven receipt evidence binds AAPT2 `9.4.0-15978811` and apksig `9.4.0` to their
+  sources, hashes and private activation manifests. Independent execution proved package
+  `com.radforge.romverse.companion`, version `0.2.0-alpha.5` (code `8`), target SDK 35, four
+  permissions and verified signer SHA-256
+  `b1e1bd6e1c199d6bc1649998546a20559e3b0f979cb401ef487b0cde7f993cb1`.
+- The verifier remained verification-only; no signing, SDK-wide installation, APK mutation,
+  device selection, plan, approval, consent or installation authority was created.
+- The final audit independently matches
+  `34961b48f14f848573ebabc614e73275ffb8546674b87df729b2a1ee0962db62` and is a valid gap-free
+  118-record sequence of 59 ADB and 59 Fastboot targetless read-only inventories. The runtime
+  record contains two clean start/close pairs and matches
+  `5490f58e74a6f9249a290f466831f4917f2aa50115a0fa2f50c8f919d6f55acc`.
+
+### Minimum correctness follow-up
+
+The independent AAPT2 run proved `minSdkVersion:'26'`, but the shipped parser recognizes only the
+legacy `sdkVersion:` spelling and therefore displayed minimum SDK as unknown. This does not
+invalidate the safe repair, but it withholds evidence ROMVERSE already possesses.
+
+### Approved next bounded Linux task
+
+Correct only the App Launchpad AAPT2 badging parser so current `minSdkVersion:` output produces the
+proven minimum SDK while retaining compatibility with legacy `sdkVersion:` output. Add focused
+parser tests for both spellings and malformed/absent evidence. Reinspect the same exact APK once
+and require minimum SDK 26, all previously proven fields and signer hash to remain correct, native
+ABI to remain unclaimed, and approval/install to remain disabled without a phone. Do not acquire
+tools again or run a broad suite. Commit/push one bounded source/test/handoff checkpoint and stop
+for review.
+
+No phone command, APK installation/signing, firmware operation, Guardian/Recovery execution,
+publication, release, Companion edit, Knowledge/UI Design Lab change, lock or relock is authorized.
+
+### Gate status
+
+- Managed APK identity-tool repair and exact automatic reinspection: **VERIFIED**
+- Minimum-SDK evidence parsing correction: **NEXT BOUNDED LINUX TASK**
+- Windows work: **OWNED BY WINDOWS; DO NOT DUPLICATE**
+- Physical hardware, installation, signing, execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 477bd6c — positive local APK inspection
 
 - Reviewed commit: `477bd6ca90138b76deaaf33311cec3c7e28120c8`

@@ -1,5 +1,62 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 9dfdde8 — Windows managed-tool restart and no-phone scan
+
+- Reviewed commit: `9dfdde8ba88f421858087dc97d555c386b575ee1`
+- Approved base: `c22726a`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — TOOL READINESS SURVIVES RESTART AND SCAN SETTLES TRUTHFULLY**
+
+### Decision
+
+Product Assurance inspected the documentation-only handoff and independently verified the retained
+managed-tool identities/timestamps, chained Guardian audit, two clean runtime lifecycles and native
+settled capture. The current unsigned Windows app revalidated the existing receipt on restart,
+opened directly ready without reacquisition, and completed one explicit no-phone scan back to the
+same accurate actionable state.
+
+The final automatically scheduled Fastboot host probe timing out during normal shutdown is
+correctly recorded as uncertainty. It targeted no device, created no identity or authority, was not
+retried and did not prevent clean closure; it therefore does not invalidate the journey or justify
+a source correction in this checkpoint.
+
+### Independent evidence and acceptance
+
+- Receipt, ADB, Fastboot and `source.properties` retain their exact approved hashes, byte sizes and
+  original `2026-09-08T13:13:46Z` write times. User and machine PATH contain no disposable root.
+- Independent audit parsing found **16** new contiguous linked records: eight `adb.devices` and
+  eight `fastboot.devices`, all allowed read-only host probes, with 15 return-code-0 results and one
+  final bounded timeout/124. No target identifier or mutation is present.
+- Independent visual inspection confirms the settled no-device state, enabled Scan continuation,
+  no Device Engine error and no setup/download surface.
+- Runtime evidence contains exactly two start/clean-close pairs and no remaining ROMVERSE process.
+  The retained capture independently reproduces SHA-256
+  `b41c6ea9dc913fa52b42ccc2e60c3d17a5fa8fc6df3c31cb8796a3683b8184b3`.
+- No phone/emulator, targeted command, Recovery, flash, wipe, unlock, root, relock, APK, reinstall,
+  signing, publication or release occurred. The protected patch remains untouched.
+
+### Approved next bounded Windows task
+
+Converge the exact already-approved platform-neutral post-Genesis refresh correction from Linux
+implementation `ac772057c6dc9510bf4d30f7e7a1c296f446352c` onto this Windows engineering line. Apply
+only its `src/romverse/ui/rom_studio.py` and `tests/test_rom_studio_ui.py` diff; do not independently
+rewrite the behavior or merge Linux history/handoff documents.
+
+Run the four directly affected UI/continuity checks natively on Windows and Git whitespace
+validation. Require the exact project/list/detail/Genesis handoff to agree after modal return with
+one import and no build/device authority. If the approved diff cannot apply cleanly, stop and record
+the precise conflict rather than broadening it. Do not package or launch another frozen app, scan,
+acquire tools, connect hardware, run a broad suite, import later unreviewed Linux changes or resume
+the external candidate job. Commit/push one two-file convergence checkpoint and stop for review.
+
+### Gate status
+
+- Windows managed-tool restart and bounded no-phone scan: **VERIFIED**
+- Approved post-Genesis refresh convergence: **NEXT BOUNDED WINDOWS TASK**
+- GitHub-hosted unsigned-candidate job: **EXTERNAL ACCOUNT GATE OUTSTANDING**
+- Physical hardware, signing, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: c21aba0 — native Windows managed Platform Tools self-repair
 
 - Reviewed commit: `c21aba0dee545a35979064559c17474cd7cbb720`

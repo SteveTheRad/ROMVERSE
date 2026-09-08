@@ -1,5 +1,115 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux correction checkpoint — empty health scan completes with exact retry guidance
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `7100108` approved no-phone diagnosis continuity and authorized
+  exactly one continuation through the existing **Scan device health** action.
+- Implementation commit: `ca983ecd30724723574d7fdd6ae02ca107e3be3e` — `Align empty
+  health scan recovery guidance` on `linux/stage1-desktop-readiness`.
+- Exact files: `src/romverse/ui/diagnostics_center.py` and
+  `tests/test_navigation_vocabulary.py`.
+- Stage: Stage 1 — v0.2 Golden Foundation, minimum no-device scan-completion/retry copy correction
+  and focused continuity coverage only. Device discovery, diagnostic analysis, Guardian, Recovery
+  and execution behavior are unchanged.
+
+### Reproduction and minimum correction
+
+- The previously accepted package
+  `build/linux-pa-diagnose-83b2899/frozen/ROMVERSE/ROMVERSE` was reused once in fresh workspace
+  `/tmp/romverse-health-scan-pre-7100108.pMA0bz`. From Command Deck, AT-SPI entered
+  **Diagnose Problem** and pressed **Scan device health** exactly once.
+- The read-only empty-device discovery visibly entered its busy state, completed in approximately
+  1.3 seconds, cleared the spinner, retained Quantum Optimizer, restored the enabled retry and
+  produced no diagnostic report. This proved the completion path itself was connected.
+- One genuine copy mismatch remained: the no-evidence handoff instructed the user to choose
+  **Refresh health data**, and the completed empty state said to **refresh evidence**, while the
+  actual enabled control was **Scan device health**.
+- The minimum correction changes only those two no-device owner strings to use the exact visible
+  control label. No control, route, scan, worker, evidence or authority behavior changed.
+- The focused regression now drives the real Command Deck → Quantum Optimizer route with an inert
+  empty engine, verifies one worker is started by one user click, observes the honest busy state,
+  completes it, and proves the owner, empty state, no-report result, cleared spinner, enabled retry
+  and exact matching guidance.
+
+### Verification without double-counting
+
+- Final affected selection: **39/39 passed** — complete Command Deck rendering and diagnostics UI
+  modules plus the exact no-phone completion/retry and existing owner-handoff integration checks.
+  This is the sole accepted regression total.
+- Ruff passed both changed files and Git whitespace validation passed.
+- Exactly one corrected PyInstaller package was built on Fedora 44 with Python 3.14.7 and
+  PyInstaller 6.22.2. Executable:
+  `build/linux-pa-health-scan-7100108/frozen/ROMVERSE/ROMVERSE`, 6,323,000 bytes, mode `0755`,
+  SHA-256 `0a47f9af3dea4c0f64983fdd4afc9d1fa01dfcc96185680e94f098b1cb19dde7`. It remains ignored,
+  unsigned and local.
+
+### Corrected packaged empty-device journey
+
+- The corrected package ran once, unelevated, through Fedora XWayland in fresh workspace
+  `/tmp/romverse-health-scan-post-7100108.GfDwx8`, with no simulated or physical phone.
+- AT-SPI entered **Diagnose Problem**, confirmed the initial evidence-needed guidance named
+  **Scan device health**, and invoked that exact enabled control once.
+- The user-requested scan was isolated between Guardian audit snapshots: it added exactly sequence
+  9 `adb devices -l` and sequence 10 `fastboot devices -l`. Both returned code 0 without timeout,
+  target, serial selector or discovered phone. The visible busy state was observed and completion
+  settled in 1,199 ms.
+- After completion, Quantum Optimizer remained visible, **No device available** was truthful,
+  **Scan device health** was visible and enabled, the spinner was absent, guidance said
+  **Connect a phone with USB debugging enabled, then choose Scan device health**, and no report was
+  fabricated.
+- The final audit contains 16 successful read-only, no-target host-discovery records: the exact two
+  user-requested records above plus 14 normal startup/periodic inventory records. None creates
+  device identity or authority.
+- A normal X11 `WM_DELETE_WINDOW` closed ROMVERSE. No package process remained and the runtime log
+  contains exactly one start/clean-close pair, SHA-256
+  `c9a5cb9322615534d8a5ad7255f55888b66be1b4b82c6ab0116e1910585d64c3`, with no fatal trace.
+- The fresh workspace contains zero project files and no Activity or Live Console ledger; only
+  normal workspace initialization, trust/audit locks, local Knowledge Archive and runtime evidence
+  exist.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** exact no-device guidance/control-label consistency and focused completion/retry
+  coverage.
+- **Simulated/Tested:** 39/39 affected checks, including one inert empty-engine integration, plus
+  one genuine packaged Fedora no-phone journey. No simulated device identity was injected.
+- **Hardware Verified:** no. No Android phone was connected, discovered, selected or operated.
+- **Released:** no. The corrected package remains an unsigned local development artifact.
+- Blockers/failures: none in this bounded journey. The former copy mismatch is corrected; the scan
+  finishes, returns to a usable retry and does not fabricate evidence.
+- Guided friction/dead ends: no-device diagnosis now proceeds from one clear action through bounded
+  progress to one enabled retry/connection instruction whose wording exactly matches the control.
+- Guardian/Recovery/safety: every packaged discovery was Guardian-audited, read-only and unbound.
+  No device identity, project, report, consent, Recovery incident, write or execution authority was
+  created. UNKNOWN/no-blind-retry, exact-device and exact-incident evidence, independent
+  verification, Guardian-only authority and permanent no-relock remain unchanged.
+- Linux/Fedora: tests, package and both bounded packaged observations were genuinely run on Fedora
+  44/XWayland. Windows and physical Android were not run.
+- Feature freeze: compliant minimum Stage 1 correctness work; no feature, device format, knowledge,
+  Device Pack, adapter or production capability was added.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all remaining gates.
+- External actions: this scoped branch is pushed normally with the handoff. The only device-command
+  activity was no-target read-only ADB/Fastboot inventory, including the exact one user-requested
+  scan above. No phone operation, simulated device, firmware/project work, APK/system installation,
+  firmware build/sign/flash, Guardian/Recovery execution, publication, release, merge, force-push,
+  lock or relock occurred. Protected Companion and Windows launcher files were not modified,
+  staged or committed.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another consequential slice until the
+verdict for this exact empty-device completion/retry checkpoint is recorded in
+`docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm the isolated sequences 9/10, observed busy state, 1,199 ms completion, exact matching
+  retry guidance and no-report state satisfy the approved no-phone Scan device health gate.
+- Confirm the correction remains copy-only and does not alter evidence ownership or execution
+  authority.
+
 ## Linux correction checkpoint — no-phone diagnosis remains actionable
 
 ### Authoritative checkpoint and scope

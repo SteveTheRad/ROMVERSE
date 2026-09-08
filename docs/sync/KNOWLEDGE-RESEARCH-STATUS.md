@@ -1,6 +1,6 @@
 # ROMVERSE Knowledge Research Status
 
-## Proposed AOSP Pixel 6 build-reference slice — 8 September 2026
+## AOSP Pixel 6 build-reference checkpoint — 8 September 2026
 
 ### Value-gate decision
 
@@ -40,6 +40,62 @@ No crawling, alternate source, binary download, instruction/procedure retention,
 compatibility promotion, UI/background scheduling, phone/emulator access, build/flash/root/debloat
 work, Guardian approval, production trust/signing, publication, other product branch, or bootloader
 relocking is authorized.
+
+### Implementation checkpoint
+
+- Product Assurance authorization/base: `623905ba201bf8263eda33c799c5414ae636b311`
+  (`Approve Pixel factory metadata stop condition`).
+- Branch: `adaptive-online-device-dna`.
+- Implementation commit: `61b09118b8a24ca87c4d9754f73f3cb973d1f8c5`
+  (`Add bounded AOSP Pixel 6 build evidence`).
+- Live evidence/status commit: the follow-up commit containing this update.
+- The exact-page adapter, strict table parser, metadata claims, read-only projections, and receipt
+  implement the approved URL, field, limits, privacy, freshness, non-inference, and zero-authority
+  boundaries.
+
+### Single bounded live outcome
+
+- Sole request: `https://source.android.com/docs/setup/reference/build-numbers`.
+- Exact filter: rows whose explicit supported-device field includes `Pixel 6`; no `oriole`
+  inference.
+- Retrieval time: `2026-09-08T05:34:40.754041+00:00`.
+- HTTP result: `200`; bounded response bytes: `341,177`; ETag and Last-Modified absent.
+- Parser: `romverse.aosp-build-numbers` version `1`.
+- Outcome: `validation-failure` — the response reached a reviewed build table and an explicit
+  Pixel 6 candidate, but its Android-version value did not match the approved bounded syntax.
+- Parsed matching rows and retained claims: `0`; evidence archive: none.
+- Receipt digest: `6e27768c640f5887a3082ef51757bc43ec17dadbe8694e1ae7f8dec9c34e4490`.
+- Content digest: intentionally absent because the response did not pass complete row validation.
+- Raw HTML, page bulk, unrelated rows, downloads, commands, instructions, scripts, navigation,
+  private data, codename mapping, package hash, compatibility, and authority retained: **NONE**.
+
+The approved unexpected-field/stop boundary fired. ROMVERSE did not relax the version parser,
+retry, inspect or retain the raw page, follow a link, query an alternate source, or infer from the
+build/tag. The sealed validation-failure receipt is the complete live result pending review.
+
+### Focused verification and authority
+
+- `181 passed` across the AOSP build-number, Pixel factory-index, official Android guide, Google
+  Play acquisition, typed/legacy evidence, local-store, and online-remediation focused suites.
+- AOSP-specific cases cover explicit Pixel 6 filtering, complete supported-device retention,
+  non-inference, zero-authority projections, duplicate/conflicting build IDs, missing tag/version/
+  device/patch fields, changed layouts, redirect/localization/query rejection, content type,
+  compression, truncation, executable/private/oversized data, ignored scripts/code/navigation and
+  unrelated rows, response/row limits, stale evidence, HTTP/timeout/cache behavior, spacing,
+  receipt tampering, and symlink containment.
+- Focused Ruff check and format check passed; Git whitespace check passed. The full suite was not
+  run. Deterministic fixtures do not depend on the network.
+- Receipt invariants state `officially-documented`, compatibility `UNCONFIRMED`, codename inferred
+  `false`, package hash available `false`, raw response retained `false`, execution authority
+  `none`, and phone, Guardian, and bootloader-relock authority `false`.
+- No physical device, emulator, package, binary, firmware operation, APK, build, flash, root,
+  debloat, unlock, wipe, relock, production signing/trust, publication, UI/background scheduling,
+  or other product branch was touched.
+
+### Next action
+
+Stop for independent Product Assurance. The live field-shape stop must be reviewed before any
+parser revision, retry, alternate source, broader collection, inference, or consequential workflow.
 
 ## Pixel 6 official factory-image metadata checkpoint — 8 September 2026
 

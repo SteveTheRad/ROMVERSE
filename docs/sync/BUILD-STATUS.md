@@ -1,5 +1,25 @@
 # ROMVERSE Build Status
 
+## AOSP Pixel 6 build-reference metadata — 8 September 2026
+
+- Authorization/base: Product Assurance verdict
+  `623905ba201bf8263eda33c799c5414ae636b311` on `adaptive-online-device-dna`.
+- Implementation: `61b09118b8a24ca87c4d9754f73f3cb973d1f8c5`.
+- Result: exact-URL canonical-English AOSP build-number adapter retaining only explicit Pixel 6
+  build/tag/version/supported-device/security-patch metadata, with strict limits, conflict handling,
+  no codename inference, and zero consequential authority.
+- Verification: 181 focused tests passed; focused Ruff check/format and Git whitespace checks
+  passed. The full suite was not run.
+- Single live result: the exact official page returned HTTP 200 and 341,177 bounded bytes at
+  `2026-09-08T05:34:40.754041+00:00`; an explicit Pixel 6 candidate had an Android-version value
+  outside the approved syntax. The adapter failed closed with receipt
+  `6e27768c640f5887a3082ef51757bc43ec17dadbe8694e1ae7f8dec9c34e4490`; zero claims, archive, raw
+  page, unrelated rows, downloads, or inferred metadata were retained.
+- Authority: compatibility remains `UNCONFIRMED`; codename, package hash, command, phone, Guardian,
+  execution, and relock authority remain absent.
+- Next: stop for Product Assurance before any parser revision, retry, alternate source, inference,
+  broader collection, or consequential workflow.
+
 ## Pixel 6 official factory-index metadata — 8 September 2026
 
 - Authorization/base: Product Assurance verdict

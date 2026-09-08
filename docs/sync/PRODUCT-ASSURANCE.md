@@ -1,5 +1,70 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 01977a5 — App Launchpad invalid-APK rejection
+
+- Reviewed commit: `01977a556f6bbc55fe05f01f2705747ce1fe26b9`
+- Accepted unchanged source/package: `ca983ecd30724723574d7fdd6ae02ca107e3be3e`
+- Approved base: `7e45719`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — INVALID LOCAL APK REMAINS INERT AND RECOVERABLE**
+
+### Decision
+
+Product Assurance reproduced the exact package, fixture and runtime hashes and independently
+inspected the final retained audit/workspace state. App Launchpad identifies the 105-byte plain-text
+`.apk` as an invalid APK/ZIP container, makes no package-identity claim, keeps approval and install
+disabled, explains that Guardian will not bind or install it, and leaves the chooser enabled. No
+product correction or package replay is required.
+
+The handoff's 126-record audit count was taken before final close settlement. The retained final
+audit contains **134** records—67 ADB and 67 Fastboot host inventories—not 126. All eight additional
+records have the same successful, read-only, unbound, serial-selector-free classification, so the
+count correction changes no safety verdict and does not justify repeating the journey. Future
+handoffs should report post-close final counts.
+
+### Independent evidence and acceptance
+
+- The unchanged executable remains SHA-256
+  `0a47f9af3dea4c0f64983fdd4afc9d1fa01dfcc96185680e94f098b1cb19dde7`.
+- The deterministic 105-byte, mode-`0644` fixture independently matches SHA-256
+  `d84d1b4ba1ced279f8fa8fe57a6e7a2c733f23fa7dc9af7474db10ba99e1f624` and remains outside
+  the ROMVERSE workspace.
+- Final workspace inventory contains no APK, project, activity or live-console file. The final
+  134-entry audit is entirely successful read-only no-target host discovery with no serial selector.
+- The runtime record independently matches SHA-256
+  `c9a5cb9322615534d8a5ad7255f55888b66be1b4b82c6ab0116e1910585d64c3`; no packaged process
+  remains.
+- GNOME chooser child exposure is a harness/platform observation, not a ROMVERSE dead end: normal
+  pointer selection completed and every ROMVERSE-owned rejection/retry control remained accessible.
+- No real APK, phone, installation plan/authority/result, firmware/project work, build/signing,
+  Guardian/Recovery execution, publication, release, lock or relock occurred.
+
+### Approved next bounded Linux task
+
+Use the current package once in a fresh no-phone, no-project workspace to inspect the existing
+**Time Machine** entry and its local prerequisite handoff. Verify the surface opens truthfully with
+no device, project, snapshot or backup claim. Invoke only its existing enabled local setup action
+(expected to direct the user to create or prepare a project in ROM Studio) and confirm it opens the
+correct ROM Studio owner with the exact missing-project context and one immediately actionable
+project-creation route. It must not create a project, backup plan, snapshot, Recovery incident or
+worker automatically.
+
+This is one new cross-surface continuity journey, not backup/restore execution or a screen sweep.
+Reuse the current package unless a genuine routing, context, copy or inert-control defect appears;
+if one appears, apply only its minimum correction and focused test, then package/relaunch at most
+once. Record final evidence only after normal close. Commit/push one bounded handoff and stop for
+review. No simulated/physical phone, firmware/APK work, device-changing command, restore, signing,
+Guardian/Recovery execution, publication, release, lock or relock is authorized.
+
+### Gate status
+
+- App Launchpad invalid local APK rejection/recovery: **VERIFIED**
+- Time Machine no-project prerequisite handoff: **NEXT BOUNDED LINUX TASK**
+- Corrected Windows malformed-firmware package replay: **OWNED BY WINDOWS; DO NOT DUPLICATE**
+- Physical hardware, installation/restore, signing, Guardian/Recovery execution, publication and
+  release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: acb27e4 — direct no-phone connection journey
 
 - Reviewed commit: `acb27e44fedbb4e6953d268f90b61b7ef9582afa`

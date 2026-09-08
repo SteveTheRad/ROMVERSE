@@ -1,5 +1,90 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows private Platform Tools self-repair — Product Assurance review requested
+
+- Product Assurance verdict: `3c8b7218e975570c5c2923abb13063c05dd04d4b` — `Approve Windows
+  development artifact`, matching checkpoint `af2d0e795eea9e550afeeac7dc24d3181e781be5`
+  and built source `120af840b02bfa7ced40cb173541b5711deff2d3` exactly.
+- Branch: `windows-launcher-authorized-work`.
+- Status: **PASS — ONE FRESH UNELEVATED NO-PHONE MANAGED PLATFORM TOOLS JOURNEY REACHED
+  TRUTHFUL NO-DEVICE READINESS IN THE SAME PROCESS AND RETAINED IT AFTER ONE CLEAN RELOAD**.
+- The accepted executable and ZIP remain unchanged at
+  `build/windows-120af840/ROMVERSE/ROMVERSE.exe` and
+  `dist/windows-120af840/ROMVERSE-Desktop-0.2.0a1-windows-x86_64.zip`. No rebuild or
+  repackaging was performed. Current `src`, `scripts`, and `pyproject.toml` are byte-identical to
+  approved artifact source `120af840`.
+
+### One focused native Windows integration
+
+- The same external Computer Use service was already unavailable at the approved checkpoint.
+  Product Assurance directed Windows Build not to retry or wait on it, so this journey used the
+  explicitly approved alternative: the production `ToolchainDownloadWorker`, bounded archive
+  installer, private receipt verifier, managed activation, tool inventory, `MainWindow`,
+  `DeviceEngine`, and Command Deck controller in one native Qt `windows` integration.
+- The fresh disposable workspace
+  `C:\Work\ROMVERSE-Resolve-Platform-Tools-3c8b7218-20260909-1608` was confirmed absent before
+  use. The unelevated process began with no discoverable or managed ADB/Fastboot and Command Deck
+  truthfully showed `DEVICE ENGINE ERROR`, `Resolve Platform Tools`, and
+  `Verified Android Platform Tools are not active yet. ROMVERSE can resolve them without
+  restarting.`
+- The managed installer ran exactly once for the existing ADB requirement. It reported progress
+  `0, 13, 26, 39, 52, 65, 78, 91, 100` and completed once with
+  `Downloaded and prepared: platform-tools (45f4d63113e8…)`. There was no failed result and no
+  automatic retry.
+- Production inventory refresh in that same process activated one exact directory, created the
+  Device Engine, and completed one bounded empty scan. Command Deck then showed
+  `Waiting for device`, `NOT CONNECTED`, and the enabled `Scan for device` action with zero
+  observed devices, no selected serial, and no engine error.
+- After a clean window close, the process-local PATH was scrubbed back to its original bounded
+  value. One new `MainWindow` revalidated the retained receipt, reactivated the same private
+  directory, and reproduced the identical truthful no-device state after one bounded empty scan.
+  Both windows closed normally and no `ROMVERSE.exe` process remained.
+
+### Exact archive, receipt, and executable evidence
+
+- Official source:
+  `https://dl.google.com/android/repository/platform-tools-latest-windows.zip`.
+- Archive: `8,044,989` bytes; approved SHA-256
+  `45f4d63113e895ebde0c90f194099a4676b6ac653bd28d54314a9e022bbc1a99`;
+  package metadata `Pkg.Revision=37.0.1`.
+- Private receipt:
+  `C:\Work\ROMVERSE-Resolve-Platform-Tools-3c8b7218-20260909-1608\tools\downloads\platform-tools\managed-package.romverse`;
+  receipt SHA-256 `ca716618aac9b8c178985b952334ee64e748b19b90ccdd099aa86a94e955bf95`.
+  It binds the exact official source, archive size/digest, schema, package identity, and the two
+  exact component digests below.
+- `adb.exe`: `8,273,560` bytes; SHA-256
+  `b4a6b455702684652cccf7b46258b29e653538904359a58fd4931cf3ef286b3f`;
+  reported Platform Tools `37.0.1-15733141` and ADB protocol `1.0.41`.
+- `fastboot.exe`: `2,429,080` bytes; SHA-256
+  `b2d9cbff4ce9ae7eb448cfc831bafc867935f50f5be38f8f81057fd7eb3b8d86`;
+  reported `37.0.1-15733141`.
+- Both the initial refresh and the one reload used only bounded host identity commands plus one
+  unbound `adb devices -l` and one unbound `fastboot devices -l` discovery each. Every command
+  returned normally within its four- or five-second limit, both inventories were empty, there were
+  zero `-s` selectors, zero network/device targets, zero mutating commands, and zero timeouts.
+
+### Scope, safety, and next gate
+
+- No defect appeared, so no source or test file changed and no regression suite was rerun. This
+  handoff is the only intended repository change. The native integration is the exact focused
+  functional evidence Product Assurance authorized in place of unavailable external screen
+  inspection; it is not physical-device, release, or production-readiness evidence.
+- The process was not elevated. User and machine PATH values were byte-for-byte unchanged. All
+  acquired bytes and the receipt remain inside the disposable workspace. No administrator prompt,
+  global PATH, registry, driver, firewall, system package, or system installation changed.
+- Protected Companion files remain clean and untouched. The preserved untracked
+  `0001-Preserve-local-build-completion-across-restart.patch` remains byte-identical at SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone or emulator was requested, awaited, connected, discovered, selected, operated, or
+  targeted. No APK, ROM build/signing, Guardian or Recovery authority, device-scoped ADB/Fastboot,
+  Recovery, flash, wipe, unlock, root, lock, relock, production trust/signing, publication,
+  release, destructive action, force-push, or blind retry occurred.
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty,
+  independent verification, feature freeze, and permanent no-relock remain intact.
+- Precise proposed next task: independent Product Assurance review of this one bounded checkpoint.
+  Windows Build stops here and assumes no subsequent product, hardware, packaging, signing, or
+  release task until a new verdict matches the pushed handoff commit exactly.
+
 ## Fresh unsigned Windows artifact — native observation tooling blocker
 
 - Product Assurance verdict: `424b4226d55caa1c081b6bcb1f509ee151eb7400` — `Approve Windows

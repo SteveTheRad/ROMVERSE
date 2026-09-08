@@ -1,5 +1,61 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 2f5fcd3 — packaged Windows Start ROM Project route
+
+- Reviewed commit: `2f5fcd3de1d232c9460728ade78403bb48ee9a94`
+- Accepted source/artifact: `120af840b02bfa7ced40cb173541b5711deff2d3`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — START ROM PROJECT REACHES A CLEAR GUIDED ENTRY**
+
+### Decision
+
+Product Assurance independently retrieved and inspected the exact destination screenshot, reproduced
+its retained evidence hashes and confirmed no process remains. The packaged `Start ROM Project`
+control is enabled, accessible and connected to the existing Guided Genesis mission-workspace stage.
+It preserves truthful no-device/no-firmware state and exposes one clear next input without silently
+starting work. No source correction, rebuild or test replay is required.
+
+### Independent evidence and acceptance
+
+- The 1456x939 PNG directly shows the existing `ROMVERSE • Genesis Sequence`, `GUIDED • ARCANA`,
+  `SCAN / TASK 01 OF 15`, `Create the mission workspace`, enabled `Create ROM project`, no firmware,
+  no device and `AWAITING PROTECTED FIRMWARE`. It independently matches SHA-256
+  `34321446f7ce2f914ccd1fbf2804b3b982613b838737e4a34561ff728de060f4`.
+- The private managed receipt is unchanged. The 38-record audit independently matches SHA-256
+  `8eccadd95a8800c2b50ee9861654418e8c89c34ef8445bcd70fcbf91d1f86d40`; all records are
+  successful serial-free host `devices -l` observations with no timeout or target.
+- The two-launch runtime record independently matches SHA-256
+  `50d779cf4f44836bb0f2fc6bb9cd0f21763e9de1dcb388fb854e57e5b18f4587`, contains two clean
+  start/close pairs, and no ROMVERSE process remains.
+- No project, scan, download, worker, simulation, phone, device action, APK, ROM build/signing,
+  Guardian/Recovery execution, publication, release, system change, lock or relock occurred.
+
+### Approved next bounded Windows task
+
+Continue this exact no-phone Windows route by one meaningful user action. Reuse the accepted artifact
+in a fresh isolated workspace with existing verified managed Platform Tools. Enter through `Start ROM
+Project`, invoke the existing `Create ROM project` action once, provide one deterministic local test
+project name if prompted, and verify ROMVERSE creates the local mission workspace then routes directly
+to its next actionable protected-firmware intake state. The new project must remain explicitly
+no-device, no-firmware, unsigned and non-executable; completed setup state must persist after one clean
+close/reload.
+
+Use narrow local Windows UI Automation and at most one destination screenshot. Do not use simulated
+Device DNA or overlap Linux's simulated Guided-to-candidate work. Do not select or ingest real firmware,
+start a build/download/device scan, or invoke Guardian/Recovery. If one genuine creation, routing or
+persistence dead end appears, apply only its minimum correction and run one focused changed-area check;
+otherwise make no source change or package. Preserve the untracked patch, commit/push one bounded
+handoff and stop for review. No phone, device-changing command, APK, ROM build/signing, publication,
+release, lock or relock is authorized.
+
+### Gate status
+
+- Packaged Windows Start ROM Project to Guided entry: **VERIFIED**
+- Windows no-device local project creation and firmware-intake continuity: **NEXT BOUNDED TASK**
+- Linux simulated Guided journey: **OWNED BY LINUX; DO NOT DUPLICATE**
+- Physical hardware, signing, Guardian/Recovery execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 25e11ac — packaged Windows Command Deck observation
 
 - Reviewed commit: `25e11ac3ee2fc488f06d8a7207dae2d7372996ed`

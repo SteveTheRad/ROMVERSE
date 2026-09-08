@@ -1831,6 +1831,8 @@ def test_genesis_simulated_device_continues_visibly_without_hardware_authority(t
     scan_requests = []
     studio.device_scan_requested.connect(lambda: scan_requests.append(True))
     mission = GuidedBuildMission(studio)
+    mission.show()
+    app.processEvents()
 
     assert mission.assessments[mission.selected_index].stage.stage_id == "device"
     mission.action_button.click()
@@ -1859,6 +1861,17 @@ def test_genesis_simulated_device_continues_visibly_without_hardware_authority(t
     assert mission.device_identity_detail.text() == "SIMULATION ONLY • NOT HARDWARE VERIFIED"
     assert mission.assessments[4].status is GuidedStageStatus.COMPLETE
     assert mission.assessments[mission.selected_index].stage.stage_id == "customize"
+    assert mission.skip_button.isVisible()
+    assert mission.skip_button.text() == "Keep verified base unchanged • Recommended"
+
+    mission.skip_button.click()
+    app.processEvents()
+
+    assert mission.assessments[5].status is GuidedStageStatus.COMPLETE
+    assert mission.assessments[6].status is GuidedStageStatus.COMPLETE
+    assert mission.assessments[7].status is GuidedStageStatus.COMPLETE
+    assert mission.assessments[8].status is GuidedStageStatus.COMPLETE
+    assert mission.assessments[mission.selected_index].stage.stage_id == "toolchain"
 
     context = studio.guided_context()
     assert context.device is simulated
@@ -1871,11 +1884,15 @@ def test_genesis_simulated_device_continues_visibly_without_hardware_authority(t
     assert not (project_root / "boot-observation.romverse").exists()
     assert not (project_root / "guardian").exists()
 
-    mission.accept()
     persisted = GuidedMissionStore(project_root).load()
-    assert persisted.selected_stage == "customize"
+    assert persisted.selected_stage == "toolchain"
+    assert persisted.customization_skipped
+    assert persisted.recipe_skipped
+    assert persisted.root_choice == "skip"
     assert studio.current_project.project_id == project.project_id
     assert studio.current_project.original.sha256 == project.original.sha256
+    assert "SIMULATION ONLY • NOT HARDWARE VERIFIED" in studio.device_dna_detail.text()
+    assert not (project_root / "recipe.romverse").exists()
     studio.close()
 
 

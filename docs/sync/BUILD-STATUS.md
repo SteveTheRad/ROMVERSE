@@ -1,5 +1,80 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — shared exact Command Deck ROM Mission entry
+
+### Authoritative checkpoint
+
+- Product Assurance approval/base: `e67f289` — approved zero-match ROM Mission handoff and
+  completed Device Intelligence ownership sequence.
+- Tested implementation: `312b3458b6f8f445f48d05cd83ce2010b9225067` — `Share exact ROM
+  mission entry from Command Deck`.
+- Final handoff: the follow-up commit containing this document on
+  `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation, existing Command Deck primary ROM project/mission
+  continuity.
+
+### Reproduced defect and exact correction
+
+- With one live synthetic device, one exact Pack-matching saved project and an unrelated retained
+  ROM Studio project, Command Deck's primary `Start ROM Project` action bypassed the completed
+  Device Intelligence ownership boundary and opened Genesis on the unrelated project.
+- Command Deck `Build ROM` and `Continue Genesis` now reuse the already-approved Device
+  Intelligence `Start ROM Mission` boundary whenever a current selected device and current Pack
+  report exist. They therefore receive the same single/multiple/zero saved-project ownership rules
+  and the same independent exact device, Device DNA, Compatibility Matrix and Pack/report
+  validation.
+- If no current Device Intelligence report/selected device exists, the established Command Deck
+  behavior remains unchanged: ROM Studio opens its ordinary first-use or retained-project Genesis
+  path. No duplicate Guided session, project mutation or worker is introduced.
+
+### Verification without double-counting
+
+- Focused/affected real-widget coverage: **6/6 unique tests passed** — the reproduced Command Deck
+  primary-action journey, existing Command Deck routing, exact Device Intelligence handoff,
+  single-match ownership, multiple-match selection/cancellation and zero-match transient project
+  creation/cancellation.
+- The new test uses a temporary isolated workspace and sanitized synthetic device evidence. It
+  proves the primary button selects the one exact saved owner, opens exactly one Guided context,
+  retains the current device and Pack, carries the current DNA digest and advisory
+  `guardian_flash: Unknown` Matrix verdict, excludes the unrelated project and starts no worker.
+- Ruff static check: **2/2 changed implementation/test files passed**.
+- `git diff --check`: passed.
+- No broad regression, package build, screenshot loop or physical-device test was run.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** shared exact mission entry for Command Deck's existing ROM primary actions.
+- **Simulated/Tested:** six focused synthetic Qt widget journeys.
+- **Hardware Verified:** none for this checkpoint.
+- **Released:** no.
+- Guided friction: Command Deck no longer creates a competing ownership path or silently enters an
+  unrelated project when current Device Intelligence is available. It opens one shared mission.
+- Device/Pack/DNA/Matrix context remains evidence and navigation only. `UNCONFIRMED` remains
+  advisory `Unknown`; no compatibility, build, consent, Guardian or execution authority flows.
+- Exact-device validation, Guardian separation, UNKNOWN-on-uncertainty, no blind retry,
+  same-incident Recovery, independent verification and permanent no-relock remain unchanged.
+- Fedora/Linux: actual offscreen Qt journeys verified. Windows: not run or claimed; Windows Build
+  Control work was untouched.
+- Feature freeze: compliant correction to an existing Stage 1 action. v0.2 Golden Foundation
+  remains **CLOSED** pending Product Assurance and release blockers.
+- Protected Companion work, Windows work, Knowledge work, UI Design Lab, website and unrelated
+  files were not modified, staged, discarded or committed.
+- Physical phone access, ADB/Fastboot invocation, APK action, firmware operation, build/flash/boot,
+  partition/slot/wipe/unlock/lock/relock, installation, signing, publication and release: **none**.
+- External action after verification: one normal push of the scoped commits to the existing Linux
+  branch only; no force-push.
+
+### Next proposed Build task
+
+Stop for Product Assurance review. If approved, inspect the next existing Command Deck primary
+action with a concrete continuity/runtime defect; do not broaden Stage 1 or cross a consequential
+boundary.
+
+### Product Assurance Review Requested
+
+- Confirm that reusing Device Intelligence's completed ownership/evidence boundary is the minimum
+  correct way to prevent Command Deck from creating a second inconsistent ROM Mission path.
+
 ## Linux product checkpoint — zero-match Genesis new-project entry
 
 ### Authoritative checkpoint

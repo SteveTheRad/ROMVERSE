@@ -1,5 +1,88 @@
 # ROMVERSE Product Assurance Sync
 
+## Packaged Windows Start ROM Project navigation — Product Assurance review requested
+
+- Product Assurance verdict: `1fc5c3fc96d0b888f408dd44162e45fa92013fc7` — `Approve packaged
+  Windows Command Deck`, matching checkpoint `25e11ac3ee2fc488f06d8a7207dae2d7372996ed`
+  exactly.
+- Accepted source/artifact: `120af840b02bfa7ced40cb173541b5711deff2d3`;
+  branch: `windows-launcher-authorized-work`.
+- Status: **PASS — THE ENABLED PACKAGED `START ROM PROJECT` CONTROL ROUTES THROUGH LOCAL WINDOWS
+  UI AUTOMATION TO THE EXISTING GUIDED GENESIS MISSION-WORKSPACE ENTRY, PRESERVES TRUTHFUL
+  NO-DEVICE STATE, AND EXPOSES A CLEAR NEXT INPUT WITHOUT STARTING WORK**.
+- The same accepted executable and prepared workspace were reused once. No rebuild, repackage,
+  tool installation, source integration, simulation, test suite, or second launch occurred.
+
+### Exact local UI Automation route and screenshot
+
+- One unelevated interactive process launched
+  `C:\Work\ROMVERSE-Windows\build\windows-120af840\ROMVERSE\ROMVERSE.exe` with the exact private
+  workspace `C:\Work\ROMVERSE-Resolve-Platform-Tools-3c8b7218-20260909-1608` and
+  `--skip-onboarding`. The executable remains `6,318,781` bytes, unsigned, and SHA-256
+  `6fb2f134156fa0f4ff619ea2138d2b89fe3f6f31eaa68c90556c7ab912313627`.
+- No external Computer Use RPC or broad screen inventory was attempted. A narrow local Windows UI
+  Automation query was rooted at the exact ROMVERSE top-level handle and matched only the button
+  named `Start ROM Project`. It exposed `ControlType.Button`, enabled `true`, offscreen `false`,
+  bounds `759,364,216,44`, and automation ID ending
+  `CommandDeckPrimaryActions.CommandDeckPrimaryAction`.
+- UI Automation invoked that exact control once. No other application control was invoked or
+  clicked. The process remained responsive and exposed the existing modal destination
+  `ROMVERSE • Genesis Sequence`.
+- One local Win32 window-bounds capture produced
+  `C:\Work\ROMVERSE-Resolve-Platform-Tools-3c8b7218-20260909-1608\evidence-start-rom-project-1fc5c3fc\romverse-start-rom-project-destination.png`.
+  The 1456-by-939 PNG is `148,483` bytes with SHA-256
+  `34321446f7ce2f914ccd1fbf2804b3b982613b838737e4a34561ff728de060f4`.
+- Direct image inspection confirms the destination is the existing Guided surface, not a new or
+  simulated workflow: `ROM STUDIO / GENESIS SEQUENCE`, `GUIDED • ARCANA`, stage
+  `SCAN / TASK 01 OF 15`, `Create the mission workspace`, and the enabled clear next input
+  `Create ROM project`. It also truthfully retains `No firmware selected`,
+  `AWAITING PROTECTED FIRMWARE`, `No device connected`, and the underlying Command Deck/sidebar
+  `Waiting for device`. No project, Device DNA, connected target, readiness, consent, Guardian,
+  Recovery, build, signing, or execution claim appears.
+
+### No-work and lifecycle evidence
+
+- The private managed receipt stayed byte-, length-, and timestamp-identical; its SHA-256 remains
+  `ca716618aac9b8c178985b952334ee64e748b19b90ccdd099aa86a94e955bf95`. No installer, download,
+  setup/project/build worker, project creation, source intake, match, build, candidate, consent, or
+  device action ran.
+- The packaged application's already-running eight-second no-phone monitor continued at an exact
+  regular cadence while the captured image was inspected and the modal close route was resolved.
+  It added 13 periodic pairs: 13 unbound `adb devices -l` and 13 unbound
+  `fastboot devices -l` records. There was no additional out-of-cadence scan caused by
+  `Start ROM Project`; these are scheduled read-only host observations, not action-triggered scans
+  or failure retries.
+- All 26 new records are category `read_only`, risk `none`, target `host`, return code `0`, and
+  non-timeout. Every inventory was empty, with zero `-s` selectors, network/device targets,
+  identity probes, device commands, mutations, or uncertainty advancement. The complete continuous
+  38-record audit has SHA-256
+  `8eccadd95a8800c2b50ee9861654418e8c89c34ef8445bcd70fcbf91d1f86d40`.
+- The first main-window close request correctly did not bypass the active modal. The modal was
+  dismissed through its standard local UI Automation window-close pattern, after which the normal
+  main-window close request was accepted. The process exited within ten seconds and zero
+  `ROMVERSE.exe` processes remain. The 154-byte runtime record contains exactly two start/clean-
+  close pairs across the prior approved screenshot and this launch, with SHA-256
+  `50d779cf4f44836bb0f2fc6bb9cd0f21763e9de1dcb388fb854e57e5b18f4587`.
+
+### Scope, safety, and next gate
+
+- No navigation or rendering defect appeared, so no source/test correction, regression, rebuild,
+  repackaging, or relaunch was justified. This Build handoff is the only intended repository
+  change. Linux's separately owned simulated Guided-to-candidate work was not opened or duplicated.
+- Protected Companion files remain clean and untouched. The preserved untracked
+  `0001-Preserve-local-build-completion-across-restart.patch` remains byte-identical at SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone or emulator was requested, awaited, connected, discovered, selected, operated, or
+  targeted. No device-changing command, APK, ROM build/signing, Guardian/Recovery authority,
+  Recovery, flash, wipe, unlock, root, lock, relock, production trust, publication, release,
+  destructive action, force-push, or blind retry occurred.
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty,
+  independent verification, feature freeze, and permanent no-relock remain intact.
+- Precise proposed next task: independent Product Assurance review of this exact packaged
+  no-device navigation checkpoint. Windows Build stops here and assumes no further product,
+  packaging, hardware, signing, publication, or release task until a new repository verdict
+  matches this pushed commit.
+
 ## Exact packaged Windows screen-content observation — Product Assurance review requested
 
 - Product Assurance verdict: `04be4fd4b5feb90ce481a75b993df6cbd8fe5765` — `Approve Windows

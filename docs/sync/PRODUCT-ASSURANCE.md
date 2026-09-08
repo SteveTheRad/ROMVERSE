@@ -1,5 +1,75 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 0483a8d — Windows Build Readiness parity blocker
+
+- Reviewed commit: `0483a8d9a8fad649224ee30db39a8b69be421dfc`
+- Requested implementation: `aaadeac6a622b4fca95980904c8ac1a4e454d1cb`
+- Approved base: `9fd28a90e348346e60f673af451bf95fd085ef0d`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — THE BRANCH-CONTEXT STOP IS VALID; A MINIMUM WINDOWS ADAPTATION IS AUTHORIZED**
+
+### Decision
+
+Product Assurance inspected the documentation-only checkpoint and independently confirmed both
+reported conflicts. The Windows planner lacks the protected-original, inspection-identity and
+source-race checks introduced by already approved Linux commit `85aba5f2`; its ROM Studio also
+lacks the separate automatic Command Deck Simulation orchestration later introduced by approved
+commits `85aba5f2` and `e931cb96`. Partially applying `aaadeac6` would therefore be unsafe, and
+importing that whole unrelated UI sequence is not required to complete the current Guided parity
+task.
+
+The correct minimum is a Windows-scoped adaptation against the present branch: add the approved
+planner prerequisites and schema-3 Guided bindings, connect them through the Windows branch's
+existing Guided worker owner, and leave its absent Command Deck automation absent. This preserves
+the same safety contract without forcing unrelated historical UI work into Windows.
+
+### Independent evidence and acceptance
+
+- The exact five-file three-way check conflicts only in `src/romverse/rom/builds.py` and
+  `src/romverse/ui/rom_studio.py`; the remaining three files apply cleanly but were correctly not
+  applied alone.
+- Git history attributes the missing planner source/race validation to approved implementation
+  `85aba5f2ff098b478d5f33dc8c887c281a774d06` and the absent automatic Command Deck verification
+  owner to approved implementations `85aba5f2` and
+  `e931cb9649bb33507bd5ac31089c455cf93582c9`.
+- No source/test change, build, package, launch, download or device action occurred. The Windows
+  checkout remained clean except for the preserved untracked patch.
+- The stop preserves UNKNOWN-on-uncertainty, exact evidence, no blind retry, Guardian separation
+  and permanent no-relock.
+
+### Approved minimum Windows correction
+
+Against current commit `0483a8d`, implement only the following bounded adaptation:
+
+1. Bring the planner's protected-original verification and pre-persistence project/source/
+   inspection race check from `85aba5f2` into `src/romverse/rom/builds.py`, then apply the
+   schema-3 source/tree/tool/choice/plan bindings and fail-closed verifier from `aaadeac6`.
+2. Apply the clean Guided worker and final-stage persistence changes from `aaadeac6` to
+   `src/romverse/ui/guided_mission.py`, and adapt the existing Windows `ProjectWorker` /
+   `_start_worker` path in `src/romverse/ui/rom_studio.py` so only Guided `plan` and `verify-plan`
+   receive current source-required tool evidence.
+3. Do **not** import the absent automatic Command Deck Simulation orchestration. Preserve the
+   current schema-2 Command Deck behavior; it may load/verify schema 3 through the common planner,
+   but no new automatic Command Deck journey is part of this correction.
+4. Adapt only the directly relevant `aaadeac6` tests to present Windows context. Require one native
+   Guided simulation journey to create and independently verify the exact inert schema-3 plan,
+   persist Build & Sign as the truthful next stage, and create no Forge/Guardian/device authority.
+   Include source/tool/choice/tamper drift cases and unchanged schema-2 planner coverage.
+
+Run one focused native Windows selection for those behaviors plus Ruff and Git whitespace checks.
+Do not import unrelated navigation tests, repeat the prior 64-test convergence, download tools,
+create the Forge candidate, build/package or launch the desktop app, sign, connect or modify a
+phone, dispatch ADB/Fastboot, install an APK or grant Guardian/execution authority. Preserve the
+untracked patch. Commit/push one bounded checkpoint and stop for review.
+
+### Gate status
+
+- Branch-context blocker classification: **VERIFIED**
+- Minimum Windows-scoped schema-3 Guided adaptation: **AUTHORIZED**
+- Automatic Command Deck Simulation history: **NOT REQUIRED / NOT AUTHORIZED HERE**
+- Physical hardware, signing, Guardian execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 6b66062 — Windows Guided parity convergence
 
 - Reviewed commit: `6b66062cd5e89d9b078b1ab41496403cf7afb1dd`

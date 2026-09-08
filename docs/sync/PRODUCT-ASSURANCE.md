@@ -1,5 +1,61 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: b654cf1 — Time Machine missing-project handoff
+
+- Reviewed commit: `b654cf17e290352bd0a573094e1195caffd61754`
+- Accepted unchanged source/package: `ca983ecd30724723574d7fdd6ae02ca107e3be3e`
+- Approved base: `97f9e5c`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — TIME MACHINE REACHES THE EXACT ACTIONABLE PROJECT OWNER**
+
+### Decision
+
+Product Assurance reproduced the unchanged package/runtime hashes, final audit classification and
+zero-state inventory. In a fresh no-device/no-project workspace, Time Machine truthfully disables
+unavailable backup/restore work and exposes one local setup action. That action transfers the exact
+missing-project context to ROM Studio and presents **New project** without creating a project,
+snapshot, plan, incident or worker. No correction or replay is required.
+
+### Independent evidence and acceptance
+
+- The unchanged executable remains SHA-256
+  `0a47f9af3dea4c0f64983fdd4afc9d1fa01dfcc96185680e94f098b1cb19dde7`.
+- The final 88-entry audit is exactly 44 ADB and 44 Fastboot successful read-only host inventories;
+  all are unbound, untimed-out and serial-selector-free.
+- Independent inventory found no project, snapshot, backup, activity or live-console file.
+- The runtime record independently matches SHA-256
+  `c9a5cb9322615534d8a5ad7255f55888b66be1b4b82c6ab0116e1910585d64c3`; no packaged process
+  remains.
+- No phone, APK/firmware, project, backup/restore, build/signing, Guardian/Recovery execution,
+  publication, release, lock or relock occurred.
+
+### Approved next bounded Linux task
+
+Use the current package once in a fresh no-phone workspace to verify the existing expert
+**Command Console** surface without invoking any Android device command. Enter the surface through
+the normal shipped mode/navigation controls, choose and run only the allowlisted **Host platform**
+check, and require a bounded visible result with the controls restored. Then enter one deterministic
+inert non-allowlisted local token sequence such as `host unsupported-check` and invoke **Run check**
+once. Guardian must block it before worker/subprocess creation, explain that only approved read-only
+checks are accepted, and leave the console immediately usable.
+
+This is one host-only Command Console function/safety journey, not shell access, fuzzing or a screen
+sweep. Do not type or dispatch ADB/Fastboot, pipes, redirects, package/flash commands or any
+device-changing input. Reuse the current package unless a genuine route, result, blocking or retry
+defect appears; if one appears, apply only its minimum correction and focused test, then
+package/relaunch at most once. Record final evidence after normal close, commit/push one handoff and
+stop for review. No phone, firmware/APK work, elevated action, installation, signing,
+Guardian/Recovery execution, publication, release, lock or relock is authorized.
+
+### Gate status
+
+- Time Machine no-project prerequisite handoff: **VERIFIED**
+- Command Console host check and pre-dispatch allowlist guard: **NEXT BOUNDED LINUX TASK**
+- Windows valid unfamiliar archive investigation: **OWNED BY WINDOWS; DO NOT DUPLICATE**
+- Physical hardware, installation/restore, signing, Guardian/Recovery execution, publication and
+  release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 01977a5 — App Launchpad invalid-APK rejection
 
 - Reviewed commit: `01977a556f6bbc55fe05f01f2705747ce1fe26b9`

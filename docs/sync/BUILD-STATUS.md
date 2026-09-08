@@ -1,5 +1,141 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux packaged checkpoint — verified-empty Debloat and explicit unrooted continuity
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `0d54a4e` approved checkpoint `3a35deb` and authorized one
+  continuous use of the same source-bound synthetic project through Guided stages 8 and 9, with
+  only a minimal correction if the accepted package exposed a genuine dead end. This section and
+  its three source/test changes form the next repository-HEAD checkpoint on
+  `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation, existing Guided Nebula Debloat and optional-root
+  continuity only. Stages 1–7 were not rebuilt, recreated or replayed.
+- The accepted package first reproduced the real stage-8 defect against the existing project:
+  discovery honestly found zero APK files and zero removable app groups, but the service rejected
+  that empty result and the dialog disabled every continuation. The application was saved and
+  closed cleanly before correction.
+- Exact correction:
+  - `src/romverse/rom/debloat.py` recognizes an already-contained Android partition only from a
+    regular, non-symlinked, in-tree `build.prop` below a supported non-user-data partition. It can
+    now persist an integrity-linked zero-candidate scan, zero-selection keep-all plan and
+    zero-change receipt when that inspectable tree has no APK files.
+  - Empty or otherwise uninspectable trees still require verified filesystem materialization and
+    fail closed when that cannot be performed. A tree containing APK files only in unrecognized
+    layouts also still fails rather than claiming that no apps exist.
+  - Reloaded scan evidence must now match schema, exact project, digest and its independently
+    loaded discovery counts. This preserves rejection of a legacy/tampered empty scan.
+  - `src/romverse/ui/debloat_sequence.py` renders the verified result as **0 APK files examined**,
+    **0 reviewable app groups**, names the evidenced partition, states **no app evidence invented**,
+    and enables only **Continue with no app changes**. Completion explicitly records that no app
+    changes were made before enabling **Continue Genesis Sequence**.
+  - `tests/test_debloat_ui.py` covers the real empty service/UI/receipt path, disabled removal and
+    filtering controls, unchanged protected source and working property, zero removal, no rollback
+    snapshot and enabled Genesis continuation.
+- No Recipe, root, toolchain, Device Pack, Guardian/Recovery executor, Companion, Knowledge/UI
+  Design Lab, Windows or unrelated application source changed.
+
+### Verification without double-counting
+
+- Final focused Debloat service/UI regression: **19/19 passed** across
+  `tests/test_debloat.py` and `tests/test_debloat_ui.py`. This total includes the one new
+  verified-empty acceptance case and all existing affected fail-closed, classification,
+  transaction, tamper and UI cases; no test is counted twice.
+- Ruff passed for the two changed source files and one changed test file. Git whitespace validation
+  also passed. No broad/full regression was run because Product Assurance authorized one focused
+  correction and one packaged journey only.
+- Exactly one corrected PyInstaller one-folder package was built on Fedora 44, kernel 7.1.13,
+  Python 3.14.7 and PyInstaller 6.22.2. Executable:
+  `build/linux-pa-debloat-empty-0d54a4e/frozen/ROMVERSE/ROMVERSE`, 6,326,376 bytes, mode `0755`,
+  SHA-256 `f7ebc8fa0a74854d7e4fc378186656fc8908de6d378aeed0a2744dd855e16c54`.
+  It is ignored, unsigned and local only. Packaging completed successfully with only the standard
+  optional `xxsubtype` hidden-import warning and Linux icon notice.
+
+### One continuous corrected packaged journey
+
+- The corrected package launched once against the exact existing disposable workspace
+  `/tmp/romverse-pa-recipe-im2GgwOn`, private configuration and empty process `PATH`, using only the
+  explicit `--development-device-simulation` boundary. Because live simulation state is
+  deliberately process-ephemeral, Command Deck's existing **Scan for device** action was used once
+  to re-establish simulation context after startup. This refreshed Device DNA/Compatibility
+  evidence only; it did not reopen or replay Guided stages 1–7 and granted no hardware authority.
+- Project `linux-simulated-recipe-validation-307f7af6`, its protected 181-byte ZIP and existing
+  validated Recipe remained bound throughout. The ZIP remains SHA-256
+  `680f56c3c6741fb7ae8690a787d2b9ace87d22cbcfa18ea10b040b343b15bf7c`; the working
+  `system/build.prop` remains `5d1bada0c7760b6ea9cc9937774d8b77ccb01132c4475dd0a660bc355eb18eff`;
+  Recipe and accepted Recipe-receipt files remain respectively
+  `fba0a5cbea2a4b6073af3b498defd0182518431cb0969c460982057509dbbbda` and
+  `57fc3c8ed2fd383c7c2e4c3b84435a632c14b55a62e5c71f7962e815d3967702`.
+- Stage 8 was opened at the existing next safe stage. **Scan system apps** ran once and visibly
+  showed zero APK files, zero groups, partition `system`, no invented app evidence and one clear
+  no-change continuation. The resulting integrity-loaded records are:
+  - discovery digest `17632fd00acf80cac742eebe961150eb52744bc0b9ac1accde27b16c6b165741`;
+  - scan digest `e6e3f9eec7e8981f2fc997e233190a52f043a3818f9084cc9de735c805029d6b`,
+    with empty content digest `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`;
+  - keep-all plan digest `f96224db1fdf3d07501b19446f8d88276c5b180178a438cd8d26c66c2ddeb6c5`;
+  - successful receipt digest `d314ea9de2fa736efd09ae5bf9451b57310d5c21e12fd26880c21728f3bf4d62`.
+- The receipt records zero selected/removed paths, zero reclaimed bytes, no quarantine, no snapshot,
+  `rollback_available: false`, protected original unchanged and phone changed false. ROMVERSE then
+  visibly advanced once to stage 9.
+- Stage 9 displayed the existing optional-root explanation and was resolved once with
+  **No • Continue unrooted**. It explicitly stated execution authority `NONE` and permanent
+  no-relock. The pre-existing schema-2 advisory Ascension route record was refreshed in place while
+  showing that choice; it remains `state: blocked`, `execution_authority: none`, has an empty
+  command manifest, contains no patch target and grants no acquisition, preparation, plan or root
+  authority.
+- Genesis visibly advanced to stage 10 **Verify every required tool**, then saved and exited. The
+  integrity-checked schema-6 mission now has `selected_stage: toolchain`, `root_choice: skip`,
+  `recipe_validated: true`, no install request and no last error; record digest
+  `7dd58ee9285daa9c84cb94c60f8a4e0bf70f82807c601630fd031ed6726d3ebc`.
+- The package closed normally. The runtime record contains three start/clean-close pairs in total:
+  the previously approved Recipe journey, the accepted-package diagnostic reproduction, and this
+  corrected journey. No crash or unclean-close record was added.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** evidence-bound zero-candidate Debloat scan/plan/receipt handling plus one clear
+  no-change Guided continuation.
+- **Simulated/Tested:** 19/19 focused source/UI tests and one genuine packaged Fedora GUI journey
+  through stages 8 and 9 using the explicit deterministic development simulation. Simulation is
+  not hardware evidence.
+- **Hardware Verified:** no. No phone or emulator was connected, discovered or operated.
+- **Released:** no. The package is unsigned, ignored and local only.
+- Blockers/failures: the original stage-8 dead end is corrected. Stage 10 correctly reports missing
+  tools because the accepted process `PATH` was deliberately empty; it was not operated in this
+  checkpoint. No failure remains in the authorized stage-8/9 path.
+- Guided friction/dead ends: the zero-app path now has one honest no-change action and automatically
+  returns to Genesis. Stage 9 presents one explicit optional-root choice and reaches stage 10. No
+  prior stage, removal review, root route or confirmation loop was introduced.
+- Guardian/Recovery/safety: no Debloat removal, Recipe replay, device command, Guardian audit,
+  Recovery operation or physical authority occurred. Exact-device, exact-incident,
+  UNKNOWN/no-blind-retry, independent verification, Guardian-only execution and permanent
+  bootloader no-relock invariants remain unchanged.
+- Linux/Fedora: the package and GUI journey genuinely ran on Fedora 44/XWayland. Windows and
+  physical Android were not run.
+- Feature freeze: compliant minimum correctness exception for an existing Stage 1 dead end; no new
+  feature, format, adapter, Device Pack, device capability or product surface was added.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all remaining gates.
+- External actions: this scoped source/test/handoff checkpoint is committed and pushed normally.
+  No phone/emulator operation, ADB/Fastboot invocation, download, dependency/tool/system/APK
+  installation, real firmware/APK action, signing, Guardian/Recovery execution, publication,
+  release, merge, force-push, lock or relock occurred. Protected Companion files, Windows work and
+  unrelated user changes were not modified, staged or committed.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin or operate stage 10, rebuild another
+package, or start another consequential slice until the verdict for this exact checkpoint is
+recorded in `docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm that a source-bound, in-tree Android partition marker plus zero APK discovery is
+  sufficient evidence for a zero-change Debloat receipt, while missing extraction evidence and
+  unrecognized non-empty APK layouts continue to fail closed.
+- Confirm the one-time process-ephemeral simulation refresh, in-place advisory route refresh and
+  explicit unrooted selection preserve the approved stage-8/9 acceptance boundary without adding
+  root or physical execution authority.
+
 ## Linux packaged checkpoint — simulated Recipe Forge transaction completes stages 6 and 7
 
 ### Authoritative checkpoint and scope

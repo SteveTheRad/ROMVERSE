@@ -207,7 +207,7 @@ class DebloatService:
         apk_paths = self._apk_paths(tree)
         groups, targets = self._group_apps(tree, apk_paths)
         materialization_attempted = False
-        if not groups:
+        if not groups and not self._inspectable_partitions(tree):
             materialization_attempted = True
             try:
                 self._prepare_partition_trees(project_id)
@@ -237,11 +237,12 @@ class DebloatService:
         )
         if persist:
             self._save_discovery(discovery)
-        if not groups:
+        if not groups and apk_paths:
             raise ProjectError(
                 "Nebula Debloat found no reviewable Android packages. The stage was not "
-                "completed; no apps were found inside a recognized system, product, vendor, "
-                "odm, oem, or device partition. Extract the ROM's Android filesystems and rescan. "
+                "completed because APK files exist but none are inside a recognized system, "
+                "product, vendor, odm, oem, or device partition. Verify the extracted Android "
+                "filesystem layout and rescan. "
                 + self._discovery_summary(discovery)
             )
 
@@ -312,10 +313,10 @@ class DebloatService:
         current = self.load_scan(scan.project_id)
         if current is None or current.scan_digest != scan.scan_digest:
             raise ProjectError("Debloat scan changed; scan the working tree again")
-        if not scan.candidates:
-            raise ProjectError("Nebula Debloat cannot complete from an empty app inventory")
         if len(selected_ids) != len(set(selected_ids)):
             raise ProjectError("Debloat selection contains duplicate apps")
+        if not scan.candidates and selected_ids:
+            raise ProjectError("An empty Debloat inventory cannot contain selected apps")
         by_id = {item.candidate_id: item for item in scan.candidates}
         try:
             selected = tuple(by_id[item] for item in selected_ids)
@@ -500,7 +501,18 @@ class DebloatService:
             return None
         unsigned = asdict(scan)
         expected = str(unsigned.pop("scan_digest", ""))
-        return scan if scan.candidates and expected == _digest(unsigned) else None
+        discovery = self.load_discovery(project_id)
+        return (
+            scan
+            if scan.schema_version == self.SCHEMA_VERSION
+            and scan.project_id == project_id
+            and discovery is not None
+            and discovery.candidate_groups == len(scan.candidates)
+            and discovery.recognized_apk_files
+            == sum(candidate.apk_count for candidate in scan.candidates)
+            and expected == _digest(unsigned)
+            else None
+        )
 
     def load_plan(self, project_id: str) -> DebloatPlan | None:
         try:
@@ -723,12 +735,42 @@ class DebloatService:
             "recognized_apk_files": recognized,
             "candidate_groups": len(groups),
             "excluded_apk_files": max(0, len(apk_paths) - recognized),
-            "partitions": tuple(sorted({value[1] for value in targets.values()})),
+            "partitions": tuple(
+                sorted(
+                    {value[1] for value in targets.values()}
+                    | set(self._inspectable_partitions(tree))
+                )
+            ),
             "materialization_attempted": materialization_attempted,
             "example_paths": tuple(path.relative_to(tree).as_posix() for path in apk_paths[:5]),
             "phone_changed": False,
         }
         return DebloatDiscoveryReport(**payload, report_digest=_digest(payload))
+
+    @classmethod
+    def _inspectable_partitions(cls, tree: Path) -> tuple[str, ...]:
+        """Return Android partition roots evidenced by contained build properties.
+
+        A source-bound loose tree with a regular ``build.prop`` can be inspected honestly
+        even when it contains no APK files. Merely having an empty partition directory is
+        not enough evidence, and user-data paths never qualify.
+        """
+
+        partitions: set[str] = set()
+        for marker in tree.rglob("build.prop"):
+            if marker.is_symlink() or not marker.is_file():
+                continue
+            resolved = marker.resolve()
+            if not resolved.is_relative_to(tree):
+                continue
+            relative = resolved.relative_to(tree)
+            partition = cls._partition_before_app(
+                tuple(part.casefold() for part in relative.parts),
+                len(relative.parts) - 1,
+            )
+            if partition:
+                partitions.add(partition)
+        return tuple(sorted(partitions))
 
     def _save_discovery(self, report: DebloatDiscoveryReport) -> None:
         root = self._root(report.project_id)

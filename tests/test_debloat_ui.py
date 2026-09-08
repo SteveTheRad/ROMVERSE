@@ -80,6 +80,54 @@ def test_nebula_debloat_completion_is_explicit_and_verified(tmp_path):
     dialog.close()
 
 
+def test_nebula_verified_empty_inventory_records_no_change_and_continues(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    source = tmp_path / "source.zip"
+    source.write_bytes(b"protected")
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.create("Empty Debloat UI")
+    store.import_original(project.project_id, source)
+    tree = store.working_root / project.project_id / "tree"
+    marker = tree / "system" / "build.prop"
+    marker.parent.mkdir(parents=True)
+    marker.write_text("ro.product.name=synthetic\n", encoding="utf-8")
+    before_source = source.read_bytes()
+    before_marker = marker.read_bytes()
+    service = DebloatService(store)
+    dialog = NebulaDebloatDialog(service, project.project_id, auto_start=False)
+
+    scan = service.scan(project.project_id)
+    dialog._scan_complete(scan)
+    app.processEvents()
+
+    assert scan.candidates == ()
+    assert service.load_scan(project.project_id) == scan
+    assert "0 APK files examined" in dialog.status.text()
+    assert "no app evidence invented" in dialog.status.text()
+    assert dialog.keep_button.text() == "Continue with no app changes"
+    assert dialog.keep_button.isEnabled()
+    assert not dialog.apply_button.isEnabled()
+    assert not dialog.search.isEnabled()
+
+    plan = service.create_plan(scan, ())
+    dialog.pending_plan = plan
+    receipt = service.apply(plan)
+    dialog._apply_complete(receipt)
+    app.processEvents()
+
+    assert dialog.completed
+    assert receipt.keep_all
+    assert receipt.removed_app_count == 0
+    assert not receipt.rollback_available
+    assert service.load_receipt(project.project_id) == receipt
+    assert "No reviewable apps found" in dialog.status.text()
+    assert "no app changes made" in dialog.status.text()
+    assert dialog.apply_button.text() == "Continue Genesis Sequence"
+    assert source.read_bytes() == before_source
+    assert marker.read_bytes() == before_marker
+    dialog.close()
+
+
 def test_nebula_rejects_typed_scan_that_does_not_match_persisted_evidence(tmp_path):
     _app, service, project, dialog = _dialog(tmp_path)
     scan = service.scan(project.project_id)

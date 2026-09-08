@@ -274,10 +274,28 @@ class NebulaDebloatDialog(QDialog):
             return
         self.scan = result
         if not result.candidates:
-            self._failed(
-                "No Android app inventory was produced. Nebula Debloat will not mark an "
-                "empty scan complete."
+            self._clear_rows()
+            self.safe_count.setText("0 GREEN")
+            self.caution_count.setText("0 ORANGE")
+            self.protected_count.setText("0 RED")
+            discovery = self.service.load_discovery(self.project_id)
+            partitions = (
+                ", ".join(discovery.partitions)
+                if discovery is not None and discovery.partitions
+                else "verified Android tree"
             )
+            self._scan_summary = (
+                "Scan verified • 0 APK files examined • 0 reviewable app groups • "
+                f"partitions: {partitions} • no app evidence invented"
+            )
+            self.status.setText(
+                self._scan_summary + " • continue with no app changes"
+            )
+            self.search.setEnabled(False)
+            self.risk_filter.setEnabled(False)
+            self._set_controls(False)
+            self.keep_button.setEnabled(True)
+            self.keep_button.setText("Continue with no app changes")
             return
         self._clear_rows()
         self.safe_count.setText(f"{result.safe_count} GREEN")
@@ -431,7 +449,12 @@ class NebulaDebloatDialog(QDialog):
         self.status.style().unpolish(self.status)
         self.status.style().polish(self.status)
         self.status.setText(
-            "✓ NEBULA DEBLOAT COMPLETE • Every app was kept • Genesis may continue"
+            (
+                "✓ NEBULA DEBLOAT COMPLETE • No reviewable apps found • "
+                "no app changes made • Genesis may continue"
+                if self.scan is not None and not self.scan.candidates
+                else "✓ NEBULA DEBLOAT COMPLETE • Every app was kept • Genesis may continue"
+            )
             if result.keep_all
             else f"✓ NEBULA DEBLOAT COMPLETE • {result.removed_app_count} app groups removed • "
             f"{_format_bytes(result.reclaimed_bytes)} reclaimed • rollback verified"

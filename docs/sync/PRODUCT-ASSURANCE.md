@@ -1,5 +1,73 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 8da4a63 — verified-empty Debloat and unrooted continuity
+
+- Reviewed checkpoint: `8da4a633d3b027fe127c4fe1212edbc089e99d2a`
+- Approved base: `0d54a4e`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — VERIFIED EMPTY INVENTORY CAN CONTINUE WITHOUT INVENTED APP EVIDENCE**
+
+### Decision
+
+Product Assurance inspected the complete source/test correction and independently verified the
+corrected package and persisted project evidence. A zero-app result is now accepted only when a
+regular, contained `build.prop` proves an inspectable supported Android partition and the saved
+scan matches its integrity-checked discovery counts. Uninspectable trees and APKs outside recognized
+Android layouts still fail closed. The resulting plan/receipt records zero selections, removals,
+bytes, quarantine and rollback, then advances through one explicit unrooted choice to stage 10.
+
+The correction closes a genuine existing Stage-8 dead end without creating a feature, fabricating
+device facts or weakening Guardian. No further correction or journey replay is required.
+
+### Independent evidence and acceptance
+
+- Product Assurance independently verified the corrected executable at SHA-256
+  `f7ebc8fa0a74854d7e4fc378186656fc8908de6d378aeed0a2744dd855e16c54`.
+- The protected synthetic source remains
+  `680f56c3c6741fb7ae8690a787d2b9ace87d22cbcfa18ea10b040b343b15bf7c`; the validated working
+  property remains `5d1bada0c7760b6ea9cc9937774d8b77ccb01132c4475dd0a660bc355eb18eff`.
+- The persisted Debloat discovery, scan, plan and receipt files are present and integrity-bound;
+  the current/history receipt copies are byte-identical. Guided state independently records
+  `selected_stage: toolchain`, `root_choice: skip`, `recipe_validated: true` and no error.
+- The implementation rejects selected IDs for an empty inventory, requires current schema/project,
+  digest and discovery-count agreement when reloading a scan, rejects linked/out-of-tree markers,
+  and keeps non-empty unrecognized APK layouts blocked.
+- Build's focused affected regression passed **19/19** with Ruff and Git whitespace clean. This
+  review shell has no pytest environment, so Product Assurance inspected the exact assertions and
+  accepted the focused run without fabricating a duplicate.
+- No phone/emulator, device command, tool acquisition/install, APK/device action, real firmware
+  modification, signing, Guardian/Recovery execution, publication, release, Companion, Knowledge/
+  UI Design Lab, Windows, force-push, lock or relock occurred.
+
+### Approved next bounded Linux task
+
+Continue forward from the existing stage-10 project using the same corrected package—do not
+rebuild, recreate or replay stages 1–9. Relaunch once with the normal host executable path and run
+the existing stage-10 toolchain verification exactly once. Record the exact required-tool profile,
+origins, versions and availability. ADB/Fastboot may be invoked only for their bounded version
+queries; do not list, discover, select or address devices. Do not download, install, update, remove
+or activate any tool.
+
+If every current requirement is already verified, require Genesis to advance to stage 11 with the
+same source/working/Recipe/Debloat/unrooted evidence intact. If anything is missing, open only the
+existing Forge review boundary, verify the missing requirements and exact project/source purpose
+are actionable, then cancel and retain stage 10 without starting work. Add no source change unless
+a genuine verification, context or dead-end defect appears; if one appears, make only the minimum
+correction and focused test, rebuild/relaunch at most once, then complete the same boundary. Commit/
+push one handoff and stop for review.
+
+No device discovery or physical phone/emulator operation, tool installation, APK/device or real
+firmware action, root acquisition, signing, publication, release, Guardian/Recovery execution,
+Companion, Knowledge/UI Design Lab or Windows change, force-push, lock or relock is authorized.
+
+### Gate status
+
+- Verified-empty Debloat → explicit unrooted continuity: **VERIFIED**
+- Existing stage-10 toolchain verification/review boundary: **NEXT BOUNDED LINUX TASK**
+- Windows simulated device → unchanged-base route: **OWNED BY WINDOWS; DO NOT DUPLICATE**
+- Physical hardware, installation, execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 3a35deb — packaged simulated Recipe transaction
 
 - Reviewed checkpoint: `3a35deb6ecf94ea653b6f90a04fef4cf3c1466c3`

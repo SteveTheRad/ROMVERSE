@@ -1,5 +1,100 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — automatic exact-project Simulation preparation
+
+### Authoritative checkpoint and scope
+
+- Tested implementation: `a7c6857098d11a595fe5f627423c57d20894fc94` — `Automatically
+  prepare exact Simulation inputs`.
+- Final handoff: the follow-up commit containing this document on
+  `linux/stage1-desktop-readiness`; the branch was clean immediately after the implementation
+  commit and will be pushed normally after this handoff is committed.
+- Product Assurance approval/base: `e2f6b46` — approved the Recipes coordinator and authorized its
+  minimum reuse for existing Pre-Build Simulation continuity.
+- Stage: Stage 1 — v0.2 Golden Foundation, one existing Command Deck Pre-Build Simulation
+  local-prerequisite gap only.
+- Exact implementation files: `src/romverse/ui/rom_studio.py` and
+  `tests/test_navigation_vocabulary.py`. No other implementation, platform or product file changed.
+
+### Exact implemented behavior
+
+- The already-approved Recipes-only preparation coordinator is minimally generalized into one
+  destination-bound local coordinator shared by exactly `Recipes` and `Pre-Build Simulation`; no
+  second preparation engine or persistent authority state was created.
+- An exact Simulation request with a protected original and current valid inspection now admits the
+  same existing bounded working-copy/extraction producers, whole-sequence storage budget, critical
+  finding denial, exact project binding, independently reloaded completion evidence and visible
+  progress already approved for Recipes.
+- After the contained-tree result passes current readiness, ROMVERSE resumes the original
+  Simulation request at existing Build & Proof dry-run readiness and focuses its existing plan
+  control. It does not run the plan, generate a BuildPlan or start a build.
+- Insufficient resource admission starts no worker or write and retains the exact project in Source
+  Lab with a direct Simulation continuation. Known worker failures use the same destination-aware
+  bounded-stop path proven by Recipes, preserve verified partial progress and schedule no retry.
+- Recipe creation and execution, device compatibility, Guardian authority and all phone operations
+  remain outside this coordinator.
+
+### Verification without double-counting
+
+- One bounded affected run: **7/7 unique tests passed** across
+  `tests/test_navigation_vocabulary.py` and `tests/test_rom_studio_ui.py`.
+- New real offscreen MainWindow success journey: exact project → Pre-Build Simulation → verified
+  isolated baseline → verified contained tree → automatic Build & Proof readiness resume. The test
+  proves no BuildPlan exists before, during or after this preparation.
+- New admission adversary: deterministic insufficient storage starts zero workers, creates no
+  baseline/tree/BuildPlan and leaves the exact Source Lab continuation visible.
+- Shared-coordinator regressions: all three existing Recipes success, known-failure/no-retry and
+  resource-denial journeys passed unchanged.
+- Adjacent no-project Command Deck routing and already-ready ROM Studio Simulation/Recipes handoff
+  journeys passed in the same seven-test run.
+- Ruff static check: both changed files passed. Ruff format check: both changed files passed.
+  `git diff --check`: passed.
+- No broad suite was run, per the approved focused-test boundary. The seven-test total is not added
+  to or double-counted against the prior five-test checkpoint.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** shared exact-project local-preparation coordination and Pre-Build Simulation
+  automatic prerequisite/resume continuity.
+- **Simulated/Tested:** 7 sanitized Linux-hosted Qt/store journeys.
+- **Hardware Verified:** no. **Released:** no.
+- Guided friction removed: an inspected exact project no longer requires two technical preparation
+  choices before reaching Simulation dry-run readiness. Remaining intentional stops are missing or
+  invalid evidence, critical findings, insufficient resources, producer failure, drift, ambiguity,
+  or an already-busy project.
+- Guardian/Recovery/safety: no build or device boundary changed. Guardian-only authority,
+  exact-device evidence, consent separation, durable result/verification boundaries,
+  UNKNOWN-on-uncertainty, no blind retry, same-incident handling and permanent no-relock remain
+  authoritative.
+- Fedora/Linux: genuinely tested in the existing Fedora Qt development runtime. Windows: not run or
+  claimed; Windows launcher work was untouched. Physical Android: not used.
+- Feature freeze: compliant correction to one existing Stage 1 continuity path; no new screen,
+  format, product capability, adapter or architecture was added.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and existing release gates.
+- Current blockers/limitations: the checkpoint awaits independent Product Assurance review;
+  Simulation still requires the user to intentionally choose the existing dry-run action after
+  preparation, and unsafe/ambiguous evidence remains an intentional stop.
+- Protected Companion work, Windows launcher work, Knowledge/UI Design Lab, website and unrelated
+  files were not modified, staged, discarded or committed.
+- Physical phone access, ADB/Fastboot, APK installation, firmware operation, build/flash/boot,
+  partition/slot/wipe/unlock/lock/relock, package installation, publication and release: **none**.
+  External action after final verification: one normal push of this scoped Linux branch only; no
+  force-push and no unrelated remote change.
+
+### Next proposed Build task
+
+Stop for Product Assurance review. Do not begin another consequential slice. Continue only from the
+next bounded direction recorded in `docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm that the destination-bound generalization preserves the previously approved Recipes
+  behavior without introducing a second preparation engine.
+- Confirm that automatic resume to current dry-run readiness—without generating or running the
+  BuildPlan—is the correct boundary for this Simulation continuity checkpoint.
+- Confirm the existing shared known-failure/no-retry coverage plus the new Simulation
+  resource-admission stop are proportionate acceptance evidence for this bounded slice.
+
 ## Linux product checkpoint — automatic exact-project Recipes preparation
 
 ### Authoritative checkpoint and scope

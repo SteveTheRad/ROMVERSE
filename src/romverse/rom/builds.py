@@ -50,6 +50,19 @@ class RomBuildPlanner:
 
     def plan(self, project_id: str) -> BuildPlan:
         project = self.store.get(project_id)
+        if project.original is None:
+            raise ProjectError("Import a protected original before planning a build")
+        source = self.store.original_path(project_id)
+        try:
+            source_before = source.stat()
+        except OSError as exc:
+            raise ProjectError(f"Protected original is unavailable: {exc}") from exc
+        verification = self.store.verify_original(project_id)
+        if not verification.valid:
+            raise ProjectError(f"Original integrity check failed: {verification.status}")
+        report = self.inspection.load_report(project_id)
+        if report is None:
+            raise ProjectError("Current structure inspection evidence is required")
         # Build inputs must never trust the fast display index. Re-enumerate the
         # current tree on this background planning operation before deriving hashes.
         summary = self.inspection.refresh_working_tree_summary(project_id)
@@ -90,6 +103,20 @@ class RomBuildPlanner:
         )
         assessment = GuardianPreflight().assess(manifest)
         recipe = RecipeStore().load(self.store.projects_root / project_id)
+        try:
+            source_after = source.stat()
+        except OSError as exc:
+            raise ProjectError(f"Protected original became unavailable: {exc}") from exc
+        current_project = self.store.get(project_id)
+        if (
+            current_project != project
+            or self.inspection.load_report(project_id) != report
+            or source_before.st_dev != source_after.st_dev
+            or source_before.st_ino != source_after.st_ino
+            or source_before.st_size != source_after.st_size
+            or source_before.st_mtime_ns != source_after.st_mtime_ns
+        ):
+            raise ProjectError("Project, source, or inspection evidence changed during dry run")
         plan = BuildPlan(
             2,
             project_id,

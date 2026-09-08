@@ -1524,18 +1524,33 @@ def test_command_deck_simulation_prepares_the_exact_project_and_resumes_dry_run_
         workers.pop(0).run()
         app.processEvents()
 
+        assert len(workers) == 1
+        assert workers[0].operation == "plan"
+        assert workers[0].project_id == project.project_id
+        assert window.rom_studio.dashboard_handoff_title.text() == (
+            "Pre-Build Simulation → Dry run in progress"
+        )
+        assert window.rom_studio.dashboard_handoff_badge.text() == "SIMULATING"
+        assert RomBuildPlanner(store).load(project.project_id) is None
+
+        workers.pop(0).run()
+        app.processEvents()
+
         assert window.stack.currentWidget() is window.rom_studio
         assert window.rom_studio.current_project is not None
         assert window.rom_studio.current_project.project_id == project.project_id
         assert window.rom_studio.command_tabs.currentIndex() == 1
         assert window.rom_studio.dashboard_handoff_title.text() == (
-            "Pre-Build Simulation → Build & Proof"
+            "Pre-Build Simulation → Dry run complete"
         )
-        assert window.rom_studio.dashboard_handoff_badge.text() == "READY"
+        assert window.rom_studio.dashboard_handoff_badge.text() == "SIMULATED"
         assert project.name in window.rom_studio.dashboard_handoff_detail.text()
-        assert "Execution remains locked" in window.rom_studio.dashboard_handoff_detail.text()
+        assert "execution-locked" in window.rom_studio.dashboard_handoff_detail.text()
         assert RomInspectionService(store).working_tree_exists(project.project_id)
-        assert RomBuildPlanner(store).load(project.project_id) is None
+        plan = RomBuildPlanner(store).load(project.project_id)
+        assert plan is not None
+        assert plan.execution_locked
+        assert RomBuildPlanner(store).verify_tree(project.project_id).valid
         assert len(window.nexus_events.list_recent()) > len(before)
         assert workers == []
         assert window.rom_studio.worker is None
@@ -1597,6 +1612,68 @@ def test_command_deck_simulation_does_not_start_without_resource_admission(
         assert "choose Pre-Build Simulation again" in (
             window.rom_studio.dashboard_handoff_detail.text()
         )
+        assert not QApplication.activeModalWidget()
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_command_deck_simulation_stops_on_source_drift_and_never_retries_dry_run(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    store, registry, project, _report = _project(tmp_path)
+    store.create_working_copy(project.project_id)
+    RomInspectionService(store).extract_project_tree(project.project_id)
+    protected = store.original_path(project.project_id)
+    protected.chmod(0o600)
+    protected.write_bytes(b"adversarial source drift")
+    window = MainWindow(
+        None,
+        logo,
+        store.workspace,
+        app_icon_path=logo,
+        pack_registry=registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    workers = []
+    failures = []
+    monkeypatch.setattr("romverse.ui.rom_studio.start_background", workers.append)
+    window.rom_studio.operation_failed.connect(
+        lambda operation, message: failures.append((operation, message))
+    )
+    try:
+        window.rom_studio.refresh(project.project_id)
+        window._navigate_route("command_deck")
+
+        window.device_center.quick_action_buttons["Pre-Build Simulation"].click()
+        app.processEvents()
+
+        assert len(workers) == 1
+        assert workers[0].operation == "plan"
+        assert workers[0].project_id == project.project_id
+        workers.pop(0).run()
+        app.processEvents()
+
+        assert len(failures) == 1
+        assert failures[0][0] == "plan"
+        assert "Original integrity check failed" in failures[0][1]
+        assert workers == []
+        assert window.rom_studio.worker is None
+        assert RomInspectionService(store).working_tree_exists(project.project_id)
+        assert RomBuildPlanner(store).load(project.project_id) is None
+        assert window.rom_studio.command_tabs.currentIndex() == 1
+        assert window.rom_studio.dashboard_handoff_title.text() == (
+            "Pre-Build Simulation → Dry run stopped safely"
+        )
+        assert window.rom_studio.dashboard_handoff_badge.text() == "ATTENTION"
+        assert "no automatic retry" in window.rom_studio.dashboard_handoff_detail.text()
+        assert "no automatic retry, build, or phone action" in (
+            window.rom_studio.dashboard_handoff_detail.text()
+        )
+        assert window.rom_studio.devices == []
         assert not QApplication.activeModalWidget()
     finally:
         window.companion_center.transport.close()
@@ -1702,14 +1779,17 @@ def test_fresh_command_deck_guided_project_resumes_through_simulation_readiness(
             ("import", project_id),
             ("working-copy", project_id),
             ("extract", project_id),
+            ("plan", project_id),
         ]
         assert window.rom_studio.prebuild_simulation_ready()
         assert window.rom_studio.command_tabs.currentIndex() == 1
         assert window.rom_studio.dashboard_handoff_title.text() == (
-            "Pre-Build Simulation → Build & Proof"
+            "Pre-Build Simulation → Dry run complete"
         )
-        assert window.rom_studio.dashboard_handoff_badge.text() == "READY"
-        assert RomBuildPlanner(window.rom_studio.store).load(project_id) is None
+        assert window.rom_studio.dashboard_handoff_badge.text() == "SIMULATED"
+        plan = RomBuildPlanner(window.rom_studio.store).load(project_id)
+        assert plan is not None and plan.execution_locked
+        assert RomBuildPlanner(window.rom_studio.store).verify_tree(project_id).valid
         assert window.rom_studio.worker is None
         assert window.rom_studio.devices == []
 
@@ -1720,7 +1800,9 @@ def test_fresh_command_deck_guided_project_resumes_through_simulation_readiness(
         assert reopened_inspection.load_report(project_id) is not None
         assert reopened_store.working_copy(project_id) is not None
         assert reopened_inspection.working_tree_exists(project_id)
-        assert RomBuildPlanner(reopened_store).load(project_id) is None
+        reopened_plan = RomBuildPlanner(reopened_store).load(project_id)
+        assert reopened_plan == plan
+        assert RomBuildPlanner(reopened_store).verify_tree(project_id).valid
         assert not QApplication.activeModalWidget()
     finally:
         window.companion_center.transport.close()

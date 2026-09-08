@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 from contextlib import suppress
@@ -725,6 +726,7 @@ class RomStudio(QWidget):
         self._active_project_id = ""
         self._automatic_preparation_project_id = ""
         self._automatic_preparation_destination = ""
+        self._automatic_simulation_project_id = ""
         self._last_validated_completion: tuple[str, str, int] | None = None
         self._last_recovery_report: WorkspaceRecoveryReport | None = None
         self._latest_guardian_execution_plan: GuardianExecutionPlan | None = None
@@ -1349,6 +1351,11 @@ class RomStudio(QWidget):
                     return True
                 if automatic_detail:
                     detail = automatic_detail
+            if ready:
+                self._open_prebuild_simulation_destination(True)
+                self._begin_automatic_prebuild_simulation()
+                self.detail_scroll.ensureWidgetVisible(self.command_tabs, 0, 24)
+                return True
             destination = self._open_prebuild_simulation_destination(ready)
             self._show_dashboard_handoff(
                 f"Pre-Build Simulation → {destination}",
@@ -1378,6 +1385,97 @@ class RomStudio(QWidget):
             return True
 
         return False
+
+    def _begin_automatic_prebuild_simulation(self) -> None:
+        """Run or present one exact existing bounded dry-run result for the requested project."""
+
+        project = self.current_project
+        if project is None or self.worker is not None:
+            return
+        planner = RomBuildPlanner(self.store)
+        plan_path = self.store.projects_root / project.project_id / planner.PLAN_NAME
+        plan_temporary = plan_path.with_suffix(".tmp")
+        if os.path.lexists(plan_temporary):
+            self._show_dashboard_handoff(
+                "Pre-Build Simulation → Interrupted dry run needs attention",
+                f"{project.name} has an unfinished dry-run transaction, so its completion is "
+                "unknown. ROMVERSE preserved the evidence and did not retry or infer a result. "
+                "Review Build & Proof before intentionally starting another dry run; no build or "
+                "phone action started.",
+                "ATTENTION",
+                ready=False,
+            )
+            self.plan_button.setFocus(Qt.FocusReason.OtherFocusReason)
+            return
+        existing = planner.load(project.project_id)
+        if existing is not None:
+            expected_tree = (
+                (self.store.working_root / project.project_id / "tree")
+                .relative_to(self.store.workspace)
+                .as_posix()
+            )
+            recipe = RecipeStore().load(self.store.projects_root / project.project_id)
+            recipe_digest = recipe.digest() if recipe is not None else ""
+            if (
+                existing.schema_version != 2
+                or existing.project_id != project.project_id
+                or existing.device_pack_id != project.device_pack_id
+                or existing.source_tree != expected_tree
+                or existing.recipe_digest != recipe_digest
+                or not existing.execution_locked
+            ):
+                self._show_dashboard_handoff(
+                    "Pre-Build Simulation → Saved result needs attention",
+                    f"{project.name}'s saved dry-run identity no longer matches the exact current "
+                    "project inputs. ROMVERSE preserved it for review and did not overwrite or "
+                    "retry it. Review Build & Proof verification before requesting a new plan. "
+                    "No build or phone action started.",
+                    "ATTENTION",
+                    ready=False,
+                )
+                self.verify_plan_button.setFocus(Qt.FocusReason.OtherFocusReason)
+                return
+            self._show_prebuild_simulation_result(existing, saved=True)
+            return
+        if os.path.lexists(plan_path):
+            self._show_dashboard_handoff(
+                "Pre-Build Simulation → Saved result needs attention",
+                f"{project.name} has unreadable or malformed saved dry-run evidence. ROMVERSE "
+                "preserved it and did not overwrite, guess, or retry. Review Build & Proof before "
+                "requesting a new plan. No build or phone action started.",
+                "ATTENTION",
+                ready=False,
+            )
+            self.plan_button.setFocus(Qt.FocusReason.OtherFocusReason)
+            return
+        self._automatic_simulation_project_id = project.project_id
+        self._show_dashboard_handoff(
+            "Pre-Build Simulation → Dry run in progress",
+            f"ROMVERSE is freezing {project.name}'s exact current inputs and running the existing "
+            "Guardian preflight. This creates a locked inert plan only; no build, signing, phone, "
+            "flash, or execution action starts.",
+            "SIMULATING",
+            ready=True,
+        )
+        self._start_worker("plan")
+
+    def _show_prebuild_simulation_result(self, plan: BuildPlan, *, saved: bool) -> None:
+        """Present one exact typed dry-run result without granting execution authority."""
+
+        project = self.store.get(plan.project_id)
+        self.command_tabs.setCurrentIndex(1)
+        self.verify_plan_button.setFocus(Qt.FocusReason.OtherFocusReason)
+        source = "Saved" if saved else "Completed"
+        self._show_dashboard_handoff(
+            "Pre-Build Simulation → Dry run complete",
+            f"{source} typed result for {project.name}: {len(plan.input_files):,} inputs, "
+            f"{len(plan.partitions):,} detected image partitions, tree SHA-256 "
+            f"{plan.tree_sha256[:16]}…, Guardian {plan.guardian_status} / {plan.guardian_risk}. "
+            "The plan is execution-locked. Verify the current tree below before any later build "
+            "decision; no build or phone action occurred.",
+            "SIMULATED",
+            ready=True,
+        )
 
     def _begin_automatic_local_preparation(self, destination: str) -> tuple[bool, str]:
         """Start one admitted exact-project preparation for an existing destination."""
@@ -5030,6 +5128,8 @@ class RomStudio(QWidget):
         self.refresh(project_id)
         self._last_validated_completion = (operation, project_id, id(result))
         self.operation_completed.emit(operation, result)
+        if self._complete_automatic_prebuild_simulation(operation, project_id, result):
+            return
         if self._continue_automatic_local_preparation(operation, project_id):
             return
         if isinstance(result, GuardianManifestReview):
@@ -5054,6 +5154,37 @@ class RomStudio(QWidget):
                     result.project_id,
                     result.manifest_digest,
                 )
+
+    def _complete_automatic_prebuild_simulation(
+        self,
+        operation: str,
+        project_id: str,
+        result: object,
+    ) -> bool:
+        """Present only the exact producer result accepted by Studio's durable boundary."""
+
+        if not self._automatic_simulation_project_id:
+            return False
+        expected_project_id = self._automatic_simulation_project_id
+        self._automatic_simulation_project_id = ""
+        if (
+            operation != "plan"
+            or project_id != expected_project_id
+            or self.current_project is None
+            or self.current_project.project_id != project_id
+            or not isinstance(result, BuildPlan)
+        ):
+            self._show_dashboard_handoff(
+                "Pre-Build Simulation → Dry run stopped safely",
+                "The dry-run result no longer matches the exact requested project. ROMVERSE "
+                "preserved current evidence and did not guess, retry, build, or change a phone. "
+                "Review Build & Proof before requesting another Simulation.",
+                "ATTENTION",
+                ready=False,
+            )
+            return False
+        self._show_prebuild_simulation_result(result, saved=False)
+        return True
 
     def _continue_automatic_local_preparation(self, operation: str, project_id: str) -> bool:
         """Advance or resume one exact destination after producer-validated evidence."""
@@ -5133,6 +5264,11 @@ class RomStudio(QWidget):
             and operation in {"working-copy", "extract"}
         )
         automatic_destination = self._automatic_preparation_destination
+        automatic_simulation_failure = bool(
+            self._automatic_simulation_project_id
+            and project_id == self._automatic_simulation_project_id
+            and operation == "plan"
+        )
         if operation == "guardian-review":
             self._latest_guardian_execution_plan = None
             self._latest_guardian_gateway_contract = None
@@ -5182,6 +5318,19 @@ class RomStudio(QWidget):
                 f"ROMVERSE recorded a bounded {operation.replace('-', ' ')} failure: {message}. "
                 "Verified prior progress remains preserved. Review the focused Source Lab action, "
                 f"then choose {automatic_destination} to reassess; no automatic retry or phone "
+                "action occurred.",
+                "ATTENTION",
+                ready=False,
+            )
+        if automatic_simulation_failure:
+            self._automatic_simulation_project_id = ""
+            self.command_tabs.setCurrentIndex(1)
+            self.plan_button.setFocus(Qt.FocusReason.OtherFocusReason)
+            self._show_dashboard_handoff(
+                "Pre-Build Simulation → Dry run stopped safely",
+                f"ROMVERSE recorded a bounded dry-run failure: {message}. Prepared inputs and "
+                "prior evidence remain preserved. Review Build & Proof, then intentionally "
+                "request Simulation again if appropriate; no automatic retry, build, or phone "
                 "action occurred.",
                 "ATTENTION",
                 ready=False,

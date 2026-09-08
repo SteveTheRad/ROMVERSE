@@ -204,7 +204,10 @@ def test_rom_studio_refresh_never_recursively_rescans_an_extracted_tree(tmp_path
     studio.close()
 
 
-def test_rom_studio_command_deck_handoffs_report_exact_ready_workflows(tmp_path):
+def test_rom_studio_command_deck_handoffs_report_exact_ready_workflows(
+    tmp_path,
+    monkeypatch,
+):
     app = QApplication.instance() or QApplication([])
     source = tmp_path / "firmware.zip"
     with zipfile.ZipFile(source, "w") as output:
@@ -217,15 +220,45 @@ def test_rom_studio_command_deck_handoffs_report_exact_ready_workflows(tmp_path)
     inspection.extract_project_tree(project.project_id)
     studio = RomStudio(store, DevicePackRegistry(()))
     studio.refresh(project.project_id)
+    workers = []
+    monkeypatch.setattr("romverse.ui.rom_studio.start_background", workers.append)
 
     assert studio.open_dashboard_intent("Pre-Build Simulation")
     app.processEvents()
     assert studio.command_tabs.currentIndex() == 1
-    assert studio.dashboard_handoff_badge.text() == "READY"
-    assert "Handoff Project has a contained working tree" in (
+    assert studio.dashboard_handoff_badge.text() == "SIMULATING"
+    assert "freezing Handoff Project's exact current inputs" in (
         studio.dashboard_handoff_detail.text()
     )
-    assert "Execution remains locked" in studio.dashboard_handoff_detail.text()
+    assert "no build" in studio.dashboard_handoff_detail.text()
+    assert len(workers) == 1 and workers[0].operation == "plan"
+
+    workers.pop(0).run()
+    app.processEvents()
+
+    assert studio.dashboard_handoff_badge.text() == "SIMULATED"
+    assert studio.dashboard_handoff_title.text() == "Pre-Build Simulation → Dry run complete"
+    assert "execution-locked" in studio.dashboard_handoff_detail.text()
+    assert RomBuildPlanner(store).load(project.project_id) is not None
+    assert studio.worker is None
+
+    assert studio.open_dashboard_intent("Pre-Build Simulation")
+    app.processEvents()
+    assert workers == []
+    assert "Saved typed result for Handoff Project" in studio.dashboard_handoff_detail.text()
+    assert studio.worker is None
+
+    interrupted = store.projects_root / project.project_id / "build-plan.tmp"
+    interrupted.write_text("unfinished dry run\n", encoding="utf-8")
+    assert studio.open_dashboard_intent("Pre-Build Simulation")
+    app.processEvents()
+    assert workers == []
+    assert interrupted.is_file()
+    assert studio.dashboard_handoff_title.text() == (
+        "Pre-Build Simulation → Interrupted dry run needs attention"
+    )
+    assert "completion is unknown" in studio.dashboard_handoff_detail.text()
+    assert "did not retry" in studio.dashboard_handoff_detail.text()
     assert studio.worker is None
 
     assert studio.open_dashboard_intent("Recipes")

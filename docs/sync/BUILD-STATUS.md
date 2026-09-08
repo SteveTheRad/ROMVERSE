@@ -1,5 +1,115 @@
 # ROMVERSE Product Assurance Sync
 
+## Packaged Windows Guided local-foundation journey — Product Assurance review requested
+
+- Product Assurance verdict: `e03aa88ed7746575e76ced7fe39cab4590322e3c` — `Approve packaged
+  Windows APK retention`, matching checkpoint
+  `80da6d90f3125b9e8acde3272caa6194d0ea3ac8` exactly.
+- Branch: `windows-launcher-authorized-work`.
+- Status: **PASS — THE UNCHANGED UNSIGNED WINDOWS PACKAGE CREATED ONE FRESH PROJECT, PROTECTED
+  AND BOUNDEDLY INSPECTED ONE INERT SYNTHETIC ZIP, PREPARED ONE CONTAINED WORKING LAB, AND STOPPED
+  TRUTHFULLY AT STAGE 5 WITH THE EXISTING ACTIONABLE NO-DEVICE REQUIREMENT.**
+
+### Exact reused package and source evidence
+
+- Reused without rebuilding the existing package executable
+  `C:\Work\ROMVERSE-Windows\build\windows-recovery-archives-b09e15a6\ROMVERSE\ROMVERSE.exe`:
+  6,321,193 bytes, Authenticode `NotSigned`, SHA-256
+  `d7eb55e38e2daad6b35a74c6c3f081b7cf83ba9b1b5ecdb0ebfefa4a7b37804a`.
+- Before launch, recorded the selected inert source at
+  `C:\Work\ROMVERSE-Synthetic-Valid-Zip-3fe32432\synthetic-unfamiliar-firmware.zip`: 356 bytes,
+  SHA-256 `85e734ea89c706d344987794acf5ebc9fb617e67a1a5a09f8516bf4c755937b0`. The exact path was
+  visible in the native picker immediately before import. The archive contains only the existing
+  242-byte `ROMVERSE-SYNTHETIC-TEST-EVIDENCE.txt` marker, SHA-256
+  `f5fc7767e1d6e9636cbdfc43c800515800ca0ea35e98b74b3f840341fc051310`.
+- Created the fresh isolated workspace
+  `C:\Work\ROMVERSE-Windows-Guided-Foundation-e03aa88e-20260909`; it did not exist before this
+  checkpoint and contained zero items before the single launch.
+
+### One Guided stages 1–4 journey
+
+- Entered Genesis from the existing visible Guided route and created exactly one project,
+  `Windows Guided Foundation 20260909`, project ID
+  `windows-guided-foundation-20260909-0e0785bf`.
+- Selected the exact inert ZIP once and accepted only the existing protected-import responsibility
+  notice. ROMVERSE copied, hashed, protected and boundedly inspected it. The project record binds
+  the exact name, 356-byte size, full SHA-256 and protected workspace path
+  `original_roms/85e734ea89c706d3-synthetic-unfamiliar-firmware.zip`; the read-only protected copy is
+  byte-identical to the selected source.
+- Inspection completed as a ZIP with one entry and 242 expanded bytes, no partition or metadata
+  signals, and no unsafe path, link, encryption or extreme-compression finding. Genesis advanced
+  through the integrity/container stage to `SCAN / TASK 04 OF 15` and presented the existing
+  **Prepare working lab** action.
+- Invoked **Prepare working lab** exactly once. The 356-byte private baseline remains byte-identical
+  to the source. The contained tree has exactly one regular 242-byte marker with the exact hash
+  above; all resolved output is under the disposable workspace and the complete workspace contains
+  zero reparse points.
+- The source remained visibly bound after Guided closed: ROM Studio showed the full 356-byte hash,
+  protected workspace path, one-entry/242-byte structure inspection, byte-identical working copy,
+  one-file tree inventory and **Safe extraction complete in the isolated working tree**.
+
+### Truthful stage-5 stop and authority boundary
+
+- Genesis finished at `MATCH / TASK 05 OF 15`, `Confirm device identity and capabilities`, with
+  **5 of 15 stages verified**, status **ATTENTION**, `No device connected`, `UPGRADE RELATIONSHIP
+  UNCONFIRMED`, and the actionable **Scan device & refresh DNA** requirement. That action, device
+  discovery and Forge were not activated.
+- The final 436-byte Guided record is SHA-256
+  `9fbe22da69ec53ed81f309ffbe01393c789c451d8af7bec79c10147b0c868db2`; it selects stage
+  `device`, keeps `build_plan_verified=false`, `install_requested=false`, `root_choice=undecided`
+  and records no error.
+- Device DNA keeps eight actionable capabilities `UNCONFIRMED`; bootloader relocking is
+  `UNSUPPORTED`. The Compatibility Matrix keeps those eight decisions `Unknown`, with
+  `proven_compatible=false` and `technically_possible=false`, and marks relocking `Known
+  Incompatible`.
+- The Ascension route remains blocked with `execution_authority=none`, source authority
+  unconfirmed, device identity `UNCONFIRMED`, an empty command manifest, no recommended method,
+  `phone_changed=false` and bootloader relocking prohibited.
+
+### Exact persisted local evidence
+
+- Project record: 714 bytes, SHA-256
+  `7cf7e3eee6c0e6f3fabb9bec4f343d9fe6b48e375c4d92d901b09bd759965da9`.
+- Inspection: 769 bytes, SHA-256
+  `87ba85c2561107e99033c41037931dc32fa80d97755cd9bfc4254dec9a5af5f5`.
+- Working-copy record: 601 bytes, SHA-256
+  `0a51816739e69958caeac1137aa6e4795230f793557dc14d0f81136ad4107edc`.
+- Working-tree index: 513 bytes, SHA-256
+  `bf4200f3ac5895b4b99d56147e8b42d7eecd26d1a009ae2b3739fa2a075b739a`.
+- Device DNA / Compatibility Matrix / blocked route SHA-256 values:
+  `9495652259e0e437de8f0ecdd8c0f7dfc83e5a2b551df2d2332577dd16fc0ba4`,
+  `e9f302d264828eeec1984f5a93dcd3a6fabf77b81a0af571751642ab325d8f5a`, and
+  `7f1c36e3a30fc84122fb99db70841a9773e4558a01420858d1240cb46914a846`.
+- Genesis and ROMVERSE closed normally. The 77-byte runtime record contains one start and one
+  clean close, SHA-256 `9b548079f50e029991471fdbf93e92807fb82adb17319871cb9ab421e7b7f499`,
+  and no `ROMVERSE.exe` process remains.
+
+### Verification and preserved boundaries
+
+- Per verdict `e03aa88e`, no package rebuild or accepted-test replay was performed. Test total:
+  **0 tests run**. No application source or test file changed; `git diff --check` passes for this
+  documentation-only handoff.
+- The workspace contains zero managed-tool files and no candidate, command manifest, Guardian
+  audit, Recovery result, consent, approval or install plan. The pre-existing detached ADB server
+  from `C:\Work\ROMVERSE-Link-Lazy-Frozen-20260907` remained the same PID `49872` and exact path;
+  it was never queried, targeted or stopped. No Fastboot or new ADB process appeared.
+- Protected Companion source, Knowledge/UI Design Lab/Linux work and all unrelated history remain
+  untouched. The untracked user patch remains byte-identical at 8,272 bytes, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone/emulator, tool acquisition/install, ADB/Fastboot command, APK/device installation, real
+  firmware modification, ROM build/signing, Guardian/Recovery execution, publication, release,
+  lock, relock, force-push or destructive action occurred. Exact-device evidence,
+  UNKNOWN-on-uncertainty, consent separation, no blind retry, Guardian-only authority, independent
+  verification and permanent no-relock remain intact.
+
+### Proposed next bounded task
+
+Product Assurance should independently verify the unchanged executable, selected/protected source
+fingerprints, project/inspection/working records, one-file contained tree, stage-5 no-device stop,
+blocked authority records, unchanged external ADB process and clean close. Build must not reopen the
+project, activate the stage-5 scan, device discovery or Forge, rebuild the package, acquire tools or
+infer device/execution authority while that review is pending.
+
 ## Packaged Windows App Launchpad retention journey — Product Assurance review requested
 
 - Product Assurance verdict: `58b7f082046895a0636e964f75d1baff212f695e` — `Approve packaged

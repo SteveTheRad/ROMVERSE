@@ -1,5 +1,107 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — requested Simulation completes its inert dry run
+
+### Authoritative checkpoint and scope
+
+- Tested implementation: `85aba5f2ff098b478d5f33dc8c887c281a774d06` — `Complete requested
+  Simulation dry run`.
+- Final handoff: the follow-up commit containing this document on
+  `linux/stage1-desktop-readiness`; the branch was clean immediately after the implementation
+  commit and will be pushed normally after this handoff is committed.
+- Product Assurance approval/base: `280a9a4` — approved fresh Guided continuity and authorized one
+  automatic use of the existing bounded dry-run after the user's Simulation request.
+- Stage: Stage 1 — v0.2 Golden Foundation, existing Pre-Build Simulation continuation only.
+- Exact changed files: `src/romverse/rom/builds.py`, `src/romverse/ui/rom_studio.py`,
+  `tests/test_navigation_vocabulary.py` and `tests/test_rom_studio_ui.py`. No other implementation,
+  platform or product file changed.
+
+### Exact implemented behavior
+
+- One intentional Command Deck Pre-Build Simulation request now remains active through the already
+  approved exact-project working-copy/extraction preparation and then starts the existing `plan`
+  worker once. It does not require a second technical Plan button click.
+- The existing `RomBuildPlanner` remains the only dry-run engine. At its producer boundary it now
+  verifies the protected original, requires current sealed inspection evidence and detects
+  project/source/inspection metadata drift before atomically persisting its result.
+- ROM Studio accepts the result only through its existing typed producer mapping and independent
+  persisted-record equality check. The exact project-bound `BuildPlan` is presented with input,
+  partition, tree-digest and Guardian preflight summary, remains execution-locked, and focuses the
+  existing Verify plan continuation.
+- Reopening Simulation with a structurally exact saved result presents that result without running
+  the dry run again. A saved identity mismatch or malformed final record is preserved and stops
+  visibly instead of being overwritten.
+- A `build-plan.tmp` transaction marks completion unknown. ROMVERSE preserves it, starts no worker
+  and offers the existing Build & Proof review path; it never infers success or blindly retries.
+- A known planning failure—including fresh protected-source hash drift—records a bounded failure,
+  preserves preparation evidence, starts no second worker and keeps the direct Build & Proof
+  continuation visible.
+
+### Verification without double-counting
+
+- One focused affected run: **6/6 unique tests passed** across the Simulation UI, representative
+  fresh Guided journey, existing ROM Studio handoff and existing locked planner contract.
+- Success journey proves exact worker order `working-copy → extract → plan`, visible Simulation
+  progress, a durable schema-two typed result, execution lock, valid current tree verification and
+  zero additional worker after completion.
+- The representative fresh-workspace production-service journey now durably reloads the exact
+  project, protected original, inspection, working baseline, contained tree and BuildPlan after one
+  initial Simulation request.
+- At-most-once evidence proves reopening the same exact saved result starts zero workers. An
+  additional interrupted temporary transaction reports unknown, remains on disk and also starts
+  zero workers.
+- Adversarial source-drift journey modifies only the disposable protected-source fixture after safe
+  preparation; the planner rehash fails, no final BuildPlan is written, the contained tree remains,
+  and no retry is queued.
+- Existing insufficient-resource admission still starts no dry-run because preparation never
+  becomes admissible.
+- Ruff static check and format check passed for all four changed files. `git diff --check`: passed.
+- No broad suite was run. The six-test total is not combined with or double-counted against prior
+  checkpoints.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** request-bound automatic inert planning, producer-bound source/inspection drift
+  validation, exact typed-result presentation, saved-result reuse and interrupted/no-retry stops.
+- **Simulated/Tested:** 6 sanitized Linux-hosted Qt/store/planner journeys.
+- **Hardware Verified:** no. **Released:** no.
+- Guided friction removed: one Simulation choice now resolves safe local prerequisites and completes
+  the intended bounded dry run without a duplicate technical click. Later tree verification remains
+  a distinct visible evidence boundary.
+- Guardian/Recovery/safety: the result is an inert execution-locked plan and Guardian preflight
+  only. No real build, signing, approval, flash or execution authority exists. Exact-device,
+  consent, UNKNOWN-on-uncertainty, no blind retry, independent verification, same-incident Recovery
+  and permanent no-relock rules remain unchanged.
+- Fedora/Linux: genuinely tested in the existing Fedora Qt development runtime. Windows: not run or
+  claimed. Physical Android: not used.
+- Feature freeze: compliant existing-journey continuity and correctness work; no parallel engine,
+  new screen, format, feature, adapter or device capability was added.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and existing release gates.
+- Current blockers/limitations: Product Assurance has not independently reviewed this checkpoint;
+  the dry-run result still requires its separate existing current-tree verification before later
+  build boundaries; malformed, drifted or interrupted saved evidence intentionally stops.
+- Protected Companion, Windows launcher, Knowledge/UI Design Lab, website and unrelated files were
+  not modified, staged, discarded or committed.
+- Physical phone access, ADB/Fastboot, APK installation, firmware/device operation, real build,
+  flash/boot, partition/slot/wipe/unlock/lock/relock, package installation, publication and release:
+  **none**. External action after final verification: one normal push of this scoped Linux branch
+  only; no force-push and no unrelated remote change.
+
+### Next proposed Build task
+
+Stop for Product Assurance review. Do not begin another consequential slice. Continue only from the
+next bounded direction recorded in `docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm that the existing persisted-record equality boundary plus producer-bound source,
+  inspection and project stability checks satisfy typed exact-result validation for this inert
+  planning step.
+- Confirm that a saved exact plan should be presented without rerunning, while any interrupted temp,
+  malformed record or identity drift stops for review with no automatic retry.
+- Confirm that focusing the existing Verify plan control is the appropriate next independent
+  boundary and that automatic tree verification is outside this checkpoint.
+
 ## Linux product checkpoint — fresh Guided project continuity
 
 ### Authoritative checkpoint and scope

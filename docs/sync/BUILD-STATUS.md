@@ -1,5 +1,45 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows Stage 1 saved boot-result continuity checkpoint
+
+- Implementation: `1ab27bd093bfdbb0de5187e90bd7c8e868d230ba` —
+  `Link Windows boot checks to saved outcomes`.
+- The earlier complete Windows regression retained three Stage 1 failures. All three reproduced
+  independently. Two were platform-specific assertion differences with unchanged fail-closed
+  behavior; the third exposed a genuine user continuity defect.
+- A completed inert local Android boot observation stored its linked image-write receipt as a native
+  Windows backslash path, while the saved project outcome contract stores the same workspace path in
+  platform-neutral slash form. The evidence was valid but could never compare equal after reopening,
+  leaving the completed boot check at `No linked boot-check record`.
+- The boot-observation binding now serializes that one workspace-relative journal path with
+  `as_posix()`, matching the existing parent journal and source-installation contracts on every host.
+  No authority, evidence gate, or boot-verification rule changed.
+- The related Windows assertions now recognize the existing stronger same-file-identity rejection
+  for tampered build output and compare the documented platform-neutral receipt path.
+
+### Focused verification
+
+- The three exact earlier failures now pass together: **3/3 passed**.
+- The directly affected Local Boot, Project Flash, and one saved-history regression collected **77
+  tests**. Before the assertion portability adjustment the run produced **76 passed, 1 failed**;
+  the sole remaining failure was the already fail-closed tampered-build message difference. Its
+  adjusted exact node is included in the final 3/3 pass above.
+- Ruff lint passed for the three changed source/test files. Git whitespace checks passed.
+- All evidence used inert local runners and synthetic Android records. Nothing discovered,
+  connected to, or targeted a physical phone or emulator.
+
+### Preserved boundaries
+
+- The UI Design Lab and protected Companion Android files remain untouched. The untracked patch is
+  still byte-identical at SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No Recovery command, ADB/Fastboot target, phone operation, flash, wipe, unlock, root, relock, APK
+  install, production enrollment/signing, publication, release, force-push, or destructive action
+  occurred. Historical boot evidence remains display-only: it grants no fresh boot or execution
+  authority and cannot alter the original image-write receipt.
+- Windows Build continues the bounded shipped Stage 1 user-journey audit; no package was rebuilt and
+  the final genuine Windows source smoke has not yet been consumed.
+
 ## Windows Stage 1 disabled-action guidance checkpoint
 
 - Implementation: `57907c2953131b822b4c3c248dad2944aca2c7f5` —

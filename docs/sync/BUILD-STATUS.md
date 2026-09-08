@@ -1,5 +1,121 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows local project creation and firmware-intake continuity — Product Assurance review requested
+
+- Product Assurance verdict: `7c6d83ff6fe4e59259520a969b110867db4a2d92` — `Approve Windows
+  project entry route`, matching checkpoint `2f5fcd3de1d232c9460728ade78403bb48ee9a94`
+  exactly.
+- Minimum correction: `66dca72494fb1a6eb96d0e75210a7dbee901ad1d` — `Advance Genesis
+  after project creation`.
+- Branch: `windows-launcher-authorized-work`.
+- Status: **PASS AFTER ONE CONFIRMED ROUTING CORRECTION — PACKAGED GENESIS CREATES ONE EMPTY
+  LOCAL PROJECT, ADVANCES DIRECTLY TO ACTIONABLE PROTECTED-FIRMWARE INTAKE, AND PERSISTS THAT
+  NO-DEVICE/NO-FIRMWARE STATE AFTER ONE CLEAN RELOAD**.
+
+### Confirmed packaged defect and minimum correction
+
+- The first approved-artifact reproduction used the fresh isolated workspace
+  `C:\Work\ROMVERSE-Windows-Project-Entry-7c6d83ff-20260909`, copied only the previously verified
+  managed Platform Tools package, and invoked `Start ROM Project`, `Create ROM project`, the
+  deterministic name `Windows No-Phone Project 20260909`, and `Create project` through narrow
+  process-rooted Windows UI Automation.
+- Project creation itself succeeded and wrote exactly one 404-byte empty project manifest, but
+  Genesis remained on the now-complete `Create the mission workspace` task. `Create ROM project`
+  was disabled and `Next` was enabled; `Choose firmware…` was not exposed. This contradicted the
+  approved requirement to route directly to protected-firmware intake, so the app was closed
+  without pressing Next, selecting firmware, or starting another action. No screenshot was created
+  for the failed route.
+- The defect was the new-project branch refreshing the assessment while deliberately retaining its
+  prior selected index. The one-line product correction now calls the existing
+  `_refresh(select_current=True)` path after successful project creation, selecting the first stage
+  that lacks verified evidence. No project, firmware, Device DNA, worker, authority, or execution
+  contract changed.
+- One focused regression uses the real `ProjectNameDialog`, `RomProjectStore`, `RomStudio`, and
+  `GuidedBuildMission`; it proves a newly created empty project immediately selects stage 2,
+  renders `Load the untouched firmware`, enables `Choose firmware…`, starts no worker, and retains
+  zero devices.
+
+### Focused Windows verification and one corrected build
+
+- Exact test command:
+  `$env:PYTHONPATH='src'; $env:QT_QPA_PLATFORM='windows'; .venv\Scripts\python.exe -m pytest -p
+  no:cacheprovider --basetemp C:\Work\ROMVERSE-Pytest-ProjectRoute-7c6d83ff
+  tests/test_rom_studio_ui.py::test_genesis_routes_new_project_directly_to_protected_firmware_intake
+  -q`.
+- Result: **1/1 passed** on native Windows Qt. Focused Ruff passed for
+  `src/romverse/ui/guided_mission.py` and `tests/test_rom_studio_ui.py`; Git whitespace validation
+  passed. No broader test file or suite was run.
+- The corrected source was packaged exactly once with:
+  `.venv\Scripts\python.exe scripts\build_desktop_executable.py --output-directory
+  build\windows-project-route-7c6d83ff --work-directory
+  build\windows-project-route-7c6d83ff-pyinstaller`.
+- PyInstaller `6.22.2` / Python `3.12.10` completed on Windows 11 x64. The unsigned one-folder
+  development build contains 305 files / 164,643,113 bytes. Its executable is
+  `build/windows-project-route-7c6d83ff/ROMVERSE/ROMVERSE.exe`, `6,318,778` bytes, SHA-256
+  `437fbdcddc8bff346bcc5cba11a02f067f7f13eba61a116ef26b385a99af493b`, Authenticode
+  `NotSigned`. No ZIP, installer, APK, signature, publication, or release was produced.
+
+### Corrected no-phone route and persisted state
+
+- The corrected artifact used a second fresh isolated workspace:
+  `C:\Work\ROMVERSE-Windows-Project-Entry-Corrected-7c6d83ff-20260909`. Before launch it contained
+  zero projects and a byte-identical local copy of the previously approved managed Platform Tools
+  package. Receipt SHA-256 remained
+  `ca716618aac9b8c178985b952334ee64e748b19b90ccdd099aa86a94e955bf95`; no download or installer
+  ran.
+- Narrow local UI Automation invoked only the exact existing `Start ROM Project`,
+  `Create ROM project`, deterministic project-name input, and enabled `Create project` controls.
+  The corrected Genesis surface advanced directly to `SCAN / TASK 02 OF 15`,
+  `Load the untouched firmware`, `Awaiting firmware`, `AWAITING PROTECTED FIRMWARE`,
+  `No device connected`, and enabled `Choose firmware…`. Firmware intake itself was not invoked.
+- One destination screenshot at
+  `C:\Work\ROMVERSE-Windows-Project-Entry-Corrected-7c6d83ff-20260909\evidence\protected-firmware-intake.png`
+  is 149,515 bytes with SHA-256
+  `96890ba9cb7434951c037cc63c2bafa8c8fd7a524598153c03373a494d3f06eb`.
+  Direct inspection confirms the project name, 1-of-15 verified progress, exact protected-firmware
+  intake, ready banner, no-device state, and enabled `Choose firmware…` action without a build,
+  target, consent, Guardian, Recovery, signing, or execution claim.
+- After the first corrected window closed normally, one reload required no product action. Narrow
+  UI Automation confirmed Command Deck retained project `Windows No-Phone Project 20260909`, stage
+  `Load the untouched firmware`, enabled `Continue Genesis Sequence`, and
+  `No Android device detected`; the reload then closed normally. An immediate pre-settlement read
+  briefly observed the continuation disabled while Qt completed its normal refresh, but the same
+  control became enabled without retrying an operation or changing state.
+- The sole project is `windows-no-phone-project-20260909-d4e585cf`. Its 404-byte
+  `project.romverse` SHA-256 is
+  `2d43905ed9201ccecaa4e85a6f9a68c1790d605b31b653ad2e819ccc0a7f43e2` and `original` is null.
+  Its verified schema-6 `guided-mission.json` selects `firmware`, retains no error, install request,
+  recipe, build-plan verification, or root choice, and has SHA-256
+  `428a10204ab0ca36f205bdf4fa5750b9cde8ea6497654be4beae77365e8cf6e5`.
+  The workspace's `original_roms`, `working_roms`, and `builds` directories contain zero files;
+  no candidate, Forge, Guardian, or Recovery path exists.
+- The two corrected launches recorded 22 regular scheduled pairs of unbound `adb devices -l` and
+  `fastboot devices -l` while UI evidence settled and was inspected. All 44 records are category
+  `read_only`, risk `none`, target `host`, return code 0, non-timeout, and 390–717 ms; every
+  inventory was empty, with zero selectors, target commands, state changes, or failure retries.
+  Audit SHA-256 is `c7b40b2290fb1bea3b8d6e7f14aa16b7e2293df279beb2b2ae0a452a32c4d8b3`.
+- The 154-byte runtime record contains exactly two start/clean-close pairs and has SHA-256
+  `50d779cf4f44836bb0f2fc6bb9cd0f21763e9de1dcb388fb854e57e5b18f4587`. No
+  `ROMVERSE.exe` process remains.
+
+### Scope, safety, and next gate
+
+- Scoped changes are only the one-line Genesis routing correction, its focused regression, and
+  this Build handoff. Linux's separately owned simulated Guided-to-candidate work was not opened,
+  imported, or duplicated.
+- Protected Companion files remain clean and untouched. The preserved untracked
+  `0001-Preserve-local-build-completion-across-restart.patch` remains byte-identical at SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone or emulator was requested, awaited, connected, discovered, selected, operated, or
+  targeted. No firmware was selected or ingested. No device-changing command, APK, ROM build or
+  signing, Guardian/Recovery authority, Recovery, flash, wipe, unlock, root, lock, relock,
+  production trust, publication, release, destructive action, force-push, or blind retry occurred.
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty,
+  independent verification, feature freeze, and permanent no-relock remain intact.
+- Precise proposed next task: independent Product Assurance review of implementation `66dca724`
+  and this corrected packaged route/persistence evidence. Windows Build stops here and assumes no
+  further task until a new repository verdict matches the pushed handoff commit exactly.
+
 ## Packaged Windows Start ROM Project navigation — Product Assurance review requested
 
 - Product Assurance verdict: `1fc5c3fc96d0b888f408dd44162e45fa92013fc7` — `Approve packaged

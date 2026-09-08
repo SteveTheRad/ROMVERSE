@@ -1,5 +1,71 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: b09e15a — Recovery Archives Windows context continuity
+
+- Reviewed checkpoint: `b09e15a6`
+- Approved base: `87c5c6806a73f0f6896bb2a5d558a8e1178a91c5`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — LOCAL RECOVERY EVIDENCE SURVIVES ITS WINDOWS COMMAND DECK ROUTE**
+
+### Decision
+
+Product Assurance inspected the complete three-file source/test correction against Linux reference
+`4f54f5d` and independently reran the native Windows route case. Recovery Bay's normalized
+`adb unauthorized` symptom and private local-Archives source survive the existing canonical Command
+Deck route with explicit `LOCAL GUIDE • AUTHORITY NONE`. The existing discovery action remains
+enabled, while no repair worker, online request, active mission, plan, approval, command or execution
+authority is created.
+
+The single test-interface adjustment is legitimate platform-line drift: this Windows line does not
+contain Linux's newer `current_active_mission()` helper, so the case asserts the equivalent rendered
+`MISSION: IDLE` state and separately proves the relevant workers and repair session remain absent.
+No application behavior was weakened. The correction is feature-freeze compliant and needs no
+further source change or test replay.
+
+### Independent evidence and acceptance
+
+- The checkpoint's parent is exactly Product Assurance commit `87c5c680`; no Linux handoff history
+  was merged, rebased or cherry-picked.
+- Product Assurance independently reran
+  `test_recovery_bay_archives_handoff_and_canonical_fix_route_are_connected` on Windows 11 using
+  Python 3.12.10: **1/1 passed**. Its exact temporary test directory was removed afterward.
+- Source inspection confirms the handoff is created only for a Command Deck route whose Archives
+  source is Recovery Bay, normalizes and bounds the retained symptom, and grants no authority.
+- Ruff and Git whitespace evidence pass. The protected untracked patch remains the only unrelated
+  checkout item and remains byte-identical at 8,272 bytes with SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No package, application, tool acquisition, ADB/Fastboot command, phone/emulator, APK installation,
+  firmware action, signing, Guardian/Recovery execution, publication, release, Companion,
+  Knowledge/UI Design Lab, force-push, lock or relock occurred.
+
+### Approved next bounded Windows task
+
+Build one corrected unsigned Windows development package from `b09e15a6` and launch it once in a
+fresh isolated no-phone workspace with no workspace-managed Platform Tools. Exercise exactly one
+Recovery Bay → private local Archives → Command Deck journey using symptom `adb unauthorized`.
+Require the Archives result to remain offline and authority-free and the Command Deck landing to
+show the same exact symptom/source, `LOCAL GUIDE • AUTHORITY NONE`, an idle mission and the existing
+enabled discovery action. Do not activate discovery or any tool installation action. Prove that the
+journey starts no online/repair worker, ADB/Fastboot process, plan, approval or command and closes
+cleanly.
+
+This is one package and one connected user journey, not a broad test, screen sweep or repeated
+packaging loop. Reuse existing focused evidence; do not rerun it. Add no source change unless the
+package exposes a genuine defect; if it does, make only the minimum correction and focused test,
+rebuild/relaunch at most once, then commit/push one handoff and stop for review. Preserve the
+untracked user patch byte-for-byte. Do not acquire/install tools, invoke ADB/Fastboot, operate a
+phone/emulator, install an APK, modify firmware, sign, publish, release, execute Guardian/Recovery,
+touch Companion, Knowledge/UI Design Lab or Linux work, force-push, lock or relock.
+
+### Gate status
+
+- Windows Recovery Archives context continuity: **VERIFIED**
+- Packaged Windows Recovery Archives connected journey: **NEXT BOUNDED WINDOWS TASK**
+- Packaged Linux Guided consent boundary: **OWNED BY LINUX; DO NOT DUPLICATE**
+- Physical hardware, tool acquisition, installation, execution, publication and release:
+  **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 48d0daf — App Launchpad Windows source parity
 
 - Reviewed checkpoint: `48d0daf8`

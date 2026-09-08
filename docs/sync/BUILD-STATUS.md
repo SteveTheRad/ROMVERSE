@@ -1,5 +1,109 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — Forge Control opens inspection-only before explicit local build
+
+### Authoritative checkpoint and scope
+
+- Tested implementation: `527cb2be3be34d7bef844189d643cc7a7212d2fe` — `Keep Forge Control
+  inspection-only on open`.
+- Final handoff: the follow-up commit containing this document on
+  `linux/stage1-desktop-readiness`; the branch was clean immediately after the implementation
+  commit and will be pushed normally after this handoff is committed.
+- Product Assurance approval/base: `897f30e` — approved the intentional verified Forge Bundle and
+  authorized one representative existing exact-contract local-candidate journey.
+- Stage: Stage 1 — v0.2 Golden Foundation, existing Forge Control opening/build continuity only.
+- Exact changed implementation/test files: `src/romverse/ui/rom_studio.py` and
+  `tests/test_build_control_ui.py`. No build executor/service, artifact format, package, platform,
+  device, Companion, Recovery adapter or broader product file changed.
+
+### Reproduced defect and minimum correction
+
+- The exact verified intermediate correctly focused Forge Control as its next intentional
+  inspection, but ROM Studio constructed the ordinary Forge Control dialog with its default
+  automatic resolver enabled. Opening the inspection surface could therefore begin preparation
+  without the user choosing the existing local Build action.
+- The production correction is one call-site argument: ordinary ROM Studio Forge Control opening
+  now passes `auto_start=False`, matching the existing Smart Solution inspection-only opening.
+- No control, service, pipeline, evidence schema or build semantics changed. The existing
+  **Build verified local candidate** button remains the sole trigger for the bounded pipeline.
+
+### Representative durable journey
+
+- A disposable sanitized project uses an existing exact source-bound Device Pack/build contract,
+  protected source, inspected/contained tree, deterministic dry-run plan, verified non-flashable
+  Forge Bundle, exact extracted partition evidence, rebuild metadata, locked local build plan and
+  versioned test tool identities.
+- Opening Forge Control through the real ROM Studio button starts no worker, preparation mission or
+  autopilot and creates no local candidate receipt.
+- The harness then explicitly clicks the existing Build button once. The production
+  `LocalDeviceBuildExecutor` runs the exact seven-step bounded pipeline through a deterministic
+  external-tool runner; no build result or durable receipt is mocked.
+- The UI receives the typed result, refreshes to `LOCAL BUILD COMPLETE / INSTALL NOT AUTHORIZED`,
+  and reports the exact output count, receipt digest and `phone changed: NO`.
+- A fresh `RomProjectStore` and executor reload and reverify the same durable receipt and all output
+  files. The exact Forge Bundle receipt also reloads unchanged.
+
+### Verification without double-counting
+
+- One focused affected run: **5/5 unique tests passed** across
+  `tests/test_build_control_ui.py`, `tests/test_build_contracts.py` and
+  `tests/test_forge_bundle.py`.
+- The new production-widget journey proves inspection-only opening, the single explicit build
+  trigger, one complete real executor invocation, durable candidate/receipt/output reload and zero
+  ADB/Fastboot command dispatch.
+- Direct executor checks prove exact versioned candidate output and every-partition verification,
+  hostile or incomplete durable receipt rejection, and UNKNOWN in-flight interruption with no
+  retry dispatch.
+- Existing Forge service evidence proves the incoming intermediate is deterministic, verified,
+  unsigned, non-bootable and non-flashable.
+- Ruff static checks passed for both changed files. Ruff format check passed for the changed
+  production source; `test_build_control_ui.py` retains one pre-existing unrelated formatting
+  difference outside this checkpoint's hunk and was not mechanically reformatted. `git diff
+  --check`: passed.
+- No broad suite was run. This five-test total is not combined with prior checkpoint totals.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** inspection-only ordinary Forge Control opening.
+- **Simulated/Tested:** 5 Linux-hosted UI/executor/receipt/Forge journeys. One complete disposable
+  local candidate was produced through deterministic test tool behavior in an isolated temporary
+  workspace.
+- **Hardware Verified:** no. **Released:** no.
+- Guided friction/safety: opening Forge Control no longer silently starts an automatic resolver.
+  One explicit existing Build choice completes the already-bounded local pipeline. Known failure,
+  invalid evidence and interrupted UNKNOWN state retain their existing actionable/no-retry paths.
+- Guardian/Recovery/safety: the local candidate remains unsigned and has no install, Guardian,
+  flash, device or execution authority. Exact evidence, UNKNOWN-on-uncertainty, no blind retry,
+  same-incident Recovery and permanent no-relock remain unchanged.
+- Fedora/Linux: genuinely exercised in the existing Fedora offscreen Qt development runtime using
+  production UI, stores and build services with deterministic external-tool behavior. Windows:
+  not run or claimed. Physical Android/hardware: not used.
+- Feature freeze: compliant single-defect continuity/correctness work; no screen, feature, engine,
+  service, artifact format or device capability was added.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and existing release gates.
+- Current blockers/limitations: Product Assurance has not independently reviewed this checkpoint;
+  the deterministic runner is simulation rather than genuine platform tool execution; signing,
+  AVB trust, Guardian, installation and physical verification remain separate closed boundaries.
+- Protected Companion, Windows launcher/CI, Knowledge/UI Design Lab, website and unrelated files
+  were not modified, staged, discarded or committed.
+- Physical phone access, ADB/Fastboot, APK installation, firmware/device operation, real external
+  toolchain build, signing, flash/boot, partition/slot/wipe/unlock/lock/relock, desktop package
+  installation, publication and release: **none**. External action after final verification: one
+  normal push of this scoped Linux branch only; no force-push and no unrelated remote change.
+
+### Next proposed Build task
+
+Stop for Product Assurance review. Do not begin another consequential slice. Continue only from the
+next bounded direction recorded in `docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm the one-line `auto_start=False` ROM Studio call-site correction is the minimum proper
+  enforcement of inspection-only Forge Control opening without changing other specialized flows.
+- Confirm the production-service journey with deterministic external-tool behavior accurately
+  demonstrates durable local-candidate continuity without claiming real toolchain or hardware
+  verification.
+
 ## Linux product checkpoint — one explicit Forge choice completes artifact verification
 
 ### Authoritative checkpoint and scope

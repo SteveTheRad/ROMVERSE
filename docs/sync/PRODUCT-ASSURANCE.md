@@ -1,5 +1,57 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 95c80bc — unsigned Fedora internal development build
+
+- Handoff commit: `95c80bc70e9afed573ad21e27525ddf5cb48574b`
+- Packaged source/authorization: `9ca297b4ad048fee89bb7686128f40d35b441456`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — RUNNABLE FEDORA DEVELOPMENT ARTIFACT VERIFIED**
+
+### Decision and independent evidence
+
+The checkpoint changes only the durable status handoff and records one local, portable, unsigned
+Fedora development archive assembled from the previously approved source. Product Assurance
+independently verified that the recorded archive is present, its SHA-256 is
+`096d15bad7518fafe74074dd92b7e27ed9609e36ba5cf1b3c06044f8655505a4`, all compressed members pass
+CRC validation, and the archive contains exactly 460 regular files totalling 360,259,562 expanded
+bytes with no absolute or parent-traversal paths. The contained `ROMVERSE/ROMVERSE` executable
+hashes to `2972216e8683cd73e3d9810da253d6571b595fb8d0fe7b46e17c9eea550a8fb5`, matching the handoff.
+
+The artifact name and handoff classify it as unsigned and internal-only. It was not committed,
+uploaded, signed, trusted, installed system-wide or released. Build's one bounded frozen-process
+startup reached the truthful no-device Guided Command Deck and closed cleanly. That is sufficient
+for this packaging checkpoint but is not a visual-layout, cross-machine, Windows or hardware claim.
+
+### Vision, freeze and safety result
+
+- Existing approved functionality packaged without application behavior changes: **PASS**
+- Archive integrity, safe extraction paths and exact executable identity: **PASS**
+- Feature freeze: **PASS — packaging/integration work only**
+- Guardian authority, exact evidence, consent separation, UNKNOWN/no-blind-retry and permanent
+  no-relock: **PRESERVED**
+- Phone, ADB/Fastboot target, execution, production signing/trust, publication and release: **NONE**
+
+### Approved next bounded task
+
+With no phone available, do not idle and do not repeat the build or broad suites. Extract the exact
+approved archive once into a disposable user-writable directory and run one bounded, no-phone
+Fedora user journey through the packaged executable: first launch/Guided entry, Command Deck,
+platform-tool status/remediation presentation, one offline Knowledge/Device DNA lookup, and clean
+restart with durable state. Confirm every unavailable hardware action remains truthful and disabled.
+Record the first concrete packaged-runtime or Guided-friction defect and apply only its minimum
+freeze-safe correction with one focused regression and at most one corrective rebuild. If the
+journey is clean, commit evidence only. Do not install system-wide, use a phone/emulator or device
+tool target, create consent/admission, dispatch, sign, publish, release, touch Windows/Companion/
+Adaptive work, run an open-ended visual/simulation loop, or relock. Commit/push and stop for review.
+
+### Gate status
+
+- Consolidated Fedora development artifact: **VERIFIED**
+- Next Linux milestone: **ONE PACKAGED NO-PHONE USER JOURNEY**
+- Fresh physical target observation: **QUEUED UNTIL PHONE AVAILABLE**
+- Consent, execution, Recovery and public release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation: **CLOSED**
+
 ## Reviewed checkpoint: 44db4a6 — final signed installation-byte binding
 
 - Handoff commit: `44db4a6`

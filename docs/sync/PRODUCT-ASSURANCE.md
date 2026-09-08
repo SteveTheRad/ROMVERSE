@@ -1,5 +1,63 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: c21aba0 — native Windows managed Platform Tools self-repair
+
+- Reviewed commit: `c21aba0dee545a35979064559c17474cd7cbb720`
+- Approved base: `0dbd29a`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — ROMVERSE REPAIRS ITS WINDOWS TOOLCHAIN IN-PROCESS**
+
+### Decision
+
+Product Assurance inspected the documentation-only handoff and independently verified the retained
+managed installation, receipt, executable identities, audit chain, runtime log and native capture.
+From a fresh unelevated no-phone workspace, the existing app acquired the pinned official Android
+Platform Tools archive, verified it, installed it only inside ROMVERSE's managed directory and
+refreshed Device Engine without restart or creator repair steps. The same process reached the
+truthful ready/waiting-for-device state and closed cleanly. No source correction is required.
+
+### Independent evidence and acceptance
+
+- The 518-byte receipt binds the official Google Windows archive URL to exactly **8,044,989 bytes**
+  and SHA-256 `45f4d63113e895ebde0c90f194099a4676b6ac653bd28d54314a9e022bbc1a99`.
+- Independent hashes reproduce the receipt's exact ADB and Fastboot identities:
+  `b4a6b455702684652cccf7b46258b29e653538904359a58fd4931cf3ef286b3f` and
+  `b2d9cbff4ce9ae7eb448cfc831bafc867935f50f5be38f8f81057fd7eb3b8d86`.
+  The 15-file managed tree totals **17,529,916 bytes** and reports revision `37.0.1`.
+- Neither user nor machine PATH contains the disposable workspace. The application ran unsigned,
+  unelevated and left no process behind; its runtime log records one start and one clean close.
+- Independent visual inspection confirms the enabled `Scan for device` continuation, no-device
+  truth, two waiting surfaces and absence of the earlier Device Engine error.
+- The nine-record Guardian audit is a chained series of successful untargeted read-only
+  `fastboot.exe devices -l` host probes with no identifier, timeout or mutation. No uncertain
+  operation was retried and no device-changing authority exists.
+- No phone/emulator, targeted ADB/Fastboot command, Recovery, flash, wipe, unlock, root, relock, APK,
+  global installation, signing, publication or release occurred. The protected patch is untouched.
+
+### Approved next bounded Windows task
+
+Prove the managed-tool repair survives a normal application restart without another acquisition or
+creator intervention. Relaunch the same current unsigned executable once against the exact managed
+workspace, require the existing receipt and tool hashes to be revalidated, and confirm the Command
+Deck begins in the truthful ready/waiting-for-device state without Device Engine error, setup modal,
+download, UAC or PATH modification. Invoke the existing **Scan for device** action once with no phone
+present and require one bounded no-device completion that remains actionable and cleanly closable.
+
+Capture tool/receipt hashes and timestamps before and after to prove no reinstall. If one genuine
+Windows restart, receipt-loading, discovery or error-routing defect appears, apply only the minimum
+correction and run directly affected checks. Do not connect hardware, issue targeted or mutating
+commands, acquire tools again, rebuild/package the app, duplicate Linux's active UI correction,
+resume the external candidate job or run a broad suite. Commit/push one bounded checkpoint and stop
+for review.
+
+### Gate status
+
+- Windows managed Platform Tools self-repair: **VERIFIED**
+- Restart persistence and one bounded no-phone scan: **NEXT BOUNDED WINDOWS TASK**
+- GitHub-hosted unsigned-candidate job: **EXTERNAL ACCOUNT GATE OUTSTANDING**
+- Physical hardware, signing, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: af7f440 — packaged Windows Start-ROM-Project continuity
 
 - Reviewed commit: `af7f44052beb0b8acb20dd34e11c33709311eef2`

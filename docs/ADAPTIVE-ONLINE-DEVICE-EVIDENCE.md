@@ -89,6 +89,32 @@ contract requiring exact current device, firmware/source, partitions and mode, a
 ordered operation, consequences, recovery route, expected result, and fresh consent. Bootloader
 relocking remains permanently prohibited.
 
+## Fixed Google Play query-only acquisition
+
+The first source-specific path uses only the already registered exact Google Play supported-device
+catalog URL. A fixed HTTPS transport sends no credentials or cookies, accepts no redirects or
+compression, and exposes separate connect, read and overall timeouts. The request and response are
+bounded to 16 MiB, parsing is bounded to 100,000 rows, request spacing is at least two seconds, and
+validated `ETag`/`Last-Modified` values are reused conditionally only when a prior content digest
+exists.
+
+The strict UTF-16 CSV parser requires the exact four-column schema and rejects malformed, empty,
+overlong, control-character, spreadsheet-formula, and duplicate applicable rows. Because this is a
+query-only parser, exact duplicate rows outside the requested identity are discarded and can never
+be promoted; a duplicate row for the exact manufacturer/model/device-codename lookup fails closed.
+Multiple applicable retail identities remain ambiguous.
+
+Only an explicit privacy-checked manufacturer, model and device codename may be queried. One exact
+match forms four official retail-identity claims. No match remains `UNCONFIRMED`; no catalog row is
+promoted in bulk. The raw CSV exists only as bounded process memory during validation and is never
+written. A strict private receipt records success, no exact match, HTTP failure, validation failure,
+or cache-not-modified, along with bounded HTTP/cache metadata, content digest, parser identity,
+retained claim references and literal zero authority.
+
+Device DNA, Compatibility Matrix and Knowledge Archives consume the result through the existing
+read-only projection contract. Catalog identity cannot define firmware compatibility, a Device
+Pack, a build/flash contract, Guardian approval, a command, or device support.
+
 ## Implemented, simulated, deferred, unsupported
 
 - **Implemented:** strict claim model and archive, deterministic merging/linking, privacy filtering,

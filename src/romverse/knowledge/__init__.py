@@ -1,5 +1,13 @@
 """ROMVERSE's packaged, evidence-labelled knowledge catalog."""
 
+from romverse.knowledge.google_play_acquisition import (
+    GOOGLE_PLAY_CATALOG_URL,
+    AcquisitionOutcome,
+    CatalogAcquisitionReceipt,
+    CatalogLookup,
+    FixedGooglePlayHTTPS,
+    GooglePlayEvidenceAcquirer,
+)
 from romverse.knowledge.online_evidence import (
     EvidenceConsumer,
     EvidenceFreshness,
@@ -24,6 +32,10 @@ from romverse.knowledge.online_evidence import (
 )
 
 __all__ = [
+    "GOOGLE_PLAY_CATALOG_URL",
+    "AcquisitionOutcome",
+    "CatalogAcquisitionReceipt",
+    "CatalogLookup",
     "EvidenceConsumer",
     "EvidenceFreshness",
     "EvidenceProjection",
@@ -31,6 +43,8 @@ __all__ = [
     "EvidenceSourceAdapter",
     "EvidenceSourceRegistry",
     "EvidenceState",
+    "FixedGooglePlayHTTPS",
+    "GooglePlayEvidenceAcquirer",
     "MergedEvidenceClaim",
     "OnlineEvidenceArchive",
     "OnlineEvidenceClaim",

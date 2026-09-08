@@ -1,5 +1,92 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: c4c7d27 — Stage-11 receipt-binding deficiency
+
+- Reviewed checkpoint: `c4c7d277989da54518b38129943e386969d293ad`
+- Approved base: `2acbf0e`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **CORRECTION REQUIRED — PLAN MUST BIND ACCEPTED RECIPE AND DEBLOAT RESULTS**
+
+### Decision
+
+Product Assurance independently inspected the exact schema-3 plan, current Recipe and Debloat
+receipts, persisted mission and relevant plan/load/current-binding code. The plan correctly binds
+the protected source, current tree, Recipe definition, Guided choices and conflict-free 15-tool
+manifest, and remains local-only, non-flashable, execution-locked and authority-free. Those
+properties are accepted.
+
+Stage 11 is not complete because the plan does not identify the exact validated Recipe execution
+receipt or the exact Debloat result receipt. A Recipe definition digest proves intended changes,
+not which transactional result was accepted. The Guided-choice digest proves choices, not the
+resulting evidence. Replacing or deleting either receipt therefore cannot invalidate the saved
+plan today. The packaged UI's transition to Stage 12 was too early; Build correctly preserved the
+generated evidence and durably returned the mission to Stage 11 without retry.
+
+This is a genuine evidence-contract defect and qualifies for one minimum incremental correction.
+It is not authorization to restart the project, replay completed stages, broaden planning, or add
+execution capability.
+
+### Independent evidence
+
+- The generated plan is schema 3, plan digest
+  `64ad1db43cb0643c93014ee5923a7f6178b5c8d2ee395e550f7caf97b43fe22e`,
+  and has no Recipe-receipt or Debloat-receipt field.
+- The current validated Recipe receipt internally identifies itself as
+  `f5dbadad88d42490b1e36d5dfea54cfff8a6c32bf084f61b863242a0d11fac5a`
+  and binds Recipe digest `eb068402fe625bc9928bf30ecee04d13eeff567c21196152825a2e939fb0d88e`
+  plus exact before/after tree evidence.
+- The current zero-change Debloat receipt internally identifies itself as
+  `d314ea9de2fa736efd09ae5bf9451b57310d5c21e12fd26880c21728f3bf4d62`
+  and binds the accepted plan/scan, zero removals, protected-original unchanged and phone changed
+  false.
+- The schema-6 mission is retained at `selected_stage: build_plan` with
+  `build_plan_verified: false` and one exact receipt-binding blocker. Stage 12 was not operated.
+- Simulation remained clearly labelled and authority-free. No physical phone/emulator, hardware
+  command, download/install, firmware build/signing, Guardian/Recovery execution, publication,
+  release, Companion, Knowledge/UI Design Lab, Windows, force-push, lock or relock occurred.
+
+### Minimum exact correction and acceptance criteria
+
+1. Advance only the current bound build-plan contract and add explicit immutable
+   `recipe_receipt_digest` and `debloat_receipt_digest` fields. Bind the receipts' verified internal
+   `receipt_digest` values—not filenames, timestamps or outer file hashes—and include both fields
+   in the plan digest.
+2. During Guided Stage-11 planning, load the Recipe receipt through its existing strict external
+   binding checks against the current Recipe, tree and snapshot evidence, and load the Debloat
+   receipt through its existing strict scan/tree/snapshot checks. If the current Guided state says
+   those stages completed but the corresponding current receipt is absent, invalid, replaced or
+   mismatched, do not save/accept a current plan and retain one actionable Stage-11 blocker.
+3. Extend plan load and current-binding verification so deletion, replacement or tampering of
+   either bound receipt makes the plan non-current. Preserve legitimate non-Guided/unchanged paths
+   without inventing a receipt: an empty binding is valid only when the corresponding operation was
+   not required by the exact current Guided state.
+4. Update only directly affected downstream schema handling needed to preserve and reject the new
+   current plan correctly. Existing older plans may remain readable for diagnosis, but must not be
+   treated as current execution evidence when the active Guided route requires receipt bindings.
+5. Add focused contract tests for successful dual binding; missing/tampered/replaced Recipe
+   receipt; missing/tampered/replaced Debloat receipt; plan-digest tampering; and legitimate
+   no-receipt paths. Prove the UI advances only after the corrected plan reloads and verifies.
+
+After the focused checks pass, produce exactly one incremental replacement package because the
+executable bytes genuinely changed. Reuse the same project and all completed evidence; do not
+recreate or replay stages 1–10. Relaunch once with the existing simulation boundary, perform the
+minimum one ephemeral simulation refresh required after process restart, regenerate Stage 11 once,
+and require the new plan to contain both exact receipt digests and remain local-only,
+non-flashable, execution-locked and authority `none`. Persist Stage 12 but do not operate it.
+
+Commit/push one scoped correction and evidence handoff. Do not perform a second rebuild/retry,
+operate a real phone/emulator, install another tool/APK, execute a firmware build or signing,
+grant Guardian/Recovery authority, publish, release, touch Companion/Knowledge/UI Design Lab/
+Windows work, force-push, lock or relock.
+
+### Gate status
+
+- Safe local/non-flashable Stage-11 plan foundation: **ACCEPTED**
+- Exact Recipe/Debloat result binding: **CORRECTION REQUIRED**
+- Windows current-source integration: **SYNCHRONIZED STANDBY**
+- Physical hardware, build/sign/install execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: f322168 — managed Payload Dumper clears Stage 10
 
 - Reviewed checkpoint: `f3221684151427f8beb4a1e05f449171ba7946ae`

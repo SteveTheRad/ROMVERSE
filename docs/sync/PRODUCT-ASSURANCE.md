@@ -1,5 +1,66 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 15f5953 — retained APK reaches device discovery
+
+- Reviewed commit: `15f5953b0cc42d4e5a5d81254671a609ba8805ef`
+- Approved base: `ca8b7c8`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — APP LAUNCHPAD CONNECTION DEAD END IS CLOSED**
+
+### Decision
+
+Product Assurance inspected the complete source/test diff and independently verified the package,
+APK, runtime and Guardian ledger. The new contextual action revalidates a retained valid APK and
+absence of an authorized device, opens the existing Command Deck owner and emits one existing
+read-only discovery request. The exact APK inspection remains retained and approval/install remain
+disabled. No duplicate scanner, authority path or correction is required.
+
+### Independent evidence and acceptance
+
+- The widget action is visible only for a valid retained inspection with no authorized device and
+  no active APK worker. MainWindow independently revalidates those conditions before routing.
+- Focused coverage binds visibility, a single emitted request, Command Deck ownership, retained
+  inspection/hash and continuously disabled approval/install controls. The committed **3/3** result,
+  Ruff result and clean Git whitespace are accepted without a redundant broad run.
+- The corrected unsigned executable independently matches SHA-256
+  `557b1ad70c25f269ef16340ef5a9fc5607032e80cb853466f3454ef9b793d412`; the unchanged APK matches
+  `62bc530d5f077e3e34ad71002caa24303a584bf4661f56d2cc338c976bfb5a2b`.
+- Guardian audit verification independently passes all 332 records and the file matches SHA-256
+  `d1ca824cc99090cf733ec30df950f400cc19380f5d76497518c5f8f9e97b032b`. Its verified chain tail is
+  `36e016542ad91659ba1627fb06f9b78684ce06b7e23290ce5ba91eb3e2da4db5`; all activity remains
+  targetless read-only ADB/Fastboot inventory with no selector or device-changing operation.
+- The four-pair clean runtime record independently matches
+  `cc4ec80e048cfb5fd12f6222e4e61a7c5449ee8fbc22b18048188330bc42da20`. No phone, plan, approval,
+  consent, APK installation or execution authority exists.
+
+### Approved next bounded Linux task
+
+Move to one existing error-resolution journey without changing or resuming the stopped Knowledge
+task. In one fresh no-phone/no-project workspace, use the current package to open **Recovery Bay**,
+enter the deterministic symptom `adb unauthorized`, and activate **Search local Archives** once.
+Require the existing private offline Archives to open with the same exact query, show only a
+compatible local evidence-backed guide with execution authority `none`, and expose its existing
+canonical route to Command Deck. Activate that route once and require a truthful no-device landing
+with an enabled discovery action and no lost symptom/source context, repair worker, online request,
+plan, approval or execution authority.
+
+This is one packaged connected-error-resolution journey, not online research, adaptive Device DNA,
+a catalog expansion or a broad screen sweep. Reuse the current package without rebuilding unless a
+genuine routing, context, empty-result or dead-end defect appears; if one appears, apply only the
+minimum Desktop correction and focused test, then package/relaunch at most once. Commit/push one
+bounded handoff and stop for review. Do not modify Knowledge data, adaptive-online-device-dna,
+Companion, UI Design Lab or Windows work. No phone, ADB/Fastboot device command, download,
+firmware/APK action, signing, Guardian/Recovery execution, publication, release, lock or relock is
+authorized.
+
+### Gate status
+
+- App Launchpad retained-APK connection-owner handoff: **VERIFIED**
+- Recovery Bay → offline Archives → Command Deck continuity: **NEXT BOUNDED LINUX TASK**
+- Windows work: **OWNED BY WINDOWS; DO NOT DUPLICATE**
+- Physical hardware, installation, execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: bb87b1e — current AAPT2 minimum-SDK evidence
 
 - Reviewed commit: `bb87b1e3b55fbb3497eec324a7678eda899d1a23`

@@ -1,5 +1,61 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 7193aa3 — automatic exact-project Simulation preparation
+
+- Handoff commit: `7193aa3e3c607710e68991e206370a79a679202b`
+- Implementation commit: `a7c6857098d11a595fe5f627423c57d20894fc94`
+- Approved base: `e2f6b46`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — SHARED COORDINATOR RESUMES SIMULATION SAFELY**
+
+### Decision
+
+Product Assurance inspected the complete diff and independently reran the seven exact affected
+journeys. The Recipes-only coordinator is minimally generalized rather than duplicated: one
+memory-held destination and exact project ID select only the existing Recipes or Pre-Build
+Simulation continuation. The same resource admission, bounded producers, independently reloaded
+completion evidence, drift refusal and no-retry behavior remain authoritative.
+
+After a verified contained-tree result, Simulation resumes only at existing Build & Proof dry-run
+readiness. No `BuildPlan` is created or run, and navigation gains no build, Guardian, device or
+execution authority. Insufficient resources start no worker or write and retain the direct Source
+Lab continuation. This is the correct boundary for the approved local-prerequisite slice.
+
+### Independent evidence and acceptance
+
+- Product Assurance reran the exact Simulation success/admission-stop journeys, all three shared
+  Recipes journeys, adjacent no-project routing and already-ready ROM Studio handoff: **7/7
+  passed**.
+- Ruff check and format verification passed for both changed files; Git whitespace validation
+  passed; the branch and working tree were clean at review.
+- Acceptance criteria are satisfied: one shared coordinator, exact-project/destination binding,
+  no BuildPlan, verified resume, bounded admission stop, preserved progress and zero blind retry.
+- No phone, ADB/Fastboot, APK, firmware mutation, build/flash, Windows/Companion/Knowledge/UI work,
+  packaging, publication, release or bootloader relock occurred.
+
+### Approved next bounded Linux task
+
+Exercise one representative existing **fresh-workspace Guided project journey** using a disposable
+sanitized local firmware fixture: Command Deck `Start ROM Project` → exact project/source ownership
+→ existing inspection → admitted automatic local preparation → current Pre-Build Simulation
+readiness. Use the production UI/services and durable workspace evidence, not a mocked navigation
+shortcut. Identify the first genuine user-visible dead end, silent failure, lost context or manual
+technical step that ROMVERSE can safely resolve; apply at most one minimum correction and prove the
+journey resumes. If the whole path already works, change no source and record the evidence.
+
+Do not create or run a BuildPlan, perform a build, use a phone or ADB/Fastboot, broaden formats or
+features, run a broad suite, overlap Windows/Knowledge/UI Design Lab/Companion work, package,
+publish or release. Reuse existing services and focused evidence; do not repeat the already-proven
+Recipes/Simulation unit journeys unless directly affected. Commit/push one bounded checkpoint and
+stop for review.
+
+### Gate status
+
+- Recipes and Pre-Build Simulation safe local prerequisite continuity: **VERIFIED**
+- Representative fresh-workspace Guided project continuity: **NEXT BOUNDED LINUX TASK**
+- Consequential device action: **UNCHANGED — CONSENT AND GUARDIAN GOVERNED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: dccf673 — automatic exact-project Recipes preparation
 
 - Handoff commit: `dccf673dfa379f32b57bf089b6150c3a1495b786`

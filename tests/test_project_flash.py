@@ -111,7 +111,12 @@ def test_built_image_tamper_with_restored_mtime_fails_fresh_hash_check(built):
     before = path.stat()
     path.write_bytes(b"x" * before.st_size)
     os.utime(path, ns=(before.st_atime_ns, before.st_mtime_ns))
-    with pytest.raises(ProjectError, match="bytes differ"):
+    # Windows can reject the changed file at the same-file identity boundary before
+    # the later byte comparison. Both paths fail closed before preparation.
+    with pytest.raises(
+        ProjectError,
+        match="bytes differ|No current verified local build outputs exist",
+    ):
         preparer.prepare(project.project_id, candidate_choice="built")
 
 

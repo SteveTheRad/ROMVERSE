@@ -945,7 +945,7 @@ class LocalBootService:
         ):
             raise LocalBootError("The completed image-write record has incomplete results.")
         return {
-            "relative_path": str(path.relative_to(self.workspace)),
+            "relative_path": path.relative_to(self.workspace).as_posix(),
             "record_digest": digest,
             "plan_digest": str(document["plan_digest"]),
             "device_key": str(document["device_key"]),

@@ -150,9 +150,9 @@ def test_matching_phone_boot_check_links_saved_installation_without_reinstalling
     assert tuple(context.phone.changes) == changes
     assert outcome.receipt_path.read_bytes() == original
     document = json.loads(reports[0].receipt_path.read_text())
-    assert document["flash_binding"]["relative_path"] == str(
-        outcome.receipt_path.relative_to(context.source.store.workspace)
-    )
+    assert document["flash_binding"]["relative_path"] == outcome.receipt_path.relative_to(
+        context.source.store.workspace
+    ).as_posix()
     assert document["flash_binding"]["device_key"] == outcome.device_key
     assert document["readback_verified"] is False
     updated = load_latest_source_installation(context.source.store, context.project_id)

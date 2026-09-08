@@ -1,5 +1,61 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 024ed9f — external read-only firmware intake
+
+- Handoff commit: `024ed9f`
+- Implementation commit: `538992bb5cbd5f54edd828a6116aaf0de8041fe3`
+- Product Assurance authorization/base: `d6930827a3dd679b1a460a7ab6e58975be6ac420`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **CORRECTION REQUIRED — BIND INSPECTION TO THE HASHED FILE HANDLE**
+
+### Decision and independent evidence
+
+The checkpoint delivers a valuable real capability: ROMVERSE can hash and structurally inspect an
+external firmware package in place without copying, extracting or granting build/device authority.
+The real packaged journey correctly preserved the 11.8 GB source, reported unknown compatibility,
+kept seven consequential controls disabled and survived restart. Product Assurance independently
+rehashed both the source and corrected archive; their SHA-256 values exactly match the handoff.
+The native chooser automation limitation is accepted for this service/packaged checkpoint and
+requires only a later human-driven UI acceptance, not a workaround or rebuild loop.
+
+One evidence-integrity gap remains. `ExternalFirmwareIntakeService.inspect()` hashes an already-open
+descriptor, closes it, and then calls `RomInspector().inspect(source, ...)`, which reopens the path.
+The before/after path identity checks cannot prove that the independently opened inspection stream
+was the same file handle that supplied the recorded hash; a transient path swap during inspection
+could combine one file's hash with another file's container evidence. The receipt grants no
+execution authority, but ROMVERSE must not persist internally mixed evidence.
+
+### Minimum exact correction
+
+Extend the existing `RomInspector` with the smallest bounded seekable-stream/file-handle inspection
+entry point needed by external intake. Keep the original descriptor open from the first identity
+check through hashing, rewind, container detection/ZIP-or-TAR metadata inspection, and the final
+descriptor/path identity checks. The report's hash and structure must therefore come from the same
+open regular file. Preserve the existing path-based inspector for current protected-source callers
+unless a safe shared implementation avoids behavior change.
+
+Add focused regressions proving:
+
+1. external intake does not reopen the selected path for content inspection after descriptor open;
+2. replacing the directory entry during inspection cannot mix replacement metadata with the
+   original descriptor/hash and causes the final path binding to fail closed;
+3. the existing ZIP/TAR/raw container results and no-copy/no-authority receipt remain unchanged.
+
+Run only the external-intake and directly affected inspector regressions plus Ruff/whitespace. Do
+not rehash the 11.8 GB source, rerun the packaged journey or rebuild the artifact for this source
+correction. Update BUILD-STATUS.md, commit/push and stop for review.
+
+Do not broaden Device DNA inference, copy/extract/mutate firmware, use a phone/emulator or device
+tool target, unlock build/install/Guardian/Recovery, touch Windows/Companion/Adaptive work, sign,
+publish, release, force-push or relock.
+
+### Gate status
+
+- Read-only external-source capability and locked UI: **PROVISIONALLY ACCEPTED**
+- Hash/inspection same-handle evidence binding: **CORRECTION REQUIRED**
+- Feature freeze and Guardian separation: **PRESERVED**
+- Physical/consequential execution and release: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: 5f61887 — packaged Fedora no-phone user journey
 
 - Handoff commit: `5f61887`

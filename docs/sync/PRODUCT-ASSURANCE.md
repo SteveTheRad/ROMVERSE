@@ -1,5 +1,66 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 77e4fff — accessible Guided dialog lifecycle
+
+- Handoff commit: `77e4fffebc8dff82af07ea3b7025f95e03454f3f`
+- Implementation commit: `41aabea0f6a775aa448ea4435a2093404f076b96`
+- Correction base: `216e842ffafb29b9ce310b5e0a5045f0b40400ca`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — NESTED GUIDED LIFECYCLE REMOVED AND ACCESSIBLE ENTRY IS STABLE**
+
+### Decision
+
+Product Assurance inspected the exact two-file correction and independently reran its final focused
+selection at **7/7 passed**. Guided now uses one retained non-blocking modal, reuses the exact open
+instance, refreshes once only after `finished`, releases the reference, and truthfully distinguishes
+local build evidence from installation/phone action. The corrected packaged AT-SPI traversal/action
+reproduction completed with no fatal trace. The former accessibility-cache crash is resolved for
+this boundary; no broader simulation or authority change occurred.
+
+The projectless AT-SPI `Save & exit` action returning success while leaving the dialog visible is a
+separate non-crashing continuity defect. It does not invalidate the accepted lifecycle correction,
+but an enabled visible action may not remain inert or require an undocumented Escape workaround. It
+is the next bounded task and should be resolved before another product journey.
+
+### Independent evidence and acceptance
+
+- Independent focused verification passed **7/7**, covering the four accepted simulation/exact-tree
+  checks plus non-blocking completion, single-instance retention/one refresh and truthful handoff copy.
+- The corrected executable is mode `0755`, 6,323,048 bytes and independently matches SHA-256
+  `0a1fbd8bf05b2d922e8237bfa9d7646eaf8e85d02c9a9be873f73ef4df8d19cd`.
+- The fresh reproduction runtime record independently matches SHA-256
+  `c9a5cb9322615534d8a5ad7255f55888b66be1b4b82c6ab0116e1910585d64c3` and contains exactly
+  one start followed by one clean close with no fatal Python/Qt trace.
+- The retained owner reference, already-open raise/activate path, identity-checked finish callback,
+  one post-close refresh and `deleteLater()` lifecycle are bounded and structurally correct.
+- No project, firmware, device identity, phone command, APK, build/signing, Guardian/Recovery
+  execution, publication, release, lock or relock occurred in the reproduction.
+
+### Approved next bounded Linux task
+
+Using this exact corrected package in one fresh projectless no-phone workspace, reproduce only the
+enabled **Save & exit** AT-SPI action with a bounded event-settlement wait. It must close the Guided
+dialog and return to the still-projectless Command Deck without creating evidence or requiring Escape.
+If it already does so after correct event settlement, make no source change and record that evidence.
+If it remains visible, apply only the minimum accessible-action correction so the existing visible
+control performs its documented close semantics for both assistive technology and pointer/keyboard
+users; do not add another button or confirmation.
+
+Add one focused projectless close regression and keep the accepted dialog/simulation tests. Repackage
+at most once only if source changes, then perform one AT-SPI Press/close reproduction and require one
+clean lifecycle record. Do not reopen or replay the 9 GB firmware journey, create a project, download
+tools, connect a phone, issue device commands, install an APK, build/sign/flash firmware, grant
+Guardian/Recovery authority, publish, release, lock or relock. Commit/push one bounded checkpoint and
+stop for review.
+
+### Gate status
+
+- Retained non-blocking Guided lifecycle and clean AT-SPI traversal: **VERIFIED**
+- Truthful pre-build/post-build Genesis return copy: **VERIFIED**
+- Projectless accessible Save & exit continuity: **NEXT BOUNDED LINUX TASK**
+- Physical hardware, signing, Guardian/Recovery execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 88e8ffc — packaged simulated Guided journey
 
 - Handoff commit: `88e8ffcd76268c7babb25e7d4842e251abf55a4b`

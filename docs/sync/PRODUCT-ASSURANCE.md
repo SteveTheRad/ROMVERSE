@@ -1,5 +1,49 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 36f99fe — corrected Fastboot round trip
+
+- Handoff commit: `36f99fe1c5be6de1776f40bc4fbfb34dd0d449a3`
+- Implementation commit: `03dc954fc0c5ec7f113c9696b6358c3500ab4349`
+- Product Assurance correction/base: `1a33372cac002c6142b8ac0d86eb71b099ef8c57`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — CORRECTED FASTBOOT ROUND TRIP HARDWARE VERIFIED**
+
+### Decision and independent evidence
+
+The correction is the minimum bounded response to the observed Xiaomi transient. Fastboot source
+inspection may reacquire only one successful-but-empty product read, never a failed, malformed or
+conflicting read, and then requires two complete identical fresh observations before plan creation.
+It does not widen the shared parser, reuse historical Device Engine evidence or grant authority
+from the transport serial alone. Changed/missing identity or mode continues to reject before any
+reboot.
+
+Product Assurance independently inspected the exact source/test diff and reran the complete focused
+transition suite: **43/43 passed**, with Ruff static/format and whitespace checks clean. It also
+strictly verified the current Guardian active/archive chain at 181 entries and loaded the final
+privacy-safe passport digest
+`0d1dc13d75ba5053e39a61090a74102e347657c64d0608a0128bc191cd2ae3cd`, matching the handoff.
+The two sealed transition journals show one verified Android-to-bootloader arrival and one verified
+Fastboot-to-Android arrival. Final uncached Device Engine evidence re-established the same
+`popsicle` Android identity and current HyperOS build.
+
+The hardware run did not encounter the transient-empty branch, so that branch is correctly
+classified as software-tested only. The complete normal-path round trip is hardware verified. No
+reboot command was repeated and no flash, partition, slot, wipe, unlock/relock, APK or file-transfer
+operation occurred.
+
+### Gate status and next task
+
+- Bounded Fastboot source reacquisition: **APPROVED / SOFTWARE VERIFIED**
+- Corrected Android → bootloader Fastboot → Android round trip: **APPROVED / HARDWARE VERIFIED**
+- Phone's final Android return and exact identity: **VERIFIED**
+- Feature freeze and Guardian separation: **PRESERVED**
+- Flashing, partition operations, Fresh Live Target and release: **NOT AUTHORIZED**
+- Bootloader relocking: **PERMANENTLY PROHIBITED**
+
+No further phone operation is approved by this verdict. Resume the previously queued read-only
+external-package metadata and untrusted-procedure inventory only after the Windows convergence
+handoff is issued separately; do not repeat this hardware journey.
+
 ## Reviewed checkpoint: 99f3534 — Fastboot return-plan transient observation defect
 
 - Handoff commit: `99f353442f4aedf4a7f92739cac6b11f2fa21570`

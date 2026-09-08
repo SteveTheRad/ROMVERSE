@@ -1,5 +1,72 @@
 # ROMVERSE Product Assurance
 
+## Current authorization — converge verified Linux core into Windows
+
+- Windows base: `35f7baf22874bf842041592e449d05907ee4d93e`
+- Verified shared-core source: `c0de9b2ab491120276f640628d159b51ab1dbcb6` on
+  `origin/linux/stage1-desktop-readiness`
+- Branch: `windows-launcher-authorized-work`
+- Status: **AUTHORIZED — CONTROLLED CROSS-PLATFORM CONVERGENCE**
+
+### Reason
+
+Windows is stopped only because the trusted interactive app-control service is unavailable. Waiting
+or rebuilding the same `f52dfff` artifact would add no value. The Windows line now has 72 unique
+commits and the verified Linux/shared-core line has 98 unique commits after their common base. A
+repository-level dry merge identifies only three textual conflicts:
+`docs/sync/PRODUCT-ASSURANCE.md`, `tests/test_build_contracts.py` and
+`tests/test_desktop_bundle.py`. This is a bounded, necessary integration milestone and does not
+depend on interactive UI control or a phone.
+
+### Exact bounded task
+
+Preserve the current untracked
+`0001-Preserve-local-build-completion-across-restart.patch` byte-for-byte. Its source change is
+already represented by committed Windows history, so do not apply, delete, rewrite, stage or commit
+it. Confirm the Windows working tree otherwise contains no user change, fetch the two exact refs and
+fast-forward to this verdict. Create a normal non-rebase merge of
+`c0de9b2ab491120276f640628d159b51ab1dbcb6` into `windows-launcher-authorized-work`; never reset,
+rewrite or force-push either history.
+
+Resolve only the three predicted conflicts. For Product Assurance, retain both platforms' complete
+chronological verdicts and place the current Windows convergence authorization at the top. For the
+two test files, preserve the semantic union of Linux/shared-core and Windows-specific assertions;
+do not choose one side wholesale, weaken a bound, lower an expected count without accounting for
+the new cases, or remove a Windows path/identity assertion. If another conflict appears, stop at the
+first one and report it rather than improvising a wider rewrite.
+
+Run the directly affected Windows tests first, including build contracts, desktop bundle,
+local-device transition, external firmware intake/inspection, build-control UI and Windows launcher
+identity/runner coverage. Resolve only genuine integration failures. If that set passes, run one
+complete Windows Desktop/Python suite to detect cross-platform regressions introduced by converging
+the shared core. Do not loop or rerun a passing group. Run whole-source lint/format verification and
+whitespace checks once at the final tree.
+
+If verification passes, commit one merge/integration checkpoint and update
+`docs/sync/BUILD-STATUS.md` with the exact parents, conflict resolution, unique test totals and
+genuine Windows evidence. Do not build or package yet; that becomes the next Product Assurance
+decision because the existing Windows artifact remains valid for its old source but is superseded
+for the converged source. Push normally and stop for independent review.
+
+### Boundaries
+
+- This task integrates already reviewed functionality; it adds no new feature or execution route.
+- Interactive packaged UI evidence remains outstanding, not failed or fabricated.
+- Do not install system-wide dependencies, use guessed-coordinate/keystroke automation, or attempt
+  to repair the unavailable app-control service inside ROMVERSE source.
+- No phone/emulator, ADB/Fastboot target, Companion/Adaptive change, firmware execution, consent,
+  Guardian dispatch, Recovery action, signing, publication, release, destructive Git action or
+  bootloader relock.
+- Preserve exact-device evidence, Guardian-only authority, consent separation,
+  UNKNOWN-on-uncertainty, no blind retry and permanent no-relock.
+
+### Gate status
+
+- Existing Windows artifact at `f52dfff`: **APPROVED FOR ITS RECORDED SOURCE**
+- Windows/shared-core convergence: **AUTHORIZED NOW**
+- Rebuilt converged artifact: **NOT YET AUTHORIZED**
+- Interactive Windows packaged journey: **OUTSTANDING; MUST NOT BLOCK THIS TASK**
+
 ## Reviewed checkpoint: f52dfff — refreshed Windows signing/preparation alpha
 
 - Handoff commit: `f52dfff`

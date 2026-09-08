@@ -271,6 +271,26 @@ def test_guided_mission_uses_one_retained_nonblocking_dialog_and_refreshes_once(
     studio.close()
 
 
+def test_projectless_guided_save_and_exit_closes_without_creating_evidence(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    store = RomProjectStore(tmp_path / "workspace")
+    studio = RomStudio(store, DevicePackRegistry(()))
+    studio.refresh()
+
+    studio._open_guided_setup()
+    mission = studio._guided_mission_dialog
+    assert isinstance(mission, GuidedBuildMission)
+    assert mission.selected_index == 0
+
+    mission.save_button.click()
+    app.processEvents()
+
+    assert studio._guided_mission_dialog is None
+    assert store.list_projects() == ()
+    assert not store.projects_root.exists()
+    studio.close()
+
+
 def test_genesis_handoff_copy_distinguishes_prebuild_and_recorded_build_evidence(
     tmp_path, monkeypatch
 ):

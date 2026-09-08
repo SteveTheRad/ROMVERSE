@@ -861,7 +861,9 @@ class GuidedBuildMission(QDialog):
         if self._start_new_project:
             return True
         if self.studio.current_project is None:
-            return False
+            # The initial projectless stage has no durable progress to lose. Save & exit
+            # must still perform its documented close action instead of becoming inert.
+            return self.selected_index == 0
         selected = STAGES[self.selected_index].stage_id
         self.state = replace(self.state, selected_stage=selected)
         try:

@@ -723,7 +723,8 @@ class RomStudio(QWidget):
         self.worker: ManagedRunnable | None = None
         self._active_operation = ""
         self._active_project_id = ""
-        self._automatic_recipe_project_id = ""
+        self._automatic_preparation_project_id = ""
+        self._automatic_preparation_destination = ""
         self._last_validated_completion: tuple[str, str, int] | None = None
         self._last_recovery_report: WorkspaceRecoveryReport | None = None
         self._latest_guardian_execution_plan: GuardianExecutionPlan | None = None
@@ -1315,9 +1316,9 @@ class RomStudio(QWidget):
     def open_dashboard_intent(self, action: str) -> bool:
         """Preserve one Command Deck intent after navigation into ROM Studio.
 
-        Build ROM opens Genesis; Simulation routes to its exact command group. Recipes may run
-        its already-inspected project's reversible local preparation, but never gains phone
-        authority or creates a recipe merely through navigation.
+        Build ROM opens Genesis. Simulation and Recipes may run an already-inspected exact
+        project's reversible local preparation, but never gain phone authority or start a build;
+        Recipes also cannot create a recipe merely through navigation.
         """
 
         action = str(action).strip()
@@ -1342,6 +1343,12 @@ class RomStudio(QWidget):
 
         if action == "Pre-Build Simulation":
             ready, detail = self._prebuild_simulation_handoff()
+            if not ready:
+                started, automatic_detail = self._begin_automatic_local_preparation(action)
+                if started:
+                    return True
+                if automatic_detail:
+                    detail = automatic_detail
             destination = self._open_prebuild_simulation_destination(ready)
             self._show_dashboard_handoff(
                 f"Pre-Build Simulation → {destination}",
@@ -1355,20 +1362,8 @@ class RomStudio(QWidget):
         if action == "Recipes":
             ready, detail = self._recipe_forge_handoff()
             if not ready:
-                operation, automatic_detail = self._automatic_recipe_preparation_admission()
-                if operation:
-                    project = self.current_project
-                    assert project is not None
-                    self._automatic_recipe_project_id = project.project_id
-                    self._open_recipe_forge_destination(False)
-                    self._show_dashboard_handoff(
-                        "Recipes → Automatic safe preparation",
-                        automatic_detail,
-                        "PREPARING",
-                        ready=True,
-                    )
-                    self.detail_scroll.ensureWidgetVisible(self.command_tabs, 0, 24)
-                    self._start_worker(operation)
+                started, automatic_detail = self._begin_automatic_local_preparation(action)
+                if started:
                     return True
                 if automatic_detail:
                     detail = automatic_detail
@@ -1384,11 +1379,41 @@ class RomStudio(QWidget):
 
         return False
 
-    def _automatic_recipe_preparation_admission(self) -> tuple[str, str]:
-        """Admit only the exact reversible local prerequisites for Recipe Forge."""
+    def _begin_automatic_local_preparation(self, destination: str) -> tuple[bool, str]:
+        """Start one admitted exact-project preparation for an existing destination."""
+
+        operation, detail = self._automatic_local_preparation_admission(destination)
+        if not operation:
+            return False, detail
+        project = self.current_project
+        if project is None:
+            return False, ""
+        self._automatic_preparation_project_id = project.project_id
+        self._automatic_preparation_destination = destination
+        if destination == "Recipes":
+            self._open_recipe_forge_destination(False)
+        else:
+            self._open_prebuild_simulation_destination(False)
+        self._show_dashboard_handoff(
+            f"{destination} → Automatic safe preparation",
+            detail,
+            "PREPARING",
+            ready=True,
+        )
+        self.detail_scroll.ensureWidgetVisible(self.command_tabs, 0, 24)
+        self._start_worker(operation)
+        return True, detail
+
+    def _automatic_local_preparation_admission(self, destination: str) -> tuple[str, str]:
+        """Admit exact reversible local prerequisites for one known existing workflow."""
 
         project = self.current_project
-        if project is None or project.original is None or self.worker is not None:
+        if (
+            destination not in {"Pre-Build Simulation", "Recipes"}
+            or project is None
+            or project.original is None
+            or self.worker is not None
+        ):
             return "", ""
         report = self.inspection.load_report(project.project_id)
         if report is None:
@@ -1418,15 +1443,15 @@ class RomStudio(QWidget):
                 return (
                     "",
                     f"{project.name} remains exactly selected, but automatic preparation stopped "
-                    f"before writing: {reason}. Free workspace storage, then choose Recipes "
+                    f"before writing: {reason}. Free workspace storage, then choose {destination} "
                     "again. Prior evidence, the protected source, and the phone remain unchanged.",
                 )
         except (OSError, ProjectError, TypeError, ValueError) as exc:
             return (
                 "",
                 f"{project.name} remains exactly selected, but ROMVERSE could not prove safe "
-                f"preparation admission: {exc}. Review Source Lab evidence, then choose Recipes "
-                "again. No preparation or phone action started.",
+                f"preparation admission: {exc}. Review Source Lab evidence, then choose "
+                f"{destination} again. No preparation or phone action started.",
             )
         operation = "working-copy" if working is None else "extract"
         next_step = (
@@ -1434,12 +1459,13 @@ class RomStudio(QWidget):
             if operation == "working-copy"
             else "prepare the contained tree from the already verified baseline"
         )
+        resume = "Recipe Forge" if destination == "Recipes" else "Build & Proof dry-run readiness"
         return (
             operation,
             f"ROMVERSE is using {project.name}'s protected original and valid inspection to "
             f"{next_step}. Progress and producer evidence remain visible; on verified completion "
-            "Recipe Forge will resume automatically. This is reversible local preparation only; "
-            "the protected source and phone remain unchanged.",
+            f"{resume} will resume automatically. This is reversible local preparation only; "
+            "no build starts, and the protected source and phone remain unchanged.",
         )
 
     def _prebuild_simulation_handoff(self) -> tuple[bool, str]:
@@ -4618,12 +4644,12 @@ class RomStudio(QWidget):
             else "Recomputing SHA-256…"
         )
         if (
-            self._automatic_recipe_project_id
-            and self._automatic_recipe_project_id == self._active_project_id
+            self._automatic_preparation_project_id
+            and self._automatic_preparation_project_id == self._active_project_id
             and operation in {"working-copy", "extract"}
         ):
             self.operation_status.setText(
-                "Recipes automatic preparation  •  "
+                f"{self._automatic_preparation_destination} automatic preparation  •  "
                 + self.operation_status.text()
                 + "  •  protected source unchanged  •  phone unchanged"
             )
@@ -5004,7 +5030,7 @@ class RomStudio(QWidget):
         self.refresh(project_id)
         self._last_validated_completion = (operation, project_id, id(result))
         self.operation_completed.emit(operation, result)
-        if self._continue_automatic_recipe_preparation(operation, project_id):
+        if self._continue_automatic_local_preparation(operation, project_id):
             return
         if isinstance(result, GuardianManifestReview):
             from romverse.ui.build_control import GuardianManifestReviewDialog
@@ -5029,43 +5055,47 @@ class RomStudio(QWidget):
                     result.manifest_digest,
                 )
 
-    def _continue_automatic_recipe_preparation(self, operation: str, project_id: str) -> bool:
-        """Advance or resume one exact Recipes request after producer-validated evidence."""
+    def _continue_automatic_local_preparation(self, operation: str, project_id: str) -> bool:
+        """Advance or resume one exact destination after producer-validated evidence."""
 
-        if not self._automatic_recipe_project_id:
+        if not self._automatic_preparation_project_id:
             return False
+        destination = self._automatic_preparation_destination
         if (
-            project_id != self._automatic_recipe_project_id
+            destination not in {"Pre-Build Simulation", "Recipes"}
+            or project_id != self._automatic_preparation_project_id
             or self.current_project is None
             or self.current_project.project_id != project_id
             or operation not in {"working-copy", "extract"}
         ):
-            self._automatic_recipe_project_id = ""
+            self._automatic_preparation_project_id = ""
+            self._automatic_preparation_destination = ""
             self._show_dashboard_handoff(
-                "Recipes → Preparation stopped safely",
+                f"{destination or 'Requested workflow'} → Preparation stopped safely",
                 "The selected project or preparation evidence changed. ROMVERSE preserved prior "
                 "progress and did not guess, retry, or continue into another project. Select the "
-                "exact project and choose Recipes to reassess current evidence.",
+                "exact project and choose the requested workflow to reassess current evidence.",
                 "ATTENTION",
                 ready=False,
             )
             return False
         if operation == "working-copy":
-            next_operation, detail = self._automatic_recipe_preparation_admission()
+            next_operation, detail = self._automatic_local_preparation_admission(destination)
             if next_operation != "extract":
-                self._automatic_recipe_project_id = ""
+                self._automatic_preparation_project_id = ""
+                self._automatic_preparation_destination = ""
                 self._show_dashboard_handoff(
-                    "Recipes → Preparation stopped safely",
+                    f"{destination} → Preparation stopped safely",
                     detail
                     or "The isolated baseline is preserved, but current evidence no longer admits "
-                    "contained-tree preparation. Review Source Lab, then choose Recipes again; "
-                    "ROMVERSE did not retry or change the phone.",
+                    "contained-tree preparation. Review Source Lab, then choose the requested "
+                    "workflow again; ROMVERSE did not retry or change the phone.",
                     "ATTENTION",
                     ready=False,
                 )
                 return False
             self._show_dashboard_handoff(
-                "Recipes → Automatic safe preparation",
+                f"{destination} → Automatic safe preparation",
                 detail,
                 "PREPARING",
                 ready=True,
@@ -5073,30 +5103,36 @@ class RomStudio(QWidget):
             self._start_worker("extract")
             return True
 
-        self._automatic_recipe_project_id = ""
-        ready, _detail = self._recipe_forge_handoff()
+        self._automatic_preparation_project_id = ""
+        self._automatic_preparation_destination = ""
+        ready, _detail = (
+            self._recipe_forge_handoff()
+            if destination == "Recipes"
+            else self._prebuild_simulation_handoff()
+        )
         if not ready:
             self._show_dashboard_handoff(
-                "Recipes → Preparation stopped safely",
-                "The contained tree result was recorded, but current Recipe Forge readiness did "
-                "not validate. Prior progress is preserved; review Source Lab and choose Recipes "
-                "again. ROMVERSE did not guess, retry, or change the phone.",
+                f"{destination} → Preparation stopped safely",
+                "The contained tree result was recorded, but current destination readiness did "
+                "not validate. Prior progress is preserved; review Source Lab and choose the "
+                "requested workflow again. ROMVERSE did not guess, retry, or change the phone.",
                 "ATTENTION",
                 ready=False,
             )
             return False
-        self.open_dashboard_intent("Recipes")
+        self.open_dashboard_intent(destination)
         return True
 
     @Slot(str)
     def _worker_failed(self, message: str) -> None:
         operation = self._active_operation
         project_id = self._active_project_id
-        automatic_recipe_failure = bool(
-            self._automatic_recipe_project_id
-            and project_id == self._automatic_recipe_project_id
+        automatic_preparation_failure = bool(
+            self._automatic_preparation_project_id
+            and project_id == self._automatic_preparation_project_id
             and operation in {"working-copy", "extract"}
         )
+        automatic_destination = self._automatic_preparation_destination
         if operation == "guardian-review":
             self._latest_guardian_execution_plan = None
             self._latest_guardian_gateway_contract = None
@@ -5130,8 +5166,9 @@ class RomStudio(QWidget):
         self.operation_status.setText(status)
         self.operation_status.setObjectName("Danger")
         self._repolish(self.operation_status)
-        if automatic_recipe_failure:
-            self._automatic_recipe_project_id = ""
+        if automatic_preparation_failure:
+            self._automatic_preparation_project_id = ""
+            self._automatic_preparation_destination = ""
             self.command_tabs.setCurrentIndex(0)
             target = (
                 self.extract_button
@@ -5141,10 +5178,11 @@ class RomStudio(QWidget):
             )
             target.setFocus(Qt.FocusReason.OtherFocusReason)
             self._show_dashboard_handoff(
-                "Recipes → Preparation stopped safely",
+                f"{automatic_destination} → Preparation stopped safely",
                 f"ROMVERSE recorded a bounded {operation.replace('-', ' ')} failure: {message}. "
                 "Verified prior progress remains preserved. Review the focused Source Lab action, "
-                "then choose Recipes to reassess; no automatic retry or phone action occurred.",
+                f"then choose {automatic_destination} to reassess; no automatic retry or phone "
+                "action occurred.",
                 "ATTENTION",
                 ready=False,
             )

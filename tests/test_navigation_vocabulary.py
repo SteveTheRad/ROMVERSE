@@ -50,6 +50,7 @@ from romverse.rom.boot_observation import (
     BootObservationStatus,
     BootSample,
 )
+from romverse.rom.builds import RomBuildPlanner
 from romverse.rom.first_light import (
     FirstLightOverall,
     FirstLightReport,
@@ -1463,8 +1464,9 @@ def test_command_deck_recipes_does_not_start_without_resource_admission(
         window.close()
 
 
-def test_command_deck_simulation_readiness_matches_the_exact_project_handoff(
+def test_command_deck_simulation_prepares_the_exact_project_and_resumes_dry_run_readiness(
     tmp_path: Path,
+    monkeypatch,
 ) -> None:
     app = QApplication.instance() or QApplication([])
     logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
@@ -1477,6 +1479,8 @@ def test_command_deck_simulation_readiness_matches_the_exact_project_handoff(
         pack_registry=registry,
         app_settings=AppSettings(online_intelligence_enabled=False),
     )
+    workers = []
+    monkeypatch.setattr("romverse.ui.rom_studio.start_background", workers.append)
     try:
         window.rom_studio.refresh(project.project_id)
         window._navigate_route("command_deck")
@@ -1492,25 +1496,31 @@ def test_command_deck_simulation_readiness_matches_the_exact_project_handoff(
         assert window.rom_studio.current_project is not None
         assert window.rom_studio.current_project.project_id == project.project_id
         assert window.rom_studio.command_tabs.currentIndex() == 0
-        assert window.rom_studio.working_button.isEnabled()
         assert window.rom_studio.dashboard_handoff_title.text() == (
-            "Pre-Build Simulation → Source Lab prerequisite"
+            "Pre-Build Simulation → Automatic safe preparation"
         )
-        assert window.rom_studio.dashboard_handoff_badge.text() == "PREREQUISITE"
+        assert window.rom_studio.dashboard_handoff_badge.text() == "PREPARING"
         assert project.name in window.rom_studio.dashboard_handoff_detail.text()
-        assert "contained working tree" in window.rom_studio.dashboard_handoff_detail.text()
-        assert window.nexus_events.list_recent() == before
-        assert window.rom_studio.worker is None
+        assert "Build & Proof dry-run readiness will resume automatically" in (
+            window.rom_studio.dashboard_handoff_detail.text()
+        )
+        assert "no build starts" in window.rom_studio.dashboard_handoff_detail.text()
+        assert len(workers) == 1
+        assert workers[0].operation == "working-copy"
+        assert workers[0].project_id == project.project_id
+        assert window.rom_studio.worker is workers[0]
+        assert RomBuildPlanner(store).load(project.project_id) is None
 
-        store.create_working_copy(project.project_id)
-        RomInspectionService(store).extract_project_tree(project.project_id)
-        window.rom_studio.refresh(project.project_id)
-        window._navigate_route("command_deck")
+        workers.pop(0).run()
         app.processEvents()
-        simulation = window.device_center.quick_action_buttons["Pre-Build Simulation"]
 
-        assert "READY" in simulation.text()
-        simulation.click()
+        assert store.working_copy(project.project_id) is not None
+        assert len(workers) == 1
+        assert workers[0].operation == "extract"
+        assert workers[0].project_id == project.project_id
+        assert not RomInspectionService(store).working_tree_exists(project.project_id)
+
+        workers.pop(0).run()
         app.processEvents()
 
         assert window.stack.currentWidget() is window.rom_studio
@@ -1523,8 +1533,69 @@ def test_command_deck_simulation_readiness_matches_the_exact_project_handoff(
         assert window.rom_studio.dashboard_handoff_badge.text() == "READY"
         assert project.name in window.rom_studio.dashboard_handoff_detail.text()
         assert "Execution remains locked" in window.rom_studio.dashboard_handoff_detail.text()
-        assert window.nexus_events.list_recent() == before
+        assert RomInspectionService(store).working_tree_exists(project.project_id)
+        assert RomBuildPlanner(store).load(project.project_id) is None
+        assert len(window.nexus_events.list_recent()) > len(before)
+        assert workers == []
         assert window.rom_studio.worker is None
+        assert not QApplication.activeModalWidget()
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_command_deck_simulation_does_not_start_without_resource_admission(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    store, registry, project, report = _project(tmp_path)
+    window = MainWindow(
+        None,
+        logo,
+        store.workspace,
+        app_icon_path=logo,
+        pack_registry=registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    workers = []
+    budget = window.rom_studio.inspection.extraction_budget(project.project_id, report)
+    monkeypatch.setattr("romverse.ui.rom_studio.start_background", workers.append)
+    monkeypatch.setattr(
+        window.rom_studio.inspection,
+        "extraction_budget",
+        lambda _project_id, _report: replace(
+            budget,
+            free_bytes=0,
+            safe=False,
+            reason="fixture simulation storage admission denied",
+        ),
+    )
+    try:
+        window.rom_studio.refresh(project.project_id)
+        window._navigate_route("command_deck")
+        app.processEvents()
+
+        window.device_center.quick_action_buttons["Pre-Build Simulation"].click()
+        app.processEvents()
+
+        assert workers == []
+        assert window.rom_studio.worker is None
+        assert store.working_copy(project.project_id) is None
+        assert not RomInspectionService(store).working_tree_exists(project.project_id)
+        assert RomBuildPlanner(store).load(project.project_id) is None
+        assert window.rom_studio.command_tabs.currentIndex() == 0
+        assert window.rom_studio.dashboard_handoff_title.text() == (
+            "Pre-Build Simulation → Source Lab prerequisite"
+        )
+        assert "stopped before writing" in window.rom_studio.dashboard_handoff_detail.text()
+        assert "fixture simulation storage admission denied" in (
+            window.rom_studio.dashboard_handoff_detail.text()
+        )
+        assert "choose Pre-Build Simulation again" in (
+            window.rom_studio.dashboard_handoff_detail.text()
+        )
         assert not QApplication.activeModalWidget()
     finally:
         window.companion_center.transport.close()

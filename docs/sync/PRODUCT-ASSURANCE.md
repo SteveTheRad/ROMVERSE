@@ -1,5 +1,70 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 438f287 — official Android guide evidence and value gate
+
+- Handoff/evidence commit: `438f28759b76986aa7b178e650f6f3fa07eadd10`
+- Implementation commit: `655e4578342f6cc55bccc6b6de9ef3c6786de5ec`
+- Product Assurance authorization/base: `7b58c8be04754b9adecbe75d50686ffa8aebdcbb`
+- Branch: `adaptive-online-device-dna`
+- Review status: **APPROVED — TYPED GUIDE EVIDENCE AND VALUE-GATED PLAN VERIFIED**
+
+### Decision and independent evidence
+
+The checkpoint conservatively extends the existing schema with typed identity, diagnostic, guide,
+fix-claim and outcome fields while preserving legacy identity records and their original evidence
+state. The fixed canonical Android Developers adapter retains three short, heading-bound connection
+guidance claims from one official page. The retained archive contains only eight quoted source
+words, typed ROMVERSE-authored descriptions and exact provenance; it contains no raw HTML, code,
+script, navigation or source-derived command.
+
+Product Assurance inspected the implementation, strict sanitized live receipt/archive and the new
+Knowledge Coverage & Value Gate. The gate maps useful evidence categories to named ROMVERSE
+consumers, required fields, source authority, freshness, validation, conflicts, privacy/licensing,
+minimum retention, capability benefit and stop conditions. It permanently excludes generic,
+duplicative, private, irrelevant or popularity-derived material. Product Assurance independently
+reran the exact focused set: **125/125 passed**; Ruff and whitespace checks passed. The branch is
+clean.
+
+Each live claim remains `officially-documented`, exact-device/build scope remains unconfirmed, and
+all execution, phone, Guardian and relock authority fields remain false/none. This information can
+inform investigation but cannot become an action or confirmed fix without independent or exact
+observed outcome evidence.
+
+### Approved next bounded task
+
+Apply the new value gate to one high-value official OEM firmware-metadata source: the canonical
+Google Pixel factory-image index at `https://developers.google.com/android/images`, queried only
+for the already retained `Google / Pixel 6 / oriole` identity. First record the required source
+proposal in the Knowledge status: consumers/evidence gap, exact fields, authority, freshness,
+parser and limits, conflicts, privacy/licensing/minimum retention, benefit and stop conditions.
+
+If the proposal passes the gate, implement one exact-URL, canonical-English, metadata-only adapter.
+Retain only Pixel 6/oriole release/build identifiers, dates, Android-version or carrier/region scope
+when explicit, official image URL identity and published SHA-256 values. Do not download image
+archives, click/accept terms, retain page bulk, parse instructions into procedures, or infer missing
+scope. The source page contains destructive flashing and bootloader-relock guidance: explicitly
+exclude all such instructions and add regressions proving that relock text, commands and page
+scripts cannot enter claims. ROMVERSE's permanent no-relock policy overrides any source statement.
+
+Classify retained facts as official firmware-index metadata only. They do not prove compatibility,
+safe flashing, an installation route, a confirmed outcome or Guardian authority. Add focused tests
+for exact identity/build matching, duplicate/ambiguous rows, missing hashes/dates, changed layout,
+redirect/localization/query rejection, executable/relock text exclusion, terms boundary, size and
+privacy limits, stale/conflicting builds and tampered receipts. Perform at most one bounded live
+metadata retrieval after deterministic tests pass; retain only sanitized matching claims and a
+receipt. Update status, commit/push and stop for independent review.
+
+Do not add crawling, binary download, UI/background scheduling, phone/emulator access, build/flash/
+root/debloat execution, Guardian approval, production trust, publication, Companion/Windows/Linux
+changes or bootloader relocking.
+
+### Gate status
+
+- Typed official guidance and legacy migration: **VERIFIED**
+- Knowledge Coverage & Value Gate: **VERIFIED AND REQUIRED FOR FUTURE SOURCES**
+- Next Knowledge milestone: **ONE PIXEL 6 OFFICIAL FIRMWARE-METADATA SOURCE**
+- Compatibility/confirmed-fix promotion and consequential authority: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: 83e6594 — live Google Play identity acquisition
 
 - Live evidence/handoff commit: `83e6594942da04b11163a1bdaa25ae242784bf96`

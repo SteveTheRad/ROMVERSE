@@ -513,6 +513,7 @@ def test_partition_atlas_resolves_its_missing_tool_and_continues(tmp_path, monke
     options = next(value for kind, value in setup_calls if kind == "options")
     assert options["required_names"] == ("Payload Dumper",)
     assert options["auto_start"]
+    assert options["auto_close"]
     assert studio.payload_service is not None
     assert studio.partition_button.text() == "Partition Atlas"
     assert opened == [studio, "exec"]
@@ -1873,6 +1874,28 @@ def test_genesis_simulated_device_continues_visibly_without_hardware_authority(t
     assert mission.assessments[8].status is GuidedStageStatus.COMPLETE
     assert mission.assessments[mission.selected_index].stage.stage_id == "toolchain"
 
+    resolution_calls = []
+
+    def resolve_tools(required, *, purpose):
+        resolution_calls.append((required, purpose))
+        studio.set_tool_statuses(
+            tuple(
+                ToolStatus(name, True, f"/verified/{name.casefold().replace(' ', '-')}", "1")
+                for name in required
+            )
+        )
+        return True
+
+    mission._resolve_required_tools = resolve_tools
+    mission.action_button.click()
+    app.processEvents()
+
+    assert len(resolution_calls) == 1
+    assert resolution_calls[0][0] == ("Python", "Payload Dumper", "AVBTool")
+    assert "source-bound build dependency" in resolution_calls[0][1]
+    assert mission.assessments[9].status is GuidedStageStatus.COMPLETE
+    assert mission.assessments[mission.selected_index].stage.stage_id == "build_plan"
+
     context = studio.guided_context()
     assert context.device is simulated
     assert not context.guardian_handoff_ready
@@ -1885,7 +1908,7 @@ def test_genesis_simulated_device_continues_visibly_without_hardware_authority(t
     assert not (project_root / "guardian").exists()
 
     persisted = GuidedMissionStore(project_root).load()
-    assert persisted.selected_stage == "toolchain"
+    assert persisted.selected_stage == "build_plan"
     assert persisted.customization_skipped
     assert persisted.recipe_skipped
     assert persisted.root_choice == "skip"

@@ -1848,12 +1848,24 @@ class GuidedBuildMission(QDialog):
         elif action == "first-boot":
             self._run_first_boot_check()
         elif action == "refresh-tools":
-            self._resolve_required_tools(
+            resolved = self._resolve_required_tools(
                 self._context().required_tools,
                 purpose="Genesis must verify every source-bound build dependency before Forge Control.",
             )
+            if not resolved:
+                detail = (
+                    self.failure.explanation
+                    if self.failure is not None
+                    else "Required host dependencies remain unverified."
+                )
+                self.state = replace(self.state, last_error=f"toolchain: {detail}")
+                self._save_state()
+                self._refresh(select_current=True)
+                return
+            self.failure = None
+            self.state = replace(self.state, last_error="")
+            self._refresh(select_current=True)
             self._save_state()
-            self._refresh()
         elif action == "build-sign":
             self.studio._open_build_control(self)
             self._refresh()

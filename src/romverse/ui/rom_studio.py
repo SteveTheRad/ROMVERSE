@@ -4283,6 +4283,7 @@ class RomStudio(QWidget):
             parent or self,
             required_names=required_names,
             auto_start=self.app_settings.auto_download_verified_tools,
+            auto_close=self.app_settings.auto_download_verified_tools,
         )
         dialog.setWindowTitle(title)
         dialog.status.setText(purpose)

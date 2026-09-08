@@ -134,6 +134,7 @@ def test_first_run_explicitly_enters_guided_and_reaches_truthful_host_prerequisi
         options = next(value for kind, value in calls if kind == "options")
         assert options["required_names"] == ("ADB",)
         assert options["auto_start"] is False
+        assert options["auto_close"] is False
         assert window.stack.currentWidget() is window.device_center
         assert "host prerequisite" in window.rom_studio.operation_status.text()
 

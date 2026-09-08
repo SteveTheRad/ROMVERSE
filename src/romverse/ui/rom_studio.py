@@ -1340,16 +1340,15 @@ class RomStudio(QWidget):
             return True
 
         if action == "Pre-Build Simulation":
-            self.command_tabs.setCurrentIndex(1)
             ready, detail = self._prebuild_simulation_handoff()
+            destination = self._open_prebuild_simulation_destination(ready)
             self._show_dashboard_handoff(
-                "Pre-Build Simulation → Build & Proof",
+                f"Pre-Build Simulation → {destination}",
                 detail,
                 "READY" if ready else "PREREQUISITE",
                 ready=ready,
             )
             self.detail_scroll.ensureWidgetVisible(self.command_tabs, 0, 24)
-            self.plan_button.setFocus(Qt.FocusReason.OtherFocusReason)
             return True
 
         if action == "Recipes":
@@ -1406,6 +1405,42 @@ class RomStudio(QWidget):
             "freeze the exact inputs and run Guardian preflight. Execution remains locked; "
             "NO BUILD OR PHONE ACTION STARTED.",
         )
+
+    def prebuild_simulation_ready(self) -> bool:
+        """Report the same current-project readiness used by the Simulation handoff."""
+
+        ready, _detail = self._prebuild_simulation_handoff()
+        return ready
+
+    def _open_prebuild_simulation_destination(self, ready: bool) -> str:
+        """Open the existing action that owns the current Simulation prerequisite."""
+
+        project = self.current_project
+        inputs_ready = bool(
+            project is not None
+            and project.original is not None
+            and self.inspection.load_report(project.project_id) is not None
+            and self.inspection.working_tree_exists(project.project_id)
+        )
+        if ready or inputs_ready:
+            self.command_tabs.setCurrentIndex(1)
+            self.plan_button.setFocus(Qt.FocusReason.OtherFocusReason)
+            return "Build & Proof"
+
+        self.command_tabs.setCurrentIndex(0)
+        target = (
+            self.new_button
+            if project is None
+            else self.import_button
+            if project.original is None
+            else self.inspect_button
+            if self.inspection.load_report(project.project_id) is None
+            else self.working_button
+            if self.store.working_copy(project.project_id) is None
+            else self.extract_button
+        )
+        target.setFocus(Qt.FocusReason.OtherFocusReason)
+        return "Source Lab prerequisite"
 
     def _recipe_forge_handoff(self) -> tuple[bool, str]:
         project = self.current_project

@@ -70,6 +70,7 @@ def test_connected_dashboard_builds_all_approved_contextual_mission_cards(tmp_pa
             recovery_ready=False,
             guardian_ready=False,
         ),
+        prebuild_simulation_ready=True,
     )
     center.set_devices(
         [

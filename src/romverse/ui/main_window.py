@@ -6533,6 +6533,7 @@ class MainWindow(QMainWindow):
             bool(project is not None and project.original is not None),
             self.rom_studio.genesis_flight_plan(),
             project_id=project.project_id if project is not None else "",
+            prebuild_simulation_ready=self.rom_studio.prebuild_simulation_ready(),
         )
 
     @Slot(str)

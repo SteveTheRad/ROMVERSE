@@ -268,6 +268,7 @@ class DeviceCenter(QWidget):
         self._project_id = ""
         self._project_name = ""
         self._project_has_firmware = False
+        self._prebuild_simulation_ready = False
         self._flight_plan: GenesisFlightPlan | None = None
         self._repair_finding_id = ""
         self._repair_finding_title = ""
@@ -628,6 +629,7 @@ class DeviceCenter(QWidget):
         flight_plan: GenesisFlightPlan | None = None,
         *,
         project_id: str = "",
+        prebuild_simulation_ready: bool = False,
     ) -> None:
         """Refresh Command Deck cards from the actual active ROM Studio project."""
 
@@ -635,11 +637,13 @@ class DeviceCenter(QWidget):
             self._project_id != project_id
             or self._project_name != project_name
             or self._project_has_firmware != bool(has_firmware)
+            or self._prebuild_simulation_ready != bool(prebuild_simulation_ready)
             or self._flight_plan != flight_plan
         )
         self._project_id = project_id
         self._project_name = project_name
         self._project_has_firmware = bool(has_firmware)
+        self._prebuild_simulation_ready = bool(prebuild_simulation_ready)
         self._flight_plan = flight_plan
         if not changed:
             self._update_mission_control()
@@ -1464,7 +1468,11 @@ class DeviceCenter(QWidget):
                 "#6A6DFF",
                 "#35DFF2",
                 "Pre-Build Simulation",
-                "READY" if project_ready else "NEEDS FIRMWARE",
+                "READY"
+                if self._prebuild_simulation_ready
+                else "PREPARE INPUTS"
+                if project_ready
+                else "NEEDS FIRMWARE",
                 "Open ROM Studio to generate an execution-locked dry-run plan before any build or flash.",
             ),
             (

@@ -1157,7 +1157,7 @@ def test_command_deck_cards_are_context_aware_and_route_to_canonical_pages(
         window.device_center.set_workspace_context("Project Orion", True)
         actions = window.device_center.quick_action_buttons
         assert "CONTINUE PROJECT" in actions["Build ROM"].text()
-        assert "READY" in actions["Pre-Build Simulation"].text()
+        assert "PREPARE INPUTS" in actions["Pre-Build Simulation"].text()
         assert any(
             "Project Orion" in label.text()
             for label in window.device_center.body_content.findChildren(
@@ -1191,9 +1191,9 @@ def test_command_deck_cards_are_context_aware_and_route_to_canonical_pages(
         actions["Pre-Build Simulation"].click()
         app.processEvents()
         assert window.stack.currentWidget() is window.rom_studio
-        assert window.rom_studio.command_tabs.currentIndex() == 1
+        assert window.rom_studio.command_tabs.currentIndex() == 0
         assert window.rom_studio.dashboard_handoff_title.text() == (
-            "Pre-Build Simulation → Build & Proof"
+            "Pre-Build Simulation → Source Lab prerequisite"
         )
         assert window.rom_studio.dashboard_handoff_badge.text() == "PREREQUISITE"
         assert "NO BUILD OR PHONE ACTION STARTED" in (
@@ -1249,6 +1249,74 @@ def test_command_deck_cards_are_context_aware_and_route_to_canonical_pages(
         lab.click()
         app.processEvents()
         assert window.stack.currentWidget() is window.nexus_center
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_command_deck_simulation_readiness_matches_the_exact_project_handoff(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    store, registry, project, _report = _project(tmp_path)
+    window = MainWindow(
+        None,
+        logo,
+        store.workspace,
+        app_icon_path=logo,
+        pack_registry=registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    try:
+        window.rom_studio.refresh(project.project_id)
+        window._navigate_route("command_deck")
+        app.processEvents()
+        before = window.nexus_events.list_recent()
+        simulation = window.device_center.quick_action_buttons["Pre-Build Simulation"]
+
+        assert "PREPARE INPUTS" in simulation.text()
+        simulation.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.rom_studio
+        assert window.rom_studio.current_project is not None
+        assert window.rom_studio.current_project.project_id == project.project_id
+        assert window.rom_studio.command_tabs.currentIndex() == 0
+        assert window.rom_studio.working_button.isEnabled()
+        assert window.rom_studio.dashboard_handoff_title.text() == (
+            "Pre-Build Simulation → Source Lab prerequisite"
+        )
+        assert window.rom_studio.dashboard_handoff_badge.text() == "PREREQUISITE"
+        assert project.name in window.rom_studio.dashboard_handoff_detail.text()
+        assert "contained working tree" in window.rom_studio.dashboard_handoff_detail.text()
+        assert window.nexus_events.list_recent() == before
+        assert window.rom_studio.worker is None
+
+        store.create_working_copy(project.project_id)
+        RomInspectionService(store).extract_project_tree(project.project_id)
+        window.rom_studio.refresh(project.project_id)
+        window._navigate_route("command_deck")
+        app.processEvents()
+        simulation = window.device_center.quick_action_buttons["Pre-Build Simulation"]
+
+        assert "READY" in simulation.text()
+        simulation.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.rom_studio
+        assert window.rom_studio.current_project is not None
+        assert window.rom_studio.current_project.project_id == project.project_id
+        assert window.rom_studio.command_tabs.currentIndex() == 1
+        assert window.rom_studio.dashboard_handoff_title.text() == (
+            "Pre-Build Simulation → Build & Proof"
+        )
+        assert window.rom_studio.dashboard_handoff_badge.text() == "READY"
+        assert project.name in window.rom_studio.dashboard_handoff_detail.text()
+        assert "Execution remains locked" in window.rom_studio.dashboard_handoff_detail.text()
+        assert window.nexus_events.list_recent() == before
+        assert window.rom_studio.worker is None
+        assert not QApplication.activeModalWidget()
     finally:
         window.companion_center.transport.close()
         window.close()

@@ -1,5 +1,89 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — verified Simulation points to intentional Forge Bundle
+
+### Authoritative checkpoint and scope
+
+- Tested implementation: `af061ac022d56548fcdceddabf19b36b47e78114` — `Guide verified
+  Simulation to Forge Bundle`.
+- Final handoff: the follow-up commit containing this document on
+  `linux/stage1-desktop-readiness`; the branch was clean immediately after the implementation
+  commit and will be pushed normally after this handoff is committed.
+- Product Assurance approval/base: `d4125cf` — approved automatic exact-tree verification and
+  authorized only its immediate intentional Forge Bundle continuation.
+- Stage: Stage 1 — v0.2 Golden Foundation, existing post-Simulation Guided continuity only.
+- Exact changed implementation/test files: `src/romverse/ui/rom_studio.py`,
+  `tests/test_navigation_vocabulary.py` and `tests/test_rom_studio_ui.py`. No Forge service,
+  package, platform, device, Companion, Recovery adapter or product-scope file changed.
+
+### Exact implemented behavior
+
+- After an exact Simulation reaches independently validated `VERIFIED`, ROM Studio now focuses the
+  existing enabled **Forge Bundle** control instead of the already-completed Verify plan control.
+- The result handoff identifies Forge Bundle as the next intentional local action and states its
+  precise boundary: an unsigned, non-bootable, non-flashable intermediate.
+- Nothing is dispatched automatically. No Forge receipt or archive exists until the user chooses
+  the existing action, and the existing Forge service remains responsible for fresh plan/tree
+  revalidation before it can write.
+- Verification drift/failure remains on the actionable stopped path, keeps Verify plan focused,
+  preserves the exact plan/tree and creates no Forge Bundle or retry.
+
+### Verification without double-counting
+
+- One focused affected run: **7/7 unique tests passed** across the existing Command Deck,
+  ROM Studio, representative fresh Guided Simulation and one existing Forge service adversary.
+- The real-widget new-plan journey proves `VERIFYING → VERIFIED`, enabled/focused Forge Bundle,
+  explicit non-flashable guidance, no remaining worker and no automatically created Forge receipt.
+- The exact saved-plan journey proves the same Forge handoff after one fresh verification while
+  preserving the saved plan and still creating no bundle automatically.
+- The drifted/stopped widget journey proves current-tree mismatch keeps attention on Verify plan,
+  schedules no retry and creates no Forge receipt.
+- The existing service-level tree-drift adversary proves Forge refuses changed tree evidence before
+  writing. Resource denial, forged verification evidence and fresh Guided continuity also pass in
+  the same bounded selection.
+- Ruff static and format checks passed for all three changed files. `git diff --check`: passed.
+- No broad suite was run. This seven-test total is not combined with prior checkpoint totals.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** direct verified-Simulation focus/copy handoff to the existing Forge Bundle
+  control.
+- **Simulated/Tested:** 7 sanitized Linux-hosted Qt/store/planner/Forge-service journeys.
+- **Hardware Verified:** no. **Released:** no.
+- Guided friction removed: the completed Verify action is no longer presented as the next step.
+  The next local action is visible and understandable, but remains intentional rather than
+  automatic. Evidence drift remains a necessary actionable stop, not a loop.
+- Guardian/Recovery/safety: no authority boundary changed. Forge Bundle remains an unsigned,
+  non-bootable, non-flashable local intermediate. Exact evidence, Guardian-only execution,
+  UNKNOWN-on-uncertainty, no blind retry, same-incident Recovery and permanent no-relock remain
+  unchanged.
+- Fedora/Linux: genuinely tested in the existing Fedora offscreen Qt development runtime. Windows:
+  not run or claimed. Physical Android/hardware: not used.
+- Feature freeze: compliant two-line production continuity correction using existing controls and
+  services; no screen, feature, engine, artifact format or device capability was added.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and existing release gates.
+- Current blockers/limitations: Product Assurance has not independently reviewed this checkpoint;
+  Forge Bundle still requires the user's explicit action and its own service-side validation;
+  neither a verified Simulation nor a Forge Bundle is a phone-capable build or execution authority.
+- Protected Companion, Windows launcher, Knowledge/UI Design Lab, website and unrelated files were
+  not modified, staged, discarded or committed.
+- Physical phone access, ADB/Fastboot, APK installation, firmware/device operation, real build,
+  automatic Forge creation, flash/boot, partition/slot/wipe/unlock/lock/relock, package installation,
+  publication and release: **none**. External action after final verification: one normal push of
+  this scoped Linux branch only; no force-push and no unrelated remote change.
+
+### Next proposed Build task
+
+Stop for Product Assurance review. Do not begin another consequential slice. Continue only from the
+next bounded direction recorded in `docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm that focusing the existing Forge Bundle control with explicit intermediate-artifact
+  boundaries is the minimum correct continuation after verified Simulation.
+- Confirm that the no-auto-dispatch widget evidence plus existing service-level tree-drift refusal
+  preserves the intentional action and fresh revalidation boundaries.
+
 ## Linux product checkpoint — requested Simulation verifies its exact current tree
 
 ### Authoritative checkpoint and scope

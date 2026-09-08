@@ -147,6 +147,46 @@ Use current online evidence for diagnosis, planning, compatibility, research, to
 safe fixing, and verification. Show source, freshness, corroboration, scope, and confidence.
 Connectivity grants no destructive authority and losing it never lowers Guardian policy.
 
+### Adaptive online evidence acquisition — creator-approved plan (2026-09-08)
+
+ROMVERSE must make unfamiliar-device investigation and connection easy. Connecting a phone starts
+bounded read-only Device DNA acquisition; ROMVERSE then combines those measured facts with imported
+firmware evidence, Device/Knowledge Packs, Archives, and current internet research without requiring
+the user to classify partitions, AVB, slots, firmware branches, root methods, debloat rules, or
+source confidence manually. Guided mode presents the current identity, plain-language evidence
+state, and one useful next action; technical provenance remains available on demand.
+
+Online information is retained as useful evidence rather than reducing an entire uploaded or
+downloaded record to one `UNCONFIRMED` label. ROMVERSE records individual claims with their source,
+retrieval time, applicable device/firmware scope, freshness, corroboration, contradictions, and
+confidence. Facts may be source-reported, officially documented, independently corroborated,
+firmware-derived, live-confirmed, conflicting, or unconfirmed. Matching firmware bytes and live
+read-only device observations strengthen the relevant facts; conflicts remain visible and trigger
+further investigation instead of silently replacing evidence or declaring the device broadly
+unsupported.
+
+Unfamiliarity is never itself a terminal compatibility failure. Device DNA, Nexus, Pathfinder,
+Foresight, Insight, Knowledge Archives, and Simulation Lab may automatically research, form and
+refine candidate firmware, root, debloat, recovery, and verification routes. Read-only public-source
+retrieval, privacy-safe local analysis, planning, comparison, and non-consequential simulation must
+not be burdened with repeated approvals. The system asks for user input only when genuinely needed
+and preserves one meaningful consent boundary for the exact consequential operation.
+
+Internet guidance does not become a command and Guardian cannot assume that internally consistent
+online information is true. Immediately before any device-changing action, Guardian requires the
+exact current device, firmware/source, partition and mode facts, artifacts and hashes, allowed
+ordered action, consequences, recovery route, expected observable result, and fresh consent required
+by the existing operation contract. Missing or conflicting evidence returns the route for focused
+investigation; it does not create a permanent unsupported classification, weaken UNKNOWN handling,
+permit blind retry, or authorize bootloader relocking.
+
+Privacy filtering excludes serial numbers, IMEI, account identifiers, private paths, secrets, and
+personal information from online queries or contributions unless a later separately approved
+purpose and explicit preview/consent contract requires a specific safe field. Evidence acquisition,
+storage, sharing, and promotion grant no execution authority. This confirmed plan defines product
+direction and acceptance behavior; it is not by itself authorization to expand the current
+pre-v1.0 implementation scope, enable production execution, or publish user data.
+
 ## Synapse and AI
 
 ### ROMVERSE Synapse

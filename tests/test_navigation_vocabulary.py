@@ -1481,6 +1481,90 @@ def test_device_atlas_starts_genesis_with_identity_evidence_before_build_is_read
         window.close()
 
 
+def test_device_atlas_rom_mission_preserves_current_device_intelligence_and_owner_return(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    store, registry, project, _report = _project(tmp_path)
+    window = MainWindow(
+        None,
+        logo,
+        store.workspace,
+        app_icon_path=logo,
+        pack_registry=registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    opened_contexts = []
+    monkeypatch.setattr(
+        window.rom_studio,
+        "_open_guided_setup",
+        lambda: opened_contexts.append(window.rom_studio.guided_context()),
+    )
+    phone = _device(serial="CURRENT-PHONE-9042")
+    try:
+        window.rom_studio.refresh(project.project_id)
+        window._scan_complete([phone])
+        app.processEvents()
+
+        profile = window.rom_studio.device_dna.profiles.load(project.project_id)
+        matrix = window.rom_studio.compatibility.matrices.load(project.project_id)
+        report = window.device_packs_center.active_report
+        assert profile is not None
+        assert matrix is not None
+        assert matrix.device_dna_digest == profile.profile_digest
+        assert matrix.decision("guardian_flash").status.value == "Unknown"
+        assert report is not None
+
+        window._navigate_route("device_atlas")
+        window.device_packs_center.continue_button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.rom_studio
+        assert len(opened_contexts) == 1
+        context = opened_contexts[0]
+        assert context.device is not None and context.device.serial == phone.serial
+        assert context.device_pack_id == report.pack_id
+        assert any(profile.profile_digest[:16] in item for item in context.device_dna_evidence)
+        assert any("Guardian Flash: Unknown" in item for item in context.device_dna_evidence)
+        assert phone.masked_serial() in window.rom_studio.dashboard_handoff_detail.text()
+        assert profile.profile_digest[:16] in window.rom_studio.dashboard_handoff_detail.text()
+        assert "Compatibility Unknown" in window.rom_studio.dashboard_handoff_detail.text()
+        assert "NO BUILD, APPROVAL, FLASH, OR PHONE ACTION STARTED" in (
+            window.rom_studio.dashboard_handoff_detail.text()
+        )
+        assert window.rom_studio.worker is None
+
+        assert window.rom_studio.request_device_atlas()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.device_packs_center
+        assert window.device_packs_center.active_device == phone
+        assert window.device_packs_center.active_pack is not None
+        assert window.device_packs_center.active_pack.pack_id == report.pack_id
+        assert window.device_packs_center.active_report == report
+        assert window.device_packs_center.active_device_dna == profile
+        assert window.rom_studio.worker is None
+
+        substitute = replace(phone, serial="SUBSTITUTE-PHONE-1188")
+        window.device_packs_center.active_device = substitute
+        window.rom_studio.devices = [substitute]
+        window.device_packs_center.rom_studio_requested.emit(
+            report.report_id,
+            report.report_digest,
+        )
+        app.processEvents()
+        assert window.stack.currentWidget() is window.device_packs_center
+        assert len(opened_contexts) == 1
+        assert "ROM Studio rejected changed or invalid Device Atlas evidence" in (
+            window.device_packs_center.next_action_feedback.text()
+        )
+        assert window.rom_studio.worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
 def test_rom_studio_preserves_exact_project_into_time_machine_and_device_atlas(
     tmp_path: Path,
 ) -> None:

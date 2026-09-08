@@ -1722,6 +1722,9 @@ class RomStudio(QWidget):
         intent: str,
         *,
         source: str = "Device Atlas",
+        device: AndroidDevice | None = None,
+        device_dna: DeviceDnaProfile | None = None,
+        compatibility: CompatibilityMatrix | None = None,
         launch_genesis: bool = False,
     ) -> bool:
         """Accept one current exact Pack contract without inheriting execution authority."""
@@ -1745,6 +1748,47 @@ class RomStudio(QWidget):
             or report.pack_version != pack.version
             or report.pack_sha256 != pack.sha256
             or (intent != "genesis" and not report.build_contract_ready)
+        ):
+            return False
+        if device is not None and (
+            len(self.devices) != 1
+            or self.devices[0].serial != device.serial
+            or report.manufacturer.casefold() != (device.manufacturer or "Unknown OEM").casefold()
+            or report.model.casefold() != (device.model or "Unknown model").casefold()
+            or report.product.casefold() != (device.product or "Unknown product").casefold()
+            or report.codename.casefold()
+            != (device.codename or device.product or "Unknown codename").casefold()
+        ):
+            return False
+        if device_dna is not None:
+            project = self.current_project
+            current_dna = (
+                self.device_dna.profiles.load(project.project_id)
+                if project is not None and project.original is not None
+                else None
+            )
+            live_identity = next(
+                (
+                    evidence
+                    for evidence in device_dna.evidence
+                    if evidence.evidence_id == "device.live"
+                ),
+                None,
+            )
+            if (
+                device is None
+                or current_dna is None
+                or current_dna.profile_digest != device_dna.profile_digest
+                or live_identity is None
+                or live_identity.source_ref != device.masked_serial()
+            ):
+                return False
+        if compatibility is not None and (
+            device_dna is None
+            or compatibility.project_id != device_dna.project_id
+            or compatibility.device_dna_digest != device_dna.profile_digest
+            or compatibility.bootloader_relock_permitted
+            or not compatibility.guardian_advisory_only
         ):
             return False
         if source == "Forge Arsenal":
@@ -1771,6 +1815,19 @@ class RomStudio(QWidget):
             )
         build = "READY" if report.build_contract_ready else "EVIDENCE NEEDED"
         flash = "READY" if report.flash_contract_ready else "LOCKED"
+        intelligence = ""
+        if device is not None:
+            intelligence += f"selected target {device.masked_serial()}  •  "
+        if device_dna is not None:
+            intelligence += f"Device DNA {device_dna.profile_digest[:16]}…  •  "
+        if compatibility is not None:
+            guardian_flash = compatibility.decision("guardian_flash")
+            compatibility_state = (
+                guardian_flash.status.value if guardian_flash is not None else "Unknown"
+            )
+            intelligence += (
+                f"Compatibility {compatibility_state} ({compatibility.matrix_digest[:16]}…)  •  "
+            )
         if intent == "genesis":
             title = f"{source} → Genesis Sequence"
             next_step = (
@@ -1796,7 +1853,8 @@ class RomStudio(QWidget):
         self.command_tabs.setCurrentIndex(tab_index)
         self._show_dashboard_handoff(
             title,
-            f"{report.model} / {report.codename}  •  Pack {pack.pack_id} v{pack.version}  •  "
+            f"{report.model} / {report.codename}  •  {intelligence}"
+            f"Pack {pack.pack_id} v{pack.version}  •  "
             f"report {report.report_digest[:16]}…  •  build {build}  •  flash {flash}. "
             f"{project_context} {next_step} NO BUILD, APPROVAL, FLASH, OR PHONE ACTION STARTED.",
             f"BUILD {build} • FLASH {flash}",
@@ -2047,6 +2105,7 @@ class RomStudio(QWidget):
             dna_evidence.extend(
                 (
                     f"Device DNA identity: {identity}",
+                    f"Device DNA evidence: {dna.profile_digest[:16]}… current source-bound profile",
                     f"Capability Map: {summary}",
                 )
             )
@@ -2062,6 +2121,14 @@ class RomStudio(QWidget):
                         f"{capability.label}: {capability.state.value.upper()} — {capability.detail}"
                     )
             dna_evidence.append("Bootloader relocking: UNSUPPORTED • permanent Guardian rule")
+            matrix = self.compatibility.matrices.load(project_id)
+            if matrix is not None and matrix.device_dna_digest == dna.profile_digest:
+                guardian_flash = matrix.decision("guardian_flash")
+                if guardian_flash is not None:
+                    dna_evidence.append(
+                        f"Guardian Flash: {guardian_flash.status.value} • Compatibility Matrix "
+                        f"{matrix.matrix_digest[:16]}… • advisory only; zero execution authority"
+                    )
 
         boot_observation_stable = False
         first_boot_verified = False

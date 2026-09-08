@@ -5525,6 +5525,18 @@ class MainWindow(QMainWindow):
         report = self.device_packs_center.active_report
         pack = self.device_packs_center.active_pack
         device = self.device_packs_center.active_device
+        profile = self.device_packs_center.active_device_dna
+        project = self.rom_studio.current_project
+        stored_profile = (
+            self.rom_studio.device_dna.profiles.load(project.project_id)
+            if project is not None and project.original is not None
+            else None
+        )
+        matrix = (
+            self.rom_studio.compatibility.matrices.load(project.project_id)
+            if stored_profile is not None
+            else None
+        )
         if (
             report is None
             or pack is None
@@ -5534,9 +5546,23 @@ class MainWindow(QMainWindow):
             or report.pack_id != pack.pack_id
             or report.pack_version != pack.version
             or report.pack_sha256 != pack.sha256
+            or report.manufacturer.casefold() != (device.manufacturer or "Unknown OEM").casefold()
+            or report.model.casefold() != (device.model or "Unknown model").casefold()
+            or report.product.casefold() != (device.product or "Unknown product").casefold()
+            or report.codename.casefold()
+            != (device.codename or device.product or "Unknown codename").casefold()
+            or (stored_profile is not None and profile != stored_profile)
+            or (
+                profile is not None
+                and not self.device_packs_center._profile_matches_device(profile, device)
+            )
+            or (
+                matrix is not None
+                and (profile is None or matrix.device_dna_digest != profile.profile_digest)
+            )
         ):
             self.device_packs_center.next_action_handoff_stopped(
-                "Start ROM Mission no longer matches the current Device Pack report"
+                "Start ROM Mission no longer matches the current device intelligence"
             )
             return
         if not self._navigate_route("rom_studio"):
@@ -5544,6 +5570,9 @@ class MainWindow(QMainWindow):
         if not self.rom_studio.open_device_atlas_handoff(
             report,
             "genesis",
+            device=device,
+            device_dna=profile,
+            compatibility=matrix,
             launch_genesis=True,
         ):
             self._navigate_route("device_atlas")

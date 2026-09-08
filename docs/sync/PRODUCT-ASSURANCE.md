@@ -1,5 +1,78 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 023d991 — schema-3 evidence through Forge Control
+
+- Handoff commit: `023d991f5836d91d871e93dddc3986326c43983e`
+- Implementation commit: `743a0f2bbcf8aff80610e00fd6bcae528b8a4a04`
+- Approved base: `f2eea95`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **CORRECTION REQUIRED — FRESH VALIDATION PASSES, BUT DURABLE PLAN IDENTITY IS LOST DOWNSTREAM**
+
+### Decision
+
+Product Assurance inspected the exact eight-file change and independently reproduced the affected
+selection at **20/20 passed**. The new checks correctly reject stale schema-3 source, tree, choice
+or tool evidence before Forge creation, Device Build planning and local execution. Metadata
+preparation also correctly re-freezes a schema-3 plan instead of silently downgrading it, and the
+UI truthfully stops at an unsigned local candidate.
+
+One exact evidence-contract gap remains. The Forge manifest/receipt persist only the workspace
+tree SHA-256, and `DeviceBuildExecutionPlan` likewise persists only `workspace_tree_sha256` from
+the schema-3 plan. Immediately before execution, the service verifies whichever schema-3 plan is
+currently saved, then compares only its tree digest with the older Device Build plan. A different
+valid schema-3 plan with the same tree but changed Guided choices or tool binding can therefore
+replace the original without invalidating the already-created downstream plan. The local build
+steps may be unchanged, but ROMVERSE would no longer be able to prove that the candidate came from
+the exact approved Build Readiness decision and tool-evidence generation.
+
+That is an evidence-identity/anti-TOCTOU defect at the boundary under review. It does not authorize
+signing, Guardian or phone work, and it requires only a bounded durable-binding correction.
+
+### Accepted evidence
+
+- Independent focused regression passed **20/20**: 17 Device Build contract checks, the schema-3
+  Forge adversary, metadata re-freeze and the production-UI candidate journey.
+- Fresh executable drift blocks schema-3 Forge creation and Device Build execution before a
+  runner call; missing current tool evidence also fails closed.
+- The local test candidate is byte-verified, unsigned and phone-independent. Simulation remains
+  non-live and creates no Guardian or flash handoff.
+- Opening Forge Control remains inspection-only; one explicit existing action performs the local
+  test build once and leaves one accurate signing blocker.
+- No physical phone, ADB/Fastboot, APK, real-workspace candidate, system installation, signing,
+  Guardian consent/execution, publication, release, merge, force-push, lock or relock occurred.
+
+### Minimum exact correction and acceptance criteria
+
+1. For a schema-3 Forge creation, persist the exact Build Readiness `plan_digest` in the Forge
+   manifest and durable receipt. The manifest must also carry the sealed source SHA-256,
+   toolchain-manifest digest and Guided-choice digest (or an equivalently complete canonical
+   binding), and verification must reject malformed, missing or mismatched fields. Preserve
+   truthful legacy schema handling without promoting an old receipt to schema-3 certainty.
+2. Bind a newly created Device Build execution plan to the exact current schema-3 `plan_digest`,
+   not only its tree SHA-256. Immediately before any local runner command, require both the exact
+   workspace-plan digest and tree digest to match. A necessary metadata re-freeze creates a new
+   generation and therefore requires Device Build planning to occur after that re-freeze.
+3. Ensure the current Forge/Build Control admission cannot consume a Forge receipt from a different
+   schema-3 plan generation. Preserve historical evidence rather than overwriting or inferring it;
+   present the existing actionable regenerate/reverify path.
+4. Add one adversarial same-tree test: create valid schema-3 plan A and its Forge/Device Build
+   artifacts, replace it with valid plan B whose Guided-choice or tool binding differs while the
+   tree SHA-256 remains identical, then prove the old Forge/current-build admission is rejected and
+   the runner receives zero calls. Keep the existing 20 focused checks and add only directly
+   affected receipt/plan compatibility checks.
+
+Do not redesign Forge, add a confirmation, run a broad suite, create a real candidate, configure
+signing, grant Guardian/execution authority, connect or modify a phone, dispatch ADB/Fastboot,
+install an APK, package the desktop app, publish or release. Commit/push the minimum correction and
+one updated handoff, then stop for review.
+
+### Gate status
+
+- Fresh schema-3 revalidation at each local admission: **VERIFIED**
+- Durable exact-plan identity across Forge and Device Build: **CORRECTION REQUIRED**
+- Signing, Guardian execution, physical hardware, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: f9d9f98 — exact inert Guided Build Readiness plan
 
 - Handoff commit: `f9d9f98c3d86af316e3b10967b42a84c0b3f4737`

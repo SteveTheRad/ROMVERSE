@@ -48,7 +48,7 @@ def test_terminal_worker_routes_device_probe_through_guardian_and_masks_serial()
     worker.run()
 
     assert runner.calls == [
-        ("/opt/android/adb", "-s", "private-serial", "shell", "dumpsys", "battery")
+        (str(Path("/opt/android/adb")), "-s", "private-serial", "shell", "dumpsys", "battery")
     ]
     assert "private-serial" not in outputs[0]
     assert "<selected-device>" in outputs[0]

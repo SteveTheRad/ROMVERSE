@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import SIGNAL, Qt
 from PySide6.QtWidgets import QAbstractButton, QApplication, QDialog, QLabel, QPushButton
 
 from romverse.core.privacy import WorkspacePrivacy
@@ -829,11 +829,17 @@ def test_every_visible_disabled_stage1_action_explains_its_prerequisite(
     try:
         window._apply_experience_mode(ExperienceMode.EXPERT)
         unexplained: list[str] = []
+        unwired: list[str] = []
         for route_name, route in window.page_routes.items():
             window._navigate(route)
             app.processEvents()
             page = window.stack.currentWidget()
             for button in page.findChildren(QAbstractButton):
+                if button.isVisibleTo(page) and button.text().strip():
+                    receivers = button.receivers(SIGNAL("clicked()"))
+                    receivers += button.receivers(SIGNAL("toggled(bool)"))
+                    if receivers == 0:
+                        unwired.append(f"{route_name}: {button.text()}")
                 if (
                     button.isVisibleTo(page)
                     and not button.isEnabled()
@@ -846,6 +852,7 @@ def test_every_visible_disabled_stage1_action_explains_its_prerequisite(
                     )
 
         assert unexplained == []
+        assert unwired == []
     finally:
         window.companion_center.transport.close()
         window.close()

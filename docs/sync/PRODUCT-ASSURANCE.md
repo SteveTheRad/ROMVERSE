@@ -1,5 +1,58 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 6ce1686 — fresh Windows post-Genesis development artifact
+
+- Reviewed commit: `6ce1686`
+- Built source: `d433afe9`
+- Approved base: `0ea870f`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — THE CURRENT WINDOWS SOURCE BUILDS, BUNDLES AND LAUNCHES CLEANLY**
+
+### Decision
+
+Product Assurance inspected the documentation-only handoff and independently verified exact source
+tree identity, executable/archive hashes, bundle inventory, ZIP safety/integrity and the retained
+clean runtime lifecycle. The current approved Windows source produced one runnable unsigned
+development application with no frozen-only launcher, asset, dependency or startup defect.
+
+### Independent evidence and acceptance
+
+- Source, tests and scripts trees at build approval `0ea870f` are byte-identical to implementation
+  `d433afe9`.
+- The unsigned executable is **6,302,268 bytes**, SHA-256
+  `91ee4e4ff610e1a9dfcb7dd3e98893ada661055df6914b87da8379c806af8764`.
+- The archive is **73,486,786 bytes**, SHA-256
+  `1ca9620c19d39f0d4514f90ce8acda1c527c4f438f505c6e8eee8bd16479e4d8`.
+  Independent ZIP validation accepted exactly **305 files / 164,626,603 expanded bytes**, no unsafe
+  path and no CRC failure.
+- The fresh no-phone workspace contains no managed tool, device, command or Guardian record. Its
+  runtime log contains one start and one clean close; no ROMVERSE process remains.
+- No tests were repeated and no source changed. No phone, ADB/Fastboot, APK, candidate firmware
+  build, installation, signing, publication, release, lock or relock occurred.
+
+### Approved next bounded Windows task
+
+Use this exact newly built unsigned executable once in a fresh no-phone workspace to close the
+original packaged reproduction: create one project, import/inspect one deterministic inert boot
+image through Genesis, return to ROM Studio and require the background project row, selected detail
+and visible Genesis handoff to show the same current durable stage immediately. Reopen Genesis once
+only to confirm the same stage, then close cleanly.
+
+This is acceptance of the fix in the runnable artifact, not another broad product tour. Reuse the
+existing sanitized fixture pattern; do not build/package again, rerun source tests, acquire tools,
+connect hardware, issue ADB/Fastboot, advance into working-copy/build/device execution, sign,
+publish or release. If one genuine frozen-only continuity defect appears, apply only the minimum
+Windows correction with directly affected evidence. Commit/push one bounded handoff and stop for
+review.
+
+### Gate status
+
+- Current unsigned Windows artifact construction/startup: **VERIFIED**
+- Packaged post-Genesis refresh acceptance: **NEXT BOUNDED WINDOWS TASK**
+- GitHub-hosted unsigned-candidate job: **EXTERNAL ACCOUNT GATE OUTSTANDING**
+- Physical hardware, signing, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: d433afe — Windows post-Genesis refresh convergence
 
 - Reviewed commit: `d433afe9`

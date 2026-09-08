@@ -1,5 +1,58 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: c740661 — exact current Command Deck mission ledger
+
+- Handoff commit: `c7406610a2f936c72293f898a06c62a634327ee1`
+- Implementation commit: `46533cafaa75962c71f7551eb6c0689b7572f292`
+- Approved base: `50e3eec`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — EXACT PROJECT/MISSION RESUME CONTINUITY**
+
+### Decision
+
+Product Assurance inspected the complete source/test diff. Binding Command Deck's Resume Mission
+card to the selected project, revalidating the exact mission/project pair at click time, and opening
+only that mission's genuine ledger records is the minimum correct repair. A newer running event from
+another project can no longer replace the selected project's mission. If the selected mission
+becomes terminal before the click, the existing current-project Genesis route is used without
+adopting another project or creating progress.
+
+The temporary exact-mission presentation is cleared when leaving Live Console, while deliberate
+direct navigation retains the complete global ledger. Navigation creates no event, changes no
+device/project ownership, starts no worker and grants no build, consent, Guardian or execution
+authority.
+
+### Independent evidence
+
+- Product Assurance reran the two new adversarial source-bound widget journeys on Fedora:
+  **2/2 passed**.
+- An initial diagnostic invocation omitted `PYTHONPATH=src` and therefore loaded the older installed
+  package; its two failures were invalid harness evidence, not product evidence. The harness was
+  corrected once, no source changed, and those invalid results are not counted.
+- The implementation/handoff are committed and pushed; the working tree was clean at review.
+- No phone, ADB/Fastboot, firmware operation, APK action, installation, signing, publication,
+  release or bootloader relock occurred.
+- Feature freeze, exact-device evidence, Guardian-only authority, UNKNOWN-on-uncertainty, no blind
+  retry, same-incident attribution and permanent no-relock remain intact.
+
+### Approved next bounded Linux task
+
+Inspect the adjacent existing Command Deck Mission Pulse and direct Live Operations navigation for
+one reproducible context-continuity or dead-end defect. Preserve the intentional global ledger for
+deliberate direct Live Console navigation; do not make it project-scoped merely for consistency.
+If a genuine defect exists, correct only that defect and prove the affected real-widget journey. If
+the path already works, do not rewrite or loop it; move to the next shipped Command Deck action and
+record the passing evidence. Do not overlap Windows Device Engine readiness, touch Knowledge/UI
+Design Lab or protected Companion files, operate a phone, run a broad suite, package, publish or
+release. Commit/push one bounded checkpoint and stop for independent review.
+
+### Gate status
+
+- Command Deck current-project Resume Mission continuity: **VERIFIED**
+- Adjacent Mission Pulse/direct Live Operations continuity: **NEXT BOUNDED LINUX TASK**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+- Physical execution, production trust/signing, publication and release: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: 0b580a9 — exact-device Command Deck Recovery handoff
 
 - Handoff commit: `0b580a96caa6b9b1b20e9ceac15a1552d76c21a8`

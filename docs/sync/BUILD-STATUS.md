@@ -1,5 +1,98 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — current unsigned Fedora desktop artifact and native smoke
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `17c133f7b10a462075cbb698169ce9ef0a72e4e0` approved the
+  Forge rollover checkpoint and authorized exactly one current unsigned Linux artifact plus one
+  proportional package-integrity check and isolated no-phone native smoke.
+- Exact approved Git tree: `9617f42fbab7b619756b51657ed1068c84d5b0b7`; canonical
+  `git archive` SHA-256: `fdd64a99b7e11d6834374becd117d9214af9aa934aacf5d734b76d3292e1a582`.
+- Stage: Stage 1 — v0.2 Golden Foundation, tangible Fedora development artifact/readiness only.
+- Source changes: **none**. This checkpoint reuses the established PyInstaller one-folder build,
+  deterministic packaged assets and bounded ZIP verifier without redesigning packaging.
+
+### Fresh artifact and integrity evidence
+
+- Build host: Fedora 44 x86-64, Linux `7.1.13-200.fc44.x86_64`, Python 3.14.7 and
+  PyInstaller 6.22.2. The existing release dependencies were already present; nothing was
+  downloaded or installed.
+- Runnable development binary:
+  `build/linux-pa-17c133f/frozen/ROMVERSE/ROMVERSE` — 6,320,120 bytes, owner-executable,
+  SHA-256 `7ad1064eacaaae66f9e5c62f1c4431f59f8665ca3bce88f17254374c03f59b52`.
+- Unsigned development ZIP:
+  `dist/ROMVERSE-Desktop-0.2.0-alpha.1-linux-x86_64-17c133f.zip` — 151,017,698 bytes,
+  SHA-256 `6d15d8b9557cfe09ac9f4e6cb91753d3a63fd8a1d6c5a4b2a1d0e11464376959`.
+- The established package verifier performed the one proportional integrity check: **460/460
+  members accepted**, 360,324,026 expanded bytes, bounded/safe member paths, required executable
+  present and full ZIP CRC validation passed.
+- The ignored `build/` and `dist/` outputs remain local development artifacts and are not committed,
+  published, released or represented as signed packages.
+
+### Isolated no-phone native smoke
+
+- The exact packaged executable was launched unelevated against the fresh disposable workspace
+  `/tmp/romverse-native-smoke-17c133f-xcb` on the real Fedora desktop. Its process environment used
+  a deliberately empty tool-discovery `PATH`, so packaged ROMVERSE could not resolve or dispatch
+  the host's ADB or Fastboot executables.
+- Live AT-SPI inspection confirmed the native `ROMVERSE Studio 0.2.0-alpha.1` main frame, current
+  **Command Deck**, persisted **Guided Arcana** experience and enabled **Continue Genesis
+  Sequence** entry all rendered.
+- The no-device state was truthful and actionable: **Device Engine needs attention**, **Verified
+  Android Platform Tools are not active yet**, and enabled **Resolve Platform Tools** / **Connect
+  Device** actions were visible. Neither action was invoked, so no tool resolution, installation,
+  network request or device scan began.
+- One native accessibility **Press** on the existing Guided entry opened `ROMVERSE • Genesis
+  Sequence`. The dialog rendered **No device connected**, **Connect by USB to scan Device DNA**,
+  an enabled **Create ROM project** route and **Save & exit**. No project or ROM artifact was created.
+- Standard X11 `WM_DELETE_WINDOW` events closed the Guided dialog and main window. The packaged
+  process exited normally with code 0, `ps` found no remaining ROMVERSE process, and the runtime
+  fault log contains only `runtime started` followed by `runtime closed cleanly`.
+- A preceding Wayland automation attempt rendered the same required controls and opened Genesis,
+  but Wayland blocked external focus/close synthesis. That harness attempt was terminated and the
+  allowed smoke retry used the same unchanged artifact through Fedora's XWayland compatibility
+  path. This is an automation-platform limitation, not a claimed packaged defect or second build.
+
+### Verification, classification and gates
+
+- **Implemented:** one fresh unsigned, self-contained Fedora development artifact from the exact
+  approved source; no application source change was required.
+- **Simulated/Tested:** one deterministic ZIP integrity verification and one genuine native
+  packaged GUI lifecycle on Fedora/XWayland with a synthetic empty/no-phone environment.
+- **Hardware Verified:** no. No Android or other physical hardware evidence was collected.
+- **Released:** no. The artifact is unsigned and local only.
+- Regression evidence: no pytest suite was run or double-counted; Product Assurance explicitly
+  requested the proportional artifact integrity check and native smoke instead of replaying Forge
+  tests. Both final acceptance activities passed.
+- Blockers/failures: none in the bounded artifact/native lifecycle. Wayland input synthesis could
+  not complete external automation, so the final genuine run used XWayland and this limitation is
+  reported explicitly. Native Windows and physical Android remain unverified here.
+- Guided friction/dead ends: the packaged fresh-workspace route visibly offers Guided entry, local
+  project creation and truthful device/tool prerequisites. No Device Engine crash, silent dead end,
+  modal installation prompt or unexpected work occurred.
+- Guardian/Recovery/safety: the packaging and smoke granted no Guardian, consent, device, flash,
+  Recovery or execution authority. UNKNOWN/no-blind-retry, exact-device evidence, same-incident
+  Recovery, independent verification and permanent no-relock remain unchanged.
+- Feature freeze: compliant artifact/readiness evidence for existing Stage 1 behavior; no new
+  feature, adapter, Device Pack, UI redesign, signing path or execution capability.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all remaining gates.
+- External actions: the existing Git branch is pushed normally with this documentation handoff.
+  No phone connection/operation, ADB/Fastboot dispatch, APK, tool download/install, ROM candidate,
+  signing, publication, release, merge, force-push, lock or relock occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another consequential slice until the
+verdict for this exact artifact/smoke checkpoint is recorded in `docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm that the exact source/artifact hashes, one bounded integrity verifier and genuine
+  no-phone packaged lifecycle satisfy the approved Fedora development-artifact gate.
+- Confirm the XWayland automation limitation is accurately classified without reducing the native
+  Fedora application, clean-close or zero-device evidence claims.
+
 ## Linux correction checkpoint — seamless Forge plan rollover with preserved evidence
 
 ### Authoritative checkpoint and scope

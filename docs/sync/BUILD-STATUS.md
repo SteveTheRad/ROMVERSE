@@ -1,5 +1,139 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux checkpoint — bounded external-package metadata and untrusted-procedure inventory
+
+### Authoritative checkpoint
+
+- Product Assurance authorization/base: `c0de9b2` — approved corrected Fastboot round trip, with
+  this package-evidence task queued after the separate Windows convergence handoff.
+- Windows convergence prerequisite: `3936d934224294544981c505aba98275c910cd60` exists on
+  `origin/assurance/windows-core-convergence`; it was inspected as a prerequisite only and was not
+  merged or modified by this Linux checkpoint.
+- Tested implementation commit:
+  `bc6e0ef66399df2fbfed0e9418c8d8931c254122` — `Inventory external package evidence safely`.
+- Final handoff: the follow-up commit containing this document on
+  `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation, bounded read-only external package evidence.
+
+### Exact implementation
+
+- `ExternalFirmwareIntakeService` now inventories only four root-level, case-insensitive metadata
+  names from the already admitted and hashed ZIP descriptor: `BUILD-INFO.txt`,
+  `CUSTOMIZATION-MANIFEST.tsv`, `SHA256SUMS` and `android-info.txt`. Each admitted member records
+  exact path, bounded size and SHA-256. Only an explicit identity-field allowlist can be parsed;
+  every parsed value remains package-declared and unverified.
+- `.sh`, `.bat`, `.cmd`, `.ps1` and the Android updater-script path are recorded separately as
+  untrusted procedure presence by exact path, bounded size and SHA-256 only. Procedure bodies are
+  never persisted, parsed into actions, adopted as routes or executed.
+- ZIP directories are safely ignored. Relevant ambiguous/case-folded duplicate paths, unsafe paths,
+  symlink/special-file entries, encryption, malformed or non-UTF-8 metadata, duplicate identity
+  declarations, bounded-size/count overflow, command-like or relock identity text, and a declared
+  SHA-256 mismatch reject before either durable receipt is written.
+- The strict inventory loader rejects extra/hidden fields, boolean schema confusion, unbound
+  manifest paths, malformed members, source-receipt drift and altered record digests. It grants no
+  build, device or execution authority and permanently records bootloader relock as `never`.
+- ROM Studio renders metadata claims as `UNVERIFIED`, procedures as `NEVER EXECUTED`, and the full
+  build/install/Guardian/flash boundary as `LOCKED`. The untrusted evidence label is forced to plain
+  text so package values and paths cannot become UI markup.
+- The durable-schema compatibility inventory now declares both the existing external intake receipt
+  and the new external package metadata record as version-1, strict, fail-closed evidence formats.
+
+### Deterministic verification
+
+- `tests/test_external_firmware_intake.py`: **19/19 unique tests passed**.
+- `tests/test_rom_inspection.py`: **32/32 unique adjacent regression tests passed**.
+- `tests/test_durable_schema_inventory.py`: **6/6 unique schema checks passed**.
+- Total: **57/57 non-overlapping tests passed**. No broad suite was run or double-counted.
+- Ruff static check: **5/5 changed source/test files passed**.
+- Ruff format check: **5/5 changed source/test files passed**.
+- `git diff --check`: passed.
+
+### Real source evidence
+
+- One permitted read-only reinspection used the existing in-place file
+  `adbb99b9d6e6c3e6-HyperOS4-Xiaomi17ProMax-Debloated-CustomRom.zip`; it was not copied, extracted,
+  modified or reopened through a replacement path.
+- Exact source: **11,797,532,065 bytes**, SHA-256
+  `adbb99b9d6e6c3e62520c144d8b841ff6f34543feddf2969cfc38f4acf90f89a`, complete ZIP inspection,
+  68 entries, zero critical findings and zero warnings.
+- The package contains no member from the four-name metadata allowlist. Therefore it produced no
+  package identity facts and no manufacturer, device, build, Android, region, channel or base claim.
+  That absence remains explicitly `UNCONFIRMED`; ROMVERSE does not infer identity from procedure
+  names or contents.
+- Eleven untrusted procedure members were inventoried: four `.sh`, five `.bat` and two `.ps1`
+  files. The exact durable list retains only path, size and SHA-256; it contains no procedure body.
+
+| Package-relative path | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `outputs/popsicle_OS4.0.0.23_AA_Gboard_Themes_Chrome_BOOT_TESTED/flash_all.sh` | 5,330 | `589afffba7bc1e3528f936caeb9fe3bfd43da8d4017d0b5d4562c6f9e2be41ac` |
+| `outputs/popsicle_OS4.0.0.23_AA_Gboard_Themes_Chrome_BOOT_TESTED/flash_all_except_data_windows.bat` | 211 | `f4b58a3dc91d5a0d66a41c6439c332c6b5bf71c78ee664bed2c4bbdbe7cfd4bb` |
+| `outputs/popsicle_OS4.0.0.23_AA_Gboard_Themes_Chrome_BOOT_TESTED/flash_all_windows.bat` | 134 | `974945bf7168b7d1e53016a749cbfe08f24a4c8a9ae9f90056e52b0e075385e4` |
+| `outputs/popsicle_OS4.0.0.23_AA_Gboard_Themes_Chrome_BOOT_TESTED/post_boot_check.ps1` | 1,461 | `b451a9ac15f9c3af8a0d16ebd878d5c52279014b7b03383b9c94bec1869739f0` |
+| `outputs/popsicle_OS4.0.0.23_AA_Gboard_Themes_Chrome_BOOT_TESTED/post_boot_check.sh` | 1,239 | `a78ca4a8c8dadcc2879d8c0e964ae3f61899e345cba97837903d1b4dffd7341f` |
+| `outputs/popsicle_OS4.0.0.23_AA_Gboard_Themes_Chrome_BOOT_TESTED/post_boot_check_windows.bat` | 145 | `b8c077cdcaf685f610f84b21a24eda0f3f73a9fac63f57d92ede493066bd305e` |
+| `outputs/popsicle_OS4.0.0.23_AA_Gboard_Themes_Chrome_BOOT_TESTED/repair_signed_root_vbmeta.sh` | 1,353 | `760e2c855253c33e0b7adc8b59dcc65041801fdf2f25efbba7c86babcb932817` |
+| `outputs/popsicle_OS4.0.0.23_AA_Gboard_Themes_Chrome_BOOT_TESTED/verify.bat` | 223 | `650ffb3c955a745d6b4e8f42197fe37d34ff67fdd0b1f6c0b058a638bda59d82` |
+| `outputs/popsicle_OS4.0.0.23_AA_Gboard_Themes_Chrome_BOOT_TESTED/verify.ps1` | 1,139 | `9886ee971c960dea27e4559f0908f2d8505cd1f2b7f86c16f883651fc53b875d` |
+| `outputs/popsicle_OS4.0.0.23_AA_Gboard_Themes_Chrome_BOOT_TESTED/verify.sh` | 294 | `19fb9dc3af66d882c38e1cd634a8ab35500df1d0be19cbc49f22ec64903d53c3` |
+| `outputs/popsicle_OS4.0.0.23_AA_Gboard_Themes_Chrome_BOOT_TESTED/windows_flash_common.bat` | 4,061 | `d7736caeafe87d466908463a8b15efeca67da09e879fed7a648f26892859e9cb` |
+
+- Inventory digest: `6613af442b27157a4116fc150e5a1f72e7cf7602c3d7453a520055215d7e0b54`.
+- Durable external intake receipt digest:
+  `782b1e5e2ca167e71d72939b611e35c242bbe30d607fec48578e998e91a755f2`.
+- Evidence was written only inside the ignored disposable workspace
+  `build/external-metadata-inventory-c0de9b2`; the external package stayed at its original path.
+
+### Classification and safety
+
+- **Implemented:** strict metadata/member inventory, procedure-presence evidence, durable loader,
+  locked/plain-text ROM Studio presentation and schema declarations.
+- **Simulated/Tested:** 57 deterministic tests on Fedora Linux plus one production-service read of
+  the real external package.
+- **Hardware Verified:** none in this checkpoint. No phone, emulator, ADB or Fastboot target was
+  accessed. The earlier approved Fastboot round trip was not repeated.
+- **Released:** no. Nothing was packaged, installed, signed, published or released.
+- Guardian-only authority, exact evidence, UNKNOWN-on-uncertainty, no blind retry, independent
+  verification and same-incident Recovery rules are unchanged. The inventory is evidence-only and
+  cannot create a build, consent, live-target, Guardian, Recovery or execution route.
+- Bootloader locking/relocking remains permanently prohibited and has no valid path.
+
+### Guided, platform, freeze and version gate
+
+- Guided now exposes the useful evidence without adopting package procedures or creating another
+  decision. No new Guided loop or dead end was found; absence of recognized metadata remains calm
+  and truthful rather than being labelled incompatible.
+- Fedora/Linux: implementation, UI boundary, durable reload and real-source service path verified.
+- Windows: not run or claimed here. The separate Windows convergence checkpoint was only confirmed
+  present on its remote branch.
+- Feature freeze: compliant. This is the previously approved minimum evidence/correctness slice;
+  it adds no format/vendor support, dynamic route, adapter, device command or execution capability.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance review and later explicitly
+  approved boundaries.
+
+### Preservation, blockers and external actions
+
+- Protected Companion files, Windows launcher/convergence source, website, Adaptive work and all
+  unrelated user files were not edited, staged, discarded or committed.
+- Remaining limitation: the real package supplies no allowlisted metadata identity. Its relationship
+  to any phone/source contract remains unconfirmed, and all consequential controls remain locked.
+- Physical phone operation, ADB/Fastboot command, APK action, file transfer, firmware execution,
+  flash/boot/update, partition read/write, slot change, erase/wipe/format, unlock/lock/relock,
+  root/debloat, package installation, signing, publication and release: **none**.
+- External network action after verification: one normal push of the scoped implementation and
+  handoff commits to the existing Linux branch only; no force-push and no unrelated push.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not adopt any inventoried procedure, infer package
+identity, operate a phone or begin another consequential Stage 1 slice.
+
+### Product Assurance Review Requested
+
+- Confirm the four-name metadata allowlist, strict identity fields and failure behavior preserve the
+  evidence-only boundary without turning absence into incompatibility.
+- Confirm that retaining procedure path/size/hash only, combined with plain-text UI and zero
+  authority, closes the approved untrusted-procedure inventory milestone.
+
 ## Linux correction checkpoint — bounded Fastboot source reacquisition
 
 ### Authoritative checkpoint

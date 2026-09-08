@@ -1,5 +1,68 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 477bd6c — positive local APK inspection
+
+- Reviewed commit: `477bd6ca90138b76deaaf33311cec3c7e28120c8`
+- Accepted unchanged source/package: `ca983ecd30724723574d7fdd6ae02ca107e3be3e`
+- Approved base: `265bfbc`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — EXACT APK IS RETAINED LOCALLY WITHOUT DEVICE AUTHORITY**
+
+### Decision
+
+Product Assurance independently reproduced the unchanged Desktop package and APK hashes, final
+runtime/audit evidence and empty workspace authority stores. App Launchpad bound the exact local
+APK bytes, completed bounded container inspection, disclosed unavailable AAPT2/APK Signer evidence,
+retained the result without a phone, and kept approval/install disabled. No correction or replay is
+required.
+
+### Independent evidence and acceptance
+
+- The inspected ignored Companion debug APK remains 9,060,239 bytes and independently matches
+  SHA-256 `62bc530d5f077e3e34ad71002caa24303a584bf4661f56d2cc338c976bfb5a2b`;
+  the Desktop executable independently remains
+  `0a47f9af3dea4c0f64983fdd4afc9d1fa01dfcc96185680e94f098b1cb19dde7`.
+- The local result truthfully reports 874 ZIP entries, an Android manifest and three DEX files,
+  while refusing to infer decoded identity or cryptographic signer status without verified tools.
+- The final audit independently matches
+  `f0fdbc8de67c8631f48d20f8565d62596b606bb3c5f3285818c615ef66e45913` and is a gap-free
+  84-record sequence: 42 ADB and 42 Fastboot read-only targetless inventories, all untimed-out and
+  return code 0.
+- The runtime record contains one clean start/close pair and independently matches
+  `c9a5cb9322615534d8a5ad7255f55888b66be1b4b82c6ab0116e1910585d64c3`; no package process
+  remains.
+- The workspace retains no APK copy, project, receipt, approval, Activity/Live Console event,
+  snapshot, backup, build or working-ROM file. No phone, APK installation, firmware operation,
+  signing, consent or execution authority was created.
+
+### Approved next bounded Linux task
+
+Reuse this exact fresh workspace, package and original APK once. Invoke only the visible
+**Improve APK identity verification** action. Allow Forge Arsenal to acquire and verify only the
+official managed AAPT2 and APK Signer requirements inside ROMVERSE's private tool directory, then
+automatically repeat local inspection of the same exact APK bytes once. Require the refreshed page
+to preserve the original APK hash, display only identity/signature facts actually proven by those
+tools, retain the no-phone result, and keep approval/install disabled.
+
+This is one managed local dependency-repair and automatic reinspection journey, not a system-wide
+Android SDK installation, APK rebuild/sign/install, broad tool acquisition or physical-device
+task. Reuse any already verified managed archive/receipt instead of downloading it again. If a
+genuine download, receipt, activation, resume, identity or retry defect appears, apply only its
+minimum Desktop correction and focused test, then package/relaunch at most once. Record exact tool,
+APK, runtime and audit evidence, commit/push one handoff and stop for review. Do not modify
+Companion source, Knowledge/UI Design Lab or Windows work. No phone, APK installation, firmware
+operation, ROM build/signing, Guardian/Recovery execution, publication, release, lock or relock is
+authorized.
+
+### Gate status
+
+- Positive local APK inspection/no-phone authority boundary: **VERIFIED**
+- Managed APK identity-tool repair and exact automatic reinspection: **NEXT BOUNDED LINUX TASK**
+- Windows corrected-package saved-project smoke: **OWNED BY WINDOWS; DO NOT DUPLICATE**
+- Physical hardware, APK/device installation, signing, Guardian/Recovery execution, publication
+  and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: bae42c2 — truthful empty Activity Center
 
 - Reviewed commit: `bae42c2702954590dd237bc9154dee4b468359b4`

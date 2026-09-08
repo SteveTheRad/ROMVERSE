@@ -1,5 +1,72 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows App Launchpad source parity — Product Assurance review requested
+
+- Product Assurance verdict: `12f81ad900cf2dfdad4143536996b58c77d6166f` — `Approve Windows
+  Forge consent package`, matching checkpoint
+  `7e8656da4ab673f1802161be8d927b1b80f1f651` exactly.
+- Branch: `windows-launcher-authorized-work`.
+- Status: **PASS — THE TWO APPROVED PLATFORM-NEUTRAL APP LAUNCHPAD CORRECTIONS ARE NOW IN
+  WINDOWS SOURCE PARITY, WITH 9/9 FOCUSED NATIVE WINDOWS CASES PASSING. NO PACKAGE WAS BUILT OR
+  LAUNCHED.**
+
+### Exact source parity
+
+- Transcribed only the application/test changes from
+  `bb87b1e3b55fbb3497eec324a7678eda899d1a23` — `Parse current AAPT2 minimum SDK evidence` and
+  `15f5953b0cc42d4e5a5d81254671a609ba8805ef` — `Connect retained APK to device discovery`, both
+  fetched from `origin/linux/stage1-desktop-readiness`. No Linux handoff document or unrelated
+  branch history was merged, rebased or cherry-picked.
+- APK inspection now prefers the current AAPT2 `minSdkVersion` evidence and falls back to legacy
+  `sdkVersion` only when the current value is absent or malformed. Malformed or absent evidence
+  remains empty rather than being guessed.
+- A valid retained APK inspection with no authorized device now offers one contextual
+  **Connect and authorize phone** handoff. The handoff routes to Command Deck and requests exactly
+  one existing read-only discovery while retaining the same local inspection and keeping approval
+  and installation disabled.
+- The accepted Windows Guided-consent correction and all unrelated source remain unchanged.
+
+### Focused native Windows evidence
+
+- Windows 11, Python `3.12.10`, `PYTHONPATH=src`, `QT_QPA_PLATFORM=windows`.
+- `.venv\Scripts\python.exe -m pytest -p no:cacheprovider --basetemp
+  C:\Work\ROMVERSE-Pytest-AppLaunchpad-Parser-20260909
+  tests/test_apk_install.py::test_apk_inspection_decodes_identity_and_verifies_signer_with_verified_tools
+  tests/test_apk_install.py::test_apk_inspection_parses_current_and_legacy_min_sdk_evidence -q` —
+  **6 passed**, covering current, legacy, malformed, absent and current-to-legacy fallback evidence.
+- `.venv\Scripts\python.exe -m pytest -p no:cacheprovider --basetemp
+  C:\Work\ROMVERSE-Pytest-AppLaunchpad-UI-20260909
+  tests/test_apk_center_ui.py::test_apk_center_inspects_locally_without_a_connected_phone
+  tests/test_apk_center_ui.py::test_apk_center_connection_action_preserves_exact_local_inspection
+  tests/test_navigation_vocabulary.py::test_app_launchpad_routes_one_scan_and_retains_local_inspection
+  -q` — **3 passed**, covering visible connection context, retained inspection, disabled
+  approval/install and one route/discovery request.
+- `.venv\Scripts\python.exe -m ruff check src\romverse\device\apk_install.py
+  src\romverse\ui\apk_center.py src\romverse\ui\main_window.py tests\test_apk_install.py
+  tests\test_apk_center_ui.py tests\test_navigation_vocabulary.py` — **passed**.
+- `git diff --check` — **passed**. Total focused test result: **9 passed, 0 failed, 0 skipped,
+  0 timed out**.
+
+### Preserved boundaries
+
+- No executable/package was built or launched. No tool was selected, downloaded or installed; no
+  ADB/Fastboot process or command was invoked; and no phone, emulator or device was requested,
+  awaited, discovered, connected, operated or targeted.
+- No APK/device installation, firmware change, ROM signing, Guardian/Recovery execution,
+  publication, release, lock, relock, force-push or destructive action occurred. Exact-device
+  evidence, UNKNOWN-on-uncertainty, consent separation, no blind retry, Guardian-only authority,
+  independent verification and permanent no-relock remain intact.
+- Protected Companion files remain untouched. The untracked user patch remains byte-identical at
+  8,272 bytes, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+
+### Proposed next bounded task
+
+Product Assurance should independently compare this source/test diff with `bb87b1e` and
+`15f5953`, verify the 9/9 focused native Windows evidence and confirm that no Linux handoff history
+or accepted Windows consent behavior was displaced. Build must not rebuild or launch a package,
+invoke platform tools or infer device/execution authority while that review is pending.
+
 ## Windows corrected-package Forge review/cancel — Product Assurance review requested
 
 - Product Assurance verdict: `4b99daad6d2411e55f9510e81d5c470db70fe08b` — `Approve Windows

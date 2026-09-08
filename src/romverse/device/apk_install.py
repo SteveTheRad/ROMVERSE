@@ -301,8 +301,12 @@ def _inspect_package_identity(
     application_line = next((line for line in lines if line.startswith("application-label:")), "")
     app_label = _first_quoted_value(application_line)
     min_sdk = _first_quoted_value(
-        next((line for line in lines if line.startswith("sdkVersion:")), "")
+        next((line for line in lines if line.startswith("minSdkVersion:")), "")
     )
+    if not min_sdk:
+        min_sdk = _first_quoted_value(
+            next((line for line in lines if line.startswith("sdkVersion:")), "")
+        )
     target_sdk = _first_quoted_value(
         next((line for line in lines if line.startswith("targetSdkVersion:")), "")
     )

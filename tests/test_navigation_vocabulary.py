@@ -76,6 +76,36 @@ from tests.test_recovery_autopilot import _verified_boot as _recovery_verified_b
 from tests.test_source_intelligence import SourceRunner
 
 
+def test_app_launchpad_routes_one_scan_and_retains_local_inspection(tmp_path: Path) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
+    inspection = _apk_ready_plan(tmp_path).inspection
+    discoveries: list[bool] = []
+    window.device_center.refresh_requested.connect(lambda: discoveries.append(True))
+    try:
+        assert window._navigate_route("app_launchpad")
+        window.apk_installer._inspection_ready(inspection)
+        app.processEvents()
+
+        window.apk_installer.connect_phone.click()
+        app.processEvents()
+
+        assert discoveries == [True]
+        assert window.stack.currentWidget() is window.device_center
+        assert window.apk_installer.current_inspection is inspection
+        assert inspection.sha256 in window.apk_installer.hash_label.text()
+
+        assert window._navigate_route("app_launchpad")
+        assert window.apk_installer.current_inspection is inspection
+        assert not window.apk_installer.connect_phone.isHidden()
+        assert not window.apk_installer.approve.isEnabled()
+        assert not window.apk_installer.install_button.isEnabled()
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
 def test_bootloop_evidence_automatically_opens_recovery_autopilot(tmp_path: Path) -> None:
     app = QApplication.instance() or QApplication([])
     logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"

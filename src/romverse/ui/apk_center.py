@@ -128,6 +128,7 @@ class ApkCenter(QWidget):
 
     runtime_tools_requested = Signal()
     inspection_tools_requested = Signal()
+    connect_phone_requested = Signal()
     knowledge_article_requested = Signal(str)
 
     def __init__(
@@ -225,6 +226,17 @@ class ApkCenter(QWidget):
         self.improve_inspection.clicked.connect(self._resolve_inspection_tools)
         self.improve_inspection.setVisible(False)
         layout.addWidget(self.improve_inspection)
+
+        self.connect_phone = QPushButton("Connect and authorize phone")
+        self.connect_phone.setToolTip(
+            "Open Command Deck and run one bounded read-only Device Engine discovery. "
+            "The retained APK inspection grants no approval or installation authority."
+        )
+        self.connect_phone.clicked.connect(
+            lambda _checked=False: self.connect_phone_requested.emit()
+        )
+        self.connect_phone.setVisible(False)
+        layout.addWidget(self.connect_phone)
 
         self.approve = QPushButton("2  Review and approve exact plan")
         self.approve.setToolTip(
@@ -355,6 +367,7 @@ class ApkCenter(QWidget):
                     "automatically create a fresh device-bound safety plan.",
                     "Good",
                 )
+            self._sync_connect_phone_action()
             return
         battery = f"{device.battery_percent}%" if device.battery_percent is not None else "unknown"
         self.device_label.setText(
@@ -388,6 +401,7 @@ class ApkCenter(QWidget):
             self._bind_selected_to_device()
         elif self.current_plan is None and self.active_worker is None:
             self._set_result("Device ready. Choose an APK to begin Guardian inspection.", "Good")
+        self._sync_connect_phone_action()
 
     def _authorized_device(self) -> AndroidDevice | None:
         return next((item for item in self.devices if item.state is DeviceState.DEVICE), None)
@@ -459,6 +473,7 @@ class ApkCenter(QWidget):
         self.current_plan = None
         self.current_inspection = None
         self.selected_apk_path = path
+        self._sync_connect_phone_action()
         self.approve.setEnabled(False)
         self.install_button.setEnabled(False)
         worker = ApkInspectionWorker(
@@ -485,6 +500,17 @@ class ApkCenter(QWidget):
                 inspection is not None
                 and inspection.valid
                 and needs_tools
+                and self.active_worker is None
+            )
+        )
+
+    def _sync_connect_phone_action(self) -> None:
+        inspection = self.current_inspection
+        self.connect_phone.setVisible(
+            bool(
+                inspection is not None
+                and inspection.valid
+                and self._authorized_device() is None
                 and self.active_worker is None
             )
         )
@@ -810,6 +836,7 @@ class ApkCenter(QWidget):
         self.improve_inspection.setEnabled(False)
         self.approve.setEnabled(False)
         self.install_button.setEnabled(False)
+        self._sync_connect_phone_action()
         self._set_result(message, "Warning")
 
     def _set_idle(self) -> None:
@@ -817,6 +844,7 @@ class ApkCenter(QWidget):
         self.choose.setEnabled(True)
         self.improve_inspection.setEnabled(True)
         self._sync_inspection_tool_action()
+        self._sync_connect_phone_action()
 
     def _set_result(self, text: str, object_name: str) -> None:
         self.result_label.setText(text)

@@ -8,9 +8,10 @@
   `54d0a3b28217a5c378ccba10e0d9b18ac230b332` exactly.
 - Workflow-only implementation: `73d22d0aad0d71632611773e54ae15e35a4ac112` —
   `Align desktop CI identity and coordination`.
-- Result: **PARTIAL PASS — BOTH CURRENT DESKTOP ARTIFACTS PASSED; UNSIGNED-CANDIDATE JOB
-  COULD NOT START BECAUSE GITHUB REJECTED A NEW RUNNER FOR ACCOUNT BILLING/SPEND-LIMIT REASONS**.
-  No repository-owned failure was observed at the candidate boundary, and no second run was started.
+- Result: **PARTIAL PASS — BOTH CURRENT DESKTOP ARTIFACTS AND A LOCAL EXACT-CANDIDATE REPLAY
+  PASSED; THE HOSTED UNSIGNED-CANDIDATE JOB COULD NOT START BECAUSE GITHUB REJECTED A NEW RUNNER FOR
+  ACCOUNT BILLING/SPEND-LIMIT REASONS**. No repository-owned failure was observed at the candidate
+  boundary, and no second GitHub run was started.
 
 ### Workflow-only correction
 
@@ -56,6 +57,21 @@
   to be increased. Please check the 'Billing & plans' section in your settings`.
   Therefore the unsigned candidate/manifest could not be proved in GitHub, and this checkpoint does
   not claim that missing acceptance result.
+- To isolate the remaining runner-only gap without rebuilding or starting another workflow run,
+  Build downloaded the two exact successful artifacts from run `34226226022` into disposable local
+  workspace `C:\Work\ROMVERSE-Candidate-73d22d0-1788870989`, then replayed only the candidate
+  boundary with:
+  `.venv\\Scripts\\python.exe scripts\\prepare_desktop_release.py --version 0.2.0a1 --release-id romverse-desktop-0.2.0a1-73d22d0aad0d71632611773e54ae15e35a4ac112 --artifact linux-portable:linux-x86_64:archive:<downloaded-linux-archive> --artifact windows-portable:windows-x86_64:archive:<downloaded-windows-archive> --output <disposable-dist>\\romverse-desktop-0.2.0a1-unsigned.json`, followed by
+  `.venv\\Scripts\\python.exe scripts\\verify_unsigned_desktop_release.py <disposable-manifest> --artifact-directory <disposable-dist>`.
+  Result: **1/1 prepare and 1/1 structural verification passed**. The unsigned manifest binds exactly
+  two artifacts / **238,147,101 bytes**, version `0.2.0a1`, exact source-bound release ID, no rollback
+  artifact, `automatic_install: false`, `execution_authority: none`, and explicit confirmation.
+  Internal archive hashes are Linux
+  `ef724f42e740a4444aa8c894e080b711a6caebcf1f0a24d680e514b5bfdf9842` and Windows
+  `1445bfe4f8429ee0f13ddb25c6b9e8956394230a41086ff9ee187888194801f0`; the 1,193-byte unsigned
+  manifest hash is `b029474bb10ec2d04b86fd551c72d0da879a2e736c11f38f5b1805aee64f9e9c`.
+  This proves the repository-owned candidate command and current artifact identity locally, but does
+  not replace the still-missing hosted-job acceptance evidence.
 
 ### Scope, blocker, and next task
 

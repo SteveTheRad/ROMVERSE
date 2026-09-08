@@ -1,5 +1,43 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 9e951b7 — Device Intelligence starts an exact ROM Mission
+
+- Handoff commit: `9e951b715247a50e1435eb8de83e6d90686e1aaf`
+- Implementation commit: `78009cb89080f3e21421667bb31b4518dc9888cf`
+- Approved base: `43c133ea0260a04e4994dc50ad91c153c363d718`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — EXACT DEVICE INTELLIGENCE MISSION CONTINUITY**
+
+### Decision and acceptance
+
+The correction closes a genuine existing user-journey gap without adding a capability or execution
+surface. Product Assurance inspected the complete implementation/test diff and confirmed that both
+the sending Device Intelligence surface and receiving ROM Studio boundary independently revalidate
+the selected device, Pack report, current persisted Device DNA and DNA-bound advisory Compatibility
+Matrix. Same-model/different-device substitution returns to Device Atlas before Genesis opens.
+
+The successful journey retains the privacy-masked target and exact DNA/Matrix evidence while
+truthfully presenting `guardian_flash` as `Unknown`. That is the correct investigable
+`UNCONFIRMED` posture: it neither blocks evidence gathering as unsupported nor manufactures
+compatibility, consent, Guardian authority or execution readiness. The reported focused 139-test
+regression, lint/format and whitespace evidence is proportional; no broad rerun is required.
+
+- Guided friction and context continuity: **PASS**
+- Exact-device substitution resistance: **PASS**
+- Evidence integrity and advisory/authority separation: **PASS**
+- Feature freeze: **PASS — existing handoff correction only**
+- Hardware, installation, execution, signing and release: **NOT CLAIMED OR AUTHORIZED**
+- v0.2 Golden Foundation: **CLOSED; release gates remain closed**
+
+### Approved next bounded task
+
+Build may continue automatically within the existing Device Intelligence Hub. Inspect the next
+real user path immediately adjacent to `Start ROM Mission` and correct exactly one reproducible
+incomplete journey, prioritizing first-use/no-project handling, current-project selection, saved
+device-history continuity or a truthful actionable return path. Use sanitized synthetic evidence
+and one focused widget journey. Do not add a new capability, operate a phone, duplicate Windows
+work, merge the UI Design Lab, or begin a broad test/rebuild loop.
+
 ## Reviewed checkpoint: 9b054b6 — runnable Linux Stage 1 desktop
 
 - Handoff commit: `9b054b6` — `Record runnable Linux Stage 1 journey`

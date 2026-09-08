@@ -1,5 +1,52 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 5cb1847 — Mission Pulse warning continuity
+
+- Handoff commit: `5cb1847a7aa72148530a1e138134d1286a9431d8`
+- Implementation commit: `a19d2db60863239b6bb2d8e7d8d8ae77e717a2f5`
+- Approved base: `fbf1f4d`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — UNRESOLVED WARNING REMAINS VISIBLE**
+
+### Decision
+
+Product Assurance inspected the complete diff. Selecting the newest unresolved warning from the
+genuine ledger, instead of examining only the newest event, is the minimum correct repair. A newer
+informational record can no longer conceal an earlier FAILED, BLOCKED or ATTENTION outcome or cause
+the Command Deck to claim that no warning exists. Deliberate Mission Pulse navigation still clears
+the temporary Resume scope and opens the complete global Live Operations ledger.
+
+The change is presentation-only. It creates no event, alters no mission state, starts no worker and
+grants no device, build, consent, Guardian, Recovery or execution authority.
+
+### Independent evidence
+
+- Product Assurance reran the exact warning-preservation and global-ledger widget journeys against
+  the committed source: **2/2 passed**.
+- The implementation and handoff are committed and pushed; the working tree was clean at review.
+- No phone, ADB/Fastboot, APK, firmware operation, installation, signing, publication, release or
+  bootloader relock occurred.
+- Feature freeze, exact-device evidence, Guardian-only authority, UNKNOWN-on-uncertainty, no blind
+  retry, same-incident attribution and permanent no-relock remain intact.
+
+### Approved next bounded Linux task
+
+Inspect Command Deck's existing `Pre-Build Simulation` handoff first, then `Recipes` only if the
+first path already works. Reproduce one concrete project/context continuity defect or user-visible
+dead end. The selected current project and its existing evidence must remain exact, and navigation
+must not start a build, create a mission result, claim compatibility or issue a device command.
+Apply at most one minimum correction and verify it with focused real-widget coverage. Do not rewrite
+or repeatedly test a passing route, overlap Windows Device Engine readiness, touch Knowledge/UI
+Design Lab or protected Companion files, operate a phone, run a broad suite, package, publish or
+release. Commit/push one bounded checkpoint and stop for independent review.
+
+### Gate status
+
+- Command Deck Mission Pulse warning/global-ledger continuity: **VERIFIED**
+- Pre-Build Simulation/Recipes handoff continuity: **NEXT BOUNDED LINUX TASK**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+- Physical execution, production trust/signing, publication and release: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: c740661 — exact current Command Deck mission ledger
 
 - Handoff commit: `c7406610a2f936c72293f898a06c62a634327ee1`

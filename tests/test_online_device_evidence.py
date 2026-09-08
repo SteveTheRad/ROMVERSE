@@ -116,6 +116,7 @@ def test_registry_is_deterministic_closed_by_default_and_has_small_public_set() 
     assert registry.adapters == tuple(sorted(registry.adapters, key=lambda item: item.adapter_id))
     assert {item.adapter_id for item in registry.adapters} == {
         "android.developer-docs",
+        "android.aosp-build-numbers",
         "android.google-play-device-catalog",
         "aosp.kernel-tree",
         "aosp.source-tree",

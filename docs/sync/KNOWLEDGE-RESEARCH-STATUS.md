@@ -1,5 +1,46 @@
 # ROMVERSE Knowledge Research Status
 
+## Proposed AOSP Pixel 6 build-reference slice — 8 September 2026
+
+### Value-gate decision
+
+- Named consumers and gap: Device DNA, Compatibility Matrix, Pathfinder, Nexus, Foresight, and
+  Knowledge Archives need official build identities that explicitly name Pixel 6. Existing retail
+  identity and the failed factory-index attempt provide no retained build/tag/security-patch facts.
+- Exact retained fields: build ID, AOSP tag, Android version, complete explicit supported-device
+  list, and security patch level for rows whose supported-device field contains the exact device
+  name `Pixel 6`. No `oriole` mapping, package hash, download identity, or missing scope is inferred.
+- Authority and source: one public official AOSP reference only,
+  `https://source.android.com/docs/setup/reference/build-numbers`, canonical English content.
+  Claims remain `officially-documented` AOSP build-reference metadata.
+- Freshness, validation, and conflicts: retain page revision/HTTP validators, retrieval time,
+  source digest, and parser identity. Revalidate after 30 days. Require reviewed table headings and
+  complete bounded fields. Duplicate or conflicting matching build IDs fail closed with a durable
+  receipt instead of selection by row order; stale metadata remains visible and investigable.
+- Parser and limits: `romverse.aosp-build-numbers` version 1; exact URL; no redirect, localization,
+  query, authentication, cookies, compression, or followed links; 4 MiB response, 2,000 parsed
+  headings/table rows, 2,000 table rows, 256 Pixel 6 rows, 500 characters per source field, and
+  8/12/30-second connect/read/overall timeouts. Conditional validators require a previously
+  validated content digest.
+- Privacy, licensing, and minimum retention: retain only normalized matching claims, full explicit
+  supported-device lists, source/revision/digests, and one strict receipt. Retain no raw HTML,
+  instructions, navigation, code, scripts, downloads, unrelated rows, personal information,
+  credentials, cookies, or device identifiers. Preserve AOSP page provenance and published terms.
+- Capability benefit: identify official AOSP tag/version/security-patch relationships for builds
+  explicitly listed for Pixel 6, enabling later comparison with separately acquired exact evidence.
+  This does not prove an OEM package, hash, codename mapping, compatibility, flash route, outcome,
+  or Guardian authority.
+- Stop conditions: stop on missing/changed headings, no exact Pixel 6 row, missing required field,
+  duplicate/conflicting build, unexpected URL/content, excessive limits, privacy/executable text,
+  any need to follow a link, or one completed live request. Return to Product Assurance afterward.
+
+### Explicit exclusions
+
+No crawling, alternate source, binary download, instruction/procedure retention, codename inference,
+compatibility promotion, UI/background scheduling, phone/emulator access, build/flash/root/debloat
+work, Guardian approval, production trust/signing, publication, other product branch, or bootloader
+relocking is authorized.
+
 ## Pixel 6 official factory-image metadata checkpoint — 8 September 2026
 
 ### Value-gate decision

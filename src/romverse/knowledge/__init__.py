@@ -7,6 +7,14 @@ from romverse.knowledge.android_device_guide import (
     GuideAcquisitionReceipt,
     GuideOutcome,
 )
+from romverse.knowledge.aosp_build_numbers import (
+    AOSP_BUILD_NUMBERS_URL,
+    AOSPBuildNumbersAcquirer,
+    AOSPBuildNumbersError,
+    AOSPBuildOutcome,
+    AOSPBuildReceipt,
+    FixedAOSPBuildNumbersHTTPS,
+)
 from romverse.knowledge.google_play_acquisition import (
     GOOGLE_PLAY_CATALOG_URL,
     AcquisitionOutcome,
@@ -49,6 +57,11 @@ from romverse.knowledge.pixel_factory_index import (
 
 __all__ = [
     "ANDROID_DEVICE_GUIDE_URL",
+    "AOSP_BUILD_NUMBERS_URL",
+    "AOSPBuildNumbersAcquirer",
+    "AOSPBuildNumbersError",
+    "AOSPBuildOutcome",
+    "AOSPBuildReceipt",
     "GOOGLE_PLAY_CATALOG_URL",
     "AcquisitionOutcome",
     "AndroidDeviceGuideAcquirer",
@@ -64,6 +77,7 @@ __all__ = [
     "EvidenceSourceRegistry",
     "EvidenceState",
     "FixedGooglePlayHTTPS",
+    "FixedAOSPBuildNumbersHTTPS",
     "GooglePlayEvidenceAcquirer",
     "GuideAcquisitionReceipt",
     "GuideOutcome",

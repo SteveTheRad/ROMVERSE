@@ -60,6 +60,7 @@ evidence:
 
 - Google Play's fixed public supported-device catalog;
 - public Android developer documentation;
+- AOSP's exact build-number reference, filtered to explicit Pixel 6 rows;
 - Google's exact Pixel factory-image index, with metadata-only access;
 - public AOSP platform/device source through Android Gitiles;
 - public Android kernel source through Android Gitiles.
@@ -166,6 +167,26 @@ phone, Guardian, and relock authority, and `UNCONFIRMED` compatibility. Device D
 Matrix, Pathfinder, Nexus, Foresight, and Knowledge Archives may inspect this metadata, but it
 cannot establish artifact compatibility, a safe flash route, a confirmed outcome, or permission to
 act on a device.
+
+## Fixed AOSP Pixel 6 build-reference boundary
+
+The AOSP adapter accepts only
+`https://source.android.com/docs/setup/reference/build-numbers`. It makes one no-redirect,
+identity-encoded HTML request with 8/12/30-second connect/read/overall timeouts, a four-MiB byte
+limit, and conditional validators only after validated evidence. It sends no authentication or
+cookies and follows no link.
+
+The canonical English parser accepts only reviewed five-column build-reference layouts. From that
+table it retains only rows whose complete explicit supported-device list includes the exact token
+`Pixel 6`. One structured claim holds the build ID, AOSP tag, Android version, full supported-device
+list, and security patch level. It does not derive `oriole`, an OEM package, a package hash, or
+compatibility. Duplicate/conflicting matching build IDs, missing fields, layout drift, excessive
+rows, and privacy-unsafe or executable candidate text fail closed. Instructions, scripts, code,
+navigation, downloads, unrelated rows, and raw HTML are excluded.
+
+Device DNA, Compatibility Matrix, Pathfinder, Nexus, Foresight, and Knowledge Archives receive
+read-only `UNCONFIRMED` projections. Receipts and claims grant no command, phone, Guardian,
+execution, package, flash, or relock authority.
 
 ## Knowledge Coverage & Value Gate
 

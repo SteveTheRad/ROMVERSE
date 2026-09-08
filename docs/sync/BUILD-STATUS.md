@@ -1,5 +1,103 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — persisted completed local project resumes truthfully
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `ab8c284532385ee58155ab2d76703cb6ed40e2c8` approved one
+  corrected-package persistence/resume journey against the already completed simulated-project
+  workspace, with no replay of import, extraction, tool acquisition, Build Readiness or Forge.
+- Exact unchanged application source/correction: `49dbd23f9a0532bd660f1e7f1625cee951e52a32`.
+- Exact unchanged corrected package:
+  `build/linux-pa-projectless-b2df7d5/frozen/ROMVERSE/ROMVERSE`, 6,323,080 bytes, mode `0755`,
+  SHA-256 `cabd03e677626cfd4489d657aee414d2acbb6f77d613ff0cbcac3add6e5b3c16`.
+- Stage: Stage 1 — v0.2 Golden Foundation, persisted full local-project/Genesis post-build resume
+  evidence only. There is no application source or test change in this checkpoint.
+
+### One bounded packaged persistence/resume journey
+
+- The corrected package ran once, unelevated, through Fedora XWayland against the already accepted
+  isolated workspace
+  `/run/media/stevetherad/Data/ROMVERSE-Packaged-Simulation-5d3e36f`, using the explicit development
+  simulation boundary. USB inventory confirmed no Android phone was connected.
+- On launch, ROMVERSE restored exact project `packaged-simulation-59a1424f`, its protected
+  `popsicle` OTA context and the existing **Continue Genesis Sequence** handoff. AT-SPI invoked that
+  existing action once; no project selection, import, extraction, tool, plan, Forge or build action
+  was replayed.
+- Genesis correctly required fresh ephemeral simulated-device evidence after process restart. It
+  initially showed the already recorded local-build handoff while pausing at the fresh device check;
+  the one existing **Scan device / refresh DNA** action injected only the approved deterministic
+  simulation fixture and settled in 250 ms.
+- The resumed dialog then rendered **13 OF 13 LOCAL BUILD STAGES VERIFIED • 2 OPTIONAL INSTALL
+  STAGES DEFERRED**, **SIMULATION ONLY • NOT HARDWARE VERIFIED**, Guardian flash
+  `UNCONFIRMED`, and bootloader relocking `UNSUPPORTED`.
+- The normal accessible **Save & exit** action closed Genesis in 250 ms. ROM Studio returned to
+  Stage 14/15 with exactly one truthful handoff:
+  **LOCAL BUILD EVIDENCE RECORDED; NO INSTALLATION OR PHONE ACTION STARTED**.
+- A normal `WM_DELETE_WINDOW` closed the main application. No corrected-package process remained.
+  The retained runtime log appended exactly one start/clean-close pair and no new fatal trace. Its
+  historical accessibility crash from the earlier superseded package remains preserved.
+
+### Durable evidence and non-replay proof
+
+- Project manifest remained byte-identical at SHA-256
+  `6873100c5ff7c0532ebc4a2822a5a34fd0dec9ca76b740d4a2deaeb03936327b`.
+- Exact build plan remained byte-identical at SHA-256
+  `c7d41b6d6996ddabebb0112c673987adb21bc6e8a09e56124e22f8c6e02b566f`.
+- Build Readiness remained byte-identical at SHA-256
+  `2e1a8a55b93b66cb3086d40e3ea066ba9583ff2f400b6eb060f79f9307749e29`.
+- OTA source blueprint remained byte-identical at SHA-256
+  `e719d9f4e16fb7f961e54fd36fd8d97e3130861949f34893cb5c53547e1a5876`.
+- The local activity ledger remains exactly **7** historical events: protected import, working copy,
+  extraction, two local Project Vault checkpoints, dry-run plan and plan verification. No activity
+  event was added by resume.
+- The Live Console appended exactly four expected non-consequential lifecycle/evidence events:
+  Genesis resume, simulated Device DNA refresh, Compatibility Matrix refresh and Genesis pause.
+- Device DNA and Guided mission records changed only through the explicit fresh simulation scan and
+  normal save. Readiness remains `workspace_ready: true`, `build_ready: true`,
+  `local_candidate_ready: true`, `signing_ready: true`, and `flash_ready: false` for the unchanged
+  protected OEM baseline.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** no new source behavior; this checkpoint proves persistence/resume of the current
+  accepted corrected package and project evidence.
+- **Simulated/Tested:** one genuine packaged Fedora GUI persistence journey with an explicitly
+  simulated fresh Device DNA check. No pytest suite or prior journey is replayed/double-counted.
+- **Hardware Verified:** no. No Android phone was connected or operated.
+- **Released:** no. The package remains unsigned, local and ignored by Git.
+- Blockers/failures: none in this bounded resume. Revalidating the intentionally ephemeral simulated
+  target required one clear existing scan action and did not form a dead end.
+- Guided friction/dead ends: the completed local project reopens from its existing handoff, restores
+  13/13 after one fresh simulated identity check, closes normally, and returns truthful scope copy.
+- Guardian/Recovery/safety: simulation remains ROM Studio-only and grants no live target, consent,
+  command, Recovery incident or execution authority. `flash_ready` remains false; UNKNOWN/
+  no-blind-retry, exact-device and exact-incident evidence, independent verification,
+  Guardian-only authority and permanent no-relock are unchanged.
+- Linux/Fedora: genuinely verified on Fedora 44/XWayland. Windows and physical Android were not run.
+- Feature freeze: compliant evidence-only Stage 1 persistence check; no source, feature, package,
+  Device Pack, adapter, production execution or UI expansion.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all remaining gates.
+- External actions: the scoped branch is pushed normally with this documentation-only handoff. No
+  network download, firmware import/extraction, tool acquisition, Build Readiness/Forge worker,
+  phone connection/operation, ADB/Fastboot command, APK/system installation, firmware build/sign/
+  flash, Guardian/Recovery execution, publication, release, merge, force-push, lock or relock
+  occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another consequential slice until the
+verdict for this exact persisted-project resume checkpoint is recorded in
+`docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm the unchanged core project/build hashes, stable seven-event activity ledger, explicit
+  fresh simulation scan, visible 13/13 state and truthful returned handoff satisfy the approved
+  persistence/resume gate.
+- Confirm the four appended Live Console events are the minimum truthful lifecycle/evidence set and
+  grant no build, install, phone or execution authority.
+
 ## Linux correction checkpoint — projectless accessible Save & exit closes cleanly
 
 ### Authoritative checkpoint and scope

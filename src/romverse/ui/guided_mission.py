@@ -1729,7 +1729,7 @@ class GuidedBuildMission(QDialog):
             ):
                 self._start_new_project = False
                 self.state = self._load_state()
-            self._refresh()
+            self._refresh(select_current=True)
         elif action == "import":
             self.studio._import_original()
             self._refresh_if_idle()

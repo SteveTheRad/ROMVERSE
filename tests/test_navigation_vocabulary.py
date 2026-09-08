@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import os
 import sys
+import zipfile
 from dataclasses import replace
 from datetime import UTC, datetime
 from importlib.resources import files
@@ -12,7 +13,7 @@ from unittest.mock import patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication, QDialog, QFrame, QLabel, QPushButton
+from PySide6.QtWidgets import QApplication, QDialog, QFrame, QLabel, QMessageBox, QPushButton
 
 from romverse.core.privacy import WorkspacePrivacy
 from romverse.core.settings import AppSettings, DesktopTheme, ExperienceMode
@@ -1596,6 +1597,130 @@ def test_command_deck_simulation_does_not_start_without_resource_admission(
         assert "choose Pre-Build Simulation again" in (
             window.rom_studio.dashboard_handoff_detail.text()
         )
+        assert not QApplication.activeModalWidget()
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_fresh_command_deck_guided_project_resumes_through_simulation_readiness(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    source = tmp_path / "sanitized-guided-ota.zip"
+    source_bytes = b"ro.product.name=sanitized\n"
+    with zipfile.ZipFile(source, "w") as archive:
+        archive.writestr("system/build.prop", source_bytes)
+        archive.writestr("META-INF/com/android/metadata", b"ota-type=AB\n")
+    source_digest = hashlib.sha256(source.read_bytes()).hexdigest()
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(
+        None,
+        logo,
+        tmp_path / "fresh-workspace",
+        app_icon_path=logo,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    operations = []
+    guided_stages = []
+
+    def run_production_worker(worker) -> None:
+        operations.append((worker.operation, worker.project_id))
+        worker.run()
+
+    def accept_project_name(dialog) -> QDialog.DialogCode:
+        dialog.name_input.setText("Fresh Guided Continuity")
+        return QDialog.DialogCode.Accepted
+
+    def drive_guided_mission(mission) -> QDialog.DialogCode:
+        def current_stage() -> str:
+            return mission.assessments[mission.selected_index].stage.stage_id
+
+        guided_stages.append(current_stage())
+        assert current_stage() == "project"
+
+        mission.action_button.click()
+        app.processEvents()
+
+        guided_stages.append(current_stage())
+        assert current_stage() == "firmware"
+        project = window.rom_studio.current_project
+        assert project is not None
+        assert project.name == "Fresh Guided Continuity"
+        assert project.original is None
+
+        mission.action_button.click()
+        app.processEvents()
+
+        guided_stages.append(current_stage())
+        assert current_stage() == "workspace"
+        project = window.rom_studio.current_project
+        assert project is not None and project.original is not None
+        assert window.rom_studio.inspection.load_report(project.project_id) is not None
+        assert not window.rom_studio.inspection.working_tree_exists(project.project_id)
+        return QDialog.DialogCode.Rejected
+
+    monkeypatch.setattr("romverse.ui.rom_studio.start_background", run_production_worker)
+    monkeypatch.setattr(
+        "romverse.ui.rom_studio.ProjectNameDialog.exec",
+        accept_project_name,
+    )
+    monkeypatch.setattr(
+        "romverse.ui.rom_studio.QFileDialog.getOpenFileName",
+        lambda *_args: (str(source), ""),
+    )
+    monkeypatch.setattr(
+        "romverse.ui.rom_studio.QMessageBox.question",
+        lambda *_args: QMessageBox.StandardButton.Yes,
+    )
+    monkeypatch.setattr(
+        "romverse.ui.guided_mission.GuidedBuildMission.exec",
+        drive_guided_mission,
+    )
+    try:
+        window.device_center.primary_action_buttons["Start ROM Project"].click()
+        app.processEvents()
+
+        project = window.rom_studio.current_project
+        assert project is not None and project.original is not None
+        project_id = project.project_id
+        assert guided_stages == ["project", "firmware", "workspace"]
+        assert operations == [("import", project_id)]
+        assert project.original.sha256 == source_digest
+        assert window.rom_studio.store.original_path(project_id) != source
+        assert hashlib.sha256(source.read_bytes()).hexdigest() == source_digest
+        assert window.rom_studio.inspection.load_report(project_id) is not None
+        assert not window.rom_studio.prebuild_simulation_ready()
+        assert RomBuildPlanner(window.rom_studio.store).load(project_id) is None
+
+        window._navigate_route("command_deck")
+        window.device_center.quick_action_buttons["Pre-Build Simulation"].click()
+        app.processEvents()
+
+        assert operations == [
+            ("import", project_id),
+            ("working-copy", project_id),
+            ("extract", project_id),
+        ]
+        assert window.rom_studio.prebuild_simulation_ready()
+        assert window.rom_studio.command_tabs.currentIndex() == 1
+        assert window.rom_studio.dashboard_handoff_title.text() == (
+            "Pre-Build Simulation → Build & Proof"
+        )
+        assert window.rom_studio.dashboard_handoff_badge.text() == "READY"
+        assert RomBuildPlanner(window.rom_studio.store).load(project_id) is None
+        assert window.rom_studio.worker is None
+        assert window.rom_studio.devices == []
+
+        reopened_store = RomProjectStore(window.rom_studio.store.workspace)
+        reopened_project = reopened_store.get(project_id)
+        reopened_inspection = RomInspectionService(reopened_store)
+        assert reopened_project.original == project.original
+        assert reopened_inspection.load_report(project_id) is not None
+        assert reopened_store.working_copy(project_id) is not None
+        assert reopened_inspection.working_tree_exists(project_id)
+        assert RomBuildPlanner(reopened_store).load(project_id) is None
         assert not QApplication.activeModalWidget()
     finally:
         window.companion_center.transport.close()

@@ -1,5 +1,75 @@
 # ROMVERSE Product Assurance Sync
 
+## Current unsigned Windows development artifact checkpoint
+
+- Product Assurance verdict: `f6b9d785d60ceaccbab3afefa88cdee8b6e7ef12` —
+  `Approve Windows missing-tools recovery loop`, matching handoff
+  `dbe160ece1112cc7b13644bbace7a6014e6fb002` exactly.
+- Build source: exact approved branch commit
+  `f6b9d785d60ceaccbab3afefa88cdee8b6e7ef12`. Python was **3.12.10** and PyInstaller was
+  **6.22.2** on `Windows-11-10.0.26200-SP0`.
+- The existing one-folder/windowed build pipeline ran exactly once into fresh directories:
+  `.venv\Scripts\python.exe scripts\build_desktop_executable.py --output-directory build\windows-no-phone-f6b9d785 --work-directory build\windows-no-phone-f6b9d785-pyinstaller`.
+  Result: **PASS** in approximately 71 seconds; no rebuild or packaging loop ran.
+
+### Artifact and complete bundle integrity
+
+- Runnable unsigned development executable:
+  `C:\Work\ROMVERSE-Windows\build\windows-no-phone-f6b9d785\ROMVERSE\ROMVERSE.exe`.
+- Executable size: **6,301,671 bytes**. SHA-256:
+  `828547516bd7bf8ea75479e80233bedf3545fa2d78b947a7d99ebf62fa563db9`.
+- Authenticode status: **NotSigned**, as required for this internal development artifact. The PE
+  subsystem is exactly **2 (`WINDOWS_GUI`)**, confirming the normal executable uses the windowed
+  launcher rather than a console subsystem.
+- The one-folder bundle contains **305 regular files** and **164,626,006 bytes**. Every file was
+  read and hashed in sorted bundle-relative order; the resulting complete tree SHA-256 is
+  `f4fbadccaf62cf580f3872deef2fb0bce3c460598c9c22fa1ef8c286e475b4bd`.
+  There are **0** linked/junction members, **0** empty files, and **0 `icu*.dll` files**.
+- PyInstaller's warning inventory contains only expected optional or opposite-platform imports
+  (`pwd`, `grp`, `posix`, `fcntl`, `termios`, Java/VMS helpers, and optional `bcrypt`); the frozen
+  startup proved none is a required Windows runtime dependency.
+
+### One native frozen-app launch
+
+- The normal executable was launched exactly once, without `--release-smoke`, using the fresh
+  disposable no-phone workspace `C:\Work\ROMVERSE-Frozen-Visual-f6b9d785` and arguments
+  `--workspace C:\Work\ROMVERSE-Frozen-Visual-f6b9d785 --skip-onboarding`.
+- The same process reached a responding native window titled `ROMVERSE Studio 0.2.0-alpha.1` at the
+  code-defined supported initial 1440-by-900 client size. A 1920-by-1080 native desktop capture was
+  visually inspected: the frozen Command Deck was fully visible and unclipped, with the current
+  no-phone presentation, reachable `Resolve Platform Tools`, sidebar `Waiting for device`, and no
+  console window. Because this intentionally fresh workspace had no managed receipt, `Resolve
+  Platform Tools`—not `Scan for device`—was the truthful applicable continuation.
+- The first observer sample caught the same process while its transient window title was only
+  `ROMVERSE`; a screenshot and close request at that premature point did not complete. The observer
+  did not relaunch. It waited for the final titled, responding main window, captured that window's
+  visible state, then sent one normal close request. The process exited within one second.
+- The frozen runtime fault log contains exactly `ROMVERSE runtime started` followed by
+  `ROMVERSE runtime closed cleanly`, with no exception or native fault record. The smoke workspace
+  contains no Platform Tools package, and its logs contain no ADB/Fastboot or device-command
+  reference. No device command was issued.
+
+### Scope and disposition
+
+- Result: **PASS — NO FROZEN-ONLY DEFECT REPRODUCED; NO SOURCE OR TEST CHANGE REQUIRED**. No test
+  suite was run because the one authorized artifact build and native frozen launch passed, and
+  Product Assurance allowed directly affected checks only if a frozen-only defect required a
+  correction.
+- The build and smoke outputs are ignored development artifacts and are not staged. This handoff is
+  the only repository change. The protected Companion files have no staged or working-tree diff.
+  The pre-existing untracked `0001-Preserve-local-build-completion-across-restart.patch` remains
+  untracked and byte-identical at SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No managed-tools acquisition was repeated. No phone or emulator was requested, connected,
+  discovered, operated, or targeted. No ADB/Fastboot command, Recovery, flash, wipe, unlock, root,
+  relock, APK installation, production trust/signing, publication, release, force-push, or
+  destructive action occurred. Guardian-only authority, exact-device evidence, consent
+  separation, UNKNOWN-on-uncertainty, no blind retry, independent verification, feature freeze,
+  and permanent no-relock remain intact.
+- Remaining action and precise proposed next task: independent Product Assurance review of this
+  fresh unsigned artifact checkpoint. Windows Build is stopped; no further task is assumed before
+  a matching verdict is committed to the authoritative branch.
+
 ## Windows missing-tools recovery-loop checkpoint
 
 - Matching Product Assurance line: `6ce09427f36ab021b51790b35888fbf341e9b524` —

@@ -1,5 +1,124 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux correction checkpoint — no-phone diagnosis remains actionable
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `83b2899` approved the persisted completed-project resume and
+  authorized only one fresh-workspace, no-phone Command Deck **Diagnose Problem** continuity check.
+- Implementation commit: `f19c844de31949b335e0ffcfa51f8ce560416581` — `Keep no-phone
+  diagnosis route actionable` on `linux/stage1-desktop-readiness`.
+- Exact source/test files: `src/romverse/ui/device_center.py`,
+  `tests/test_dashboard_rendering.py`, and `tests/test_navigation_vocabulary.py`.
+- Stage: Stage 1 — v0.2 Golden Foundation, minimum Command Deck navigation continuity correction
+  only. No diagnostic engine, device discovery, knowledge, Guardian, Recovery or execution behavior
+  changed.
+
+### Exact dead end and minimum correction
+
+- The unchanged accepted package was launched once in fresh workspace
+  `/tmp/romverse-diagnose-pre-83b2899.yjRF9s`. Its accessible tree contained 1,977 nodes and showed
+  **Diagnose Problem** as visible/showing but disabled in the exact no-device/no-project state. It
+  therefore could not reach the already-existing truthful Health Review owner without technical
+  intervention.
+- Command Deck now keeps **Diagnose Problem** enabled as a safe navigation action even when no
+  device is selected. The owning Quantum Optimizer remains authoritative for evidence: it requires
+  a fresh authorized phone before producing any diagnosis, health score or action.
+- No additional button, dialog, diagnosis, scan trigger or fallback route was added. Recovery
+  remains unavailable without a device or typed current finding.
+- The focused integration regression starts with no device/report, clicks the real Command Deck
+  action, verifies Quantum Optimizer is the current owner, verifies its **EVIDENCE NEEDED** handoff
+  and exact no-action copy, and confirms the enabled **Scan device health** control is merely
+  presented while scan progress remains inactive.
+
+### Verification without double-counting
+
+- Final affected selection: **39/39 passed** — the complete Command Deck rendering and diagnostics
+  UI modules plus the no-phone route and existing owner-handoff integration checks. This is the sole
+  accepted regression total.
+- Ruff passed for all three changed files and Git whitespace validation passed.
+- An earlier exploratory 33-test keyword sweep reported 30 passes and three failures. The first
+  failure is a stale test that monkeypatches the former blocking `GuidedBuildMission.exec()` path
+  removed by the already-approved non-blocking lifecycle correction; its retained modal then caused
+  two later cascade assertions. None exercises the Diagnose route, and they are not counted as
+  accepted evidence or changed in this bounded task.
+- Exactly one corrected PyInstaller package was built on Fedora 44 with Python 3.14.7 and
+  PyInstaller 6.22.2. Executable:
+  `build/linux-pa-diagnose-83b2899/frozen/ROMVERSE/ROMVERSE`, 6,323,000 bytes, mode `0755`, SHA-256
+  `db3c135972a70b43c2ad4cd61e7a5e0e4f788c3156cfdc28f1ff7f9f68f07bfa`. It remains ignored,
+  unsigned and local.
+
+### Corrected packaged continuity journey
+
+- The corrected package ran once, unelevated, through Fedora XWayland in fresh workspace
+  `/tmp/romverse-diagnose-post-83b2899.lw9w9k`, with no Android phone present and no simulated
+  device injected.
+- AT-SPI verified **Diagnose Problem** was enabled, visible and showing, invoked its single
+  **Press** action once, and settled in 500 ms. Quantum Optimizer became visible with
+  **EVIDENCE NEEDED**, **Health Review needs fresh Device Engine evidence**, the enabled
+  **Scan device health** next action, and exact copy ending
+  **NO SCAN, OPTIMIZATION, CLEANUP, OR PHONE ACTION STARTED**.
+- The Diagnose action did not start scan progress, produce a report, create a project, add an
+  Activity/Live Console event, or invoke a worker. The fresh workspace contains only initialization
+  records, zero project files and no activity/live-console ledger.
+- A normal X11 `WM_DELETE_WINDOW` closed ROMVERSE. No corrected-package process remained and its
+  runtime record contains exactly one start and one clean close, SHA-256
+  `c9a5cb9322615534d8a5ad7255f55888b66be1b4b82c6ab0116e1910585d64c3`, with no ROMVERSE fatal
+  trace. One first external Python/X11 close-helper attempt crashed because its test-harness ctypes
+  declaration omitted `XFlush` argument typing; ROMVERSE stayed running and the corrected helper
+  then performed the normal clean close. This was a harness-only failure, not an app failure.
+- The previously completed isolated project's project, build-plan, Build Readiness and OTA
+  blueprint hashes remained byte-identical at
+  `6873100c5ff7c0532ebc4a2822a5a34fd0dec9ca76b740d4a2deaeb03936327b`,
+  `c7d41b6d6996ddabebb0112c673987adb21bc6e8a09e56124e22f8c6e02b566f`,
+  `2e1a8a55b93b66cb3086d40e3ea066ba9583ff2f400b6eb060f79f9307749e29` and
+  `e719d9f4e16fb7f961e54fd36fd8d97e3130861949f34893cb5c53547e1a5876`.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** one safe navigation availability rule; the evidence owner and all consequential
+  gates are unchanged.
+- **Simulated/Tested:** 39/39 affected checks plus one genuine corrected packaged Fedora UI
+  journey. No simulated device was injected.
+- **Hardware Verified:** no. No Android phone was present or selected.
+- **Released:** no. The package is an unsigned local development artifact.
+- Blockers/failures: the visible Diagnose dead end is corrected. Strict hardware-scan isolation was
+  not achieved in the packaged run because normal ROMVERSE startup polling automatically issued
+  repeated read-only `adb devices -l` and `fastboot devices -l` discovery probes while the app was
+  open. They returned no device and the Diagnose action itself started no scan, but this is
+  explicitly disclosed rather than characterized as a hardware-scan-free run.
+- Guided friction/dead ends: no-phone users can now open the intended owner and receive one clear,
+  truthful next safe action. They are not blocked at Command Deck and no diagnosis is fabricated.
+- Guardian/Recovery/safety: the automatic startup probes were Guardian-audited read-only discovery
+  operations with no target. No identity, report, project, consent, incident, write or execution
+  authority was created. UNKNOWN/no-blind-retry, exact-device and exact-incident evidence,
+  independent verification, Guardian-only authority and permanent no-relock remain unchanged.
+- Linux/Fedora: tests, packaging and both bounded UI observations were genuinely performed on
+  Fedora 44/XWayland. Windows and physical Android were not run.
+- Feature freeze: compliant minimum Stage 1 continuity correction; no new feature, knowledge,
+  Device Pack, adapter, device capability or production execution path.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all remaining gates.
+- External actions: this scoped branch is pushed normally with the handoff. No network download,
+  firmware/project import, firmware extraction/build/sign/flash, user-triggered scan, connected-phone
+  operation, APK/system installation, Guardian/Recovery execution, publication, release, merge,
+  force-push, lock or relock occurred. The automatic no-target ADB/Fastboot inventory probes above
+  are the only device-command activity. Protected Companion and Windows launcher files were not
+  modified, staged or committed.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another consequential slice until the
+verdict for this exact correction, regression evidence and disclosed startup-probe limitation is
+recorded in `docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm the one-rule availability correction, 39/39 affected checks and packaged owner handoff
+  satisfy the no-phone Diagnose continuity requirement without weakening evidence ownership.
+- Assess whether the normal no-target startup inventory probes require a new isolated verification
+  run despite the Diagnose action itself starting no scan, and whether the three stale exploratory
+  Genesis assertions should be scheduled separately under their already-approved lifecycle scope.
+
 ## Linux product checkpoint — persisted completed local project resumes truthfully
 
 ### Authoritative checkpoint and scope

@@ -1,5 +1,135 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — packaged simulated Guided journey reaches the locked Forge handoff
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `5d3e36fdb8a3bf436a7e078e8f72d5504da45173` approved one
+  explicit, no-phone packaged Fedora journey through Device DNA, safest customization, project
+  preparation, Build Readiness and the existing local dry-run/Forge handoff.
+- Implementation commit: `d10500eea47bb88e870db70cff5b74069cfa3c7c` — `Enable explicit
+  packaged Device DNA simulation` on `linux/stage1-desktop-readiness`.
+- Exact source files: `src/romverse/app.py`, `src/romverse/ui/main_window.py`,
+  `tests/test_desktop_bundle.py`, and `tests/test_development_device_simulation.py`.
+- Stage: Stage 1 — v0.2 Golden Foundation, explicit ROM Studio-only development simulation and
+  connected packaged Guided-to-Forge evidence only.
+
+### Minimum correction
+
+- The first real packaged dead end was the absence of any normal visible way to initiate the
+  already-supported deterministic Device DNA simulation. A hidden
+  `--development-device-simulation` launch flag now supplies one fixed `simulation`-transport
+  Xiaomi/popsicle fixture to ROM Studio only.
+- The development session is unmistakably labelled **Development simulation**, **Device:
+  deterministic ROM Studio fixture**, **SIMULATION ONLY • NO HARDWARE**, and **No physical device
+  selected**. Periodic physical scanning is disabled for this launch mode.
+- A simulated scan empties the observed physical-device collection and selected serial, never
+  invokes Device Engine, and passes the fixture only to ROM Studio. APK Installer, Terminal and
+  general device surfaces remain empty. A non-simulation fixture is rejected at construction.
+- The resulting Device DNA records `device.simulation`, classifies Guardian flash as
+  `UNCONFIRMED`, and keeps bootloader relocking permanently `UNSUPPORTED`. It grants no live-target,
+  consent, Guardian, Recovery, signing, install or execution authority.
+
+### Exact packaged journey
+
+- One PyInstaller one-folder development build was produced on Fedora 44 with Python 3.14.7 and
+  PyInstaller 6.22.2. Executable:
+  `build/linux-pa-simulated-5d3e36f/frozen/ROMVERSE/ROMVERSE`, 6,322,320 bytes, mode `0755`,
+  SHA-256 `7f6f061cc4cc20ecff20ea974466ae3fe654d17cc48f2196c0298cbad5e87929`.
+  It remains an ignored local development artifact and was not published or released.
+- The package ran unelevated through Fedora XWayland against the isolated workspace
+  `/run/media/stevetherad/Data/ROMVERSE-Packaged-Simulation-5d3e36f`. USB inventory showed no
+  Android phone before and after the journey.
+- Normal visible actions completed Command Deck → new ROM project → protected firmware import →
+  contained working lab → simulated Device DNA → **Keep verified base unchanged • Recommended** →
+  source-scoped toolchain → deterministic Build Readiness plan → Forge Control local handoff.
+- The user-supplied source
+  `/home/stevetherad/Downloads/popsicle-ota_full-OS4.0.0.32.XPBCNXM-user-17.0-9c98b42553.zip`
+  was copied into the isolated workspace as a protected original: 9,110,512,435 bytes, SHA-256
+  `24bf9292a19b95c0b3d1db62853491d8bf0e967d6e4c24052cea6c5684e2960e`. The original Downloads
+  file was not modified.
+- The only missing source-scoped dependency was Payload Dumper. The existing visible
+  **Install and verify requirements** action downloaded version 2.0.2 into the isolated private
+  workspace from its official GitHub release, verified archive SHA-256
+  `8d81854caeacd9223a6882340959869b0a210d44a1e597329830713abd2b4dcc`, and bound executable
+  SHA-256 `6e87cedaf0a5fb821a0721a071e942ae6e9957233b28346b35d87f02cb85321d`.
+  There was no administrator prompt, global `PATH` change or system-wide installation.
+- The exact local plan is `local_only: true`, `flashable: false`, `execution_locked: true`, and
+  `execution_authority: none`. Forge Control verified a 58-partition source-bound OTA blueprint,
+  recognized the unchanged protected OEM-signed baseline as the local candidate, and rendered
+  **SIGNING READY / INSTALL NOT STARTED / FLASH NOT AUTHORIZED**.
+- Genesis then rendered **13 of 13 local build stages verified • 2 optional install stages
+  deferred**. The verified local handoff was saved and the application closed normally. No
+  installation preparation was opened and no new ROMVERSE-signed or flashable artifact was emitted.
+
+### Verification without double-counting
+
+- Final directly affected regression selection: **4/4 passed** — the explicit phone-neutral
+  release-smoke flag, inert simulation fixture, ROM Studio-only scan isolation, and rejection of
+  forged simulation success evidence bound to another tree.
+- Ruff and Git whitespace validation passed for all four changed files. Earlier overlapping runs
+  and the visible acceptance journey are not added to the pytest total.
+- Durable project evidence records seven local activity events: protected import, contained working
+  copy/extraction, two local Project Vault checkpoints, dry-run plan creation and exact plan
+  verification. Forge Control additionally committed the source blueprint and refreshed Device DNA
+  and Compatibility Matrix evidence.
+- The final readiness report has ten passing local/build/signing gates, three attention-only future
+  flash/recovery inputs and five blocked physical/release gates. `local_candidate_ready` and
+  `signing_ready` are true only for the unchanged protected OEM baseline; `flash_ready` is false.
+
+### Classification, failures, safety and gates
+
+- **Implemented:** explicit hidden development-simulation launch mode, visible simulation labelling,
+  ROM Studio-only injection and physical transport isolation.
+- **Simulated/Tested:** 4/4 focused software checks plus one genuine packaged Fedora GUI journey
+  using deterministic simulated Device DNA. The firmware source and local file operations were
+  real; the phone identity was simulated.
+- **Hardware Verified:** no. No Android phone was connected or operated.
+- **Released:** no. The desktop artifact is unsigned, local and ignored by Git.
+- **Failure retained:** the first packaged acceptance attempt crashed in Qt's accessibility cache
+  while an external AT-SPI client was simultaneously traversing the widget tree and issuing the
+  Guided-entry action. The fault log preserves the full segmentation-fault trace. The unchanged
+  package was restarted once; the complete journey then succeeded using native pointer events and
+  ended with a clean-close record. This checkpoint does not erase, reclassify or claim to fix the
+  accessibility crash.
+- Guided friction/dead ends: the missing visible simulation entry is fixed. The final ROM Studio
+  handoff copy says `NO BUILD OR PHONE ACTION STARTED` after local build evidence exists; phone
+  safety is truthful, but the build half is stale status copy and remains a non-blocking polish
+  defect. No silent functional dead end remained in the bounded journey.
+- Guardian/Recovery/safety: simulation stays evidence-only; exact-device authority is absent;
+  `guardian_flash` remains `UNCONFIRMED`; flash, physical validation, battery and boot-state gates
+  remain closed. UNKNOWN/no-blind-retry, exact incident attribution, independent verification,
+  Guardian-only authority and permanent no-relock are unchanged.
+- Linux/Fedora: packaging, focused tests and the packaged GUI journey were genuinely verified on
+  Fedora 44/XWayland. Windows was not run. Physical Android remains unverified.
+- Feature freeze: compliant minimum Stage 1 continuity correction; no Device Pack, adapter,
+  autonomous route, production execution, Recovery execution, signing, release or product-feature
+  expansion was added.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all physical, Windows,
+  accessibility and release gates.
+- External actions: one official Payload Dumper archive was downloaded into the isolated private
+  workspace. The scoped branch is pushed normally with this checkpoint. No phone operation,
+  ADB/Fastboot device dispatch, APK installation, system/global package installation, firmware
+  signing, Guardian/Recovery execution, publication, release, merge, force-push, lock or relock
+  occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another consequential slice until the
+verdict for this exact packaged simulated Guided checkpoint is recorded in
+`docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm the explicit ROM Studio-only simulation boundary, focused tests and visible 13/13 local
+  build result satisfy the approved connected packaged journey without granting physical authority.
+- Independently classify the retained Qt/AT-SPI accessibility crash and decide whether a separate
+  bounded asynchronous-dialog/accessibility correction and one focused packaged reproduction are
+  required before another product slice.
+- Confirm the unchanged protected OEM baseline is a valid local-candidate/Forge handoff stop despite
+  no separate unsigned Forge Bundle being emitted, and whether the stale post-build handoff copy
+  should be corrected within the next bounded UX continuity checkpoint.
+
 ## Linux product checkpoint — packaged Platform Tools self-repair reaches no-device readiness
 
 ### Authoritative checkpoint and scope

@@ -1,5 +1,61 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows no-phone Device Engine readiness checkpoint
+
+- Product Assurance verdict: `2a3fba1255daf58480f6c118cce921fc4eb16763` —
+  `Approve Windows compact layout checkpoint`, matching checkpoint
+  `f56813260b1e227e1d2873014cd5b2b3bd74f7eb` exactly.
+- Minimum correction: `e760ae9fd9089cffbe86863275c1ff780a5d5438` —
+  `Keep Windows no-device state actionable`. A successful empty Device Engine scan now retains the
+  approved calm `Waiting for device` wording in the connection bar and sidebar. It does not turn an
+  absent target into a discovery, compatibility, readiness, or execution claim.
+
+### Genuine no-phone Windows journey
+
+- A fresh native Qt `windows` process used the existing disposable workspace
+  `C:\Work\ROMVERSE-Forge-Journey-20260908-1924`. Before startup, the managed Platform Tools root
+  was deliberately absent from that process's `PATH`. Production workspace initialization and
+  receipt activation revalidated and prepended exactly
+  `C:\Work\ROMVERSE-Forge-Journey-20260908-1924\tools\downloads\platform-tools\platform-tools`.
+- The durable receipt retained approved archive SHA-256
+  `45f4d63113e895ebde0c90f194099a4676b6ac653bd28d54314a9e022bbc1a99`. Host identity checks
+  returned ADB `37.0.1-15733141` (protocol 1.0.41) and Fastboot `37.0.1-15733141`.
+- The production `MainWindow` and `DeviceEngine` opened directly on `command_deck`. The one
+  post-correction scan began and settled within the bounded 20-second observation window with
+  **0 devices**, an empty Device Engine error, badge `NOT CONNECTED`, both visible status surfaces
+  reading `Waiting for device`, and the enabled next action `Scan for device`.
+- Recorded Platform Tools calls were host-only `adb version` / `fastboot --version` checks followed
+  by the two unbound discovery calls `adb devices -l` and `fastboot devices -l`. There were
+  **0 serial-selected (`-s`) calls**, no target command, and no automatic retry. The native
+  screenshot was visually inspected and showed the calm actionable Command Deck state without an
+  engine-error or device-discovery claim.
+
+### Focused verification and limitations
+
+- Exact focused regression:
+  `.venv\Scripts\python.exe -m pytest -q tests\test_multi_device_selection.py::test_main_window_empty_scan_settles_on_actionable_waiting_state --basetemp C:\Work\ROMVERSE-Pytest-NoPhone-20260908-01 -o timeout=30`.
+  Result: **1/1 passed** in 2.99 seconds. Pytest warned that this checkout has no active timeout
+  plugin, so that configuration value was ignored; the exact node nevertheless completed normally.
+- A preliminary three-node file run completed **3/3 test bodies successfully**, then exited during
+  pytest housekeeping with Windows `PermissionError: [WinError 5]` while examining the unrelated
+  stale temporary link `C:\Users\steve\AppData\Local\Temp\pytest-of-steve\pytest-current`.
+  The focused rerun used a fresh explicit base-temp directory and passed; this was an environment
+  teardown issue, not a ROMVERSE test failure.
+- Ruff passed for `src/romverse/ui/main_window.py` and
+  `tests/test_multi_device_selection.py`; Git whitespace validation passed. No broad suite,
+  unchanged-test loop, executable rebuild, package, or release was run.
+- The protected Companion files have no staged or working-tree diff. The pre-existing untracked
+  `0001-Preserve-local-build-completion-across-restart.patch` remains untracked and byte-identical at
+  SHA-256 `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone or emulator was requested, connected, discovered, operated, or targeted. No Recovery,
+  flash, wipe, unlock, root, relock, APK installation, production adapter/trust/signing,
+  publication, release, force-push, or destructive action occurred. Guardian-only authority,
+  exact-device evidence, consent separation, UNKNOWN-on-uncertainty, no blind retry, independent
+  verification, feature freeze, and permanent no-relock remain intact.
+- Remaining action and precise proposed next task: independent Product Assurance review of commit
+  `e760ae9fd9089cffbe86863275c1ff780a5d5438` and this handoff. Windows Build is stopped at this
+  safe checkpoint; no subsequent task is assumed before a matching repository verdict.
+
 ## Windows Forge Control compact-layout checkpoint
 
 - Product Assurance verdict: `d293b3eadd888522ed34be27a939f7209f0321ba` —

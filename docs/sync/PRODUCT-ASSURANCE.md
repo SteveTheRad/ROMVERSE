@@ -1,5 +1,43 @@
 # ROMVERSE Product Assurance
 
+## Current hardware authorization — one fresh read-only popsicle observation
+
+- Authorization base: `ddfbdb7` on `linux/stage1-desktop-readiness`.
+- Creator availability statement: Steve explicitly connected the phone on 8 September 2026.
+- Read-only preflight: exactly one Linux ADB target is visible as product/device `popsicle`, model
+  `2509FPN0BC`; no Fastboot target is visible.
+- Status: **AUTHORIZED — READ-ONLY DEVICE DNA OBSERVATION ONLY**
+
+### Exact bounded task
+
+Temporarily queue the approved external-package metadata inventory; do not run both milestones at
+once. Through the current production Device Engine/Device DNA/Fresh Live Target observation
+services, perform one fresh read-only observation of the single currently connected ADB device.
+Use only the existing allowlisted bounded identity/state probes and repeated discovery required by
+the exact-target witness contract. Persist no raw serial; bind evidence to the existing pseudonymous
+device identity and exact observed build/firmware properties.
+
+Collect and present only read-only identity and safety evidence already supported by the product:
+manufacturer/brand/model/product/device/codename, build fingerprint/ID/version/security patch,
+current Android/transport mode, slot/dynamic-partition facts when exposed, verified-boot/flash-lock
+state when exposed, and current Device Pack/Compatibility Matrix agreement or conflict. Compare
+against existing firmware/project evidence only through current read-only contracts. Missing,
+changed, ambiguous or conflicting facts remain `UNCONFIRMED`/`UNKNOWN` and stop the observation.
+
+End at the truthful observed-device/review boundary before any plan consent. Do not reboot or change
+mode, enter Fastboot/Recovery, install an APK, push/pull user files, copy backups, unlock/root/
+debloat, write settings or partitions, create consent/admission, dispatch an adapter, flash/wipe,
+sign/publish/release, or relock. If Android authorization is absent, report the visible user action
+and wait; do not bypass it. Run one focused acceptance path, update BUILD-STATUS.md, commit/push and
+stop for Product Assurance. No broad suite or package rebuild.
+
+### Gate status
+
+- Physical phone available on Linux ADB: **YES — ONE TARGET**
+- Fresh read-only exact-device/firmware evidence: **AUTHORIZED NOW**
+- Consent, execution, installation, Recovery and device mutation: **NOT AUTHORIZED**
+- Bootloader relocking: **PERMANENTLY PROHIBITED**
+
 ## Reviewed checkpoint: 3d35b04 — same-handle external firmware evidence
 
 - Handoff commit: `3d35b04`

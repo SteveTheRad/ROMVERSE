@@ -168,8 +168,23 @@ class CandidateInstallationService:
             raise ProjectError(
                 "Choose the rebuilt OTA project and its separate exact base installation package."
             )
-        base = self.base.prepare(build_project_id, procedure)
-        avb = self.avb.prepare(build_project_id, base)
+        base = self.base.load(build_project_id)
+        if base is not None:
+            try:
+                self.base.verify(base, procedure)
+            except ProjectError:
+                base = None
+        if base is None:
+            base = self.base.prepare(build_project_id, procedure)
+
+        avb = self.avb.load(build_project_id)
+        if avb is not None:
+            try:
+                self.avb.verify(avb, base)
+            except ProjectError:
+                avb = None
+        if avb is None:
+            avb = self.avb.prepare(build_project_id, base)
         return self._compose(build_project_id, procedure, base, avb)
 
     def verify(self, recipe: CandidateInstallationRecipe) -> CandidateInstallationRecipe:

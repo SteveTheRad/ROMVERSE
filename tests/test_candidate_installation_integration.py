@@ -356,6 +356,35 @@ def test_real_build_base_avb_and_candidate_boundaries_compose_two_plus_48(tmp_pa
     )
 
 
+def test_exact_preparation_survives_service_reconstruction_without_resealing(
+    tmp_path, signing_key
+):
+    context = _fixture(tmp_path, signing_key)
+    first = _prepare(context)
+    records = (
+        context.store.projects_root
+        / context.project.project_id
+        / context.service.base.RECEIPT_NAME,
+        context.store.projects_root
+        / context.project.project_id
+        / context.service.avb.RECEIPT_NAME,
+    )
+    saved = tuple((path.read_bytes(), path.stat().st_mtime_ns) for path in records)
+
+    reconstructed = CandidateInstallationService(
+        context.store,
+        context.registry,
+        context.tools,
+        context.runner,
+    ).prepare(context.project.project_id, context.procedure.project_id)
+
+    assert reconstructed == first
+    assert reconstructed.recipe_digest == first.recipe_digest
+    assert reconstructed.base_receipt_digest == first.base_receipt_digest
+    assert reconstructed.avb_receipt_digest == first.avb_receipt_digest
+    assert tuple((path.read_bytes(), path.stat().st_mtime_ns) for path in records) == saved
+
+
 @pytest.mark.parametrize(
     "fault,reason",
     [

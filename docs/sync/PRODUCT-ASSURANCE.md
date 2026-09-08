@@ -1,5 +1,69 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: bdecefc — explicit Guided tool-setup consent on Linux
+
+- Reviewed commit: `bdecefcbc0cc1f60d3b8766a84a7ebf664b6914f`
+- Approved base: `946281d`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — GUIDED TOOL REPAIR REQUIRES AN EXPLICIT USER DECISION**
+
+### Decision
+
+Product Assurance inspected the committed source/test diff and its lineage against the approved
+Windows references `6fc79f6` and `bb13daf`. The Linux checkpoint contains only the missing
+stage-five repair prerequisite and the explicit Guided Forge consent override. A pending read-only
+device scan can now reach the existing tool owner without becoming a dead end, but opening that
+owner cannot automatically download or install tools. One scan resumes only after fresh successful
+verification; decline or incomplete verification starts no scan and retains the same enabled retry.
+Unchanged callers continue to inherit the existing verified-tool preference.
+
+No Device DNA fact, target selection, plan, approval, consent receipt or Guardian/Recovery execution
+authority is created by this repair. Exact-device evidence, UNKNOWN-on-uncertainty, no blind retry,
+Guardian-only authority and the permanent relock prohibition remain unchanged. The correction is
+feature-freeze compliant and no further source correction is required.
+
+### Independent evidence and acceptance
+
+- The commit's parent is exactly Product Assurance commit `946281d`, and the working tree and pushed
+  branch are clean and synchronized.
+- Source inspection confirms Guided passes `auto_start=False`; the shared setup boundary binds
+  `auto_close` to the same explicit choice, while the unchanged Partition Atlas caller retains its
+  normal automatic verified-tool preference.
+- The two stage-five continuity cases require exactly one scan after successful verification and no
+  scan after decline, with the exact project and protected-source prefix retained.
+- Build's final focused selection passed **5/5**; Ruff and Git whitespace checks passed. Product
+  Assurance independently confirmed a clean diff and exact assertions. This review shell has no
+  pytest environment, so it did not fabricate a redundant second run.
+- No package, application, download, tool installation, ADB/Fastboot invocation, phone/emulator,
+  firmware/APK action, Guardian/Recovery execution, signing, publication, release, Companion,
+  Knowledge/UI Design Lab or Windows change occurred.
+
+### Approved next bounded Linux task
+
+Build one corrected unsigned Linux development package from `bdecefc` and exercise one fresh,
+isolated, no-phone Guided Genesis stage-five journey with verified-tool automatic setup preference
+enabled but ADB/Fastboot unavailable to that isolated workspace. Require Forge Arsenal to open in
+review mode with the exact pending read-only purpose visible and prove that no download,
+installation, device scan or external command starts merely from opening it. Cancel once; require
+Genesis to return to the same enabled **Scan device & refresh DNA** retry with no worker or
+authority. Do not click the install/verify action and do not acquire or remove any host tool.
+
+This is one package and one consent-boundary journey, not a broad regression, screen sweep or
+repeated packaging loop. Add no source change unless the packaged journey exposes a genuine defect;
+if it does, apply only the minimum correction and focused test, rebuild/relaunch at most once, then
+commit/push one handoff and stop for review. Do not invoke ADB/Fastboot, operate a phone/emulator,
+install tools or APKs, modify firmware, sign, publish, release, execute Guardian/Recovery, touch
+Companion, Knowledge/UI Design Lab or Windows work, or lock/relock a bootloader.
+
+### Gate status
+
+- Linux source parity for explicit Guided tool-setup consent: **VERIFIED**
+- Packaged Linux Guided review/cancel boundary: **NEXT BOUNDED LINUX TASK**
+- Windows App Launchpad parity: **OWNED BY WINDOWS; DO NOT DUPLICATE**
+- Physical hardware, tool acquisition, installation, execution, publication and release:
+  **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 4f54f5d — Recovery Archives context continuity
 
 - Reviewed commit: `4f54f5dd65cd2d00941ed324770d8762c900de52`

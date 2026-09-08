@@ -1,5 +1,67 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 8812456 — current Fedora development artifact
+
+- Reviewed commit: `881245641083cc259f399558e651a39cdc3c531f`
+- Built source: `17c133f7b10a462075cbb698169ce9ef0a72e4e0`
+- Exact source tree: `9617f42fbab7b619756b51657ed1068c84d5b0b7`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — THE CURRENT UNSIGNED FEDORA APP BUILDS AND RUNS CLEANLY**
+
+### Decision
+
+Product Assurance independently confirmed the exact source identity, executable/archive hashes,
+complete ZIP CRC, retained isolated runtime evidence and clean process lifecycle. The current
+approved source produces a self-contained unsigned Fedora development application whose Command
+Deck and Guided entry render correctly and whose missing-device/tool state is truthful and
+actionable. No source correction is required.
+
+The first Wayland attempt demonstrated the required controls but could not synthesize external
+focus/close input. The unchanged binary then completed the authorized retry through Fedora's
+XWayland compatibility path and exited normally. This is accurately classified as a harness/input
+limitation rather than a ROMVERSE crash or a second build.
+
+### Independent evidence and acceptance
+
+- `git archive` of the approved commit independently matches SHA-256
+  `fdd64a99b7e11d6834374becd117d9214af9aa934aacf5d734b76d3292e1a582`; its Git tree is
+  `9617f42fbab7b619756b51657ed1068c84d5b0b7`.
+- The executable is **6,320,120 bytes**, owner-executable, SHA-256
+  `7ad1064eacaaae66f9e5c62f1c4431f59f8665ca3bce88f17254374c03f59b52`.
+- The unsigned ZIP is **151,017,698 bytes**, SHA-256
+  `6d15d8b9557cfe09ac9f4e6cb91753d3a63fd8a1d6c5a4b2a1d0e11464376959`;
+  independent archive testing accepted all **460** members with no compressed-data error.
+- The retained XWayland workspace records Guided opening at stage 1 and a deliberate save/exit;
+  its fault log contains only runtime start and clean close. No packaged process remains.
+- No phone, ADB/Fastboot dispatch, APK, tool acquisition, ROM candidate, signing, Guardian or
+  Recovery execution, publication, release, lock or relock occurred.
+
+### Approved next bounded Linux task
+
+Use this exact packaged Fedora artifact once in a fresh, isolated, no-phone workspace to verify the
+existing **Resolve Platform Tools** self-repair journey. Begin with a deliberately empty discovery
+PATH and no managed ADB/Fastboot. Through the normal visible action, allow ROMVERSE to acquire only
+its receipt-verified official Android Platform Tools into its private managed directory, verify the
+resolved ADB and Fastboot executables, refresh Device Engine state, and reach the truthful
+`waiting for device` condition without requiring terminal instructions, administrator access,
+global PATH changes or a restart.
+
+This is one packaged user journey, not a dependency-search or test loop. Record exact package
+source/receipt and executable evidence, confirm the UI no longer reports missing Platform Tools,
+then close normally and verify no process remains. A no-phone ADB server/listing invocation needed
+by the existing scanner is permitted only if it targets no serial and changes no device; Fastboot
+must not target or change hardware. If one genuine packaged self-repair, persistence or repaint
+defect appears, apply only the minimum correction and repeat the failed journey once. Do not
+connect a phone, install globally, create a ROM candidate, sign, package again, publish or release.
+Commit/push one bounded checkpoint and stop for review.
+
+### Gate status
+
+- Current unsigned Fedora desktop build/integrity/native lifecycle: **VERIFIED**
+- Packaged Platform Tools self-repair to truthful no-device readiness: **NEXT BOUNDED LINUX TASK**
+- Firmware signing, Guardian execution, physical hardware, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: d164662 — actionable Forge plan rollover
 
 - Handoff commit: `d164662fac65acdb58e7a9e05a41cafe35516757`

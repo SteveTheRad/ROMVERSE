@@ -1,5 +1,48 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows Stage 1 disabled-action guidance checkpoint
+
+- Implementation: `57907c2953131b822b4c3c248dad2944aca2c7f5` —
+  `Explain unavailable Windows Stage 1 actions`.
+- The production window was instantiated against a fresh disposable Windows workspace and every
+  one of its **19 canonical desktop routes** opened through the real `MainWindow` route table.
+- A deterministic route/action contract now inspects each visible Stage 1 surface in Expert mode.
+  Every visible disabled user action must explain its missing prerequisite through its tooltip or
+  accessible description; Qt's internal tab-scroll controls are excluded by their framework-owned
+  object names.
+- **16 previously unexplained disabled actions** now state the exact missing evidence or state:
+  diagnostics report export, Recovery Bay plan creation, five Time Machine checkpoint/evidence
+  actions, Activity export, Live Console source return, three Nexus actions, Forge Arsenal offline
+  export, and three Companion code/handoff actions. The copy explicitly retains local-only,
+  no-phone, no-automatic-execution, privacy, and zero-authority boundaries where relevant.
+- `Hide specialist tools` was confirmed to use its checkable `toggled` handler; it was not a dead
+  button and required no behavior change.
+
+### Focused verification
+
+- Canonical route opening plus the new disabled-action contract: **2/2 passed** offscreen on
+  Windows with a fresh short pytest root.
+- Eight directly affected UI suites collected **117 tests**. The grouped run produced **116
+  passed, 1 failed**: an existing compact Activity Center subtitle geometry assertion failed after
+  earlier Qt UI suites. The exact node passed immediately and independently (**1/1**), while this
+  checkpoint changes only its export tooltip and no Activity layout or resize behavior.
+- Ruff lint passed for all nine changed source/test files. Git whitespace checks passed.
+- No complete repository suite and no executable/package rebuild were run. The single final genuine
+  Windows source smoke remains reserved for completion of the broader Stage 1 action audit.
+
+### Preserved boundaries
+
+- The separate UI Design Lab and all protected Companion Android files remain untouched. The
+  pre-existing untracked patch remains byte-identical at SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No button requiring network, file selection, Companion pairing, device access, Recovery, or
+  execution was pressed. No phone/emulator target, ADB/Fastboot target, flash, wipe, unlock, root,
+  relock, APK install, production signing, publication, release, force-push, or destructive action
+  occurred.
+- Guardian-only authority, separate consent, exact-device evidence, UNKNOWN-on-uncertainty, no
+  blind retry, independent verification, feature freeze, and permanent no-relock remain preserved.
+  Windows Build continues with the remaining shipped Stage 1 user-journey/action audit.
+
 ## Windows Stage 1 reachable-actions checkpoint
 
 - Implementation: `5fd9ad009f037a3bbd5835371a7fab5fb061d3e0` —

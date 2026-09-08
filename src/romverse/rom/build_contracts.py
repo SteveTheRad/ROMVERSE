@@ -159,12 +159,8 @@ class DeviceBuildContractService:
         for rule in contract.partitions:
             if rule.mode == "rebuild" and not self._metadata_ready(project_id, contract, rule):
                 metadata_failures.append(rule.name)
-        build_plan = RomBuildPlanner(self.store).load(project_id)
-        tree_verified = bool(
-            build_plan
-            and build_plan.device_pack_id == pack.pack_id
-            and RomBuildPlanner(self.store).verify_tree(project_id).valid
-        )
+        build_plan = self._verified_workspace_plan(project_id)
+        tree_verified = bool(build_plan and build_plan.device_pack_id == pack.pack_id)
         available = {status.name for status in self.tool_statuses if status.available}
         required_tools = required_tools_for_contract(contract)
         missing_tools = tuple(name for name in required_tools if name not in available)
@@ -255,8 +251,9 @@ class DeviceBuildContractService:
             image = self.store.workspace / str(records[rule.name]["extracted_path"])
             if _sha256(image) != rule.source_sha256:
                 raise ProjectError(f"Protected {rule.name} image changed after extraction")
-        build_plan = RomBuildPlanner(self.store).load(project_id)
-        assert build_plan is not None
+        build_plan = self._verified_workspace_plan(project_id)
+        if build_plan is None:
+            raise ProjectError("The exact workspace build plan no longer verifies")
         plan_id = uuid4().hex
         steps = self._steps(project_id, contract, records, plan_id)
         payload_without_digest = {
@@ -364,6 +361,9 @@ class DeviceBuildContractService:
             raise ProjectError("Create a fresh deterministic Device Pack plan")
         if plan.execution_locked:
             raise ProjectError("This plan predates the local build executor; regenerate it")
+        workspace_plan = self._verified_workspace_plan(project_id)
+        if workspace_plan is None or workspace_plan.tree_sha256 != plan.workspace_tree_sha256:
+            raise ProjectError("The exact workspace build plan changed before local execution")
         project = self.store.get(project_id)
         pack = next(
             (item for item in self.registry.packs if item.pack_id == project.device_pack_id),
@@ -388,6 +388,21 @@ class DeviceBuildContractService:
         if plan.steps != expected:
             raise ProjectError("Saved build steps do not match the current Device Pack contract")
         return plan
+
+    def _verified_workspace_plan(self, project_id: str):
+        plan = RomBuildPlanner(self.store).load(project_id)
+        if plan is None:
+            return None
+        if plan.schema_version >= 3:
+            if not self.tool_statuses:
+                return None
+            planner = RomBuildPlanner(self.store, self.tool_statuses, plan.required_tools)
+        else:
+            planner = RomBuildPlanner(self.store)
+        try:
+            return plan if planner.verify_tree(project_id).valid else None
+        except (OSError, ProjectError, TypeError, ValueError):
+            return None
 
     def _steps(
         self,

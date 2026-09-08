@@ -17,6 +17,7 @@ from romverse.ascension.build_handoff import (
 )
 from romverse.ascension.integration import RootRomIntegrationService
 from romverse.ascension.models import AscensionMethod
+from romverse.infrastructure.tools import ToolStatus
 from romverse.rom.builds import RomBuildPlanner
 from romverse.rom.models import ArtifactVerification, ProjectError
 from romverse.rom.projects import RomProjectStore
@@ -63,8 +64,13 @@ class ForgeBundleService:
     FREE_SPACE_RESERVE = 512 * 1024 * 1024
     ZIP_TIMESTAMP = (2020, 1, 1, 0, 0, 0)
 
-    def __init__(self, store: RomProjectStore) -> None:
+    def __init__(
+        self,
+        store: RomProjectStore,
+        tool_statuses: tuple[ToolStatus, ...] = (),
+    ) -> None:
         self.store = store
+        self.tool_statuses = tool_statuses
 
     def create(
         self,
@@ -75,6 +81,12 @@ class ForgeBundleService:
         plan = planner.load(project_id)
         if plan is None:
             raise ProjectError("Create a deterministic build plan before forging a bundle")
+        if plan.schema_version >= 3:
+            if not self.tool_statuses:
+                raise ProjectError(
+                    "Fresh source-scoped tool evidence is required before forging this bundle"
+                )
+            planner = RomBuildPlanner(self.store, self.tool_statuses, plan.required_tools)
         if plan.project_id != project_id:
             raise ProjectError("Build plan project identity does not match this project")
         planned_paths = (*plan.input_files, *(path for path, _target in plan.input_symlinks))

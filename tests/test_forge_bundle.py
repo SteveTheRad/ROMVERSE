@@ -14,8 +14,10 @@ from romverse.ascension.evidence import AscensionEvidenceService
 from romverse.ascension.integration import RootRomIntegrationService
 from romverse.ascension.models import AscensionMethod, OfficialRootAsset, OfficialRootRelease
 from romverse.ascension.preparation import RootPatchPreparationService
+from romverse.infrastructure.tools import ToolStatus
 from romverse.rom.builds import RomBuildPlanner
 from romverse.rom.forge import ForgeBundleService
+from romverse.rom.guided import GuidedMissionState, GuidedMissionStore
 from romverse.rom.inspection import RomInspectionService
 from romverse.rom.models import ProjectError
 from romverse.rom.projects import RomProjectStore
@@ -134,6 +136,29 @@ def test_forge_bundle_is_deterministic_verified_and_truthfully_non_flashable(
         }
         assert "tree/IMAGES/system.img" in archive.namelist()
         assert all("original_roms" not in name for name in archive.namelist())
+
+
+def test_schema3_forge_requires_fresh_bound_tool_evidence(tmp_path: Path) -> None:
+    store, project_id = _prepared_project(tmp_path)
+    tool = store.workspace / "fixture-tools" / "romverse-bound-python"
+    tool.parent.mkdir()
+    tool.write_bytes(b"verified python fixture")
+    statuses = (ToolStatus("Python", True, str(tool), "fixture", "Ready"),)
+    GuidedMissionStore(store.projects_root / project_id).save(
+        GuidedMissionState(
+            customization_skipped=True,
+            recipe_skipped=True,
+            root_choice="skip",
+        )
+    )
+    RomBuildPlanner(store, statuses, ("Python",)).plan(project_id)
+
+    with pytest.raises(ProjectError, match="Fresh source-scoped tool evidence"):
+        ForgeBundleService(store).create(project_id)
+    tool.write_bytes(b"changed after planning")
+    with pytest.raises(ProjectError, match="tool evidence changed"):
+        ForgeBundleService(store, statuses).create(project_id)
+    assert ForgeBundleService(store).load_receipt(project_id) is None
 
 
 def test_forge_bundle_streams_zip64_members_and_reports_every_long_phase(

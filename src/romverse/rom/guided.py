@@ -730,14 +730,13 @@ class GuidedMissionEngine:
                 ),
                 (
                     (
-                        "A verified local candidate is required before signing.",
-                        "Use Forge Control to execute and byte-verify the exact Device Pack plan.",
-                    )
-                    if not context.build_artifact_ready
-                    else (
-                        "The local candidate is verified but no approved signing identity is configured.",
-                        "Guardian will not simulate or falsely mark an unsigned candidate as signed.",
-                    )
+                        "Use Forge Control to execute and byte-verify the exact Device Pack plan "
+                        "before signing."
+                        if not context.build_artifact_ready
+                        else "The local candidate is verified but remains unsigned; use Forge "
+                        "Control's offline signing ceremony with an approved identity before "
+                        "Guardian review."
+                    ),
                 ),
             ),
             "flash": (

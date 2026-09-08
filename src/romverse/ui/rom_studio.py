@@ -247,7 +247,7 @@ class ProjectWorker(ManagedRunnable):
                     self.required_tools,
                 ).verify_tree(self.project_id)
             elif self.operation == "forge-bundle":
-                forge = ForgeBundleService(self.store)
+                forge = ForgeBundleService(self.store, self.tool_statuses)
                 result = forge.create(
                     self.project_id,
                     progress=lambda done, total: emit_progress(

@@ -70,6 +70,7 @@ from romverse.guardian.manifest_review import (
 )
 from romverse.guardian.models import GuardianDeniedError
 from romverse.infrastructure.process import SubprocessRunner
+from romverse.infrastructure.tools import ToolStatus
 from romverse.intelligence.action_evidence import (
     ToolchainVerificationStore,
     TypedLocalActionEvidence,
@@ -1049,11 +1050,18 @@ class SourceBlueprintWorker(ManagedRunnable):
 
 
 class RebuildMetadataWorker(ManagedRunnable):
-    def __init__(self, service: BuildInputPreparationService, project_id: str, contract) -> None:
+    def __init__(
+        self,
+        service: BuildInputPreparationService,
+        project_id: str,
+        contract,
+        tool_statuses: tuple[ToolStatus, ...] = (),
+    ) -> None:
         super().__init__()
         self.service = service
         self.project_id = project_id
         self.contract = contract
+        self.tool_statuses = tool_statuses
         self.signals = RebuildMetadataSignals()
 
     @Slot()
@@ -1063,7 +1071,17 @@ class RebuildMetadataWorker(ManagedRunnable):
             # Exact input preparation expands source-derived partition trees. Freeze that
             # final tree in the same background operation so the next exact build-plan
             # boundary cannot reject the inputs ROMVERSE just prepared as unexpected drift.
-            RomBuildPlanner(self.service.store).plan(self.project_id)
+            current = RomBuildPlanner(self.service.store).load(self.project_id)
+            required_tools = (
+                current.required_tools
+                if current is not None and current.schema_version >= 3
+                else ()
+            )
+            RomBuildPlanner(
+                self.service.store,
+                self.tool_statuses,
+                required_tools,
+            ).plan(self.project_id)
             self.signals.complete.emit(result)
         except (OSError, ProjectError) as exc:
             self.signals.failed.emit(str(exc))
@@ -3611,6 +3629,7 @@ class BuildControlCenter(QDialog):
             service,
             self.project.project_id,
             contract,
+            self.studio.tool_statuses,
         )
         self.metadata_worker.signals.complete.connect(self._metadata_complete)
         self.metadata_worker.signals.failed.connect(self._metadata_failed)

@@ -5526,6 +5526,7 @@ class MainWindow(QMainWindow):
         report = self.device_packs_center.active_report
         pack = self.device_packs_center.active_pack
         device = self.device_packs_center.active_device
+        start_new_project = False
         current_project = self.rom_studio.current_project
         if (
             pack is not None
@@ -5565,10 +5566,7 @@ class MainWindow(QMainWindow):
                     return
                 self.rom_studio.refresh(matching_projects[labels.index(choice)].project_id)
             else:
-                self.device_packs_center.next_action_handoff_stopped(
-                    "No saved ROM project matches this phone's current Device Pack; create a new project from ROM Studio"
-                )
-                return
+                start_new_project = True
         profile = self.device_packs_center.active_device_dna
         project = self.rom_studio.current_project
         stored_profile = (
@@ -5610,6 +5608,20 @@ class MainWindow(QMainWindow):
             )
             return
         if not self._navigate_route("rom_studio"):
+            return
+        if start_new_project:
+            if not self.rom_studio.open_device_atlas_handoff(
+                report,
+                "genesis",
+                device=device,
+                launch_genesis=False,
+            ):
+                self._navigate_route("device_atlas")
+                self.device_packs_center.next_action_handoff_stopped(
+                    "ROM Studio rejected changed or invalid Device Atlas evidence"
+                )
+                return
+            self.rom_studio._open_guided_setup(start_new_project=True)
             return
         if not self.rom_studio.open_device_atlas_handoff(
             report,

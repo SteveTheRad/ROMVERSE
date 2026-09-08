@@ -244,9 +244,10 @@ class PhaseButton(QPushButton):
 class GuidedBuildMission(QDialog):
     """Evidence-driven ROM journey with explicit Guardian boundaries."""
 
-    def __init__(self, studio: RomStudio) -> None:
+    def __init__(self, studio: RomStudio, *, start_new_project: bool = False) -> None:
         super().__init__(studio)
         self.studio = studio
+        self._start_new_project = bool(start_new_project)
         self.engine = GuidedMissionEngine()
         self.state = self._load_state()
         self.assessments: tuple[GuidedAssessment, ...] = ()
@@ -658,7 +659,7 @@ class GuidedBuildMission(QDialog):
         store = self._live_console_store()
         if store is None or not self.assessments:
             return
-        project = self.studio.current_project
+        project = None if self._start_new_project else self.studio.current_project
         project_id = project.project_id if project is not None else ""
         if self.live_mission_id and project_id != self.live_mission_project_id:
             self._finish_genesis_live(
@@ -848,6 +849,8 @@ class GuidedBuildMission(QDialog):
         self.stage_transition.start()
 
     def _load_state(self) -> GuidedMissionState:
+        if self._start_new_project:
+            return GuidedMissionState()
         if self.studio.current_project is None:
             return GuidedMissionState()
         return GuidedMissionStore(
@@ -855,6 +858,8 @@ class GuidedBuildMission(QDialog):
         ).load()
 
     def _save_state(self) -> bool:
+        if self._start_new_project:
+            return True
         if self.studio.current_project is None:
             return False
         selected = STAGES[self.selected_index].stage_id
@@ -879,6 +884,13 @@ class GuidedBuildMission(QDialog):
         return True
 
     def _context(self) -> GuidedContext:
+        if self._start_new_project:
+            return GuidedContext(
+                device=self.studio.devices[0] if len(self.studio.devices) == 1 else None,
+                observed_devices=tuple(self.studio.observed_devices),
+                device_scan_error=self.studio.device_scan_error,
+                device_pack_id=self.studio.suggested_pack_id,
+            )
         return self.studio.guided_context(self.state)
 
     def _refresh(self, select_current: bool = False) -> None:
@@ -970,7 +982,7 @@ class GuidedBuildMission(QDialog):
         self._select_stage(target)
 
     def _render_identity_deck(self) -> None:
-        project = self.studio.current_project
+        project = None if self._start_new_project else self.studio.current_project
         device = self.studio.devices[0] if len(self.studio.devices) == 1 else None
         if project is None:
             self.firmware_identity_title.setText("No firmware selected")
@@ -1000,7 +1012,9 @@ class GuidedBuildMission(QDialog):
                 f"{device.codename or 'Codename unconfirmed'}  •  {current_build}"
             )
 
-        verdict = self.studio.upgrade_passport_status.text().strip()
+        verdict = (
+            "" if self._start_new_project else self.studio.upgrade_passport_status.text().strip()
+        )
         self.compatibility_title.setText(verdict or "AWAITING COMPARISON")
         if project is not None and project.original is not None and device is not None:
             self.compatibility_detail.setText("Firmware ↔ Device DNA")
@@ -1008,7 +1022,11 @@ class GuidedBuildMission(QDialog):
             self.compatibility_detail.setText("Firmware ready  •  device needed")
         else:
             self.compatibility_detail.setText("Add firmware and a live device")
-        state = self.studio.upgrade_passport.property("upgradeState") or "attention"
+        state = (
+            "attention"
+            if self._start_new_project
+            else self.studio.upgrade_passport.property("upgradeState") or "attention"
+        )
         self.compatibility_card.setProperty("upgradeState", state)
         self.compatibility_title.setProperty("upgradeState", state)
         for widget in (self.compatibility_card, self.compatibility_title):
@@ -1699,8 +1717,17 @@ class GuidedBuildMission(QDialog):
         elif action == "flash" and not self.state.install_requested:
             self._prompt_flash_choice()
         elif action == "new-project":
+            previous_project_id = (
+                self.studio.current_project.project_id
+                if self.studio.current_project is not None
+                else ""
+            )
             self.studio._new_project()
-            if self.studio.current_project is not None:
+            if self.studio.current_project is not None and (
+                not self._start_new_project
+                or self.studio.current_project.project_id != previous_project_id
+            ):
+                self._start_new_project = False
                 self.state = self._load_state()
             self._refresh()
         elif action == "import":

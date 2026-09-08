@@ -1306,10 +1306,10 @@ class RomStudio(QWidget):
             else None
         )
 
-    def _open_guided_setup(self) -> None:
+    def _open_guided_setup(self, *, start_new_project: bool = False) -> None:
         from romverse.ui.guided_mission import GuidedBuildMission
 
-        GuidedBuildMission(self).exec()
+        GuidedBuildMission(self, start_new_project=start_new_project).exec()
 
     def open_dashboard_intent(self, action: str) -> bool:
         """Preserve one Command Deck intent after navigation into ROM Studio.

@@ -1697,6 +1697,90 @@ def test_device_atlas_rom_mission_requires_choice_between_matching_saved_project
         window.close()
 
 
+def test_device_atlas_zero_match_opens_transient_new_project_mission_and_cancels_cleanly(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    fixture_root = tmp_path / "pack-fixture"
+    fixture_root.mkdir()
+    _fixture_store, registry, _fixture_project, _report = _project(fixture_root)
+    store = RomProjectStore(tmp_path / "workspace")
+    unrelated_project = store.create("Preserved unrelated project", "another.device.pack")
+    window = MainWindow(
+        None,
+        logo,
+        store.workspace,
+        app_icon_path=logo,
+        pack_registry=registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    missions = []
+
+    def capture_mission(mission):
+        missions.append(mission)
+        return QDialog.DialogCode.Rejected
+
+    monkeypatch.setattr(
+        "romverse.ui.guided_mission.GuidedBuildMission.exec",
+        capture_mission,
+    )
+    phone = _device(serial="CURRENT-PHONE-8390")
+    try:
+        window.rom_studio.refresh(unrelated_project.project_id)
+        original_projects = store.list_projects()
+        window._scan_complete([phone])
+        app.processEvents()
+        report = window.device_packs_center.active_report
+        assert report is not None
+        assert not any(project.device_pack_id == report.pack_id for project in original_projects)
+
+        window._navigate_route("device_atlas")
+        window.device_packs_center.continue_button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.rom_studio
+        assert len(missions) == 1
+        mission = missions[0]
+        assert mission.assessments[0].stage.action == "new-project"
+        assert mission.selected_index == 0
+        context = mission._context()
+        assert not context.project_exists
+        assert context.device is not None and context.device.serial == phone.serial
+        assert context.device_pack_id == report.pack_id
+        assert mission.firmware_identity_title.text() == "No firmware selected"
+        assert unrelated_project.name not in mission.firmware_identity_detail.text()
+        assert mission.compatibility_title.text() == "AWAITING COMPARISON"
+        assert mission.compatibility_detail.text() == "Add firmware and a live device"
+        assert window.rom_studio.current_project == unrelated_project
+        assert store.list_projects() == original_projects
+        assert window.rom_studio.worker is None
+
+        monkeypatch.setattr(
+            "romverse.ui.rom_studio.ProjectNameDialog.exec",
+            lambda _dialog: QDialog.DialogCode.Rejected,
+        )
+        mission._run_stage()
+        app.processEvents()
+        mission.close()
+        app.processEvents()
+
+        assert window.rom_studio.current_project == unrelated_project
+        assert store.list_projects() == original_projects
+        assert not (
+            store.projects_root / unrelated_project.project_id / "guided-mission.json"
+        ).exists()
+        assert window.rom_studio.request_device_atlas()
+        app.processEvents()
+        assert window.stack.currentWidget() is window.device_packs_center
+        assert window.rom_studio.current_project == unrelated_project
+        assert window.rom_studio.worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
 def test_rom_studio_preserves_exact_project_into_time_machine_and_device_atlas(
     tmp_path: Path,
 ) -> None:

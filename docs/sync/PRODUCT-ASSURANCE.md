@@ -1,5 +1,65 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 6b66062 — Windows Guided parity convergence
+
+- Reviewed commit: `6b66062cd5e89d9b078b1ab41496403cf7afb1dd`
+- Approved base: `aee5e45c94a268068170c65ee2904344f0d5b2c3`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — THE THREE APPROVED GUIDED CORRECTIONS CONVERGE TRUTHFULLY ON WINDOWS**
+
+### Decision
+
+Product Assurance inspected the exact ordered 11-file product/test convergence and independently
+reran its 64-test native Windows affected selection. Simulation remains durable evidence but never
+hardware authority; the unchanged/unrooted choice bypasses optional modification stages; and the
+automatic Toolchain action advances or retains an actionable blocker according to actual tool
+evidence and the existing download preference. The changes match the already approved Linux
+product corrections without importing unrelated Linux history or widening Stage 1.
+
+### Independent evidence and acceptance
+
+- Independent native Windows verification reproduced **64 collected: 62 passed, 2 failed**. Every
+  new or directly changed simulation, Guided, Toolchain and UI assertion passed.
+- Both failures are the known Windows representation mismatch in unchanged POSIX-only `0600`
+  fixture assertions: Windows reports mode `0666` for the Device DNA and Compatibility Matrix
+  files. Their content, signed identity, tamper checks and product behavior are not failing; no new
+  permission claim is accepted from those assertions.
+- Simulated evidence is explicitly `device.simulation` at unconfirmed confidence and excluded from
+  live-device selection, boot observation, Build Readiness, Guardian result matching and flash
+  handoff. Permanent no-relock remains unchanged.
+- One deliberate unchanged choice records no Recipe, debloat or root change and reaches Toolchain;
+  successful automatic tool resolution reaches Build Readiness, while failure stays visible and
+  manual preference remains user-controlled.
+- The Windows checkout is synchronized and clean except for the preserved untracked
+  `0001-Preserve-local-build-completion-across-restart.patch`, which remains outside the commit. No
+  package, launch, phone, ADB/Fastboot, APK, candidate build, signing, publication or release ran.
+
+### Approved next bounded Windows task
+
+Converge only the already independently approved platform-neutral Guided Build Readiness product
+and test diff from Linux implementation
+`aaadeac6a622b4fca95980904c8ac1a4e454d1cb` onto this Windows branch. Do not merge Linux history or
+handoff documents. Require the schema-3 plan to bind the exact protected source, current tree,
+source-scoped tool evidence and unchanged/unrooted choices; independently revalidation must fail
+closed on drift, and the plan must remain local, non-flashable, execution-locked and authority
+`none`. Preserve schema-2 Command Deck compatibility and truthful durable continuation to Build &
+Sign.
+
+Run one native Windows union of the directly affected build-plan, Guided state and representative
+real-widget tests, plus focused Ruff and Git whitespace validation. Reuse deterministic local tool
+fixtures; do not download tools, build/package or launch an application, create the Forge
+candidate, sign, grant Guardian/execution authority, connect or modify a phone, dispatch
+ADB/Fastboot, install an APK or repeat the prior 64-test convergence. Preserve the untracked patch.
+Commit/push one bounded checkpoint and stop for review.
+
+### Gate status
+
+- Windows simulation/Customize/Toolchain parity: **VERIFIED**
+- Exact inert Guided Build Readiness parity: **NEXT BOUNDED WINDOWS TASK**
+- GitHub-hosted unsigned-candidate job: **EXTERNAL ACCOUNT GATE OUTSTANDING**
+- Physical hardware, signing, Guardian execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 7dca231 — packaged post-Genesis continuity acceptance
 
 - Reviewed commit: `7dca2316`

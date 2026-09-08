@@ -1,5 +1,47 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 3162bc4 — runnable Windows Stage 1 desktop
+
+- Handoff commit: `3162bc4c832c833f1a75f9631b3604f71822f1c4`
+- Build source tip: `fee55d3b` — `Record Windows Stage 1 screen audit`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — RUNNABLE WINDOWS STAGE 1 DEVELOPMENT MILESTONE**
+
+### Independent decision
+
+Product Assurance inspected the committed Windows usability chain and its focused source/test
+changes, confirmed the handoff is present on the pushed branch, and independently re-read the
+development artifact on the Windows host. The executable is exactly 6,301,674 bytes with SHA-256
+`72087d0cf2fd81763191cf431fa557835aab29b7d7c240f915e5b64d165b31c7`; its one-folder bundle
+contains 305 files and 164,626,009 bytes, contains no `icu*.dll`, and is correctly NotSigned.
+Those measurements exactly match the Build handoff.
+
+The recorded native source launch, final frozen smoke, 19-route audit, actionable disabled states,
+shared inert Guided journey and focused Windows regressions are proportionate to this development
+milestone. The remaining unrelated fixture/platform baseline is not concealed and does not
+invalidate the demonstrated launch or current Stage 1 journeys. No repeated full suite or rebuild
+is required for this verdict.
+
+- Windows source and frozen development launch: **PASS**
+- Visible Stage 1 route/action wiring and truthful boundaries: **PASS**
+- Guided/Expert shared inert journey: **PASS — SIMULATED/TESTED ONLY**
+- Feature freeze and safety contracts: **PASS**
+- Physical hardware, production adapter, signing, publication and release: **NOT CLAIMED**
+- v0.2 Golden Foundation: **CLOSED; release gates remain closed**
+
+### Approved next bounded Windows task
+
+Reproduce Steve's reported Forge Arsenal Setup journey in which **Install and verify requirements**
+appeared to download Platform Tools but produced no usable installed result. Correct one genuine
+Windows managed-tool acquisition/activation defect if reproduced. Keep all files inside ROMVERSE's
+managed tool area; make no system-wide driver, PATH, registry or security-policy change. Use no
+phone and issue no ADB/Fastboot device command. Prove the visible progress/result and restart reload
+with one focused Windows journey plus affected tests. If the journey already works at this exact
+checkpoint, do not rewrite or loop it; record the evidence and proceed to the next concrete
+Windows-only launcher/runtime defect. Do not overlap Linux Device Intelligence work or merge the
+local UI Design Lab.
+
+
 ## Current authorization — converge verified Linux core into Windows
 
 - Windows base: `35f7baf22874bf842041592e449d05907ee4d93e`

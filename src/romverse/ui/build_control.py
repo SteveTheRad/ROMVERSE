@@ -1526,7 +1526,7 @@ class BuildControlCenter(QDialog):
         QTimer.singleShot(0, self.studio._request_expert_flash)
 
     def _primary_action(self) -> None:
-        if self.report is not None and self.report.local_candidate_ready:
+        if self.report is not None and self.report.signing_ready:
             self._open_project_images()
         else:
             self._start_autopilot()
@@ -1732,7 +1732,7 @@ class BuildControlCenter(QDialog):
         summary_layout.addLayout(summary_copy, 1)
         summary_scope = QLabel(
             "LOCAL BUILD COMPLETE"
-            if self.report.signing_ready
+            if self.report.local_candidate_ready
             else "BUILD READY"
             if self.report.build_ready
             else "WORKSPACE READY"
@@ -1802,6 +1802,34 @@ class BuildControlCenter(QDialog):
             finish.setToolTip(
                 "Close Forge Control with the verified local artifact intact. Nothing is sent "
                 "to or changed on the phone."
+            )
+            finish.clicked.connect(self.accept)
+            banner_layout.addWidget(finish)
+            self.content.addWidget(banner)
+        elif self.report.local_candidate_ready:
+            banner = QFrame()
+            banner.setObjectName("ReadyBanner")
+            banner_layout = QHBoxLayout(banner)
+            banner_layout.setContentsMargins(18, 14, 18, 14)
+            copy = QVBoxLayout()
+            heading = QLabel("✓  LOCAL BUILD COMPLETE  •  INSTALLATION NOT AUTHORIZED")
+            heading.setObjectName("ReadyHeading")
+            guidance = QLabel(
+                "ROMVERSE reverified the durable local candidate and its exact build receipt. "
+                "Artifact trust, signing/AVB evidence, and every Guardian device gate remain "
+                "separate. Finish here, or continue to artifact verification. Nothing has been "
+                "installed or flashed."
+            )
+            guidance.setObjectName("GateCopy")
+            guidance.setWordWrap(True)
+            copy.addWidget(heading)
+            copy.addWidget(guidance)
+            banner_layout.addLayout(copy, 1)
+            finish = QPushButton("Finish local build")
+            finish.setObjectName("MissionNext")
+            finish.setToolTip(
+                "Close Forge Control with the verified local artifact intact. Nothing is sent "
+                "to or changed on a phone."
             )
             finish.clicked.connect(self.accept)
             banner_layout.addWidget(finish)
@@ -1957,6 +1985,9 @@ class BuildControlCenter(QDialog):
         elif self.report.signing_ready:
             self.overall_badge.setText("✓  LOCAL BUILD COMPLETE / FLASH NOT AUTHORIZED")
             overall_state = "verified"
+        elif self.report.local_candidate_ready:
+            self.overall_badge.setText("✓  LOCAL BUILD COMPLETE / INSTALL NOT AUTHORIZED")
+            overall_state = "verified"
         elif self.report.build_ready:
             self.overall_badge.setText("◆  BUILD READY / FLASH LOCKED")
             overall_state = "progress"
@@ -1974,6 +2005,8 @@ class BuildControlCenter(QDialog):
                 (
                     "Your project is ready for Guardian-controlled flash review  •  "
                     if self.report.guardian_handoff_ready
+                    else "Durable local candidate verified  •  installation/flash: NOT AUTHORIZED  •  "
+                    if self.report.local_candidate_ready and not self.report.signing_ready
                     else "Readiness fingerprint  •  "
                 )
                 + f"{self.report.report_digest[:16]}…  •  {blocked_count} blocked  •  "
@@ -1987,6 +2020,8 @@ class BuildControlCenter(QDialog):
         if not self.autopilot_active:
             self.autopilot_button.setText(
                 VERIFIED_ROM_INSTALLATION_ACTION
+                if self.report.signing_ready
+                else "Continue to artifact verification"
                 if self.report.local_candidate_ready
                 else "Review final Guardian handoff"
                 if self.report.guardian_handoff_ready
@@ -1996,6 +2031,9 @@ class BuildControlCenter(QDialog):
                 "Verify the best complete ROM route available for this project, or deliberately "
                 "choose a manual image subset. Then review the exact target, actions, warnings "
                 "and final consent. Opening preparation never writes to the phone."
+                if self.report.signing_ready
+                else "Resolve the candidate's exact artifact-trust and signing/AVB evidence. "
+                "Local build completion grants no installation or phone authority."
                 if self.report.local_candidate_ready
                 else "Resolve every safe local prerequisite in dependency order. ROMVERSE pauses "
                 "only for authoritative input that software cannot create."
@@ -2007,6 +2045,9 @@ class BuildControlCenter(QDialog):
         self.footer_action_hint.setText(
             "Verify a complete ROM route when supported, with clearly limited manual subsets as "
             "an alternative. No phone action starts until final review and consent."
+            if self.report.signing_ready
+            else "The local candidate is complete. Resolve artifact trust separately before any "
+            "installation path can be reviewed."
             if self.report.local_candidate_ready
             else "Resolve the first unfinished evidence gate, then reassess automatically."
         )

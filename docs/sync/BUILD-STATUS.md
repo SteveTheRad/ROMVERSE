@@ -1,5 +1,84 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — direct no-phone Connect Device completes cleanly
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `ba27ed9` approved the empty health-scan recovery checkpoint
+  and authorized one direct Command Deck **Connect Device** completion/recovery journey.
+- Exact unchanged implementation/package source: `ca983ecd30724723574d7fdd6ae02ca107e3be3e`.
+- Exact unchanged package:
+  `build/linux-pa-health-scan-7100108/frozen/ROMVERSE/ROMVERSE`, 6,323,000 bytes, mode `0755`,
+  SHA-256 `0a47f9af3dea4c0f64983fdd4afc9d1fa01dfcc96185680e94f098b1cb19dde7`.
+- Stage: Stage 1 — v0.2 Golden Foundation, one evidence-only packaged primary-action continuity
+  check. No application source, test or package changed in this checkpoint.
+
+### One bounded direct Command Deck journey
+
+- The unchanged package ran once, unelevated, through Fedora XWayland in fresh workspace
+  `/tmp/romverse-connect-device-7100108.8YJOpf`, with no simulated or physical phone.
+- After normal startup discovery settled, AT-SPI confirmed Command Deck showed
+  **Connect your Android device**, **NOT CONNECTED**, and an enabled **Connect Device** primary
+  action. It invoked that action exactly once.
+- The Command Deck **DEVICE SCAN** progress indicator became visible and the exact user-requested
+  discovery completed in 915 ms. The action did not navigate away from Command Deck or open an
+  unrelated owner.
+- Guardian audit snapshots isolate the requested operation as exactly sequence 9
+  `adb devices -l` and sequence 10 `fastboot devices -l`. Both returned code 0 without timeout,
+  target, serial selector or discovered phone.
+- After completion, the progress indicator was absent; **Connect Device** remained visible and
+  enabled; **Connect your Android device**, **Scan for device**, **No Android device detected** and
+  **NOT CONNECTED** were visible. Plain guidance instructed the user to use a data-capable USB
+  cable, enable USB debugging, or connect in bootloader/fastbootd mode and scan again.
+- No terminal instruction, silent failure, fabricated identity/report or automatic owner change
+  appeared. The fresh workspace has zero project files and no Activity or Live Console ledger.
+- A normal X11 `WM_DELETE_WINDOW` closed ROMVERSE. No package process remained and the runtime log
+  contains exactly one start/clean-close pair, SHA-256
+  `c9a5cb9322615534d8a5ad7255f55888b66be1b4b82c6ab0116e1910585d64c3`, with no fatal trace.
+- The final audit contains 16 successful read-only, no-target host-discovery records: the exact two
+  requested records above plus 14 normal startup/periodic inventory records. None creates device
+  identity or authority.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** no new behavior; this checkpoint verifies the existing direct Command Deck
+  route against its packaged Fedora runtime.
+- **Simulated/Tested:** one genuine packaged Fedora no-phone primary-action journey. No test suite
+  was run or double-counted because no source changed.
+- **Hardware Verified:** no. No Android phone was connected, discovered, selected or operated.
+- **Released:** no. The package remains an unsigned local development artifact.
+- Blockers/failures: none in this bounded journey. Progress, completion, waiting state, retry and
+  guidance were all connected and truthful.
+- Guided friction/dead ends: the direct no-phone action finishes promptly, remains on its owning
+  Command Deck and returns immediately to an enabled retry without terminal intervention.
+- Guardian/Recovery/safety: every discovery was Guardian-audited, read-only and unbound. No device
+  identity, project, report, consent, Recovery incident, write or execution authority was created.
+  UNKNOWN/no-blind-retry, exact-device and exact-incident evidence, independent verification,
+  Guardian-only authority and permanent no-relock remain unchanged.
+- Linux/Fedora: genuinely verified on Fedora 44/XWayland. Windows and physical Android were not run.
+- Feature freeze: compliant evidence-only Stage 1 check; no feature, UI, Device Pack, adapter,
+  knowledge or production capability changed.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all remaining gates.
+- External actions: this scoped branch is pushed normally with this documentation-only handoff.
+  Device-command activity was limited to no-target read-only ADB/Fastboot inventory, including the
+  exact one user-requested pair above. No phone operation, simulated device, firmware/project work,
+  APK/system installation, firmware build/sign/flash, Guardian/Recovery execution, publication,
+  release, merge, force-push, lock or relock occurred. Protected Companion and Windows launcher
+  files were not modified, staged or committed.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another consequential slice until the
+verdict for this exact direct Connect Device checkpoint is recorded in
+`docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm the isolated sequences 9/10, visible progress, 915 ms completion, retained Command Deck,
+  enabled retry and plain no-phone guidance satisfy the direct Connect Device continuity gate.
+- Confirm an evidence-only handoff with no new source, package or test run is sufficient for this
+  accepted behavior.
+
 ## Linux correction checkpoint — empty health scan completes with exact retry guidance
 
 ### Authoritative checkpoint and scope

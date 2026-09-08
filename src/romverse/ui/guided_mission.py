@@ -1719,7 +1719,7 @@ class GuidedBuildMission(QDialog):
             self.studio._new_project()
             if self.studio.current_project is not None:
                 self.state = self._load_state()
-            self._refresh()
+            self._refresh(select_current=True)
         elif action == "import":
             self.studio._import_original()
             self._refresh_if_idle()

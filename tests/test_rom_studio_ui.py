@@ -1135,6 +1135,37 @@ def test_guided_build_mission_is_full_size_and_evidence_driven(tmp_path):
     studio.close()
 
 
+def test_genesis_routes_new_project_directly_to_protected_firmware_intake(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    store = RomProjectStore(tmp_path / "workspace")
+    studio = RomStudio(store, DevicePackRegistry(()))
+    mission = GuidedBuildMission(studio)
+
+    def create_project() -> None:
+        dialog = app.activeModalWidget()
+        assert isinstance(dialog, ProjectNameDialog)
+        dialog.name_input.setText("Windows no-phone continuity")
+        dialog.create_button.click()
+
+    QTimer.singleShot(0, create_project)
+    mission._run_stage()
+    app.processEvents()
+
+    assert studio.current_project is not None
+    assert studio.current_project.name == "Windows no-phone continuity"
+    assert studio.current_project.original is None
+    assert mission.selected_index == 1
+    assert mission.assessments[mission.selected_index].stage.stage_id == "firmware"
+    assert mission.stage_title.text() == "Load the untouched firmware"
+    assert mission.action_button.text() == "Choose firmware…"
+    assert mission.action_button.isEnabled()
+    assert studio.worker is None
+    assert studio.devices == []
+
+    mission.close()
+    studio.close()
+
+
 def test_genesis_uses_task_evidence_action_hierarchy_and_responsive_layout(tmp_path):
     app = QApplication.instance() or QApplication([])
     store = RomProjectStore(tmp_path / "workspace")

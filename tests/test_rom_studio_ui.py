@@ -246,6 +246,13 @@ def test_rom_studio_command_deck_handoffs_report_exact_ready_workflows(
     assert studio.dashboard_handoff_badge.text() == "VERIFIED"
     assert studio.dashboard_handoff_title.text() == "Pre-Build Simulation → Dry run complete"
     assert "execution-locked" in studio.dashboard_handoff_detail.text()
+    assert "Forge Bundle is the next intentional local action" in (
+        studio.dashboard_handoff_detail.text()
+    )
+    assert "unsigned, non-bootable, non-flashable" in studio.dashboard_handoff_detail.text()
+    assert studio.forge_button.isEnabled()
+    assert studio.focusWidget() is studio.forge_button
+    assert ForgeBundleService(store).load_receipt(project.project_id) is None
     assert RomBuildPlanner(store).load(project.project_id) is not None
     assert studio.worker is None
 
@@ -260,6 +267,8 @@ def test_rom_studio_command_deck_handoffs_report_exact_ready_workflows(
     assert workers == []
     assert studio.dashboard_handoff_badge.text() == "VERIFIED"
     assert "Saved typed result for Handoff Project" in studio.dashboard_handoff_detail.text()
+    assert studio.focusWidget() is studio.forge_button
+    assert ForgeBundleService(store).load_receipt(project.project_id) is None
     assert studio.worker is None
 
     interrupted = store.projects_root / project.project_id / "build-plan.tmp"

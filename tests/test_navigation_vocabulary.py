@@ -56,6 +56,7 @@ from romverse.rom.first_light import (
     FirstLightOverall,
     FirstLightReport,
 )
+from romverse.rom.forge import ForgeBundleService
 from romverse.rom.inspection import RomInspectionService
 from romverse.rom.projects import RomProjectStore
 from romverse.rom.recipes import RecipeStore
@@ -1557,6 +1558,12 @@ def test_command_deck_simulation_prepares_the_exact_project_and_resumes_dry_run_
         assert window.rom_studio.dashboard_handoff_badge.text() == "VERIFIED"
         assert project.name in window.rom_studio.dashboard_handoff_detail.text()
         assert "execution-locked" in window.rom_studio.dashboard_handoff_detail.text()
+        assert "Forge Bundle is the next intentional local action" in (
+            window.rom_studio.dashboard_handoff_detail.text()
+        )
+        assert window.rom_studio.forge_button.isEnabled()
+        assert window.rom_studio.focusWidget() is window.rom_studio.forge_button
+        assert ForgeBundleService(store).load_receipt(project.project_id) is None
         assert RomInspectionService(store).working_tree_exists(project.project_id)
         plan = RomBuildPlanner(store).load(project.project_id)
         assert plan is not None
@@ -1686,6 +1693,8 @@ def test_command_deck_simulation_stops_on_tree_drift_and_never_retries_verificat
         assert window.rom_studio.dashboard_handoff_badge.text() == "ATTENTION"
         assert "did not retry or infer success" in window.rom_studio.dashboard_handoff_detail.text()
         assert "no build or phone action" in window.rom_studio.dashboard_handoff_detail.text()
+        assert window.rom_studio.focusWidget() is window.rom_studio.verify_plan_button
+        assert ForgeBundleService(store).load_receipt(project.project_id) is None
         assert window.rom_studio.devices == []
         assert not QApplication.activeModalWidget()
     finally:

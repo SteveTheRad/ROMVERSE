@@ -1496,7 +1496,7 @@ class RomStudio(QWidget):
 
         project = self.store.get(plan.project_id)
         self.command_tabs.setCurrentIndex(1)
-        self.verify_plan_button.setFocus(Qt.FocusReason.OtherFocusReason)
+        self.forge_button.setFocus(Qt.FocusReason.OtherFocusReason)
         source = "Saved" if saved else "Completed"
         self._show_dashboard_handoff(
             "Pre-Build Simulation → Dry run complete",
@@ -1504,7 +1504,9 @@ class RomStudio(QWidget):
             f"{len(plan.partitions):,} detected image partitions, tree SHA-256 "
             f"{plan.tree_sha256[:16]}…, Guardian {plan.guardian_status} / {plan.guardian_risk}. "
             f"Current-tree verification: {verification.status}. The plan is execution-locked; "
-            "any later build remains a separate boundary. No build or phone action occurred.",
+            "Forge Bundle is the next intentional local action: an unsigned, non-bootable, "
+            "non-flashable intermediate. Nothing begins until you choose it; no build or phone "
+            "action occurred.",
             "VERIFIED",
             ready=True,
         )

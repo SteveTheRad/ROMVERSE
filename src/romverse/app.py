@@ -18,6 +18,7 @@ from romverse.core.workspace import WorkspaceInitializer
 from romverse.device.adb import AdbClient
 from romverse.device.engine import DeviceEngine
 from romverse.device.fastboot import FastbootClient
+from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device_packs.attestations import (
     DevicePackAttestationStore,
     DevicePackAttestationVerifier,
@@ -47,7 +48,50 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--skip-onboarding", action="store_true", help="Skip the first-run wizard")
     parser.add_argument("--release-smoke", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument(
+        "--development-device-simulation",
+        action="store_true",
+        help=argparse.SUPPRESS,
+    )
     return parser
+
+
+def development_simulated_device() -> AndroidDevice:
+    """Return the inert, deterministic Device DNA fixture used by packaged UI checks.
+
+    The explicit ``simulation`` transport is a durable zero-authority evidence class.
+    This fixture must never be passed to general device, APK, terminal, Guardian, or
+    Recovery surfaces as though it were discovered hardware.
+    """
+
+    return AndroidDevice(
+        "ROMVERSE-DEVELOPMENT-SIMULATION",
+        DeviceState.DEVICE,
+        transport="simulation",
+        manufacturer="Xiaomi",
+        brand="Xiaomi",
+        model="2509FPN0BC",
+        marketing_name="Xiaomi 17 Pro Max",
+        product="popsicle",
+        codename="popsicle",
+        android_version="17",
+        api_level="37",
+        build_id="CP2A.260605.016",
+        rom_display="OS4.0.0.23.XPBCNXM",
+        security_patch="2026-08-01",
+        bootloader_locked=False,
+        verified_boot="orange",
+        root_detected=False,
+        slot_suffix="_a",
+        soc_platform="SM8850",
+        encryption_state="encrypted",
+        encryption_type="file",
+        ab_update=True,
+        virtual_ab=True,
+        dynamic_partitions=True,
+        fastboot_capability="simulation only; hardware capability unconfirmed",
+        connection_note="SIMULATION ONLY • NOT HARDWARE VERIFIED",
+    )
 
 
 def launch_settings(
@@ -212,6 +256,9 @@ def main(argv: list[str] | None = None) -> int:
                 attestation_store=attestation_store,
                 app_settings=settings,
                 desktop_update_service=desktop_update_service,
+                development_simulated_device=(
+                    development_simulated_device() if args.development_device_simulation else None
+                ),
             )
             window.settings_changed.connect(store.save)
             window.show()

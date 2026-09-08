@@ -9,7 +9,7 @@ from subprocess import CompletedProcess
 import pytest
 
 from romverse import DISPLAY_VERSION, PACKAGE_VERSION, __version__
-from romverse.app import build_parser
+from romverse.app import build_parser, development_simulated_device
 from romverse.ui.main_window import DESKTOP_SIDEBAR_VERSION, DESKTOP_WINDOW_TITLE
 from scripts.build_desktop_executable import pyinstaller_arguments, windows_build_path
 from scripts.package_desktop_bundle import package_bundle, verify_bundle_archive
@@ -131,6 +131,16 @@ def test_release_smoke_flag_is_explicit_and_phone_neutral() -> None:
     assert args.release_smoke is True
     assert args.skip_onboarding is True
     assert args.workspace is None
+
+
+def test_development_device_simulation_is_explicit_and_inert() -> None:
+    args = build_parser().parse_args(["--development-device-simulation"])
+    device = development_simulated_device()
+
+    assert args.development_device_simulation is True
+    assert device.is_simulated
+    assert device.connection_note == "SIMULATION ONLY • NOT HARDWARE VERIFIED"
+    assert device.codename == "popsicle"
 
 
 def test_frozen_smoke_uses_bounded_release_mode(tmp_path: Path, monkeypatch) -> None:

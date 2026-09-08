@@ -1400,14 +1400,12 @@ class GuidedBuildMission(QDialog):
         return "USB debugging Android connection"
 
     def _skip_customization(self) -> None:
-        if not self._clear_rooted_input_for_unrooted_route():
-            return
         self.state = replace(
             self.state,
-            customization_skipped=True,
+            customization_skipped=False,
             recipe_skipped=True,
             recipe_validated=False,
-            root_choice="skip",
+            root_choice="undecided",
             last_error="",
         )
         self.failure = None

@@ -3925,9 +3925,16 @@ class MainWindow(QMainWindow):
         app_settings: AppSettings | None = None,
         desktop_update_service: DesktopUpdateService | None = None,
         galaxy_service_trust: GalaxyServiceTrust | None = None,
+        development_simulated_device: AndroidDevice | None = None,
     ) -> None:
         super().__init__()
+        if (
+            development_simulated_device is not None
+            and not development_simulated_device.is_simulated
+        ):
+            raise ValueError("Development device fixture must use the simulation transport")
         self.engine = engine
+        self._development_simulated_device = development_simulated_device
         self._workspace = workspace
         self._runtime_runner = runner or SubprocessRunner()
         self._audit_store = audit_store or GuardianAuditStore(workspace)
@@ -4637,7 +4644,9 @@ class MainWindow(QMainWindow):
         self.rom_studio.operation_failed.connect(self._live_operation_failed)
         self.rom_studio.operation_failed.connect(self._open_recovery_from_rom_failure)
         self.rom_studio.device_scan_requested.connect(self.scan)
-        self.rom_studio.device_scan_available = engine is not None
+        self.rom_studio.device_scan_available = (
+            engine is not None or self._development_simulated_device is not None
+        )
         self.rom_studio.device_dna_updated.connect(self._record_device_dna)
         self.rom_studio.guardian_flash_verified.connect(
             self.device_packs_center.record_verified_flash
@@ -4654,7 +4663,27 @@ class MainWindow(QMainWindow):
         self._reconnect_timer = QTimer(self)
         self._reconnect_timer.setSingleShot(True)
         self._reconnect_timer.timeout.connect(self.scan)
-        if engine is not None:
+        if self._development_simulated_device is not None:
+            self.connection_state.setText("◇  Development simulation")
+            self.connection_state.setObjectName("Warning")
+            self.connection_device.setText("Device: deterministic ROM Studio fixture")
+            self.connection_android.setText("SIMULATION ONLY • NO HARDWARE")
+            self.sidebar_device_state.setText("◇  Simulation Session")
+            self.sidebar_device_state.setObjectName("Warning")
+            self.sidebar_device_name.setText("No physical device selected")
+            self.sidebar_device_detail.setText(
+                "ROM Studio may create inert Device DNA; every device-command surface is empty."
+            )
+            self.sidebar_device_image.setVisible(False)
+            for widget in (
+                self.connection_state,
+                self.connection_device,
+                self.connection_android,
+                self.sidebar_device_state,
+            ):
+                widget.style().unpolish(widget)
+                widget.style().polish(widget)
+        elif engine is not None:
             self.timer.start()
             QTimer.singleShot(250, self.scan)
         else:
@@ -4848,6 +4877,9 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def scan(self) -> None:
+        if self._development_simulated_device is not None:
+            self._scan_development_simulation()
+            return
         if (
             self.engine is None
             or self.scanning
@@ -4876,6 +4908,28 @@ class MainWindow(QMainWindow):
             )
         )
         start_background(worker)
+
+    def _scan_development_simulation(self) -> None:
+        """Complete one ROM Studio-only inert scan without invoking device transports."""
+
+        if (
+            self.scanning
+            or self._local_flash_dialog is not None
+            or (self._source_operation_session is not None and self._source_operation_session.busy)
+            or self._expert_flash_pending
+        ):
+            return
+        simulated = self._development_simulated_device
+        if simulated is None:
+            return
+        self._observed_devices = []
+        self._selected_device_serial = ""
+        self.rom_studio.set_devices([simulated], observed_devices=[])
+        self._sync_command_deck_context()
+        self.rom_studio.device_scan_finished.emit(
+            True,
+            "Deterministic ROM Studio simulation completed; no hardware was scanned.",
+        )
 
     @Slot(list)
     def _scan_complete(self, devices: list[AndroidDevice]) -> None:

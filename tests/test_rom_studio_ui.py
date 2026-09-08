@@ -1929,9 +1929,40 @@ def test_genesis_simulated_device_continues_visibly_without_hardware_authority(
 
     assert mission.assessments[5].status is GuidedStageStatus.COMPLETE
     assert mission.assessments[6].status is GuidedStageStatus.COMPLETE
-    assert mission.assessments[7].status is GuidedStageStatus.COMPLETE
-    assert mission.assessments[8].status is GuidedStageStatus.COMPLETE
-    assert mission.assessments[mission.selected_index].stage.stage_id == "toolchain"
+    assert mission.assessments[7].status is GuidedStageStatus.READY
+    assert mission.assessments[8].status is GuidedStageStatus.LOCKED
+    assert mission.assessments[mission.selected_index].stage.stage_id == "debloat"
+
+    context = studio.guided_context()
+    assert context.device is simulated
+    assert not context.guardian_handoff_ready
+    assert not context.guardian_flash_handoff_ready
+    assert not context.flash_complete
+    assert store.verify_original(project.project_id).valid
+    assert RomBuildPlanner(store).load(project.project_id) is None
+    project_root = store.projects_root / project.project_id
+    assert not (project_root / "boot-observation.romverse").exists()
+    assert not (project_root / "guardian").exists()
+
+    persisted = GuidedMissionStore(project_root).load()
+    assert persisted.selected_stage == "debloat"
+    assert not persisted.customization_skipped
+    assert persisted.recipe_skipped
+    assert persisted.root_choice == "undecided"
+    assert studio.current_project.project_id == project.project_id
+    assert studio.current_project.original.sha256 == project.original.sha256
+    assert "SIMULATION ONLY • NOT HARDWARE VERIFIED" in studio.device_dna_detail.text()
+    assert not (project_root / "recipe.romverse").exists()
+
+    # Keep the existing downstream build-plan coverage independent of the visible
+    # unchanged-base route; later optional stages require their own explicit choices.
+    mission.state = replace(
+        mission.state,
+        customization_skipped=True,
+        recipe_skipped=True,
+        root_choice="skip",
+    )
+    mission._refresh(select_current=True)
 
     resolution_calls = []
     tool_root = store.workspace / "fixture-tools"

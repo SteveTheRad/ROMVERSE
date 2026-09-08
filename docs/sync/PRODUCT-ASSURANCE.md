@@ -1,5 +1,71 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 0ab911f — artifact verification to offline-signing readiness
+
+- Handoff commit: `0ab911f8d052fb80b2d8f87b001b65f19cb27749`
+- Implementation commit: `14de58e376bbd5cf14369f605bdfd6355f892cca`
+- Product Assurance authorization/base: `a6d9bca06d35c4f0ca8b84ad6ebd990be7e5700a`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — ARTIFACT-VERIFICATION/OFFLINE-SIGNING BOUNDARY VERIFIED**
+
+### Decision and independent evidence
+
+The checkpoint completes the approved bounded transition from a durable unsigned local candidate to
+exact AVB/artifact evidence and an offline-signing request. The first concrete defect was a real
+Guided loop: completion of the four-image candidate inspection immediately dispatched the same AVB
+inspection again and could then expose installation preparation while `signing_ready` remained
+false. `14de58e` is the minimum correction. A freshly reloaded exact candidate AVB receipt now routes
+to `Open offline signing ceremony`; unsigned completion terminates Autopilot, and neither the
+repeated inspection nor the installation action is selected.
+
+Product Assurance inspected the exact source/test diff and the durable handoff. The persisted AVB
+receipt remains bound to the project, source, Device Pack contract and local-build receipt. The
+existing ceremony retains content-addressed candidate artifacts, exports no private key and grants
+no phone or execution authority. Product Assurance independently reran the seven named focused
+regressions against the reviewed source: **7/7 passed**. The repository is clean and the protected
+Companion files are untouched.
+
+### Vision, freeze and safety result
+
+- Artifact verification and offline-signing request handoff: **PASS**
+- Guided no-repeat/no-premature-installation routing: **PASS**
+- Exact evidence and durable reload behavior: **PASS**
+- Feature freeze: **PASS — minimum correction inside the approved existing flow**
+- Guardian-only authority, UNKNOWN/no-blind-retry, exact-device binding and permanent no-relock:
+  **PRESERVED**
+- Real signing, trust enrollment, phone, installation, Recovery, publication and release: **NONE**
+
+### Approved next bounded task
+
+Complete one fresh, no-phone **offline-signing return/import to durable signing-ready handoff** using
+the existing production widget/service/worker path, a disposable project, bounded synthetic
+artifacts and an inert AVBTool adapter. Begin from the exact exported request. Import only a bundle
+that matches its content-addressed manifest and approved synthetic signing policy; verify the exact
+public-key identity, algorithm, rollback fields, descriptors, artifact sizes and hashes; then close
+and reconstruct the service/UI and prove the same signed-candidate receipt remains valid.
+
+The final UI must distinguish `SIGNING READY` from installation or flash success and offer one clear
+next action into the existing Guardian-controlled preparation/review boundary. Opening that boundary
+must not grant consent, dispatch a device command or require a connected phone. Record the first
+concrete defect and implement only its minimum freeze-safe correction with one focused regression;
+if clean, commit evidence only. Reuse the current request and existing signing-contract coverage—do
+not rebuild the ROM, rerun the preceding AVB journey, run a broad suite, use a real private key,
+enroll production trust, package either app, use a phone/emulator, begin Recovery/installation,
+publish, release, force-push, touch protected Companion/Windows work or relock. Commit and push, then
+stop for Product Assurance.
+
+The separate `adaptive-online-device-dna` worktree may continue independently. Linux Build must not
+edit or duplicate that branch's online-evidence schema, adapters, tests or status document.
+
+### Gate status
+
+- Unfamiliar intake, durable local build and artifact-verification/offline-signing request:
+  **VERIFIED**
+- Next core milestone: **SIGNED RESULT IMPORT TO DURABLE GUARDIAN HANDOFF**
+- Adaptive Online Device DNA foundation: **INDEPENDENT WORK IN PROGRESS**
+- Physical device, production signing/trust, installation, Recovery and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation: **CLOSED**
+
 ## Reviewed checkpoint: 0792fa8 — Recipe Forge to durable local build
 
 - Handoff commit: `0792fa8`

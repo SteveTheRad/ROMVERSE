@@ -1,5 +1,69 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: f5b9c99 — current desktop identity and efficient CI coordination
+
+- Handoff commit: `f5b9c994b49e58b19b742b039b4e572abf3d2c6d`
+- Implementation commit: `73d22d0aad0d71632611773e54ae15e35a4ac112`
+- Approved base: `5e59a92e3b337de68d6450845c52bd53c3067584`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — ARTIFACT IDENTITY IS CURRENT; EXTERNAL RUNNER GATE RECORDED**
+
+### Decision
+
+Product Assurance inspected the workflow-only diff, exact GitHub jobs and retained artifacts. One
+canonical package-metadata value now drives the wheel, both desktop archive names, unsigned
+candidate version/release ID, manifest path and upload paths. No legacy `0.1.0` literal remains.
+Documentation-only sync commits no longer launch the full matrix, while any product/test/package/
+workflow change still does; same-ref concurrency now cancels superseded source runs.
+
+Both current platform package jobs passed completely. GitHub then refused to start the dependent
+unsigned-candidate job before any step because of the account payment/spending-limit state. That is
+an external runner gate, not a repository result. Product Assurance therefore downloaded the exact
+two retained artifacts, independently created and verified the unsigned `0.2.0a1` manifest locally,
+and granted no signing or publication trust.
+
+### Independent evidence and acceptance
+
+- GitHub run `34226226022` produced successful Linux and Windows `0.2.0a1` wheel verification,
+  installed-package smoke, frozen build/smoke, archive packaging and artifact upload.
+- Retained artifact records match the handoff. The downloaded archives are **160,646,983** and
+  **77,500,118** bytes; local structural candidate verification accepted **2 artifacts / 238,147,101
+  bytes** under exact release ID `romverse-desktop-0.2.0a1-73d22d0aad0d71632611773e54ae15e35a4ac112`.
+- The downloaded Windows archive SHA-256 is
+  `1445bfe4f8429ee0f13ddb25c6b9e8956394230a41086ff9ee187888194801f0` and is staged unchanged at
+  `C:\Work\ROMVERSE-GitHub-34226226022\ROMVERSE-Desktop-0.2.0a1-windows-x86_64.zip` for the next
+  native checkpoint.
+- GitHub check `102061766307` has zero steps and independently reports the payment/spending-limit
+  annotation. The GitHub-hosted candidate job remains outstanding until runner eligibility returns.
+- No application source, signing, phone/emulator, ADB/Fastboot, Recovery, flash, wipe, unlock,
+  root, relock, APK install, publication or release occurred. The protected untracked Windows patch
+  remains unchanged.
+
+### Approved next bounded Windows task
+
+Use the exact staged GitHub-produced Windows `0.2.0a1` archive above in one fresh extraction and one
+fresh disposable workspace. Launch its normal windowed executable once and exercise one packaged
+no-phone **Start ROM Project** journey through project creation, deterministic sanitized local
+firmware selection, protected import and structural inspection to the current truthful next state.
+Use the real frozen UI/runtime/services and native Windows accessibility; record durable workspace
+evidence, visible continuity and clean close.
+
+If a genuine Windows-only packaging, path, dialog, persistence or frozen-runtime defect appears,
+apply the minimum correction and run only directly affected checks. Do not duplicate or backport
+Linux's active Forge/Simulation changes, correct a cross-platform product behavior on this branch,
+connect a phone, use ADB/Fastboot, start a candidate build, sign, publish or release. Reuse the
+staged archive without downloading or rebuilding it. Commit/push one bounded checkpoint and stop
+for review. The external GitHub candidate job may be retried once later when runner eligibility is
+restored; it does not require Windows to remain idle meanwhile.
+
+### Gate status
+
+- Current `0.2.0a1` wheel/archive identity and efficient CI coordination: **VERIFIED**
+- Native packaged Windows Start-ROM-Project continuity: **NEXT BOUNDED WINDOWS TASK**
+- GitHub-hosted unsigned-candidate job: **EXTERNAL RUNNER GATE OUTSTANDING**
+- Production signing, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: cf6500d — cross-platform wheel verifier correction
 
 - Handoff commit: `cf6500d` — `Record cross-platform wheel verifier checkpoint [skip ci]`

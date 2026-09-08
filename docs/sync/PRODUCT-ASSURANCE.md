@@ -1,5 +1,80 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: cb7c3e2 — durable exact Forge plan binding
+
+- Handoff commit: `cb7c3e2625b9994dbca6922d9720b7c9f03d9542`
+- Implementation commit: `601b9f6a4dfdc1a232b15ecfdce332c4726cd015`
+- Correction base: `11c19a0`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **CORRECTION REQUIRED — EXACT BINDING IS FIXED, BUT THE STALE-RECEIPT ROUTE IS A DEAD END**
+
+### Decision
+
+Product Assurance inspected the exact six-file correction and independently reran the declared
+affected selection at **29/29 passed**. The new Forge manifest/receipt and Device Build plan
+correctly preserve the exact schema-3 plan generation. The same-tree replacement adversary now
+proves that changed Guided-choice identity cannot consume the earlier Forge or Device Build
+admission, and the local runner receives zero calls. Schema evolution and legacy truthfulness are
+accepted.
+
+One connected-journey defect remains. When a valid historical Forge receipt belongs to an earlier
+plan generation, both the service and UI refuse every subsequent Forge creation. The UI focuses
+plan verification and tells the user to regenerate/reverify, but verification does not archive or
+retire the old `latest` receipt; regenerating a plan creates another digest, so the same mismatch
+continues. There is no existing in-app action that can complete the instructed route. Manual file
+removal would be required, contrary to the creator experience contract and the explicit requirement
+to preserve historical evidence.
+
+This is not a reason to weaken the exact binding. ROMVERSE must retain the old receipt as
+historical evidence and allow the user's existing deliberate Forge action to create the current
+generation safely.
+
+### Accepted evidence
+
+- Independent focused verification passed **29/29**: 17 Device Build contract checks, three Forge
+  schema/binding checks, three exact Forge Control/UI checks and six durable-schema inventory
+  checks.
+- Forge manifest schema 4 and receipt schema 3 carry the exact plan, protected source,
+  toolchain-manifest and Guided-choice digests; mismatch and downgrade attempts fail closed.
+- Device Build plan schema 2 binds both exact workspace-plan digest and tree digest immediately
+  before execution; the same-tree replacement adversary produces zero runner calls.
+- Historical plan-A Forge bytes remain independently verifiable and are not accepted as plan B.
+- No phone, ADB/Fastboot, APK, real candidate, signing, Guardian consent/execution, package,
+  publication, release, merge, force-push, lock or relock occurred.
+
+### Minimum exact correction and acceptance criteria
+
+1. On the existing explicit Forge action, when `latest-forge-bundle.romverse` is valid but belongs
+   to a different exact plan generation, atomically preserve that receipt in a private,
+   content-addressed Forge-history location before replacing `latest`. Retain the immutable archive
+   bytes. If the history destination already exists, require exact receipt equality; ambiguity or
+   collision stops without overwriting anything.
+2. Do not remove or replace the current `latest` receipt until the new current-plan bundle and
+   receipt have completed successfully. Failure or interruption must leave the previous receipt and
+   history recoverable, with no inferred success and no automatic retry.
+3. Make the stale-generation Command Deck/Forge state actionable: explain that earlier evidence
+   will be preserved, keep the existing Forge action available after fresh current-plan
+   verification, and focus that action. Do not add another confirmation or require manual file
+   management. Forge must still begin only from the user's existing explicit choice.
+4. Extend the same-tree adversary through the connected correction: old Device Build execution
+   remains rejected with zero runner calls; one explicit Forge choice archives the plan-A receipt,
+   runs at most one plan-B Forge worker, produces/verifies a current plan-B receipt, and leaves the
+   plan-A historical receipt and archive independently verifiable. Add bounded interruption/
+   collision coverage only where needed.
+
+Do not change the accepted schema bindings, weaken stale admission, automatically start Forge,
+add a new screen, run a broad suite, create a real candidate, configure signing, grant Guardian or
+device authority, connect or modify a phone, dispatch ADB/Fastboot, install an APK, package the
+desktop app, publish or release. Commit/push this minimum continuity correction and updated handoff,
+then stop for review.
+
+### Gate status
+
+- Durable exact-plan identity across Forge and Device Build: **VERIFIED**
+- Stale Forge evidence preservation and current-generation continuation: **CORRECTION REQUIRED**
+- Signing, Guardian execution, physical hardware, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 023d991 — schema-3 evidence through Forge Control
 
 - Handoff commit: `023d991f5836d91d871e93dddc3986326c43983e`

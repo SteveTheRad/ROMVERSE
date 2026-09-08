@@ -1,5 +1,69 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 154e5e4f — bounded packaged handoff fallback
+
+- Reviewed commit: `154e5e4f9aee9ea9be6633483dd64cca9b70ea02`
+- Accepted correction/package source: `6fc79f65769366f3b31ddea7244bb9119bb05158`
+- Approved base: `fabb17f1747d53e0590b1c50f2d7fb1969e823dc`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — ENVIRONMENTAL FALLBACK PRESERVED STATE AND USED NATIVE ACCEPTANCE**
+
+### Decision
+
+Product Assurance accepts the explicitly authorized environmental fallback. The corrected package
+was started from its exact approved bytes, but LegionSpace covered the interaction surface after
+the single permitted focus recovery. Build stopped before input, download, tool activation or
+device discovery and did not replay the action. The independently reproduced 3/3 native Windows
+tests remain the authoritative stage-five Forge handoff/retry evidence. No correction or creator
+decision is required.
+
+### Independent evidence and acceptance
+
+- The unsigned corrected executable remains 6,319,605 bytes at SHA-256
+  `5784de7a491c0b151ddb727beecf64c7ca4132760c5a687d9a22981e172899bc`.
+- The explicit workspace session reached only first-run setup, made no project/runtime mutation and
+  closed normally. Its prior runtime record remains byte-identical at
+  `30feaa6b43ac81c3e426cd89b1366323359c203a3e4d399727d797fd3674f8b7`.
+- Project, Guided, inspection, Device DNA, Matrix, working-copy, tree-index and route hashes remain
+  byte-identical. Workspace tools remain empty; no Guardian audit, candidate, build plan, command
+  manifest, consent or execution authority exists.
+- The detached ADB server belongs to a pre-existing external workspace and was not started,
+  queried, targeted or stopped by this checkpoint.
+- The untracked 8,272-byte user patch remains byte-identical at
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone/emulator, ADB/Fastboot command, tool install/download, APK/device installation, firmware
+  change, ROM build/signing, Guardian/Recovery execution, publication, release, lock or relock
+  occurred.
+
+### Approved next bounded Windows task
+
+Run the same corrected unsigned package once with the exact existing workspace and the supported
+`--skip-onboarding` option. Perform no in-app action. Verify from the packaged window's own
+accessibility state that startup restores the exact project, Command Deck mission, stage 5,
+5-of-15 progress, Device DNA UNCONFIRMED state and **Scan device & refresh DNA** next action. Then
+close the targeted ROMVERSE window normally and verify the runtime records one clean start/close
+without altering any project or authority record.
+
+This is one Windows saved-project startup smoke, not another Forge attempt, screen sweep, source
+change, rebuild or test rerun. Do not interact through covered coordinates; use only target-derived
+window/accessibility evidence and stop after one bounded safe focus recovery if the surface is
+again obscured. Issue no ADB/Fastboot command and do not open Forge Arsenal or install/download
+tools. Commit/push one handoff and stop for review. Preserve the exact project, protected source
+and untracked patch. No phone/emulator, APK/device installation, firmware change, ROM build/signing,
+consent, Guardian/Recovery execution, publication, release, lock or relock is authorized.
+
+### Gate status
+
+- Genesis stage-five Forge ownership/retry correction: **VERIFIED BY NATIVE WINDOWS TESTS**
+- Environmental packaged fallback: **ACCEPTED WITHOUT REPLAY**
+- Corrected-package exact saved-project startup: **NEXT BOUNDED WINDOWS TASK**
+- Targetless managed-tool installation/no-device discovery: **DEFERRED UNDER CURRENT WINDOWS
+  COMMAND BOUNDARY**
+- Linux managed APK identity-tool repair: **OWNED BY LINUX; DO NOT DUPLICATE**
+- Physical hardware, APK/device installation, signing, Guardian/Recovery execution, publication
+  and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 6fc79f65 — Genesis stage-five tool handoff
 
 - Reviewed commit: `6fc79f65769366f3b31ddea7244bb9119bb05158`

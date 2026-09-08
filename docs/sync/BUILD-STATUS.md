@@ -1,5 +1,47 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows Forge Arsenal managed Platform Tools journey
+
+- Product Assurance verdict: `178b8dd714d2bfbd40c71e111243ba74435f48b2` —
+  `Approve runnable Windows Stage 1 milestone`, matching handoff
+  `3162bc4c832c833f1a75f9631b3604f71822f1c4` exactly.
+- Steve's reported `Install and verify requirements` journey was reproduced once in the fresh
+  disposable workspace `C:\Work\ROMVERSE-Forge-Journey-20260908-1924` using the production
+  `ToolchainSetupDialog`, `ToolchainDownloadWorker`, archive installer, receipt validator, managed
+  activation function and a real Windows host object. The unavailable trusted app-control service
+  exposed no native applications, so the real Qt dialog was driven deterministically offscreen; no
+  coordinate or keystroke substitute was used.
+- Result: **WORKS AT THIS CHECKPOINT — NO SOURCE CORRECTION REQUIRED**. Visible progress reported
+  `0, 13, 26, 39, 52, 65, 78, 91, 100`; the final dialog status was
+  `Downloaded and prepared: platform-tools (45f4d63113e8…)` followed by
+  `ROMVERSE refreshed the tool inventory automatically.`
+- The official Windows archive was exactly **8,044,989 bytes** with approved SHA-256
+  `45f4d63113e895ebde0c90f194099a4676b6ac653bd28d54314a9e022bbc1a99`.
+  The workspace-local receipt binds `adb.exe` SHA-256
+  `b4a6b455702684652cccf7b46258b29e653538904359a58fd4931cf3ef286b3f` and `fastboot.exe`
+  SHA-256 `b2d9cbff4ce9ae7eb448cfc831bafc867935f50f5be38f8f81057fd7eb3b8d86`.
+- Host-only version checks returned `Android Debug Bridge version 1.0.41` and
+  `fastboot version 37.0.1-15733141`. They included no device selector or device command. A fresh
+  Python process started with the managed directory removed from `PATH`, revalidated the receipt,
+  reactivated the exact same directory, and returned both versions again. This proves restart
+  reload rather than inheritance of an earlier process result.
+- The directly affected Windows archive pin, wrong-digest preservation, legacy receipt safety,
+  activation, progress and worker-boundary regressions passed: **16/16**.
+
+### Scope and disposition
+
+- No ROMVERSE source or test file changed because the exact reported path works and Product
+  Assurance prohibited a rewrite or loop in that case. Windows Build proceeds to the next concrete
+  Windows-only launcher/runtime defect from existing evidence.
+- All acquired files remain inside the disposable workspace's `tools/downloads` managed area. No
+  system-wide driver, PATH, registry, firewall, privacy or security-policy change occurred.
+- No phone/emulator was requested, connected, discovered, operated or targeted. No ADB/Fastboot
+  device command, Recovery, flash, wipe, unlock, root, relock, APK install, production trust/signing,
+  publication, release, force-push or destructive action occurred.
+- Protected Companion files and the UI Design Lab remain untouched. The existing untracked patch is
+  still byte-identical at SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+
 ## Windows Stage 1 runnable-usability completion checkpoint
 
 - Build source tip: `fee55d3b` — `Record Windows Stage 1 screen audit` on

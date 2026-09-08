@@ -56,6 +56,7 @@ from romverse.rom.first_light import (
 )
 from romverse.rom.inspection import RomInspectionService
 from romverse.rom.projects import RomProjectStore
+from romverse.rom.recipes import RecipeStore
 from romverse.rom.source_intelligence import FirmwareSourceIntelligenceService
 from romverse.ui.main_window import (
     MainWindow,
@@ -1205,8 +1206,10 @@ def test_command_deck_cards_are_context_aware_and_route_to_canonical_pages(
         actions["Recipes"].click()
         app.processEvents()
         assert window.stack.currentWidget() is window.rom_studio
-        assert window.rom_studio.command_tabs.currentIndex() == 2
-        assert window.rom_studio.dashboard_handoff_title.text() == "Recipes → Recipe Forge"
+        assert window.rom_studio.command_tabs.currentIndex() == 0
+        assert window.rom_studio.dashboard_handoff_title.text() == (
+            "Recipes → Source Lab prerequisite"
+        )
         assert "NO RECIPE OR PHONE ACTION STARTED" in (
             window.rom_studio.dashboard_handoff_detail.text()
         )
@@ -1249,6 +1252,73 @@ def test_command_deck_cards_are_context_aware_and_route_to_canonical_pages(
         lab.click()
         app.processEvents()
         assert window.stack.currentWidget() is window.nexus_center
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_command_deck_recipes_opens_the_exact_project_or_its_prerequisite(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    store, registry, project, _report = _project(tmp_path)
+    window = MainWindow(
+        None,
+        logo,
+        store.workspace,
+        app_icon_path=logo,
+        pack_registry=registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    project_dir = store.projects_root / project.project_id
+    try:
+        window.rom_studio.refresh(project.project_id)
+        window._navigate_route("command_deck")
+        app.processEvents()
+        before = window.nexus_events.list_recent()
+
+        window.device_center.quick_action_buttons["Recipes"].click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.rom_studio
+        assert window.rom_studio.current_project is not None
+        assert window.rom_studio.current_project.project_id == project.project_id
+        assert window.rom_studio.command_tabs.currentIndex() == 0
+        assert window.rom_studio.working_button.isEnabled()
+        assert window.rom_studio.dashboard_handoff_title.text() == (
+            "Recipes → Source Lab prerequisite"
+        )
+        assert window.rom_studio.dashboard_handoff_badge.text() == "PREREQUISITE"
+        assert project.name in window.rom_studio.dashboard_handoff_detail.text()
+        assert "contained working tree" in window.rom_studio.dashboard_handoff_detail.text()
+        assert RecipeStore().load(project_dir) is None
+        assert window.nexus_events.list_recent() == before
+        assert window.rom_studio.worker is None
+
+        store.create_working_copy(project.project_id)
+        RomInspectionService(store).extract_project_tree(project.project_id)
+        window.rom_studio.refresh(project.project_id)
+        window._navigate_route("command_deck")
+        app.processEvents()
+
+        window.device_center.quick_action_buttons["Recipes"].click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.rom_studio
+        assert window.rom_studio.current_project is not None
+        assert window.rom_studio.current_project.project_id == project.project_id
+        assert window.rom_studio.command_tabs.currentIndex() == 2
+        assert window.rom_studio.dashboard_handoff_title.text() == "Recipes → Recipe Forge"
+        assert window.rom_studio.dashboard_handoff_badge.text() == "READY"
+        assert project.name in window.rom_studio.dashboard_handoff_detail.text()
+        assert "Nothing changes until explicit approval" in (
+            window.rom_studio.dashboard_handoff_detail.text()
+        )
+        assert RecipeStore().load(project_dir) is None
+        assert window.nexus_events.list_recent() == before
+        assert window.rom_studio.worker is None
+        assert not QApplication.activeModalWidget()
     finally:
         window.companion_center.transport.close()
         window.close()

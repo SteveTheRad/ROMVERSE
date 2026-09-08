@@ -1352,16 +1352,15 @@ class RomStudio(QWidget):
             return True
 
         if action == "Recipes":
-            self.command_tabs.setCurrentIndex(2)
             ready, detail = self._recipe_forge_handoff()
+            destination = self._open_recipe_forge_destination(ready)
             self._show_dashboard_handoff(
-                "Recipes → Recipe Forge",
+                f"Recipes → {destination}",
                 detail,
                 "READY" if ready else "PREREQUISITE",
                 ready=ready,
             )
             self.detail_scroll.ensureWidgetVisible(self.command_tabs, 0, 24)
-            self.guided_recipe_button.setFocus(Qt.FocusReason.OtherFocusReason)
             return True
 
         return False
@@ -1474,6 +1473,33 @@ class RomStudio(QWidget):
             "contained targets, preview changes, and preserve rollback evidence. Nothing changes "
             "until explicit approval; NO PHONE ACTION STARTED.",
         )
+
+    def _open_recipe_forge_destination(self, ready: bool) -> str:
+        """Open Recipe Forge or the existing action that owns its current prerequisite."""
+
+        project = self.current_project
+        inputs_ready = bool(
+            project is not None
+            and project.original is not None
+            and self.inspection.working_tree_exists(project.project_id)
+        )
+        if ready or inputs_ready:
+            self.command_tabs.setCurrentIndex(2)
+            self.guided_recipe_button.setFocus(Qt.FocusReason.OtherFocusReason)
+            return "Recipe Forge"
+
+        self.command_tabs.setCurrentIndex(0)
+        target = (
+            self.new_button
+            if project is None
+            else self.import_button
+            if project.original is None
+            else self.working_button
+            if self.store.working_copy(project.project_id) is None
+            else self.extract_button
+        )
+        target.setFocus(Qt.FocusReason.OtherFocusReason)
+        return "Source Lab prerequisite"
 
     def _show_dashboard_handoff(
         self,

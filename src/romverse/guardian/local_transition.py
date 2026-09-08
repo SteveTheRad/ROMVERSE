@@ -74,6 +74,10 @@ class _Cancelled(LocalFlashError):
     pass
 
 
+class _SuccessfulEmptyFastbootProduct(LocalFlashError):
+    """One exact Fastboot transport returned success without product evidence."""
+
+
 class LocalDeviceTransitionService:
     """One approved reboot command; never infer a different phone after USB changes.
 
@@ -136,7 +140,11 @@ class LocalDeviceTransitionService:
             "If USB presents a different serial after reboot, refresh and identify the phone manually; ROMVERSE will not guess a replacement target.",
         ]
         with self.flash_service._device_lock(device.serial):
-            observed = self._observe_source(device, tools, source_adb)
+            observed = (
+                self._observe_source(device, tools, True)
+                if source_adb
+                else self._observe_fastboot_source_pair(device, tools)
+            )
             if observed is None:
                 raise LocalFlashError(
                     "The selected phone is no longer in its reviewed mode. Refresh devices and try again."
@@ -150,7 +158,7 @@ class LocalDeviceTransitionService:
                 warnings.append(
                     "Fastboot did not identify its current userspace mode. The destination must still be measured before the change can be called complete."
                 )
-            if self._observe_source(device, tools, source_adb) != observed:
+            if source_adb and self._observe_source(device, tools, True) != observed:
                 raise LocalFlashError(
                     "The phone identity changed during inspection. Refresh and review again."
                 )
@@ -356,6 +364,47 @@ class LocalDeviceTransitionService:
             self._adb_observe(expected, tools) if adb else self._fastboot_observe(expected, tools)
         )
 
+    def _observe_fastboot_source_pair(
+        self,
+        expected: AndroidDevice,
+        tools: tuple[LocalTransitionTool, ...],
+    ) -> AndroidDevice:
+        """Require two complete identical Fastboot observations before plan creation.
+
+        One successful but completely empty product response may be reacquired. The
+        reacquisition is a new discovery/product/mode sequence and contributes no
+        evidence itself. Every other missing, malformed, changed or failed observation
+        remains a command-free rejection.
+        """
+
+        complete: list[AndroidDevice] = []
+        empty_product_reacquired = False
+        while len(complete) < 2:
+            try:
+                observed = self._fastboot_observe(
+                    expected,
+                    tools,
+                    signal_successful_empty_product=True,
+                    require_known_mode=True,
+                )
+            except _SuccessfulEmptyFastbootProduct as exc:
+                if empty_product_reacquired:
+                    raise LocalFlashError(
+                        "Fastboot product identity remained unavailable after one fresh reacquisition."
+                    ) from exc
+                empty_product_reacquired = True
+                continue
+            if observed is None:
+                raise LocalFlashError(
+                    "The selected phone is no longer in its reviewed mode. Refresh devices and try again."
+                )
+            complete.append(observed)
+        if complete[0] != complete[1]:
+            raise LocalFlashError(
+                "The phone identity or Fastboot mode changed during inspection. Refresh and review again."
+            )
+        return complete[0]
+
     def _adb_observe(
         self,
         expected: AndroidDevice,
@@ -422,6 +471,8 @@ class LocalDeviceTransitionService:
         tools: tuple[LocalTransitionTool, ...],
         *,
         deadline: float | None = None,
+        signal_successful_empty_product: bool = False,
+        require_known_mode: bool = False,
     ) -> AndroidDevice | None:
         tool = self._find_tool(tools, "fastboot")
         discovery = self._probe((str(tool), "devices", "-l"), deadline)
@@ -441,13 +492,23 @@ class LocalDeviceTransitionService:
             )
         if not rows:
             return None
-        product = self._getvar(tool, expected.serial, "product", deadline)
+        product = self._getvar(
+            tool,
+            expected.serial,
+            "product",
+            deadline,
+            signal_successful_empty=signal_successful_empty_product,
+        )
         if not product:
             return None
         # Fastboot reports a product, not Android's ro.product.device. Preserve
         # its legitimate product alias without inventing a contradictory codename.
         self._identity(expected, product, "")
         mode = self._getvar(tool, expected.serial, "is-userspace", deadline)
+        if require_known_mode and mode.casefold() not in {"yes", "true", "1", "no", "false", "0"}:
+            raise LocalFlashError(
+                "Fastboot did not report a complete bootloader/userspace mode identity."
+            )
         state = (
             DeviceState.FASTBOOTD
             if mode.casefold() in {"yes", "true", "1"}
@@ -469,10 +530,22 @@ class LocalDeviceTransitionService:
             connection_note="Exact Fastboot product and transport observed; no image or boot verification performed.",
         )
 
-    def _getvar(self, tool: Path, serial: str, variable: str, deadline: float | None) -> str:
+    def _getvar(
+        self,
+        tool: Path,
+        serial: str,
+        variable: str,
+        deadline: float | None,
+        *,
+        signal_successful_empty: bool = False,
+    ) -> str:
         result = self._probe((str(tool), "-s", serial, "getvar", variable), deadline)
         if result is None or not result.ok:
             return ""
+        if signal_successful_empty and not (result.stdout + result.stderr).strip():
+            raise _SuccessfulEmptyFastbootProduct(
+                "Fastboot returned success without current product identity."
+            )
         matcher = re.compile(
             r"^(?:\(bootloader\)\s*)?" + re.escape(variable) + r"\s*:\s*(.*?)\s*$", re.IGNORECASE
         )
@@ -496,9 +569,7 @@ class LocalDeviceTransitionService:
         if any(not LocalFlashService.PARTITION.fullmatch(value) for value in observed):
             raise LocalFlashError("The selected phone returned an invalid product identity.")
         if (
-            expected.codename
-            and codename
-            and expected.codename.casefold() != codename.casefold()
+            expected.codename and codename and expected.codename.casefold() != codename.casefold()
         ) or not known.intersection(observed):
             raise LocalFlashError(
                 "The device product differs from the reviewed phone. Re-identify the target manually."

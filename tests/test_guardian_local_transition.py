@@ -52,6 +52,9 @@ class TransitionRunner:
         self.timeout_reboot = False
         self.fail_getprop = False
         self.fail_discovery = False
+        self.fail_fastboot_product = False
+        self.fastboot_product_responses = []
+        self.fastboot_mode_responses = []
         self.calls = []
         self.on_reboot = None
 
@@ -123,6 +126,18 @@ class TransitionRunner:
             )
         if command[3] == "getvar":
             variable = command[4]
+            if variable == "product" and self.fail_fastboot_product:
+                return CommandResult(command, 1, "", "fixture product failure")
+            responses = (
+                self.fastboot_product_responses
+                if variable == "product"
+                else self.fastboot_mode_responses
+            )
+            if responses:
+                value = responses.pop(0)
+                if value is None:
+                    return CommandResult(command, 0, "", "")
+                return CommandResult(command, 0, "", f"(bootloader) {variable}: {value}\n")
             value = (
                 self.product
                 if variable == "product"
@@ -242,6 +257,74 @@ def test_each_reviewed_transition_observes_exact_arrival_without_claiming_boot(
     assert service.flash_service.audit.verify().valid
     if os.name != "nt":
         assert result.receipt_path.stat().st_mode & 0o777 == 0o600
+
+
+def test_fastboot_source_review_reacquires_one_successful_empty_product(transition):
+    service, runner, _clock = transition
+    runner.fastboot_product_responses = [None, "popsicle", "popsicle"]
+
+    plan = service.inspect(_device(runner), LocalTransitionTarget.ANDROID)
+
+    assert plan.source_mode == "bootloader"
+    assert runner.reboots == []
+    product_reads = [call for call in runner.calls if call[3:] == ("getvar", "product")]
+    mode_reads = [call for call in runner.calls if call[3:] == ("getvar", "is-userspace")]
+    discoveries = [call for call in runner.calls if call[1:] == ("devices", "-l")]
+    assert len(product_reads) == 3
+    assert len(mode_reads) == 2
+    assert len(discoveries) == 3
+
+
+def test_fastboot_source_review_rejects_second_empty_product_without_reboot(transition):
+    service, runner, _clock = transition
+    runner.fastboot_product_responses = [None, None]
+
+    with pytest.raises(LocalFlashError, match="remained unavailable"):
+        service.inspect(_device(runner), LocalTransitionTarget.ANDROID)
+
+    assert runner.reboots == []
+    assert len([call for call in runner.calls if call[3:] == ("getvar", "product")]) == 2
+    assert not [call for call in runner.calls if call[3:] == ("getvar", "is-userspace")]
+
+
+@pytest.mark.parametrize("failure", ["discovery", "product", "mode"])
+def test_fastboot_source_review_does_not_reacquire_failed_or_incomplete_evidence(
+    transition, failure
+):
+    service, runner, _clock = transition
+    if failure == "discovery":
+        runner.fail_discovery = True
+    elif failure == "product":
+        runner.fail_fastboot_product = True
+    else:
+        runner.fastboot_mode_responses = [None]
+
+    with pytest.raises(LocalFlashError):
+        service.inspect(_device(runner), LocalTransitionTarget.ANDROID)
+
+    assert runner.reboots == []
+    discoveries = [call for call in runner.calls if call[1:] == ("devices", "-l")]
+    assert len(discoveries) == 1
+
+
+@pytest.mark.parametrize(
+    ("products", "modes"),
+    [
+        (["popsicle", "other-phone"], []),
+        (["popsicle", "popsicle"], ["no", "yes"]),
+    ],
+)
+def test_fastboot_source_review_rejects_changed_identity_without_reboot(
+    transition, products, modes
+):
+    service, runner, _clock = transition
+    runner.fastboot_product_responses = products
+    runner.fastboot_mode_responses = modes
+
+    with pytest.raises(LocalFlashError, match="differs|changed"):
+        service.inspect(_device(runner), LocalTransitionTarget.ANDROID)
+
+    assert runner.reboots == []
 
 
 @pytest.mark.parametrize(

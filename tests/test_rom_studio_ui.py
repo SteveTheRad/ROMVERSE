@@ -9,7 +9,6 @@ from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
 
 from romverse.ascension.entry import AscensionEntryBrief, AscensionEntryState
@@ -185,7 +184,7 @@ def test_genesis_flight_plan_uses_the_same_evidence_assessment_as_the_sequence(t
     studio.close()
 
 
-def test_rom_studio_refreshes_project_and_genesis_handoff_after_modal_journey(
+def test_rom_studio_refreshes_project_and_genesis_handoff_after_nonblocking_journey(
     tmp_path, monkeypatch
 ):
     app = QApplication.instance() or QApplication([])
@@ -213,16 +212,14 @@ def test_rom_studio_refreshes_project_and_genesis_handoff_after_modal_journey(
         lambda worker: worker.run(),
     )
 
-    def complete_one_real_genesis_stage() -> None:
-        mission = app.activeModalWidget()
-        assert isinstance(mission, GuidedBuildMission)
-        assert mission.selected_index == 1
-        mission._run_stage()
-        assert mission.selected_index == 3
-        mission.accept()
-
-    QTimer.singleShot(0, complete_one_real_genesis_stage)
     assert studio.open_dashboard_intent("Build ROM")
+    app.processEvents()
+    mission = studio._guided_mission_dialog
+    assert isinstance(mission, GuidedBuildMission)
+    assert mission.selected_index == 1
+    mission._run_stage()
+    assert mission.selected_index == 3
+    mission.accept()
     app.processEvents()
 
     durable = GuidedMissionStore(store.projects_root / project.project_id).load()
@@ -242,6 +239,64 @@ def test_rom_studio_refreshes_project_and_genesis_handoff_after_modal_journey(
     assert RomBuildPlanner(store).load(project.project_id) is None
     assert studio.worker is None
     assert studio.devices == []
+    studio.close()
+
+
+def test_guided_mission_uses_one_retained_nonblocking_dialog_and_refreshes_once(
+    tmp_path, monkeypatch
+):
+    app = QApplication.instance() or QApplication([])
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.create("Accessible mission")
+    studio = RomStudio(store, DevicePackRegistry(()))
+    studio.refresh(project.project_id)
+    refreshes: list[str] = []
+    monkeypatch.setattr(studio, "refresh", lambda preferred="": refreshes.append(preferred))
+
+    studio._open_guided_setup()
+    first = studio._guided_mission_dialog
+    assert isinstance(first, GuidedBuildMission)
+    assert first.isVisible()
+
+    studio._open_guided_setup(start_new_project=True)
+    assert studio._guided_mission_dialog is first
+    assert len(studio.findChildren(GuidedBuildMission)) == 1
+    assert refreshes == []
+
+    first.reject()
+    app.processEvents()
+
+    assert studio._guided_mission_dialog is None
+    assert refreshes == [project.project_id]
+    studio.close()
+
+
+def test_genesis_handoff_copy_distinguishes_prebuild_and_recorded_build_evidence(
+    tmp_path, monkeypatch
+):
+    QApplication.instance() or QApplication([])
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.create("Handoff truth")
+    studio = RomStudio(store, DevicePackRegistry(()))
+    studio.refresh(project.project_id)
+    studio._show_dashboard_handoff(
+        "Build ROM → Genesis Sequence",
+        "Opening Genesis.",
+        "GUIDED ENTRY",
+        ready=True,
+    )
+
+    monkeypatch.setattr(RomBuildPlanner, "load", lambda *_args: None)
+    studio._refresh_visible_genesis_handoff()
+    assert "NO BUILD OR PHONE ACTION STARTED" in studio.dashboard_handoff_detail.text()
+    assert "LOCAL BUILD EVIDENCE RECORDED" not in studio.dashboard_handoff_detail.text()
+
+    monkeypatch.setattr(RomBuildPlanner, "load", lambda *_args: object())
+    studio._refresh_visible_genesis_handoff()
+    detail = studio.dashboard_handoff_detail.text()
+    assert "LOCAL BUILD EVIDENCE RECORDED" in detail
+    assert "NO INSTALLATION OR PHONE ACTION STARTED" in detail
+    assert "NO BUILD OR PHONE ACTION STARTED" not in detail
     studio.close()
 
 

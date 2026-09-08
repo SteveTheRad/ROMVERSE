@@ -749,6 +749,7 @@ class RomStudio(QWidget):
         self._latest_guardian_gateway_contract: GuardianExecutionGatewayContract | None = None
         self._latest_guardian_reviewed_device: AndroidDevice | None = None
         self._latest_guardian_execution_result: VerifiedGuardianExecutionResult | None = None
+        self._guided_mission_dialog: QDialog | None = None
         self._pending_repair_solution: (
             tuple[str, str, str, str, str, str, OnlineFixReceipt] | None
         ) = None
@@ -1329,10 +1330,36 @@ class RomStudio(QWidget):
     def _open_guided_setup(self, *, start_new_project: bool = False) -> None:
         from romverse.ui.guided_mission import GuidedBuildMission
 
-        GuidedBuildMission(self, start_new_project=start_new_project).exec()
+        if self._guided_mission_dialog is not None:
+            self._guided_mission_dialog.raise_()
+            self._guided_mission_dialog.activateWindow()
+            return
+        dialog = GuidedBuildMission(self, start_new_project=start_new_project)
+        self._guided_mission_dialog = dialog
+        dialog.finished.connect(lambda _result, opened=dialog: self._guided_setup_closed(opened))
+        dialog.open()
+
+    def _guided_setup_closed(self, dialog: QDialog) -> None:
+        if self._guided_mission_dialog is not dialog:
+            return
+        self._guided_mission_dialog = None
         preferred_id = self.current_project.project_id if self.current_project is not None else ""
         self.refresh(preferred_id)
         self._refresh_visible_genesis_handoff()
+        dialog.deleteLater()
+
+    def _genesis_handoff_scope(self) -> str:
+        project = self.current_project
+        if project is not None:
+            try:
+                build_evidence_recorded = (
+                    RomBuildPlanner(self.store).load(project.project_id) is not None
+                )
+            except (OSError, ProjectError):
+                build_evidence_recorded = False
+            if build_evidence_recorded:
+                return "LOCAL BUILD EVIDENCE RECORDED; NO INSTALLATION OR PHONE ACTION STARTED."
+        return "NO BUILD OR PHONE ACTION STARTED."
 
     def _refresh_visible_genesis_handoff(self) -> None:
         """Repaint a Genesis entry card from the mission's newly durable state."""
@@ -1346,7 +1373,7 @@ class RomStudio(QWidget):
             title,
             f"{flight.project_name}  •  Stage {flight.stage_number}/{flight.stage_total}: "
             f"{flight.stage_title}  •  {flight.progress_percent}% verified. Genesis returned "
-            "to this exact saved project state; NO BUILD OR PHONE ACTION STARTED.",
+            f"to this exact saved project state; {self._genesis_handoff_scope()}",
             "ATTENTION" if needs_attention else "CURRENT STAGE",
             ready=not needs_attention,
             eyebrow=self.dashboard_handoff_eyebrow.text(),
@@ -1372,7 +1399,7 @@ class RomStudio(QWidget):
             self._show_dashboard_handoff(
                 "Build ROM → Genesis Sequence",
                 f"{project_context} The guide is opening at the exact next safe stage. "
-                "NO BUILD OR PHONE ACTION STARTED.",
+                f"{self._genesis_handoff_scope()}",
                 "GUIDED ENTRY",
                 ready=True,
             )

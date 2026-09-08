@@ -1,5 +1,83 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — zero-match Genesis new-project entry
+
+### Authoritative checkpoint
+
+- Product Assurance approval/base: `0458aa3` — approved explicit ROM Mission project choice.
+- Tested implementation: `2e366b45725ede030e6d9999e866c5b5efaea580` — `Route unmatched
+  device into new ROM project mission`.
+- Final handoff: the follow-up commit containing this document on
+  `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation, adjacent existing Device Intelligence Hub zero-match
+  `Start ROM Mission` journey.
+
+### Exact behavior
+
+- When the retained ROM Studio project is Pack-mismatched and no saved project matches Device
+  Intelligence's current exact Pack, `Start ROM Mission` now routes to ROM Studio and opens the
+  existing Genesis `New project` stage instead of stopping or entering the unrelated project.
+- This entry is transient until the user completes the existing local project-name action. Genesis
+  presents no firmware or Compatibility verdict from the unrelated project and persists no Guided
+  state into it. The current live device and exact Pack ID are carried only as a suggestion for a
+  potential new project.
+- Cancelling the existing project-creation dialog leaves Genesis at `New project`. Closing Genesis
+  and returning to Device Intelligence preserves the unrelated selected project, all saved
+  projects and all project evidence unchanged.
+- A completed existing project-creation action remains the only point at which a new project is
+  created; it uses ROM Studio's existing suggested-Pack behavior and then reloads ordinary
+  project-bound Genesis state. No project is created, associated, merged or modified merely by
+  entering or cancelling this route.
+
+### Verification without double-counting
+
+- Focused and affected Qt widget run: **57/57 unique tests passed** — one new real zero-match
+  journey, the three adjacent Device Intelligence ownership/evidence journeys and all 53 ROM Studio
+  UI tests. The focused test was rerun once after formatting cleanup only as confirmation and is not
+  double-counted.
+- The new path uses a temporary isolated workspace and sanitized synthetic device evidence. It
+  proves the transient context reports no project, retains the current live target and Pack
+  suggestion, shows `AWAITING COMPARISON`, cancels project creation without a new manifest or
+  Guided state, and returns to Device Intelligence with the unrelated project intact.
+- Ruff static check: **4/4 changed implementation/test files passed**.
+- `git diff --check`: passed.
+- No broad regression, package build, screenshot loop or physical-device test was run.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** zero-match routing into the existing transient Genesis new-project stage.
+- **Simulated/Tested:** sanitized synthetic Qt widget journey and 57 affected tests.
+- **Hardware Verified:** none for this checkpoint.
+- **Released:** no.
+- Guided friction: zero-match users now receive the existing actionable first project step; cancel
+  and return are calm and non-mutating. No new confirmation or product capability was introduced.
+- The Pack suggestion, current Device DNA, historical evidence and navigation convenience grant no
+  compatibility, build, consent, Guardian or execution authority. `UNCONFIRMED` remains advisory
+  `Unknown`.
+- Exact-device/DNA/Matrix validation, Guardian separation, UNKNOWN-on-uncertainty, no blind retry,
+  same-incident Recovery, independent verification and permanent no-relock remain unchanged.
+- Fedora/Linux: actual offscreen Qt journey verified. Windows: not run or claimed; Windows work was
+  untouched.
+- Feature freeze: compliant minimum completion of an existing Stage 1 journey. v0.2 Golden
+  Foundation remains **CLOSED** pending Product Assurance and release blockers.
+- Protected Companion work, Windows work, Knowledge work, UI Design Lab, website and unrelated
+  files were not modified, staged, discarded or committed.
+- Physical phone access, ADB/Fastboot invocation, APK action, firmware operation, build/flash/boot,
+  partition/slot/wipe/unlock/lock/relock, installation, signing, publication and release: **none**.
+- External action after verification: one normal push of the scoped commits to the existing Linux
+  branch only; no force-push.
+
+### Next proposed Build task
+
+Stop for Product Assurance review. Continue only with the next approved adjacent existing Device
+Intelligence journey; do not broaden Stage 1 or cross a consequential boundary.
+
+### Product Assurance Review Requested
+
+- Confirm the transient no-project Genesis context correctly preserves the unrelated current
+  project while retaining only suggestion-level live device/Pack context.
+- Confirm project-dialog cancellation, mission close and owner return are sufficiently inert.
+
 ## Linux product checkpoint — explicit ambiguous ROM Mission ownership
 
 ### Authoritative checkpoint

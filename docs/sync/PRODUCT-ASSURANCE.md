@@ -1,5 +1,49 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: f52dfff — refreshed Windows signing/preparation alpha
+
+- Handoff commit: `f52dfff`
+- Product Assurance authorization/source: `f75b9f6db9e9aec06df1918495d9153f049fa27a`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — ARTIFACT VERIFIED; INTERACTIVE UI EVIDENCE OUTSTANDING**
+
+### Decision and independent evidence
+
+Exactly one refreshed unsigned Windows `0.2.0-alpha.1` bundle was built from the approved source.
+The canonical ZIP passed the recorded safe-tree/CRC checks and contains the expected executable.
+Product Assurance independently re-read the Legion files over the established authenticated SSH
+channel: the executable is 6,285,439 bytes with SHA-256
+`84eb54a8934e982a6660c6f09f5a65517e94934384fc7f4858546404eb7a7194`; the ZIP is 73,469,641
+bytes with SHA-256 `bdf144fb716a6193a5d9a910a244c8d9363b66731c43c61dd7827efd3b04cc8a`.
+Windows reports the executable as `NotSigned`, which is the required internal-development state.
+
+Packaged startup, clean close and restart passed with a stable disposable-workspace manifest. The
+interactive Guided journey is not claimed: the Windows task's trusted app-control RPC service is
+not configured, and Build correctly refused to substitute guessed keystrokes or fabricate visual
+evidence. This is an environment evidence limitation, not a demonstrated ROMVERSE defect.
+
+### Approved next bounded task
+
+Do not rebuild or repackage. When trusted Windows app control is available, run exactly one bounded
+interactive journey against the already verified artifact in a new disposable no-phone workspace:
+Guided entry, Command Deck, Platform Tools remediation presentation, one offline Knowledge/Device
+DNA lookup, signing/preparation presentation and one clean restart. Commit evidence only if clean;
+if a concrete defect appears, apply only its minimum correction with one focused regression and at
+most one corrective rebuild.
+
+Until app control becomes available, Windows remains at a clean approved artifact boundary and may
+only fetch/read new repository verdicts. Do not replace UI evidence with more test loops. Do not use
+a phone/emulator, ADB/Fastboot target, system-wide installation, consent/admission, execution,
+Recovery, production signing/trust, publication, release, force-push, Companion/Adaptive/Linux
+changes or relock. Preserve the existing untracked patch.
+
+### Gate status
+
+- Refreshed Windows unsigned alpha artifact: **VERIFIED**
+- Packaged startup/restart: **VERIFIED**
+- Interactive packaged Guided journey: **OUTSTANDING — APP-CONTROL SERVICE UNAVAILABLE**
+- Physical execution, production signing/publication and release: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: 88f0b16 — Windows stable same-file identity
 
 - Handoff commit: `88f0b16`

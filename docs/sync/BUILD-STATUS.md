@@ -1,5 +1,88 @@
 # ROMVERSE Product Assurance Sync
 
+## Corrected Windows invalid-firmware package acceptance — Product Assurance review requested
+
+- Product Assurance verdict: `72278230f600e90b92135fb85126a60643c06fa6` — `Approve malformed
+  Windows firmware rejection`, matching checkpoint
+  `459a8022b967bede94ddd967b16bf57e32b84f58` exactly.
+- Accepted minimum correction: `cd3b84a2ef8a3e0044bbe468a0106604091e61d8` — `Reject malformed
+  Windows firmware ZIP intake`; this commit is an ancestor of the packaged branch tip.
+- Branch: `windows-launcher-authorized-work`.
+- Status: **PASS — ONE NEW UNSIGNED WINDOWS ONE-FOLDER BUILD REJECTED THE APPROVED 85-BYTE
+  MALFORMED ZIP BEFORE PROTECTED-SOURCE COMMIT, RETAINED NO DERIVED STATE, LEFT TASK 2 INCOMPLETE
+  WITH THE CHOOSER ACTIONABLE, AND CLOSED CLEANLY**.
+
+### Exact single build and artifact
+
+- Built exactly once from committed tip `72278230f600e90b92135fb85126a60643c06fa6` with:
+  `.venv\Scripts\python.exe scripts\build_desktop_executable.py --output-directory
+  build\windows-invalid-firmware-72278230 --work-directory
+  build\windows-invalid-firmware-72278230-pyinstaller`.
+- Build succeeded on Microsoft Windows 11 Home 64-bit, build `26200`, using Python `3.12.10` and
+  PyInstaller `6.22.2`. No second build, ZIP, installer or signed package was produced.
+- Unsigned one-folder artifact:
+  `build/windows-invalid-firmware-72278230/ROMVERSE/ROMVERSE.exe`, 6,319,194 bytes, SHA-256
+  `d300d1efd748bda35ea509a54db3ea57859065c6048b84c855830430d3a01529`, Authenticode
+  `NotSigned`. The one-folder directory contains 305 files totalling 164,643,529 bytes.
+
+### Fresh no-phone Windows acceptance journey
+
+- Used exactly one fresh disposable workspace:
+  `C:\Work\ROMVERSE-Windows-Invalid-Firmware-Corrected-72278230-20260909`, with isolated settings
+  and no managed Platform Tools. `adb` and `fastboot` were absent from `PATH`; no Device Engine or
+  command audit was created.
+- Created exactly one local project, `Windows Invalid Firmware Corrected 20260909`, project ID
+  `windows-invalid-firmware-corrected-20260-455f0e19`. Guided advanced only through project
+  creation to `SCAN / TASK 02 OF 15`, `Load the untouched firmware`, at 1 of 15 verified.
+- Replayed only the previously approved fixture:
+  `C:\Work\ROMVERSE-Invalid-Firmware-44f94d6a\not-android-firmware.zip`, 85 bytes, SHA-256
+  `2792972f20c4b1aa401c677e1fe9369c9f4be1b8081fbf60a472bcfd3ccc7217`. The source is plain text,
+  not a valid ZIP or Android firmware package.
+- The packaged UI rejected it with the exact visible diagnosis
+  `Selected .zip file is not a valid ZIP archive or Android firmware package`. Guided remained at
+  task 2 with 1 of 15 verified, `Awaiting firmware`, `AWAITING PROTECTED FIRMWARE`, and
+  `No device connected`. The visible `Choose firmware…` control was enabled immediately after the
+  rejection; `Next` remained disabled. No retry or second picker invocation occurred.
+- Guided closed normally through `Save & exit`; the main application then closed normally. The
+  runtime record contains one start/clean-close pair, is 77 bytes, and has SHA-256
+  `9b548079f50e029991471fdbf93e92807fb82adb17319871cb9ab421e7b7f499`. No `ROMVERSE.exe`
+  process remains.
+
+### Persisted fail-closed evidence and scope
+
+- The 421-byte project manifest has SHA-256
+  `15a4b6da2828f9ce6f834c00bad6de17491f51aadb3420bad259348b976a7f2c` and records
+  `original: null`. The workspace and project `original_roms` contain zero files.
+- The 519-byte Guided record has SHA-256
+  `807b875d934e91f65cc0a403eeab1c17394027b7e9c5ce1d277afab8e4e85332`, remains selected at
+  `firmware`, keeps install false, root undecided and build-plan verification false, and records
+  only the truthful import error.
+- No inspection, Device DNA, Capability Map, compatibility matrix, candidate or build-plan record
+  exists. Workspace `apks`, `backups`, `builds`, `cache`, `diagnostics`, `original_roms`,
+  `snapshots`, `temp`, `tools` and `working_roms` each contain zero files. No Forge, Guardian or
+  Recovery artifact was created.
+- The redacted activity ledger contains one `ROM Studio stopped safely` attention event. The live
+  console records the local import start, exact fail-closed result and Guided stop; it explicitly
+  states that no phone write, wipe, unlock, root, flash or bootloader relock occurred. No
+  `guardian-audit.jsonl` exists because no Device Engine or device command ran.
+- No automated regression was rerun in this checkpoint: Product Assurance had already independently
+  passed the exact focused regression before authorizing this single package/replay, and prohibited
+  an unchanged test rerun or broader suite. This handoff adds genuine packaged Windows UI and
+  persisted-state evidence; it is not simulated Linux coverage.
+- Only this Build handoff changed in the repository. The protected Companion files remain untouched.
+  The untracked user patch remains present and byte-identical: 8,272 bytes, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone or emulator was requested, awaited, connected, discovered, operated or targeted. No
+  Platform Tools download or command, real firmware, APK, ROM candidate, signing, installation,
+  Guardian/Recovery execution, publication, release, lock, relock, force-push or destructive
+  cleanup occurred.
+
+### Proposed next bounded task
+
+Product Assurance should independently review this exact artifact, packaged UI result, persisted
+hashes and absences, clean process exit, repository scope and preserved untracked patch. No further
+Windows action is proposed until this checkpoint receives a matching repository verdict.
+
 ## Windows invalid local firmware rejection — Product Assurance review requested
 
 - Product Assurance verdict: `44f94d6ad7486d0f6fdc83df54afd7f3794b5e44` — `Approve Windows

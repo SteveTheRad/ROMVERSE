@@ -17,6 +17,13 @@ from romverse.ascension.build_handoff import (
 )
 from romverse.ascension.integration import RootRomIntegrationService
 from romverse.ascension.models import AscensionMethod
+from romverse.infrastructure.local_store import (
+    LocalStoreConflictError,
+    LocalStoreError,
+    ensure_private_directory,
+    exclusive_create_json,
+    read_json_object,
+)
 from romverse.infrastructure.tools import ToolStatus
 from romverse.rom.builds import RomBuildPlanner
 from romverse.rom.models import ArtifactVerification, ProjectError
@@ -65,6 +72,7 @@ class ForgeBundleService:
     MAX_ENTRIES = 500_000
     MAX_MANIFEST_BYTES = 16 * 1024 * 1024
     MAX_PATH_LENGTH = 4_096
+    MAX_RECEIPT_BYTES = 256 * 1024
     FREE_SPACE_RESERVE = 512 * 1024 * 1024
     ZIP_TIMESTAMP = (2020, 1, 1, 0, 0, 0)
 
@@ -103,13 +111,19 @@ class ForgeBundleService:
         verification = planner.verify_tree(project_id)
         if not verification.valid:
             raise ProjectError(verification.status)
+        receipt_path = self._receipt_path(project_id)
         existing_receipt = self.load_receipt(project_id)
-        if existing_receipt is not None and not self.receipt_matches_plan(existing_receipt, plan):
+        if os.path.lexists(receipt_path) and existing_receipt is None:
             raise ProjectError(
-                "The saved Forge Bundle belongs to a different exact Build Readiness plan. "
-                "Preserve or review that historical evidence, then regenerate and reverify the "
-                "current Forge path."
+                "The saved Forge receipt is unreadable or ambiguous and was not overwritten"
             )
+        if existing_receipt is not None and not self.receipt_matches_plan(existing_receipt, plan):
+            if not self.verify_receipt(project_id, existing_receipt).valid:
+                raise ProjectError(
+                    "The saved Forge receipt does not match this plan and failed historical "
+                    "verification; nothing was overwritten"
+                )
+            self.preserve_history(project_id, existing_receipt)
 
         ascension = self._ascension_handoff(project_id)
         if (
@@ -352,6 +366,18 @@ class ForgeBundleService:
         receipt = self.load_receipt(project_id)
         if receipt is None:
             return ArtifactVerification(False, "No Forge Bundle receipt")
+        return self.verify_receipt(project_id, receipt, progress)
+
+    def verify_receipt(
+        self,
+        project_id: str,
+        receipt: ForgeBundleReceipt,
+        progress: Callable[[int, int], None] | None = None,
+    ) -> ArtifactVerification:
+        """Verify one exact current or historical receipt without changing latest evidence."""
+
+        if receipt is None:
+            return ArtifactVerification(False, "No Forge Bundle receipt")
         if receipt.schema_version not in {1, 2, 3} or receipt.project_id != project_id:
             return ArtifactVerification(False, "Forge Bundle receipt project identity is invalid")
         if receipt.signed or receipt.bootable or receipt.flashable:
@@ -569,47 +595,68 @@ class ForgeBundleService:
         )
 
     def load_receipt(self, project_id: str) -> ForgeBundleReceipt | None:
-        path = self.store.projects_root / project_id / self.RECEIPT_NAME
+        path = self._receipt_path(project_id)
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
-            if data.get("format") != "romverse.forge-bundle-receipt":
-                return None
-            receipt = ForgeBundleReceipt(
-                int(data["schema_version"]),
-                str(data["project_id"]),
-                str(data["created_at"]),
-                str(data["output_path"]),
-                str(data["archive_sha256"]),
-                str(data["manifest_sha256"]),
-                str(data["plan_tree_sha256"]),
-                int(data["file_count"]),
-                int(data["content_bytes"]),
-                bool(data["signed"]),
-                bool(data["bootable"]),
-                bool(data["flashable"]),
-                str(data.get("ascension_handoff_digest", "")),
-                str(data.get("rooted_partition", "")),
-                str(data.get("rooted_artifact_sha256", "")),
-                str(data.get("build_plan_digest", "")),
-                str(data.get("source_sha256", "")),
-                str(data.get("toolchain_manifest_digest", "")),
-                str(data.get("guided_choice_digest", "")),
-            )
-            exact_fields = (
-                receipt.build_plan_digest,
-                receipt.source_sha256,
-                receipt.toolchain_manifest_digest,
-                receipt.guided_choice_digest,
-            )
-            if (
-                receipt.schema_version not in {1, 2, 3}
-                or (receipt.schema_version == 3 and not all(_is_sha256(item) for item in exact_fields))
-                or (receipt.schema_version < 3 and any(exact_fields))
-            ):
-                return None
-            return receipt
+            return self._receipt_from_mapping(data)
         except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError):
             return None
+
+    def preserve_history(self, project_id: str, receipt: ForgeBundleReceipt) -> str:
+        """Exclusively retain one valid receipt while immutable archive bytes stay in place."""
+
+        if receipt.project_id != project_id:
+            raise ProjectError("Forge history receipt belongs to another project")
+        payload = self._receipt_mapping(receipt)
+        digest = _mapping_digest(payload)
+        root = self.store.projects_root / project_id / "forge-history"
+        destination = root / f"{digest}.romverse"
+        try:
+            ensure_private_directory(root, boundary=self.store.workspace)
+            exclusive_create_json(
+                destination,
+                payload,
+                boundary=self.store.workspace,
+                maximum_bytes=self.MAX_RECEIPT_BYTES,
+            )
+        except LocalStoreConflictError:
+            try:
+                existing = read_json_object(
+                    destination,
+                    boundary=self.store.workspace,
+                    maximum_bytes=self.MAX_RECEIPT_BYTES,
+                )
+            except LocalStoreError as exc:
+                raise ProjectError("Existing Forge history evidence is ambiguous") from exc
+            if existing != payload:
+                raise ProjectError(
+                    "Forge history content-address collision; nothing was replaced"
+                ) from None
+        except LocalStoreError as exc:
+            raise ProjectError(f"Forge history could not be preserved safely: {exc}") from exc
+        return digest
+
+    def load_history_receipt(self, project_id: str, receipt_digest: str) -> ForgeBundleReceipt | None:
+        if not _is_sha256(receipt_digest):
+            return None
+        try:
+            payload = read_json_object(
+                self.store.projects_root
+                / project_id
+                / "forge-history"
+                / f"{receipt_digest}.romverse",
+                boundary=self.store.workspace,
+                maximum_bytes=self.MAX_RECEIPT_BYTES,
+            )
+        except LocalStoreError:
+            return None
+        if _mapping_digest(payload) != receipt_digest:
+            return None
+        try:
+            receipt = self._receipt_from_mapping(payload)
+        except (ValueError, KeyError, TypeError):
+            return None
+        return receipt if receipt is not None and receipt.project_id == project_id else None
 
     @staticmethod
     def receipt_matches_plan(receipt: ForgeBundleReceipt, plan) -> bool:
@@ -722,7 +769,7 @@ class ForgeBundleService:
         return info
 
     def _write_receipt(self, project_id: str, receipt: ForgeBundleReceipt) -> None:
-        path = self.store.projects_root / project_id / self.RECEIPT_NAME
+        path = self._receipt_path(project_id)
         temporary = path.with_suffix(path.suffix + ".tmp")
         temporary.write_text(
             json.dumps({"format": "romverse.forge-bundle-receipt", **asdict(receipt)}, indent=2)
@@ -730,6 +777,55 @@ class ForgeBundleService:
             encoding="utf-8",
         )
         os.replace(temporary, path)
+
+    def _receipt_path(self, project_id: str) -> Path:
+        return self.store.projects_root / project_id / self.RECEIPT_NAME
+
+    @staticmethod
+    def _receipt_mapping(receipt: ForgeBundleReceipt) -> dict[str, object]:
+        return {"format": "romverse.forge-bundle-receipt", **asdict(receipt)}
+
+    @staticmethod
+    def _receipt_from_mapping(data: dict[str, object]) -> ForgeBundleReceipt | None:
+        if data.get("format") != "romverse.forge-bundle-receipt":
+            return None
+        receipt = ForgeBundleReceipt(
+            int(data["schema_version"]),
+            str(data["project_id"]),
+            str(data["created_at"]),
+            str(data["output_path"]),
+            str(data["archive_sha256"]),
+            str(data["manifest_sha256"]),
+            str(data["plan_tree_sha256"]),
+            int(data["file_count"]),
+            int(data["content_bytes"]),
+            bool(data["signed"]),
+            bool(data["bootable"]),
+            bool(data["flashable"]),
+            str(data.get("ascension_handoff_digest", "")),
+            str(data.get("rooted_partition", "")),
+            str(data.get("rooted_artifact_sha256", "")),
+            str(data.get("build_plan_digest", "")),
+            str(data.get("source_sha256", "")),
+            str(data.get("toolchain_manifest_digest", "")),
+            str(data.get("guided_choice_digest", "")),
+        )
+        exact_fields = (
+            receipt.build_plan_digest,
+            receipt.source_sha256,
+            receipt.toolchain_manifest_digest,
+            receipt.guided_choice_digest,
+        )
+        if (
+            receipt.schema_version not in {1, 2, 3}
+            or (
+                receipt.schema_version == 3
+                and not all(_is_sha256(item) for item in exact_fields)
+            )
+            or (receipt.schema_version < 3 and any(exact_fields))
+        ):
+            return None
+        return receipt
 
 
 def _human_bytes(value: int) -> str:
@@ -743,3 +839,8 @@ def _human_bytes(value: int) -> str:
 
 def _is_sha256(value: str) -> bool:
     return len(value) == 64 and all(character in "0123456789abcdef" for character in value)
+
+
+def _mapping_digest(payload: dict[str, object]) -> str:
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()

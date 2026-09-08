@@ -374,10 +374,22 @@ def test_same_tree_schema3_plan_replacement_rejects_old_forge_and_build_admissio
     assert plan_b.plan_digest != plan_a.plan_digest
     assert device_plan_a.workspace_plan_digest == plan_a.plan_digest
 
-    with pytest.raises(ProjectError, match="different exact Build Readiness plan"):
-        forge.create(project.project_id)
+    with monkeypatch.context() as failed_creation:
+        failed_creation.setattr(
+            "romverse.rom.forge.shutil.disk_usage",
+            lambda _path: SimpleNamespace(free=1),
+        )
+        with pytest.raises(ProjectError, match="needs .* free"):
+            forge.create(project.project_id)
     assert ForgeBundleService(store).load_receipt(project.project_id) == forge_a
-    assert forge.verify(project.project_id).valid
+    history_paths = tuple(
+        (store.projects_root / project.project_id / "forge-history").glob("*.romverse")
+    )
+    assert len(history_paths) == 1
+    historical_digest = history_paths[0].stem
+    historical_a = forge.load_history_receipt(project.project_id, historical_digest)
+    assert historical_a == forge_a
+    assert forge.verify_receipt(project.project_id, historical_a).valid
 
     runner = _BuildRunner(partitions / "system.img")
     with pytest.raises(ProjectError, match="workspace build plan changed"):
@@ -391,11 +403,25 @@ def test_same_tree_schema3_plan_replacement_rejects_old_forge_and_build_admissio
     studio.forge_button.click()
     app.processEvents()
 
+    assert len(workers) == 1 and workers[0].operation == "forge-bundle"
+    workers.pop().run()
+    app.processEvents()
+    assert len(workers) == 1 and workers[0].operation == "verify-forge"
+    workers.pop().run()
+    app.processEvents()
+
     assert workers == []
-    assert studio.dashboard_handoff_badge.text() == "PLAN CHANGED"
-    assert "historical evidence" in studio.dashboard_handoff_detail.text()
-    assert studio.focusWidget() is studio.verify_plan_button
-    assert ForgeBundleService(store).load_receipt(project.project_id) == forge_a
+    assert studio.dashboard_handoff_badge.text() == "VERIFIED INTERMEDIATE"
+    forge_b = ForgeBundleService(store).load_receipt(project.project_id)
+    assert forge_b is not None and forge_b.build_plan_digest == plan_b.plan_digest
+    assert forge_b != forge_a
+    assert forge_b.archive_sha256 != forge_a.archive_sha256
+    assert forge.verify(project.project_id).valid
+    assert forge.load_history_receipt(project.project_id, historical_digest) == forge_a
+    assert forge.verify_receipt(project.project_id, forge_a).valid
+    assert (store.workspace / forge_a.output_path).is_file()
+    assert (store.workspace / forge_b.output_path).is_file()
+    assert studio.focusWidget() is studio.build_control_button
     studio.close()
 
 

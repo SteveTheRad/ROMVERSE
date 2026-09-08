@@ -203,6 +203,24 @@ def test_schema3_forge_receipt_cannot_be_downgraded_to_legacy(tmp_path: Path) ->
     assert verification.status == "Forge Bundle exact build-plan binding is invalid"
 
 
+def test_forge_history_collision_never_overwrites_existing_evidence(tmp_path: Path) -> None:
+    store, project_id = _prepared_project(tmp_path)
+    service = ForgeBundleService(store)
+    receipt = service.create(project_id)
+    history_digest = service.preserve_history(project_id, receipt)
+    history_path = (
+        store.projects_root / project_id / "forge-history" / f"{history_digest}.romverse"
+    )
+    history_path.write_text("{}\n", encoding="utf-8")
+
+    with pytest.raises(ProjectError, match="content-address collision"):
+        service.preserve_history(project_id, receipt)
+
+    assert history_path.read_text(encoding="utf-8") == "{}\n"
+    assert service.load_receipt(project_id) == receipt
+    assert service.verify(project_id).valid
+
+
 def test_forge_bundle_streams_zip64_members_and_reports_every_long_phase(
     tmp_path: Path,
     monkeypatch,

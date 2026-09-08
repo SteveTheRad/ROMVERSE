@@ -1559,16 +1559,15 @@ class RomStudio(QWidget):
         existing = forge.load_receipt(project.project_id)
         if existing is not None and not forge.receipt_matches_plan(existing, plan):
             self._show_dashboard_handoff(
-                "Forge Bundle → Earlier plan evidence preserved",
+                "Forge Bundle → Preserving earlier plan evidence",
                 "The saved Forge Bundle belongs to a different exact Build Readiness plan. "
-                "ROMVERSE preserved it and started no worker. Review that historical evidence, "
-                "then regenerate and reverify the current Forge path before creating another "
-                "bundle.",
-                "PLAN CHANGED",
-                ready=False,
+                "ROMVERSE will preserve its receipt and immutable archive in private history, "
+                "then create and verify the current generation from this one explicit Forge "
+                "choice. The previous latest receipt remains recoverable unless current Forge "
+                "completion succeeds.",
+                "PRESERVING HISTORY",
+                ready=True,
             )
-            self.verify_plan_button.setFocus(Qt.FocusReason.OtherFocusReason)
-            return
         self._intentional_forge_plan = plan
         self._start_worker("forge-bundle")
 
@@ -3002,12 +3001,12 @@ class RomStudio(QWidget):
             elif receipt is not None:
                 detail = (
                     f"{project.name} has preserved Forge evidence from a different exact Build "
-                    "Readiness plan. Regenerate and reverify the current plan before another "
-                    "Forge action; the historical receipt was not consumed or overwritten."
+                    "Readiness plan. Choose Forge Bundle once to preserve it in private history "
+                    "and create and verify the current generation; nothing starts automatically."
                 )
-                badge = "PLAN CHANGED"
-                ready = False
-                focus = self.verify_plan_button
+                badge = "READY TO PRESERVE + CREATE"
+                ready = True
+                focus = self.forge_button
             elif creatable:
                 detail = (
                     f"{project.name} has a verified deterministic plan ready for deliberate "

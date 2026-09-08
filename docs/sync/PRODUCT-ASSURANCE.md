@@ -1,5 +1,70 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 931d094 — corrected Windows package and retained pre-correction state
+
+- Reviewed checkpoint: `931d0946cf09fc9babf42f30726144988089683a`
+- Accepted implementation/package base: `b3944548` / `f99704f`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — CORRECTED PACKAGE VERIFIED; DO NOT REWRITE OR REPLAY THE OLD TEST PROJECT**
+
+### Decision
+
+Product Assurance independently verified the exact Windows executable, repository handoff and
+retained synthetic project. The replacement package contains the already-approved corrected
+unchanged-base implementation and launches with the simulation boundary intact. The package did
+not fail: the pre-correction disposable project truthfully retained the earlier build's completed
+skip/root fields and therefore resumed at Stage 10.
+
+No further application correction is justified for this pre-release test record. Its schema-6
+combination can also represent an explicit historical skip decision, so automatically clearing it
+would rewrite saved user intent. Adding a special review/migration route solely to reproduce an
+already-proven development assertion would spend another build on test machinery and move the
+journey backwards. The record must remain preserved as evidence, but it is not a valid fresh-state
+acceptance fixture for the corrected Stage-6 behavior. The approved fresh-state source regression
+already proves the corrected action stops at Stage 8 with Stage 9 undecided and locked.
+
+### Independent evidence and acceptance
+
+- Product Assurance independently verified `ROMVERSE.exe`: 6,323,219 bytes, Authenticode
+  `NotSigned`, SHA-256 `d2af7cfa7f12cf2d278f8caafdffdc5dc734f69f3c3fa0bba8091f760eb380f2`.
+- The executable was produced once from approved implementation `b3944548`; this documentation-only
+  checkpoint changes no application source or test and correctly reran no tests.
+- The saved Guided record independently matches SHA-256
+  `640c6d416656553c5a66f5d39d49515f612a5e185455440a246c10fa7df2148c` and truthfully contains
+  `selected_stage: toolchain`, `customization_skipped: true`, `recipe_skipped: true`,
+  `root_choice: skip`, no build plan, no install request and no error.
+- The protected source/baseline and working-tree hashes match the handoff. There is no Recipe,
+  Debloat receipt, build plan, candidate, Guardian evidence, command manifest, consent, approval,
+  installation plan or phone-changing artifact.
+- The development simulation remained visibly isolated and granted no physical-device or execution
+  authority. No ADB/Fastboot command, phone/emulator, tool install, APK/device or firmware action,
+  signing, Guardian/Recovery execution, publication, release, lock or relock occurred.
+- The protected untracked patch independently remains 8,272 bytes at SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+
+### Approved next bounded Windows task
+
+Do not rebuild, relaunch, reset, migrate, recreate or replay this synthetic project. Preserve the
+accepted package, workspace and protected patch unchanged. The Windows platform track is now in
+**synchronized standby**, not blocked: continue repository polling and resume only when a newer
+cross-platform implementation checkpoint genuinely needs Windows integration/verification or a
+new reproducible Windows source defect is recorded. At that point, make only the minimum scoped
+change and one incremental package if changed executable bytes are required.
+
+Do not invent another acceptance journey merely to keep the task busy. Do not duplicate Linux
+work, run unchanged tests, operate a physical device, install an APK, build/sign/flash firmware,
+grant Guardian/Recovery authority, publish, release, touch Companion/Knowledge/UI Design Lab,
+force-push, lock or relock.
+
+### Gate status
+
+- Corrected Windows package identity and simulation isolation: **VERIFIED**
+- Fresh-state unchanged-base Stage-8/locked-Stage-9 behavior: **VERIFIED BY APPROVED FOCUSED SOURCE EVIDENCE**
+- Pre-correction synthetic project: **PRESERVED; NOT MIGRATED OR REPLAYED**
+- Windows current-source integration: **SYNCHRONIZED STANDBY**
+- Physical hardware, production signing/execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 3a046e5 — bounded Windows simulation and stage-8 route
 
 - Reviewed checkpoint: `3a046e58`

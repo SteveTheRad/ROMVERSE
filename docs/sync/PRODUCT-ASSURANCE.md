@@ -1,5 +1,59 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 4f54f5d — Recovery Archives context continuity
+
+- Reviewed commit: `4f54f5dd65cd2d00941ed324770d8762c900de52`
+- Approved base: `b47bf21`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — LOCAL REPAIR EVIDENCE SURVIVES ITS COMMAND DECK ROUTE**
+
+### Decision
+
+Product Assurance inspected the exact correction and independently verified the package, private
+archive, runtime and Guardian ledger. Recovery Bay's exact normalized symptom and local-Archives
+source now survive the canonical Command Deck route with explicit zero authority, while the existing
+no-device discovery action remains enabled. No repair or online worker, plan, approval, command or
+execution authority is introduced. No further correction or replay is required.
+
+### Independent evidence and acceptance
+
+- The handoff is created only when Archives was opened from Recovery Bay and its selected canonical
+  route is Command Deck. Other Archives and Recovery-incident routes remain unchanged.
+- The committed focused connected-route case passes **1/1**, with Ruff and Git whitespace clean.
+- The corrected unsigned executable independently matches SHA-256
+  `a2455d6de9047e994d853967d921484130a131ddbfc5f4bc34b72f8c4da62296`.
+  The unchanged private offline archive matches
+  `db3d6675b02568b12361e5c0e36f74a215932f29d71499aa2b1c9daa522e4fe8`.
+- Guardian independently verifies all 128 targetless read-only inventory records with chain tail
+  `b12bc6f6c9eafe6037f720d2bd2f7cccd165f30acc68a36597141ba5fdfcb714`; the audit file matches
+  `bbc147a0d98163d2e584012cc1b0437ead0b0ace74a6e42de78ecc439c4d418e`.
+- The two-pair clean runtime record independently matches
+  `5490f58e74a6f9249a290f466831f4917f2aa50115a0fa2f50c8f919d6f55acc`.
+
+### Approved next bounded Linux task
+
+Bring the completed platform-neutral Windows Guided-consent correction from
+`bb13daf830822be87b5f0edc58292f2b259af544` into Linux source parity. Transplant only its
+application/test changes: Guided Genesis must open missing-tool Forge setup with `auto_start=False`
+and `auto_close=False`, while unchanged non-Genesis callers retain the existing global verified-tool
+preference. Do not merge Windows handoff history, overwrite the just-approved Recovery/Archives or
+App Launchpad changes, or touch the active Windows checkout.
+
+Run only the five focused Linux cases covering direct stage scan, successful repair-to-one-scan,
+declined repair retry, explicit Guided review mode, and unchanged Partition Atlas default behavior;
+run Ruff and Git whitespace checks on changed files. Do not build or launch another package in this
+parity slice, download/install tools, or invoke ADB/Fastboot. Commit/push one source-parity handoff
+and stop for review. No phone, firmware/APK action, signing, Guardian/Recovery execution,
+publication, release, Companion, Knowledge/UI Design Lab change, lock or relock is authorized.
+
+### Gate status
+
+- Recovery Bay → offline Archives → Command Deck continuity: **VERIFIED**
+- Linux parity for explicit Guided tool-setup consent: **NEXT BOUNDED LINUX TASK**
+- Windows App Launchpad parity: **OWNED BY WINDOWS; DO NOT DUPLICATE**
+- Physical hardware, installation, execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 15f5953 — retained APK reaches device discovery
 
 - Reviewed commit: `15f5953b0cc42d4e5a5d81254671a609ba8805ef`

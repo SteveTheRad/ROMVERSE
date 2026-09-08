@@ -1,5 +1,49 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 5e4a43f — durable local-build completion synchronization
+
+- Handoff commit: `5e4a43fb`
+- Windows synchronization commit: `f5521c4a`
+- Approved Linux source: `b77ee3c03aac1746a8e8f18acd370ddcb3094360`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — DURABLE LOCAL-BUILD SOURCE CONVERGED**
+
+### Decision and independent evidence
+
+The Windows two-file source/test patch has the exact stable patch ID of the approved Linux
+correction: `664f2435f3ed483e4c029cd9a0891c369e7c70ae`. It truthfully preserves an unsigned local candidate
+across reload and routes to artifact verification rather than installation. Build's genuine Windows
+focused test, Ruff and whitespace evidence are proportional. Product Assurance independently
+inspected the exact diff and reran the focused production-widget regression against the reviewed
+source: **1/1 passed**.
+
+The pre-existing untracked patch in the Windows checkout remains user/build-owned and was not
+altered, staged or committed. No artifact rebuild, phone, Recovery, signing, publication or release
+activity occurred. Guardian-only authority, exact-device evidence, UNKNOWN/no-blind-retry and
+permanent no-relock remain unchanged.
+
+### Approved next bounded task
+
+Remain clean until Linux Product Assurance approves the current final-signed-installation-byte
+binding checkpoint. Then synchronize, in one Windows source batch, only the approved
+platform-neutral artifact-verification, signing-ready presentation, durable preparation and final
+signed-byte binding commits that apply cleanly to `windows-launcher-authorized-work`. Preserve all
+Windows launcher, ACL, packaging and toolchain corrections; do not copy Linux handoff history or
+Adaptive Online Device DNA work.
+
+Run only the focused Windows tests for the synchronized product paths plus Ruff/whitespace. Do not
+rebuild the Windows executable merely for source convergence; include the batch in the next normal
+user-facing Windows artifact milestone. Do not touch the preserved untracked patch, use a phone,
+perform Recovery/installation, sign, publish, release, force-push or relock. Update BUILD-STATUS.md,
+commit/push and stop for Product Assurance.
+
+### Gate status
+
+- Windows runnable internal alpha: **VERIFIED AT THE PRIOR APPROVED ARTIFACT**
+- Durable local-build source convergence: **VERIFIED**
+- Next Windows milestone: **ONE BATCHED SIGNING/PREPARATION SOURCE CONVERGENCE**
+- Physical execution, production signing/publication and release: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: 6cb22cf — Windows Command Deck truthfulness convergence
 
 - Handoff commit: `6cb22cf`

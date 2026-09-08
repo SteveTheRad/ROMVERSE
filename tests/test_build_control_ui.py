@@ -660,6 +660,47 @@ def test_refresh_removes_stale_cards_and_footer_actions_remain_aligned(tmp_path)
     studio.close()
 
 
+def test_reopened_signing_ready_candidate_stays_distinct_from_install_and_flash(
+    tmp_path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    studio = _studio(tmp_path)
+    control = BuildControlCenter(studio, auto_start=False)
+    assert control.report is not None
+    report = replace(
+        control.report,
+        build_ready=True,
+        local_candidate_ready=True,
+        signing_ready=True,
+        flash_ready=False,
+        report_digest="5" * 64,
+    )
+    handoffs: list[str] = []
+    control._open_project_images = lambda: handoffs.append("guardian-preparation")
+
+    control.refresh(report)
+    app.processEvents()
+
+    labels = {label.text() for label in control.findChildren(QLabel)}
+    assert (
+        control.overall_badge.text()
+        == "✓  SIGNING READY / INSTALL NOT STARTED / FLASH NOT AUTHORIZED"
+    )
+    assert "SIGNING READY" in labels
+    assert (
+        "✓  SIGNING READY  •  INSTALLATION AND FLASH ARE SEPARATE CHOICES" in labels
+    )
+    assert "installation: NOT STARTED" in control.status.text()
+    assert "flash: NOT AUTHORIZED" in control.status.text()
+    assert control.autopilot_button.text() == "Prepare verified ROM installation…"
+
+    control.autopilot_button.click()
+
+    assert handoffs == ["guardian-preparation"]
+    control.close()
+    studio.close()
+
+
 def test_reopened_unsigned_local_candidate_remains_complete_and_routes_to_artifact_verification(
     tmp_path,
 ) -> None:

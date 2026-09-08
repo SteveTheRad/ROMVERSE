@@ -1,5 +1,63 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 7dca231 — packaged post-Genesis continuity acceptance
+
+- Reviewed commit: `7dca2316`
+- Executable source: `d433afe9`
+- Approved base: `51f77cef`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — THE FIXED CONTINUITY IS PROVEN IN THE RUNNABLE WINDOWS APP**
+
+### Decision
+
+Product Assurance inspected the documentation-only handoff and independently verified the exact
+fixture/protected-copy identities, project/inspection/mission records, activity ledger, clean
+runtime lifecycle and both retained native captures. The fresh packaged application now returns
+from Genesis with project row, selected detail and handoff all agreeing immediately on durable task
+04/15, and reopening Genesis restores that same state.
+
+The workspace does contain the normal unconfirmed `device-dna.romverse` profile created for the
+project; it contains no connected/live device identity or authority. This narrows the handoff's
+phrase `no device record` without changing the accepted product result.
+
+### Independent evidence and acceptance
+
+- Fixture and read-only protected copy are byte-identical at **4,104 bytes**, SHA-256
+  `beb7b61e814e2e7c7dcd737b569892757258b4a5bbfb76b0335afdf07c304baa`.
+- Project and read-only inspection records bind that exact source. The mission durably selects
+  `workspace`, with build/install false and no error.
+- Independent visual inspection confirms the project row at `GENESIS • 4/15 • WORKING LAB`, the
+  handoff at stage 4/15 and reopened Genesis at task 04/15.
+- Activity contains exactly one protected import; no working copy/tree, build plan, live device,
+  Guardian/command authority or targeted operation exists. Runtime records one clean start/close.
+- No phone, ADB/Fastboot, APK, build/package repeat, signing, publication, release or relock occurred.
+
+### Approved next bounded Windows task
+
+Converge the ordered, already independently approved platform-neutral Linux corrections
+`8ce24b22e0ead8beaaf9987f2b03e728f1e67448` (simulation truth/zero authority),
+`7e3520ad708cf216f36e59f909d360e87240b872` (one-choice unchanged Customize route), and
+`5976ced726f4297cee7032a88f2b5d7d2defe711` (Toolchain completion) onto this Windows engineering
+line. Apply only their product/test diffs in order; do not merge Linux history or handoff documents
+and do not independently redesign the behavior.
+
+Run one deduplicated union of the directly affected tests natively on Windows, plus focused Ruff
+and Git whitespace validation. Require simulation to remain conspicuously non-hardware and unable
+to satisfy live/Guardian/execution gates; the safest Customize choice to reach Toolchain; and
+automatic managed Toolchain success/failure to remain preference-bound and truthful. Stop and
+record any nontrivial branch-context conflict instead of widening scope. Do not build/package or
+launch another artifact, acquire real tools, connect hardware, issue ADB/Fastboot, run an actual
+candidate build, resume the external candidate job, sign, publish or release. Commit/push one
+bounded convergence checkpoint and stop for review.
+
+### Gate status
+
+- Packaged Windows post-Genesis continuity: **VERIFIED**
+- Reviewed simulation/Customize/Toolchain parity: **NEXT BOUNDED WINDOWS TASK**
+- GitHub-hosted unsigned-candidate job: **EXTERNAL ACCOUNT GATE OUTSTANDING**
+- Physical hardware, signing, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 6ce1686 — fresh Windows post-Genesis development artifact
 
 - Reviewed commit: `6ce1686`

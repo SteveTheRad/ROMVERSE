@@ -1,5 +1,101 @@
 # ROMVERSE Product Assurance Sync
 
+## Corrected Windows Guided package exposes retained-state route blocker — Product Assurance review requested
+
+- Product Assurance verdict: `f99704f9897bebfbf1290fe782debc97f13e9fb6` — `Approve Windows
+  simulation stage boundary`, matching checkpoint
+  `3a046e58670ea8871f8f22ce4cc3878886ab0d5b` exactly and approving implementation
+  `b3944548f21a6551d3090ab1e788b5f9f0b3ec2a`.
+- Branch: `windows-launcher-authorized-work`.
+- Status: **BLOCKED PACKAGE CONFIRMATION — THE EXACT CORRECTED PACKAGE RETAINS THE PREVIOUS
+  FAILED RUN'S LEGACY `customization_skipped=true` / `root_choice=skip` STATE. AFTER THE ONE
+  AUTHORIZED EPHEMERAL SIMULATION REFRESH, GENESIS RETURNS DIRECTLY TO STAGE 10, SO THE CORRECTED
+  STAGE-6 ACTION CANNOT BE SELECTED AND A TRUTHFUL STAGE-8/LOCKED-STAGE-9 STOP CANNOT BE SHOWN.**
+
+### Exact one replacement package
+
+- Fast-forwarded safely to Product Assurance commit `f99704f9`; the only local user item remained
+  the protected untracked patch. No source changed after approved implementation `b3944548`.
+- Built exactly once using `.venv\Scripts\python.exe scripts\build_desktop_executable.py
+  --output-directory C:\Work\ROMVERSE-Windows\build\windows-guided-stage8-b3944548
+  --work-directory C:\Work\ROMVERSE-Windows\build\windows-guided-stage8-b3944548-pyinstaller`.
+- Build succeeded on Windows 11 build `26200` with Python `3.12.10` and PyInstaller `6.22.2`.
+  The one-folder unsigned development package contains 305 files totalling 164,647,554 bytes.
+  `ROMVERSE.exe` is 6,323,219 bytes, Authenticode `NotSigned`, SHA-256
+  `d2af7cfa7f12cf2d278f8caafdffdc5dc734f69f3c3fa0bba8091f760eb380f2`.
+- No installer, archive, signed output, second build, publication or release was produced.
+
+### Exact one relaunch and retained-state blocker
+
+- Relaunched that exact package once against
+  `C:\Work\ROMVERSE-Windows-Guided-Foundation-e03aa88e-20260909` with
+  `--skip-onboarding --development-device-simulation`. Startup visibly retained **Development
+  simulation**, **Device: deterministic ROM Studio fixture**, **SIMULATION ONLY • NO HARDWARE**
+  and **No physical device selected**.
+- The same project reopened at the process-ephemeral device boundary, as permitted. Activated only
+  **Scan device & refresh DNA** once to re-establish the inert local fixture. The UI visibly
+  reported **SIMULATION ONLY • NOT HARDWARE VERIFIED**, `UPGRADE RELATIONSHIP UNCONFIRMED`,
+  advisory Device DNA/Compatibility, `EXECUTION AUTHORITY: NONE` and bootloader relock `NEVER`.
+- Immediately after that refresh, Genesis selected `BUILD / TASK 10 OF 15 — Verify every required
+  tool` and exposed **Install and verify requirements**. That action was not activated. The
+  corrected stage-6 unchanged-base action was therefore never available to select, and stage 8
+  could not be the truthful current stop with stage 9 locked.
+- This is retained saved-state behavior, not a failure of the approved fresh-state route test. The
+  existing record from the first packaged failure already contained all four legacy completion
+  signals. The replacement package does not migrate or offer a supported review path for them, so
+  recomputing after the ephemeral scan still treats stages 6–9 as complete and returns to stage 10.
+- Per Product Assurance's explicit instruction, stopped with this exact evidence rather than
+  editing workspace state, creating a new project, replaying stages 1–4, widening source scope,
+  running stage 10, operating stage 8 or attempting a second build/relaunch.
+
+### Preserved project and authority evidence
+
+- The saved 432-byte Guided record is SHA-256
+  `640c6d416656553c5a66f5d39d49515f612a5e185455440a246c10fa7df2148c` and truthfully retains
+  `selected_stage=toolchain`, `customization_skipped=true`, `recipe_skipped=true`,
+  `root_choice=skip`, `build_plan_verified=false`, `install_requested=false` and no error.
+- Protected source and working baseline remain 356 bytes and byte-identical at SHA-256
+  `85e734ea89c706d344987794acf5ebc9fb617e67a1a5a09f8516bf4c755937b0`.
+  The working tree remains exactly the existing 242-byte synthetic marker at SHA-256
+  `f5fc7767e1d6e9636cbdfc43c800515800ca0ea35e98b74b3f840341fc051310`.
+- The project still has no Recipe file, build plan, candidate, Guardian directory, command
+  manifest, consent, approval, installation plan or phone-changing artifact. Its workspace has
+  zero managed-tool files and zero reparse points.
+- The 231-byte runtime record contains three start/clean-close pairs total (the accepted local
+  foundation run, the prior correction run and this one exact replacement-package run), SHA-256
+  `30feaa6b43ac81c3e426cd89b1366323359c203a3e4d399727d797fd3674f8b7`.
+  No `ROMVERSE.exe` or Fastboot process remains.
+- The pre-existing unrelated ADB server remains PID `49872` at
+  `C:\Work\ROMVERSE-Link-Lazy-Frozen-20260907\tools\downloads\platform-tools\platform-tools\adb.EXE`.
+  It was never queried, targeted, signalled or stopped, and no new ADB process appeared.
+
+### Verification and preserved repository scope
+
+- Per verdict `f99704f9`, no focused test or broad suite was repeated. Exact test total for this
+  checkpoint: **0 tests run**. Application source and tests remain the independently approved
+  `b3944548` state.
+- `git diff --check` passes for this documentation-only handoff. Protected Companion source,
+  Knowledge/UI Design Lab, Linux work and unrelated history remain untouched. The untracked user
+  patch remains byte-identical at 8,272 bytes, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No physical phone/emulator, ADB/Fastboot command, tool acquisition/install, Recipe transaction,
+  APK/device action, real firmware change, root/install/flash authority, signing, Guardian/Recovery
+  execution, publication, release, force-push, destructive action, lock or relock occurred.
+  Exact-device evidence, UNKNOWN-on-uncertainty, consent separation, no blind retry,
+  Guardian-only authority, independent verification and permanent no-relock remain intact.
+
+### Proposed next bounded task
+
+Product Assurance should independently verify the exact package hash/signature, single launch,
+simulation-only evidence, unchanged source/tree, legacy Guided record and stage-10 stop. The next
+minimum correction should expose a safe explicit review path for a completed stage-6
+unchanged-base decision (or an equally narrow approved migration limited to this legacy failed-run
+state), so selecting the corrected route can clear only the obsolete Debloat/root completion flags
+and stop at stage 8 with stage 9 undecided/locked. Do not authorize automatic broad state rewriting
+or a new/recreated project. Build must not change source, rebuild/relaunch again, run tests, edit
+workspace state, operate stage 8/10, acquire tools or infer device/execution authority while review
+is pending.
+
 ## Windows Guided simulation boundary and stage-8 route correction — Product Assurance review requested
 
 - Product Assurance verdict: `bde748d7ac66ef1458d9a6b063c3b0b81749edd8` — `Approve Windows

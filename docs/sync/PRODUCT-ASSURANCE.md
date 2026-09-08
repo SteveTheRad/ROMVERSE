@@ -1,5 +1,65 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 1d1a422 — packaged Windows Recovery Archives journey
+
+- Reviewed checkpoint: `1d1a4223`
+- Accepted source: `738b774e` containing approved correction `b09e15a6`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — PACKAGED WINDOWS RECOVERY CONTEXT IS CONNECTED AND AUTHORITY-FREE**
+
+### Decision
+
+Product Assurance inspected the documentation-only checkpoint and independently verified the exact
+Windows executable, signature state and isolated workspace. One packaged Recovery Bay → private
+local Archives → Command Deck journey retained the exact `adb unauthorized` symptom and local source,
+reported `LOCAL GUIDE • AUTHORITY NONE`, kept the mission idle and exposed the existing discovery
+and tool-repair actions without activating either. No spontaneous worker, tool, device command,
+plan, approval, consent or execution authority appeared. No correction or replay is required.
+
+### Independent evidence and acceptance
+
+- `ROMVERSE.exe` is 6,321,193 bytes, Authenticode **NotSigned**, and independently matches SHA-256
+  `d7eb55e38e2daad6b35a74c6c3f081b7cf83ba9b1b5ecdb0ebfefa4a7b37804a`.
+- The checkpoint changes only `docs/sync/BUILD-STATUS.md`; application source remains the already
+  approved `738b774e` state. Git whitespace is clean.
+- Independent workspace inspection confirms the fresh workspace contains only normal workspace
+  structure, local Companion-link identity, the private Archives snapshot and empty/runtime locks;
+  its managed-tool directory contains no files.
+- Build correctly reused the accepted focused route evidence and ran no redundant tests. The app
+  closed cleanly and no packaged `ROMVERSE.exe` remains.
+- The protected untracked patch remains byte-identical at 8,272 bytes with SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone/emulator, tool acquisition/install, ADB/Fastboot command, APK/device installation,
+  firmware change, signing, Guardian/Recovery execution, publication, release, Companion source,
+  Knowledge/UI Design Lab, Linux, force-push, lock or relock occurred.
+
+### Approved next bounded Windows task
+
+Reuse this exact package without rebuilding and exercise one fresh isolated no-phone App Launchpad
+journey using one existing local test APK whose path, size and SHA-256 are recorded before launch.
+Require bounded local container inspection to retain the same exact APK evidence, present the
+contextual **Connect and authorize phone** action, and keep approval and installation disabled.
+Navigate away once and return; require the same inspection/hash and contextual connection action to
+remain. Do not activate the connection action, device discovery, Forge installation or APK
+installation. If optional identity readers are unavailable, report those fields as unconfirmed
+rather than downloading tools or inventing evidence.
+
+This validates an existing packaged user path and must not become a broad screen sweep, repeated
+package build or device test. Add no source change unless a genuine packaged retention/dead-end
+defect appears; if it does, make only the minimum correction and focused test, rebuild/relaunch at
+most once, then complete the same journey. Commit/push one handoff and stop for review. Preserve the
+untracked user patch byte-for-byte. Do not acquire/install tools, invoke ADB/Fastboot, operate a
+phone/emulator, install an APK, modify firmware, sign, publish, release, execute Guardian/Recovery,
+touch Companion source, Knowledge/UI Design Lab or Linux work, force-push, lock or relock.
+
+### Gate status
+
+- Packaged Windows Recovery Archives connected journey: **VERIFIED**
+- Packaged Windows retained-APK App Launchpad journey: **NEXT BOUNDED WINDOWS TASK**
+- Linux simulated Recipe Forge validation: **OWNED BY LINUX; DO NOT DUPLICATE**
+- Physical hardware, installation, execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: b09e15a — Recovery Archives Windows context continuity
 
 - Reviewed checkpoint: `b09e15a6`

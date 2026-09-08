@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QRadioButton,
     QScrollArea,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -1460,6 +1461,7 @@ class BuildControlCenter(QDialog):
         build_actions = QGridLayout(self.build_tools_panel)
         build_actions.setContentsMargins(10, 10, 10, 10)
         build_actions.setSpacing(8)
+        build_tool_columns = 2
         for index, button in enumerate(
             (
                 self.source_button,
@@ -1471,8 +1473,12 @@ class BuildControlCenter(QDialog):
                 self.release_button,
             )
         ):
-            build_actions.addWidget(button, index // 3, index % 3)
-            build_actions.setColumnStretch(index % 3, 1)
+            build_actions.addWidget(
+                button,
+                index // build_tool_columns,
+                index % build_tool_columns,
+            )
+            build_actions.setColumnStretch(index % build_tool_columns, 1)
         layout.addWidget(self.build_tools_panel)
 
         utility_actions = QHBoxLayout()
@@ -1485,7 +1491,7 @@ class BuildControlCenter(QDialog):
         utility_actions.addWidget(self.close_button)
         layout.addLayout(utility_actions)
 
-        primary_actions = QHBoxLayout()
+        primary_actions = QGridLayout()
         primary_actions.setSpacing(8)
         primary_copy = QVBoxLayout()
         primary_copy.setSpacing(0)
@@ -1498,9 +1504,11 @@ class BuildControlCenter(QDialog):
         self.footer_action_hint.setWordWrap(True)
         primary_copy.addWidget(action_label)
         primary_copy.addWidget(self.footer_action_hint)
-        primary_actions.addLayout(primary_copy, 1)
-        primary_actions.addWidget(self.simulate_button)
-        primary_actions.addWidget(self.autopilot_button)
+        primary_actions.addLayout(primary_copy, 0, 0, 1, 2)
+        primary_actions.addWidget(self.simulate_button, 1, 0)
+        primary_actions.addWidget(self.autopilot_button, 1, 1)
+        primary_actions.setColumnStretch(0, 1)
+        primary_actions.setColumnStretch(1, 1)
         layout.addLayout(primary_actions)
         self._set_build_tools_visible(self.studio.app_settings.experience_mode.value == "expert")
         return frame
@@ -1791,9 +1799,7 @@ class BuildControlCenter(QDialog):
             banner_layout = QHBoxLayout(banner)
             banner_layout.setContentsMargins(18, 14, 18, 14)
             copy = QVBoxLayout()
-            heading = QLabel(
-                "✓  SIGNING READY  •  INSTALLATION AND FLASH ARE SEPARATE CHOICES"
-            )
+            heading = QLabel("✓  SIGNING READY  •  INSTALLATION AND FLASH ARE SEPARATE CHOICES")
             heading.setObjectName("ReadyHeading")
             guidance = QLabel(
                 "ROMVERSE verified the protected source, workspace, toolchain, reproducible "
@@ -1901,6 +1907,8 @@ class BuildControlCenter(QDialog):
             phase_copy.setSpacing(2)
             heading = QLabel(f"{phase.upper()}  •  {detail}")
             heading.setObjectName("CardHeading")
+            heading.setWordWrap(True)
+            heading.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
             passed = sum(gate.status is GateStatus.PASS for gate in gates)
             phase_summary = QLabel(
                 f"{passed} of {len(gates)} verified"
@@ -1941,6 +1949,7 @@ class BuildControlCenter(QDialog):
                 label = QLabel(f"{gate.label}\n{gate.evidence}")
                 label.setObjectName("GateCopy")
                 label.setWordWrap(True)
+                label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
                 label.setToolTip(remediation.tooltip)
                 badge_copy = gate.status.value.upper()
                 if (
@@ -1956,6 +1965,9 @@ class BuildControlCenter(QDialog):
                 badge.setToolTip(remediation.tooltip)
                 row_layout.addWidget(state)
                 row_layout.addWidget(label, 1)
+                controls = QVBoxLayout()
+                controls.setSpacing(5)
+                controls.addWidget(badge)
                 if gate.status is not GateStatus.PASS:
                     resolve = QPushButton(self._resolution_button_label(remediation))
                     resolve.setObjectName("GateResolve")
@@ -1968,9 +1980,9 @@ class BuildControlCenter(QDialog):
                         resolve.clicked.connect(
                             lambda _checked=False, current=gate: self._show_resolution(current)
                         )
-                    row_layout.addWidget(resolve)
+                    controls.addWidget(resolve)
                     self.resolve_buttons[gate.gate_id] = resolve
-                row_layout.addWidget(badge)
+                row_layout.addLayout(controls)
                 body_layout.addWidget(row)
                 self.gate_rows[gate.gate_id] = row
             layout.addWidget(body)
@@ -2100,6 +2112,8 @@ class BuildControlCenter(QDialog):
             else "ASCENSION PROTOCOL  •  DEVICE-AWARE ROOT PLAN"
         )
         heading.setObjectName("CardHeading")
+        heading.setWordWrap(True)
+        heading.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         layout.addWidget(heading)
         plan_service = AscensionRootPlanService(self.studio.store)
         manifest_service = AscensionGuardianManifestService(
@@ -3121,6 +3135,8 @@ class BuildControlCenter(QDialog):
             else "BOOT OBSERVATORY  •  READ-ONLY POST-BUILD EVIDENCE"
         )
         heading.setObjectName("CardHeading")
+        heading.setWordWrap(True)
+        heading.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         if receipt is None:
             detail = QLabel(
                 "No exact-device boot samples are recorded. This does not affect build output and cannot prove a flash.\n"
@@ -3156,6 +3172,7 @@ class BuildControlCenter(QDialog):
             )
         detail.setObjectName("GateCopy")
         detail.setWordWrap(True)
+        detail.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         copy.addWidget(heading)
         copy.addWidget(detail)
         layout.addLayout(copy, 1)

@@ -360,8 +360,7 @@ def ensure_private_directory(directory: Path, *, boundary: Path) -> Path:
 
     if os.name == "nt":
         safe = _validated_directory_path(directory, boundary=boundary, create=True)
-        with suppress(PermissionError):
-            safe.chmod(0o700)
+        _set_windows_private_directory_acl(safe)
         return safe
     descriptor = _open_directory(directory, boundary=boundary, create=True)
     try:
@@ -644,6 +643,14 @@ def _exclusive_create_bytes_portable(path: Path, payload: bytes, *, boundary: Pa
 
 
 def _set_windows_private_file_acl(path: Path) -> None:
+    _set_windows_private_acl(path, "D:P(A;;FA;;;OW)(A;;FA;;;SY)")
+
+
+def _set_windows_private_directory_acl(path: Path) -> None:
+    _set_windows_private_acl(path, "D:P(A;OICI;FA;;;OW)(A;OICI;FA;;;SY)")
+
+
+def _set_windows_private_acl(path: Path, descriptor_text: str) -> None:
     import ctypes
     from ctypes import wintypes
 
@@ -662,7 +669,7 @@ def _set_windows_private_file_acl(path: Path) -> None:
     )
     convert.restype = wintypes.BOOL
     if not convert(
-        "D:P(A;;FA;;;OW)(A;;FA;;;SY)",
+        descriptor_text,
         1,  # SDDL_REVISION_1
         ctypes.byref(security_descriptor),
         None,

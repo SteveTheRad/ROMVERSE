@@ -22,6 +22,7 @@ from romverse.infrastructure.local_store import (
     LocalStoreError,
     atomic_write_json,
     ensure_private_directory,
+    ensure_private_file,
     read_json_object,
 )
 from romverse.rom.models import ProjectError
@@ -489,7 +490,7 @@ class RomInspectionService:
         if os.path.lexists(root):
             raise ProjectError("An extracted working tree already exists or is unsafe")
         staging = root.with_name(f".tree-{uuid4().hex}")
-        staging.mkdir(mode=0o700, parents=True, exist_ok=False)
+        ensure_private_directory(staging, boundary=self.store.workspace)
 
         def publish_extracted_bytes(done: int, total: int) -> None:
             if progress is not None and total > 0 and done < total:
@@ -817,7 +818,7 @@ class RomInspectionService:
                             )
                         if progress is not None:
                             progress(min(extracted, expected_bytes), expected_bytes)
-                target.chmod(0o600)
+                ensure_private_file(target)
 
     @staticmethod
     def _extract_tar(
@@ -862,7 +863,7 @@ class RomInspectionService:
                                 )
                             if progress is not None:
                                 progress(min(extracted, expected_bytes), expected_bytes)
-                    target.chmod(0o600)
+                    ensure_private_file(target)
 
     @staticmethod
     def _stage_single_input(
@@ -883,7 +884,7 @@ class RomInspectionService:
                     progress(copied, total)
             output_stream.flush()
             os.fsync(output_stream.fileno())
-        target.chmod(0o600)
+        ensure_private_file(target)
         if digest.hexdigest() != expected_sha256:
             raise ProjectError("Staged firmware image failed source SHA-256 verification")
 
@@ -1152,7 +1153,7 @@ def _ensure_tree_directory(root: Path, target: Path) -> None:
             if not stat.S_ISDIR(details.st_mode):
                 raise ProjectError("Archive directory conflicts with an existing entry")
         else:
-            current.mkdir(mode=0o700)
+            ensure_private_directory(current, boundary=safe_root)
 
 
 def _byte_label(value: int) -> str:

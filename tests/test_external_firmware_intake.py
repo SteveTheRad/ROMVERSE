@@ -121,11 +121,21 @@ def test_external_intake_replacement_cannot_mix_path_metadata_with_open_descript
 
     monkeypatch.setattr(external_intake, "RomInspector", ReplacingInspector)
 
-    with pytest.raises(ProjectError, match="changed during bounded inspection"):
+    expected_error = (
+        "could not be read safely" if os.name == "nt" else "changed during bounded inspection"
+    )
+    with pytest.raises(ProjectError, match=expected_error):
         ExternalFirmwareIntakeService(store).inspect(project.project_id, source)
 
-    assert observed == {"digest": original_digest, "partitions": ("super",)}
-    assert _sha256(source) != original_digest
+    if os.name == "nt":
+        # Windows denies replacement while ROMVERSE holds the source descriptor.
+        assert observed == {}
+        assert _sha256(source) == original_digest
+    else:
+        # POSIX permits replacing the directory entry, which the post-read identity
+        # check detects without mixing the replacement metadata into the receipt.
+        assert observed == {"digest": original_digest, "partitions": ("super",)}
+        assert _sha256(source) != original_digest
     assert not (
         store.projects_root / project.project_id / ExternalFirmwareIntakeService.RECEIPT_NAME
     ).exists()

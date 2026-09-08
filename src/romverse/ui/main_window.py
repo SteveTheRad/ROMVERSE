@@ -5525,6 +5525,19 @@ class MainWindow(QMainWindow):
         report = self.device_packs_center.active_report
         pack = self.device_packs_center.active_pack
         device = self.device_packs_center.active_device
+        current_project = self.rom_studio.current_project
+        if (
+            pack is not None
+            and current_project is not None
+            and current_project.device_pack_id != pack.pack_id
+        ):
+            matching_projects = tuple(
+                project
+                for project in self.rom_studio.store.list_projects()
+                if project.device_pack_id == pack.pack_id
+            )
+            if len(matching_projects) == 1:
+                self.rom_studio.refresh(matching_projects[0].project_id)
         profile = self.device_packs_center.active_device_dna
         project = self.rom_studio.current_project
         stored_profile = (

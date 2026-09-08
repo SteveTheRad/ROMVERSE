@@ -1565,6 +1565,61 @@ def test_device_atlas_rom_mission_preserves_current_device_intelligence_and_owne
         window.close()
 
 
+def test_device_atlas_rom_mission_selects_the_one_matching_saved_project(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    store, registry, matching_project, _report = _project(tmp_path)
+    unrelated_project = store.create("Unrelated project", "another.device.pack")
+    window = MainWindow(
+        None,
+        logo,
+        store.workspace,
+        app_icon_path=logo,
+        pack_registry=registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    opened_contexts = []
+    monkeypatch.setattr(
+        window.rom_studio,
+        "_open_guided_setup",
+        lambda: opened_contexts.append(window.rom_studio.guided_context()),
+    )
+    phone = _device(serial="CURRENT-PHONE-2764")
+    try:
+        window.rom_studio.refresh(unrelated_project.project_id)
+        assert window.rom_studio.current_project == unrelated_project
+        window._scan_complete([phone])
+        app.processEvents()
+
+        report = window.device_packs_center.active_report
+        assert report is not None
+        assert report.pack_id == matching_project.device_pack_id
+        window._navigate_route("device_atlas")
+        window.device_packs_center.continue_button.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.rom_studio
+        assert window.rom_studio.current_project is not None
+        assert window.rom_studio.current_project.project_id == matching_project.project_id
+        assert len(opened_contexts) == 1
+        context = opened_contexts[0]
+        assert context.device is not None and context.device.serial == phone.serial
+        assert context.device_pack_id == report.pack_id
+        assert any("Guardian Flash: Unknown" in item for item in context.device_dna_evidence)
+        assert matching_project.name in window.rom_studio.dashboard_handoff_detail.text()
+        assert unrelated_project.name not in window.rom_studio.dashboard_handoff_detail.text()
+        assert "NO BUILD, APPROVAL, FLASH, OR PHONE ACTION STARTED" in (
+            window.rom_studio.dashboard_handoff_detail.text()
+        )
+        assert window.rom_studio.worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
 def test_rom_studio_preserves_exact_project_into_time_machine_and_device_atlas(
     tmp_path: Path,
 ) -> None:

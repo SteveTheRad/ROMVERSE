@@ -2,7 +2,7 @@
 
 ## Reviewed checkpoint: e664893 — Windows no-phone Device Engine readiness
 
-- Handoff commit: `e664893cf0d386b90bf342836e8ea58ff01f9daa`
+- Handoff commit: `e66489312f9253135454018fa3dfcbeadfaeeea7`
 - Implementation commit: `e760ae9fd9089cffbe86863275c1ff780a5d5438`
 - Approved base: `2a3fba1`
 - Branch: `windows-launcher-authorized-work`

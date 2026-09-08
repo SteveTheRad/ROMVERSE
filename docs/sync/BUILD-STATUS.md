@@ -1,5 +1,93 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux correction checkpoint — fatal native file chooser fallback
+
+### Authoritative checkpoint
+
+- Base: `9b054b6997404e18993efa3f8b92adac23d3e935` — runnable Linux Stage 1 journey.
+- Tested implementation:
+  `30d157d1e050b6b6d15847ca995e9640b6dfff10` — `Fall back from unsafe Linux file dialogs`.
+- Final handoff: the follow-up commit containing this document on
+  `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation, minimum Fedora runtime crash correction.
+
+### Reproduced incident and cause
+
+- Steve used the visible source application launched by Build and selected the Guided project flow
+  that opens `Import original firmware`.
+- The fatal record at
+  `build/visible-stage1-fc34291/logs/crash/runtime-fault.log` binds the abort to
+  `RomStudio._import_original()` → `QFileDialog.getOpenFileName()` at 18:29:11 local time.
+- Build had deliberately removed the ordinary host `PATH` from that visible process to make ADB and
+  Fastboot undiscoverable. GTK's native chooser then tried to start its `bwrap` image-loader sandbox
+  helper by name, could not find it and asserted/aborted the entire process. `/usr/bin/bwrap` exists
+  on the host; this was an invalid constrained launch environment, not firmware corruption or a
+  Python exception in ROMVERSE's project logic.
+- The interrupted workspace strictly reloads one project, `Hyperos 4`, with no protected original.
+  No source selection, copy, import, extraction or project mutation had begun when the chooser
+  aborted, so the saved project is intact.
+
+### Exact correction
+
+- Before creating `QApplication`, Linux startup now checks whether `bwrap` is discoverable. If it is
+  unavailable, ROMVERSE sets Qt's application-wide `AA_DontUseNativeDialogs` safety attribute so all
+  38 current file/folder chooser call sites use Qt's built-in chooser rather than entering the fatal
+  GTK native path.
+- When `bwrap` is available, normal Linux native chooser behavior is unchanged. Non-Linux platforms
+  are explicitly unchanged. No device, project, firmware, Guardian, Recovery or authority logic was
+  altered.
+
+### Verification without double-counting
+
+- Focused launch/settings and Guided candidate Desktop tests: **11/11 unique tests passed**.
+- New tests prove missing `bwrap` selects the Qt fallback and that non-Linux startup remains
+  unchanged.
+- Exact constrained GUI reproduction: with `bwrap`, ADB and Fastboot all absent from `PATH`, a real
+  `QFileDialog.getOpenFileName()` opened under the configured Qt fallback, was cancelled by timer,
+  returned `("", "")` and exited normally instead of aborting.
+- Ruff static check: **2/2 changed files passed**.
+- Ruff format check: **2/2 changed files passed**.
+- `git diff --check`: passed. No broad suite or package rebuild was run.
+- The corrected source app is visibly running from a new isolated workspace
+  `build/visible-crash-fix-9b054b6` with no device tools in its process path; its runtime fault log
+  contains only the normal startup marker.
+
+### Classification and safety
+
+- **Implemented:** conditional Linux non-native chooser fallback.
+- **Simulated/Tested:** 11 focused tests plus one exact constrained real-GUI chooser reproduction
+  and a fresh visible corrected-source launch on Fedora.
+- **Hardware Verified:** none. No Android transport was used.
+- **Released:** no. The prior unsigned development package was not rebuilt or published here.
+- Guided impact: the Import-original action now falls back safely instead of terminating the app
+  when the native chooser's helper is missing. Cancellation returns to the same Guided project.
+- Guardian-only authority, consent separation, exact-device/evidence rules, UNKNOWN/no-blind-retry,
+  independent verification, same-incident Recovery and permanent no-relock are unchanged.
+
+### Platform, freeze, preservation and external actions
+
+- Fedora/Linux: exact crash cause reproduced and corrected fallback verified.
+- Windows: behavior explicitly unchanged by the platform condition; no Windows runtime claim.
+- Feature freeze: compliant minimum correctness fix; no feature or execution surface was added.
+- v0.2 Golden Foundation remains **CLOSED** pending independent review and remaining release gates.
+- Protected Companion files, Windows work, UI Design Lab, website and unrelated user files were not
+  modified, staged, discarded or committed.
+- Physical phone access, ADB/Fastboot invocation, firmware copy/import/extraction, APK action,
+  flash/boot/update, partition access, slot change, wipe/erase/format, unlock/lock/relock,
+  installation, signing, publication and release: **none**.
+- External action after verification: one normal push of the scoped correction and handoff to the
+  existing Linux branch only; no force-push.
+
+### Next proposed Build task
+
+Allow Steve to repeat the same visible Guided import action in the corrected app. Continue only if a
+new reproducible application defect appears; do not re-enter device or packaging work for this fix.
+
+### Product Assurance Review Requested
+
+- Confirm the conditional application-wide Qt chooser fallback is the minimum correct defense for
+  the observed fatal GTK dependency failure and does not alter normal Linux or Windows behavior.
+
 ## Linux checkpoint — runnable Stage 1 desktop and Guided journeys
 
 ### Authoritative checkpoint

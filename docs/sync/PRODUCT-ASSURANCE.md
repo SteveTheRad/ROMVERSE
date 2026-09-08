@@ -1,5 +1,67 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 72a0c1b — Guardian verifies current no-phone evidence
+
+- Reviewed commit: `72a0c1b43370e9badb6afc85205fd1922592f3ee`
+- Accepted unchanged source/package: `ca983ecd30724723574d7fdd6ae02ca107e3be3e`
+- Approved base: `3c0e6d9`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — GUARDIAN VERIFIES THE EXACT CURRENT TRAIL WITHOUT AUTHORITY**
+
+### Decision
+
+Product Assurance independently reproduced the unchanged executable and final runtime/audit
+hashes, classified every audit operation and inventoried the fresh workspace. The one explicit
+**Verify audit trail** action completed visibly, restored its control, reported zero approvals and
+granted no authority. The runtime-package inspector remained untouched.
+
+A literal zero-record result is not a valid acceptance requirement on the normal packaged startup
+path: scheduled read-only device discovery intentionally creates audit evidence before Guardian's
+result can render. Guardian correctly verified the six records present at the requested result and
+automatically revalidated later additions instead of freezing or mislabelling the trail. That is
+truthful current-evidence behavior, not a product defect.
+
+### Independent evidence and acceptance
+
+- The executable independently matches SHA-256
+  `0a47f9af3dea4c0f64983fdd4afc9d1fa01dfcc96185680e94f098b1cb19dde7`.
+- The final audit independently matches
+  `9fb269afc46ff9bd582e03ce1b1a35ff0bcef72fbddc6f34a9243949d65af046` and is a gap-free
+  28-record sequence: 14 ADB and 14 Fastboot read-only `devices -l` inventories, all host-targeted,
+  untimed-out and return code 0.
+- The runtime record contains one clean start/close pair and independently matches
+  `c9a5cb9322615534d8a5ad7255f55888b66be1b4b82c6ab0116e1910585d64c3`; no package process
+  remains.
+- Project, snapshot, backup, APK, build and working-ROM stores contain zero files. No public
+  catalog/download, approval, package inspection, consent or execution record exists.
+- No phone, firmware/APK operation, installation, build/signing, Guardian/Recovery execution,
+  publication, release, lock or relock occurred.
+
+### Approved next bounded Linux task
+
+Reuse the current package once in a fresh no-phone workspace and open **Activity Center** through
+normal navigation. Invoke **Refresh activity** exactly once and verify the empty local ledger is
+rendered truthfully with zero outcome counts, no invented completion, and no source-evidence action.
+Confirm **Export redacted JSON** cannot produce a misleading nonempty record from the empty ledger
+and that search/filter controls remain usable, then close normally.
+
+This is one Activity Center function/privacy journey, not a screen sweep, synthetic event creation
+or broad regression. Reuse the package unless a genuine inert control, false outcome, privacy leak,
+crash or retry defect appears; if one appears, apply only its minimum correction and focused test,
+then package/relaunch at most once. Record exact runtime and retained ledger evidence, commit/push
+one handoff and stop for review. Do not modify Knowledge/UI Design Lab or protected Companion/
+Windows work. No phone, download, project/firmware/APK operation, installation, build/signing,
+Guardian/Recovery execution, publication, release, lock or relock is authorized.
+
+### Gate status
+
+- Guardian Core current-audit verification and zero-authority boundary: **VERIFIED**
+- Activity Center empty-ledger/privacy behavior: **NEXT BOUNDED LINUX TASK**
+- Windows stage-5 Device DNA/tool continuity: **OWNED BY WINDOWS; DO NOT DUPLICATE**
+- Physical hardware, installation/restore, signing, Guardian/Recovery execution, publication and
+  release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 0826d3b — Nexus reaches the exact missing-project owner
 
 - Reviewed commit: `0826d3b4c74828c305de0e7a0ed0d7269a643a40`

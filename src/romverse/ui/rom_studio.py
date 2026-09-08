@@ -4340,6 +4340,7 @@ class RomStudio(QWidget):
         title: str,
         success_message: str,
         parent: QWidget | None = None,
+        auto_start: bool | None = None,
     ) -> bool:
         """Run one contract-scoped setup and accept only a fresh complete verification."""
 
@@ -4350,14 +4351,19 @@ class RomStudio(QWidget):
 
         required_names = tuple(dict.fromkeys(required_names))
         host = current_host()
+        should_auto_start = (
+            self.app_settings.auto_download_verified_tools
+            if auto_start is None
+            else auto_start
+        )
         dialog = ToolchainSetupDialog(
             host,
             self.tool_statuses,
             self.store.workspace,
             parent or self,
             required_names=required_names,
-            auto_start=self.app_settings.auto_download_verified_tools,
-            auto_close=self.app_settings.auto_download_verified_tools,
+            auto_start=should_auto_start,
+            auto_close=should_auto_start,
         )
         dialog.setWindowTitle(title)
         dialog.status.setText(purpose)

@@ -1,5 +1,92 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux source-parity checkpoint — Guided Genesis tool setup requires explicit consent
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `946281d` approved checkpoint `4f54f5d` and authorized the
+  platform-neutral Windows consent correction from `bb13daf`, plus the exact bounded stage-five
+  prerequisite from `6fc79f6` after repository inspection proved Linux did not yet contain it.
+- Stage: Stage 1 — v0.2 Golden Foundation, dependency-complete source parity for Guided Genesis
+  read-only Device Engine tool setup. This is a correctness/consent correction, not a new feature.
+- Exact source changes:
+  - `src/romverse/ui/guided_mission.py` now hands a pending stage-five scan to the existing Forge
+    Arsenal setup boundary when ADB/Fastboot are not freshly available, retains the exact project,
+    protected-source prefix and read-only purpose, resumes at most one scan after verified success,
+    and returns to the same enabled retry when setup is declined or incomplete.
+  - Guided Genesis explicitly calls that setup boundary with `auto_start=False`; opening Forge
+    therefore cannot begin a tool download or installation merely because the global verified-tool
+    preference is enabled.
+  - `src/romverse/ui/rom_studio.py` accepts a narrow optional `auto_start` override and binds
+    `auto_close` to the same explicit choice. Unchanged callers continue to inherit the existing
+    global verified-tool preference.
+  - `tests/test_rom_studio_ui.py` imports the two missing platform-neutral stage-five continuity
+    cases and records that Guided passes both `auto_start=False` and `auto_close=False`.
+- No Windows handoff history, Recovery/Archives, App Launchpad, Companion, Knowledge/UI Design Lab,
+  Device Pack, Guardian/Recovery executor or unrelated source was changed.
+
+### Verification without double-counting
+
+- Exactly five focused Linux cases passed: **5/5**.
+  1. Already-verified tools request one direct fresh stage-five scan and rebuild Device DNA.
+  2. Successful missing-tool repair resumes exactly one pending scan and returns truthfully to the
+     device stage when no target appears.
+  3. Declined/incomplete repair starts no scan and retains the same enabled retry.
+  4. Guided setup passes explicit `auto_start=False` and `auto_close=False` and fails closed while a
+     required reader remains missing.
+  5. Unchanged Partition Atlas retains the normal global automatic verified-tool preference.
+- Ruff and Git whitespace validation passed for all three changed source/test files.
+- An initial pre-clarification selection produced three passes and two failures because Linux lacked
+  the separately introduced `6fc79f6` stage-five prerequisite. Build stopped rather than broadening
+  silently; Product Assurance explicitly authorized that exact prerequisite, after which the final
+  required five-case selection passed. Only the final 5/5 is counted as acceptance evidence.
+- No broad suite, package build, application launch, tool acquisition or device probe was run.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** dependency-complete platform-neutral Guided stage-five setup/scan continuity and
+  explicit review-only consent override, with the default behavior preserved for non-Genesis
+  callers.
+- **Simulated/Tested:** 5/5 focused source/UI tests using synthetic local projects and inert Qt
+  signals. No external tool, Android transport or hardware state was simulated as real evidence.
+- **Hardware Verified:** no. No Android phone was connected, discovered, selected or operated.
+- **Released:** no. No package, installer, archive or release artifact was built.
+- Blockers/failures: no remaining failure in the authorized selection. The initial source-lineage
+  discrepancy was resolved by explicit Product Assurance clarification before the prerequisite was
+  added.
+- Guided friction/dead ends: missing stage-five scan tools now open a reviewable Forge boundary
+  rather than stopping at an unexplained missing-phone state; declining keeps one clear retry;
+  successful verification resumes one scan. No automatic setup, auto-close or extra confirmation
+  chain occurs in Guided.
+- Guardian/Recovery/safety: Forge setup remains a tool-verification prerequisite only and grants no
+  target, Device DNA fact, plan, approval, consent or execution authority. The pending action is
+  read-only and exact-project/source scoped. UNKNOWN/no-blind-retry, exact-device and exact-incident
+  evidence, independent verification, Guardian-only authority and permanent no-relock remain
+  unchanged.
+- Linux/Fedora: source behavior verified genuinely with the five focused Fedora-hosted tests; no
+  packaged Linux journey was authorized or run. Windows behavior was the approved source reference,
+  but no Windows command or test was run by this task.
+- Feature freeze: compliant consent and existing-flow parity correction only; no feature, new
+  scanner, adapter, execution capability or product surface was added.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all remaining gates.
+- External actions: this scoped branch is pushed normally with the source/test/handoff checkpoint.
+  No package build, application launch, download, tool or system installation, ADB/Fastboot
+  invocation, phone/emulator operation, APK/firmware action, signing, approval, Guardian/Recovery
+  execution, publication, release, merge, force-push, lock or relock occurred. Recovery/Archives,
+  App Launchpad, Companion, Knowledge/UI Design Lab, Windows and unrelated files were preserved.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another consequential slice until the
+verdict for this exact Guided tool-setup consent/source-parity checkpoint is recorded in
+`docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm the bounded `6fc79f6` prerequisite plus `bb13daf` consent override reproduce the approved
+  dependency-complete behavior on Linux: one explicit Forge decision, one scan only after verified
+  success, safe retry after decline, and unchanged non-Genesis default preference.
+
 ## Linux Guided checkpoint — Recovery Bay context survives the local Archives route
 
 ### Authoritative checkpoint and scope

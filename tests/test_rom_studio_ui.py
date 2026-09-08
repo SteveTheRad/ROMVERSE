@@ -1888,6 +1888,107 @@ def test_genesis_device_stage_requests_a_fresh_scan_and_rebuilds_device_dna(tmp_
     studio.close()
 
 
+def test_genesis_device_stage_repairs_platform_tools_then_resumes_one_scan(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    source = tmp_path / "rom.zip"
+    with zipfile.ZipFile(source, "w") as archive:
+        archive.writestr("ROMVERSE-SYNTHETIC-TEST-EVIDENCE.txt", "synthetic evidence\n")
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.create("Device scan repair continuity")
+    project = store.import_original(project.project_id, source)
+    inspection = RomInspectionService(store)
+    inspection.inspect_project(project.project_id)
+    store.create_working_copy(project.project_id)
+    inspection.extract_project_tree(project.project_id)
+    studio = RomStudio(store, DevicePackRegistry(()))
+    studio.refresh(project.project_id)
+    GuidedMissionStore(store.projects_root / project.project_id).save(
+        GuidedMissionState(selected_stage="device")
+    )
+    mission = GuidedBuildMission(studio)
+    resolutions = []
+    scan_requests = []
+    studio.device_scan_requested.connect(lambda: scan_requests.append(True))
+
+    def resolve(required, *, purpose):
+        resolutions.append((required, purpose, mission.active_operation))
+        studio.device_scan_available = True
+        return True
+
+    mission._resolve_required_tools = resolve
+    mission._run_stage()
+
+    assert resolutions == [
+        (
+            ("ADB", "Fastboot"),
+            (
+                "Genesis stage 5 must freshly verify Android Platform Tools for the exact "
+                f"project {project.project_id} and protected source "
+                f"{project.original.sha256[:16]}… before one read-only device scan. "
+                "No phone-changing command is authorized."
+            ),
+            "device-scan",
+        )
+    ]
+    assert scan_requests == [True]
+    assert mission.active_operation == "device-scan"
+    assert not mission.process_frame.isHidden()
+
+    studio.set_devices([])
+    studio.device_scan_finished.emit(
+        True,
+        "Fresh device scan completed; no Android device is visible.",
+    )
+    app.processEvents()
+
+    assert mission.active_operation == ""
+    assert mission.assessments[4].status is GuidedStageStatus.ATTENTION
+    assert mission.assessments[mission.selected_index].stage.stage_id == "device"
+    assert "No Android device is currently visible" in mission.status_text.text()
+    persisted = GuidedMissionStore(store.projects_root / project.project_id).load()
+    assert persisted.selected_stage == "device"
+    assert not (store.projects_root / project.project_id / "build-plan.romverse").exists()
+    mission.close()
+    studio.close()
+
+
+def test_genesis_device_stage_retains_retry_when_platform_tools_repair_is_declined(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    source = tmp_path / "rom.zip"
+    with zipfile.ZipFile(source, "w") as archive:
+        archive.writestr("ROMVERSE-SYNTHETIC-TEST-EVIDENCE.txt", "synthetic evidence\n")
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.create("Device scan repair retry")
+    project = store.import_original(project.project_id, source)
+    inspection = RomInspectionService(store)
+    inspection.inspect_project(project.project_id)
+    store.create_working_copy(project.project_id)
+    inspection.extract_project_tree(project.project_id)
+    studio = RomStudio(store, DevicePackRegistry(()))
+    studio.refresh(project.project_id)
+    GuidedMissionStore(store.projects_root / project.project_id).save(
+        GuidedMissionState(selected_stage="device")
+    )
+    mission = GuidedBuildMission(studio)
+    scan_requests = []
+    studio.device_scan_requested.connect(lambda: scan_requests.append(True))
+    mission._resolve_required_tools = lambda _required, *, purpose: False
+
+    mission._run_stage()
+    app.processEvents()
+
+    assert scan_requests == []
+    assert mission.active_operation == ""
+    assert mission.assessments[mission.selected_index].stage.stage_id == "device"
+    assert mission.failure is not None
+    assert mission.failure.title == "Forge Arsenal still needs attention"
+    assert "reopen the same repair" in " ".join(mission.failure.recommendations)
+    assert mission.action_button.isEnabled()
+    assert mission.action_button.text() == "Scan device & refresh DNA"
+    mission.close()
+    studio.close()
+
+
 def test_genesis_simulated_device_continues_visibly_without_hardware_authority(
     tmp_path, monkeypatch
 ):
@@ -2124,6 +2225,7 @@ def test_genesis_tool_resolution_fails_closed_when_required_reader_remains_missi
     studio = RomStudio(store, DevicePackRegistry(()))
     studio.refresh(project.project_id)
     mission = GuidedBuildMission(studio)
+    setup_options = {}
 
     class Status:
         def setText(self, _text):
@@ -2133,8 +2235,8 @@ def test_genesis_tool_resolution_fails_closed_when_required_reader_remains_missi
         last_message = "Installation was closed before completion."
         status = Status()
 
-        def __init__(self, *_args, **_kwargs):
-            pass
+        def __init__(self, *_args, **options):
+            setup_options.update(options)
 
         def setWindowTitle(self, _title):
             pass
@@ -2164,6 +2266,8 @@ def test_genesis_tool_resolution_fails_closed_when_required_reader_remains_missi
     assert mission.failure is not None
     assert mission.failure.title == "Forge Arsenal still needs attention"
     assert "Payload Dumper" in " ".join(mission.failure.recommendations)
+    assert setup_options["auto_start"] is False
+    assert setup_options["auto_close"] is False
     mission.close()
     studio.close()
 

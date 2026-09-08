@@ -100,8 +100,31 @@ def test_apk_center_inspects_locally_without_a_connected_phone(tmp_path) -> None
     assert center.current_plan is None
     assert not center.approve.isEnabled()
     assert not center.install_button.isEnabled()
+    assert not center.connect_phone.isHidden()
+    assert center.connect_phone.isEnabled()
     assert "connect and authorize" in center.result_label.text().casefold()
     assert plan.inspection.sha256 in center.hash_label.text()
+    center.close()
+
+
+def test_apk_center_connection_action_preserves_exact_local_inspection(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = ApkCenter(tmp_path)
+    inspection = _ready_plan(tmp_path).inspection
+    requests: list[bool] = []
+    center.connect_phone_requested.connect(lambda: requests.append(True))
+
+    assert center.connect_phone.isHidden()
+    center._inspection_ready(inspection)
+    app.processEvents()
+
+    center.connect_phone.click()
+
+    assert requests == [True]
+    assert center.current_inspection is inspection
+    assert inspection.sha256 in center.hash_label.text()
+    assert not center.approve.isEnabled()
+    assert not center.install_button.isEnabled()
     center.close()
 
 

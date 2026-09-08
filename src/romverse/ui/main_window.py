@@ -4178,6 +4178,7 @@ class MainWindow(QMainWindow):
         )
         self.apk_installer.runtime_tools_requested.connect(self._resolve_apk_runtime)
         self.apk_installer.inspection_tools_requested.connect(self._resolve_apk_inspection_tools)
+        self.apk_installer.connect_phone_requested.connect(self._open_apk_connection_owner)
         self.apk_installer.knowledge_article_requested.connect(self._open_knowledge_article)
         self.stack.addWidget(self.apk_installer)
         media_backup_service = (
@@ -8301,6 +8302,21 @@ class MainWindow(QMainWindow):
             success_message="AAPT2 and APK signature verification freshly verified for App Launchpad.",
             parent=self,
         )
+
+    @Slot()
+    def _open_apk_connection_owner(self) -> None:
+        """Preserve local APK evidence while Command Deck owns one read-only discovery."""
+
+        inspection = self.apk_installer.current_inspection
+        if (
+            inspection is None
+            or not inspection.valid
+            or self.apk_installer._authorized_device() is not None
+        ):
+            return
+        if not self._navigate_route("command_deck"):
+            return
+        self.device_center.refresh_requested.emit()
 
     @Slot()
     def _resolve_terminal_runtime(self) -> None:

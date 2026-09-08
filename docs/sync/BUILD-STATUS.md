@@ -1,5 +1,128 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux Guided checkpoint — App Launchpad hands off one retained APK to connection discovery
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `ca8b7c8` approved the current AAPT2 minimum-SDK evidence
+  checkpoint at `bb87b1e` and authorized only one contextual App Launchpad connection action,
+  focused wiring coverage and one packaged no-phone journey.
+- Stage: Stage 1 — v0.2 Golden Foundation, removal of one Guided dead end between a retained local
+  APK inspection and the existing Command Deck device-discovery owner.
+- Exact source changes:
+  - `src/romverse/ui/apk_center.py` exposes **Connect and authorize phone** only while a valid local
+    APK inspection is retained, no authorized device exists and no APK worker is active. The action
+    carries no plan, approval, consent, installation or device authority.
+  - `src/romverse/ui/main_window.py` accepts that request only while the same preconditions remain
+    true, routes to the existing Command Deck and emits one request through its existing bounded
+    read-only Device Engine discovery boundary. It introduces no scanner, command or authority.
+  - `tests/test_apk_center_ui.py` and `tests/test_navigation_vocabulary.py` cover contextual
+    visibility, exactly one emitted discovery request, route ownership, exact inspection/hash
+    retention and continuously disabled approval/install actions.
+- No Companion, Knowledge/UI Design Lab, Windows, Device Pack, adapter, Guardian/Recovery executor
+  or other product source changed.
+
+### Verification without double-counting
+
+- Focused widget/wiring selection: **3/3 passed**. This includes the existing local no-phone APK
+  inspection case, the contextual action/evidence-retention case and the complete App Launchpad →
+  Command Deck → App Launchpad wiring case. No broad suite was run.
+- Ruff and Git whitespace validation passed for the four changed source/test files.
+- Exactly one corrected PyInstaller package was built on Fedora 44 with Python 3.14.7 and
+  PyInstaller 6.22.2. Executable:
+  `build/linux-pa-apk-connect-ca8b7c8/frozen/ROMVERSE/ROMVERSE`, 6,323,824 bytes, mode `0755`,
+  SHA-256 `557b1ad70c25f269ef16340ef5a9fc5607032e80cb853466f3454ef9b793d412`.
+  It is an ignored unsigned local development artifact. PyInstaller completed successfully with
+  only its standard optional `xxsubtype` hidden-import warning.
+
+### One packaged no-phone connection journey
+
+- The corrected package ran once, unelevated, through Fedora XWayland in the existing isolated
+  workspace `/tmp/romverse-apk-positive-265bfbc.cgO2vj`, with no simulated or physical phone.
+- App Launchpad inspected the original ignored
+  `companion/app/build/outputs/apk/debug/app-debug.apk` in place. It retained the exact 9,060,239
+  bytes and SHA-256 `62bc530d5f077e3e34ad71002caa24303a584bf4661f56d2cc338c976bfb5a2b`,
+  package `com.radforge.romverse.companion`, version `0.2.0-alpha.5` (code `8`), minimum SDK 26,
+  target SDK 35, four declared permissions and verified signer SHA-256
+  `b1e1bd6e1c199d6bc1649998546a20559e3b0f979cb401ef487b0cde7f993cb1`.
+- With no authorized device, the contextual **Connect and authorize phone** action was visible and
+  enabled while **Review and approve exact plan** and **Install approved APK** remained disabled.
+  Invoking it once opened Command Deck and requested discovery through the existing owner.
+- Command Deck completed with the truthful no-phone state: **No Android device detected**,
+  **NOT CONNECTED**, connection/USB-debugging guidance, the explanation that no Android transport
+  was visible and an enabled **Scan for device** retry. No terminal stop, false driver claim or
+  second connection implementation appeared.
+- Returning through ordinary navigation showed the same exact retained APK inspection and hash,
+  the same contextual connection action and still-disabled approval/install actions. No APK
+  reselection, reinspection, plan or authority was introduced.
+- ROMVERSE closed normally through the desktop window-close action and no packaged process
+  remained. The cumulative runtime record now contains exactly four start/clean-close pairs,
+  SHA-256 `cc4ec80e048cfb5fd12f6222e4e61a7c5449ee8fbc22b18048188330bc42da20`,
+  with no fatal trace.
+
+### Final retained evidence
+
+- The original APK retained its exact path, 9,060,239-byte size, `0644` mode,
+  `2026-09-07 20:48:41.701009772 +1000` modification time, inode `71044400` and SHA-256. It was not
+  copied, rebuilt, altered, staged, committed, signed or installed.
+- Every existing private managed AAPT2/apksig artifact and receipt retained its `2026-09-09 05:41
+  AEST` modification time. The private toolchain plan remained byte-identical at SHA-256
+  `473a4e0926ac52033b127194b8d67f84af7894a9eaacdfd4ec30dee1d961ac0a`; no tool acquisition,
+  repair or download occurred.
+- The cumulative Guardian audit verifies as one valid gap-free SHA-256 chain of **332** scheduled
+  and requested read-only host inventories: 166 ADB and 166 Fastboot `devices -l` operations.
+  This package run added 92 records: 46 ADB and 46 Fastboot, all allowed, host-targeted,
+  untimed-out and return code 0. The existing application cadence continued while the native file
+  chooser was open; focused wiring coverage separately proves the contextual action emits exactly
+  one discovery request. No audit record contains a device selector or changing operation. Final
+  chain hash `36e016542ad91659ba1627fb06f9b78684ce06b7e23290ce5ba91eb3e2da4db5`;
+  audit-file SHA-256 `d1ca824cc99090cf733ec30df950f400cc19380f5d76497518c5f8f9e97b032b`.
+- The isolated workspace contains no APK copy, project, preflight/install receipt, approval,
+  Activity/Live Console event, snapshot, backup, ROM build or working-ROM file.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** one contextual, precondition-checked App Launchpad handoff to the existing
+  Command Deck discovery owner while exact APK evidence remains retained.
+- **Simulated/Tested:** 3/3 focused tests and one genuine packaged Fedora no-phone journey. The
+  absence of a phone was real, not simulated; this did not constitute hardware verification.
+- **Hardware Verified:** no. No Android phone was connected, discovered, selected or operated.
+- **Released:** no. The package remains an unsigned local development artifact.
+- Blockers/failures: none in the bounded journey. A phone remains intentionally required before
+  the existing exact-device binding and approval path can advance.
+- Guided friction/dead ends: the previously inert textual connection prerequisite now has one
+  direct contextual action. A no-phone user lands on the existing owner, receives truthful inline
+  guidance and can retry; returning preserves the work already completed. No confirmation chain or
+  duplicate scanner was added.
+- Guardian/Recovery/safety: the handoff and all observed discovery operations are read-only and
+  grant no plan, approval, consent, install or execution authority. UNKNOWN/no-blind-retry,
+  exact-device and exact-incident evidence, independent verification, Guardian-only authority and
+  permanent no-relock remain unchanged.
+- Linux/Fedora: genuinely verified on Fedora 44/XWayland. Windows and physical Android were not
+  run.
+- Feature freeze: compliant bounded Guided correctness fix; no product capability, new workflow,
+  scanner, Device Pack, adapter, Knowledge behavior or execution path was added.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all remaining gates.
+- External actions: one corrected local package was built, one original APK was inspected
+  read-only, and this scoped branch is pushed normally with the source/test/handoff checkpoint.
+  Normal no-target read-only ADB/Fastboot inventory occurred. No phone operation, simulated device,
+  tool acquisition, system/APK installation, APK copy/build/signing, approval, consent,
+  project/firmware work, backup/restore, Guardian/Recovery execution, publication, release, merge,
+  force-push, lock or relock occurred. Companion source, Knowledge/UI Design Lab and Windows work
+  were not modified, staged or committed.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another consequential slice until the
+verdict for this exact App Launchpad connection-owner handoff checkpoint is recorded in
+`docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm the contextual visibility and revalidation boundary, single existing-owner discovery
+  request, truthful no-phone landing, retained exact APK evidence and continuously disabled
+  approval/install actions close the approved Guided dead end without creating authority.
+
 ## Linux correctness checkpoint — current AAPT2 minimum-SDK evidence is retained
 
 ### Authoritative checkpoint and scope

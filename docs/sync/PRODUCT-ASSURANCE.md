@@ -1,5 +1,37 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 605b119 — Windows Forge Arsenal managed Platform Tools
+
+- Handoff commit: `605b119a6530922e8c9e6c59faf9900489ebd4dd`
+- Approved base: `178b8dd`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — JOURNEY WORKS; NO SOURCE CORRECTION REQUIRED**
+
+### Decision
+
+The bounded reproduction is sufficient and correctly avoids rewriting a working path. The production
+dialog showed determinate progress through completion, the official pinned archive and both managed
+executables matched their recorded hashes, host-only version checks passed, and a fresh process
+reloaded the durable receipt and reactivated the exact workspace-local directory. The 16 focused
+Windows tests cover activation, progress, receipt safety and wrong-digest preservation.
+
+This proves managed preparation and restart reload in the disposable Windows workspace. It does not
+prove system-wide installation, a Windows driver, phone communication or device command execution,
+and the UI should continue to describe the result as ROMVERSE-managed tooling rather than a global
+install. No source change was necessary. Safety, feature-freeze and permanent no-relock boundaries
+remain intact.
+
+### Approved next bounded Windows task
+
+Reproduce the two retained Windows Build Control compact-layout failures identified by the earlier
+baseline: horizontal overflow and footer sizing at the supported small native window. If a genuine
+runtime layout defect is present, apply the smallest responsive-layout correction and verify it in
+one native/offscreen Windows journey plus the two focused nodes and directly affected tests. Do not
+perform a broad suite or artifact rebuild. If both failures are stale fixture assumptions and the
+actual supported layout is usable, correct only the fixture contract and record the measured
+geometry. Do not overlap Linux Device Intelligence or the unapproved UI Design Lab, and make no
+phone, tool-installation, signing, publication or release action.
+
 ## Reviewed checkpoint: 3162bc4 — runnable Windows Stage 1 desktop
 
 - Handoff commit: `3162bc4c832c833f1a75f9631b3604f71822f1c4`

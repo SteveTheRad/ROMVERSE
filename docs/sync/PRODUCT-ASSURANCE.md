@@ -1,5 +1,62 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 5f61887 — packaged Fedora no-phone user journey
+
+- Handoff commit: `5f61887`
+- Product Assurance authorization/base: `df9351fd79bd811b9cccdfff2fb266f6e16bd1f1`
+- Packaged source: `9ca297b4ad048fee89bb7686128f40d35b441456`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — PACKAGED FEDORA USER JOURNEY VERIFIED**
+
+### Decision and evidence
+
+The exact approved unsigned archive was extracted once and its real packaged executable completed
+Guided entry, Command Deck, workspace-local Platform Tools remediation, an offline Knowledge lookup,
+clean shutdown and a durable restart. The same executable/archive identities remained bound to the
+previously approved hashes. Three durable workspace/evidence/tool receipts remained byte-identical
+across restart, and five sampled consequential controls stayed disabled with no target present.
+No corrective rebuild or duplicate automated suite was needed.
+
+Opening `Resolve Platform Tools` is an explicit user request to repair that prerequisite. With the
+documented `auto_download_verified_tools` preference enabled, automatically fetching the official
+hash-verified package into the isolated workspace is accepted Guided zero-friction behavior. It is
+not a system installation or device action. The UI reported the download and verified activation;
+no operating-system authorization was hidden. Revisit the button wording only if a reproducible
+user dead end appears—do not create a presentation-only rebuild loop from this checkpoint.
+
+### Vision, freeze and safety result
+
+- Real packaged first launch, useful offline lookup and durable restart: **PASS**
+- Guided no-device truthfulness and workspace-local tool remediation: **PASS**
+- Feature freeze: **PASS — evidence-only packaged integration**
+- Guardian-only authority, exact evidence, consent separation, UNKNOWN/no-blind-retry and permanent
+  no-relock: **PRESERVED**
+- Phone, device command, execution, system installation, signing, publication and release: **NONE**
+
+### Approved next bounded task
+
+Run one real, no-phone, read-only packaged firmware-intake journey using the existing local
+`adbb99b9d6e6c3e6-HyperOS4-Xiaomi17ProMax-Debloated-CustomRom.zip` as an external source selected
+in place. Do not copy, extract, modify, build, sign or execute it. Through the packaged production
+UI/service path, verify ROMVERSE identifies and hashes the source, presents its source/package
+evidence and exact known-versus-unconfirmed boundaries, exposes a useful next read-only inspection
+action, and preserves the protected-source/project identity across one clean restart. Stop before
+Recipe mutation, local build, device selection, consent, Guardian admission or Recovery.
+
+Use one disposable workspace and reuse existing receipt/fixture coverage. Record only the first
+concrete packaged-runtime or Guided-friction defect. If one appears, implement its minimum
+freeze-safe correction with one focused regression and at most one corrective rebuild; otherwise
+commit evidence only. Do not run broad suites, repeat the prior startup/tool/Knowledge journey, use
+a phone/emulator or ADB/Fastboot target, touch Windows/Companion/Adaptive work, install system-wide,
+sign, publish, release, force-push or relock. Commit/push and stop for review.
+
+### Gate status
+
+- Fedora unsigned packaged first-run journey: **VERIFIED**
+- Next Linux milestone: **REAL LOCAL FIRMWARE READ-ONLY INTAKE**
+- Firmware mutation/build and physical target observation: **NOT AUTHORIZED**
+- Consent, execution, Recovery and public release: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: 95c80bc — unsigned Fedora internal development build
 
 - Handoff commit: `95c80bc70e9afed573ad21e27525ddf5cb48574b`

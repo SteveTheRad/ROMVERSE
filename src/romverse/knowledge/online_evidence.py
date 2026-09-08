@@ -305,6 +305,26 @@ def default_source_adapters() -> tuple[EvidenceSourceAdapter, ...]:
             **common,
         ),
         EvidenceSourceAdapter(
+            "google.pixel-factory-index",
+            "Google Pixel",
+            SourceCategory.OFFICIAL_FIRMWARE_INDEX,
+            "developers.google.com",
+            "/android/images",
+            "romverse.google-pixel-factory-index",
+            "1",
+            ("text/html",),
+            4 * 1024 * 1024,
+            maximum_claims=256,
+            freshness_days=30,
+            minimum_interval_seconds=2,
+            access_note=(
+                "Public official metadata only; do not accept terms, follow links, or download images."
+            ),
+            exact_url="https://developers.google.com/android/images",
+            allow_redirects=False,
+            requires_authentication=False,
+        ),
+        EvidenceSourceAdapter(
             "aosp.source-tree",
             "Android Open Source Project",
             SourceCategory.PUBLIC_DEVICE_TREE,

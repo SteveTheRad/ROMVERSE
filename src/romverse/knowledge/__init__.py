@@ -38,6 +38,14 @@ from romverse.knowledge.online_evidence import (
     project_evidence,
     scrub_private_text,
 )
+from romverse.knowledge.pixel_factory_index import (
+    PIXEL_FACTORY_INDEX_URL,
+    FactoryIndexOutcome,
+    FactoryIndexReceipt,
+    FixedPixelFactoryIndexHTTPS,
+    PixelFactoryIndexAcquirer,
+    PixelFactoryIndexError,
+)
 
 __all__ = [
     "ANDROID_DEVICE_GUIDE_URL",
@@ -64,6 +72,12 @@ __all__ = [
     "OnlineEvidenceClaim",
     "OnlineEvidenceError",
     "OnlineEvidenceStore",
+    "PIXEL_FACTORY_INDEX_URL",
+    "FactoryIndexOutcome",
+    "FactoryIndexReceipt",
+    "FixedPixelFactoryIndexHTTPS",
+    "PixelFactoryIndexAcquirer",
+    "PixelFactoryIndexError",
     "SourceCategory",
     "claim_from_registered_content",
     "compare_with_later_evidence",

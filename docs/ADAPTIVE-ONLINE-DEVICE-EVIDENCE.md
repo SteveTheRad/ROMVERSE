@@ -55,15 +55,16 @@ credentials/private query fields, redirects, compression, non-success status, un
 types, and oversized bodies. It validates caller-supplied response bytes but performs no network
 request itself and interprets no instructions or commands.
 
-The first default registry intentionally contains only sources already represented by repository
+The default registry intentionally contains only sources already represented by reviewed repository
 evidence:
 
 - Google Play's fixed public supported-device catalog;
 - public Android developer documentation;
+- Google's exact Pixel factory-image index, with metadata-only access;
 - public AOSP platform/device source through Android Gitiles;
 - public Android kernel source through Android Gitiles.
 
-OEM firmware indexes/manifests, OEM documentation, additional maintained technical repositories,
+Additional OEM firmware indexes/manifests, OEM documentation, maintained technical repositories,
 maintainer documentation, and technical community reports have source categories and can be added
 only as explicit reviewed adapters. They are deferred until Product Assurance accepts this common
 boundary. Private services, authenticated pages, anti-bot bypass, scraping workarounds, and
@@ -142,6 +143,29 @@ or remain explicitly investigable. Official publication never means a confirmed 
 The retained guidance projects read-only to Knowledge Archives, Device DNA diagnostics, Nexus, and
 Insight. It executes no diagnostic, follows no page link, targets no device, and grants no Guardian
 or compatibility authority.
+
+## Fixed Pixel 6 factory-index metadata boundary
+
+The next reviewed adapter accepts only `https://developers.google.com/android/images` and only the
+already retained public identity `Google / Pixel 6 / oriole`. It performs one no-redirect,
+identity-encoded HTML request with 8/12/30-second connect/read/overall timeouts and a four-MiB
+limit. It sends no authentication or cookies and never follows an image link, posts a form, accepts
+terms, or downloads an archive.
+
+The canonical English parser recognizes only one exact Pixel 6/oriole table and requires its
+reviewed Version, Download, and SHA-256 columns. Each complete row becomes one bounded structured
+metadata claim containing the explicit release label, build identifier, date, Android version,
+carrier/region scope when stated, official `dl.google.com` image URL identity, and published
+SHA-256. Duplicate/conflicting builds, duplicate image identities, missing dates or hashes,
+unexpected URLs, changed layout, excessive rows, private text, and executable/relock content in a
+candidate field fail closed. Scripts, code, forms, buttons, terms, instructions, navigation, and
+raw HTML are excluded from claims.
+
+Receipts permanently record `terms_accepted: false`, `binary_downloaded: false`, zero execution,
+phone, Guardian, and relock authority, and `UNCONFIRMED` compatibility. Device DNA, Compatibility
+Matrix, Pathfinder, Nexus, Foresight, and Knowledge Archives may inspect this metadata, but it
+cannot establish artifact compatibility, a safe flash route, a confirmed outcome, or permission to
+act on a device.
 
 ## Knowledge Coverage & Value Gate
 

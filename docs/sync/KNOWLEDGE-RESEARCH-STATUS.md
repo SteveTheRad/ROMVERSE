@@ -1,5 +1,53 @@
 # ROMVERSE Knowledge Research Status
 
+## Proposed Pixel 6 official factory-image metadata slice — 8 September 2026
+
+### Value-gate decision
+
+- Named consumers and gap: Device DNA, Compatibility Matrix, Pathfinder, Nexus, Foresight, and
+  Knowledge Archives need exact official Pixel 6 firmware-index identities. The retained retail
+  identity currently proves `Google / Pixel 6 / oriole`, but no official release/build/date/image
+  identity or published package hash is retained.
+- Exact retained fields: Pixel 6/oriole release label, build identifier, publication/release date,
+  explicit Android version and carrier/region scope when present, official image URL identity, and
+  the page-published SHA-256. Missing scope remains empty and is never inferred.
+- Authority and scope: one canonical public Google OEM index only,
+  `https://developers.google.com/android/images`, canonical English content, restricted to the
+  Pixel 6/oriole section. Facts are `officially-documented` firmware-index metadata only.
+- Freshness and validation: retain page revision/HTTP validators, retrieval time, response digest,
+  parser identity, and exact section/row provenance. Revalidate after 30 days. Require one exact
+  Pixel 6/oriole section, complete build/date/image/SHA-256 rows, unique build-to-image/hash
+  relationships, HTTPS Google-hosted image identities, and explicit layout markers. Stale facts
+  remain visible and request investigation; duplicate, ambiguous, changed, or conflicting rows fail
+  closed rather than selecting by order.
+- Parser and limits: `romverse.google-pixel-factory-index` version 1; exact URL; no redirect,
+  localization, query, authentication, cookies, compression, or followed links; 4 MiB response,
+  1,000 parsed headings/table rows, 256 matching rows, 240 characters per field, and 8/12/30-second
+  connect/read/overall timeouts. Conditional validators are sent only after a prior validated
+  content digest.
+- Privacy, licensing, and minimum retention: public product/build/package metadata only. Retain
+  normalized matching claims, source/revision/digests, and one strict receipt. Retain no raw HTML,
+  binary archive, page bulk, account/device identifier, credential, cookie, personal information,
+  source instruction, command, script, navigation, terms text, or relock text. This minimal factual
+  metadata use remains subject to Google's published site and image terms; ROMVERSE neither accepts
+  terms nor obtains gated binaries.
+- Capability benefit: name official Pixel 6 firmware candidates and verify a later user-supplied
+  artifact against a published identity/hash. This does not prove compatibility, safe flashing,
+  installation route, outcome, package authenticity beyond the retained page claim, or Guardian
+  authority.
+- Stop conditions: stop on a terms/consent gate, missing exact section, missing date or SHA-256,
+  unexpected host/path, layout drift, excessive size/count, privacy-unsafe content, executable or
+  relock text entering a candidate field, conflicting metadata, or any need to download/click/follow
+  a link. Stop after one bounded live retrieval and sanitized receipt/archive, then return to
+  Product Assurance.
+
+### Explicit exclusions
+
+No archive download, terms acceptance, instruction/procedure retention, command construction,
+bootloader unlock/relock guidance, device action, compatibility promotion, background scheduling,
+UI integration, phone/emulator access, build/flash/root/debloat work, Guardian approval, production
+trust/signing, publication, crawling, or second source is authorized.
+
 ## Official Android connection-guide checkpoint — 8 September 2026
 
 ### Checkpoint identity

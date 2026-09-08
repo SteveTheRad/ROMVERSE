@@ -119,6 +119,7 @@ def test_registry_is_deterministic_closed_by_default_and_has_small_public_set() 
         "android.google-play-device-catalog",
         "aosp.kernel-tree",
         "aosp.source-tree",
+        "google.pixel-factory-index",
     }
     assert all(not item.requires_authentication for item in registry.adapters)
     assert all(not item.allow_redirects for item in registry.adapters)

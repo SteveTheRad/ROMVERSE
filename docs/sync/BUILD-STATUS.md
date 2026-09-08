@@ -6,7 +6,9 @@
 
 - Product Assurance authorization/base:
   `bccc0b1eb7fc3585a8c65006d07076f334f6b2d8` — `Authorize read-only popsicle observation`.
-- Evidence checkpoint: the scoped commit containing this handoff on
+- Evidence checkpoint:
+  `60e7e85b260b9ae368bd81733c02febdc014babe` — `Record read-only popsicle hardware evidence`.
+- Final handoff: the follow-up commit containing this exact identifier on
   `linux/stage1-desktop-readiness`.
 - Stage: Stage 1 — v0.2 Golden Foundation, production Device Engine / Device DNA read-only
   hardware acceptance.

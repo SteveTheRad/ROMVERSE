@@ -1,5 +1,67 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 25e11ac — packaged Windows Command Deck observation
+
+- Reviewed commit: `25e11ac3ee2fc488f06d8a7207dae2d7372996ed`
+- Accepted source/artifact: `120af840b02bfa7ced40cb173541b5711deff2d3`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — PACKAGED WINDOWS COMMAND DECK IS VISIBLE, TRUTHFUL AND ACTIONABLE**
+
+### Decision
+
+Product Assurance independently retrieved and inspected the exact retained PNG, reproduced its
+SHA-256, verified the complete audit/log digests and confirmed no ROMVERSE process remains. The
+packaged Windows application visibly renders its identity, Command Deck, Guided entry and enabled
+no-device scan without a Device Engine error or missing-tools dead end. No source correction,
+rebuild, relaunch or test replay is required.
+
+The screenshot keeps readiness boundaries honest: there is no connected target, active project,
+consent or execution claim; Guardian remains `VERIFY REQUIRED` / `NOT YET READY`. The 12-record
+audit contains the four previously approved integration records plus eight scheduled observations
+during the single packaged launch. Every record is a successful serial-free host discovery, not a
+failure retry or physical-device action.
+
+### Independent evidence and acceptance
+
+- Direct inspection of the 1456x939 window image confirms `ROMVERSE Studio 0.2.0-alpha.1`, Command
+  Deck, `GUIDED • ARCANA`, `Connect your Android device`, enabled `Scan for device`, `No Android
+  device detected`, `NOT CONNECTED`, `No Android transport is visible`, and `Waiting for device`.
+- The PNG is 225,412 bytes and independently matches SHA-256
+  `c979fd190fee5e40b94b922904770e18e68b45ff701c62d484e9f896e03d7b33`.
+- The audit is exactly 12 sequential `devices -l` records, all category `read_only`, risk `none`,
+  target `host`, return code 0 and non-timeout, with no `-s` selector. Its independently reproduced
+  SHA-256 is `5e994fa14d5cf2e6ec897b5e7dcd6f535ab4099c3e5a31d83f0b9ada91c2a97d`.
+- The runtime record independently matches SHA-256
+  `9b548079f50e029991471fdbf93e92807fb82adb17319871cb9ab421e7b7f499` and contains only one
+  start followed by one clean close. No ROMVERSE process remains.
+- No app action, phone, emulator, target, APK, ROM build/signing, Guardian/Recovery execution,
+  publication, release, system change, lock or relock occurred.
+
+### Approved next bounded Windows task
+
+Use the same accepted artifact and prepared no-phone workspace once to verify the existing enabled
+**Start ROM Project** route is connected rather than inert. Launch unelevated, use the host's local
+Windows UI Automation to invoke only that exact non-consequential control, and capture one screenshot
+of the destination. It must route to the existing Guided mission-workspace/project entry with clear
+next input, preserve the no-device state, and start no scan, worker, download, build or device action.
+
+Do not retry the external Computer Use RPC, perform a broad screen inventory, use simulated Device
+DNA, or overlap Linux's current simulated Guided-to-candidate work. If the button is not accessible
+through the local UI Automation tree, one fixed-coordinate click within the already recorded exact
+window bounds is permitted; do not click any other control. If one genuine navigation/rendering dead
+end appears, apply only its minimum correction, run one focused changed-area check, and repackage/
+relaunch at most once. Otherwise make no source change. Close normally, preserve the untracked patch,
+commit/push one evidence handoff and stop for review. No phone, device-changing command, APK, ROM
+build/signing, Guardian/Recovery authority, publication, release, lock or relock is authorized.
+
+### Gate status
+
+- Packaged Windows main window/Command Deck/no-device rendering: **VERIFIED**
+- Windows no-device Start ROM Project navigation: **NEXT BOUNDED WINDOWS TASK**
+- Linux simulated Guided journey: **OWNED BY LINUX; DO NOT DUPLICATE**
+- Physical hardware, signing, Guardian/Recovery execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: c249d77 — Windows private Platform Tools self-repair
 
 - Reviewed commit: `c249d777ed76a28120700548aa1cefb08d9a9045`

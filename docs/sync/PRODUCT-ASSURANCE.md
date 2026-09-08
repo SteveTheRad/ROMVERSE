@@ -1,5 +1,61 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: e664893 — Windows no-phone Device Engine readiness
+
+- Handoff commit: `e664893cf0d386b90bf342836e8ea58ff01f9daa`
+- Implementation commit: `e760ae9fd9089cffbe86863275c1ff780a5d5438`
+- Approved base: `2a3fba1`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — CALM ACTIONABLE NO-DEVICE STATE**
+
+### Decision
+
+Product Assurance inspected the exact source/test diff and the genuine Windows handoff. Replacing
+the contradictory `No device connected` wording with `Waiting for device` after a successful empty
+scan is the minimum correct presentation repair. The Device Engine error remains empty, the state
+does not claim a discovered target, and the existing enabled `Scan for device` action provides the
+direct next step.
+
+The native journey also proves that the durable managed-tools receipt is revalidated and activated
+in a fresh process before host identity and unbound discovery. Zero serial-selected calls occurred.
+No target, compatibility, readiness or execution authority is inferred from an empty scan.
+
+### Independent evidence
+
+- Product Assurance independently reran the exact new test on the Legion with the committed source
+  explicitly bound through `PYTHONPATH=src`: **1/1 passed**.
+- The protected untracked patch remains byte-identical at SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- The preliminary pytest temporary-link cleanup error is correctly classified as unrelated
+  environment housekeeping; it does not replace or inflate the clean focused result.
+- No phone/emulator, serial-selected ADB/Fastboot command, firmware mutation, Recovery action,
+  signing, publication, release or bootloader relock occurred.
+- Feature freeze, exact-device evidence, Guardian-only authority, consent separation,
+  UNKNOWN-on-uncertainty, no blind retry and permanent no-relock remain intact.
+
+### Approved next bounded Windows task
+
+Prove the complete existing missing-tools recovery loop in one disposable no-phone Windows
+workspace: Device Engine detects unavailable/untrusted Platform Tools, routes through the existing
+Forge Arsenal resolution action, validates and activates the exact ROMVERSE-managed tools, then
+automatically resumes or offers one direct continuation into the calm `Waiting for device` state.
+The user must not be left to repair PATH, locate executables, restart manually or rediscover the
+previous screen.
+
+If one genuine Windows-only handoff/resume defect is reproduced, apply the minimum correction and
+verify one end-to-end journey plus directly affected focused tests. Reuse the already approved
+pinned archive/cache where valid; do not redownload or repeat a passing acquisition. Do not connect
+a phone/emulator, issue a serial-selected or mutating device command, run a broad suite, rebuild the
+artifact, overlap Linux Command Deck work, touch Knowledge/UI Design Lab or protected Companion
+files, sign, publish or release. Commit/push one bounded checkpoint and stop for independent review.
+
+### Gate status
+
+- Windows managed-tools restart activation and no-device readiness: **VERIFIED**
+- Missing-tools resolution-to-resumed Device Engine loop: **NEXT BOUNDED WINDOWS TASK**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+- Physical execution, production trust/signing, publication and release: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: f568132 — Windows Forge Control compact layout
 
 - Handoff commit: `f56813260b1e227e1d2873014cd5b2b3bd74f7eb`

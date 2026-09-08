@@ -1,5 +1,58 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 7e8656d — corrected packaged Forge review/cancel
+
+- Reviewed checkpoint: `7e8656da4ab673f1802161be8d927b1b80f1f651`
+- Accepted correction: `bb13daf830822be87b5f0edc58292f2b259af544`
+- Approved base: `4b99daad6d2411e55f9510e81d5c470db70fe08b`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — PACKAGED FORGE WAITS FOR EXPLICIT USER ACTION**
+
+### Decision
+
+Product Assurance independently verified the exact unsigned package and restored workspace. The
+corrected Guided handoff opens Forge in review-only mode with the exact stage-five project/source
+purpose, two enabled ADB/Fastboot choices, an enabled install action and a working cancellation
+path. A bounded wait produced no spontaneous download, installation, plan, command or authority.
+Cancellation returned Genesis to the same safe retry. No correction or replay is required.
+
+### Independent evidence and acceptance
+
+- The one-folder package independently contains 305 files totalling 164,644,024 bytes.
+  `ROMVERSE.exe` is 6,319,689 bytes, Authenticode `NotSigned`, and matches SHA-256
+  `89a52f4acbc26fd05b3f844dfb269167a85b758aa258970898a0269771429ab2`.
+- The exact saved workspace independently contains zero managed-tool files and no install plan or
+  Guardian audit. Its six-pair runtime record is 462 bytes and matches SHA-256
+  `00db3144b046799d2e0dee6d2ca8fe9211a6c93093ad4d6e963b1674a24f82f2`.
+- No ROMVERSE process remains. The untracked user patch remains 8,272 bytes with SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- This checkpoint changes only the Build handoff. The previously independently accepted **5/5**
+  native Windows tests were correctly not replayed.
+
+### Approved next bounded Windows task
+
+Bring the two completed platform-neutral Linux App Launchpad corrections into Windows source parity:
+the current/legacy AAPT2 minimum-SDK parser behavior from `bb87b1e` and the retained-APK contextual
+connection-owner handoff from `15f5953`. Transplant only their application/test changes; do not
+merge Linux handoff history or overwrite the accepted Windows Guided-consent correction. Resolve
+any source drift explicitly and preserve the untracked patch byte-identically.
+
+Run only the focused native Windows parser/widget/wiring cases for current, legacy,
+malformed/absent minimum-SDK evidence, contextual connection visibility, one route request and
+retained inspection/disabled approval/install state. Run Ruff and Git whitespace checks on changed
+files. Do not build or launch another package in this slice, select/download/install tools, invoke
+ADB/Fastboot, or use a phone. Commit/push one source-parity handoff and stop for review. No firmware,
+APK installation/signing, Guardian/Recovery execution, publication, release, lock or relock is
+authorized.
+
+### Gate status
+
+- Corrected packaged Guided Forge review/cancel behavior: **VERIFIED**
+- Windows parity for approved App Launchpad corrections: **NEXT BOUNDED WINDOWS TASK**
+- Linux Recovery/Archives work: **OWNED BY LINUX; DO NOT DUPLICATE**
+- Physical hardware, tool installation, execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 95624150 — explicit Genesis tool-setup consent
 
 - Reviewed checkpoint: `956241505d868030355ff4fc5ca8ad62a9953e5e`

@@ -1,5 +1,102 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — invalid local APK is rejected without install authority
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `7e45719` approved the direct no-phone connection journey and
+  authorized one fresh no-phone App Launchpad invalid-local-APK rejection/recovery journey.
+- Exact unchanged implementation/package source: `ca983ecd30724723574d7fdd6ae02ca107e3be3e`.
+- Exact unchanged package:
+  `build/linux-pa-health-scan-7100108/frozen/ROMVERSE/ROMVERSE`, 6,323,000 bytes, mode `0755`,
+  SHA-256 `0a47f9af3dea4c0f64983fdd4afc9d1fa01dfcc96185680e94f098b1cb19dde7`.
+- Stage: Stage 1 — v0.2 Golden Foundation, one evidence-only packaged App Launchpad continuity
+  check. No application source, test or package changed in this checkpoint.
+
+### Deterministic invalid input
+
+- One new external fixture was created at
+  `/tmp/romverse-invalid-apk-7e45719/invalid-local-sample.apk`: 105 bytes, mode `0644`, SHA-256
+  `d84d1b4ba1ced279f8fa8fe57a6e7a2c733f23fa7dc9af7474db10ba99e1f624`.
+- The file contains two deterministic plain-text lines and is not a ZIP container, Android
+  package, executable or real APK. It was not placed in, copied into or retained by the ROMVERSE
+  workspace.
+
+### One bounded packaged App Launchpad journey
+
+- The unchanged package ran once, unelevated, through Fedora XWayland in fresh workspace
+  `/tmp/romverse-app-launchpad-7e45719.MYh2yj`, with no simulated or physical phone.
+- The existing **Open App Launchpad** action opened the correct owner. Initial visible state was
+  truthful: **No authorized device selected**, **Choose an APK to begin**, enabled
+  **Choose APK and inspect**, and disabled approval/install actions. The page explicitly stated
+  that local inspection can occur before a phone is connected.
+- The shipped local chooser opened normally. The exact deterministic fixture above was selected
+  once and opened once; no other APK or file was selected.
+- Local inspection calculated and displayed the fixture's exact SHA-256, reported zero container
+  entries, no manifest/DEX/signature metadata, **Package identity unavailable**, and
+  **File is not a valid APK/ZIP container**.
+- App Launchpad then showed **Local APK inspection failed. Guardian will not bind or install this
+  file.** The rejection is inline, so no acknowledgement dialog or inert modal remained.
+  **Choose APK and inspect** was visible and enabled for immediate recovery; **Review and approve
+  exact plan** and **Install approved APK** remained visible and disabled.
+- No package name, valid APK claim, device-bound plan, approval, install authority, worker or
+  installation result was created after inspection settled. The fresh workspace contains zero APK
+  or project files and no Activity or Live Console ledger.
+- A normal X11 `WM_DELETE_WINDOW` closed ROMVERSE. No package process remained and the runtime log
+  contains exactly one start/clean-close pair, SHA-256
+  `c9a5cb9322615534d8a5ad7255f55888b66be1b4b82c6ab0116e1910585d64c3`, with no fatal trace.
+
+### Platform observation
+
+- GNOME's native **Choose APK** file chooser was visible and functional but exposed only its
+  top-level dialog with zero children through this session's AT-SPI bridge. Packaged automation
+  therefore used ordinary X11 pointer navigation to select the exact fixture; ROMVERSE's own
+  App Launchpad controls and rejection evidence remained fully visible through AT-SPI.
+- The longer pointer-observation session accumulated 126 normal Guardian audit records: 63 ADB and
+  63 Fastboot `devices -l` startup/periodic inventory probes. Every record is successful, read-only,
+  no-target and serial-selector-free. None originated from APK selection or created identity or
+  authority.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** no new behavior; this checkpoint verifies the shipped invalid-container
+  rejection and recovery path.
+- **Simulated/Tested:** one genuine packaged Fedora no-phone App Launchpad journey. No test suite
+  was run or double-counted because no source changed.
+- **Hardware Verified:** no. No Android phone was connected, discovered, selected or operated.
+- **Released:** no. The package remains an unsigned local development artifact.
+- Blockers/failures: none in the ROMVERSE flow. The GNOME chooser AT-SPI child exposure is recorded
+  as a platform/automation limitation; pointer selection completed without bypassing the chooser.
+- Guided friction/dead ends: the invalid file is rejected in plain language, approval/install stay
+  locked, no modal remains and the exact chooser action is immediately enabled for another choice.
+- Guardian/Recovery/safety: inspection is local and evidence-only. No exact target, plan, approval,
+  consent, incident, write or execution authority was created. UNKNOWN/no-blind-retry,
+  exact-device and exact-incident evidence, independent verification, Guardian-only authority and
+  permanent no-relock remain unchanged.
+- Linux/Fedora: genuinely verified on Fedora 44/XWayland. Windows and physical Android were not run.
+- Feature freeze: compliant evidence-only Stage 1 check; no feature, format, UI, Device Pack,
+  adapter, knowledge or production capability changed.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all remaining gates.
+- External actions: this scoped branch is pushed normally with this documentation-only handoff.
+  One tiny external plain-text fixture was created and selected through the local chooser. Normal
+  no-target read-only ADB/Fastboot inventory occurred. No real APK, phone operation, simulated
+  device, firmware/project work, APK/system installation, build/sign/flash, Guardian/Recovery
+  execution, publication, release, merge, force-push, lock or relock occurred. Protected Companion
+  and Windows launcher files were not modified, staged or committed.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another consequential slice until the
+verdict for this exact App Launchpad rejection/recovery checkpoint is recorded in
+`docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm the exact invalid-container evidence, disabled approval/install controls, enabled chooser
+  recovery and zero persistent APK/install records satisfy the invalid local APK gate.
+- Classify the native GNOME chooser's zero-child AT-SPI exposure as a platform observation or a
+  future accessibility correction without broadening this evidence-only checkpoint.
+
 ## Linux product checkpoint — direct no-phone Connect Device completes cleanly
 
 ### Authoritative checkpoint and scope

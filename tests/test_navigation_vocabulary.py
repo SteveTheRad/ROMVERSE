@@ -12,7 +12,7 @@ from unittest.mock import patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication, QDialog, QLabel, QPushButton
+from PySide6.QtWidgets import QApplication, QDialog, QFrame, QLabel, QPushButton
 
 from romverse.core.privacy import WorkspacePrivacy
 from romverse.core.settings import AppSettings, DesktopTheme, ExperienceMode
@@ -2726,6 +2726,79 @@ def test_command_deck_stale_live_resume_falls_back_to_current_genesis(
         assert window.live_console._mission_context_id == ""
         assert window.rom_studio.worker is None
         assert not QApplication.activeModalWidget()
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_mission_pulse_direct_live_operations_restores_the_global_ledger(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    store, registry, project, _report = _project(tmp_path)
+    unrelated = store.create("Global ledger project")
+    window = MainWindow(
+        None,
+        logo,
+        store.workspace,
+        app_icon_path=logo,
+        pack_registry=registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    current = window.nexus_events.start(
+        source="ROM Studio",
+        stage="inspect",
+        title="Scoped current mission",
+        summary="This project mission is active.",
+        explanation="Resume should initially scope to this mission.",
+        next_action="Review its exact ledger.",
+        project_id=project.project_id,
+    )
+    unrelated_event = window.nexus_events.note(
+        source="ROMVERSE Nexus",
+        stage="planning",
+        title="Unrelated global event",
+        summary="This genuine event belongs in deliberate global navigation.",
+        explanation="It must remain outside the scoped Resume view.",
+        next_action="Review it from the global ledger.",
+        project_id=unrelated.project_id,
+    )
+    try:
+        window.rom_studio.refresh(project.project_id)
+        window._sync_command_deck_context()
+        window.show()
+        app.processEvents()
+
+        window.device_center.primary_action_buttons["Resume Mission"].click()
+        app.processEvents()
+        assert window.live_console.table.rowCount() == 1
+        assert window.live_console.detail_title.text() == current.title
+
+        window._navigate_route("command_deck")
+        app.processEvents()
+        pulse = window.device_center.findChild(QFrame, "CommandDeckMissionPulse")
+        open_global = next(
+            button
+            for button in pulse.findChildren(QPushButton)
+            if button.text() == "Open Live Operations"
+        )
+        before = window.nexus_events.list_recent()
+        open_global.click()
+        app.processEvents()
+
+        visible_ids = {
+            window.live_console.table.item(row, 0).data(Qt.ItemDataRole.UserRole)
+            for row in range(window.live_console.table.rowCount())
+        }
+        assert window.stack.currentWidget() is window.live_console
+        assert "EXACT MISSION LEDGER" not in window.live_console.status.text()
+        assert current.event_id in visible_ids
+        assert unrelated_event.event_id in visible_ids
+        assert window.nexus_events.list_recent() == before
+        assert window.rom_studio.worker is None
+        assert window.repair_center.host_repair_worker is None
+        assert window.repair_center.online_worker is None
     finally:
         window.companion_center.transport.close()
         window.close()

@@ -1576,13 +1576,16 @@ class DeviceCenter(QWidget):
         events, ledger_error = self._mission_events()
         current = self._latest_mission_states(events)
         active = next((event for event in current if event.state is MissionState.RUNNING), None)
-        warnings = (
-            (events[0],)
-            if events
-            and events[0].state
-            in {MissionState.FAILED, MissionState.BLOCKED, MissionState.ATTENTION}
-            else ()
+        latest_warning = next(
+            (
+                event
+                for event in events
+                if event.state
+                in {MissionState.FAILED, MissionState.BLOCKED, MissionState.ATTENTION}
+            ),
+            None,
         )
+        warnings = (latest_warning,) if latest_warning is not None else ()
         successes = tuple(event for event in events if event.state is MissionState.SUCCEEDED)[:3]
         try:
             activity = self.activity_store.list_recent(24) if self.activity_store else ()

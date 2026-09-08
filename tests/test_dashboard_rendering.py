@@ -345,6 +345,42 @@ def test_command_deck_exposes_a_modified_live_ledger_without_guessing_state(tmp_
     center.close()
 
 
+def test_command_deck_mission_pulse_keeps_a_warning_after_newer_information(
+    tmp_path,
+) -> None:
+    QApplication.instance() or QApplication([])
+    missions = LiveConsoleEventStore(tmp_path)
+    warning = missions.note(
+        source="Recovery Autopilot",
+        stage="reconnect-check",
+        title="Exact reconnect was not observed",
+        summary="Recovery verification needs attention.",
+        explanation="The expected current-device observation is absent.",
+        next_action="Open Recovery Bay and review the existing incident.",
+        state=MissionState.ATTENTION,
+        confidence=MissionConfidence.VERIFIED,
+    )
+    newer_information = missions.note(
+        source="Device Engine",
+        stage="read-only-scan",
+        title="Read-only catalog refresh recorded",
+        summary="A newer informational event was retained.",
+        explanation="Information must not conceal the existing warning.",
+        next_action="No action is required for this information.",
+        state=MissionState.INFORMATION,
+    )
+    center = DeviceCenter(tmp_path, ActivityStore(tmp_path), missions)
+
+    pulse = center.findChild(QFrame, "CommandDeckMissionPulse")
+    labels = [label.text() for label in pulse.findChildren(QLabel)]
+
+    assert missions.list_recent()[:2] == (newer_information, warning)
+    assert "URGENT WARNINGS" in labels
+    assert any(warning.title in label for label in labels)
+    assert not any("No unresolved warning" in label for label in labels)
+    center.close()
+
+
 def test_command_deck_repair_card_reflects_exact_diagnostic_context(tmp_path) -> None:
     QApplication.instance() or QApplication([])
     center = DeviceCenter(tmp_path)

@@ -1,5 +1,57 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 36e627f — current unsigned Fedora development artifact
+
+- Handoff commit: `36e627fb90806be01ac3e7cee16b2c1b9c43994a`
+- Built source: `c8c07c05316b660c345775ffc4fcf088d9d60033`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — CURRENT FEDORA APPLICATION BUILDS AND LAUNCHES CLEANLY**
+
+### Decision
+
+Product Assurance inspected the documentation-only handoff and independently verified the exact
+archive, source binding and retained bundle. The approved one-folder pipeline produced the current
+Linux application once, and its native PATH-isolated no-phone startup/clean close exposed no
+frozen-only launcher, asset, dependency or runtime defect. No source change or repeated regression
+suite was justified.
+
+### Independent evidence and acceptance
+
+- Archive: `ROMVERSE-Desktop-0.2.0-alpha.1-linux-x86_64-c8c07c0.zip`, exactly **151,002,857
+  bytes**, SHA-256 `50715b7ef51610d1077fd7812269a54d6dcb68cbfe7458cd8ff3c14729184a0d`.
+- Independent ZIP integrity passed; inventory reproduces exactly **460 files / 360,309,514 expanded
+  bytes**. The one-folder application contains 422 files and the expected Linux x86-64 executable.
+- The frozen module graph binds ROMVERSE modules to this exact checkout. The native Wayland process
+  exited 0 after one bounded clean close; its fault record contains only normal start/close entries.
+- Deliberately unavailable ADB/Fastboot produced the truthful no-engine/no-phone Command Deck and no
+  operation or Guardian audit record.
+- No phone, device command, APK, firmware/local-candidate build, signing, flash, wipe, unlock,
+  relock, installation, publication or release occurred. Companion, Windows, Knowledge and UI
+  Design Lab work remained untouched.
+
+### Approved next bounded Linux task
+
+Converge this Linux engineering line with the two already independently reviewed Windows
+**workflow-only** corrections: `54d0a3b` (consume the actual current wheel path) and `73d22d0`
+(derive current artifact identity from project metadata, ignore `docs/sync/**`-only coordination
+commits and cancel superseded same-ref runs). Apply only the resulting
+`.github/workflows/test.yml` change to this branch; do not merge Windows application history or its
+handoff documents.
+
+Require the Linux workflow file to match the reviewed Windows workflow semantics exactly: no
+legacy `0.1.0` artifact/release label, source/test/package changes still trigger CI, sync-only
+commits do not, and current `0.2.0a1` paths expand consistently. Run only YAML/metadata/path
+validation and Git whitespace checks. Reuse the successful cross-platform package evidence from
+run `34226226022`; do not launch another full CI matrix while the external runner account gate is
+open. Commit/push one workflow-only checkpoint with `[skip ci]` and stop for review.
+
+### Gate status
+
+- Current runnable unsigned Fedora development artifact: **VERIFIED**
+- Shared current-version and efficient CI workflow semantics: **NEXT BOUNDED LINUX TASK**
+- Physical hardware, signing, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 17f08a8 — Forge Control is inspection-only before local build
 
 - Handoff commit: `17f08a8a33f57ed9bedcea8d46314b424b481200`

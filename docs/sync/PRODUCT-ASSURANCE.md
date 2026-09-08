@@ -1,5 +1,62 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: e385f9c — packaged Linux Guided consent boundary
+
+- Reviewed checkpoint: `e385f9c9c90bae7061ca4355ed9ff32e226b3b96`
+- Accepted source: `3dfe7f2` containing approved correction `bdecefc`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — PACKAGED GUIDED SETUP WAITS FOR EXPLICIT CONSENT**
+
+### Decision
+
+Product Assurance inspected the documentation-only checkpoint and independently verified the exact
+unsigned executable. With the global automatic verified-tool preference enabled and Platform Tools
+absent from the isolated process path, stage five opened Forge Arsenal in review-only mode with the
+exact project/source-bound read-only purpose. Waiting produced no spontaneous download,
+installation, scan or command. Cancelling returned Genesis to the same enabled scan retry without a
+worker, target, plan, approval, consent or execution authority. No correction or replay is needed.
+
+### Independent evidence and acceptance
+
+- The package executable is 6,325,072 bytes, mode `0755`, and independently matches SHA-256
+  `0652664ee0c85a15ddc60deae76c264abdc53cdca0f21811a038287940396b55`.
+- The commit changes only `docs/sync/BUILD-STATUS.md`; application source remains the already
+  approved `3dfe7f2` state. Git whitespace is clean and the branch is synchronized.
+- The isolated workspace retains the exact synthetic source and project evidence. Its managed-tool
+  directory remained empty and no install plan, Guardian audit, device command or scan exists.
+- Build correctly reused the accepted focused **5/5** source evidence instead of rerunning it; this
+  checkpoint contributes one genuine packaged consent journey only.
+- No phone/emulator, ADB/Fastboot invocation, tool acquisition/removal, APK/firmware device action,
+  signing, Guardian/Recovery execution, publication, release, Companion, Knowledge/UI Design Lab,
+  Windows, force-push, lock or relock occurred.
+
+### Approved next bounded Linux task
+
+Reuse this exact package without rebuilding and exercise one continuous local-only **SIMULATED**
+Guided customization journey through stages 6 and 7 in a fresh disposable workspace. Seed only the
+minimum inert synthetic Device DNA/compatibility evidence needed to make stage 6 reachable; label it
+simulation evidence and ensure it grants no physical-device, Guardian or Recovery authority. Open
+the existing Recipe Forge, create one bounded reversible change against a synthetic working tree,
+then use the existing transactional validation path. Require the protected source hash to remain
+unchanged, the working result and recipe evidence to bind to the same project/source, and any
+failure to restore the working tree automatically with an actionable retry.
+
+This task validates existing ROM-building functionality; it must not introduce a new feature or
+broaden into later Guided stages. Do not rebuild the package unless a genuine stage-6/7 defect is
+found; if one appears, make only the minimum source correction and focused test, rebuild/relaunch at
+most once, and complete the same journey. Commit/push one handoff and stop for review. Do not use a
+real phone/emulator, invoke ADB/Fastboot, download/install tools, perform APK/device or real firmware
+actions, sign, publish, release, execute Guardian/Recovery, touch Companion, Knowledge/UI Design Lab
+or Windows work, force-push, lock or relock.
+
+### Gate status
+
+- Packaged Linux explicit Guided consent boundary: **VERIFIED**
+- Simulated local Recipe Forge → transactional validation journey: **NEXT BOUNDED LINUX TASK**
+- Packaged Windows Recovery Archives journey: **OWNED BY WINDOWS; DO NOT DUPLICATE**
+- Physical hardware, installation, execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: bdecefc — explicit Guided tool-setup consent on Linux
 
 - Reviewed commit: `bdecefcbc0cc1f60d3b8766a84a7ebf664b6914f`

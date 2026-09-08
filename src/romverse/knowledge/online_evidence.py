@@ -73,6 +73,14 @@ class EvidenceConsumer(StrEnum):
     SIMULATION_LAB = "simulation-lab"
 
 
+class ClaimKind(StrEnum):
+    IDENTITY = "identity"
+    DIAGNOSTIC = "diagnostic"
+    GUIDE = "guide"
+    FIX_CLAIM = "fix-claim"
+    OUTCOME = "outcome"
+
+
 @dataclass(frozen=True, slots=True)
 class EvidenceScope:
     manufacturers: tuple[str, ...] = ()
@@ -113,9 +121,33 @@ class OnlineEvidenceClaim:
     corroborating_claim_ids: tuple[str, ...] = ()
     conflicting_claim_ids: tuple[str, ...] = ()
     status_reason: str = ""
+    knowledge_kind: ClaimKind = ClaimKind.IDENTITY
+    symptoms: tuple[str, ...] = ()
+    error_identifiers: tuple[str, ...] = ()
+    prerequisites: tuple[str, ...] = ()
+    affected_builds: tuple[str, ...] = ()
+    diagnostic_description: str = ""
+    remedy_description: str = ""
+    expected_result: str = ""
+    rollback_recovery_route: str = ""
+    outcome_provenance: str = ""
     execution_authority: str = "none"
     phone_action_allowed: bool = False
     guardian_approval: bool = False
+
+
+_TYPED_CLAIM_FIELDS = {
+    "knowledge_kind",
+    "symptoms",
+    "error_identifiers",
+    "prerequisites",
+    "affected_builds",
+    "diagnostic_description",
+    "remedy_description",
+    "expected_result",
+    "rollback_recovery_route",
+    "outcome_provenance",
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -388,6 +420,16 @@ def create_claim(
     state: EvidenceState = EvidenceState.SOURCE_REPORTED,
     confidence: int = 0,
     status_reason: str = "",
+    knowledge_kind: ClaimKind = ClaimKind.IDENTITY,
+    symptoms: tuple[str, ...] = (),
+    error_identifiers: tuple[str, ...] = (),
+    prerequisites: tuple[str, ...] = (),
+    affected_builds: tuple[str, ...] = (),
+    diagnostic_description: str = "",
+    remedy_description: str = "",
+    expected_result: str = "",
+    rollback_recovery_route: str = "",
+    outcome_provenance: str = "",
 ) -> OnlineEvidenceClaim:
     key = _token(claim_key, 100)
     source_token = _token(source_id, 100)
@@ -412,12 +454,25 @@ def create_claim(
     )
     confidence = _integer(confidence, minimum=0, maximum=100, label="claim confidence")
     reason = scrub_private_text(_bounded_text(status_reason, 500))
+    typed = {
+        "knowledge_kind": ClaimKind(knowledge_kind),
+        "symptoms": _guidance_items(symptoms, "symptoms"),
+        "error_identifiers": _guidance_items(error_identifiers, "error identifiers"),
+        "prerequisites": _guidance_items(prerequisites, "prerequisites"),
+        "affected_builds": _guidance_items(affected_builds, "affected builds"),
+        "diagnostic_description": _guidance_text(diagnostic_description, 500),
+        "remedy_description": _guidance_text(remedy_description, 500),
+        "expected_result": _guidance_text(expected_result, 300),
+        "rollback_recovery_route": _guidance_text(rollback_recovery_route, 300),
+        "outcome_provenance": _guidance_text(outcome_provenance, 500),
+    }
     claim_id = _claim_identity(
         key,
         safe_value,
         safe_excerpt,
         safe_scope,
         source,
+        **typed,
     )
     return OnlineEvidenceClaim(
         claim_id,
@@ -429,6 +484,7 @@ def create_claim(
         state,
         confidence,
         status_reason=reason,
+        **typed,
     )
 
 
@@ -664,10 +720,11 @@ def archive_mapping(archive: OnlineEvidenceArchive) -> dict[str, object]:
 
 
 def seal_archive(archive: OnlineEvidenceArchive) -> OnlineEvidenceArchive:
+    upgraded = tuple(_upgrade_claim_identity(claim) for claim in archive.claims)
     normalized = replace(
         archive,
         schema_version=OnlineEvidenceStore.SCHEMA_VERSION,
-        claims=tuple(sorted(archive.claims, key=lambda item: item.claim_id)),
+        claims=_link_claims(upgraded),
         archive_digest="",
         execution_authority="none",
         phone_action_allowed=False,
@@ -714,8 +771,10 @@ def parse_archive(raw: dict[str, object]) -> OnlineEvidenceArchive:
         raise OnlineEvidenceError("Online evidence claim identities must be unique")
     if _link_claims(claims) != tuple(sorted(claims, key=lambda item: item.claim_id)):
         raise OnlineEvidenceError("Online evidence claim relationships are invalid")
-    expected = seal_archive(replace(archive, archive_digest=""))
-    if expected.archive_digest != archive.archive_digest:
+    unsigned = dict(raw)
+    supplied_digest = unsigned["archive_digest"]
+    unsigned["archive_digest"] = ""
+    if _digest(supplied_digest) != hashlib.sha256(_canonical(unsigned)).hexdigest():
         raise OnlineEvidenceError("Online evidence archive digest is invalid")
     return archive
 
@@ -723,34 +782,72 @@ def parse_archive(raw: dict[str, object]) -> OnlineEvidenceArchive:
 def _parse_claim(raw: object) -> OnlineEvidenceClaim:
     if not isinstance(raw, dict):
         raise OnlineEvidenceError("Online evidence claim must be an object")
-    _exact_fields(raw, {field.name for field in fields(OnlineEvidenceClaim)}, "claim")
+    current_fields = {field.name for field in fields(OnlineEvidenceClaim)}
+    legacy_fields = current_fields - _TYPED_CLAIM_FIELDS
+    raw_fields = frozenset(raw)
+    if raw_fields not in {frozenset(current_fields), frozenset(legacy_fields)}:
+        raise OnlineEvidenceError("Online evidence claim fields are invalid")
+    legacy = raw_fields == frozenset(legacy_fields)
     scope = _parse_scope(raw["scope"])
     source = _parse_source(raw["source"])
     claim = OnlineEvidenceClaim(
-        _digest(raw["claim_id"]),
-        _token(raw["claim_key"], 100),
-        _private_text(raw["structured_value"], 500),
-        _private_text(raw["supporting_excerpt"], 800),
-        scope,
-        source,
-        EvidenceState(raw["state"]),
-        _integer(raw["confidence"], minimum=0, maximum=100, label="claim confidence"),
-        _tokens(raw["corroborating_claim_ids"], maximum=511, digest=True),
-        _tokens(raw["conflicting_claim_ids"], maximum=511, digest=True),
-        _private_text(raw["status_reason"], 500),
-        _literal(raw["execution_authority"], "none", "execution authority"),
-        _literal(raw["phone_action_allowed"], False, "phone action authority"),
-        _literal(raw["guardian_approval"], False, "Guardian approval"),
+        claim_id=_digest(raw["claim_id"]),
+        claim_key=_token(raw["claim_key"], 100),
+        structured_value=_private_text(raw["structured_value"], 500),
+        supporting_excerpt=_private_text(raw["supporting_excerpt"], 800),
+        scope=scope,
+        source=source,
+        state=EvidenceState(raw["state"]),
+        confidence=_integer(raw["confidence"], minimum=0, maximum=100, label="claim confidence"),
+        corroborating_claim_ids=_tokens(raw["corroborating_claim_ids"], maximum=511, digest=True),
+        conflicting_claim_ids=_tokens(raw["conflicting_claim_ids"], maximum=511, digest=True),
+        status_reason=_private_text(raw["status_reason"], 500),
+        knowledge_kind=(ClaimKind.IDENTITY if legacy else ClaimKind(raw["knowledge_kind"])),
+        symptoms=(() if legacy else _guidance_list(raw["symptoms"], "symptoms")),
+        error_identifiers=(
+            () if legacy else _guidance_list(raw["error_identifiers"], "error identifiers")
+        ),
+        prerequisites=(() if legacy else _guidance_list(raw["prerequisites"], "prerequisites")),
+        affected_builds=(
+            () if legacy else _guidance_list(raw["affected_builds"], "affected builds")
+        ),
+        diagnostic_description=(
+            "" if legacy else _guidance_text(raw["diagnostic_description"], 500)
+        ),
+        remedy_description=("" if legacy else _guidance_text(raw["remedy_description"], 500)),
+        expected_result=("" if legacy else _guidance_text(raw["expected_result"], 300)),
+        rollback_recovery_route=(
+            "" if legacy else _guidance_text(raw["rollback_recovery_route"], 300)
+        ),
+        outcome_provenance=("" if legacy else _guidance_text(raw["outcome_provenance"], 500)),
+        execution_authority=_literal(raw["execution_authority"], "none", "execution authority"),
+        phone_action_allowed=_literal(raw["phone_action_allowed"], False, "phone action authority"),
+        guardian_approval=_literal(raw["guardian_approval"], False, "Guardian approval"),
     )
     if bool(claim.structured_value) == bool(claim.supporting_excerpt):
         raise OnlineEvidenceError("Stored claim requires exactly one value representation")
-    if claim.claim_id != _claim_identity(
-        claim.claim_key,
-        claim.structured_value,
-        claim.supporting_excerpt,
-        claim.scope,
-        claim.source,
-    ):
+    expected_identity = (
+        _legacy_claim_identity(claim)
+        if legacy
+        else _claim_identity(
+            claim.claim_key,
+            claim.structured_value,
+            claim.supporting_excerpt,
+            claim.scope,
+            claim.source,
+            knowledge_kind=claim.knowledge_kind,
+            symptoms=claim.symptoms,
+            error_identifiers=claim.error_identifiers,
+            prerequisites=claim.prerequisites,
+            affected_builds=claim.affected_builds,
+            diagnostic_description=claim.diagnostic_description,
+            remedy_description=claim.remedy_description,
+            expected_result=claim.expected_result,
+            rollback_recovery_route=claim.rollback_recovery_route,
+            outcome_provenance=claim.outcome_provenance,
+        )
+    )
+    if claim.claim_id != expected_identity:
         raise OnlineEvidenceError("Online evidence claim identity is invalid")
     return claim
 
@@ -828,6 +925,17 @@ def _claim_identity(
     supporting_excerpt: str,
     scope: EvidenceScope,
     source: EvidenceSource,
+    *,
+    knowledge_kind: ClaimKind,
+    symptoms: tuple[str, ...],
+    error_identifiers: tuple[str, ...],
+    prerequisites: tuple[str, ...],
+    affected_builds: tuple[str, ...],
+    diagnostic_description: str,
+    remedy_description: str,
+    expected_result: str,
+    rollback_recovery_route: str,
+    outcome_provenance: str,
 ) -> str:
     identity = {
         "claim_key": claim_key,
@@ -835,8 +943,58 @@ def _claim_identity(
         "supporting_excerpt": supporting_excerpt,
         "scope": asdict(scope),
         "source": asdict(source),
+        "knowledge_kind": knowledge_kind,
+        "symptoms": symptoms,
+        "error_identifiers": error_identifiers,
+        "prerequisites": prerequisites,
+        "affected_builds": affected_builds,
+        "diagnostic_description": diagnostic_description,
+        "remedy_description": remedy_description,
+        "expected_result": expected_result,
+        "rollback_recovery_route": rollback_recovery_route,
+        "outcome_provenance": outcome_provenance,
     }
     return hashlib.sha256(_canonical(identity)).hexdigest()
+
+
+def _legacy_claim_identity(claim: OnlineEvidenceClaim) -> str:
+    return hashlib.sha256(
+        _canonical(
+            {
+                "claim_key": claim.claim_key,
+                "structured_value": claim.structured_value,
+                "supporting_excerpt": claim.supporting_excerpt,
+                "scope": asdict(claim.scope),
+                "source": asdict(claim.source),
+            }
+        )
+    ).hexdigest()
+
+
+def _upgrade_claim_identity(claim: OnlineEvidenceClaim) -> OnlineEvidenceClaim:
+    current = _claim_identity(
+        claim.claim_key,
+        claim.structured_value,
+        claim.supporting_excerpt,
+        claim.scope,
+        claim.source,
+        knowledge_kind=claim.knowledge_kind,
+        symptoms=claim.symptoms,
+        error_identifiers=claim.error_identifiers,
+        prerequisites=claim.prerequisites,
+        affected_builds=claim.affected_builds,
+        diagnostic_description=claim.diagnostic_description,
+        remedy_description=claim.remedy_description,
+        expected_result=claim.expected_result,
+        rollback_recovery_route=claim.rollback_recovery_route,
+        outcome_provenance=claim.outcome_provenance,
+    )
+    return replace(
+        claim,
+        claim_id=current,
+        corroborating_claim_ids=(),
+        conflicting_claim_ids=(),
+    )
 
 
 def _safe_url(value: object):
@@ -872,6 +1030,33 @@ def _private_text(value: object, maximum: int) -> str:
     if scrub_private_text(text) != text:
         raise OnlineEvidenceError("Stored evidence contains privacy-unsafe text")
     return text
+
+
+_EXECUTABLE_GUIDANCE = re.compile(
+    r"(?i)(?:`|<\s*(?:code|script)\b|\b(?:adb|fastboot)\s+(?:-|devices\b|shell\b|install\b|push\b|pull\b|reboot\b|kill-server\b|start-server\b)|\b(?:sudo|powershell|cmd\.exe)\s+)"
+)
+
+
+def _guidance_text(value: object, maximum: int) -> str:
+    text = _private_text(value, maximum)
+    if _EXECUTABLE_GUIDANCE.search(text):
+        raise OnlineEvidenceError("Knowledge descriptions cannot contain executable instructions")
+    return text
+
+
+def _guidance_items(value: object, label: str) -> tuple[str, ...]:
+    if not isinstance(value, tuple) or len(value) > 16:
+        raise OnlineEvidenceError(f"Knowledge {label} are invalid")
+    return tuple(sorted({_guidance_text(item, 200) for item in value if item}))
+
+
+def _guidance_list(value: object, label: str) -> tuple[str, ...]:
+    if not isinstance(value, list) or len(value) > 16:
+        raise OnlineEvidenceError(f"Stored knowledge {label} are invalid")
+    result = tuple(_guidance_text(item, 200) for item in value)
+    if result != tuple(sorted(set(result))):
+        raise OnlineEvidenceError(f"Stored knowledge {label} must be sorted and unique")
+    return result
 
 
 def _token(value: object, maximum: int) -> str:

@@ -115,6 +115,56 @@ Device DNA, Compatibility Matrix and Knowledge Archives consume the result throu
 read-only projection contract. Catalog identity cannot define firmware compatibility, a Device
 Pack, a build/flash contract, Guardian approval, a command, or device support.
 
+## Typed knowledge and fixed Android connection guide
+
+Schema one now carries a typed knowledge kind—identity, diagnostic, guide, fix-claim, or outcome—
+plus bounded symptoms, error identifiers, prerequisites, affected builds, diagnostic/remedy
+descriptions, expected result, rollback/recovery route, and outcome provenance. Descriptions reject
+command-shaped/code/script text and remain evidence metadata with literal zero execution authority.
+An old schema-one identity archive is verified against its original bytes and digest, loaded with
+empty identity-safe defaults, and receives new claim/archive identities only at an explicit save or
+merge boundary. Its values and evidence states are never promoted during migration.
+
+The first fixed guide path accepts only
+`https://developer.android.com/studio/run/device`. It requires the canonical English HTML page,
+exact reviewed headings, a two-MiB response limit, separate connect/read/overall timeouts, no
+redirects or compression, and the same conditional-cache/private receipt boundary. Scripts, code,
+preformatted content, navigation, footer, templates, event attributes, unrelated blocks, and raw
+HTML are never retained.
+
+Exactly three heading-bound phrases may become official guidance: Connection Assistant setup,
+faulty USB-cable diagnosis, and enabling USB debugging. Their combined retained source excerpt is
+nine words; the surrounding diagnostic, prerequisite, expected-result, and rollback context is
+ROMVERSE-authored non-executable metadata. Missing/changed headings, duplicate or conflicting
+candidate text, privacy-unsafe content, localization, excessive sections, and stale evidence fail
+or remain explicitly investigable. Official publication never means a confirmed fix.
+
+The retained guidance projects read-only to Knowledge Archives, Device DNA diagnostics, Nexus, and
+Insight. It executes no diagnostic, follows no page link, targets no device, and grants no Guardian
+or compatibility authority.
+
+## Knowledge Coverage & Value Gate
+
+Every future source must close a named evidence gap for a named ROMVERSE consumer. A proposal must
+state the exact fields expected, feature benefit, source authority/scope, revision and freshness,
+parser/validation/corroboration method, conflict behavior, privacy/licensing/retention limits, stop
+condition, capability unlocked, and why it is higher value than alternatives. A source is not
+acquired merely because it exists.
+
+Useful coverage is limited to device/variant identity; firmware/build/package manifests, dates,
+hashes and dependencies; partition/dynamic-super layout, sizes, filesystems, slots and mount roles;
+SoC/architecture, kernel/device-tree and boot artifact formats; AVB/unlock/rollback and verified-boot
+state; read-only ADB/Fastboot/Fastbootd/Recovery observations and transitions; host tools/drivers;
+recovery/backup/failure modes; diagnostics/errors/expected findings; ROM/root/debloat prerequisites,
+risks, outcomes and rollback; and privacy-safe exact outcome evidence.
+
+Generic marketing/news/reviews, SEO summaries, duplicated mirrors, uncited or scope-free tips, bulk
+copyrighted text, raw response archives, personal identifiers, credentials, unrelated telemetry,
+and votes/popularity as proof are excluded. Technically specific community evidence can remain only
+low-confidence `source-reported` evidence until genuinely independent corroboration. Exact observed
+device/firmware outcomes—not source repetition—are required for live-confirmed/ROMVERSE-verified
+status.
+
 ## Implemented, simulated, deferred, unsupported
 
 - **Implemented:** strict claim model and archive, deterministic merging/linking, privacy filtering,

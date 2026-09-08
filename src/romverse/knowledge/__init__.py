@@ -1,5 +1,12 @@
 """ROMVERSE's packaged, evidence-labelled knowledge catalog."""
 
+from romverse.knowledge.android_device_guide import (
+    ANDROID_DEVICE_GUIDE_URL,
+    AndroidDeviceGuideAcquirer,
+    AndroidGuideError,
+    GuideAcquisitionReceipt,
+    GuideOutcome,
+)
 from romverse.knowledge.google_play_acquisition import (
     GOOGLE_PLAY_CATALOG_URL,
     AcquisitionOutcome,
@@ -9,6 +16,7 @@ from romverse.knowledge.google_play_acquisition import (
     GooglePlayEvidenceAcquirer,
 )
 from romverse.knowledge.online_evidence import (
+    ClaimKind,
     EvidenceConsumer,
     EvidenceFreshness,
     EvidenceProjection,
@@ -32,10 +40,14 @@ from romverse.knowledge.online_evidence import (
 )
 
 __all__ = [
+    "ANDROID_DEVICE_GUIDE_URL",
     "GOOGLE_PLAY_CATALOG_URL",
     "AcquisitionOutcome",
+    "AndroidDeviceGuideAcquirer",
+    "AndroidGuideError",
     "CatalogAcquisitionReceipt",
     "CatalogLookup",
+    "ClaimKind",
     "EvidenceConsumer",
     "EvidenceFreshness",
     "EvidenceProjection",
@@ -45,6 +57,8 @@ __all__ = [
     "EvidenceState",
     "FixedGooglePlayHTTPS",
     "GooglePlayEvidenceAcquirer",
+    "GuideAcquisitionReceipt",
+    "GuideOutcome",
     "MergedEvidenceClaim",
     "OnlineEvidenceArchive",
     "OnlineEvidenceClaim",

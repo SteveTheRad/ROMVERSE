@@ -5,10 +5,12 @@ import json
 import os
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pytest
 
 from romverse.knowledge.online_evidence import (
+    ClaimKind,
     EvidenceConsumer,
     EvidenceFreshness,
     EvidenceScope,
@@ -384,3 +386,102 @@ def test_all_approved_claim_states_round_trip(tmp_path, state) -> None:
     claim = _claim(state.value, state=state, claim_key=f"state.{state.value}")
 
     assert store.merge((claim,), now=NOW).claims[0].state is state
+
+
+def test_legacy_schema_one_identity_archive_remains_readable_and_migrates_without_promotion(
+    tmp_path,
+) -> None:
+    repository = Path(__file__).resolve().parents[1]
+    legacy_path = (
+        repository
+        / "docs/sync/evidence/google-play-live/knowledge/online-device-evidence/claims.romverse"
+    )
+    legacy = OnlineEvidenceStore(legacy_path.parents[2]).load()
+
+    assert (
+        legacy.archive_digest == "9f5d9e29ed16cd4362ee7e382b469462711afd90f8ea0eafff4fd4913ce54c61"
+    )
+    assert all(claim.knowledge_kind is ClaimKind.IDENTITY for claim in legacy.claims)
+    assert all(not claim.symptoms and not claim.remedy_description for claim in legacy.claims)
+    before = tuple(
+        sorted((claim.claim_key, claim.structured_value, claim.state) for claim in legacy.claims)
+    )
+
+    migrated = OnlineEvidenceStore(tmp_path).save(legacy)
+
+    assert migrated.archive_digest != legacy.archive_digest
+    assert (
+        tuple(
+            sorted(
+                (claim.claim_key, claim.structured_value, claim.state) for claim in migrated.claims
+            )
+        )
+        == before
+    )
+    assert all(claim.knowledge_kind is ClaimKind.IDENTITY for claim in migrated.claims)
+
+
+def test_typed_guide_fields_round_trip_as_non_executable_official_guidance(tmp_path) -> None:
+    guide = create_claim(
+        claim_key="diagnostic.usb-connection",
+        scope=EvidenceScope(scope_note="Android devices connected to a development host."),
+        source_id="android.device-guide",
+        url="https://developer.android.com/studio/run/device",
+        publisher="Google Android",
+        category=SourceCategory.OFFICIAL_ANDROID,
+        retrieved_at=NOW,
+        content_digest=DIGEST,
+        parser_id="romverse.android-device-guide",
+        parser_version="1",
+        supporting_excerpt="Check the USB cable if the device is not detected.",
+        state=EvidenceState.OFFICIALLY_DOCUMENTED,
+        confidence=80,
+        knowledge_kind=ClaimKind.GUIDE,
+        symptoms=("Device is not detected over USB.",),
+        error_identifiers=("adb-not-detected",),
+        prerequisites=("Use a data-capable USB connection.",),
+        affected_builds=("Android development devices; exact build unconfirmed.",),
+        diagnostic_description="Review cable and host connection evidence.",
+        remedy_description="Try another data-capable cable and reconnect for a read-only scan.",
+        expected_result="The intended device becomes visible for read-only inspection.",
+        rollback_recovery_route="Disconnect the cable and preserve the prior device state.",
+    )
+
+    saved = OnlineEvidenceStore(tmp_path).merge((guide,), now=NOW)
+    loaded = saved.claims[0]
+
+    assert loaded.knowledge_kind is ClaimKind.GUIDE
+    assert loaded.state is EvidenceState.OFFICIALLY_DOCUMENTED
+    assert loaded.symptoms == ("Device is not detected over USB.",)
+    assert loaded.execution_authority == "none"
+    assert not loaded.phone_action_allowed
+    assert not loaded.guardian_approval
+
+
+@pytest.mark.parametrize(
+    "instruction",
+    (
+        "adb devices",
+        "fastboot reboot",
+        "sudo install-driver",
+        "Run `tool --force`.",
+        "<script>alert('unsafe')</script>",
+    ),
+)
+def test_typed_guidance_rejects_executable_instructions(instruction) -> None:
+    with pytest.raises(OnlineEvidenceError, match="executable"):
+        create_claim(
+            claim_key="diagnostic.unsafe",
+            scope=EvidenceScope(),
+            source_id="android.device-guide",
+            url="https://developer.android.com/studio/run/device",
+            publisher="Google Android",
+            category=SourceCategory.OFFICIAL_ANDROID,
+            retrieved_at=NOW,
+            content_digest=DIGEST,
+            parser_id="romverse.android-device-guide",
+            parser_version="1",
+            supporting_excerpt="Review the connection state.",
+            knowledge_kind=ClaimKind.GUIDE,
+            remedy_description=instruction,
+        )

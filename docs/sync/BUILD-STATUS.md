@@ -1,5 +1,91 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — connected exact-input Simulation handoff
+
+### Authoritative checkpoint
+
+- Product Assurance approval/base: `0f2d221` — approved Mission Pulse continuity and authorized
+  inspection of Pre-Build Simulation first, with Recipes only if Simulation already worked.
+- Creator experience contract received during the slice was applied as acceptance criteria only:
+  unavailable states must retain exact context and open their existing responsible action without
+  weakening any consequential safety boundary.
+- Tested implementation: `c7ea82f00f0e9b74344d16e3cddaeb653cf1cfec` — `Connect Simulation
+  readiness to exact inputs`.
+- Final handoff: the follow-up commit containing this document on
+  `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation, existing Command Deck Pre-Build Simulation handoff.
+
+### Reproduced defect and exact correction
+
+- Command Deck previously labelled Pre-Build Simulation `READY` whenever protected firmware
+  existed, while ROM Studio correctly required a saved structure inspection and contained working
+  tree. Clicking the apparently ready card then produced `PREREQUISITE` and opened Build & Proof,
+  leaving the actual preparation action back in Source Lab.
+- Command Deck now receives Simulation readiness from the same current-project ROM Studio contract
+  used by the destination. Firmware without complete inputs reports `PREPARE INPUTS`; only the exact
+  current project's inspection and contained tree report `READY`.
+- A missing-input click retains the exact project and opens Source Lab with focus on the existing
+  next responsible control: project creation, source import, structure inspection, working-copy
+  creation or safe-tree preparation as applicable. A ready click opens Build & Proof and focuses
+  the existing dry-run plan control.
+- The busy-operation case retains Build & Proof and its truthful wait prerequisite because its
+  inputs are already complete; no operation is cancelled or inferred.
+- Recipes was not inspected or changed because a genuine defect was found in the first authorized
+  path.
+
+### Verification without double-counting
+
+- One bounded affected run: **29/29 unique tests passed** — the complete Command Deck rendering
+  widget suite, the real exact-project Simulation journey, the existing Command Deck route journey
+  and the existing ready ROM Studio handoff journey.
+- New sanitized real MainWindow coverage proves the same exact project first reports/previews its
+  missing contained tree in Source Lab, then reports `READY` and opens Build & Proof after the test
+  creates the existing working copy/tree evidence. Both destinations name the same project.
+- The test proves navigation preserves the ledger byte-for-byte, starts no ROM Studio worker, opens
+  no modal decision and claims only `Execution remains locked` on the ready dry-run path.
+- Ruff static check: **5/5 changed implementation/test files passed**. Ruff format check passed for
+  the four changed files without inherited drift; `device_center.py` retains unrelated pre-existing
+  formatter drift and was not mechanically reformatted.
+- `git diff --check`: passed. No broad regression, package build, screenshot loop or physical-device
+  test was run.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** one shared current-project Simulation readiness result plus direct existing
+  prerequisite/ready destination selection.
+- **Simulated/Tested:** 29 sanitized synthetic Qt widget/store journeys.
+- **Hardware Verified:** none for this checkpoint.
+- **Released:** no.
+- Guided friction/dead end: the card no longer contradicts its destination, and missing evidence
+  opens the owner/action that can provide it without making the user rediscover project context.
+- This is navigation/readiness presentation only. It does not automatically prepare inputs, run a
+  plan/build, create a mission result, claim compatibility, alter firmware or issue a device command.
+- Exact-device/source/project evidence, Guardian-only authority, applicable consent,
+  UNKNOWN-on-uncertainty, durable intent/result, no blind retry, same-incident Recovery,
+  independent verification and permanent no-relock remain unchanged.
+- Fedora/Linux: actual offscreen Qt widget/store journeys verified. Windows: not run or claimed;
+  Windows Device Engine work was untouched.
+- Feature freeze: compliant correction to an existing Stage 1 journey. v0.2 Golden Foundation
+  remains **CLOSED** pending Product Assurance and release blockers.
+- Protected Companion work, Windows work, Knowledge work, UI Design Lab, website and unrelated
+  files were not modified, staged, discarded or committed.
+- Physical phone access, ADB/Fastboot invocation, APK action, firmware operation, build/flash/boot,
+  partition/slot/wipe/unlock/lock/relock, installation, signing, publication and release: **none**.
+- External action after verification: one normal push of the scoped commits to the existing Linux
+  branch only; no force-push.
+
+### Next proposed Build task
+
+Stop for Product Assurance review. If approved, follow its next bounded existing-journey direction;
+do not assume Recipes is next or broaden Stage 1.
+
+### Product Assurance Review Requested
+
+- Confirm sharing ROM Studio's exact current-project readiness result with Command Deck is the
+  minimum correct defense against the false-ready handoff.
+- Confirm direct Source Lab prerequisite focus and Build & Proof ready focus satisfy the connected
+  Guided journey contract without starting work or adding another confirmation.
+
 ## Linux product checkpoint — durable Mission Pulse warning visibility
 
 ### Authoritative checkpoint

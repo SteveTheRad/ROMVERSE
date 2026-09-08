@@ -1,5 +1,67 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: dbe160e — Windows missing-tools recovery loop
+
+- Handoff commit: `dbe160ece1112cc7b13644bbace7a6014e6fb002`
+- Approved base: `9c1ea25fff8d7cde30019176cbe7200d340da263`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — EXISTING RECOVERY LOOP COMPLETES WITHOUT SOURCE CHANGE**
+
+### Decision
+
+Product Assurance inspected the documentation-only checkpoint and independently verified the
+retained Windows evidence. A fresh workspace rejects an inert malformed managed receipt, exposes
+the existing direct `Resolve Platform Tools` action, accepts the exact pinned managed package at
+the production validation boundary, reactivates its workspace-local tools, rebuilds the runtime and
+resumes automatically into the calm no-device state. No product defect was reproduced, so changing
+source or tests would have been unjustified.
+
+The cached acquisition adapter is correctly limited to the disposable journey and makes no product
+cache claim. Everything after acquisition used current production validation, activation, runtime,
+Device Engine and UI code. The path neither asks the user to repair `PATH` nor requires a restart or
+screen rediscovery.
+
+### Independent evidence
+
+- The accepted workspace contains the exact managed receipt: archive size **8,044,989 bytes** and
+  SHA-256 `45f4d63113e895ebde0c90f194099a4676b6ac653bd28d54314a9e022bbc1a99`.
+- Product Assurance independently rehashed `adb.exe` and `fastboot.exe`; both exactly match the
+  receipt (`b4a6b455...286b3f` and `b2d9cbff...b3b8d86`).
+- The durable audit contains exactly two allowed host discovery results—`adb devices -l` and
+  `fastboot devices -l`—both return code 0, with no target selector, retry or mutation.
+- The final native screenshot was independently inspected: Command Deck remains open, Device
+  Engine error is absent, `NOT CONNECTED`/`Waiting for device` are truthful, and `Scan for device`
+  is enabled.
+- Windows checkout is clean except for the preserved untracked patch, which remains byte-identical
+  at SHA-256 `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone/emulator, serial-selected or mutating command, Recovery, flash, wipe, unlock, root,
+  relock, APK installation, production trust/signing, publication or release occurred.
+
+### Approved next bounded Windows task
+
+Produce one fresh **unsigned Windows development artifact** from the exact current approved branch
+so Steve can run the no-device and Forge Arsenal corrections that now exist only in source. Use the
+existing one-folder/windowed build pipeline once in a new output directory; do not rebuild in a
+loop. Verify the exact source commit, complete bundle integrity and one native frozen-app smoke
+launch at the supported initial size. Confirm the normal executable opens without a console window,
+shows the current calm no-phone Command Deck with reachable `Scan for device` and
+`Resolve Platform Tools`/Forge continuation as applicable, and can close normally.
+
+If a genuine frozen-only Windows launcher, missing-asset or startup defect is reproduced, apply
+only the minimum correction and run directly affected checks. Otherwise change no source. Record
+the artifact path, source commit, size/hash, native visual result and limitations. Preserve the
+untracked patch and Companion files. Do not repeat the managed-tools acquisition, connect a phone,
+issue a device command, overlap Linux/Knowledge/UI work, sign, publish or release. Commit/push one
+bounded handoff and stop for review.
+
+### Gate status
+
+- Missing-tools resolution through automatic Device Engine resume: **VERIFIED**
+- Current runnable unsigned Windows development artifact: **NEXT BOUNDED WINDOWS TASK**
+- Physical hardware, production execution/trust, signing, publication and release: **NOT
+  AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: e664893 — Windows no-phone Device Engine readiness
 
 - Handoff commit: `e66489312f9253135454018fa3dfcbeadfaeeea7`

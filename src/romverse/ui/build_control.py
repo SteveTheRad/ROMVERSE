@@ -1738,7 +1738,9 @@ class BuildControlCenter(QDialog):
         summary_copy.addWidget(summary_detail)
         summary_layout.addLayout(summary_copy, 1)
         summary_scope = QLabel(
-            "LOCAL BUILD COMPLETE"
+            "SIGNING READY"
+            if self.report.signing_ready
+            else "LOCAL BUILD COMPLETE"
             if self.report.local_candidate_ready
             else "BUILD READY"
             if self.report.build_ready
@@ -1789,7 +1791,9 @@ class BuildControlCenter(QDialog):
             banner_layout = QHBoxLayout(banner)
             banner_layout.setContentsMargins(18, 14, 18, 14)
             copy = QVBoxLayout()
-            heading = QLabel("✓  LOCAL ROM BUILD COMPLETE  •  FLASH IS A SEPARATE CHOICE")
+            heading = QLabel(
+                "✓  SIGNING READY  •  INSTALLATION AND FLASH ARE SEPARATE CHOICES"
+            )
             heading.setObjectName("ReadyHeading")
             guidance = QLabel(
                 "ROMVERSE verified the protected source, workspace, toolchain, reproducible "
@@ -1990,7 +1994,9 @@ class BuildControlCenter(QDialog):
             self.overall_badge.setText("✓  PROJECT READY / GUARDIAN HANDOFF")
             overall_state = "verified"
         elif self.report.signing_ready:
-            self.overall_badge.setText("✓  LOCAL BUILD COMPLETE / FLASH NOT AUTHORIZED")
+            self.overall_badge.setText(
+                "✓  SIGNING READY / INSTALL NOT STARTED / FLASH NOT AUTHORIZED"
+            )
             overall_state = "verified"
         elif self.report.local_candidate_ready:
             self.overall_badge.setText("✓  LOCAL BUILD COMPLETE / INSTALL NOT AUTHORIZED")
@@ -2012,6 +2018,8 @@ class BuildControlCenter(QDialog):
                 (
                     "Your project is ready for Guardian-controlled flash review  •  "
                     if self.report.guardian_handoff_ready
+                    else "Signed candidate evidence verified  •  installation: NOT STARTED  •  flash: NOT AUTHORIZED  •  "
+                    if self.report.signing_ready
                     else "Durable local candidate verified  •  installation/flash: NOT AUTHORIZED  •  "
                     if self.report.local_candidate_ready and not self.report.signing_ready
                     else "Readiness fingerprint  •  "

@@ -1,5 +1,59 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 3d35b04 — same-handle external firmware evidence
+
+- Handoff commit: `3d35b04`
+- Correction commit: `aad0f2a934d069623b658a957632c4bee1002ec6`
+- Product Assurance authorization/base: `56f0c4f117124f5718bfabdbcea7c174f0787359`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — HASH AND STRUCTURE EVIDENCE BOUND TO ONE HANDLE**
+
+### Decision and evidence
+
+The correction closes the identified evidence-mixing window. External intake now keeps the original
+no-follow regular-file descriptor open through identity admission, SHA-256 hashing, rewind,
+container detection, ZIP/TAR/raw structural inspection, final descriptor identity and final path
+identity. `RomInspector` exposes one shared seekable-stream implementation while its existing path
+API remains a compatibility wrapper. The directory-entry replacement regression proves inspection
+continues on the original descriptor and final path binding fails before any receipt is written.
+
+Product Assurance inspected the exact five-file implementation/handoff diff and the three required
+regression groups. Build reports **38/38 focused tests passed**, with Ruff format/static and
+whitespace checks clean. The 11.8 GB source was not needlessly rehashed and the package was not
+rebuilt. No authority, UI decision or protected-source behavior changed.
+
+### Approved next bounded task
+
+Extend only the read-only external firmware inspection evidence so ROMVERSE can recognize useful,
+bounded package metadata and the presence of untrusted executable procedure files without executing
+or adopting them. For ZIP packages, from the same admitted open descriptor, identify a strict
+allowlist of small metadata members such as `BUILD-INFO.txt`, `CUSTOMIZATION-MANIFEST.tsv`,
+`SHA256SUMS`, and `android-info.txt` when present. Record each exact member path, size and SHA-256;
+parse only an explicit bounded non-executable key/value identity allowlist needed for manufacturer,
+codename, build/firmware version, Android version, region/channel and declared base provenance.
+
+Separately inventory executable-looking members (`.sh`, `.bat`, `.cmd`, `.ps1` and updater-script)
+as **untrusted procedure presence** by path/hash/size only. Never retain their body, parse them into
+steps, invoke them, or treat their existence as a safe route. UI evidence must clearly distinguish
+package-declared identity from ROMVERSE-verified facts and show that build/install/Guardian remain
+locked. Conflicts, duplicates, malformed/oversized metadata, unexpected encoding, path ambiguity,
+commands/relock text entering identity fields, or manifest/hash mismatch fail closed or remain
+explicitly unconfirmed.
+
+Add focused synthetic regressions first. Then perform one read-only reinspection of the existing
+real external package only if needed to validate the new evidence; one full rehash is permitted for
+that new schema, not as repetition. Do not copy/extract/mutate the package. Record the first concrete
+defect only, update status, commit/push and stop for review. Do not use a phone/emulator/device tool
+target, construct a flash route, unlock build/consent/Guardian/Recovery, touch Windows/Companion/
+Adaptive work, sign, publish, release, force-push or relock.
+
+### Gate status
+
+- Same-handle external intake evidence: **VERIFIED**
+- Next Linux milestone: **BOUNDED PACKAGE METADATA AND UNTRUSTED-PROCEDURE INVENTORY**
+- Script adoption/execution, physical device and Guardian authority: **NOT AUTHORIZED**
+- Public release: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: 024ed9f — external read-only firmware intake
 
 - Handoff commit: `024ed9f`

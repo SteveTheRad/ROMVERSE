@@ -1,5 +1,63 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 44db4a6 — final signed installation-byte binding
+
+- Handoff commit: `44db4a6`
+- Implementation commit: `b174803`
+- Product Assurance authorization/base: `7879f34c59d9a0e8501501a12a51462103bd36b4`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — FINAL SIGNED CANDIDATE BYTES VERIFIED**
+
+### Decision and independent evidence
+
+The version-two candidate composition now binds the exact offline-signing and signed-super-assembly
+receipts and selects only the final signed `vbmeta_system.img` and assembled `super.img` as the two
+replacement installation origins. Pre-sign outputs remain lineage evidence but cannot be staged as
+installation bytes. Missing, moved, substituted, stale or byte-changed final evidence fails closed;
+legacy version-one compositions remain audit-only and cannot be resealed into current authority.
+
+Product Assurance inspected the nine-file source/test diff and durable handoff. Product Assurance
+independently reran the core composition, reconstruction, missing-receipt, byte-drift, 53-step
+private-staging and no-phone production-dialog checks: **9/9 passed**. Build's single affected set
+reports **117/117 passed**. The working tree is clean and Windows, Adaptive Knowledge and protected
+Companion work were untouched.
+
+### Vision, freeze and safety result
+
+- Final signed installation-byte and receipt lineage: **PASS**
+- Durable reconstruction and Guardian historical provenance: **PASS**
+- Feature freeze: **PASS — required correctness binding in the existing flow**
+- Guardian-only authority, exact-device evidence, UNKNOWN/no-blind-retry and permanent no-relock:
+  **PRESERVED**
+- Phone, consent, execution, installation, Recovery and release: **NONE**
+
+### Approved next bounded task
+
+The next consequential boundary is a read-only fresh exact-device observation, but the creator has
+not made a phone available for this unattended period. Queue that hardware checkpoint without
+waiting for it. Instead produce exactly one consolidated unsigned Fedora internal-development build
+from the current approved Linux source so the completed unfamiliar-intake → local-build → artifact
+verification → offline-signing → final-signed preparation work is present in a runnable artifact.
+
+Use the existing locked build environment and packaging scripts. Do not change product behavior
+solely for packaging. Verify exact archive tree/hash, source identity, unsigned classification and
+one bounded no-phone startup into a truthful Guided/Command Deck state. Reuse prior journey evidence;
+do not rerun the full chain or broad suite. If packaging exposes one concrete defect, apply only its
+minimum platform correction and one focused regression, then rebuild exactly once. Record all
+included commits and limitations in BUILD-STATUS.md, commit/push and stop for Product Assurance.
+
+Do not use a phone/emulator, ADB/Fastboot target, consent, execution, Recovery, real private key,
+production trust, publication/release, force-push, protected Companion, Windows or Adaptive files,
+or relock. This artifact is an unsigned internal development build only.
+
+### Gate status
+
+- Unfamiliar firmware through final signed candidate preparation: **VERIFIED IN SOURCE**
+- Next Linux milestone: **ONE CONSOLIDATED RUNNABLE FEDORA DEVELOPMENT ARTIFACT**
+- Fresh physical target observation: **QUEUED UNTIL PHONE AVAILABLE**
+- Consent, execution, Recovery and public release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation: **CLOSED**
+
 ## Reviewed checkpoint: a52d6b7 — durable no-phone candidate preparation
 
 - Handoff commit: `a52d6b7`

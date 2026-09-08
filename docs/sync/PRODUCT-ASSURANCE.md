@@ -1,5 +1,56 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: a94ae39 — simulated Device DNA truth and zero authority
+
+- Handoff commit: `a94ae39071980f25256bd06456dd331c4939be5d`
+- Implementation commit: `8ce24b22e0ead8beaaf9987f2b03e728f1e67448`
+- Approved base: `0582f4c`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — SIMULATION IS USEFUL EVIDENCE BUT NEVER HARDWARE AUTHORITY**
+
+### Decision
+
+Product Assurance inspected the complete eight-file correction and independently reran the exact
+36-test affected selection. The explicit `simulation` transport is now a separate durable evidence
+class, visibly and persistently not hardware verified. It can exercise the existing Device DNA and
+compatibility journey, but is excluded wherever a live device could contribute to build readiness,
+boot observation, Guardian handoff/result matching, consent or execution authority.
+
+### Independent evidence and acceptance
+
+- Independent affected verification passed **36/36**: complete Device DNA and Compatibility Matrix
+  suites, simulated build-readiness exclusion and three real-widget Guided scan/continuation cases.
+- Simulated evidence persists as `device.simulation` at `UNCONFIRMED`, identity compatibility is
+  limited/caution, Guardian Flash remains unknown/advisory-only and no `device.live` evidence is
+  created.
+- The representative normal-button journey reaches Customize with exact project/source identity,
+  no build plan, no boot observation, no Guardian directory and permanent no-relock.
+- Ruff lint and Git whitespace validation passed for all changed files; the branch is clean and
+  synchronized.
+- No physical phone, ADB/Fastboot, APK, candidate build, signing, installation, publication,
+  release, lock or relock occurred.
+
+### Approved next bounded Linux task
+
+Continue the same explicit simulation-labelled Guided journey through the existing **Customize**
+stage using the safest normal user choice: unrooted and no optional debloat/customization. Require
+one deliberate visible choice to persist once, preserve the exact project/source/simulated evidence
+classification, and advance to the truthful next existing stage without a dead end or implicit
+device/build authority.
+
+Inspect first; if the existing UI path already succeeds, change no source and record the focused
+journey. If one concrete choice, persistence, routing, repaint or authority-boundary defect appears,
+apply only the minimum correction and run directly affected checks. Do not install APKs, modify a
+phone, dispatch ADB/Fastboot, treat simulation as live, begin the actual candidate build, package
+the desktop app or run a broad suite. Commit/push one bounded checkpoint and stop for review.
+
+### Gate status
+
+- Simulated Device DNA and compatibility truth/authority separation: **VERIFIED**
+- Existing safest Customize-stage continuity: **NEXT BOUNDED LINUX TASK**
+- Physical hardware, signing, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 57c9894 — existing Guided working-lab continuity
 
 - Reviewed commit: `57c989450936b019a4335f3d3cecc7ab489e8650`

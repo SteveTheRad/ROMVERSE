@@ -1,5 +1,104 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — requested Simulation verifies its exact current tree
+
+### Authoritative checkpoint and scope
+
+- Tested implementation: `e931cb9649bb33507bd5ac31089c455cf93582c9` — `Verify automatic
+  Simulation results`.
+- Final handoff: the follow-up commit containing this document on
+  `linux/stage1-desktop-readiness`; the branch was clean immediately after the implementation
+  commit and will be pushed normally after this handoff is committed.
+- Product Assurance approval/base: `86efa4d` — approved one automatic invocation of the existing
+  exact current-tree verifier after a newly completed or safely reloaded dry-run result.
+- Stage: Stage 1 — v0.2 Golden Foundation, existing Pre-Build Simulation verification continuation
+  only.
+- Exact changed implementation/test files: `src/romverse/ui/rom_studio.py`,
+  `tests/test_navigation_vocabulary.py` and `tests/test_rom_studio_ui.py`. No platform, package,
+  device, Companion, Recovery adapter or product-scope file changed.
+
+### Exact implemented behavior
+
+- One intentional Pre-Build Simulation request now continues from its newly completed exact typed
+  `BuildPlan` into the existing `verify-plan` worker once. The same behavior applies when the exact
+  final plan is safely reloaded; the saved plan is not regenerated or overwritten.
+- ROM Studio keeps the complete immutable requested `BuildPlan` in memory only for this bounded
+  continuation. At completion it independently reloads the durable plan, requires full object
+  equality, requires the exact current project and accepts only a typed `ArtifactVerification`
+  whose expected and actual tree digests match the plan and whose status is internally consistent.
+- The in-progress handoff clearly says current-tree verification is read-only and starts no build,
+  signing, execution or phone action. Exact success presents the existing dry-run result as
+  `VERIFIED`, reports the verifier status and keeps the plan execution-locked.
+- Tree drift, invalid verification, forged/mismatched success evidence or plan/project identity
+  drift produces a visible actionable stop. The exact plan and current tree remain preserved, no
+  success is inferred and no worker is automatically retried.
+- Existing missing, malformed or interrupted-plan behavior remains unchanged: completion stays
+  unknown, evidence is preserved and the user is directed to Build & Proof rather than placed in a
+  retry loop.
+
+### Verification without double-counting
+
+- One focused affected run: **7/7 unique tests passed** across the existing Command Deck,
+  ROM Studio and representative fresh Guided Simulation journeys.
+- New-plan continuation proves exact production worker order
+  `working-copy → extract → plan → verify-plan`, visible `VERIFYING → VERIFIED` state, durable
+  exact plan reload, valid current-tree evidence, execution lock and no extra worker.
+- Saved-plan continuation proves the exact plan is reloaded and verified once without running the
+  planner again. Interrupted temporary evidence remains on disk, starts no worker and remains
+  unknown without retry.
+- The drift adversary changes the disposable contained tree after planning. Verification reports
+  the exact mismatch, preserves the plan/tree, queues no retry and exposes no phone action.
+- The forged-success adversary supplies a success-like typed result with digests from another tree.
+  ROM Studio rejects it at its terminal evidence boundary, clears the transient continuation and
+  presents the same actionable stopped state.
+- Existing resource-admission denial and adjacent Recipes handoff checks pass in the same focused
+  run. No overlapping prior suite total is added to this checkpoint.
+- Ruff static and format checks passed for all three changed files. `git diff --check`: passed.
+- No broad suite was run, matching the approved focused-test boundary.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** automatic exact-plan current-tree verification, full plan/result binding,
+  verified result presentation and bounded no-retry failure handling.
+- **Simulated/Tested:** 7 sanitized Linux-hosted Qt/store/planner journeys.
+- **Hardware Verified:** no. **Released:** no.
+- Guided friction removed: the user no longer needs a second technical Verify click after requesting
+  Simulation. Genuine missing, malformed, changed, interrupted or ambiguous evidence remains an
+  intentional actionable stop rather than a hidden dead end.
+- Guardian/Recovery/safety: the result remains an inert execution-locked plan and independent
+  current-tree observation only. It grants no real build, compatibility, consent, Guardian,
+  Recovery, device or execution authority. UNKNOWN-on-uncertainty, no blind retry, exact-device
+  evidence, same-incident Recovery and permanent no-relock rules remain unchanged.
+- Fedora/Linux: genuinely tested in the existing Fedora offscreen Qt development runtime. Windows:
+  not run or claimed. Physical Android/hardware: not used.
+- Feature freeze: compliant continuity/correctness work in an existing Stage 1 journey. No screen,
+  feature, engine, source format, adapter, device capability or product architecture was added.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and existing release gates.
+- Current blockers/limitations: Product Assurance has not independently reviewed this checkpoint;
+  successful dry-run verification is not a build or Recovery verification and cannot advance any
+  consequential action; deliberately stopped evidence requires a new intentional Simulation
+  request after the underlying evidence is resolved.
+- Protected Companion, Windows launcher, Knowledge/UI Design Lab, website and unrelated files were
+  not modified, staged, discarded or committed.
+- Physical phone access, ADB/Fastboot, APK installation, firmware/device operation, real build,
+  flash/boot, partition/slot/wipe/unlock/lock/relock, package installation, publication and release:
+  **none**. External action after final verification: one normal push of this scoped Linux branch
+  only; no force-push and no unrelated remote change.
+
+### Next proposed Build task
+
+Stop for Product Assurance review. Do not begin another consequential slice. Continue only from the
+next bounded direction recorded in `docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm that automatic reuse of the existing verifier removes the duplicate technical click
+  while preserving independent current-tree verification and every later authority boundary.
+- Confirm that full durable-plan equality plus exact expected/actual digest and status validation is
+  the appropriate terminal evidence binding for this inert Simulation step.
+- Confirm that drift, forged evidence and interrupted state remain sufficiently visible and
+  actionable without introducing any automatic retry.
+
 ## Linux product checkpoint — requested Simulation completes its inert dry run
 
 ### Authoritative checkpoint and scope

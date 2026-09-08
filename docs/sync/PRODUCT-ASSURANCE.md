@@ -1,5 +1,68 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 83e6594 — live Google Play identity acquisition
+
+- Live evidence/handoff commit: `83e6594942da04b11163a1bdaa25ae242784bf96`
+- Implementation commit: `68a2bf7573b99146ef36b8e127943820d99dd520`
+- Product Assurance authorization/base: `f2975629d9decddcd3e0103ca7bb88ab14c41020`
+- Branch: `adaptive-online-device-dna`
+- Review status: **APPROVED — FIRST REAL OFFICIAL DEVICE-EVIDENCE ACQUISITION VERIFIED**
+
+### Decision and independent evidence
+
+The checkpoint performs real bounded acquisition from exactly the registered Google Play public
+supported-device catalog and retains only four query-matched `Google / Pixel 6 / oriole` identity
+claims plus a strict acquisition receipt. The 4,753,074-byte response is held in memory, validated,
+digested and discarded; no raw CSV or unrelated catalog rows are retained. Exact URL, timeout,
+redirect, content-type, compression, row, privacy, conditional-cache and request-spacing boundaries
+remain fail closed. Duplicate matching rows and ambiguous identities cannot become claims.
+
+Product Assurance inspected the complete source/test/evidence/status diff and the sanitized retained
+records. The claims remain identity evidence only: compatibility is `UNCONFIRMED` and every
+execution, phone, Guardian and relock authority field remains false/none. Product Assurance
+independently reran the exact focused suite: **100/100 passed**. The branch is clean and Linux,
+Windows and protected Companion work were untouched.
+
+### Approved next bounded task
+
+Extend the evidence model only as necessary for typed `diagnostic`, `guide`, `fix-claim` and
+`outcome` knowledge. Retain bounded symptoms/error identifiers, prerequisites, affected
+device/build scope, non-executable diagnostic or remedy descriptions, expected result,
+rollback/recovery route and outcome provenance. Migrate schema one conservatively; existing identity
+claims and archive digests must remain readable and must not be silently promoted.
+
+Then add one real source-specific acquisition/parser for the exact official Android Developers page
+`https://developer.android.com/studio/run/device`. Acquire only the canonical English page through
+the existing registered HTTPS boundary. Extract a small reviewed set of connection-diagnostic
+evidence from the official troubleshooting sections, with canonical URL, page revision/last-updated
+date when present, content digest, parser identity and bounded supporting excerpts. Retain no raw
+HTML, scripts, navigation, code blocks or bulk copyrighted page copy. Record one sanitized live
+acquisition receipt and expose the resulting read-only guidance to Knowledge Archives, Device DNA
+diagnostics, Nexus and Insight.
+
+Classify this material as `officially-documented` guidance—not a confirmed fix. A source's own claim,
+votes or repetition cannot produce `independently-corroborated`, `live-confirmed` or
+ROMVERSE-verified status. Those require genuinely independent publishers or an exact-device,
+exact-firmware observed outcome. Source descriptions must never become shell/ADB commands,
+Guardian authority or automatic actions.
+
+Add focused fixture tests for schema migration, missing/changed headings, malicious HTML,
+code/script exclusion, oversized sections, localization/query redirects, stale dates, conflicting
+guidance and privacy-unsafe content. Perform one bounded live retrieval only after deterministic
+tests pass. Update KNOWLEDGE-RESEARCH-STATUS.md with exact retained evidence and limitations, commit
+and push, then stop for Product Assurance before adding another guide, OEM or community source.
+
+Do not interrupt the current Linux/Windows tracks, crawl links, add background scheduling/UI,
+execute diagnostics, target a phone, publish source content, enroll trust, flash/root/wipe/relock or
+grant consequential authority.
+
+### Gate status
+
+- Real official retail-identity acquisition: **VERIFIED**
+- Next Knowledge milestone: **ONE OFFICIAL DIAGNOSTIC/GUIDE SOURCE**
+- Confirmed-fix promotion and multi-source ingestion: **NOT YET AUTHORIZED**
+- Physical/consequential execution and release: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: 195e4cb — bounded Adaptive Online Device DNA evidence foundation
 
 - Handoff commit: `195e4cb1a5e1e27e31d3c6f7d41967595840b22f`

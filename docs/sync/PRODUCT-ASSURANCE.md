@@ -1,5 +1,55 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 7c62f12 — post-Genesis ROM Studio continuity
+
+- Handoff commit: `7c62f12b58045c62839ec603d9cbc73abcce0698`
+- Implementation commit: `ac772057c6dc9510bf4d30f7e7a1c296f446352c`
+- Approved base: `0a45e81`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — ALL VISIBLE PROJECT OWNERS NOW RETURN TO THE SAME DURABLE STAGE**
+
+### Decision
+
+Product Assurance inspected the exact two-file correction and independently reran the four focused
+journeys from this checkout. Returning from modal Genesis now reloads the exact selected project
+and repaints only an already-visible Genesis handoff from the same evidence-derived flight plan.
+The project list, selected-project detail, handoff and reopened mission agree immediately; unrelated
+handoffs remain untouched.
+
+### Independent evidence and acceptance
+
+- Exact-source focused verification passed **4/4**: authoritative project-card state, shared
+  flight-plan assessment, the real modal no-phone advance/return journey and existing Command Deck
+  routing/handoff behavior.
+- The real journey retained one project and one protected source, emitted exactly one import
+  completion, reached durable stage 4, and left no build plan, worker or device context.
+- Ruff lint and format checks passed for both changed files; Git whitespace validation passed and
+  the branch is clean/synchronized.
+- The change is presentation/state refresh only. It grants no compatibility, Guardian, Recovery or
+  execution authority and performs no duplicate import, build, scan or activity action.
+- No phone, ADB/Fastboot, APK, signing, installation, publication, release, lock or relock occurred.
+
+### Approved next bounded Linux task
+
+Continue the same representative no-phone Guided journey through its existing **Prepare working
+lab** action. Starting from one already-imported, inspected deterministic boot-image project at
+task 04/15, require the normal UI action to create exactly one isolated working copy, preserve the
+protected original byte-for-byte, persist the resulting stage/evidence, and return every visible
+owner to the same truthful next state with no unexplained dead end.
+
+Inspect the current implementation first. If it already succeeds, change no source and record the
+focused journey. If one concrete preparation, persistence, routing or repaint defect appears, apply
+only the minimum correction and run directly affected tests. Do not repeat import, start a local
+candidate build, infer device compatibility, connect a phone, use ADB/Fastboot, package the app or
+run a broad suite. Commit/push one bounded checkpoint and stop for review.
+
+### Gate status
+
+- Post-Genesis project/list/detail/handoff continuity: **VERIFIED**
+- Existing isolated working-lab action continuity: **NEXT BOUNDED LINUX TASK**
+- Physical hardware, signing, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: d54885c — shared current-version CI coordination
 
 - Reviewed commit: `d54885c57ca8b842ae385191cfd8eb52d03263ca`

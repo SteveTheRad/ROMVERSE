@@ -1,5 +1,78 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows saved-project Continue Genesis resume — Product Assurance review requested
+
+- Product Assurance verdict: `fc1a21dd38659886f16c237daabbbad11d48fe62` — `Approve Windows
+  project creation continuity`, matching checkpoint
+  `494977916b554aa1fed91ef11e6b8fbb8995da13` exactly.
+- Accepted implementation: `66dca72494fb1a6eb96d0e75210a7dbee901ad1d` — `Advance Genesis
+  after project creation`.
+- Branch: `windows-launcher-authorized-work`.
+- Status: **PASS — THE EXISTING SAVED PROJECT RESUMES AT THE EXACT ACTIONABLE PROTECTED-FIRMWARE
+  INTAKE, RETAINS ITS NO-DEVICE/NO-FIRMWARE CONTEXT, AND CLOSES NORMALLY**.
+
+### Exact bounded Windows observation
+
+- Reused the already approved unsigned one-folder development artifact without rebuilding or
+  repackaging:
+  `build/windows-project-route-7c6d83ff/ROMVERSE/ROMVERSE.exe`, 6,318,778 bytes, SHA-256
+  `437fbdcddc8bff346bcc5cba11a02f067f7f13eba61a116ef26b385a99af493b`, Authenticode
+  `NotSigned`.
+- Reused the persisted isolated no-phone workspace exactly once:
+  `C:\Work\ROMVERSE-Windows-Project-Entry-Corrected-7c6d83ff-20260909`, with its existing verified
+  managed Platform Tools. No download, installation, workspace creation, project creation, firmware
+  selection, scan, worker, build, package or source change occurred.
+- The packaged Command Deck loaded project `Windows No-Phone Project 20260909`, project ID
+  `windows-no-phone-project-20260909-d4e585cf`, showed `CURRENT ROUTE • STAGE 02 OF 15`,
+  `Load the untouched firmware`, `NEXT • Choose firmware…`, and the enabled
+  `Continue Genesis Sequence` action.
+- Narrow local Windows UI Automation invoked that exact continuation once. Genesis opened the same
+  saved project directly at `SCAN / TASK 02 OF 15`, `Load the untouched firmware`,
+  `Awaiting firmware`, `AWAITING PROTECTED FIRMWARE`, `No device connected`, and enabled
+  `Choose firmware…`. It did not create another project, return to stage 1, or lose project context.
+- One destination image was retained at
+  `C:\Work\ROMVERSE-Windows-Project-Entry-Corrected-7c6d83ff-20260909\evidence\saved-project-resume.jpg`:
+  1269x824, 125,914 bytes, SHA-256
+  `797c9dab7931653e15d2025ede5bef0cb52d5e95b1235291aefe4e8c16a52e32`. Direct inspection confirms
+  the exact project, stage, no-device/no-firmware state and enabled firmware chooser without any
+  authority or execution claim.
+- The Guided dialog closed through its visible title-bar close control and returned to ROM Studio,
+  which reported `Genesis returned to this exact saved project state; NO BUILD OR PHONE ACTION
+  STARTED.` The main app then closed normally. No `ROMVERSE.exe` process remains.
+
+### Persisted evidence and limitations
+
+- The 404-byte project manifest remains byte-identical at SHA-256
+  `2d43905ed9201ccecaa4e85a6f9a68c1790d605b31b653ad2e819ccc0a7f43e2`; `original` remains null.
+  The schema-6 Guided record remains selected at `firmware`, with empty `last_error`, no install
+  request, no recipe/build-plan verification and undecided root choice. Its refreshed 438-byte
+  SHA-256 is `89fad62bca63937d2579c093043bedcd76159459e8c2497eb77c509774fb213c`.
+- `original_roms`, `working_roms`, and `builds` still contain zero files. No candidate, Forge,
+  Guardian or Recovery path was created.
+- This single launch appended 46 scheduled, unbound, read-only host discovery records: 23
+  `adb devices -l` and 23 `fastboot devices -l`, with no serial selector and no device-changing
+  argument. Forty-five completed with return code 0 and empty inventories. One ADB observation
+  timed out at its fixed 4,000 ms bound and remained an observed failure; no action was advanced and
+  no blind retry was initiated. The full 90-record audit is 51,635 bytes, SHA-256
+  `959500528906bb24ab5f4e87a0e0b6afb0fedeecc3a966d5798ed1044cffb845`.
+- The runtime record now contains three start/clean-close pairs, 231 bytes, SHA-256
+  `30feaa6b43ac81c3e426cd89b1366323359c203a3e4d399727d797fd3674f8b7`.
+- No automated regression was requested or run because no product defect or source change appeared.
+  This checkpoint is genuine Windows packaged UI evidence, not a simulated Linux result.
+- The protected Companion files remain untouched. The untracked user patch remains present and
+  byte-identical at SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone was requested, connected, discovered, operated or targeted. No firmware was selected;
+  no APK, ROM build/signing, Guardian/Recovery execution, publication, release, lock or relock
+  occurred.
+
+### Proposed next bounded task
+
+Product Assurance should independently verify this exact handoff, retained destination image,
+project/state hashes, audit classification, clean process exit, repository scope and preserved
+untracked patch. No further Windows action is proposed until the exact checkpoint receives a matching
+repository verdict.
+
 ## Windows local project creation and firmware-intake continuity — Product Assurance review requested
 
 - Product Assurance verdict: `7c6d83ff6fe4e59259520a969b110867db4a2d92` — `Approve Windows

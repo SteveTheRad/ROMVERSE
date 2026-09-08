@@ -1,5 +1,66 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 55d8137 — Windows saved-project Genesis resume
+
+- Reviewed commit: `55d8137030d6b88085b4742b75fc39655229ec8b`
+- Accepted implementation: `66dca72494fb1a6eb96d0e75210a7dbee901ad1d`
+- Approved base: `fc1a21dd38659886f16c237daabbbad11d48fe62`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — CONTINUE GENESIS RESTORES THE EXACT SAVED PROJECT AND STAGE**
+
+### Decision
+
+Product Assurance retrieved and directly inspected the exact destination image, reproduced the
+project, Guided state, audit and runtime hashes, and confirmed no process remains. The packaged
+Command Deck restores the exact project and its enabled continuation; one invocation opens Genesis
+at protected-firmware intake without duplicating the project, regressing to stage 1 or losing
+no-device/no-firmware context. No source correction or regression replay is required.
+
+The single bounded ADB timeout remains one visible failed host observation and did not advance an
+action or trigger an immediate retry. It therefore preserves UNKNOWN/no-blind-retry semantics and is
+not a product blocker for this navigation checkpoint.
+
+### Independent evidence and acceptance
+
+- The 1269x824 image directly shows the exact project, 1/15 verified, `Load the untouched firmware`,
+  no device and enabled `Choose firmware…`; it independently matches SHA-256
+  `797c9dab7931653e15d2025ede5bef0cb52d5e95b1235291aefe4e8c16a52e32`.
+- The project and refreshed Guided record independently match SHA-256 values
+  `2d43905ed9201ccecaa4e85a6f9a68c1790d605b31b653ad2e819ccc0a7f43e2` and
+  `89fad62bca63937d2579c093043bedcd76159459e8c2497eb77c509774fb213c`.
+- The 90-record audit independently matches SHA-256
+  `959500528906bb24ab5f4e87a0e0b6afb0fedeecc3a966d5798ed1044cffb845`; every entry is
+  serial-free host discovery, with exactly one bounded ADB timeout and no target or mutation.
+- The runtime record independently matches SHA-256
+  `30feaa6b43ac81c3e426cd89b1366323359c203a3e4d399727d797fd3674f8b7`, contains three clean
+  start/close pairs, and no ROMVERSE process remains.
+- No firmware selection, phone, device action, APK, build/signing, Guardian/Recovery execution,
+  publication, release, lock or relock occurred.
+
+### Approved next bounded Windows task
+
+Reuse the same corrected artifact and isolated saved-project workspace once. Continue Genesis to
+the exact protected-firmware stage, invoke only the existing enabled **Choose firmware…** action,
+then cancel the native Windows picker once without selecting a file. Verify ROMVERSE remains on the
+same saved project/stage with `original` still null, no error or false progress, no duplicate dialog,
+and an immediately actionable firmware chooser. Close Guided and the app normally and verify no
+process remains.
+
+This is a Windows cancellation/continuity check, not firmware intake. Use no simulated Device DNA,
+real firmware, scan, worker, download, build or device action. Capture at most one post-cancel image.
+If one genuine cancel, focus or state dead end appears, apply only its minimum correction and one
+focused native Windows test; otherwise make no source change or package. Preserve the untracked
+patch, commit/push one bounded handoff and stop for review. No phone, device-changing command, APK,
+ROM build/signing, Guardian/Recovery authority, publication, release, lock or relock is authorized.
+
+### Gate status
+
+- Exact saved-project Continue Genesis resume: **VERIFIED**
+- Native Windows firmware-picker cancellation continuity: **NEXT BOUNDED WINDOWS TASK**
+- Linux post-build simulation resume: **OWNED BY LINUX; DO NOT DUPLICATE**
+- Physical hardware, signing, Guardian/Recovery execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 4949779 — Windows project creation continuity
 
 - Handoff commit: `494977916b554aa1fed91ef11e6b8fbb8995da13`

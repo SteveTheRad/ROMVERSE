@@ -1,5 +1,52 @@
 # ROMVERSE Build Status
 
+## Durable local-build completion synchronization — Product Assurance review requested
+
+- Product Assurance authorization: Linux `a6d9bca06d35c4f0ca8b84ad6ebd990be7e5700a`.
+- Approved upstream correction: Linux `b77ee3c03aac1746a8e8f18acd370ddcb3094360`.
+- Windows synchronization commit: `f5521c4a`.
+- Windows base checkpoint: `14d3739d6e833a18fb9662f56684e548eaf64164`.
+- Branch: `windows-launcher-authorized-work`.
+- Status: the single approved cross-platform correction is synchronized and focused-verified;
+  no Windows executable or package was rebuilt.
+
+### Exact synchronized scope
+
+- `src/romverse/ui/build_control.py` now preserves a reopened unsigned local candidate as
+  `LOCAL BUILD COMPLETE / INSTALL NOT AUTHORIZED` and routes its primary action to artifact
+  verification rather than installation review.
+- `tests/test_build_control_ui.py` adds the approved completed-but-unsigned focused regression.
+- The two-file source/test patch was applied directly from the approved upstream commit without
+  Linux documentation history, unrelated Linux commits, conflict adaptation, or branch rewriting.
+- The pre-existing untracked local file
+  `0001-Preserve-local-build-completion-across-restart.patch` was preserved unchanged and was not
+  staged or committed.
+
+### Exact focused Windows verification
+
+- Command:
+  `.venv\\Scripts\\python.exe -m pytest tests/test_build_control_ui.py::test_reopened_unsigned_local_candidate_remains_complete_and_routes_to_artifact_verification -q --basetemp build\\pytest-local-build-sync-20260908`
+- Result: **1/1 passed** on Windows.
+- Lint command:
+  `.venv\\Scripts\\python.exe -m ruff check src/romverse/ui/build_control.py tests/test_build_control_ui.py`
+- Lint result: **PASS — all checks passed**.
+- Whitespace command: `git diff --check 14d3739d..f5521c4a`.
+- Whitespace result: **PASS**.
+- No broad suite, repeated journey, executable launch, artifact rebuild, package build, or signing
+  operation was performed.
+
+### Scope and safety handoff
+
+- Protected Companion files remain clean and untouched. The previously approved Windows alpha
+  artifact was not rebuilt or modified.
+- No phone or emulator was present, requested, awaited, connected, selected, or targeted. No ADB,
+  Fastboot, Recovery, Guardian execution, installation, production trust, signing, publication,
+  release, destructive action, force-push, unlock, lock, or relock occurred.
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty, no
+  blind retry, independent verification, feature freeze, and permanent no-relock remain preserved.
+- Stop for independent Product Assurance review before another Windows synchronization, build,
+  package, simulation, hardware, or product slice.
+
 ## Windows Command Deck truthfulness convergence — Product Assurance review requested
 
 - Product Assurance authorization: Linux `292cd09`.

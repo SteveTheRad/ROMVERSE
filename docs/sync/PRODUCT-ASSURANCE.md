@@ -1,5 +1,62 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 9a9bae0 — empty health-scan recovery
+
+- Reviewed commit: `9a9bae0c091e497d7953d7dd24848a652cc3be82`
+- Accepted implementation: `ca983ecd30724723574d7fdd6ae02ca107e3be3e`
+- Approved base: `7100108`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — EMPTY HEALTH SCAN COMPLETES AND RETURNS TO AN EXACT RETRY**
+
+### Decision
+
+Product Assurance inspected the exact copy-only correction and focused worker-completion coverage,
+independently reran the changed behavior and Ruff, reproduced the package/runtime hashes, and
+classified the exact requested audit pair. The no-phone scan finishes in place, clears its busy
+state, produces no report, retains Quantum Optimizer and restores the enabled action. Both initial
+and completed guidance now name the actual **Scan device health** control. No evidence or execution
+contract changed.
+
+### Independent evidence and acceptance
+
+- Independent focused verification passed **1/1** for the full Command Deck → Quantum Optimizer →
+  empty worker completion path; Ruff passed both changed files and Git whitespace validation passed.
+- The corrected executable is 6,323,000 bytes, mode `0755`, and independently matches SHA-256
+  `0a47f9af3dea4c0f64983fdd4afc9d1fa01dfcc96185680e94f098b1cb19dde7`.
+- The 16-record fresh audit consists only of eight ADB and eight Fastboot read-only host discovery
+  operations. The user-requested scan is exactly sequences 9 and 10, both successful, unbound,
+  untimed-out and serial-selector-free.
+- The runtime record independently matches SHA-256
+  `c9a5cb9322615534d8a5ad7255f55888b66be1b4b82c6ab0116e1910585d64c3`; no packaged process
+  remains. No project, activity ledger or live-console record was created.
+- No simulated or physical phone, firmware/project work, report, APK, build/signing,
+  Guardian/Recovery execution, publication, release, lock or relock occurred.
+
+### Approved next bounded Linux task
+
+Use this exact corrected package once in a fresh no-phone workspace to verify the remaining direct
+Command Deck **Connect Device** route. Invoke that existing primary action exactly once and observe
+its bounded read-only discovery through completion. The Command Deck must show useful progress,
+return to a truthful waiting-for-device state, keep **Connect Device** immediately usable, and give
+plain-language USB/authorization guidance without opening an unrelated owner, requiring terminal
+instructions, or leaving a spinner/silent failure.
+
+This is one packaged primary-action continuity check, not another diagnostic scan or broad screen
+sweep. Isolate the exact user-requested ADB/Fastboot inventory pair from normal scheduled polling and
+reuse the current package without rebuilding unless a genuine Command Deck completion, copy or retry
+defect appears. If one appears, apply only its minimum correction and focused test, then
+package/relaunch at most once. Commit/push one bounded handoff and stop for review. No simulated or
+physical phone, firmware/project work, APK, signing, Guardian/Recovery execution, publication,
+release, lock or relock is authorized.
+
+### Gate status
+
+- No-phone Scan device health completion/recovery: **VERIFIED**
+- Direct Command Deck Connect Device completion/recovery: **NEXT BOUNDED LINUX TASK**
+- Windows invalid firmware rejection: **OWNED BY WINDOWS; DO NOT DUPLICATE**
+- Physical hardware, signing, Guardian/Recovery execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 57279f7 — no-phone diagnosis continuity
 
 - Reviewed commit: `57279f72ddd888b5fc2cc234187724202ae26df5`

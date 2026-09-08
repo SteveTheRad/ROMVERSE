@@ -1,5 +1,108 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — Nexus reaches the exact missing-project owner
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `afc90d1` approved the Command Console host/guard journey and
+  authorized one no-phone, no-project ROMVERSE Nexus prerequisite handoff in the same isolated
+  workspace.
+- Exact unchanged implementation/package source: `ca983ecd30724723574d7fdd6ae02ca107e3be3e`.
+- Exact unchanged package:
+  `build/linux-pa-health-scan-7100108/frozen/ROMVERSE/ROMVERSE`, 6,323,000 bytes, mode `0755`,
+  SHA-256 `0a47f9af3dea4c0f64983fdd4afc9d1fa01dfcc96185680e94f098b1cb19dde7`.
+- Stage: Stage 1 — v0.2 Golden Foundation, one evidence-only packaged Nexus-to-Studio continuity
+  journey. No application source, test or package changed in this checkpoint.
+
+### One bounded packaged Nexus journey
+
+- The unchanged package ran once, unelevated, through Fedora XWayland using the existing isolated
+  workspace `/tmp/romverse-command-console-4dd1104.jwF0cr`, with no simulated or physical phone.
+- ROMVERSE started in Guided Mode. The normal Settings flow selected
+  **Expert Mode · Architect workspace**, showed the shipped consequential-risk warning, and entered
+  Expert only after **I accept the risk • Enter Expert Mode** was explicitly invoked.
+  **ROMVERSE Nexus** then became visible in normal navigation and opened its exact owner.
+- Nexus truthfully reported **No ROM project exists yet. Create and import one in ROM Studio.** Its
+  evidence handoff showed **NO PLAN GENERATED**, **Start with one protected ROM project**, and
+  **EVIDENCE REQUIRED • ZERO AUTHORITY**. It stated that a protected project/source are required
+  before Device DNA or a Compatibility Matrix can exist and that no plan, approval, worker or
+  phone action had started.
+- Pathfinder showed only **Generate a plan to see the current route and every gate**; Foresight
+  showed **No impact prediction has been generated**; Insight showed
+  **No decision timeline has been generated**. **Generate Nexus Plan**,
+  **Export privacy-scrubbed Insight**, and **Review plan in Guardian Core** were disabled.
+- The evidence handoff's enabled **Open ROM Studio** action was invoked exactly once. ROM Studio
+  opened with **ROMVERSE NEXUS HANDOFF • EXACT PROJECT EVIDENCE**, the title
+  **ROMVERSE Nexus → protected project creation**, and **PROJECT REQUIRED**. It stated that Nexus
+  has no project to bind and that no project worker, plan, build or phone action started.
+- ROM Studio focused the enabled **New project** route without opening a dialog or creating a
+  project. **Import original…** remained disabled because no project existed.
+- Guided Mode was restored through the same shipped Settings flow before normal close. ROMVERSE
+  closed through the desktop window-close action; no package process remained.
+
+### Retained evidence and platform observations
+
+- Reusing the workspace appended one start/clean-close pair to the runtime record. It now contains
+  exactly two clean runs, SHA-256
+  `5490f58e74a6f9249a290f466831f4917f2aa50115a0fa2f50c8f919d6f55acc`, with no fatal trace.
+- This journey added exactly 50 successful read-only, no-target host inventories: sequences
+  97–146, comprising 25 ADB and 25 Fastboot `devices -l` probes. All are allowed, untimed-out,
+  return code 0 and serial-selector-free. The cumulative audit is 146 records: 73 ADB and 73
+  Fastboot. No Nexus or ROM Studio operation appears because the handoff is context-only.
+- The workspace still contains zero project, snapshot, backup, APK, build and working-ROM files and
+  no Activity or Live Console ledger. The global experience setting is Guided after close.
+- The previously cached public Google Play catalog was not fetched or rewritten: its CSV remains
+  4,758,014 bytes with SHA-256
+  `eebdc5895a2b38326470a3e475a09a2baab9d4f69f69b0f084664ef57a1decd4`, and both the catalog and
+  receipt retained their original `2026-09-09 04:37:45 AEST` modification time.
+- Before the deliberate mode change, an AT-SPI harness loop programmatically reactivated the
+  already-obscured Settings launcher and created 30 duplicate Settings dialogs. Every duplicate
+  was closed normally without saving before the bounded journey began. Pointer/modal interaction
+  prevents this during ordinary use; it created no project, plan, worker, authority or retained app
+  evidence. This is recorded as a harness observation rather than product behavior.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** no new behavior; this checkpoint verifies the shipped no-project Nexus evidence
+  boundary and exact ROM Studio handoff against the packaged Fedora runtime.
+- **Simulated/Tested:** one genuine packaged Fedora no-phone/no-project continuity journey. No test
+  suite was run or double-counted because no source changed.
+- **Hardware Verified:** no. No Android phone was connected, discovered, selected or operated.
+- **Released:** no. The package remains an unsigned local development artifact.
+- Blockers/failures: none in the bounded Nexus flow. Missing evidence is truthful, consequential
+  actions stay disabled and the exact owner opens with an actionable project-creation route.
+- Guided friction/dead ends: Expert entry required one explicit risk acceptance; Nexus then exposed
+  the exact missing prerequisite and ROM Studio focused **New project** without a modal, generic
+  destination, automatic worker or silent stop.
+- Guardian/Recovery/safety: Nexus made no route, prediction, decision, approval or authority claim.
+  The handoff grants no build, flash, backup, restore or execution authority. UNKNOWN/no-blind-
+  retry, exact-device and exact-incident evidence, independent verification, Guardian-only
+  authority and permanent no-relock remain unchanged.
+- Linux/Fedora: genuinely verified on Fedora 44/XWayland. Windows and physical Android were not run.
+- Feature freeze: compliant evidence-only Stage 1 check; no feature, UI, catalog, format, Device
+  Pack, adapter, knowledge behavior or production capability changed.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all remaining gates.
+- External actions: this scoped branch is pushed normally with this documentation-only handoff.
+  Normal no-target read-only ADB/Fastboot inventory occurred; no catalog download occurred. Guided
+  mode was restored before close. No phone, simulated device, firmware/APK/project work,
+  APK/system installation, download, plan/export, backup/restore, build/sign/flash,
+  Guardian/Recovery execution, publication, release, merge, force-push, lock or relock occurred.
+  Knowledge/UI Design Lab and protected Companion/Windows launcher work were not modified, staged
+  or committed.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another consequential slice until the
+verdict for this exact Nexus prerequisite handoff is recorded in
+`docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm the zero-claim Pathfinder/Foresight/Insight state, disabled plan/export/Guardian actions,
+  exact ROM Studio context and focused **New project** route satisfy the Nexus continuity gate.
+- Confirm the disclosed harness-only repeated-dialog cleanup does not require product correction or
+  replay of this otherwise isolated one-run journey.
+
 ## Linux product checkpoint — Command Console host check and pre-dispatch guard
 
 ### Authoritative checkpoint and scope

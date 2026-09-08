@@ -1257,8 +1257,9 @@ def test_command_deck_cards_are_context_aware_and_route_to_canonical_pages(
         window.close()
 
 
-def test_command_deck_recipes_opens_the_exact_project_or_its_prerequisite(
+def test_command_deck_recipes_prepares_the_exact_project_and_resumes_recipe_forge(
     tmp_path: Path,
+    monkeypatch,
 ) -> None:
     app = QApplication.instance() or QApplication([])
     logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
@@ -1272,6 +1273,8 @@ def test_command_deck_recipes_opens_the_exact_project_or_its_prerequisite(
         app_settings=AppSettings(online_intelligence_enabled=False),
     )
     project_dir = store.projects_root / project.project_id
+    workers = []
+    monkeypatch.setattr("romverse.ui.rom_studio.start_background", workers.append)
     try:
         window.rom_studio.refresh(project.project_id)
         window._navigate_route("command_deck")
@@ -1285,24 +1288,35 @@ def test_command_deck_recipes_opens_the_exact_project_or_its_prerequisite(
         assert window.rom_studio.current_project is not None
         assert window.rom_studio.current_project.project_id == project.project_id
         assert window.rom_studio.command_tabs.currentIndex() == 0
-        assert window.rom_studio.working_button.isEnabled()
         assert window.rom_studio.dashboard_handoff_title.text() == (
-            "Recipes → Source Lab prerequisite"
+            "Recipes → Automatic safe preparation"
         )
-        assert window.rom_studio.dashboard_handoff_badge.text() == "PREREQUISITE"
+        assert window.rom_studio.dashboard_handoff_badge.text() == "PREPARING"
         assert project.name in window.rom_studio.dashboard_handoff_detail.text()
-        assert "contained working tree" in window.rom_studio.dashboard_handoff_detail.text()
+        assert "resume automatically" in window.rom_studio.dashboard_handoff_detail.text()
         assert RecipeStore().load(project_dir) is None
-        assert window.nexus_events.list_recent() == before
-        assert window.rom_studio.worker is None
+        started_events = window.nexus_events.list_recent()
+        assert len(started_events) == len(before) + 1
+        assert started_events[0].stage == "working-copy"
+        assert started_events[0].state is MissionState.RUNNING
+        assert started_events[0].project_id == project.project_id
+        assert len(workers) == 1
+        assert workers[0].operation == "working-copy"
+        assert workers[0].project_id == project.project_id
+        assert window.rom_studio.worker is workers[0]
+        assert "phone unchanged" in window.rom_studio.operation_status.text()
 
-        store.create_working_copy(project.project_id)
-        RomInspectionService(store).extract_project_tree(project.project_id)
-        window.rom_studio.refresh(project.project_id)
-        window._navigate_route("command_deck")
+        workers.pop(0).run()
         app.processEvents()
 
-        window.device_center.quick_action_buttons["Recipes"].click()
+        working = store.working_copy(project.project_id)
+        assert working is not None
+        assert len(workers) == 1
+        assert workers[0].operation == "extract"
+        assert workers[0].project_id == project.project_id
+        assert not RomInspectionService(store).working_tree_exists(project.project_id)
+
+        workers.pop(0).run()
         app.processEvents()
 
         assert window.stack.currentWidget() is window.rom_studio
@@ -1316,8 +1330,133 @@ def test_command_deck_recipes_opens_the_exact_project_or_its_prerequisite(
             window.rom_studio.dashboard_handoff_detail.text()
         )
         assert RecipeStore().load(project_dir) is None
-        assert window.nexus_events.list_recent() == before
+        assert RomInspectionService(store).working_tree_exists(project.project_id)
+        assert len(window.nexus_events.list_recent()) > len(before)
+        assert workers == []
         assert window.rom_studio.worker is None
+        assert not QApplication.activeModalWidget()
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_command_deck_recipes_preserves_progress_and_never_retries_failed_preparation(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    store, registry, project, _report = _project(tmp_path)
+    window = MainWindow(
+        None,
+        logo,
+        store.workspace,
+        app_icon_path=logo,
+        pack_registry=registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    project_dir = store.projects_root / project.project_id
+    workers = []
+    failures = []
+    monkeypatch.setattr("romverse.ui.rom_studio.start_background", workers.append)
+    window.rom_studio.operation_failed.connect(
+        lambda operation, message: failures.append((operation, message))
+    )
+    try:
+        window.rom_studio.refresh(project.project_id)
+        window._navigate_route("command_deck")
+        app.processEvents()
+
+        window.device_center.quick_action_buttons["Recipes"].click()
+        app.processEvents()
+        workers.pop(0).run()
+        app.processEvents()
+
+        assert store.working_copy(project.project_id) is not None
+        assert len(workers) == 1
+        assert workers[0].operation == "extract"
+
+        def fail_extraction(_project_id, progress=None):
+            raise RuntimeError("bounded extraction fixture failure")
+
+        monkeypatch.setattr(
+            window.rom_studio.inspection,
+            "extract_project_tree",
+            fail_extraction,
+        )
+        workers.pop(0).run()
+        app.processEvents()
+
+        assert failures == [("extract", "bounded extraction fixture failure")]
+        assert store.working_copy(project.project_id) is not None
+        assert not RomInspectionService(store).working_tree_exists(project.project_id)
+        assert RecipeStore().load(project_dir) is None
+        assert workers == []
+        assert window.rom_studio.worker is None
+        assert window.rom_studio.command_tabs.currentIndex() == 0
+        assert window.rom_studio.dashboard_handoff_title.text() == (
+            "Recipes → Preparation stopped safely"
+        )
+        assert window.rom_studio.dashboard_handoff_badge.text() == "ATTENTION"
+        assert "no automatic retry" in window.rom_studio.dashboard_handoff_detail.text()
+        assert "bounded extraction fixture failure" in (
+            window.rom_studio.dashboard_handoff_detail.text()
+        )
+        assert not QApplication.activeModalWidget()
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_command_deck_recipes_does_not_start_without_resource_admission(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    store, registry, project, report = _project(tmp_path)
+    window = MainWindow(
+        None,
+        logo,
+        store.workspace,
+        app_icon_path=logo,
+        pack_registry=registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    workers = []
+    budget = window.rom_studio.inspection.extraction_budget(project.project_id, report)
+    monkeypatch.setattr("romverse.ui.rom_studio.start_background", workers.append)
+    monkeypatch.setattr(
+        window.rom_studio.inspection,
+        "extraction_budget",
+        lambda _project_id, _report: replace(
+            budget,
+            free_bytes=0,
+            safe=False,
+            reason="fixture storage admission denied",
+        ),
+    )
+    try:
+        window.rom_studio.refresh(project.project_id)
+        window._navigate_route("command_deck")
+        app.processEvents()
+
+        window.device_center.quick_action_buttons["Recipes"].click()
+        app.processEvents()
+
+        assert workers == []
+        assert window.rom_studio.worker is None
+        assert store.working_copy(project.project_id) is None
+        assert not RomInspectionService(store).working_tree_exists(project.project_id)
+        assert window.rom_studio.command_tabs.currentIndex() == 0
+        assert window.rom_studio.dashboard_handoff_title.text() == (
+            "Recipes → Source Lab prerequisite"
+        )
+        assert "stopped before writing" in window.rom_studio.dashboard_handoff_detail.text()
+        assert "fixture storage admission denied" in (
+            window.rom_studio.dashboard_handoff_detail.text()
+        )
+        assert "phone remain unchanged" in window.rom_studio.dashboard_handoff_detail.text()
         assert not QApplication.activeModalWidget()
     finally:
         window.companion_center.transport.close()

@@ -1,5 +1,79 @@
 # ROMVERSE Product Assurance Sync
 
+## Packaged Windows App Launchpad retention journey — Product Assurance review requested
+
+- Product Assurance verdict: `58b7f082046895a0636e964f75d1baff212f695e` — `Approve packaged
+  Windows Recovery journey`, matching checkpoint
+  `1d1a4223ecebae7462c1c652a2253b801deaa9d9` exactly and accepting source
+  `738b774e889318759c147568cc4a1c8c13d3907c`, which contains the approved correction
+  `b09e15a63e6e68e75d198a0c0fed0cf31f678337`.
+- Branch: `windows-launcher-authorized-work`.
+- Status: **PASS — THE EXISTING UNSIGNED WINDOWS PACKAGE COMPLETED THE ONE AUTHORIZED FRESH,
+  NO-PHONE APP LAUNCHPAD JOURNEY. THE EXACT LOCAL APK EVIDENCE, CONTEXTUAL CONNECTION ACTION AND
+  DISABLED APPROVAL/INSTALL CONTROLS SURVIVED ONE NAVIGATION AWAY AND RETURN.**
+
+### Exact reused package and inert APK
+
+- Reused, without rebuilding, the existing package executable
+  `C:\Work\ROMVERSE-Windows\build\windows-recovery-archives-b09e15a6\ROMVERSE\ROMVERSE.exe`:
+  6,321,193 bytes, Authenticode `NotSigned`, SHA-256
+  `d7eb55e38e2daad6b35a74c6c3f081b7cf83ba9b1b5ecdb0ebfefa4a7b37804a`.
+- Before launch, recorded the existing inert ROMVERSE test APK
+  `C:\Work\rvtmp\8\test_apk_inspection_records_bo0\demo.apk`: 3,146,260 bytes, SHA-256
+  `56fd9cadd31bdb66ccdee8d8700301f904c9c47681f002dc8d2f5b2d4719a4fa`. Its four bounded
+  container entries are `AndroidManifest.xml`, `classes.dex`, `META-INF/DEMO.RSA` and
+  `assets/progress-fixture.bin`. The APK remained byte-identical after inspection and clean close.
+
+### One fresh packaged App Launchpad journey
+
+- Created the fresh isolated workspace
+  `C:\Work\ROMVERSE-Windows-App-Launchpad-58b7f082-20260909`, verified it contained zero files,
+  and launched the exact reused executable once with that workspace and `--skip-onboarding`.
+- Opened App Launchpad and selected the exact inert APK once. Bounded local inspection reported
+  `demo.apk • 3.0 MiB • 4 entries`, retained the exact SHA-256 above, found a manifest, one DEX
+  file and signature metadata, and reported **APK container structure passed bounded inspection**.
+- Optional identity readers were unavailable, so package identity, minimum/target SDK,
+  permissions and native ABI remained explicitly unknown/not decoded. Signature state remained
+  explicitly not cryptographically checked. No tool was acquired and no evidence was invented.
+- With no authorized device, the page presented the contextual **Connect and authorize phone**
+  action while **Review and approve exact plan** and **Install approved APK** remained disabled.
+  Neither the connection action nor **Improve APK identity verification** was activated.
+- Navigated away exactly once to Command Deck, then returned exactly once to App Launchpad. The
+  same `demo.apk`, 3.0 MiB/four-entry evidence, exact SHA-256, bounded-inspection success,
+  unconfirmed optional identity fields and contextual connection action remained. Approval and
+  installation remained disabled.
+- After a bounded five-second observation, the workspace contained no Platform Tools, toolchain
+  plan, Guardian audit/lock, execution plan, consent, approval or command manifest. ROMVERSE then
+  closed normally; `runtime-fault.log` records one start and one clean close, and no
+  `ROMVERSE.exe` process remains.
+- The one pre-existing detached ADB server from
+  `C:\Work\ROMVERSE-Link-Lazy-Frozen-20260907` remained the same PID `49872` and exact path before,
+  during and after the journey. It was never queried, targeted or stopped. No Fastboot or new ADB
+  process appeared.
+
+### Verification and preserved boundaries
+
+- Per verdict `58b7f082`, no package rebuild, focused test replay or broad suite was performed.
+  Test total: **0 tests run**. No application source or test file changed; `git diff --check`
+  passes for this documentation-only handoff.
+- Protected Companion source files and Knowledge/UI Design Lab/Linux work remain untouched. The
+  untracked user patch remains byte-identical at 8,272 bytes, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone or emulator was requested, awaited, discovered, connected, operated or targeted. No
+  tool acquisition/install, ADB/Fastboot command, APK/device installation, firmware change, ROM
+  signing, plan, approval, Guardian/Recovery execution, publication, release, lock, relock,
+  force-push or destructive action occurred. Exact-device evidence, UNKNOWN-on-uncertainty,
+  consent separation, no blind retry, Guardian-only authority, independent verification and
+  permanent no-relock remain intact.
+
+### Proposed next bounded task
+
+Product Assurance should independently verify the reused package hash/signature, exact inert APK
+fingerprint and container evidence, fresh-workspace contents, one away/return retention cycle,
+disabled approval/install controls, unchanged external ADB process and clean close. Build must not
+rebuild or relaunch the package, acquire tools, activate discovery/connection or infer device or
+execution authority while that review is pending.
+
 ## Packaged Windows Recovery Archives journey — Product Assurance review requested
 
 - Product Assurance verdict: `738b774e889318759c147568cc4a1c8c13d3907c` — `Approve Windows

@@ -1,5 +1,65 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: d164662 — actionable Forge plan rollover
+
+- Handoff commit: `d164662fac65acdb58e7a9e05a41cafe35516757`
+- Implementation commit: `b648e418d61f7dfa7906f20871b030f838706074`
+- Correction base: `b20efa7`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — EXACT HISTORY IS PRESERVED AND THE CURRENT FORGE PATH CONTINUES**
+
+### Decision
+
+Product Assurance inspected the complete four-file correction and independently reran the exact
+affected selection at **30/30 passed**. A stale but valid Forge receipt is now independently
+verified and exclusively copied into private content-addressed history during the user's existing
+explicit Forge action. Collision or ambiguous history fails closed. The old `latest` receipt stays
+recoverable until the current generation completes and atomically installs its receipt; an
+interrupted current build therefore cannot erase history or imply success.
+
+ROM Studio now truthfully explains the preservation, keeps the existing Forge action available and
+starts nothing automatically. One explicit choice produces and verifies at most one current
+generation. Exact schema-3 bindings remain unchanged, and an old Device Build plan still cannot
+execute after a same-tree plan replacement.
+
+### Independent evidence and acceptance
+
+- Independent focused verification passed **30/30**: 17 Device Build contract checks, four Forge
+  schema/history checks, three exact Forge Control/UI checks and six durable-schema inventory
+  checks.
+- The same-tree adversary preserves and independently verifies plan-A receipt/archive, retains
+  plan A as `latest` through a simulated plan-B resource failure, and rejects old Device Build
+  execution with zero runner calls.
+- One explicit existing Forge action then runs one plan-B Forge worker and its read-only verifier,
+  atomically installs the current receipt and retains both immutable archives plus plan-A history.
+- A content-address collision cannot overwrite the conflicting bytes or the valid latest receipt.
+- Forge remains unsigned, non-bootable, non-flashable and grants no Guardian, consent, device or
+  execution authority. No phone, ADB/Fastboot, APK, real candidate, signing, publication, release,
+  merge, force-push, lock or relock occurred.
+
+### Approved next bounded Linux task
+
+Create one fresh **unsigned Linux desktop development artifact** from the exact current approved
+source and verify that the actual packaged application launches and closes cleanly in one fresh,
+isolated, no-phone workspace. Reuse the established Linux packaging route and existing deterministic
+assets; do not redesign packaging or rebuild more than once.
+
+Run one proportional package-integrity check and one native smoke journey only: start the packaged
+application unelevated, confirm the main window/Command Deck and existing Guided entry render,
+confirm the truthful no-device prerequisite is actionable without a Device Engine crash or silent
+dead end, then close normally and verify no ROMVERSE process remains. Retain exact source/artifact
+hashes and the clean lifecycle evidence. Do not replay the Forge test journey, download tools,
+connect a phone, dispatch ADB/Fastboot, create a ROM candidate, sign anything, publish or release.
+If a genuine packaged-only startup/asset/navigation defect appears, apply only its minimum fix and
+repeat the failed smoke once. Commit/push one bounded handoff and stop for review.
+
+### Gate status
+
+- Exact Forge history rollover and current-generation continuation: **VERIFIED**
+- Current unsigned Linux desktop artifact and native smoke: **NEXT BOUNDED LINUX TASK**
+- Firmware signing, Guardian execution, physical hardware, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: cb7c3e2 — durable exact Forge plan binding
 
 - Handoff commit: `cb7c3e2625b9994dbca6922d9720b7c9f03d9542`

@@ -1,5 +1,108 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — current unsigned Fedora development artifact
+
+### Authoritative checkpoint and scope
+
+- Source commit built: `c8c07c05316b660c345775ffc4fcf088d9d60033` — Product Assurance's
+  approved inspection-only Forge Control checkpoint.
+- Final handoff: the follow-up commit containing this document on
+  `linux/stage1-desktop-readiness`; the source tree remained clean throughout assembly and will be
+  pushed normally after this handoff is committed.
+- Stage: Stage 1 — v0.2 Golden Foundation, current runnable Fedora development artifact only.
+- Source changes: **none**. The approved existing one-folder/windowed pipeline completed without a
+  frozen-only launcher, asset, dependency or startup defect.
+
+### Fresh development artifact
+
+- One-folder application:
+  `/run/media/stevetherad/Data/ROMVERSE-Linux-Desktop-Readiness/build/fedora-c8c07c0/ROMVERSE`
+  — 422 regular files and 243,056,224 apparent bytes.
+- Native executable:
+  `/run/media/stevetherad/Data/ROMVERSE-Linux-Desktop-Readiness/build/fedora-c8c07c0/ROMVERSE/ROMVERSE`
+  — stripped Linux x86-64 ELF with the standard `/lib64/ld-linux-x86-64.so.2` interpreter.
+- Verified archive:
+  `/run/media/stevetherad/Data/ROMVERSE-Linux-Desktop-Readiness/dist/ROMVERSE-Desktop-0.2.0-alpha.1-linux-x86_64-c8c07c0.zip`
+  — 151,002,857 bytes — SHA-256
+  `50715b7ef51610d1077fd7812269a54d6dcb68cbfe7458cd8ff3c14729184a0d`.
+- Bundle inventory: 460 regular archive members and 360,309,514 expanded bytes. The required
+  executable, approved ROMVERSE/RadForge artwork, legal documents and exact Xiaomi HyperOS 4
+  Device Pack are present.
+- Tool identity: Fedora 44 x86-64 host, kernel 7.1.13, Python 3.14.7, PyInstaller 6.22.2,
+  PySide6 6.11.2 and cryptography 46.0.7.
+
+### Exact source and bundle verification
+
+- The repository branch/worktree was clean at exact source commit `c8c07c0` before and after the
+  pipeline. The new output and work directories did not previously exist.
+- PyInstaller's module graph contains 258 references to this exact Linux readiness checkout and
+  zero ROMVERSE module references to the older environment checkout. The current `src/romverse`
+  tree is therefore the frozen source identity despite reuse of its isolated dependency runtime.
+- The existing packager verified platform identity, safe relative paths, duplicate/link rejection,
+  required executable presence, archive CRC and expanded-size/file-count bounds while producing the
+  ZIP. A separate `unzip -t` pass found no compressed-data error, and independent `sha256sum`
+  reproduced the exact digest above.
+- PyInstaller reported only standard conditional/platform/optional missing-module observations.
+  No required ROMVERSE module was absent, and the native launch completed without import or runtime
+  failure.
+
+### Native no-phone launch and visible state
+
+- The frozen ELF was launched once as a normal Wayland window with the application's supported
+  1440×900 initial sizing path and a fresh isolated workspace. The existing bounded release-smoke
+  timer performed the clean close after startup.
+- The launched process used `PATH=/nonexistent`, making both ADB and Fastboot unavailable by
+  construction. ROMVERSE therefore created no device engine and followed the existing truthful
+  default Command Deck state: no live phone, no scan and missing Platform Tools rather than invented
+  device readiness.
+- The isolated workspace contains expected initialization, local knowledge, Companion Link key
+  material and empty activity/live-console locks. It contains no device, operation or Guardian audit
+  record.
+- Native process exit: 0. Console output: none. Runtime crash log records exactly one start and one
+  clean close with no exception or native fault.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** no new implementation; this checkpoint assembles the exact approved source.
+- **Simulated/Tested:** one real Fedora one-folder build, one native Wayland no-phone launch/close,
+  one package/verification pass and one independent archive-integrity pass.
+- **Hardware Verified:** native Fedora desktop host only; no Android/device hardware verification.
+- **Released:** no. The artifact is unsigned, local, unpublished and explicitly development-only.
+- Regression evidence: no prior suite or local-candidate journey was repeated, per Product
+  Assurance. Artifact construction/integrity/native startup are the acceptance evidence for this
+  checkpoint.
+- Guided friction/dead ends: no frozen-only launcher, asset, dependency, startup, initial-size,
+  Command Deck or shutdown defect was observed. Interactive navigation was outside the one-launch
+  bounded check and is not newly claimed.
+- Guardian/Recovery/safety: no execution boundary changed. Exact evidence, Guardian-only authority,
+  UNKNOWN-on-uncertainty, no blind retry, same-incident Recovery and permanent no-relock remain
+  unchanged.
+- Fedora/Linux: genuinely built, packaged and natively launched. Windows: not run or claimed in this
+  checkpoint. Physical Android: not used.
+- Feature freeze: compliant artifact/readiness evidence only; no source or product scope changed.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and existing release gates.
+- Current limitations: this is an unsigned Fedora 44 development artifact, not a signed portable
+  release; no clean-machine compatibility, distro matrix, genuine external Android toolchain,
+  physical phone, signing, installation, update or release proof is claimed.
+- Protected Companion, Windows launcher/CI, Knowledge/UI Design Lab, website and unrelated files
+  were not modified, staged, discarded or committed.
+- Physical phone access, ADB/Fastboot, APK installation, firmware/device operation, ROM/local
+  candidate build, signing, flash/boot, partition/slot/wipe/unlock/lock/relock, desktop package
+  installation, publication and release: **none**. External action after final verification: one
+  normal push of this documentation-only Linux checkpoint; no force-push or unrelated remote change.
+
+### Next proposed Build task
+
+Stop for Product Assurance review. Do not begin another consequential slice. Continue only from the
+next bounded direction recorded in `docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm the exact checkout graph, independent archive checks and one native PATH-isolated launch
+  sufficiently establish the current unsigned Fedora development artifact without repeating prior
+  regression suites.
+- Confirm that no source correction is appropriate because no genuine frozen-only defect appeared.
+
 ## Linux product checkpoint — Forge Control opens inspection-only before explicit local build
 
 ### Authoritative checkpoint and scope

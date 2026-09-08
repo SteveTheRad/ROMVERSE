@@ -1,5 +1,37 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 0b580a9 — exact-device Command Deck Recovery handoff
+
+- Handoff commit: `0b580a96caa6b9b1b20e9ceac15a1552d76c21a8`
+- Implementation commit: `74092ee41e0ad50d818cd3767cf5382c02bb5a7d`
+- Approved base: `0168582`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — EXACT DIAGNOSTIC ATTRIBUTION**
+
+### Decision
+
+Product Assurance inspected the complete implementation/test diff. Matching the explicitly
+selected Command Deck device to the current Diagnostics device before forwarding a finding, then
+independently rechecking the expected serial at the Recovery owner, is the minimum correct defense
+against same-finding-ID cross-device attribution. A mismatch clears stale diagnostic context and
+opens the existing calm general assessment for the selected target without creating an incident,
+session, worker or result.
+
+The 36 affected synthetic widget tests are proportionate. Correct-device behavior remains
+unchanged, while stale evidence cannot manufacture a Recovery context or authority. Feature
+freeze, exact-device evidence, Guardian separation, UNKNOWN-on-uncertainty, no blind retry and
+permanent no-relock remain intact. No hardware, execution, installation, signing, publication or
+release is claimed.
+
+### Approved next bounded task
+
+Continue with Command Deck's existing Resume Mission → Live Operations route. When current mission
+events exist, ensure the action opens the exact current mission/project/device ledger rather than
+an unrelated recent event stream, without fabricating progress or starting a worker. When no exact
+active mission exists, retain the existing truthful Genesis fallback. Reproduce and fix one
+concrete continuity defect with focused widget/store tests only. Do not overlap Windows Build
+Control work, touch Knowledge/UI Design Lab, operate a phone or run broad tests.
+
 ## Reviewed checkpoint: 2f38f18 — shared exact Command Deck ROM Mission entry
 
 - Handoff commit: `2f38f18145338c3d6a1d97ca6be8806a51088703`

@@ -1,5 +1,58 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: ed0d9a9 — Windows schema-3 Guided Build Readiness
+
+- Reviewed commit: `ed0d9a9b`
+- Approved base: `eb88b632`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — WINDOWS NOW CREATES THE SAME EXACT INERT GUIDED PLAN**
+
+### Decision
+
+Product Assurance inspected the complete six-file Windows adaptation and independently reran its
+native affected selection at **31/31 passed**. The planner now includes the previously missing
+protected-source and pre-persistence race checks, then seals and freshly revalidates the exact
+source, tree, required tools and Guided choices in a schema-3 plan. The Windows Guided owner passes
+that evidence only for `plan` and `verify-plan`, persists Build & Sign as the truthful next stage,
+and grants no build, signing, Guardian, consent or device authority.
+
+The absent automatic Command Deck Simulation history was correctly left absent. Existing
+non-Guided planning remains schema 2, while the common planner can safely load and directly verify
+a schema-3 record. The Windows-only symlink assertion now compares with the operating system's
+actual `readlink` representation; it preserves the no-follow and link-drift contract.
+
+### Independent evidence and acceptance
+
+- Independent native Windows regression passed **31/31**: complete build-plan and Guided
+  mission/state suites, the representative simulated Guided plan journey, simulation exclusion
+  from Build Readiness and the unchanged Command Deck handoff.
+- Tool, Guided-choice and authority-field drift invalidate schema 3; the plan remains
+  `local_only=true`, `flashable=false`, execution-locked and authority `none`.
+- The representative journey creates no Forge candidate, Guardian directory, boot observation or
+  phone authority and durably reaches Build & Sign.
+- Ruff and whitespace evidence in the checkpoint is consistent with the inspected diff. The
+  checkout is clean except for the preserved untracked patch.
+- No download, package, launch, signing, phone, ADB/Fastboot, APK, publication, release, lock or
+  relock occurred.
+
+### Approved next bounded Windows task
+
+Remain synchronized at this checkpoint while Linux resolves Product Assurance correction
+`11c19a0` for durable exact-plan identity across Forge and Device Build. Do not import or adapt
+Linux implementation `743a0f2` by itself because its downstream plan identity is not yet accepted.
+
+When the Linux branch publishes a corrected implementation and a matching **APPROVED** Product
+Assurance verdict, converge only that final approved Forge/Device Build product-and-test slice onto
+this Windows branch, preserving native branch context and the untracked patch. Until then, make no
+new source change, package, launch, download, candidate build, signing, Guardian or device action.
+
+### Gate status
+
+- Windows exact inert Guided Build Readiness: **VERIFIED**
+- Corrected cross-platform Forge/Device Build convergence: **WAITING FOR APPROVED LINUX SOURCE**
+- Physical hardware, signing, Guardian execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 0483a8d — Windows Build Readiness parity blocker
 
 - Reviewed commit: `0483a8d9a8fad649224ee30db39a8b69be421dfc`

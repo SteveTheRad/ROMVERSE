@@ -1,5 +1,70 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 99f3534 — Fastboot return-plan transient observation defect
+
+- Handoff commit: `99f353442f4aedf4a7f92739cac6b11f2fa21570`
+- Evidence commit: `d02d459aae302326d5a5d2cfc29701a8d313887b`
+- Product Assurance authorization/base: `46cda9e3780857d7aa33af02926dac0cf1aefa7f`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **CORRECTION REQUIRED — BOUNDED FASTBOOT SOURCE REOBSERVATION**
+
+### Decision and cause
+
+The checkpoint safely proved the same pseudonymous `popsicle` target arrived in bootloader Fastboot
+and that the production Device Engine could read its product identity. The authorized return command
+was never dispatched because the transition service performed a separate immediate source
+revalidation and that one `getvar product` call returned exit zero without a parseable value. The
+service correctly refused to substitute historical identity, but rejecting after one transient
+missing read can strand a safely identified phone in Fastboot. That is a minimum product defect,
+not evidence that the phone is incompatible.
+
+Product Assurance inspected the sealed completed Android-to-bootloader journal and the redacted
+Guardian records. The first reboot completed and exact bootloader arrival was verified. The fixed
+Device Engine scan used only the five allowlisted variables. No return intent/command, flash, boot,
+partition operation, slot change, wipe, unlock/relock or alternative command occurred. The safe
+rejection and truthful partial classification are approved; completion of the user journey is not.
+
+### Minimum exact correction and immediate recovery acceptance
+
+Change only `LocalDeviceTransitionService` and its focused transition tests so source-mode
+inspection can tolerate one transient, successful-but-empty Fastboot product response. A Fastboot
+source review may make at most one bounded non-dispatching reacquisition when an otherwise
+unambiguous exact transport is present but its product value is missing. Reacquisition must perform
+fresh discovery and product/mode reads; it must not reuse the prior Device Engine value, widen the
+parser, infer identity from the serial, or dispatch while any identity fact remains missing.
+
+Require two complete, identical Fastboot source observations before creating the return plan. A
+changed/multiple/absent serial, changed product or mode, tool hash change, malformed/conflicting
+value, second missing product, timeout or command failure must still reject before reboot. Add
+focused regressions proving one transient empty product can recover into two identical observations,
+while repeated emptiness and every identity change remain command-free failures. Run only the
+transition-focused tests plus lint/format/whitespace.
+
+After those checks pass, commit the correction before touching the phone. Then perform one fresh
+read-only Fastboot discovery/identity assessment through the corrected production service. If it
+earns the two identical source observations for the same pseudonymous `popsicle`, create one new
+one-use return plan under Steve's already recorded round-trip consent and dispatch exactly one
+Fastboot reboot to Android. Observe bounded exact Android arrival and one reconnect-safe Device
+Engine confirmation. This is completion of the previously authorized return, not a new experimental
+operation.
+
+If the corrected evidence cannot earn authority, issue no host-side reboot. Tell Steve to use the
+Xiaomi-supported manual recovery: hold only the Power button for more than ten seconds to force a
+restart. Do not instruct a data wipe or button combination that enters another mode. In either
+outcome, record the exact result, commit/push the handoff and stop for Product Assurance.
+
+No `getvar all`, arbitrary partition enumeration, fetch/upload, flash/boot/update, slot change,
+erase/wipe/format, unlock/lock/relock, APK/root/debloat action, source authority, signing,
+publication or release. Do not rehash the firmware or run broad tests.
+
+### Gate status
+
+- Android-to-Fastboot transition and fixed identity scan: **APPROVED / HARDWARE VERIFIED**
+- Complete round trip: **CORRECTION REQUIRED**
+- Corrected exact return-to-Android attempt: **AUTHORIZED ONCE AFTER FOCUSED TESTS PASS**
+- Flashing, partition operations and Fresh Live Target authority: **NOT AUTHORIZED**
+- Bootloader relocking: **PERMANENTLY PROHIBITED**
+
 ## Reviewed checkpoint: cb929ac — read-only popsicle Device DNA hardware acceptance
 
 - Handoff commit: `cb929ac178fc1c099027eb46ca3263a8d9a3f10a`

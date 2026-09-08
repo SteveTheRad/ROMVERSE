@@ -1,5 +1,75 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: db67c2fa — synthetic isolated working lab
+
+- Reviewed commit: `db67c2fa`
+- Accepted unchanged package source: `cd3b84a2ef8a3e0044bbe468a0106604091e61d8`
+- Approved base: `a3636adfd3a58dd0b84713820c173ffe76dc3a40`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — WORKING LAB IS CONTAINED, SOURCE-BOUND AND AUTHORITY-FREE**
+
+### Decision
+
+Product Assurance independently inventoried the exact Windows workspace through SSH, reproduced
+the protected-source, baseline, extracted marker, working records, Device DNA, Matrix, route and
+runtime hashes, and inspected the persisted contracts. The one-file synthetic archive was copied
+and extracted only into its project-private working area. Every inspected directory is an ordinary
+directory rather than a reparse point, the single resolved tree entry remains inside that root, and
+the immutable protected source is unchanged. The next stage remains an explicit evidence
+prerequisite; no correction or replay is required.
+
+### Independent evidence and acceptance
+
+- The protected source and working baseline both independently match SHA-256
+  `85e734ea89c706d344987794acf5ebc9fb617e67a1a5a09f8516bf4c755937b0`.
+- The tree contains exactly one 242-byte regular marker whose independent SHA-256 is
+  `f5fc7767e1d6e9636cbdfc43c800515800ca0ea35e98b74b3f840341fc051310`; ZIP metadata confirms
+  one unencrypted, non-linked, relative entry and no secondary payload.
+- `working-copy.romverse` and `working-tree-index.romverse` independently match
+  `98b0d92596c2d6acc413a7325ec9a68eb7f34c4f54c8bed3206f9b291ca23749` and
+  `154d60fcbe230b4b2c449959e9cb481f110ba9637f5c7e69cd1195369115f490` and bind the exact
+  source digest, one file and 242 extracted bytes.
+- Device DNA still has eight actionable capabilities UNCONFIRMED; Matrix decisions remain Unknown
+  with `proven_compatible=false` and `technically_possible=false`. The route remains blocked with
+  `execution_authority=none`, an empty command manifest, no recommended method,
+  `phone_changed=false` and relocking prohibited.
+- Guided is durably stopped at stage 5 with `build_plan_verified=false`,
+  `install_requested=false`, `root_choice=undecided` and no error. No candidate, build, command
+  manifest, Guardian audit or Recovery execution result exists.
+- The runtime record independently matches
+  `50d779cf4f44836bb0f2fc6bb9cd0f21763e9de1dcb388fb854e57e5b18f4587`; no ROMVERSE process
+  remains. The untracked 8,272-byte user patch remains byte-identical at
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+
+### Approved next bounded Windows task
+
+Resume this exact synthetic project with the same accepted package and invoke only the visible
+stage-5 **Scan device & refresh DNA** action once with no phone attached. The action must never be
+inert: if usable managed Platform Tools already exist, perform one bounded read-only no-device
+scan and report the truthful result. If the tools are unavailable, hand the same mission context
+to the existing Forge Arsenal owner, expose the existing managed **Install and verify
+requirements** repair, and—after one successful official-source installation—automatically resume
+the pending read-only scan once. A failed or declined repair must retain stage 5 and provide an
+immediate retry route without claiming device evidence.
+
+This slice may apply the minimum source/launcher correction and focused native Windows tests only
+if the packaged route is inert, loses context, reports a generic Device Engine error, or fails to
+resume after successful repair. Build and relaunch one corrected unsigned package at most once;
+otherwise reuse the current package. End with no selected device and keep identity, partitions,
+Android/build/flash capability and source-device compatibility UNCONFIRMED, with no candidate,
+command manifest, consent or execution authority. Preserve the project, protected original and
+untracked patch. No phone/emulator, APK, firmware change, ROM build/signing, Guardian/Recovery
+execution, publication, release, lock or relock is authorized.
+
+### Gate status
+
+- Synthetic unfamiliar source containment and isolated working lab: **VERIFIED**
+- Stage-5 no-phone scan/tool-repair continuity: **NEXT BOUNDED WINDOWS TASK**
+- Linux Guardian Core empty-audit verification: **OWNED BY LINUX; DO NOT DUPLICATE**
+- Physical hardware, APK/device installation, signing, Guardian/Recovery execution, publication
+  and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 8886ff2 — valid unfamiliar archive containment
 
 - Reviewed commit: `8886ff2e39438f16b83a837ea6687b2be8a66551`

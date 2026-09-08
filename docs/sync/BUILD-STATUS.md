@@ -2,130 +2,140 @@
 
 ## Authoritative checkpoint
 
-- Product Assurance authorization/base: `4282da62947dd7e21de56eeb4550a827b468ae87`.
+- Product Assurance authorization/base: `a6d9bca06d35c4f0ca8b84ad6ebd990be7e5700a`
+  (`Approve durable local-build journey`).
 - Implementation and focused-regression checkpoint:
-  `b77ee3c03aac1746a8e8f18acd370ddcb3094360`
-  (`Preserve local build completion across restart`).
+  `14de58e376bbd5cf14369f605bdfd6355f892cca`
+  (`Stop unsigned AVB flow at signing boundary`).
 - Final handoff checkpoint: the follow-up commit containing this status document on
   `linux/stage1-desktop-readiness`.
-- Stage: Stage 1 — v0.2 Golden Foundation, Fedora Recipe Forge to durable local-build acceptance.
+- Stage: Stage 1 — v0.2 Golden Foundation, local candidate to artifact-verification/offline-signing
+  readiness.
 - Working tree at the implementation checkpoint: clean.
 
 ## Exact journey and evidence
 
-- Used one new disposable workspace and bounded synthetic unfamiliar firmware source. The source
-  contained only `payload.bin` and `system/build.prop`; it was not a vendor firmware package or
-  Device Pack.
-- Drove the real production Qt widgets and production persistence/services with no device engine:
-  1. opened `RecipeForgeSequence` from a Recipe Forge-ready isolated tree;
-  2. created one deterministic `set_property` Recipe for `system/build.prop`;
-  3. reviewed the exact property change before saving;
-  4. ran the production Recipe preview and proved the target remained unchanged;
-  5. explicitly approved the production transactional Recipe action;
-  6. verified the changed property and durable Recipe receipt plus rollback snapshot;
-  7. froze the final tree, supplied a bounded synthetic exact local-build contract and inert test
-     tool identities, and prepared the production deterministic local-build plan;
-  8. ran the production `BuildControlCenter` worker and `LocalDeviceBuildExecutor` through all
-     seven durable build steps using a deterministic no-phone process adapter;
-  9. verified three output artifacts and the durable local-build receipt;
-  10. closed the UI/services, reconstructed `RomProjectStore`, `RomStudio`, and
-      `BuildControlCenter`, and reverified the same durable receipts and final UI state.
-- Recipe receipt:
-  `99877801448532adaae3226976f8e1709434e7739b684f6449cf78fc89b35207`.
-- Local-build receipt:
-  `0dd0f114ac1bcbb2787205124941dbf159bf11e51ca39499da171e03684401ce`.
-- The deterministic local-build adapter observed eight bounded host-tool invocations and zero ADB
-  or Fastboot invocations. Every persisted receipt states `phone_changed: false`.
-- The reopened production UI reverified `local_candidate_ready: true` and
-  `signing_ready: false`.
+- Reused the approved disposable Fedora project and its already durable unsigned local candidate;
+  the seven-step local build was not rebuilt.
+- Reset only the disposable AVB/signing evidence, then activated the production
+  `Continue to artifact verification` action from `BuildControlCenter`.
+- Used a bounded synthetic signed source identity, the existing unsigned candidate artifacts and a
+  deterministic inert AVBTool adapter. The production `AvbEvidenceService`:
+  - rehashed the exact source and candidate images before inspection;
+  - bound the AVB receipt to the exact protected source, Device Pack/contract and durable local-build
+    receipt;
+  - recorded the candidate as unsigned under `signed_custom_rechain` policy;
+  - recorded `signing_ready: false` and `phone_changed: false`.
+- After the correction, the production Guided action dispatched exactly four expected AVB
+  `info_image` inspections and stopped at `Open offline signing ceremony`; no fifth/repeated
+  inspection was dispatched.
+- The production offline-signing worker exported a content-addressed request through the existing
+  ceremony path. It bound exactly:
+  - `product.img`, 1,024 bytes,
+    SHA-256 `754088c63a3955205ede94ca4425f8feb67fabf9bff2800b9caf8d2406ef59d0`;
+  - `vbmeta_system.img`, 6 bytes,
+    SHA-256 `a0c6f07a4b3a17fb9348db981de3c5602e2685d626599be1bd909195c694a57b`.
+- Offline-signing request digest:
+  `531849d40c16c8610d19d0bad9d09189c22b38b17be11246a61aec8b89c31195`.
+- The request declares `offline-signing-request-only`, `private_key_included: false` and
+  `phone_changed: false`.
+- After normal UI/service reconstruction, ROMVERSE reverified the same request and AVB evidence,
+  remained `LOCAL BUILD COMPLETE / INSTALL NOT AUTHORIZED`, retained
+  `local_candidate_ready: true` / `signing_ready: false`, and offered
+  `Open offline signing ceremony`.
 
 ## First concrete defect and correction
 
-- Defect: after successful local-build completion, the immediate footer reported a verified local
-  candidate, but the same project reopened as `BUILD READY / FLASH LOCKED`. It also offered
-  `Prepare verified ROM installation…` before artifact trust/signing evidence was ready.
-- Cause: Forge Control presented durable local-build completion only when `signing_ready` was true,
-  and routed its primary action to installation whenever `local_candidate_ready` was true.
+- Defect reproduced before correction: after the first successful four-image candidate AVB
+  inspection, Autopilot immediately dispatched the same inspection again. The inert adapter blocked
+  the fifth call, after which the primary action incorrectly became
+  `Prepare verified ROM installation…` despite `signing_ready: false`.
+- Cause:
+  - `_avb_complete` always continued Autopilot after a valid candidate receipt, even when the
+    durable result precisely proved that offline-signing evidence was the next boundary;
+  - `_finish_autopilot` unconditionally overwrote every durable local-candidate next action with the
+    installation action.
 - Minimum correction:
-  - durable `local_candidate_ready` now renders `LOCAL BUILD COMPLETE / INSTALL NOT AUTHORIZED`;
-  - the reopened view explicitly says that artifact trust, signing/AVB, and Guardian gates remain
-    separate and that nothing was installed or flashed;
-  - it offers `Finish local build` or `Continue to artifact verification`;
-  - installation preparation is not the primary route until artifact trust is ready;
-  - a focused regression proves the completed-but-unsigned state cannot route directly to the
-    installation handoff.
-- No build, signing, Guardian, Recovery, adapter, device or release semantics changed.
+  - a valid unsigned candidate AVB receipt terminates automatic resolution at the offline-signing
+    boundary;
+  - Forge Control strictly reloads/revalidates that exact receipt before presenting the next action;
+  - the primary action becomes `Open offline signing ceremony`, never another AVB scan or
+    installation handoff;
+  - the existing ceremony either exports the exact content-addressed request or exposes its precise
+    Device Pack policy requirement;
+  - one focused regression proves no repeated Autopilot dispatch and no installation routing.
+- No AVB policy, signing eligibility, build, Guardian, Recovery, installation, adapter-execution or
+  release authority changed.
 
 ## Result classification
 
-- Implemented: truthful durable-local-build completion state and safe next-action routing in Fedora
-  Forge Control.
-- Simulated/Tested: yes — one production-widget/service Recipe Forge → local-build → normal reload
-  journey with a bounded synthetic source and deterministic inert host-tool adapter; seven unique
-  focused regressions; lint clean.
+- Implemented: truthful unsigned-candidate completion and stable offline-signing handoff.
+- Simulated/Tested: yes — one production widget/service/worker artifact-verification and request
+  export journey using synthetic inputs and an inert AVBTool adapter; seven unique affected
+  regressions; lint clean.
 - Hardware Verified: no.
 - Released: no.
 
 ## Non-double-counted verification
 
-- Production-widget/service journey: **1/1 passed**.
+- Production widget/service/worker journey: **1/1 passed** after the correction.
+- Pre-correction loop reproduction: first four inspections completed; a fifth duplicate dispatch was
+  observed and deliberately rejected by the inert harness.
 - Focused regression nodes in one invocation: **7/7 passed**:
-  - Recipe Forge multi-step reviewed creation;
-  - transactional Recipe and restore workflow enablement;
-  - Recipe worker completion only after durable project receipt;
-  - versioned local candidate build and partition verification;
-  - completed-but-unsigned project remains complete after reload and routes to artifact verification;
-  - refreshed Forge cards/footer remain aligned;
-  - resumable and UNKNOWN local-build states remain truthful with no automatic retry.
+  - unsigned AVB completion stops at the offline-signing boundary;
+  - reopened unsigned local candidate routes to artifact verification;
+  - exact source contract selects full candidate AVB comparison;
+  - direct signing action resolves AVBTool before eligibility review;
+  - AVB topology truthfully reports an unsigned candidate;
+  - AVB parser accepts unsigned evidence without inventing a key;
+  - offline ceremony exports no private key and verifies its exact existing import contract.
 - Ruff on the two changed Python files: **passed**.
 - Git whitespace check: **passed**.
-- No full regression suite, package build, APK build, emulator run, physical-phone journey,
-  interruption injection, signing, Guardian or Recovery test was run for this checkpoint.
+- No full suite, package/APK build, local-candidate rebuild, interruption campaign, emulator,
+  physical phone, real private signature, production trust enrollment, Guardian, Recovery,
+  installation or release test ran.
 
 ## Guided friction and remaining boundaries
 
-- The bounded Recipe preview and explicit one-decision execution path completed without a dead end.
-- The local build completed and survived a normal UI/service reconstruction with its exact receipt.
-- The discovered misleading restart state is corrected: local-build completion no longer appears to
-  regress, and installation is not presented as the next verified action while artifact trust is
-  unresolved.
-- The next visible choices are now truthful: finish with the intact local artifact, or continue to
-  artifact verification.
-- The synthetic process adapter proves deterministic orchestration and persistence only. It does
-  not prove real EROFS/AVB/dynamic-partition output correctness, packaging, or physical hardware.
+- Removed the circular `AVB inspect → AVB inspect` path.
+- The user now receives one stable, direct next action after artifact inspection:
+  `Open offline signing ceremony`.
+- Exporting the request does not pretend that signing is complete. Reload preserves
+  `signing_ready: false`, `INSTALL NOT AUTHORIZED`, and the same exact request.
+- A protected external signing environment must still perform any real signature. ROMVERSE has no
+  private key and this checkpoint did not import a signed result.
+- The synthetic AVBTool output proves orchestration, strict parsing, binding, persistence and UI
+  routing only; it is not production-key, vendor-firmware or hardware evidence.
 
 ## Guardian, Recovery and safety implications
 
-- Guardian remains the only execution gate. Local build and Recipe receipts grant no installation,
-  flash or device authority.
-- Exact-device evidence, consent separation, UNKNOWN-on-uncertainty, no blind retry, same-incident
-  Recovery and independent verification remain unchanged.
-- The correction reduces premature installation routing and does not bypass any gate.
+- Guardian remains the only device-execution gate. Artifact inspection and offline request export
+  grant no installation, consent, flash or phone authority.
+- Candidate/source/contract/local-build digests remain exact and independently reloadable.
+- UNKNOWN-on-uncertainty, no blind retry, exact-device evidence, same-incident Recovery and
+  independent post-operation verification remain unchanged.
 - Bootloader locking/relocking remains permanently prohibited with no override.
 
 ## Platform and version-gate status
 
-- Fedora/Linux: genuinely exercised current production Qt widget/service code using the existing
-  local dependency environment and offscreen Qt platform.
-- Linux host tools: simulated by a deterministic inert adapter; not hardware verified.
+- Fedora/Linux: genuinely exercised current production Qt widget, service and background-worker
+  paths using the existing local dependency environment and offscreen Qt platform.
+- AVBTool behavior: simulated by a deterministic inert adapter; no hardware claim.
 - Packaged Fedora artifact: unchanged and not exercised for this checkpoint.
 - Windows: unchanged; no Windows claim is made.
-- Physical Android and emulator: not used for this journey; no hardware claim is made.
-- 5 September 2026 feature freeze: compliant. This is one evidence-backed UI correctness fix in the
-  already approved Stage 1 journey, not new capability.
-- v0.2 Golden Foundation remains **CLOSED**. Signing, Guardian, Recovery, hardware, publication and
-  release gates remain unchanged.
+- Physical Android and emulator: not used; no hardware claim is made.
+- 5 September 2026 feature freeze: compliant. This is the first concrete dead-end correction in the
+  already approved artifact-verification flow, not new capability.
+- v0.2 Golden Foundation remains **CLOSED**. Real signing/trust, Guardian, Recovery, hardware,
+  installation, publication and release gates remain closed.
 
 ## External actions
 
-- A separate read-only `adb devices -l` / `fastboot devices -l` safety check was performed before
-  this journey in response to the creator's unplug question; no device was detected and no
-  device-scoped command ran.
-- Physical phone operation, emulator use, Recovery, flash, install, APK transfer, signing,
-  publication and release: none.
-- Tool/dependency download or installation, package rebuild, merge, history rewrite and force-push:
+- Physical phone operation, device-scoped ADB/Fastboot, emulator, Recovery, flash, install, APK
+  transfer, real signing, production trust enrollment, publication and release: none.
+- Tool/dependency download or installation, package build, merge, history rewrite and force-push:
   none.
-- Remote action: normal push of these scoped checkpoints to the existing Linux working branch only.
+- Remote action: normal push of these scoped Linux checkpoints to the existing working branch only.
 - The protected Companion files, original-checkout Windows drafts, website, assets and unrelated
   user work were untouched.
 
@@ -135,7 +145,7 @@ Stop for independent Product Assurance review. Do not begin another consequentia
 
 ## Product Assurance Review Requested
 
-- Confirm the production-widget/service Recipe Forge → local-build → reload journey and unique 7/7
-  focused regressions satisfy the bounded Fedora acceptance request.
-- Confirm the corrected completion state and `Continue to artifact verification` routing preserve
-  the approved separation between local build, artifact trust, installation and Guardian authority.
+- Confirm the exact four-image AVB evidence, content-addressed request export and reload satisfy the
+  bounded artifact-verification/offline-signing-readiness milestone.
+- Confirm the corrected no-repeat/no-install routing preserves the approved separation between
+  artifact evidence, external signing, Guardian consent and physical execution.

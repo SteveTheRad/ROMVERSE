@@ -1,5 +1,68 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 48d0daf — App Launchpad Windows source parity
+
+- Reviewed checkpoint: `48d0daf8`
+- Approved base: `12f81ad900cf2dfdad4143536996b58c77d6166f`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — WINDOWS RETAINS EXACT APK EVIDENCE THROUGH DEVICE DISCOVERY**
+
+### Decision
+
+Product Assurance inspected the complete committed diff against the approved Linux references
+`bb87b1e` and `15f5953` and independently reran the focused native Windows selection. The current
+AAPT2 minimum-SDK spelling is preferred, the legacy spelling remains supported, and malformed or
+absent evidence remains unclaimed. A valid retained APK inspection without an authorized device
+now exposes one contextual route to the existing Command Deck discovery owner. The same inspection
+and hash survive the route, while approval and installation remain disabled.
+
+The checkpoint introduces no scanner, target selection, plan, approval, consent or execution
+authority and does not disturb the accepted Guided Forge consent correction. It is a bounded
+feature-freeze-compliant source-parity correction; no further correction or test replay is needed.
+
+### Independent evidence and acceptance
+
+- The checkpoint's parent is exactly Product Assurance commit `12f81ad`; no Linux handoff history
+  was merged, rebased or cherry-picked.
+- Product Assurance independently reran the exact parser and App Launchpad selections on Windows
+  11 using Python 3.12.10: **9/9 passed**. Its exact temporary test directory was removed after the
+  run.
+- Source inspection confirms the connection action is visible only for a valid retained inspection
+  with no authorized device and no active worker. MainWindow revalidates the inspection and device
+  state before routing and emits only the existing discovery request.
+- Git whitespace is clean. The Windows checkout remains synchronized with only the preserved user
+  patch untracked; it is still 8,272 bytes with SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No package or app was built/launched, and no tool acquisition, ADB/Fastboot command, phone,
+  emulator, APK installation, firmware action, Guardian/Recovery execution, signing, publication,
+  release, Companion, Knowledge/UI Design Lab, lock or relock occurred.
+
+### Approved next bounded Windows task
+
+Bring the completed platform-neutral Linux Recovery Bay context correction from
+`4f54f5dd65cd2d00941ed324770d8762c900de52` into Windows source parity. Transplant only its
+application/test changes in `src/romverse/ui/device_center.py`, `src/romverse/ui/main_window.py` and
+`tests/test_navigation_vocabulary.py`; do not merge Linux handoff history. Preserve the accepted
+Windows launcher, Guided consent, minimum-SDK and App Launchpad corrections and the untracked user
+patch byte-for-byte.
+
+Require the exact `adb unauthorized` symptom and local Recovery Archives source to survive the
+canonical Command Deck route with explicit authority `none`, the existing enabled discovery action
+and no worker, online request, plan, approval or execution authority. Run only the exact focused
+connected-route case plus Ruff and Git whitespace checks on the changed files. Do not build or
+launch a package, acquire/install tools, invoke ADB/Fastboot, touch a phone/emulator, install an APK,
+modify firmware, sign, publish, release, execute Guardian/Recovery, change Companion or Knowledge/UI
+Design Lab work, force-push, lock or relock. Commit/push one bounded handoff and stop for review.
+
+### Gate status
+
+- Windows current/legacy minimum-SDK parsing: **VERIFIED**
+- Windows retained-APK connection-owner handoff: **VERIFIED**
+- Windows Recovery Archives context continuity: **NEXT BOUNDED WINDOWS TASK**
+- Packaged Linux Guided consent boundary: **OWNED BY LINUX; DO NOT DUPLICATE**
+- Physical hardware, installation, execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 7e8656d — corrected packaged Forge review/cancel
 
 - Reviewed checkpoint: `7e8656da4ab673f1802161be8d927b1b80f1f651`

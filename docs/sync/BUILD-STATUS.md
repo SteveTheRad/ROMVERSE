@@ -7,6 +7,8 @@
   `5464eb8ddd68b0c9908ae95da021342d25fc4fe9` exactly.
 - Accepted artifact base: `66dca72494fb1a6eb96d0e75210a7dbee901ad1d` — `Advance Genesis
   after project creation`.
+- Minimum correction: `cd3b84a2ef8a3e0044bbe468a0106604091e61d8` — `Reject malformed
+  Windows firmware ZIP intake`.
 - Branch: `windows-launcher-authorized-work`.
 - Status: **CORRECTION COMPLETE — THE APPROVED PACKAGED INVALID-INPUT JOURNEY EXPOSED ONE
   FAIL-CLOSED DEFECT; THE MINIMUM SOURCE CORRECTION AND ONE FOCUSED NATIVE WINDOWS TEST PASS**.

@@ -1,5 +1,85 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — one-choice unchanged Guided route
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `ddd765d6ef01f95a0616acf8227058cc817d7b84` approved the
+  simulated Device DNA boundary and authorized only the next existing Customize-stage journey.
+- Implementation commit: `7e3520ad708cf216f36e59f909d360e87240b872` — `Streamline unchanged
+  Guided route` on `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation, existing safest Customize choice only.
+- Exact files: `src/romverse/rom/guided.py`, `src/romverse/ui/guided_mission.py`,
+  `tests/test_guided_mission.py`, and `tests/test_rom_studio_ui.py`.
+
+### Concrete defect and correction
+
+- The visible Customize secondary action said **Continue to Nebula Debloat**, persisted only
+  `recipe_skipped`, and left the selected UI/durable stage on the already-completed Customize card.
+  Its evidence-derived next stage was Debloat, so the button did not perform the continuation it
+  advertised. It also did not represent the approved safest no-customization/no-debloat/unrooted
+  route.
+- The existing choice is now explicit: **Keep verified base unchanged • Recommended**. One normal
+  click selects no Recipe changes, no optional app removal, and the standard unrooted route. The
+  same choice is described consistently in the optional Customize dialog.
+- The successful choice reuses the existing rooted-input rollback protection, then atomically saves
+  `customization_skipped`, `recipe_skipped`, `root_choice=skip`, and the evidence-derived Toolchain
+  stage. There is no extra confirmation chain or stale completed-card stop.
+- Guided treats Debloat as complete only because the user deliberately kept the verified base
+  unchanged; a modified route still requires a verified Debloat receipt. Existing Recipe Forge,
+  Nebula Debloat and Ascension routes remain available when deliberately selected.
+
+### Verification without double-counting
+
+- Final directly affected regression selection: **27/27 passed**. This comprises the complete
+  Guided mission/state suite plus four focused real-widget cases covering the same simulated
+  Device DNA journey, Device scan continuity and existing root-choice evidence safeguards.
+- The normal visible-button journey retained the exact project, protected-source digest and
+  `SIMULATION ONLY • NOT HARDWARE VERIFIED` evidence, advanced directly from Customize to
+  Toolchain, and durably restored there with the unchanged/unrooted decision.
+- The journey created no Recipe, Debloat mutation, build plan, boot observation or Guardian
+  directory. Guardian handoff, flash handoff and flash-complete remained false.
+- Ruff lint and Git whitespace validation passed for all four changed files. An earlier overlapping
+  3/3 development run is not added to the final total. No broad suite, CI matrix, build, package or
+  native smoke was run.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** one-choice existing unchanged/unrooted/no-debloat route and truthful immediate
+  continuation to Toolchain.
+- **Simulated/Tested:** normal offscreen Qt user action with deterministic simulated Device DNA;
+  **27/27** non-overlapping affected checks passed.
+- **Hardware Verified:** no. The retained device evidence remains explicitly simulated.
+- **Released:** no.
+- Blockers/failures: none in the bounded journey or final affected regression. The next Toolchain
+  evidence is outside this checkpoint and remains unresolved normally.
+- Guided friction/dead ends: the misleading Customize → completed Customize stop is closed; the
+  safest standard route now requires one clear choice and no follow-up optional dialogs.
+- Guardian/Recovery/safety: no new authority. Exact-device evidence, Guardian-only execution,
+  UNKNOWN-on-uncertainty, no blind retry, same-incident Recovery, independent verification and
+  permanent no-relock remain intact. Any existing rooted integration must still be rolled back
+  successfully before the unrooted decision can be accepted.
+- Linux/Fedora: focused Python and offscreen real-widget verification passed. Windows was not run.
+  Physical Android was not connected or operated.
+- Feature freeze: compliant minimum continuity/truth correction to existing Stage 1 choices; no new
+  screen, feature, format, adapter, Device Pack, build route or execution capability.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all release gates.
+- External actions: one normal push of this scoped implementation and handoff to the existing Linux
+  branch is the only remote write. No phone, ADB/Fastboot, APK, firmware/device operation, build,
+  package installation, signing, publication, release, merge, force-push, lock or relock occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another consequential slice until the
+verdict for `7e3520a` is recorded in `docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm that the one visible recommended choice truthfully and atomically represents the
+  unchanged, no-optional-debloat, unrooted route without weakening the deliberately modified paths.
+- Confirm direct continuation to Toolchain and the 27/27 affected selection are sufficient for this
+  bounded checkpoint.
+
 ## Linux product checkpoint — simulated Device DNA truth and zero authority
 
 ### Authoritative checkpoint and scope

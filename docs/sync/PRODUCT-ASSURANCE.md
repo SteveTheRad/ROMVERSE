@@ -1,5 +1,75 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 195e4cb — bounded Adaptive Online Device DNA evidence foundation
+
+- Handoff commit: `195e4cb1a5e1e27e31d3c6f7d41967595840b22f`
+- Implementation commit: `d4c7d57ea7bc4e5f289973d6558b85b0633d6af3`
+- Authorized base: `a6d9bca06d35c4f0ca8b84ad6ebd990be7e5700a`
+- Branch: `adaptive-online-device-dna`
+- Review status: **APPROVED — BOUNDED ONLINE-EVIDENCE FOUNDATION VERIFIED**
+
+### Decision and independent evidence
+
+The checkpoint supplies the minimum reusable evidence boundary required before ROMVERSE can safely
+acquire unfamiliar-device information online. Claims retain exact source, scope, timestamps,
+freshness, content digest, parser identity, confidence and explicit conflicts. Storage is bounded,
+private and strict; merging is deterministic; unknown and conflicting combinations request further
+investigation rather than becoming unsupported or executable. Read-only projections exist for the
+named product consumers and permanently carry zero execution, phone, Guardian and relock authority.
+
+Product Assurance inspected the complete six-file implementation/handoff diff, including URL,
+redirect, size/content-type, privacy, archive-integrity and authority invariants. Product Assurance
+independently reran the exact focused suite: **79/79 passed**. Git whitespace validation passed, the
+branch is clean, and the Linux, Windows and protected Companion work were not touched.
+
+### Vision, freeze and safety result
+
+- Evidence-derived unfamiliar-device foundation: **PASS**
+- Provenance, conflicts, freshness and privacy boundaries: **PASS**
+- `UNCONFIRMED` remains investigable: **PASS**
+- Feature-freeze exception: **PASS — approved foundational correctness only**
+- Online evidence → command/Guardian authority: **STRUCTURALLY IMPOSSIBLE IN THIS SLICE**
+- Exact-device evidence, UNKNOWN/no-blind-retry, consent separation and permanent no-relock:
+  **PRESERVED**
+
+### Approved next bounded task
+
+Add one real, source-specific acquisition path for the already registered fixed Google Play public
+supported-device catalog URL. Implement a bounded HTTPS client and exact CSV parser that:
+
+- permits only the registry's exact public URL, with no credentials, redirects, authentication,
+  cookies, compression, private query fields or alternate hosts;
+- uses explicit connect/read/overall timeouts, response-byte and parsed-row limits, minimum request
+  spacing, a stable user agent, and conditional `ETag`/`Last-Modified` metadata when supplied;
+- validates status and content type before parsing, rejects malformed/duplicate/oversized rows, and
+  retains no raw response body after bounded claim formation;
+- accepts only an explicit non-personal manufacturer/model/device-codename lookup and stores only
+  matching normalized identity claims plus exact provenance/content digest; it must not bulk-promote
+  the catalog into compatibility or execution support;
+- produces a durable acquisition receipt for success, no exact match, HTTP failure, validation
+  failure and cache-not-modified outcomes without converting uncertainty into `UNSUPPORTED`;
+- performs one bounded live acquisition against the exact official URL and records only sanitized
+  receipt/claim evidence and its content digest; fixture-based tests must remain deterministic and
+  must not depend on the network.
+
+Expose the retained claims through the existing read-only Device DNA/Compatibility Matrix/Knowledge
+Archives projections. Add focused normal/adversarial tests for redirects, timeout, truncation,
+unexpected content, CSV formula/control characters, ambiguous matches and privacy-unsafe lookup
+input. Update `docs/sync/KNOWLEDGE-RESEARCH-STATUS.md` with the exact live source URL, retrieval time,
+HTTP/cache metadata, content digest, parser identity, number of matched claims and limitations.
+
+Do not add arbitrary crawling, community/OEM sources, UI wiring, background scheduling, device
+commands, Guardian approval, physical-phone access, publication, production trust/signing or relock.
+Run proportional tests/lint, commit and push the two bounded checkpoints, then stop for Product
+Assurance before adding another source.
+
+### Gate status
+
+- Claim/storage/source-registry foundation: **VERIFIED**
+- Next Knowledge milestone: **ONE REAL OFFICIAL CATALOG ACQUISITION**
+- Multi-source/OEM/community acquisition and UI integration: **DEFERRED**
+- Physical/consequential execution and release: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: 0792fa8 — Recipe Forge to durable local build
 
 - Handoff commit: `0792fa8`

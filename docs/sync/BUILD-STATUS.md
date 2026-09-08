@@ -1,5 +1,82 @@
 # ROMVERSE Product Assurance Sync
 
+## Current desktop identity and CI-efficiency checkpoint
+
+- Product Assurance verdict: `5e59a92e3b337de68d6450845c52bd53c3067584` —
+  `Approve cross-platform wheel verifier [skip ci]`, matching handoff
+  `cf6500d5ca700f9d27201f29dada943a5bd52c84` and implementation
+  `54d0a3b28217a5c378ccba10e0d9b18ac230b332` exactly.
+- Workflow-only implementation: `73d22d0aad0d71632611773e54ae15e35a4ac112` —
+  `Align desktop CI identity and coordination`.
+- Result: **PARTIAL PASS — BOTH CURRENT DESKTOP ARTIFACTS PASSED; UNSIGNED-CANDIDATE JOB
+  COULD NOT START BECAUSE GITHUB REJECTED A NEW RUNNER FOR ACCOUNT BILLING/SPEND-LIMIT REASONS**.
+  No repository-owned failure was observed at the candidate boundary, and no second run was started.
+
+### Workflow-only correction
+
+- Desktop-package jobs now read `project.version` from `pyproject.toml` and use that one
+  metadata-derived value for wheel verification/installation and the platform archive name. The
+  exact expanded current paths are
+  `dist/romverse-0.2.0a1-py3-none-any.whl`,
+  `dist/ROMVERSE-Desktop-0.2.0a1-linux-x86_64.zip`, and
+  `dist/ROMVERSE-Desktop-0.2.0a1-windows-x86_64.zip`.
+- The dependent candidate job reads the installed package metadata and uses the same `0.2.0a1`
+  value for its version, exact source-bound release ID, two input archive paths, unsigned manifest
+  name, verification path, and uploaded files. There is no remaining `0.1.0` literal in the workflow.
+- Push and pull-request triggers ignore `docs/sync/**` only when all changed paths are within that
+  coordination scope. Any source, test, packaging, workflow, or other non-sync change still launches
+  normal CI. Workflow concurrency is grouped by workflow and ref with `cancel-in-progress: true`, so
+  a future newer source run on the same branch cancels a superseded run that uses this new contract.
+  Older runs created before this concurrency group cannot be retroactively assigned to it.
+
+### Local validation and exact GitHub evidence
+
+- Local syntax/identity command:
+  `.venv\\Scripts\\python.exe -c <PyYAML BaseLoader parse plus tomllib metadata and expanded-path assertions>`.
+  PyYAML **6.0.3** parsed the complete workflow; the assertions proved `project.version` is
+  `0.2.0a1`, both `docs/sync/**` path filters, the concurrency group/cancellation flag, zero legacy
+  `0.1.0` literals, both metadata steps, and **4/4** representative expanded wheel/archive/
+  manifest/release-ID paths. `git diff --check` also passed. No local product test or unaffected job
+  was rerun because this checkpoint changes only workflow orchestration.
+- The one authorized GitHub Actions run is `34226226022`, attempt 1, at exact implementation
+  `73d22d0a`. Linux desktop-package job `102060909527` completed **success** and created/uploaded
+  `ROMVERSE-Desktop-0.2.0a1-linux-x86_64.zip`. Windows desktop-package job `102060909640` completed
+  **success** and created/uploaded `ROMVERSE-Desktop-0.2.0a1-windows-x86_64.zip`.
+- Both platform jobs passed the metadata-derived `romverse-0.2.0a1` wheel build, **309-member /
+  22-Device-Pack** verification, installed-package smoke, frozen build/smoke, exact current archive
+  packaging, and artifact upload. The retained GitHub artifacts are
+  `romverse-desktop-bundle-linux-x86_64` (**159,645,412 bytes**, artifact digest
+  `sha256:49637c70a8352847172d2acd89e12376386afd88469ee76b93f2a6f03e9718e7`) and
+  `romverse-desktop-bundle-windows-x86_64` (**77,292,134 bytes**, artifact digest
+  `sha256:f5bf81655078da330873b4d182ce6811cc1e207c6a6200b014bfd4c2ee2e9bed`).
+- Dependent job `102061766307`, `desktop-release-candidate`, was scheduled after both package jobs
+  passed but completed failure before receiving a runner. It has **0 steps and 0 repository commands
+  executed**. Its sole GitHub check annotation is:
+  `The job was not started because recent account payments have failed or your spending limit needs
+  to be increased. Please check the 'Billing & plans' section in your settings`.
+  Therefore the unsigned candidate/manifest could not be proved in GitHub, and this checkpoint does
+  not claim that missing acceptance result.
+
+### Scope, blocker, and next task
+
+- The manually verified Windows executable was not rebuilt or changed. No application, runtime,
+  test, package, Knowledge/UI Design Lab, Linux Simulation, or Companion file changed. The protected
+  Companion files have no staged or working-tree diff.
+- The pre-existing untracked `0001-Preserve-local-build-completion-across-restart.patch` remains
+  untracked and byte-identical at SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone/emulator, ADB/Fastboot command, Recovery, flash, wipe, unlock, root, relock, APK install,
+  production trust/signing, publication, release, force-push, or destructive action occurred.
+  Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty, no
+  blind retry, independent verification, feature freeze, and permanent no-relock remain intact.
+- **Required human action:** restore GitHub Actions runner eligibility by resolving the repository
+  account's failed payment or Actions spending-limit condition. Precise proposed next bounded task
+  after Product Assurance matches this checkpoint and the external condition is resolved: rerun only
+  the failed `desktop-release-candidate` job once and verify its uploaded unsigned `0.2.0a1` manifest
+  binds the two already successful current archives. Do not rebuild or rerun the passing desktop jobs
+  unless GitHub requires an all-failed-jobs rerun. Windows Build is stopped at this genuine external
+  blocker.
+
 ## Cross-platform wheel verifier checkpoint
 
 - Product Assurance verdict: `4675b7c5722c59cf33512c2598bc212eccf6f287` —

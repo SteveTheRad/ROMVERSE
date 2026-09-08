@@ -1,5 +1,126 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux hardware checkpoint — Fastboot round trip stopped fail-closed
+
+### Authoritative checkpoint
+
+- Product Assurance authorization/base:
+  `46cda9e3780857d7aa33af02926dac0cf1aefa7f` — `Approve popsicle Fastboot identity round trip`.
+- Evidence checkpoint: the scoped commit containing this handoff on
+  `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation, bounded physical device-mode transition and Fastboot
+  identity acceptance.
+- Working tree before the attempt: clean and synchronized with the remote branch. The live
+  ROMVERSE UI session was confirmed closed before the transition service started.
+
+### Exact measured result
+
+- The production reconnect-safe Device Engine first re-established exactly one authorized USB ADB
+  `popsicle` target and matched its sealed pseudonymous identity.
+- `LocalDeviceTransitionService` created a one-use, tool-hash-bound Android-to-bootloader plan and,
+  under the creator's exact consent recorded by Product Assurance, sent one ADB
+  `reboot bootloader` command. The command returned success and the bounded arrival observer
+  durably verified the same pseudonymous `popsicle` target in bootloader Fastboot.
+- Transition journal `7f76f05f75eb4776b67c7d8b75518823.json` is `completed`, with
+  `command_completed=true`, `arrival_verified=true`, `phone_state_uncertain=false`, and sealed
+  digest `03d2b5201e8d9fbd92536ae7dd7139eb3d6e755da22557dde8a718dc4fe7d5b0`.
+- One production `DeviceEngine.scan()` Fastboot observation then found no simultaneous ADB target,
+  exactly one Fastboot target, product/codename `popsicle`, and bootloader rather than Fastbootd.
+  It invoked only the fixed `product`, `current-slot`, `unlocked`, `secure`, and `is-userspace`
+  variables. Product and bootloader mode were established; slot, unlock and secure values remained
+  explicitly unconfirmed because the transport did not return parseable values for those fields.
+- The Fastboot observation was persisted through the existing privacy-safe Device Intelligence
+  store under the same pseudonymous key `ad74e54831f21bf55d75`, record digest
+  `b75b42f09e7ba5a46633a00f684ac08e2817a4d35c9c583799f85fd33cd419d7`, and exact literal-product
+  Pack match `xiaomi.popsicle.hyperos4.os4.0.0.23`.
+- Before the authorized return command, `LocalDeviceTransitionService.inspect()` correctly
+  re-observed the source transport. Fastboot discovery still returned success, but its immediately
+  following exact `getvar product` result contained no value parseable by the transition contract.
+  The service therefore rejected the return plan with: `The selected phone is no longer in its
+  reviewed mode. Refresh devices and try again.`
+- No return plan, return consent or Fastboot reboot command was created. In accordance with the
+  no-blind-retry rule, Build issued no retry, alternative reboot or further device command. The last
+  verified phone state is bootloader Fastboot; its state after the rejected revalidation was not
+  guessed.
+
+### Focused acceptance evidence
+
+- **1/1 bounded physical round-trip acceptance attempted; 0/1 completed.** The Android-to-Fastboot
+  half and fixed identity scan passed; the Fastboot-to-Android half was rejected before command
+  dispatch. This is a truthful partial hardware result, not a completed round trip.
+- The attempt produced exactly **75 redacted Guardian records**: **74 read-only observations** and
+  **1 state-changing reboot**. Every recorded command was within the authorized transition or fixed
+  identity surface and returned a measurable result; no timeout or runner exception occurred.
+- The fixed production Fastboot identity scan itself used exactly **7/7 read-only operations**:
+  one ADB discovery, one Fastboot discovery and the five approved `getvar` values.
+- The complete active/archive Guardian chain passed strict verification at active sequence 77.
+- No broad, overlapping or package test suite was run. The 11.8 GB firmware was not rehashed.
+
+### Classification
+
+- **Implemented:** no application code changed. Existing Device Engine, Local Device Transition,
+  Device Intelligence and Guardian audit paths were exercised unchanged.
+- **Simulated/Tested:** none claimed; this was a real physical target.
+- **Hardware Verified:** Android-to-bootloader arrival and one fixed Fastboot identity observation
+  are verified for this phone. Fastboot-to-Android return and a complete round trip are **not**
+  hardware verified.
+- **Released:** no. Nothing was signed, published, installed or released.
+
+### Blocker and Product Assurance impact
+
+- **New blocker:** the return transition cannot currently earn a fresh source-mode plan because a
+  Fastboot product probe that immediately followed a successful fixed Device Engine scan returned
+  no parseable product value. Product Assurance should determine whether this is expected transient
+  transport behavior requiring a bounded non-dispatching observation strategy, a parser/protocol
+  mismatch, or an external phone/tool condition. Build must not fix or retry it under this stopped
+  hardware authorization.
+- Guided impact: the phone can remain at the bootloader screen after the safe rejection. Guided
+  needs a truthful recovery instruction and must never loop or silently retry a reboot command.
+- Guardian correctly prevented the second mode change when fresh identity authority could not be
+  re-earned. Historical/pseudonymous identity did not substitute for the missing live product fact.
+- The result is not an execution `UNKNOWN`: the only dispatched reboot command completed and its
+  requested bootloader arrival was verified. The proposed return command never reached INTENT or
+  dispatch. The phone's later current mode is operationally unconfirmed until reassessed.
+- No Fresh Live Target receipt, source compatibility, plan consent, executor admission, Recovery
+  incident, adapter action, partition evidence or flash authority was created.
+- Permanent no-relock, exact-device binding, consent separation, UNKNOWN-on-uncertainty, no blind
+  retry and independent verification remain preserved.
+
+### Platform, freeze and version gate
+
+- Fedora/Linux: partial real hardware verification as stated above.
+- Windows: not tested or claimed.
+- Feature freeze: compliant. This is an evidence-only acceptance attempt with no new feature,
+  product code, route, Device Pack, adapter or execution capability.
+- v0.2 Golden Foundation remains **CLOSED**. The incomplete return and identified transition
+  revalidation blocker require Product Assurance review before further device work.
+
+### Preservation and external actions
+
+- Protected Companion files, Windows launcher work, website, Adaptive work, external firmware and
+  unrelated user files were not edited, staged, discarded or committed.
+- Physical phone action: one ADB reboot to bootloader plus bounded read-only ADB/Fastboot identity
+  and arrival observations.
+- Fastboot reboot to Android: **not dispatched**. Retry or alternative reboot: **none**.
+- Flash, boot image, partition enumeration/read/write, fetch/upload, slot change, erase/wipe/format,
+  unlock/lock/relock, APK action, root/debloat, source authority, signing, publication and release:
+  **none**.
+- External action after documentation: one normal push of this evidence handoff to the existing
+  Linux branch only; no force-push.
+
+### Next proposed Build task
+
+Stop for Product Assurance. Do not issue another device command or begin the queued external-package
+metadata task until the latest verdict is reviewed. If the user needs the phone immediately, use a
+manual hardware-button reboot rather than an unreviewed host-side retry.
+
+### Product Assurance Review Requested
+
+- Review why the transition service's fresh Fastboot product observation became unparseable after
+  the immediately preceding production Device Engine identity scan succeeded.
+- Define the minimum safe reassessment/recovery path for returning this exact phone to Android
+  without converting a missing live fact into guessed authority or a blind retry.
+
 ## Linux hardware checkpoint — one fresh read-only popsicle observation
 
 ### Authoritative checkpoint

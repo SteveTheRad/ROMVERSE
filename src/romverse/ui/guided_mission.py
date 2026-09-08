@@ -2250,6 +2250,7 @@ class GuidedBuildMission(QDialog):
             title="ROMVERSE • Resolve Genesis requirements",
             success_message="Genesis requirements freshly verified.",
             parent=self,
+            auto_start=False,
         )
         refreshed = {item.name: item for item in self.studio.tool_statuses}
         remaining = tuple(

@@ -2106,6 +2106,7 @@ def test_genesis_tool_resolution_fails_closed_when_required_reader_remains_missi
     studio = RomStudio(store, DevicePackRegistry(()))
     studio.refresh(project.project_id)
     mission = GuidedBuildMission(studio)
+    setup_options = {}
 
     class Status:
         def setText(self, _text):
@@ -2115,8 +2116,8 @@ def test_genesis_tool_resolution_fails_closed_when_required_reader_remains_missi
         last_message = "Installation was closed before completion."
         status = Status()
 
-        def __init__(self, *_args, **_kwargs):
-            pass
+        def __init__(self, *_args, **options):
+            setup_options.update(options)
 
         def setWindowTitle(self, _title):
             pass
@@ -2146,6 +2147,8 @@ def test_genesis_tool_resolution_fails_closed_when_required_reader_remains_missi
     assert mission.failure is not None
     assert mission.failure.title == "Forge Arsenal still needs attention"
     assert "Payload Dumper" in " ".join(mission.failure.recommendations)
+    assert setup_options["auto_start"] is False
+    assert setup_options["auto_close"] is False
     mission.close()
     studio.close()
 

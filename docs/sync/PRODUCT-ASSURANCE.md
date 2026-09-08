@@ -1,5 +1,67 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 27ff665 — corrected packaged malformed-firmware rejection
+
+- Reviewed commit: `27ff6652cfeaa2be93a2ea7b75f2267e5b0098e1`
+- Accepted correction/package source: `cd3b84a2ef8a3e0044bbe468a0106604091e61d8`
+- Approved base: `72278230f600e90b92135fb85126a60643c06fa6`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — CORRECTED PACKAGE REJECTS MALFORMED INPUT WITHOUT FALSE STATE**
+
+### Decision
+
+Product Assurance independently reproduced the executable, project, Guided and runtime hashes and
+inventoried every relevant workspace store. The new unsigned Windows package rejects the exact
+85-byte plain-text `.zip` before protected-source commit, leaves task 2 incomplete with the chooser
+enabled, and retains no original, inspection, Device DNA, compatibility, candidate or build state.
+The source correction and packaged behavior now agree; no further correction or replay is required.
+
+### Independent evidence and acceptance
+
+- The unsigned executable is 6,319,194 bytes and independently matches SHA-256
+  `d300d1efd748bda35ea509a54db3ea57859065c6048b84c855830430d3a01529`; Authenticode is
+  `NotSigned`.
+- The project manifest and Guided record independently match SHA-256 values
+  `15a4b6da2828f9ce6f834c00bad6de17491f51aadb3420bad259348b976a7f2c` and
+  `807b875d934e91f65cc0a403eeab1c17394027b7e9c5ce1d277afab8e4e85332`. `original` is null,
+  the selected stage remains `firmware`, and only the truthful rejection error is retained.
+- Independent inventory found zero files in APK, backup, build, cache, diagnostics, original-ROM,
+  snapshot, temporary, tool and working-ROM stores. No Guardian audit exists because Platform Tools
+  and Device Engine were not invoked.
+- The runtime record independently matches SHA-256
+  `9b548079f50e029991471fdbf93e92807fb82adb17319871cb9ab421e7b7f499`; no ROMVERSE process
+  remains. The untracked user patch remains outside the checkpoint.
+- No phone, real firmware, APK, build/signing, Guardian/Recovery execution, publication, release,
+  lock or relock occurred.
+
+### Approved next bounded Windows task
+
+Use this same corrected package once in a new disposable no-phone workspace to exercise the
+complementary Adaptive Discovery path. Create one deterministic, structurally valid ZIP containing
+only a harmless plain-text marker and select it as the project's source. ROMVERSE may protect and
+inspect this exact archive, but it must classify Android identity, compatibility, source adapter and
+build/flash capability as **UNCONFIRMED** rather than fabricate support or treat unfamiliarity alone
+as an execution gate. It must present the evidence found, explain what is still missing, and leave
+one safe next investigation/prerequisite action while all build, signing, Guardian and Recovery
+execution authority remains absent.
+
+This is one inert valid-container investigation, visibly and durably labelled synthetic test
+evidence; it is not real firmware, broad format fuzzing, a build or a phone simulation. Reuse the
+current package without rebuilding and capture only the protected-source hash, bounded inspection,
+Device DNA/Matrix classification, Guided stop point and clean close. If one genuine false claim,
+inert state or unsafe progression defect appears, apply only its minimum correction and one focused
+native Windows test; otherwise make no source change. Commit/push one bounded handoff and stop for
+review. Preserve the untracked patch. No phone, download, APK, ROM build/signing,
+Guardian/Recovery execution, publication, release, lock or relock is authorized.
+
+### Gate status
+
+- Corrected packaged malformed-firmware rejection: **VERIFIED**
+- Valid unfamiliar archive investigation/UNCONFIRMED containment: **NEXT BOUNDED WINDOWS TASK**
+- Linux Time Machine prerequisite handoff: **OWNED BY LINUX; DO NOT DUPLICATE**
+- Physical hardware, signing, Guardian/Recovery execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 459a802 — malformed Windows firmware rejection
 
 - Reviewed commit: `459a8022b967bede94ddd967b16bf57e32b84f58`

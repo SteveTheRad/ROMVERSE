@@ -1,5 +1,87 @@
 # ROMVERSE Product Assurance Sync
 
+## Fresh unsigned Windows artifact — native observation tooling blocker
+
+- Product Assurance verdict: `424b4226d55caa1c081b6bcb1f509ee151eb7400` — `Approve Windows
+  Forge convergence`, matching checkpoint `120af840b02bfa7ced40cb173541b5711deff2d3`
+  exactly.
+- Approved implementation source: `120af840b02bfa7ced40cb173541b5711deff2d3`. At build HEAD
+  `424b4226`, `src`, `scripts` and `pyproject.toml` were byte-for-byte identical to that source;
+  the sole intervening path was `docs/sync/PRODUCT-ASSURANCE.md`.
+- Result: **PARTIAL PASS / TOOLING BLOCKER — EXACTLY ONE FRESH UNSIGNED WINDOWS BUILD AND ZIP WERE
+  PRODUCED AND INDEPENDENTLY INTEGRITY-CHECKED; THE APP LAUNCHED ONCE UNELEVATED, EXPOSED A
+  RESPONSIVE `ROMVERSE STUDIO 0.2.0-ALPHA.1` WINDOW, CLOSED NORMALLY AND LEFT NO PROCESS, BUT THE
+  WINDOWS COMPUTER-USE RPC/APP INVENTORY WAS UNAVAILABLE, SO COMMAND DECK, GUIDED ENTRY AND THE
+  VISIBLE MISSING-TOOLS/NO-DEVICE COPY COULD NOT BE HONESTLY OBSERVED**.
+
+### Exact one-build and one-package evidence
+
+- Fresh paths were confirmed absent before work:
+  `build\windows-120af840`, `build\windows-120af840-pyinstaller`,
+  `dist\windows-120af840\ROMVERSE-Desktop-0.2.0a1-windows-x86_64.zip` and
+  `C:\Work\ROMVERSE-Artifact-Smoke-120af840`.
+- Build command, run exactly once:
+  `.venv\Scripts\python.exe scripts\build_desktop_executable.py --output-directory
+  build\windows-120af840 --work-directory build\windows-120af840-pyinstaller`.
+  PyInstaller `6.22.2` completed successfully with Python `3.12.10` on Windows 11 Home x64
+  `10.0.26200`; analysis resolved ROMVERSE from this checkout's `src` path.
+- Package command, run exactly once:
+  `.venv\Scripts\python.exe scripts\package_desktop_bundle.py
+  build\windows-120af840\ROMVERSE --platform windows-x86_64 --output
+  dist\windows-120af840\ROMVERSE-Desktop-0.2.0a1-windows-x86_64.zip`.
+- Runnable executable:
+  `C:\Work\ROMVERSE-Windows\build\windows-120af840\ROMVERSE\ROMVERSE.exe`, **6,318,781 bytes**,
+  SHA-256 `6fb2f134156fa0f4ff619ea2138d2b89fe3f6f31eaa68c90556c7ab912313627`, Authenticode
+  `NotSigned`.
+- Unsigned development archive:
+  `C:\Work\ROMVERSE-Windows\dist\windows-120af840\ROMVERSE-Desktop-0.2.0a1-windows-x86_64.zip`,
+  **73,503,414 bytes**, SHA-256
+  `3515966dceba273ef0d8371b7d8b6f05011a3abc7a1d92f8af9d096313d47c41`.
+- The one-folder build and ZIP independently agreed on **305 files / 164,643,116 expanded
+  bytes**. A separate archive pass read every byte of all 305 members, found zero unsafe or
+  duplicate member names, confirmed `ROMVERSE/ROMVERSE.exe`, and encountered no CRC read failure.
+
+### One unelevated isolated launch and exact blocker
+
+- The executable was launched exactly once, unelevated, with `--workspace
+  C:\Work\ROMVERSE-Artifact-Smoke-120af840\workspace --skip-onboarding`, isolated `ROMVERSE_HOME`
+  `...\settings`, and `PATH` limited to `C:\Windows\System32;C:\Windows;C:\Windows\System32\Wbem`.
+  Neither `adb.exe` nor `fastboot.exe` exists in that path or anywhere in the fresh smoke root.
+- OS process evidence showed PID `67088`, nonzero main-window handle `5505168`, `Responding=True`
+  and title `ROMVERSE Studio 0.2.0-alpha.1`. This proves process/window startup, not the unobserved
+  contents of that window.
+- The approved Computer Use path failed before it could inspect or act on the app. Initial and
+  one permitted retry returned `Trusted RPC service is not configured: sky`; after the prescribed
+  runtime reset, native app inventory was still absent and the retry returned
+  `cua.listApps is not a function`. No screenshot, accessibility tree or visible text was obtained.
+- Because the requested UI evidence was unavailable, no navigation or setup control was clicked.
+  Command Deck rendering, Guided entry rendering, and the visible actionable
+  missing-platform-tools/no-device state remain **UNKNOWN / NOT VERIFIED**, not inferred from source
+  or earlier artifacts.
+- A normal close message was accepted; the process exited within ten seconds and no
+  `ROMVERSE.exe` remained. The 77-byte runtime log contains exactly one start line and one clean
+  close line. The fresh root contains zero managed Platform Tools and zero Guardian/device/command
+  receipt candidate paths.
+
+### Scope, safety and next gate
+
+- The prior 30-test convergence was not replayed. No source/test correction, second build, second
+  package, second launch, tool installation/download, ROM candidate, signing or physical workflow
+  ran.
+- No phone or emulator was requested, connected, discovered, operated or targeted. No ADB/Fastboot,
+  Recovery, flash, wipe, unlock, root, relock, APK installation, Guardian consent/execution,
+  production adapter/trust/signing, publication, release, force-push or destructive action occurred.
+  Exact-device evidence, consent separation, UNKNOWN-on-uncertainty, no blind retry, independent
+  verification, feature freeze and permanent no-relock remain intact.
+- The protected Companion files have no staged or working-tree diff. The pre-existing untracked
+  `0001-Preserve-local-build-completion-across-restart.patch` remains untracked and byte-identical at
+  SHA-256 `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- Precise proposed next task: independent Product Assurance review of the successful fresh
+  artifact/integrity/startup/clean-close evidence and the exact Computer Use blocker. If approved,
+  reuse this exact verified artifact without rebuilding or retesting and perform only one bounded
+  visible no-phone observation/relaunch after native app inspection is available; otherwise make
+  only the exact correction Product Assurance records.
+
 ## Windows Forge/Device Build exact-plan convergence checkpoint
 
 - Windows authorization: `ef8c860fb49173e1d66d9cacda3f204d9ff17e19` — `Approve Windows

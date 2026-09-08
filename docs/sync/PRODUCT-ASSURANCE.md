@@ -1,5 +1,78 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 500a11a — saved Stage-10 host review continuity
+
+- Reviewed checkpoint: `500a11a50ddbe0b8ee8aada7ddc40080ef4e1f1f`
+- Approved base: `25bb798`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — SAVED HOST REVIEW IS ACTIONABLE WITHOUT RESTORING DEVICE AUTHORITY**
+
+### Decision
+
+Product Assurance inspected the exact source, focused regression and persisted packaged evidence.
+The narrow exception enables only the existing host-tool review for an integrity-loaded project
+saved at Stage 10 when the surrounding durable local stages remain complete. Device DNA correctly
+returns to attention after its live process context expires; the exception neither completes that
+device stage nor creates a target, consent, Guardian or execution authority. Cancellation retains
+Stage 10 and one exact missing-tool error. This closes a real forward-continuity dead end without
+replaying stages 1–9 or adding a product feature.
+
+The disclosed automatic `adb devices -l` / `fastboot devices -l` calls do not require a source
+correction. They are the ordinary Desktop connection monitor, were allowlisted read-only
+host-targeted inventories, returned empty/successfully, and selected or addressed no device. The
+previous version-query-only acceptance wording was too narrow for a normal Desktop launch. Future
+normal-runtime acceptance may explicitly allow these background inventories only while no device
+is attached or selected; an inert launcher mode is not justified and would create another build
+for test machinery rather than user value.
+
+### Independent evidence and acceptance
+
+- Product Assurance independently verified the corrected executable: 6,327,312 bytes, mode `0755`,
+  SHA-256 `5b097d706ec42fddab3b49f534b8ccc7a1579446469bff1099ba8dda66966744`.
+- The protected source and workspace copy remain byte-identical at
+  `680f56c3c6741fb7ae8690a787d2b9ace87d22cbcfa18ea10b040b343b15bf7c`;
+  the working `system/build.prop`, Recipe, Recipe receipt and Debloat receipt independently match
+  the handoff hashes.
+- The integrity-loaded schema-6 mission remains at `selected_stage: toolchain`, records
+  `root_choice: skip`, `recipe_validated: true`, `install_requested: false`, and retains exactly
+  `Required tools remain unverified: Payload Dumper.` Task 11 did not advance.
+- The audit tail is a gap-free sequence of allowed, untimed-out, return-code-zero ADB/Fastboot
+  `devices -l` inventories with target `host`; it contains no device-addressed command or approval.
+- Build's directly affected regression passed **1/1**, with Ruff and Git whitespace clean. Product
+  Assurance inspected the exact assertions and did not repeat an already-sufficient unchanged test.
+- No phone/emulator, tool download/install, APK/device or real firmware action, build/signing,
+  Guardian/Recovery execution, publication, release, Companion, Knowledge/UI Design Lab, Windows,
+  force-push, lock or relock occurred.
+
+### Approved next bounded Linux task
+
+Continue forward from the same saved project using the exact accepted package—do not rebuild,
+recreate or replay any completed stage. Relaunch only as required to resume Stage 10. The normal
+Desktop monitor may perform its audited, read-only, host-targeted ADB/Fastboot inventory while no
+phone/emulator is attached or selected; do not issue any device-addressed probe or operation.
+
+Open the existing Forge review once and use its existing **Install and verify requirements** action
+to acquire only Payload Dumper into this private managed-tool directory. Require the established
+official-release metadata/asset allowlist, bounded download/extraction, SHA-256 verification,
+atomic activation and receipt evidence. No administrator, system/global installation or PATH
+mutation is permitted. Then require fresh source-scoped tool verification to clear the exact
+Payload Dumper blocker and advance the same mission once to Stage 11 with all existing source,
+working-tree, Recipe, Debloat and unrooted evidence unchanged.
+
+If acquisition or verification fails, retain Stage 10 with one actionable error and do not retry
+blindly. Do not change source, rebuild/package, rerun completed tests, operate Stage 11, connect or
+address a phone/emulator, install an APK, build/sign firmware, grant Guardian/Recovery authority,
+publish, release, touch Companion/Knowledge/UI Design Lab/Windows work, force-push, lock or relock.
+Commit/push one evidence handoff and stop for review.
+
+### Gate status
+
+- Saved Stage-10 host-review continuity: **VERIFIED**
+- Managed Payload Dumper resolution and Stage-11 handoff: **NEXT BOUNDED LINUX TASK**
+- Windows corrected simulated unchanged-base Stage-8 stop: **OWNED BY WINDOWS; DO NOT DUPLICATE**
+- Physical hardware, firmware build/sign/install, execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 8da4a63 — verified-empty Debloat and unrooted continuity
 
 - Reviewed checkpoint: `8da4a633d3b027fe127c4fe1212edbc089e99d2a`

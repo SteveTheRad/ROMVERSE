@@ -1,5 +1,87 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows packaged Genesis Forge handoff — bounded environmental fallback review requested
+
+- Product Assurance verdict: `fabb17f1747d53e0590b1c50f2d7fb1969e823dc` — `Approve Windows
+  Genesis tool handoff`, matching checkpoint `6fc79f65769366f3b31ddea7244bb9119bb05158`
+  exactly.
+- Accepted correction/package source: `6fc79f65769366f3b31ddea7244bb9119bb05158`;
+  approved base `2ba78b0a3c689be360e1008e2fcb4dba1d188c9d`.
+- Branch: `windows-launcher-authorized-work`.
+- Status: **PASS UNDER THE EXPLICIT PRODUCT ASSURANCE ENVIRONMENTAL FALLBACK — ONE BOUNDED
+  CORRECTED-PACKAGE SESSION COULD NOT SAFELY REACH THE RETAINED MISSION AFTER THE SINGLE ALLOWED
+  FOCUS RECOVERY, SO NO UI ACTION WAS REPLAYED AND THE INDEPENDENT 3/3 NATIVE WINDOWS ACCEPTANCE
+  COVERAGE REMAINS THE AUTHORITATIVE FORGE HANDOFF/RETRY EVIDENCE**.
+
+### Exact bounded packaged session
+
+- Fast-forwarded without conflict to the exact Product Assurance tip
+  `fabb17f1747d53e0590b1c50f2d7fb1969e823dc`; it modifies only
+  `docs/sync/PRODUCT-ASSURANCE.md` and has checkpoint `6fc79f65` as its direct ancestor.
+- Reused, without rebuilding or repackaging, the approved unsigned executable
+  `build/windows-stage5-tool-repair-2ba78b0a/ROMVERSE/ROMVERSE.exe`, 6,319,605 bytes, SHA-256
+  `5784de7a491c0b151ddb727beecf64c7ca4132760c5a687d9a22981e172899bc`, against the exact existing
+  workspace `C:\Work\ROMVERSE-Windows-Adaptive-Discovery-3fe32432-20260909`.
+- The exact process command line was the executable plus `--workspace
+  C:\Work\ROMVERSE-Windows-Adaptive-Discovery-3fe32432-20260909`. The package opened its
+  `Welcome to ROMVERSE` screen with the exact workspace visible and truthfully reported ADB and
+  Fastboot unavailable to that launch; it did not claim device evidence.
+- The first target-derived **Choose Guided Mode and open Command Deck** activation returned the
+  same unchanged ROMVERSE accessibility state while the captured surface was covered by
+  LegionSpace. The one Product Assurance-authorized focus recovery again returned the exact
+  ROMVERSE setup accessibility tree but a LegionSpace surface. Build therefore stopped input
+  instead of replaying or risking an action against the wrong foreground window.
+- Because the retained mission could not be safely opened, **Scan device & refresh DNA** was not
+  invoked and Forge Arsenal did not open. No dialog was accepted, no **Install and verify
+  requirements** action was pressed, and no download, installation, device scan or command was
+  attempted. This is the precise environmental fallback expressly allowed by verdict `fabb17f1`.
+- The targeted ROMVERSE window accepted a normal `Alt+F4` close and disappeared from the current
+  Windows window inventory. No `ROMVERSE.exe` process remains. The exact workspace runtime record
+  stayed byte-identical at 231 bytes and SHA-256
+  `30feaa6b43ac81c3e426cd89b1366323359c203a3e4d399727d797fd3674f8b7` because the session never
+  advanced beyond onboarding into the workspace-backed runtime.
+
+### Preserved project and safety state
+
+- The exact project records remain byte-identical: `project.romverse`
+  `43d0be47945aa2ec5a27f11ef8a94a809a9ef4cb9f23ea4a1424773990902fd3`,
+  `guided-mission.json` `56dcc316220c22f3784d5e10fda39df47a3b96a763bbab702eba369e40b4d511`,
+  `inspection.romverse` `cd98bfd4120977d9d9dd59e8e8a9684bc66dd511f51a4f8a4f6e14581763afd1`,
+  `device-dna.romverse` `a9cda907fe28d783549a37dc09328ba12ba9f11a02a704c1c43b32f3a56c6046`,
+  `compatibility-matrix.romverse`
+  `6e6f9dc82619f2940f1b3a56aea4322b35458669b54da7d53be950641feb7a81`,
+  `working-copy.romverse` `98b0d92596c2d6acc413a7325ec9a68eb7f34c4f54c8bed3206f9b291ca23749`,
+  `working-tree-index.romverse`
+  `154d60fcbe230b4b2c449959e9cb481f110ba9637f5c7e69cd1195369115f490`, and
+  `route-record.romverse` `c1c5ed2c1584a11889d1c3ad759ac86ffee7ba85406c28405c3e395cb8df3b95`.
+- Workspace `tools` still contains zero files. No project candidate, build plan, command manifest,
+  consent record or Guardian audit exists. Device DNA and compatibility therefore remain
+  UNCONFIRMED/Unknown, and execution authority remains absent.
+- A pre-existing detached ADB server remains outside this checkpoint: PID 49872, started
+  2026-09-08 05:39:58 +10:00 from
+  `C:\Work\ROMVERSE-Link-Lazy-Frozen-20260907\tools\downloads\platform-tools\platform-tools\adb.EXE`.
+  It was already present before this session and was not started, queried, targeted or stopped by
+  Build. No ADB/Fastboot command was issued in this checkpoint.
+- The protected Companion files remain untouched. The untracked user patch remains present and
+  byte-identical at 8,272 bytes, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone or emulator was requested, awaited, discovered, connected, operated or targeted. No
+  Platform Tools download/install, APK/device installation, firmware change, ROM build/signing,
+  consent, Guardian/Recovery execution, publication, release, lock, relock, force-push or
+  destructive cleanup occurred.
+
+### Verification scope and next gate
+
+- Verdict `fabb17f1` expressly forbids another source change or test loop and accepts the existing
+  independently rerun native Windows results when the foreground cannot be made safe after one
+  bounded focus recovery. Accordingly, no source changed, no package was rebuilt and no test was
+  rerun. The accepted focused total remains **3/3 passed**, with Ruff passing both changed files,
+  as independently recorded by Product Assurance.
+- Only this Build handoff document changed after the Product Assurance fast-forward. Product
+  Assurance should independently review the exact one-session evidence and confirm acceptance of
+  its stated environmental fallback before authorizing any further Windows task. Do not repeat
+  the packaged handoff unless a new bounded verdict explicitly requires it.
+
 ## Windows stage-5 Platform Tools repair continuity — creator-boundary review requested
 
 - Product Assurance verdict: `2ba78b0a3c689be360e1008e2fcb4dba1d188c9d` — `Approve Windows

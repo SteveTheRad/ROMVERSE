@@ -1,5 +1,59 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: cf6500d — cross-platform wheel verifier correction
+
+- Handoff commit: `cf6500d` — `Record cross-platform wheel verifier checkpoint [skip ci]`
+- Implementation commit: `54d0a3b28217a5c378ccba10e0d9b18ac230b332`
+- Approved base: `4675b7c5722c59cf33512c2598bc212eccf6f287`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — CURRENT ALPHA WHEEL BUILDS, VERIFIES AND PACKAGES**
+
+### Decision
+
+Product Assurance inspected the exact workflow-only diff and independently checked the current
+package identity and GitHub job evidence. `pyproject.toml` declares `0.2.0a1`; the previous workflow
+built that wheel correctly but passed an obsolete nonexistent `0.1.0` pathname to verification and
+installation. The two-line correction now consumes the exact artifact actually produced and changes
+no wheel content, verifier, runtime or application feature.
+
+### Independent evidence and acceptance
+
+- In GitHub Actions run `34224896427` at exact source `54d0a3b`, both the Windows and Linux
+  desktop-package jobs completed successfully through wheel build, exact `0.2.0a1` verification,
+  isolated installation smoke, frozen build/smoke, bundle packaging and artifact upload.
+- Both platform jobs independently accepted the same **309 wheel members and 22 Device Packs**.
+- The changed workflow paths exactly match the canonical project version; Git whitespace validation
+  passed. The two focused verifier adversaries and clean-export wheel smoke recorded by Build are
+  proportionate and no application source changed.
+- The protected untracked Windows patch remains preserved. No phone/emulator, ADB/Fastboot,
+  Recovery, flash, wipe, unlock, root, relock, APK install, production signing/trust, publication or
+  release occurred.
+
+### Approved next bounded Windows task
+
+Correct the remaining desktop workflow identity and CI-efficiency drift in one workflow-only
+checkpoint. Replace legacy `0.1.0` archive, release-candidate and manifest labels with the canonical
+current `0.2.0a1` development identity, preferably deriving one version value from project metadata
+instead of repeating a second hand-maintained version. This creates an unsigned development
+candidate only and grants no release authority.
+
+Also prevent repository coordination from wasting Actions allowance: documentation-only sync/
+Product-Assurance commits must not launch the full test matrix, and a newer source run on the same
+branch should cancel a superseded in-progress run. Preserve normal CI when any source, test,
+packaging or workflow file changes. Validate workflow syntax/expanded paths locally, then use one
+GitHub run to prove both desktop artifacts and the unsigned candidate carry the consistent current
+identity. Do not rerun unaffected work locally, rebuild the manually verified Windows artifact,
+change runtime features, overlap Linux Forge/Knowledge/UI Design Lab/Companion work, connect a
+phone, sign, publish or release. Commit/push one bounded checkpoint and stop for review; use a
+documentation-only `[skip ci]` handoff until the new filter is authoritative.
+
+### Gate status
+
+- Cross-platform current wheel verification and package jobs: **VERIFIED**
+- Consistent current desktop artifact identity and non-duplicative CI triggers: **NEXT BOUNDED WINDOWS TASK**
+- Production signing, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: da3109b — packaged Windows missing-tools recovery
 
 - Handoff commit: `da3109b7177440361697d4b44f9611edff7d983a`

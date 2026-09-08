@@ -1,5 +1,73 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows Guided Build Readiness schema-3 parity checkpoint
+
+- Product Assurance verdict: `eb88b6327d6d9672c58070f7e6274e5ba4c203dd` — `Authorize Windows
+  build plan adaptation`, matching blocker checkpoint
+  `0483a8d9a8fad649224ee30db39a8b69be421dfc` exactly.
+- Approved source implementations from `origin/linux/stage1-desktop-readiness`:
+  `85aba5f2ff098b478d5f33dc8c887c281a774d06` — `Complete requested Simulation dry run`
+  for the planner's protected-original and pre-persistence race checks, followed by
+  `aaadeac6a622b4fca95980904c8ac1a4e454d1cb` — `Bind Guided build plans to exact evidence`
+  for the schema-3 planner, Guided worker/persistence and directly relevant tests.
+- Result: **PASS — THE WINDOWS GUIDED JOURNEY NOW CREATES AND INDEPENDENTLY REVALIDATES AN INERT
+  SCHEMA-3 PLAN BOUND TO THE EXACT SOURCE, TREE, TOOL EVIDENCE AND GUIDED CHOICES; IT PERSISTS BUILD
+  & SIGN AS THE NEXT TRUTHFUL STAGE WHILE REMAINING LOCAL, NON-FLASHABLE, EXECUTION-LOCKED AND
+  AUTHORITY `none`; THE PRESERVED COMMAND DECK PATH REMAINS SCHEMA 2**.
+
+### Exact bounded adaptation
+
+- Applied the approved 27-line planner prerequisite diff from `85aba5f2`, then the planner,
+  Guided worker/persistence and directly relevant test diffs from `aaadeac6`. The Windows
+  `ProjectWorker` / `_start_worker` owner was adapted so only Guided `plan` and `verify-plan`
+  operations receive current source-required tool evidence. Direct verification recognizes an
+  already persisted schema-3 plan and revalidates it with the same evidence.
+- The absent automatic Command Deck Simulation orchestration was deliberately not imported.
+  Non-Guided Command Deck planning still omits Guided evidence and produces schema 2; the common
+  planner can safely load and verify schema 3 without creating a new automatic journey.
+- The product/test diff is **5 files, 334 insertions and 18 deletions**:
+  `src/romverse/rom/builds.py`, `src/romverse/ui/guided_mission.py`,
+  `src/romverse/ui/rom_studio.py`, `tests/test_rom_builds.py` and
+  `tests/test_rom_studio_ui.py`. The one Windows-only test adaptation compares the recorded
+  symbolic-link target with the exact value returned by `os.readlink`, accepting Windows'
+  equivalent `\\?\C:\...` spelling without weakening the no-follow or link-drift assertions.
+
+### Native Windows verification
+
+- Final exact affected command:
+  `$env:PYTHONPATH='src'; $env:QT_QPA_PLATFORM='windows'; .venv\Scripts\python.exe -m pytest
+  -p no:cacheprovider --basetemp C:\Work\ROMVERSE-Pytest-BuildReadiness-final-eb88b632
+  tests/test_rom_builds.py tests/test_guided_mission.py
+  tests/test_rom_studio_ui.py::test_genesis_simulated_device_continues_visibly_without_hardware_authority
+  tests/test_build_readiness.py::test_build_readiness_never_treats_a_simulated_device_as_live_target
+  tests/test_rom_studio_ui.py::test_rom_studio_command_deck_handoffs_report_exact_ready_workflows`.
+- Final result: **31 passed, 0 failed, 0 errors, 0 skipped in 8.66 seconds**. This includes the
+  complete build-plan and Guided mission/state suites, the inert native Guided journey, forged
+  simulation-evidence rejection and the unchanged Command Deck handoff.
+- The first affected run was **30 passed, 1 failed in 9.22 seconds** solely because the existing
+  symlink fixture expected `C:\...` while native Windows returned the equivalent `\\?\C:\...`.
+  After the bounded assertion correction, its individual reproduction passed **1/1 in 0.37
+  seconds**, followed by the clean final 31-test selection above.
+- Focused Ruff over all five changed product/test files passed with Ruff `0.16.6`. Git whitespace
+  validation passed.
+
+### Scope, safety and next gate
+
+- No prior 64-test convergence, broad suite, build, package, app launch, tool download, Forge
+  candidate or signing ran. All tool evidence came from deterministic workspace-local inert files.
+- No phone or emulator was requested, connected, discovered, operated or targeted. No ADB/Fastboot,
+  Recovery, flash, wipe, unlock, root, relock, APK installation, Guardian/execution authority,
+  production adapter/trust/signing, publication, release, force-push or destructive action occurred.
+  UNKNOWN-on-uncertainty, no blind retry, exact-device evidence, consent separation, independent
+  verification, feature freeze and permanent no-relock remain intact.
+- The protected Companion files have no staged or working-tree diff. The pre-existing untracked
+  `0001-Preserve-local-build-completion-across-restart.patch` remains untracked and byte-identical at
+  SHA-256 `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- Precise proposed next task: independent Product Assurance review of this bounded Windows
+  schema-3 Guided checkpoint and its 31/31 native result. Do not begin another implementation,
+  build/package, launch, download, Forge/signing or device slice without a matching repository
+  verdict.
+
 ## Windows Guided Build Readiness parity — branch-context blocker
 
 - Product Assurance verdict: `9fd28a90e348346e60f673af451bf95fd085ef0d` — `Approve Windows

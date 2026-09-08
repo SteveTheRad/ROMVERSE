@@ -1,5 +1,78 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows native firmware-picker cancellation continuity — Product Assurance review requested
+
+- Product Assurance verdict: `a82fefbb8368aa3f64057d0e13fb90e726fa640c` — `Approve Windows
+  saved-project resume`, matching checkpoint
+  `55d8137030d6b88085b4742b75fc39655229ec8b` exactly.
+- Accepted implementation: `66dca72494fb1a6eb96d0e75210a7dbee901ad1d` — `Advance Genesis
+  after project creation`.
+- Branch: `windows-launcher-authorized-work`.
+- Status: **PASS — CANCELLING THE NATIVE WINDOWS FIRMWARE PICKER PRESERVES THE EXACT SAVED
+  PROJECT/STAGE, FALSE PROGRESS IS NOT CREATED, AND THE CHOOSER REMAINS IMMEDIATELY ACTIONABLE**.
+
+### Exact bounded Windows observation
+
+- Reused the approved unsigned one-folder development artifact without rebuilding or repackaging:
+  `build/windows-project-route-7c6d83ff/ROMVERSE/ROMVERSE.exe`, 6,318,778 bytes, SHA-256
+  `437fbdcddc8bff346bcc5cba11a02f067f7f13eba61a116ef26b385a99af493b`, Authenticode
+  `NotSigned`.
+- Reused the same isolated saved-project workspace exactly once:
+  `C:\Work\ROMVERSE-Windows-Project-Entry-Corrected-7c6d83ff-20260909`, with its existing verified
+  managed Platform Tools. No download, installation, workspace creation, project creation, source
+  change, test run, build or package occurred.
+- Narrow local Windows UI Automation invoked the existing enabled `Continue Genesis Sequence`
+  action once. Genesis opened the exact project `Windows No-Phone Project 20260909` at
+  `SCAN / TASK 02 OF 15`, `Load the untouched firmware`, `Awaiting firmware`,
+  `AWAITING PROTECTED FIRMWARE`, `No device connected`, and enabled `Choose firmware…`.
+- The enabled `Choose firmware…` action opened one native Windows dialog titled
+  `Choose original firmware`. Its `File name` field was empty. The dialog was cancelled exactly
+  once through its visible `Cancel` control without selecting a file.
+- After cancellation no native picker remained. Genesis stayed on the same project and task with
+  1 of 15 stages verified, zero supporting items, no reported blocker, no error, no duplicate
+  picker, and the same enabled `Choose firmware…` action.
+- One post-cancel image was retained at
+  `C:\Work\ROMVERSE-Windows-Project-Entry-Corrected-7c6d83ff-20260909\evidence\firmware-picker-cancel.jpg`:
+  1269x824, 128,654 bytes, SHA-256
+  `bf7135ba87145880c33a6808c3baab88298bbba298473bcc0412ea30c1a90af4`. Direct inspection confirms
+  the exact stage/project, no-device/no-firmware state, unchanged 1/15 progress, absent picker and
+  immediately actionable chooser.
+- The Guided dialog and main application then closed through their normal visible title-bar close
+  controls. No `ROMVERSE.exe` process remains.
+
+### Persisted evidence and limitations
+
+- The 404-byte project manifest remains byte-identical at SHA-256
+  `2d43905ed9201ccecaa4e85a6f9a68c1790d605b31b653ad2e819ccc0a7f43e2`; `original` is still null.
+- The refreshed 438-byte schema-6 Guided record remains selected at `firmware`, with empty
+  `last_error`, no install request, no recipe/build-plan verification and undecided root choice.
+  Its SHA-256 is `251b4770643fb38c32474a6e60a5b9fc8344bce9f9d58b11bbee32a714ebecdf`.
+- `original_roms`, `working_roms`, and `builds` still contain zero files. No firmware, candidate,
+  Forge, Guardian or Recovery path was created.
+- This launch appended 36 scheduled, unbound, read-only host discovery records: 18
+  `adb devices -l` and 18 `fastboot devices -l`. All 36 returned 0 without timeout, serial selector
+  or device-changing argument, and every inventory was empty. The full 126-record audit is 72,344
+  bytes, SHA-256 `d495ed54f8c768799b753de030e0e10a3ab82ac16faef2c28f9306946d4e24f0`;
+  it retains the one previously approved bounded ADB timeout and adds no new failure.
+- The runtime record now contains four start/clean-close pairs, 308 bytes, SHA-256
+  `ca9bd51d66c5abab7574d1c649527847435581fcc864c4b1d1d12d86ac226def`.
+- No automated regression was run because cancellation exposed no product defect and made no source
+  change. This checkpoint is genuine Windows native-picker and packaged-UI evidence, not simulated
+  Linux coverage.
+- The protected Companion files remain untouched. The untracked user patch remains present and
+  byte-identical at SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No real or simulated firmware was selected. No phone was present, connected, operated or
+  targeted; no device-changing command, APK, ROM build/signing, Guardian/Recovery execution,
+  publication, release, lock or relock occurred.
+
+### Proposed next bounded task
+
+Product Assurance should independently verify this exact handoff, post-cancel image,
+project/state/audit/runtime hashes, clean process exit, repository scope and preserved untracked
+patch. No further Windows action is proposed until the exact checkpoint receives a matching
+repository verdict.
+
 ## Windows saved-project Continue Genesis resume — Product Assurance review requested
 
 - Product Assurance verdict: `fc1a21dd38659886f16c237daabbbad11d48fe62` — `Approve Windows

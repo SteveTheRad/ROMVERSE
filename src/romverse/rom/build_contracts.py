@@ -82,6 +82,7 @@ class DeviceBuildExecutionPlan:
     execution_locked: bool
     phone_changed: bool
     plan_digest: str
+    workspace_plan_digest: str = ""
 
 
 class DeviceBuildContractService:
@@ -159,12 +160,8 @@ class DeviceBuildContractService:
         for rule in contract.partitions:
             if rule.mode == "rebuild" and not self._metadata_ready(project_id, contract, rule):
                 metadata_failures.append(rule.name)
-        build_plan = RomBuildPlanner(self.store).load(project_id)
-        tree_verified = bool(
-            build_plan
-            and build_plan.device_pack_id == pack.pack_id
-            and RomBuildPlanner(self.store).verify_tree(project_id).valid
-        )
+        build_plan = self._verified_workspace_plan(project_id)
+        tree_verified = bool(build_plan and build_plan.device_pack_id == pack.pack_id)
         available = {status.name for status in self.tool_statuses if status.available}
         required_tools = required_tools_for_contract(contract)
         missing_tools = tuple(name for name in required_tools if name not in available)
@@ -255,12 +252,13 @@ class DeviceBuildContractService:
             image = self.store.workspace / str(records[rule.name]["extracted_path"])
             if _sha256(image) != rule.source_sha256:
                 raise ProjectError(f"Protected {rule.name} image changed after extraction")
-        build_plan = RomBuildPlanner(self.store).load(project_id)
-        assert build_plan is not None
+        build_plan = self._verified_workspace_plan(project_id)
+        if build_plan is None:
+            raise ProjectError("The exact workspace build plan no longer verifies")
         plan_id = uuid4().hex
         steps = self._steps(project_id, contract, records, plan_id)
         payload_without_digest = {
-            "schema_version": 1,
+            "schema_version": 2 if build_plan.schema_version >= 3 else 1,
             "plan_id": plan_id,
             "project_id": project_id,
             "created_at": datetime.now(UTC).isoformat(),
@@ -276,9 +274,11 @@ class DeviceBuildContractService:
             "execution_locked": False,
             "phone_changed": False,
         }
+        if build_plan.schema_version >= 3:
+            payload_without_digest["workspace_plan_digest"] = build_plan.plan_digest
         digest = _json_digest(payload_without_digest)
         plan = DeviceBuildExecutionPlan(
-            1,
+            int(payload_without_digest["schema_version"]),
             str(payload_without_digest["plan_id"]),
             project_id,
             str(payload_without_digest["created_at"]),
@@ -294,10 +294,14 @@ class DeviceBuildContractService:
             False,
             False,
             digest,
+            build_plan.plan_digest if build_plan.schema_version >= 3 else "",
         )
+        serialized_plan = asdict(plan)
+        if plan.schema_version == 1:
+            serialized_plan.pop("workspace_plan_digest", None)
         _atomic_json(
             self.store.projects_root / project_id / self.PLAN_NAME,
-            {"format": "romverse.device-build-plan", **asdict(plan)},
+            {"format": "romverse.device-build-plan", **serialized_plan},
         )
         return plan
 
@@ -329,8 +333,10 @@ class DeviceBuildContractService:
         )
         payload = asdict(plan)
         digest = str(payload.pop("plan_digest"))
+        if plan.schema_version == 1:
+            payload.pop("workspace_plan_digest", None)
         if (
-            plan.schema_version != 1
+            plan.schema_version not in {1, 2}
             or plan.project_id != project_id
             or re.fullmatch(r"[0-9a-f]{32}", plan.plan_id) is None
             or pack is None
@@ -346,6 +352,14 @@ class DeviceBuildContractService:
             or plan.expected_outputs != pack.build_contract.allowed_outputs
             or plan.phone_changed
             or any(step.phone_changed for step in plan.steps)
+            or (
+                plan.schema_version == 1
+                and bool(plan.workspace_plan_digest)
+            )
+            or (
+                plan.schema_version == 2
+                and not _is_sha256(plan.workspace_plan_digest)
+            )
             or _json_digest(payload) != digest
         ):
             return None
@@ -364,6 +378,19 @@ class DeviceBuildContractService:
             raise ProjectError("Create a fresh deterministic Device Pack plan")
         if plan.execution_locked:
             raise ProjectError("This plan predates the local build executor; regenerate it")
+        workspace_plan = self._verified_workspace_plan(project_id)
+        if (
+            workspace_plan is None
+            or workspace_plan.tree_sha256 != plan.workspace_tree_sha256
+            or (
+                workspace_plan.schema_version >= 3
+                and (
+                    plan.schema_version < 2
+                    or plan.workspace_plan_digest != workspace_plan.plan_digest
+                )
+            )
+        ):
+            raise ProjectError("The exact workspace build plan changed before local execution")
         project = self.store.get(project_id)
         pack = next(
             (item for item in self.registry.packs if item.pack_id == project.device_pack_id),
@@ -388,6 +415,21 @@ class DeviceBuildContractService:
         if plan.steps != expected:
             raise ProjectError("Saved build steps do not match the current Device Pack contract")
         return plan
+
+    def _verified_workspace_plan(self, project_id: str):
+        plan = RomBuildPlanner(self.store).load(project_id)
+        if plan is None:
+            return None
+        if plan.schema_version >= 3:
+            if not self.tool_statuses:
+                return None
+            planner = RomBuildPlanner(self.store, self.tool_statuses, plan.required_tools)
+        else:
+            planner = RomBuildPlanner(self.store)
+        try:
+            return plan if planner.verify_tree(project_id).valid else None
+        except (OSError, ProjectError, TypeError, ValueError):
+            return None
 
     def _steps(
         self,
@@ -657,6 +699,10 @@ def _sha256(path: Path) -> str:
         while chunk := stream.read(4 * 1024 * 1024):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _is_sha256(value: str) -> bool:
+    return len(value) == 64 and all(character in "0123456789abcdef" for character in value)
 
 
 def _json_digest(payload: dict) -> str:

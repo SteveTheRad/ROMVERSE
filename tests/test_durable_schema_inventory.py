@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_inventory_is_complete_well_formed_and_source_bound() -> None:
-    assert len(DURABLE_SCHEMA_INVENTORY) == 188
+    assert len(DURABLE_SCHEMA_INVENTORY) == 189
     assert len({item.format_id for item in DURABLE_SCHEMA_INVENTORY}) == len(
         DURABLE_SCHEMA_INVENTORY
     )

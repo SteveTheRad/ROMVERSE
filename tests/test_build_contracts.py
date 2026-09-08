@@ -31,6 +31,7 @@ from romverse.infrastructure.tools import ToolStatus
 from romverse.rom.build_contracts import ContractCheckStatus, DeviceBuildContractService
 from romverse.rom.build_execution import LocalDeviceBuildExecutor
 from romverse.rom.builds import RomBuildPlanner
+from romverse.rom.guided import GuidedMissionState, GuidedMissionStore
 from romverse.rom.inspection import RomInspectionService
 from romverse.rom.models import ProjectError
 from romverse.rom.projects import RomProjectStore
@@ -374,6 +375,52 @@ def _executable_tools(tmp_path):
         path.write_bytes(b"tool")
         paths[name] = path
     return tuple(ToolStatus(name, True, str(path), "1") for name, path in paths.items())
+
+
+def _schema3_executable_tools(tmp_path):
+    tools = _executable_tools(tmp_path)
+    bound = []
+    for status in tools:
+        source = Path(status.path)
+        destination = source.with_name(f"romverse-bound-{source.name}")
+        source.replace(destination)
+        bound.append(
+            ToolStatus(status.name, True, str(destination), status.version, status.detail)
+        )
+    return tuple(bound)
+
+
+def test_local_execution_revalidates_exact_schema3_plan_tool_bindings(tmp_path):
+    store, project, registry, _tools, _metadata, partitions = _fixture(tmp_path)
+    tools = _schema3_executable_tools(tmp_path / "bound-tools")
+    GuidedMissionStore(store.projects_root / project.project_id).save(
+        GuidedMissionState(
+            selected_stage="build_sign",
+            customization_skipped=True,
+            recipe_skipped=True,
+            root_choice="skip",
+            build_plan_verified=True,
+        )
+    )
+    workspace_plan = RomBuildPlanner(
+        store,
+        tools,
+        tuple(status.name for status in tools),
+    ).plan(project.project_id)
+    service = DeviceBuildContractService(store, registry, tools)
+    service.create_plan(project.project_id)
+    runner = _BuildRunner(partitions / "system.img")
+
+    assert workspace_plan.schema_version == 3
+    Path(tools[0].path).write_bytes(b"changed after exact planning")
+    assessment = service.assess(project.project_id)
+    workspace_check = next(
+        check for check in assessment.checks if check.check_id == "workspace-plan"
+    )
+    assert workspace_check.status is ContractCheckStatus.BLOCKED
+    with pytest.raises(ProjectError, match="Frozen working tree"):
+        LocalDeviceBuildExecutor(store, registry, tools, runner).execute(project.project_id)
+    assert runner.calls == []
 
 
 def test_local_executor_builds_versioned_candidate_and_verifies_every_partition(tmp_path):

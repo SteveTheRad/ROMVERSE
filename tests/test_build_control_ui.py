@@ -8,6 +8,7 @@ from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+import pytest
 from PySide6.QtWidgets import QApplication, QLabel, QMessageBox, QPushButton
 
 from romverse.backup.handoff import BackupHandoffService, CloudBackupProvider
@@ -46,9 +47,13 @@ from romverse.rom.avb_evidence import (
     SourceAvbEvidenceService,
     SourceAvbTopologyReceipt,
 )
+from romverse.rom.build_contracts import DeviceBuildContractService
 from romverse.rom.build_execution import LocalBuildResumeState, LocalDeviceBuildExecutor
 from romverse.rom.builds import RomBuildPlanner
+from romverse.rom.forge import ForgeBundleService
+from romverse.rom.guided import GuidedMissionEngine, GuidedMissionState, GuidedMissionStore
 from romverse.rom.inspection import RomInspectionService
+from romverse.rom.models import ProjectError
 from romverse.rom.projects import RomProjectStore
 from romverse.rom.readiness import (
     BuildGate,
@@ -67,6 +72,9 @@ from romverse.ui.build_control import (
     SourceBlueprintWorker,
 )
 from romverse.ui.rom_studio import RomStudio
+from tests.test_build_contracts import _BuildRunner
+from tests.test_build_contracts import _fixture as _exact_build_fixture
+from tests.test_build_contracts import _schema3_executable_tools as _exact_build_tools
 
 
 def _studio(tmp_path) -> RomStudio:
@@ -117,7 +125,18 @@ def test_exact_input_worker_refreezes_the_final_source_derived_tree(tmp_path) ->
     inspection.inspect_project(project.project_id)
     store.create_working_copy(project.project_id)
     inspection.extract_project_tree(project.project_id)
-    planner = RomBuildPlanner(store)
+    tool_path = store.workspace / "fixture-tools" / "romverse-bound-python"
+    tool_path.parent.mkdir()
+    tool_path.write_bytes(b"verified python fixture")
+    tools = (ToolStatus("Python", True, str(tool_path), "fixture", "Ready"),)
+    GuidedMissionStore(store.projects_root / project.project_id).save(
+        GuidedMissionState(
+            customization_skipped=True,
+            recipe_skipped=True,
+            root_choice="skip",
+        )
+    )
+    planner = RomBuildPlanner(store, tools, ("Python",))
     planner.plan(project.project_id)
 
     prepared = SimpleNamespace(project_id=project.project_id, phone_changed=False)
@@ -134,7 +153,7 @@ def test_exact_input_worker_refreezes_the_final_source_derived_tree(tmp_path) ->
 
     completed = []
     failed = []
-    worker = RebuildMetadataWorker(Inputs(), project.project_id, object())
+    worker = RebuildMetadataWorker(Inputs(), project.project_id, object(), tools)
     worker.signals.complete.connect(completed.append)
     worker.signals.failed.connect(failed.append)
 
@@ -143,7 +162,10 @@ def test_exact_input_worker_refreezes_the_final_source_derived_tree(tmp_path) ->
     assert completed == [prepared]
     assert failed == []
     assert planner.verify_tree(project.project_id).valid
-    assert "partition_files/source-derived.input" in planner.load(project.project_id).input_files
+    rebound = planner.load(project.project_id)
+    assert rebound is not None and rebound.schema_version == 3
+    assert rebound.required_tools == ("Python",)
+    assert "partition_files/source-derived.input" in rebound.input_files
 
 
 def test_smart_solution_opens_exact_forge_review_without_starting_work(tmp_path) -> None:
@@ -179,6 +201,227 @@ def test_smart_solution_opens_exact_forge_review_without_starting_work(tmp_path)
         receipt,
     )
     control.close()
+    studio.close()
+
+
+def test_verified_intermediate_opens_inspection_only_then_explicitly_builds_once(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    store, project, registry, _tools, _metadata, partitions = _exact_build_fixture(tmp_path)
+    tools = _exact_build_tools(tmp_path / "tools")
+    GuidedMissionStore(store.projects_root / project.project_id).save(
+        GuidedMissionState(
+            selected_stage="build_sign",
+            customization_skipped=True,
+            recipe_skipped=True,
+            root_choice="skip",
+            build_plan_verified=True,
+        )
+    )
+    workspace_plan = RomBuildPlanner(
+        store,
+        tools,
+        tuple(status.name for status in tools),
+    ).plan(project.project_id)
+    assert workspace_plan.schema_version == 3
+    device_plan = DeviceBuildContractService(store, registry, tools).create_plan(
+        project.project_id
+    )
+    assert device_plan.schema_version == 2
+    assert device_plan.workspace_plan_digest == workspace_plan.plan_digest
+    forge = ForgeBundleService(store, tools)
+    forge_receipt = forge.create(project.project_id)
+    assert forge_receipt.schema_version == 3
+    assert forge_receipt.build_plan_digest == workspace_plan.plan_digest
+    assert forge_receipt.source_sha256 == workspace_plan.source_sha256
+    assert forge_receipt.toolchain_manifest_digest == workspace_plan.toolchain_manifest_digest
+    assert forge_receipt.guided_choice_digest == workspace_plan.guided_choice_digest
+    assert forge.verify(project.project_id).valid
+
+    studio = RomStudio(store, registry, tools)
+    runner = _BuildRunner(partitions / "system.img")
+    studio.filesystem_service = SimpleNamespace(runner=runner)
+    studio.set_devices(
+        [
+            AndroidDevice(
+                "SIMULATED-EXACT-TARGET",
+                DeviceState.DEVICE,
+                transport="simulation",
+                manufacturer="ROMVERSE",
+                model="model",
+                product="product",
+                codename="test",
+                connection_note="SIMULATION ONLY • NOT HARDWARE VERIFIED",
+            )
+        ]
+    )
+    studio.refresh(project.project_id)
+    started = []
+    observed = []
+    monkeypatch.setattr("romverse.ui.build_control.start_background", started.append)
+
+    def exercise_explicit_build(control: BuildControlCenter) -> int:
+        app.processEvents()
+        executor = control._local_build_executor()
+        assert not control.autopilot_active
+        assert not control._has_active_worker()
+        assert control.preparation_missions == {}
+        assert executor.load_receipt(project.project_id) is None
+        assert started == []
+        assert control.build_button.isEnabled()
+
+        control.build_button.click()
+
+        assert len(started) == 1
+        assert started[0] is control.build_worker
+        started.pop(0).run()
+        app.processEvents()
+
+        receipt = executor.load_receipt(project.project_id)
+        assert receipt is not None
+        assert receipt.status == "success"
+        assert not receipt.phone_changed
+        assert control.build_worker is None
+        assert started == []
+        assert control.report is not None and control.report.local_candidate_ready
+        assert "LOCAL BUILD COMPLETE" in control.overall_badge.text()
+        assert "Local candidate verified" in control.status.text()
+        assert "phone changed: NO" in control.status.text()
+        observed.append(receipt)
+        control.close()
+        return 0
+
+    monkeypatch.setattr(BuildControlCenter, "exec", exercise_explicit_build)
+
+    assert studio.build_control_button.isEnabled()
+    studio.build_control_button.click()
+    app.processEvents()
+
+    assert len(observed) == 1
+    receipt = observed[0]
+    reopened = RomProjectStore(store.workspace)
+    durable = LocalDeviceBuildExecutor(reopened, registry, tools, runner).load_receipt(
+        project.project_id
+    )
+    assert durable == receipt
+    assert all((reopened.workspace / output.path).is_file() for output in receipt.outputs)
+    assert RomBuildPlanner(reopened, tools, workspace_plan.required_tools).verify_tree(
+        project.project_id
+    ).valid
+    assert ForgeBundleService(reopened).load_receipt(project.project_id) == forge_receipt
+    assert not any("adb" in call[0] or "fastboot" in call[0] for call in runner.calls)
+    assert len(studio.devices) == 1 and studio.devices[0].is_simulated
+    context = studio.guided_context()
+    assert context.build_artifact_ready
+    assert not context.signed_artifact_ready
+    build_sign = next(
+        assessment
+        for assessment in GuidedMissionEngine().assess(context)
+        if assessment.stage.stage_id == "build_sign"
+    )
+    assert build_sign.evidence == (
+        "Verified local build candidate available; signing remains locked",
+    )
+    assert build_sign.blockers == (
+        "The local candidate is verified but remains unsigned; use Forge Control's offline "
+        "signing ceremony with an approved identity before Guardian review.",
+    )
+    assert not context.guardian_handoff_ready
+    assert not context.guardian_flash_handoff_ready
+    studio.close()
+
+
+def test_same_tree_schema3_plan_replacement_rejects_old_forge_and_build_admission(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    store, project, registry, _tools, _metadata, partitions = _exact_build_fixture(tmp_path)
+    tools = _exact_build_tools(tmp_path / "tools")
+    mission_store = GuidedMissionStore(store.projects_root / project.project_id)
+    mission_store.save(
+        GuidedMissionState(
+            selected_stage="build_sign",
+            customization_skipped=True,
+            recipe_skipped=True,
+            root_choice="skip",
+            build_plan_verified=True,
+        )
+    )
+    planner = RomBuildPlanner(store, tools, tuple(status.name for status in tools))
+    plan_a = planner.plan(project.project_id)
+    device_plan_a = DeviceBuildContractService(store, registry, tools).create_plan(
+        project.project_id
+    )
+    forge = ForgeBundleService(store, tools)
+    forge_a = forge.create(project.project_id)
+    assert forge.verify(project.project_id).valid
+
+    mission_store.save(
+        GuidedMissionState(
+            selected_stage="build_sign",
+            customization_skipped=False,
+            recipe_skipped=True,
+            root_choice="skip",
+            build_plan_verified=True,
+        )
+    )
+    plan_b = planner.plan(project.project_id)
+    assert plan_b.tree_sha256 == plan_a.tree_sha256
+    assert plan_b.guided_choice_digest != plan_a.guided_choice_digest
+    assert plan_b.plan_digest != plan_a.plan_digest
+    assert device_plan_a.workspace_plan_digest == plan_a.plan_digest
+
+    with monkeypatch.context() as failed_creation:
+        failed_creation.setattr(
+            "romverse.rom.forge.shutil.disk_usage",
+            lambda _path: SimpleNamespace(free=1),
+        )
+        with pytest.raises(ProjectError, match="needs .* free"):
+            forge.create(project.project_id)
+    assert ForgeBundleService(store).load_receipt(project.project_id) == forge_a
+    history_paths = tuple(
+        (store.projects_root / project.project_id / "forge-history").glob("*.romverse")
+    )
+    assert len(history_paths) == 1
+    historical_digest = history_paths[0].stem
+    historical_a = forge.load_history_receipt(project.project_id, historical_digest)
+    assert historical_a == forge_a
+    assert forge.verify_receipt(project.project_id, historical_a).valid
+
+    runner = _BuildRunner(partitions / "system.img")
+    with pytest.raises(ProjectError, match="workspace build plan changed"):
+        LocalDeviceBuildExecutor(store, registry, tools, runner).execute(project.project_id)
+    assert runner.calls == []
+
+    studio = RomStudio(store, registry, tools)
+    studio.refresh(project.project_id)
+    workers = []
+    monkeypatch.setattr("romverse.ui.rom_studio.start_background", workers.append)
+    studio.forge_button.click()
+    app.processEvents()
+
+    assert len(workers) == 1 and workers[0].operation == "forge-bundle"
+    workers.pop().run()
+    app.processEvents()
+    assert len(workers) == 1 and workers[0].operation == "verify-forge"
+    workers.pop().run()
+    app.processEvents()
+
+    assert workers == []
+    assert studio.dashboard_handoff_badge.text() == "VERIFIED INTERMEDIATE"
+    forge_b = ForgeBundleService(store).load_receipt(project.project_id)
+    assert forge_b is not None and forge_b.build_plan_digest == plan_b.plan_digest
+    assert forge_b != forge_a
+    assert forge_b.archive_sha256 != forge_a.archive_sha256
+    assert forge.verify(project.project_id).valid
+    assert forge.load_history_receipt(project.project_id, historical_digest) == forge_a
+    assert forge.verify_receipt(project.project_id, forge_a).valid
+    assert (store.workspace / forge_a.output_path).is_file()
+    assert (store.workspace / forge_b.output_path).is_file()
+    assert studio.focusWidget() is studio.build_control_button
     studio.close()
 
 

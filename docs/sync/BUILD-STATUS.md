@@ -1,5 +1,98 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows Forge/Device Build exact-plan convergence checkpoint
+
+- Windows authorization: `ef8c860fb49173e1d66d9cacda3f204d9ff17e19` — `Approve Windows
+  Guided build plan`, matching Windows checkpoint
+  `ed0d9a9b02e10644ed5c74f4c95ec9f9d7ce5b5b` exactly and authorizing convergence only after
+  the final corrected Linux Forge/Device Build slice received Product Assurance approval.
+- Matching Linux approval: `17c133f7b10a462075cbb698169ce9ef0a72e4e0` — `Approve actionable
+  Forge rollover`, matching handoff `d164662fac65acdb58e7a9e05a41cafe35516757` and final
+  implementation `b648e418d61f7dfa7906f20871b030f838706074` exactly.
+- Approved cumulative product sources, applied without Linux history or handoff documents:
+  `743a0f2bbcf8aff80610e00fd6bcae528b8a4a04` — `Preserve exact plan evidence through Forge
+  Control`; `601b9f6a4dfdc1a232b15ecfdce332c4726cd015` — `Bind Forge artifacts to exact build
+  plans`; and `b648e418d61f7dfa7906f20871b030f838706074` — `Preserve Forge evidence through plan
+  rollover`.
+- Result: **PASS — WINDOWS NOW PRESERVES ONE EXACT SCHEMA-3 BUILD READINESS GENERATION THROUGH
+  FORGE, DEVICE BUILD PLANNING AND LOCAL RUNNER ADMISSION; STALE SAME-TREE EVIDENCE FAILS CLOSED,
+  WHILE ONE EXPLICIT FORGE CHOICE PRESERVES VALID HISTORY AND CREATES/VERIFIES AT MOST ONE CURRENT
+  UNSIGNED, NON-BOOTABLE, NON-FLASHABLE GENERATION**.
+
+### Exact bounded convergence
+
+- Forge manifest schema 4 and receipt schema 3 now bind the exact Build Readiness plan digest,
+  protected-source SHA-256, toolchain-manifest digest, Guided-choice digest and tree digest.
+  Verification rejects missing, malformed, mismatched and downgrade-shaped evidence while legacy
+  receipts remain truthful historical evidence and never become schema-3 certainty.
+- Device Build plan schema 2 binds both the exact workspace-plan digest and tree digest, and both
+  are freshly checked before any local runner call. A metadata re-freeze creates a new generation
+  and requires a newly planned Device Build operation; no stale same-tree admission is inferred.
+- A valid stale `latest` Forge receipt is independently verified and exclusively copied to the
+  project's private content-addressed history during the existing explicit Forge action. Collision
+  or ambiguous history fails closed without overwriting bytes. The previous `latest` remains
+  recoverable until the current bundle and atomic receipt replacement complete successfully.
+- The current Windows Studio owner was adapted without importing its absent Linux automatic
+  Pre-Build Simulation/preparation orchestration. Only the approved explicit Forge lifecycle was
+  added: bind the deliberate click to the exact current plan, create one generation, independently
+  verify it once, and preserve/clear intent safely on failure. Existing non-Guided planning remains
+  schema 2.
+- Windows already contains `romverse.external-firmware-intake`, which is absent on the Linux
+  source line. Its existing strict schema-1, evidence-only, fail-unavailable format was added to
+  the durable inventory and the inventory count adjusted from 188 to 189. Opening existing Forge
+  Control was also adapted to `auto_start=False`, preserving inspection-only entry on this branch.
+- The product/test diff is **10 files, 938 insertions and 69 deletions**:
+  `src/romverse/core/durable_schemas.py`, `src/romverse/rom/build_contracts.py`,
+  `src/romverse/rom/forge.py`, `src/romverse/rom/guided.py`,
+  `src/romverse/ui/build_control.py`, `src/romverse/ui/rom_studio.py`,
+  `tests/test_build_contracts.py`, `tests/test_build_control_ui.py`,
+  `tests/test_durable_schema_inventory.py` and `tests/test_forge_bundle.py`.
+
+### Native Windows verification
+
+- Final exact affected command:
+  `$env:PYTHONPATH='src'; $env:QT_QPA_PLATFORM='windows'; .venv\Scripts\python.exe -m pytest
+  -p no:cacheprovider --basetemp C:\Work\ROMVERSE-Pytest-Forge-Device-final-b648e418
+  tests/test_build_contracts.py
+  tests/test_forge_bundle.py::test_forge_bundle_is_deterministic_verified_and_truthfully_non_flashable
+  tests/test_forge_bundle.py::test_schema3_forge_requires_fresh_bound_tool_evidence
+  tests/test_forge_bundle.py::test_schema3_forge_receipt_cannot_be_downgraded_to_legacy
+  tests/test_forge_bundle.py::test_forge_history_collision_never_overwrites_existing_evidence
+  tests/test_build_control_ui.py::test_smart_solution_opens_exact_forge_review_without_starting_work
+  tests/test_build_control_ui.py::test_verified_intermediate_opens_inspection_only_then_explicitly_builds_once
+  tests/test_build_control_ui.py::test_same_tree_schema3_plan_replacement_rejects_old_forge_and_build_admission
+  tests/test_durable_schema_inventory.py`.
+- Final result: **30 passed, 0 failed, 0 errors, 0 skipped in 19.57 seconds**: the complete
+  17-check Device Build contract suite, four Forge schema/history checks, three exact Forge
+  Control/UI checks and all six durable-schema inventory checks.
+- The same-tree adversary proves plan A's receipt/archive remains independently verifiable history,
+  a simulated plan-B resource failure leaves plan A as recoverable `latest`, old Device Build
+  admission reaches **zero runner calls**, and one explicit UI choice then creates and verifies
+  exactly one plan-B Forge generation while retaining both immutable archives.
+- The first native selection was **28 passed, 2 failed in 18.53 seconds** solely at the two Windows
+  branch-context points described above: Forge Control defaulted to automatic mode, and the
+  inventory did not yet list Windows-only external intake. Their bounded individual reproduction
+  passed **2/2 in 5.83 seconds**, followed by the clean final 30-test selection above.
+- Focused Ruff over all 10 changed product/test files passed with Ruff `0.16.6`. Git whitespace
+  validation passed.
+
+### Scope, safety and next gate
+
+- No broad suite, package, desktop launch, download, real candidate build, signing or physical
+  workflow ran. All generated evidence existed only inside fresh disposable pytest workspaces.
+- No phone or emulator was requested, connected, discovered, operated or targeted. No ADB/Fastboot,
+  Recovery, flash, wipe, unlock, root, relock, APK installation, Guardian consent/execution,
+  production adapter/trust/signing, publication, release, force-push or destructive action occurred.
+  Exact-device evidence, consent separation, UNKNOWN-on-uncertainty, no blind retry, independent
+  verification, feature freeze and permanent no-relock remain intact.
+- The protected Companion files have no staged or working-tree diff. The pre-existing untracked
+  `0001-Preserve-local-build-completion-across-restart.patch` remains untracked and byte-identical at
+  SHA-256 `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- Precise proposed next task: independent Product Assurance review of this bounded Windows
+  convergence, its native 30/30 result and the two explicit Windows-context adaptations. Do not
+  package, launch, download, build another artifact, sign, begin Guardian/device work or start
+  another product slice without a matching repository verdict.
+
 ## Windows Guided Build Readiness schema-3 parity checkpoint
 
 - Product Assurance verdict: `eb88b6327d6d9672c58070f7e6274e5ba4c203dd` — `Authorize Windows

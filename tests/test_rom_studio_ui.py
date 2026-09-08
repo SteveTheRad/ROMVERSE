@@ -32,6 +32,7 @@ from romverse.rom.guided import (
     GuidedStageStatus,
 )
 from romverse.rom.inspection import RomInspectionService
+from romverse.rom.models import ArtifactVerification
 from romverse.rom.projects import RomProjectStore
 from romverse.rom.recipes import (
     RecipeDraftStore,
@@ -236,7 +237,13 @@ def test_rom_studio_command_deck_handoffs_report_exact_ready_workflows(
     workers.pop(0).run()
     app.processEvents()
 
-    assert studio.dashboard_handoff_badge.text() == "SIMULATED"
+    assert len(workers) == 1 and workers[0].operation == "verify-plan"
+    assert studio.dashboard_handoff_badge.text() == "VERIFYING"
+
+    workers.pop(0).run()
+    app.processEvents()
+
+    assert studio.dashboard_handoff_badge.text() == "VERIFIED"
     assert studio.dashboard_handoff_title.text() == "Pre-Build Simulation → Dry run complete"
     assert "execution-locked" in studio.dashboard_handoff_detail.text()
     assert RomBuildPlanner(store).load(project.project_id) is not None
@@ -244,7 +251,14 @@ def test_rom_studio_command_deck_handoffs_report_exact_ready_workflows(
 
     assert studio.open_dashboard_intent("Pre-Build Simulation")
     app.processEvents()
+    assert len(workers) == 1 and workers[0].operation == "verify-plan"
+    assert studio.dashboard_handoff_badge.text() == "VERIFYING"
+
+    workers.pop(0).run()
+    app.processEvents()
+
     assert workers == []
+    assert studio.dashboard_handoff_badge.text() == "VERIFIED"
     assert "Saved typed result for Handoff Project" in studio.dashboard_handoff_detail.text()
     assert studio.worker is None
 
@@ -1247,6 +1261,53 @@ def test_rom_studio_rejects_untyped_or_changed_terminal_evidence(tmp_path):
 
     assert "changed working-copy evidence" in failures[-1][1]
     assert completions == []
+    studio.close()
+
+
+def test_simulation_rejects_forged_success_evidence_bound_to_another_tree(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    source = tmp_path / "rom.zip"
+    with zipfile.ZipFile(source, "w") as archive:
+        archive.writestr("system/build.prop", "ro.romverse=test\n")
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.import_original(store.create("Forged verification").project_id, source)
+    RomInspectionService(store).inspect_project(project.project_id)
+    store.create_working_copy(project.project_id)
+    RomInspectionService(store).extract_project_tree(project.project_id)
+    plan = RomBuildPlanner(store).plan(project.project_id)
+    studio = RomStudio(store, DevicePackRegistry(()))
+    studio.refresh(project.project_id)
+    failures: list[tuple[str, str]] = []
+    studio.operation_failed.connect(
+        lambda operation, message: failures.append((operation, message))
+    )
+    studio._automatic_simulation_verification_plan = plan
+    studio.worker = ProjectWorker(store, "verify-plan", project.project_id)
+    studio._active_operation = "verify-plan"
+    studio._active_project_id = project.project_id
+
+    studio._worker_complete(
+        ArtifactVerification(
+            True,
+            "Working tree matches build plan",
+            "0" * 64,
+            "0" * 64,
+        )
+    )
+    app.processEvents()
+
+    assert failures == [
+        ("verify-plan", "ROM Studio rejected mismatched build-plan verification evidence")
+    ]
+    assert studio.worker is None
+    assert studio._automatic_simulation_verification_plan is None
+    assert RomBuildPlanner(store).load(project.project_id) == plan
+    assert studio.dashboard_handoff_title.text() == (
+        "Pre-Build Simulation → Current tree needs attention"
+    )
+    assert studio.dashboard_handoff_badge.text() == "ATTENTION"
+    assert "did not retry or infer success" in studio.dashboard_handoff_detail.text()
+    assert "no build or phone action" in studio.dashboard_handoff_detail.text()
     studio.close()
 
 

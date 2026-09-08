@@ -727,6 +727,8 @@ class RomStudio(QWidget):
         self._automatic_preparation_project_id = ""
         self._automatic_preparation_destination = ""
         self._automatic_simulation_project_id = ""
+        self._automatic_simulation_verification_plan: BuildPlan | None = None
+        self._automatic_simulation_verification_saved = False
         self._last_validated_completion: tuple[str, str, int] | None = None
         self._last_recovery_report: WorkspaceRecoveryReport | None = None
         self._latest_guardian_execution_plan: GuardianExecutionPlan | None = None
@@ -1435,7 +1437,7 @@ class RomStudio(QWidget):
                 )
                 self.verify_plan_button.setFocus(Qt.FocusReason.OtherFocusReason)
                 return
-            self._show_prebuild_simulation_result(existing, saved=True)
+            self._begin_automatic_simulation_verification(existing, saved=True)
             return
         if os.path.lexists(plan_path):
             self._show_dashboard_handoff(
@@ -1459,8 +1461,38 @@ class RomStudio(QWidget):
         )
         self._start_worker("plan")
 
-    def _show_prebuild_simulation_result(self, plan: BuildPlan, *, saved: bool) -> None:
-        """Present one exact typed dry-run result without granting execution authority."""
+    def _begin_automatic_simulation_verification(
+        self,
+        plan: BuildPlan,
+        *,
+        saved: bool,
+    ) -> None:
+        """Run the existing exact current-tree verifier once for this Simulation request."""
+
+        project = self.current_project
+        if project is None or project.project_id != plan.project_id or self.worker is not None:
+            return
+        self._automatic_simulation_verification_plan = plan
+        self._automatic_simulation_verification_saved = saved
+        source = "safely reloaded" if saved else "newly completed"
+        self._show_dashboard_handoff(
+            "Pre-Build Simulation → Verifying current tree",
+            f"ROMVERSE is independently checking {project.name}'s current contained tree against "
+            f"the {source} exact dry-run result. This read-only verification runs once for this "
+            "request; no build, signing, execution, or phone action starts.",
+            "VERIFYING",
+            ready=True,
+        )
+        self._start_worker("verify-plan")
+
+    def _show_prebuild_simulation_result(
+        self,
+        plan: BuildPlan,
+        verification: ArtifactVerification,
+        *,
+        saved: bool,
+    ) -> None:
+        """Present one independently verified typed dry-run result without build authority."""
 
         project = self.store.get(plan.project_id)
         self.command_tabs.setCurrentIndex(1)
@@ -1471,9 +1503,9 @@ class RomStudio(QWidget):
             f"{source} typed result for {project.name}: {len(plan.input_files):,} inputs, "
             f"{len(plan.partitions):,} detected image partitions, tree SHA-256 "
             f"{plan.tree_sha256[:16]}…, Guardian {plan.guardian_status} / {plan.guardian_risk}. "
-            "The plan is execution-locked. Verify the current tree below before any later build "
-            "decision; no build or phone action occurred.",
-            "SIMULATED",
+            f"Current-tree verification: {verification.status}. The plan is execution-locked; "
+            "any later build remains a separate boundary. No build or phone action occurred.",
+            "VERIFIED",
             ready=True,
         )
 
@@ -4872,6 +4904,25 @@ class RomStudio(QWidget):
             elif isinstance(result, BuildPlan):
                 if RomBuildPlanner(self.store).load(project_id) != result:
                     return "ROM Studio rejected changed build-plan evidence"
+            elif operation == "verify-plan" and isinstance(result, ArtifactVerification):
+                plan = RomBuildPlanner(self.store).load(project_id)
+                if (
+                    plan is None
+                    or (
+                        self._automatic_simulation_verification_plan
+                        and plan != self._automatic_simulation_verification_plan
+                    )
+                    or result.expected_sha256 != plan.tree_sha256
+                    or (
+                        result.valid
+                        and (
+                            result.status != "Working tree matches build plan"
+                            or result.actual_sha256 != plan.tree_sha256
+                        )
+                    )
+                    or (not result.valid and result.status == "Working tree matches build plan")
+                ):
+                    return "ROM Studio rejected mismatched build-plan verification evidence"
             elif isinstance(result, ForgeBundleReceipt):
                 if ForgeBundleService(self.store).load_receipt(project_id) != result:
                     return "ROM Studio rejected changed Forge Bundle evidence"
@@ -4979,6 +5030,14 @@ class RomStudio(QWidget):
         evidence_error = self._completion_evidence_error(operation, project_id, result)
         if evidence_error:
             self._worker_failed(evidence_error)
+            return
+        if (
+            operation == "verify-plan"
+            and self._automatic_simulation_verification_plan is not None
+            and isinstance(result, ArtifactVerification)
+            and not result.valid
+        ):
+            self._worker_failed(result.status)
             return
         self._active_operation = ""
         self._active_project_id = ""
@@ -5128,6 +5187,8 @@ class RomStudio(QWidget):
         self.refresh(project_id)
         self._last_validated_completion = (operation, project_id, id(result))
         self.operation_completed.emit(operation, result)
+        if self._complete_automatic_simulation_verification(operation, project_id, result):
+            return
         if self._complete_automatic_prebuild_simulation(operation, project_id, result):
             return
         if self._continue_automatic_local_preparation(operation, project_id):
@@ -5154,6 +5215,53 @@ class RomStudio(QWidget):
                     result.project_id,
                     result.manifest_digest,
                 )
+
+    def _complete_automatic_simulation_verification(
+        self,
+        operation: str,
+        project_id: str,
+        result: object,
+    ) -> bool:
+        """Accept one verifier result only while its exact source plan is still current."""
+
+        requested_plan = self._automatic_simulation_verification_plan
+        if requested_plan is None:
+            return False
+        saved = self._automatic_simulation_verification_saved
+        self._automatic_simulation_verification_plan = None
+        self._automatic_simulation_verification_saved = False
+        plan = RomBuildPlanner(self.store).load(project_id)
+        if (
+            operation != "verify-plan"
+            or project_id != requested_plan.project_id
+            or self.current_project is None
+            or self.current_project.project_id != project_id
+            or plan is None
+            or plan != requested_plan
+            or not isinstance(result, ArtifactVerification)
+        ):
+            self._show_dashboard_handoff(
+                "Pre-Build Simulation → Verification stopped safely",
+                "The verifier result or dry-run identity changed before it could be accepted. "
+                "ROMVERSE preserved the plan and tree and did not retry, build, or change a "
+                "phone. Review Build & Proof before requesting another Simulation.",
+                "ATTENTION",
+                ready=False,
+            )
+            return False
+        if not result.valid:
+            self._show_dashboard_handoff(
+                "Pre-Build Simulation → Current tree needs attention",
+                f"The existing verifier reported: {result.status}. ROMVERSE preserved the exact "
+                "plan and current tree and did not retry or infer success. Review Build & Proof "
+                "before requesting another Simulation; no build or phone action occurred.",
+                "ATTENTION",
+                ready=False,
+            )
+            self.verify_plan_button.setFocus(Qt.FocusReason.OtherFocusReason)
+            return True
+        self._show_prebuild_simulation_result(plan, result, saved=saved)
+        return True
 
     def _complete_automatic_prebuild_simulation(
         self,
@@ -5183,7 +5291,7 @@ class RomStudio(QWidget):
                 ready=False,
             )
             return False
-        self._show_prebuild_simulation_result(result, saved=False)
+        self._begin_automatic_simulation_verification(result, saved=False)
         return True
 
     def _continue_automatic_local_preparation(self, operation: str, project_id: str) -> bool:
@@ -5269,6 +5377,11 @@ class RomStudio(QWidget):
             and project_id == self._automatic_simulation_project_id
             and operation == "plan"
         )
+        automatic_simulation_verification_failure = bool(
+            self._automatic_simulation_verification_plan is not None
+            and project_id == self._automatic_simulation_verification_plan.project_id
+            and operation == "verify-plan"
+        )
         if operation == "guardian-review":
             self._latest_guardian_execution_plan = None
             self._latest_guardian_gateway_contract = None
@@ -5332,6 +5445,19 @@ class RomStudio(QWidget):
                 "prior evidence remain preserved. Review Build & Proof, then intentionally "
                 "request Simulation again if appropriate; no automatic retry, build, or phone "
                 "action occurred.",
+                "ATTENTION",
+                ready=False,
+            )
+        if automatic_simulation_verification_failure:
+            self._automatic_simulation_verification_plan = None
+            self._automatic_simulation_verification_saved = False
+            self.command_tabs.setCurrentIndex(1)
+            self.verify_plan_button.setFocus(Qt.FocusReason.OtherFocusReason)
+            self._show_dashboard_handoff(
+                "Pre-Build Simulation → Current tree needs attention",
+                f"The existing verifier stopped: {message}. ROMVERSE preserved the exact plan "
+                "and current tree and did not retry or infer success. Review Build & Proof before "
+                "requesting another Simulation; no build or phone action occurred.",
                 "ATTENTION",
                 ready=False,
             )

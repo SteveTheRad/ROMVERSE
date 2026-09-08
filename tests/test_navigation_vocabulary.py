@@ -1536,6 +1536,17 @@ def test_command_deck_simulation_prepares_the_exact_project_and_resumes_dry_run_
         workers.pop(0).run()
         app.processEvents()
 
+        assert len(workers) == 1
+        assert workers[0].operation == "verify-plan"
+        assert workers[0].project_id == project.project_id
+        assert window.rom_studio.dashboard_handoff_title.text() == (
+            "Pre-Build Simulation → Verifying current tree"
+        )
+        assert window.rom_studio.dashboard_handoff_badge.text() == "VERIFYING"
+
+        workers.pop(0).run()
+        app.processEvents()
+
         assert window.stack.currentWidget() is window.rom_studio
         assert window.rom_studio.current_project is not None
         assert window.rom_studio.current_project.project_id == project.project_id
@@ -1543,7 +1554,7 @@ def test_command_deck_simulation_prepares_the_exact_project_and_resumes_dry_run_
         assert window.rom_studio.dashboard_handoff_title.text() == (
             "Pre-Build Simulation → Dry run complete"
         )
-        assert window.rom_studio.dashboard_handoff_badge.text() == "SIMULATED"
+        assert window.rom_studio.dashboard_handoff_badge.text() == "VERIFIED"
         assert project.name in window.rom_studio.dashboard_handoff_detail.text()
         assert "execution-locked" in window.rom_studio.dashboard_handoff_detail.text()
         assert RomInspectionService(store).working_tree_exists(project.project_id)
@@ -1618,7 +1629,7 @@ def test_command_deck_simulation_does_not_start_without_resource_admission(
         window.close()
 
 
-def test_command_deck_simulation_stops_on_source_drift_and_never_retries_dry_run(
+def test_command_deck_simulation_stops_on_tree_drift_and_never_retries_verification(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -1626,10 +1637,7 @@ def test_command_deck_simulation_stops_on_source_drift_and_never_retries_dry_run
     logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
     store, registry, project, _report = _project(tmp_path)
     store.create_working_copy(project.project_id)
-    RomInspectionService(store).extract_project_tree(project.project_id)
-    protected = store.original_path(project.project_id)
-    protected.chmod(0o600)
-    protected.write_bytes(b"adversarial source drift")
+    tree = RomInspectionService(store).extract_project_tree(project.project_id)
     window = MainWindow(
         None,
         logo,
@@ -1657,22 +1665,27 @@ def test_command_deck_simulation_stops_on_source_drift_and_never_retries_dry_run
         workers.pop(0).run()
         app.processEvents()
 
+        assert len(workers) == 1
+        assert workers[0].operation == "verify-plan"
+        changed = next(path for path in tree.rglob("*") if path.is_file())
+        changed.write_bytes(b"adversarial current-tree drift")
+        workers.pop(0).run()
+        app.processEvents()
+
         assert len(failures) == 1
-        assert failures[0][0] == "plan"
-        assert "Original integrity check failed" in failures[0][1]
+        assert failures[0][0] == "verify-plan"
+        assert "Working tree changed since build plan" in failures[0][1]
         assert workers == []
         assert window.rom_studio.worker is None
         assert RomInspectionService(store).working_tree_exists(project.project_id)
-        assert RomBuildPlanner(store).load(project.project_id) is None
+        assert RomBuildPlanner(store).load(project.project_id) is not None
         assert window.rom_studio.command_tabs.currentIndex() == 1
         assert window.rom_studio.dashboard_handoff_title.text() == (
-            "Pre-Build Simulation → Dry run stopped safely"
+            "Pre-Build Simulation → Current tree needs attention"
         )
         assert window.rom_studio.dashboard_handoff_badge.text() == "ATTENTION"
-        assert "no automatic retry" in window.rom_studio.dashboard_handoff_detail.text()
-        assert "no automatic retry, build, or phone action" in (
-            window.rom_studio.dashboard_handoff_detail.text()
-        )
+        assert "did not retry or infer success" in window.rom_studio.dashboard_handoff_detail.text()
+        assert "no build or phone action" in window.rom_studio.dashboard_handoff_detail.text()
         assert window.rom_studio.devices == []
         assert not QApplication.activeModalWidget()
     finally:
@@ -1780,13 +1793,14 @@ def test_fresh_command_deck_guided_project_resumes_through_simulation_readiness(
             ("working-copy", project_id),
             ("extract", project_id),
             ("plan", project_id),
+            ("verify-plan", project_id),
         ]
         assert window.rom_studio.prebuild_simulation_ready()
         assert window.rom_studio.command_tabs.currentIndex() == 1
         assert window.rom_studio.dashboard_handoff_title.text() == (
             "Pre-Build Simulation → Dry run complete"
         )
-        assert window.rom_studio.dashboard_handoff_badge.text() == "SIMULATED"
+        assert window.rom_studio.dashboard_handoff_badge.text() == "VERIFIED"
         plan = RomBuildPlanner(window.rom_studio.store).load(project_id)
         assert plan is not None and plan.execution_locked
         assert RomBuildPlanner(window.rom_studio.store).verify_tree(project_id).valid

@@ -1,5 +1,60 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 4949779 — Windows project creation continuity
+
+- Handoff commit: `494977916b554aa1fed91ef11e6b8fbb8995da13`
+- Implementation commit: `66dca72494fb1a6eb96d0e75210a7dbee901ad1d`
+- Approved base: `7c6d83ff6fe4e59259520a969b110867db4a2d92`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — PROJECT CREATION ADVANCES DIRECTLY TO FIRMWARE INTAKE**
+
+### Decision
+
+Product Assurance inspected the exact one-line selection correction and its focused regression,
+independently reran the native Windows test at **1/1 passed**, retrieved and inspected the packaged
+destination screenshot, and reproduced the project/state/audit/runtime hashes. A new empty local
+project now advances immediately to the first incomplete protected-firmware stage, remains
+no-device/no-firmware, and persists that exact actionable state through a clean reload. No further
+correction or package replay is required.
+
+### Independent evidence and acceptance
+
+- `_refresh(select_current=True)` reuses the existing evidence-driven stage selector; it changes no
+  project, firmware, device, worker or authority contract.
+- The PNG directly shows project `Windows No-Phone Project 20260909`, 1/15 verified, `Load the
+  untouched firmware`, `Awaiting firmware`, no device and enabled `Choose firmware…`; it matches
+  SHA-256 `96890ba9cb7434951c037cc63c2bafa8c8fd7a524598153c03373a494d3f06eb`.
+- The exact empty project and schema-6 Guided state independently match SHA-256 values
+  `2d43905ed9201ccecaa4e85a6f9a68c1790d605b31b653ad2e819ccc0a7f43e2` and
+  `428a10204ab0ca36f205bdf4fa5750b9cde8ea6497654be4beae77365e8cf6e5`.
+- The 44-record audit and two clean lifecycle pairs independently match the declared hashes; no
+  ROMVERSE process remains and the untracked patch remains byte-identical.
+- No firmware intake, simulation, phone, device action, APK, build/signing, Guardian/Recovery
+  execution, publication, release, lock or relock occurred.
+
+### Approved next bounded Windows task
+
+Reuse the corrected artifact and persisted isolated no-phone workspace once. From Command Deck,
+invoke only the enabled **Continue Genesis Sequence** action through narrow local Windows UI
+Automation and confirm it reopens the exact saved project at `Load the untouched firmware` with
+enabled `Choose firmware…`, rather than creating another project, returning to stage 1 or losing
+context. Capture at most one destination screenshot, close the Guided dialog through its normal
+visible close route, close the app, and verify no process remains.
+
+Do not select firmware, run a scan/worker/download/build, or overlap Linux's accessibility/Guided
+work. If one genuine resume, context or close dead end appears, apply only its minimum correction and
+one focused native Windows test; otherwise make no source change or package. Preserve the untracked
+patch, commit/push one bounded handoff and stop for review. No phone, device-changing command, APK,
+ROM build/signing, Guardian/Recovery authority, publication, release, lock or relock is authorized.
+
+### Gate status
+
+- Windows local project creation, firmware-intake routing and reload persistence: **VERIFIED**
+- Exact saved-project Continue Genesis resume: **NEXT BOUNDED WINDOWS TASK**
+- Linux Guided accessibility work: **OWNED BY LINUX; DO NOT DUPLICATE**
+- Physical hardware, signing, Guardian/Recovery execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 2f5fcd3 — packaged Windows Start ROM Project route
 
 - Reviewed commit: `2f5fcd3de1d232c9460728ade78403bb48ee9a94`

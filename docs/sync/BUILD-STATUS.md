@@ -2,142 +2,131 @@
 
 ## Authoritative checkpoint
 
-- Product Assurance authorization/base: `a6d9bca06d35c4f0ca8b84ad6ebd990be7e5700a`
-  (`Approve durable local-build journey`).
+- Product Assurance authorization/base: `65da5c8f314d4b7a651f0d87582f20e021a36ba4`
+  (`Approve artifact verification journey`).
 - Implementation and focused-regression checkpoint:
-  `14de58e376bbd5cf14369f605bdfd6355f892cca`
-  (`Stop unsigned AVB flow at signing boundary`).
+  `5319ee61f0324b0bb4d1c45e178b308defbced90`
+  (`Preserve signing-ready state across reload`).
 - Final handoff checkpoint: the follow-up commit containing this status document on
   `linux/stage1-desktop-readiness`.
-- Stage: Stage 1 — v0.2 Golden Foundation, local candidate to artifact-verification/offline-signing
-  readiness.
+- Stage: Stage 1 — v0.2 Golden Foundation, offline signed-result import to durable Guardian
+  preparation handoff.
 - Working tree at the implementation checkpoint: clean.
 
 ## Exact journey and evidence
 
-- Reused the approved disposable Fedora project and its already durable unsigned local candidate;
-  the seven-step local build was not rebuilt.
-- Reset only the disposable AVB/signing evidence, then activated the production
-  `Continue to artifact verification` action from `BuildControlCenter`.
-- Used a bounded synthetic signed source identity, the existing unsigned candidate artifacts and a
-  deterministic inert AVBTool adapter. The production `AvbEvidenceService`:
-  - rehashed the exact source and candidate images before inspection;
-  - bound the AVB receipt to the exact protected source, Device Pack/contract and durable local-build
-    receipt;
-  - recorded the candidate as unsigned under `signed_custom_rechain` policy;
-  - recorded `signing_ready: false` and `phone_changed: false`.
-- After the correction, the production Guided action dispatched exactly four expected AVB
-  `info_image` inspections and stopped at `Open offline signing ceremony`; no fifth/repeated
-  inspection was dispatched.
-- The production offline-signing worker exported a content-addressed request through the existing
-  ceremony path. It bound exactly:
+- Reused the previously exported exact offline-signing request and durable local candidate. The ROM
+  build and preceding AVB-inspection journey were not repeated.
+- Returned bounded synthetic signed artifacts through the real production offline-signing dialog,
+  background worker and `OfflineSigningCeremonyService` import path using an inert AVBTool adapter.
+- The imported bundle retained the exact content-addressed request manifest. ROMVERSE independently
+  inspected and bound:
   - `product.img`, 1,024 bytes,
-    SHA-256 `754088c63a3955205ede94ca4425f8feb67fabf9bff2800b9caf8d2406ef59d0`;
+    SHA-256 `529a14d56bad1f6bed4135a19babb5d605492da4887fbb991ed76cdac86fd535`;
   - `vbmeta_system.img`, 6 bytes,
-    SHA-256 `a0c6f07a4b3a17fb9348db981de3c5602e2685d626599be1bd909195c694a57b`.
-- Offline-signing request digest:
-  `531849d40c16c8610d19d0bad9d09189c22b38b17be11246a61aec8b89c31195`.
-- The request declares `offline-signing-request-only`, `private_key_included: false` and
-  `phone_changed: false`.
-- After normal UI/service reconstruction, ROMVERSE reverified the same request and AVB evidence,
-  remained `LOCAL BUILD COMPLETE / INSTALL NOT AUTHORIZED`, retained
-  `local_candidate_ready: true` / `signing_ready: false`, and offered
-  `Open offline signing ceremony`.
+    SHA-256 `a77264d1dfe433a7a1e5130c89381f34310ed51257565666ee27f678e96effc6`.
+- Both synthetic artifacts reported the exact approved policy identity:
+  - algorithm `SHA256_RSA4096`;
+  - public-key SHA-1 `8256e695b81d1eb6dd0b1ce5d08b9c73cbb5e5b6`;
+  - rollback index `42`, rollback-index location `2`, flags `0`;
+  - descriptor partitions `product` and `system`.
+- Durable signed-result receipt:
+  `cad2938a19aeeda1e446d4dea6312c064a98ad2021e07c57d5dab2fc3dd4051f`.
+- The receipt reverified after complete `RomProjectStore`, `RomStudio`, `BuildControlCenter` and
+  signing-service reconstruction. It remained `private_key_stored: false`,
+  `phone_changed: false`, `signing_ready: true` and `flash_ready: false`.
+- The corrected production UI reopened as
+  `SIGNING READY / INSTALL NOT STARTED / FLASH NOT AUTHORIZED` and offered
+  `Prepare verified ROM installation…`.
+- Activating that action emitted only the existing exact project-bound preparation/review handoff.
+  It created no Guardian consent, flash readiness, adapter dispatch or device command.
 
 ## First concrete defect and correction
 
-- Defect reproduced before correction: after the first successful four-image candidate AVB
-  inspection, Autopilot immediately dispatched the same inspection again. The inert adapter blocked
-  the fifth call, after which the primary action incorrectly became
-  `Prepare verified ROM installation…` despite `signing_ready: false`.
-- Cause:
-  - `_avb_complete` always continued Autopilot after a valid candidate receipt, even when the
-    durable result precisely proved that offline-signing evidence was the next boundary;
-  - `_finish_autopilot` unconditionally overwrote every durable local-candidate next action with the
-    installation action.
+- Defect: immediately after import, the footer reported that signed artifacts were verified, but a
+  normal reload reduced the presentation to a generic readiness fingerprint and
+  `LOCAL BUILD COMPLETE / FLASH NOT AUTHORIZED`. The underlying report remained correctly
+  `signing_ready: true`; the durable milestone was simply not presented.
+- Cause: Forge Control reused the local-build completion heading, badge and summary scope for both
+  unsigned local candidates and signed candidates.
 - Minimum correction:
-  - a valid unsigned candidate AVB receipt terminates automatic resolution at the offline-signing
-    boundary;
-  - Forge Control strictly reloads/revalidates that exact receipt before presenting the next action;
-  - the primary action becomes `Open offline signing ceremony`, never another AVB scan or
-    installation handoff;
-  - the existing ceremony either exports the exact content-addressed request or exposes its precise
-    Device Pack policy requirement;
-  - one focused regression proves no repeated Autopilot dispatch and no installation routing.
-- No AVB policy, signing eligibility, build, Guardian, Recovery, installation, adapter-execution or
-  release authority changed.
+  - a durable `signing_ready` report now renders the explicit `SIGNING READY` summary scope;
+  - its badge states `INSTALL NOT STARTED / FLASH NOT AUTHORIZED`;
+  - its banner distinguishes signing completion from the separate installation and flash choices;
+  - its reload status states that signed candidate evidence is verified without claiming any
+    installation or flash result;
+  - one focused regression proves the signed state and inert preparation handoff remain distinct.
+- No signing policy, receipt validation, installation preparation, Guardian, consent, Recovery,
+  adapter execution or release authority changed.
 
 ## Result classification
 
-- Implemented: truthful unsigned-candidate completion and stable offline-signing handoff.
-- Simulated/Tested: yes — one production widget/service/worker artifact-verification and request
-  export journey using synthetic inputs and an inert AVBTool adapter; seven unique affected
-  regressions; lint clean.
+- Implemented: durable signing-ready UI truthfulness and separation from install/flash status.
+- Simulated/Tested: yes — one production widget/service/worker signed-result import, full service/UI
+  reconstruction and inert preparation handoff using synthetic artifacts and AVB output; seven
+  unique affected regressions; lint clean.
 - Hardware Verified: no.
 - Released: no.
 
 ## Non-double-counted verification
 
-- Production widget/service/worker journey: **1/1 passed** after the correction.
-- Pre-correction loop reproduction: first four inspections completed; a fifth duplicate dispatch was
-  observed and deliberately rejected by the inert harness.
+- Production widget/service/worker journey: **1/1 passed**.
 - Focused regression nodes in one invocation: **7/7 passed**:
-  - unsigned AVB completion stops at the offline-signing boundary;
-  - reopened unsigned local candidate routes to artifact verification;
-  - exact source contract selects full candidate AVB comparison;
+  - signing-ready reload remains distinct from installation and flash;
+  - refreshed Forge cards/footer remain aligned;
+  - unsigned AVB completion still stops at offline signing;
   - direct signing action resolves AVBTool before eligibility review;
-  - AVB topology truthfully reports an unsigned candidate;
-  - AVB parser accepts unsigned evidence without inventing a key;
-  - offline ceremony exports no private key and verifies its exact existing import contract.
+  - offline ceremony export/import validates exact policy evidence and stores no private key;
+  - signed evidence fails closed after artifact tampering;
+  - signing requests reject malformed, oversized and redirected evidence.
 - Ruff on the two changed Python files: **passed**.
 - Git whitespace check: **passed**.
-- No full suite, package/APK build, local-candidate rebuild, interruption campaign, emulator,
-  physical phone, real private signature, production trust enrollment, Guardian, Recovery,
-  installation or release test ran.
+- No full suite, package/APK build, ROM rebuild, AVB-journey repeat, interruption campaign, emulator,
+  phone, real private key, production trust enrollment, Guardian consent, Recovery, installation or
+  release test ran.
 
 ## Guided friction and remaining boundaries
 
-- Removed the circular `AVB inspect → AVB inspect` path.
-- The user now receives one stable, direct next action after artifact inspection:
-  `Open offline signing ceremony`.
-- Exporting the request does not pretend that signing is complete. Reload preserves
-  `signing_ready: false`, `INSTALL NOT AUTHORIZED`, and the same exact request.
-- A protected external signing environment must still perform any real signature. ROMVERSE has no
-  private key and this checkpoint did not import a signed result.
-- The synthetic AVBTool output proves orchestration, strict parsing, binding, persistence and UI
-  routing only; it is not production-key, vendor-firmware or hardware evidence.
+- Signed-result return/import completed without a dead action or prompt loop.
+- The durable signed milestone no longer appears to regress to local-build-only state after reload.
+- The next action is explicit but remains preparation only. ROMVERSE still requires the exact route,
+  target, Guardian evidence and later human consent before any device operation.
+- The synthetic signature metadata and inert AVBTool output prove strict import, binding,
+  persistence and UI routing only. They are not production trust or physical-hardware evidence.
 
 ## Guardian, Recovery and safety implications
 
-- Guardian remains the only device-execution gate. Artifact inspection and offline request export
-  grant no installation, consent, flash or phone authority.
-- Candidate/source/contract/local-build digests remain exact and independently reloadable.
-- UNKNOWN-on-uncertainty, no blind retry, exact-device evidence, same-incident Recovery and
+- Guardian remains the only device-execution gate. A signing receipt grants no target selection,
+  consent, installation or flash authority.
+- Opening the preparation/review handoff acquired no live target, consent token or command.
+- Exact-device evidence, UNKNOWN-on-uncertainty, no blind retry, same-incident Recovery and
   independent post-operation verification remain unchanged.
 - Bootloader locking/relocking remains permanently prohibited with no override.
 
 ## Platform and version-gate status
 
-- Fedora/Linux: genuinely exercised current production Qt widget, service and background-worker
-  paths using the existing local dependency environment and offscreen Qt platform.
-- AVBTool behavior: simulated by a deterministic inert adapter; no hardware claim.
-- Packaged Fedora artifact: unchanged and not exercised for this checkpoint.
+- Fedora/Linux: genuinely exercised the current production Qt dialog, background worker, signing
+  service, reload and project-handoff paths using the existing local environment and offscreen Qt.
+- AVBTool and signed artifacts: deterministic synthetic/inert evidence; not hardware verified.
+- Packaged Fedora artifact: unchanged and not exercised.
 - Windows: unchanged; no Windows claim is made.
 - Physical Android and emulator: not used; no hardware claim is made.
-- 5 September 2026 feature freeze: compliant. This is the first concrete dead-end correction in the
-  already approved artifact-verification flow, not new capability.
-- v0.2 Golden Foundation remains **CLOSED**. Real signing/trust, Guardian, Recovery, hardware,
+- Adaptive Online Device DNA: separate worktree remained untouched; no schema, adapter, test or
+  status work was duplicated.
+- 5 September 2026 feature freeze: compliant. This is one presentation correction in the approved
+  existing signed-result flow, not new capability.
+- v0.2 Golden Foundation remains **CLOSED**. Physical target, Guardian consent, Recovery, hardware,
   installation, publication and release gates remain closed.
 
 ## External actions
 
 - Physical phone operation, device-scoped ADB/Fastboot, emulator, Recovery, flash, install, APK
-  transfer, real signing, production trust enrollment, publication and release: none.
+  transfer, real signing/private key, production trust enrollment, publication and release: none.
 - Tool/dependency download or installation, package build, merge, history rewrite and force-push:
   none.
-- Remote action: normal push of these scoped Linux checkpoints to the existing working branch only.
-- The protected Companion files, original-checkout Windows drafts, website, assets and unrelated
-  user work were untouched.
+- Remote action: normal push of these scoped Linux checkpoints to the existing branch only.
+- The protected Companion files, original-checkout Windows drafts, Adaptive Online Device DNA
+  worktree, website, assets and unrelated user work were untouched.
 
 ## Next proposed Build task
 
@@ -145,7 +134,7 @@ Stop for independent Product Assurance review. Do not begin another consequentia
 
 ## Product Assurance Review Requested
 
-- Confirm the exact four-image AVB evidence, content-addressed request export and reload satisfy the
-  bounded artifact-verification/offline-signing-readiness milestone.
-- Confirm the corrected no-repeat/no-install routing preserves the approved separation between
-  artifact evidence, external signing, Guardian consent and physical execution.
+- Confirm the exact manifest/policy/artifact verification, durable signed receipt and reload satisfy
+  the bounded signed-result return milestone.
+- Confirm the explicit `SIGNING READY / INSTALL NOT STARTED / FLASH NOT AUTHORIZED` state and inert
+  project-bound handoff preserve the Guardian/consent/device-execution separation.

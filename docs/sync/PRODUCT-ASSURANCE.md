@@ -1,5 +1,71 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: a52d6b7 — durable no-phone candidate preparation
+
+- Handoff commit: `a52d6b7`
+- Implementation commit: `4a4c61c027790954655e584a07d38ed54650dcf6`
+- Product Assurance authorization/base: `bb799e1622197b36fcbf6f7cda9b8770f80db61f`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — DURABLE PREPARATION VERIFIED; FINAL-SIGNED-BYTE BINDING REQUIRED NEXT**
+
+### Decision and independent evidence
+
+The checkpoint fixes a genuine durability defect without weakening preparation. An unchanged exact
+base/AVB pair is now loaded and freshly verified instead of being resealed under new timestamps and
+digests after ordinary service reconstruction. Invalid or mismatched evidence still regenerates
+only through the preparation path; verification never renews evidence behind an already reviewed
+plan. Product Assurance inspected the exact two-file source/test diff and independently reran the
+new reconstruction regression plus the two receipt-reuse/invalid-receipt checks: **3/3 passed**.
+
+The no-phone endpoint is truthful and inert. It displays one USB connection action and creates no
+target, review plan, consent, admission, dispatch or result. The three affected-set failures are
+baseline-confirmed stale message expectations, not a product regression or weakened failure mode;
+they should be corrected narrowly during the next touched candidate-preparation checkpoint.
+
+This checkpoint does not yet prove the bytes that would ultimately be reviewed for installation.
+The current candidate recipe binds pre-sign build/base/AVB evidence, while the repository separately
+contains the exact offline-signing receipt and signed-final-assembly contracts. Those final signed
+artifacts must be incorporated before live-target observation.
+
+### Vision, freeze and safety result
+
+- Durable exact preparation across reload: **PASS**
+- No-phone Guided endpoint and authority separation: **PASS**
+- Feature freeze: **PASS — minimum correctness repair in an existing flow**
+- Guardian-only authority, exact evidence, UNKNOWN/no-blind-retry and permanent no-relock:
+  **PRESERVED**
+- Final signed installation-byte binding: **REQUIRED BEFORE LIVE TARGET**
+
+### Approved next bounded task
+
+Extend only the existing complete candidate preparation/verification contract so it consumes and
+binds the current `OfflineSigningReceipt` and, where the Device Pack route requires a final super
+container, the current `SignedSuperAssemblyReceipt`. The durable candidate recipe must name the
+exact workspace-relative final installation artifacts and bind their hashes, sizes, signing receipt
+digest and signed-assembly receipt digest. Every rebuilt role used by the 53-action route must come
+from the verified final signed result; pre-sign build outputs may remain lineage evidence but must
+not be selected as installation bytes.
+
+Fresh verification and reload must fail closed if a final artifact, receipt, path, hash, size,
+policy identity, build/source/Pack binding or assembly lineage is absent, stale, replaced or
+ambiguous. Preserve one stable recipe digest across an unchanged reconstruction. Update only the
+three baseline-stale `bytes differ` assertions to expect the current exact fail-closed message; do
+not loosen their behavior.
+
+Exercise one no-phone production preparation/reload journey using bounded synthetic signed
+artifacts and inert tooling. End at the same disabled fresh-target wait. Do not observe a phone,
+create consent/admission, dispatch, install, flash, enter Recovery, rebuild/sign again, add online
+evidence, run a broad suite, package, publish, release, force-push, touch protected Companion,
+Windows or Adaptive work, or relock. Implement the minimum correction with focused regressions,
+update BUILD-STATUS.md, commit/push, then stop for Product Assurance.
+
+### Gate status
+
+- No-phone candidate preparation durability: **VERIFIED**
+- Next core milestone: **BIND FINAL SIGNED INSTALLATION BYTES**
+- Fresh live target, consent, execution, Recovery and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation: **CLOSED**
+
 ## Reviewed checkpoint: 0a0e50a — signed-result import to durable Guardian handoff
 
 - Handoff commit: `0a0e50a`

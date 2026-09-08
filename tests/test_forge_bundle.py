@@ -121,12 +121,18 @@ def test_forge_bundle_is_deterministic_verified_and_truthfully_non_flashable(
 
     assert first.output_path == second.output_path
     assert first.archive_sha256 == second.archive_sha256
+    assert first.schema_version == 2
+    assert not first.build_plan_digest
+    assert not first.source_sha256
+    assert not first.toolchain_manifest_digest
+    assert not first.guided_choice_digest
     assert not first.signed and not first.bootable and not first.flashable
     assert service.verify(project_id).valid
     output = store.workspace / first.output_path
     with zipfile.ZipFile(output) as archive:
         assert archive.namelist()[0] == service.MANIFEST_MEMBER
         manifest = json.loads(archive.read(service.MANIFEST_MEMBER))
+        assert manifest["schema_version"] == 3
         assert manifest["safety"] == {
             "bootable": False,
             "flashable": False,
@@ -159,6 +165,42 @@ def test_schema3_forge_requires_fresh_bound_tool_evidence(tmp_path: Path) -> Non
     with pytest.raises(ProjectError, match="tool evidence changed"):
         ForgeBundleService(store, statuses).create(project_id)
     assert ForgeBundleService(store).load_receipt(project_id) is None
+
+
+def test_schema3_forge_receipt_cannot_be_downgraded_to_legacy(tmp_path: Path) -> None:
+    store, project_id = _prepared_project(tmp_path)
+    tool = store.workspace / "fixture-tools" / "romverse-bound-python"
+    tool.parent.mkdir()
+    tool.write_bytes(b"verified python fixture")
+    statuses = (ToolStatus("Python", True, str(tool), "fixture", "Ready"),)
+    GuidedMissionStore(store.projects_root / project_id).save(
+        GuidedMissionState(
+            customization_skipped=True,
+            recipe_skipped=True,
+            root_choice="skip",
+        )
+    )
+    RomBuildPlanner(store, statuses, ("Python",)).plan(project_id)
+    service = ForgeBundleService(store, statuses)
+    receipt = service.create(project_id)
+    assert receipt.schema_version == 3
+    assert service.verify(project_id).valid
+
+    receipt_path = store.projects_root / project_id / service.RECEIPT_NAME
+    payload = json.loads(receipt_path.read_text(encoding="utf-8"))
+    payload["schema_version"] = 2
+    for field in (
+        "build_plan_digest",
+        "source_sha256",
+        "toolchain_manifest_digest",
+        "guided_choice_digest",
+    ):
+        payload[field] = ""
+    receipt_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    verification = service.verify(project_id)
+    assert not verification.valid
+    assert verification.status == "Forge Bundle exact build-plan binding is invalid"
 
 
 def test_forge_bundle_streams_zip64_members_and_reports_every_long_phase(

@@ -291,8 +291,8 @@ DURABLE_SCHEMA_INVENTORY: tuple[DurableSchemaSpec, ...] = (
     _spec(
         "romverse.build-plan",
         P,
-        2,
-        (1, 2),
+        3,
+        (1, 2, 3),
         "src/romverse/rom/builds.py",
         '"romverse.build-plan"',
         "tests/test_rom_builds.py",
@@ -303,8 +303,8 @@ DURABLE_SCHEMA_INVENTORY: tuple[DurableSchemaSpec, ...] = (
     _spec(
         "romverse.device-build-plan",
         P,
-        1,
-        (1,),
+        2,
+        (1, 2),
         "src/romverse/rom/build_contracts.py",
         '"romverse.device-build-plan"',
         "tests/test_build_contracts.py",
@@ -1816,8 +1816,8 @@ DURABLE_SCHEMA_INVENTORY: tuple[DurableSchemaSpec, ...] = (
     _spec(
         "romverse.forge-bundle",
         P,
-        3,
-        (1, 2, 3),
+        4,
+        (1, 2, 3, 4),
         "src/romverse/rom/forge.py",
         '"romverse.forge-bundle"',
         "tests/test_forge_bundle.py",
@@ -1828,8 +1828,8 @@ DURABLE_SCHEMA_INVENTORY: tuple[DurableSchemaSpec, ...] = (
     _spec(
         "romverse.forge-bundle-receipt",
         H,
-        2,
-        (1, 2),
+        3,
+        (1, 2, 3),
         "src/romverse/rom/forge.py",
         '"romverse.forge-bundle-receipt"',
         "tests/test_forge_bundle.py",

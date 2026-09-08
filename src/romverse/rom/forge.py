@@ -50,6 +50,10 @@ class ForgeBundleReceipt:
     ascension_handoff_digest: str = ""
     rooted_partition: str = ""
     rooted_artifact_sha256: str = ""
+    build_plan_digest: str = ""
+    source_sha256: str = ""
+    toolchain_manifest_digest: str = ""
+    guided_choice_digest: str = ""
 
 
 class ForgeBundleService:
@@ -99,6 +103,13 @@ class ForgeBundleService:
         verification = planner.verify_tree(project_id)
         if not verification.valid:
             raise ProjectError(verification.status)
+        existing_receipt = self.load_receipt(project_id)
+        if existing_receipt is not None and not self.receipt_matches_plan(existing_receipt, plan):
+            raise ProjectError(
+                "The saved Forge Bundle belongs to a different exact Build Readiness plan. "
+                "Preserve or review that historical evidence, then regenerate and reverify the "
+                "current Forge path."
+            )
 
         ascension = self._ascension_handoff(project_id)
         if (
@@ -182,10 +193,18 @@ class ForgeBundleService:
 
         manifest_payload = {
             "format": "romverse.forge-bundle",
-            "schema_version": 3,
+            "schema_version": 4 if plan.schema_version >= 3 else 3,
             "project_id": project_id,
             "plan_created_at": plan.created_at,
             "plan_tree_sha256": plan.tree_sha256,
+            "build_plan_digest": plan.plan_digest if plan.schema_version >= 3 else "",
+            "source_sha256": plan.source_sha256 if plan.schema_version >= 3 else "",
+            "toolchain_manifest_digest": (
+                plan.toolchain_manifest_digest if plan.schema_version >= 3 else ""
+            ),
+            "guided_choice_digest": (
+                plan.guided_choice_digest if plan.schema_version >= 3 else ""
+            ),
             "recipe_digest": plan.recipe_digest,
             "device_pack_id": plan.device_pack_id,
             "entries": [asdict(entry) for entry in entries],
@@ -300,7 +319,7 @@ class ForgeBundleService:
                 partial.unlink()
 
         receipt = ForgeBundleReceipt(
-            2,
+            3 if plan.schema_version >= 3 else 2,
             project_id,
             datetime.now(UTC).isoformat(),
             output.relative_to(self.store.workspace).as_posix(),
@@ -315,6 +334,10 @@ class ForgeBundleService:
             ascension.handoff_digest if ascension is not None else "",
             ascension.target_partition if ascension is not None else "",
             ascension.artifact_sha256 if ascension is not None else "",
+            plan.plan_digest if plan.schema_version >= 3 else "",
+            plan.source_sha256 if plan.schema_version >= 3 else "",
+            plan.toolchain_manifest_digest if plan.schema_version >= 3 else "",
+            plan.guided_choice_digest if plan.schema_version >= 3 else "",
         )
         self._write_receipt(project_id, receipt)
         if progress is not None:
@@ -329,7 +352,7 @@ class ForgeBundleService:
         receipt = self.load_receipt(project_id)
         if receipt is None:
             return ArtifactVerification(False, "No Forge Bundle receipt")
-        if receipt.schema_version not in {1, 2} or receipt.project_id != project_id:
+        if receipt.schema_version not in {1, 2, 3} or receipt.project_id != project_id:
             return ArtifactVerification(False, "Forge Bundle receipt project identity is invalid")
         if receipt.signed or receipt.bootable or receipt.flashable:
             return ArtifactVerification(False, "Forge Bundle receipt safety contract is invalid")
@@ -374,11 +397,26 @@ class ForgeBundleService:
                 manifest = json.loads(manifest_bytes)
                 if (
                     manifest.get("format") != "romverse.forge-bundle"
-                    or manifest.get("schema_version") not in {1, 2, 3}
+                    or manifest.get("schema_version") not in {1, 2, 3, 4}
                     or manifest.get("project_id") != project_id
                     or manifest.get("plan_tree_sha256") != receipt.plan_tree_sha256
                 ):
                     return ArtifactVerification(False, "Forge Bundle identity is invalid")
+                exact_binding_invalid = receipt.schema_version >= 3 and (
+                    manifest.get("schema_version") != 4
+                    or manifest.get("build_plan_digest") != receipt.build_plan_digest
+                    or manifest.get("source_sha256") != receipt.source_sha256
+                    or manifest.get("toolchain_manifest_digest")
+                    != receipt.toolchain_manifest_digest
+                    or manifest.get("guided_choice_digest") != receipt.guided_choice_digest
+                )
+                downgraded_binding = (
+                    receipt.schema_version < 3 and manifest.get("schema_version") == 4
+                )
+                if exact_binding_invalid or downgraded_binding:
+                    return ArtifactVerification(
+                        False, "Forge Bundle exact build-plan binding is invalid"
+                    )
                 safety = manifest.get("safety", {})
                 if not isinstance(safety, dict) or any(
                     safety.get(key) is not False
@@ -536,7 +574,7 @@ class ForgeBundleService:
             data = json.loads(path.read_text(encoding="utf-8"))
             if data.get("format") != "romverse.forge-bundle-receipt":
                 return None
-            return ForgeBundleReceipt(
+            receipt = ForgeBundleReceipt(
                 int(data["schema_version"]),
                 str(data["project_id"]),
                 str(data["created_at"]),
@@ -552,9 +590,40 @@ class ForgeBundleService:
                 str(data.get("ascension_handoff_digest", "")),
                 str(data.get("rooted_partition", "")),
                 str(data.get("rooted_artifact_sha256", "")),
+                str(data.get("build_plan_digest", "")),
+                str(data.get("source_sha256", "")),
+                str(data.get("toolchain_manifest_digest", "")),
+                str(data.get("guided_choice_digest", "")),
             )
+            exact_fields = (
+                receipt.build_plan_digest,
+                receipt.source_sha256,
+                receipt.toolchain_manifest_digest,
+                receipt.guided_choice_digest,
+            )
+            if (
+                receipt.schema_version not in {1, 2, 3}
+                or (receipt.schema_version == 3 and not all(_is_sha256(item) for item in exact_fields))
+                or (receipt.schema_version < 3 and any(exact_fields))
+            ):
+                return None
+            return receipt
         except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError):
             return None
+
+    @staticmethod
+    def receipt_matches_plan(receipt: ForgeBundleReceipt, plan) -> bool:
+        if receipt.project_id != plan.project_id or receipt.plan_tree_sha256 != plan.tree_sha256:
+            return False
+        if plan.schema_version >= 3:
+            return (
+                receipt.schema_version == 3
+                and receipt.build_plan_digest == plan.plan_digest
+                and receipt.source_sha256 == plan.source_sha256
+                and receipt.toolchain_manifest_digest == plan.toolchain_manifest_digest
+                and receipt.guided_choice_digest == plan.guided_choice_digest
+            )
+        return receipt.schema_version in {1, 2}
 
     def _tree_root(self, source_tree: str) -> Path:
         relative = self._validate_relative(source_tree)
@@ -670,3 +739,7 @@ def _human_bytes(value: int) -> str:
             return f"{size:.1f} {unit}" if unit != "B" else f"{int(size)} B"
         size /= 1024
     return f"{size:.1f} TiB"
+
+
+def _is_sha256(value: str) -> bool:
+    return len(value) == 64 and all(character in "0123456789abcdef" for character in value)

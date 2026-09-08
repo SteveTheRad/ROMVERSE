@@ -82,6 +82,7 @@ class DeviceBuildExecutionPlan:
     execution_locked: bool
     phone_changed: bool
     plan_digest: str
+    workspace_plan_digest: str = ""
 
 
 class DeviceBuildContractService:
@@ -257,7 +258,7 @@ class DeviceBuildContractService:
         plan_id = uuid4().hex
         steps = self._steps(project_id, contract, records, plan_id)
         payload_without_digest = {
-            "schema_version": 1,
+            "schema_version": 2 if build_plan.schema_version >= 3 else 1,
             "plan_id": plan_id,
             "project_id": project_id,
             "created_at": datetime.now(UTC).isoformat(),
@@ -273,9 +274,11 @@ class DeviceBuildContractService:
             "execution_locked": False,
             "phone_changed": False,
         }
+        if build_plan.schema_version >= 3:
+            payload_without_digest["workspace_plan_digest"] = build_plan.plan_digest
         digest = _json_digest(payload_without_digest)
         plan = DeviceBuildExecutionPlan(
-            1,
+            int(payload_without_digest["schema_version"]),
             str(payload_without_digest["plan_id"]),
             project_id,
             str(payload_without_digest["created_at"]),
@@ -291,10 +294,14 @@ class DeviceBuildContractService:
             False,
             False,
             digest,
+            build_plan.plan_digest if build_plan.schema_version >= 3 else "",
         )
+        serialized_plan = asdict(plan)
+        if plan.schema_version == 1:
+            serialized_plan.pop("workspace_plan_digest", None)
         _atomic_json(
             self.store.projects_root / project_id / self.PLAN_NAME,
-            {"format": "romverse.device-build-plan", **asdict(plan)},
+            {"format": "romverse.device-build-plan", **serialized_plan},
         )
         return plan
 
@@ -326,8 +333,10 @@ class DeviceBuildContractService:
         )
         payload = asdict(plan)
         digest = str(payload.pop("plan_digest"))
+        if plan.schema_version == 1:
+            payload.pop("workspace_plan_digest", None)
         if (
-            plan.schema_version != 1
+            plan.schema_version not in {1, 2}
             or plan.project_id != project_id
             or re.fullmatch(r"[0-9a-f]{32}", plan.plan_id) is None
             or pack is None
@@ -343,6 +352,14 @@ class DeviceBuildContractService:
             or plan.expected_outputs != pack.build_contract.allowed_outputs
             or plan.phone_changed
             or any(step.phone_changed for step in plan.steps)
+            or (
+                plan.schema_version == 1
+                and bool(plan.workspace_plan_digest)
+            )
+            or (
+                plan.schema_version == 2
+                and not _is_sha256(plan.workspace_plan_digest)
+            )
             or _json_digest(payload) != digest
         ):
             return None
@@ -362,7 +379,17 @@ class DeviceBuildContractService:
         if plan.execution_locked:
             raise ProjectError("This plan predates the local build executor; regenerate it")
         workspace_plan = self._verified_workspace_plan(project_id)
-        if workspace_plan is None or workspace_plan.tree_sha256 != plan.workspace_tree_sha256:
+        if (
+            workspace_plan is None
+            or workspace_plan.tree_sha256 != plan.workspace_tree_sha256
+            or (
+                workspace_plan.schema_version >= 3
+                and (
+                    plan.schema_version < 2
+                    or plan.workspace_plan_digest != workspace_plan.plan_digest
+                )
+            )
+        ):
             raise ProjectError("The exact workspace build plan changed before local execution")
         project = self.store.get(project_id)
         pack = next(
@@ -672,6 +699,10 @@ def _sha256(path: Path) -> str:
         while chunk := stream.read(4 * 1024 * 1024):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _is_sha256(value: str) -> bool:
+    return len(value) == 64 and all(character in "0123456789abcdef" for character in value)
 
 
 def _json_digest(payload: dict) -> str:

@@ -1555,6 +1555,20 @@ class RomStudio(QWidget):
         plan = RomBuildPlanner(self.store).load(project.project_id)
         if plan is None or not self.forge_button.isEnabled():
             return
+        forge = ForgeBundleService(self.store)
+        existing = forge.load_receipt(project.project_id)
+        if existing is not None and not forge.receipt_matches_plan(existing, plan):
+            self._show_dashboard_handoff(
+                "Forge Bundle → Earlier plan evidence preserved",
+                "The saved Forge Bundle belongs to a different exact Build Readiness plan. "
+                "ROMVERSE preserved it and started no worker. Review that historical evidence, "
+                "then regenerate and reverify the current Forge path before creating another "
+                "bundle.",
+                "PLAN CHANGED",
+                ready=False,
+            )
+            self.verify_plan_button.setFocus(Qt.FocusReason.OtherFocusReason)
+            return
         self._intentional_forge_plan = plan
         self._start_worker("forge-bundle")
 
@@ -2964,13 +2978,20 @@ class RomStudio(QWidget):
         elif destination == "forge_bundle":
             self.command_tabs.setCurrentIndex(1)
             project = self.current_project
-            receipt = (
-                ForgeBundleService(self.store).load_receipt(project.project_id)
+            forge = ForgeBundleService(self.store)
+            plan = (
+                RomBuildPlanner(self.store).load(project.project_id)
                 if project is not None
                 else None
             )
+            receipt = forge.load_receipt(project.project_id) if project is not None else None
+            receipt_current = bool(
+                receipt is not None
+                and plan is not None
+                and forge.receipt_matches_plan(receipt, plan)
+            )
             creatable = self.forge_button.isEnabled()
-            if receipt is not None:
+            if receipt_current:
                 detail = (
                     f"{project.name} has verified Forge Bundle {receipt.archive_sha256[:16]}… "
                     f"containing {receipt.file_count} file(s) and {receipt.content_bytes} bytes."
@@ -2978,6 +2999,15 @@ class RomStudio(QWidget):
                 badge = "VERIFIED INTERMEDIATE"
                 ready = True
                 focus = self.verify_forge_button
+            elif receipt is not None:
+                detail = (
+                    f"{project.name} has preserved Forge evidence from a different exact Build "
+                    "Readiness plan. Regenerate and reverify the current plan before another "
+                    "Forge action; the historical receipt was not consumed or overwritten."
+                )
+                badge = "PLAN CHANGED"
+                ready = False
+                focus = self.verify_plan_button
             elif creatable:
                 detail = (
                     f"{project.name} has a verified deterministic plan ready for deliberate "
@@ -3726,9 +3756,15 @@ class RomStudio(QWidget):
                 and RomBuildPlanner(self.store).load(project.project_id) is not None
             )
             plan = RomBuildPlanner(self.store).load(project.project_id)
-            forge_receipt = ForgeBundleService(self.store).load_receipt(project.project_id)
+            forge = ForgeBundleService(self.store)
+            forge_receipt = forge.load_receipt(project.project_id)
+            current_forge_receipt = bool(
+                forge_receipt is not None
+                and plan is not None
+                and forge.receipt_matches_plan(forge_receipt, plan)
+            )
             self.forge_button.setEnabled(self.worker is None and plan is not None)
-            self.verify_forge_button.setEnabled(self.worker is None and forge_receipt is not None)
+            self.verify_forge_button.setEnabled(self.worker is None and current_forge_receipt)
             self.recipe_button.setEnabled(
                 self.worker is None
                 and RecipeStore().load(self.store.projects_root / project.project_id) is not None
@@ -5018,6 +5054,7 @@ class RomStudio(QWidget):
                 if (
                     receipt is None
                     or plan is None
+                    or not ForgeBundleService.receipt_matches_plan(receipt, plan)
                     or (current is not None and current != (plan, receipt))
                     or receipt.plan_tree_sha256 != plan.tree_sha256
                     or result.expected_sha256 != receipt.archive_sha256
@@ -5036,6 +5073,7 @@ class RomStudio(QWidget):
                 if (
                     ForgeBundleService(self.store).load_receipt(project_id) != result
                     or plan is None
+                    or not ForgeBundleService.receipt_matches_plan(result, plan)
                     or (
                         self._intentional_forge_plan is not None
                         and plan != self._intentional_forge_plan
@@ -5370,6 +5408,7 @@ class RomStudio(QWidget):
             or plan != requested_plan
             or not isinstance(result, ForgeBundleReceipt)
             or receipt != result
+            or not ForgeBundleService.receipt_matches_plan(result, requested_plan)
             or result.plan_tree_sha256 != requested_plan.tree_sha256
             or result.signed
             or result.bootable
@@ -5421,6 +5460,7 @@ class RomStudio(QWidget):
             or self.current_project.project_id != project_id
             or plan != requested_plan
             or receipt != requested_receipt
+            or not ForgeBundleService.receipt_matches_plan(requested_receipt, requested_plan)
             or not isinstance(result, ArtifactVerification)
             or not result.valid
         ):

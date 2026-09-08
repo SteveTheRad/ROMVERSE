@@ -2027,6 +2027,7 @@ class RomStudio(QWidget):
             debloat_receipt = None
         plan = RomBuildPlanner(self.store).load(project_id)
         device = self.devices[0] if self.devices else None
+        authority_device = None if device is not None and device.is_simulated else device
         pack_id = ""
         selected_pack = next(
             (pack for pack in self.pack_registry.packs if pack.pack_id == project.device_pack_id),
@@ -2038,6 +2039,11 @@ class RomStudio(QWidget):
                 pack_id = resolution.pack.pack_id
         dna_evidence: list[str] = []
         if dna is not None:
+            if any(item.evidence_id == "device.simulation" for item in dna.evidence):
+                dna_evidence.append(
+                    "SIMULATION ONLY • NOT HARDWARE VERIFIED • live-target, consent, Guardian, "
+                    "and execution authority: NONE"
+                )
             identity = next(
                 (
                     fact.value
@@ -2091,7 +2097,7 @@ class RomStudio(QWidget):
             boot_receipt = boot_service.load(
                 project_id,
                 verified_flash=self._latest_guardian_execution_result,
-                device=device,
+                device=authority_device,
             )
         except ProjectError:
             boot_receipt = None
@@ -2100,11 +2106,15 @@ class RomStudio(QWidget):
             if boot_receipt.status is BootObservationStatus.STABLE:
                 boot_observation_stable = True
                 first_boot_verified = boot_receipt.verified_first_boot
-        if not flash_complete and device is not None and self._latest_guardian_execution_result:
+        if (
+            not flash_complete
+            and authority_device is not None
+            and self._latest_guardian_execution_result
+        ):
             try:
                 boot_service.verified_flash_digest(
                     project_id,
-                    device,
+                    authority_device,
                     self._latest_guardian_execution_result,
                 )
                 flash_complete = True
@@ -2141,13 +2151,19 @@ class RomStudio(QWidget):
             self.pack_registry,
             self.tool_statuses,
             self.attestation_store,
-        ).assess(project_id, tuple(self.devices), persist=False)
+        ).assess(
+            project_id,
+            tuple(item for item in self.devices if not item.is_simulated),
+            persist=False,
+        )
         handoff_service = GuardianFlashHandoffService(self.store)
         flash_handoff = handoff_service.load(project_id)
         flash_handoff_ready = bool(
             readiness.flash_ready
             and flash_handoff is not None
-            and handoff_service.matches_current(project_id, flash_handoff, device, readiness)
+            and handoff_service.matches_current(
+                project_id, flash_handoff, authority_device, readiness
+            )
         )
         ascension_complete = False
         ascension_integrated = False
@@ -2239,7 +2255,7 @@ class RomStudio(QWidget):
 
         project = self.current_project
         device = self.devices[0] if len(self.devices) == 1 else None
-        if project is None or device is None:
+        if project is None or device is None or device.is_simulated:
             return False
         try:
             BootObservationService(self.store, self.pack_registry).verified_flash_digest(
@@ -3027,7 +3043,7 @@ class RomStudio(QWidget):
             resolution = self.pack_registry.resolve(active[0])
             if resolution.pack is not None:
                 self.suggested_pack_id = resolution.pack.pack_id
-        if self.current_project is not None and active:
+        if self.current_project is not None and active and not active[0].is_simulated:
             # Boot evidence is optional and must never interfere with device discovery.
             with suppress(OSError, ProjectError):
                 receipt = BootObservationService(self.store, self.pack_registry).observe(
@@ -3560,6 +3576,7 @@ class RomStudio(QWidget):
             return
         facts = []
         for fact_id in (
+            "device.evidence_class",
             "identity.marketing_name",
             "identity.model",
             "identity.codename",
@@ -3634,7 +3651,12 @@ class RomStudio(QWidget):
                 "• Archive integrity or availability check failed; ROMVERSE did not guess."
             )
         self.device_dna_detail.setText(
-            "Evidence-backed profile\n"
+            (
+                "SIMULATION ONLY • NOT HARDWARE VERIFIED\n"
+                if any(item.evidence_id == "device.simulation" for item in profile.evidence)
+                else ""
+            )
+            + "Evidence-backed profile\n"
             + "\n".join(facts)
             + source_intelligence
             + "\n\nCapability Map\n"
@@ -3887,6 +3909,7 @@ class RomStudio(QWidget):
             parent or self,
             required_names=required_names,
             auto_start=self.app_settings.auto_download_verified_tools,
+            auto_close=self.app_settings.auto_download_verified_tools,
         )
         dialog.setWindowTitle(title)
         dialog.status.setText(purpose)
@@ -3970,7 +3993,11 @@ class RomStudio(QWidget):
         from romverse.rom.readiness import BuildReadinessService
 
         device = next(
-            (item for item in self.devices if item.state is DeviceState.DEVICE),
+            (
+                item
+                for item in self.devices
+                if item.state is DeviceState.DEVICE and not item.is_simulated
+            ),
             None,
         )
         if device is None:

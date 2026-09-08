@@ -526,7 +526,7 @@ class GuidedBuildMission(QDialog):
         self.task_list_button.toggled.connect(self._toggle_task_list)
         self.save_button = QPushButton("Save && exit")
         self.save_button.clicked.connect(self._save_or_finish)
-        self.skip_button = QPushButton("Continue to Nebula Debloat")
+        self.skip_button = QPushButton("Keep verified base unchanged • Recommended")
         self.skip_button.setObjectName("SecondaryAction")
         self.skip_button.clicked.connect(self._secondary_action)
         self.action_button = QPushButton()
@@ -997,7 +997,9 @@ class GuidedBuildMission(QDialog):
             self.device_identity_title.setText(device.display_name)
             current_build = device.rom_display or device.build_id or "Build unconfirmed"
             self.device_identity_detail.setText(
-                f"{device.codename or 'Codename unconfirmed'}  •  {current_build}"
+                "SIMULATION ONLY • NOT HARDWARE VERIFIED"
+                if device.is_simulated
+                else f"{device.codename or 'Codename unconfirmed'}  •  {current_build}"
             )
 
         verdict = self.studio.upgrade_passport_status.text().strip()
@@ -1325,7 +1327,9 @@ class GuidedBuildMission(QDialog):
         )
         self.skip_button.setVisible(skip_customization or defer_flash)
         self.skip_button.setText(
-            "Defer flash & finish local build" if defer_flash else "Continue to Nebula Debloat"
+            "Defer flash & finish local build"
+            if defer_flash
+            else "Keep verified base unchanged • Recommended"
         )
         self.skip_button.setEnabled(not busy)
         if self.failure is None:
@@ -1396,16 +1400,23 @@ class GuidedBuildMission(QDialog):
         return "USB debugging Android connection"
 
     def _skip_customization(self) -> None:
+        if not self._clear_rooted_input_for_unrooted_route():
+            return
         self.state = replace(
             self.state,
-            customization_skipped=False,
+            customization_skipped=True,
             recipe_skipped=True,
             recipe_validated=False,
+            root_choice="skip",
             last_error="",
         )
         self.failure = None
-        self._save_state()
-        self._refresh()
+        next_assessments = self.engine.assess(self._context())
+        self.selected_index = self.engine.current_index(next_assessments)
+        if not self._save_state():
+            self._refresh(select_current=True)
+            return
+        self._refresh(select_current=True)
         if self.autopilot_active:
             QTimer.singleShot(0, self._advance_autopilot)
 
@@ -1559,12 +1570,13 @@ class GuidedBuildMission(QDialog):
         dialog.setIcon(QMessageBox.Icon.Information)
         dialog.setText("Would you like to customize this ROM?")
         dialog.setInformativeText(
-            "ROMVERSE has preserved and verified the base firmware. Choose the recommended route "
-            "to review optional system apps in Nebula Debloat, or open Recipe Forge for other "
-            "guided modifications first.\n\nNeither route changes the phone."
+            "ROMVERSE has preserved and verified the base firmware. Choose the recommended "
+            "unchanged route for no Recipe changes, no optional app removal, and a standard "
+            "unrooted ROM; or open Recipe Forge for guided modifications.\n\nNeither route "
+            "changes the phone."
         )
         keep_base = dialog.addButton(
-            "Continue to Nebula Debloat • Recommended",
+            "Keep verified base unchanged • Recommended",
             QMessageBox.ButtonRole.AcceptRole,
         )
         recipe_forge = dialog.addButton(
@@ -1655,7 +1667,7 @@ class GuidedBuildMission(QDialog):
         )
         self._pause_genesis_live("Genesis paused for the user's optional root choice.")
 
-    def _select_unrooted_route(self) -> bool:
+    def _clear_rooted_input_for_unrooted_route(self) -> bool:
         project = self.studio.current_project
         if project is None:
             return False
@@ -1671,6 +1683,11 @@ class GuidedBuildMission(QDialog):
             self.state = replace(self.state, last_error=f"root-choice: {exc}")
             self._save_state()
             self._refresh()
+            return False
+        return True
+
+    def _select_unrooted_route(self) -> bool:
+        if not self._clear_rooted_input_for_unrooted_route():
             return False
         self.state = replace(self.state, root_choice="skip", last_error="")
         self._save_state()
@@ -1804,12 +1821,24 @@ class GuidedBuildMission(QDialog):
         elif action == "first-boot":
             self._run_first_boot_check()
         elif action == "refresh-tools":
-            self._resolve_required_tools(
+            resolved = self._resolve_required_tools(
                 self._context().required_tools,
                 purpose="Genesis must verify every source-bound build dependency before Forge Control.",
             )
+            if not resolved:
+                detail = (
+                    self.failure.explanation
+                    if self.failure is not None
+                    else "Required host dependencies remain unverified."
+                )
+                self.state = replace(self.state, last_error=f"toolchain: {detail}")
+                self._save_state()
+                self._refresh(select_current=True)
+                return
+            self.failure = None
+            self.state = replace(self.state, last_error="")
+            self._refresh(select_current=True)
             self._save_state()
-            self._refresh()
         elif action == "build-sign":
             self.studio._open_build_control(self)
             self._refresh()

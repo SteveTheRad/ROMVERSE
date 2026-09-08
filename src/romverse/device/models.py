@@ -111,3 +111,9 @@ class AndroidDevice:
             DeviceState.BOOTLOADER,
             DeviceState.FASTBOOTD,
         }
+
+    @property
+    def is_simulated(self) -> bool:
+        """Identify explicit inert test-device evidence without treating it as hardware."""
+
+        return self.transport.casefold().strip() == "simulation"

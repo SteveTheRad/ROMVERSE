@@ -1,6 +1,7 @@
 import hashlib
 import json
 import zipfile
+from dataclasses import replace
 
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device_packs.attestations import (
@@ -112,6 +113,36 @@ def test_build_readiness_fails_closed_for_planned_device_pack(tmp_path):
     assert resolution.action_id == "autopilot"
     assert report.next_actions[0]
     assert (store.projects_root / project.project_id / service.REPORT_NAME).is_file()
+
+
+def test_build_readiness_never_treats_a_simulated_device_as_live_target(tmp_path):
+    store, project = _prepared_project(tmp_path)
+    service = BuildReadinessService(store, _registry())
+    live_device = AndroidDevice(
+        "serial",
+        DeviceState.DEVICE,
+        manufacturer="test",
+        model="Phone",
+        battery_percent=80,
+        bootloader_locked=False,
+        verified_boot="orange",
+    )
+
+    live_report = service.assess(project.project_id, (live_device,), persist=False)
+    simulated_report = service.assess(
+        project.project_id,
+        (replace(live_device, transport="simulation"),),
+        persist=False,
+    )
+
+    assert next(g for g in live_report.gates if g.gate_id == "device").status is GateStatus.PASS
+    simulated_device_gate = next(
+        gate for gate in simulated_report.gates if gate.gate_id == "device"
+    )
+    assert simulated_device_gate.status is GateStatus.BLOCKED
+    assert simulated_device_gate.evidence == "No authorized device matching the project Device Pack"
+    assert not simulated_report.guardian_handoff_ready
+    assert not simulated_report.flash_ready
 
 
 def test_readiness_promotes_only_a_strict_recipe_receipt_bound_to_rollback_evidence(tmp_path):

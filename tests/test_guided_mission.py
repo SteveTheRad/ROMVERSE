@@ -167,6 +167,39 @@ def test_mission_routes_verified_local_workflow_into_real_forge_control():
     assert assessments[11].stage.action_label == "Resolve build automatically"
 
 
+def test_unchanged_unrooted_choice_skips_all_optional_modification_stages():
+    context = GuidedContext(
+        project_exists=True,
+        original_imported=True,
+        inspection_saved=True,
+        working_copy_ready=True,
+        working_tree_ready=True,
+        device=AndroidDevice(
+            "fixture",
+            DeviceState.DEVICE,
+            transport="simulation",
+            model="Fixture Phone",
+        ),
+        device_pack_id="fixture-pack",
+        device_dna_ready=True,
+        capability_map_ready=True,
+        customization_skipped=True,
+        recipe_skipped=True,
+        root_choice="skip",
+    )
+
+    assessments = GuidedMissionEngine().assess(context)
+
+    assert all(
+        assessments[index].status is GuidedStageStatus.COMPLETE for index in range(5, 9)
+    )
+    assert assessments[7].evidence == (
+        "Verified base kept unchanged; optional app removal was not requested",
+    )
+    assert GuidedMissionEngine.current_index(assessments) == 9
+    assert assessments[9].stage.stage_id == "toolchain"
+
+
 def test_toolchain_stage_requires_every_proven_build_dependency():
     tools = tuple(
         ToolStatus(name, True, f"/tools/{name.casefold()}", "1.0", "Ready")

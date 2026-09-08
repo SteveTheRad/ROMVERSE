@@ -1,5 +1,81 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows simulation, unchanged-route and Toolchain parity convergence checkpoint
+
+- Product Assurance verdict: `aee5e45c94a268068170c65ee2904344f0d5b2c3` —
+  `Approve packaged Windows continuity [skip ci]`, matching checkpoint
+  `7dca231633cdc1888801534391b616b91ceeb34c` exactly.
+- Ordered approved platform-neutral sources from `origin/linux/stage1-desktop-readiness`:
+  `8ce24b22e0ead8beaaf9987f2b03e728f1e67448` — `Classify simulated Device DNA without
+  authority`; `7e3520ad708cf216f36e59f909d360e87240b872` — `Streamline unchanged Guided route`;
+  and `5976ced726f4297cee7032a88f2b5d7d2defe711` — `Complete Guided toolchain resolution`.
+- Result: **PASS WITH TWO KNOWN WINDOWS-ONLY FIXTURE FAILURES — ALL THREE APPROVED PRODUCT/TEST
+  DIFFS APPLIED CLEANLY IN ORDER, EVERY NEW OR DIRECTLY CHANGED STAGE-1 BEHAVIOR PASSED NATIVELY,
+  AND ONLY THE TWO PRE-EXISTING POSIX MODE-BIT ASSERTIONS FAILED**. No branch-context conflict or
+  Stage 1 correctness failure appeared, so the approved parity diff was not widened.
+
+### Exact bounded convergence
+
+- Each approved commit's product/test patch was applied in order with Git's three-way context and
+  reported every file clean. No Linux commit, handoff, assurance document or unrelated later
+  history was merged, cherry-picked or imported.
+- The resulting scoped diff is **11 files, 351 insertions and 35 deletions**:
+  `src/romverse/device/{dna.py,models.py}`, `src/romverse/rom/{guided.py,readiness.py}`,
+  `src/romverse/ui/{guided_mission.py,rom_studio.py}`, and the directly associated tests in
+  `test_app_launch_settings.py`, `test_build_readiness.py`, `test_device_dna.py`,
+  `test_guided_mission.py` and `test_rom_studio_ui.py`.
+- Explicit `simulation` transport is now durable `device.simulation` evidence at unconfirmed
+  confidence and conspicuously `SIMULATION ONLY • NOT HARDWARE VERIFIED`. It is excluded from
+  live-target, boot-observation, Guardian matching/result, consent and execution gates; advisory
+  compatibility and permanent no-relock remain unchanged.
+- The one recommended Customize choice now atomically keeps the verified base unchanged, skips
+  optional Recipe/debloat changes, chooses the unrooted route and advances to Toolchain. Successful
+  automatic managed Toolchain resolution advances durably to Build Readiness; failure retains one
+  precise blocker, while manual-download preference keeps setup user-controlled.
+
+### One deduplicated native Windows affected regression
+
+- Exact command:
+  `$env:PYTHONPATH='src'; $env:QT_QPA_PLATFORM='windows'; .venv\Scripts\python.exe -m pytest -q
+  tests/test_device_dna.py tests/test_compatibility_matrix.py tests/test_guided_mission.py
+  tests/test_build_readiness.py::test_build_readiness_never_treats_a_simulated_device_as_live_target
+  tests/test_rom_studio_ui.py::test_genesis_device_stage_requests_a_fresh_scan_and_rebuilds_device_dna
+  tests/test_rom_studio_ui.py::test_genesis_simulated_device_continues_visibly_without_hardware_authority
+  tests/test_rom_studio_ui.py::test_genesis_keeps_the_exact_connection_blocker_visible_after_a_successful_scan
+  tests/test_rom_studio_ui.py::test_genesis_root_choice_explains_the_evidence_route_before_consent
+  tests/test_rom_studio_ui.py::test_partition_atlas_resolves_its_missing_tool_and_continues
+  tests/test_rom_studio_ui.py::test_genesis_tool_resolution_fails_closed_when_required_reader_remains_missing
+  tests/test_toolchain_progress.py::test_empty_automatic_forge_setup_completes_without_stranding_user
+  tests/test_app_launch_settings.py::test_first_run_explicitly_enters_guided_and_reaches_truthful_host_prerequisite
+  --basetemp C:\Work\ROMVERSE-Pytest-Simulation-Parity-aee5e45c -p no:cacheprovider`.
+- Result: **64 collected; 62 passed, 2 failed, 0 errors, 0 skipped**. Passing coverage includes
+  every new simulation/zero-authority assertion, the complete Device DNA, Compatibility Matrix and
+  Guided mission/state suites, the one-choice unchanged route, automatic Toolchain continuation,
+  fail-closed missing-tool behavior, empty automatic setup closure and manual preference behavior.
+- Both failures are already documented Windows fixture incompatibilities, not regressions:
+  `test_device_dna_store_detects_tampering_and_reuses_unchanged_profile` and
+  `test_matrix_distinguishes_verified_strong_unknown_and_incompatible` require POSIX mode `0600`,
+  while native Windows reports mode `0666`. This exact two-failure class was recorded by the prior
+  broader Windows portability audit; it does not indicate a store, simulation or compatibility
+  correctness failure. The checkpoint does not change those unapproved fixtures.
+- Focused Ruff over all 11 changed files passed. Git whitespace validation passed.
+
+### Scope, safety and next gate
+
+- No broad suite, build, package, desktop launch, managed-tool acquisition or real candidate build
+  ran. No phone or emulator was requested, connected, discovered, operated or targeted. No
+  ADB/Fastboot, Recovery, flash, wipe, unlock, root, relock, APK installation, production
+  adapter/trust/signing, publication, release, force-push or destructive action occurred.
+  Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty, no
+  blind retry, independent verification, feature freeze and permanent no-relock remain intact.
+- The protected Companion files have no staged or working-tree diff. The pre-existing untracked
+  `0001-Preserve-local-build-completion-across-restart.patch` remains untracked and byte-identical at
+  SHA-256 `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- Precise proposed next task: independent Product Assurance review of the exact ordered parity diff,
+  the 62/64 Windows result and the two pre-existing POSIX-permission fixture failures. Do not fix
+  those fixtures, build/package, launch another artifact, acquire tools, connect hardware or begin
+  another Stage 1 slice unless a matching repository verdict explicitly authorizes it.
+
 ## Packaged post-Genesis continuity acceptance checkpoint
 
 - Product Assurance verdict: `51f77ceff725c6dcfb89b20942f079a8a0cb5e13` —

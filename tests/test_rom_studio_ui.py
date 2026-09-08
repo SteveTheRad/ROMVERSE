@@ -22,6 +22,7 @@ from romverse.guardian.manifest_review import GuardianManifestReviewService
 from romverse.infrastructure.provisioning import GENESIS_REQUIRED_TOOLS
 from romverse.infrastructure.tools import ToolStatus
 from romverse.intelligence.online_remediation import ErrorFingerprint, OnlineRemediationService
+from romverse.nexus.compatibility import CompatibilityStatus
 from romverse.nexus.events import LiveConsoleEventStore, MissionState
 from romverse.rom.builds import RomBuildPlanner
 from romverse.rom.forge import ForgeBundleService
@@ -456,6 +457,7 @@ def test_partition_atlas_resolves_its_missing_tool_and_continues(tmp_path, monke
     options = next(value for kind, value in setup_calls if kind == "options")
     assert options["required_names"] == ("Payload Dumper",)
     assert options["auto_start"]
+    assert options["auto_close"]
     assert studio.payload_service is not None
     assert studio.partition_button.text() == "Partition Atlas"
     assert opened == [studio, "exec"]
@@ -1705,6 +1707,112 @@ def test_genesis_device_stage_requests_a_fresh_scan_and_rebuilds_device_dna(tmp_
     assert mission.assessments[4].status is GuidedStageStatus.COMPLETE
     assert mission.stage_buttons[4].text().endswith("Device DNA")
     mission.close()
+    studio.close()
+
+
+def test_genesis_simulated_device_continues_visibly_without_hardware_authority(tmp_path):
+    from tests.test_device_dna import _device, _pack, _source
+
+    app = QApplication.instance() or QApplication([])
+    source = _source(tmp_path)
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.create("Simulated compatibility", "xiaomi.popsicle.test")
+    project = store.import_original(project.project_id, source)
+    registry = DevicePackRegistry((_pack(project.original.sha256),))
+    inspection = RomInspectionService(store)
+    inspection.inspect_project(project.project_id)
+    store.create_working_copy(project.project_id)
+    inspection.extract_project_tree(project.project_id)
+    studio = RomStudio(store, registry)
+    studio.refresh(project.project_id)
+    studio.device_scan_available = True
+    scan_requests = []
+    studio.device_scan_requested.connect(lambda: scan_requests.append(True))
+    mission = GuidedBuildMission(studio)
+    mission.show()
+    app.processEvents()
+
+    assert mission.assessments[mission.selected_index].stage.stage_id == "device"
+    mission.action_button.click()
+    assert scan_requests == [True]
+    assert mission.active_operation == "device-scan"
+
+    simulated = _device(
+        transport="simulation",
+        connection_note="SIMULATION ONLY • NOT HARDWARE VERIFIED",
+    )
+    studio.set_devices([simulated])
+    studio.device_scan_finished.emit(True, "Deterministic device simulation completed.")
+    app.processEvents()
+
+    profile = studio.device_dna.profiles.load(project.project_id)
+    matrix = studio.compatibility.matrices.load(project.project_id)
+    assert profile is not None
+    assert matrix is not None
+    assert any(item.evidence_id == "device.simulation" for item in profile.evidence)
+    assert all(item.evidence_id != "device.live" for item in profile.evidence)
+    assert matrix.decision("device_identity").status is CompatibilityStatus.LIMITED_EVIDENCE
+    assert matrix.decision("guardian_flash").status is CompatibilityStatus.UNKNOWN
+    assert matrix.guardian_advisory_only
+    assert not matrix.bootloader_relock_permitted
+    assert "SIMULATION ONLY • NOT HARDWARE VERIFIED" in studio.device_dna_detail.text()
+    assert mission.device_identity_detail.text() == "SIMULATION ONLY • NOT HARDWARE VERIFIED"
+    assert mission.assessments[4].status is GuidedStageStatus.COMPLETE
+    assert mission.assessments[mission.selected_index].stage.stage_id == "customize"
+    assert mission.skip_button.isVisible()
+    assert mission.skip_button.text() == "Keep verified base unchanged • Recommended"
+
+    mission.skip_button.click()
+    app.processEvents()
+
+    assert mission.assessments[5].status is GuidedStageStatus.COMPLETE
+    assert mission.assessments[6].status is GuidedStageStatus.COMPLETE
+    assert mission.assessments[7].status is GuidedStageStatus.COMPLETE
+    assert mission.assessments[8].status is GuidedStageStatus.COMPLETE
+    assert mission.assessments[mission.selected_index].stage.stage_id == "toolchain"
+
+    resolution_calls = []
+
+    def resolve_tools(required, *, purpose):
+        resolution_calls.append((required, purpose))
+        studio.set_tool_statuses(
+            tuple(
+                ToolStatus(name, True, f"/verified/{name.casefold().replace(' ', '-')}", "1")
+                for name in required
+            )
+        )
+        return True
+
+    mission._resolve_required_tools = resolve_tools
+    mission.action_button.click()
+    app.processEvents()
+
+    assert len(resolution_calls) == 1
+    assert resolution_calls[0][0] == ("Python", "Payload Dumper", "AVBTool")
+    assert "source-bound build dependency" in resolution_calls[0][1]
+    assert mission.assessments[9].status is GuidedStageStatus.COMPLETE
+    assert mission.assessments[mission.selected_index].stage.stage_id == "build_plan"
+
+    context = studio.guided_context()
+    assert context.device is simulated
+    assert not context.guardian_handoff_ready
+    assert not context.guardian_flash_handoff_ready
+    assert not context.flash_complete
+    assert store.verify_original(project.project_id).valid
+    assert RomBuildPlanner(store).load(project.project_id) is None
+    project_root = store.projects_root / project.project_id
+    assert not (project_root / "boot-observation.romverse").exists()
+    assert not (project_root / "guardian").exists()
+
+    persisted = GuidedMissionStore(project_root).load()
+    assert persisted.selected_stage == "build_plan"
+    assert persisted.customization_skipped
+    assert persisted.recipe_skipped
+    assert persisted.root_choice == "skip"
+    assert studio.current_project.project_id == project.project_id
+    assert studio.current_project.original.sha256 == project.original.sha256
+    assert "SIMULATION ONLY • NOT HARDWARE VERIFIED" in studio.device_dna_detail.text()
+    assert not (project_root / "recipe.romverse").exists()
     studio.close()
 
 

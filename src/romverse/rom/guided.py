@@ -588,6 +588,7 @@ class GuidedMissionEngine:
         validation_done = (
             context.customization_skipped or context.recipe_validated or context.recipe_skipped
         )
+        debloat_done = context.customization_skipped or context.debloat_complete
         root_choice = (
             context.root_choice
             if context.root_choice in {"undecided", "skip", "ascension"}
@@ -679,9 +680,13 @@ class GuidedMissionEngine:
                 (),
             ),
             "debloat": (
-                context.debloat_complete,
-                ("System-app review completed with a verified Debloat receipt",)
-                if context.debloat_complete
+                debloat_done,
+                (
+                    "Verified base kept unchanged; optional app removal was not requested"
+                    if context.customization_skipped
+                    else "System-app review completed with a verified Debloat receipt",
+                )
+                if debloat_done
                 else (),
                 (),
             ),

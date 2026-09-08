@@ -1528,6 +1528,12 @@ class BuildControlCenter(QDialog):
     def _primary_action(self) -> None:
         if self.report is not None and self.report.signing_ready:
             self._open_project_images()
+        elif (
+            self.report is not None
+            and self.report.local_candidate_ready
+            and self._current_candidate_avb_receipt() is not None
+        ):
+            self._signing_ceremony()
         else:
             self._start_autopilot()
 
@@ -1681,6 +1687,7 @@ class BuildControlCenter(QDialog):
             self.project.project_id,
             tuple(self.studio.devices),
         )
+        candidate_avb_verified = self._current_candidate_avb_receipt() is not None
         while self.content.count():
             item = self.content.takeAt(0)
             widget = item.widget()
@@ -2021,6 +2028,8 @@ class BuildControlCenter(QDialog):
             self.autopilot_button.setText(
                 VERIFIED_ROM_INSTALLATION_ACTION
                 if self.report.signing_ready
+                else "Open offline signing ceremony"
+                if self.report.local_candidate_ready and candidate_avb_verified
                 else "Continue to artifact verification"
                 if self.report.local_candidate_ready
                 else "Review final Guardian handoff"
@@ -2032,6 +2041,9 @@ class BuildControlCenter(QDialog):
                 "choose a manual image subset. Then review the exact target, actions, warnings "
                 "and final consent. Opening preparation never writes to the phone."
                 if self.report.signing_ready
+                else "Open the exact offline-signing evidence boundary. ROMVERSE exports only "
+                "content-addressed candidate artifacts and never stores a private key."
+                if self.report.local_candidate_ready and candidate_avb_verified
                 else "Resolve the candidate's exact artifact-trust and signing/AVB evidence. "
                 "Local build completion grants no installation or phone authority."
                 if self.report.local_candidate_ready
@@ -2046,6 +2058,9 @@ class BuildControlCenter(QDialog):
             "Verify a complete ROM route when supported, with clearly limited manual subsets as "
             "an alternative. No phone action starts until final review and consent."
             if self.report.signing_ready
+            else "Artifact verification is complete. Export an exact offline-signing request or "
+            "review the one precise Device Pack policy requirement."
+            if self.report.local_candidate_ready and candidate_avb_verified
             else "The local candidate is complete. Resolve artifact trust separately before any "
             "installation path can be reviewed."
             if self.report.local_candidate_ready
@@ -3047,8 +3062,16 @@ class BuildControlCenter(QDialog):
                 "clearly limited manual image subset. Production certification remains separate."
             )
             self.autopilot_button.setText(VERIFIED_ROM_INSTALLATION_ACTION)
-        if self.report is not None and self.report.local_candidate_ready:
-            self.autopilot_button.setText(VERIFIED_ROM_INSTALLATION_ACTION)
+        if (
+            self.report is not None
+            and self.report.local_candidate_ready
+            and not self.report.signing_ready
+        ):
+            self.autopilot_button.setText(
+                "Open offline signing ceremony"
+                if self._current_candidate_avb_receipt() is not None
+                else "Continue to artifact verification"
+            )
         prefix = f"{completed} safe step(s) completed automatically. " if completed else ""
         self.status.setText(prefix + message)
         if waiting_gate and self.report is not None:
@@ -3767,6 +3790,30 @@ class BuildControlCenter(QDialog):
             and pack.build_contract.source.archive_sha256 == project.original.sha256
         )
 
+    def _current_candidate_avb_receipt(self) -> AvbTopologyReceipt | None:
+        payloads = self.studio.payload_service
+        avbtool = next(
+            (
+                Path(item.path)
+                for item in self.studio.tool_statuses
+                if item.name == "AVBTool" and item.available and item.path
+            ),
+            None,
+        )
+        if not self._has_exact_avb_contract() or payloads is None or avbtool is None:
+            return None
+        try:
+            return AvbEvidenceService(
+                self.studio.store,
+                self.studio.pack_registry,
+                self.studio.tool_statuses,
+                payloads,
+                avbtool,
+                payloads.runner,
+            ).load(self.project.project_id)
+        except (OSError, ProjectError, TypeError, ValueError):
+            return None
+
     def _avb_action_label(self) -> str:
         return (
             "Inspect candidate AVB topology"
@@ -3935,6 +3982,13 @@ class BuildControlCenter(QDialog):
                 return
             self.autopilot_completed.append("AVB topology")
             self.autopilot_waiting_for = ""
+            if not receipt.signing_ready:
+                self._finish_autopilot(
+                    f"Artifact verification complete. {diagnosis}. Choose Open offline signing "
+                    "ceremony to export the exact request or review the Device Pack policy "
+                    "requirement. No installation or phone action started."
+                )
+                return
             QTimer.singleShot(0, self._continue_autopilot)
 
     @Slot(str)

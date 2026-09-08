@@ -1,5 +1,85 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — existing Guided working-lab continuity
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `e3f91877c5fc50061d4c294c7476fb99fbea0e09` approved
+  `ac77205`/`7c62f12` and authorized this single existing no-phone working-lab journey.
+- Tested source: `ac772057c6dc9510bf4d30f7e7a1c296f446352c` with approval/handoff history
+  through `e3f9187` on `linux/stage1-desktop-readiness`.
+- Final handoff: the documentation-only commit containing this sync. No source or test file changed.
+- Stage: Stage 1 — v0.2 Golden Foundation, existing Genesis task 04/15 working-lab action only.
+
+### Real-widget journey and durable result
+
+- A fresh disposable real `GuidedBuildMission` opened from the existing ROM Studio/Command Deck
+  handoff with one already-imported and inspected deterministic Android boot-image project at
+  task 04/15. The normal visible **Prepare working lab** action was invoked once.
+- The existing queue completed exactly `working-copy` then `extract`. It produced one sealed
+  `working-copy.romverse` record, one private `working-tree-index.romverse` record and one contained
+  staged tree file. There was no duplicate working-copy record or unexplained dead end.
+- The protected original remained byte-identical at SHA-256
+  `beb7b61e814e2e7c7dcd737b569892757258b4a5bbfb76b0335afdf07c304baa`, retained mode `0444`, and
+  matched both the project source digest and the working-copy source/current digest.
+- The representative sealed working-copy receipt digest was
+  `c235c1dc1b4b46138d5e0f997f4e68520affacf8fd65408289bf4e3dbbb79634`. This digest belongs only to
+  the disposable journey and grants no build or device authority.
+- After modal return, the durable mission selected `device`; the flight plan, project row and
+  Genesis handoff all displayed truthful task 05/15 Device DNA state. ROM Studio detail reported
+  `7/8 steps complete • Next: Create and verify build plan`.
+- No `BuildPlan` existed, no worker or queued operation remained, no device was present, and no
+  compatibility, Guardian or execution authority was created.
+
+### Verification without double-counting
+
+- Representative real-widget working-lab journey: **1/1 passed**.
+- Directly affected regression selection: **4/4 passed** — post-Genesis modal continuity,
+  existing safe-local-stage autopilot pause at Device DNA, working-copy verification/deduplication,
+  and contained clean-archive extraction.
+- Git whitespace validation: **passed**. Repository application/test source remained unchanged.
+- Two preliminary harness observations were rejected and are not counted: one observer sampled the
+  intentional idle gap before the queued extraction was dispatched, and one invalid synchronous
+  worker substitution correctly triggered the existing fail-closed `worker is None` guard. The
+  final journey used the repository's established controlled-worker pattern and completed both
+  registered steps normally.
+- No broad suite, CI matrix, application package, native smoke or repeated firmware import was run.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** no new implementation; the approved existing working-lab action is sufficient.
+- **Simulated/Tested:** one real Qt modal/UI journey with sanitized local bytes plus 4/4 directly
+  affected checks.
+- **Hardware Verified:** no new hardware evidence; the journey was explicitly no-phone.
+- **Released:** no.
+- Blockers/failures: none in the valid journey or focused regression. No product defect justified a
+  source change.
+- Guided friction/dead ends: none observed between task 04 preparation and the truthful task 05
+  no-phone Device DNA pause.
+- Guardian/Recovery/safety: unchanged. Exact source identity, immutable original, Guardian-only
+  execution, UNKNOWN-on-uncertainty, no blind retry, same-incident Recovery, independent
+  verification and permanent no-relock remain intact.
+- Linux/Fedora: real widget journey and focused tests verified offscreen. Windows was not rerun.
+  Physical Android was not used.
+- Feature freeze: compliant verification of an existing Stage 1 action; no feature, screen, format,
+  engine, adapter or execution capability was added.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and existing release gates.
+- External actions: one normal documentation-only push is planned. No phone, ADB/Fastboot, APK,
+  device firmware operation, build candidate, signing, installation, publication, release, remote
+  merge, force-push, lock or relock occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another consequential slice until the
+verdict for this working-lab checkpoint is recorded in `docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm the existing two-step working-lab action preserves one immutable source and one isolated,
+  durable working state without a source correction.
+- Confirm the valid real-widget journey plus the directly affected 4/4 regression selection is
+  sufficient and the two rejected harness observations are correctly excluded.
+
 ## Linux product checkpoint — post-Genesis ROM Studio continuity
 
 ### Authoritative checkpoint and scope

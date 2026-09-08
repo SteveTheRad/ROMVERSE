@@ -1,5 +1,85 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — exact current Command Deck mission ledger
+
+### Authoritative checkpoint
+
+- Product Assurance approval/base: `50e3eec` — approved exact Command Deck Recovery context and
+  authorized the bounded Resume Mission → Live Operations continuity check.
+- Tested implementation: `46533cafaa75962c71f7551eb6c0689b7572f292` — `Bind Command Deck
+  resume to current mission`.
+- Final handoff: the follow-up commit containing this document on
+  `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation, existing Command Deck mission-ledger continuity.
+
+### Reproduced defect and exact correction
+
+- Command Deck previously selected the newest running mission from the entire local ledger. A
+  newer event from unrelated Project B could therefore replace Project A's real active mission in
+  A's `Resume Mission` card; opening Live Operations then selected the unrelated newest event.
+- Command Deck now retains the exact current project ID, derives its active mission only from that
+  project's genuine ledger events, and labels Resume Mission from that project-owned state.
+- The Resume action independently reloads and revalidates the exact mission/project pair at click
+  time. Live Console opens a temporary mission-scoped view containing only records for that exact
+  pair; direct Live Console navigation continues to expose the ordinary complete ledger.
+- If the current mission becomes terminal or disappears between rendering and the click, ROMVERSE
+  does not adopt another project's running mission. It follows the existing truthful current-
+  project Genesis fallback without fabricating progress or starting work.
+- Global Mission Pulse warnings and accomplishments remain global and unchanged; only active
+  Resume ownership and its destination are project-scoped.
+
+### Verification without double-counting
+
+- One affected regression run: **40/40 unique tests passed** — the complete Command Deck rendering
+  and Live Console widget suites plus four focused Command Deck continuity journeys.
+- New sanitized synthetic widget/store coverage proves that a newer running event for Project B is
+  excluded while Project A's exact mission opens alone, the selected project/device remain
+  unchanged, both genuine events remain running and byte-for-byte ledger state is unchanged.
+- A second adversarial journey proves that if Project A's event finishes after Command Deck renders
+  but before the click, Project B is not substituted and the existing Genesis fallback opens for
+  Project A with no new ledger event, modal decision or worker.
+- Ruff static check: **5/5 changed implementation/test files passed**. Ruff format check passed for
+  the four files without inherited drift; `device_center.py` retains unrelated pre-existing
+  formatter drift and was not mechanically reformatted.
+- `git diff --check`: passed. No broad regression, package build, screenshot loop or physical-device
+  test was run.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** exact current-project mission selection, click-time revalidation and temporary
+  exact-mission Live Console view.
+- **Simulated/Tested:** 40 sanitized synthetic Qt widget/store tests.
+- **Hardware Verified:** none for this checkpoint.
+- **Released:** no.
+- Guided friction: Resume Mission now opens the one relevant live record directly. A stale rendered
+  action returns calmly to the existing Genesis journey instead of showing an unrelated stream.
+- Ledger context is read-only navigation evidence. It creates no event or progress, changes no
+  ownership, starts no worker and grants no build, consent, Guardian or execution authority.
+- Exact-device evidence, Guardian-only authority, UNKNOWN-on-uncertainty, no blind retry,
+  same-incident Recovery, independent verification and permanent no-relock remain unchanged.
+- Fedora/Linux: actual offscreen Qt widget/store journeys verified. Windows: not run or claimed;
+  Windows Build Control work was untouched.
+- Feature freeze: compliant correction to an existing Stage 1 route. v0.2 Golden Foundation remains
+  **CLOSED** pending Product Assurance and release blockers.
+- Protected Companion work, Windows work, Knowledge work, UI Design Lab, website and unrelated
+  files were not modified, staged, discarded or committed.
+- Physical phone access, ADB/Fastboot invocation, APK action, firmware operation, build/flash/boot,
+  partition/slot/wipe/unlock/lock/relock, installation, signing, publication and release: **none**.
+- External action after verification: one normal push of the scoped commits to the existing Linux
+  branch only; no force-push.
+
+### Next proposed Build task
+
+Stop for Product Assurance review. If approved, inspect only the next adjacent existing Command
+Deck continuity route with one reproducible defect; do not broaden Stage 1.
+
+### Product Assurance Review Requested
+
+- Confirm project-owned active selection plus click-time exact mission/project revalidation is the
+  minimum correct boundary for Resume Mission.
+- Confirm the temporary exact-mission view and stale-action Genesis fallback preserve the intended
+  zero-friction Guided behavior without hiding the global ledger from direct navigation.
+
 ## Linux product checkpoint — exact-device Command Deck Recovery handoff
 
 ### Authoritative checkpoint

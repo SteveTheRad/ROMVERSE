@@ -3027,6 +3027,7 @@ def test_command_deck_repair_uses_exact_current_diagnostic_plan(tmp_path: Path) 
 
 def test_command_deck_no_phone_diagnose_opens_truthful_owner_without_scan(
     tmp_path: Path,
+    monkeypatch,
 ) -> None:
     app = QApplication.instance() or QApplication([])
     logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
@@ -3037,6 +3038,21 @@ def test_command_deck_no_phone_diagnose_opens_truthful_owner_without_scan(
         app_icon_path=logo,
         app_settings=AppSettings(online_intelligence_enabled=False),
     )
+    workers = []
+
+    class EmptyDeviceEngine:
+        scan_calls = 0
+
+        def scan(self):
+            self.scan_calls += 1
+            return []
+
+        def scan_reconnect_safe(self):
+            return self.scan()
+
+    engine = EmptyDeviceEngine()
+    window.engine = engine
+    monkeypatch.setattr("romverse.ui.main_window.start_background", workers.append)
     try:
         diagnose = window.device_center.primary_action_buttons["Diagnose Problem"]
         assert diagnose.isEnabled()
@@ -3062,6 +3078,33 @@ def test_command_deck_no_phone_diagnose_opens_truthful_owner_without_scan(
         assert owner.current_device is None
         assert owner.current_report is None
         assert owner.scan_progress.isHidden()
+
+        owner.refresh.click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is owner
+        assert window.scanning is True
+        assert not owner.refresh.isEnabled()
+        assert owner.refresh.text() == "Reading health data…"
+        assert not owner.scan_status_row.isHidden()
+        assert len(workers) == 1
+
+        workers.pop().run()
+        app.processEvents()
+
+        assert engine.scan_calls == 1
+        assert window.stack.currentWidget() is owner
+        assert window.scanning is False
+        assert window.active_worker is None
+        assert owner.refresh.isEnabled()
+        assert owner.refresh.text() == "Scan device health"
+        assert owner.scan_status_row.isHidden()
+        assert owner.device_name.text() == "No device available"
+        assert owner.summary.text() == (
+            "Connect a phone with USB debugging enabled, then choose Scan device health."
+        )
+        assert owner.current_device is None
+        assert owner.current_report is None
     finally:
         window.companion_center.transport.close()
         window.close()

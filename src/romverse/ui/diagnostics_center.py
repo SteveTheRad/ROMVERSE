@@ -616,7 +616,9 @@ class DiagnosticsCenter(QWidget):
             self.offline_report = None
             self.save_button.setEnabled(False)
             self.device_name.setText("No device available")
-            self.summary.setText("Connect a phone with USB debugging enabled and refresh evidence.")
+            self.summary.setText(
+                "Connect a phone with USB debugging enabled, then choose Scan device health."
+            )
             self.score.setText("—")
             self._set_resource_graph(self.battery_graph, None)
             self._set_resource_graph(self.storage_graph, None)
@@ -648,7 +650,7 @@ class DiagnosticsCenter(QWidget):
         if report is None or device is None:
             self._show_dashboard_handoff(
                 f"{title_prefix} needs fresh Device Engine evidence",
-                "Connect and authorize one phone, then choose Refresh health data. ROMVERSE "
+                "Connect and authorize one phone, then choose Scan device health. ROMVERSE "
                 "will not infer a health score from stale or absent telemetry. NO SCAN, "
                 "OPTIMIZATION, CLEANUP, OR PHONE ACTION STARTED.",
                 "EVIDENCE NEEDED",

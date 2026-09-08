@@ -729,6 +729,8 @@ class RomStudio(QWidget):
         self._automatic_simulation_project_id = ""
         self._automatic_simulation_verification_plan: BuildPlan | None = None
         self._automatic_simulation_verification_saved = False
+        self._intentional_forge_plan: BuildPlan | None = None
+        self._automatic_forge_verification: tuple[BuildPlan, ForgeBundleReceipt] | None = None
         self._last_validated_completion: tuple[str, str, int] | None = None
         self._last_recovery_report: WorkspaceRecoveryReport | None = None
         self._latest_guardian_execution_plan: GuardianExecutionPlan | None = None
@@ -1030,7 +1032,7 @@ class RomStudio(QWidget):
             "Create a deterministic, content-addressed ZIP from the verified working tree. If Genesis selected and completed Ascension, its sealed rooted partition and provenance are included; otherwise the bundle remains unrooted. This intermediate is unsigned, non-bootable, and never flashable."
         )
         self.forge_button.setEnabled(False)
-        self.forge_button.clicked.connect(lambda: self._start_worker("forge-bundle"))
+        self.forge_button.clicked.connect(self._begin_intentional_forge_bundle)
         self.verify_forge_button = QPushButton("Verify Forge Bundle")
         self.verify_forge_button.setToolTip(
             "Re-hash the Forge archive, embedded manifest, and every bundled file without changing the phone or project tree."
@@ -1510,6 +1512,18 @@ class RomStudio(QWidget):
             "VERIFIED",
             ready=True,
         )
+
+    def _begin_intentional_forge_bundle(self) -> None:
+        """Bind one explicit Forge choice to the exact current persisted plan."""
+
+        project = self.current_project
+        if project is None or self.worker is not None:
+            return
+        plan = RomBuildPlanner(self.store).load(project.project_id)
+        if plan is None or not self.forge_button.isEnabled():
+            return
+        self._intentional_forge_plan = plan
+        self._start_worker("forge-bundle")
 
     def _begin_automatic_local_preparation(self, destination: str) -> tuple[bool, str]:
         """Start one admitted exact-project preparation for an existing destination."""
@@ -4925,8 +4939,40 @@ class RomStudio(QWidget):
                     or (not result.valid and result.status == "Working tree matches build plan")
                 ):
                     return "ROM Studio rejected mismatched build-plan verification evidence"
+            elif operation == "verify-forge" and isinstance(result, ArtifactVerification):
+                current = self._automatic_forge_verification
+                receipt = ForgeBundleService(self.store).load_receipt(project_id)
+                plan = RomBuildPlanner(self.store).load(project_id)
+                if (
+                    receipt is None
+                    or plan is None
+                    or (current is not None and current != (plan, receipt))
+                    or receipt.plan_tree_sha256 != plan.tree_sha256
+                    or result.expected_sha256 != receipt.archive_sha256
+                    or (
+                        result.valid
+                        and (
+                            not result.status.startswith("Forge Bundle verified;")
+                            or result.actual_sha256 != receipt.archive_sha256
+                        )
+                    )
+                    or (not result.valid and result.status.startswith("Forge Bundle verified;"))
+                ):
+                    return "ROM Studio rejected mismatched Forge Bundle verification evidence"
             elif isinstance(result, ForgeBundleReceipt):
-                if ForgeBundleService(self.store).load_receipt(project_id) != result:
+                plan = RomBuildPlanner(self.store).load(project_id)
+                if (
+                    ForgeBundleService(self.store).load_receipt(project_id) != result
+                    or plan is None
+                    or (
+                        self._intentional_forge_plan is not None
+                        and plan != self._intentional_forge_plan
+                    )
+                    or result.plan_tree_sha256 != plan.tree_sha256
+                    or result.signed
+                    or result.bootable
+                    or result.flashable
+                ):
                     return "ROM Studio rejected changed Forge Bundle evidence"
             elif isinstance(result, PayloadManifest):
                 if self.payload_service is None or self.payload_service.load(project_id) != result:
@@ -5036,6 +5082,14 @@ class RomStudio(QWidget):
         if (
             operation == "verify-plan"
             and self._automatic_simulation_verification_plan is not None
+            and isinstance(result, ArtifactVerification)
+            and not result.valid
+        ):
+            self._worker_failed(result.status)
+            return
+        if (
+            operation == "verify-forge"
+            and self._automatic_forge_verification is not None
             and isinstance(result, ArtifactVerification)
             and not result.valid
         ):
@@ -5189,6 +5243,10 @@ class RomStudio(QWidget):
         self.refresh(project_id)
         self._last_validated_completion = (operation, project_id, id(result))
         self.operation_completed.emit(operation, result)
+        if self._complete_automatic_forge_verification(operation, project_id, result):
+            return
+        if self._complete_intentional_forge_bundle(operation, project_id, result):
+            return
         if self._complete_automatic_simulation_verification(operation, project_id, result):
             return
         if self._complete_automatic_prebuild_simulation(operation, project_id, result):
@@ -5217,6 +5275,106 @@ class RomStudio(QWidget):
                     result.project_id,
                     result.manifest_digest,
                 )
+
+    def _complete_intentional_forge_bundle(
+        self,
+        operation: str,
+        project_id: str,
+        result: object,
+    ) -> bool:
+        """Continue one explicit Forge choice only after exact persisted receipt acceptance."""
+
+        requested_plan = self._intentional_forge_plan
+        if requested_plan is None:
+            return False
+        self._intentional_forge_plan = None
+        plan = RomBuildPlanner(self.store).load(project_id)
+        receipt = ForgeBundleService(self.store).load_receipt(project_id)
+        if (
+            operation != "forge-bundle"
+            or project_id != requested_plan.project_id
+            or self.current_project is None
+            or self.current_project.project_id != project_id
+            or plan != requested_plan
+            or not isinstance(result, ForgeBundleReceipt)
+            or receipt != result
+            or result.plan_tree_sha256 != requested_plan.tree_sha256
+            or result.signed
+            or result.bootable
+            or result.flashable
+        ):
+            self._show_dashboard_handoff(
+                "Forge Bundle → Creation stopped safely",
+                "The producer result no longer matches the exact requested project, plan, tree, "
+                "or persisted receipt. ROMVERSE preserved current evidence and did not retry, "
+                "verify, build, sign, or change a phone. Review Build & Proof before choosing "
+                "Forge Bundle again.",
+                "ATTENTION",
+                ready=False,
+            )
+            self.forge_button.setFocus(Qt.FocusReason.OtherFocusReason)
+            return True
+        self._automatic_forge_verification = (requested_plan, result)
+        self._show_dashboard_handoff(
+            "Forge Bundle → Verifying artifact",
+            f"ROMVERSE accepted {result.archive_sha256[:16]}… as the exact persisted typed "
+            "receipt for this project and plan. The existing read-only verifier is checking the "
+            "archive, manifest, members, hashes, and non-flashable safety contract once; no "
+            "build, signing, execution, or phone action starts.",
+            "VERIFYING",
+            ready=True,
+        )
+        self._start_worker("verify-forge")
+        return True
+
+    def _complete_automatic_forge_verification(
+        self,
+        operation: str,
+        project_id: str,
+        result: object,
+    ) -> bool:
+        """Present one exact Forge verification without granting later authority."""
+
+        requested = self._automatic_forge_verification
+        if requested is None:
+            return False
+        self._automatic_forge_verification = None
+        requested_plan, requested_receipt = requested
+        plan = RomBuildPlanner(self.store).load(project_id)
+        receipt = ForgeBundleService(self.store).load_receipt(project_id)
+        if (
+            operation != "verify-forge"
+            or project_id != requested_plan.project_id
+            or self.current_project is None
+            or self.current_project.project_id != project_id
+            or plan != requested_plan
+            or receipt != requested_receipt
+            or not isinstance(result, ArtifactVerification)
+            or not result.valid
+        ):
+            self._show_dashboard_handoff(
+                "Forge Bundle → Verification stopped safely",
+                "The verification result no longer matches the exact project, plan, tree, or "
+                "persisted Forge receipt. ROMVERSE preserved the available artifact evidence and "
+                "did not retry, infer success, build, sign, or change a phone. Review Build & "
+                "Proof before choosing another action.",
+                "ATTENTION",
+                ready=False,
+            )
+            self.verify_forge_button.setFocus(Qt.FocusReason.OtherFocusReason)
+            return True
+        self.command_tabs.setCurrentIndex(1)
+        self.build_control_button.setFocus(Qt.FocusReason.OtherFocusReason)
+        self._show_dashboard_handoff(
+            "Forge Bundle → Verified intermediate",
+            f"Exact artifact {receipt.archive_sha256[:16]}…  •  {receipt.file_count:,} file(s)  •  "
+            f"{human_bytes(receipt.content_bytes)}  •  {result.status}. Forge Control is the next "
+            "intentional inspection of later gated stages; nothing starts until you choose it. "
+            "This result grants no build, signing, Guardian, device, flash, or execution authority.",
+            "VERIFIED INTERMEDIATE",
+            ready=True,
+        )
+        return True
 
     def _complete_automatic_simulation_verification(
         self,
@@ -5384,6 +5542,16 @@ class RomStudio(QWidget):
             and project_id == self._automatic_simulation_verification_plan.project_id
             and operation == "verify-plan"
         )
+        intentional_forge_failure = bool(
+            self._intentional_forge_plan is not None
+            and project_id == self._intentional_forge_plan.project_id
+            and operation == "forge-bundle"
+        )
+        automatic_forge_verification_failure = bool(
+            self._automatic_forge_verification is not None
+            and project_id == self._automatic_forge_verification[0].project_id
+            and operation == "verify-forge"
+        )
         if operation == "guardian-review":
             self._latest_guardian_execution_plan = None
             self._latest_guardian_gateway_contract = None
@@ -5460,6 +5628,30 @@ class RomStudio(QWidget):
                 f"The existing verifier stopped: {message}. ROMVERSE preserved the exact plan "
                 "and current tree and did not retry or infer success. Review Build & Proof before "
                 "requesting another Simulation; no build or phone action occurred.",
+                "ATTENTION",
+                ready=False,
+            )
+        if intentional_forge_failure:
+            self._intentional_forge_plan = None
+            self.command_tabs.setCurrentIndex(1)
+            self.forge_button.setFocus(Qt.FocusReason.OtherFocusReason)
+            self._show_dashboard_handoff(
+                "Forge Bundle → Creation stopped safely",
+                f"The existing Forge producer stopped: {message}. ROMVERSE preserved current "
+                "plan/tree evidence and did not retry, infer an artifact, build, sign, or change "
+                "a phone. Review Build & Proof before intentionally choosing Forge Bundle again.",
+                "ATTENTION",
+                ready=False,
+            )
+        if automatic_forge_verification_failure:
+            self._automatic_forge_verification = None
+            self.command_tabs.setCurrentIndex(1)
+            self.verify_forge_button.setFocus(Qt.FocusReason.OtherFocusReason)
+            self._show_dashboard_handoff(
+                "Forge Bundle → Verification needs attention",
+                f"The existing read-only verifier stopped: {message}. ROMVERSE preserved the "
+                "available receipt and artifact evidence and did not retry, infer success, build, "
+                "sign, or change a phone. Review Build & Proof before choosing another action.",
                 "ATTENTION",
                 ready=False,
             )

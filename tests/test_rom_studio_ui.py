@@ -2037,7 +2037,10 @@ def test_recipe_forge_resumes_private_draft_and_downgrades_a_stale_target(tmp_pa
     studio.close()
 
 
-def test_rom_studio_exposes_verified_non_flashable_forge_bundle_workflow(tmp_path):
+def test_rom_studio_exposes_verified_non_flashable_forge_bundle_workflow(
+    tmp_path,
+    monkeypatch,
+):
     app = QApplication.instance() or QApplication([])
     source = tmp_path / "rom.zip"
     with zipfile.ZipFile(source, "w") as archive:
@@ -2052,32 +2055,107 @@ def test_rom_studio_exposes_verified_non_flashable_forge_bundle_workflow(tmp_pat
 
     studio = RomStudio(store, DevicePackRegistry(()))
     studio.refresh(project.project_id)
+    workers = []
+    monkeypatch.setattr("romverse.ui.rom_studio.start_background", workers.append)
     app.processEvents()
 
     assert studio.forge_button.isEnabled()
     assert "non-flashable" in studio.forge_button.toolTip()
     assert not studio.verify_forge_button.isEnabled()
 
+    assert studio.open_dashboard_intent("Pre-Build Simulation")
+    assert len(workers) == 1 and workers[0].operation == "verify-plan"
+    workers.pop(0).run()
+    app.processEvents()
+
+    assert studio.dashboard_handoff_badge.text() == "VERIFIED"
+    assert studio.focusWidget() is studio.forge_button
     studio.forge_button.click()
-    deadline = time.monotonic() + 3
-    while studio.worker is not None and time.monotonic() < deadline:
-        app.processEvents()
-        time.sleep(0.005)
+    assert len(workers) == 1 and workers[0].operation == "forge-bundle"
+    workers.pop(0).run()
+    app.processEvents()
 
     receipt = ForgeBundleService(store).load_receipt(project.project_id)
     assert receipt is not None
-
-    assert studio.verify_forge_button.isEnabled()
+    assert len(workers) == 1 and workers[0].operation == "verify-forge"
+    assert studio.dashboard_handoff_title.text() == "Forge Bundle → Verifying artifact"
+    assert studio.dashboard_handoff_badge.text() == "VERIFYING"
+    assert not studio.verify_forge_button.isEnabled()
     assert receipt.output_path in studio.time_machine_detail.text()
     assert "unsigned, non-bootable, non-flashable" in studio.time_machine_detail.text()
     assert "Root route  •  unrooted" in studio.time_machine_detail.text()
 
-    studio.verify_forge_button.click()
-    deadline = time.monotonic() + 3
-    while studio.worker is not None and time.monotonic() < deadline:
-        app.processEvents()
-        time.sleep(0.005)
-    assert "verified" in studio.operation_status.text().casefold()
+    workers.pop(0).run()
+    app.processEvents()
+
+    assert workers == []
+    assert studio.worker is None
+    assert studio.verify_forge_button.isEnabled()
+    assert studio.dashboard_handoff_title.text() == "Forge Bundle → Verified intermediate"
+    assert studio.dashboard_handoff_badge.text() == "VERIFIED INTERMEDIATE"
+    assert receipt.archive_sha256[:16] in studio.dashboard_handoff_detail.text()
+    assert "unsigned, non-bootable, and non-flashable" in (studio.dashboard_handoff_detail.text())
+    assert "grants no build, signing, Guardian, device, flash, or execution authority" in (
+        studio.dashboard_handoff_detail.text()
+    )
+    assert studio.focusWidget() is studio.build_control_button
+    assert studio.devices == []
+    studio.close()
+
+
+def test_intentional_forge_verification_stops_on_archive_drift_without_retry(
+    tmp_path,
+    monkeypatch,
+):
+    app = QApplication.instance() or QApplication([])
+    source = tmp_path / "rom.zip"
+    with zipfile.ZipFile(source, "w") as archive:
+        archive.writestr("IMAGES/system.img", b"system")
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.create("Forge verification drift")
+    store.import_original(project.project_id, source)
+    inspection = RomInspectionService(store)
+    inspection.inspect_project(project.project_id)
+    inspection.extract_project_tree(project.project_id)
+    RomBuildPlanner(store).plan(project.project_id)
+    studio = RomStudio(store, DevicePackRegistry(()))
+    studio.refresh(project.project_id)
+    workers = []
+    failures = []
+    monkeypatch.setattr("romverse.ui.rom_studio.start_background", workers.append)
+    studio.operation_failed.connect(
+        lambda operation, message: failures.append((operation, message))
+    )
+
+    assert studio.open_dashboard_intent("Pre-Build Simulation")
+    workers.pop(0).run()
+    app.processEvents()
+    assert studio.dashboard_handoff_badge.text() == "VERIFIED"
+
+    studio.forge_button.click()
+    assert len(workers) == 1 and workers[0].operation == "forge-bundle"
+    workers.pop(0).run()
+    app.processEvents()
+    receipt = ForgeBundleService(store).load_receipt(project.project_id)
+    assert receipt is not None
+    assert len(workers) == 1 and workers[0].operation == "verify-forge"
+    output = store.workspace / receipt.output_path
+    output.write_bytes(b"adversarial archive drift")
+    workers.pop(0).run()
+    app.processEvents()
+
+    assert len(failures) == 1
+    assert failures[0][0] == "verify-forge"
+    assert "archive hash mismatch" in failures[0][1]
+    assert workers == []
+    assert studio.worker is None
+    assert ForgeBundleService(store).load_receipt(project.project_id) == receipt
+    assert output.is_file()
+    assert studio.dashboard_handoff_title.text() == "Forge Bundle → Verification needs attention"
+    assert studio.dashboard_handoff_badge.text() == "ATTENTION"
+    assert "did not retry, infer success" in studio.dashboard_handoff_detail.text()
+    assert studio.focusWidget() is studio.verify_forge_button
+    assert studio.devices == []
     studio.close()
 
 

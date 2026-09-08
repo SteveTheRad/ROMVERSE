@@ -1,5 +1,59 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: acb27e4 — direct no-phone connection journey
+
+- Reviewed commit: `acb27e44fedbb4e6953d268f90b61b7ef9582afa`
+- Accepted unchanged source/package: `ca983ecd30724723574d7fdd6ae02ca107e3be3e`
+- Approved base: `ba27ed9`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — CONNECT DEVICE COMPLETES VISIBLY AND RETURNS TO A USABLE WAITING STATE**
+
+### Decision
+
+Product Assurance independently reproduced the unchanged artifact/runtime hashes and classified the
+fresh audit. One direct Command Deck **Connect Device** action visibly enters bounded discovery,
+stays with its owning surface, completes promptly, clears progress and returns to truthful
+no-device guidance with the action enabled. No source change or test replay is required.
+
+### Independent evidence and acceptance
+
+- The unchanged executable remains 6,323,000 bytes, mode `0755`, SHA-256
+  `0a47f9af3dea4c0f64983fdd4afc9d1fa01dfcc96185680e94f098b1cb19dde7`.
+- The fresh 16-entry audit consists only of eight ADB and eight Fastboot read-only host inventory
+  operations. The requested click is exactly sequences 9 and 10, both successful, untimed-out,
+  unbound and serial-selector-free.
+- The runtime record independently matches SHA-256
+  `c9a5cb9322615534d8a5ad7255f55888b66be1b4b82c6ab0116e1910585d64c3`; no packaged process
+  remains. No project, report, activity or live-console record was created.
+- No simulated or physical phone, firmware/project work, APK, build/signing, Guardian/Recovery
+  execution, publication, release, lock or relock occurred.
+
+### Approved next bounded Linux task
+
+Move to the existing shipped **App Launchpad** surface in one fresh no-phone workspace using the
+current package. Verify the route opens cleanly with truthful no-device/no-APK context and a clear
+safe next action. Then select exactly one newly created deterministic tiny plain-text file named
+with an `.apk` suffix through the existing local chooser. ROMVERSE must reject it clearly without
+claiming a valid package, enabling installation, creating install authority or leaving an inert
+dialog/control; after acknowledgement the chooser must remain usable.
+
+This is one new Stage 1 user journey, not APK installation, broad format testing or a screen sweep.
+Use no real APK, simulated/physical phone, download, elevated/system operation or device command
+beyond normal unbound read-only inventory. Reuse the current package unless a genuine routing,
+validation, copy or retry defect appears; if one appears, apply only its minimum correction and
+focused test, then package/relaunch at most once. Commit/push one bounded handoff and stop for
+review. Firmware work, signing, Guardian/Recovery execution, publication, release, lock and relock
+remain unauthorized.
+
+### Gate status
+
+- Direct Command Deck Connect Device completion/recovery: **VERIFIED**
+- App Launchpad invalid local APK rejection/recovery: **NEXT BOUNDED LINUX TASK**
+- Corrected Windows malformed-firmware package replay: **OWNED BY WINDOWS; DO NOT DUPLICATE**
+- Physical hardware, installation, signing, Guardian/Recovery execution, publication and release:
+  **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 9a9bae0 — empty health-scan recovery
 
 - Reviewed commit: `9a9bae0c091e497d7953d7dd24848a652cc3be82`

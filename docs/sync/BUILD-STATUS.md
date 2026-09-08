@@ -1,5 +1,85 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows managed-tool restart and bounded no-phone scan checkpoint
+
+- Product Assurance verdict: `c22726ae1b2ba80f113241314dbc14a72df2dbdc` —
+  `Approve Windows Platform Tools self-repair [skip ci]`, matching checkpoint
+  `c21aba0dee545a35979064559c17474cd7cbb720` exactly.
+- Existing current unsigned executable reused once without rebuild:
+  `C:\Work\ROMVERSE-Native-Start-0e6638b\app\ROMVERSE\ROMVERSE.exe`, **6,866,758 bytes**,
+  SHA-256 `12e582d8b531f4bff84fea9cf33e28b00575ccafd754e52ae175f8daacbde93c`,
+  Authenticode `NotSigned`.
+- Result: **PASS — THE EXACT MANAGED RECEIPT SURVIVED A NORMAL APPLICATION RESTART, THE COMMAND DECK
+  BEGAN READY WITHOUT SETUP OR REACQUISITION, AND ONE EXPLICIT NO-PHONE SCAN SETTLED BACK TO THE
+  TRUTHFUL ACTIONABLE NO-DEVICE STATE**. No Windows restart, receipt-loading, discovery or
+  error-routing defect required a source correction.
+
+### Exact restart and visible scan journey
+
+- The application relaunched exactly once as the standard unelevated user against the same managed
+  workspace `C:\Work\ROMVERSE-Platform-SelfRepair-0dbd29a\workspace` and isolated settings root.
+  The process again began with only Windows system directories in inherited `PATH`; current
+  production startup had to revalidate and activate the workspace-local receipt rather than inherit
+  the former process environment.
+- Windows accessibility observed the initial restarted Command Deck directly at `Connect your
+  Android device`, `No Android device detected`, `NOT CONNECTED`, `No Android transport is visible`,
+  two `Waiting for device` surfaces and an enabled `Scan for device` action. There was no Device
+  Engine error, `Resolve Platform Tools`, setup modal, download status, UAC request or creator
+  intervention.
+- The existing `Scan for device` action was invoked exactly once. The visible state entered
+  `Scanning` and then completed within the four-second observation bound back at the same
+  actionable no-device presentation, with no target identity, compatibility, readiness or
+  execution claim. No further user action or uncertain-operation retry was made.
+- The retained settled native capture is
+  `C:\Work\ROMVERSE-Platform-SelfRepair-0dbd29a\restart-scan-settled.jpg`, SHA-256
+  `b41c6ea9dc913fa52b42ccc2e60c3d17a5fa8fc6df3c31cb8796a3683b8184b3`. ROMVERSE accepted normal
+  window Close and left no process. The fault log now contains exactly two start/clean-close pairs,
+  one for acquisition and one for this approved restart, with no runtime fault.
+
+### No-reinstall identity and bounded audit evidence
+
+- Before and after the restart, the 518-byte `managed-package.romverse` remained byte-identical at
+  SHA-256 `ca716618aac9b8c178985b952334ee64e748b19b90ccdd099aa86a94e955bf95` and retained creation/
+  last-write time `2026-09-08T13:13:46.9344811Z` / `2026-09-08T13:13:46.9354803Z`.
+- ADB remained **8,273,560 bytes**, SHA-256
+  `b4a6b455702684652cccf7b46258b29e653538904359a58fd4931cf3ef286b3f`, last-write time
+  `2026-09-08T13:13:46.8837212Z`. Fastboot remained **2,429,080 bytes**, SHA-256
+  `b2d9cbff4ce9ae7eb448cfc831bafc867935f50f5be38f8f81057fd7eb3b8d86`, last-write time
+  `2026-09-08T13:13:46.8969293Z`. `source.properties` remained 38 bytes, SHA-256
+  `2dccd788c0234d8cf7f7457377e57f57527a86a629c6ed54feb8af0f549dac38`, last-write time
+  `2026-09-08T13:13:46.9096770Z`. These unchanged hashes and timestamps prove zero reacquisition,
+  extraction, replacement or receipt rewrite.
+- The user and machine PATH still contain no disposable-workspace path. No administrator, global
+  package, driver, registry, firewall, privacy or security-policy change occurred.
+- The restart added **16** chained Guardian records while startup readiness, the explicit scan,
+  retained capture and clean close were observed. All 16 are allowed untargeted read-only host
+  inventory probes: eight `adb.exe devices -l` and eight `fastboot.exe devices -l`, with zero
+  device identifiers and zero mutating operations. Fifteen returned code 0 without timeout.
+  During normal shutdown, the final automatically scheduled Fastboot host probe reached its existing
+  four-second bound and recorded return code 124 / `timed_out: true`; ROMVERSE still closed cleanly
+  with no visible Device Engine error. This bounded teardown result is reported as uncertainty,
+  grants no identity or authority, and was not retried.
+
+### Verification, scope and next gate
+
+- Direct genuine-Windows acceptance was the approved check. No regression ran because the existing
+  current app completed the restart and explicit scan journey without a product defect; no broad
+  suite, unchanged-test loop, source change, build, package or acquisition occurred.
+- No phone or emulator was requested, connected, discovered, operated or targeted. No selected/
+  targeted or mutating ADB/Fastboot command, Recovery, flash, wipe, unlock, root, relock, APK
+  installation, production adapter/trust/signing, publication, release, force-push or destructive
+  action occurred. Guardian-only authority, exact-device evidence, consent separation,
+  UNKNOWN-on-uncertainty, no blind retry, independent verification, feature freeze and permanent
+  no-relock remain intact.
+- The protected Companion files have no staged or working-tree diff. The pre-existing untracked
+  `0001-Preserve-local-build-completion-across-restart.patch` remains untracked and byte-identical at
+  SHA-256 `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- Precise proposed next task: independent Product Assurance review of this documentation-only
+  Windows restart/no-phone-scan checkpoint, including the explicitly recorded bounded shutdown
+  probe timeout. Do not repeat the scan, reacquire tools, change source, rebuild or resume the
+  externally blocked GitHub candidate job unless a matching repository verdict authorizes a new
+  bounded task.
+
 ## Native Windows managed Platform Tools self-repair checkpoint
 
 - Product Assurance verdict: `0dbd29a76155dce7f823d1d16fa04b71dd6adae8` —

@@ -1,5 +1,82 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — durable Mission Pulse warning visibility
+
+### Authoritative checkpoint
+
+- Product Assurance approval/base: `fbf1f4d` — approved exact Command Deck mission resume and
+  authorized the adjacent Mission Pulse/direct Live Operations continuity inspection.
+- Tested implementation: `a19d2db60863239b6bb2d8e7d8d8ae77e717a2f5` — `Keep Mission Pulse
+  warnings visible`.
+- Final handoff: the follow-up commit containing this document on
+  `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation, existing Command Deck Mission Pulse continuity.
+
+### Reproduced defect and exact correction
+
+- Mission Pulse previously displayed an urgent warning only when the newest ledger record itself
+  was `FAILED`, `BLOCKED` or `ATTENTION`. A newer ordinary informational note therefore replaced
+  the warnings panel with `No unresolved warning` even though the genuine warning remained in the
+  verified ledger.
+- Mission Pulse now selects the newest genuine warning record from its existing bounded ledger
+  view independently of newer information/success records. It continues to show only one warning,
+  preserving the existing compact presentation and event ordering.
+- The adjacent direct `Open Live Operations` route was inspected and is correct: after leaving an
+  exact project/mission Resume view, deliberate Mission Pulse navigation restores the complete
+  global ledger, including unrelated genuine records. It was not rewritten or project-scoped.
+
+### Verification without double-counting
+
+- One bounded affected run: **30/30 unique tests passed** — the complete Command Deck rendering
+  widget suite plus four focused Command Deck navigation/mission journeys.
+- New synthetic ledger/widget coverage proves an older verified Recovery attention remains visible
+  after a newer Device Engine information record and the false `No unresolved warning` copy is not
+  displayed.
+- New real MainWindow coverage proves a scoped current-project Resume view contains only its exact
+  mission, then Mission Pulse direct navigation restores both current and unrelated genuine global
+  records. The ledger is unchanged and no ROM Studio, Recovery host or online worker starts.
+- Ruff static check: **3/3 changed implementation/test files passed**. Ruff format check passed for
+  both changed test files; `device_center.py` retains unrelated pre-existing formatter drift and was
+  not mechanically reformatted.
+- `git diff --check`: passed. No broad regression, package build, screenshot loop or physical-device
+  test was run.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** latest genuine warning selection for the existing Mission Pulse warning lane.
+- **Simulated/Tested:** 30 sanitized synthetic Qt widget/store journeys.
+- **Hardware Verified:** none for this checkpoint.
+- **Released:** no.
+- Guided friction: newer routine information can no longer make an existing genuine warning appear
+  resolved or absent. The compact pulse still gives one clear next action.
+- Mission Pulse and Live Console remain read-only views of producer-recorded evidence. Navigation
+  creates no event, progress or result, changes no ownership, starts no worker and grants no build,
+  consent, Guardian or execution authority.
+- Exact-device evidence, Guardian-only authority, UNKNOWN-on-uncertainty, no blind retry,
+  same-incident Recovery, independent verification and permanent no-relock remain unchanged.
+- Fedora/Linux: actual offscreen Qt widget/store journeys verified. Windows: not run or claimed;
+  Windows Device Engine/Build Control work was untouched.
+- Feature freeze: compliant correction to an existing Stage 1 status surface. v0.2 Golden
+  Foundation remains **CLOSED** pending Product Assurance and release blockers.
+- Protected Companion work, Windows work, Knowledge work, UI Design Lab, website and unrelated
+  files were not modified, staged, discarded or committed.
+- Physical phone access, ADB/Fastboot invocation, APK action, firmware operation, build/flash/boot,
+  partition/slot/wipe/unlock/lock/relock, installation, signing, publication and release: **none**.
+- External action after verification: one normal push of the scoped commits to the existing Linux
+  branch only; no force-push.
+
+### Next proposed Build task
+
+Stop for Product Assurance review. If approved, inspect only the next adjacent shipped Command Deck
+action with a reproducible continuity/dead-end defect; do not broaden Stage 1.
+
+### Product Assurance Review Requested
+
+- Confirm retaining the newest genuine warning independently of later informational events is the
+  minimum correct Mission Pulse behavior.
+- Confirm the direct Live Operations path remains the intentionally complete global ledger after
+  leaving an exact Resume context.
+
 ## Linux product checkpoint — exact current Command Deck mission ledger
 
 ### Authoritative checkpoint

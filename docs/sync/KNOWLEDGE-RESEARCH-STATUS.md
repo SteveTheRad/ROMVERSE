@@ -1,5 +1,121 @@
 # ROMVERSE Knowledge Research Status
 
+## Google Play query-only acquisition checkpoint — 8 September 2026
+
+### Checkpoint identity
+
+- Product Assurance authorization/base: `f2975629d9decddcd3e0103ca7bb88ab14c41020`
+  (`Approve online evidence foundation`).
+- Branch: `adaptive-online-device-dna`.
+- Implementation commit: `68a2bf7573b99146ef36b8e127943820d99dd520`
+  (`Add fixed Google Play evidence acquisition`).
+- Live evidence/status commit: the follow-up commit containing this update.
+
+### Implemented source path
+
+- One fixed HTTPS source only:
+  `https://storage.googleapis.com/play_public/supported_devices.csv`.
+- Exact request contract: no alternate host/path, credentials, authentication, cookies, redirects,
+  private query fields, or response compression; stable `ROMVERSE/0.2
+  query-only-device-evidence` user agent.
+- Explicit connect/read/overall timeouts of 8/12/30 seconds, a 16 MiB body limit, 100,000-row
+  limit, 160-character field limit, two-second minimum spacing, and conditional validators only
+  after a prior content digest has been validated.
+- Exact UTF-16 four-column parser with strict row shape, formula/control-character and empty-row
+  rejection. Duplicate rows applicable to the exact lookup fail closed; irrelevant duplicates are
+  discarded and can never become claims. Multiple applicable retail identities remain ambiguous.
+- Explicit privacy-checked manufacturer/model/device-codename lookup only. Exactly one match forms
+  four bounded identity claims; the catalog is never bulk-promoted or written to disk.
+- Durable strict receipts cover success, no exact match, HTTP failure, validation failure, and
+  cache-not-modified. Device DNA, Compatibility Matrix, and Knowledge Archives reuse the existing
+  read-only projections.
+
+### Exact retained live evidence
+
+- Lookup: public non-personal identity `Google / Pixel 6 / oriole`.
+- Retrieval time: `2026-09-08T02:14:51.576529+00:00`.
+- HTTP result: `200`; validated response bytes: `4,753,074`; validated unique rows: `53,689`.
+- Cache metadata: ETag `"8ddd0f19c3de99f3c413484a1b578878"`; Last-Modified
+  `Mon, 07 Sep 2026 12:08:02 GMT`.
+- Source-content SHA-256:
+  `f3812a8275cd7357473cc920f74867f957842d319e07068e09e7a0fd897abe56`.
+- Parser: `romverse.google-play-supported-devices` version `1`.
+- Result: `success`; four officially documented retail-identity claims retained; compatibility
+  remains `UNCONFIRMED`.
+- Evidence archive digest:
+  `9f5d9e29ed16cd4362ee7e382b469462711afd90f8ea0eafff4fd4913ce54c61`.
+- Acquisition receipt digest:
+  `c9033d258c0629bc6835669be10d4ff74989961265f6083c36474e7d1fb45c49`.
+- Retained files:
+  `docs/sync/evidence/google-play-live/knowledge/online-device-evidence/claims.romverse` and one
+  lookup-digest-named receipt below its `acquisitions` directory.
+- Raw catalog response retained: **NO**. No `.csv` file exists in the retained evidence tree.
+
+The live exercise exposed and corrected three bounded validation-path issues before the successful
+receipt: blank optional official cells were initially treated as unsafe; a failed validation could
+incorrectly send conditional cache headers without a validated content digest; and the live catalog
+contains exact duplicate rows outside this lookup. The final parser permits blank non-matching
+descriptive cells, conditions only from validated content, rejects duplicate applicable rows, and
+discards irrelevant duplicates without promotion. Each correction has a focused deterministic
+regression. No safety, scope, or source restriction was weakened.
+
+### Focused verification
+
+- `100 passed` across `tests/test_google_play_evidence_acquisition.py`,
+  `tests/test_online_device_evidence.py`, `tests/test_local_store.py`, and
+  `tests/test_online_remediation.py`.
+- Acquisition cases cover exact claim-only success, zero raw retention, fixed request headers and
+  timeouts, alternate URL/auth/cookie rejection, three consumer projections, no match, ambiguity,
+  HTTP failure, timeout, redirects, compression, truncation, unexpected content, formula/control
+  characters, malformed/empty/duplicate/oversized rows and bodies, privacy-unsafe lookup input,
+  conditional matched/no-match `304`, request spacing, tampering, and symlink containment.
+- Focused Ruff check and format check passed; Git whitespace check passed.
+- The full suite was intentionally not run. Fixture tests do not depend on the network.
+
+### Privacy, Guardian, and limitations
+
+- Only normalized public manufacturer/model/codename and the matching identity values are retained.
+  The raw response and non-matching catalog entries are absent. No device/account identifiers,
+  private paths, secrets, credentials, cookies, or personal information were queried or stored.
+- Claims and receipt state execution authority `none`, phone action `false`, Guardian approval
+  `false`, relock `false`, and raw-response retention `false`.
+- Retail identity does not prove firmware, partitions, slots, AVB, compatibility, Device Pack,
+  build/flash contract, recovery route, or device support. It cannot become a command.
+- This is an explicit synchronous query path, not UI/background scheduling or a production service.
+  DNS/TLS policy hardening, cross-process rate coordination, general conditional-cache retention,
+  OEM/community sources, UI wiring, and live-device/firmware comparison remain deferred.
+- No phone, emulator, firmware mutation, APK, production trust/signing, publication, Guardian
+  workflow, execution, or relock was used.
+
+### Ordered post-approval Knowledge pipeline
+
+After Product Assurance accepts this checkpoint, advance only one reviewed source family at a time:
+
+1. Official OEM support, firmware-index/manifest, and service documentation.
+2. Official Android/AOSP technical documentation, compatibility requirements, and public issue
+   evidence.
+3. Maintained public device/kernel/recovery/tool repositories and maintainer documentation.
+4. Reputable technical guides and diagnostic/error-code references.
+5. Technical community reports only as low-confidence `source-reported` evidence pending genuine
+   independent corroboration.
+
+Before those families need richer records, extend the claim model deliberately for symptoms,
+diagnostic observations, prerequisites, affected builds, fix-procedure descriptions, expected
+results, rollback/recovery route, and outcome evidence. Source prose must never be parsed directly
+into commands. Preserve exact provenance, revision/date, device/firmware applicability, conflicts,
+and freshness. A guide may be officially documented or source-reported. A fix becomes independently
+corroborated only across genuinely independent publishers, and becomes live-confirmed/ROMVERSE-
+verified only from exact device/firmware outcome evidence—not repetition, votes, or a source's own
+claim.
+
+Private/authenticated sources, anti-bot bypass, arbitrary crawling, personal data, copyrighted bulk
+copying, consequential execution, and bootloader relocking remain prohibited throughout.
+
+### Next action
+
+Stop for independent Product Assurance. Do not begin the first OEM source until this exact code,
+fixture suite, and retained sanitized live evidence are accepted.
+
 ## Checkpoint identity
 
 - Authorized base: `a6d9bca06d35c4f0ca8b84ad6ebd990be7e5700a`

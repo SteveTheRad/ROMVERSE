@@ -1,0 +1,183 @@
+{
+  "archive_digest": "9f5d9e29ed16cd4362ee7e382b469462711afd90f8ea0eafff4fd4913ce54c61",
+  "bootloader_relock_allowed": false,
+  "claims": [
+    {
+      "claim_id": "4e57c1bebd0a7c8fadb15d91f192205cfb1a3d12fd1028759213e320346661d9",
+      "claim_key": "device.identity.marketing-name",
+      "confidence": 90,
+      "conflicting_claim_ids": [],
+      "corroborating_claim_ids": [],
+      "execution_authority": "none",
+      "guardian_approval": false,
+      "phone_action_allowed": false,
+      "scope": {
+        "android_versions": [],
+        "brands": [],
+        "build_ids": [],
+        "codenames": [
+          "oriole"
+        ],
+        "firmware_versions": [],
+        "manufacturers": [
+          "google"
+        ],
+        "models": [
+          "pixel 6"
+        ],
+        "regions": [],
+        "scope_note": "Exact Google Play manufacturer/model/device-codename lookup."
+      },
+      "source": {
+        "category": "official-android",
+        "content_digest": "f3812a8275cd7357473cc920f74867f957842d319e07068e09e7a0fd897abe56",
+        "freshness": "current",
+        "parser_id": "romverse.google-play-supported-devices",
+        "parser_version": "1",
+        "published_at": "2026-09-07T12:08:02+00:00",
+        "publisher": "Google Play",
+        "retrieved_at": "2026-09-08T02:14:51.576529+00:00",
+        "source_id": "android.google-play-device-catalog",
+        "url": "https://storage.googleapis.com/play_public/supported_devices.csv"
+      },
+      "state": "officially-documented",
+      "status_reason": "Exact public retail identity only; no firmware, compatibility, or execution authority.",
+      "structured_value": "Pixel 6",
+      "supporting_excerpt": ""
+    },
+    {
+      "claim_id": "6277869cfeeb3ef30255e0df62233058eec3b91b290b508df9cad1f2371801fb",
+      "claim_key": "device.identity.manufacturer",
+      "confidence": 90,
+      "conflicting_claim_ids": [],
+      "corroborating_claim_ids": [],
+      "execution_authority": "none",
+      "guardian_approval": false,
+      "phone_action_allowed": false,
+      "scope": {
+        "android_versions": [],
+        "brands": [],
+        "build_ids": [],
+        "codenames": [
+          "oriole"
+        ],
+        "firmware_versions": [],
+        "manufacturers": [
+          "google"
+        ],
+        "models": [
+          "pixel 6"
+        ],
+        "regions": [],
+        "scope_note": "Exact Google Play manufacturer/model/device-codename lookup."
+      },
+      "source": {
+        "category": "official-android",
+        "content_digest": "f3812a8275cd7357473cc920f74867f957842d319e07068e09e7a0fd897abe56",
+        "freshness": "current",
+        "parser_id": "romverse.google-play-supported-devices",
+        "parser_version": "1",
+        "published_at": "2026-09-07T12:08:02+00:00",
+        "publisher": "Google Play",
+        "retrieved_at": "2026-09-08T02:14:51.576529+00:00",
+        "source_id": "android.google-play-device-catalog",
+        "url": "https://storage.googleapis.com/play_public/supported_devices.csv"
+      },
+      "state": "officially-documented",
+      "status_reason": "Exact public retail identity only; no firmware, compatibility, or execution authority.",
+      "structured_value": "Google",
+      "supporting_excerpt": ""
+    },
+    {
+      "claim_id": "83b024a6899df3675ecb4367ef0c04aba0fddfa881caeb61915082fa750fdb8d",
+      "claim_key": "device.identity.codename",
+      "confidence": 90,
+      "conflicting_claim_ids": [],
+      "corroborating_claim_ids": [],
+      "execution_authority": "none",
+      "guardian_approval": false,
+      "phone_action_allowed": false,
+      "scope": {
+        "android_versions": [],
+        "brands": [],
+        "build_ids": [],
+        "codenames": [
+          "oriole"
+        ],
+        "firmware_versions": [],
+        "manufacturers": [
+          "google"
+        ],
+        "models": [
+          "pixel 6"
+        ],
+        "regions": [],
+        "scope_note": "Exact Google Play manufacturer/model/device-codename lookup."
+      },
+      "source": {
+        "category": "official-android",
+        "content_digest": "f3812a8275cd7357473cc920f74867f957842d319e07068e09e7a0fd897abe56",
+        "freshness": "current",
+        "parser_id": "romverse.google-play-supported-devices",
+        "parser_version": "1",
+        "published_at": "2026-09-07T12:08:02+00:00",
+        "publisher": "Google Play",
+        "retrieved_at": "2026-09-08T02:14:51.576529+00:00",
+        "source_id": "android.google-play-device-catalog",
+        "url": "https://storage.googleapis.com/play_public/supported_devices.csv"
+      },
+      "state": "officially-documented",
+      "status_reason": "Exact public retail identity only; no firmware, compatibility, or execution authority.",
+      "structured_value": "oriole",
+      "supporting_excerpt": ""
+    },
+    {
+      "claim_id": "db0e080eba7162ffebe20b06a1616454b6211dd4a23611574a6746b318020986",
+      "claim_key": "device.identity.model",
+      "confidence": 90,
+      "conflicting_claim_ids": [],
+      "corroborating_claim_ids": [],
+      "execution_authority": "none",
+      "guardian_approval": false,
+      "phone_action_allowed": false,
+      "scope": {
+        "android_versions": [],
+        "brands": [],
+        "build_ids": [],
+        "codenames": [
+          "oriole"
+        ],
+        "firmware_versions": [],
+        "manufacturers": [
+          "google"
+        ],
+        "models": [
+          "pixel 6"
+        ],
+        "regions": [],
+        "scope_note": "Exact Google Play manufacturer/model/device-codename lookup."
+      },
+      "source": {
+        "category": "official-android",
+        "content_digest": "f3812a8275cd7357473cc920f74867f957842d319e07068e09e7a0fd897abe56",
+        "freshness": "current",
+        "parser_id": "romverse.google-play-supported-devices",
+        "parser_version": "1",
+        "published_at": "2026-09-07T12:08:02+00:00",
+        "publisher": "Google Play",
+        "retrieved_at": "2026-09-08T02:14:51.576529+00:00",
+        "source_id": "android.google-play-device-catalog",
+        "url": "https://storage.googleapis.com/play_public/supported_devices.csv"
+      },
+      "state": "officially-documented",
+      "status_reason": "Exact public retail identity only; no firmware, compatibility, or execution authority.",
+      "structured_value": "Pixel 6",
+      "supporting_excerpt": ""
+    }
+  ],
+  "execution_authority": "none",
+  "format": "romverse.online-device-evidence",
+  "phone_action_allowed": false,
+  "schema_version": 1,
+  "updated_at": "2026-09-08T02:14:51.576529+00:00"
+}

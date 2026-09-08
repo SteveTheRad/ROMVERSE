@@ -1,0 +1,44 @@
+{
+  "bootloader_relock_allowed": false,
+  "compatibility_hint": "UNCONFIRMED",
+  "content_bytes": 4753074,
+  "content_digest": "f3812a8275cd7357473cc920f74867f957842d319e07068e09e7a0fd897abe56",
+  "etag": "\"8ddd0f19c3de99f3c413484a1b578878\"",
+  "evidence_archive_digest": "9f5d9e29ed16cd4362ee7e382b469462711afd90f8ea0eafff4fd4913ce54c61",
+  "execution_authority": "none",
+  "format": "romverse.google-play-evidence-acquisition",
+  "guardian_approval": false,
+  "http_status": 200,
+  "last_modified": "Mon, 07 Sep 2026 12:08:02 GMT",
+  "lookup": {
+    "codename": "oriole",
+    "lookup_digest": "bc3f7fef43356d5f17f03a442394a7fda35ba53a19337db1c382a2771be621b7",
+    "manufacturer": "google",
+    "model": "pixel 6"
+  },
+  "matched_claim_ids": [
+    "4e57c1bebd0a7c8fadb15d91f192205cfb1a3d12fd1028759213e320346661d9",
+    "6277869cfeeb3ef30255e0df62233058eec3b91b290b508df9cad1f2371801fb",
+    "83b024a6899df3675ecb4367ef0c04aba0fddfa881caeb61915082fa750fdb8d",
+    "db0e080eba7162ffebe20b06a1616454b6211dd4a23611574a6746b318020986"
+  ],
+  "outcome": "success",
+  "parsed_row_count": 53689,
+  "parser_id": "romverse.google-play-supported-devices",
+  "parser_version": "1",
+  "phone_action_allowed": false,
+  "previous_receipt_digest": "",
+  "raw_response_retained": false,
+  "reason": "One exact official retail identity matched; compatibility remains unconfirmed.",
+  "receipt_digest": "c9033d258c0629bc6835669be10d4ff74989961265f6083c36474e7d1fb45c49",
+  "receipt_id": "43e137ada7e1fdb623f2b12c120e79714a5ceaf05e6d8a44c4764f40299b5b8f",
+  "retained_claim_ids": [
+    "4e57c1bebd0a7c8fadb15d91f192205cfb1a3d12fd1028759213e320346661d9",
+    "6277869cfeeb3ef30255e0df62233058eec3b91b290b508df9cad1f2371801fb",
+    "83b024a6899df3675ecb4367ef0c04aba0fddfa881caeb61915082fa750fdb8d",
+    "db0e080eba7162ffebe20b06a1616454b6211dd4a23611574a6746b318020986"
+  ],
+  "retrieved_at": "2026-09-08T02:14:51.576529+00:00",
+  "schema_version": 1,
+  "source_url": "https://storage.googleapis.com/play_public/supported_devices.csv"
+}

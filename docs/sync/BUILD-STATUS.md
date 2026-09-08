@@ -1,5 +1,23 @@
 # ROMVERSE Build Status
 
+## Fixed Google Play evidence acquisition — 8 September 2026
+
+- Authorization/base: Product Assurance verdict
+  `f2975629d9decddcd3e0103ca7bb88ab14c41020` on `adaptive-online-device-dna`.
+- Implementation: `68a2bf7573b99146ef36b8e127943820d99dd520`.
+- Result: one exact-URL, query-only Google Play supported-device catalog acquisition path with
+  bounded HTTPS, strict CSV parsing, conditional cache metadata, durable zero-authority receipts,
+  four exact-match identity claims, and existing read-only projections.
+- Live result: exact public `Google / Pixel 6 / oriole` lookup succeeded at
+  `2026-09-08T02:14:51.576529+00:00`; HTTP 200; 4,753,074 bytes; 53,689 unique validated rows; four
+  claims; source SHA-256 `f3812a8275cd7357473cc920f74867f957842d319e07068e09e7a0fd897abe56`;
+  no raw response retained.
+- Verification: 100 focused tests passed; focused Ruff check/format and Git whitespace checks
+  passed. The full suite was not run.
+- Authority: compatibility remains `UNCONFIRMED`; command, phone, Guardian, execution and relock
+  authority remain absent.
+- Next: stop for Product Assurance before the queued one-family-at-a-time source expansion.
+
 ## Adaptive Online Device DNA checkpoint — 8 September 2026
 
 - Branch/base: `adaptive-online-device-dna` from

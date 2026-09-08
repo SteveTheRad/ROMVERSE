@@ -1,5 +1,106 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows synthetic valid-container containment — Product Assurance review requested
+
+- Product Assurance verdict: `3fe324320348d59c597e930998e6815604d3a0db` — `Approve corrected
+  Windows firmware rejection`, matching checkpoint
+  `27ff6652cfeaa2be93a2ea7b75f2267e5b0098e1` exactly.
+- Accepted correction/package source: `cd3b84a2ef8a3e0044bbe468a0106604091e61d8` — `Reject malformed
+  Windows firmware ZIP intake`; approved base `72278230f600e90b92135fb85126a60643c06fa6`.
+- Branch: `windows-launcher-authorized-work`.
+- Status: **PASS — ONE STRUCTURALLY VALID SYNTHETIC ZIP WAS PROTECTED AND BOUNDEDLY INSPECTED,
+  WHILE ANDROID IDENTITY, COMPATIBILITY, SOURCE ADAPTER AND BUILD/FLASH CAPABILITY REMAINED
+  UNCONFIRMED, EXECUTION AUTHORITY REMAINED ABSENT, AND THE APP CLOSED CLEANLY**.
+
+### Reused artifact and exact synthetic fixture
+
+- Reused the approved unsigned one-folder artifact without rebuilding or repackaging:
+  `build/windows-invalid-firmware-72278230/ROMVERSE/ROMVERSE.exe`, 6,319,194 bytes, SHA-256
+  `d300d1efd748bda35ea509a54db3ea57859065c6048b84c855830430d3a01529`, Authenticode
+  `NotSigned`. The package remains 305 files totalling 164,643,529 bytes.
+- Created exactly one deterministic inert fixture outside the repository at
+  `C:\Work\ROMVERSE-Synthetic-Valid-Zip-3fe32432\synthetic-unfamiliar-firmware.zip`. It is a
+  structurally valid 356-byte ZIP with SHA-256
+  `85e734ea89c706d344987794acf5ebc9fb617e67a1a5a09f8516bf4c755937b0` and exactly one
+  242-byte entry, `ROMVERSE-SYNTHETIC-TEST-EVIDENCE.txt`, timestamped
+  `2026-09-08T00:00:00Z`. The marker's SHA-256 is
+  `f5fc7767e1d6e9636cbdfc43c800515800ca0ea35e98b74b3f840341fc051310`; its text explicitly
+  identifies synthetic evidence, grants no build/signing/flash/Guardian/Recovery/device authority,
+  and prohibits physical-device use.
+
+### Single fresh no-phone Adaptive Discovery journey
+
+- Launched the reused package exactly once in the fresh disposable workspace
+  `C:\Work\ROMVERSE-Windows-Adaptive-Discovery-3fe32432-20260909`, with isolated settings and
+  `--skip-onboarding`. `adb` and `fastboot` were absent from `PATH`; no Device Engine or command
+  audit was created.
+- Created exactly one local project, `Windows Synthetic Discovery 20260909`, project ID
+  `windows-synthetic-discovery-20260909-463d097f`, and selected only the synthetic ZIP through the
+  existing visible protected-firmware picker and acknowledgement.
+- ROMVERSE protected the exact 356-byte archive as read-only at
+  `original_roms/85e734ea89c706d3-synthetic-unfamiliar-firmware.zip`; its size and SHA-256 match the
+  selected source exactly. The 718-byte project record has SHA-256
+  `43d0be47945aa2ec5a27f11ef8a94a809a9ef4cb9f23ea4a1424773990902fd3` and binds that exact
+  name, size, digest and protected path.
+- Bounded inspection completed truthfully as a ZIP with one entry, 242 expanded bytes, no
+  partition or metadata signals, and one informational finding that no unsafe path, link,
+  encryption or extreme compression signal was found. The 769-byte inspection record has SHA-256
+  `cd98bfd4120977d9d9dd59e8e8a9684bc66dd511f51a4f8a4f6e14581763afd1`.
+- Guided stopped at `SCAN / TASK 04 OF 15`, `Prepare an isolated working tree`, with 3 of 15 stages
+  verified and the single safe prerequisite action `Prepare working lab` available but not invoked.
+  The 439-byte Guided record has SHA-256
+  `8d505ca88b0bf7798a280c37297916e093d07c87452ffa48827800c2c493fbdc`, keeps
+  `build_plan_verified=false`, `install_requested=false`, `root_choice=undecided`, and records no
+  error.
+- The visible Studio evidence classified the source as `Unclassified ZIP firmware container` and
+  the upgrade relationship as **UNCONFIRMED**. Device name/model/codename/SoC/Android/build/format,
+  A/B state and Verified Boot remained unconfirmed. The evidence panel stated that no vendor
+  signature, connected-device identity, Android payload/super/partition-image structure or exact
+  source-bound Device Pack contract was available.
+
+### Persisted containment, authority and clean close
+
+- The 11,499-byte Device DNA record has SHA-256
+  `a9cda907fe28d783549a37dc09328ba12ba9f11a02a704c1c43b32f3a56c6046`. Its eight actionable
+  capabilities — device identity, firmware detection, source adapter, tool resolution, partition
+  mapping, ROM build preparation, Guardian flash and root-state identification — are all
+  `UNCONFIRMED`; bootloader relocking is `UNSUPPORTED` and `bootloader_relock_permitted=false`.
+- The 7,225-byte Compatibility Matrix has SHA-256
+  `6e6f9dc82619f2940f1b3a56aea4322b35458669b54da7d53be950641feb7a81`. Its eight corresponding
+  decisions are `Unknown`, all have `proven_compatible=false` and `technically_possible=false`,
+  while bootloader relocking is `Known Incompatible`. The matrix is Guardian-advisory only and
+  cannot grant authority.
+- The automatically persisted 1,552-byte Ascension route record has SHA-256
+  `c1c5ed2c1584a11889d1c3ad759ac86ffee7ba85406c28405c3e395cb8df3b95`. It is blocked with
+  identity and source authority unconfirmed, `ready_for_local_preparation=false`, an empty command
+  manifest, `execution_authority=none`, `phone_changed=false`, no recommended method and relocking
+  prohibited. It does not represent a candidate, build plan or execution grant.
+- Workspace `tools`, `apks`, `builds`, `working_roms`, `backups`, `snapshots`, `temp` and
+  `diagnostics` contain zero files. No Guardian audit, Recovery record, working tree, build output,
+  APK, candidate or command manifest exists.
+- Guided closed normally through `Save & exit`; the application then accepted a normal main-window
+  close request and exited. The runtime record contains one start/clean-close pair, is 77 bytes,
+  and has SHA-256 `9b548079f50e029991471fdbf93e92807fb82adb17319871cb9ab421e7b7f499`.
+  No `ROMVERSE.exe` process remains.
+- No automated regression was rerun: the approved task required one unchanged-artifact valid-
+  container investigation and permits a focused test only if a genuine defect appears. No false
+  claim, inert-state defect or unsafe progression was found, so no source change, test rerun,
+  rebuild or additional journey occurred. This handoff records genuine packaged Windows UI and
+  persisted-state evidence; it is not simulated Linux coverage.
+- Only this Build handoff changed in the repository. The protected Companion files remain untouched.
+  The untracked user patch remains present and byte-identical: 8,272 bytes, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone or emulator was requested, awaited, connected, discovered, operated or targeted. No
+  Platform Tools download or command, real firmware, APK, ROM build/signing, Guardian/Recovery
+  execution, publication, release, lock, relock, force-push or destructive cleanup occurred.
+
+### Proposed next bounded task
+
+Product Assurance should independently review the exact fixture and protected-source hashes,
+bounded inspection, persisted UNCONFIRMED classifications, absent execution authority and build
+state, clean process exit, repository scope and preserved untracked patch. No further Windows action
+is proposed until this checkpoint receives a matching repository verdict.
+
 ## Corrected Windows invalid-firmware package acceptance — Product Assurance review requested
 
 - Product Assurance verdict: `72278230f600e90b92135fb85126a60643c06fa6` — `Approve malformed

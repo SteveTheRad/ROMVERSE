@@ -1,5 +1,64 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: fa97ad9 — AOSP build-reference safe stop
+
+- Handoff/receipt commit: `fa97ad987ce5f27f68705915345b9608740fcbc9`
+- Implementation commit: `61b09118b8a24ca87c4d9754f73f3cb973d1f8c5`
+- Product Assurance authorization/base: `623905ba201bf8263eda33c799c5414ae636b311`
+- Branch: `adaptive-online-device-dna`
+- Review status: **APPROVED — SAFE STOP; PIXEL CONCENTRATION CLOSED**
+
+### Decision
+
+The AOSP adapter preserves the approved exact-source, bounded-field, privacy, conflict and
+zero-authority contracts. Its single live request stopped because the candidate Android-version
+field did not satisfy the reviewed syntax. No claim, raw page, command, download, inferred codename,
+compatibility or execution authority was retained. Product Assurance independently reran the
+complete focused Knowledge set: **181/181 passed**; Ruff and whitespace checks passed.
+
+Do not revise or retry this parser now and do not start another Pixel/Google checkpoint. The two
+safe stops are useful source-shape evidence, but further concentration would not advance a current
+ROMVERSE feature.
+
+### Required feature-to-data gate
+
+Every future retained field must identify both its current ROMVERSE consumer and the concrete
+decision it improves. The allowed current-product coverage is:
+
+- Device DNA: exact public identity, hardware/board components, current firmware/build identity and
+  boot/security capabilities.
+- Compatibility Matrix and Pathfinder: partition/slot/dynamic layout, boot and AVB topology,
+  supported transport/artifact types, prerequisites, incompatibilities and recovery route.
+- Guardian and Recovery: exact hazards, irreversible conditions, recovery availability, required
+  evidence and known failure outcomes.
+- First Light: expected boot, service and hardware-subsystem observations.
+- Nexus and Knowledge Archives: provenance, freshness, conflicts, corroboration and exact observed
+  outcomes for the fields above.
+
+Marketing copy, reviews, popularity, benchmarks, generic specifications without a consumer,
+duplicate facts, bulk page text, personal identifiers and source instructions are outside scope.
+Unknown or conflicting facts remain useful as `UNCONFIRMED`; they grant no action authority.
+
+### Approved next bounded task
+
+Add this allowlist as a strict, tested Knowledge coverage contract, then use the existing verified
+Google Play public-device catalog acquisition once for the exact connected-device identity
+`Xiaomi / 2509FPN0BC / popsicle`. Retain only explicit manufacturer, marketing name, model and
+device codename claims that pass exact matching and name Device DNA/Compatibility Matrix as their
+consumers. If the source uses a different manufacturer value, lacks the row or is ambiguous, record
+one sanitized no-match result and stop; do not loosen matching, retry, choose Pixel, or query an
+adjacent device.
+
+This task may record the Samsung `SM-S928B / e3qxxx` table supplied by Steve only as a field-coverage
+example pending source provenance; it must not promote it into sourced fact or execution evidence.
+Linux owns local firmware-package inspection and Windows owns launcher/process integration, so this
+branch must not duplicate or edit either surface.
+
+No crawling, second online source, bulk catalog retention, binary download, UI/background worker,
+phone access, build/flash/root/debloat action, compatibility promotion, Guardian approval,
+publication, or bootloader relocking. Run focused tests, commit/push the evidence/status, then stop
+for Product Assurance.
+
 ## Reviewed checkpoint: 81bb3bd — Pixel factory-index stop condition
 
 - Handoff/receipt commit: `81bb3bd506d2128d340b8d434e8222bd52ff2ce7`

@@ -1,5 +1,66 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 8886ff2 — valid unfamiliar archive containment
+
+- Reviewed commit: `8886ff2e39438f16b83a837ea6687b2be8a66551`
+- Accepted unchanged package source: `cd3b84a2ef8a3e0044bbe468a0106604091e61d8`
+- Approved base: `3fe324320348d59c597e930998e6815604d3a0db`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — UNFAMILIAR VALID CONTAINER IS INVESTIGATED WITHOUT FALSE AUTHORITY**
+
+### Decision
+
+Product Assurance independently reproduced the executable, fixture, protected-source, project,
+inspection, Device DNA, Compatibility Matrix, Ascension route and runtime hashes, then inspected
+their classifications and empty stores. The structurally valid synthetic ZIP is preserved and
+boundedly inspected as evidence rather than rejected merely for being unfamiliar. Every Android
+identity, source-adapter, build and flash capability remains UNCONFIRMED/Unknown, while execution
+authority is absent. This is the intended Adaptive Discovery foundation behavior.
+
+### Independent evidence and acceptance
+
+- The unchanged unsigned executable independently matches SHA-256
+  `d300d1efd748bda35ea509a54db3ea57859065c6048b84c855830430d3a01529`.
+- The 356-byte fixture and protected original both independently match SHA-256
+  `85e734ea89c706d344987794acf5ebc9fb617e67a1a5a09f8516bf4c755937b0`.
+- Project and inspection records match the declared hashes. Inspection is bounded to one safe
+  242-byte entry with no metadata or partition signal.
+- All eight actionable Device DNA capabilities are `UNCONFIRMED`; the corresponding Matrix
+  decisions are `Unknown`, `proven_compatible=false`, and `technically_possible=false`. The Matrix
+  is Guardian-advisory only.
+- The Ascension route is blocked with `execution_authority=none`, no recommended method, an empty
+  command manifest, `ready_for_local_preparation=false`, `phone_changed=false` and relock false.
+- Tool, APK, build, working-ROM, backup, snapshot, temp and diagnostic stores remain empty. No
+  Guardian audit exists; the runtime hash matches and no ROMVERSE process remains.
+- No phone, real firmware, APK, build/signing, Guardian/Recovery execution, publication, release,
+  lock or relock occurred.
+
+### Approved next bounded Windows task
+
+Resume this exact disposable synthetic project once with the same accepted package and invoke only
+the existing **Prepare working lab** action. ROMVERSE may unpack the single already-inspected safe
+marker into a private isolated working tree, but must preserve the exact protected original,
+enforce bounded/path-safe extraction, retain every Android/build/flash classification as
+UNCONFIRMED, and create no candidate, command manifest, Guardian/Recovery authority or phone action.
+After completion it must present the next safe evidence/prerequisite step rather than an inert or
+falsely successful route.
+
+This is one local isolated-preparation continuation of the same synthetic evidence, not another
+fixture, broad extraction test, ROM build or device simulation. Reuse all existing hashes and
+package; capture only new working-tree manifest/content, Guided stop point and clean close. If one
+genuine unsafe extraction, false claim, routing or retry defect appears, apply only its minimum
+correction and one focused native Windows test; otherwise make no source change. Commit/push one
+bounded handoff and stop for review. Preserve the untracked patch. No phone, download, APK, ROM
+build/signing, Guardian/Recovery execution, publication, release, lock or relock is authorized.
+
+### Gate status
+
+- Valid unfamiliar archive investigation/UNCONFIRMED containment: **VERIFIED**
+- Synthetic isolated working-lab preparation: **NEXT BOUNDED WINDOWS TASK**
+- Linux Command Console journey: **OWNED BY LINUX; DO NOT DUPLICATE**
+- Physical hardware, signing, Guardian/Recovery execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 27ff665 — corrected packaged malformed-firmware rejection
 
 - Reviewed commit: `27ff6652cfeaa2be93a2ea7b75f2267e5b0098e1`

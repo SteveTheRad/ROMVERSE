@@ -1,5 +1,127 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows Guided simulation boundary and stage-8 route correction — Product Assurance review requested
+
+- Product Assurance verdict: `bde748d7ac66ef1458d9a6b063c3b0b81749edd8` — `Approve Windows
+  Guided local foundation`, matching checkpoint
+  `1d4db55098b15ee9c34a0b5483d68d04f74373fa` exactly.
+- Branch: `windows-launcher-authorized-work`.
+- Implementation checkpoint: `b3944548f21a6551d3090ab1e788b5f9f0b3ec2a` — `Bound Windows
+  Guided simulation at stage 8`.
+- Status: **CORRECTION CHECKPOINT — THE PACKAGED WINDOWS RUN COMPLETED THE INERT STAGE-5
+  SIMULATION WITH TRUTHFUL ZERO-AUTHORITY EVIDENCE, BUT THE ACCEPTED SKIP ROUTE JUMPED FROM
+  STAGE 6 TO STAGE 10 INSTEAD OF STOPPING AT STAGE 8. THE MINIMUM ROUTE CORRECTION AND FOCUSED
+  TEST NOW STOP AT STAGE 8; NO SECOND BUILD OR RELAUNCH WAS PERFORMED.**
+
+### Exact package and launch evidence
+
+- The previously accepted package did not recognize the newly authorized hidden
+  `--development-device-simulation` argument. Its bounded launch attempt exited before creating
+  a window or runtime-start record and did not replay any Guided stage.
+- Applied only the explicit inert simulation boundary already present in committed implementation
+  `d10500eea47bb88e870db70cff5b74069cfa3c7c` (`Enable explicit packaged Device DNA
+  simulation`), without importing unrelated Linux history. The boundary creates a deterministic
+  ROM-Studio-only `simulation` transport, leaves observed hardware empty, intercepts the scan
+  before `DeviceEngine`, and labels both the shell and Device DNA evidence as simulation-only.
+- Built exactly once after that correction using
+  `.venv\Scripts\python.exe scripts\build_desktop_executable.py --output-directory
+  C:\Work\ROMVERSE-Windows\build\windows-development-simulation-bde748d7 --work-directory
+  C:\Work\ROMVERSE-Windows\build\windows-development-simulation-bde748d7-pyinstaller`.
+  The build succeeded on Windows 11 build `26200` with Python `3.12.10` and PyInstaller `6.22.2`.
+- The resulting one-folder package contains 305 files totalling 164,647,555 bytes. Its unsigned
+  `ROMVERSE.exe` is 6,323,220 bytes, Authenticode `NotSigned`, SHA-256
+  `3a3ebd654eab004d83ed7dffc2bbe0a47f60734f00728047cc86665defe5b71d`.
+- Relaunched that corrected package exactly once with the existing workspace, `--skip-onboarding`
+  and the explicit development-simulation flag. Startup retained project
+  `Windows Guided Foundation 20260909`, showed **Development simulation**, **Device:
+  deterministic ROM Studio fixture**, **SIMULATION ONLY • NO HARDWARE** and **No physical device
+  selected**, and resumed at the existing stage-5 boundary without replaying stages 1–4.
+
+### Inert stage-5 evidence and authority boundary
+
+- Activated only the Guided **Scan device & refresh DNA** action. The explicit local fixture
+  completed stage 5 without invoking DeviceEngine or any device transport and visibly reported
+  **SIMULATION ONLY • NOT HARDWARE VERIFIED**.
+- Device DNA remained advisory: device identification is `Limited Evidence`; firmware detection,
+  source adapter, tool resolution, partition map, build preparation, Guardian flash and root-state
+  identification remain `Unknown`; bootloader relocking remains `Known Incompatible` / `NEVER`.
+  The screen explicitly states that simulated evidence cannot grant live-target, consent,
+  Guardian or execution authority, and records `EXECUTION AUTHORITY: NONE`.
+- No physical device was selected, discovered, requested, awaited or targeted. No phone/emulator,
+  ADB/Fastboot command, tool acquisition/install, Recipe, build plan, command manifest, consent,
+  approval, Guardian handoff or execution occurred.
+
+### Stage-6 skip-route defect and minimum correction
+
+- Selected the existing **Keep verified base unchanged • Recommended** action once. The packaged
+  source marked Recipe, Nebula Debloat and root choice complete together and advanced directly to
+  `BUILD / TASK 10 OF 15 — Verify every required tool`, contradicting the approved stage-8 stop.
+  Task 10 was not operated; **Install and verify requirements** was never activated. Genesis and
+  ROMVERSE were closed normally.
+- The saved packaged-run Guided record is 432 bytes, SHA-256
+  `bcd73cb14fdd7bb77376690350eef22b20724de3587494dfe1ed5e66fd0464dc`, with
+  `selected_stage=toolchain`, `customization_skipped=true`, `recipe_skipped=true`,
+  `root_choice=skip`, `build_plan_verified=false`, `install_requested=false` and no error. This is
+  failure evidence, not an accepted stage-8 result.
+- The minimum source correction changes only the stage-6 secondary action: it records the Recipe
+  as skipped, leaves Nebula Debloat and root choice undecided, recomputes the current stage and now
+  selects stage 8 (`debloat`) without operating it. No Recipe transaction or later optional-stage
+  choice is created. The focused UI regression asserts stages 6–7 complete, stage 8 ready, stage 9
+  locked, persisted `selected_stage=debloat`, no Recipe file and simulation authority still absent.
+- Because the one permitted correction build/relaunch had already been consumed by the missing
+  explicit simulation flag, the stage-8 source correction was not rebuilt or relaunched. This
+  checkpoint stops for independent review instead of exceeding the bounded run count.
+
+### Exact preserved local evidence
+
+- Workspace: `C:\Work\ROMVERSE-Windows-Guided-Foundation-e03aa88e-20260909`; project ID
+  `windows-guided-foundation-20260909-0e0785bf`.
+- Protected source and working baseline remain 356 bytes and byte-identical at SHA-256
+  `85e734ea89c706d344987794acf5ebc9fb617e67a1a5a09f8516bf4c755937b0`.
+- The working tree still contains exactly the existing 242-byte synthetic marker at SHA-256
+  `f5fc7767e1d6e9636cbdfc43c800515800ca0ea35e98b74b3f840341fc051310`.
+  No Recipe file, candidate, Guardian directory, command plan or phone-changing artifact exists.
+- The 154-byte runtime record contains the prior accepted start/clean-close pair and exactly one
+  new start/clean-close pair; its SHA-256 is
+  `50d779cf4f44836bb0f2fc6bb9cd0f21763e9de1dcb388fb854e57e5b18f4587`.
+  No `ROMVERSE.exe` or Fastboot process remains.
+- The one pre-existing detached ADB server remains PID `49872` at
+  `C:\Work\ROMVERSE-Link-Lazy-Frozen-20260907\tools\downloads\platform-tools\platform-tools\adb.EXE`.
+  It was never queried, targeted, signalled or stopped, and no new ADB process appeared.
+
+### Focused verification and preserved repository scope
+
+- Before the build: focused native-Windows development-simulation tests: **2 passed**.
+- After the route correction: exact focused selection
+  `tests/test_rom_studio_ui.py::test_genesis_simulated_device_continues_visibly_without_hardware_authority`,
+  `tests/test_desktop_bundle.py::test_development_device_simulation_is_explicit_and_inert`, and
+  `tests/test_development_device_simulation.py`: **3 passed**. Exact execution total across both
+  bounded invocations: **5 test executions, 3 unique tests, 0 failed, 0 errors, 0 skipped**.
+- Ruff passed for the three touched source files and three touched test files; `git diff --check`
+  passed. No broad regression was run and no unrelated failure was changed.
+- Implementation commit `b3944548f21a6551d3090ab1e788b5f9f0b3ec2a` changes only
+  `src/romverse/app.py`, `src/romverse/ui/main_window.py`,
+  `src/romverse/ui/guided_mission.py`, `tests/test_desktop_bundle.py`,
+  `tests/test_development_device_simulation.py` and `tests/test_rom_studio_ui.py`.
+- Protected Companion files, Knowledge/UI Design Lab work, unrelated Linux history and all other
+  user files remain untouched. The untracked user patch remains byte-identical at 8,272 bytes,
+  SHA-256 `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No real firmware modification, root/install/flash authority, signing, publication, release,
+  Guardian/Recovery execution, lock, relock, force-push or destructive action occurred.
+  Exact-device evidence, UNKNOWN-on-uncertainty, consent separation, no blind retry,
+  Guardian-only authority, independent verification and permanent no-relock remain intact.
+
+### Proposed next bounded task
+
+Product Assurance should independently review implementation commit `b3944548f21a6551d3090ab1e788b5f9f0b3ec2a`,
+the focused test evidence, exact package/run records and the honest packaged task-10 mismatch. If
+approved, authorize exactly one replacement unsigned Windows build from that source and one
+no-phone relaunch of the same project: navigate back without operating later stages, select the
+corrected unchanged-base action once, verify a visible stage-8 stop plus unchanged source/tree and
+zero authority, then close and return for review. Build must not operate stage 8, repeat stage 5,
+acquire tools, invoke ADB/Fastboot, use a phone/emulator or expand into Linux stages 8–9 while this
+review is pending.
+
 ## Packaged Windows Guided local-foundation journey — Product Assurance review requested
 
 - Product Assurance verdict: `e03aa88ed7746575e76ced7fe39cab4590322e3c` — `Approve packaged

@@ -1,5 +1,54 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: bab43eb — connected Pre-Build Simulation handoff
+
+- Handoff commit: `bab43eb5caeea9b742cc1255a71cd0a01d03ac43`
+- Implementation commit: `c7ea82f00f0e9b74344d16e3cddaeb653cf1cfec`
+- Approved base: `0f2d221`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — SIMULATION ROUTES TO ITS EXACT PREREQUISITE**
+
+### Decision
+
+Product Assurance inspected the complete diff. Command Deck now consumes ROM Studio's existing
+current-project Simulation readiness contract instead of treating any firmware-selected project as
+ready. Missing inspection or contained-tree evidence is labelled `PREPARE INPUTS` and opens Source
+Lab focused on the responsible existing preparation control; complete inputs open Build & Proof
+focused on the dry-run plan. The exact project remains selected and no build, mission result,
+compatibility claim or device action begins through navigation.
+
+This implements the creator experience contract correctly: ROMVERSE carries context to the owner
+that can resolve the problem instead of displaying a dead end or asking the user to rediscover it.
+
+### Independent evidence
+
+- Product Assurance reran the exact two-state real-widget handoff against the committed source:
+  **1/1 passed**.
+- The implementation and handoff are committed and pushed; the working tree was clean at review.
+- No phone, ADB/Fastboot, APK, firmware mutation, build/flash, installation, signing, publication,
+  release or bootloader relock occurred.
+- Feature freeze, exact-device evidence, Guardian/consent separation, durable-result boundaries,
+  UNKNOWN-on-uncertainty, no blind retry and permanent no-relock remain intact.
+
+### Approved next bounded Linux task
+
+Inspect Command Deck's adjacent existing `Recipes` handoff for one reproducible project/context
+continuity defect or user-visible dead end. It must retain the exact current project and route to
+the existing Recipe Forge owner or the exact existing prerequisite that ROMVERSE can resolve; it
+must not create a recipe, mutate firmware, start a build, infer compatibility or issue a device
+command merely through navigation. Apply at most one minimum correction and verify the affected
+real-widget journey. Do not rewrite or repeatedly test a passing route, overlap Windows managed-tool
+recovery, touch Knowledge/UI Design Lab or protected Companion files, operate a phone, run a broad
+suite, package, publish or release. Commit/push one bounded checkpoint and stop for independent
+review.
+
+### Gate status
+
+- Command Deck Pre-Build Simulation continuity: **VERIFIED**
+- Command Deck Recipes continuity: **NEXT BOUNDED LINUX TASK**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+- Physical execution, production trust/signing, publication and release: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: 5cb1847 — Mission Pulse warning continuity
 
 - Handoff commit: `5cb1847a7aa72148530a1e138134d1286a9431d8`

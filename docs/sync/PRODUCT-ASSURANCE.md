@@ -1,5 +1,65 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: da3109b — packaged Windows missing-tools recovery
+
+- Handoff commit: `da3109b7177440361697d4b44f9611edff7d983a`
+- Frozen artifact/source approval: `e24e50ed7e79fd7d89e3910c21cc13d70c374e04`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — FROZEN RECOVERY LOOP RESUMES IN ONE PROCESS**
+
+### Decision
+
+Product Assurance inspected the documentation-only handoff and independently checked the retained
+Windows workspace, frozen executable, managed receipt, exact tool files, Guardian ledger, runtime
+fault record and checkout state over SSH. The approved unchanged windowed artifact truthfully begins
+with an unusable receipt and reachable `Resolve Platform Tools`, consumes the already approved
+cached package at the acquisition boundary, then relies on production receipt validation,
+activation and Device Engine rebuilding to resume in the same process to the calm no-device state.
+
+No source, test, package or artifact rebuild was justified. The journey neither asks the user to
+repair `PATH` nor requires a restart. Its single recorded unbound Fastboot discovery is read-only,
+successful and untargeted; the absence of an ADB ledger record is reported accurately and grants no
+device or execution authority.
+
+### Independent evidence and acceptance
+
+- The frozen executable remains **6,301,671 bytes**, SHA-256
+  `828547516bd7bf8ea75479e80233bedf3545fa2d78b947a7d99ebf62fa563db9`.
+- The retained production receipt remains bound to the **8,044,989-byte** archive with SHA-256
+  `45f4d63113e895ebde0c90f194099a4676b6ac653bd28d54314a9e022bbc1a99`;
+  independent ADB/Fastboot hashes exactly match its recorded values.
+- The Guardian ledger contains exactly one allowed `fastboot.exe devices -l` host probe, return code
+  0, not timed out, with no `-s`, target identifier, mutation or retry. The fault log contains only
+  normal runtime start and clean close records.
+- The Windows checkout is synchronized and clean except for the protected untracked patch, still
+  byte-identical at SHA-256 `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone/emulator, targeted or mutating device command, Recovery, flash, wipe, unlock, root,
+  relock, APK install, production signing/trust, publication or release occurred.
+
+### Approved next bounded Windows task
+
+Resolve the first genuine packaging-pipeline blocker exposed after GitHub Actions was restored.
+On workflow run `34222010500` at exact source `e24e50ed`, both Linux and Windows desktop-package
+jobs reached wheel construction and then failed at the same `scripts/verify_wheel.py` step. Inspect
+the completed job evidence, reproduce only that verifier boundary, and determine whether the wheel
+contents or verifier expectation is wrong. Apply the minimum correction on this branch and prove
+the wheel verification plus one installed-package smoke path. Then rerun the affected GitHub
+desktop-package jobs once; reuse unaffected quality and Companion evidence.
+
+Do not run a broad local suite, rebuild the existing manually verified Windows artifact, alter
+runtime features, duplicate Linux's active Simulation work, connect a phone, issue device commands,
+touch Knowledge/UI Design Lab/Companion work, sign, publish or release. Preserve the untracked patch
+and all unrelated state. If the failure is transient or external rather than repository-owned,
+change no source and record the exact evidence. Commit/push one bounded checkpoint and stop for
+review.
+
+### Gate status
+
+- Frozen missing-tools recovery and same-process no-device resume: **VERIFIED**
+- Cross-platform wheel/package verification: **NEXT BOUNDED WINDOWS TASK**
+- Physical hardware, production execution/trust, signing, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: bf09410 — current Windows development artifact
 
 - Handoff commit: `bf09410713993b7d65210b272fd01dab4b280888`

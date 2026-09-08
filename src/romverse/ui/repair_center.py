@@ -1325,12 +1325,22 @@ class RepairCenter(QWidget):
         elif self.online_worker is None:
             self.intelligence_card.setVisible(False)
 
-    def open_diagnostic_finding(self, finding_id: str) -> bool:
+    def open_diagnostic_finding(
+        self,
+        finding_id: str,
+        *,
+        expected_device_serial: str = "",
+    ) -> bool:
         """Select an exact repair concern from current typed diagnostic evidence."""
 
         normalized = finding_id.strip()[:120]
         concern = concern_for_finding(normalized)
         report = self.current_report
+        if expected_device_serial and (
+            self.current_device is None or self.current_device.serial != expected_device_serial
+        ):
+            self._clear_diagnostic_context()
+            return False
         finding = (
             next((item for item in report.findings if item.finding_id == normalized), None)
             if report is not None

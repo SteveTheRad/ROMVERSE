@@ -554,6 +554,15 @@ class DeviceCenter(QWidget):
         self._experience_mode = mode
         self._apply_quick_action_visibility()
 
+    def selected_device(self) -> AndroidDevice | None:
+        """Return the one explicit Command Deck target, never an unselected transport."""
+
+        return (
+            self.devices[self._selected_index]
+            if 0 <= self._selected_index < len(self.devices)
+            else None
+        )
+
     def open_feature_destination(self, route: str) -> bool:
         """Reveal a Command Deck feature without starting a Device Engine scan."""
 

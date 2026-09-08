@@ -2529,6 +2529,62 @@ def test_command_deck_repair_refuses_mismatched_recovery_evidence(tmp_path: Path
         window.close()
 
 
+def test_command_deck_recovery_rejects_same_finding_from_a_different_device(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    store, registry, project, _report = _project(tmp_path)
+    window = MainWindow(
+        None,
+        logo,
+        store.workspace,
+        app_icon_path=logo,
+        pack_registry=registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    phone_a = _device(
+        serial="DIAGNOSTIC-PHONE-A",
+        storage=StorageInfo(percent_used=98),
+    )
+    phone_b = _device(
+        serial="SELECTED-PHONE-B",
+        storage=StorageInfo(percent_used=98),
+    )
+    try:
+        window.rom_studio.refresh(project.project_id)
+        window._observed_devices = [phone_b]
+        window._selected_device_serial = phone_b.serial
+        window.device_center.set_devices([phone_b], phone_b.serial)
+        window.repair_center.set_devices([phone_b])
+        window.diagnostics_center.set_devices([phone_a])
+        app.processEvents()
+        assert window.diagnostics_center.current_device == phone_a
+        assert window.repair_center.current_device == phone_b
+        assert window.device_center.primary_action_buttons["Recover Device"].isEnabled()
+        before_incidents = window.repair_center.autopilot_service.list_recent()
+
+        window.device_center.primary_action_buttons["Recover Device"].click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.repair_center
+        assert "EXACT DIAGNOSTIC NEEDS FRESH EVIDENCE" in (
+            window.repair_center.diagnostic_context.text()
+        )
+        assert window.repair_center.diagnostic_source_button.isHidden()
+        assert window.repair_center.current_device == phone_b
+        assert window.rom_studio.current_project is not None
+        assert window.rom_studio.current_project.project_id == project.project_id
+        assert window.repair_center.autopilot_service.list_recent() == before_incidents
+        assert window.repair_center.autopilot_incident is None
+        assert window.repair_center.active_session is None
+        assert window.repair_center.host_repair_worker is None
+        assert window.repair_center.online_worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
 def test_expert_mode_is_applied_from_persisted_settings_without_changing_guardian(
     tmp_path: Path,
 ) -> None:

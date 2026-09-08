@@ -8905,8 +8905,20 @@ class MainWindow(QMainWindow):
             return
         if action == "Repair Phone":
             finding = actionable_repair_finding(self.diagnostics_center.current_report)
-            if finding is not None and self.repair_center.open_diagnostic_finding(
-                finding.finding_id
+            selected_device = self.device_center.selected_device()
+            diagnostic_device = self.diagnostics_center.current_device
+            exact_diagnostic_target = bool(
+                selected_device is not None
+                and diagnostic_device is not None
+                and selected_device.serial == diagnostic_device.serial
+            )
+            if (
+                finding is not None
+                and exact_diagnostic_target
+                and self.repair_center.open_diagnostic_finding(
+                    finding.finding_id,
+                    expected_device_serial=selected_device.serial,
+                )
             ):
                 self._navigate_route("recovery_bay")
                 return

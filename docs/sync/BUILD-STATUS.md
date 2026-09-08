@@ -1,5 +1,63 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows Stage 1 runnable-usability completion checkpoint
+
+- Build source tip: `fee55d3b` — `Record Windows Stage 1 screen audit` on
+  `windows-launcher-authorized-work`.
+- One fresh unsigned Windows development build was produced from that exact source with Python
+  3.12.10 and PyInstaller 6.22.2:
+  `.venv\Scripts\python.exe scripts\build_desktop_executable.py --output-directory build\windows-stage1-usable --work-directory build\windows-stage1-usable-pyinstaller`.
+- Runnable executable:
+  `C:\Work\ROMVERSE-Windows\build\windows-stage1-usable\ROMVERSE\ROMVERSE.exe`.
+- Executable SHA-256:
+  `72087d0cf2fd81763191cf431fa557835aab29b7d7c240f915e5b64d165b31c7`;
+  size: **6,301,674 bytes**. The one-folder application contains **305 files** and
+  **164,626,009 expanded bytes**. Authenticode status is **NotSigned**, as required for an internal
+  development build; this is not a release or production-ready claim.
+- The bundle contains **zero `icu*.dll` files**, preserving the approved Windows System32 ICU
+  isolation fix.
+
+### Final Windows runtime acceptance
+
+- One final frozen-app smoke used the supported executable entry point and a fresh disposable
+  no-phone workspace:
+  `.venv\Scripts\python.exe scripts\smoke_frozen_desktop.py build\windows-stage1-usable\ROMVERSE\ROMVERSE.exe C:\Work\ROMVERSE-Stage1-Final-Smoke-20260908`.
+- Result: **PASS** in 6.7 seconds. The executable initialized a valid workspace, loaded the packaged
+  application, and exited normally. Its runtime record contains exactly `ROMVERSE runtime started`
+  followed by `ROMVERSE runtime closed cleanly`.
+- Earlier in this same bounded audit, the supported source entry opened a responding native window
+  titled `ROMVERSE Studio 0.2.0-alpha.1` and accepted a normal `CloseMainWindow`. The final frozen
+  smoke verifies that the now-corrected source is actually packaged and runnable; it does not repeat
+  the Guided simulation.
+
+### Stage 1 usability acceptance summary
+
+- All **19** shipped top-level routes opened through the production route table.
+- Every visible labeled action has a live click/toggle receiver, and every visible disabled action
+  presents an accurate prerequisite or boundary instead of an unexplained dead end.
+- The representative inert Guided journey passed through
+  `Scan → Match → Prepare → Consent → Result → Reassessment → Verification`, preserving one shared
+  Guided/Expert operation session and making no external process or device call.
+- The main first-run, workspace/project persistence, Guided/Expert, command-palette, candidate,
+  lifecycle, and primary-screen suites are accounted for in the immediately preceding checkpoints.
+  The Windows path-length Smart Solution loss and saved boot-result linkage defect were both fixed
+  and focused regressions pass.
+- The one repository-wide Windows run was not repeated. Its remaining unrelated Windows
+  fixture/platform baseline remains recorded honestly above; none blocks the packaged startup or
+  the exercised Stage 1 user journeys.
+
+### Final scope and safety
+
+- The protected Companion Android files and separate UI Design Lab remain untouched. The
+  pre-existing untracked patch remains untracked and byte-identical at SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No physical phone or emulator was connected, requested, discovered, operated, or targeted. No
+  device command, Recovery execution, flash, wipe, unlock, root, relock, APK installation,
+  production adapter/trust/signing, publication, release, force-push, or destructive Git action
+  occurred.
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty, no
+  blind retry, independent verification, feature freeze, and permanent no-relock remain intact.
+
 ## Windows Stage 1 primary-screen and journey audit checkpoint
 
 - Test contract: `d4c95643753f0f37eec88b70ea66f431ed78251d` —

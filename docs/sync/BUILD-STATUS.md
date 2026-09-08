@@ -1,5 +1,75 @@
 # ROMVERSE Product Assurance Sync
 
+## Fresh unsigned Windows post-Genesis development artifact checkpoint
+
+- Product Assurance verdict: `0ea870f318bdbea253b24fee8a1e6aa2ca3d4e47` —
+  `Approve Windows post-Genesis convergence [skip ci]`, matching checkpoint
+  `d433afe92e3b6ee37c5391d92e3ec8888f7997c3` exactly.
+- Approved implementation source: `d433afe92e3b6ee37c5391d92e3ec8888f7997c3`. The complete
+  `src`, `tests`, `scripts` and `pyproject.toml` product tree at build HEAD `0ea870f3` is byte-for-byte
+  identical to that source; the intervening commit changes only Product Assurance handoff text.
+- Result: **PASS — ONE FRESH UNSIGNED WINDOWS ONE-FOLDER DEVELOPMENT BUILD AND ZIP BUNDLE WERE
+  PRODUCED, INDEPENDENTLY INTEGRITY-CHECKED, LAUNCHED ONCE UNELEVATED WITHOUT A PHONE OR MANAGED
+  PLATFORM TOOLS, AND CLOSED NORMALLY**. No frozen-only launcher, asset, dependency or startup
+  defect appeared, so no source or test changed.
+
+### Exact build and package evidence
+
+- Fresh build command, run exactly once:
+  `.venv\Scripts\python.exe scripts\build_desktop_executable.py --output-directory
+  build\windows-d433afe9 --work-directory build\windows-d433afe9-pyinstaller`.
+  It completed on Windows 11 `10.0.26200` with Python `3.12.10` and PyInstaller `6.22.2`; the
+  PyInstaller analysis resolved ROMVERSE modules from this checkout's `src` tree.
+- Fresh package command, run exactly once:
+  `.venv\Scripts\python.exe scripts\package_desktop_bundle.py build\windows-d433afe9\ROMVERSE
+  --platform windows-x86_64 --output
+  dist\windows-d433afe9\ROMVERSE-Desktop-0.2.0a1-windows-x86_64.zip`.
+- Runnable executable:
+  `C:\Work\ROMVERSE-Windows\build\windows-d433afe9\ROMVERSE\ROMVERSE.exe`, **6,302,268 bytes**,
+  SHA-256 `91ee4e4ff610e1a9dfcb7dd3e98893ada661055df6914b87da8379c806af8764`, Authenticode
+  `NotSigned`.
+- Unsigned development archive:
+  `C:\Work\ROMVERSE-Windows\dist\windows-d433afe9\ROMVERSE-Desktop-0.2.0a1-windows-x86_64.zip`,
+  **73,486,786 bytes**, SHA-256
+  `1ca9620c19d39f0d4514f90ce8acda1c527c4f438f505c6e8eee8bd16479e4d8`.
+- The bundle contains **305 files / 164,626,603 expanded bytes**. Independent ZIP validation
+  enumerated the same 305 files, found no unsafe member names and completed CRC testing with no
+  failing member.
+
+### One normal unelevated no-phone launch
+
+- The executable was launched exactly once against fresh disposable roots
+  `C:\Work\ROMVERSE-Artifact-Smoke-d433afe9\workspace` and `...\settings`. The process inherited
+  only Windows system directories in `PATH`; neither managed ADB nor Fastboot existed before or
+  after the run, and the disposable root was not added to user or machine `PATH`.
+- Native Windows observation showed the `ROMVERSE Studio 0.2.0-alpha.1` window at its supported
+  1440-by-900 initial client size (1442-by-932 captured decorated frame), with Command Deck and a
+  truthful Device Engine attention state explaining that verified Android Platform Tools were not
+  active and offering `Resolve Platform Tools`. No phone identity, connected-device, readiness or
+  execution claim appeared, and no setup/download action was invoked.
+- Normal window close was accepted and the process exited within ten seconds. The 77-byte runtime
+  log contains exactly one `ROMVERSE runtime started` line followed by one `ROMVERSE runtime closed
+  cleanly` line and no fault. The fresh workspace contains no managed-tool file, Guardian audit,
+  command receipt or device record.
+
+### Verification boundary, safety and next gate
+
+- No test was rerun: Product Assurance explicitly prohibited repeating the already approved 4/4 UI
+  checks and authorized only the fresh build, bundle integrity and one native launch/close. Git
+  whitespace validation passed for this handoff.
+- No phone or emulator was requested, connected, discovered, operated or targeted. No ADB/Fastboot,
+  Recovery, flash, wipe, unlock, root, relock, APK installation, firmware/local-candidate build,
+  production adapter/trust/signing, publication, release, force-push or destructive action occurred.
+  Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty, no
+  blind retry, independent verification, feature freeze and permanent no-relock remain intact.
+- The protected Companion files have no staged or working-tree diff. The pre-existing untracked
+  `0001-Preserve-local-build-completion-across-restart.patch` remains untracked and byte-identical at
+  SHA-256 `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- Precise proposed next task: independent Product Assurance review of this fresh unsigned artifact,
+  bundle integrity and native no-phone launch/clean-close checkpoint. Do not rebuild, relaunch,
+  acquire tools, connect hardware, resume the external candidate job or begin another correction
+  unless a matching repository verdict explicitly authorizes it.
+
 ## Windows post-Genesis refresh convergence checkpoint
 
 - Product Assurance verdict: `c6f5c623f7d1e98824f39e2e1ed318851648af81` —

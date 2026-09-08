@@ -1,5 +1,97 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — post-Genesis ROM Studio continuity
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `0a45e81dc75669698e532129c73105b3e9da310d` approved the
+  shared current-version CI contract and authorized this single platform-neutral continuity fix.
+- Implementation commit: `ac772057c6dc9510bf4d30f7e7a1c296f446352c` — `Refresh ROM
+  Studio after Genesis returns`.
+- Final handoff: the follow-up documentation commit containing this sync on
+  `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation, existing modal Genesis → ROM Studio continuity only.
+- Exact implementation/test files: `src/romverse/ui/rom_studio.py` and
+  `tests/test_rom_studio_ui.py`.
+
+### Exact correction
+
+- After the existing modal Genesis journey returns, ROM Studio now reloads its project list and
+  selected-project detail from the current exact durable project identity.
+- If and only if an existing visible handoff card belongs to Genesis, ROM Studio recalculates that
+  card from the same current `GenesisFlightPlan`. Non-Genesis handoffs remain untouched.
+- The refreshed card preserves its originating title/eyebrow and reports the current stage,
+  evidence-derived progress and saved-error attention state. It explicitly states that no build or
+  phone action started.
+- The correction adds no import, worker, activity, build, compatibility, device, Guardian or
+  execution action. It reuses the normal read/render refresh after the modal has already persisted
+  its state.
+
+### Focused real-widget continuity proof
+
+- One real modal `GuidedBuildMission` began with an existing deterministic no-phone project at
+  stage 2, accepted one sanitized inert Android boot-image fixture through the existing protected
+  import and bounded structural-inspection path, and reached the evidence-derived stage 4 working
+  lab state.
+- On modal return, all visible/current owners agreed immediately: the durable mission selected
+  `workspace`, `genesis_flight_plan()` reported stage 4, the project list displayed
+  `GENESIS • 4/15 • WORKING LAB`, and the existing handoff displayed
+  `Stage 4/15: Prepare an isolated working tree` with `CURRENT STAGE`.
+- Exact source identity was retained. There was one protected original and exactly one validated
+  `import` completion signal; the repaint did not emit a duplicate completion/activity event.
+  No build plan, worker, phone or device context existed after the journey.
+
+### Verification without double-counting
+
+- Final exact-source focused selection: **4/4 passed** — authoritative project-card state,
+  shared Genesis flight-plan assessment, the new real-modal post-return journey, and existing
+  Command Deck ROM Studio handoff behavior.
+- Focused Ruff lint: **passed** for the two changed files.
+- Focused Ruff format check: **passed** for the two changed files.
+- Git whitespace validation: **passed**.
+- An initial harness invocation loaded ROMVERSE from the older dependency environment because
+  `PYTHONPATH` was not set; it was rejected as invalid branch evidence. The final run explicitly
+  used `PYTHONPATH=src` and is the only product result counted above.
+- No broad regression suite, CI matrix, package build or native application smoke was run, as
+  required by Product Assurance for this bounded state-refresh correction.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** immediate post-Genesis project/list/detail and visible Genesis-handoff refresh.
+- **Simulated/Tested:** real Qt widget/modal journey with sanitized local bytes; 4/4 directly
+  affected checks and focused static validation passed.
+- **Hardware Verified:** no new hardware evidence. The journey was explicitly no-phone.
+- **Released:** no.
+- Blockers/failures: none in the final exact-source validation. No additional Guided dead end was
+  observed within this bounded journey.
+- Guided friction: the known stale earlier-stage list/handoff mismatch is closed; reopening Genesis
+  is no longer needed merely to see the current persisted stage.
+- Guardian/Recovery/safety: unchanged. The refresh grants no authority and preserves exact-device
+  evidence, Guardian-only execution, UNKNOWN-on-uncertainty, no blind retry, same-incident Recovery,
+  independent verification and permanent no-relock.
+- Linux/Fedora: focused Qt behavior verified offscreen on the Fedora host. Windows: not rerun; the
+  original packaged Windows journey supplied the cross-platform reproduction. Physical Android:
+  not used.
+- Feature freeze: compliant minimum correctness fix to an existing Stage 1 journey; no new screen,
+  feature, engine, format, adapter or execution capability.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all existing release
+  gates.
+- External actions: one normal push of the implementation and this handoff is planned. No phone,
+  ADB/Fastboot, APK, firmware/device operation, signing, package installation, publication,
+  release, remote merge, force-push, lock or relock occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another consequential slice until the
+verdict for `ac77205` is recorded in `docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm the post-modal refresh uses the exact current project and durable mission state without
+  duplicating import/activity or creating build/device authority.
+- Confirm the focused 4/4 selection is sufficient for this platform-neutral presentation-only
+  continuity correction.
+
 ## Linux product checkpoint — current unsigned Fedora development artifact
 
 ### Authoritative checkpoint and scope

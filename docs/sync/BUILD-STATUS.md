@@ -1,5 +1,113 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux checkpoint — runnable Stage 1 desktop and Guided journeys
+
+### Authoritative checkpoint
+
+- Source checkpoint: `fc342914868a938f7ba9dfc5108a01f130a1b43a`, including the newly completed
+  external-package evidence boundary.
+- Final handoff: the follow-up commit containing this document on
+  `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation, runnable Fedora Desktop and inert Guided acceptance.
+
+### Product result
+
+- The actual current source application launched through the documented `python -m romverse`
+  entry point, initialized a new isolated workspace and remained stable. Its visible acceptance
+  instance is running from `build/visible-stage1-fc34291`; ADB and Fastboot were deliberately absent
+  from that process environment, so it cannot scan or operate a physical phone.
+- The documented installed-style smoke initialized a fresh workspace, loaded 22 verified Device
+  Packs, 170 known fixes and 281 offline evidence records, exposed all 19 desktop routes, exercised
+  the actionable Time Machine empty state, created a project/working copy/snapshot and reopened all
+  tracked bytes exactly.
+- The representative inert Guided Recovery journey completed the existing production boundaries:
+  Scan → Match → Prepare → Consent → Result → Reassessment → Verification. Three test-only adapter
+  actions completed; result and reassessment remained distinct from final verification. No external
+  process, production adapter, persistent test trust, automatic retry or physical target existed.
+- Every current top-level navigation destination, Guided-visible nested feature, Command Deck launch
+  card, exact owner/return handoff, Guided/Architect shared state boundary and representative no-tool,
+  no-phone or stale-evidence action was exercised through the targeted real-widget acceptance set.
+  All visible tested actions either performed their inert/read-only function or presented their
+  existing truthful actionable boundary. No new inert button, crash, silent failure, navigation loss
+  or Guided dead end was found.
+
+### Verification without double-counting
+
+- Actual source entry release-smoke startup/shutdown: **passed**.
+- Installed-style production smoke: **passed once**. This is acceptance-harness evidence, not added
+  to the pytest count.
+- Manual inert Guided Recovery script: **passed once**. Its matching pytest coverage was included in
+  the targeted test run and is therefore not counted again.
+- Targeted desktop/navigation/action regression: **108/108 unique tests passed** in one combined
+  run. It covered navigation vocabulary, command palette, workspace shell, app launch/settings,
+  dashboard rendering, Guided Recovery simulation and candidate-installation Desktop behavior.
+- Frozen executable launch smoke: **passed once**.
+- No full Python suite, repeated packaging loop, screenshot loop or physical-device suite was run.
+
+### Runnable Fedora development artifact
+
+- Built once on Fedora 44 x86-64 with Python 3.14.7 and PyInstaller 6.22.2.
+- Runnable executable:
+  `build/frozen-stage1-fc34291/ROMVERSE/ROMVERSE`, SHA-256
+  `9f3e225384244b121cebac56fc79d76407187201d25d99ee4a2cb22208b70a9f`.
+- Portable unsigned archive:
+  `dist/ROMVERSE-Desktop-0.2.0-alpha.1-linux-x86_64-stage1-fc34291.zip`,
+  **150,981,736 bytes**, SHA-256
+  `8b817aad6548519f02130e697935e65feb2a56371a6b23fe7301a88987280b6b`.
+- Packaging verification passed for **460 files** and **360,288,306 expanded bytes**. The archive is
+  a local internal-development artifact only; it was not installed, signed, uploaded or released.
+
+### Classification and safety
+
+- **Implemented:** current Stage 1 source plus the approved external-package evidence slice at the
+  source checkpoint above. This evidence-only milestone adds no further application source change.
+- **Simulated/Tested:** 108 unique targeted UI tests, two distinct desktop launch smokes, one
+  installed-style smoke, one inert Guided journey and one frozen-bundle verification on Fedora.
+- **Hardware Verified:** none in this checkpoint. The earlier Fastboot acceptance was not repeated.
+- **Released:** no. The new package is unsigned, local and explicitly not a release.
+- Guardian-only authority, consent separation, exact-device/evidence rules, UNKNOWN-on-uncertainty,
+  no blind retry, independent verification and same-incident Recovery remain unchanged.
+- Bootloader locking/relocking remains permanently prohibited with no override or route.
+
+### Guided, platform, freeze and version gate
+
+- Guided friction/dead ends: none reproduced in the exercised no-phone, missing-tool, inert-device,
+  candidate-preparation, Recovery or exact-context navigation paths. Consequential controls remain
+  disabled until their own evidence/authority boundaries are earned.
+- Fedora/Linux: source launch, isolated workspace initialization, persistence, all 19 routes, focused
+  user actions, inert end-to-end Recovery and current frozen package verified.
+- Windows: not run or claimed. Separate Windows work remains on its own branch and was not merged.
+- Feature freeze: compliant. No post-v1 feature, speculative architecture or unapproved UI Design
+  Lab work was introduced.
+- v0.2 Golden Foundation remains **CLOSED**. This is runnable-development and simulated/inert
+  acceptance, not physical execution, signing or release evidence.
+
+### Preservation, blockers and external actions
+
+- Protected Companion files, Windows launcher/convergence work, local UI Design Lab, website and
+  unrelated user files were not modified, staged, discarded or committed.
+- No Linux runtime blocker or tested Stage 1 Guided dead end remains from this acceptance pass.
+  Physical-device-changing and signed-release gates remain intentionally outside this milestone.
+- Physical phone access, ADB/Fastboot invocation, APK action, file transfer, flash/boot/update,
+  partition access, slot change, erase/wipe/format, unlock/lock/relock, root/debloat, production
+  signing, installation, publication and release: **none**.
+- External network action after verification: one normal push of this handoff to the existing Linux
+  branch only; no force-push and no publication.
+
+### Next proposed Build task
+
+Continue with the next concrete Linux usability defect only when repository evidence identifies one.
+Do not manufacture a rebuild/test loop, merge the isolated UI Design Lab, operate a phone or cross a
+new consequential boundary without its own authorization.
+
+### Product Assurance Review Requested
+
+- Confirm the source, installed-style, navigation/action, inert Guided and frozen-bundle evidence is
+  sufficient for the current runnable Linux Stage 1 development milestone without re-running a full
+  suite.
+- Confirm the intentionally tool-less visible launch preserves the no-phone boundary while giving
+  Steve a real current application to inspect.
+
 ## Linux checkpoint — bounded external-package metadata and untrusted-procedure inventory
 
 ### Authoritative checkpoint

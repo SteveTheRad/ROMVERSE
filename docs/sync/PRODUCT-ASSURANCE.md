@@ -1,5 +1,63 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 132bf8b — verified Simulation points to intentional Forge Bundle
+
+- Handoff commit: `132bf8b273668db4380f8e8c5bc62c1698b77953`
+- Implementation commit: `af061ac022d56548fcdceddabf19b36b47e78114`
+- Approved base: `d4125cf`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — VERIFIED SIMULATION HAS A TRUTHFUL NEXT ACTION**
+
+### Decision
+
+Product Assurance inspected the complete three-file diff and independently reran the seven exact
+affected journeys. Exact `VERIFIED` Simulation now focuses the existing enabled Forge Bundle
+control instead of the already completed Verify-plan control. The handoff truthfully identifies
+Forge as the next intentional local action and describes its existing boundary: unsigned,
+non-bootable and non-flashable.
+
+Nothing is dispatched from the Simulation request. No receipt or archive is created until the user
+chooses the existing Forge control, and the existing service remains responsible for fresh
+plan/tree validation. A drifted or failed verification keeps attention on Verify plan, preserves
+evidence and creates neither a Forge artifact nor a retry.
+
+### Independent evidence and acceptance
+
+- Product Assurance reran the new-plan, saved-plan, drifted/stopped, forged-verification,
+  resource-denial, fresh Guided continuity and Forge tree-drift refusal journeys: **7/7 passed**.
+- Ruff check and format verification passed for all three changed files; Git whitespace validation
+  passed; the branch and working tree were clean at review.
+- Acceptance criteria are satisfied: truthful focused continuation, explicit artifact limitations,
+  no automatic dispatch, zero Forge receipt before user intent and service-side drift refusal.
+- No phone-capable build, signing, phone, ADB/Fastboot, APK, firmware-device action,
+  Guardian/Recovery authority, Windows/Companion/Knowledge/UI Design Lab work, desktop packaging,
+  publication, release or bootloader relock occurred.
+
+### Approved next bounded Linux task
+
+Complete one intentional existing **Forge Bundle** journey without adding a second technical
+confirmation. After the user explicitly chooses the enabled Forge Bundle action for an exact
+verified Simulation result, run the existing bounded Forge producer once and, only after its exact
+persisted typed receipt is independently accepted, invoke the existing read-only Verify Forge
+operation once. Present the verified unsigned/non-bootable/non-flashable artifact and its direct
+existing next continuation without requiring a separate Verify button click.
+
+Bind both operations to the same exact project, plan, tree and receipt. Missing, changed,
+malformed, interrupted, failed or ambiguous evidence must preserve current evidence, stop visibly
+and never retry automatically. Do not auto-start Forge from Simulation, create a phone-capable
+image, sign, install, flash or grant Guardian/device execution authority. Do not use a phone,
+ADB/Fastboot, overlap Windows packaging/Knowledge/UI Design Lab/Companion work, run a broad suite,
+package the desktop app, publish or release. Verify one real-widget success and one bounded
+drift/failure journey plus only directly affected service checks. Commit/push one bounded
+checkpoint and stop for review.
+
+### Gate status
+
+- Verified Simulation to intentional Forge handoff: **VERIFIED**
+- One-intent Forge production plus automatic read-only artifact verification: **NEXT BOUNDED LINUX TASK**
+- Phone-capable build and consequential device action: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 86d974f — requested Simulation verifies its exact current tree
 
 - Handoff commit: `86d974fefe5c2965a324bf7802a15adfb87560be`

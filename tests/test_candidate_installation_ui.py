@@ -53,7 +53,7 @@ def test_complete_candidate_preparation_is_available_without_manual_partition_en
     assert dialog.result() == QDialog.DialogCode.Accepted
     assert dialog.preparation is not None
     assert len(dialog.preparation.steps) == 53
-    assert sum(origin.source_kind == "rebuilt" for origin in dialog.preparation.origins) == 2
+    assert sum(origin.source_kind == "signed-final" for origin in dialog.preparation.origins) == 2
 
 
 def test_complete_source_route_is_preferred_when_no_rebuilt_candidate_service(prepared_ui):

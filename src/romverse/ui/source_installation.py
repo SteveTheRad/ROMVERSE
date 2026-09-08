@@ -80,7 +80,7 @@ class SourceInstallationDialog(LocalFlashDialog):
         self.images.setHorizontalHeaderLabels(("Declared action", "Destination / source member"))
         self.images.setRowCount(len(recipe.steps))
         rebuilt_members = (
-            {item.member for item in recipe.origins if item.source_kind == "rebuilt"}
+            {item.member for item in recipe.origins if item.source_kind == "signed-final"}
             if candidate
             else set()
         )
@@ -95,7 +95,7 @@ class SourceInstallationDialog(LocalFlashDialog):
                 else "Android"
             )
             if step.image_member in rebuilt_members:
-                target = f"{step.partition} ← YOUR REBUILT IMAGE"
+                target = f"{step.partition} ← FINAL SIGNED IMAGE"
             for column, text in enumerate((step.action.replace("_", " "), target)):
                 item = QTableWidgetItem(text)
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)

@@ -11,6 +11,7 @@ import json
 import os
 import shutil
 from dataclasses import replace
+from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -28,6 +29,8 @@ from romverse.rom.candidate_installation import (
     candidate_composition_payload,
 )
 from romverse.rom.models import ProjectError
+from romverse.rom.release_forge import SignedAssemblyInput, SignedAssemblyReceipt
+from romverse.rom.signing_ceremony import OfflineSigningReceipt, SignedArtifactEvidence
 from tests.test_base_image_compatibility import _fixture as base_fixture
 from tests.test_base_image_compatibility import _integer, _partition
 from tests.test_build_contracts import _BuildRunner, _executable_tools
@@ -94,6 +97,91 @@ class _AvbBoundaryDouble:
         assert receipt is self.receipt
         assert receipt.base_receipt_digest == base.receipt_digest
         return receipt
+
+
+def _final_evidence(context, build):
+    project_id = context.project.project_id
+    workspace = context.store.workspace
+    build_outputs = {item.name: item for item in build.outputs}
+    signing_root = context.store.projects_root / project_id / "signing-evidence" / ("e" * 16)
+    signing_root.mkdir(parents=True)
+    signed_artifacts = []
+    for name in ("product.img", "vbmeta_system.img"):
+        output = build_outputs[name]
+        source = workspace / output.path
+        target = signing_root / name
+        shutil.copyfile(source, target)
+        current = target.stat()
+        signed_artifacts.append(
+            SignedArtifactEvidence(
+                name,
+                target.relative_to(workspace).as_posix(),
+                _sha(target.read_bytes()),
+                current.st_size,
+                current.st_mtime_ns,
+                "SHA256_RSA4096",
+                "f" * 40,
+                42,
+                2,
+                0,
+                ("product", "system"),
+            )
+        )
+    signing = OfflineSigningReceipt(
+        2,
+        "d" * 32,
+        project_id,
+        datetime.now(UTC).isoformat(),
+        context.registry.packs[0].pack_id,
+        context.registry.packs[0].sha256,
+        context.registry.packs[0].build_contract.contract_id,
+        build.receipt_digest,
+        "e" * 64,
+        tuple(signed_artifacts),
+        True,
+        False,
+        False,
+        "b" * 64,
+    )
+    assembly_root = (
+        workspace
+        / "working_roms"
+        / project_id
+        / "signed-assembly"
+        / (("b" * 16) + "-" + ("a" * 8))
+    )
+    assembly_root.mkdir(parents=True)
+    super_source = workspace / build_outputs["super.img"].path
+    super_path = assembly_root / "super.img"
+    shutil.copyfile(super_source, super_path)
+    product = signed_artifacts[0]
+    assembly = SignedAssemblyReceipt(
+        1,
+        project_id,
+        datetime.now(UTC).isoformat(),
+        build.receipt_digest,
+        signing.receipt_digest,
+        (
+            SignedAssemblyInput(
+                "product", product.path, product.size_bytes, product.sha256, True
+            ),
+        ),
+        super_path.relative_to(workspace).as_posix(),
+        super_path.stat().st_size,
+        _sha(super_path.read_bytes()),
+        "9" * 64,
+        True,
+        False,
+        "8" * 64,
+    )
+    return (
+        SimpleNamespace(load_receipt=lambda _project_id: signing),
+        SimpleNamespace(
+            load_signed_assembly=lambda _project_id, **_kwargs: assembly
+        ),
+        signing,
+        assembly,
+    )
 
 
 def _fixture(tmp_path):
@@ -163,8 +251,17 @@ def _fixture(tmp_path):
     context.build = build
     context.tools = tools
     context.avb = _AvbBoundaryDouble(context, build)
+    signing_service, release_service, context.signing, context.assembly = _final_evidence(
+        context, build
+    )
     context.service = CandidateInstallationService(
-        store, context.registry, tools, _NoCommands(), avb_service=context.avb
+        store,
+        context.registry,
+        tools,
+        _NoCommands(),
+        avb_service=context.avb,
+        signing_service=signing_service,
+        release_service=release_service,
     )
     return context
 
@@ -191,11 +288,13 @@ def test_complete_candidate_replaces_exactly_two_roles_and_preserves_all_source_
     changed = [image for image in recipe.images if image != originals[image.member]]
     assert {image.name for image in changed} == {"super.img", "vbmeta_system.img"}
     assert sum(origin.source_kind == "base-package" for origin in recipe.origins) == 48
-    assert sum(origin.source_kind == "rebuilt" for origin in recipe.origins) == 2
+    assert sum(origin.source_kind == "signed-final" for origin in recipe.origins) == 2
     for origin in recipe.origins:
-        if origin.source_kind == "rebuilt":
+        if origin.source_kind == "signed-final":
             path = context.store.workspace / origin.relative_path
-            assert path.is_file() and "build-candidates" in path.parts
+            assert path.is_file() and (
+                "signed-assembly" in path.parts or "signing-evidence" in path.parts
+            )
             assert path.name != "product.img"
         else:
             assert origin.relative_path == ""
@@ -247,7 +346,7 @@ def test_changed_built_bytes_never_fall_back_even_with_original_mtime(tmp_path, 
     before = path.stat()
     path.write_bytes(b"X" * before.st_size)
     os.utime(path, ns=(before.st_atime_ns, before.st_mtime_ns))
-    with pytest.raises(ProjectError, match="bytes differ"):
+    with pytest.raises(ProjectError, match="No current verified local build outputs exist"):
         context.service.verify(recipe)
 
 
@@ -275,6 +374,8 @@ def test_missing_build_output_does_not_select_original_source_image(tmp_path):
         ("build_receipt_digest", "a" * 64),
         ("base_receipt_digest", "a" * 64),
         ("avb_receipt_digest", "a" * 64),
+        ("signing_receipt_digest", "a" * 64),
+        ("signed_assembly_receipt_digest", "a" * 64),
         ("wipe", True),
         ("reboot", False),
         ("label", "OEM trusted production release"),
@@ -291,7 +392,7 @@ def test_resealed_invented_image_origin_is_rederived_and_rejected(tmp_path):
     context = _fixture(tmp_path)
     recipe = _prepare(context)
     origins = list(recipe.origins)
-    index = next(i for i, item in enumerate(origins) if item.source_kind == "rebuilt")
+    index = next(i for i, item in enumerate(origins) if item.source_kind == "signed-final")
     origins[index] = replace(origins[index], relative_path="working_roms/other/super.img")
     changed = replace(recipe, origins=tuple(origins))
     changed = replace(changed, recipe_digest=_composition_digest(changed))

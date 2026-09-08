@@ -1734,31 +1734,62 @@ class GuidedBuildMission(QDialog):
                 operations.append("extract")
             self._run_operations(operations)
         elif action == "check-device":
-            if self.studio.device_scan_available:
+            if not self.studio.device_scan_available:
+                project = self.studio.current_project
+                source_sha256 = (
+                    project.original.sha256
+                    if project is not None and project.original is not None
+                    else ""
+                )
                 self.failure = None
                 self.active_operation = "device-scan"
-                self.process_label.setText("Scanning Android connection and refreshing Device DNA")
+                self.process_label.setText("Verifying Platform Tools for the pending device scan")
                 self.process_progress.begin()
                 self.process_frame.setVisible(True)
                 self.status_text.setText(
-                    "ROMVERSE is requesting a fresh read-only device scan. No phone state is changed."
+                    "Genesis is handing this exact pending read-only scan to Forge Arsenal."
                 )
                 self._render_stage()
-                self.studio.device_scan_requested.emit()
-                return
-            context = self._context()
-            if context.device is not None and context.device.state is DeviceState.UNAUTHORIZED:
-                self.failure = self.engine.diagnose("ADB device unauthorized")
-            elif context.device is None:
-                self.failure = GuidedFailure(
-                    "Waiting for the target phone",
-                    "ROMVERSE scans automatically, but no Android device is currently visible.",
-                    (
-                        "Connect a data-capable USB cable and unlock the phone.",
-                        "Enable Developer options and USB debugging, then accept the fingerprint.",
+                resolved = self._resolve_required_tools(
+                    ("ADB", "Fastboot"),
+                    purpose=(
+                        "Genesis stage 5 must freshly verify Android Platform Tools for the exact "
+                        f"project {project.project_id if project is not None else 'unavailable'} "
+                        f"and protected source {source_sha256[:16] or 'unavailable'}… before one "
+                        "read-only device scan. No phone-changing command is authorized."
                     ),
                 )
-            self._refresh()
+                if not resolved or not self.studio.device_scan_available:
+                    self.active_operation = ""
+                    self.process_progress.stop()
+                    self.process_frame.setVisible(False)
+                    if self.failure is None:
+                        self.failure = GuidedFailure(
+                            "Forge Arsenal still needs attention",
+                            "Android Platform Tools are not freshly verified for this pending scan.",
+                            (
+                                "Choose Scan device & refresh DNA to reopen the same repair.",
+                                "Install and verify ADB and Fastboot, then let Genesis retry once.",
+                                "ROMVERSE will not claim device evidence while the tools are unavailable.",
+                            ),
+                        )
+                    self._refresh(select_current=True)
+                    return
+
+            self.failure = None
+            self.active_operation = "device-scan"
+            self.process_label.setText("Scanning Android connection and refreshing Device DNA")
+            self.process_progress.begin()
+            self.process_frame.setVisible(True)
+            self.status_text.setText(
+                "ROMVERSE is requesting a fresh read-only device scan. No phone state is changed."
+            )
+            self._render_stage()
+            # MainWindow starts a scan as soon as freshly verified Platform Tools are activated.
+            # Emitting the pending request here is still required for standalone Studio owners;
+            # MainWindow's scan guard coalesces it with an already-running activation scan.
+            self.studio.device_scan_requested.emit()
+            return
         elif action == "create-recipe":
             self.studio._guided_recipe(self)
             self.state = replace(

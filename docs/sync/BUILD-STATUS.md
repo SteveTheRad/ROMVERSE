@@ -1,5 +1,111 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows stage-5 Platform Tools repair continuity — creator-boundary review requested
+
+- Product Assurance verdict: `2ba78b0a3c689be360e1008e2fcb4dba1d188c9d` — `Approve Windows
+  synthetic working lab`, matching checkpoint `db67c2fa5cb0b27e45702281e3d7486faeb270a1`
+  exactly.
+- Accepted unchanged package source: `cd3b84a2ef8a3e0044bbe468a0106604091e61d8`;
+  approved base `a3636adfd3a58dd0b84713820c173ffe76dc3a40`.
+- Branch: `windows-launcher-authorized-work`.
+- Status: **MINIMUM CORRECTION AND FOCUSED NATIVE WINDOWS TESTS PASS; ONE CORRECTED UNSIGNED
+  PACKAGE WAS BUILT AND LAUNCHED, BUT THE PACKAGED REPAIR/NO-DEVICE SCAN CANNOT BE COMPLETED UNDER
+  THE ACTIVE CREATOR PROHIBITION ON ISSUING ADB/FASTBOOT COMMANDS**.
+
+### Reproduced inert route and minimum correction
+
+- Source inspection confirmed the accepted package's stage-5 `check-device` route never called
+  Forge Arsenal when `device_scan_available=false`; it only refreshed the existing no-phone
+  failure. The visible action was therefore inert with respect to the approved missing-tools repair.
+- `GuidedBuildMission` now retains the exact active project/source context, starts one pending
+  `device-scan` operation, and hands required `ADB` plus `Fastboot` verification to the existing
+  Forge Arsenal `ToolchainSetupDialog`. The dialog exposes the existing managed `Install and verify
+  requirements` route rather than creating another installer or tool owner.
+- If Forge Arsenal returns a freshly complete inventory, Genesis immediately emits the pending
+  read-only scan request. MainWindow's existing `scanning` guard coalesces that request with the
+  activation scan, preventing a duplicate command. If repair is declined, fails or does not make
+  the runtime available, Genesis clears the pending operation, remains at stage 5, explains that
+  evidence cannot be claimed, and leaves the same scan action enabled as an immediate retry route.
+- No device result, stale evidence, build/flash capability, candidate, consent, command manifest or
+  execution authority is synthesized by the correction. The permanent no-relock rule is unchanged.
+
+### Focused native Windows verification
+
+- Initial native Windows command:
+  `$env:PYTHONPATH='src'; $env:QT_QPA_PLATFORM='windows'; .venv\Scripts\python.exe -m pytest -p
+  no:cacheprovider --basetemp C:\Work\ROMVERSE-Pytest-Stage5-2ba78b0a
+  tests/test_rom_studio_ui.py::test_genesis_device_stage_repairs_platform_tools_then_resumes_one_scan
+  tests/test_rom_studio_ui.py::test_genesis_device_stage_retains_retry_when_platform_tools_repair_is_declined
+  -q`.
+- Initial result: **0/2 passed, 2 test-construction failures**. The product path reached the
+  expected assertions; the new test fixture had not persisted its manually selected device stage,
+  and one expected label omitted the existing `&`. Only those test expectations were corrected.
+- Exact rerun with isolated base temp
+  `C:\Work\ROMVERSE-Pytest-Stage5-2ba78b0a-rerun`: **2/2 passed**. The success test proves one
+  exact source-bound ADB/Fastboot repair request, one resumed scan signal, truthful empty-device
+  completion, retained stage 5 and no build plan. The declined-repair test proves no scan signal,
+  retained stage 5, explicit Forge attention and an enabled immediate retry action.
+- Existing native regression command:
+  `$env:PYTHONPATH='src'; $env:QT_QPA_PLATFORM='windows'; .venv\Scripts\python.exe -m pytest -p
+  no:cacheprovider --basetemp C:\Work\ROMVERSE-Pytest-Stage5-Existing-2ba78b0a
+  tests/test_rom_studio_ui.py::test_genesis_device_stage_requests_a_fresh_scan_and_rebuilds_device_dna
+  -q`; result: **1/1 passed**.
+- Ruff passed for `src/romverse/ui/guided_mission.py` and `tests/test_rom_studio_ui.py`; Git
+  whitespace validation passed. All successful verification is genuine native Windows Qt coverage
+  using inert local test doubles; no Linux simulation is represented as Windows execution.
+
+### Single corrected package and bounded packaged observation
+
+- Built exactly once with:
+  `.venv\Scripts\python.exe scripts\build_desktop_executable.py --output-directory
+  C:\Work\ROMVERSE-Windows\build\windows-stage5-tool-repair-2ba78b0a --work-directory
+  C:\Work\ROMVERSE-Windows\build\windows-stage5-tool-repair-2ba78b0a-pyinstaller`.
+- The build succeeded on Windows 11 build `26200` using Python `3.12.10` and PyInstaller `6.22.2`.
+  The unsigned one-folder package contains 305 files totalling 164,643,940 bytes. Its executable is
+  6,319,605 bytes, Authenticode `NotSigned`, SHA-256
+  `5784de7a491c0b151ddb727beecf64c7ca4132760c5a687d9a22981e172899bc`.
+- Launched this corrected package exactly once against the same isolated synthetic workspace. The
+  visible Command Deck retained the exact project at stage 5, 5 of 15 verified, no connected
+  device, Device DNA `UNCONFIRMED`, and `Scan device & refresh DNA` as the next mission action.
+- Windows app control could not activate `Resume Mission`: two bounded attempts were rejected
+  before input because a foreground LegionSpace `Chrome Legacy Window` covered the target point.
+  The app-control safety layer reported the non-target window and required stopping after the one
+  refresh/retry recovery. No mission action, setup dialog, installer, download, scan or other
+  application state change occurred in this packaged launch.
+- The application then accepted a normal main-window close and exited. The runtime record now
+  contains three start/clean-close pairs, is 231 bytes, and has SHA-256
+  `30feaa6b43ac81c3e426cd89b1366323359c203a3e4d399727d797fd3674f8b7`. No `ROMVERSE.exe`
+  process remains.
+
+### Preserved state and genuine creator boundary
+
+- The exact project, Guided, inspection, Device DNA, Matrix, working-copy, working-tree-index and
+  blocked route records remain byte-identical to the approved checkpoint. Workspace `tools`
+  remains empty and no `guardian-audit.jsonl` exists. No candidate, build plan, command manifest,
+  consent or execution authority was created.
+- Product Assurance's approved completion path requires official Platform Tools installation to
+  auto-resume one no-device scan. The active creator heartbeat simultaneously states **never issue
+  ADB/Fastboot device commands**. Installing the runtime would automatically invoke the prohibited
+  read-only ADB/Fastboot discovery, so Build stopped before `Install and verify requirements`.
+- Only the minimum Guided source, two focused tests and this handoff changed in the repository. The
+  protected Companion files remain untouched. The untracked user patch remains present and
+  byte-identical: 8,272 bytes, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone or emulator was requested, awaited, connected, discovered, operated or targeted. No
+  ADB/Fastboot command, Platform Tools installation, download, APK, real firmware change, ROM
+  build/signing, Guardian/Recovery execution, publication, release, lock, relock, force-push or
+  destructive cleanup occurred.
+
+### Required creator decision / precise next action
+
+Steve must reconcile the conflicting authority before packaged acceptance can continue: either
+explicitly authorize exactly one unbound, read-only no-phone `adb devices -l` and `fastboot devices
+-l` discovery after the existing official-source Forge installation, or direct Product Assurance
+to accept only inert native test coverage for this route. Product Assurance should independently
+review the minimum correction, tests, package hash, unchanged project evidence and this boundary.
+Do not repeat the packaged launch or install tools until that decision is committed or provided
+directly by the creator.
+
 ## Windows synthetic isolated working-lab preparation — Product Assurance review requested
 
 - Product Assurance verdict: `a3636adfd3a58dd0b84713820c173ffe76dc3a40` — `Approve Windows

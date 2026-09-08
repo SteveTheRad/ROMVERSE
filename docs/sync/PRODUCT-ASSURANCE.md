@@ -1,5 +1,71 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: c58fe38 — packaged Platform Tools self-repair
+
+- Reviewed commit: `c58fe383391a7c1a6d3335173d921f657d36f052`
+- Approved packaged source: `17c133f7b10a462075cbb698169ce9ef0a72e4e0`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — ONE VISIBLE REPAIR REACHES TRUTHFUL NO-DEVICE READINESS**
+
+### Decision
+
+Product Assurance independently inspected the retained fresh-workspace evidence and reproduced its
+cryptographic identities. The unchanged approved Fedora package acquired only Google's official
+Android Platform Tools into ROMVERSE's private managed directory, bound the archive and exact ADB/
+Fastboot executables to a private receipt, activated them without administrator access, a global
+PATH change or an application restart, and cleanly moved Command Deck from missing tools to the
+truthful no-device state. No application correction is required.
+
+The scanner's 34 records are proportionate to the two-minute visible journey and remain exclusively
+allowlisted host discovery: 17 ADB listings and 17 Fastboot listings, all successful, read-only,
+no-risk, host-targeted and continuously hash-linked. They contain no serial and create no target,
+consent, Recovery or execution authority.
+
+### Independent evidence and acceptance
+
+- The executable and ZIP still match the previously approved SHA-256 values
+  `7ad1064eacaaae66f9e5c62f1c4431f59f8665ca3bce88f17254374c03f59b52` and
+  `6d15d8b9557cfe09ac9f4e6cb91753d3a63fd8a1d6c5a4b2a1d0e11464376959`.
+- The private receipt is mode `0600`, SHA-256
+  `c741176ed5a97bbbcd384a0eb86491a069883ca19357312c8e8ddb5ca0002c77`, and binds the official
+  Google archive's 9,054,187 bytes and SHA-256
+  `d230f13842f60f782a8645f9c813f8f845bf36089ea7289f28c48f17979313f1`.
+- Managed ADB and Fastboot are mode `0700`, report Platform Tools `37.0.1-15733141`, and exactly
+  match receipt hashes `a902be8f45c6c62e76c9efaf6947a0fa747c9cabd89a2ac8e0d16ecb30b3ed01` and
+  `a686e2c7e8dc9cf4cba0cb8a2eef05f7b2bd682c925abd032fe203215d80b618`.
+- The durable install plan selects only ADB through the contract-scoped managed policy and official
+  Platform Tools source. The fault log records one runtime start and one clean close.
+- The audit has exactly 34 sequential records; first hash
+  `e02b7c75fab56ca2953ce6b15af05bd5dcd9e1bb953073075dd8764c97d80f51` and final hash
+  `395f1a98f8ce890f7d8a785e68ba833ad30a806a8b534871597c64a2bd5bc041` agree with the handoff.
+- No phone, device-scoped command, APK, candidate, signing, Guardian/Recovery execution,
+  publication, release, lock or relock occurred.
+
+### Approved next bounded Linux task
+
+Use the current approved packaged Fedora app and its private verified Platform Tools in one isolated,
+no-phone workspace to complete one representative **explicitly simulated** Guided journey from
+Command Deck through Device DNA, the safest applicable customization route, project preparation,
+Build Readiness and the existing local dry-run/Forge handoff. Every simulated identity and result
+must remain visibly labelled simulated and must grant zero physical-device, signing, Guardian,
+Recovery or flash authority.
+
+The objective is connected product behavior, not another broad test cycle: follow the normal visible
+actions, record the first genuine dead end or contradictory state if one exists, and apply only the
+minimum source correction needed to make that exact safe local journey continue. Run only focused
+checks for changed contracts and repackage at most once if a packaged-only correction is necessary.
+Stop at a verified unsigned, non-bootable, non-flashable local candidate/handoff; do not connect a
+phone, install an APK, sign, publish, release or perform any device operation. Preserve all exact-plan,
+UNKNOWN, no-blind-retry, Guardian separation and permanent no-relock rules. Commit/push one bounded
+checkpoint and stop for review.
+
+### Gate status
+
+- Packaged private Platform Tools self-repair and no-device readiness: **VERIFIED**
+- One connected packaged simulated Guided-to-local-candidate journey: **NEXT BOUNDED LINUX TASK**
+- Physical hardware, signing, Guardian/Recovery execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 8812456 — current Fedora development artifact
 
 - Reviewed commit: `881245641083cc259f399558e651a39cdc3c531f`

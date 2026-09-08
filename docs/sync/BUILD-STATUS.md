@@ -1,5 +1,111 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux packaged checkpoint — managed Payload Dumper clears Stage 10
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `ce0c112`, approving implementation checkpoint `500a11a` and
+  authorizing one use of the accepted package and same saved project to resolve only the existing
+  Payload Dumper blocker. This documentation-only section forms the next repository-HEAD checkpoint
+  on `linux/stage1-desktop-readiness`; application source and tests remain unchanged.
+- Stage: Stage 1 — v0.2 Golden Foundation, existing Guided task 10 managed-tool resolution and
+  handoff to task 11 only. Completed tasks were not recreated or replayed. Task 11 was displayed but
+  not operated.
+- The accepted package was reused without rebuilding:
+  `build/linux-pa-stage10-review-25bb798/frozen/ROMVERSE/ROMVERSE`, 6,327,312 bytes,
+  SHA-256 `5b097d706ec42fddab3b49f534b8ccc7a1579446469bff1099ba8dda66966744`.
+  It remains an ignored, unsigned local Fedora development artifact.
+
+### One bounded managed-tool journey
+
+- ROMVERSE launched once with its normal host executable path, the same private configuration and
+  workspace, and existing project `linux-simulated-recipe-validation-307f7af6`. No phone or
+  emulator was attached or selected. The approved normal Desktop monitor performed only its
+  audited, read-only, host-targeted empty ADB/Fastboot inventories.
+- Genesis resumed with expired live-device context, then the saved Build phase exposed task 10's
+  approved host-only action without completing Device DNA or granting device authority. The
+  existing Forge review was opened once. It selected exactly **Payload Dumper** and identified the
+  action as a ROMVERSE-managed download from the official upstream source.
+- **Install and verify requirements** was selected exactly once. No retry occurred. The resulting
+  schema-1 install plan binds the same exact 15-tool source profile, selects only Payload Dumper,
+  has no manual requirement or system package, and records install policy
+  `contract-scoped; user-approved; managed downloads plus visible OS authorization`. Its SHA-256 is
+  `bfc307f5a07ed31f1ac6a9bf763578ea0879ab427139672ec7c8ccc72f659cc2`.
+- The existing bounded acquisition path resolved Payload Dumper 2.0.2 from
+  `https://github.com/ssut/payload-dumper-go/releases/download/2.0.2/payload-dumper-go_2.0.2_linux_amd64.tar.gz`.
+  The receipt records source-archive SHA-256
+  `8d81854caeacd9223a6882340959869b0a210d44a1e597329830713abd2b4dcc`.
+  The private 9,302,960-byte executable is mode `0700`, matches SHA-256
+  `6e87cedaf0a5fb821a0721a071e942ae6e9957233b28346b35d87f02cb85321d`, and sits beside its
+  mode-`0600` `romverse.managed-tool` receipt, whose file SHA-256 is
+  `6cf6a056d805a3e938788d209d86c57b066acfd1d0b73c0394c97629e1b4287c`.
+- Closing Forge invoked the existing activation boundary. Its production receipt verifier
+  independently accepted only
+  `/tmp/romverse-pa-recipe-im2GgwOn/workspace/tools/downloads/payload-dumper-go`; the verified
+  directory was added only to the running process's PATH. No global/user shell PATH, system package
+  database or administrator-managed location changed.
+- Fresh in-process tool verification recognized Payload Dumper 2.0.2, cleared the only exact-profile
+  blocker and advanced Genesis exactly once to task 11 **Freeze a deterministic build plan**. The
+  screen showed 10/15 verified stages. Task 11 remained locked because the prior live-device context
+  was absent, and no task-11 action was selected.
+- Save and exit durably recorded the integrity-checked schema-6 mission as
+  `selected_stage: build_plan`, `root_choice: skip`, `recipe_validated: true`,
+  `install_requested: false`, no last error, and digest
+  `b8eebf0d7b20882079088aaed67375de15f2161e70c2f686064894353d2bad73`.
+  The package then closed normally; the runtime record now contains six start/clean-close pairs and
+  no crash marker.
+- Existing project evidence stayed byte-identical: protected source
+  `680f56c3c6741fb7ae8690a787d2b9ace87d22cbcfa18ea10b040b343b15bf7c`, working
+  `system/build.prop` `5d1bada0c7760b6ea9cc9937774d8b77ccb01132c4475dd0a660bc355eb18eff`, Recipe
+  `fba0a5cbea2a4b6073af3b498defd0182518431cb0969c460982057509dbbbda`, accepted Recipe receipt
+  `57fc3c8ed2fd383c7c2e4c3b84435a632c14b55a62e5c71f7962e815d3967702`, and zero-change Debloat
+  receipt file `b0187d1da8640aaeed7d6e1c77a798e36c2c3cd060cb5c8cc6e6d6734e874f3d`.
+
+### Verification, classification and gates
+
+- **Implemented:** no new implementation. The already-approved saved Stage-10 continuity and
+  existing managed acquisition/receipt/activation/fresh-verification path were exercised unchanged.
+- **Simulated/Tested:** one genuine packaged Fedora GUI journey through the exact approved Stage-10
+  boundary. No simulation mode was enabled. No pytest, Ruff or broad regression was rerun because
+  source and tests did not change and Product Assurance explicitly prohibited unchanged-test replay.
+- **Hardware Verified:** no. No phone or emulator was attached, selected or addressed.
+- **Released:** no. The reused package and managed tool are local/private only; no application
+  package, firmware or release was published.
+- Blockers/failures: Payload Dumper is now verified and Stage 10 is complete. Stage 11 is the saved
+  next stage but correctly remains locked without fresh live-device evidence; it was not operated.
+  No acquisition, verification, persistence or shutdown failure occurred.
+- Guided friction/dead ends: one saved host-only action opened one exact dependency review, one
+  user-approved acquisition cleared the blocker, and Genesis advanced once. No repeated stage,
+  confirmation loop, blind retry or unrelated tool prompt appeared.
+- Guardian/Recovery/safety: the tool receipt and Stage-10 result grant no build, signing, target,
+  Guardian or Recovery authority. Exact-device evidence, UNKNOWN/no-blind-retry, independent
+  verification, Guardian-only execution and permanent bootloader no-relock remain unchanged.
+- Linux/Fedora: the package and journey genuinely ran on Fedora 44/XWayland. Windows and physical
+  Android were not run.
+- Feature freeze: compliant verification/use of an existing Stage-1 managed-tool boundary; no new
+  capability, product surface, adapter, Device Pack or architecture was added. v0.2 Golden
+  Foundation remains **CLOSED**.
+- External actions: this documentation-only handoff is committed and pushed normally. The one
+  authorized private Payload Dumper download, receipt creation and process-local activation
+  occurred exactly as described. No system/global tool installation, administrator prompt, user
+  PATH mutation, phone/emulator operation, device-addressed command, APK install, firmware build/
+  signing/mutation, Guardian/Recovery execution, publication, release, merge, force-push, lock or
+  relock occurred. Companion, Knowledge/UI Design Lab, Windows and unrelated work were not touched.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not operate task 11, connect/address a device,
+rebuild, rerun prior stages, or begin another consequential slice until the verdict for this exact
+checkpoint is recorded in `docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm the exact install plan, official-source receipt, executable digest, production receipt
+  validation, process-local activation and fresh task-10 verification satisfy the approved managed
+  Payload Dumper boundary.
+- Confirm the task-11 selection with the task still locked by absent fresh live-device evidence is
+  the correct safe handoff and does not imply build-plan or device authority.
+
 ## Linux packaged checkpoint — saved Stage 10 host-tool review remains actionable
 
 ### Authoritative checkpoint and scope

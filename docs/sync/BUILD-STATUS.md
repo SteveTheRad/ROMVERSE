@@ -1,5 +1,81 @@
 # ROMVERSE Product Assurance Sync
 
+## Packaged post-Genesis continuity acceptance checkpoint
+
+- Product Assurance verdict: `51f77ceff725c6dcfb89b20942f079a8a0cb5e13` —
+  `Approve fresh Windows development artifact [skip ci]`, matching checkpoint
+  `6ce16869e983575ae57f50be0b86df86fff049bd` exactly.
+- Approved executable reused once without rebuild or extraction:
+  `C:\Work\ROMVERSE-Windows\build\windows-d433afe9\ROMVERSE\ROMVERSE.exe`, **6,302,268 bytes**,
+  SHA-256 `91ee4e4ff610e1a9dfcb7dd3e98893ada661055df6914b87da8379c806af8764`, Authenticode
+  `NotSigned`.
+- Result: **PASS — THE FRESH PACKAGED APPLICATION CREATED ONE PROJECT, PROTECTED AND INSPECTED ONE
+  DETERMINISTIC INERT BOOT IMAGE, RETURNED TO ROM STUDIO WITH PROJECT ROW, SELECTED DETAIL AND
+  GENESIS HANDOFF ALL AT DURABLE STAGE 4 IMMEDIATELY, THEN REOPENED GENESIS ONCE AT THE SAME STAGE
+  AND CLOSED CLEANLY**. No frozen-only continuity defect appeared, so no source or test changed.
+
+### Exact bounded native Windows journey
+
+- The executable launched exactly once, unelevated, with `--workspace
+  C:\Work\ROMVERSE-PostGenesis-Acceptance-51f77cef\workspace --skip-onboarding`, isolated
+  `ROMVERSE_HOME` `...\settings` and `PATH` limited to Windows system directories. The fresh root
+  contained no managed ADB/Fastboot before launch and neither executable resolved from that path.
+- The sanitized fixture reused the deterministic tested Android-boot signature pattern
+  `ANDROID!` followed by 4,096 zero bytes:
+  `C:\Work\ROMVERSE-PostGenesis-Acceptance-51f77cef\fixture\boot.img`, **4,104 bytes**, SHA-256
+  `beb7b61e814e2e7c7dcd737b569892757258b4a5bbfb76b0335afdf07c304baa`.
+- Genesis created project `packaged-post-genesis-continuity-a7432c6e`, display name
+  `Packaged post-Genesis continuity`. The protected copy
+  `original_roms\beb7b61e814e2e7c-boot.img` is ReadOnly, 4,104 bytes and byte-identical at the same
+  SHA-256. `project.romverse` binds that exact source, size and relative path; manifest digest is
+  `4d16a0c591c725bc6e9de263c7ec7c59ec9ea36f9a1b64757964a8bac9e6822c`.
+- Automatic bounded read-only inspection completed as `android_boot`, partition signal `boot`,
+  zero entries and one informational read-only-container finding; record digest is
+  `20e0c688224fbbaf8c958df5fe90feb25bd260d4bc6548c0313b8474013f0d62`.
+- Genesis reached **3 of 15 stages verified**, current task **04/15 — Prepare an isolated working
+  tree**, status `Ready`. The saved Guided mission selects `workspace`, records no error,
+  `build_plan_verified: false` and `install_requested: false`, with digest
+  `b8f66fd867a5ba043f4861a96b7d507bdf5caba56393065d38920acb33bbaf52`.
+
+### Immediate visible continuity and one reopen
+
+- On the first return from Genesis, ROM Studio immediately and simultaneously showed:
+  the project row `GENESIS • 4/15 • WORKING LAB`; selected detail `5/8 steps complete • Next:
+  Create working copy`; and Command Deck handoff `Stage 4/15: Prepare an isolated working tree •
+  20% verified ... NO BUILD OR PHONE ACTION STARTED`. These surfaces agree with the durable record
+  without a restart, reselection or refresh workaround.
+- Retained native capture:
+  `C:\Work\ROMVERSE-PostGenesis-Acceptance-51f77cef\rom-studio-continuity.png`, SHA-256
+  `bce57afc632bf7918b6e49b511e3dff45a4d46ba92b1b823cdcd9d26552657f4`.
+- Genesis was reopened exactly once. It restored `3 OF 15 STAGES VERIFIED`, `TASK 04 OF 15`,
+  `Prepare an isolated working tree`, the exact protected `boot.img` identity and no connected
+  device. Retained capture:
+  `C:\Work\ROMVERSE-PostGenesis-Acceptance-51f77cef\resumed-genesis-stage-4.png`, SHA-256
+  `9e3e52f475fd15a2c80636f72b92256ef2eb7a8d41f5c58cb6342d1c74561175`.
+- The activity ledger contains exactly one `Protected firmware imported` event. The live console
+  contains ten state/progress records and no command, executable, target-serial, ADB or Fastboot
+  field. No build plan, working copy/tree, Guardian/audit/approval/command receipt or device record
+  exists. Normal window Close left no ROMVERSE process; the 77-byte fault log contains exactly one
+  start and one clean-close line.
+
+### Verification boundary, safety and next gate
+
+- No build, package, extraction, test or lint command ran; Product Assurance authorized the one
+  packaged acceptance journey and explicitly prohibited rebuilding and repeating source tests.
+  Git whitespace validation passed for this handoff.
+- No phone or emulator was requested, connected, discovered, operated or targeted. No ADB/Fastboot,
+  Recovery, flash, wipe, unlock, root, relock, APK installation, managed-tool acquisition,
+  production adapter/trust/signing, publication, release, force-push or destructive action occurred.
+  Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty, no
+  blind retry, independent verification, feature freeze and permanent no-relock remain intact.
+- The protected Companion files have no staged or working-tree diff. The pre-existing untracked
+  `0001-Preserve-local-build-completion-across-restart.patch` remains untracked and byte-identical at
+  SHA-256 `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- Precise proposed next task: independent Product Assurance review of this packaged native
+  post-Genesis continuity acceptance checkpoint. Do not relaunch, rebuild, rerun source tests,
+  advance into working-copy/build/device execution, acquire tools or resume the external candidate
+  job unless a matching repository verdict explicitly authorizes it.
+
 ## Fresh unsigned Windows post-Genesis development artifact checkpoint
 
 - Product Assurance verdict: `0ea870f318bdbea253b24fee8a1e6aa2ca3d4e47` —

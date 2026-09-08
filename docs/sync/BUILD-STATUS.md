@@ -1,5 +1,39 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows Stage 1 primary-screen and journey audit checkpoint
+
+- Test contract: `d4c95643753f0f37eec88b70ea66f431ed78251d` —
+  `Audit Windows Stage 1 action wiring`.
+- The production `MainWindow` action audit now proves every visible, labeled control on all 19
+  canonical pages has a `clicked` or `toggled` receiver. Together with the disabled-action guidance
+  assertion, a shipped button cannot remain silently unwired or disabled without an explanation.
+- The screen-level regression covered App Launchpad, Forge Control, Command Deck, Device Atlas,
+  Guardian Core, Health Timeline, Archives, ROM Studio, Galaxy, Members, Command Console and
+  settings/about behavior: **207 tests accounted for**. The grouped run produced **206 passed, 1
+  failed**; the only failure was a test that constructed a `Path` on Windows but expected the literal
+  Linux rendering `/opt/android/adb`. The assertion now uses that same platform path object, and the
+  complete Terminal suite plus action-wiring contract pass **11/11**. Guardian routing and private
+  serial masking are unchanged.
+- First-run/workspace persistence, command palette, Guided/Expert shared state, project-image
+  preparation, candidate installation presentation, and inert lifecycle suites passed together:
+  **29/29 passed**.
+- Combined with the preceding eight directly affected screen suites and the earlier genuine native
+  launch, this completes the bounded source-level inventory of all shipped Stage 1 top-level screens
+  and primary-action wiring. It does not claim that real hardware or production execution was used.
+
+### Static and safety evidence
+
+- Ruff lint and Git whitespace checks pass for the changed action contract and portable terminal
+  assertion. The protected Companion Android files remain untouched, and the pre-existing untracked
+  patch remains byte-identical at SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- All actions were exercised with offscreen Qt, local stores, synthetic device records, and inert
+  runners. No physical phone/emulator, ADB/Fastboot target, Recovery command, flash, wipe, unlock,
+  root, relock, APK install, production trust/signing, publication, release, force-push, or
+  destructive action occurred.
+- The remaining acceptance step is one final Windows build/source runtime smoke containing these
+  verified usability corrections. It will not repeat the repository-wide suite or Guided journey.
+
 ## Windows Stage 1 saved boot-result continuity checkpoint
 
 - Implementation: `1ab27bd093bfdbb0de5187e90bd7c8e868d230ba` —

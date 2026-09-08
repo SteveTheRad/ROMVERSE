@@ -15,6 +15,7 @@ from dataclasses import asdict, dataclass, fields, replace
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from pathlib import Path, PurePosixPath
+from typing import BinaryIO
 from uuid import uuid4
 
 from romverse.infrastructure.local_store import (
@@ -123,8 +124,19 @@ class RomInspector:
         expected_sha256: str,
         source_name: str = "",
     ) -> RomInspectionReport:
-        observed_name = source_name or path.name
-        kind = self._detect(path)
+        with path.open("rb") as stream:
+            return self.inspect_stream(stream, expected_sha256, source_name or path.name)
+
+    def inspect_stream(
+        self,
+        stream: BinaryIO,
+        expected_sha256: str,
+        source_name: str,
+    ) -> RomInspectionReport:
+        """Inspect one seekable stream without reopening its directory entry."""
+
+        observed_name = source_name
+        kind = self._detect_stream(stream)
         findings: list[InspectionFinding] = []
         entries = 0
         uncompressed = 0
@@ -134,11 +146,11 @@ class RomInspector:
         try:
             if kind is ContainerKind.ZIP:
                 entries, uncompressed, complete = self._inspect_zip(
-                    path, findings, partitions, metadata
+                    stream, findings, partitions, metadata
                 )
             elif kind is ContainerKind.TAR:
                 entries, uncompressed, complete = self._inspect_tar(
-                    path, findings, partitions, metadata
+                    stream, findings, partitions, metadata
                 )
             else:
                 self._record_name_signals(observed_name, partitions, metadata)
@@ -188,12 +200,13 @@ class RomInspector:
 
     def _inspect_zip(
         self,
-        path: Path,
+        stream: BinaryIO,
         findings: list[InspectionFinding],
         partitions: set[str],
         metadata: set[str],
     ) -> tuple[int, int, bool]:
-        with zipfile.ZipFile(path) as archive:
+        stream.seek(0)
+        with zipfile.ZipFile(stream) as archive:
             infos = archive.infolist()
             complete = len(infos) <= self.MAX_ARCHIVE_ENTRIES
             if not complete:
@@ -237,7 +250,7 @@ class RomInspector:
 
     def _inspect_tar(
         self,
-        path: Path,
+        stream: BinaryIO,
         findings: list[InspectionFinding],
         partitions: set[str],
         metadata: set[str],
@@ -245,7 +258,8 @@ class RomInspector:
         count = 0
         total = 0
         complete = True
-        with tarfile.open(path, mode="r:*") as archive:
+        stream.seek(0)
+        with tarfile.open(fileobj=stream, mode="r:*") as archive:
             for member in archive:
                 count += 1
                 if count > self.MAX_ARCHIVE_ENTRIES:
@@ -263,9 +277,9 @@ class RomInspector:
         return count, total, complete
 
     @staticmethod
-    def _detect(path: Path) -> ContainerKind:
-        with path.open("rb") as stream:
-            header = stream.read(4096)
+    def _detect_stream(stream: BinaryIO) -> ContainerKind:
+        stream.seek(0)
+        header = stream.read(4096)
         if header.startswith(b"PK\x03\x04") or header.startswith(b"PK\x05\x06"):
             return ContainerKind.ZIP
         if header.startswith(b"ANDROID!"):
@@ -280,9 +294,14 @@ class RomInspector:
             return ContainerKind.EXT4
         if len(header) >= 1028 and struct.unpack_from("<I", header, 1024)[0] == 0xE0F5E1E2:
             return ContainerKind.EROFS
-        if tarfile.is_tarfile(path):
-            return ContainerKind.TAR
-        return ContainerKind.RAW
+        stream.seek(0)
+        try:
+            with tarfile.open(fileobj=stream, mode="r:*"):
+                return ContainerKind.TAR
+        except (OSError, tarfile.TarError):
+            return ContainerKind.RAW
+        finally:
+            stream.seek(0)
 
     @staticmethod
     def _record_name_signals(

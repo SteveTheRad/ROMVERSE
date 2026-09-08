@@ -1,5 +1,6 @@
 import io
 import json
+import os
 import stat
 import struct
 import tarfile
@@ -8,6 +9,7 @@ from dataclasses import replace
 
 import pytest
 
+from romverse.infrastructure.local_store import windows_private_file_acl
 from romverse.rom.inspection import (
     ContainerKind,
     FindingSeverity,
@@ -16,6 +18,19 @@ from romverse.rom.inspection import (
 )
 from romverse.rom.models import ProjectError
 from romverse.rom.projects import RomProjectStore
+
+
+def _assert_private_file(path) -> None:
+    if os.name == "nt":
+        entries = windows_private_file_acl(path)
+        assert len(entries) == 2
+        assert {sid for sid, _mask, _inherited in entries} == {
+            "S-1-3-4",  # OWNER RIGHTS
+            "S-1-5-18",  # LOCAL SYSTEM
+        }
+        assert all(mask == 0x1F01FF and not inherited for _sid, mask, inherited in entries)
+        return
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
 
 
 def test_zip_inventory_detects_android_signals_without_extraction(tmp_path):
@@ -78,6 +93,39 @@ def test_tar_flags_link_and_inventory(tmp_path):
     assert any(finding.finding_id == "archive.link" for finding in report.findings)
 
 
+@pytest.mark.parametrize("container", ["zip", "tar", "raw"])
+def test_seekable_stream_preserves_zip_tar_and_raw_results(tmp_path, container):
+    path = tmp_path / f"firmware.{container}"
+    if container == "zip":
+        with zipfile.ZipFile(path, "w") as output:
+            output.writestr("images/super.img", b"super")
+            output.writestr("META-INF/com/android/metadata", b"ota-type=AB")
+        expected = (ContainerKind.ZIP, 2, ("super",), ("meta-inf/com/android/metadata",))
+    elif container == "tar":
+        with tarfile.open(path, "w") as output:
+            data = b"vbmeta"
+            image = tarfile.TarInfo("AP/vbmeta.img")
+            image.size = len(data)
+            output.addfile(image, io.BytesIO(data))
+        expected = (ContainerKind.TAR, 1, ("vbmeta",), ())
+    else:
+        path.write_bytes(b"unrecognized-read-only-container")
+        expected = (ContainerKind.RAW, 0, (), ())
+
+    inspector = RomInspector()
+    path_report = inspector.inspect(path, "expected")
+    with path.open("rb") as stream:
+        stream_report = inspector.inspect_stream(stream, "expected", path.name)
+
+    assert (
+        stream_report.container,
+        stream_report.entry_count,
+        stream_report.partition_signals,
+        stream_report.metadata_signals,
+    ) == expected
+    assert replace(stream_report, generated_at=path_report.generated_at) == path_report
+
+
 def test_tar_special_entries_are_critical_and_cannot_be_extracted(tmp_path):
     archive = tmp_path / "special.tar"
     with tarfile.open(archive, "w") as output:
@@ -138,7 +186,7 @@ def test_service_verifies_original_then_persists_versioned_report(tmp_path):
     assert payload["format"] == "romverse.inspection"
     assert payload["schema_version"] == 2
     assert len(payload["record_digest"]) == 64
-    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+    _assert_private_file(path)
 
 
 def test_inspection_report_rejects_tampering_oversize_and_symlink(tmp_path):
@@ -246,9 +294,10 @@ def test_service_extracts_clean_zip_into_contained_tree(tmp_path):
     tree = RomInspectionService(store).extract_project_tree(project.project_id)
     assert (tree / "IMAGES/system.img").read_bytes() == b"system"
     assert tree.is_relative_to(store.working_root)
-    assert stat.S_IMODE(tree.stat().st_mode) == 0o700
-    assert stat.S_IMODE((tree / "IMAGES").stat().st_mode) == 0o700
-    assert stat.S_IMODE((tree / "IMAGES/system.img").stat().st_mode) == 0o600
+    if os.name != "nt":
+        assert stat.S_IMODE(tree.stat().st_mode) == 0o700
+        assert stat.S_IMODE((tree / "IMAGES").stat().st_mode) == 0o700
+        assert stat.S_IMODE((tree / "IMAGES/system.img").stat().st_mode) == 0o600
     summary = RomInspectionService(store).summarize_working_tree(project.project_id)
     assert summary is not None
     assert summary.file_count == 2
@@ -266,7 +315,7 @@ def test_extraction_seals_private_fast_tree_index_and_rejects_tampering(tmp_path
     service.extract_project_tree(project.project_id)
 
     index = store.projects_root / project.project_id / service.TREE_INDEX_NAME
-    assert stat.S_IMODE(index.stat().st_mode) == 0o600
+    _assert_private_file(index)
     assert service.working_tree_exists(project.project_id)
     assert service.cached_working_tree_summary(project.project_id) is not None
 

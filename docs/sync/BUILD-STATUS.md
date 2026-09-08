@@ -1,5 +1,70 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows Recovery Archives context parity — Product Assurance review requested
+
+- Product Assurance verdict: `87c5c6806a73f0f6896bb2a5d558a8e1178a91c5` — `Approve Windows
+  App Launchpad parity`, matching checkpoint
+  `48d0daf8a2ddba248a68918d1a187cb262292514` exactly.
+- Branch: `windows-launcher-authorized-work`.
+- Status: **PASS — THE APPROVED PLATFORM-NEUTRAL RECOVERY ARCHIVES CONTEXT NOW SURVIVES THE
+  CANONICAL WINDOWS COMMAND DECK ROUTE WITH EXPLICIT AUTHORITY NONE; THE ONE FOCUSED NATIVE
+  WINDOWS CASE PASSES. NO PACKAGE WAS BUILT OR LAUNCHED.**
+
+### Exact source parity
+
+- Transcribed only the application/test changes from
+  `4f54f5dd65cd2d00941ed324770d8762c900de52` — `Preserve Recovery Archives handoff context`,
+  fetched from `origin/linux/stage1-desktop-readiness`. No Linux Build handoff or unrelated branch
+  history was merged, rebased or cherry-picked.
+- Recovery Bay's exact `adb unauthorized` symptom and local Recovery Archives source now survive
+  the existing canonical Command Deck route. The resulting context explicitly reports
+  `LOCAL GUIDE • AUTHORITY NONE`, retains the enabled existing read-only discovery action and
+  starts no repair worker, online request, mission, plan, approval or command.
+- Source drift was resolved without importing unrelated Linux code: Linux's focused test queried a
+  newer `current_active_mission()` helper that is absent on this Windows line. The equivalent
+  Windows assertion uses the existing visible `MISSION: IDLE` state, backed by the same mission
+  ledger rendering, while the test separately requires both repair workers and the active repair
+  session to remain absent.
+- The accepted Windows launcher, Guided consent, minimum-SDK and App Launchpad corrections remain
+  unchanged.
+
+### Focused native Windows evidence
+
+- Windows 11, Python `3.12.10`, `PYTHONPATH=src`, `QT_QPA_PLATFORM=windows`.
+- First exact focused invocation reached the correct Recovery Archives and Command Deck context,
+  then reported **1 failed** because the transplanted assertion called the Linux-only
+  `DeviceCenter.current_active_mission()` helper. This was classified as test-interface source
+  drift, not an application behavior failure; no broader test was run.
+- After replacing only that assertion with the Windows line's equivalent visible
+  `MISSION: IDLE` evidence, `.venv\Scripts\python.exe -m pytest -p no:cacheprovider --basetemp
+  C:\Work\ROMVERSE-Pytest-Recovery-Context-Rerun-20260909
+  tests/test_navigation_vocabulary.py::test_recovery_bay_archives_handoff_and_canonical_fix_route_are_connected
+  -q` — **1 passed**.
+- `.venv\Scripts\python.exe -m ruff check src\romverse\ui\device_center.py
+  src\romverse\ui\main_window.py tests\test_navigation_vocabulary.py` — **passed**.
+- `git diff --check` — **passed**. Final acceptance result: **1 passed, 0 failed, 0 skipped,
+  0 timed out**.
+
+### Preserved boundaries
+
+- No executable/package was built or launched. No tool was acquired, selected, downloaded or
+  installed; no ADB/Fastboot process or command was invoked; and no phone, emulator or device was
+  requested, awaited, discovered, connected, operated or targeted.
+- No APK/device installation, firmware change, ROM signing, plan, approval, Guardian/Recovery
+  execution, publication, release, lock, relock, force-push or destructive action occurred.
+  Exact-device evidence, UNKNOWN-on-uncertainty, consent separation, no blind retry,
+  Guardian-only authority, independent verification and permanent no-relock remain intact.
+- Protected Companion files and Knowledge/UI Design Lab work remain untouched. The untracked user
+  patch remains byte-identical at 8,272 bytes, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+
+### Proposed next bounded task
+
+Product Assurance should independently compare this three-file source/test diff with `4f54f5dd`,
+verify the explicit test-interface source-drift reconciliation and rerun the one exact native
+Windows route case. Build must not build or launch a package, invoke platform tools or infer
+device/execution authority while that review is pending.
+
 ## Windows App Launchpad source parity — Product Assurance review requested
 
 - Product Assurance verdict: `12f81ad900cf2dfdad4143536996b58c77d6166f` — `Approve Windows

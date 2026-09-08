@@ -8392,6 +8392,15 @@ class MainWindow(QMainWindow):
         if target == "recovery_bay" and recovery_identity is not None:
             self._return_archives_recovery(*recovery_identity)
             return
+        source_route = str(
+            self.knowledge_center.source_context.property("source_route") or ""
+        )
+        if target == "command_deck" and source_route == "recovery_bay":
+            query = " ".join(
+                self.knowledge_center.search.text().replace("\x00", " ").split()
+            )[:160]
+            if query:
+                self.device_center.open_recovery_archive_context(query)
         self._navigate_route(target or f"knowledge:{route}")
 
     @Slot(str)

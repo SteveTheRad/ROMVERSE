@@ -619,6 +619,26 @@ class DeviceCenter(QWidget):
         self.body.verticalScrollBar().setValue(0)
         return True
 
+    def open_recovery_archive_context(self, symptom: str) -> bool:
+        """Retain one local Recovery Bay guide context without changing device authority."""
+
+        normalized = " ".join(str(symptom).replace("\x00", " ").split())[:160]
+        if not normalized:
+            return False
+        self.feature_handoff_title.setText(f"Recovery Bay Archives  •  {normalized}")
+        self.feature_handoff_detail.setText(
+            "The compatible local guide remains the source for this handoff. Connect and "
+            "authorize the phone, then use the existing read-only scan; no repair worker, "
+            "online request, plan, approval, or command started."
+        )
+        self.feature_handoff_badge.setText("LOCAL GUIDE • AUTHORITY NONE")
+        self.feature_handoff_badge.setObjectName("Good")
+        self._repolish(self.feature_handoff_badge)
+        self.feature_handoff.setVisible(True)
+        self.body.verticalScrollBar().setValue(0)
+        self.next_button.setFocus(Qt.FocusReason.OtherFocusReason)
+        return True
+
     def set_workspace_context(
         self,
         project_name: str,

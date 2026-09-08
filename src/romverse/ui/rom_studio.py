@@ -4312,7 +4312,7 @@ class RomStudio(QWidget):
                 return
             self._pending_repair_solution = None
         else:
-            dialog = BuildControlCenter(self, parent or self)
+            dialog = BuildControlCenter(self, parent or self, auto_start=False)
         dialog.exec()
         if dialog.guardian_manifest_requested:
             self._open_guardian_manifest_review(parent)

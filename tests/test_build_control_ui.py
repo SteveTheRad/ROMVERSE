@@ -46,8 +46,10 @@ from romverse.rom.avb_evidence import (
     SourceAvbEvidenceService,
     SourceAvbTopologyReceipt,
 )
+from romverse.rom.build_contracts import DeviceBuildContractService
 from romverse.rom.build_execution import LocalBuildResumeState, LocalDeviceBuildExecutor
 from romverse.rom.builds import RomBuildPlanner
+from romverse.rom.forge import ForgeBundleService
 from romverse.rom.inspection import RomInspectionService
 from romverse.rom.projects import RomProjectStore
 from romverse.rom.readiness import (
@@ -67,6 +69,9 @@ from romverse.ui.build_control import (
     SourceBlueprintWorker,
 )
 from romverse.ui.rom_studio import RomStudio
+from tests.test_build_contracts import _BuildRunner
+from tests.test_build_contracts import _executable_tools as _exact_build_tools
+from tests.test_build_contracts import _fixture as _exact_build_fixture
 
 
 def _studio(tmp_path) -> RomStudio:
@@ -179,6 +184,76 @@ def test_smart_solution_opens_exact_forge_review_without_starting_work(tmp_path)
         receipt,
     )
     control.close()
+    studio.close()
+
+
+def test_verified_intermediate_opens_inspection_only_then_explicitly_builds_once(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    store, project, registry, _tools, _metadata, partitions = _exact_build_fixture(tmp_path)
+    tools = _exact_build_tools(tmp_path / "tools")
+    DeviceBuildContractService(store, registry, tools).create_plan(project.project_id)
+    forge = ForgeBundleService(store)
+    forge_receipt = forge.create(project.project_id)
+    assert forge.verify(project.project_id).valid
+
+    studio = RomStudio(store, registry, tools)
+    runner = _BuildRunner(partitions / "system.img")
+    studio.filesystem_service = SimpleNamespace(runner=runner)
+    studio.refresh(project.project_id)
+    started = []
+    observed = []
+    monkeypatch.setattr("romverse.ui.build_control.start_background", started.append)
+
+    def exercise_explicit_build(control: BuildControlCenter) -> int:
+        app.processEvents()
+        executor = control._local_build_executor()
+        assert not control.autopilot_active
+        assert not control._has_active_worker()
+        assert control.preparation_missions == {}
+        assert executor.load_receipt(project.project_id) is None
+        assert started == []
+        assert control.build_button.isEnabled()
+
+        control.build_button.click()
+
+        assert len(started) == 1
+        assert started[0] is control.build_worker
+        started.pop(0).run()
+        app.processEvents()
+
+        receipt = executor.load_receipt(project.project_id)
+        assert receipt is not None
+        assert receipt.status == "success"
+        assert not receipt.phone_changed
+        assert control.build_worker is None
+        assert started == []
+        assert control.report is not None and control.report.local_candidate_ready
+        assert "Local candidate verified" in control.status.text()
+        assert "phone changed: NO" in control.status.text()
+        observed.append(receipt)
+        control.close()
+        return 0
+
+    monkeypatch.setattr(BuildControlCenter, "exec", exercise_explicit_build)
+
+    assert studio.build_control_button.isEnabled()
+    studio.build_control_button.click()
+    app.processEvents()
+
+    assert len(observed) == 1
+    receipt = observed[0]
+    reopened = RomProjectStore(store.workspace)
+    durable = LocalDeviceBuildExecutor(reopened, registry, tools, runner).load_receipt(
+        project.project_id
+    )
+    assert durable == receipt
+    assert all((reopened.workspace / output.path).is_file() for output in receipt.outputs)
+    assert ForgeBundleService(reopened).load_receipt(project.project_id) == forge_receipt
+    assert not any("adb" in call[0] or "fastboot" in call[0] for call in runner.calls)
+    assert studio.devices == []
     studio.close()
 
 

@@ -1,5 +1,55 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: d433afe — Windows post-Genesis refresh convergence
+
+- Reviewed commit: `d433afe9`
+- Approved source: `ac772057c6dc9510bf4d30f7e7a1c296f446352c`
+- Approved base: `c6f5c62`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — THE REVIEWED CONTINUITY FIX IS CONVERGED AND PASSES NATIVELY**
+
+### Decision
+
+Product Assurance inspected the complete three-file checkpoint and independently reran its four
+focused UI/continuity checks using native Windows Qt. The 21-line behavior and deterministic test
+are the approved Linux correction adapted only to this branch's earlier guided-dialog call
+signature; no unrelated Linux history or product behavior was imported.
+
+### Independent evidence and acceptance
+
+- Independent native Windows verification passed **4/4**: authoritative project-card state, shared
+  flight-plan assessment, real modal post-return continuity and existing exact Command Deck
+  handoffs.
+- The journey preserves one exact project/source, one import completion, durable stage 4 and
+  agreement across project list/detail/handoff, with no build plan, worker or device context.
+- Focused Ruff lint and Git whitespace validation passed. The checkout is clean except for the
+  protected pre-existing untracked patch.
+- No frozen app, phone, scan, ADB/Fastboot, acquisition, build, Guardian/Recovery authority,
+  signing, publication, release, lock or relock occurred.
+
+### Approved next bounded Windows task
+
+Produce one fresh **unsigned Windows development artifact** from exact approved source `d433afe9`
+so the converged user-visible continuity fix exists in the runnable application. Use the existing
+one-folder/windowed build and bundle pipeline once in fresh output directories. Verify source
+identity, complete archive integrity and one normal unelevated no-phone launch/clean close at the
+supported initial size.
+
+If one genuine frozen-only launcher, asset, dependency or startup defect appears, apply only the
+minimum Windows correction and run directly affected checks; otherwise change no source. Do not
+repeat the four proven UI tests, run a broad suite, acquire tools, connect hardware, issue
+ADB/Fastboot, start a firmware/local-candidate build, install, sign, publish or release. Record the
+artifact path, size/hash, bundle inventory, source commit and visible limitations. Commit/push one
+bounded handoff and stop for review.
+
+### Gate status
+
+- Windows post-Genesis continuity convergence: **VERIFIED**
+- Current runnable unsigned Windows artifact: **NEXT BOUNDED WINDOWS TASK**
+- GitHub-hosted unsigned-candidate job: **EXTERNAL ACCOUNT GATE OUTSTANDING**
+- Physical hardware, signing, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 9dfdde8 — Windows managed-tool restart and no-phone scan
 
 - Reviewed commit: `9dfdde8ba88f421858087dc97d555c386b575ee1`

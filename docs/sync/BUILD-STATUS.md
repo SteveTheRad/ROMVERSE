@@ -1,5 +1,77 @@
 # ROMVERSE Product Assurance Sync
 
+## Packaged Windows missing-tools recovery checkpoint
+
+- Product Assurance verdict: `e24e50ed7e79fd7d89e3910c21cc13d70c374e04` —
+  `Approve current Windows development artifact`, matching handoff
+  `bf09410713993b7d65210b272fd01dab4b280888` exactly.
+- Frozen artifact reused without rebuilding:
+  `C:\Work\ROMVERSE-Windows\build\windows-no-phone-f6b9d785\ROMVERSE\ROMVERSE.exe`,
+  still **6,301,671 bytes** with SHA-256
+  `828547516bd7bf8ea75479e80233bedf3545fa2d78b947a7d99ebf62fa563db9`.
+- Result: **PASS — PACKAGED RECOVERY LOOP WORKS; NO SOURCE, TEST, OR PACKAGE CHANGE REQUIRED**.
+  One normal frozen process used the fresh disposable workspace
+  `C:\Work\ROMVERSE-Frozen-Recovery-e24e50ed` and an isolated disposable ROMVERSE settings root;
+  automatic downloading was disabled so the approved acquisition could not be repeated.
+
+### Before, setup, and automatic resume
+
+- The workspace began with only one inert malformed receipt. Production activation rejected it,
+  and Windows UI Automation observed the final frozen main window on Command Deck with
+  `DEVICE ENGINE ERROR`, `Device Engine needs attention`, and a reachable
+  `Resolve Platform Tools` button. The first native screenshot confirmed the same truthful visible
+  state.
+- The already approved extracted Platform Tools cache was copied once into this disposable
+  workspace at the acquisition boundary. No archive or network resource was downloaded. The copied
+  production receipt remained bound to the official **8,044,989-byte** Windows archive with
+  SHA-256 `45f4d63113e895ebde0c90f194099a4676b6ac653bd28d54314a9e022bbc1a99`.
+  Independent post-journey hashes matched the receipt exactly: ADB
+  `b4a6b455702684652cccf7b46258b29e653538904359a58fd4931cf3ef286b3f` and Fastboot
+  `b2d9cbff4ce9ae7eb448cfc831bafc867935f50f5be38f8f81057fd7eb3b8d86`.
+- Invoking `Resolve Platform Tools` through its Windows accessibility action opened the actual
+  frozen dialog `ROMVERSE • Start Device Engine`. The second screenshot visibly showed
+  `Forge Arsenal Setup`, the scoped ADB managed-tool requirement, and the normal Close action. The
+  already copied cache made installation unnecessary, so `Install and verify requirements` was not
+  invoked and no redownload occurred.
+- Closing the setup dialog returned through the production resolver. ROMVERSE revalidated the
+  complete receipt, activated the workspace-local package, rebuilt Device Engine, and performed
+  its initial unbound read-only discovery without a restart or page rediscovery.
+- Within the no-retry observation bound, Windows accessibility exposed the enabled
+  `Scan for device` action, two visible `Waiting for device` states, and no
+  `DEVICE ENGINE ERROR`. The final screenshot confirmed Command Deck remained visible and
+  unclipped with `NOT CONNECTED`, `No Android device detected`, and the calm continuation.
+
+### Exact command and safety evidence
+
+- The Guardian ledger contains exactly **1** record: allowed read-only
+  `fastboot.exe devices -l`, target `host`, return code 0, not timed out. There is no `-s` argument,
+  target identifier, mutation, or second scan. The receipt validator accepted both ADB and Fastboot
+  file hashes, but no ADB Device Engine command appears in this frozen journey; this checkpoint
+  therefore does not claim that both discovery transports executed.
+- Settings used a 300-second scan interval and the window closed immediately after the first
+  settled state, proving **0 retries**. The same process accepted the normal accessibility Close
+  action and exited. Its fault log contains exactly `ROMVERSE runtime started` followed by
+  `ROMVERSE runtime closed cleanly`.
+- The first automation lookup searched only desktop child windows and timed out while the setup
+  dialog remained open. A broader read-only Windows accessibility lookup found that existing
+  dialog; the same process and journey then continued. No app relaunch, second cache copy, second
+  setup action, or duplicate scan occurred.
+- No regression test was run because the unchanged frozen artifact completed the exact approved
+  journey and no defect required correction. No broad suite, rebuild, package, acquisition, or
+  unchanged-test loop ran.
+- The protected Companion files have no staged or working-tree diff. The pre-existing untracked
+  `0001-Preserve-local-build-completion-across-restart.patch` remains untracked and byte-identical at
+  SHA-256 `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone or emulator was requested, connected, discovered, operated, or targeted. No
+  serial-selected or mutating ADB/Fastboot command, Recovery, flash, wipe, unlock, root, relock, APK
+  installation, production trust/signing, publication, release, force-push, or destructive action
+  occurred. Guardian-only authority, exact-device evidence, consent separation,
+  UNKNOWN-on-uncertainty, no blind retry, independent verification, feature freeze, and permanent
+  no-relock remain intact.
+- Remaining action and precise proposed next task: independent Product Assurance review of this
+  packaged no-phone recovery evidence. Windows Build is stopped; no further task is assumed before
+  a matching verdict is committed to the authoritative branch.
+
 ## Current unsigned Windows development artifact checkpoint
 
 - Product Assurance verdict: `f6b9d785d60ceaccbab3afefa88cdee8b6e7ef12` —

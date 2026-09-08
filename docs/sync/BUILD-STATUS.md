@@ -1,5 +1,104 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows corrected-package Forge review/cancel — Product Assurance review requested
+
+- Product Assurance verdict: `4b99daad6d2411e55f9510e81d5c470db70fe08b` — `Approve Windows
+  Genesis consent correction`, matching checkpoint
+  `956241505d868030355ff4fc5ca8ad62a9953e5e` exactly.
+- Accepted correction: `bb13daf830822be87b5f0edc58292f2b259af544`; approved base
+  `6bc50c40a679b432398d58e557a08209fd2176b0`.
+- Branch: `windows-launcher-authorized-work`.
+- Status: **PASS — ONE NEW UNSIGNED WINDOWS PACKAGE KEPT THE STAGE-FIVE FORGE HANDOFF IN
+  REVIEW-ONLY MODE, PRESERVED ITS EXACT PROJECT/SOURCE PURPOSE, PERFORMED NO SPONTANEOUS DOWNLOAD
+  OR COMMAND, CANCELLED CLEANLY AND RETAINED THE SAME SAFE RETRY.**
+
+### Exact single Windows package
+
+- Built exactly once with:
+  `.venv\Scripts\python.exe scripts\build_desktop_executable.py --output-directory
+  C:\Work\ROMVERSE-Windows\build\windows-genesis-consent-bb13daf8 --work-directory
+  C:\Work\ROMVERSE-Windows\build\windows-genesis-consent-bb13daf8-pyinstaller`.
+- Result: successful on Windows 11 build `26200` with Python `3.12.10` and PyInstaller `6.22.2`.
+  The one-folder package at
+  `build/windows-genesis-consent-bb13daf8/ROMVERSE` contains 305 files totalling 164,644,024
+  bytes. `ROMVERSE.exe` is 6,319,689 bytes, Authenticode `NotSigned`, SHA-256
+  `89a52f4acbc26fd05b3f844dfb269167a85b758aa258970898a0269771429ab2`.
+- No second build, installer, ZIP, signed artifact, publication or release was produced.
+
+### One corrected packaged Forge journey
+
+- Before launch, the exact saved workspace
+  `C:\Work\ROMVERSE-Windows-Adaptive-Discovery-3fe32432-20260909` contained zero managed-tool
+  files and no `toolchain-install-plan.json`, `guardian-audit.jsonl` or Guardian audit lock.
+- Launched the new executable exactly once with `--workspace` bound to that exact workspace and
+  `--skip-onboarding`. It restored project `Windows Synthetic Discovery 20260909`, stage 5 of 15,
+  protected source `synthetic-unfamiliar-firmware.zip` / `85e734ea89c706d3…`, Device DNA
+  UNCONFIRMED and **Scan device & refresh DNA** as the next action.
+- The target accessibility tree identified **Resume Mission** and then the exact Genesis
+  `QApplication.GuidedBuildMission.MissionFooter.MissionAction` control. Windows again exposed the
+  Genesis modal only as a nested surface: the first direct indexed activation for each control was
+  rejected before input because geometry or the nested cache entry was unavailable. Fresh
+  screenshot-backed states and the same exact accessibility names were therefore used to activate
+  only **Resume Mission** and **Scan device & refresh DNA** once each. No unrelated control was
+  activated.
+- Forge Arsenal opened in review-only mode with exactly two enabled requirements, ADB and Fastboot;
+  an enabled **Install and verify requirements** action; and an enabled Close path. Its purpose
+  retained exact project `windows-synthetic-discovery-20260909-463d097f`, protected-source prefix
+  `85e734ea89c706d3…`, stage 5, one future read-only scan and the explicit statement that no
+  phone-changing command was authorized.
+- No requirement was changed or selected by Build, and **Install and verify requirements** was not
+  activated. After a five-second bounded wait, the workspace still had zero managed-tool files and
+  no install plan, command audit or audit lock. No workspace-local ADB/Fastboot process existed.
+- Forge's visible Close path was activated once. Genesis then reported **Forge Arsenal still needs
+  attention**, remained at stage 5, and immediately re-enabled the same **Scan device & refresh
+  DNA** action. Genesis and ROMVERSE closed normally. No corrected-package replay occurred.
+
+### Preserved state and boundaries
+
+- Closing the unchanged Genesis dialog writes its routine timestamp and Live Console pause event.
+  Those verification-only records were returned to the exact accepted disposable-workspace
+  baseline after process exit. All project/authority bytes match the approved hashes:
+  `project.romverse` `43d0be47945aa2ec5a27f11ef8a94a809a9ef4cb9f23ea4a1424773990902fd3`,
+  `guided-mission.json` `56dcc316220c22f3784d5e10fda39df47a3b96a763bbab702eba369e40b4d511`,
+  `inspection.romverse` `cd98bfd4120977d9d9dd59e8e8a9684bc66dd511f51a4f8a4f6e14581763afd1`,
+  `device-dna.romverse` `a9cda907fe28d783549a37dc09328ba12ba9f11a02a704c1c43b32f3a56c6046`,
+  `compatibility-matrix.romverse`
+  `6e6f9dc82619f2940f1b3a56aea4322b35458669b54da7d53be950641feb7a81`,
+  `working-copy.romverse` `98b0d92596c2d6acc413a7325ec9a68eb7f34c4f54c8bed3206f9b291ca23749`,
+  `working-tree-index.romverse`
+  `154d60fcbe230b4b2c449959e9cb481f110ba9637f5c7e69cd1195369115f490`, and
+  `route-record.romverse` `c1c5ed2c1584a11889d1c3ad759ac86ffee7ba85406c28405c3e395cb8df3b95`.
+- The valid Live Console ledger is restored to its same 18-event baseline at SHA-256
+  `ff7e06358687b4024f1ea0fadb99c102df0c76c815072d537af3f6d29610e4de`, with ledger digest
+  `7188aa9552495207a720ca573c1ec38284f368c381136969233e07527586224b`.
+  The runtime record alone advanced from five to six complete start/clean-close pairs; it is 462
+  bytes with SHA-256
+  `00db3144b046799d2e0dee6d2ca8fe9211a6c93093ad4d6e963b1674a24f82f2`.
+- Workspace managed tools remain empty. No install plan, Guardian audit, command manifest, consent,
+  candidate, build plan or execution authority exists. No `ROMVERSE.exe` or workspace-local tool
+  process remains. The unrelated detached ADB server from
+  `C:\Work\ROMVERSE-Link-Lazy-Frozen-20260907` remained untouched and was never queried, targeted
+  or stopped.
+- Per verdict `4b99daad`, the independently accepted five focused cases were not replayed and no
+  broad suite was run. Test total for this package-only checkpoint: **0 tests run**. No source or
+  test file changed; `git diff --check` passes for the handoff.
+- Protected Companion files remain untouched. The untracked user patch remains byte-identical at
+  8,272 bytes, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone or emulator was requested, awaited, discovered, connected, operated or targeted. No
+  ADB/Fastboot command, download, tool installation, APK/device installation, firmware change,
+  ROM signing, Guardian/Recovery execution, publication, release, lock, relock, force-push or
+  destructive cleanup occurred. UNKNOWN/UNCONFIRMED, exact-device evidence, consent separation,
+  Guardian-only authority and permanent no-relock remain intact.
+
+### Proposed next bounded task
+
+Product Assurance should independently verify the package hash, exact review-only Forge state,
+five-second no-spontaneous-action evidence, clean cancel/retry behavior, restored store hashes and
+handoff-only repository diff. If approved, record the next bounded Windows task explicitly; Build
+must not replay this package, activate installation or infer device/execution authority while that
+review is pending.
+
 ## Windows packaged Genesis explicit-consent correction — Product Assurance review requested
 
 - Product Assurance verdict: `6bc50c40a679b432398d58e557a08209fd2176b0` — `Approve Windows

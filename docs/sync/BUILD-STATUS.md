@@ -1,5 +1,112 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — packaged Platform Tools self-repair reaches no-device readiness
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `332767e0a934018861731ee6ad581bf27eaff9c7` approved one
+  packaged, fresh-workspace Fedora journey through the existing visible **Resolve Platform Tools**
+  action. No application source change or second package build was authorized or required.
+- Exact unchanged executable: `build/linux-pa-17c133f/frozen/ROMVERSE/ROMVERSE`, SHA-256
+  `7ad1064eacaaae66f9e5c62f1c4431f59f8665ca3bce88f17254374c03f59b52`.
+- Exact unchanged unsigned ZIP: `dist/ROMVERSE-Desktop-0.2.0-alpha.1-linux-x86_64-17c133f.zip`,
+  SHA-256 `6d15d8b9557cfe09ac9f4e6cb91753d3a63fd8a1d6c5a4b2a1d0e11464376959`.
+- Stage: Stage 1 — v0.2 Golden Foundation, existing packaged private Platform Tools self-repair
+  and Device Engine no-target readiness only.
+
+### One visible packaged journey
+
+- USB inventory confirmed no Android phone was connected before launch. The exact packaged app
+  ran once, unelevated, through Fedora XWayland against the fresh isolated workspace
+  `/tmp/romverse-tools-selfrepair-332767e` with an intentionally empty discovery `PATH` and no
+  managed tool directory.
+- Command Deck initially rendered **Device Engine needs attention**, truthfully stated that verified
+  Android Platform Tools were not active and exposed one enabled **Resolve Platform Tools** action.
+- One native accessibility **Press** on that existing action opened `ROMVERSE • Start Device
+  Engine`. Its visible plan selected only ADB through the single ROMVERSE-managed Platform Tools
+  package; no manual source, operating-system package, administrator prompt or global installation
+  was selected.
+- Existing automatic verified-tools preference began the bounded official download and verification
+  without another confirmation chain. The dialog showed **Downloading and verifying official
+  platform-tools…**, then closed automatically after success and refreshed the runtime inventory in
+  the same process. No terminal instruction, application restart or global `PATH` change was needed.
+- Command Deck repainted from missing tools to the truthful final state: **No device connected**,
+  **No Android device detected**, **No Android transport is visible**, and an enabled **Scan for
+  device** action. The missing-Platform-Tools warning was gone; Device Engine did not crash or leave
+  a silent dead end.
+- A standard `WM_DELETE_WINDOW` close exited the packaged process with code 0. No ROMVERSE or
+  Fastboot process remained, and `logs/crash/runtime-fault.log` contains only runtime start followed
+  by runtime closed cleanly.
+
+### Exact package, receipt and executable evidence
+
+- Official package source:
+  `https://dl.google.com/android/repository/platform-tools-latest-linux.zip`.
+- Downloaded archive: 9,054,187 bytes; SHA-256
+  `d230f13842f60f782a8645f9c813f8f845bf36089ea7289f28c48f17979313f1`.
+- Private receipt:
+  `tools/downloads/platform-tools/managed-package.romverse`, schema 1, mode `0600`, SHA-256
+  `c741176ed5a97bbbcd384a0eb86491a069883ca19357312c8e8ddb5ca0002c77`.
+- Private package root is mode `0700`. Managed ADB is 10,642,368 bytes, mode `0700`, version
+  `37.0.1-15733141`, SHA-256
+  `a902be8f45c6c62e76c9efaf6947a0fa747c9cabd89a2ac8e0d16ecb30b3ed01`.
+- Managed Fastboot is 3,333,552 bytes, mode `0700`, version `37.0.1-15733141`, SHA-256
+  `a686e2c7e8dc9cf4cba0cb8a2eef05f7b2bd682c925abd032fe203215d80b618`.
+- The receipt's source, archive digest and exact two executable digests match the observed files.
+  The durable install plan records Linux, required/selected tool `ADB`, the official Android
+  Platform Tools documentation source, no manual requirement and contract-scoped managed policy.
+
+### No-target audit and classification
+
+- ROMVERSE's hash-chained Guardian audit contains **34/34 allowed read-only host discovery
+  records**: 17 `adb devices -l` and 17 `fastboot devices -l`. Every record has category
+  `read_only`, risk `none`, target `host`, successful result and continuous sequence/previous-hash
+  linkage. First record hash: `e02b7c75fab56ca2953ce6b15af05bd5dcd9e1bb953073075dd8764c97d80f51`;
+  final record hash: `395f1a98f8ce890f7d8a785e68ba833ad30a806a8b534871597c64a2bd5bc041`.
+- No record contains a device serial or any install, reboot, flash, erase, wipe, lock or relock
+  operation. Direct ADB/Fastboot version queries recorded versions only and targeted no hardware.
+  The pre-existing idle host ADB server retained its original PID; no phone was discovered.
+- **Implemented:** no new source behavior; the established packaged private self-repair path is now
+  evidenced end to end on the current approved Fedora artifact.
+- **Simulated/Tested:** one genuine packaged GUI/network/private-install/repaint/clean-close journey
+  in an intentionally no-phone environment. No pytest or previous package suite was replayed or
+  double-counted.
+- **Hardware Verified:** no. Host USB was observed only to establish that no Android phone was
+  connected; no device identity or phone behavior was tested.
+- **Released:** no. The desktop artifact remains unsigned and local.
+- Blockers/failures: none in the bounded journey. One harmless typo in an external close-driver
+  command failed before interacting with ROMVERSE; the corrected standard close succeeded and is
+  not classified as an application failure.
+- Guided friction/dead ends: missing tools now self-repair from the existing visible action to a
+  truthful waiting-for-device state in the same session, without administrator access, global
+  installation, restart or terminal instructions.
+- Guardian/Recovery/safety: only allowlisted host-level discovery ran. No consent, device-bound
+  target, phone write, Recovery execution or flash authority existed. UNKNOWN/no-blind-retry,
+  exact-device evidence, same-incident Recovery, independent verification and permanent no-relock
+  remain unchanged.
+- Linux/Fedora: genuinely verified on Fedora 44/XWayland. Native Wayland input automation and
+  Windows were not part of this checkpoint.
+- Feature freeze: compliant evidence of an existing Stage 1 self-repair journey; no source, UI,
+  feature, adapter, Device Pack, signing or execution expansion.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all remaining gates.
+- External actions: one official Google Platform Tools ZIP was downloaded into the disposable
+  private workspace and verified. The existing branch is pushed normally with this documentation
+  handoff. No phone, APK, global/system installation, ROM candidate, signing, publication, release,
+  merge, force-push, device change, lock or relock occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another consequential slice until the
+verdict for this exact packaged self-repair checkpoint is recorded in
+`docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm the one-click private acquisition, same-process receipt verification/runtime activation,
+  truthful repaint and clean close satisfy the approved packaged Platform Tools self-repair gate.
+- Confirm the 34 exact host-only discovery records remain within the explicitly authorized
+  no-target scanner allowance and grant no device or execution authority.
+
 ## Linux product checkpoint — current unsigned Fedora desktop artifact and native smoke
 
 ### Authoritative checkpoint and scope

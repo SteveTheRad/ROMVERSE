@@ -1,5 +1,68 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 5464eb8 — Windows firmware-picker cancellation continuity
+
+- Reviewed commit: `5464eb8ddd68b0c9908ae95da021342d25fc4fe9`
+- Accepted implementation: `66dca72494fb1a6eb96d0e75210a7dbee901ad1d`
+- Approved base: `a82fefbb8368aa3f64057d0e13fb90e726fa640c`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — PICKER CANCELLATION PRESERVES THE EXACT ACTIONABLE FIRMWARE STAGE**
+
+### Decision
+
+Product Assurance retrieved and directly inspected the exact post-cancel image, independently
+reproduced the project, Guided, audit, runtime and preserved-patch hashes, and confirmed that the
+checkpoint changes only the repository handoff. Cancelling the native picker creates no false
+progress or error, keeps the exact saved project at protected-firmware intake, and leaves the
+chooser immediately actionable. No source correction, package rebuild or regression replay is
+required.
+
+### Independent evidence and acceptance
+
+- The 1269x824 image directly shows the exact project, 1/15 verified, `Load the untouched firmware`,
+  no device, zero supporting evidence and enabled `Choose firmware…`; it independently matches
+  SHA-256 `bf7135ba87145880c33a6808c3baab88298bbba298473bcc0412ea30c1a90af4`.
+- The project manifest remains 404 bytes with `original` null and independently matches SHA-256
+  `2d43905ed9201ccecaa4e85a6f9a68c1790d605b31b653ad2e819ccc0a7f43e2`. The 438-byte Guided
+  record remains at `firmware` with no error and matches
+  `251b4770643fb38c32474a6e60a5b9fc8344bce9f9d58b11bbee32a714ebecdf`.
+- The 126-record audit independently matches SHA-256
+  `d495ed54f8c768799b753de030e0e10a3ab82ac16faef2c28f9306946d4e24f0`. Its new sequences
+  91–126 are exactly 18 ADB and 18 Fastboot host-discovery observations: all read-only, unbound,
+  serial-selector-free, return code 0 and not timed out.
+- The runtime record independently matches SHA-256
+  `ca9bd51d66c5abab7574d1c649527847435581fcc864c4b1d1d12d86ac226def`, and no ROMVERSE process
+  remains. The untracked user patch remains byte-identical at
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No firmware, phone, device action, APK, build/signing, Guardian/Recovery execution, publication,
+  release, lock or relock occurred.
+
+### Approved next bounded Windows task
+
+Reuse the same corrected artifact and isolated saved-project workspace once. Continue Genesis to
+the protected-firmware stage and use the native picker to select one newly created, deterministic,
+tiny local file that is intentionally not a valid Android firmware package. Verify ROMVERSE rejects
+it clearly without claiming progress: the project `original` remains null, no protected source or
+candidate is retained, stage 2 remains incomplete, and the firmware chooser remains immediately
+actionable after the visible error is acknowledged or dismissed. Close Guided and the app normally
+and verify no process remains.
+
+This is one bounded invalid-input journey, not firmware ingestion or broad fuzzing. Use no real
+firmware, Device DNA, phone, download, build, signing or device command beyond the existing scheduled
+read-only empty discovery. Capture at most one useful post-rejection image. If one genuine rejection,
+state or close dead end appears, apply only its minimum correction and one focused native Windows
+test; otherwise make no source change or package. Preserve the untracked patch, commit/push one
+bounded handoff and stop for review. Guardian/Recovery authority, publication, release, lock and
+relock remain unauthorized.
+
+### Gate status
+
+- Native Windows firmware-picker cancellation continuity: **VERIFIED**
+- Invalid local firmware rejection and recovery: **NEXT BOUNDED WINDOWS TASK**
+- Linux no-phone diagnosis journey: **OWNED BY LINUX; DO NOT DUPLICATE**
+- Physical hardware, signing, Guardian/Recovery execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 55d8137 — Windows saved-project Genesis resume
 
 - Reviewed commit: `55d8137030d6b88085b4742b75fc39655229ec8b`

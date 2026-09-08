@@ -1,5 +1,67 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 1d4db55 — packaged Windows Guided local foundation
+
+- Reviewed checkpoint: `1d4db550`
+- Accepted package/source: `e03aa88e` / `738b774e`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — WINDOWS PROJECT REACHES A TRUTHFUL STAGE-5 BOUNDARY**
+
+### Decision
+
+Product Assurance inspected the documentation-only checkpoint and independently verified the
+unchanged package, selected source, protected copy, Guided record and contained working tree. One
+fresh Windows project imported and boundedly inspected one inert ZIP, prepared an isolated working
+lab, retained the exact source evidence and stopped truthfully at stage 5 with no device. Device
+DNA, compatibility and Ascension authority remain unconfirmed/none, with relocking prohibited. No
+correction, repository reconstruction, package rebuild or replay is required.
+
+### Independent evidence and acceptance
+
+- The reused executable independently remains SHA-256
+  `d7eb55e38e2daad6b35a74c6c3f081b7cf83ba9b1b5ecdb0ebfefa4a7b37804a`.
+- The selected 356-byte synthetic ZIP and its protected workspace copy independently match SHA-256
+  `85e734ea89c706d344987794acf5ebc9fb617e67a1a5a09f8516bf4c755937b0`.
+- The contained working lab contains the corresponding baseline plus exactly one regular synthetic
+  marker file. All files remain beneath the disposable workspace.
+- The Guided record independently matches
+  `9fbe22da69ec53ed81f309ffbe01393c789c451d8af7bec79c10147b0c868db2` and retains the device stage,
+  no build plan, no installation request, undecided root choice and no error.
+- The commit changes only `docs/sync/BUILD-STATUS.md`; no source/test change, package build or
+  redundant test occurred. Git whitespace is clean.
+- The protected untracked patch remains byte-identical at 8,272 bytes with SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone/emulator, ADB/Fastboot, tool acquisition/install, APK/device action, real firmware
+  modification, signing, Guardian/Recovery execution, publication, release, Companion source,
+  Knowledge/UI Design Lab, Linux, force-push, lock or relock occurred.
+
+### Approved next bounded Windows task
+
+Continue forward with the same exact package and project—do not rebuild, recreate or replay stages
+1–4. Relaunch once using only the existing explicit `--development-device-simulation` boundary,
+complete stage 5 with visibly labelled **SIMULATION ONLY • NOT HARDWARE VERIFIED** evidence, and
+require Device DNA/Compatibility to remain advisory with no physical or Guardian authority. At
+stage 6 choose the existing explicit unchanged-base/skip-customization path, perform no Recipe
+transaction, and require the source and working tree to remain byte-identical while Genesis advances
+to stage 8. Do not operate stage 8 in this task.
+
+This validates the Windows packaged no-customization route and must not duplicate Linux's Recipe
+transaction. Add no source change unless a genuine Windows state-retention, simulation-label or
+skip-route defect appears; if one appears, make only the minimum correction and focused test,
+rebuild/relaunch at most once, then complete the same forward journey. Commit/push one handoff and
+stop for review. Preserve the untracked user patch byte-for-byte. Do not use a real phone/emulator,
+invoke ADB/Fastboot, acquire/install tools, modify any real firmware, create root/install/flash
+authority, sign, publish, release, execute Guardian/Recovery, touch Companion source, Knowledge/UI
+Design Lab or Linux work, force-push, lock or relock.
+
+### Gate status
+
+- Packaged Windows Guided stages 1–4: **VERIFIED**
+- Packaged Windows simulated device → unchanged-base route: **NEXT BOUNDED WINDOWS TASK**
+- Linux forward stages 8–9 journey: **OWNED BY LINUX; DO NOT DUPLICATE**
+- Physical hardware, installation, execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 80da6d9 — packaged Windows App Launchpad retention
 
 - Reviewed checkpoint: `80da6d90`

@@ -1,5 +1,58 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows Forge Control compact-layout checkpoint
+
+- Product Assurance verdict: `d293b3eadd888522ed34be27a939f7209f0321ba` —
+  `Approve Windows Forge setup journey`, matching checkpoint
+  `605b119a6530922e8c9e6c59faf9900489ebd4dd` exactly.
+- The two retained Windows baseline nodes were reproduced at the approved tip without changing
+  source or tests. Both now pass. The earlier horizontal constraint was already corrected by
+  `5fd9ad009f037a3bbd5835371a7fab5fb061d3e0` (`Keep Windows Stage 1 actions reachable`), which
+  removed the scroll host's intrinsic-width constraint. No subsequent Build Control fixture change
+  accounts for the result, and no present responsive-layout defect was found.
+
+### Genuine native Windows geometry journey
+
+- A fresh disposable no-phone workspace instantiated the production `BuildControlCenter` with
+  `auto_start=False` under Qt's native `windows` platform on display `KAMN24F1CLA` at 96 logical DPI
+  and device-pixel ratio 1.0. The journey opened the untouched initial readiness view at the
+  supported 1040-by-700 client size, refreshed it with the same inert two-gate report used by the
+  footer fixture, resized to 1160 by 820, and expanded `Show build tools`. It clicked no build,
+  device, Recovery, signing, installation or execution action.
+- At 1040 by 700, the actual client size was **1040 by 700**, frame **1040 by 731**, content viewport
+  **1032 by 483**, and scroll host **1032 by 1828**. Although the host's width size hint was 911,
+  the host correctly followed the 1032-pixel viewport. The horizontal scrollbar range was exactly
+  **0** and the horizontal bar was not visible; only the expected vertical range of 1345 remained.
+- At 1160 by 820, the actual client size was **1160 by 820**, frame **1160 by 851**, content viewport
+  **1152 by 445**, and scroll host **1152 by 755**. The horizontal scrollbar range remained exactly
+  **0** and hidden. All **10/10** expected footer/build-tool actions were visible. Every button met
+  or exceeded its native Windows size hint (width margins 0 through 200 pixels), and there were
+  **zero** same-row intersections. Native screenshots were inspected: the content, footer copy and
+  action labels were readable and unclipped at both measured sizes.
+
+### Focused verification and disposition
+
+- Exact two-node command:
+  `.venv\Scripts\python.exe -m pytest -q tests/test_build_control_ui.py::test_build_control_cards_explain_and_route_blocked_gates tests/test_build_control_ui.py::test_refresh_removes_stale_cards_and_footer_actions_remain_aligned --basetemp C:\rvcompact-baseline -vv`.
+  Result: **2/2 passed** in 2.67 seconds on Windows using the fixtures' explicit offscreen Qt
+  platform.
+- Directly affected command, run once:
+  `.venv\Scripts\python.exe -m pytest -q tests/test_build_control_ui.py --basetemp C:\rvcompact-affected-d293b3ea`.
+  Result: **44/44 passed**; collection independently confirmed 44 unique nodes. No broad suite and
+  no artifact build were run.
+- This checkpoint changes only this Build handoff. No application source or fixture correction is
+  justified because the current contract passes and the native geometry is usable. The separate UI
+  Design Lab and Linux Device Intelligence work were not opened or changed.
+- The protected Companion files have no staged or working-tree diff. The existing untracked
+  `0001-Preserve-local-build-completion-across-restart.patch` remains untracked and byte-identical at
+  SHA-256 `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone or emulator was requested, connected, discovered, operated or targeted. No tool was
+  installed; no ADB/Fastboot device command, Recovery, flash, wipe, unlock, root, relock, APK
+  installation, production trust/signing, publication, release, force-push or destructive action
+  occurred. Guardian-only authority, exact-device evidence, consent separation,
+  UNKNOWN-on-uncertainty, no blind retry, independent verification, feature freeze and permanent
+  no-relock remain intact.
+
 ## Windows Forge Arsenal managed Platform Tools journey
 
 - Product Assurance verdict: `178b8dd714d2bfbd40c71e111243ba74435f48b2` —

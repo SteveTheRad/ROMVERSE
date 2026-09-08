@@ -1,5 +1,60 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows Guided Build Readiness parity — branch-context blocker
+
+- Product Assurance verdict: `9fd28a90e348346e60f673af451bf95fd085ef0d` — `Approve Windows
+  Guided parity`, matching checkpoint `6b66062cd5e89d9b078b1ab41496403cf7afb1dd` exactly.
+- Approved Linux implementation is available on `origin/linux/stage1-desktop-readiness`:
+  `aaadeac6a622b4fca95980904c8ac1a4e454d1cb` — `Bind Guided build plans to exact evidence`,
+  parent `7e23971053ed4c2da10aee3d575afb6720885b19`.
+- Result: **STOPPED WITHOUT PRODUCT OR TEST CHANGES — THE EXACT APPROVED FIVE-FILE PATCH HAS TWO
+  NONTRIVIAL BRANCH-CONTEXT CONFLICTS AND CANNOT BE CONVERGED WITHOUT IMPORTING OR REDESIGNING
+  UNAUTHORIZED PREREQUISITE BEHAVIOR**.
+
+### Exact verification and conflict evidence
+
+- Exact dry-run command:
+  `git show --format= --binary aaadeac6a622b4fca95980904c8ac1a4e454d1cb | git apply
+  --3way --check -`.
+  Git reported `src/romverse/ui/guided_mission.py`, `tests/test_rom_builds.py` and
+  `tests/test_rom_studio_ui.py` clean, but reported conflicts in
+  `src/romverse/rom/builds.py` and `src/romverse/ui/rom_studio.py`.
+- Exact-context confirmation without three-way fallback:
+  `git show --format= --binary aaadeac6a622b4fca95980904c8ac1a4e454d1cb | git apply
+  --check -`.
+  It fails at `src/romverse/rom/builds.py:117` and `src/romverse/ui/rom_studio.py:1442`.
+- The Build Planner conflict is semantic, not line-number drift. The approved patch is based on a
+  Linux parent that already contains 27 lines of protected-original, inspection-identity and
+  plan-time source-race validation absent from this Windows line. The schema-3 insertion is anchored
+  after and assumes those checks. They are not part of `aaadeac6` and were not authorized here.
+- The ROM Studio conflict is also semantic. Relative to the approved Linux parent, the current
+  Windows file lacks the later automatic pre-build simulation/saved-plan orchestration that the
+  approved patch changes to accept schema 3. The two files differ by **873 deletions and 22
+  insertions** in this branch comparison, including the entire saved-plan acceptance and automatic
+  verification path. Importing that missing context would widen this task beyond the approved
+  five-file product/test diff.
+- Applying only the three clean files would leave Guided calling schema-3 behavior that its planner
+  and Studio owner cannot implement safely. No partial patch was applied. Working source/tests
+  remain exactly at approved Windows checkpoint `6b66062c` plus the Product Assurance handoff.
+
+### Verification boundary, safety and next gate
+
+- No affected tests, Ruff, build, package, application launch, candidate creation or tool download
+  ran because the mandatory branch-context stop occurred before implementation. Git whitespace
+  validation passes for this documentation-only handoff.
+- No phone or emulator was requested, connected, discovered, operated or targeted. No ADB/Fastboot,
+  Recovery, flash, wipe, unlock, root, relock, APK installation, Guardian/execution authority,
+  production adapter/trust/signing, publication, release, force-push or destructive action occurred.
+  UNKNOWN-on-uncertainty, no blind retry, exact-device evidence, independent verification, feature
+  freeze and permanent no-relock remain intact.
+- The protected Companion files have no staged or working-tree diff. The pre-existing untracked
+  `0001-Preserve-local-build-completion-across-restart.patch` remains untracked and byte-identical at
+  SHA-256 `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- Precise proposed next task: Product Assurance must identify and explicitly authorize the minimum
+  prerequisite Linux product commits that supply the missing Build Planner source/race checks and
+  automatic pre-build simulation owner, or provide a separately reviewed Windows-scoped adaptation
+  against `9fd28a90`. Do not manually recreate, partially apply or broaden `aaadeac6` meanwhile.
+
 ## Windows simulation, unchanged-route and Toolchain parity convergence checkpoint
 
 - Product Assurance verdict: `aee5e45c94a268068170c65ee2904344f0d5b2c3` —

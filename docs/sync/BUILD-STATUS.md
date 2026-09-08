@@ -1,5 +1,126 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — managed APK identity tools repair and reinspect the exact artifact
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `4eb7cb1` approved the positive local APK inspection and
+  authorized one managed AAPT2/APK Signer repair plus exact automatic reinspection journey.
+- Exact unchanged implementation/package source: `ca983ecd30724723574d7fdd6ae02ca107e3be3e`.
+- Exact unchanged package:
+  `build/linux-pa-health-scan-7100108/frozen/ROMVERSE/ROMVERSE`, 6,323,000 bytes, mode `0755`,
+  SHA-256 `0a47f9af3dea4c0f64983fdd4afc9d1fa01dfcc96185680e94f098b1cb19dde7`.
+- Exact pre-existing ignored Companion debug artifact inspected in place and read-only:
+  `companion/app/build/outputs/apk/debug/app-debug.apk`, 9,060,239 bytes, mode `0644`,
+  SHA-256 `62bc530d5f077e3e34ad71002caa24303a584bf4661f56d2cc338c976bfb5a2b`.
+- Stage: Stage 1 — v0.2 Golden Foundation, one bounded private managed-tool repair and positive
+  no-phone automatic-reinspection journey. No application source, test, APK or package changed.
+
+### One bounded managed-tool repair and automatic reinspection journey
+
+- The unchanged package ran once, unelevated, through Fedora XWayland in the same isolated
+  workspace `/tmp/romverse-apk-positive-265bfbc.cgO2vj`, with no simulated or physical phone.
+- **App Launchpad** opened through normal Guided navigation. The same original APK was selected
+  directly from its ignored build path. Its initial local inspection reproduced the exact SHA-256,
+  874 entries, present manifest and three DEX files, while again withholding package and signer
+  claims before the missing identity tools were verified.
+- **Improve APK identity verification** was invoked exactly once. The scoped Forge Arsenal dialog
+  selected only missing **AAPT2** and **APK Signer** requirements, labelled both as ROMVERSE-managed
+  downloads, started automatically under the existing verified-tool preference and closed
+  automatically only after successful acquisition and refreshed inventory verification.
+- ROMVERSE downloaded Google's exact pinned AAPT2 `9.4.0-15978811` archive from Google Maven:
+  2,385,035 bytes, SHA-256
+  `f5bebd466ecf14d341fd465f2756a16d86052f29eb4532003d5ff7bcffd08de5`. The activated private
+  executable is 6,353,544 bytes, mode `0700`, SHA-256
+  `7f0587c898f8401986b9c32385fb25d1ecea1e9007907376215f30f99c4894a9`.
+- ROMVERSE downloaded Google's exact pinned official apksig `9.4.0` artifact from Google Maven:
+  506,609 bytes, SHA-256
+  `7ae2e5980c77d853e3513074ee7c822bbdcdcde1668889d17faa7fe8bc8aa821`. The activated private
+  verification-only launcher is 423 bytes, mode `0700`, SHA-256
+  `96589d93a64dacbdd7c7570b88e259129fdc234666ea324025185b83f5bbf905`.
+- Both packages retained private `0600` receipts, complete file manifests, source/version/hash and
+  Apache-2.0 notice/licence evidence under `tools/downloads`. Independent receipt activation and a
+  fresh extended inventory classified AAPT2 as **Ready** and APK Signer as
+  **Ready for cryptographic APK verification; full SDK Build Tools remain required for signing**.
+  No system package manager, administrator prompt, Android SDK or signing capability was used.
+- App Launchpad automatically repeated local inspection of the same exact APK once. The refreshed
+  page preserved SHA-256
+  `62bc530d5f077e3e34ad71002caa24303a584bf4661f56d2cc338c976bfb5a2b` and proved only these
+  additional facts: label **ROMVERSE Companion**, package `com.radforge.romverse.companion`, version
+  `0.2.0-alpha.5` (code `8`), target SDK 35, four declared permissions, and cryptographically
+  verified signer SHA-256
+  `b1e1bd6e1c199d6bc1649998546a20559e3b0f979cb401ef487b0cde7f993cb1`.
+- Minimum SDK remained explicitly **unknown** and native ABI remained **none declared or not
+  decoded**; ROMVERSE did not infer either. The container finding became **APK container structure
+  passed bounded inspection**. The optional improvement action disappeared because both scoped
+  requirements now verified.
+- The final no-phone result remained local and stated that a connected, authorized phone is needed
+  before a fresh device-bound safety plan can be created. **Review and approve exact plan** and
+  **Install approved APK** remained disabled and were not invoked. ROMVERSE closed normally and no
+  packaged process remained.
+
+### Final retained evidence
+
+- The original APK retained its exact path, 9,060,239-byte size, `0644` mode,
+  `2026-09-07 20:48:41.701009772 +1000` modification time, inode and SHA-256. It was not copied,
+  rebuilt, altered, staged, committed, signed or installed.
+- The workspace added only the exact private managed AAPT2/apksig packages and the 435-byte `0600`
+  scoped toolchain plan. It contains no APK copy, project, preflight/install receipt, approval,
+  Activity/Live Console event, snapshot, backup, ROM build or working-ROM file.
+- The cumulative Guardian audit is a valid gap-free SHA-256 chain of exactly 118 scheduled read-only
+  host inventories: 59 ADB and 59 Fastboot `devices -l` operations. This journey added exactly 34:
+  17 ADB and 17 Fastboot. Every record is allowed, host-targeted, untimed-out, return code 0 and
+  serial-selector-free. Tool acquisition and local APK inspection created no Guardian approval or
+  execution record. Cumulative audit SHA-256:
+  `34961b48f14f848573ebabc614e73275ffb8546674b87df729b2a1ee0962db62`.
+- The cumulative runtime record contains exactly two start/clean-close pairs, SHA-256
+  `5490f58e74a6f9249a290f466831f4917f2aa50115a0fa2f50c8f919d6f55acc`, with no fatal trace.
+  Guided mode remained active.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** no new application behavior; the shipped private managed-tool repair,
+  receipt activation, fresh inventory propagation and exact automatic APK reinspection all ran.
+- **Simulated/Tested:** one genuine packaged Fedora managed dependency-repair and positive
+  reinspection journey. No test suite was run or double-counted because no source changed.
+- **Hardware Verified:** no. No Android phone was connected, discovered, selected or operated.
+- **Released:** no. The desktop package, APK and managed tools remain local development artifacts.
+- Blockers/failures: none in the bounded journey. Full APK signing remains correctly unavailable;
+  only verification capability was installed. Minimum SDK and native ABI were not proven and
+  remained explicitly unknown rather than guessed.
+- Guided friction/dead ends: the one visible improvement action selected the exact missing tools,
+  completed without a manual source hunt, refreshed the inventory and automatically reinspected the
+  retained APK. The user returned directly to a proven local result with one clear device
+  prerequisite; no duplicate selection, extra confirmation chain, terminal stop or inert action
+  remained.
+- Guardian/Recovery/safety: tool evidence and signer verification granted no target, plan, approval,
+  consent, signing, installation or Recovery authority. UNKNOWN/no-blind-retry, exact-device and
+  exact-incident evidence, independent verification, Guardian-only authority and permanent
+  no-relock remain unchanged.
+- Linux/Fedora: genuinely verified on Fedora 44/XWayland. Windows and physical Android were not run.
+- Feature freeze: compliant Stage 1 dependency-correctness check; no feature, UI, APK, package,
+  Device Pack, adapter, Knowledge behavior or production execution capability changed.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all remaining gates.
+- External actions: exact pinned official AAPT2 and apksig artifacts were downloaded from Google
+  Maven into this workspace's private managed-tool directory, and this scoped branch is pushed
+  normally with the documentation-only handoff. Normal no-target read-only ADB/Fastboot inventory
+  occurred. No phone, simulated device, system-wide/Android SDK installation, APK copy/build/sign/
+  install, approval, consent, project/firmware work, backup/restore, Guardian/Recovery execution,
+  publication, release, merge, force-push, lock or relock occurred. Companion source, Knowledge/UI
+  Design Lab and protected Windows work were not modified, staged or committed.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another consequential slice until the
+verdict for this exact managed APK identity-tool repair and automatic reinspection checkpoint is
+recorded in `docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm the exact private tool receipts, verified-only capability boundary, preserved APK/hash,
+  proven refreshed identity/signer facts, explicit remaining unknowns and continuously disabled
+  approval/install actions satisfy the managed APK identity-tool repair gate.
+
 ## Linux product checkpoint — App Launchpad retains exact local APK evidence without a phone
 
 ### Authoritative checkpoint and scope

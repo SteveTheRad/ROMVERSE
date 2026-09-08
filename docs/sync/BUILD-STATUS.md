@@ -1,5 +1,71 @@
 # ROMVERSE Product Assurance Sync
 
+## Cross-platform wheel verifier checkpoint
+
+- Product Assurance verdict: `4675b7c5722c59cf33512c2598bc212eccf6f287` —
+  `Approve packaged Windows recovery journey`, matching handoff
+  `da3109b7177440361697d4b44f9611edff7d983a` exactly.
+- Minimum correction: `54d0a3b28217a5c378ccba10e0d9b18ac230b332` —
+  `Fix desktop wheel path for alpha package`. The desktop-package workflow now verifies and installs
+  the wheel that `pyproject.toml` actually builds,
+  `dist/romverse-0.2.0a1-py3-none-any.whl`, instead of the obsolete absent
+  `dist/romverse-0.1.0-py3-none-any.whl`. No wheel content, verifier, runtime, package version, or
+  application source changed.
+- Result: **PASS — STALE WORKFLOW EXPECTATION CORRECTED; BOTH AFFECTED PACKAGE JOBS PASS**.
+
+### Failure evidence and bounded local proof
+
+- GitHub Actions run `34222010500`, attempt 2, at exact source
+  `e24e50ed7e79fd7d89e3910c21cc13d70c374e04` built
+  `romverse-0.2.0a1-py3-none-any.whl` successfully in both affected jobs, then passed the nonexistent
+  `romverse-0.1.0-py3-none-any.whl` path to `scripts/verify_wheel.py`. Linux job
+  `102048840377` and Windows job `102048840037` both failed at that same boundary with
+  `ValueError: Select one built ROMVERSE wheel`. This proves the workflow expectation, not the wheel
+  inventory, was the shared blocker.
+- Directly focused verifier tests were run under native Windows Python 3.12.10 with a fresh explicit
+  base temporary directory:
+  `.venv\\Scripts\\python.exe -m pytest tests/test_release_scripts.py::test_wheel_runtime_inventory_covers_every_module_and_asset tests/test_release_scripts.py::test_wheel_verifier_rejects_runtime_module_content_drift -q --basetemp C:\\Work\\ROMVERSE-Pytest-4675b7c-focused -p no:cacheprovider`.
+  Result: **2 passed, 0 failed, 0 errors, 0 skipped**. Focused Ruff over the verifier and its test
+  file passed, and `git diff --check` passed.
+- One clean committed-tree export produced an 11,232,818-byte
+  `romverse-0.2.0a1-py3-none-any.whl`, SHA-256
+  `5471fa558e3bf0675d4a23120f3ba13880d5b441df7db2543cc3d163a250f29e`.
+  `scripts/verify_wheel.py` accepted exactly **309 members and 22 Device Packs**. Installing that
+  wheel into a fresh isolated target and running `scripts/smoke_installed_desktop.py` against a
+  fresh workspace passed with **22 Device Packs, 170 known fixes, 281 offline evidence records,
+  19 covered desktop routes**, a connected dark Time Machine empty state, and byte-exact populated
+  workspace reopening.
+- Running the entire three-node `tests/test_release_scripts.py` file directly from this longstanding
+  Windows worktree produced **2 passes and 1 pre-existing checkout-materialization failure**: its
+  line-ending assertion observed CRLF in a Device Pack JSON. The checkout reports no tracked change,
+  and the clean committed-tree export verified the indexed pack digests successfully, so no source
+  normalization or unrelated portability correction was made in this checkpoint.
+
+### Exact GitHub rerun and scope
+
+- Pushing the correction triggered GitHub Actions run `34224896427`, attempt 1, at exact source
+  `54d0a3b28217a5c378ccba10e0d9b18ac230b332`. The two affected jobs were exercised exactly once:
+  Windows `102056502071` and Linux `102056502134` both completed **success**.
+- In each job the corrected wheel build, verification, wheel installation, installed-package smoke,
+  frozen build/smoke, bundle packaging, and artifact upload completed successfully. The verifier
+  reported **309 members and 22 Device Packs** on both platforms. The installed-package smoke on
+  both platforms reported the same **22 Device Packs, 170 known fixes, 281 offline evidence records,
+  and 19 covered desktop routes**. Unaffected quality, Windows-portability, and Companion jobs were
+  not locally duplicated or treated as part of this acceptance result.
+- The manually verified Windows executable was not rebuilt or changed. No broad local suite,
+  runtime feature change, Linux Simulation work, Knowledge/UI Design Lab work, Companion change,
+  phone/emulator, ADB/Fastboot command, Recovery, flash, wipe, unlock, root, relock, APK install,
+  production trust/signing, publication, release, or force-push occurred.
+- The protected Companion files have no staged or working-tree diff. The pre-existing untracked
+  `0001-Preserve-local-build-completion-across-restart.patch` remains untracked and byte-identical at
+  SHA-256 `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- Remaining action and precise proposed next task: independent Product Assurance review of
+  implementation `54d0a3b2` and GitHub run `34224896427`. If approved, separately decide whether the
+  still-legacy `0.1.0` desktop archive/release-candidate labels in the workflow should be aligned to
+  the current `0.2.0-alpha.1` development identity; they were outside this first-verifier-blocker
+  correction and grant no publication or release authority. Windows Build is stopped pending a
+  matching repository verdict.
+
 ## Packaged Windows missing-tools recovery checkpoint
 
 - Product Assurance verdict: `e24e50ed7e79fd7d89e3910c21cc13d70c374e04` —

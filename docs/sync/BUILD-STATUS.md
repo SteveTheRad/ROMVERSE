@@ -1,5 +1,98 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — fresh Guided project continuity
+
+### Authoritative checkpoint and scope
+
+- Tested implementation: `c15f0d3434591bd667ac26b33fb16554457597c8` — `Advance Genesis
+  after project creation`.
+- Final handoff: the follow-up commit containing this document on
+  `linux/stage1-desktop-readiness`; the branch was clean immediately after the implementation
+  commit and will be pushed normally after this handoff is committed.
+- Product Assurance approval/base: `e0a91f6` — approved the shared local-preparation coordinator and
+  authorized one representative production-service fresh-workspace journey.
+- Stage: Stage 1 — v0.2 Golden Foundation, first genuine continuity defect in the existing
+  Start-ROM-Project → Simulation-readiness journey only.
+- Exact changed files: `src/romverse/ui/guided_mission.py` and
+  `tests/test_navigation_vocabulary.py`. No other implementation, platform or product file changed.
+
+### Reproduced defect and minimum correction
+
+- The real Command Deck `Start ROM Project` dispatch opened Genesis and project creation persisted
+  the exact new workspace correctly, but Genesis refreshed while retaining the now-complete Project
+  card. Firmware selection was available only after an unnecessary manual `Next` click. This was
+  the first user-visible break in the requested fresh journey.
+- The project-creation completion path now reselects the first stage lacking verified evidence,
+  matching existing Genesis worker-completion behavior. A successful project creation therefore
+  advances directly to Firmware; cancellation and failure behavior remain unchanged.
+- The correction is one production-line behavior change. It does not automate firmware selection,
+  change source responsibility, modify preparation services or alter Simulation/build semantics.
+
+### Verification without double-counting
+
+- One focused affected run: **3/3 unique tests passed**.
+- The new representative MainWindow journey uses the real Command Deck primary button, real Genesis
+  action controls, real project/import workers, real project/inspection stores and the approved real
+  Simulation coordinator. Only the deterministic human project-name, local-file-selection and
+  existing import-acknowledgement inputs are supplied by the harness; no navigation result,
+  producer result or durable evidence is mocked.
+- Demonstrated chain: fresh workspace → Start ROM Project → exact project manifest → automatic
+  selection of Firmware → protected copy and SHA-256 ownership → saved bounded inspection →
+  Simulation request → admitted working baseline → contained tree → Build & Proof readiness.
+- A newly constructed project store/inspection service reloads the exact protected original,
+  inspection, working-copy record and contained tree from disk after the journey. The external
+  sanitized fixture remains byte-identical.
+- The test proves the only production workers were exact-project `import`, `working-copy` and
+  `extract`; no BuildPlan exists before or after the journey, no phone is present, and no modal is
+  left open.
+- Adjacent focused checks for the Genesis evidence-driven UI and transient new-project cancellation
+  also passed.
+- Ruff static check passed for both changed files. The changed test file passes Ruff format check.
+  `guided_mission.py` retains unrelated pre-existing formatter drift outside this one-line hunk and
+  was intentionally not mechanically reformatted. `git diff --check`: passed.
+- No previously proven Recipes/Simulation unit journey and no broad suite was rerun. The 3-test
+  total is not combined with or double-counted against earlier checkpoints.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** automatic Genesis continuation from verified project creation to the next
+  unverified Firmware stage.
+- **Simulated/Tested:** 3 sanitized Linux-hosted Qt/store journeys, including one production-service
+  fresh-workspace journey.
+- **Hardware Verified:** no. **Released:** no.
+- Guided friction removed: a successful project no longer strands the user on a completed creation
+  card. Firmware choice remains the intentional next human decision; after source inspection, the
+  approved local coordinator resolves preparation and resumes Simulation readiness.
+- Guardian/Recovery/safety: no build, plan, device, consent, Guardian, Recovery, durable-result or
+  verification boundary changed. Exact-device evidence, UNKNOWN-on-uncertainty, no blind retry,
+  independent verification and permanent no-relock remain authoritative.
+- Fedora/Linux: genuinely tested in the existing Fedora Qt development runtime. Windows: not run or
+  claimed. Physical Android: not used.
+- Feature freeze: compliant one-line continuity correction to the existing Stage 1 Guided journey;
+  no screen, format, feature, adapter or architecture was added.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all existing release gates.
+- Current blockers/limitations: Product Assurance has not yet independently reviewed this
+  checkpoint; firmware selection remains intentionally human-owned; Simulation still stops at
+  readiness and does not create/run its dry-run plan automatically.
+- Protected Companion, Windows launcher, Knowledge/UI Design Lab, website and unrelated files were
+  not modified, staged, discarded or committed.
+- Physical phone access, ADB/Fastboot, APK installation, firmware/device operation,
+  build/flash/boot, partition/slot/wipe/unlock/lock/relock, package installation, publication and
+  release: **none**. External action after final verification: one normal push of this scoped Linux
+  branch only; no force-push and no unrelated remote change.
+
+### Next proposed Build task
+
+Stop for Product Assurance review. Do not begin another consequential slice. Continue only from the
+next bounded direction recorded in `docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm that selecting the first unverified stage immediately after successful project creation
+  is the minimum zero-friction correction and preserves intentional firmware consent.
+- Confirm the production-service durable-evidence journey sufficiently demonstrates the approved
+  fresh-workspace continuity without rerunning previously proven unit slices.
+
 ## Linux product checkpoint — automatic exact-project Simulation preparation
 
 ### Authoritative checkpoint and scope

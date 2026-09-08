@@ -78,6 +78,39 @@ def test_tar_flags_link_and_inventory(tmp_path):
     assert any(finding.finding_id == "archive.link" for finding in report.findings)
 
 
+@pytest.mark.parametrize("container", ["zip", "tar", "raw"])
+def test_seekable_stream_preserves_zip_tar_and_raw_results(tmp_path, container):
+    path = tmp_path / f"firmware.{container}"
+    if container == "zip":
+        with zipfile.ZipFile(path, "w") as output:
+            output.writestr("images/super.img", b"super")
+            output.writestr("META-INF/com/android/metadata", b"ota-type=AB")
+        expected = (ContainerKind.ZIP, 2, ("super",), ("meta-inf/com/android/metadata",))
+    elif container == "tar":
+        with tarfile.open(path, "w") as output:
+            data = b"vbmeta"
+            image = tarfile.TarInfo("AP/vbmeta.img")
+            image.size = len(data)
+            output.addfile(image, io.BytesIO(data))
+        expected = (ContainerKind.TAR, 1, ("vbmeta",), ())
+    else:
+        path.write_bytes(b"unrecognized-read-only-container")
+        expected = (ContainerKind.RAW, 0, (), ())
+
+    inspector = RomInspector()
+    path_report = inspector.inspect(path, "expected")
+    with path.open("rb") as stream:
+        stream_report = inspector.inspect_stream(stream, "expected", path.name)
+
+    assert (
+        stream_report.container,
+        stream_report.entry_count,
+        stream_report.partition_signals,
+        stream_report.metadata_signals,
+    ) == expected
+    assert replace(stream_report, generated_at=path_report.generated_at) == path_report
+
+
 def test_tar_special_entries_are_critical_and_cannot_be_extracted(tmp_path):
     archive = tmp_path / "special.tar"
     with tarfile.open(archive, "w") as output:

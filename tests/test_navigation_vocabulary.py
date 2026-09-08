@@ -3937,16 +3937,36 @@ def test_recovery_bay_archives_handoff_and_canonical_fix_route_are_connected(
     logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
     window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
     try:
+        assert window._navigate_route("recovery_bay")
         window.repair_center.symptom_input.setText("adb unauthorized")
         window.repair_center.archives_button.click()
         app.processEvents()
 
         assert window.stack.currentWidget() is window.knowledge_center
         assert window.knowledge_center.search.text() == "adb unauthorized"
+        assert (
+            window.knowledge_center.source_context.property("source_route") == "recovery_bay"
+        )
+        assert "EXECUTION AUTHORITY: NONE" in window.knowledge_center.offline_archive_status.text()
         assert window.knowledge_center.open_route.property("route") == "command_deck"
         window.knowledge_center.open_route.click()
         app.processEvents()
         assert window.stack.currentWidget() is window.device_center
+        assert not window.device_center.feature_handoff.isHidden()
+        assert window.device_center.feature_handoff_title.text() == (
+            "Recovery Bay Archives  •  adb unauthorized"
+        )
+        assert "no repair worker" in window.device_center.feature_handoff_detail.text()
+        assert window.device_center.feature_handoff_badge.text() == (
+            "LOCAL GUIDE • AUTHORITY NONE"
+        )
+        assert window.device_center.next_button.isEnabled()
+        assert window.device_center.primary_action_buttons["Connect Device"].isEnabled()
+        assert window.device_center.devices == []
+        assert window.device_center.current_active_mission() is None
+        assert window.repair_center.online_worker is None
+        assert window.repair_center.host_repair_worker is None
+        assert window.repair_center.active_session is None
     finally:
         window.companion_center.transport.close()
         window.close()

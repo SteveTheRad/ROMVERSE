@@ -1,5 +1,136 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux Guided checkpoint — Recovery Bay context survives the local Archives route
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `b47bf21` approved checkpoint `15f5953` and authorized one
+  packaged Recovery Bay → private offline Archives → Command Deck `adb unauthorized` continuity
+  journey, with only the minimum correction if that journey exposed a genuine dead end.
+- Stage: Stage 1 — v0.2 Golden Foundation, one bounded connected-error-resolution continuity
+  correction. The existing package exposed that the exact symptom and Recovery Bay/Archives source
+  disappeared after the canonical Command Deck route; all other evidence and authority boundaries
+  remained correct.
+- Exact source changes:
+  - `src/romverse/ui/device_center.py` uses the existing read-only handoff panel to retain one
+    normalized Recovery Bay Archives symptom and label it **LOCAL GUIDE • AUTHORITY NONE**. The
+    panel explicitly records that no worker, online request, plan, approval or command started and
+    leaves the existing device-discovery action unchanged.
+  - `src/romverse/ui/main_window.py` carries the bounded query only when Archives was opened from
+    Recovery Bay and the selected guide's canonical route is Command Deck. Other Archives routes
+    and Recovery incident restoration remain unchanged.
+  - `tests/test_navigation_vocabulary.py` now exercises the exact source route and verifies query,
+    offline authority, canonical destination, retained symptom/source, enabled connection action,
+    empty target/mission state and absent repair/online workers.
+- No Knowledge data, adaptive Device DNA, Companion, UI Design Lab, Windows, Device Pack,
+  Guardian/Recovery executor or other product source changed.
+
+### Verification without double-counting
+
+- Final focused connected-route test: **1/1 passed**. No broad suite was run.
+- Ruff and Git whitespace validation passed for the three changed source/test files.
+- During development, the focused test first revealed that its older fixture bypassed Recovery Bay,
+  then that a source-only test workspace correctly offers Platform Tools resolution instead of
+  claiming verified scan tooling. Those assertions were narrowed to the approved real route and
+  enabled connection boundary; the final exact case passed. These were test-fixture corrections,
+  not application failures or extra passing totals.
+- Exactly one corrected PyInstaller package was built on Fedora 44 with Python 3.14.7 and
+  PyInstaller 6.22.2. Executable:
+  `build/linux-pa-recovery-archives-b47bf21/frozen/ROMVERSE/ROMVERSE`, 6,324,592 bytes, mode `0755`,
+  SHA-256 `a2455d6de9047e994d853967d921484130a131ddbfc5f4bc34b72f8c4da62296`.
+  It is an ignored unsigned local development artifact. PyInstaller completed successfully with
+  only its standard optional `xxsubtype` hidden-import warning and Linux icon notice.
+
+### One bounded packaged error-resolution journey
+
+- Both the diagnostic run and the one permitted corrected relaunch used the fresh no-phone,
+  no-project workspace `/tmp/romverse-pa-recovery-GkYIvcnC`. The original approved package was
+  reused first; it correctly opened the local guide and Command Deck, but reproduced the newly
+  identified context-loss defect. It was closed normally before the corrected package was built.
+- In the corrected package, Recovery Bay accepted the deterministic exact symptom
+  `adb unauthorized`; **Search local Archives** was activated exactly once. ROMVERSE opened its
+  private offline Archives with the exact unchanged query, selected **ADB authorization is pending
+  on the phone**, showed official Android evidence and the manual phone-approval/read-only-rescan
+  boundary, and exposed the canonical **Open Command Deck** route.
+- The local search reported one verified guide, five compatible ranked offline evidence records and
+  zero explicit conflicts. The integrity-loaded offline brain contained 281 structured records and
+  181 attributed sources, schema 1, bundle digest
+  `e198fe3773f62052db37048f97fae4fc4ab4261a8c7167ce7ff738dc382b3787`, and rendered
+  **EXECUTION AUTHORITY: NONE**. No online research action or signed update import was invoked.
+- The canonical Command Deck route was activated exactly once. The corrected landing visibly
+  retained **Recovery Bay Archives • adb unauthorized**, labelled it
+  **LOCAL GUIDE • AUTHORITY NONE**, and stated that no repair worker, online request, plan,
+  approval or command started.
+- Command Deck simultaneously showed **No Android device detected**, **NOT CONNECTED**, the normal
+  USB/authorization guidance and an enabled **Scan for device** action. No symptom reselection,
+  project, repair worker, online worker, plan, approval or execution authority appeared.
+- ROMVERSE closed normally after each launch and no packaged process remained. The cumulative
+  runtime record contains exactly two start/clean-close pairs, SHA-256
+  `5490f58e74a6f9249a290f466831f4917f2aa50115a0fa2f50c8f919d6f55acc`, with no fatal trace.
+
+### Final retained evidence
+
+- The private offline archive is 863,180 bytes at SHA-256
+  `db3d6675b02568b12361e5c0e36f74a215932f29d71499aa2b1c9daa522e4fe8`; it was seeded by the
+  package and loaded through the existing integrity-checked store. No Knowledge source data was
+  edited, imported or downloaded.
+- The fresh workspace contains no project, APK, firmware, plan, preflight/install receipt,
+  approval, consent, Activity/Live Console event, repair session, snapshot, backup, ROM build or
+  working-ROM file. Only the normal private workspace identity/Companion-Link key material,
+  integrity-checked offline archive, empty Activity/Live Console locks, runtime record and Guardian
+  ledger exist.
+- The cumulative Guardian audit verifies as one valid gap-free SHA-256 chain of **128** read-only
+  host inventories: 64 ADB and 64 Fastboot `devices -l` operations. Every record is allowed,
+  host-targeted, untimed-out, return code 0 and selector-free; no Android transport was found and no
+  device-targeted command exists. Final chain hash
+  `b12bc6f6c9eafe6037f720d2bd2f7cccd165f30acc68a36597141ba5fdfcb714`;
+  audit-file SHA-256 `bbc147a0d98163d2e584012cc1b0437ead0b0ace74a6e42de78ecc439c4d418e`.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** bounded symptom/source continuity from a compatible local Recovery Bay Archives
+  guide to the existing Command Deck read-only handoff panel.
+- **Simulated/Tested:** 1/1 focused test and one genuine corrected packaged Fedora no-phone
+  end-to-end journey after the diagnostic reproduction. No phone or device state was simulated.
+- **Hardware Verified:** no. No Android phone was connected, discovered, selected or operated.
+- **Released:** no. The package remains an unsigned local development artifact.
+- Blockers/failures: the initial approved package lost the symptom/source on the final route; this
+  exact defect is corrected and reproduced successfully in the corrected package. No remaining
+  blocker appeared in the bounded journey.
+- Guided friction/dead ends: the user can now enter one symptom, receive the local evidence-backed
+  guide, take its canonical route and arrive at a truthful device-discovery action without losing
+  the source or re-entering the symptom. No modal, confirmation chain, terminal stop or inert
+  enabled control was introduced.
+- Guardian/Recovery/safety: Archives remains evidence-only. The handoff does not create a target,
+  worker, operation, plan, approval, consent or execution authority. UNKNOWN/no-blind-retry,
+  exact-device and exact-incident evidence, independent verification, Guardian-only authority and
+  permanent no-relock remain unchanged.
+- Linux/Fedora: genuinely verified on Fedora 44/XWayland. Windows and physical Android were not
+  run.
+- Feature freeze: compliant bounded continuity correction using an existing handoff panel, owner
+  route, archive and scan action; no catalog, feature, online lookup, scanner, adapter or execution
+  capability was added.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all remaining gates.
+- External actions: one corrected local package was built and this scoped branch is pushed normally
+  with the source/test/handoff checkpoint. Existing targetless read-only ADB/Fastboot inventory ran
+  as part of the package. No phone operation, download, online research request, tool acquisition,
+  system/APK installation, APK/firmware action, signing, approval, consent, project work,
+  backup/restore, Guardian/Recovery execution, publication, release, merge, force-push, lock or
+  relock occurred. Knowledge/adaptive source, Companion, UI Design Lab and Windows work were not
+  modified, staged or committed.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another consequential slice until the
+verdict for this exact Recovery Bay → local Archives → Command Deck continuity checkpoint is
+recorded in `docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm the exact query/source retention, offline evidence/authority labels, canonical route,
+  enabled no-phone discovery action and absence of workers/authority close the approved connected
+  error-resolution dead end without broadening Stage 1.
+
 ## Linux Guided checkpoint — App Launchpad hands off one retained APK to connection discovery
 
 ### Authoritative checkpoint and scope

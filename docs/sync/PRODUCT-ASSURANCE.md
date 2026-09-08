@@ -1,5 +1,64 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 120af84 — Windows exact Forge convergence
+
+- Reviewed commit: `120af840b02bfa7ced40cb173541b5711deff2d3`
+- Approved base: `ef8c860fb49173e1d66d9cacda3f204d9ff17e19`
+- Approved Linux result: `17c133f7b10a462075cbb698169ce9ef0a72e4e0`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — WINDOWS PRESERVES EXACT FORGE IDENTITY AND ACTIONABLE HISTORY**
+
+### Decision
+
+Product Assurance inspected the cumulative Windows convergence and independently reran its exact
+native affected selection at **30/30 passed**. The Windows path now freshly validates and durably
+binds the same exact schema-3 Build Readiness generation through Forge, Device Build planning and
+local runner admission. Same-tree plan replacement cannot consume older admission; a deliberate
+Forge rollover privately preserves valid history and creates/verifies only the current generation.
+
+The two Windows branch-context adaptations are correct: Forge Control remains inspection-only on
+open, and the already tracked Windows-only external-firmware intake format is accurately included
+in the durable inventory. Neither change broadens the approved product behavior.
+
+### Independent evidence and acceptance
+
+- Independent native Windows verification passed **30/30**: 17 Device Build contract checks, four
+  Forge schema/history checks, three exact Forge Control/UI checks and six durable-schema inventory
+  checks.
+- New Forge evidence binds plan, source, toolchain, Guided choices and tree; downgrade, collision,
+  malformed and stale-generation paths fail closed.
+- Device Build plan binds exact workspace-plan digest and tree immediately before any runner call;
+  the same-tree adversary proves zero calls from stale admission.
+- One explicit Forge choice preserves plan-A history and creates/verifies one plan-B intermediate;
+  both immutable archives remain independently verifiable and current intent stays unambiguous.
+- The Windows checkout is clean except for the preserved untracked patch. No package, launch,
+  download, real candidate, signing, phone, ADB/Fastboot, APK, Guardian execution, publication,
+  release, lock or relock occurred.
+
+### Approved next bounded Windows task
+
+Create one fresh **unsigned Windows desktop development artifact** from exact approved source
+`120af840b02bfa7ced40cb173541b5711deff2d3`, using the established local Windows packaging route
+once. Verify the executable/archive source identity, bounded package contents and integrity without
+replaying the 30-test convergence.
+
+Launch the resulting packaged application once, unelevated, in a fresh isolated no-phone workspace
+with host ADB/Fastboot unavailable. Confirm the main window/Command Deck and Guided entry render,
+the truthful missing-platform-tools/no-device state is actionable, and normal close exits cleanly
+with no remaining process. Do not click tool installation, build/package more than once, create a
+ROM candidate, sign, connect hardware, dispatch ADB/Fastboot, publish or release. If one genuine
+packaged-only startup/asset/navigation defect appears, apply only its minimum Windows correction
+and repeat the failed smoke once. Preserve the untracked patch. Commit/push one bounded handoff and
+stop for review.
+
+### Gate status
+
+- Windows exact Forge/Device Build convergence: **VERIFIED**
+- Current unsigned Windows desktop artifact and native smoke: **NEXT BOUNDED WINDOWS TASK**
+- GitHub-hosted candidate workflow: **EXTERNAL ACCOUNT GATE OUTSTANDING**
+- Physical hardware, signing, Guardian execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: ed0d9a9 — Windows schema-3 Guided Build Readiness
 
 - Reviewed commit: `ed0d9a9b`

@@ -3,10 +3,12 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import stat
 import zipfile
 from pathlib import Path
 
 import pytest
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
 
 from romverse.device_packs.registry import DevicePackRegistry
@@ -32,6 +34,35 @@ def _sha256(path: Path) -> str:
         while chunk := stream.read(1024 * 1024):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _metadata_source(path: Path) -> tuple[Path, bytes, bytes]:
+    build_info = (
+        b"manufacturer=Xiaomi\n"
+        b"codename=popsicle\n"
+        b"firmware_version=OS4.0.0.32.XPBCNXM\n"
+        b"android_version=17\n"
+        b"region=China\n"
+        b"channel=stable\n"
+        b"base_provenance=official full OTA\n"
+    )
+    procedure = b"fastboot flash system system.img\n"
+    manifest = (
+        f"{hashlib.sha256(build_info).hexdigest()}  BUILD-INFO.txt\n"
+        f"{hashlib.sha256(procedure).hexdigest()}  tools/flash_all.bat\n"
+    ).encode()
+    with zipfile.ZipFile(path, "w") as archive:
+        archive.writestr("tools/", b"")
+        archive.writestr("BUILD-INFO.txt", build_info)
+        archive.writestr("SHA256SUMS", manifest)
+        archive.writestr("tools/flash_all.bat", procedure)
+        archive.writestr(
+            "META-INF/com/google/android/updater-script",
+            b"ui_print('fixture');\n",
+        )
+        archive.writestr("images/super.img", b"fixture-super")
+    path.chmod(0o444)
+    return path, build_info, procedure
 
 
 def test_external_intake_hashes_and_inspects_without_copying_or_authority(tmp_path) -> None:
@@ -73,6 +104,163 @@ def test_external_intake_hashes_and_inspects_without_copying_or_authority(tmp_pa
     assert store.get(project.project_id).original is None
     assert not store.originals_root.exists() or not tuple(store.originals_root.iterdir())
     assert ExternalFirmwareIntakeService(store).load(project.project_id) == receipt
+    inventory = ExternalFirmwareIntakeService(store).load_inventory(project.project_id)
+    assert inventory is not None
+    assert inventory.metadata_members == ()
+    assert inventory.identity_facts == ()
+    assert inventory.procedure_members == ()
+    assert inventory.execution_authority == "none"
+    assert inventory.bootloader_relock == "never"
+
+
+def test_external_intake_records_bounded_metadata_and_untrusted_procedures(tmp_path) -> None:
+    source, build_info, procedure = _metadata_source(tmp_path / "firmware.zip")
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.create("Package metadata")
+    service = ExternalFirmwareIntakeService(store)
+
+    receipt = service.inspect(project.project_id, source)
+    inventory = service.load_inventory(project.project_id)
+
+    assert inventory is not None
+    assert inventory.source_sha256 == receipt.source_sha256
+    assert [(item.path, item.size_bytes, item.sha256) for item in inventory.metadata_members] == [
+        ("BUILD-INFO.txt", len(build_info), hashlib.sha256(build_info).hexdigest()),
+        (
+            "SHA256SUMS",
+            inventory.metadata_members[1].size_bytes,
+            inventory.metadata_members[1].sha256,
+        ),
+    ]
+    assert {item.field: item.value for item in inventory.identity_facts} == {
+        "android_version": "17",
+        "base_provenance": "official full OTA",
+        "build_id": "OS4.0.0.32.XPBCNXM",
+        "channel": "stable",
+        "codename": "popsicle",
+        "manufacturer": "Xiaomi",
+        "region": "China",
+    }
+    assert [item.path for item in inventory.procedure_members] == [
+        "META-INF/com/google/android/updater-script",
+        "tools/flash_all.bat",
+    ]
+    assert (
+        next(
+            item.sha256
+            for item in inventory.procedure_members
+            if item.path == "tools/flash_all.bat"
+        )
+        == hashlib.sha256(procedure).hexdigest()
+    )
+    assert inventory.manifest_verified_paths == ("BUILD-INFO.txt", "tools/flash_all.bat")
+    encoded = (store.projects_root / project.project_id / service.INVENTORY_NAME).read_text(
+        encoding="utf-8"
+    )
+    assert "fastboot flash" not in encoded
+    assert "ui_print" not in encoded
+    assert inventory.identity_authority == "package-declared-unverified"
+    assert inventory.procedure_authority == "untrusted-presence-only-never-executable"
+    assert (
+        inventory.build_authority
+        == inventory.device_authority
+        == inventory.execution_authority
+        == "none"
+    )
+
+
+@pytest.mark.parametrize(
+    "defect",
+    [
+        "duplicate",
+        "duplicate_path",
+        "encoding",
+        "malformed",
+        "oversized",
+        "command",
+        "relock",
+        "manifest",
+        "special_member",
+    ],
+)
+def test_external_metadata_defects_fail_before_any_receipt(tmp_path, defect) -> None:
+    source = tmp_path / "firmware.zip"
+    build_info = b"manufacturer=Xiaomi\ncodename=popsicle\n"
+    with zipfile.ZipFile(source, "w") as archive:
+        archive.writestr(
+            "BUILD-INFO.txt", b"manufacturer=Xiaomi\n" if defect == "duplicate" else build_info
+        )
+        if defect == "duplicate":
+            archive.writestr("android-info.txt", b"manufacturer=Xiaomi\n")
+        elif defect == "duplicate_path":
+            archive.writestr("build-info.txt", b"codename=popsicle\n")
+        elif defect == "encoding":
+            archive.writestr("android-info.txt", b"codename=\xff\n")
+        elif defect == "malformed":
+            archive.writestr("android-info.txt", b"this is not key value metadata\n")
+        elif defect == "oversized":
+            archive.writestr("android-info.txt", b"x" * (256 * 1024 + 1))
+        elif defect == "command":
+            archive.writestr("android-info.txt", b"base=official; reboot\n")
+        elif defect == "relock":
+            archive.writestr("android-info.txt", b"base=fastboot flashing lock\n")
+        elif defect == "special_member":
+            special = zipfile.ZipInfo("tools/flash.sh")
+            special.create_system = 3
+            special.external_attr = (stat.S_IFLNK | 0o777) << 16
+            archive.writestr(special, b"../payload/flash.sh")
+        else:
+            archive.writestr("SHA256SUMS", f"{'0' * 64}  BUILD-INFO.txt\n")
+    source.chmod(0o444)
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.create(f"Rejected {defect}")
+    service = ExternalFirmwareIntakeService(store)
+
+    with pytest.raises(ProjectError):
+        service.inspect(project.project_id, source)
+
+    project_root = store.projects_root / project.project_id
+    assert not (project_root / service.RECEIPT_NAME).exists()
+    assert not (project_root / service.INVENTORY_NAME).exists()
+
+
+def test_external_inventory_rejects_hidden_command_field(tmp_path) -> None:
+    source, _build_info, _procedure = _metadata_source(tmp_path / "firmware.zip")
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.create("Strict inventory")
+    service = ExternalFirmwareIntakeService(store)
+    service.inspect(project.project_id, source)
+    path = store.projects_root / project.project_id / service.INVENTORY_NAME
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["command"] = "fastboot flashing lock"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    assert service.load_inventory(project.project_id) is None
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("schema_version", True),
+        ("manifest_verified_paths", ["missing/flash.sh"]),
+    ],
+)
+def test_external_inventory_rejects_invalid_durable_fields(tmp_path, field, value) -> None:
+    source, _build_info, _procedure = _metadata_source(tmp_path / "firmware.zip")
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.create("Strict durable inventory")
+    service = ExternalFirmwareIntakeService(store)
+    service.inspect(project.project_id, source)
+    path = store.projects_root / project.project_id / service.INVENTORY_NAME
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload[field] = value
+    unsigned = dict(payload)
+    unsigned.pop("format")
+    unsigned.pop("record_digest")
+    payload["record_digest"] = external_intake._digest(unsigned)
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    assert service.load_inventory(project.project_id) is None
 
 
 def test_external_intake_does_not_reopen_selected_path_for_inspection(
@@ -163,7 +351,9 @@ def test_studio_presents_external_evidence_and_keeps_consequential_actions_locke
     tmp_path,
 ) -> None:
     app = QApplication.instance() or QApplication([])
-    source = _source(tmp_path / "adbb99b9d6e6c3e6-HyperOS4-Xiaomi17ProMax-Debloated-CustomRom.zip")
+    source, _build_info, _procedure = _metadata_source(
+        tmp_path / "adbb99b9d6e6c3e6-HyperOS4-Xiaomi17ProMax-Debloated-CustomRom.zip"
+    )
     store = RomProjectStore(tmp_path / "workspace")
     project = store.create("External intake UI")
     receipt = ExternalFirmwareIntakeService(store).inspect(project.project_id, source)
@@ -183,6 +373,11 @@ def test_studio_presents_external_evidence_and_keeps_consequential_actions_locke
     assert "External read-only evidence" in studio.inspection_detail.text()
     assert "Known" in studio.inspection_detail.text()
     assert "Unconfirmed" in studio.inspection_detail.text()
+    assert "Package-declared identity (UNVERIFIED)" in studio.inspection_detail.text()
+    assert "Untrusted procedure presence (NEVER EXECUTED)" in studio.inspection_detail.text()
+    assert "tools/flash_all.bat" in studio.inspection_detail.text()
+    assert "Build/install/Guardian/flash authority  •  LOCKED" in studio.inspection_detail.text()
+    assert studio.inspection_detail.textFormat() is Qt.TextFormat.PlainText
     assert studio.upgrade_passport_status.text() == (
         "READ-ONLY SOURCE EVIDENCE • RELATIONSHIP UNCONFIRMED"
     )

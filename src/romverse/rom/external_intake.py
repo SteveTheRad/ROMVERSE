@@ -5,10 +5,12 @@ import json
 import os
 import re
 import stat
+import zipfile
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, fields, replace
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+from typing import BinaryIO
 
 from romverse.infrastructure.local_store import atomic_write_json, read_json_object
 from romverse.rom.inspection import ContainerKind, FindingSeverity, RomInspector
@@ -60,15 +62,84 @@ class ExternalFirmwareIntakeReceipt:
     record_digest: str
 
 
+@dataclass(frozen=True, slots=True)
+class ExternalPackageMemberEvidence:
+    path: str
+    size_bytes: int
+    sha256: str
+
+
+@dataclass(frozen=True, slots=True)
+class ExternalPackageIdentityFact:
+    field: str
+    value: str
+    member_path: str
+
+
+@dataclass(frozen=True, slots=True)
+class ExternalPackageMetadataInventory:
+    """Bounded package-declared evidence that can never become a procedure."""
+
+    schema_version: int
+    project_id: str
+    created_at: str
+    source_sha256: str
+    metadata_members: tuple[ExternalPackageMemberEvidence, ...]
+    identity_facts: tuple[ExternalPackageIdentityFact, ...]
+    procedure_members: tuple[ExternalPackageMemberEvidence, ...]
+    manifest_verified_paths: tuple[str, ...]
+    identity_authority: str
+    procedure_authority: str
+    build_authority: str
+    device_authority: str
+    execution_authority: str
+    bootloader_relock: str
+    record_digest: str
+
+
 class ExternalFirmwareIntakeService:
     """Hash and inspect one external package without importing or extracting it."""
 
     RECEIPT_NAME = "external-firmware-intake.romverse"
     FORMAT = "romverse.external-firmware-intake"
+    INVENTORY_NAME = "external-package-metadata.romverse"
+    INVENTORY_FORMAT = "romverse.external-package-metadata"
     AUTHORITY = "evidence-only-no-build-device-or-execution-authority"
+    IDENTITY_AUTHORITY = "package-declared-unverified"
+    PROCEDURE_AUTHORITY = "untrusted-presence-only-never-executable"
     MAX_RECEIPT_BYTES = 256 * 1024
+    MAX_INVENTORY_BYTES = 512 * 1024
     MAX_SOURCE_BYTES = 2 * 1024 * 1024 * 1024 * 1024
     CHUNK_SIZE = 4 * 1024 * 1024
+    MAX_METADATA_MEMBER_BYTES = 256 * 1024
+    MAX_METADATA_TOTAL_BYTES = 1024 * 1024
+    MAX_PROCEDURE_MEMBER_BYTES = 8 * 1024 * 1024
+    MAX_PROCEDURE_TOTAL_BYTES = 64 * 1024 * 1024
+    MAX_PROCEDURE_MEMBERS = 256
+    METADATA_PATHS = frozenset(
+        {"build-info.txt", "customization-manifest.tsv", "sha256sums", "android-info.txt"}
+    )
+    IDENTITY_KEYS = {
+        "manufacturer": "manufacturer",
+        "oem": "manufacturer",
+        "brand": "manufacturer",
+        "codename": "codename",
+        "device": "codename",
+        "product": "codename",
+        "require product": "codename",
+        "build": "build_id",
+        "build_id": "build_id",
+        "firmware": "build_id",
+        "firmware_version": "build_id",
+        "version": "build_id",
+        "android": "android_version",
+        "android_version": "android_version",
+        "region": "region",
+        "channel": "channel",
+        "base": "base_provenance",
+        "base_build": "base_provenance",
+        "base_provenance": "base_provenance",
+    }
 
     def __init__(self, store: RomProjectStore) -> None:
         self.store = store
@@ -122,6 +193,13 @@ class ExternalFirmwareIntakeService:
                     stream,
                     digest.hexdigest(),
                     source.name,
+                )
+                inventory = self._inventory(
+                    stream,
+                    project_id=project_id,
+                    source_sha256=digest.hexdigest(),
+                    container=report.container,
+                    inspection_complete=report.complete,
                 )
                 stream_after = os.fstat(stream.fileno())
                 if completed != path_before.st_size or not _same_file(stream_before, stream_after):
@@ -182,6 +260,7 @@ class ExternalFirmwareIntakeService:
         unsigned = asdict(receipt)
         unsigned.pop("record_digest")
         receipt = replace(receipt, record_digest=_digest(unsigned))
+        self._save_inventory(inventory)
         atomic_write_json(
             self.store.projects_root / project_id / self.RECEIPT_NAME,
             {"format": self.FORMAT, **asdict(receipt)},
@@ -191,9 +270,108 @@ class ExternalFirmwareIntakeService:
         loaded = self.load(project_id)
         if loaded != receipt:
             raise ProjectError("External firmware intake evidence failed durable verification")
+        if self.load_inventory(project_id) != inventory:
+            raise ProjectError("External package metadata evidence failed durable verification")
         if progress is not None:
             progress(path_after.st_size, path_after.st_size)
         return receipt
+
+    def load_inventory(self, project_id: str) -> ExternalPackageMetadataInventory | None:
+        path = self.store.projects_root / project_id / self.INVENTORY_NAME
+        try:
+            payload = read_json_object(
+                path,
+                boundary=self.store.workspace,
+                maximum_bytes=self.MAX_INVENTORY_BYTES,
+            )
+            expected = {
+                "format",
+                *(field.name for field in fields(ExternalPackageMetadataInventory)),
+            }
+            if set(payload) != expected or payload.pop("format") != self.INVENTORY_FORMAT:
+                return None
+            for name, record_type in (
+                ("metadata_members", ExternalPackageMemberEvidence),
+                ("identity_facts", ExternalPackageIdentityFact),
+                ("procedure_members", ExternalPackageMemberEvidence),
+            ):
+                values = payload.get(name)
+                if not isinstance(values, list):
+                    return None
+                expected_fields = {field.name for field in fields(record_type)}
+                if any(
+                    not isinstance(value, dict) or set(value) != expected_fields for value in values
+                ):
+                    return None
+                payload[name] = tuple(record_type(**value) for value in values)
+            verified = payload.get("manifest_verified_paths")
+            if not isinstance(verified, list) or not all(
+                isinstance(item, str) for item in verified
+            ):
+                return None
+            payload["manifest_verified_paths"] = tuple(verified)
+            inventory = ExternalPackageMetadataInventory(**payload)
+            receipt = self.load(project_id)
+        except (OSError, TypeError, ValueError, KeyError, ProjectError):
+            return None
+        unsigned = asdict(inventory)
+        digest = unsigned.pop("record_digest")
+        members = (*inventory.metadata_members, *inventory.procedure_members)
+        if (
+            receipt is None
+            or type(inventory.schema_version) is not int
+            or inventory.schema_version != 1
+            or inventory.project_id != project_id
+            or inventory.source_sha256 != receipt.source_sha256
+            or not _aware_timestamp(inventory.created_at)
+            or len(inventory.metadata_members) > len(self.METADATA_PATHS)
+            or len(inventory.identity_facts) > len(set(self.IDENTITY_KEYS.values()))
+            or len(inventory.procedure_members) > self.MAX_PROCEDURE_MEMBERS
+            or any(not self._valid_member(item) for item in members)
+            or any(
+                item.path.casefold() not in self.METADATA_PATHS
+                or item.size_bytes > self.MAX_METADATA_MEMBER_BYTES
+                for item in inventory.metadata_members
+            )
+            or sum(item.size_bytes for item in inventory.metadata_members)
+            > self.MAX_METADATA_TOTAL_BYTES
+            or any(
+                not _procedure_path(item.path.casefold())
+                or item.size_bytes > self.MAX_PROCEDURE_MEMBER_BYTES
+                for item in inventory.procedure_members
+            )
+            or sum(item.size_bytes for item in inventory.procedure_members)
+            > self.MAX_PROCEDURE_TOTAL_BYTES
+            or tuple(sorted(item.path for item in inventory.metadata_members))
+            != tuple(item.path for item in inventory.metadata_members)
+            or len({item.path.casefold() for item in members}) != len(members)
+            or tuple(sorted(item.path for item in inventory.procedure_members))
+            != tuple(item.path for item in inventory.procedure_members)
+            or any(not self._valid_fact(item) for item in inventory.identity_facts)
+            or len({item.field for item in inventory.identity_facts})
+            != len(inventory.identity_facts)
+            or any(
+                item.member_path not in {member.path for member in inventory.metadata_members}
+                for item in inventory.identity_facts
+            )
+            or tuple(sorted((item.field, item.member_path) for item in inventory.identity_facts))
+            != tuple((item.field, item.member_path) for item in inventory.identity_facts)
+            or not _sorted_unique(inventory.manifest_verified_paths, 512, 4096)
+            or any(
+                path not in {member.path for member in members}
+                for path in inventory.manifest_verified_paths
+            )
+            or inventory.identity_authority != self.IDENTITY_AUTHORITY
+            or inventory.procedure_authority != self.PROCEDURE_AUTHORITY
+            or inventory.build_authority != "none"
+            or inventory.device_authority != "none"
+            or inventory.execution_authority != "none"
+            or inventory.bootloader_relock != "never"
+            or not _sha256(digest)
+            or digest != _digest(unsigned)
+        ):
+            return None
+        return inventory
 
     def load(self, project_id: str) -> ExternalFirmwareIntakeReceipt | None:
         path = self.store.projects_root / project_id / self.RECEIPT_NAME
@@ -295,6 +473,253 @@ class ExternalFirmwareIntakeService:
             return None
         return receipt
 
+    def _inventory(
+        self,
+        stream: BinaryIO,
+        *,
+        project_id: str,
+        source_sha256: str,
+        container: ContainerKind,
+        inspection_complete: bool,
+    ) -> ExternalPackageMetadataInventory:
+        metadata_members: list[ExternalPackageMemberEvidence] = []
+        identity_facts: list[ExternalPackageIdentityFact] = []
+        procedures: list[ExternalPackageMemberEvidence] = []
+        verified_paths: set[str] = set()
+        if container is ContainerKind.ZIP:
+            if not inspection_complete:
+                raise ProjectError(
+                    "External ZIP metadata inventory requires complete structure evidence"
+                )
+            stream.seek(0)
+            try:
+                with zipfile.ZipFile(stream) as archive:
+                    relevant: dict[str, zipfile.ZipInfo] = {}
+                    procedure_count = 0
+                    for info in archive.infolist():
+                        if info.is_dir():
+                            continue
+                        raw_key = info.filename.casefold()
+                        if raw_key not in self.METADATA_PATHS and not _procedure_path(raw_key):
+                            continue
+                        path = _safe_member_path(info.filename)
+                        key = path.casefold()
+                        is_procedure = _procedure_path(key)
+                        mode = (info.external_attr >> 16) & 0xFFFF
+                        if stat.S_IFMT(mode) not in {0, stat.S_IFREG}:
+                            raise ProjectError(
+                                "External package evidence member is not a regular file"
+                            )
+                        if key in relevant:
+                            raise ProjectError(
+                                "External package contains an ambiguous duplicate evidence path"
+                            )
+                        relevant[key] = info
+                        if is_procedure:
+                            procedure_count += 1
+                            if procedure_count > self.MAX_PROCEDURE_MEMBERS:
+                                raise ProjectError(
+                                    "External package procedure inventory exceeds its bounded count"
+                                )
+
+                    metadata_payloads: dict[str, bytes] = {}
+                    metadata_total = 0
+                    procedure_total = 0
+                    for key, info in sorted(relevant.items()):
+                        if key in self.METADATA_PATHS:
+                            metadata_total += info.file_size
+                            if (
+                                info.file_size > self.MAX_METADATA_MEMBER_BYTES
+                                or metadata_total > self.MAX_METADATA_TOTAL_BYTES
+                            ):
+                                raise ProjectError(
+                                    "External package metadata exceeds its bounded size"
+                                )
+                            evidence, payload = self._read_zip_member(
+                                archive, info, self.MAX_METADATA_MEMBER_BYTES, retain=True
+                            )
+                            metadata_members.append(evidence)
+                            metadata_payloads[key] = payload
+                        else:
+                            procedure_total += info.file_size
+                            if (
+                                info.file_size > self.MAX_PROCEDURE_MEMBER_BYTES
+                                or procedure_total > self.MAX_PROCEDURE_TOTAL_BYTES
+                            ):
+                                raise ProjectError(
+                                    "External package procedure evidence exceeds its bounded size"
+                                )
+                            evidence, _payload = self._read_zip_member(
+                                archive, info, self.MAX_PROCEDURE_MEMBER_BYTES, retain=False
+                            )
+                            procedures.append(evidence)
+
+                    seen_fields: set[str] = set()
+                    for member in metadata_members:
+                        key = member.path.casefold()
+                        if key == "sha256sums":
+                            continue
+                        for fact in self._parse_identity(member.path, metadata_payloads[key]):
+                            if fact.field in seen_fields:
+                                raise ProjectError(
+                                    "External package declares a duplicate identity field"
+                                )
+                            seen_fields.add(fact.field)
+                            identity_facts.append(fact)
+                    manifest = metadata_payloads.get("sha256sums")
+                    if manifest is not None:
+                        declared = self._parse_manifest(manifest)
+                        for member in (*metadata_members, *procedures):
+                            if member.path.casefold() == "sha256sums":
+                                continue
+                            expected = declared.get(member.path.casefold())
+                            if expected is None:
+                                continue
+                            if expected != member.sha256:
+                                raise ProjectError(
+                                    "External package SHA256SUMS disagrees with inventoried content"
+                                )
+                            verified_paths.add(member.path)
+            except (OSError, RuntimeError, zipfile.BadZipFile) as exc:
+                raise ProjectError(
+                    "External package metadata could not be inspected safely"
+                ) from exc
+
+        payload: dict[str, object] = {
+            "schema_version": 1,
+            "project_id": project_id,
+            "created_at": datetime.now(UTC).isoformat(),
+            "source_sha256": source_sha256,
+            "metadata_members": tuple(sorted(metadata_members, key=lambda item: item.path)),
+            "identity_facts": tuple(
+                sorted(identity_facts, key=lambda item: (item.field, item.member_path))
+            ),
+            "procedure_members": tuple(sorted(procedures, key=lambda item: item.path)),
+            "manifest_verified_paths": tuple(sorted(verified_paths)),
+            "identity_authority": self.IDENTITY_AUTHORITY,
+            "procedure_authority": self.PROCEDURE_AUTHORITY,
+            "build_authority": "none",
+            "device_authority": "none",
+            "execution_authority": "none",
+            "bootloader_relock": "never",
+        }
+        digest_payload = dict(payload)
+        for name in ("metadata_members", "identity_facts", "procedure_members"):
+            digest_payload[name] = tuple(asdict(item) for item in payload[name])  # type: ignore[union-attr]
+        return ExternalPackageMetadataInventory(  # type: ignore[arg-type]
+            **payload,
+            record_digest=_digest(digest_payload),
+        )
+
+    def _save_inventory(self, inventory: ExternalPackageMetadataInventory) -> None:
+        atomic_write_json(
+            self.store.projects_root / inventory.project_id / self.INVENTORY_NAME,
+            {"format": self.INVENTORY_FORMAT, **asdict(inventory)},
+            boundary=self.store.workspace,
+            maximum_bytes=self.MAX_INVENTORY_BYTES,
+        )
+
+    @classmethod
+    def _read_zip_member(
+        cls,
+        archive: zipfile.ZipFile,
+        info: zipfile.ZipInfo,
+        maximum: int,
+        *,
+        retain: bool,
+    ) -> tuple[ExternalPackageMemberEvidence, bytes]:
+        if info.flag_bits & 0x1 or info.file_size < 0 or info.file_size > maximum:
+            raise ProjectError("External package evidence member is encrypted or oversized")
+        digest = hashlib.sha256()
+        captured = bytearray()
+        total = 0
+        with archive.open(info, "r") as member:
+            while chunk := member.read(min(cls.CHUNK_SIZE, maximum + 1 - total)):
+                total += len(chunk)
+                if total > maximum:
+                    raise ProjectError(
+                        "External package evidence member exceeded its declared bound"
+                    )
+                digest.update(chunk)
+                if retain:
+                    captured.extend(chunk)
+        if total != info.file_size:
+            raise ProjectError("External package evidence member size changed during inspection")
+        return (
+            ExternalPackageMemberEvidence(info.filename, total, digest.hexdigest()),
+            bytes(captured),
+        )
+
+    @classmethod
+    def _parse_identity(
+        cls, member_path: str, payload: bytes
+    ) -> tuple[ExternalPackageIdentityFact, ...]:
+        if b"\x00" in payload:
+            raise ProjectError("External package metadata contains a NUL byte")
+        try:
+            text = payload.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise ProjectError("External package metadata is not valid UTF-8") from exc
+        facts: list[ExternalPackageIdentityFact] = []
+        for raw_line in text.splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+            separator = (
+                "\t" if member_path.casefold().endswith(".tsv") else "=" if "=" in line else ":"
+            )
+            if separator not in line:
+                raise ProjectError("External package metadata contains a malformed line")
+            raw_key, raw_value = (part.strip() for part in line.split(separator, 1))
+            key = re.sub(r"[-.]+", "_", raw_key.casefold())
+            field = cls.IDENTITY_KEYS.get(key)
+            if field is None:
+                continue
+            if not _safe_identity_value(raw_value):
+                raise ProjectError("External package identity contains unsafe command-like text")
+            facts.append(ExternalPackageIdentityFact(field, raw_value, member_path))
+        return tuple(facts)
+
+    @staticmethod
+    def _parse_manifest(payload: bytes) -> dict[str, str]:
+        try:
+            text = payload.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise ProjectError("External package SHA256SUMS is not valid UTF-8") from exc
+        declared: dict[str, str] = {}
+        for line in text.splitlines():
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
+            match = re.fullmatch(r"\s*([0-9a-fA-F]{64})\s+[ *](\S[^\r\n]*)\s*", line)
+            if match is None:
+                raise ProjectError("External package SHA256SUMS contains a malformed line")
+            path = _safe_member_path(match.group(2)).casefold()
+            if path in declared:
+                raise ProjectError("External package SHA256SUMS contains a duplicate path")
+            declared[path] = match.group(1).casefold()
+        return declared
+
+    @staticmethod
+    def _valid_member(member: ExternalPackageMemberEvidence) -> bool:
+        try:
+            path = _safe_member_path(member.path)
+        except ProjectError:
+            return False
+        return bool(
+            path == member.path
+            and type(member.size_bytes) is int
+            and 0 <= member.size_bytes <= ExternalFirmwareIntakeService.MAX_PROCEDURE_MEMBER_BYTES
+            and _sha256(member.sha256)
+        )
+
+    @classmethod
+    def _valid_fact(cls, fact: ExternalPackageIdentityFact) -> bool:
+        return bool(
+            fact.field in set(cls.IDENTITY_KEYS.values())
+            and _safe_identity_value(fact.value)
+            and _valid_text(fact.member_path, 4096)
+        )
+
 
 def _same_file(left: os.stat_result, right: os.stat_result) -> bool:
     return (
@@ -309,6 +734,44 @@ def _same_file(left: os.stat_result, right: os.stat_result) -> bool:
         right.st_size,
         right.st_mtime_ns,
         stat.S_IMODE(right.st_mode),
+    )
+
+
+def _safe_member_path(value: str) -> str:
+    if (
+        not isinstance(value, str)
+        or not value
+        or len(value) > 4096
+        or "\\" in value
+        or "\x00" in value
+    ):
+        raise ProjectError("External package evidence path is invalid")
+    path = PurePosixPath(value)
+    if (
+        path.is_absolute()
+        or path.as_posix() != value
+        or any(part in {"", ".", ".."} for part in path.parts)
+    ):
+        raise ProjectError("External package evidence path is unsafe")
+    return path.as_posix()
+
+
+def _procedure_path(path: str) -> bool:
+    return bool(
+        path == "meta-inf/com/google/android/updater-script"
+        or PurePosixPath(path).suffix in {".sh", ".bat", ".cmd", ".ps1"}
+    )
+
+
+def _safe_identity_value(value: object) -> bool:
+    if not isinstance(value, str) or not 1 <= len(value) <= 256:
+        return False
+    if any(ord(character) < 32 for character in value):
+        return False
+    normalized = value.casefold()
+    return not bool(
+        re.search(r"\b(?:relock|flashing\s+lock|oem\s+lock)\b", normalized)
+        or re.search(r"(?:&&|\|\||[;`$])", value)
     )
 
 

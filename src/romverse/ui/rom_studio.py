@@ -937,6 +937,7 @@ class RomStudio(QWidget):
             "Not inspected. ROMVERSE will verify SHA-256 before reading container metadata."
         )
         self.inspection_detail.setObjectName("Muted")
+        self.inspection_detail.setTextFormat(Qt.TextFormat.PlainText)
         self.inspection_detail.setWordWrap(True)
         self.inspection_detail.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         detail_layout.addWidget(self.inspection_detail)
@@ -2356,9 +2357,7 @@ class RomStudio(QWidget):
         self.source_installation_history_requested.emit(project_id)
         return True
 
-    def _request_source_installation_recovery(
-        self, project_id: str, source_sha256: str
-    ) -> bool:
+    def _request_source_installation_recovery(self, project_id: str, source_sha256: str) -> bool:
         """Dispatch sealed interrupted-operation evidence to diagnosis, never execution."""
 
         project = self.current_project
@@ -3638,9 +3637,7 @@ class RomStudio(QWidget):
                         external.manufacturer,
                         external.codename,
                         external.build_id,
-                        f"Android {external.android_version}"
-                        if external.android_version
-                        else "",
+                        f"Android {external.android_version}" if external.android_version else "",
                         external.region,
                     )
                     if value
@@ -4881,6 +4878,22 @@ class RomStudio(QWidget):
         partitions = ", ".join(receipt.partition_signals) or "None detected"
         metadata = ", ".join(receipt.metadata_signals) or "None detected"
         completeness = "complete" if receipt.inspection_complete else "bounded/incomplete"
+        inventory = self.external_intake.load_inventory(receipt.project_id)
+        declared = (
+            ", ".join(f"{item.field}={item.value}" for item in inventory.identity_facts)
+            if inventory is not None and inventory.identity_facts
+            else "None confirmed"
+        )
+        inventory_members = (
+            ", ".join(item.path for item in inventory.metadata_members)
+            if inventory is not None and inventory.metadata_members
+            else "None present"
+        )
+        procedures = (
+            ", ".join(item.path for item in inventory.procedure_members)
+            if inventory is not None and inventory.procedure_members
+            else "None present"
+        )
         self.inspection_detail.setText(
             "External read-only evidence  •  no copy or extraction\n"
             f"Container  •  {receipt.container.replace('_', ' ')}  |  "
@@ -4891,8 +4904,12 @@ class RomStudio(QWidget):
             f"Structural findings  •  {receipt.critical_count} critical, "
             f"{receipt.warning_count} warning, {receipt.information_count} information  •  "
             f"inspection {completeness}\n"
+            f"Bounded metadata members  •  {inventory_members}\n"
+            f"Package-declared identity (UNVERIFIED)  •  {declared}\n"
+            f"Untrusted procedure presence (NEVER EXECUTED)  •  {procedures}\n"
             "Known  •  File identity, size, SHA-256, container, and bounded structure above\n"
-            "Unconfirmed  •  Device match, build/channel identity, compatibility, and upgrade route"
+            "Unconfirmed  •  Package claims, device match, compatibility, and upgrade route\n"
+            "Build/install/Guardian/flash authority  •  LOCKED"
         )
 
     def _render_time_machine(self, project_id: str) -> None:

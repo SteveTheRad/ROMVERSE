@@ -1,5 +1,25 @@
 # ROMVERSE Build Status
 
+## Pixel 6 official factory-index metadata — 8 September 2026
+
+- Authorization/base: Product Assurance verdict
+  `0e51b025d300b1a2c3f9635501c41942325816ae` on `adaptive-online-device-dna`.
+- Implementation: `977da29c741ef9ca1e0ebd43284e1bf81858d3bd`.
+- Result: exact-URL, exact-identity, metadata-only Pixel 6/oriole factory-index adapter with strict
+  table, date, build, image-identity, SHA-256, conflict, privacy, terms/download, receipt, and
+  zero-authority boundaries.
+- Verification: 154 focused tests passed; focused Ruff check/format and Git whitespace checks
+  passed. The full suite was not run.
+- Single live result: the exact official page returned HTTP 200 and 75,167 bounded bytes at
+  `2026-09-08T04:34:23.843003+00:00`, but its static response did not expose one unambiguous
+  reviewed Pixel 6/oriole table. The adapter failed closed with receipt
+  `c36e36561d215ecad094e63b164bc989f9eb04ec921afa8049f661e5ddfe8378`; zero claims and no archive,
+  raw page, binary, terms acceptance, or link traversal were retained.
+- Authority: compatibility remains `UNCONFIRMED`; command, phone, Guardian, execution, download,
+  terms, and relock authority remain absent.
+- Next: stop for Product Assurance before any parser revision, retry, alternate endpoint, source
+  expansion, or consequential workflow.
+
 ## Official Android connection-guide evidence — 8 September 2026
 
 - Authorization/base: Product Assurance verdict

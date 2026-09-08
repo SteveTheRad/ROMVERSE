@@ -1,6 +1,6 @@
 # ROMVERSE Knowledge Research Status
 
-## Proposed Pixel 6 official factory-image metadata slice — 8 September 2026
+## Pixel 6 official factory-image metadata checkpoint — 8 September 2026
 
 ### Value-gate decision
 
@@ -47,6 +47,63 @@ No archive download, terms acceptance, instruction/procedure retention, command 
 bootloader unlock/relock guidance, device action, compatibility promotion, background scheduling,
 UI integration, phone/emulator access, build/flash/root/debloat work, Guardian approval, production
 trust/signing, publication, crawling, or second source is authorized.
+
+### Implementation checkpoint
+
+- Product Assurance authorization/base: `0e51b025d300b1a2c3f9635501c41942325816ae`
+  (`Approve official Android guide evidence`).
+- Branch: `adaptive-online-device-dna`.
+- Implementation commit: `977da29c741ef9ca1e0ebd43284e1bf81858d3bd`
+  (`Add bounded Pixel factory metadata adapter`).
+- Live evidence/status commit: the follow-up commit containing this update.
+- The adapter and receipt enforce the proposed exact URL, identity, metadata, transport, parser,
+  storage, terms/download, privacy, and authority boundaries. Read-only projections remain
+  `UNCONFIRMED` for Device DNA, Compatibility Matrix, Pathfinder, Nexus, Foresight, and Knowledge
+  Archives.
+
+### Single bounded live outcome
+
+- Sole request: `https://developers.google.com/android/images`, exact canonical page only.
+- Lookup: public identity `Google / Pixel 6 / oriole`.
+- Retrieval time: `2026-09-08T04:34:23.843003+00:00`.
+- HTTP result: `200`; bounded response bytes: `75,167`; ETag and Last-Modified absent.
+- Parser: `romverse.google-pixel-factory-index` version `1`.
+- Outcome: `validation-failure` — the returned static canonical English response did not expose one
+  unambiguous reviewed Pixel 6/oriole metadata table section.
+- Parsed releases and retained claims: `0`; evidence archive: none.
+- Receipt digest: `c36e36561d215ecad094e63b164bc989f9eb04ec921afa8049f661e5ddfe8378`.
+- Content digest: intentionally absent because the response did not pass the reviewed parser.
+- Raw HTML, binary archives, page scripts, terms acceptance, clicked/followed links, commands,
+  instructions, relock text, credentials, cookies, and personal information retained: **NONE**.
+
+The approved missing/ambiguous-section stop condition fired. ROMVERSE did not retry, execute page
+scripts, follow an image or consent link, accept terms, use an alternate/localized/query URL, or
+seek a second source. The validation-failure receipt is the complete sanitized live result.
+
+### Focused verification and authority
+
+- `154 passed` across the Pixel factory index, official Android guide, Google Play acquisition,
+  typed/legacy online evidence, local store, and online remediation focused suites.
+- Pixel-specific cases cover exact identity/build metadata, read-only consumer projections,
+  duplicate/conflicting builds, duplicate/ambiguous image identities, missing dates/hashes,
+  changed layout, redirect/localization/query rejection, wrong content type, compression,
+  truncation, executable/relock/private/oversized candidate data, ignored scripts/forms/terms,
+  response and row limits, stale metadata, HTTP/timeout/cache behavior, request spacing, receipt
+  tampering, and symlink containment.
+- Focused Ruff check and format check passed; Git whitespace check passed. The full suite was not
+  run, and deterministic fixture tests do not depend on the network.
+- Receipt invariants state `officially-documented`, compatibility `UNCONFIRMED`, terms accepted
+  `false`, binary downloaded `false`, raw response retained `false`, execution authority `none`,
+  and phone, Guardian, and bootloader-relock authority `false`.
+- No physical device, emulator, package, firmware operation, APK, unlock, root, debloat, flash,
+  wipe, relock, production signing/trust, publication, UI/background scheduling, or other product
+  track was touched.
+
+### Next action
+
+Stop for independent Product Assurance. The live stop condition must be reviewed before any parser
+revision, second request, alternate endpoint, terms interaction, source expansion, or consequential
+workflow.
 
 ## Official Android connection-guide checkpoint — 8 September 2026
 

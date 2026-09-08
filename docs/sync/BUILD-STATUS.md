@@ -1,5 +1,99 @@
 # ROMVERSE Product Assurance Sync
 
+## Packaged Windows Start-ROM-Project continuity checkpoint
+
+- Product Assurance verdict: `0e6638b35447da8a479fc8a26ef231d62ee03e88` —
+  `Approve desktop identity coordination [skip ci]`, matching handoff
+  `f5b9c994b49e58b19b742b039b4e572abf3d2c6d` and implementation
+  `73d22d0aad0d71632611773e54ae15e35a4ac112` exactly.
+- Approved staged input reused without download or rebuild:
+  `C:\Work\ROMVERSE-GitHub-34226226022\ROMVERSE-Desktop-0.2.0a1-windows-x86_64.zip`,
+  **77,500,118 bytes**, SHA-256
+  `1445bfe4f8429ee0f13ddb25c6b9e8956394230a41086ff9ee187888194801f0`.
+- Result: **PASS — ONE FRESH EXTRACTED, UNSIGNED GITHUB-PRODUCED WINDOWS DEVELOPMENT
+  BUNDLE COMPLETED THE APPROVED PACKAGED NO-PHONE START-ROM-PROJECT JOURNEY AND CLOSED CLEANLY**.
+  No Windows-only packaging, path, dialog, persistence or frozen-runtime defect appeared, so no
+  source correction, test run, rebuild or second launch was justified.
+
+### Exact native Windows artifact and launch
+
+- The archive was extracted once into fresh root
+  `C:\Work\ROMVERSE-Native-Start-0e6638b\app`. The resulting normal windowed executable
+  `ROMVERSE\ROMVERSE.exe` is **6,866,758 bytes**, SHA-256
+  `12e582d8b531f4bff84fea9cf33e28b00575ccafd754e52ae175f8daacbde93c`, reports Authenticode
+  `NotSigned`, and belongs to a **308-file** extracted bundle.
+- One process launched once against fresh disposable workspace
+  `C:\Work\ROMVERSE-Native-Start-0e6638b\workspace` and isolated settings root
+  `C:\Work\ROMVERSE-Native-Start-0e6638b\settings`. `PATH` was limited to Windows system
+  directories so ADB/Fastboot could not be resolved. Windows accessibility observed the real
+  `ROMVERSE Studio 0.2.0-alpha.1` window and invoked the reachable `Start ROM Project` action.
+- The native picker was initially navigated into its `.cache` item by a harness selector that
+  matched the wrong generic AutomationId and truthfully returned `boot.img File not found`.
+  The picker error was dismissed and the already open native dialog was given the exact full path.
+  The same ROMVERSE process then continued; this was an automation-harness correction, not a
+  product failure, relaunch or retry of an uncertain ROMVERSE operation.
+
+### Protected import, structural inspection and truthful next state
+
+- Genesis created project `packaged-no-phone-boot-inspection-a5c69902`, display name
+  `Packaged no-phone boot inspection`, then selected the deterministic sanitized inert fixture
+  `C:\Work\ROMVERSE-Native-Start-0e6638b\fixture\boot.img`: **169 bytes**, SHA-256
+  `ffc2048bb6181a62086328cae7509ea211821d802d490c99787e280e2836fbcb`. The confirmation dialog
+  accurately promised a protected copy, SHA-256 and automatic inspection before consent was given.
+- The protected workspace copy at
+  `original_roms\ffc2048bb6181a62-boot.img` remains **169 bytes**, ReadOnly, and byte-identical at
+  the same SHA-256. `project.romverse` binds that name, size, source hash and relative protected
+  path; its embedded manifest digest is
+  `d9dedfa06f2fcdf1931c71834a1cead900f45312aaf4b50ac9ee71ca70f6e9fa`.
+- Automatic read-only inspection completed truthfully as `android_boot`, partition signal `boot`,
+  zero entries, zero critical findings and zero warnings. Its one informational finding states the
+  container was inspected read-only. The inspection record is complete and carries embedded digest
+  `aff253d7d6b7bc1351a2bde0443b9864aaf68c10c7cdcb3d3db754bcb526d0ff`.
+- Genesis visibly reached **3 of 15 stages verified**, current task **04/15 — Prepare an isolated
+  working tree**, status `READY`, next action `Prepare working lab`. It simultaneously showed
+  `UPGRADE RELATIONSHIP UNCONFIRMED`, no connected device, no execution authority and permanent
+  no-relock. The persisted Guided mission records selected stage `workspace`, empty error,
+  `build_plan_verified: false`, `install_requested: false`, and digest
+  `ac5cd191f4949b03cde8302267d3029a4bb22f7f67bde265755c8bac5bb1d8f5`.
+- `device-dna.romverse` retains unconfirmed device identity, locked Guardian/execution facts and
+  `bootloader_relock_permitted: false`; its embedded profile digest is
+  `12bcf5c1c1cc4c640f4b11f59dc464cb066646353e49109b0da805789e24b7f3`. Durable compatibility,
+  route, inspection, project, Guided-mission, activity, live-console and knowledge records were all
+  present after the journey.
+
+### Visible continuity, limitation and clean close
+
+- ROM Studio visibly summarized **5/8 steps complete — Next: Create working copy**, the exact
+  protected source hash, completed structure inspection and the project name. Reopening Genesis in
+  the same launch restored the exact persisted 3/15 and task-04 state. The retained Windows captures
+  are `C:\Work\ROMVERSE-Native-Start-0e6638b\final-rom-studio.png` (SHA-256
+  `01a1b75b043afa0d9ed53cf8b3c55a2c1a866eabb8eb4847cada20858f9a391f`) and
+  `resumed-genesis-next.png` (SHA-256
+  `8794c5cc2e5bfb88c2571cf4f3e08c9f2ba8991d9d175d95187e44777f09ec33`).
+- The underlying project-list/handoff card did not repaint after the modal Genesis journey and
+  remained at its earlier `2/15 • FIRMWARE` presentation while the saved records, ROM Studio detail
+  and reopened Genesis all showed the correct later state. Source inspection attributes this to the
+  platform-neutral post-dialog refresh path, not Windows packaging or persistence. Product
+  Assurance explicitly prohibited correcting cross-platform behavior in this checkpoint, so it is
+  recorded without a source change.
+- The activity ledger contains exactly one `Protected firmware imported` event. The live console
+  contains ten state/progress records and no populated command evidence. No command, execution or
+  Guardian ledger file was created. The main window accepted normal accessibility Close; the sole
+  process exited within the bound, and `runtime-fault.log` contains exactly `ROMVERSE runtime
+  started` followed by `ROMVERSE runtime closed cleanly`.
+- No phone/emulator, ADB/Fastboot command, Recovery, flash, wipe, unlock, root, relock, APK install,
+  production trust/signing, candidate build, publication, release, force-push or destructive action
+  occurred. Guardian-only authority, exact-device evidence, consent separation,
+  UNKNOWN-on-uncertainty, no blind retry, independent verification, feature freeze and permanent
+  no-relock remain intact.
+- The protected Companion files have no staged or working-tree diff. The pre-existing untracked
+  `0001-Preserve-local-build-completion-across-restart.patch` remains untracked and byte-identical at
+  SHA-256 `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- Precise proposed next task: independent Product Assurance review of this packaged native Windows
+  checkpoint. Do not correct the recorded platform-neutral refresh inconsistency or resume the
+  external GitHub candidate job unless a matching repository verdict explicitly authorizes that
+  bounded work.
+
 ## Current desktop identity and CI-efficiency checkpoint
 
 - Product Assurance verdict: `5e59a92e3b337de68d6450845c52bd53c3067584` —

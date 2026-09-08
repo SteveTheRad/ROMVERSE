@@ -1,5 +1,55 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 0f0d1d6 — one-choice unchanged Guided route
+
+- Handoff commit: `0f0d1d6831b6018fe384e12dcb1c63c714c6520c`
+- Implementation commit: `7e3520ad708cf216f36e59f909d360e87240b872`
+- Approved base: `ddd765d`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — THE SAFEST CUSTOMIZE CHOICE NOW CONTINUES AS ADVERTISED**
+
+### Decision
+
+Product Assurance inspected the exact four-file correction and independently reran its 27-test
+affected selection. The previous recommended Customize action persisted only a partial decision and
+left the user on the completed stage. One explicit `Keep verified base unchanged` choice now
+truthfully binds no Recipe changes, no optional removal and the unrooted route, then persists the
+evidence-derived Toolchain stage. Modified Recipe, Debloat and Ascension routes remain unchanged.
+
+### Independent evidence and acceptance
+
+- Independent affected verification passed **27/27**: the complete Guided mission/state suite and
+  four real-widget Device DNA/scan/root-choice continuity cases.
+- One visible click persists `customization_skipped`, `recipe_skipped` and `root_choice=skip`, with
+  no Recipe, Debloat mutation, build plan, boot observation or Guardian directory.
+- Exact project/source identity and the conspicuous simulation-only classification survive the
+  transition; live-target, Guardian handoff, flash handoff and flash-complete remain false.
+- Existing rooted input must still be cleared through the established protected rollback before
+  the unrooted choice can succeed.
+- Ruff lint and Git whitespace validation passed for all changed files; the branch is clean and
+  synchronized. No phone, ADB/Fastboot, APK, build, signing, publication, release or relock occurred.
+
+### Approved next bounded Linux task
+
+Continue the same simulation-labelled Guided journey through the existing **Toolchain** stage only.
+Invoke the normal automatic resolution action once and require ROMVERSE to verify every advertised
+host-side build dependency from exact managed/system evidence, repair any safely reversible managed
+dependency gap itself, and either advance to the truthful next stage or retain one precise
+actionable blocker. Preserve the exact project/source/customization decision and simulation label.
+
+Do not use administrator/global PATH changes, connect a phone, dispatch ADB/Fastboot, install an
+APK, create or run the actual firmware candidate build, grant live/Guardian/execution authority,
+package the desktop app or run a broad suite. If one concrete resolution, persistence, routing or
+error-recovery defect appears, apply only the minimum correction with directly affected checks.
+Commit/push one bounded checkpoint and stop for review.
+
+### Gate status
+
+- Safest unchanged/unrooted Customize continuation: **VERIFIED**
+- Existing Toolchain self-resolution continuity: **NEXT BOUNDED LINUX TASK**
+- Physical hardware, signing, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: a94ae39 — simulated Device DNA truth and zero authority
 
 - Handoff commit: `a94ae39071980f25256bd06456dd331c4939be5d`

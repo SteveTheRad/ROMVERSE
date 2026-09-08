@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import shutil
 import sys
 import tempfile
 from dataclasses import replace
@@ -87,8 +88,17 @@ def persist_scan_interval(
     return updated
 
 
+def configure_file_dialog_safety() -> bool:
+    """Avoid a fatal GTK chooser abort when its Linux sandbox helper is unavailable."""
+    if sys.platform.startswith("linux") and shutil.which("bwrap") is None:
+        QApplication.setAttribute(Qt.ApplicationAttribute.AA_DontUseNativeDialogs, True)
+        return True
+    return False
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    configure_file_dialog_safety()
     QApplication.setHighDpiScaleFactorRoundingPolicy(
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
     )

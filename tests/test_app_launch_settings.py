@@ -4,11 +4,17 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QDialog, QLabel, QPushButton
 
 from romverse import DISPLAY_VERSION
 from romverse import app as app_module
-from romverse.app import build_parser, launch_settings, persist_scan_interval
+from romverse.app import (
+    build_parser,
+    configure_file_dialog_safety,
+    launch_settings,
+    persist_scan_interval,
+)
 from romverse.core.settings import AppSettings, ExperienceMode, SettingsStore
 from romverse.infrastructure.tools import ToolStatus
 from romverse.ui.main_window import MainWindow
@@ -151,6 +157,30 @@ def test_desktop_launch_opens_without_a_custom_splash_sequence() -> None:
 
     assert "BrandSplash" not in source
     assert "splash_path" not in source
+
+
+def test_linux_without_bwrap_uses_the_safe_qt_file_dialog_backend(monkeypatch) -> None:
+    previous = QApplication.testAttribute(Qt.ApplicationAttribute.AA_DontUseNativeDialogs)
+    QApplication.setAttribute(Qt.ApplicationAttribute.AA_DontUseNativeDialogs, False)
+    monkeypatch.setattr(app_module.sys, "platform", "linux")
+    monkeypatch.setattr(app_module.shutil, "which", lambda _name: None)
+    try:
+        assert configure_file_dialog_safety()
+        assert QApplication.testAttribute(Qt.ApplicationAttribute.AA_DontUseNativeDialogs)
+    finally:
+        QApplication.setAttribute(Qt.ApplicationAttribute.AA_DontUseNativeDialogs, previous)
+
+
+def test_non_linux_file_dialog_backend_is_unchanged_without_bwrap(monkeypatch) -> None:
+    previous = QApplication.testAttribute(Qt.ApplicationAttribute.AA_DontUseNativeDialogs)
+    QApplication.setAttribute(Qt.ApplicationAttribute.AA_DontUseNativeDialogs, False)
+    monkeypatch.setattr(app_module.sys, "platform", "win32")
+    monkeypatch.setattr(app_module.shutil, "which", lambda _name: None)
+    try:
+        assert not configure_file_dialog_safety()
+        assert not QApplication.testAttribute(Qt.ApplicationAttribute.AA_DontUseNativeDialogs)
+    finally:
+        QApplication.setAttribute(Qt.ApplicationAttribute.AA_DontUseNativeDialogs, previous)
 
 
 def test_cli_workspace_override_is_ephemeral_and_never_persisted(tmp_path) -> None:

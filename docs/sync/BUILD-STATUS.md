@@ -1,5 +1,96 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux correction checkpoint — durable exact-plan identity through Forge
+
+### Authoritative checkpoint and scope
+
+- Product Assurance correction/base: `11c19a0` accepted fresh schema-3 validation at `743a0f2`
+  but required the exact plan generation to remain durable downstream.
+- Implementation commit: `601b9f6a4dfdc1a232b15ecfdce332c4726cd015` — `Bind Forge
+  artifacts to exact build plans` on `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation, exact Forge/Device Build evidence identity only.
+- Exact files: `src/romverse/core/durable_schemas.py`,
+  `src/romverse/rom/build_contracts.py`, `src/romverse/rom/forge.py`,
+  `src/romverse/ui/rom_studio.py`, `tests/test_build_control_ui.py`, and
+  `tests/test_forge_bundle.py`.
+
+### Exact correction
+
+- Schema-3 Forge creation now emits manifest schema 4 and receipt schema 3. Both durably carry the
+  exact Build Readiness `plan_digest`, protected-source SHA-256, toolchain-manifest digest and
+  Guided-choice digest in addition to the existing tree digest and inert safety contract.
+- Forge verification requires those four exact bindings to be present, valid and identical across
+  manifest and receipt. A schema-3 receipt cannot be downgraded to legacy to bypass this check.
+  Legacy schema-1/2 receipts and schema-1/2/3 manifests remain readable as historical evidence but
+  are never represented as schema-3 plan certainty.
+- Device Build plan schema 2 now binds the exact current schema-3 workspace-plan digest as well as
+  its tree digest. Immediately before local execution, both must still match. Legacy schema-1
+  Device Build plans remain readable only with legacy workspace plans and retain their old shape.
+- ROM Studio accepts and enables verification only for a Forge receipt matching the exact current
+  plan generation. A stale same-tree receipt is preserved, shown as **PLAN CHANGED**, focuses the
+  existing plan regeneration/reverification route and starts no worker. Forge creation likewise
+  refuses to overwrite historical evidence from another exact plan generation.
+- The durable-schema inventory now truthfully records Build Plan 3, Device Build Plan 2, Forge
+  manifest 4 and Forge receipt 3 with their supported legacy read versions.
+
+### Verification without double-counting
+
+- Final directly affected regression selection: **29/29 passed**. It contains the complete
+  17-check Device Build contract suite, three schema-3/legacy Forge compatibility checks, three
+  exact Forge Control/UI checks and the six durable-schema inventory checks.
+- The required same-tree adversary created valid schema-3 plan A plus its Forge receipt/artifact and
+  Device Build plan, then created valid plan B with a different sealed Guided-choice digest while
+  retaining the identical tree SHA-256. The old Device Build admission was rejected with **zero
+  runner calls**; the stale Forge admission started zero workers and did not overwrite its receipt.
+- The plan-A Forge archive remained independently verifiable as historical evidence after plan B
+  replaced the current plan. It was not accepted as the current generation.
+- Success coverage verifies the exact plan/source/tool/choice digests in the new receipt, a
+  schema-2 Device Build plan bound to the same exact plan, and the existing unsigned,
+  non-bootable, non-flashable and zero-phone contract.
+- Legacy coverage verifies schema-2 Forge receipts/schema-3 manifests remain legacy and contain no
+  exact-plan claim. The downgrade adversary proves a schema-4 exact manifest cannot be consumed
+  through a forged legacy receipt classification.
+- Python compilation, Ruff lint and Git whitespace validation passed for all six changed files.
+  Earlier overlapping individual/27-test runs are not added to the final total. No broad suite,
+  CI matrix, desktop package or native application smoke ran.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** durable exact-plan bindings across Forge and Device Build; stale-generation UI
+  rejection; truthful legacy schema compatibility and inventory.
+- **Simulated/Tested:** deterministic Linux service/UI evidence; **29/29** non-overlapping directly
+  affected checks.
+- **Hardware Verified:** no. No hardware or real ROM-build claim was made.
+- **Released:** no.
+- Blockers/failures: none in the bounded correction. Signing, Guardian review, phone installation
+  and verification remain closed and did not start.
+- Guided friction/dead ends: a same-tree generation change now routes visibly to the existing plan
+  regeneration/reverification path instead of silently consuming or overwriting stale evidence.
+- Guardian/Recovery/safety: Forge and Device Build evidence remains local and grants no signing,
+  Guardian, consent, phone, flash or execution authority. UNKNOWN/no-blind-retry, exact-device,
+  same-incident Recovery, independent verification and permanent no-relock remain unchanged.
+- Linux/Fedora: Python and offscreen Qt checks passed genuinely on Linux. Windows and physical
+  Android hardware were not run.
+- Feature freeze: compliant minimum correctness repair to existing durable evidence boundaries; no
+  new screen, adapter, Device Pack, build feature, signing path or phone capability.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all release gates.
+- External actions: the approved branch was fetched and the scoped implementation/handoff will be
+  pushed normally. No phone, ADB/Fastboot, APK, firmware/device operation, real candidate build,
+  system/global installation, signing, Guardian consent/execution, publication, release, merge,
+  force-push, lock or relock occurred. Disposable artifacts existed only in test workspaces.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another consequential slice until the
+verdict for `601b9f6` is recorded in `docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm manifest/receipt and Device Build schema evolution preserves legacy truth while binding
+  all new schema-3 evidence to one exact Build Readiness generation.
+- Confirm the same-tree replacement adversary, historical-evidence preservation, zero runner/worker
+  calls and existing regenerate/reverify route satisfy all four correction criteria.
+
 ## Linux product checkpoint — schema-3 evidence survives Forge Control
 
 ### Authoritative checkpoint and scope

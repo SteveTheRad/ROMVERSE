@@ -1,5 +1,83 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — exact-device Command Deck Recovery handoff
+
+### Authoritative checkpoint
+
+- Product Assurance approval/base: `0168582` — approved shared exact Command Deck ROM Mission
+  entry and authorized inspection of the existing Diagnose/Recover routes.
+- Tested implementation: `74092ee41e0ad50d818cd3767cf5382c02bb5a7d` — `Bind Command Deck
+  recovery finding to exact device`.
+- Final handoff: the follow-up commit containing this document on
+  `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation, existing Command Deck Diagnose/Recover context
+  continuity.
+
+### Reproduced defect and exact correction
+
+- `Diagnose Problem` was inspected first and already opens the current selected device's
+  read-only Diagnostics owner; its passing path was not rewritten.
+- `Recover Device` previously forwarded the actionable finding from Diagnostics by finding ID
+  alone. If Diagnostics retained Phone A while Recovery was bound to Phone B, an identical finding
+  ID on both phones (for example `storage.capacity`) allowed A's diagnostic context to be displayed
+  as B's Recovery context.
+- Command Deck now obtains its one explicitly selected device and requires it to match the current
+  diagnostic report device before forwarding a finding. Recovery independently verifies the
+  expected serial before accepting that context.
+- A mismatch opens the existing calm general Recovery intake with `EXACT DIAGNOSTIC NEEDS FRESH
+  EVIDENCE`; it keeps the selected Recovery target, current project and incident history unchanged,
+  starts no worker and implies no recovery result.
+
+### Verification without double-counting
+
+- Affected regression: **36/36 unique tests passed** — five focused Command Deck/Recovery widget
+  journeys plus all 31 Repair UI tests. The focused set includes the reproduced same-finding-ID
+  cross-device collision, exact current handoff, general intake, mismatched Recovery evidence and
+  existing primary routing.
+- The new real-widget test uses a temporary isolated workspace and sanitized synthetic phones. It
+  proves Phone A's diagnosis is rejected for selected Phone B, the project stays unchanged, no
+  incident is created or duplicated, and no session, host worker or online worker starts.
+- Post-audit rerun of the new regression: **1/1 passed** using the current branch source.
+- Ruff static check: **4/4 changed implementation/test files passed**. The repository has unrelated
+  pre-existing formatter drift in `device_center.py`; it was not reformatted or included.
+- `git diff --check`: passed. No broad regression, package build, screenshot loop or physical-device
+  test was run.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** exact-device validation at both Command Deck sender and Recovery owner boundary.
+- **Simulated/Tested:** 36 sanitized synthetic Qt widget regressions.
+- **Hardware Verified:** none for this checkpoint.
+- **Released:** no.
+- Guided friction: an unsafe cross-device context now degrades to one actionable, non-modal fresh-
+  evidence message rather than a dead end or false plan. The correct-device path remains unchanged.
+- Diagnostic context remains evidence only. It grants no Recovery incident, consent, Guardian or
+  execution authority and cannot imply durable result, reassessment or verification.
+- Exact-device evidence, Guardian-only authority, UNKNOWN-on-uncertainty, no blind retry,
+  same-incident Recovery, independent verification and permanent no-relock remain unchanged.
+- Fedora/Linux: actual offscreen Qt journeys verified. Windows: not run or claimed; Windows Build
+  Control work was untouched.
+- Feature freeze: compliant correction to an existing Stage 1 route. v0.2 Golden Foundation remains
+  **CLOSED** pending Product Assurance and release blockers.
+- Protected Companion work, Windows work, Knowledge work, UI Design Lab, website and unrelated
+  files were not modified, staged, discarded or committed.
+- Physical phone access, ADB/Fastboot invocation, APK action, firmware operation, build/flash/boot,
+  partition/slot/wipe/unlock/lock/relock, installation, signing, publication and release: **none**.
+- External action after verification: one normal push of the scoped commits to the existing Linux
+  branch only; no force-push.
+
+### Next proposed Build task
+
+Stop for Product Assurance review. Do not begin another consequential slice until this exact-device
+Recovery boundary is independently reviewed.
+
+### Product Assurance Review Requested
+
+- Confirm that validating exact identity at both the Command Deck handoff and Recovery owner is the
+  minimum correct defense against stale cross-device diagnostic attribution.
+- Confirm the calm fresh-evidence intake is the correct Guided fallback without introducing another
+  confirmation or duplicate incident.
+
 ## Linux product checkpoint — shared exact Command Deck ROM Mission entry
 
 ### Authoritative checkpoint

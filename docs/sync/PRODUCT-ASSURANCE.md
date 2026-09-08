@@ -1,5 +1,65 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 0a0e50a — signed-result import to durable Guardian handoff
+
+- Handoff commit: `0a0e50a`
+- Implementation commit: `5319ee61f0324b0bb4d1c45e178b308defbced90`
+- Product Assurance authorization/base: `65da5c8f314d4b7a651f0d87582f20e021a36ba4`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — DURABLE SIGNING-READY HANDOFF VERIFIED**
+
+### Decision and independent evidence
+
+The bounded production widget/service/worker journey proves exact signed-result import, durable
+receipt reconstruction and a truthful handoff into the existing Guardian-controlled preparation
+boundary. The imported synthetic artifacts remain bound to the exported request, approved synthetic
+policy, exact public-key identity, algorithm, rollback fields, descriptors, sizes and hashes. No
+private key was stored and no phone, consent, installation, flash or Recovery result was invented.
+
+The first concrete defect was presentation-only but user-significant: after reload, a genuinely
+`signing_ready` project appeared to regress to generic local-build completion. `5319ee6` is the
+minimum correction. It distinguishes `SIGNING READY / INSTALL NOT STARTED / FLASH NOT AUTHORIZED`
+and preserves the existing preparation action without granting any consequential authority.
+Product Assurance inspected the exact two-file source/test diff and independently reran the seven
+named focused regressions against the reviewed source: **7/7 passed**. The working tree is clean and
+the protected Companion, Windows and Adaptive Online Device DNA work remain untouched.
+
+### Vision, freeze and safety result
+
+- Exact signed-result import and durable reload: **PASS**
+- Guided signing/install/flash truthfulness: **PASS**
+- Feature freeze: **PASS — minimum correction inside the approved existing flow**
+- Guardian-only authority, exact evidence, consent separation, UNKNOWN/no-blind-retry and permanent
+  no-relock: **PRESERVED**
+- Physical device, production trust/signing, installation, Recovery, publication and release:
+  **NONE**
+
+### Approved next bounded task
+
+Run one fresh, no-phone **signed candidate to Guardian preparation and fresh-target waiting journey**
+through the existing production UI/service boundaries. Begin from the durable signing-ready project
+and activate `Prepare verified ROM installation…`. Verify ROMVERSE derives and displays the exact
+project/source/Device Pack/route/action-sequence preparation, preserves its durable binding after one
+normal service/UI reconstruction, and ends on one clear `connect the exact device` or equivalent
+fresh-live-target action.
+
+With no phone present, the journey must not create a live-target receipt, Guardian consent,
+execution admission, adapter dispatch, installation/flash result or Recovery claim. `UNCONFIRMED`
+device state must remain investigable/waiting rather than unsupported. Record the first concrete
+defect and implement only its minimum freeze-safe correction with one focused regression; if clean,
+commit evidence only. Reuse the existing signed receipt and preparation contracts—do not repeat ROM
+build, AVB inspection or signing import, run a broad suite, use an emulator/phone, add online-evidence
+work, package either app, enroll production trust, publish, release, force-push, touch protected
+Companion/Windows/Adaptive work or relock. Commit and push, then stop for Product Assurance.
+
+### Gate status
+
+- Unfamiliar intake through durable signing-ready candidate: **VERIFIED**
+- Next core milestone: **GUARDIAN PREPARATION TO FRESH-TARGET WAITING**
+- Adaptive Online Device DNA foundation: **INDEPENDENT WORK IN PROGRESS**
+- Physical target, consent, execution, installation, Recovery and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation: **CLOSED**
+
 ## Reviewed checkpoint: 0ab911f — artifact verification to offline-signing readiness
 
 - Handoff commit: `0ab911f8d052fb80b2d8f87b001b65f19cb27749`

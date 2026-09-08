@@ -1,5 +1,38 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 2f38f18 — shared exact Command Deck ROM Mission entry
+
+- Handoff commit: `2f38f18145338c3d6a1d97ca6be8806a51088703`
+- Implementation commit: `312b3458b6f8f445f48d05cd83ce2010b9225067`
+- Approved base: `e67f289`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — ONE SHARED EXACT MISSION ENTRY**
+
+### Decision
+
+Product Assurance inspected the complete implementation/test diff. Reusing the already-approved
+Device Intelligence boundary for Command Deck's existing Build ROM and Continue Genesis actions is
+the minimum correct repair. When current device evidence exists, Command Deck now inherits the same
+single/multiple/zero project-ownership rules and independent device/DNA/Matrix/Pack validation
+instead of opening a second inconsistent mission on an unrelated retained project. When no current
+device report exists, the established ordinary ROM Studio path remains unchanged.
+
+The six focused widget journeys are proportionate and prove one exact Guided context, current
+advisory evidence, exclusion of the unrelated project and no worker dispatch. Navigation evidence
+still grants no compatibility, build, consent, Guardian or execution authority. Feature freeze,
+UNKNOWN-on-uncertainty, no blind retry and permanent no-relock remain intact. No hardware,
+installation, signing, publication or release claim is made.
+
+### Approved next bounded task
+
+Continue with Command Deck's existing Diagnose Problem and Recover Device primary routes. Reproduce
+one concrete context-continuity defect and ensure the route carries only the current exact
+device/project/incident evidence into its existing diagnostics or Recovery owner; it must not create
+a duplicate incident, substitute an unrelated project, issue a command or imply recovery success.
+Fix one bounded defect and prove it with focused widget coverage. If Diagnose Problem is already
+correct, inspect Recover Device without rewriting the passing path. Do not overlap Windows Build
+Control work, touch Knowledge/UI Design Lab, operate a phone or begin broad tests.
+
 ## Reviewed checkpoint: cd5c59e — zero-match ROM Mission handoff
 
 - Handoff commit: `cd5c59e012778c2668816471b670954991b51ce1`

@@ -1,5 +1,124 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux hardware checkpoint — one fresh read-only popsicle observation
+
+### Authoritative checkpoint
+
+- Product Assurance authorization/base:
+  `bccc0b1eb7fc3585a8c65006d07076f334f6b2d8` — `Authorize read-only popsicle observation`.
+- Evidence checkpoint: the scoped commit containing this handoff on
+  `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation, production Device Engine / Device DNA read-only
+  hardware acceptance.
+- Working tree before the checkpoint: clean and synchronized with the remote branch.
+
+### Exact observed result
+
+- The production `DeviceEngine.scan_reconnect_safe()` path observed exactly one stable USB ADB
+  target over two required unchanged discovery cycles. The second cycle completed the existing
+  fixed, allowlisted detail probes; both cycles also confirmed that no Fastboot target was present.
+- The target resolved as Xiaomi 17 Pro Max: manufacturer/brand `Xiaomi`, model `2509FPN0BC`,
+  product/codename `popsicle`, SoC `SM8850`, Android `17`, HyperOS
+  `OS4.0.0.32.XPBCNXM`, build ID `CP2A.260605.016`, security patch `2026-08-01`,
+  China firmware region, active slot `a`, Virtual A/B and dynamic-partition evidence.
+- Read-only safety state reported bootloader `unlocked` and Verified Boot `orange`. Battery was
+  100%; the bounded live telemetry contained no warning.
+- The live build fingerprint was observed by the allowlisted aggregate-property probe and used by
+  the existing firmware relationship assessment. The privacy-safe passport deliberately excludes
+  the raw fingerprint and serial. Device DNA records the result as
+  `SAME INSTALLED OTA BUILD • 17OS4.0.260902.070444909.QCPECN.S`.
+- `DevicePackRegistry` matched `xiaomi.popsicle.hyperos4.os4.0.0.23` version `0.1.1` to the live
+  device identity. The current project does not have that exact source-bound Pack/execution
+  contract, so Device DNA correctly reports `guardian_flash: UNCONFIRMED` and the Compatibility
+  Matrix reports `Unknown`; execution remains locked.
+- The local Device Intelligence passport is bound to pseudonymous device key
+  `ad74e54831f21bf55d75` and sealed record digest
+  `1217107ab1e2b287d3576fc3a672c93b6e14aea58de2325444fb8e98d32af092`.
+  Strict reload succeeded and a byte scan of the affected evidence, identity and Guardian audit
+  stores confirmed that the raw serial was not persisted.
+- Device DNA digest:
+  `73016d262e6957bdc7383a861fa6933b7a15dbec9db05fcbfa2a0b399092601b`.
+  Compatibility Matrix digest:
+  `4cd90f4391d03c6f0ef9166cbec78f9072088229814f1045bc2a55d2df944e02`.
+
+### Focused acceptance evidence
+
+- **1/1 production hardware acceptance path passed.** This is the only acceptance total for this
+  checkpoint; no broad, overlapping or package suite was run.
+- Guardian recorded exactly **14/14 allowed read-only operations** for this acceptance: two ADB
+  discovery calls, two Fastboot discovery calls, and ten fixed ADB detail probes. Every operation
+  was redacted in the audit; expected absent-package probes returned a normal non-zero result and
+  did not alter the phone.
+- The complete active and archived Guardian audit chain passed verification; the current active
+  ledger contains 28,005 entries.
+- Passport, Device DNA and Compatibility Matrix passed their strict production loaders after the
+  observation.
+- The acceptance reporting wrapper referenced the Pack-resolution boolean by its wrong attribute
+  name after all phone probes and evidence validations had completed. No probe was repeated; the
+  final sanitized report was reconstructed exclusively from the sealed local receipts. This was a
+  harness-only reporting mistake, not an application defect or uncertain phone result.
+
+### Classification
+
+- **Implemented:** unchanged production Device Engine, privacy-safe Device Intelligence, Device
+  DNA and Compatibility Matrix paths were exercised; this checkpoint adds no product code.
+- **Simulated/Tested:** none claimed. The result came from a real physical Android target.
+- **Hardware Verified:** yes, limited strictly to one fresh read-only ADB identity/state and
+  project-compatibility observation of the connected `popsicle` phone on Fedora Linux.
+- **Released:** no. Nothing was signed, published, installed or released.
+
+### Guided, Guardian and Recovery impact
+
+- The production Fresh Live Target receipt service is intentionally Fastboot-only. Because mode
+  change was prohibited and the phone remained safely in Android/ADB, no Fresh Live Target receipt
+  was created. This checkpoint therefore ended at reviewed Device DNA evidence.
+- No recommendation, preparation, plan consent, executor admission, adapter dispatch, durable
+  execution result, Recovery incident, reassessment or post-repair verification was created.
+- The observed exact device identity does not become flash authority. Missing exact source-bound
+  execution evidence remains `UNCONFIRMED` / `Unknown`, never guessed or misreported as proven
+  incompatibility.
+- Bootloader locking/relocking remains `UNSUPPORTED` / `Known Incompatible`, permanently
+  prohibited, and has no authorization path.
+- Exact-device evidence, Guardian-only authority, UNKNOWN-on-uncertainty, no blind retry,
+  same-incident attribution and independent verification remain unchanged.
+
+### Blockers, platform status and freeze
+
+- Blockers/failures in the authorized observation: none.
+- Fedora/Linux: genuine production-path hardware verification passed on the current host.
+- Windows: not tested or claimed by this checkpoint.
+- Guided friction/dead ends: none introduced; Fresh Live Target and all later consequential stages
+  remain truthfully unavailable in Android/ADB mode.
+- Feature freeze: compliant. This is evidence-only acceptance of existing Stage 1 behavior, with
+  no new feature, architecture, route, Device Pack, adapter or execution capability.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance review of this hardware
+  evidence and later explicitly authorized work.
+
+### Preservation and external actions
+
+- The protected Companion files, Windows launcher work, website, Adaptive work, external firmware
+  package and unrelated user files were not edited, staged, discarded or committed.
+- Physical action: read-only ADB/Fastboot discovery and allowlisted ADB identity/state probes only.
+- Phone reboot/mode change, APK installation, file push/pull, backup, settings write, root/unlock,
+  debloat, partition access, consent, Guardian admission, adapter execution, flash/wipe, signing,
+  publication, release and relock: **none**.
+- External action after verification: one normal push of the scoped evidence handoff to the existing
+  Linux branch only; no force-push.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. The previously approved bounded external-package
+metadata and untrusted-procedure inventory remains queued and was not run concurrently. Do not
+begin it or another consequential slice until the latest repository verdict is reviewed.
+
+### Product Assurance Review Requested
+
+- Confirm that the real observation remained within the exact read-only authorization and that the
+  pseudonymous passport plus sealed Device DNA/Compatibility evidence are sufficient for this
+  checkpoint.
+- Confirm the truthful boundary: Device DNA was hardware-verified, but Fresh Live Target, consent,
+  execution and Recovery remain unverified and unavailable.
+
 ## Authoritative checkpoint
 
 - Product Assurance correction/base:

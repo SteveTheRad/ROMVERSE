@@ -1,5 +1,60 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 239a9a3a — corrected-package saved-project startup
+
+- Reviewed commit: `239a9a3a6382a3d632bf046749bc72647e128e29`
+- Accepted correction/package source: `6fc79f65769366f3b31ddea7244bb9119bb05158`
+- Approved base: `b892178d4555e3c57d031576db9d3c8b8163071b`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — SAVED GUIDED CONTEXT RESTORES CLEANLY IN THE WINDOWS PACKAGE**
+
+### Decision
+
+Product Assurance independently verified that this checkpoint changes only the Build handoff and
+that the accepted unsigned executable, saved project/mission/evidence stores and clean-close record
+match the reported hashes. The package restored the exact Command Deck, stage 5, 5-of-15 progress,
+UNCONFIRMED Device DNA and next action without mutating authority state. No replay or correction is
+required.
+
+### Independent evidence and acceptance
+
+- The accepted executable independently remains 6,319,605 bytes with SHA-256
+  `5784de7a491c0b151ddb727beecf64c7ca4132760c5a687d9a22981e172899bc`.
+- The exact project, mission, inspection, Device DNA, compatibility matrix, working copy/index and
+  route-record hashes independently match the handoff. No command manifest, approval, consent or
+  Guardian audit exists in the workspace.
+- The runtime file contains four complete start/clean-close pairs, is 308 bytes and independently
+  matches `ca9bd51d66c5abab7574d1c649527847435581fcc864c4b1d1d12d86ac226def`.
+- No ROMVERSE process remains. The Windows checkout is clean except for the preserved untracked
+  8,272-byte patch, whose SHA-256 remains
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+
+### Approved next bounded Windows task
+
+Reuse the same corrected package and exact saved stage-five workspace once. First confirm its
+managed `tools` directory still contains no ADB or Fastboot executable. Launch with the same exact
+workspace and `--skip-onboarding`, then activate only **Scan device & refresh DNA** through the
+exact ROMVERSE target accessibility control. Require the existing Forge Arsenal handoff to open
+with only the missing ADB/Fastboot requirements, preserved project/stage context, an actionable
+install choice and a clear cancellation path. Do not select requirements, install/download tools,
+invoke ADB/Fastboot, scan or operate a phone, or advance Genesis. Close Forge and ROMVERSE normally
+and prove the saved project/authority stores remain byte-identical.
+
+If the exact action is inert, loses context, or produces the former generic Device Engine error,
+record that evidence and apply only the minimum Windows correction with focused native tests;
+otherwise make no source change, rebuild or test replay. Commit/push one bounded handoff and stop
+for review. Preserve the untracked patch byte-identically. No phone action, APK installation,
+firmware change, ROM build/signing, Guardian/Recovery execution, publication, release, lock or
+relock is authorized.
+
+### Gate status
+
+- Corrected-package saved-project startup: **VERIFIED**
+- Packaged stage-five Forge handoff/cancel continuity: **NEXT BOUNDED WINDOWS TASK**
+- Linux work: **OWNED BY LINUX; DO NOT DUPLICATE**
+- Physical hardware, tool installation, execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 154e5e4f — bounded packaged handoff fallback
 
 - Reviewed commit: `154e5e4f9aee9ea9be6633483dd64cca9b70ea02`

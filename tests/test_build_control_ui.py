@@ -42,6 +42,7 @@ from romverse.nexus.events import LiveConsoleEventStore, MissionState
 from romverse.rom.avb_evidence import (
     AvbEvidenceService,
     AvbImageEvidence,
+    AvbTopologyReceipt,
     SourceAvbEvidenceService,
     SourceAvbTopologyReceipt,
 )
@@ -695,6 +696,76 @@ def test_reopened_unsigned_local_candidate_remains_complete_and_routes_to_artifa
     control.autopilot_button.click()
 
     assert continued == ["artifact-verification"]
+    assert installation == []
+    control.close()
+    studio.close()
+
+
+def test_unsigned_avb_completion_stops_autopilot_at_offline_signing_boundary(
+    tmp_path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    studio = _studio(tmp_path)
+    control = BuildControlCenter(studio, auto_start=False)
+    assert control.report is not None
+    report = replace(
+        control.report,
+        build_ready=True,
+        local_candidate_ready=True,
+        signing_ready=False,
+        flash_ready=False,
+        report_digest="4" * 64,
+    )
+    receipt = AvbTopologyReceipt(
+        3,
+        control.project.project_id,
+        "2026-09-08T00:00:00+00:00",
+        "test.pack",
+        "test-contract",
+        "a" * 64,
+        "b" * 64,
+        (),
+        "SHA256_RSA4096",
+        "c" * 40,
+        False,
+        False,
+        False,
+        "signed_custom_rechain",
+        "flash_validated",
+        False,
+        False,
+        "Candidate AVB images are unsigned",
+        False,
+    )
+    control.service.assess = lambda *_args, **_kwargs: report
+    control._current_candidate_avb_receipt = lambda: receipt
+    control._record_online_fix_success = lambda *_args, **_kwargs: None
+    control.avb_worker = SimpleNamespace(
+        operation="inspect",
+        service=SimpleNamespace(load=lambda _project_id: receipt),
+    )
+    repeated: list[str] = []
+    control._continue_autopilot = lambda: repeated.append("repeated")
+    control.autopilot_active = True
+    control.autopilot_waiting_for = "avb"
+
+    control._avb_complete(receipt)
+    app.processEvents()
+
+    assert not control.autopilot_active
+    assert control.autopilot_waiting_for == ""
+    assert repeated == []
+    assert control.autopilot_button.text() == "Open offline signing ceremony"
+    assert "Artifact verification complete" in control.status.text()
+    assert "No installation or phone action started" in control.status.text()
+
+    signing: list[str] = []
+    installation: list[str] = []
+    control._signing_ceremony = lambda: signing.append("offline-signing")
+    control._open_project_images = lambda: installation.append("installation")
+    control.autopilot_button.click()
+
+    assert signing == ["offline-signing"]
     assert installation == []
     control.close()
     studio.close()

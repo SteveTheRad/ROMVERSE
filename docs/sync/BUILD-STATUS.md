@@ -1,5 +1,96 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — Activity Center keeps an empty ledger truthful and private
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `b52af3b` approved the Guardian current-audit verification and
+  authorized one fresh no-phone Activity Center empty-ledger/privacy journey.
+- Exact unchanged implementation/package source: `ca983ecd30724723574d7fdd6ae02ca107e3be3e`.
+- Exact unchanged package:
+  `build/linux-pa-health-scan-7100108/frozen/ROMVERSE/ROMVERSE`, 6,323,000 bytes, mode `0755`,
+  SHA-256 `0a47f9af3dea4c0f64983fdd4afc9d1fa01dfcc96185680e94f098b1cb19dde7`.
+- Stage: Stage 1 — v0.2 Golden Foundation, one evidence-only packaged Activity Center function and
+  privacy journey. No application source, test or package changed in this checkpoint.
+
+### One bounded packaged Activity Center journey
+
+- The unchanged package ran once, unelevated, through Fedora XWayland in fresh workspace
+  `/tmp/romverse-activity-empty-b52af3b.uT1mpi`, with no simulated or physical phone.
+- **Activity Center** opened through normal Guided navigation. Before the requested action it
+  truthfully showed **READY • No completed activity recorded yet**, all four outcome metrics at
+  zero, **Showing 0 of 0 privacy-safe local events**, and the explanation that connected features
+  append only after a genuine completion or safe-failure boundary.
+- **Refresh activity** was enabled and invoked exactly once. The same zero-count status, empty
+  explanation and 0-of-0 footer remained; no completion, attention or information outcome was
+  invented. The refresh action remained enabled.
+- **Export redacted JSON** was visible but disabled because there were no events. It was not
+  invoked, no chooser opened and no export file was created, so the empty ledger could not be
+  converted into a misleading nonempty artifact.
+- No event detail or canonical/exact source-evidence action existed in the empty state. The page
+  retained its explicit boundary that the ledger is a privacy-safe summary rather than an approval
+  record, raw console log or execution authority.
+- The editable search field accepted the deterministic query `no such activity` and continued to
+  show 0 of 0 events. The outcome filter selected **Attention** while the category filter remained
+  usable at **All categories**. Search and outcome were then restored to empty/**All outcomes**;
+  both filters and **Refresh activity** remained enabled while Export remained disabled.
+- ROMVERSE closed normally through the desktop window-close action and no packaged process
+  remained.
+
+### Final retained evidence
+
+- The fresh workspace contains only `logs/activity-v1.lock`; no activity ledger JSONL exists.
+  There is likewise no Live Console ledger, export, project, snapshot, backup, APK, build or
+  working-ROM file.
+- The final Guardian audit contains exactly 48 gap-free scheduled host inventories: 24 ADB and 24
+  Fastboot `devices -l` operations. Every record is allowed, read-only, host-targeted, untimed-out,
+  return code 0 and serial-selector-free. Activity navigation, refresh, search and filtering added
+  no audit operation. Audit SHA-256:
+  `a4b0e8a5e87758ea5cd52870c51899f6baf86dba4b44d128db3dd9d5e5dd784f`.
+- The runtime record contains exactly one start/clean-close pair, SHA-256
+  `c9a5cb9322615534d8a5ad7255f55888b66be1b4b82c6ab0116e1910585d64c3`, with no fatal trace.
+- No public catalog or other download was created in the workspace. The global experience setting
+  remains Guided.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** no new behavior; this checkpoint verifies the shipped empty-ledger rendering,
+  refresh, export lock, source-action absence and filter recovery.
+- **Simulated/Tested:** one genuine packaged Fedora no-phone Activity Center journey. No test suite
+  was run or double-counted because no source changed.
+- **Hardware Verified:** no. No Android phone was connected, discovered, selected or operated.
+- **Released:** no. The package remains an unsigned local development artifact.
+- Blockers/failures: none. The empty ledger remained empty and truthful; Export could not create an
+  artifact; search/filter controls stayed usable; the package closed cleanly.
+- Guided friction/dead ends: the page states exactly why it is empty, supports one-click refresh,
+  keeps inspection filters usable and exposes no irrelevant source handoff. No modal, terminal
+  step, silent stop or inert enabled control remained.
+- Guardian/Recovery/privacy: Activity Center rendered no raw serial, console output, source receipt
+  or fabricated result. It grants no approval, consent or execution authority. UNKNOWN/no-blind-
+  retry, exact-device and exact-incident evidence, independent verification, Guardian-only
+  authority and permanent no-relock remain unchanged.
+- Linux/Fedora: genuinely verified on Fedora 44/XWayland. Windows and physical Android were not run.
+- Feature freeze: compliant evidence-only Stage 1 check; no feature, UI, ledger policy, format,
+  Device Pack, adapter, knowledge behavior or production capability changed.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all remaining gates.
+- External actions: this scoped branch is pushed normally with this documentation-only handoff.
+  Normal no-target read-only ADB/Fastboot inventory occurred. No phone, simulated device, download,
+  activity/export file, source handoff, firmware/APK/project work, APK/system installation,
+  approval, consent, backup/restore, build/sign/flash, Guardian/Recovery execution, publication,
+  release, merge, force-push, lock or relock occurred. Knowledge/UI Design Lab and protected
+  Companion/Windows work were not modified, staged or committed.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another consequential slice until the
+verdict for this exact Activity Center empty-ledger checkpoint is recorded in
+`docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm the four zero outcome counts, one exact refresh, disabled export, absent source action,
+  usable filters and absent retained ledger/export satisfy the Activity Center privacy gate.
+
 ## Linux product checkpoint — Guardian verifies fresh no-phone evidence truthfully
 
 ### Authoritative checkpoint and scope

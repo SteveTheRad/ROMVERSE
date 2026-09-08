@@ -1,5 +1,57 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 81bb3bd — Pixel factory-index stop condition
+
+- Handoff/receipt commit: `81bb3bd506d2128d340b8d434e8222bd52ff2ce7`
+- Implementation commit: `977da29c741ef9ca1e0ebd43284e1bf81858d3bd`
+- Product Assurance authorization/base: `0e51b025d300b1a2c3f9635501c41942325816ae`
+- Branch: `adaptive-online-device-dna`
+- Review status: **APPROVED — USEFUL ADAPTER; LIVE SOURCE FAILED CLOSED**
+
+### Decision and independent evidence
+
+The exact-URL Pixel factory-index adapter enforces the approved metadata-only, identity, terms,
+download, privacy and zero-authority boundaries. Its single live request returned HTTP 200 but did
+not contain one unambiguous reviewed Pixel 6/oriole table in the static response. The authorized
+missing-section stop condition fired: no retry, script execution, terms acceptance, link traversal,
+binary download, raw-page retention or claim creation occurred. This is the correct result and must
+not be weakened merely to extract data from a gated or changed page.
+
+Product Assurance inspected the implementation, sanitized validation-failure receipt and status.
+It independently reran the exact focused set: **154/154 passed**; Ruff and whitespace passed. All
+compatibility, command, phone, Guardian, execution, download, terms and relock authority remains
+false/none. The adapter remains useful for deterministic validation if the canonical source later
+exposes the reviewed metadata again, but no live Pixel firmware fact is claimed today.
+
+### Approved next bounded task
+
+Do not revise or retry the factory-image parser now. Apply the value gate to one accessible official
+AOSP source that closes the next highest-value portion of the same build-identity gap:
+`https://source.android.com/docs/setup/reference/build-numbers`. Query only rows whose explicit
+supported-device field includes `Pixel 6`; do not infer `oriole` from this page alone. Retain only
+the exact build ID, AOSP tag, Android version, explicit supported-device list and security patch
+level, plus page revision/retrieval/content/parser provenance.
+
+Implement one exact-URL canonical-English, metadata-only adapter with strict table headings, row and
+byte limits, duplicate/conflict preservation, freshness and sanitized receipt rules. Exclude page
+instructions, navigation, code, downloads, unrelated device rows and raw HTML. Add focused tests for
+ambiguous/duplicate build IDs, missing supported-device/version/tag/patch fields, changed layout,
+localization/query/redirect rejection, stale rows, executable/private text, limits and receipt
+tampering. Perform at most one live retrieval after deterministic tests pass. Facts remain official
+AOSP build-reference evidence only: they do not prove an OEM package hash, exact codename mapping,
+firmware compatibility, a flash route, outcome or Guardian authority.
+
+Update status, commit/push and stop for independent review. Do not add crawling, binary downloads,
+UI/background scheduling, phone/emulator access, build/flash/root/debloat work, Guardian approval,
+production trust, publication, other product branches or relock.
+
+### Gate status
+
+- Pixel factory-index adapter and safe stop behavior: **VERIFIED**
+- Live factory-image metadata: **NOT RETAINED — SOURCE DID NOT PASS REVIEWED SHAPE**
+- Next Knowledge milestone: **ONE OFFICIAL AOSP PIXEL 6 BUILD-REFERENCE SOURCE**
+- Compatibility, confirmed outcome and consequential authority: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: 438f287 — official Android guide evidence and value gate
 
 - Handoff/evidence commit: `438f28759b76986aa7b178e650f6f3fa07eadd10`

@@ -1,5 +1,63 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 06eae98 — connected Recipes prerequisite handoff
+
+- Handoff commit: `06eae98bbc66f2b19662bf728ac416b070d86633`
+- Implementation commit: `68c7cf5d6c7d5c44e65dccc905fb55ae80a1fd8b`
+- Approved base: `1f05268`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — EXACT PROJECT ROUTING; AUTOMATIC RESOLUTION NEXT**
+
+### Decision
+
+Product Assurance inspected the complete diff. Recipes now preserves the exact project and opens
+either Recipe Forge or the existing Source Lab control that owns the missing project/source/tree
+prerequisite. Navigation creates no recipe, event, worker or firmware change. This removes the
+incorrect dead end and is safe to retain.
+
+The creator has now clarified the stronger product contract: routing alone is an intermediate
+state, not the intended final experience. When ROMVERSE can derive and perform a reversible local
+repair safely, it must execute that repair automatically, resume the interrupted journey and verify
+the result instead of leaving technical work to the user. Consequential phone actions still require
+exact evidence, Guardian admission and applicable user consent, but ordinary repair mechanics after
+that boundary belong to ROMVERSE.
+
+### Independent evidence
+
+- Product Assurance reran the exact unprepared/ready Recipes real-widget journey against the
+  committed source: **1/1 passed**.
+- The exact project remains selected; RecipeStore and the genuine event ledger remain unchanged;
+  no modal or worker starts through navigation.
+- No phone, ADB/Fastboot, APK, firmware mutation, build/flash, installation, signing, publication,
+  release or bootloader relock occurred.
+- Feature freeze, exact-device evidence, Guardian/consent separation, durable-result boundaries,
+  UNKNOWN-on-uncertainty, no blind retry and permanent no-relock remain intact.
+
+### Approved next bounded Linux task
+
+Close one concrete automatic-resolution gap in the existing Simulation/Recipes preparation journey.
+Starting from an exact project that already has a protected original and valid inspection but lacks
+the contained working tree needed by the requested destination, use the existing bounded local
+preparation services to perform the safe reversible prerequisite automatically, preserve visible
+progress/evidence, and resume the user's original Simulation or Recipes destination without another
+technical choice. Select one destination only for this checkpoint.
+
+Do not automate across missing source selection, ambiguous project ownership, failed evidence,
+insufficient disk/resource admission or any consequential device boundary. A preparation failure
+must remain evidence-backed UNKNOWN/FAILED as appropriate, preserve prior progress, provide the
+direct recovery continuation, and never blind-retry. Reuse existing services and UI; add no new
+screen or unrelated feature. Verify one successful and one bounded failure/resume journey with
+focused tests. Do not overlap Windows managed-tool recovery, touch Knowledge/UI Design Lab or
+protected Companion files, operate a phone, run a broad suite, package, publish or release.
+Commit/push one bounded checkpoint and stop for independent review.
+
+### Gate status
+
+- Command Deck Recipes exact-project routing: **VERIFIED**
+- Safe local prerequisite auto-resolution and destination resume: **NEXT BOUNDED LINUX TASK**
+- Automatic consequential device execution: **REMAINS GOVERNED BY CONSENT AND GUARDIAN**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: bab43eb — connected Pre-Build Simulation handoff
 
 - Handoff commit: `bab43eb5caeea9b742cc1255a71cd0a01d03ac43`

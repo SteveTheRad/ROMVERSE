@@ -1,5 +1,94 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — simulated Device DNA truth and zero authority
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `0582f4c37f14757b7295fa82769a7f048323e478` approved the
+  existing Guided working-lab continuity and authorized one deterministic simulated Device DNA →
+  compatibility journey through the normal UI.
+- Implementation commit: `8ce24b22e0ead8beaaf9987f2b03e728f1e67448` — `Classify simulated Device
+  DNA without authority` on
+  `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation, existing Genesis task 05/15 Device DNA continuation
+  only.
+- Exact implementation/test files: `src/romverse/device/models.py`,
+  `src/romverse/device/dna.py`, `src/romverse/rom/readiness.py`,
+  `src/romverse/ui/guided_mission.py`, `src/romverse/ui/rom_studio.py`,
+  `tests/test_device_dna.py`, `tests/test_build_readiness.py`, and
+  `tests/test_rom_studio_ui.py`.
+
+### Concrete defect and correction
+
+- The existing normal Guided scan action did reach the next customization/compatibility state,
+  but an injected deterministic test device was persisted as `device.live` / live ADB properties
+  and the visible Device DNA panel did not explicitly say that hardware was unverified. Binding
+  that simulated device could also create an incidental boot-observation record.
+- ROMVERSE now recognizes only the explicit `simulation` transport as simulated evidence. Device
+  DNA persists it separately as `device.simulation` / `deterministic-device-simulation`, at
+  `UNCONFIRMED` evidence confidence, with a durable
+  **SIMULATION ONLY • NOT HARDWARE VERIFIED** classification and warning.
+- Simulated identity agreement remains useful for inert flow validation but is classified as
+  `CAUTION`; Compatibility Matrix therefore reports **Limited Evidence**, while Guardian Flash
+  remains **Unknown / UNCONFIRMED**. Permanent bootloader relock prohibition remains
+  **Known Incompatible / UNSUPPORTED**.
+- Both ROM Studio Device DNA and the Guided identity deck now display the simulation label
+  conspicuously. The normal Guided action preserves the exact project, protected source and mission
+  and advances from Device DNA to Customize without presenting simulation as hardware proof.
+- Simulation is structurally excluded from build-readiness live-target selection, boot observation,
+  Guardian handoff matching, Guardian result registration and manifest-review device selection.
+  It creates no live-target, consent, Guardian or execution authority.
+
+### Verification without double-counting
+
+- Final directly affected regression selection: **36/36 passed**. This comprises the complete
+  Device DNA and Compatibility Matrix suites, the simulated build-readiness boundary, and three
+  focused real-widget Guided scan/continuation cases.
+- The representative normal-button journey produced durable simulated Device DNA and advisory-only
+  compatibility, advanced to Customize, retained the exact protected source digest and project,
+  and created no build plan, boot observation or Guardian directory.
+- Ruff lint passed for all eight changed source/test files. Git whitespace validation passed.
+- An earlier 14/14 development run overlaps the final selection and is deliberately not added to
+  the total above. No broad suite, CI matrix, build, package or native smoke was run.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** durable simulated-evidence classification, conspicuous truth labels and shared
+  authority-boundary exclusion.
+- **Simulated/Tested:** deterministic local device simulation through the normal Qt Guided action;
+  **36/36** non-overlapping affected checks passed.
+- **Hardware Verified:** no. Simulation is explicitly and durably not hardware verification.
+- **Released:** no.
+- Blockers/failures: none in the bounded journey or final affected regression. Physical-device
+  identity and every consequential execution gate remain unverified and closed.
+- Guided friction/dead ends: the existing Device DNA action continues directly to the next
+  evidence-derived state; no extra decision or modal was added. The previous misleading live label
+  is closed.
+- Guardian/Recovery/safety: simulation grants zero authority. Exact-device evidence,
+  Guardian-only execution, UNKNOWN-on-uncertainty, no blind retry, same-incident Recovery,
+  independent verification and permanent no-relock remain intact.
+- Linux/Fedora: focused Python and offscreen real-widget verification passed. Windows was not run.
+  Physical Android was not connected or operated.
+- Feature freeze: compliant minimum correctness fix to an approved existing Stage 1 journey; no
+  new feature, screen, adapter, Device Pack, build route or execution capability.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all existing release
+  gates.
+- External actions: one normal push of this scoped implementation and handoff to the existing Linux
+  branch is the only remote write. No phone, ADB/Fastboot, APK, firmware/device operation, build,
+  package installation, signing, publication, release, merge, force-push, lock or relock occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another consequential slice until the
+verdict for `8ce24b2` is recorded in `docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm that deterministic simulation remains useful for existing Guided continuity while its
+  separate evidence type, confidence and shared exclusions prevent every hardware/execution claim.
+- Confirm the normal-button Device DNA → Customize journey, advisory-only Compatibility Matrix and
+  36/36 directly affected checks are sufficient for this bounded checkpoint.
+
 ## Linux product checkpoint — existing Guided working-lab continuity
 
 ### Authoritative checkpoint and scope

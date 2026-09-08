@@ -15,10 +15,12 @@ from PySide6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
+    QLayout,
     QLineEdit,
     QMessageBox,
     QPushButton,
     QScrollArea,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -169,11 +171,18 @@ class DevicePacksCenter(QWidget):
         self.body = QScrollArea()
         self.body.setObjectName("DeviceAtlasScroll")
         self.body.setWidgetResizable(True)
+        self.body.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.body_content = QWidget()
         self.body_content.setObjectName("ScrollContent")
+        self.body_content.setMinimumWidth(0)
+        self.body_content.setSizePolicy(
+            QSizePolicy.Policy.Ignored,
+            QSizePolicy.Policy.Preferred,
+        )
         page = QVBoxLayout(self.body_content)
         page.setContentsMargins(30, 26, 30, 30)
         page.setSpacing(18)
+        page.setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint)
         self.body.setWidget(self.body_content)
         root.addWidget(self.body)
         header = QHBoxLayout()

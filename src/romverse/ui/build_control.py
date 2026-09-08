@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QRadioButton,
     QScrollArea,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -1259,10 +1260,12 @@ class BuildControlCenter(QDialog):
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.host = QWidget()
+        self.host.setMinimumWidth(0)
+        self.host.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         self.content = QVBoxLayout(self.host)
         self.content.setContentsMargins(28, 24, 28, 24)
         self.content.setSpacing(14)
-        self.content.setSizeConstraint(QLayout.SizeConstraint.SetMinAndMaxSize)
+        self.content.setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint)
         scroll.setWidget(self.host)
         root.addWidget(scroll, 1)
         root.addWidget(self._footer())
@@ -1276,8 +1279,8 @@ class BuildControlCenter(QDialog):
         if parent is not None:
             available = parent.window().geometry()
             self.resize(
-                max(self.minimumWidth(), int(available.width() * 0.9)),
-                max(self.minimumHeight(), int(available.height() * 0.9)),
+                max(self.width(), self.minimumWidth(), int(available.width() * 0.9)),
+                max(self.height(), self.minimumHeight(), int(available.height() * 0.9)),
             )
             frame = self.frameGeometry()
             frame.moveCenter(parent.window().frameGeometry().center())

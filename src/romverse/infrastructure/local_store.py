@@ -559,7 +559,10 @@ def _validate_opened_regular_file(
 def _atomic_write_bytes_portable(path: Path, payload: bytes, *, boundary: Path) -> None:
     parent = _validated_directory_path(path.parent, boundary=boundary, create=True)
     target = parent / path.name
-    temporary = parent / f".{path.name}.{uuid4().hex}.tmp"
+    # Do not repeat a potentially content-addressed target name in the temporary
+    # filename. Deep workspace evidence paths can otherwise fit on Windows while
+    # the atomic staging path alone crosses the legacy MAX_PATH boundary.
+    temporary = parent / f".romverse-{uuid4().hex}.tmp"
     try:
         try:
             details = target.lstat()

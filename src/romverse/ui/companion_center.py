@@ -15,9 +15,11 @@ from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
+    QLayout,
     QMessageBox,
     QPushButton,
     QScrollArea,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -136,9 +138,12 @@ class CompanionCenter(QWidget):
         self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         content = QWidget()
         content.setObjectName("ScrollContent")
+        content.setMinimumWidth(0)
+        content.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         page = QVBoxLayout(content)
         page.setContentsMargins(30, 26, 30, 30)
         page.setSpacing(16)
+        page.setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint)
         self.scroll.setWidget(content)
         root.addWidget(self.scroll)
         eyebrow = QLabel("ROMVERSE LINK  •  SECURE LOCAL PAIRING")

@@ -2952,7 +2952,7 @@ def test_desktop_preserves_detection_truth_without_granting_action_authority(
             "Choose one of the 2 detected Android devices" in blocker
             for blocker in window.device_center._flight_plan.blockers
         )
-        assert "2 USB devices detected" in window.companion_center.device_status.text()
+        assert "2 Android targets detected" in window.companion_center.device_status.text()
     finally:
         window.companion_center.transport.close()
         window.close()

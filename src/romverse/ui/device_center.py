@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
+    QLayout,
     QProgressBar,
     QPushButton,
     QScrollArea,
@@ -289,6 +290,7 @@ class DeviceCenter(QWidget):
         page = QVBoxLayout(self)
         page.setContentsMargins(18, 16, 18, 14)
         page.setSpacing(12)
+        page.setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint)
 
         header = QHBoxLayout()
         text = QVBoxLayout()
@@ -536,8 +538,14 @@ class DeviceCenter(QWidget):
 
         self.body = QScrollArea()
         self.body.setWidgetResizable(True)
+        self.body.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.body_content = QWidget()
         self.body_content.setObjectName("ScrollContent")
+        self.body_content.setMinimumWidth(0)
+        self.body_content.setSizePolicy(
+            QSizePolicy.Policy.Ignored,
+            QSizePolicy.Policy.Preferred,
+        )
         self.body_layout = QVBoxLayout(self.body_content)
         self.body_layout.setContentsMargins(0, 0, 6, 0)
         self.body_layout.setSpacing(16)

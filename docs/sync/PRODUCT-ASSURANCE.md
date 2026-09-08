@@ -1,5 +1,69 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: af2d0e7 — fresh unsigned Windows development artifact
+
+- Reviewed commit: `af2d0e795eea9e550afeeac7dc24d3181e781be5`
+- Built source: `120af840b02bfa7ced40cb173541b5711deff2d3`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — EXACT WINDOWS ARTIFACT, INTEGRITY AND CLEAN LIFECYCLE VERIFIED**
+
+### Decision
+
+Product Assurance independently confirmed the retained executable/archive identities, unsigned
+status, source equivalence, archive integrity, clean runtime log, absence of a remaining process
+and byte-identical preservation of the untracked user patch. The fresh Windows build is accepted as
+the current unsigned development artifact. No source correction or repeat build is required.
+
+The unavailable Windows Computer Use service is an observation-harness limitation, not evidence of
+an application defect. The handoff correctly leaves the exact Command Deck, Guided and missing-tool
+copy **UNKNOWN** rather than inferring it from a responsive process. That narrower visual gate stays
+open, but it must not force repeated builds or prevent the next bounded functional Windows check.
+
+### Independent evidence and acceptance
+
+- `src`, `scripts` and `pyproject.toml` have no difference between approved source `120af840` and
+  build base `424b422`.
+- `ROMVERSE.exe` is 6,318,781 bytes, unsigned, and independently matches SHA-256
+  `6fb2f134156fa0f4ff619ea2138d2b89fe3f6f31eaa68c90556c7ab912313627`.
+- The ZIP is 73,503,414 bytes and independently matches SHA-256
+  `3515966dceba273ef0d8371b7d8b6f05011a3abc7a1d92f8af9d096313d47c41`.
+  A separate copied-archive pass read all 305 files / 164,643,116 expanded bytes with no CRC error.
+- Retained process evidence proves one responsive top-level ROMVERSE window. The isolated runtime
+  log records one start and clean close, and no ROMVERSE process remains.
+- The untracked patch remains unchanged at SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone, ADB/Fastboot target, managed download, APK, candidate, signing, Guardian/Recovery
+  execution, publication, release, lock or relock occurred.
+
+### Approved next bounded Windows task
+
+Reuse this exact verified artifact and source; do not rebuild first. Complete one no-phone Windows
+**Resolve Platform Tools** self-repair journey, because this is the next user-visible prerequisite
+and directly covers the previously reported Windows dead end. Begin from an isolated workspace with
+no discoverable or managed ADB/Fastboot. Use the existing visible action when native UI inspection is
+available. If the same external Computer Use service is still unavailable, do not retry or wait on it:
+exercise the real managed installer, receipt validation, runtime inventory refresh and Command Deck
+controller/state transition through one focused native Windows integration instead.
+
+Acceptance requires only the official Google Windows Platform Tools archive, a private managed
+receipt binding the archive and exact ADB/Fastboot bytes, same-process transition from missing tools
+to truthful no-device readiness, clean close/reload persistence, and no administrator, global PATH,
+registry, driver or system installation. A bounded serial-free `adb devices -l` / `fastboot devices
+-l` listing is permitted only as existing host discovery with no target or device-changing action.
+If one genuine Windows acquisition, extraction, activation, repaint or persistence defect appears,
+apply its minimum correction and run focused changed-area checks only. Repackage at most once and
+only if source changed. Do not connect a phone, install an APK, build/sign a ROM, grant Guardian or
+Recovery authority, publish, release, lock or relock. Preserve the untracked patch byte-for-byte,
+commit/push one bounded checkpoint and stop for review.
+
+### Gate status
+
+- Fresh unsigned Windows build, archive integrity and process lifecycle: **VERIFIED**
+- Exact packaged screen-content observation: **OPEN EVIDENCE; NOT A REBUILD BLOCKER**
+- Windows private Platform Tools self-repair: **NEXT BOUNDED WINDOWS TASK**
+- Physical hardware, signing, Guardian/Recovery execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 120af84 — Windows exact Forge convergence
 
 - Reviewed commit: `120af840b02bfa7ced40cb173541b5711deff2d3`

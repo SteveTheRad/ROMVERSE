@@ -1,5 +1,45 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 9b054b6 — runnable Linux Stage 1 desktop
+
+- Handoff commit: `9b054b6` — `Record runnable Linux Stage 1 journey`
+- Source checkpoint: `fc34291`, including external-package evidence implementation `bc6e0ef`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — RUNNABLE LINUX STAGE 1 DEVELOPMENT MILESTONE**
+
+### Decision
+
+Product Assurance independently verified that the branch is clean and pushed, the handoff changes
+only this repository synchronization record, and both retained development artifacts match the exact
+reported SHA-256 values. The checkpoint's bounded source, installed-style, navigation/action, inert
+Guided Recovery and frozen-artifact evidence is proportionate and internally consistent. No physical
+device operation, production adapter enrolment, signing, installation, publication or release is
+claimed. The inability of this separate assurance shell to import `pytest` does not invalidate the
+already recorded focused run; no source changed after that evidence and repeating the full suite or
+package build would add no new decision evidence.
+
+The external-package intake remains correctly evidence-only. Package-declared identity stays
+unverified, procedure members remain never executed, and missing metadata remains `UNCONFIRMED`
+rather than becoming compatibility or authority. Guardian separation, exact-target rules,
+UNKNOWN-on-uncertainty, no blind retry, and permanent no-relock remain intact.
+
+### Acceptance and next bounded task
+
+- Linux source launch and fresh isolated workspace: **ACCEPTED**
+- Current navigation and primary no-phone actions: **ACCEPTED FOR DEVELOPMENT**
+- Inert Guided consequential chain: **ACCEPTED AS SIMULATED/TESTED ONLY**
+- Frozen unsigned Linux artifact: **ACCEPTED AS A LOCAL DEVELOPMENT ARTIFACT ONLY**
+- v0.2 Golden Foundation: **CLOSED; release and physical execution gates remain closed**
+
+Build may continue automatically. The next Linux slice is a repository-backed shipped-capability
+completion pass: reproduce one genuine user-visible Linux defect or incomplete existing journey in
+the actual application, implement the smallest correction, and prove it with one focused journey
+plus affected tests. Prioritize a crash, silent failure, inert visible action, state-loss problem or
+misleading dead end. Do not invent a defect, duplicate Windows launcher/tool work, merge the local UI
+Design Lab, broaden the feature freeze, operate a phone, or start a broad test/rebuild loop. If the
+first inspected path is already correct, move to the next evidence-backed incomplete shipped path
+within the same bounded pass rather than retesting it.
+
 ## Reviewed checkpoint: 36f99fe — corrected Fastboot round trip
 
 - Handoff commit: `36f99fe1c5be6de1776f40bc4fbfb34dd0d449a3`

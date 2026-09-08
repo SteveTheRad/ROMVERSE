@@ -1813,7 +1813,9 @@ def test_genesis_device_stage_requests_a_fresh_scan_and_rebuilds_device_dna(tmp_
     studio.close()
 
 
-def test_genesis_simulated_device_continues_visibly_without_hardware_authority(tmp_path):
+def test_genesis_simulated_device_continues_visibly_without_hardware_authority(
+    tmp_path, monkeypatch
+):
     from tests.test_device_dna import _device, _pack, _source
 
     app = QApplication.instance() or QApplication([])
@@ -1875,15 +1877,17 @@ def test_genesis_simulated_device_continues_visibly_without_hardware_authority(t
     assert mission.assessments[mission.selected_index].stage.stage_id == "toolchain"
 
     resolution_calls = []
+    tool_root = store.workspace / "fixture-tools"
+    tool_root.mkdir()
 
     def resolve_tools(required, *, purpose):
         resolution_calls.append((required, purpose))
-        studio.set_tool_statuses(
-            tuple(
-                ToolStatus(name, True, f"/verified/{name.casefold().replace(' ', '-')}", "1")
-                for name in required
-            )
-        )
+        statuses = []
+        for name in required:
+            path = tool_root / f"romverse-fixture-{name.casefold().replace(' ', '-')}"
+            path.write_bytes(f"verified {name}".encode())
+            statuses.append(ToolStatus(name, True, str(path), "1", "Ready"))
+        studio.set_tool_statuses(tuple(statuses))
         return True
 
     mission._resolve_required_tools = resolve_tools
@@ -1896,19 +1900,46 @@ def test_genesis_simulated_device_continues_visibly_without_hardware_authority(t
     assert mission.assessments[9].status is GuidedStageStatus.COMPLETE
     assert mission.assessments[mission.selected_index].stage.stage_id == "build_plan"
 
+    workers = []
+    monkeypatch.setattr("romverse.ui.rom_studio.start_background", workers.append)
+    source_before = store.verify_original(project.project_id)
+    mission.action_button.click()
+    assert len(workers) == 1 and workers[0].operation == "plan"
+    workers.pop().run()
+    app.processEvents()
+    assert len(workers) == 1 and workers[0].operation == "verify-plan"
+    workers.pop().run()
+    app.processEvents()
+
+    plan = RomBuildPlanner(store).load(project.project_id)
+    assert plan is not None
+    assert plan.schema_version == 3
+    assert plan.source_sha256 == project.original.sha256
+    assert plan.required_tools == ("Python", "Payload Dumper", "AVBTool")
+    assert plan.local_only and not plan.flashable and plan.execution_locked
+    assert plan.execution_authority == "none"
+    assert RomBuildPlanner(
+        store,
+        studio.tool_statuses,
+        plan.required_tools,
+    ).verify_tree(project.project_id).valid
+    assert store.verify_original(project.project_id) == source_before
+    assert mission.assessments[10].status is GuidedStageStatus.COMPLETE
+    assert mission.assessments[mission.selected_index].stage.stage_id == "build_sign"
+
     context = studio.guided_context()
     assert context.device is simulated
     assert not context.guardian_handoff_ready
     assert not context.guardian_flash_handoff_ready
     assert not context.flash_complete
     assert store.verify_original(project.project_id).valid
-    assert RomBuildPlanner(store).load(project.project_id) is None
     project_root = store.projects_root / project.project_id
+    assert not (project_root / "forge-bundle.romverse").exists()
     assert not (project_root / "boot-observation.romverse").exists()
     assert not (project_root / "guardian").exists()
 
     persisted = GuidedMissionStore(project_root).load()
-    assert persisted.selected_stage == "build_plan"
+    assert persisted.selected_stage == "build_sign"
     assert persisted.customization_skipped
     assert persisted.recipe_skipped
     assert persisted.root_choice == "skip"

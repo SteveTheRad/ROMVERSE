@@ -2209,7 +2209,10 @@ class GuidedBuildMission(QDialog):
             return
         operation = self.operation_queue.pop(0)
         self.active_operation = operation
-        self.studio._start_worker(operation)
+        self.studio._start_worker(
+            operation,
+            guided_evidence=operation in {"plan", "verify-plan"},
+        )
         if self.studio.worker is None:
             self.active_operation = ""
             self.operation_queue.clear()
@@ -2363,11 +2366,12 @@ class GuidedBuildMission(QDialog):
             self.state = replace(self.state, recipe_validated=True, last_error="")
         elif operation == "verify-plan" and getattr(result, "valid", False):
             self.state = replace(self.state, build_plan_verified=True, last_error="")
-        self._save_state()
         if self.operation_queue:
+            self._save_state()
             QTimer.singleShot(0, self._start_next_operation)
         else:
             self._refresh(select_current=True)
+            self._save_state()
             if self.autopilot_active:
                 QTimer.singleShot(0, self._advance_autopilot)
 

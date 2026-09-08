@@ -166,6 +166,8 @@ class ProjectWorker(ManagedRunnable):
         filesystem_service: PartitionFilesystemService | None = None,
         partitions: tuple[str, ...] = (),
         source_avb_service: SourceAvbEvidenceService | None = None,
+        tool_statuses: tuple[ToolStatus, ...] = (),
+        required_tools: tuple[str, ...] = (),
     ) -> None:
         super().__init__()
         self.store = store
@@ -177,6 +179,8 @@ class ProjectWorker(ManagedRunnable):
         self.filesystem_service = filesystem_service
         self.partitions = partitions
         self.source_avb_service = source_avb_service
+        self.tool_statuses = tool_statuses
+        self.required_tools = required_tools
         self.signals = ProjectWorkerSignals()
 
     @Slot()
@@ -231,9 +235,17 @@ class ProjectWorker(ManagedRunnable):
                     progress=progress,
                 )
             elif self.operation == "plan" and self.inspection is not None:
-                result = RomBuildPlanner(self.store).plan(self.project_id)
+                result = RomBuildPlanner(
+                    self.store,
+                    self.tool_statuses,
+                    self.required_tools,
+                ).plan(self.project_id)
             elif self.operation == "verify-plan":
-                result = RomBuildPlanner(self.store).verify_tree(self.project_id)
+                result = RomBuildPlanner(
+                    self.store,
+                    self.tool_statuses,
+                    self.required_tools,
+                ).verify_tree(self.project_id)
             elif self.operation == "forge-bundle":
                 forge = ForgeBundleService(self.store)
                 result = forge.create(
@@ -1442,7 +1454,7 @@ class RomStudio(QWidget):
             recipe = RecipeStore().load(self.store.projects_root / project.project_id)
             recipe_digest = recipe.digest() if recipe is not None else ""
             if (
-                existing.schema_version != 2
+                existing.schema_version not in {2, 3}
                 or existing.project_id != project.project_id
                 or existing.device_pack_id != project.device_pack_id
                 or existing.source_tree != expected_tree
@@ -4744,9 +4756,19 @@ class RomStudio(QWidget):
         operation: str,
         source: Path | None = None,
         partitions: tuple[str, ...] = (),
+        *,
+        guided_evidence: bool = False,
     ) -> None:
         if self.current_project is None or self.worker is not None:
             return
+        if operation == "verify-plan" and not guided_evidence:
+            existing_plan = RomBuildPlanner(self.store).load(self.current_project.project_id)
+            guided_evidence = existing_plan is not None and existing_plan.schema_version >= 3
+        required_tools = (
+            self.guided_context().required_tools
+            if guided_evidence and operation in {"plan", "verify-plan"}
+            else ()
+        )
         worker = ProjectWorker(
             self.store,
             operation,
@@ -4757,6 +4779,8 @@ class RomStudio(QWidget):
             filesystem_service=self.filesystem_service,
             partitions=partitions,
             source_avb_service=self.source_avb_service,
+            tool_statuses=self.tool_statuses,
+            required_tools=required_tools,
         )
         self._launch_worker(worker, operation)
 

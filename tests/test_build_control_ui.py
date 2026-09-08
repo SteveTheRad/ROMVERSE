@@ -659,6 +659,47 @@ def test_refresh_removes_stale_cards_and_footer_actions_remain_aligned(tmp_path)
     studio.close()
 
 
+def test_reopened_unsigned_local_candidate_remains_complete_and_routes_to_artifact_verification(
+    tmp_path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    studio = _studio(tmp_path)
+    control = BuildControlCenter(studio, auto_start=False)
+    assert control.report is not None
+    report = replace(
+        control.report,
+        build_ready=True,
+        local_candidate_ready=True,
+        signing_ready=False,
+        flash_ready=False,
+        report_digest="3" * 64,
+    )
+    continued: list[str] = []
+    installation: list[str] = []
+    control._start_autopilot = lambda: continued.append("artifact-verification")
+    control._open_project_images = lambda: installation.append("installation")
+
+    control.refresh(report)
+    app.processEvents()
+
+    labels = {label.text() for label in control.findChildren(QLabel)}
+    buttons = {button.text() for button in control.findChildren(QPushButton)}
+    assert control.overall_badge.text() == "✓  LOCAL BUILD COMPLETE / INSTALL NOT AUTHORIZED"
+    assert control.overall_badge.property("readinessState") == "verified"
+    assert "LOCAL BUILD COMPLETE" in labels
+    assert "✓  LOCAL BUILD COMPLETE  •  INSTALLATION NOT AUTHORIZED" in labels
+    assert "Finish local build" in buttons
+    assert control.autopilot_button.text() == "Continue to artifact verification"
+    assert "installation/flash: NOT AUTHORIZED" in control.status.text()
+
+    control.autopilot_button.click()
+
+    assert continued == ["artifact-verification"]
+    assert installation == []
+    control.close()
+    studio.close()
+
+
 def test_reopened_forge_surfaces_exact_resume_and_blocks_unknown_retry(
     tmp_path, monkeypatch
 ) -> None:

@@ -1213,6 +1213,10 @@ class ToolchainCenter(QWidget):
         self.offline_progress = ProcessProgressBar()
         offline_actions = QHBoxLayout()
         self.offline_export_button = QPushButton("Export verified offline kit")
+        self.offline_export_button.setToolTip(
+            "Install and receipt-verify at least one workspace-managed tool package first. "
+            "Only verified local package roots can be exported."
+        )
         self.offline_export_button.setEnabled(
             self.offline_service is not None
             and workspace is not None

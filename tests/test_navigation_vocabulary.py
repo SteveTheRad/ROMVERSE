@@ -12,7 +12,7 @@ from unittest.mock import patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication, QDialog, QLabel, QPushButton
+from PySide6.QtWidgets import QAbstractButton, QApplication, QDialog, QLabel, QPushButton
 
 from romverse.core.privacy import WorkspacePrivacy
 from romverse.core.settings import AppSettings, DesktopTheme, ExperienceMode
@@ -815,6 +815,37 @@ def test_every_desktop_navigation_label_opens_and_highlights_its_own_page(
         assert window.stack.currentWidget() is window.guardian_center
         assert by_label["Guardian Core"].property("active") is True
         assert window.guardian_center.worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_every_visible_disabled_stage1_action_explains_its_prerequisite(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
+    try:
+        window._apply_experience_mode(ExperienceMode.EXPERT)
+        unexplained: list[str] = []
+        for route_name, route in window.page_routes.items():
+            window._navigate(route)
+            app.processEvents()
+            page = window.stack.currentWidget()
+            for button in page.findChildren(QAbstractButton):
+                if (
+                    button.isVisibleTo(page)
+                    and not button.isEnabled()
+                    and button.objectName() not in {"ScrollLeftButton", "ScrollRightButton"}
+                    and not (button.toolTip().strip() or button.accessibleDescription().strip())
+                ):
+                    unexplained.append(
+                        f"{route_name}: {button.metaObject().className()} "
+                        f"{button.objectName()!r} {button.text()!r}"
+                    )
+
+        assert unexplained == []
     finally:
         window.companion_center.transport.close()
         window.close()

@@ -250,6 +250,9 @@ class CompanionCenter(QWidget):
         self.copy_button = QPushButton("Copy code")
         self.copy_button.setMinimumHeight(36)
         self.copy_button.setEnabled(False)
+        self.copy_button.setToolTip(
+            "Generate a fresh one-use wireless pairing code before copying it."
+        )
         self.copy_button.clicked.connect(self.copy_code)
         self.approve = QPushButton("Approve device")
         self.approve.setObjectName("Primary")
@@ -327,10 +330,17 @@ class CompanionCenter(QWidget):
         self.transfer_button.setObjectName("Primary")
         self.transfer_button.setMinimumHeight(38)
         self.transfer_button.setEnabled(False)
+        self.transfer_button.setToolTip(
+            "Approve an active Companion link and open a persistent workspace before choosing "
+            "a file. Nothing is installed or executed automatically."
+        )
         self.transfer_button.clicked.connect(self.choose_companion_transfer)
         self.transfer_clear = QPushButton("Revoke pending handoffs")
         self.transfer_clear.setMinimumHeight(38)
         self.transfer_clear.setEnabled(False)
+        self.transfer_clear.setToolTip(
+            "A pending private Companion handoff is required before it can be revoked."
+        )
         self.transfer_clear.clicked.connect(self.revoke_companion_transfers)
         transfer_actions = QHBoxLayout()
         transfer_actions.setSpacing(10)

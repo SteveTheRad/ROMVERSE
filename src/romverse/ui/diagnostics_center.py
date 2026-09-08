@@ -205,6 +205,10 @@ class DiagnosticsCenter(QWidget):
         utility_layout.addWidget(self.clean_cache)
         self.save_button = QPushButton("Save report")
         self.save_button.setEnabled(False)
+        self.save_button.setToolTip(
+            "Run a read-only health scan first. Save report becomes available only after "
+            "ROMVERSE has a current local report; it does not change the phone."
+        )
         self.save_button.clicked.connect(self._save)
         utility_layout.addWidget(self.save_button)
         self.utility_panel.setVisible(False)

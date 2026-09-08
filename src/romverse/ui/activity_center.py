@@ -125,6 +125,10 @@ class ActivityCenter(QWidget):
         header.addWidget(self.refresh_button)
         self.export_button = QPushButton("Export redacted JSON")
         self.export_button.setAccessibleName("Export the privacy-safe activity ledger")
+        self.export_button.setToolTip(
+            "At least one local activity event is required. The export remains privacy-redacted "
+            "and does not include raw device identifiers."
+        )
         self.export_button.clicked.connect(self._export)
         header.addWidget(self.export_button)
         page.addLayout(header)

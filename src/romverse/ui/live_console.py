@@ -234,6 +234,9 @@ class LiveConsoleCenter(QWidget):
         source_actions.addWidget(self.source_feedback, 1)
         self.open_source_button = QPushButton("Source page unavailable")
         self.open_source_button.setEnabled(False)
+        self.open_source_button.setToolTip(
+            "Select a genuine event whose originating ROMVERSE feature is still available."
+        )
         self.open_source_button.clicked.connect(self._open_selected_source)
         source_actions.addWidget(self.open_source_button)
         detail_layout.addLayout(source_actions)
@@ -386,7 +389,9 @@ class LiveConsoleCenter(QWidget):
         self._selected_project_id = ""
         self.open_source_button.setText("Source page unavailable")
         self.open_source_button.setEnabled(False)
-        self.open_source_button.setToolTip("")
+        self.open_source_button.setToolTip(
+            "Select a genuine event whose originating ROMVERSE feature is still available."
+        )
         self.source_feedback.setText(message)
         self.source_feedback.setObjectName("Muted")
         self._repolish(self.source_feedback)

@@ -627,12 +627,22 @@ class BackupCenter(QWidget):
         )
         self.capture_vault_button.clicked.connect(self._prepare_vault_capture)
         self.verify_vault_button = QPushButton("Verify checkpoint")
+        self.verify_vault_button.setToolTip(
+            "Select a Project Vault checkpoint to run a fresh local full-byte verification. "
+            "No restore or phone action is started."
+        )
         self.verify_vault_button.clicked.connect(
             lambda _checked=False: self._start_vault_worker("verify")
         )
         self.compare_vault_button = QPushButton("Compare previous")
+        self.compare_vault_button.setToolTip(
+            "Two checkpoints on the same Project Vault branch are required for a local comparison."
+        )
         self.compare_vault_button.clicked.connect(self._compare_vault_entry)
         self.branch_vault_button = QPushButton("Branch experiment")
+        self.branch_vault_button.setToolTip(
+            "Select a verified Project Vault checkpoint before creating a local experiment branch."
+        )
         self.branch_vault_button.clicked.connect(self._prepare_vault_branch)
         vault_actions.addWidget(self.capture_vault_button)
         vault_actions.addWidget(self.verify_vault_button)
@@ -657,6 +667,9 @@ class BackupCenter(QWidget):
         )
         self.export_vault_button.clicked.connect(self._prepare_vault_export)
         self.storage_vault_button = QPushButton("Explain storage")
+        self.storage_vault_button.setToolTip(
+            "Select a ROM project to inspect its local Project Vault storage accounting."
+        )
         self.storage_vault_button.clicked.connect(self._show_vault_storage)
         self.clean_vault_button = QPushButton("Clean unreferenced…")
         self.clean_vault_button.setToolTip(
@@ -759,6 +772,10 @@ class BackupCenter(QWidget):
             lambda: self._choose_recovery_evidence("stock_recovery")
         )
         self.verify_evidence_button = QPushButton("Reverify both")
+        self.verify_evidence_button.setToolTip(
+            "Select a project and add external backup or stock-recovery evidence first. "
+            "Reverification reads the selected files and never operates a phone."
+        )
         self.verify_evidence_button.clicked.connect(self._verify_recovery_evidence)
         evidence_actions.addWidget(self.backup_evidence_button)
         evidence_actions.addWidget(self.stock_evidence_button)

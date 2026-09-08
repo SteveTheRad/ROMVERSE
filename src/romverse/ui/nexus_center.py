@@ -100,6 +100,10 @@ class NexusCenter(QWidget):
         )
         self.generate_button = QPushButton("Generate Nexus Plan")
         self.generate_button.setObjectName("Primary")
+        self.generate_button.setToolTip(
+            "Choose a ROM project with current Device DNA and Compatibility Matrix evidence. "
+            "The generated plan has zero execution authority."
+        )
         self.generate_button.clicked.connect(self.generate_plan)
         selectors.addWidget(QLabel("Project"))
         selectors.addWidget(self.project_selector, 1)
@@ -194,9 +198,17 @@ class NexusCenter(QWidget):
         actions = QHBoxLayout()
         self.export_button = QPushButton("Export privacy-scrubbed Insight")
         self.export_button.setEnabled(False)
+        self.export_button.setToolTip(
+            "Generate a current Nexus Plan first. The exported insight is privacy-scrubbed and "
+            "has no execution authority."
+        )
         self.export_button.clicked.connect(self.export_insight)
         self.guardian_button = QPushButton("Review plan in Guardian Core")
         self.guardian_button.setEnabled(False)
+        self.guardian_button.setToolTip(
+            "Generate a plan that passes its evidence gates first. Guardian review remains "
+            "separate and does not authorize execution."
+        )
         self.guardian_button.clicked.connect(self.request_guardian_review)
         self.open_studio_button = QPushButton("Open ROM Studio")
         self.open_studio_button.clicked.connect(self._request_rom_studio)

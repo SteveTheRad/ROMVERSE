@@ -243,6 +243,10 @@ class RepairCenter(QWidget):
         self.build_button = QPushButton("Build safety plan")
         self.build_button.setObjectName("Primary")
         self.build_button.setEnabled(False)
+        self.build_button.setToolTip(
+            "Select an exact detected Android target before building a read-only safety plan. "
+            "Building the plan does not start a repair or grant execution authority."
+        )
         self.build_button.clicked.connect(self.build_plan)
         header.addWidget(self.build_button)
         self.session_button = QPushButton("Start guided repair session")

@@ -1,5 +1,52 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 88f0b16 — Windows stable same-file identity
+
+- Handoff commit: `88f0b16`
+- Correction commit: `7b79a4b077bf62ae1b2c669b1ed631f18d282696`
+- Product Assurance authorization: `c4adb738b5daddcc82dd5388ff8270901f2fa3f2`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — WINDOWS PORTABILITY CORRECTION VERIFIED**
+
+### Decision and evidence
+
+The correction is the exact minimum requested. On Windows only, both same-file helpers compare the
+stable descriptor/path fields: device/file identity, inode/file index, size and modification time.
+Other platforms retain creation/change time. Fresh content hashes, descriptor-before/after checks,
+path containment, no-follow/symlink rejection, expected receipt/path binding, size checks and
+replacement detection remain unchanged.
+
+Product Assurance inspected the four-file correction/handoff diff. The five new Windows tests prove
+that a ctime-only descriptor/path discrepancy is accepted, file-identity replacement is rejected
+even with preserved size/mtime, and same-size byte drift with restored mtime produces a different
+fresh hash. Build reran only the 24 formerly failing nodes and the five new nodes: **29/29 passed**.
+Ruff and whitespace passed. The earlier 95 passing nodes were not needlessly repeated.
+
+### Approved next bounded task
+
+This is the next normal user-facing Windows artifact milestone. Fast-forward the clean Legion
+checkout to this verdict while preserving the existing untracked patch. Build exactly one refreshed
+unsigned Windows `0.2.0-alpha.1` internal-development bundle from the approved source. Verify the
+exact executable/archive identities, safe archive tree and unsigned classification, then run one
+bounded no-phone packaged user journey covering Guided entry, Command Deck, platform-tool status/
+remediation presentation, one offline Knowledge/Device DNA lookup, candidate/signing-preparation
+state truthfulness, and clean durable restart.
+
+Reuse the already passing source evidence. Do not run a broad suite or repeat the build. If the one
+journey exposes a concrete Windows runtime/Guided defect, apply only its minimum freeze-safe fix,
+add one focused regression and rebuild at most once. Commit/push the handoff and stop for review.
+
+Do not use a phone/emulator, target ADB/Fastboot, install system-wide, sign, enroll production trust,
+create consent/admission, execute, enter Recovery, publish/release, alter the preserved patch or
+Companion/Knowledge/Linux work, force-push, unlock, lock or relock.
+
+### Gate status
+
+- Windows signing/preparation source convergence: **VERIFIED**
+- Windows same-file identity correction: **VERIFIED**
+- Next Windows milestone: **ONE REFRESHED UNSIGNED ALPHA AND PACKAGED USER JOURNEY**
+- Physical execution, production signing/trust, publication and release: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: 3bd3d07 — Windows signing/preparation convergence
 
 - Handoff commit: `3bd3d07`

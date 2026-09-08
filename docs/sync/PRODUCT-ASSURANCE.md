@@ -1,5 +1,72 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 0792fa8 — Recipe Forge to durable local build
+
+- Handoff commit: `0792fa8`
+- Implementation commit: `b77ee3c03aac1746a8e8f18acd370ddcb3094360`
+- Product Assurance authorization/base: `4282da62947dd7e21de56eeb4550a827b468ae87`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — DURABLE LOCAL-BUILD JOURNEY VERIFIED**
+
+### Decision and evidence
+
+The bounded production-widget/service journey proves a useful complete local path: deterministic
+Recipe creation and preview, explicit transactional application, durable Recipe evidence, seven-step
+inert local build, exact output/receipt verification, and truthful reconstruction after normal
+service/UI reload. It is correctly classified as simulated orchestration with no phone or real host
+image-building claim.
+
+The discovered restart defect is real and `b77ee3c` is the minimum correction. A durable unsigned
+local candidate now remains `LOCAL BUILD COMPLETE / INSTALL NOT AUTHORIZED`; its primary action is
+artifact verification, not installation preparation. The installation handoff is selected only
+when the separately derived `signing_ready` state is true. Artifact trust, signing/AVB, Guardian,
+installation and device execution semantics are unchanged.
+
+Product Assurance inspected the exact two-file source/test diff and handoff. Build's one journey,
+**7/7 focused regressions**, Ruff success and whitespace success are proportional evidence. No broad
+suite or duplicate interruption/retry campaign is required. The later creator-approved Adaptive
+Online Evidence plan at `b7e7a33` is a separate documentation-only commitment and does not alter
+this verdict or grant implementation scope.
+
+### Vision, freeze and safety result
+
+- Recipe Forge through durable local-build completion/reload: **PASS**
+- Guided completion truthfulness and next-action routing: **PASS**
+- Feature freeze: **PASS — first concrete existing-flow correction only**
+- Guardian-only authority, exact-device evidence, UNKNOWN/no-blind-retry and permanent no-relock:
+  **PRESERVED**
+- Phone, signing, installation, Recovery, publication and release activity: **NONE**
+
+### Approved next bounded task
+
+Run one fresh, no-phone **local candidate to artifact-verification/offline-signing readiness
+journey** on Linux using a disposable project, bounded synthetic source and inert host adapters.
+Begin from a durable unsigned local candidate and activate the production `Continue to artifact
+verification` path. Verify that ROMVERSE rehashes and binds the exact candidate artifacts, inspects
+the applicable AVB/signing requirements, and presents either a valid existing offline-signing
+request/export route or one precise missing-evidence action. It must not present installation,
+Guardian consent or flash readiness as complete, and a reload must preserve the same truthful state.
+
+Record only the first concrete defect and apply only its minimum freeze-safe correction with one
+focused regression; if clean, commit evidence only. Reuse current local-build receipts and existing
+signing/AVB contract coverage rather than rebuilding the seven-step journey or running a broad
+suite. Do not use a phone/emulator, import a real private signature, enroll production trust, build
+packages/APKs, touch protected Companion/original-checkout Windows work, begin Guardian/Recovery/
+installation, publish, release, force-push or relock. Commit and push, then stop for Product
+Assurance.
+
+Windows may separately synchronize only `b77ee3c`, run the one new completed-but-unsigned focused
+test plus lint/whitespace, and stop without rebuilding its alpha artifact. Include both this fix and
+the already approved neutral Command Deck subtitle naturally in the next normal Windows artifact
+batch, not in another immediate packaging cycle.
+
+### Gate status
+
+- Unfamiliar intake and durable local build: **VERIFIED**
+- Next core milestone: **ARTIFACT VERIFICATION / OFFLINE-SIGNING READINESS**
+- Windows source synchronization of `b77ee3c`: **AUTHORIZED WITHOUT REBUILD**
+- Physical device, production signing/trust, installation, Recovery and release: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: 2d27723 — unfamiliar-firmware Guided intake
 
 - Final handoff commit: `2d27723`

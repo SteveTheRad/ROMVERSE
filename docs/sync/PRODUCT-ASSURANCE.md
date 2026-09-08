@@ -1,5 +1,66 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: a902c08 — one explicit Forge choice completes verification
+
+- Handoff commit: `a902c0849305c773cc188df35f2ee7fa1e9517fb`
+- Implementation commit: `c363e8a82c6503c691186f93ef8de3f0984cf679`
+- Approved base: `6f935de`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — INTENT, PRODUCTION AND VERIFICATION REMAIN DISTINCT**
+
+### Decision
+
+Product Assurance inspected the complete two-file diff and independently reran the five exact
+affected journeys. The existing Forge button remains the sole user intent. It binds the complete
+persisted `BuildPlan`, runs the existing producer once, independently reloads and accepts only the
+exact typed receipt with matching project/plan/tree identity and false signing/boot/flash flags,
+then invokes the existing read-only verifier once.
+
+Verification requires the same durable plan and receipt plus internally consistent expected and
+actual archive digests. Exact success presents the verified intermediate and stops at the existing
+Forge Control choice. Creation failure, archive drift, mismatched terminal evidence or verifier
+failure preserve available evidence, clear memory-only continuation state and schedule no retry.
+
+### Independent evidence and acceptance
+
+- Product Assurance reran the real-widget success, archive-drift stop, deterministic non-flashable
+  creation, tree-drift refusal and independent archive-tamper journeys: **5/5 passed**.
+- Ruff check and format verification passed for both changed files; Git whitespace validation
+  passed; the branch and working tree were clean at review.
+- Acceptance criteria are satisfied: explicit user intent, exact plan binding, one producer,
+  independently reloaded typed receipt, one read-only verifier, exact digest validation, visible
+  verified result, preserved failure evidence and zero blind retry.
+- No phone-capable build, signing, phone, ADB/Fastboot, APK, firmware-device action,
+  Guardian/Recovery authority, Windows/Companion/Knowledge/UI Design Lab work, desktop packaging,
+  publication, release or bootloader relock occurred.
+
+### Approved next bounded Linux task
+
+Exercise one representative existing **Forge Control local-candidate journey** from this exact
+verified intermediate using a disposable sanitized project and an existing exact source-bound
+Device Pack/build contract. Opening Forge Control must remain inspection-only. Only the harness's
+explicit existing `Build verified local candidate` choice may start the current bounded local build
+pipeline. Use production UI/services and durable workspace evidence, not mocked build results.
+
+Run the candidate pipeline once, verify its exact durable artifact/receipt and reload state, and
+identify the first genuine user-visible dead end, silent failure, lost context or unnecessary
+technical step. Apply at most one minimum continuity/correctness correction and prove the journey
+resumes; if the existing path works completely, change no source and record that evidence. A known
+failure, interrupted/ambiguous result, input drift or incomplete contract must preserve evidence,
+stop actionably and never retry automatically.
+
+Do not sign, create a flash-authorized package, open Guardian consent/execution, connect or operate
+a phone, use ADB/Fastboot, overlap Windows CI/Knowledge/UI Design Lab/Companion work, run a broad
+suite, package the desktop app, publish or release. Verify the single representative journey plus
+only directly affected focused checks. Commit/push one bounded checkpoint and stop for review.
+
+### Gate status
+
+- Intentional Forge Bundle production and independent verification: **VERIFIED**
+- Existing exact-contract local candidate through Forge Control: **NEXT BOUNDED LINUX TASK**
+- Signing, Guardian execution and physical device action: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 132bf8b — verified Simulation points to intentional Forge Bundle
 
 - Handoff commit: `132bf8b273668db4380f8e8c5bc62c1698b77953`

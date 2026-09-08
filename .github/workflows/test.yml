@@ -136,8 +136,8 @@ jobs:
           sudo apt-get install -y libegl1 libpulse0
       - run: python -m pip install build "pyinstaller>=6.22,<7"
       - run: python -m build --wheel
-      - run: python scripts/verify_wheel.py dist/romverse-0.1.0-py3-none-any.whl
-      - run: python -m pip install dist/romverse-0.1.0-py3-none-any.whl
+      - run: python scripts/verify_wheel.py dist/romverse-0.2.0a1-py3-none-any.whl
+      - run: python -m pip install dist/romverse-0.2.0a1-py3-none-any.whl
       - run: python scripts/smoke_installed_desktop.py "${{ runner.temp }}/romverse-smoke"
         env:
           QT_QPA_PLATFORM: offscreen

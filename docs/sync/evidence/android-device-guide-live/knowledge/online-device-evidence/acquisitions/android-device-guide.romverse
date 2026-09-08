@@ -1,0 +1,35 @@
+{
+  "bootloader_relock_allowed": false,
+  "content_bytes": 311029,
+  "content_digest": "9a1e3f4e18646ce53efc5f76920163a94eaa5400d4122208a94bdf6286ce7bce",
+  "etag": "",
+  "evidence_archive_digest": "c2460577445e75494b761e6ad9a1eec1b055214c3f28b6352d517d42a4434996",
+  "evidence_state": "officially-documented",
+  "execution_authority": "none",
+  "format": "romverse.android-device-guide-acquisition",
+  "guardian_approval": false,
+  "http_status": 200,
+  "last_modified": "Fri, 14 Aug 2026 21:43:56 GMT",
+  "matched_claim_ids": [
+    "0d6101abf95c5cce6f104b4350bfa71787d5b539c68dc0d0727e343132f9a18c",
+    "2ce511bd78861292969f9b592360d7e3100643fe56f1e658359d130da758167f",
+    "d71a645d16e80f3dbe26ee6093e34cd7c8cecda013a2c1771498319c97eb11c6"
+  ],
+  "outcome": "success",
+  "parser_id": "romverse.android-device-connection-guide",
+  "parser_version": "1",
+  "phone_action_allowed": false,
+  "published_at": "2026-08-14T21:43:56+00:00",
+  "raw_response_retained": false,
+  "reason": "Three reviewed official connection-diagnostic claims were retained as guidance only.",
+  "receipt_digest": "cce1ecb99bfc4038c3c7d275b51e8aa0c1fbd643c6d89931c8a0f54411b8e223",
+  "receipt_id": "d494d2479fd6bbd5a74287dcc206e27f2be01158ef3880a7a3de367a5bbfbf6c",
+  "retained_claim_ids": [
+    "0d6101abf95c5cce6f104b4350bfa71787d5b539c68dc0d0727e343132f9a18c",
+    "2ce511bd78861292969f9b592360d7e3100643fe56f1e658359d130da758167f",
+    "d71a645d16e80f3dbe26ee6093e34cd7c8cecda013a2c1771498319c97eb11c6"
+  ],
+  "retrieved_at": "2026-09-08T03:16:43.397973+00:00",
+  "schema_version": 1,
+  "source_url": "https://developer.android.com/studio/run/device"
+}

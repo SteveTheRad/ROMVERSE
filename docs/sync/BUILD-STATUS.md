@@ -1,5 +1,27 @@
 # ROMVERSE Build Status
 
+## Official Android connection-guide evidence — 8 September 2026
+
+- Authorization/base: Product Assurance verdict
+  `7b58c8be04754b9adecbe75d50686ffa8aebdcbb` on `adaptive-online-device-dna`.
+- Implementation: `655e4578342f6cc55bccc6b6de9ef3c6786de5ec`.
+- Result: conservative schema-one typed diagnostic/guide/fix/outcome fields, legacy identity-archive
+  migration, and one exact-URL official Android device-connection guide adapter with strict,
+  non-executable, minimum-retention parsing.
+- Live result: `https://developer.android.com/studio/run/device` succeeded at
+  `2026-09-08T03:16:43.397973+00:00`; HTTP 200; 311,029 bounded bytes; three typed guide claims;
+  source SHA-256 `9a1e3f4e18646ce53efc5f76920163a94eaa5400d4122208a94bdf6286ce7bce`;
+  only eight exact source words and no raw response retained.
+- Verification: 125 focused tests passed; focused Ruff check/format and Git whitespace checks
+  passed. The full suite was not run.
+- Authority: claims are `officially-documented`, not independently corroborated, live-confirmed,
+  or ROMVERSE-verified; command, phone, Guardian, execution, and relock authority remain absent.
+- Governance: `docs/KNOWLEDGE-COVERAGE-VALUE-GATE.md` records the consumer-to-evidence matrix,
+  prioritized categories, validation/freshness/privacy/licensing/retention rules, conflicts,
+  capability boundaries, stop conditions, and permanent exclusions.
+- Next: stop for Product Assurance before another source family, broader collection, UI wiring, or
+  any consequential workflow.
+
 ## Fixed Google Play evidence acquisition — 8 September 2026
 
 - Authorization/base: Product Assurance verdict

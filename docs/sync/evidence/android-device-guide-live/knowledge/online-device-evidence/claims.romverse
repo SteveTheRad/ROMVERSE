@@ -1,0 +1,176 @@
+{
+  "archive_digest": "c2460577445e75494b761e6ad9a1eec1b055214c3f28b6352d517d42a4434996",
+  "bootloader_relock_allowed": false,
+  "claims": [
+    {
+      "affected_builds": [
+        "Exact Android device and build remain unconfirmed."
+      ],
+      "claim_id": "0d6101abf95c5cce6f104b4350bfa71787d5b539c68dc0d0727e343132f9a18c",
+      "claim_key": "diagnostic.usb-cable",
+      "confidence": 80,
+      "conflicting_claim_ids": [],
+      "corroborating_claim_ids": [],
+      "diagnostic_description": "Compare the current cable with a known data-capable USB connection.",
+      "error_identifiers": [
+        "android-device-not-detected"
+      ],
+      "execution_authority": "none",
+      "expected_result": "The host can establish a data connection or the cable remains a focused suspect.",
+      "guardian_approval": false,
+      "knowledge_kind": "guide",
+      "outcome_provenance": "",
+      "phone_action_allowed": false,
+      "prerequisites": [
+        "Use the canonical English Android Developers page."
+      ],
+      "remedy_description": "Use a data-capable cable and gather the connection evidence again.",
+      "rollback_recovery_route": "Stop and preserve the current device state if evidence conflicts.",
+      "scope": {
+        "android_versions": [],
+        "brands": [],
+        "build_ids": [],
+        "codenames": [],
+        "firmware_versions": [],
+        "manufacturers": [],
+        "models": [],
+        "regions": [],
+        "scope_note": "Android development-device host connection; exact device and build unconfirmed."
+      },
+      "source": {
+        "category": "official-android",
+        "content_digest": "9a1e3f4e18646ce53efc5f76920163a94eaa5400d4122208a94bdf6286ce7bce",
+        "freshness": "current",
+        "parser_id": "romverse.android-device-connection-guide",
+        "parser_version": "1",
+        "published_at": "2026-08-14T21:43:56+00:00",
+        "publisher": "Google Android",
+        "retrieved_at": "2026-09-08T03:16:43.397973+00:00",
+        "source_id": "android.developer-device-guide",
+        "url": "https://developer.android.com/studio/run/device"
+      },
+      "state": "officially-documented",
+      "status_reason": "Official guidance only; no observed outcome or confirmed fix.",
+      "structured_value": "",
+      "supporting_excerpt": "faulty USB cable",
+      "symptoms": [
+        "A connected device is not visible to Android Studio."
+      ]
+    },
+    {
+      "affected_builds": [
+        "Exact Android device and build remain unconfirmed."
+      ],
+      "claim_id": "2ce511bd78861292969f9b592360d7e3100643fe56f1e658359d130da758167f",
+      "claim_key": "diagnostic.usb-debugging",
+      "confidence": 80,
+      "conflicting_claim_ids": [],
+      "corroborating_claim_ids": [],
+      "diagnostic_description": "Confirm the device-side development connection setting and authorization state.",
+      "error_identifiers": [
+        "android-device-not-detected"
+      ],
+      "execution_authority": "none",
+      "expected_result": "The device either becomes visible or remains explicitly unconfirmed for investigation.",
+      "guardian_approval": false,
+      "knowledge_kind": "guide",
+      "outcome_provenance": "",
+      "phone_action_allowed": false,
+      "prerequisites": [
+        "Use the canonical English Android Developers page."
+      ],
+      "remedy_description": "Review USB debugging state on the intended unlocked device, then rescan read-only.",
+      "rollback_recovery_route": "Stop and preserve the current device state if evidence conflicts.",
+      "scope": {
+        "android_versions": [],
+        "brands": [],
+        "build_ids": [],
+        "codenames": [],
+        "firmware_versions": [],
+        "manufacturers": [],
+        "models": [],
+        "regions": [],
+        "scope_note": "Android development-device host connection; exact device and build unconfirmed."
+      },
+      "source": {
+        "category": "official-android",
+        "content_digest": "9a1e3f4e18646ce53efc5f76920163a94eaa5400d4122208a94bdf6286ce7bce",
+        "freshness": "current",
+        "parser_id": "romverse.android-device-connection-guide",
+        "parser_version": "1",
+        "published_at": "2026-08-14T21:43:56+00:00",
+        "publisher": "Google Android",
+        "retrieved_at": "2026-09-08T03:16:43.397973+00:00",
+        "source_id": "android.developer-device-guide",
+        "url": "https://developer.android.com/studio/run/device"
+      },
+      "state": "officially-documented",
+      "status_reason": "Official guidance only; no observed outcome or confirmed fix.",
+      "structured_value": "",
+      "supporting_excerpt": "enable USB debugging",
+      "symptoms": [
+        "The device is connected but unavailable for development inspection."
+      ]
+    },
+    {
+      "affected_builds": [
+        "Exact Android device and build remain unconfirmed."
+      ],
+      "claim_id": "d71a645d16e80f3dbe26ee6093e34cd7c8cecda013a2c1771498319c97eb11c6",
+      "claim_key": "diagnostic.connection-assistant",
+      "confidence": 80,
+      "conflicting_claim_ids": [],
+      "corroborating_claim_ids": [],
+      "diagnostic_description": "Review the official Connection Assistant guidance and current host/device evidence.",
+      "error_identifiers": [
+        "android-device-not-detected"
+      ],
+      "execution_authority": "none",
+      "expected_result": "The intended device becomes available for a fresh read-only identity scan.",
+      "guardian_approval": false,
+      "knowledge_kind": "guide",
+      "outcome_provenance": "",
+      "phone_action_allowed": false,
+      "prerequisites": [
+        "Use the canonical English Android Developers page."
+      ],
+      "remedy_description": "Follow the visible Android Studio connection checklist without executing source text.",
+      "rollback_recovery_route": "Stop and preserve the current device state if evidence conflicts.",
+      "scope": {
+        "android_versions": [],
+        "brands": [],
+        "build_ids": [],
+        "codenames": [],
+        "firmware_versions": [],
+        "manufacturers": [],
+        "models": [],
+        "regions": [],
+        "scope_note": "Android development-device host connection; exact device and build unconfirmed."
+      },
+      "source": {
+        "category": "official-android",
+        "content_digest": "9a1e3f4e18646ce53efc5f76920163a94eaa5400d4122208a94bdf6286ce7bce",
+        "freshness": "current",
+        "parser_id": "romverse.android-device-connection-guide",
+        "parser_version": "1",
+        "published_at": "2026-08-14T21:43:56+00:00",
+        "publisher": "Google Android",
+        "retrieved_at": "2026-09-08T03:16:43.397973+00:00",
+        "source_id": "android.developer-device-guide",
+        "url": "https://developer.android.com/studio/run/device"
+      },
+      "state": "officially-documented",
+      "status_reason": "Official guidance only; no observed outcome or confirmed fix.",
+      "structured_value": "",
+      "supporting_excerpt": "step-by-step instructions",
+      "symptoms": [
+        "A development device is not detected over USB."
+      ]
+    }
+  ],
+  "execution_authority": "none",
+  "format": "romverse.online-device-evidence",
+  "phone_action_allowed": false,
+  "schema_version": 1,
+  "updated_at": "2026-09-08T03:16:43.397973+00:00"
+}

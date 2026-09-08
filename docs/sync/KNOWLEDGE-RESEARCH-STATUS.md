@@ -1,5 +1,92 @@
 # ROMVERSE Knowledge Research Status
 
+## Official Android connection-guide checkpoint — 8 September 2026
+
+### Checkpoint identity
+
+- Product Assurance authorization/base: `7b58c8be04754b9adecbe75d50686ffa8aebdcbb`
+  (`Approve live Google Play acquisition`).
+- Branch: `adaptive-online-device-dna`.
+- Implementation commit: `655e4578342f6cc55bccc6b6de9ef3c6786de5ec`
+  (`Add typed official Android guide evidence`).
+- Live evidence/status commit: the follow-up commit containing this update.
+
+### Typed schema and migration
+
+- Schema one adds `identity`, `diagnostic`, `guide`, `fix-claim`, and `outcome` knowledge kinds plus
+  bounded symptoms, error identifiers, prerequisites, affected builds, diagnostic/remedy
+  descriptions, expected result, rollback/recovery route, and outcome provenance.
+- Descriptions reject command-shaped, code, and script text. Every claim remains execution-inert.
+- Existing schema-one identity claims validate against their original exact field set, claim IDs,
+  and archive digest. They load with empty identity-safe defaults and receive new IDs/digest only at
+  an explicit save/merge boundary; their values and evidence state are unchanged and never promoted.
+
+### Exact source and retained live evidence
+
+- Sole source: `https://developer.android.com/studio/run/device`.
+- Retrieval time: `2026-09-08T03:16:43.397973+00:00`.
+- Page revision/Last-Modified: `2026-08-14T21:43:56+00:00` /
+  `Fri, 14 Aug 2026 21:43:56 GMT`; ETag absent.
+- HTTP status: `200`; bounded response bytes: `311,029`.
+- Content SHA-256: `9a1e3f4e18646ce53efc5f76920163a94eaa5400d4122208a94bdf6286ce7bce`.
+- Parser: `romverse.android-device-connection-guide` version `1`.
+- Retained: three typed `guide` claims, each `officially-documented`, for Connection Assistant,
+  faulty USB-cable, and USB-debugging evidence. The exact source excerpts total eight words.
+- Evidence archive digest:
+  `c2460577445e75494b761e6ad9a1eec1b055214c3f28b6352d517d42a4434996`.
+- Acquisition receipt digest:
+  `cce1ecb99bfc4038c3c7d275b51e8aa0c1fbd643c6d89931c8a0f54411b8e223`.
+- Raw HTML, code, scripts, navigation, footer, templates and followed links retained: **NONE**.
+
+The bounded live alignment found and corrected three parser assumptions before the final retained
+success: an oversized unrelated visible block was initially treated as a page-wide failure;
+anonymous ordinary metadata exposed a missing-value assumption; and the current reviewed headings
+differed from the repository-era fixture. Each was corrected without broadening the source or
+extracting generic page text, and deterministic regression coverage was added. Earlier validation
+receipts were superseded; only the final successful sanitized receipt and claims are retained.
+
+### Verification and projections
+
+- `125 passed` across the official guide, typed/legacy evidence, Google Play acquisition, local
+  store, and online remediation focused suites.
+- Adversarial cases cover legacy migration, executable descriptions, missing/changed headings,
+  scripts/code/navigation/events, oversized sections, conflicting guidance, privacy-unsafe text,
+  localized/query redirects, wrong type, compression, truncation, timeout/HTTP failure,
+  cache-not-modified, stale revisions, receipt tampering, and symlink containment.
+- Focused Ruff check and format check passed; Git whitespace check passed. The full suite was not
+  run, and deterministic fixture tests do not depend on the network.
+- The final retained guide archive and the earlier Google Play archive both revalidated with zero
+  command, phone, Guardian, execution, and relock authority.
+- Read-only projections are limited to Knowledge Archives, Device DNA, Nexus, and Insight. The
+  guide does not assert device compatibility or create Pathfinder, Recovery, or execution authority.
+
+### Privacy, status, and limitations
+
+- Retention is limited to three short reviewed phrases and ROMVERSE-authored typed descriptions.
+  No raw page, HTML, executable prose, command, code, script, navigation, footer, cookie,
+  credential, account identifier, device identifier, or personal information is retained.
+- Each claim is `officially-documented`, not independently corroborated, live-confirmed, or
+  ROMVERSE-verified. The page documents general Android Studio device-connection guidance; it does
+  not prove that any remedy worked on an exact device, firmware, host, cable, or incident.
+- The path is explicit and synchronous. It is not background scheduling, UI wiring, a production
+  service, arbitrary crawling, or permission to take action on a phone.
+- No physical device, emulator, firmware, APK, unlock, root, debloat, flash, wipe, relock,
+  production signing/trust, publication, or consequential workflow was used.
+
+### Knowledge Coverage & Value Gate
+
+`docs/KNOWLEDGE-COVERAGE-VALUE-GATE.md` now maps prioritized evidence categories and their fields to
+named ROMVERSE consumers, source authority, validation, freshness, privacy/licensing/retention,
+conflict behavior, capability unlocked, and stop conditions. It also permanently excludes generic
+or duplicative material, arbitrary crawling, private/authenticated sources, raw/bulk content, and
+anything without a direct named feature or evidence-gap benefit.
+
+### Next action
+
+Stop for independent Product Assurance. Do not acquire another source family or broaden this source
+until the typed schema, bounded adapter, focused tests, final sanitized live evidence, and coverage
+gate are accepted.
+
 ## Google Play query-only acquisition checkpoint — 8 September 2026
 
 ### Checkpoint identity

@@ -134,7 +134,7 @@ HTML are never retained.
 
 Exactly three heading-bound phrases may become official guidance: Connection Assistant setup,
 faulty USB-cable diagnosis, and enabling USB debugging. Their combined retained source excerpt is
-nine words; the surrounding diagnostic, prerequisite, expected-result, and rollback context is
+eight words; the surrounding diagnostic, prerequisite, expected-result, and rollback context is
 ROMVERSE-authored non-executable metadata. Missing/changed headings, duplicate or conflicting
 candidate text, privacy-unsafe content, localization, excessive sections, and stale evidence fail
 or remain explicitly investigable. Official publication never means a confirmed fix.

@@ -1,5 +1,24 @@
 # ROMVERSE Build Status
 
+## Adaptive Online Device DNA checkpoint — 8 September 2026
+
+- Branch/base: `adaptive-online-device-dna` from
+  `a6d9bca06d35c4f0ca8b84ad6ebd990be7e5700a`.
+- Implementation checkpoint: `d4c7d57ea7bc4e5f289973d6558b85b0633d6af3`
+  (`Add bounded online device evidence foundation`).
+- Result: strict claim-level online evidence/storage, deterministic conflict-preserving merging,
+  privacy filtering, a four-source official/public registry boundary, later firmware/live comparison,
+  and read-only contracts for the approved intelligence/device consumers are implemented.
+- Focused verification: 79 passed across the new evidence tests plus existing local-store and online
+  remediation regressions; focused Ruff check/format and Git whitespace checks passed.
+- Safety: unknown devices remain `UNCONFIRMED` and trigger investigation. Evidence grants no command,
+  phone, Guardian, execution, or bootloader-relock authority.
+- Physical device, firmware mutation, emulator, APK, production service, publication, and full-suite
+  work: none.
+- Detailed handoff: `docs/sync/KNOWLEDGE-RESEARCH-STATUS.md`.
+- Next: stop for Product Assurance before adding an OEM firmware adapter, additional sources, UI
+  wiring, or any consequential workflow.
+
 ## Authoritative checkpoint
 
 - Product Assurance authorization/base: `4282da62947dd7e21de56eeb4550a827b468ae87`.

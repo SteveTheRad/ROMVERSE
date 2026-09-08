@@ -264,6 +264,7 @@ def test_command_deck_live_progress_warnings_and_accomplishments_need_real_ledge
         project_id="project-1",
     )
     missions.progress(started.mission_id, 47)
+    center.set_workspace_context("Project One", True, project_id="project-1")
 
     center.refresh_mission_control()
 
@@ -275,7 +276,7 @@ def test_command_deck_live_progress_warnings_and_accomplishments_need_real_ledge
     requested: list[str] = []
     center.action_requested.connect(requested.append)
     center.primary_action_buttons["Resume Mission"].click()
-    assert requested == ["Live Operations"]
+    assert requested == ["Resume Live Operations"]
 
     missions.finish(
         started.mission_id,

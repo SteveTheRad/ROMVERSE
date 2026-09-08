@@ -40,7 +40,7 @@ from romverse.intelligence.synapse import (
     SynapseStore,
 )
 from romverse.knowledge.models import KnowledgeQuery
-from romverse.nexus.events import MissionConfidence
+from romverse.nexus.events import MissionConfidence, MissionState
 from romverse.nexus.planning import NexusObjective, NexusPlanner
 from romverse.repair.autopilot import RecoveryRouteKind, RecoveryTrigger
 from romverse.repair.templates import RepairConcern
@@ -2580,6 +2580,152 @@ def test_command_deck_recovery_rejects_same_finding_from_a_different_device(
         assert window.repair_center.active_session is None
         assert window.repair_center.host_repair_worker is None
         assert window.repair_center.online_worker is None
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_command_deck_resume_opens_only_the_current_project_mission(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    store, registry, project, _report = _project(tmp_path)
+    unrelated = store.create("Unrelated retained project")
+    window = MainWindow(
+        None,
+        logo,
+        store.workspace,
+        app_icon_path=logo,
+        pack_registry=registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    phone = _device(serial="CURRENT-MISSION-PHONE")
+    current = window.nexus_events.start(
+        source="ROM Studio",
+        stage="inspect",
+        title="Current project inspection",
+        summary="The current project's real inspection is running.",
+        explanation="The producing service recorded this exact current mission.",
+        next_action="Keep ROMVERSE open.",
+        project_id=project.project_id,
+    )
+    unrelated_newer = window.nexus_events.start(
+        source="ROM Studio",
+        stage="build",
+        title="Unrelated project build",
+        summary="Another project's retained event is newer.",
+        explanation="This event must not become the current project's mission.",
+        next_action="Review the unrelated project separately.",
+        project_id=unrelated.project_id,
+    )
+    try:
+        window.rom_studio.refresh(project.project_id)
+        window._observed_devices = [phone]
+        window._selected_device_serial = phone.serial
+        window.device_center.set_devices([phone], phone.serial)
+        window._sync_command_deck_context()
+        app.processEvents()
+        before = window.nexus_events.list_recent()
+
+        assert window.device_center._next_action_key == "Live Operations"
+        assert window.device_center.next_title.text() == current.title
+        assert unrelated_newer.title not in window.device_center.next_title.text()
+
+        window.device_center.primary_action_buttons["Resume Mission"].click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.live_console
+        assert window.live_console.table.rowCount() == 1
+        assert window.live_console.detail_title.text() == current.title
+        assert "EXACT MISSION LEDGER" in window.live_console.status.text()
+        assert window.rom_studio.current_project is not None
+        assert window.rom_studio.current_project.project_id == project.project_id
+        assert window.device_center.selected_device() == phone
+        assert window.nexus_events.list_recent() == before
+        assert (
+            next(item for item in before if item.mission_id == current.mission_id).state
+            is MissionState.RUNNING
+        )
+        assert (
+            next(item for item in before if item.mission_id == unrelated_newer.mission_id).state
+            is MissionState.RUNNING
+        )
+        assert window.rom_studio.worker is None
+        assert window.repair_center.host_repair_worker is None
+        assert window.repair_center.online_worker is None
+        assert not QApplication.activeModalWidget()
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_command_deck_stale_live_resume_falls_back_to_current_genesis(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    store, registry, project, _report = _project(tmp_path)
+    unrelated = store.create("Unrelated active project")
+    window = MainWindow(
+        None,
+        logo,
+        store.workspace,
+        app_icon_path=logo,
+        pack_registry=registry,
+        app_settings=AppSettings(online_intelligence_enabled=False),
+    )
+    current = window.nexus_events.start(
+        source="ROM Studio",
+        stage="inspect",
+        title="Current project inspection",
+        summary="The current project's operation was running.",
+        explanation="The producer owns this state.",
+        next_action="Wait for a durable outcome.",
+        project_id=project.project_id,
+    )
+    window.nexus_events.start(
+        source="ROM Studio",
+        stage="build",
+        title="Other project still running",
+        summary="This retained mission belongs to another project.",
+        explanation="It grants no ownership over the selected project.",
+        next_action="Review it from its own project.",
+        project_id=unrelated.project_id,
+    )
+    try:
+        window.rom_studio.refresh(project.project_id)
+        window._sync_command_deck_context()
+        assert window.device_center._next_action_key == "Live Operations"
+        genesis_opened: list[bool] = []
+        monkeypatch.setattr(
+            window.rom_studio,
+            "_open_guided_setup",
+            lambda: genesis_opened.append(True),
+        )
+
+        window.nexus_events.finish(
+            current.mission_id,
+            MissionState.SUCCEEDED,
+            summary="The current operation completed.",
+            explanation="The producing service reported its durable result.",
+            next_action="Continue the existing Genesis journey.",
+            confidence=MissionConfidence.VERIFIED,
+        )
+        before = window.nexus_events.list_recent()
+
+        window.device_center.primary_action_buttons["Resume Mission"].click()
+        app.processEvents()
+
+        assert window.stack.currentWidget() is window.rom_studio
+        assert window.rom_studio.current_project is not None
+        assert window.rom_studio.current_project.project_id == project.project_id
+        assert genesis_opened == [True]
+        assert window.nexus_events.list_recent() == before
+        assert window.live_console._mission_context_id == ""
+        assert window.rom_studio.worker is None
+        assert not QApplication.activeModalWidget()
     finally:
         window.companion_center.transport.close()
         window.close()

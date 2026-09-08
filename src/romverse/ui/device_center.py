@@ -265,6 +265,7 @@ class DeviceCenter(QWidget):
         )
         self.mission_store = mission_store
         self._experience_mode = ExperienceMode.GUIDED
+        self._project_id = ""
         self._project_name = ""
         self._project_has_firmware = False
         self._flight_plan: GenesisFlightPlan | None = None
@@ -625,14 +626,18 @@ class DeviceCenter(QWidget):
         project_name: str,
         has_firmware: bool,
         flight_plan: GenesisFlightPlan | None = None,
+        *,
+        project_id: str = "",
     ) -> None:
         """Refresh Command Deck cards from the actual active ROM Studio project."""
 
         changed = (
-            self._project_name != project_name
+            self._project_id != project_id
+            or self._project_name != project_name
             or self._project_has_firmware != bool(has_firmware)
             or self._flight_plan != flight_plan
         )
+        self._project_id = project_id
         self._project_name = project_name
         self._project_has_firmware = bool(has_firmware)
         self._flight_plan = flight_plan
@@ -715,7 +720,10 @@ class DeviceCenter(QWidget):
             else None
         )
         events, ledger_error = self._mission_events()
-        current_missions = self._latest_mission_states(events)
+        project_events = tuple(
+            event for event in events if self._project_id and event.project_id == self._project_id
+        )
+        current_missions = self._latest_mission_states(project_events)
         active = next(
             (event for event in current_missions if event.state is MissionState.RUNNING),
             None,
@@ -945,7 +953,7 @@ class DeviceCenter(QWidget):
             self.refresh_requested.emit()
             return
         if action == "Resume Mission" and self._next_action_key == "Live Operations":
-            self.action_requested.emit("Live Operations")
+            self.action_requested.emit("Resume Live Operations")
             return
         target = {
             "Start ROM Project": "Build ROM",
@@ -963,6 +971,22 @@ class DeviceCenter(QWidget):
             return self.mission_store.list_recent(80), ""
         except LiveConsoleStoreError as exc:
             return (), str(exc)[:320]
+
+    def current_active_mission(self) -> LiveConsoleEvent | None:
+        """Return only the latest running mission owned by the current exact project."""
+
+        events, _ledger_error = self._mission_events()
+        project_events = tuple(
+            event for event in events if self._project_id and event.project_id == self._project_id
+        )
+        return next(
+            (
+                event
+                for event in self._latest_mission_states(project_events)
+                if event.state is MissionState.RUNNING
+            ),
+            None,
+        )
 
     @staticmethod
     def _latest_mission_states(
@@ -1309,6 +1333,9 @@ class DeviceCenter(QWidget):
             return
         if action == "Resolve Platform Tools":
             self.runtime_tools_requested.emit()
+            return
+        if action == "Live Operations":
+            self.action_requested.emit("Resume Live Operations")
             return
         self.action_requested.emit(action)
 

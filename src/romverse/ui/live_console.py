@@ -137,6 +137,8 @@ class LiveConsoleCenter(QWidget):
         super().__init__()
         self.store = store
         self._events: tuple[LiveConsoleEvent, ...] = ()
+        self._mission_context_id = ""
+        self._mission_context_project_id = ""
         self._selected_source_route = ""
         self._selected_project_id = ""
         page = QVBoxLayout(self)
@@ -257,29 +259,103 @@ class LiveConsoleCenter(QWidget):
             return
         changed = events != self._events
         self._events = events
-        active = sum(item.state is MissionState.RUNNING for item in events)
-        self.status.setText(
-            f"{len(events)} genuine event{'s' if len(events) != 1 else ''}  •  "
-            f"{active} active  •  privacy-redacted local ledger"
+        visible_events = (
+            tuple(
+                item
+                for item in events
+                if item.mission_id == self._mission_context_id
+                and item.project_id == self._mission_context_project_id
+            )
+            if self._mission_context_id
+            else events
         )
-        self.status.setObjectName("Good" if events else "Muted")
+        active = sum(item.state is MissionState.RUNNING for item in visible_events)
+        if self._mission_context_id:
+            self.status.setText(
+                f"EXACT MISSION LEDGER  •  {len(visible_events)} genuine event"
+                f"{'s' if len(visible_events) != 1 else ''}  •  {active} active  •  "
+                "no action started"
+            )
+        else:
+            self.status.setText(
+                f"{len(events)} genuine event{'s' if len(events) != 1 else ''}  •  "
+                f"{active} active  •  privacy-redacted local ledger"
+            )
+        self.status.setObjectName("Good" if visible_events else "Muted")
         self._repolish(self.status)
         if changed:
             self._render()
 
     def _filtered(self) -> tuple[LiveConsoleEvent, ...]:
+        events = self._events
+        if self._mission_context_id:
+            events = tuple(
+                item
+                for item in events
+                if item.mission_id == self._mission_context_id
+                and item.project_id == self._mission_context_project_id
+            )
         selected = self.filter.currentText()
         if selected == "Active":
-            return tuple(item for item in self._events if item.state is MissionState.RUNNING)
+            return tuple(item for item in events if item.state is MissionState.RUNNING)
         if selected == "Completed":
-            return tuple(item for item in self._events if item.state is MissionState.SUCCEEDED)
+            return tuple(item for item in events if item.state is MissionState.SUCCEEDED)
         if selected == "Needs attention":
             return tuple(
                 item
-                for item in self._events
+                for item in events
                 if item.state in {MissionState.FAILED, MissionState.BLOCKED, MissionState.ATTENTION}
             )
-        return self._events
+        return events
+
+    def open_mission_context(self, mission_id: str, project_id: str) -> bool:
+        """Show one current project-owned mission without inferring or starting work."""
+
+        normalized_mission = mission_id.strip()
+        normalized_project = project_id.strip()
+        if not normalized_mission or not normalized_project:
+            return False
+        try:
+            events = self.store.list_recent()
+        except LiveConsoleStoreError:
+            return False
+        latest = next(
+            (
+                item
+                for item in events
+                if item.mission_id == normalized_mission and item.project_id == normalized_project
+            ),
+            None,
+        )
+        if latest is None or latest.state is not MissionState.RUNNING:
+            return False
+        self._events = events
+        self._mission_context_id = normalized_mission
+        self._mission_context_project_id = normalized_project
+        self.filter.setCurrentText("All events")
+        matching = tuple(
+            item
+            for item in events
+            if item.mission_id == normalized_mission and item.project_id == normalized_project
+        )
+        active = sum(item.state is MissionState.RUNNING for item in matching)
+        self.status.setText(
+            f"EXACT MISSION LEDGER  •  {len(matching)} genuine event"
+            f"{'s' if len(matching) != 1 else ''}  •  {active} active  •  no action started"
+        )
+        self.status.setObjectName("Good")
+        self._repolish(self.status)
+        self._render()
+        return True
+
+    def clear_mission_context(self) -> None:
+        """Return future direct navigation to the complete genuine event ledger."""
+
+        if not self._mission_context_id:
+            return
+        self._mission_context_id = ""
+        self._mission_context_project_id = ""
+        self._render()
 
     def _render(self) -> None:
         events = self._filtered()
@@ -398,6 +474,7 @@ class LiveConsoleCenter(QWidget):
 
     def hideEvent(self, event) -> None:
         self._timer.stop()
+        self.clear_mission_context()
         super().hideEvent(event)
 
     @staticmethod

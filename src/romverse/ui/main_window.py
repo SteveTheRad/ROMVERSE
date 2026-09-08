@@ -6532,6 +6532,7 @@ class MainWindow(QMainWindow):
             project.name if project is not None else "",
             bool(project is not None and project.original is not None),
             self.rom_studio.genesis_flight_plan(),
+            project_id=project.project_id if project is not None else "",
         )
 
     @Slot(str)
@@ -8856,6 +8857,22 @@ class MainWindow(QMainWindow):
 
     @Slot(str)
     def _handle_dashboard_action(self, action: str) -> None:
+        if action == "Resume Live Operations":
+            project = self.rom_studio.current_project
+            mission = self.device_center.current_active_mission()
+            if (
+                project is not None
+                and mission is not None
+                and mission.project_id == project.project_id
+                and self.live_console.open_mission_context(
+                    mission.mission_id,
+                    project.project_id,
+                )
+            ):
+                self._navigate_route("live_console")
+                return
+            self._handle_dashboard_action("Continue Genesis")
+            return
         if action in {"Build ROM", "Continue Genesis"}:
             report = self.device_packs_center.active_report
             if report is not None and self.device_packs_center.active_device is not None:

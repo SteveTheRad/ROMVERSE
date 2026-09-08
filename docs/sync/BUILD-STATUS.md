@@ -1,5 +1,90 @@
 # ROMVERSE Build Status
 
+## Batched signing/preparation source convergence — Product Assurance review requested
+
+- Windows Product Assurance authorization: `88c8edf2351ab35bc96d70deab1c9ea263d575fe`,
+  approving Windows checkpoint `5e4a43fb` and authorizing this batch only after Linux approval of
+  final signed-byte binding.
+- Gate-clearing Linux Product Assurance approval:
+  `9ca297b4ad048fee89bb7686128f40d35b441456` for checkpoint `44db4a6` and implementation
+  `b1748036`.
+- Windows base: `88c8edf2351ab35bc96d70deab1c9ea263d575fe`.
+- Branch: `windows-launcher-authorized-work`.
+- Status: the four approved platform-neutral source/test commits are synchronized exactly. Ruff
+  and whitespace pass, but the focused Windows regression exposes two pre-existing Windows file-
+  identity portability false positives. No source correction was attempted outside the authorized
+  synchronization batch; stop for Product Assurance.
+
+### Exact synchronized commits
+
+- Linux `14de58e376bbd5cf14369f605bdfd6355f892cca` became Windows
+  `fa088e620431910f4d758a198e3d4e2d546dcc0f` — unsigned AVB
+  completion stops at the offline-signing boundary. Stable patch ID:
+  `2d965c2d09d6596bdc8f85742e0d9e49cd1030e3` on both commits.
+- Linux `5319ee61f0324b0bb4d1c45e178b308defbced90` became Windows
+  `7efceb04fd76186eaa18ea6733b9c1305cf23438` — signing-ready state remains truthful across reload.
+  Stable patch ID: `d23dfda47b4004a35ba69c3f8e7614a30d47aeed` on both commits.
+- Linux `4a4c61c027790954655e584a07d38ed54650dcf6` became Windows
+  `f7340b74acdf30b67c115c4fc27e2da488fcfeab` — exact candidate
+  preparation remains stable across reconstruction. Stable patch ID:
+  `4b15474c879a2bd724da9ea8481ab5c1ac8b4a6c` on both commits.
+- Linux `b174803639e0d5a5d2aa6c3be470e03d691eba53` became Windows
+  `6d15156e6a98225525f6403bd1fc0da81ac6f528` — candidate preparation binds the final signed
+  installation bytes and receipts. Stable patch ID:
+  `04082da0ddb24e2ffa2a3007fea221711947c81d` on both commits.
+- No Linux handoff/assurance documentation, Adaptive Online Device DNA work, unrelated Linux
+  history, or conflict adaptation was copied. Windows launcher, ACL, packaging and toolchain source
+  was not changed.
+
+### Focused Windows regression
+
+- First affected-module command:
+  `.venv\\Scripts\\python.exe -m pytest -q tests/test_build_control_ui.py tests/test_candidate_installation.py tests/test_candidate_installation_desktop.py tests/test_candidate_installation_history.py tests/test_candidate_installation_integration.py tests/test_candidate_installation_ui.py tests/test_guardian_candidate_installation.py --basetemp build\\pytest-signing-preparation-sync-20260908`
+- First result: **97 passed, 47 failed, 17 errors**. The repository-local temporary path made the
+  deepest Windows fixture paths exceed the host's effective path limit, so this run was not used as
+  the decisive product result.
+- Decisive short-path command:
+  `.venv\\Scripts\\python.exe -m pytest -q tests/test_build_control_ui.py::test_reopened_signing_ready_candidate_stays_distinct_from_install_and_flash tests/test_build_control_ui.py::test_unsigned_avb_completion_stops_autopilot_at_offline_signing_boundary tests/test_candidate_installation.py tests/test_candidate_installation_desktop.py tests/test_candidate_installation_history.py tests/test_candidate_installation_integration.py tests/test_candidate_installation_ui.py tests/test_guardian_candidate_installation.py --basetemp C:\\rvpt-9ca297b4-win`
+- Decisive result: **95 passed, 24 failed** across 119 focused nodes. The two synchronized
+  Build-Control regressions pass. All 24 failures fail closed before any consequential action.
+- Failure grouping:
+  - **22 failures** in the production candidate AVB/integration/desktop path report an unchanged
+    archive or AVB input as changed. On this Windows host, the same unchanged file produced equal
+    device/inode/size/mtime values but different `st_ctime_ns` values between `os.fstat()` and
+    `Path.stat()`. `candidate_avb._fingerprint()` currently compares those tuples directly.
+  - **2 failures** in Guardian private staging reject unchanged rebuilt images for the same
+    descriptor-versus-path `st_ctime_ns` mismatch in `_file_identity()`.
+  - No failure advanced signing, installation, Guardian admission, device execution or Recovery;
+    the behavior remained fail closed.
+- Ruff command:
+  `.venv\\Scripts\\python.exe -m ruff check src/romverse/guardian/source_installation.py src/romverse/rom/candidate_installation.py src/romverse/ui/build_control.py src/romverse/ui/source_installation.py tests/test_build_control_ui.py tests/test_candidate_installation.py tests/test_candidate_installation_desktop.py tests/test_candidate_installation_history.py tests/test_candidate_installation_integration.py tests/test_candidate_installation_ui.py tests/test_guardian_candidate_installation.py`
+- Ruff result: **PASS — all checks passed**.
+- Whitespace command: `git diff --check 88c8edf2..6d15156e`.
+- Whitespace result: **PASS**.
+
+### Precise proposed correction
+
+Product Assurance should authorize one minimum Windows portability correction to make the candidate
+AVB and Guardian snapshot same-file checks compare a stable descriptor/path identity on Windows
+without removing size/mtime, fresh hash, containment, no-follow, or replacement checks. Add focused
+Windows regressions proving an unchanged file is accepted while path replacement and byte drift
+remain rejected, rerun only the 24 failed nodes plus Ruff/whitespace, then return for review. Do not
+repeat the 95 already-passing nodes unless the correction's affected set requires them.
+
+### Scope and safety handoff
+
+- The pre-existing untracked patch
+  `0001-Preserve-local-build-completion-across-restart.patch` remains unchanged, unstaged and
+  uncommitted. Protected Companion files remain clean and untouched.
+- No Windows executable or package was rebuilt or launched. No phone/emulator was present,
+  requested, awaited, connected, selected, or targeted. No ADB/Fastboot device command, Recovery,
+  installation, real signing, production trust, publication, release, destructive action,
+  force-push, unlock, lock, or relock occurred.
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty, no
+  blind retry, independent verification, feature freeze, and permanent no-relock remain preserved.
+- Stop for independent Product Assurance review before correcting the Windows portability defect or
+  beginning any build, packaging, simulation, hardware, or product slice.
+
 ## Durable local-build completion synchronization — Product Assurance review requested
 
 - Product Assurance authorization: Linux `a6d9bca06d35c4f0ca8b84ad6ebd990be7e5700a`.

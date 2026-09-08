@@ -1,5 +1,107 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux correction checkpoint — retained accessible Guided dialog lifecycle
+
+### Authoritative checkpoint and scope
+
+- Product Assurance correction/base: `216e842ffafb29b9ce310b5e0a5045f0b40400ca` required only
+  the retained non-blocking single-instance Guided mission lifecycle and truthful post-build return
+  copy after accepting the packaged simulation boundary and local Guided-to-Forge result.
+- Implementation commit: `41aabea0f6a775aa448ea4435a2093404f076b96` — `Retain
+  accessible Guided mission dialog` on `linux/stage1-desktop-readiness`.
+- Exact files: `src/romverse/ui/rom_studio.py` and `tests/test_rom_studio_ui.py`.
+- Stage: Stage 1 — v0.2 Golden Foundation, minimum Guided accessibility/return-copy correctness
+  correction only. The accepted simulation fixture and authority boundary are unchanged.
+
+### Exact correction
+
+- `RomStudio` now retains one strong Guided mission dialog reference and opens it with the
+  non-blocking modal `open()` lifecycle instead of a stack-local blocking `exec()` nested event
+  loop. Repeated entry raises and activates the exact existing mission rather than constructing a
+  second instance.
+- The exact dialog instance is cleared only by its `finished` signal. That close path refreshes the
+  selected project and visible Genesis handoff exactly once, then schedules the closed dialog for
+  deletion.
+- Genesis entry and post-return copy now inspects durable Build Readiness plan evidence. Before a
+  plan exists it retains **NO BUILD OR PHONE ACTION STARTED**; once local build evidence exists it
+  truthfully states **LOCAL BUILD EVIDENCE RECORDED; NO INSTALLATION OR PHONE ACTION STARTED**.
+- No accessibility service, AT-SPI integration, Device DNA fixture, device surface, Guardian,
+  Recovery, build, signing or execution boundary was disabled or weakened.
+
+### Focused verification without double-counting
+
+- Final directly affected selection: **7/7 passed**. It contains the four already-accepted
+  phone-neutral simulation/exact-tree checks plus three lifecycle/copy checks covering a
+  non-blocking real Guided journey, one retained instance on repeated entry, zero refresh before
+  close, one refresh and reference release after close, and truthful pre-build/post-build copy.
+- Ruff and Git whitespace validation passed for the two changed files. Earlier overlapping runs
+  are not added to the total.
+- Exactly one corrected PyInstaller one-folder package was built on Fedora 44 with Python 3.14.7
+  and PyInstaller 6.22.2. Executable:
+  `build/linux-pa-accessible-216e842/frozen/ROMVERSE/ROMVERSE`, 6,323,048 bytes, mode `0755`,
+  SHA-256 `0a1fbd8bf05b2d922e8237bfa9d7646eaf8e85d02c9a9be873f73ef4df8d19cd`.
+  It remains an ignored, unsigned local development artifact.
+
+### One packaged accessibility reproduction
+
+- The corrected package ran once, unelevated, through Fedora XWayland in fresh no-phone workspace
+  `/tmp/romverse-atspi-216e842.whmwLP` with explicit development simulation enabled. No project,
+  firmware or managed tool was imported, downloaded or replayed.
+- One AT-SPI client traversed **1,977** initial accessible nodes, invoked the normal
+  **Build ROM: Create Project** `Press` action, then traversed **2,070** nodes including the live
+  `ROMVERSE • Genesis Sequence` dialog. The formerly crashing entry/traversal boundary completed
+  without a fatal trace, duplicate dialog or blocked application event loop.
+- AT-SPI exposed exactly one enabled **Save & exit** control. Its `Press` request returned true but,
+  in this deliberately projectless workspace, Genesis had no project record in which to persist
+  progress and therefore stayed visible. This is retained as a truthful narrow Guided friction
+  item; it did not crash or mutate evidence. Standard keyboard Escape closed the dialog, exercised
+  the new `finished` lifecycle, and a normal `WM_DELETE_WINDOW` closed the main app.
+- The process exited and `logs/crash/runtime-fault.log` contains exactly one runtime start followed
+  by one clean close, with no fatal Python/Qt trace. The prior checkpoint's crash evidence remains
+  preserved in its separate retained workspace and was not erased.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** retained single-instance non-blocking Guided mission lifecycle and durable
+  pre-build/post-build handoff truth.
+- **Simulated/Tested:** 7/7 focused software checks and one genuine packaged Fedora AT-SPI
+  entry/full-tree traversal/standard-close reproduction.
+- **Hardware Verified:** no. USB inventory showed no Android phone and no physical evidence was
+  collected.
+- **Released:** no. The corrected package is unsigned and local only.
+- Blockers/failures: the prior Qt accessibility-cache segmentation fault did not recur. Projectless
+  **Save & exit** remains a non-crashing close-friction item; Escape closes normally. Product
+  Assurance should decide whether that behavior belongs in this exact correction or a later bounded
+  Guided continuity task.
+- Guardian/Recovery/safety: no device identity, live target, consent, command, recovery incident,
+  build/flash action or execution authority was created. UNKNOWN/no-blind-retry, exact-device and
+  exact-incident evidence, independent verification, Guardian-only authority and permanent
+  no-relock are unchanged.
+- Linux/Fedora: focused checks, packaging and the accessibility reproduction were genuinely run on
+  Fedora 44/XWayland. Windows and physical Android were not run.
+- Feature freeze: compliant minimum correctness correction in the exact approved dialog-return
+  area; no new feature, screen, Device Pack, adapter, simulation capability or production authority.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all remaining platform,
+  physical and release gates.
+- External actions: the scoped branch is pushed normally with this handoff. No network download,
+  phone connection/operation, ADB/Fastboot dispatch, APK/system installation, firmware import,
+  firmware build/sign/flash, Guardian/Recovery execution, publication, release, merge, force-push,
+  lock or relock occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another consequential slice until the
+verdict for this exact correction is recorded in `docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm the retained `open()`/`finished` lifecycle, exact single-instance behavior, one refresh,
+  reference release and clean packaged AT-SPI entry/traversal resolve the prior native crash.
+- Decide whether the projectless **Save & exit** persistence behavior must be corrected before this
+  checkpoint can pass, given that the standard accessible keyboard close is clean and no project
+  evidence yet exists to save.
+- Confirm the post-build return message is now truthful without changing any authority semantics.
+
 ## Linux product checkpoint — packaged simulated Guided journey reaches the locked Forge handoff
 
 ### Authoritative checkpoint and scope

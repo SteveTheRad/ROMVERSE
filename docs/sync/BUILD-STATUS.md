@@ -1,5 +1,104 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — one explicit Forge choice completes artifact verification
+
+### Authoritative checkpoint and scope
+
+- Tested implementation: `c363e8a82c6503c691186f93ef8de3f0984cf679` — `Verify intentional
+  Forge Bundle results`.
+- Final handoff: the follow-up commit containing this document on
+  `linux/stage1-desktop-readiness`; the branch was clean immediately after the implementation
+  commit and will be pushed normally after this handoff is committed.
+- Product Assurance approval/base: `6f935de` — approved the verified-Simulation Forge handoff and
+  authorized one existing Forge producer plus one automatic existing read-only verifier only after
+  the user explicitly chooses Forge Bundle.
+- Stage: Stage 1 — v0.2 Golden Foundation, existing intentional Forge Bundle continuity only.
+- Exact changed implementation/test files: `src/romverse/ui/rom_studio.py` and
+  `tests/test_rom_studio_ui.py`. No Forge service, package, platform, device, Companion, Recovery
+  adapter or product-scope file changed.
+
+### Exact implemented behavior
+
+- The existing Forge Bundle button remains the sole user intent. Its click now binds one request to
+  the complete exact persisted `BuildPlan` and starts the existing `forge-bundle` worker once; the
+  preceding Simulation still never starts Forge automatically and no second confirmation was added.
+- ROM Studio independently reloads and accepts only the exact typed persisted `ForgeBundleReceipt`,
+  exact project/current plan/tree digest and explicit unsigned/non-bootable/non-flashable flags.
+  Changed or mismatched terminal evidence is rejected before it can become accepted completion.
+- Only after that receipt boundary succeeds, ROMVERSE invokes the existing read-only `verify-forge`
+  worker once. Its terminal boundary binds the exact plan and receipt, requires matching expected
+  and actual archive SHA-256 values and accepts only the verifier's internally consistent typed
+  success state.
+- Exact success presents the verified intermediate's digest, file count, byte count and explicit
+  no-authority contract, then focuses the existing Forge Control inspection as the next intentional
+  continuation. Forge Control does not start automatically.
+- Known creation failure and verification failure have separate visible stopped states. Both
+  preserve available evidence, clear transient continuation authority and schedule no retry. An
+  interrupted process cannot restore the memory-only continuation and therefore cannot blindly
+  resume either producer.
+- The existing manual Verify Forge control remains compatible and retains persisted receipt/result
+  validation; automatic continuation is accepted only when its stronger exact request binding is
+  present.
+
+### Verification without double-counting
+
+- One focused affected run: **5/5 unique tests passed** across
+  `tests/test_rom_studio_ui.py` and `tests/test_forge_bundle.py`.
+- Real-widget success journey proves exact sequence
+  `Simulation verify-plan → explicit Forge click → forge-bundle → automatic verify-forge`, with
+  exactly one worker for each operation, exact persisted receipt, no second Verify click, final
+  `VERIFIED INTERMEDIATE` state, Forge Control focus and no phone evidence.
+- Adversarial real-widget journey modifies the created archive after receipt acceptance but before
+  the queued verifier runs. The verifier reports an archive hash mismatch, retains the receipt and
+  changed artifact for evidence, queues no retry and presents the focused verification-attention
+  state without inferred success.
+- Existing service checks prove deterministic verified non-flashable creation, refusal of tree
+  drift before writing and independent archive-tamper detection.
+- Ruff static and format checks passed for both changed files. `git diff --check`: passed.
+- No broad suite was run. This five-test total is not combined with prior checkpoint totals.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** explicit-intent Forge request binding, persisted typed-receipt acceptance,
+  one automatic read-only artifact verification and verified-result continuation.
+- **Simulated/Tested:** 5 sanitized Linux-hosted Qt/store/Forge-service journeys. Disposable local
+  non-flashable Forge archives were created only inside test workspaces.
+- **Hardware Verified:** no. **Released:** no.
+- Guided friction removed: one explicit Forge choice completes both the existing producer and its
+  required technical verification without a second Verify click. Genuine creation or verification
+  failure remains an actionable stop rather than a loop.
+- Guardian/Recovery/safety: the artifact remains unsigned, non-bootable and non-flashable and grants
+  no build, signing, Guardian, device, flash or execution authority. Exact evidence,
+  UNKNOWN-on-uncertainty, no blind retry, same-incident Recovery and permanent no-relock remain
+  unchanged.
+- Fedora/Linux: genuinely tested in the existing Fedora offscreen Qt development runtime. Windows:
+  not run or claimed. Physical Android/hardware: not used.
+- Feature freeze: compliant continuity/correctness work around existing controls, workers and
+  services; no screen, feature, engine, artifact format or device capability was added.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and existing release gates.
+- Current blockers/limitations: Product Assurance has not independently reviewed this checkpoint;
+  Forge Control remains a separate intentional inspection; no phone-capable image, signing,
+  Guardian admission, physical execution or release authority follows from the verified bundle.
+- Protected Companion, Windows launcher, Knowledge/UI Design Lab, website and unrelated files were
+  not modified, staged, discarded or committed.
+- Physical phone access, ADB/Fastboot, APK installation, firmware/device operation, phone-capable
+  build, signing, flash/boot, partition/slot/wipe/unlock/lock/relock, desktop package installation,
+  publication and release: **none**. External action after final verification: one normal push of
+  this scoped Linux branch only; no force-push and no unrelated remote change.
+
+### Next proposed Build task
+
+Stop for Product Assurance review. Do not begin another consequential slice. Continue only from the
+next bounded direction recorded in `docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm the memory-bound exact plan/receipt continuation plus independently reloaded terminal
+  evidence correctly distinguishes intent, producer completion and read-only verification.
+- Confirm Forge Control is the correct existing next intentional inspection after a verified
+  non-bootable/non-flashable intermediate and must remain non-automatic.
+- Confirm archive-drift failure preserves the correct evidence and no-retry behavior.
+
 ## Linux product checkpoint — verified Simulation points to intentional Forge Bundle
 
 ### Authoritative checkpoint and scope

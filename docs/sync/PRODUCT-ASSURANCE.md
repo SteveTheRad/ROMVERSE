@@ -1,5 +1,68 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 0826d3b — Nexus reaches the exact missing-project owner
+
+- Reviewed commit: `0826d3b4c74828c305de0e7a0ed0d7269a643a40`
+- Accepted unchanged source/package: `ca983ecd30724723574d7fdd6ae02ca107e3be3e`
+- Approved base: `afc90d1`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — NEXUS MAKES ZERO CLAIMS AND REACHES THE EXACT PROJECT OWNER**
+
+### Decision
+
+Product Assurance independently reproduced the unchanged executable, runtime, catalog and final
+audit evidence and inventoried the isolated workspace. In the no-phone/no-project state, Nexus
+kept Pathfinder, Foresight and Insight empty, retained zero execution authority, and exposed the
+single exact ROM Studio prerequisite route. That handoff focused the existing **New project**
+action without creating a project, worker, plan or dialog. No correction or replay is required.
+
+The 30 duplicate Settings dialogs were created only by an AT-SPI harness repeatedly activating an
+already obscured control. They were all normally closed without saving before the accepted journey,
+left Guided mode restored and produced no durable project or authority state. Ordinary pointer and
+modal input cannot reproduce that harness behavior, so it is recorded as test contamination rather
+than a product defect.
+
+### Independent evidence and acceptance
+
+- The unchanged executable independently matches SHA-256
+  `0a47f9af3dea4c0f64983fdd4afc9d1fa01dfcc96185680e94f098b1cb19dde7`.
+- The runtime record contains exactly two start/clean-close pairs and independently matches
+  `5490f58e74a6f9249a290f466831f4917f2aa50115a0fa2f50c8f919d6f55acc`; no packaged process
+  remains.
+- The final audit is a gap-free sequence of 146 successful read-only host inventories: 73 ADB and
+  73 Fastboot `devices -l` probes, all targetless, untimed-out and return code 0.
+- Project, snapshot, backup, APK, build and working-ROM stores contain zero files. The cached public
+  catalog remains byte-identical at SHA-256
+  `eebdc5895a2b38326470a3e475a09a2baab9d4f69f69b0f084664ef57a1decd4`.
+- The persisted experience setting is Guided. No phone, project, firmware/APK operation, plan,
+  approval, build/signing, Guardian/Recovery execution, publication, release, lock or relock
+  occurred.
+
+### Approved next bounded Linux task
+
+Reuse the current package once in a fresh no-phone workspace and open **Guardian Core** through
+normal Guided navigation. Invoke only **Verify audit trail** once. Require a bounded visible result
+that truthfully distinguishes an empty valid trail from missing, changed or unverifiable evidence,
+restores the control, and grants no approval or execution authority. Inspect the existing runtime
+package card without invoking any package, device, Recovery or consent action, then close normally.
+
+This is one Guardian Core function/safety journey, not a screen sweep or broad regression. Reuse
+the package unless a genuine inert control, false integrity claim, crash or retry defect appears;
+if one appears, apply only its minimum correction and focused test, then package/relaunch at most
+once. Record exact runtime/audit evidence, commit/push one handoff and stop for review. Do not
+modify Knowledge/UI Design Lab or protected Companion/Windows work. No phone, download,
+firmware/APK operation, installation, build/signing, consent, Guardian/Recovery execution,
+publication, release, lock or relock is authorized.
+
+### Gate status
+
+- No-project Nexus → exact ROM Studio prerequisite: **VERIFIED**
+- Guardian Core empty-audit verification: **NEXT BOUNDED LINUX TASK**
+- Windows stage-5 Device DNA/tool continuity: **OWNED BY WINDOWS; DO NOT DUPLICATE**
+- Physical hardware, installation/restore, signing, Guardian/Recovery execution, publication and
+  release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 98baf2b — Command Console host check and guard
 
 - Reviewed commit: `98baf2ba0fa15fcc4cf4cd0fe9e3e9597143e789`

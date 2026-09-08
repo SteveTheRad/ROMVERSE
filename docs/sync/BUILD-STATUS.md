@@ -1,5 +1,98 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — Device Intelligence starts an exact ROM Mission
+
+### Authoritative checkpoint
+
+- Approved base: `43c133ea0260a04e4994dc50ad91c153c363d718` — runnable Linux Stage 1
+  milestone approved by Product Assurance.
+- Tested implementation: `78009cb89080f3e21421667bb31b4518dc9888cf` — `Preserve Device
+  Intelligence mission context`.
+- Final handoff: the follow-up commit containing this document on
+  `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation, existing Device Intelligence Hub `Start ROM Mission`
+  handoff into shared ROM Studio/Guided state.
+
+### Exact product correction
+
+- A real widget journey exposed that Device Atlas already transferred the current Pack report and
+  selected live device into ROM Studio/Guided, but omitted the current Device DNA digest and
+  Compatibility Matrix verdict from the visible/shared mission evidence.
+- `Start ROM Mission` now revalidates the current report against the selected device's
+  manufacturer, model, product and codename, the current persisted Device DNA profile, and any
+  current DNA-bound Compatibility Matrix before navigation.
+- ROM Studio independently revalidates the one selected transport identity, report/device match,
+  current persisted DNA digest, live-device evidence and advisory Compatibility Matrix binding.
+  A same-model/different-device substitution is rejected and returned to Device Atlas before
+  Genesis opens.
+- The successful handoff visibly retains the privacy-masked selected target, current Device DNA
+  digest, matched Pack/report and `guardian_flash` Compatibility verdict. Shared Guided evidence
+  now includes the current DNA and advisory Matrix digests; `UNCONFIRMED` remains `Unknown`, never
+  inferred compatible or terminally unsupported.
+- Returning from ROM Studio to Device Atlas preserves the selected device, matched Pack, exact
+  report and current Device DNA owner context. No new feature, action, confirmation or authority
+  surface was added.
+
+### Verification without double-counting
+
+- One focused end-to-end Qt widget journey: **1/1 passed** after formatting. It uses a temporary
+  isolated workspace and sanitized synthetic Xiaomi evidence, creates current source-bound Device
+  DNA and a Compatibility Matrix, clicks the real `Start ROM Mission` button, inspects the actual
+  shared Guided context, returns through the real owner/navigation signal, and adversarially tries
+  a same-model/different-device substitution.
+- One combined affected regression run: **139/139 unique tests passed** — 64 navigation vocabulary,
+  53 ROM Studio UI and 22 Guided mission tests. The focused journey is included in this total and
+  is not counted again.
+- Ruff static check and format check: **3/3 changed implementation/test files passed**.
+- `git diff --check`: passed.
+- No broad suite, package rebuild, screenshot loop or physical-device test was run.
+
+### Classification, safety and Guided behavior
+
+- **Implemented:** exact Device Intelligence mission-context validation and visible/shared
+  evidence continuity.
+- **Simulated/Tested:** the synthetic widget journey and 139 affected tests above.
+- **Hardware Verified:** none for this checkpoint.
+- **Released:** no.
+- Guided friction/dead ends: successful context now remains visible and available to Genesis; stale
+  or substituted context calmly returns to Device Atlas with a specific stopped-handoff message.
+  No extra user confirmation was introduced.
+- Compatibility Matrix evidence is explicitly advisory and grants zero execution authority.
+  `guardian_flash` remains `Unknown` for missing execution evidence. Guardian remains the only
+  execution gate.
+- Exact-device evidence, consent separation, UNKNOWN-on-uncertainty, no blind retry, independent
+  verification, same-incident Recovery and permanent no-relock are preserved.
+
+### Platform, freeze, version gate and external actions
+
+- Fedora/Linux: implementation and actual offscreen Qt widget journey verified.
+- Windows: not run or claimed; Windows/launcher work was untouched.
+- Feature freeze: compliant correction to an incomplete existing Stage 1 user journey; no new
+  capability, Pack, adapter, route or autonomous behavior.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and remaining release gates.
+- Remaining limitations: this is sanitized synthetic evidence only; it proves no physical-device,
+  firmware, build, consent, Guardian execution, installation or Recovery result.
+- Protected Companion work, Windows work, Knowledge work, UI Design Lab, website and unrelated
+  files were not modified, staged, discarded or committed.
+- Physical phone access, ADB/Fastboot invocation, APK action, firmware copy/import from user data,
+  build execution, flash/boot/update, partition access, slot change, wipe/erase/format,
+  unlock/lock/relock, installation, signing, publication and release: **none**.
+- External action after verification: one normal push of the scoped implementation and this
+  repository handoff to the existing Linux branch only; no force-push.
+
+### Next proposed Build task
+
+Stop for Product Assurance review. If approved, continue the same Device Intelligence milestone to
+the next repository-evidenced incomplete existing action; do not broaden Stage 1 or cross a new
+consequential boundary.
+
+### Product Assurance Review Requested
+
+- Confirm that independently validating the selected device plus current DNA/Matrix at the ROM
+  Studio boundary is the minimum correct closure for this existing handoff.
+- Confirm that visibly retaining an `Unknown` advisory compatibility verdict preserves the intended
+  investigable `UNCONFIRMED` behavior without implying Guardian or execution authority.
+
 ## Linux correction checkpoint — fatal native file chooser fallback
 
 ### Authoritative checkpoint

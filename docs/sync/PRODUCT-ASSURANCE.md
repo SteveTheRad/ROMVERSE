@@ -1,5 +1,72 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 3a046e5 — bounded Windows simulation and stage-8 route
+
+- Reviewed checkpoint: `3a046e58`
+- Implementation checkpoint: `b3944548f21a6551d3090ab1e788b5f9f0b3ec2a`
+- Approved base: `bde748d7`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — SIMULATION IS ISOLATED AND UNCHANGED-BASE NO LONGER SKIPS STAGES 8–9**
+
+### Decision
+
+Product Assurance inspected the complete six-file implementation/test diff, the packaged failure
+evidence and the corrected route semantics. The explicit hidden development flag creates only a
+deterministic `simulation` transport, intercepts scanning before DeviceEngine, keeps observed
+hardware empty, feeds only ROM Studio and labels the shell and Device DNA as simulation-only. APK,
+terminal, Guardian, Recovery and general device surfaces receive no simulated target or selector.
+
+The packaged run truthfully exposed that the existing unchanged-base action incorrectly marked
+Debloat and the unrooted choice complete and jumped from stage 6 to stage 10. The minimum correction
+now records only Recipe skip, leaves Debloat and root choice undecided and recomputes stage 8 as the
+next current stage. Source behavior is approved; one corrected package confirmation remains.
+
+### Independent evidence and acceptance
+
+- Product Assurance independently reran the exact three corrected native Windows tests: **3/3
+  passed**. The exact temporary test directory was removed afterward.
+- The simulation transport spy proves zero DeviceEngine calls; observed-device state remains empty,
+  App Launchpad receives no device and Terminal receives no selector.
+- Focused Guided evidence proves stages 6–7 complete, stage 8 ready, stage 9 locked, persisted
+  `selected_stage=debloat`, no Recipe file, protected source intact and zero Guardian/build authority.
+- The first corrected executable is 6,323,220 bytes, Authenticode **NotSigned**, and independently
+  matches SHA-256 `3a3ebd654eab004d83ed7dffc2bbe0a47f60734f00728047cc86665defe5b71d`.
+  It validates the simulation boundary but predates the final skip-route correction.
+- The project protected source independently remains
+  `85e734ea89c706d344987794acf5ebc9fb617e67a1a5a09f8516bf4c755937b0`.
+- Ruff and Git whitespace pass. The protected untracked patch remains byte-identical at 8,272 bytes
+  with SHA-256 `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone/emulator, ADB/Fastboot, tool acquisition/install, Recipe transaction, real firmware/APK
+  action, signing, Guardian/Recovery execution, publication, release, Companion source, Knowledge/
+  UI Design Lab, Linux, force-push, lock or relock occurred.
+
+### Approved next bounded Windows task
+
+Build exactly one replacement unsigned Windows development package from `b3944548`; this build is
+required because application source changed and is not a project restart or replay. Relaunch that
+package once against the same existing disposable project with the explicit development-simulation
+flag. Re-establish the process-ephemeral simulation context once only if required to unlock the
+already-completed device boundary; do not recreate, reimport or reinspect stages 1–4 and do not
+operate any real device surface.
+
+Select the corrected stage-6 unchanged-base action once and require a visible stage-8 stop with
+stage 9 still undecided/locked, no Recipe transaction, unchanged protected source and working tree,
+and zero physical/Guardian/build authority. Do not operate stage 8. Run no repeated focused tests or
+broad suite. Add no further source change unless this exact corrected package still violates the
+route; if it does, stop with the evidence rather than widening scope. Commit/push one handoff and
+stop for review. Preserve the untracked user patch byte-for-byte. Do not acquire/install tools,
+invoke ADB/Fastboot, use a phone/emulator, modify real firmware, create root/install/flash authority,
+sign, publish, release, execute Guardian/Recovery, touch Companion source, Knowledge/UI Design Lab
+or Linux work, force-push, lock or relock.
+
+### Gate status
+
+- Windows explicit inert development-simulation boundary: **SOURCE VERIFIED**
+- Windows unchanged-base stage-8 route: **SOURCE VERIFIED; PACKAGE CONFIRMATION NEXT**
+- Linux stage-10 toolchain boundary: **OWNED BY LINUX; DO NOT DUPLICATE**
+- Physical hardware, installation, execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 1d4db55 — packaged Windows Guided local foundation
 
 - Reviewed checkpoint: `1d4db550`

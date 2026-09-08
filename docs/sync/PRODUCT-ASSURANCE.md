@@ -1,5 +1,64 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: f9d9f98 — exact inert Guided Build Readiness plan
+
+- Handoff commit: `f9d9f98c3d86af316e3b10967b42a84c0b3f4737`
+- Implementation commit: `aaadeac6a622b4fca95980904c8ac1a4e454d1cb`
+- Approved base: `7e23971`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — GUIDED BUILD READINESS IS EXACTLY BOUND AND GRANTS NO AUTHORITY**
+
+### Decision
+
+Product Assurance inspected the exact five-file correction and independently reran the 31-test
+affected selection. The Guided schema-3 plan now seals the protected source, contained tree,
+source-scoped tool evidence, unchanged/unrooted choices and its own canonical identity. Loading and
+verification fail closed on plan tampering or evidence drift, while the existing Command Deck
+schema-2 dry run remains compatible. The final successful verification now durably selects Build &
+Sign instead of restoring the already completed Build Readiness stage.
+
+### Independent evidence and acceptance
+
+- Independent affected verification passed **31/31**: the complete build-plan and Guided
+  mission/state suites plus the representative simulated Guided journey, forged verification
+  rejection and existing Command Deck non-flashable Forge handoff.
+- The representative real-widget journey creates and independently verifies one schema-3 plan
+  bound to the exact source SHA-256, current tree SHA-256, three required tool fingerprints and
+  current Guided-choice digest, then visibly and durably advances to Build & Sign.
+- The plan self-validates `local_only=true`, `flashable=false`, `execution_locked=true` and
+  `execution_authority=none`; changing a tool, Guided choice or those authority fields invalidates
+  it. Protected-source and working-tree drift continue to fail closed.
+- Simulated Device DNA remains explicitly non-live and cannot satisfy Guardian, consent, flash or
+  execution gates. No Forge bundle, candidate build, signing operation, Guardian directory, boot
+  observation or phone operation was created by the representative journey.
+- The branch was clean and synchronized before this assurance record. No phone, ADB/Fastboot,
+  APK, signing, packaging, publication, release, lock or relock occurred.
+
+### Approved next bounded Linux task
+
+Continue the same connected simulation-labelled Guided journey through the existing **Build &
+Sign / Forge Control** boundary, but create and byte-verify only one local unsigned, non-bootable,
+non-flashable candidate intermediate. Before Forge creation, freshly revalidate the exact schema-3
+plan and require its source, tree, tool and Guided-choice bindings to remain current. The Guided UI
+must preserve the same project/source/mission context, truthfully distinguish the verified local
+candidate from unavailable signing, and advance or retain one precise actionable signing blocker
+without claiming a signed artifact.
+
+Inspect and reuse the existing Forge workflow first. If it already satisfies the contract, change
+no source and record focused journey evidence. If one concrete admission, plan-binding,
+persistence, routing or truth-label defect appears, apply only the minimum correction with directly
+affected checks. Do not configure or perform signing, create a flashable artifact, grant Guardian
+or execution authority, connect or modify a phone, dispatch ADB/Fastboot, install an APK, package
+the desktop app, run a broad suite or repeat already-proven generic Forge tests. Commit/push one
+bounded checkpoint and stop for review.
+
+### Gate status
+
+- Exact inert Guided Build Readiness plan: **VERIFIED**
+- Existing local unsigned/non-flashable Forge continuation: **NEXT BOUNDED LINUX TASK**
+- Physical hardware, signing, Guardian execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: cf42e1a — Guided Toolchain resolution continuity
 
 - Handoff commit: `cf42e1ab9b4d7dc483bccffa3598107e88702361`

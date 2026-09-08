@@ -1,5 +1,71 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows missing-tools recovery-loop checkpoint
+
+- Matching Product Assurance line: `6ce09427f36ab021b51790b35888fbf341e9b524` —
+  `Approve Windows no-device readiness`, corrected by
+  `9c1ea25fff8d7cde30019176cbe7200d340da263` so its full handoff identity exactly matches
+  `e66489312f9253135454018fa3dfcbeadfaeeea7`. Build fast-forwarded only after that exact binding
+  was committed. The pre-existing untracked patch remained byte-identical across the update.
+- Result: **PASS — EXISTING LOOP WORKS; NO SOURCE OR TEST CHANGE REQUIRED**. The accepted fresh
+  journey used the disposable no-phone workspace
+  `C:\Work\ROMVERSE-Device-Recovery-20260908-2110` and the production `MainWindow`, Command Deck
+  resolution action, Forge Arsenal setup dialog, managed-receipt verifier, runtime refresh,
+  `DeviceEngine`, and scan handoff.
+
+### Genuine Windows recovery journey
+
+- The process began with every discoverable Platform Tools directory absent from its local
+  `PATH`. The fresh workspace also contained one inert malformed managed receipt. Production
+  activation rejected it, returned no active managed directories, and the initial tool inventory
+  reported both ADB and Fastboot unavailable.
+- Command Deck truthfully opened with no engine, `DEVICE ENGINE ERROR`, and the direct
+  `Resolve Platform Tools` action. Clicking that existing action opened the visible Forge Arsenal
+  setup path titled `ROMVERSE • Start Device Engine`, scoped only to the required ADB capability.
+- No archive was downloaded. A journey-local cache adapter copied the already approved,
+  receipt-verified package from the earlier disposable workspace into the fresh workspace. This
+  deliberately substituted only the acquisition boundary: the production receipt validator then
+  accepted the copied package. Its original archive evidence remained **8,044,989 bytes** with
+  SHA-256 `45f4d63113e895ebde0c90f194099a4676b6ac653bd28d54314a9e022bbc1a99`.
+- After the normal completed-setup dialog was closed, ROMVERSE automatically reactivated the exact
+  workspace-local directory, rebuilt the runtime, and started the read-only scan without a manual
+  restart, PATH repair, executable selection, Forge-page search, or Command Deck rediscovery.
+- The scan ran exactly the two unbound discovery commands from the fresh managed directory:
+  `adb.exe devices -l` and `fastboot.exe devices -l`. Both returned normally. There were
+  **0 serial-selected (`-s`) calls**, **0 devices**, **0 retries**, and no mutating command.
+- The final production surface remained `command_deck`, with a ready Device Engine, empty engine
+  error, badge `NOT CONNECTED`, both visible status surfaces reading `Waiting for device`, and the
+  enabled `Scan for device` continuation. The native screenshot was inspected and showed the same
+  calm, actionable, non-discovery state.
+
+### Verification, limitations, and scope
+
+- No regression test was run because the exact current production handoff worked and Product
+  Assurance authorized affected focused tests only if a genuine defect required correction. No
+  source, test, executable, or package changed; no broad suite, rebuild, acquisition repeat, or
+  unchanged-test loop ran.
+- One preliminary disposable harness workspace
+  `C:\Work\ROMVERSE-Device-Recovery-20260908-2100` reached verified local cache placement but was
+  manually interrupted when that harness failed to close the completed modal dialog. It issued no
+  Platform Tools or device command and did not count as the accepted journey. The fresh accepted
+  journey corrected only that external harness-control error; no ROMVERSE behavior was changed.
+- The journey-local cache adapter is not a new product cache feature and makes no production
+  acquisition claim. It exists only because Product Assurance prohibited redownloading the already
+  proven archive. All trust, activation, runtime refresh, navigation, and no-target behavior after
+  that inert boundary used current production code.
+- The protected Companion files have no staged or working-tree diff. The pre-existing untracked
+  `0001-Preserve-local-build-completion-across-restart.patch` remains untracked and byte-identical at
+  SHA-256 `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone or emulator was requested, connected, discovered, operated, or targeted. No
+  serial-selected or mutating ADB/Fastboot command, Recovery, flash, wipe, unlock, root, relock, APK
+  installation, production trust/signing, publication, release, force-push, or destructive action
+  occurred. Guardian-only authority, exact-device evidence, consent separation,
+  UNKNOWN-on-uncertainty, no blind retry, independent verification, feature freeze, and permanent
+  no-relock remain intact.
+- Remaining action and precise proposed next task: independent Product Assurance review of this
+  documentation-only checkpoint. Windows Build is stopped; no subsequent task is assumed before a
+  new verdict exactly matches the pushed handoff commit.
+
 ## Windows no-phone Device Engine readiness checkpoint
 
 - Product Assurance verdict: `2a3fba1255daf58480f6c118cce921fc4eb16763` —

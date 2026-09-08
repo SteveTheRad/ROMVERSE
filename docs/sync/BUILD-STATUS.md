@@ -1,5 +1,102 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — schema-3 evidence survives Forge Control
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `f2eea95f834676ac141b6763c36a155cd0b273d8` approved
+  `aaadeac` and authorized only the existing Build & Sign / Forge Control local-candidate boundary.
+- Implementation commit: `743a0f2bbcf8aff80610e00fd6bcae528b8a4a04` — `Preserve exact plan
+  evidence through Forge Control` on `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation, existing unsigned local-candidate continuation only.
+- Exact files: `src/romverse/rom/build_contracts.py`, `src/romverse/rom/forge.py`,
+  `src/romverse/rom/guided.py`, `src/romverse/ui/build_control.py`,
+  `src/romverse/ui/rom_studio.py`, `tests/test_build_contracts.py`,
+  `tests/test_build_control_ui.py`, and `tests/test_forge_bundle.py`.
+
+### Concrete defect and bounded correction
+
+- Forge Control's exact Device Pack assessment and execution path loaded the schema-3 workspace
+  plan through a generic planner. That validated its durable seal but did not freshly fingerprint
+  its source-scoped tools. A tool could therefore drift after Build Readiness without closing the
+  downstream local-build admission.
+- The shared Device Build contract boundary now accepts a schema-3 workspace plan only after fresh
+  source, current-tree, Guided-choice and bound-tool revalidation with the current tool inventory.
+  It repeats that validation when creating the exact Device Build plan and immediately before the
+  local executor is admitted. Drift stops before any external build command.
+- Exact build-input preparation legitimately changes the contained tree. Its re-freeze previously
+  regenerated a generic schema-2 plan and discarded the stronger bindings. It now carries the
+  current schema-3 required-tool scope and current verified statuses into the replacement plan.
+- Forge Bundle creation also requires fresh current bound-tool evidence whenever its input is a
+  schema-3 plan; the ROM Studio worker supplies its current verified inventory. Schema-2 legacy
+  dry runs remain compatible.
+- After one local candidate is durably verified, Guided now presents one precise next blocker:
+  the candidate remains unsigned and the existing offline signing ceremony requires an approved
+  identity. It does not claim a signed artifact or open signing automatically.
+
+### Verification without double-counting
+
+- Final directly affected regression selection: **20/20 passed**. This comprises the complete
+  exact Device Build contract suite plus the focused schema-3 Forge admission adversary, metadata
+  re-freeze continuity and production-UI Forge Control candidate journey.
+- The representative journey used an exact source-bound test Device Pack, schema-3 plan, private
+  executable fixtures, production ROM Studio/Forge Control/services and the existing deterministic
+  local-build test runner. Opening Forge Control remained inspection-only; one explicit existing
+  **Build verified local candidate** action ran exactly once.
+- The local executor durably recorded seven completed steps, byte-verified three expected outputs,
+  reloaded the exact receipt and output hashes from a reopened store, and issued no ADB or Fastboot
+  command. The preceding Forge intermediate remained unsigned, non-bootable and non-flashable.
+- A changed bound executable makes the Frozen working-tree/evidence gate blocked and stops the
+  executor with zero runner calls. Missing current tool evidence and changed tool bytes also stop
+  schema-3 Forge creation before a receipt is written.
+- The explicit simulated device remained labelled simulation, survived the journey, and granted no
+  Guardian or flash handoff. Guided reported the local candidate ready, signing unavailable and one
+  actionable offline-signing blocker.
+- Python compilation, Ruff lint and Git whitespace validation passed for all eight changed files.
+  Earlier overlapping 4/4 and individual development runs are not added to the final total. No
+  broad suite, generic Forge suite, CI matrix, desktop package or native application smoke ran.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** fresh schema-3 admission at Forge Bundle, Device Build planning and local
+  execution; binding-preserving metadata re-freeze; one truthful unsigned-signing blocker.
+- **Simulated/Tested:** production UI/services with deterministic exact-contract tools and runner;
+  **20/20** non-overlapping directly affected checks.
+- **Hardware Verified:** no. The retained device is explicitly simulated and the build runner is a
+  deterministic test transport, not physical ROM-build hardware evidence.
+- **Released:** no.
+- Blockers/failures: none in the bounded journey. The durable local candidate remains unsigned;
+  signing, Guardian review, phone installation and verification remain closed and did not start.
+- Guided friction/dead ends: exact-plan drift now produces the existing actionable Frozen
+  working-tree blocker before work; success retains Build & Sign with one precise offline-signing
+  action instead of two descriptive warnings or a false signed state.
+- Guardian/Recovery/safety: no authority is granted by the Forge intermediate or local candidate.
+  Exact-device evidence, Guardian-only execution, UNKNOWN-on-uncertainty, no blind retry,
+  same-incident Recovery, independent verification and permanent no-relock remain intact.
+- Linux/Fedora: Python and offscreen Qt verification passed genuinely on Linux. Windows was not
+  run. No physical Android hardware was connected or operated.
+- Feature freeze: compliant minimum continuity/correctness work at the approved existing Stage 1
+  boundary; no new screen, format, adapter, Device Pack, signing path or execution capability.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all release gates.
+- External actions: the approved branch was fetched and the scoped implementation/handoff will be
+  pushed normally. No phone, ADB/Fastboot dispatch, APK, firmware/device operation, real candidate
+  build, system/global installation, signing, Guardian consent/execution, publication, release,
+  merge, force-push, lock or relock occurred. Disposable candidate bytes existed only in test
+  workspaces.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin signing, Guardian work or another
+consequential slice until the verdict for `743a0f2` is recorded in
+`docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm the shared fresh schema-3 validation and binding-preserving metadata re-freeze close the
+  plan/tool drift gap at every existing Forge/local-build admission.
+- Confirm the inspection-only opening, one explicit local-build action, durable byte verification,
+  simulation-only device classification and single unsigned-signing blocker satisfy this boundary.
+
 ## Linux product checkpoint — exact inert Guided Build Readiness plan
 
 ### Authoritative checkpoint and scope

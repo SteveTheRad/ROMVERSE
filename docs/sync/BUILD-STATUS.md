@@ -1,5 +1,131 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux packaged checkpoint — Stage 11 retained on missing receipt bindings
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `2acbf0e`, approving evidence checkpoint `f322168` and
+  authorizing one simulation-only use of the accepted package and same saved project through the
+  existing Stage-11 plan boundary. This documentation-only section forms the next repository-HEAD
+  checkpoint on `linux/stage1-desktop-readiness`; application source and tests remain unchanged.
+- Stage: Stage 1 — v0.2 Golden Foundation, existing Guided task 11 **Freeze a deterministic build
+  plan** only. Completed stages were not recreated or replayed. Task 12 was displayed after the
+  packaged action but was not operated.
+- The exact accepted package was reused without rebuilding:
+  `build/linux-pa-stage10-review-25bb798/frozen/ROMVERSE/ROMVERSE`, 6,327,312 bytes,
+  SHA-256 `5b097d706ec42fddab3b49f534b8ccc7a1579446469bff1099ba8dda66966744`.
+
+### One bounded simulation and plan attempt
+
+- ROMVERSE launched once with the approved explicit `--development-device-simulation` boundary,
+  the same private configuration/workspace and existing project
+  `linux-simulated-recipe-validation-307f7af6`. The Command Deck and Genesis both visibly marked
+  **SIMULATION ONLY • NO HARDWARE** and showed no physical device selection.
+- The existing **Scan for device** action was used exactly once. It restored only the deterministic
+  process-ephemeral ROM Studio fixture. The refreshed Device DNA records evidence class
+  `SIMULATION ONLY • NOT HARDWARE VERIFIED`, keeps Guardian flash `UNCONFIRMED`, permanently keeps
+  bootloader relocking `UNSUPPORTED`, and has profile digest
+  `dc6fec02b6a3916d9857c66c7af4a45ec949f4efc529fecddbcb98315223f4e1`.
+  Its file SHA-256 is `952dc96b698282cf46886e62418cf6f7552ed81a66b900bc0de8a07f1ebeacc1`.
+- The refreshed schema-2 Compatibility Matrix remains advisory-only, reports Guardian Flash
+  `Unknown`, keeps relocking `Known Incompatible`, and has matrix digest
+  `edc98fd0351892a3fb641d681fa7fda87809a8fc9750cbe5cbd4c9405396f533`;
+  file SHA-256 `d58400d3a4221de10f0be753116dcabbca240868f585e5b36208398e13a481e0`.
+- Stage 11 became visibly ready and **Create and verify plan** was selected exactly once. ROMVERSE
+  generated one schema-3 plan, independently verified its current tree, and displayed Stage 12.
+  No retry, build, signing or Stage-12 action occurred.
+- The saved plan is local-only, `flashable: false`, `execution_locked: true`, and
+  `execution_authority: none`. It identifies only `system/build.prop`, contains no partitions, and
+  binds:
+  - project `linux-simulated-recipe-validation-307f7af6` and Device Pack association
+    `xiaomi.hyperos`;
+  - protected source SHA-256
+    `680f56c3c6741fb7ae8690a787d2b9ace87d22cbcfa18ea10b040b343b15bf7c`;
+  - current tree digest `502f9c800dede56f7514e0123f5347f5e762594065a8abd2b7f494cc41188ea3`;
+  - Recipe digest `eb068402fe625bc9928bf30ecee04d13eeff567c21196152825a2e939fb0d88e`;
+  - explicit Guided-choice digest
+    `558129c94a9abbfb0e9da3bb5086a473b9665d4612a91f9883f4f860f4894ca5`;
+  - complete conflict-free 15-tool manifest digest
+    `64dc0ec3810d994b22d5b4881144fa97d11bed1344433365c4569cdcd83c371b`.
+  Plan digest is `64ad1db43cb0643c93014ee5923a7f6178b5c8d2ee395e550f7caf97b43fe22e`;
+  plan-file SHA-256 is `ab16e558f592fe52221ecb5efa42b80697fc71f58caaf976320c80e0502478e4`.
+- Independent reload accepted the plan schema/digest and verified the exact tree at the expected
+  digest. The toolchain evidence is `complete: true`, `conflict_count: 0`, scope
+  `guided-build-plan`, `phone_changed: false`, `execution_authority: none`, and its private file
+  matches SHA-256 `1fcee1f9aba2ab5ec042a3b3a9864ddee5bbce8acb2264367ff1d92770b83b3f`.
+
+### Exact acceptance blocker
+
+- Product Assurance required the plan itself to bind the already validated Recipe receipt and the
+  zero-change Debloat receipt. The generated schema-3 plan contains neither a Recipe-receipt digest
+  nor a Debloat-receipt digest/equivalent binding. Its Recipe digest binds the Recipe definition,
+  while its Guided-choice digest binds only the customization/Recipe flags and root choice; neither
+  proves which exact result receipts were accepted.
+- The packaged UI therefore advanced to Stage 12 on evidence weaker than this checkpoint's exact
+  acceptance requirement. The generated plan and related records were preserved unchanged for
+  audit, but the Build coordinator did not accept them as Stage-11 completion.
+- After clean package shutdown, the production integrity-aware `GuidedMissionStore` was used once
+  to retain the same mission at `selected_stage: build_plan`, set `build_plan_verified: false`, and
+  record exactly:
+  `Saved plan does not bind the validated Recipe receipt and zero-change Debloat receipt; Stage 11 remains incomplete.`
+  The resulting schema-6 mission digest is
+  `bb3f9f2d8fb3398684789215fc9e0445bf8913ad092d6221df9cbab3118efdbb`.
+  No plan regeneration or second packaged run occurred.
+
+### Preserved evidence and verification classification
+
+- Existing protected/local evidence remained byte-identical: source
+  `680f56c3c6741fb7ae8690a787d2b9ace87d22cbcfa18ea10b040b343b15bf7c`, working
+  `system/build.prop` `5d1bada0c7760b6ea9cc9937774d8b77ccb01132c4475dd0a660bc355eb18eff`, Recipe file
+  `fba0a5cbea2a4b6073af3b498defd0182518431cb0969c460982057509dbbbda`, validated Recipe receipt
+  `57fc3c8ed2fd383c7c2e4c3b84435a632c14b55a62e5c71f7962e815d3967702`, zero-change Debloat
+  receipt `b0187d1da8640aaeed7d6e1c77a798e36c2c3cd060cb5c8cc6e6d6734e874f3d`, and managed Payload
+  Dumper executable `6e87cedaf0a5fb821a0721a071e942ae6e9957233b28346b35d87f02cb85321d`.
+- The Activity ledger contains one plan-generated success and one tree-verification success for the
+  attempt. These prove the observed local operations, not acceptance of the missing receipt
+  bindings. The runtime ledger now contains seven start/clean-close pairs and no crash marker.
+- **Implemented:** no new implementation. Existing simulation, planning, tool-evidence and tree
+  verification paths were exercised unchanged.
+- **Simulated/Tested:** one genuine packaged Fedora simulation-only Stage-11 attempt plus an
+  independent read-only plan reload/tree verification. No pytest, Ruff or broad suite was rerun
+  because source/tests did not change and Product Assurance prohibited unchanged-test replay.
+- **Hardware Verified:** no. No physical phone or emulator was attached, selected or addressed.
+- **Released:** no. The package, plan and tool evidence are local/private only.
+- Blockers/failures: Stage 11 remains incomplete solely because the saved plan does not bind the
+  exact validated Recipe and Debloat result receipts. This is a deterministic evidence-contract
+  deficiency, not a tool, source, tree or simulation failure. No blind retry was attempted.
+- Guided friction/dead ends: the UI gives a false forward transition to Stage 12 under the stricter
+  approved receipt-binding requirement. The durable mission has been safely retained at Stage 11
+  with one actionable blocker instead of allowing forward use of insufficient evidence.
+- Guardian/Recovery/safety: the attempted plan is explicitly local-only, non-flashable,
+  execution-locked and authority-free. Simulation created no live target or hardware authority.
+  Exact-device, UNKNOWN/no-blind-retry, independent verification, Guardian-only execution and
+  permanent no-relock remain unchanged.
+- Linux/Fedora: the package and attempt genuinely ran on Fedora 44/XWayland. Windows and physical
+  Android were not run.
+- Feature freeze: compliant evidence-only exercise of an existing Stage-1 boundary. No source,
+  feature, capability, product surface, adapter or Device Pack changed. v0.2 Golden Foundation
+  remains **CLOSED**.
+- External actions: this documentation-only handoff is committed and pushed normally. No source,
+  package or test change; no download or tool/system/APK installation; no physical ADB/Fastboot
+  command; no firmware build/signing/mutation; no Guardian/Recovery execution; no publication,
+  release, merge, force-push, lock or relock occurred. Companion, Knowledge/UI Design Lab, Windows
+  and unrelated work were not touched.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not rerun Stage 11, operate Stage 12, change the
+plan schema, rebuild, connect/address a device or begin another consequential slice without an
+explicitly approved minimum correction for the missing exact receipt bindings.
+
+### Product Assurance Review Requested
+
+- Confirm that Recipe-definition plus Guided-choice digests are insufficient substitutes for exact
+  validated Recipe-receipt and Debloat-receipt bindings.
+- If confirmed, authorize the smallest source/test correction that adds both immutable receipt
+  bindings to the Stage-11 plan and its load/current-binding verification without broadening build
+  or execution capability.
+
 ## Linux packaged checkpoint — managed Payload Dumper clears Stage 10
 
 ### Authoritative checkpoint and scope

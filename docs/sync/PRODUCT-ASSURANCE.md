@@ -1,5 +1,73 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: bb87b1e — current AAPT2 minimum-SDK evidence
+
+- Reviewed commit: `bb87b1e3b55fbb3497eec324a7678eda899d1a23`
+- Approved base: `fb3fe29`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — CURRENT AND LEGACY MINIMUM-SDK EVIDENCE REMAIN FAIL-CLOSED**
+
+### Decision
+
+Product Assurance inspected the exact source/test diff and independently verified the package, APK,
+runtime and Guardian-audit evidence. The parser now prefers current AAPT2 `minSdkVersion:` output,
+retains legacy `sdkVersion:` compatibility, and does not invent a value from malformed or absent
+evidence. The same unchanged APK renders its proven minimum SDK 26 while all prior identity/signer
+facts and the no-phone authority boundary remain intact. No correction or replay is required.
+
+### Independent evidence and acceptance
+
+- The implementation changes only the minimum-SDK line selection. Five focused cases cover current,
+  legacy, malformed, absent and safe fallback input alongside the existing complete identity/signer
+  case. The committed **6/6** result, Ruff result and clean Git whitespace are accepted; the local
+  Product Assurance shell lacked the Build task's pytest environment, so this review did not
+  fabricate a second test run.
+- The corrected unsigned executable independently remains 6,323,072 bytes, mode `0755`, SHA-256
+  `d05eada203adb1b6655fe2bd28a6e539e7f0d58780251470adef7e582d54df1b`. The unchanged APK remains
+  9,060,239 bytes, mode `0644`, SHA-256
+  `62bc530d5f077e3e34ad71002caa24303a584bf4661f56d2cc338c976bfb5a2b`.
+- Guardian audit verification independently passes all 240 records and the file matches SHA-256
+  `dd67a4481134423142f8f1758dd0c328eb6a570848959441da63de23a6f31122`: 120 ADB and 120 Fastboot
+  targetless read-only inventories, all allowed, untimed-out and serial-selector-free.
+- The three-pair clean runtime record independently matches
+  `1ef83608997f443c1779c4b3f507f67e6d2007763edc0f0b41e3b5291a8c18cc`. No phone, APK installation,
+  signing, project, plan, approval, consent or execution authority exists.
+
+### Connected-journey finding
+
+The corrected identity result is truthful, but repository inspection found its displayed
+**Connect and authorize a phone** prerequisite has no direct action. App Launchpad exposes only APK
+selection, identity-tool repair, approval and install controls; approval correctly remains disabled,
+so a new user must manually discover the Command Deck connection owner. This is a bounded Guided
+friction/dead-end defect under the creator experience contract, not an execution or feature gap.
+
+### Approved next bounded Linux task
+
+Add one contextual **Connect and authorize phone** action to the existing App Launchpad result only
+when a valid local APK inspection is retained and no authorized device exists. The action must
+preserve the exact selected APK path/hash and inspection evidence, route to the existing Command
+Deck connection owner, and invoke at most one existing bounded read-only discovery attempt. It must
+not create a second scanner, perform a device-changing command, grant a plan/approval/consent, or
+enable installation. If no phone is present, Command Deck must complete with its existing truthful
+guidance and retry action; returning to App Launchpad must show the same retained inspection and the
+same connection action. If a device becomes authorized through ordinary discovery, the existing
+automatic exact-device plan binding may proceed unchanged.
+
+Add only focused widget/wiring coverage for action visibility, one-click routing, single discovery
+request and retained evidence. Build/package once and exercise one no-phone journey with the same
+APK and already verified tools; do not reacquire tools or rerun a broad suite. Commit/push one
+bounded source/test/handoff checkpoint and stop for review. No physical-device operation, APK
+installation/signing, firmware work, Guardian/Recovery execution, publication, release, Companion,
+Knowledge/UI Design Lab or Windows change, lock or relock is authorized.
+
+### Gate status
+
+- Current/legacy AAPT2 minimum-SDK evidence retention: **VERIFIED**
+- App Launchpad direct connection-owner handoff: **NEXT BOUNDED LINUX TASK**
+- Windows work: **OWNED BY WINDOWS; DO NOT DUPLICATE**
+- Physical hardware, installation, signing, execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 9aa73d8 — managed APK identity repair
 
 - Reviewed commit: `9aa73d8b17caee72863e7dd255b0d3998ce77a04`

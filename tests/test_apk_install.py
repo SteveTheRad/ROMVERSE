@@ -33,8 +33,14 @@ class RecordingRunner:
 
 
 class ApkMetadataRunner:
-    def __init__(self, *, signature_ok: bool = True) -> None:
+    def __init__(
+        self,
+        *,
+        signature_ok: bool = True,
+        min_sdk_lines: tuple[str, ...] = ("sdkVersion:'26'",),
+    ) -> None:
         self.signature_ok = signature_ok
+        self.min_sdk_lines = min_sdk_lines
         self.calls: list[tuple[str, ...]] = []
 
     def run(self, args, timeout=10, cwd=None):
@@ -47,7 +53,7 @@ class ApkMetadataRunner:
                 "\n".join(
                     (
                         "package: name='com.radforge.demo' versionCode='42' versionName='4.2'",
-                        "sdkVersion:'26'",
+                        *self.min_sdk_lines,
                         "targetSdkVersion:'35'",
                         "uses-permission: name='android.permission.INTERNET'",
                         "uses-permission: name='android.permission.CAMERA'",
@@ -151,6 +157,35 @@ def test_apk_inspection_decodes_identity_and_verifies_signer_with_verified_tools
     assert inspection.signature_verified is True
     assert inspection.signer_sha256 == "a" * 64
     assert len(runner.calls) == 2
+
+
+@pytest.mark.parametrize(
+    ("lines", "expected"),
+    (
+        (("minSdkVersion:'26'",), "26"),
+        (("sdkVersion:'26'",), "26"),
+        (("minSdkVersion:26",), ""),
+        ((), ""),
+        (("minSdkVersion:26", "sdkVersion:'25'"), "25"),
+    ),
+)
+def test_apk_inspection_parses_current_and_legacy_min_sdk_evidence(
+    tmp_path,
+    lines,
+    expected,
+):
+    apk = valid_apk(tmp_path)
+    aapt = tmp_path / "aapt2"
+    aapt.write_text("tool", encoding="utf-8")
+
+    inspection = inspect_apk(
+        apk,
+        aapt_executable=aapt,
+        runner=ApkMetadataRunner(min_sdk_lines=lines),
+    )
+
+    assert inspection.valid
+    assert inspection.min_sdk == expected
 
 
 def test_apk_inspection_blocks_signature_rejected_by_verified_signer(tmp_path):

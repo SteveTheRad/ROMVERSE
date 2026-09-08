@@ -1,5 +1,125 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux correctness checkpoint — current AAPT2 minimum-SDK evidence is retained
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `fb3fe29` approved the managed APK identity-tool repair and
+  authorized only the AAPT2 minimum-SDK parser compatibility correction, focused tests and one
+  exact no-phone APK reinspection.
+- Stage: Stage 1 — v0.2 Golden Foundation, one minimum evidence-retention correction inside the
+  existing App Launchpad inspection boundary.
+- Exact source changes:
+  - `src/romverse/device/apk_install.py` now reads current AAPT2 `minSdkVersion:` badging evidence
+    first, while retaining legacy `sdkVersion:` compatibility. If the current spelling is malformed
+    or empty, a valid legacy value may still supply the evidence; malformed or absent evidence
+    remains empty rather than guessed.
+  - `tests/test_apk_install.py` gives the bounded metadata runner explicit minimum-SDK lines and
+    covers current spelling, legacy spelling, malformed current evidence, absent evidence and safe
+    legacy fallback after malformed current evidence.
+- No other application, Companion, Knowledge/UI Design Lab, Windows, Device Pack, adapter or
+  execution source changed.
+
+### Verification without double-counting
+
+- Focused parser selection: **6/6 passed** — the existing complete APK identity/signature check plus
+  five current/legacy/malformed/absent/fallback minimum-SDK cases. No broad suite was run.
+- Ruff and Git whitespace validation passed for both changed source/test files.
+- Exactly one corrected PyInstaller package was built on Fedora 44 with Python 3.14.7 and
+  PyInstaller 6.22.2. Executable:
+  `build/linux-pa-apk-minsdk-fb3fe29/frozen/ROMVERSE/ROMVERSE`, 6,323,072 bytes, mode `0755`,
+  SHA-256 `d05eada203adb1b6655fe2bd28a6e539e7f0d58780251470adef7e582d54df1b`.
+  It is an ignored unsigned local development artifact. PyInstaller completed successfully with
+  only its standard optional `xxsubtype` hidden-import warning.
+
+### One corrected packaged exact-APK reinspection
+
+- The corrected package ran once, unelevated, through Fedora XWayland in the existing isolated
+  workspace `/tmp/romverse-apk-positive-265bfbc.cgO2vj`, with no simulated or physical phone.
+- Startup activated the existing exact private AAPT2 `9.4.0-15978811` and apksig `9.4.0`
+  verification-only receipts. Every managed-tool byte hash and its `2026-09-09 05:41 AEST`
+  modification time remained unchanged; no tool acquisition, repair or download ran again.
+- **App Launchpad** opened through normal Guided navigation and inspected the original ignored
+  `companion/app/build/outputs/apk/debug/app-debug.apk` successfully exactly once. Two earlier
+  harness-only native-chooser location attempts supplied no selected file and started no
+  inspection; the final exact selection used the ordinary chooser and produced the accepted result.
+- The corrected page preserved the exact 9,060,239-byte APK SHA-256
+  `62bc530d5f077e3e34ad71002caa24303a584bf4661f56d2cc338c976bfb5a2b`, 874 entries, present
+  manifest and three DEX files. It retained every previously proven identity fact: label
+  **ROMVERSE Companion**, package `com.radforge.romverse.companion`, version `0.2.0-alpha.5`
+  (code `8`), target SDK 35, four declared permissions and verified signer SHA-256
+  `b1e1bd6e1c199d6bc1649998546a20559e3b0f979cb401ef487b0cde7f993cb1`.
+- The previously withheld field now truthfully rendered **Android SDK: minimum 26** from current
+  AAPT2 `minSdkVersion:'26'` output. Native ABI remained **none declared or not decoded** and no
+  unsupported ABI claim was introduced.
+- **Improve APK identity verification** remained absent because both exact tools already verified.
+  **Review and approve exact plan** and **Install approved APK** remained disabled without a phone
+  and were not invoked. The local result exposed only the authorized-device prerequisite.
+- ROMVERSE closed normally through the desktop window-close action and no packaged process
+  remained. Native-chooser keyboard automation emitted host IBus/GTK warnings during the rejected
+  incomplete-location attempts, but the runtime ledger contains no fatal trace or unclean close;
+  this was harness input noise rather than an application failure.
+
+### Final retained evidence
+
+- The original APK retained its exact path, 9,060,239-byte size, `0644` mode,
+  `2026-09-07 20:48:41.701009772 +1000` modification time, inode and SHA-256. It was not copied,
+  rebuilt, altered, staged, committed, signed or installed.
+- The workspace contains no APK copy, project, preflight/install receipt, approval, Activity/Live
+  Console event, snapshot, backup, ROM build or working-ROM file. The existing private toolchain
+  plan remains byte-identical at SHA-256
+  `473a4e0926ac52033b127194b8d67f84af7894a9eaacdfd4ec30dee1d961ac0a`.
+- The cumulative Guardian audit is a valid gap-free SHA-256 chain of exactly 240 scheduled read-only
+  host inventories: 120 ADB and 120 Fastboot `devices -l` operations. This longer chooser-driven
+  package run added 122: 61 ADB and 61 Fastboot. Every record is allowed, host-targeted, untimed-out,
+  return code 0 and serial-selector-free. APK inspection added no Guardian approval or execution
+  record. Cumulative audit SHA-256:
+  `dd67a4481134423142f8f1758dd0c328eb6a570848959441da63de23a6f31122`.
+- The cumulative runtime record contains exactly three start/clean-close pairs, SHA-256
+  `1ef83608997f443c1779c4b3f507f67e6d2007763edc0f0b41e3b5291a8c18cc`, with no fatal trace.
+  Guided mode remained active.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** current and legacy AAPT2 minimum-SDK spelling compatibility with fail-closed
+  malformed/absent evidence handling.
+- **Simulated/Tested:** 6/6 focused checks and one genuine corrected packaged Fedora exact-APK,
+  no-phone reinspection.
+- **Hardware Verified:** no. No Android phone was connected, discovered, selected or operated.
+- **Released:** no. The corrected package remains an unsigned local development artifact.
+- Blockers/failures: none. Minimum SDK 26 now renders from proven tool output; every other proven
+  field remained stable and native ABI remained unclaimed.
+- Guided friction/dead ends: after ordinary exact APK selection, inspection completed locally and
+  exposed only the authorized-device prerequisite. No identity repair, duplicate product action,
+  confirmation chain, terminal stop or inert enabled control remained. Native GNOME chooser entry
+  remains difficult for AT-SPI automation but is not an observed pointer/user workflow defect.
+- Guardian/Recovery/safety: retaining minimum-SDK evidence grants no target, plan, approval,
+  consent, signing, installation or Recovery authority. UNKNOWN/no-blind-retry, exact-device and
+  exact-incident evidence, independent verification, Guardian-only authority and permanent
+  no-relock remain unchanged.
+- Linux/Fedora: genuinely verified on Fedora 44/XWayland. Windows and physical Android were not run.
+- Feature freeze: compliant minimum correctness/evidence-retention fix; no feature, workflow,
+  Device Pack, adapter, Knowledge behavior or production execution capability was added.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all remaining gates.
+- External actions: one corrected local package was built, and this scoped branch is pushed
+  normally with the source/test/handoff checkpoint. Normal no-target read-only ADB/Fastboot
+  inventory occurred. No phone, simulated device, download, tool acquisition, system/APK
+  installation, APK copy/build/signing, approval, consent, project/firmware work, backup/restore,
+  Guardian/Recovery execution, publication, release, merge, force-push, lock or relock occurred.
+  Companion source, Knowledge/UI Design Lab and Windows work were not modified, staged or committed.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another consequential slice until the
+verdict for this exact AAPT2 minimum-SDK parsing checkpoint is recorded in
+`docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm the current/legacy parser precedence, malformed/absent fail-closed behavior, corrected
+  minimum SDK 26 rendering, preserved APK/tool evidence and continuously disabled approval/install
+  actions satisfy the minimum-SDK evidence-retention gate.
+
 ## Linux product checkpoint — managed APK identity tools repair and reinspect the exact artifact
 
 ### Authoritative checkpoint and scope

@@ -1,5 +1,61 @@
 # ROMVERSE Build Status
 
+## Windows same-file identity portability correction — Product Assurance review requested
+
+- Product Assurance correction authorization:
+  `c4adb738b5daddcc82dd5388ff8270901f2fa3f2`, reviewing Windows handoff `3bd3d074`.
+- Correction commit: `7b79a4b077bf62ae1b2c669b1ed631f18d282696`.
+- Branch: `windows-launcher-authorized-work`.
+- Status: the exact Windows-only same-file identity portability correction is implemented. All 24
+  previously failing nodes and all five new focused Windows regressions pass; stop for independent
+  Product Assurance review.
+
+### Minimum correction
+
+- `candidate_avb._fingerprint()` and Guardian private-staging `_file_identity()` now compare the
+  Windows-stable descriptor/path fields: device/file identity, inode/file index, size and
+  modification time.
+- Other platforms retain the existing `st_ctime_ns` comparison in addition to those fields.
+- Fresh content hashing, descriptor-before/after comparison, path containment, no-follow/symlink
+  rejection, expected path/receipt binding, size validation and replacement detection remain in
+  place and unchanged.
+- `tests/test_windows_same_file_identity.py` adds five Windows nodes proving both affected helpers
+  accept only a descriptor/path ctime difference, both reject a changed file identity even when
+  size and mtime are preserved, and fresh hashing exposes same-size byte drift after mtime restore.
+
+### Exact Windows verification
+
+- New regression command:
+  `.venv\\Scripts\\python.exe -m pytest -q tests/test_windows_same_file_identity.py --basetemp C:\\rvpt-file-identity-new`
+- New regression result: **5/5 passed**.
+- Previously failing-node rerun: the exact 24 node IDs recorded by the decisive
+  `3bd3d074` handoff were rerun with `--basetemp C:\\rvpt-file-identity-24`.
+- Previously failing-node result: **24/24 passed**. This includes the no-phone production dialog,
+  candidate AVB preparation/reconstruction/drift cases and Guardian final-byte private staging.
+- The 95 previously passing nodes were not repeated.
+- Ruff command:
+  `.venv\\Scripts\\python.exe -m ruff check src/romverse/rom/candidate_avb.py src/romverse/guardian/source_installation.py tests/test_windows_same_file_identity.py`
+- Ruff result: **PASS — all checks passed**.
+- Whitespace command: `git diff --check` before the correction commit.
+- Whitespace result: **PASS**.
+
+### Scope and safety handoff
+
+- Only the two authorized identity helpers, one focused Windows regression file and this Build
+  handoff changed after Product Assurance commit `c4adb738`.
+- The pre-existing untracked patch
+  `0001-Preserve-local-build-completion-across-restart.patch` remains unchanged, unstaged and
+  uncommitted. Protected Companion files remain clean and untouched.
+- No Windows executable or package was rebuilt or launched. No phone/emulator was present,
+  requested, awaited, connected, selected, or targeted. No ADB/Fastboot device command, Recovery,
+  installation, real signing, production trust, publication, release, destructive action,
+  force-push, unlock, lock, or relock occurred.
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty, no
+  blind retry, independent verification, feature freeze, and permanent no-relock remain preserved.
+- Stop for independent Product Assurance review. Do not rebuild the Windows artifact or begin
+  another synchronization, simulation, hardware, packaging, or product slice before a matching
+  verdict.
+
 ## Batched signing/preparation source convergence — Product Assurance review requested
 
 - Windows Product Assurance authorization: `88c8edf2351ab35bc96d70deab1c9ea263d575fe`,

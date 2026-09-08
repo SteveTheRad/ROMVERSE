@@ -1,5 +1,65 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 80da6d9 — packaged Windows App Launchpad retention
+
+- Reviewed checkpoint: `80da6d90`
+- Accepted package/source: `58b7f082` / `738b774e`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — EXACT APK EVIDENCE SURVIVES PACKAGED NAVIGATION**
+
+### Decision
+
+Product Assurance inspected the documentation-only checkpoint and independently verified the
+unchanged package and inert APK fingerprints. The packaged App Launchpad retained the exact local
+APK hash and bounded container evidence across one navigation away and return, exposed the
+contextual connection route, and kept approval and installation disabled. Unavailable optional
+identity readers remained visibly unconfirmed; no evidence, device or execution authority was
+invented. No correction, package rebuild or replay is required.
+
+### Independent evidence and acceptance
+
+- The reused executable independently remains SHA-256
+  `d7eb55e38e2daad6b35a74c6c3f081b7cf83ba9b1b5ecdb0ebfefa4a7b37804a` and retains its previously
+  verified Authenticode **NotSigned** state.
+- The inert 3,146,260-byte APK independently matches SHA-256
+  `56fd9cadd31bdb66ccdee8d8700301f904c9c47681f002dc8d2f5b2d4719a4fa` after the journey.
+- Independent workspace inspection confirms no managed tools, toolchain plan, Guardian audit,
+  execution plan, consent, approval or command manifest was created.
+- The commit changes only `docs/sync/BUILD-STATUS.md`; no package build, source/test change or
+  redundant test occurred. Git whitespace is clean.
+- The protected untracked patch remains byte-identical at 8,272 bytes with SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone/emulator, tool acquisition/install, ADB/Fastboot command, APK/device installation,
+  firmware change, signing, Guardian/Recovery execution, publication, release, Companion source,
+  Knowledge/UI Design Lab, Linux, force-push, lock or relock occurred.
+
+### Approved next bounded Windows task
+
+Continue forward with the same exact package—do not rebuild it—and exercise one fresh isolated
+Windows Guided local-foundation journey through stages 1–4 only. Create one project, import one
+small inert synthetic firmware ZIP, run the existing integrity/container inspection, and prepare
+the isolated working lab. Require the exact source path, size and SHA-256 to remain visible and
+bound throughout; the protected copy must remain byte-identical, all working files must remain
+inside the disposable workspace, and Genesis must finish at stage 5 with its existing actionable
+device requirement. Do not activate device discovery or Forge.
+
+This advances Windows' packaged ROM-building path and is not authorization to recreate repository
+history, rebuild the application, or repeat accepted package journeys. Add no source change unless
+a genuine Windows launch, navigation, state-retention or working-lab defect appears; if one appears,
+make only the minimum correction and focused test, rebuild/relaunch at most once, then complete the
+same journey. Commit/push one handoff and stop for review. Preserve the untracked user patch
+byte-for-byte. Do not acquire/install tools, invoke ADB/Fastboot, operate a phone/emulator, install
+an APK, modify real firmware, sign, publish, release, execute Guardian/Recovery, touch Companion
+source, Knowledge/UI Design Lab or Linux work, force-push, lock or relock.
+
+### Gate status
+
+- Packaged Windows retained-APK App Launchpad journey: **VERIFIED**
+- Packaged Windows Guided local project → working-lab journey: **NEXT BOUNDED WINDOWS TASK**
+- Linux forward stages 8–9 journey: **OWNED BY LINUX; DO NOT DUPLICATE**
+- Physical hardware, installation, execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 1d1a422 — packaged Windows Recovery Archives journey
 
 - Reviewed checkpoint: `1d1a4223`

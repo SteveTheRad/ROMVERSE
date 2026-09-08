@@ -1,5 +1,103 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — Command Console host check and pre-dispatch guard
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `4dd1104` approved the Time Machine missing-project handoff and
+  authorized one fresh no-phone Command Console host-check/allowlist-guard journey.
+- Exact unchanged implementation/package source: `ca983ecd30724723574d7fdd6ae02ca107e3be3e`.
+- Exact unchanged package:
+  `build/linux-pa-health-scan-7100108/frozen/ROMVERSE/ROMVERSE`, 6,323,000 bytes, mode `0755`,
+  SHA-256 `0a47f9af3dea4c0f64983fdd4afc9d1fa01dfcc96185680e94f098b1cb19dde7`.
+- Stage: Stage 1 — v0.2 Golden Foundation, one host-only packaged Command Console function/safety
+  journey. No application source, test or package changed in this checkpoint.
+
+### One bounded packaged Command Console journey
+
+- The unchanged package ran once, unelevated, through Fedora XWayland in fresh workspace
+  `/tmp/romverse-command-console-4dd1104.jwF0cr`, with no simulated or physical phone.
+- ROMVERSE started in Guided Mode. The normal Settings flow selected
+  **Expert Mode · Architect workspace**, displayed the shipped consequential-risk warning, and
+  entered Expert only after **I accept the risk • Enter Expert Mode** was explicitly invoked.
+  **Command Console** then became visible in the normal navigation and opened its exact owner.
+- The existing preset control selected **Host platform**, setting the structured local tokens to
+  `host platform`. **Run check** was invoked once. The console returned the bounded genuine host
+  result `Linux-7.1.13-200.fc44.x86_64-x86_64-with-glibc2.43` without invoking an Android command.
+- After completion, the preset, command field, **Run check**, **Clear**, **Copy**, and
+  **Command safety guide** controls were enabled and the progress indicator was hidden.
+- The command field was then set to the deterministic inert sequence `host unsupported-check` and
+  **Run check** was invoked exactly once. ROMVERSE responded inline:
+  **Guardian blocked this command. Use one of the approved read-only checks.** The console remained
+  usable immediately: the command stayed editable, every action above remained enabled and no
+  progress state appeared.
+- The allowlist guard returned before construction/start of a console worker. It dispatched no
+  user-supplied executable or subprocess, created no console result authority, and added no
+  Guardian audit operation. The only process-backed audit records are normal scheduled ADB and
+  Fastboot host inventories.
+- ROMVERSE closed normally through the desktop window-close action. No package process remained;
+  the runtime log contains exactly one start/clean-close pair, SHA-256
+  `c9a5cb9322615534d8a5ad7255f55888b66be1b4b82c6ab0116e1910585d64c3`, with no fatal trace.
+- The final audit contains 96 successful read-only, no-target host-discovery records: 48 ADB and
+  48 Fastboot `devices -l` probes. Every record is allowed, untimed-out, return code 0 and
+  serial-selector-free. Neither Command Console action appears in the audit because the permitted
+  host check used local platform metadata and the unsupported sequence was rejected pre-dispatch.
+- The workspace retains zero project, snapshot, backup, APK, build and working-ROM files and no
+  Activity or Live Console ledger. The test-induced global experience setting was restored to its
+  original Guided value after clean close; this did not relaunch the package or alter runtime
+  evidence.
+
+### Platform observation
+
+- Enabled background online intelligence fetched the public Google Play supported-device catalog
+  into this isolated temporary workspace while the app was open: 4,758,014 bytes, 53,746 entries,
+  SHA-256 `eebdc5895a2b38326470a3e475a09a2baab9d4f69f69b0f084664ef57a1decd4`. Its receipt declares
+  build, flash and execution authority as `none`. The fetch was independent of Command Console and
+  did not create device or operation authority.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** no new behavior; this checkpoint verifies the shipped host-only check and exact
+  pre-dispatch allowlist guard against the packaged Fedora runtime.
+- **Simulated/Tested:** one genuine packaged Fedora no-phone Command Console journey. No test suite
+  was run or double-counted because no source changed.
+- **Hardware Verified:** no. No Android phone was connected, discovered, selected or operated.
+- **Released:** no. The package remains an unsigned local development artifact.
+- Blockers/failures: none in the bounded journey. The host check completed visibly and the
+  unsupported sequence was rejected before console worker/subprocess creation.
+- Guided friction/dead ends: Expert entry required one explicit risk acceptance; Command Console
+  then opened through normal navigation, restored controls after success, and left the exact retry
+  surface immediately usable after rejection. No modal or silent stop remained.
+- Guardian/Recovery/safety: the console remains a closed structured-probe surface, not a shell.
+  No arbitrary command, Android command, target, approval, consent, Recovery incident, write or
+  execution authority was created. UNKNOWN/no-blind-retry, exact-device and exact-incident
+  evidence, independent verification, Guardian-only authority and permanent no-relock remain
+  unchanged.
+- Linux/Fedora: genuinely verified on Fedora 44/XWayland. Windows and physical Android were not run.
+- Feature freeze: compliant evidence-only Stage 1 check; no feature, UI, allowlist, format, Device
+  Pack, adapter, knowledge behavior or production capability changed.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all remaining gates.
+- External actions: this scoped branch is pushed normally with this documentation-only handoff.
+  Normal no-target read-only ADB/Fastboot inventory and one background public catalog download
+  occurred. The test-induced experience setting was restored to Guided after close. No phone,
+  simulated device, firmware/APK/project work, APK/system installation, arbitrary command,
+  backup/restore, build/sign/flash, Guardian/Recovery execution, publication, release, merge,
+  force-push, lock or relock occurred. Protected Companion and Windows launcher files were not
+  modified, staged or committed.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another consequential slice until the
+verdict for this exact Command Console host/guard checkpoint is recorded in
+`docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm the genuine host result, restored controls, exact inline rejection, absent console audit
+  action and worker-before-allowlist boundary satisfy the Command Console function/safety gate.
+- Confirm the automatic zero-authority public catalog refresh is an unrelated background
+  observation and does not require replay or broaden this host-only checkpoint.
+
 ## Linux product checkpoint — Time Machine reaches the exact missing-project owner
 
 ### Authoritative checkpoint and scope

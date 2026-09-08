@@ -1,5 +1,62 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: dccf673 — automatic exact-project Recipes preparation
+
+- Handoff commit: `dccf673dfa379f32b57bf089b6150c3a1495b786`
+- Implementation commit: `18a0537992b04a8e5e5373fe069da12f70af24a6`
+- Approved base: `b13481a62fe4d7abd0d2986550318d860cf88b38`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — SAFE LOCAL PREPARATION RESOLVES AND RESUMES**
+
+### Decision
+
+Product Assurance inspected the complete source/test diff and independently reran the five exact
+affected journeys. Recipes now carries one exact inspected project through the existing bounded
+working-copy and contained-tree producers, revalidates each producer result, and automatically
+resumes Recipe Forge only after current readiness succeeds. The path creates no recipe and gains no
+build, Guardian, device or execution authority.
+
+The whole-sequence storage admission correctly includes a missing isolated baseline, extracted
+tree and retained reserve. Critical findings, missing evidence, insufficient resources, project
+drift and producer failure stop safely. A known producer exception remains `FAILED`; ambiguous or
+interrupted work retains the existing durable recovery/`UNKNOWN` treatment. No automatic retry is
+introduced and verified prior progress is preserved.
+
+### Independent evidence and acceptance
+
+- Product Assurance reran the exact success, known-failure, resource-denial, adjacent Command Deck
+  and already-ready ROM Studio journeys against committed source: **5/5 passed**.
+- Ruff check and format verification passed for both changed files; Git whitespace validation
+  passed; the branch and working tree were clean at review.
+- Acceptance criteria are satisfied: exact-project binding, resource admission, visible bounded
+  progress, independent result reload, automatic destination resume, preserved partial progress,
+  direct failure continuation, and zero blind retry.
+- No phone, ADB/Fastboot, APK, firmware mutation, build/flash, signing, publication, release or
+  bootloader relock occurred. Windows, Knowledge/UI Design Lab, protected Companion and unrelated
+  work were untouched.
+
+### Approved next bounded Linux task
+
+Apply the same proven local-preparation continuity to the existing **Pre-Build Simulation** request
+for one exact project with a protected original and valid inspection but no contained working tree.
+Reuse or minimally generalize the current bounded coordinator; do not duplicate a second divergent
+preparation engine. Automatically perform only the admitted working-copy/extract prerequisites,
+revalidate each result, then resume the original Simulation destination and show its current dry-run
+readiness. A known failure, ambiguity, drift or insufficient resources must preserve progress,
+provide the direct existing Source Lab continuation and never retry automatically.
+
+Verify one successful resume and one bounded failure/admission-stop journey plus only directly
+affected focused tests. Do not alter Simulation semantics, start a build, create a recipe, infer
+device compatibility, touch Windows/Knowledge/UI Design Lab/Companion work, operate a phone, run a
+broad suite, package, publish or release. Commit/push one bounded checkpoint and stop for review.
+
+### Gate status
+
+- Recipes safe local prerequisite auto-resolution: **VERIFIED**
+- Pre-Build Simulation equivalent continuity: **NEXT BOUNDED LINUX TASK**
+- Consequential device action: **UNCHANGED — CONSENT AND GUARDIAN GOVERNED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 06eae98 — connected Recipes prerequisite handoff
 
 - Handoff commit: `06eae98bbc66f2b19662bf728ac416b070d86633`

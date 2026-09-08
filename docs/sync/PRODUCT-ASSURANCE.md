@@ -1,5 +1,59 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: bf09410 — current Windows development artifact
+
+- Handoff commit: `bf09410713993b7d65210b272fd01dab4b280888`
+- Build source: `f6b9d785d60ceaccbab3afefa88cdee8b6e7ef12`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — CURRENT WINDOWED DEVELOPMENT BUILD LAUNCHES CLEANLY**
+
+### Decision
+
+Product Assurance inspected the documentation-only handoff and independently verified the exact
+artifact on the Windows host. The existing one-folder pipeline produced a current runnable
+development build once; no frozen-only defect was reproduced and no source/test rewrite was
+justified. The artifact is correctly unsigned and its PE subsystem is `WINDOWS_GUI`, so the normal
+application executable does not create a console window.
+
+### Independent evidence
+
+- Product Assurance rehashed `ROMVERSE.exe`: **6,301,671 bytes**, SHA-256
+  `828547516bd7bf8ea75479e80233bedf3545fa2d78b947a7d99ebf62fa563db9`, Authenticode
+  `NotSigned`, PE subsystem **2**.
+- The bundle independently enumerates **305 files / 164,626,006 bytes**, with zero empty files and
+  zero `icu*.dll` files.
+- The native 1920×1080 capture was independently inspected. The responding 1440×900 ROMVERSE
+  window is readable and unclipped, shows the truthful `Resolve Platform Tools` continuation for
+  its fresh workspace, and has no accompanying console window.
+- The frozen fault log contains only `runtime started` and `runtime closed cleanly`; the process
+  accepted a normal close and recorded no runtime exception.
+- The Windows checkout remains clean except for the byte-identical protected untracked patch. No
+  phone/emulator, ADB/Fastboot command, Recovery, flash, wipe, unlock, root, relock, APK install,
+  production signing/trust, publication or release occurred.
+
+### Approved next bounded Windows task
+
+Using this exact frozen development artifact and one fresh disposable no-phone workspace, prove the
+packaged user journey from `Resolve Platform Tools` through the existing Forge Arsenal setup to
+verified managed-tool activation and automatic return to the calm `Waiting for device` state. Reuse
+the already approved pinned archive/cache boundary; do not redownload or rebuild the unchanged
+artifact. Exercise the real frozen UI/runtime and production receipt validation, activation and
+Device Engine handoff. Record before/after visible states and require zero serial-selected or
+mutating device commands and zero retry.
+
+If one genuine frozen-only missing-resource, packaging or resume defect appears, apply the minimum
+source/package correction and rebuild once; otherwise change no source. Do not connect a phone,
+operate ADB/Fastboot beyond the final unbound read-only discovery already inherent to this journey,
+overlap Linux/Knowledge/UI Design Lab/Companion work, run a broad suite, sign, publish or release.
+Commit/push one bounded checkpoint and stop for review.
+
+### Gate status
+
+- Current Windows source and windowed development artifact: **VERIFIED**
+- Packaged missing-tools recovery and automatic no-device resume: **NEXT BOUNDED WINDOWS TASK**
+- Production signing, physical hardware, execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: dbe160e — Windows missing-tools recovery loop
 
 - Handoff commit: `dbe160ece1112cc7b13644bbace7a6014e6fb002`

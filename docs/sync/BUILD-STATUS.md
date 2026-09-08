@@ -6,7 +6,9 @@
 
 - Product Assurance authorization/base:
   `46cda9e3780857d7aa33af02926dac0cf1aefa7f` — `Approve popsicle Fastboot identity round trip`.
-- Evidence checkpoint: the scoped commit containing this handoff on
+- Evidence checkpoint:
+  `d02d459aae302326d5a5d2cfc29701a8d313887b` — `Record fail-closed Fastboot transition evidence`.
+- Final handoff: the follow-up commit containing this exact identifier on
   `linux/stage1-desktop-readiness`.
 - Stage: Stage 1 — v0.2 Golden Foundation, bounded physical device-mode transition and Fastboot
   identity acceptance.

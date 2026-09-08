@@ -1,5 +1,38 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 427ffa3 — explicit ambiguous ROM Mission ownership
+
+- Handoff commit: `427ffa3c8e9baaeb2615d5d9976d56133bb27c71`
+- Implementation commit: `f869f59e97aab0854ed8456b8c0dbbabe08305a7`
+- Approved base: `4e9c772`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — EXPLICIT LOCAL PROJECT CHOICE**
+
+### Decision
+
+Product Assurance inspected the complete chooser and focused test diff. A single non-editable local
+choice is proportionate only when multiple saved projects share the exact current Pack and the
+retained ROM Studio project is unrelated. The displayed saved name, exact project ID and protected
+source state provide enough context to choose without creating or mutating anything. Cancellation
+leaves the current project and Device Intelligence context unchanged, starts no worker, and returns
+a truthful message. The one-match automatic rule and zero-match no-guess rule remain intact.
+
+The reported three focused widget journeys are sufficient for this bounded local context decision.
+Project selection still passes through exact device/DNA/Matrix validation and grants no
+compatibility, build, consent, Guardian or execution authority. Feature freeze,
+UNKNOWN-on-uncertainty, no blind retry and permanent no-relock are preserved. No hardware,
+installation, signing, publication or release evidence is claimed.
+
+### Approved next bounded task
+
+Close the adjacent zero-match Guided friction. When no saved project matches the current exact
+Pack, route directly to ROM Studio's existing new-project/Genesis stage while retaining the current
+Pack as a suggestion only. Do not create or alter a project until the user completes the existing
+local project-creation action, and do not treat Pack suggestion, Device DNA or historical evidence
+as compatibility or execution authority. Preserve the unrelated saved project. Prove the real
+zero-match button journey and cancellation/return state with focused tests only. Do not operate a
+phone, duplicate Windows work, merge the UI Design Lab or broaden the feature freeze.
+
 ## Reviewed checkpoint: f66c79a — exact saved-project ownership for ROM Mission
 
 - Handoff commit: `f66c79abf1296c296859454fba76384e02b21bce`

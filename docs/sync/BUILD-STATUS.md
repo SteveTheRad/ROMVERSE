@@ -1,5 +1,132 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux packaged checkpoint — simulated Recipe Forge transaction completes stages 6 and 7
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `455fdea` approved packaged checkpoint `e385f9c` and authorized
+  one continuous local-only simulated Recipe Forge → transactional validation journey using the
+  exact already-built package. The exercised application source remains `3dfe7f2`, containing the
+  approved Guided correction `bdecefc`; no application source or test changed in this checkpoint.
+- Stage: Stage 1 — v0.2 Golden Foundation, packaged acceptance evidence for existing Guided stages
+  6 and 7 only. No later Guided stage was operated.
+- The exact accepted unsigned package was reused without rebuilding:
+  `build/linux-pa-guided-consent-3dfe7f2/frozen/ROMVERSE/ROMVERSE`, 6,325,072 bytes, mode `0755`,
+  SHA-256 `0652664ee0c85a15ddc60deae76c264abdc53cdca0f21811a038287940396b55`.
+
+### One continuous packaged simulation journey
+
+- ROMVERSE launched once against fresh disposable root `/tmp/romverse-pa-recipe-im2GgwOn`, with
+  its process `PATH` set to an empty directory, private configuration, offline/community research
+  disabled, reduced motion enabled and the existing explicit `--development-device-simulation`
+  boundary. No Device Engine or external Android executable was available to the process.
+- The only source was an inert 181-byte ZIP containing `system/build.prop`; protected source and
+  original synthetic file both retain SHA-256
+  `680f56c3c6741fb7ae8690a787d2b9ace87d22cbcfa18ea10b040b343b15bf7c`.
+  Project `linux-simulated-recipe-validation-307f7af6` had its source inspected, working copy and
+  contained tree prepared before launch. No real firmware or Android device was used.
+- Genesis stage 5 ran the explicit development simulation once. The UI visibly rendered
+  **SIMULATION ONLY • NOT HARDWARE VERIFIED**. Device DNA records `device.simulation`, keeps
+  `guardian_flash: UNCONFIRMED`, and has profile digest
+  `5fc5fca9560ff7ef8e34d90a0ef6b23f336bdeb20cc56fd3a8465a75d8001ce7`.
+  Compatibility Matrix keeps Guardian Flash `Unknown`, remains advisory-only and has digest
+  `bb3ba1f15548dee0d6e2cb2e4ca43e9fba001f9a7a9308fa644be74c92904380`.
+  Both records permanently prohibit bootloader relocking and grant no physical authority.
+- Stage 6 opened the existing Recipe Forge and created one bounded reversible operation:
+  **Set simulated ROM identity**, target `system/build.prop`, property
+  `ro.romverse.stage=validated`. The visible review showed one clear change from `base` to
+  `validated`, conflict scan `CLEAR`, working-tree-only scope and execution locked until explicit
+  approval. The saved schema-2 Recipe reloaded at digest
+  `eb068402fe625bc9928bf30ecee04d13eeff567c21196152825a2e939fb0d88e`; Recipe file SHA-256
+  `fba0a5cbea2a4b6073af3b498defd0182518431cb0969c460982057509dbbbda`.
+- Stage 7 displayed the existing exact local Recipe confirmation, including Recipe digest, one
+  `set property → system/build.prop` action, current-tree/input binding, automatic snapshot,
+  result verification, automatic restore-on-failure contract, and explicit protected-original and
+  phone exclusion. The confirmation was accepted once and the existing transactional worker ran
+  once.
+- ROMVERSE reported **Recipe complete and verified • 1 step, 1 change**, advanced Genesis to stage
+  8 with 7/15 stages verified, then saved and exited Genesis. The application closed normally after
+  the one continuous session; runtime SHA-256
+  `c9a5cb9322615534d8a5ad7255f55888b66be1b4b82c6ab0116e1910585d64c3` contains one
+  start/clean-close pair.
+
+### Durable transaction evidence and verification without double-counting
+
+- The exact-bound schema-2 run receipt independently reloads successfully against the current
+  Recipe, tree and snapshot root. Receipt digest:
+  `f5dbadad88d42490b1e36d5dfea54cfff8a6c32bf084f61b863242a0d11fac5a`; receipt-file SHA-256:
+  `57fc3c8ed2fd383c7c2e4c3b84435a632c14b55a62e5c71f7962e815d3967702`.
+- The receipt is `success: true` and `rollback_available: true`. It binds tree-before
+  `53ed9a33224a1a4f69fe1fd86661d1053b0cb34cd3c65a2b46c6cabfafff5b2c` to tree-after
+  `d9563d3b426e50ea8cf8a8d39c3eccbc935bb0735d8c4f2c07477a3a1e9ab596`, and target-before
+  `b88285d9ac964396623fca7fbf4492f94b19d5603a0472e5f3c960123a52d6da` to target-after
+  `5d1bada0c7760b6ea9cc9937774d8b77ccb01132c4475dd0a660bc355eb18eff`.
+- Exactly one independently loadable Recipe snapshot exists:
+  `20260908T213920-6d8d8db0`, digest
+  `b161b38a00f7a7c484e919b0bf4b35cd090ec0177ce6ade3317a376e6b1248a1`.
+  Its manifest file SHA-256 is
+  `b57d00bb2633d1d76d019b82d6bc43696868e8dc9af3431b19e8119a8ab1ef92`; its private backup of
+  `system/build.prop` matches the exact before hash above. The successful path did not need to
+  invoke automatic restoration; the visible contract retained its restore-and-actionable-retry
+  behavior for any failure.
+- The working property file contains only the intended `validated` property plus the unchanged
+  synthetic product name and matches the exact target-after hash. The protected ZIP reverified as
+  `Integrity verified` at its unchanged source hash.
+- Guided mission state is `selected_stage: debloat`, `recipe_validated: true`, no skip, no install
+  request and no last error; record digest
+  `ba3093ef99e5753548d89a62ec1a319d8655406b48e4d0a787c47d73c3ae72b7`.
+- The integrity-checked Live Console ledger contains 10 records representing paired running/final
+  evidence: 4 running, 3 succeeded and 3 attention; file SHA-256
+  `9d824b0606d50e042ab0cd312e25c537453b3b2e455b8142f738f27f21153125`.
+  The integrity-checked Activity ledger contains exactly two successful durable outcomes: Recipe
+  applied/verified and Project Vault checkpoint recorded; file SHA-256
+  `8635ff317f1d36a62c3be365b945242395b74ec41ad0ce496270819095b740f5`.
+- No pytest or broad regression was rerun because source was unchanged and Product Assurance
+  authorized one package/one journey only. This checkpoint contributes exactly one packaged
+  simulated acceptance journey and does not double-count previously accepted tests.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** no new implementation; existing Recipe Forge, exact review, approval-bound
+  transaction, rollback snapshot, receipt reload and Genesis continuity were exercised unchanged.
+- **Simulated/Tested:** one genuine packaged Fedora GUI journey with explicitly simulated Device DNA
+  and a real local contained-tree transaction. Simulation is not hardware evidence.
+- **Hardware Verified:** no. No phone or emulator was connected, discovered, scanned or operated.
+- **Released:** no. The reused package is unsigned, ignored and local only.
+- Blockers/failures: none in the bounded journey. The successful transaction did not invoke the
+  failure-restoration branch; no claim beyond its existing visible contract and accepted source
+  behavior is added.
+- Guided friction/dead ends: stages 6 and 7 formed one continuous route with a single Recipe design,
+  exact diff, one consequential local confirmation, durable result and automatic continuation to
+  stage 8. No extra prompt chain, inert control or loop appeared.
+- Guardian/Recovery/safety: Recipe approval was exact-project/tree/input-bound and authorized only
+  the contained local mutation. It created no live target, Guardian/Recovery execution, flash,
+  install or signing authority. No Guardian audit or Recovery/flash/install/build-plan artifact was
+  created. UNKNOWN/no blind retry, exact-device evidence, independent verification, Guardian-only
+  physical authority and permanent no-relock remain unchanged.
+- Linux/Fedora: package and journey genuinely ran on Fedora 44/XWayland. Windows and physical
+  Android were not run.
+- Feature freeze: compliant verification-only use of existing Stage 1 functionality; no feature,
+  adapter, Device Pack, product surface or execution capability changed.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and remaining gates.
+- External actions: this documentation-only handoff is committed and pushed normally. No package
+  rebuild, download, tool acquisition/removal, system/APK installation, ADB/Fastboot invocation,
+  phone/emulator operation, real firmware/APK action, signing, Guardian/Recovery execution,
+  publication, release, merge, force-push, lock or relock occurred. Companion, Knowledge/UI Design
+  Lab, Windows and unrelated work were not modified, staged or committed.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another consequential slice until the
+verdict for this exact packaged simulated Recipe transaction is recorded in
+`docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm the exact synthetic source/Recipe/tree/snapshot/receipt bindings, visible single local
+  approval, clean stage-8 continuation and absence of physical or Guardian authority satisfy the
+  authorized stage-6/7 acceptance journey.
+
 ## Linux packaged checkpoint — Guided Genesis tool setup remains consent-bound
 
 ### Authoritative checkpoint and scope

@@ -1,5 +1,95 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — exact inert Guided Build Readiness plan
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `7e23971053ed4c2da10aee3d575afb6720885b19` approved Guided
+  Toolchain continuity and authorized only the existing Build Readiness stage.
+- Implementation commit: `aaadeac6a622b4fca95980904c8ac1a4e454d1cb` — `Bind Guided build
+  plans to exact evidence` on `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation, existing simulated Guided Build Readiness only.
+- Exact files: `src/romverse/rom/builds.py`, `src/romverse/ui/guided_mission.py`,
+  `src/romverse/ui/rom_studio.py`, `tests/test_rom_builds.py`, and
+  `tests/test_rom_studio_ui.py`.
+
+### Concrete defects and bounded correction
+
+- Guided Build Readiness previously produced the older generic dry-run plan. It bound the current
+  tree and optional Recipe but did not seal the protected source SHA-256, exact source-required
+  host tools or the user's unchanged/unrooted choices. It also did not make its local-only,
+  non-flashable and zero-execution-authority contract self-verifying.
+- A schema-3 Guided plan now seals the protected source, current tree, exact required-tool evidence
+  manifest, current Guided choice digest and its own canonical plan digest. It explicitly persists
+  `local_only=true`, `flashable=false`, `execution_locked=true` and
+  `execution_authority=none`.
+- Independent verification rechecks protected-source integrity and current Guided choices, reloads
+  the sealed private toolchain evidence, and freshly fingerprints the current required tools before
+  accepting the current tree. Tool, choice, source, plan or project-identity drift fails closed.
+- The normal Command Deck dry-run retains its existing schema-2 compatibility and one-pass
+  verification. It can safely read and verify a schema-3 Guided plan without replacing it.
+- The final successful plan verification previously saved the mission before recalculating its
+  evidence-derived next stage. Guided therefore appeared to advance to Build & Sign but durably
+  restored on completed Build Readiness. It now selects and then saves the truthful next stage.
+- No Forge bundle, candidate ROM build, signing operation, Guardian handoff or device operation was
+  added or started.
+
+### Verification without double-counting
+
+- Final directly affected regression selection: **31/31 passed**. This comprises the complete
+  build-plan and Guided mission/state suites plus the exact simulated Device DNA → unchanged route
+  → Toolchain → Build Readiness journey, forged simulation-evidence rejection and existing Command
+  Deck simulation handoff.
+- The representative real-widget Qt journey used deterministic simulated device and fake local
+  tool fixtures. It created and independently verified one exact source/tool/choice-bound schema-3
+  plan, preserved the protected original and current tree, advanced visibly and durably to Build &
+  Sign, and created no Forge bundle, boot observation or Guardian directory.
+- Adversarial coverage rejects changed Guided choices, freshly changed tool executables and a
+  tampered plan attempting to become flashable. Existing working-tree and symbolic-link drift
+  checks remain passing.
+- Python compilation, Ruff lint and Git whitespace validation passed for all five changed files.
+  Earlier overlapping individual runs are not added to the final total. No broad suite, CI matrix,
+  candidate build, package build or native application smoke was run.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** exact evidence-bound schema-3 Guided plan, fail-closed independent revalidation,
+  explicit inert authority contract and truthful final-stage persistence.
+- **Simulated/Tested:** deterministic offscreen Qt journey and **31/31** non-overlapping affected
+  checks.
+- **Hardware Verified:** no. Device evidence remains explicitly simulated.
+- **Released:** no.
+- Blockers/failures: none after the bounded correction. Build & Sign is now the truthful next stage
+  but is outside this checkpoint and has not started.
+- Guided friction/dead ends: the completed Build Readiness stage no longer restores as the current
+  step after restart. The normal plan/verify sequence adds no user decision or modal.
+- Guardian/Recovery/safety: the plan grants no build, signing, phone, Guardian, consent, flash or
+  execution authority. Exact-device evidence, Guardian-only execution, UNKNOWN-on-uncertainty, no
+  blind retry, same-incident Recovery, independent verification and permanent no-relock remain
+  intact.
+- Linux/Fedora: Python and offscreen real-widget verification passed. Windows was not run. Physical
+  Android was not connected or operated.
+- Feature freeze: compliant minimum correctness and continuity work for an approved existing Stage
+  1 boundary; no new screen, format handler, Device Pack, adapter, build capability or execution
+  route was added.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all release gates.
+- External actions: the scoped implementation and this handoff will be pushed normally to the
+  existing Linux branch. No network download, phone, ADB/Fastboot, APK, firmware/device operation,
+  candidate build, system/global installation, signing, publication, release, merge, force-push,
+  lock or relock occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin Build & Sign or another consequential
+slice until the verdict for `aaadeac` is recorded in `docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm schema-3 plan identity and fresh verification bind the exact source, current tree,
+  source-required tools and unchanged/unrooted choices without granting downstream authority.
+- Confirm schema-2 Command Deck compatibility, truthful durable Build & Sign continuation and the
+  31/31 directly affected selection are sufficient for this bounded checkpoint.
+
 ## Linux product checkpoint — Guided Toolchain resolution continuity
 
 ### Authoritative checkpoint and scope

@@ -1,5 +1,55 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: cf42e1a — Guided Toolchain resolution continuity
+
+- Handoff commit: `cf42e1ab9b4d7dc483bccffa3598107e88702361`
+- Implementation commit: `5976ced726f4297cee7032a88f2b5d7d2defe711`
+- Approved base: `3295905`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — MANAGED TOOLCHAIN REPAIR NOW COMPLETES THE GUIDED STEP**
+
+### Decision
+
+Product Assurance inspected the exact four-file correction and independently reran its 28-test
+affected selection. Automatic managed resolution now closes its own completed setup only when the
+existing automatic-download preference authorizes that behavior, then clears stale error state and
+persists the evidence-derived Build Readiness stage. Manual preference remains manual; unresolved
+dependencies remain on Toolchain with one precise durable blocker.
+
+### Independent evidence and acceptance
+
+- Independent affected verification passed **28/28**: complete Guided mission/state coverage plus
+  simulated continuation, managed resolver continuation, fail-closed missing-tool handling, empty
+  automatic setup closure and manual-preference preservation.
+- The bounded real acquisition verified host Python and AVBTool and installed only receipt-verified
+  Payload Dumper 2.0.2 in a disposable managed directory, without admin/system/global changes.
+- The corrected journey verifies exactly the source-scoped tools, persists Build Readiness and
+  creates no build plan, live target, boot observation or Guardian authority.
+- Exact project/source, unchanged unrooted choice and simulation-only label remain intact.
+- Ruff lint and Git whitespace validation passed; the branch is clean/synchronized. No phone,
+  ADB/Fastboot, APK, actual candidate build, signing, publication, release or relock occurred.
+
+### Approved next bounded Linux task
+
+Continue the same simulation-labelled Guided journey through the existing **Build Readiness** stage
+only. Invoke the normal current action once and require ROMVERSE to create and independently verify
+one exact source/tool/choice-bound build plan while preserving the immutable original and current
+working tree. The resulting plan must remain explicitly local/non-flashable and simulation must not
+satisfy any live-device, Guardian, consent or execution gate.
+
+If existing evidence is insufficient, retain one precise actionable blocker instead of guessing.
+If one concrete plan, verification, persistence, routing or truth-label defect appears, apply only
+the minimum correction with directly affected checks. Do not execute the candidate build, modify a
+phone, dispatch ADB/Fastboot, install APKs, sign, package the desktop app, run a broad suite or grant
+execution authority. Commit/push one bounded checkpoint and stop for review.
+
+### Gate status
+
+- Guided managed Toolchain continuity: **VERIFIED**
+- Exact local/non-flashable Build Readiness plan: **NEXT BOUNDED LINUX TASK**
+- Physical hardware, signing, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 0f0d1d6 — one-choice unchanged Guided route
 
 - Handoff commit: `0f0d1d6831b6018fe384e12dcb1c63c714c6520c`

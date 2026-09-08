@@ -17,6 +17,34 @@ the user to understand Android tooling, search for an error explanation or navig
 departments to escape a failure. Minimize disruption; do not promise that every hardware failure can
 be repaired or every operation can safely resume.
 
+## Non-negotiable autonomous resolution promise
+
+ROMVERSE does not stop at detecting an error, explaining it or routing the user to another screen.
+Its normal closed loop is **detect → investigate → derive an evidence-backed solution → obtain any
+genuinely required authority → execute the permitted solution → verify the result → resume the
+original goal**. The exact device, firmware, project, mission, incident and completed progress remain
+bound throughout that loop.
+
+ROMVERSE automatically performs safe, reversible host, workspace, dependency, inspection,
+preparation and application repairs when their prerequisites and outcomes are verifiable. It must
+not hand the user technical commands, PATH repair, dependency hunting, log interpretation or
+multi-screen recovery work that the product can safely perform itself.
+
+For a consequential phone operation, the user chooses the goal and provides one meaningful consent
+for the exact reviewed plan and consequences. Guardian then remains the execution gate, but the user
+is not expected to babysit individual commands or manually recover routine interruptions. Within the
+approved scope, ROMVERSE executes the bounded plan, observes every result, adapts through a validated
+permitted route where evidence supports it, performs approved Recovery and verifies the final state.
+A materially different consequence, new destructive action, missing physical action, unavailable
+privilege or unprovable safety boundary requires a new user decision.
+
+Automation never means guessing, blind retry or treating a returned command status as success.
+Uncertain outcomes remain `UNKNOWN`; ROMVERSE preserves durable progress, re-observes the exact
+state, selects a different supported route when justified and resumes only from a proven boundary.
+When no safe solution exists, ROMVERSE retains the work, explains the precise limitation and
+presents the best connected next action. That is a bounded safety outcome, not an unexplained dead
+end.
+
 ## Resolved decisions
 
 - Only **Guided** and **Expert**. Earlier Beginner/Standard/Advanced three-level proposals are

@@ -17,6 +17,14 @@ Ideas**. A requirement appearing here does not prove that it is implemented or v
 ## Product and Guardian invariants
 
 - Make ROM work understandable to beginners without hiding technical truth from experts.
+- ROMVERSE owns the complete problem-resolution loop: detect, investigate, derive an evidence-backed
+  solution, obtain only genuinely required authority, execute the permitted solution, verify the
+  result, and resume the user's original goal. Do not stop at explanation or routing when ROMVERSE
+  can safely perform the repair itself.
+- Automatically perform verifiable reversible host, workspace, dependency, inspection, preparation,
+  and application repairs. For an exact consented consequential plan, Guardian remains the gate
+  while ROMVERSE performs the approved mechanics and recovery without per-command user babysitting.
+  A materially different consequence or unprovable boundary requires a new decision.
 - Preserve projects, protected sources, recipes, builds, backups, and user data by default.
 - Never simulate progress, completion, diagnosis, verification, or device state.
 - Apply an automatic fix only when its prerequisites, scope, safety, and outcome are verifiable.

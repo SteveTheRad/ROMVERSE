@@ -1,5 +1,80 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — exact saved-project ownership for ROM Mission
+
+### Authoritative checkpoint
+
+- Product Assurance approval/base: `47d5055` — approved exact Device Intelligence mission
+  handoff.
+- Tested implementation: `3ec7026f9168b3ad7a5d123129ff98723406d242` — `Select exact saved ROM
+  mission project`.
+- Final handoff: the follow-up commit containing this document on
+  `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation, adjacent existing Device Intelligence Hub
+  `Start ROM Mission` saved-project ownership journey.
+
+### Reproduced gap and exact correction
+
+- First-use/no-project behavior was inspected and remains functional: Genesis begins at its
+  existing `New project` stage and a newly created project receives the selected device's
+  suggested Pack.
+- The next adjacent real gap occurred when ROM Studio retained an unrelated current project while
+  exactly one saved project matched Device Atlas's current Pack. `Start ROM Mission` opened
+  Genesis on the unrelated project even though the correct saved owner was unambiguous.
+- Immediately before the already-approved device/DNA/Matrix handoff revalidation, ROMVERSE now
+  checks authoritative saved projects. Only when the current project is Pack-mismatched and
+  exactly one saved project has the current exact Pack ID does it select that project and refresh
+  its current Device DNA/Compatibility evidence. Zero or multiple matches are not guessed.
+- Genesis then receives the existing independently validated selected device, current DNA/Matrix,
+  Pack report and exact saved project. No project is created, modified, associated or executed by
+  the selection itself.
+
+### Verification without double-counting
+
+- Focused real-widget journey: **1/1 passed** with a temporary isolated workspace, sanitized
+  synthetic phone evidence, one deliberately unrelated selected project and one exact matching
+  saved project. The real button selected the matching owner, refreshed advisory evidence and
+  entered Guided with `guardian_flash: Unknown`; no worker started.
+- Affected navigation regression: **65/65 unique tests passed** in one combined run. The focused
+  journey is included in this total and is not counted again. It also retains first-use,
+  stale-report, exact-device substitution, owner-return and existing Device Atlas/Nexus handoffs.
+- Ruff static and format checks: **2/2 changed implementation/test files passed**.
+- `git diff --check`: passed.
+- No broad suite, package build, screenshot loop or physical-device test was run.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** unambiguous saved-project selection for the existing ROM Mission entry.
+- **Simulated/Tested:** sanitized synthetic Qt widget journey and 65 affected tests.
+- **Hardware Verified:** none for this checkpoint.
+- **Released:** no.
+- Guided friction: the user no longer lands in a clearly unrelated project when one exact saved
+  Pack owner exists. Ambiguous ownership is not guessed. No new prompt or confirmation was added.
+- `UNCONFIRMED` remains advisory `Unknown`; project convenience grants no compatibility, consent,
+  Guardian or execution authority.
+- Exact-device/DNA/Matrix validation, Guardian separation, UNKNOWN-on-uncertainty, no blind retry,
+  same-incident Recovery, independent verification and permanent no-relock remain unchanged.
+- Fedora/Linux: actual offscreen Qt journey verified. Windows: not run or claimed; Windows work was
+  untouched.
+- Feature freeze: compliant minimum correction to an existing Stage 1 journey. v0.2 Golden
+  Foundation remains **CLOSED** pending Product Assurance and release blockers.
+- Protected Companion work, Windows work, Knowledge work, UI Design Lab, website and unrelated
+  files were not modified, staged, discarded or committed.
+- Physical phone access, ADB/Fastboot invocation, APK action, firmware operation, build/flash/boot,
+  partition/slot/wipe/unlock/lock/relock, installation, signing, publication and release: **none**.
+- External action after verification: one normal push of the scoped commits to the existing Linux
+  branch only; no force-push.
+
+### Next proposed Build task
+
+Stop for Product Assurance review. If approved, inspect the next repository-defined adjacent
+Device Intelligence journey without broadening Stage 1 or crossing a consequential boundary.
+
+### Product Assurance Review Requested
+
+- Confirm that auto-selecting only one exact Pack-matching saved project is the correct
+  zero-friction ownership rule, while leaving zero/multiple matches unguessed.
+
 ## Linux product checkpoint — Device Intelligence starts an exact ROM Mission
 
 ### Authoritative checkpoint

@@ -1,5 +1,80 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 6fc79f65 — Genesis stage-five tool handoff
+
+- Reviewed commit: `6fc79f65769366f3b31ddea7244bb9119bb05158`
+- Accepted correction/package source: `6fc79f65769366f3b31ddea7244bb9119bb05158`
+- Approved base: `2ba78b0a3c689be360e1008e2fcb4dba1d188c9d`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — INERT STAGE-FIVE ACTION NOW REACHES FORGE AND RETAINS RETRY**
+
+### Decision
+
+Product Assurance inspected the exact source/test diff and independently reran the three focused
+native Windows Qt cases plus Ruff. The defect was real: when Device Engine was unavailable, the
+visible stage-five scan action did not reach the existing Platform Tools owner. The minimum
+correction preserves the exact project/source context, invokes Forge Arsenal for only ADB and
+Fastboot, resumes one pending scan after fresh verification, and otherwise restores an immediate
+stage-five retry without fabricating evidence. No correction to this code is required.
+
+The inability to complete a packaged scan is not a creator-decision gate for this checkpoint.
+Targetless ADB/Fastboot inventory remains outside the current Windows task's explicit command
+boundary, so packaged no-device discovery is deferred without blocking acceptance of the corrected
+handoff. The foreground LegionSpace obstruction is environmental and occurred before input; it
+changed no ROMVERSE state.
+
+### Independent evidence and acceptance
+
+- Independent native Windows verification passed **3/3** focused tests: successful Forge repair
+  resumes exactly one scan request; declined repair retains stage 5 and an enabled retry; the
+  existing direct-scan/Device-DNA path remains intact. Ruff passed both changed files.
+- Source review confirms the repair requests only `ADB` and `Fastboot`, carries the current project
+  ID and protected-source digest in its purpose, coalesces an activation scan through MainWindow's
+  existing guard, and creates no device/build/flash state itself.
+- The corrected unsigned executable independently matches SHA-256
+  `5784de7a491c0b151ddb727beecf64c7ca4132760c5a687d9a22981e172899bc` and Authenticode
+  reports `NotSigned` as expected for this development artifact.
+- Project, Guided, inspection, Device DNA, Matrix, working-copy, tree-index and blocked route hashes
+  remain byte-identical to the approved checkpoint. Workspace tools remain empty, no Guardian audit
+  exists, the runtime independently matches
+  `30feaa6b43ac81c3e426cd89b1366323359c203a3e4d399727d797fd3674f8b7`, and no process remains.
+- The untracked user patch remains 8,272 bytes and byte-identical at
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone/emulator, ADB/Fastboot command, tool installation/download, APK, firmware change, ROM
+  build/signing, consent, Guardian/Recovery execution, publication, release, lock or relock
+  occurred.
+
+### Approved next bounded Windows task
+
+Reuse the corrected unsigned package and exact synthetic stage-five project for one packaged UI
+handoff acceptance only. Bring the ROMVERSE window to the foreground through normal app/window
+controls, open the retained mission, invoke **Scan device & refresh DNA** once, and confirm the
+existing Forge Arsenal dialog opens with only ADB and Fastboot requested and with the exact pending
+project/source purpose visible. Close or decline the dialog without pressing **Install and verify
+requirements**, then require Genesis to retain stage 5, explain that tools still need attention,
+and leave the same scan action immediately enabled.
+
+This task must issue no ADB/Fastboot command and perform no tool download or installation. It is one
+corrected packaged handoff/retry verification, not another source change or test loop. If the
+foreground environment cannot be made safe after one bounded focus recovery, record that
+environmental limitation and accept the independently passed native Windows coverage; do not keep
+replaying. Commit/push one handoff and stop for review. Preserve the exact project, protected
+source, authority-free records and untracked patch. No phone/emulator, APK/device installation,
+firmware change, ROM build/signing, consent, Guardian/Recovery execution, publication, release,
+lock or relock is authorized.
+
+### Gate status
+
+- Genesis stage-five missing-tools ownership and retry semantics: **VERIFIED IN NATIVE WINDOWS
+  TESTS**
+- Corrected packaged stage-five Forge handoff/retry: **NEXT BOUNDED WINDOWS TASK**
+- Targetless managed-tool installation and no-device discovery: **DEFERRED UNDER CURRENT WINDOWS
+  COMMAND BOUNDARY**
+- Linux positive local APK inspection: **OWNED BY LINUX; DO NOT DUPLICATE**
+- Physical hardware, APK/device installation, signing, Guardian/Recovery execution, publication
+  and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: db67c2fa — synthetic isolated working lab
 
 - Reviewed commit: `db67c2fa`

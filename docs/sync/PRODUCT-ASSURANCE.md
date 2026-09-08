@@ -1,5 +1,37 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: f66c79a — exact saved-project ownership for ROM Mission
+
+- Handoff commit: `f66c79abf1296c296859454fba76384e02b21bce`
+- Implementation commit: `3ec7026f9168b3ad7a5d123129ff98723406d242`
+- Approved base: `47d5055`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — UNAMBIGUOUS PROJECT OWNERSHIP**
+
+### Decision
+
+Product Assurance inspected the complete two-file implementation/test diff. Selecting the sole
+saved project whose exact Device Pack matches the current Device Intelligence report is the correct
+zero-friction rule when ROM Studio happens to retain an unrelated project. The selection occurs
+before the already-approved independent device/DNA/Matrix revalidation and does not modify a
+project, manufacture compatibility or start work. Zero and multiple matches remain unguessed.
+
+The focused real-widget journey and 65-test affected regression are proportional and preserve
+first-use, stale-report, substituted-device and owner-return cases. `guardian_flash` remains
+advisory `Unknown`; project selection grants no build, consent, Guardian or execution authority.
+Feature freeze, exact-device evidence, UNKNOWN-on-uncertainty, no blind retry and permanent
+no-relock remain intact. No hardware, installation, signing, publication or release claim is made.
+
+### Approved next bounded task
+
+Build may continue automatically with the adjacent ambiguous-ownership journey. When the current
+project is Pack-mismatched and multiple saved projects match the exact current Pack, present one
+clear local project choice and continue only with the user's explicit selected owner; cancellation
+must return calmly to Device Intelligence and start no worker. Do not guess, auto-merge, create a
+project, alter evidence or add a consequential confirmation. Verify one multiple-match selection
+and one cancellation with focused widget coverage only. No phone operation, Windows overlap,
+Knowledge/UI-Lab change or broad test/build loop.
+
 ## Reviewed checkpoint: 9e951b7 — Device Intelligence starts an exact ROM Mission
 
 - Handoff commit: `9e951b715247a50e1435eb8de83e6d90686e1aaf`

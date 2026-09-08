@@ -2166,6 +2166,85 @@ def test_genesis_keeps_the_exact_connection_blocker_visible_after_a_successful_s
     studio.close()
 
 
+def test_saved_stage_ten_host_review_survives_expired_live_device_context(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    source = tmp_path / "source.zip"
+    with zipfile.ZipFile(source, "w") as archive:
+        archive.writestr("system/build.prop", "ro.product.name=synthetic\n")
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.import_original(store.create("Saved Toolchain").project_id, source)
+    saved_state = GuidedMissionState(
+        selected_stage="toolchain",
+        recipe_validated=True,
+        root_choice="skip",
+    )
+    GuidedMissionStore(store.projects_root / project.project_id).save(saved_state)
+    studio = RomStudio(store, DevicePackRegistry(()))
+    studio.refresh(project.project_id)
+    mission = GuidedBuildMission(studio)
+    context = GuidedContext(
+        project_exists=True,
+        original_imported=True,
+        inspection_saved=True,
+        working_copy_ready=True,
+        working_tree_ready=True,
+        device=None,
+        device_pack_id="saved-pack",
+        device_dna_ready=True,
+        capability_map_ready=True,
+        recipe_saved=True,
+        recipe_validated=True,
+        debloat_complete=True,
+        root_choice="skip",
+        required_tools=("Python", "Payload Dumper", "AVBTool"),
+        tool_statuses=(
+            ToolStatus("Python", True, "/usr/bin/python3", "3.14.7", "Ready"),
+            ToolStatus("Payload Dumper", False, detail="Not installed"),
+            ToolStatus("AVBTool", True, "/usr/bin/avbtool", "1.3.0", "Ready"),
+        ),
+    )
+    mission._context = lambda: context
+    mission.state = saved_state
+    mission.selected_index = 9
+    mission._refresh(select_current=False)
+    scan_requests: list[bool] = []
+    studio.device_scan_requested.connect(lambda: scan_requests.append(True))
+
+    assert mission.assessments[4].status is GuidedStageStatus.ATTENTION
+    assert mission.assessments[9].status is GuidedStageStatus.LOCKED
+    assert mission.action_button.isEnabled()
+    assert "Saved host-only tool review available" in mission.status_text.text()
+    assert "no device or execution authority" in mission.status_text.text()
+
+    resolutions: list[tuple[tuple[str, ...], str]] = []
+
+    def cancel_review(required, *, purpose):
+        resolutions.append((required, purpose))
+        mission.failure = mission.engine.diagnose("Required host dependencies remain unverified")
+        mission._refresh(select_current=True)
+        return False
+
+    mission._resolve_required_tools = cancel_review
+    mission.action_button.click()
+    app.processEvents()
+
+    persisted = GuidedMissionStore(store.projects_root / project.project_id).load()
+    assert resolutions == [
+        (
+            ("Python", "Payload Dumper", "AVBTool"),
+            "Genesis must verify every source-bound build dependency before Forge Control.",
+        )
+    ]
+    assert scan_requests == []
+    assert studio.worker is None
+    assert persisted.selected_stage == "toolchain"
+    assert persisted.last_error.startswith("toolchain:")
+    assert mission.assessments[mission.selected_index].stage.stage_id == "toolchain"
+    assert mission.action_button.isEnabled()
+    mission.close()
+    studio.close()
+
+
 def test_genesis_resolves_image_materialization_tools_before_nebula_debloat(tmp_path, monkeypatch):
     app = QApplication.instance() or QApplication([])
     source = tmp_path / "payload-ota.zip"

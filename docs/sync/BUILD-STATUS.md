@@ -1,5 +1,142 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux packaged checkpoint — saved Stage 10 host-tool review remains actionable
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `25bb798`, approving implementation checkpoint `8da4a63` and
+  authorizing one forward-only Stage 10 toolchain verification/review against the same saved
+  project. This section and the two narrowly scoped source/test changes form the next repository
+  HEAD checkpoint on `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation, existing Guided task 10 **Verify every required tool**
+  only. Stages 1–9 were not rebuilt, recreated or replayed. No later task was operated.
+- The accepted package was launched once with the normal host executable path against existing
+  project `linux-simulated-recipe-validation-307f7af6`. Resume correctly restored the saved
+  mission choice but selected task 5 because live-device state is intentionally process-ephemeral;
+  selecting the saved Build phase then showed task 10 locked and its tool-review action disabled.
+  This was a real Guided dead end: a host-only review could not be resumed without repeating a
+  device stage that this bounded task expressly did not authorize.
+- Exact minimum correction in `src/romverse/ui/guided_mission.py`:
+  - a saved host-only task-10 review is available only for an integrity-loaded current project
+    whose mission is explicitly saved at `toolchain`, whose task-10 assessment remains `LOCKED`,
+    and whose surrounding durable local tasks 1–4 and 6–9 remain `COMPLETE`;
+  - the exception enables only the existing toolchain review action. It does not complete or
+    bypass Device DNA, mutate engine assessment facts, create a live target, or grant device or
+    execution authority;
+  - calm inline copy explicitly says that the prior live-device context expired and that the
+    host-only review grants no device or execution authority;
+  - cancelling or failing verification durably retains task 10 with its exact toolchain error;
+    only a fresh successful verification may select task 11 for consideration.
+- `tests/test_rom_studio_ui.py` reproduces a saved task-10 mission with expired live-device
+  context, proves task 5 remains `ATTENTION` and task 10 remains `LOCKED`, proves only the
+  host-review action is enabled, then cancels the review and verifies no scan request or worker,
+  task-10 retention and a durable toolchain error.
+- No Device Pack, Recipe, Debloat, build, Guardian/Recovery, Companion, Windows, Knowledge/UI
+  Design Lab or unrelated application source changed.
+
+### Verification without double-counting
+
+- Focused affected regression: **1/1 passed** —
+  `test_saved_stage_ten_host_review_survives_expired_live_device_context`.
+  Ruff passed for both changed files and Git whitespace validation passed. No broad/full suite was
+  run because Product Assurance authorized one minimal correction and focused regression only.
+- Exactly one incremental replacement package was built after the confirmed source defect; no
+  unchanged package was regenerated. Fedora executable:
+  `build/linux-pa-stage10-review-25bb798/frozen/ROMVERSE/ROMVERSE`, 6,327,312 bytes,
+  SHA-256 `5b097d706ec42fddab3b49f534b8ccc7a1579446469bff1099ba8dda66966744`.
+  It is ignored, unsigned and local only. Packaging used Fedora 44, kernel 7.1.13, Python 3.14.7
+  and PyInstaller 6.22.2 and completed with only the standard optional `xxsubtype` warning and
+  Linux icon notice.
+- The corrected package launched exactly once with normal host `PATH`, the same private config,
+  workspace and saved project. Selecting the saved Build phase visibly displayed task 10 with the
+  no-authority explanation and one enabled **Install and verify requirements** action. Opening it
+  started no installation and showed one actionable missing item: **Payload Dumper — Install
+  payload-dumper-go — ROMVERSE MANAGED DOWNLOAD**, sourced from its official upstream release.
+  **Install and verify requirements** was not selected; the review was closed once.
+- The exact source-derived task-10 profile was the conservative no-structure/default profile:
+  Python, ADB, Fastboot, 7-Zip, Unzip, EXT4 Browser, simg2img, Payload Dumper, EROFS Builder,
+  EROFS Verifier, LP Make, LP Unpack, LP Dump, Fakeroot and AVBTool. Package-bundled Python 3.14.7
+  and the host `/usr/bin` tools were available: ADB 37.0.0 / protocol 1.0.41, Fastboot 37.0.0,
+  7-Zip 26.02, UnZip 6.00, debugfs 1.47.3, simg2img, mkfs.erofs/fsck.erofs 1.9.4, lpmake,
+  lpunpack, lpdump, Fakeroot 1.37.1 and AVBTool 1.4.0. Only Payload Dumper was missing from this
+  exact profile. AAPT2 and APK Signer were also absent from the wider optional host catalog but
+  were not requirements for this saved source review.
+- After cancellation, the integrity-checked schema-6 mission remained
+  `selected_stage: toolchain`, `root_choice: skip`, `recipe_validated: true`,
+  `install_requested: false`, with error `Required tools remain unverified: Payload Dumper.` and
+  record digest `fa5ee9ece01256fc300dcb8630d9558cacb0f8c54ea5f791d3d0870f5e4050af`.
+  Task 11 did not advance. The package then saved and closed normally; the runtime record contains
+  a fifth start/clean-close pair and no crash marker.
+- Existing evidence stayed intact: protected source
+  `680f56c3c6741fb7ae8690a787d2b9ace87d22cbcfa18ea10b040b343b15bf7c`, working
+  `system/build.prop` `5d1bada0c7760b6ea9cc9937774d8b77ccb01132c4475dd0a660bc355eb18eff`, Recipe
+  `fba0a5cbea2a4b6073af3b498defd0182518431cb0969c460982057509dbbbda`, accepted Recipe receipt
+  `57fc3c8ed2fd383c7c2e4c3b84435a632c14b55a62e5c71f7962e815d3967702`, and zero-change Debloat
+  receipt file `b0187d1da8640aaeed7d6e1c77a798e36c2c3cd060cb5c8cc6e6d6734e874f3d`.
+
+### Discovered device-monitoring boundary failure
+
+- No phone or emulator was attached, no device was selected, no Device DNA was refreshed, and no
+  device-addressed command ran. However, review of the append-only Guardian audit after shutdown
+  found that the Desktop's existing eight-second connection monitor automatically invoked empty
+  `adb devices -l` and `fastboot devices -l` probes throughout both normal-PATH launches. The
+  tester did not press a scan action, but these are still device-discovery invocations and therefore
+  conflict with Product Assurance's explicit version-query-only boundary for this checkpoint.
+- This was discovered only after the one permitted corrected relaunch had closed. It was not hidden,
+  reclassified as a version query or followed by another build/run. Changing the global automatic
+  connection behavior would broaden this already bounded Stage-10 correction and could conflict
+  with the approved product requirement for automatic device recognition, so it is recorded for
+  Product Assurance direction rather than silently changed here.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** narrowly gated saved Stage-10 host-review continuity and durable task-10
+  retention after incomplete/cancelled verification.
+- **Simulated/Tested:** 1/1 focused UI regression plus one genuine corrected packaged Fedora GUI
+  review. No device simulation was enabled and no hardware evidence was claimed.
+- **Hardware Verified:** no. No physical phone or emulator was attached or addressed.
+- **Released:** no. The package is unsigned, ignored and local only.
+- Blockers/failures: Payload Dumper remains missing, so task 10 correctly remains incomplete and
+  task 11 remains unavailable. The unexpected background device-list polling is a Product Assurance
+  boundary failure requiring review before another packaged run.
+- Guided friction/dead ends: the saved host-only task-10 review no longer loops through expired
+  Device DNA. One missing dependency yields one actionable review and returns to the same task after
+  cancellation. The user is not asked to repeat stages 1–9 or make another consequential decision.
+- Guardian/Recovery/safety: no target, execution plan, consent, install, build, signing,
+  Guardian/Recovery execution or success claim was created. Exact-device evidence,
+  UNKNOWN/no-blind-retry, independent verification, Guardian-only execution and permanent
+  bootloader no-relock invariants remain unchanged. The background discovery probes were read-only,
+  empty and non-addressed, but remain explicitly disclosed as out of bounds for this test.
+- Linux/Fedora: source test, package build and GUI journey genuinely ran on Fedora 44/XWayland.
+  Windows and physical Android were not run.
+- Feature freeze: the host-review correction is a minimum correctness fix for an existing Stage-1
+  dead end and adds no product feature or execution capability. v0.2 Golden Foundation remains
+  **CLOSED**.
+- External actions: this source/test/handoff checkpoint is committed and pushed normally. No phone
+  or emulator attachment, selection or addressed operation; no download; no dependency/tool/system/
+  APK installation, update, removal or effective managed-tool activation; no firmware mutation,
+  signing, build execution, Guardian/Recovery execution, publication, release, merge, force-push,
+  lock or relock occurred. The existing Desktop monitor did issue the disclosed empty ADB/Fastboot
+  device-list probes. Protected Companion files, Windows work and unrelated user changes were not
+  modified, staged or committed.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not install Payload Dumper, advance task 11,
+rebuild/relaunch, repeat any prior stage or begin another consequential slice. Product Assurance
+should first decide how bounded host-only/package verification must suppress or isolate the
+Desktop's normal automatic connection monitor without changing approved automatic recognition for
+ordinary users.
+
+### Product Assurance Review Requested
+
+- Confirm the narrow saved-task-10 gate and cancellation behavior preserve evidence truth and do
+  not weaken Device DNA or execution authority.
+- Decide whether a dedicated inert verification launch boundary is required for no-discovery
+  acceptance work, or whether the normal automatic connection monitor may run only when that
+  checkpoint expressly authorizes read-only discovery. The current version-query-only boundary was
+  not met and is not presented as passed.
+
 ## Linux packaged checkpoint — verified-empty Debloat and explicit unrooted continuity
 
 ### Authoritative checkpoint and scope

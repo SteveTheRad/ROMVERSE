@@ -1127,9 +1127,32 @@ class GuidedBuildMission(QDialog):
         ):
             self._render_stage()
 
+    def _saved_toolchain_review_available(self, assessment: GuidedAssessment) -> bool:
+        """Keep a saved host-only tool review usable after live-device context expires.
+
+        This does not complete or bypass Device DNA. It permits only the non-device-changing
+        stage-10 verification/review when every surrounding local stage already has durable
+        evidence and the integrity-checked mission was explicitly saved at Toolchain.
+        """
+
+        if (
+            self._start_new_project
+            or self.studio.current_project is None
+            or self.state.selected_stage != "toolchain"
+            or assessment.stage.stage_id != "toolchain"
+            or assessment.status is not GuidedStageStatus.LOCKED
+        ):
+            return False
+        durable_local_indexes = (0, 1, 2, 3, 5, 6, 7, 8)
+        return all(
+            self.assessments[index].status is GuidedStageStatus.COMPLETE
+            for index in durable_local_indexes
+        )
+
     def _render_stage(self) -> None:
         assessment = self.assessments[self.selected_index]
         stage = assessment.stage
+        saved_toolchain_review = self._saved_toolchain_review_available(assessment)
         if stage.stage_id == "root_choice" and assessment.status is not GuidedStageStatus.LOCKED:
             self._ensure_root_entry_preview()
         status_label = assessment.status.value.upper()
@@ -1190,6 +1213,12 @@ class GuidedBuildMission(QDialog):
                 "checks are available through the local image workflow."
             ),
         }[assessment.status]
+        if saved_toolchain_review:
+            status_copy = (
+                "Saved host-only tool review available. The prior live-device context has expired, "
+                "so Device DNA remains incomplete for this session and grants no device or "
+                "execution authority. Tool versions may still be reviewed safely."
+            )
         local_outcome = getattr(self, "_display_context", GuidedContext())
         if stage.stage_id in {"flash", "first_boot"} and local_outcome.source_installation_state:
             if self._source_installation_needs_diagnosis(local_outcome):
@@ -1294,6 +1323,7 @@ class GuidedBuildMission(QDialog):
             or root_choice_available
             or local_boot_available
             or source_result_available
+            or (saved_toolchain_review and not busy)
             or (assessment.can_run and not busy and not stage.future_gate)
         )
         if stage.action == "choose-root" and assessment.status is GuidedStageStatus.COMPLETE:
@@ -1307,10 +1337,14 @@ class GuidedBuildMission(QDialog):
             and self.selected_index < len(self.assessments) - 1
             and not busy
         )
-        action_is_primary = self.action_button.isEnabled() and assessment.status not in {
-            GuidedStageStatus.COMPLETE,
-            GuidedStageStatus.LOCKED,
-        }
+        action_is_primary = self.action_button.isEnabled() and (
+            saved_toolchain_review
+            or assessment.status
+            not in {
+                GuidedStageStatus.COMPLETE,
+                GuidedStageStatus.LOCKED,
+            }
+        )
         next_is_primary = self.next_button.isEnabled()
         self.action_button.setProperty("primary", action_is_primary)
         self.next_button.setProperty("primary", next_is_primary)
@@ -1724,6 +1758,7 @@ class GuidedBuildMission(QDialog):
     def _run_stage(self) -> None:
         assessment = self.assessments[self.selected_index]
         action = assessment.stage.action
+        saved_toolchain_review = self._saved_toolchain_review_available(assessment)
         self.live_paused = False
         self._sync_genesis_live()
         self.failure = None
@@ -1892,11 +1927,22 @@ class GuidedBuildMission(QDialog):
                     else "Required host dependencies remain unverified."
                 )
                 self.state = replace(self.state, last_error=f"toolchain: {detail}")
+                if saved_toolchain_review:
+                    self.selected_index = 9
+                    self._refresh(select_current=False)
+                    self._save_state()
+                    return
                 self._save_state()
                 self._refresh(select_current=True)
                 return
             self.failure = None
             self.state = replace(self.state, last_error="")
+            if saved_toolchain_review:
+                self._refresh(select_current=False)
+                self.selected_index = 10
+                self._save_state()
+                self._refresh(select_current=False)
+                return
             self._refresh(select_current=True)
             self._save_state()
         elif action == "build-sign":

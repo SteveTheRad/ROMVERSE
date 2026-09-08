@@ -1,5 +1,67 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 459a802 — malformed Windows firmware rejection
+
+- Reviewed commit: `459a8022b967bede94ddd967b16bf57e32b84f58`
+- Accepted correction: `cd3b84a2ef8a3e0044bbe468a0106604091e61d8`
+- Approved base: `44f94d6ad7486d0f6fdc83df54afd7f3794b5e44`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — MALFORMED ZIP FAILS BEFORE PROTECTED-SOURCE COMMIT**
+
+### Decision
+
+Product Assurance inspected the packaged failure, exact pre-placement validator seam and focused
+native Windows coverage, then independently reran the regression and Ruff. The defect was real: an
+85-byte plain-text file named `.zip` was correctly classified as malformed but had already been
+committed as the protected source and advanced Guided progress. The correction now validates the
+completed workspace-local temporary copy before content-addressed placement or manifest mutation,
+so failure uses the existing cleanup path and cannot leave false evidence.
+
+The rule is deliberately narrow. It rejects only a file presented as `.zip` that is not structurally
+a ZIP; valid but unfamiliar firmware archives remain eligible for bounded evidence-derived
+investigation and UNCONFIRMED classification. Device DNA, Compatibility Matrix, Guardian and
+Recovery authority rules are unchanged.
+
+### Independent evidence and acceptance
+
+- The store-level validator runs after the stable protected copy is complete and before destination
+  placement or manifest update, preserving the existing anti-TOCTOU boundary and exception cleanup.
+- Independent native Windows verification passed **1/1** for the exact malformed-ZIP worker path;
+  Ruff passed both changed source files and the focused test.
+- The regression proves exact visible failure text, no completion signal, `original` null, an empty
+  protected originals directory and no inspection record.
+- The original packaged failure remains truthfully retained as evidence: it contains the wrongly
+  preserved 85-byte source, UNCONFIRMED analysis and no candidate or execution authority. The old
+  artifact is not misrepresented as fixed.
+- The untracked user patch remains outside the commit and byte-identical at
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone, real firmware, APK, build/signing, Guardian/Recovery execution, publication, release,
+  lock or relock occurred.
+
+### Approved next bounded Windows task
+
+Create exactly one new unsigned Windows one-folder development build from correction
+`cd3b84a2`, then replay only the same 85-byte malformed `.zip` through a fresh disposable no-phone
+project/workspace. Verify the packaged UI reports the clear rejection, keeps `original` null,
+retains no protected source, inspection, Device DNA, compatibility record or candidate, leaves the
+firmware stage incomplete and makes **Choose firmware…** immediately usable after the error is
+acknowledged. Close Guided and the app normally and verify no process remains.
+
+This is one corrected-artifact acceptance run, not another source change, broad test suite or
+firmware investigation. Reuse the exact deterministic fixture and run no other journey. If the
+focused regression and packaged result agree, make no additional product change; record exact
+artifact/state/audit/runtime evidence, commit/push one bounded handoff and stop for review. Preserve
+the untracked patch. No phone, real firmware, download, APK, ROM build/signing, Guardian/Recovery
+execution, publication, release, lock or relock is authorized.
+
+### Gate status
+
+- Malformed `.zip` pre-commit rejection: **SOURCE CORRECTION VERIFIED**
+- Corrected packaged Windows invalid-input journey: **NEXT BOUNDED WINDOWS TASK**
+- Linux direct Connect Device journey: **OWNED BY LINUX; DO NOT DUPLICATE**
+- Physical hardware, signing, Guardian/Recovery execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 5464eb8 — Windows firmware-picker cancellation continuity
 
 - Reviewed commit: `5464eb8ddd68b0c9908ae95da021342d25fc4fe9`

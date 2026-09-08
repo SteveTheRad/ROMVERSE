@@ -1,5 +1,104 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux product checkpoint — Guardian verifies fresh no-phone evidence truthfully
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `3c0e6d9` approved the Nexus missing-project handoff and
+  authorized one fresh no-phone Guardian Core audit-verification journey.
+- Exact unchanged implementation/package source: `ca983ecd30724723574d7fdd6ae02ca107e3be3e`.
+- Exact unchanged package:
+  `build/linux-pa-health-scan-7100108/frozen/ROMVERSE/ROMVERSE`, 6,323,000 bytes, mode `0755`,
+  SHA-256 `0a47f9af3dea4c0f64983fdd4afc9d1fa01dfcc96185680e94f098b1cb19dde7`.
+- Stage: Stage 1 — v0.2 Golden Foundation, one evidence-only packaged Guardian Core function and
+  safety journey. No application source, test or package changed in this checkpoint.
+
+### One bounded packaged Guardian Core journey
+
+- The unchanged package ran once, unelevated, through Fedora XWayland in fresh workspace
+  `/tmp/romverse-guardian-empty-3c0e6d9.3yjdcR`, with no simulated or physical phone.
+- An automation watcher opened **Guardian Core** through normal Guided navigation as soon as the
+  shipped window became accessibility-visible, then invoked **Verify audit trail** exactly once.
+  The button was enabled when invoked.
+- The initial user-requested verification completed with a bounded visible result, restored
+  **Verify audit trail**, hid the verification progress indicator, and reported
+  **INTEGRITY VERIFIED** with a valid SHA-256 chain across the exact six read-only startup inventory
+  records then present. It reported zero active, recorded or legacy audit-only approvals.
+- The fresh workspace began with no audit history, but the normal 250 ms startup discovery records
+  read-only ADB/Fastboot inventories before Guardian's cross-surface rendering and background
+  verification can settle. ROMVERSE therefore did not falsely label the populated trail empty.
+  The literal zero-entry message **No Guardian-controlled operations have run yet** was not the
+  truthful runtime state by the time the requested result rendered.
+- While Guardian remained visible, normal scheduled discovery appended further records. Guardian's
+  existing evidence-change refresh updated the visible verified count from 6 to 26 without another
+  user invocation. This was automatic revalidation of changing evidence, not a second manual
+  **Verify audit trail** action.
+- The existing runtime package card remained strictly uninvoked and visibly stated
+  **No runtime package inspected** and **NOT INSPECTED**. It explained that inspection uses a
+  separately supplied signed package/public key and never launches a file, enrolls trust, opens a
+  phone or unlocks final consent. **Inspect runtime candidate** remained enabled but was not used.
+- No approval, package, consent, Recovery, device or execution action was exposed as completed or
+  authorized. ROMVERSE closed normally through the desktop window-close action and no packaged
+  process remained.
+
+### Final retained evidence
+
+- The final audit contains exactly 28 gap-free records: 14 ADB and 14 Fastboot `devices -l`
+  operations. Every record is allowed, read-only, host-targeted, untimed-out, return code 0 and
+  serial-selector-free. No Guardian package, approval, consent, Recovery or execution operation is
+  present. Audit SHA-256:
+  `9fb269afc46ff9bd582e03ce1b1a35ff0bcef72fbddc6f34a9243949d65af046`.
+- The runtime record contains exactly one start/clean-close pair, SHA-256
+  `c9a5cb9322615534d8a5ad7255f55888b66be1b4b82c6ab0116e1910585d64c3`, with no fatal trace.
+- The fresh workspace contains zero project, snapshot, backup, APK, build and working-ROM files and
+  no Activity or Live Console ledger. No public catalog or other download was created in the
+  workspace. The global experience setting remains Guided.
+
+### Classification, safety, platforms and gates
+
+- **Implemented:** no new behavior; this checkpoint verifies the shipped Guardian audit reader,
+  integrity result, retry restoration and untouched runtime-package boundary.
+- **Simulated/Tested:** one genuine packaged Fedora no-phone Guardian Core journey. No test suite
+  was run or double-counted because no source changed.
+- **Hardware Verified:** no. No Android phone was connected, discovered, selected or operated.
+- **Released:** no. The package remains an unsigned local development artifact.
+- Blockers/failures: no integrity, crash, control-recovery or runtime-package defect appeared. A
+  literal zero-record result is not observable on this normal verified-tools startup path because
+  scheduled read-only discovery populates the fresh audit before Guardian verification renders;
+  the app truthfully verified the exact nonempty trail instead.
+- Guided friction/dead ends: Guardian opens from normal Guided navigation, the one requested check
+  finishes visibly, restores its action and continues to reflect later evidence changes. No modal,
+  terminal step, silent stop or inert control remained.
+- Guardian/Recovery/safety: verification reads and classifies evidence only. It grants no approval,
+  consent or execution authority. Missing/changed/unverifiable evidence retains separate failure
+  paths in the existing implementation; this journey observed only the valid nonempty path.
+  UNKNOWN/no-blind-retry, exact-device and exact-incident evidence, independent verification,
+  Guardian-only authority and permanent no-relock remain unchanged.
+- Linux/Fedora: genuinely verified on Fedora 44/XWayland. Windows and physical Android were not run.
+- Feature freeze: compliant evidence-only Stage 1 check; no feature, UI, audit policy, format,
+  Device Pack, adapter, knowledge behavior or production capability changed.
+- v0.2 Golden Foundation remains **CLOSED** pending Product Assurance and all remaining gates.
+- External actions: this scoped branch is pushed normally with this documentation-only handoff.
+  Normal no-target read-only ADB/Fastboot inventory occurred. No phone, simulated device, download,
+  firmware/APK/project work, APK/system installation, runtime-package inspection, approval,
+  consent, backup/restore, build/sign/flash, Guardian/Recovery execution, publication, release,
+  merge, force-push, lock or relock occurred. Knowledge/UI Design Lab and protected
+  Companion/Windows work were not modified, staged or committed.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another consequential slice until the
+verdict for this exact Guardian Core verification checkpoint is recorded in
+`docs/sync/PRODUCT-ASSURANCE.md`.
+
+### Product Assurance Review Requested
+
+- Confirm the initial six-record verified result, zero approvals, restored control and untouched
+  runtime-package card satisfy the fresh no-phone Guardian function/safety gate.
+- Decide whether the honest inability to retain a literal zero-record display on the normal
+  auto-discovery startup path is an accepted product fact or requires a separately scoped
+  verification-state decision. No change is proposed in this checkpoint.
+
 ## Linux product checkpoint — Nexus reaches the exact missing-project owner
 
 ### Authoritative checkpoint and scope

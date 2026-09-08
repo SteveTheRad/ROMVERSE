@@ -1,5 +1,69 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: c249d77 — Windows private Platform Tools self-repair
+
+- Reviewed commit: `c249d777ed76a28120700548aa1cefb08d9a9045`
+- Approved source/artifact: `120af840b02bfa7ced40cb173541b5711deff2d3`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — WINDOWS SELF-REPAIRS TO TRUTHFUL NO-DEVICE READINESS**
+
+### Decision
+
+Product Assurance independently inspected the retained native Windows workspace and exact Git
+state. The existing production installer acquired one official Google Platform Tools package,
+receipt-bound the archive and exact ADB/Fastboot executables, activated the private tools in the
+same process, refreshed Command Deck to a truthful no-device state and retained that result across
+one clean reload. No source correction, rebuild or broad regression run is required.
+
+The external screen-inspection service was not retried. The approved focused native integration
+used the production worker, installer, verifier, inventory, Device Engine, MainWindow and Command
+Deck controller rather than a substitute implementation. Its four audit entries are exclusively
+successful, serial-free, host-targeted read-only discovery with continuous hash linkage and no
+device or execution authority.
+
+### Independent evidence and acceptance
+
+- `src`, `scripts` and `pyproject.toml` remain byte-identical to approved artifact source
+  `120af840`; the accepted executable and ZIP were not rebuilt.
+- Receipt SHA-256 `ca716618aac9b8c178985b952334ee64e748b19b90ccdd099aa86a94e955bf95`
+  binds the official Google Windows archive's 8,044,989 bytes and SHA-256
+  `45f4d63113e895ebde0c90f194099a4676b6ac653bd28d54314a9e022bbc1a99`.
+- `adb.exe` independently matches
+  `b4a6b455702684652cccf7b46258b29e653538904359a58fd4931cf3ef286b3f` and reports ADB protocol
+  1.0.41 / Platform Tools `37.0.1-15733141`. `fastboot.exe` independently matches
+  `b2d9cbff4ce9ae7eb448cfc831bafc867935f50f5be38f8f81057fd7eb3b8d86` and reports the same
+  Platform Tools revision.
+- The four exact audit records are two initial and two reload `devices -l` listings, all category
+  `read_only`, risk `none`, target `host`, return code 0, no timeout, selector or target.
+- No ROMVERSE process remains. The untracked user patch remains byte-identical at SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone, emulator, APK, ROM candidate, signing, Guardian/Recovery execution, global/system
+  installation, publication, release, lock or relock occurred.
+
+### Approved next bounded Windows task
+
+Close the remaining packaged screen-content evidence with the exact accepted unsigned artifact and
+the already prepared no-phone workspace; do not rebuild, reinstall tools or rerun the integration.
+Launch once unelevated on the interactive Windows desktop, capture one ordinary desktop screenshot
+through the host's local screen-capture capability, and inspect that image directly. Confirm the
+main window, Command Deck, Guided entry, truthful `Waiting for device`/no-device state and enabled
+scan action render without a Device Engine error or inert prerequisite.
+
+Use no external Computer Use RPC and do not wait for it. Do not click any phone, Build, Recovery,
+signing or consequential action. Close normally and verify no process remains. If the screenshot
+shows one genuine packaged rendering/navigation defect, fix only that defect, run its focused check
+and repackage/relaunch at most once. Otherwise make no source change. Preserve the untracked patch,
+record exact screenshot/artifact/workspace/lifecycle evidence, commit/push one bounded handoff and
+stop for review. No phone, device-changing command, APK, ROM build/signing, publication, release,
+lock or relock is authorized.
+
+### Gate status
+
+- Windows private Platform Tools self-repair and reload persistence: **VERIFIED**
+- Exact packaged Windows screen-content observation: **NEXT BOUNDED WINDOWS TASK**
+- Physical hardware, signing, Guardian/Recovery execution, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: af2d0e7 — fresh unsigned Windows development artifact
 
 - Reviewed commit: `af2d0e795eea9e550afeeac7dc24d3181e781be5`

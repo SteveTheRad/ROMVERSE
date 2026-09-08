@@ -1,5 +1,64 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 17f08a8 — Forge Control is inspection-only before local build
+
+- Handoff commit: `17f08a8a33f57ed9bedcea8d46314b424b481200`
+- Implementation commit: `527cb2be3be34d7bef844189d643cc7a7212d2fe`
+- Approved base: `897f30e`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — LOCAL BUILD REQUIRES THE EXISTING EXPLICIT CHOICE**
+
+### Decision
+
+Product Assurance inspected the complete two-file diff and independently reran the five exact
+affected journeys. Ordinary ROM Studio opening previously inherited Forge Control's automatic
+resolver default, allowing preparation to begin from an inspection action. The one-argument
+correction now opens this ordinary route with `auto_start=False`, matching its intended boundary;
+specialized existing flows are unchanged and `Build verified local candidate` remains the sole
+local-build trigger.
+
+The representative production-service journey then explicitly chooses that Build action once and
+completes the existing seven-step bounded candidate pipeline. A fresh store/executor reloads and
+verifies the exact durable success receipt and every output while the incoming Forge receipt
+remains unchanged. No phone transport or device authority exists.
+
+### Independent evidence and acceptance
+
+- Product Assurance reran the inspection-only real-widget journey, exact candidate/partition
+  verification, hostile receipt rejection, in-flight UNKNOWN/no-retry and verified non-flashable
+  Forge input journeys: **5/5 passed**.
+- Ruff static checks passed for both changed files; production-source format verification and Git
+  whitespace validation passed. The pre-existing unrelated test-format difference remains outside
+  this hunk.
+- Acceptance criteria are satisfied: inspection starts nothing, one explicit Build choice invokes
+  one bounded pipeline, exact durable receipt/output reload succeeds and no ADB/Fastboot dispatch
+  occurs.
+- No real external toolchain or physical hardware was used. No signing, phone, APK,
+  Guardian/Recovery execution, Windows/Companion/Knowledge/UI Design Lab work, publication,
+  release or bootloader relock occurred.
+
+### Approved next bounded Linux task
+
+Produce one fresh **unsigned Linux/Fedora development artifact** from this exact approved branch so
+the current connected Simulation → Forge → inspection-only Forge Control improvements exist in a
+runnable application rather than source alone. Use the existing one-folder/windowed desktop build
+pipeline once in a new output directory. Verify exact source identity, complete bundle integrity,
+one normal native no-phone launch at the supported initial size, truthful Command Deck state and a
+clean normal close with no console or runtime fault.
+
+If one genuine frozen-only launcher, asset, dependency or startup defect appears, apply only the
+minimum correction and run directly affected checks; otherwise change no source. Do not replay the
+already-proven local-candidate tests, run a broad suite, start a firmware build, connect a phone,
+use ADB/Fastboot, sign, publish or release. Record the artifact path, size/hash, bundle inventory,
+source commit, visible result and limitations. Commit/push one bounded handoff and stop for review.
+
+### Gate status
+
+- Inspection-only Forge Control and explicit bounded local candidate: **VERIFIED**
+- Current runnable unsigned Linux development artifact: **NEXT BOUNDED LINUX TASK**
+- Real toolchain, physical device, signing and execution: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: a902c08 — one explicit Forge choice completes verification
 
 - Handoff commit: `a902c0849305c773cc188df35f2ee7fa1e9517fb`

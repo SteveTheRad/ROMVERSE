@@ -1,5 +1,63 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: f568132 — Windows Forge Control compact layout
+
+- Handoff commit: `f56813260b1e227e1d2873014cd5b2b3bd74f7eb`
+- Approved base: `d293b3eadd888522ed34be27a939f7209f0321ba`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — CURRENT RESPONSIVE CONTRACT PASSES; NO NEW SOURCE CHANGE**
+
+### Decision
+
+Product Assurance inspected the actual checkpoint and relevant responsive-layout source. The
+checkpoint changes only `docs/sync/BUILD-STATUS.md`; it does not conceal a source or fixture
+rewrite. The previously committed Build Control correction removes the scroll host's intrinsic
+minimum-width constraint, permits the host to follow the viewport, and retains the supported initial
+window dimensions. That is consistent with the recorded native geometry: no horizontal range at
+either measured size, visible footer/tool actions, and no same-row intersections.
+
+The authorized stale-baseline triage is complete. A second application or test correction would be
+unjustified. The checkpoint does not claim release readiness, physical-device behavior, production
+execution or signed packaging.
+
+### Independent evidence
+
+- Product Assurance reran the exact two authorized nodes on the Legion under native Windows Python
+  3.12.10 / pytest 9.1.1: **2/2 passed in 2.41 seconds**.
+- The handoff commit is present on `origin/windows-launcher-authorized-work` and is documentation
+  only.
+- The protected untracked patch remains byte-identical at SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No phone, emulator, ADB/Fastboot target command, Recovery action, firmware mutation, signing,
+  publication, release or bootloader relock occurred.
+- Feature freeze, exact-device evidence, consent separation, Guardian-only authority,
+  UNKNOWN-on-uncertainty, no blind retry and permanent no-relock remain intact.
+
+### Approved next bounded Windows task
+
+Prove one fresh no-phone Windows Device Engine readiness journey using the already verified
+ROMVERSE-managed Platform Tools receipt. In a disposable workspace, restart the development app,
+confirm the exact managed tool directory is reactivated, and enter the existing Device/Command Deck
+surface. With no phone or emulator present, the UI must settle on its calm actionable
+`Waiting for device` state rather than `Device Engine error`, and it must not imply discovery,
+compatibility or execution.
+
+If one genuine Windows-only managed-tool activation or no-target classification defect is
+reproduced, apply the minimum correction and verify it with one focused Windows journey plus only
+the directly affected tests. If the path already works, change no source and record the evidence.
+Host-only executable identity/version checks are allowed; do not issue an ADB/Fastboot target
+command, start a broad suite, rebuild/package the app, connect a phone, overlap Linux Command Deck
+work, or touch the UI Design Lab or protected Companion files. Commit/push the bounded checkpoint
+and stop for independent Product Assurance.
+
+### Gate status
+
+- Windows managed Platform Tools preparation/reload: **VERIFIED**
+- Windows Build Control compact layout: **VERIFIED**
+- No-phone Device Engine readiness journey: **NEXT BOUNDED WINDOWS TASK**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+- Physical hardware, production execution/trust, signing, publication and release: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: 605b119 — Windows Forge Arsenal managed Platform Tools
 
 - Handoff commit: `605b119a6530922e8c9e6c59faf9900489ebd4dd`

@@ -1,5 +1,56 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 3bd3d07 — Windows signing/preparation convergence
+
+- Handoff commit: `3bd3d07`
+- Synchronized source commits: `fa088e6`, `7efceb0`, `f7340b7`, `6d15156`
+- Product Assurance base: `88c8edf2351ab35bc96d70deab1c9ea263d575fe`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **CORRECTION REQUIRED — WINDOWS SAME-FILE IDENTITY PORTABILITY**
+
+### Decision and repository evidence
+
+The four synchronized platform-neutral changes match the already approved Linux
+artifact-verification, signing-ready, durable preparation and final-signed-byte binding work. The
+batch is feature-freeze compliant and its two Build-Control regressions pass on Windows. Ruff and
+whitespace also pass. No Windows executable rebuild was required or performed.
+
+The decisive short-path Windows run exposed one bounded portability defect rather than a safety
+failure: 24 nodes stop on unchanged files because `os.fstat()` and `Path.stat()` can report
+different `st_ctime_ns` values for the same Windows file. The affected comparisons are
+`candidate_avb._fingerprint()` and Guardian private-staging `_file_identity()`. Device/inode, size
+and modification time remain equal, and the existing content hashes remain separately checked.
+Every failure is fail-closed; none created signing, target, consent, admission, execution or
+Recovery authority.
+
+### Minimum exact correction
+
+On Windows only, compare the stable same-file fields available consistently from descriptor and
+path observations: device/file identity, inode/file index, size and modification time. Preserve the
+current `st_ctime_ns` comparison on platforms where it is stable. Do not remove fresh content
+hashing, descriptor-before/after comparison, path containment, no-follow/symlink rejection,
+expected path/receipt binding, size checks, or replacement detection.
+
+Add focused Windows regressions proving all three conditions:
+
+1. the same unchanged file is accepted when only descriptor/path `st_ctime_ns` differs;
+2. a path replacement/file-identity change is rejected even if size and mtime are preserved;
+3. byte drift is rejected through the existing fresh hash boundary.
+
+Rerun only the 24 previously failing nodes plus the new focused regressions, Ruff and whitespace.
+If green, update BUILD-STATUS.md, commit/push and stop for independent review. Do not rerun the 95
+passing nodes unless the touched dependency graph requires them, and do not rebuild the executable
+until this source correction is approved and included in the next normal user-facing Windows
+artifact milestone.
+
+### Safety and gate status
+
+- Cross-platform signing/preparation source synchronization: **ACCEPTED PENDING PORTABILITY FIX**
+- Windows unchanged-file identity validation: **CORRECTION REQUIRED**
+- Feature freeze and Guardian/Recovery separation: **PRESERVED**
+- Exact hashes, UNKNOWN/no-blind-retry and permanent no-relock: **PRESERVE IN CORRECTION**
+- Phone, execution, production signing/trust, publication and release: **NOT AUTHORIZED**
+
 ## Reviewed checkpoint: 5e4a43f — durable local-build completion synchronization
 
 - Handoff commit: `5e4a43fb`

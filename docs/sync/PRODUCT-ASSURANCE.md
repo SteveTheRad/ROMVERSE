@@ -1,5 +1,69 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 98baf2b — Command Console host check and guard
+
+- Reviewed commit: `98baf2ba0fa15fcc4cf4cd0fe9e3e9597143e789`
+- Accepted unchanged source/package: `ca983ecd30724723574d7fdd6ae02ca107e3be3e`
+- Approved base: `4dd1104`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — HOST CHECK RUNS; UNSUPPORTED INPUT IS BLOCKED PRE-DISPATCH**
+
+### Decision
+
+Product Assurance reproduced the exact package/runtime and catalog hashes, classified the final
+audit, and confirmed the workspace contains no project, APK, snapshot, backup, build or mission
+evidence. The allowlisted host-platform check returns genuine local metadata and restores controls.
+The deterministic unsupported token sequence is rejected before console worker/subprocess creation,
+creates no audit operation, and leaves the console immediately usable. No correction or replay is
+required.
+
+The automatically refreshed public Google Play catalog is confined to this isolated workspace,
+records zero build/flash/execution authority, and is unrelated to the Command Console action. It
+does not modify the stopped Knowledge task or the `adaptive-online-device-dna` branch.
+
+### Independent evidence and acceptance
+
+- The unchanged executable remains SHA-256
+  `0a47f9af3dea4c0f64983fdd4afc9d1fa01dfcc96185680e94f098b1cb19dde7`.
+- The final 96-entry audit is exactly 48 ADB and 48 Fastboot successful read-only host inventories;
+  all are unbound, untimed-out and serial-selector-free, with zero Command Console operation.
+- The cached 4,758,014-byte public catalog independently matches SHA-256
+  `eebdc5895a2b38326470a3e475a09a2baab9d4f69f69b0f084664ef57a1decd4`.
+- The runtime record independently matches SHA-256
+  `c9a5cb9322615534d8a5ad7255f55888b66be1b4b82c6ab0116e1910585d64c3`; no packaged process
+  remains and the experience mode was restored to Guided.
+- No phone, Android command, arbitrary subprocess, project, APK/firmware, installation,
+  backup/restore, build/signing, Guardian/Recovery execution, publication, release, lock or relock
+  occurred.
+
+### Approved next bounded Linux task
+
+Reuse this exact isolated workspace and current package once, so the already cached public catalog
+is not fetched again. Through the normal explicit Expert-mode acceptance, open **ROMVERSE Nexus**
+with no project and verify Pathfinder, Foresight and Insight make no plan, prediction or authority
+claim. The surface must state the exact missing project/evidence prerequisite, keep plan/export/
+Guardian actions unavailable, and expose one enabled **Open ROM Studio** action. Invoke that action
+once and confirm ROM Studio receives the Nexus evidence-prerequisite context and presents an
+immediately actionable project-creation route without creating a project, plan, worker or dialog
+automatically.
+
+This is one no-project Nexus → ROM Studio continuity journey, not Adaptive Discovery research,
+catalog work or a screen sweep. Reuse the package and workspace unless a genuine route, context,
+false-claim or inert-control defect appears; if one appears, apply only its minimum correction and
+focused test, then package/relaunch at most once. Restore Guided mode after normal close, record
+final evidence, commit/push one handoff and stop for review. Do not modify Knowledge/UI Design Lab
+or protected Companion work. No phone, firmware/APK work, download, build/signing,
+Guardian/Recovery execution, publication, release, lock or relock is authorized.
+
+### Gate status
+
+- Command Console host check and pre-dispatch allowlist guard: **VERIFIED**
+- No-project ROMVERSE Nexus → ROM Studio prerequisite handoff: **NEXT BOUNDED LINUX TASK**
+- Windows synthetic isolated working-lab preparation: **OWNED BY WINDOWS; DO NOT DUPLICATE**
+- Physical hardware, installation/restore, signing, Guardian/Recovery execution, publication and
+  release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: b654cf1 — Time Machine missing-project handoff
 
 - Reviewed commit: `b654cf17e290352bd0a573094e1195caffd61754`

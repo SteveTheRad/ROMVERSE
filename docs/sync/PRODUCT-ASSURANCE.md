@@ -1,5 +1,56 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 1c1758f — current Fedora development package
+
+- Reviewed checkpoint: `1c1758f0269b28d4a209518d8586c85619d25c53`
+- Approved source: `4fcf156`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — CURRENT SOURCE BUILDS, VERIFIES AND LAUNCHES AS A FEDORA DEVELOPMENT PACKAGE**
+
+### Decision and independent evidence
+
+The one-build rule and current-source identity are satisfied. Product Assurance independently
+verified the preserved package in place:
+
+- one-folder application: **422 regular files**, **243,079,661 bytes**, and **38** contained links
+  with no link resolving outside the package;
+- executable: **6,330,384 bytes**, SHA-256
+  `c6ac3fb0b50c83e6b4cfe8174dc9ea29424d303bf31af59650cd808560346c78`, a stripped Linux x86-64
+  ELF with the recorded interpreter and Build ID;
+- archive: **151,027,641 bytes**, SHA-256
+  `9498fe9b3a943e565470e9a717b7215a5e8e31d3531343cb342ca68fbc1e6d05`;
+- archive integrity: **460 members / 360,334,290 expanded bytes**, with an independent complete CRC
+  check reporting no compressed-data error.
+
+Build's existing installed and frozen no-phone smokes each passed once. Their fresh tool-less
+workspaces and clean shutdown evidence are sufficient for this bounded development-package
+milestone; an additional screenshot or duplicate launch would add no safety evidence. The archive
+remains unsigned, local, untrusted and not released.
+
+No product/test source changed in this packaging checkpoint. No paid CI, Windows/Companion package,
+device action or execution authority occurred. Feature freeze, Guardian separation, exact evidence,
+UNKNOWN-on-uncertainty, no blind retry and permanent bootloader no-relock remain intact.
+
+### Approved next bounded state
+
+Linux enters **synchronized standby** at this accepted current-source development package. Do not
+rebuild, repeat the smoke, rerun convergence or invent another Linux task. Resume only for a new
+proven Linux defect or an approved cross-platform integration change.
+
+The next active engineering priority moves to bounded Windows cross-branch convergence: compare the
+current approved Linux production changes against the Windows branch's independently evolved
+equivalents, preserve Windows-only safety fixes and integrate only missing non-conflicting behavior
+before any new Windows package is considered. That authorization is to be published through the
+Windows branch's own Product Assurance mailbox.
+
+### Gate status
+
+- Fedora current-source regression: **VERIFIED — SEGMENTED 3,005/3,005**
+- Fedora current-source development package/content/native launch: **VERIFIED**
+- Linux track: **SYNCHRONIZED STANDBY**
+- Cross-distro clean machine, Windows convergence, physical Android, production signing/trust,
+  publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 8bdbed9 — complete segmented Linux convergence
 
 - Reviewed checkpoint: `8bdbed9594eb3b4c70e2641eef7058649872793e`

@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import stat
+from dataclasses import replace
 
 import pytest
 
@@ -24,10 +25,14 @@ def _contribution(
     source: str,
     success: bool = True,
     drift: bool = False,
+    solution: str = "inspect-payload-source",
+    quarantined: bool = False,
+    supersedes: str = "",
+    expires_at: str = "",
 ) -> SynapseContribution:
     return SynapseContribution.create(
         fingerprint_id="a" * 64,
-        solution_id="inspect-payload-source",
+        solution_id=solution,
         scope=scope,
         source_family=source,
         summary="Verified in /home/private/project without exposing token=private.",
@@ -36,6 +41,9 @@ def _contribution(
         action_receipt_digest="b" * 64,
         verification_evidence_digest="c" * 64,
         version_drift=drift,
+        quarantined=quarantined,
+        supersedes_knowledge_id=supersedes,
+        expires_at=expires_at,
     )
 
 
@@ -114,6 +122,99 @@ def test_synapse_lists_compiled_and_retired_local_knowledge_for_archives(tmp_pat
     assert knowledge[1].failed_verifications == 1
     assert store.list_knowledge(limit=1) == knowledge[:1]
     assert store.list_knowledge(limit=0) == ()
+
+
+def test_synapse_quarantine_is_hidden_from_query_but_retained_for_archives(tmp_path) -> None:
+    store = SynapseStore(tmp_path)
+    scope = SynapseScope.create(operation="payload inspection")
+
+    knowledge = store.contribute(_contribution(scope, source="official", quarantined=True))
+
+    assert knowledge.state is SynapseKnowledgeState.QUARANTINED
+    assert knowledge.confidence == 0
+    assert knowledge.execution_authority == "guidance-only"
+    assert store.query(fingerprint_id="a" * 64, scope=scope) == ()
+    assert store.list_knowledge() == (knowledge,)
+    assert "Archives" in knowledge.lifecycle_explanation
+
+
+def test_synapse_expiry_is_hidden_from_query_but_retained_for_archives(tmp_path) -> None:
+    store = SynapseStore(tmp_path)
+    scope = SynapseScope.create(operation="payload inspection")
+    expired = replace(
+        _contribution(scope, source="official"),
+        recorded_at="2025-01-01T00:00:00+00:00",
+        expires_at="2025-01-02T00:00:00+00:00",
+    )
+
+    knowledge = store.contribute(expired)
+
+    assert knowledge.state is SynapseKnowledgeState.EXPIRED
+    assert knowledge.confidence == 0
+    assert store.query(fingerprint_id="a" * 64, scope=scope) == ()
+    assert store.list_knowledge() == (knowledge,)
+
+
+def test_synapse_supersession_hides_only_exact_prior_knowledge(tmp_path) -> None:
+    store = SynapseStore(tmp_path)
+    scope = SynapseScope.create(operation="payload inspection")
+    prior = store.contribute(
+        _contribution(scope, source="official", solution="old-inspection-route")
+    )
+
+    current = store.contribute(
+        _contribution(
+            scope,
+            source="maintainer",
+            solution="current-inspection-route",
+            supersedes=prior.knowledge_id,
+        )
+    )
+    archived = {item.knowledge_id: item for item in store.list_knowledge()}
+
+    assert current.state is SynapseKnowledgeState.VERIFIED_SUCCESS
+    assert archived[prior.knowledge_id].state is SynapseKnowledgeState.SUPERSEDED
+    assert archived[prior.knowledge_id].confidence == 0
+    assert [
+        item.knowledge.solution_id for item in store.query(fingerprint_id="a" * 64, scope=scope)
+    ] == ["current-inspection-route"]
+
+
+def test_synapse_self_supersession_quarantines_exact_record(tmp_path) -> None:
+    store = SynapseStore(tmp_path)
+    scope = SynapseScope.create(operation="payload inspection")
+    first = store.contribute(_contribution(scope, source="official"))
+    store.contribute(_contribution(scope, source="maintainer", supersedes=first.knowledge_id))
+
+    knowledge = store.list_knowledge()[0]
+
+    assert knowledge.state is SynapseKnowledgeState.QUARANTINED
+    assert store.query(fingerprint_id="a" * 64, scope=scope) == ()
+
+
+def test_synapse_lifecycle_fields_are_backward_compatible_and_chronological(tmp_path) -> None:
+    store = SynapseStore(tmp_path)
+    scope = SynapseScope.create(operation="payload inspection")
+    store.contribute(_contribution(scope, source="official"))
+    payload = json.loads(store.path.read_text(encoding="utf-8"))
+    legacy = payload["contributions"][0]
+    legacy.pop("quarantined")
+    legacy.pop("supersedes_knowledge_id")
+    legacy.pop("expires_at")
+    payload["ledger_digest"] = hashlib.sha256(
+        json.dumps(payload["contributions"], sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    store.path.write_text(json.dumps(payload), encoding="utf-8")
+
+    assert store.list_knowledge()[0].state is SynapseKnowledgeState.VERIFIED_SUCCESS
+
+    invalid = replace(
+        _contribution(scope, source="official"),
+        recorded_at="2025-01-02T00:00:00+00:00",
+        expires_at="2025-01-01T00:00:00+00:00",
+    )
+    with pytest.raises(ValueError, match="expiry cannot precede"):
+        store.contribute(invalid)
 
 
 def test_synapse_rejects_phone_changes_unverified_success_and_tampering(tmp_path) -> None:

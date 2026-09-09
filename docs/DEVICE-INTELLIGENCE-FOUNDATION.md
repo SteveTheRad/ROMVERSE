@@ -1,5 +1,24 @@
 # ROMVERSE Device Intelligence Foundation
 
+## Checkpoint 2 — Synapse lifecycle boundary
+
+The existing Synapse state machine now has explicit `quarantined`, `superseded` and `expired`
+lifecycle states. These states do not replace Candidate → Verified Success → Strong → Trusted,
+existing evidence-driven downgrades or retirement. They make unusable guidance fail closed:
+
+- quarantined records remain locally visible for Archives explanation but never appear in query
+  results;
+- an active replacement may supersede one exact content-addressed knowledge record, while a
+  quarantined, expired or retired replacement cannot suppress another record;
+- expiry is bound to a normalized UTC timestamp, and expired records remain explainable rather
+  than being deleted; and
+- self-supersession or conflicting supersession targets quarantine the exact record.
+
+All lifecycle records remain guidance-only. Compatibility stays `UNCONFIRMED`; execution authority
+remains `none`; phone action and Guardian approval remain false; and bootloader relocking remains
+permanently false. No network Synapse service, persistence backend, runtime consumer wiring or
+device operation is introduced.
+
 ## Checkpoint 1 boundary
 
 This checkpoint adds deterministic, local and acquisition-inert schema contracts. It extends the
@@ -64,8 +83,8 @@ visible rather than being overwritten. Duplicate existing online claims remain d
 deduplicated by claim ID, and stale or conflicting evidence continues to require investigation.
 Observation cannot follow retrieval, revalidation cannot precede retrieval, history cannot predate
 observation, and the final history status must equal the record's current lifecycle status.
-Checkpoint 1 does not change the Synapse state machine; its separately authorized lifecycle work is
-still gated behind independent Product Assurance.
+Checkpoint 1 did not change the Synapse state machine. The separately authorized Checkpoint 2
+extension above is additive and preserves the original promotion, downgrade and retirement rules.
 
 ## Privacy
 

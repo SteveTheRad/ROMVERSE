@@ -32,7 +32,20 @@ class SynapseKnowledgeState(StrEnum):
     VERIFIED_SUCCESS = "verified-success"
     STRONG = "strong-corroborated"
     TRUSTED = "trusted"
+    QUARANTINED = "quarantined"
+    SUPERSEDED = "superseded"
+    EXPIRED = "expired"
     RETIRED = "retired"
+
+
+UNUSABLE_KNOWLEDGE_STATES = frozenset(
+    {
+        SynapseKnowledgeState.QUARANTINED,
+        SynapseKnowledgeState.SUPERSEDED,
+        SynapseKnowledgeState.EXPIRED,
+        SynapseKnowledgeState.RETIRED,
+    }
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -84,6 +97,9 @@ class SynapseContribution:
     action_receipt_digest: str
     verification_evidence_digest: str
     version_drift: bool = False
+    quarantined: bool = False
+    supersedes_knowledge_id: str = ""
+    expires_at: str = ""
     privacy: str = "redacted"
     phone_changed: bool = False
 
@@ -101,15 +117,22 @@ class SynapseContribution:
         action_receipt_digest: str,
         verification_evidence_digest: str,
         version_drift: bool = False,
+        quarantined: bool = False,
+        supersedes_knowledge_id: str = "",
+        expires_at: str = "",
         phone_changed: bool = False,
     ) -> SynapseContribution:
         if phone_changed:
             raise ValueError("Synapse V1 accepts host/read-only verification outcomes only")
         if successful and not locally_verified:
             raise ValueError("A successful Synapse contribution needs local verification")
+        recorded_at = datetime.now(UTC).isoformat()
+        normalized_expiry = _timestamp(expires_at) if expires_at else ""
+        if normalized_expiry and normalized_expiry < recorded_at:
+            raise ValueError("Synapse expiry cannot precede its contribution")
         return cls(
             contribution_id=uuid4().hex,
-            recorded_at=datetime.now(UTC).isoformat(),
+            recorded_at=recorded_at,
             fingerprint_id=_digest(fingerprint_id, "fingerprint id"),
             solution_id=_identifier(solution_id, "solution id"),
             scope=_validated_scope(scope),
@@ -122,6 +145,13 @@ class SynapseContribution:
                 verification_evidence_digest, "verification evidence digest"
             ),
             version_drift=bool(version_drift),
+            quarantined=bool(quarantined),
+            supersedes_knowledge_id=(
+                _digest(supersedes_knowledge_id, "superseded knowledge id")
+                if supersedes_knowledge_id
+                else ""
+            ),
+            expires_at=normalized_expiry,
             phone_changed=False,
         )
 
@@ -141,6 +171,9 @@ class SynapseKnowledge:
     last_verified_at: str
     summary: str
     contribution_digests: tuple[str, ...]
+    supersedes_knowledge_id: str = ""
+    expires_at: str = ""
+    lifecycle_explanation: str = "active"
     execution_authority: str = "guidance-only"
 
 
@@ -522,14 +555,14 @@ class SynapseStore:
         scope_id = _digest(scope_digest, "scope digest")
         matching = tuple(
             item
-            for item in self._load()
+            for item in self._compiled_knowledge()
             if item.fingerprint_id == fingerprint
             and item.solution_id == solution
             and item.scope.scope_digest == scope_id
         )
         if not matching:
             raise SynapseStoreError("No Synapse knowledge matches that exact scope")
-        return _compile_knowledge(matching)
+        return matching[0]
 
     def query(
         self,
@@ -540,15 +573,11 @@ class SynapseStore:
     ) -> tuple[SynapseMatch, ...]:
         fingerprint = _digest(fingerprint_id, "fingerprint id")
         requested = _validated_scope(scope)
-        grouped: dict[tuple[str, str], list[SynapseContribution]] = {}
-        for item in self._load():
-            if item.fingerprint_id != fingerprint:
-                continue
-            grouped.setdefault((item.solution_id, item.scope.scope_digest), []).append(item)
         matches = []
-        for items in grouped.values():
-            knowledge = _compile_knowledge(tuple(items))
-            if knowledge.state is SynapseKnowledgeState.RETIRED:
+        for knowledge in self._compiled_knowledge():
+            if knowledge.fingerprint_id != fingerprint:
+                continue
+            if knowledge.state in UNUSABLE_KNOWLEDGE_STATES:
                 continue
             scope_match = _scope_match(requested, knowledge.scope)
             if scope_match == "incompatible":
@@ -585,19 +614,17 @@ class SynapseStore:
         bounded = max(0, min(int(limit), 256))
         if not bounded:
             return ()
-        grouped: dict[tuple[str, str, str], list[SynapseContribution]] = {}
-        for item in self._load():
-            grouped.setdefault(
-                (item.fingerprint_id, item.solution_id, item.scope.scope_digest), []
-            ).append(item)
         state_rank = {
             SynapseKnowledgeState.TRUSTED: 0,
             SynapseKnowledgeState.STRONG: 1,
             SynapseKnowledgeState.VERIFIED_SUCCESS: 2,
             SynapseKnowledgeState.CANDIDATE: 3,
-            SynapseKnowledgeState.RETIRED: 4,
+            SynapseKnowledgeState.QUARANTINED: 4,
+            SynapseKnowledgeState.SUPERSEDED: 5,
+            SynapseKnowledgeState.EXPIRED: 6,
+            SynapseKnowledgeState.RETIRED: 7,
         }
-        compiled = tuple(_compile_knowledge(tuple(items)) for items in grouped.values())
+        compiled = self._compiled_knowledge()
         return tuple(
             sorted(
                 compiled,
@@ -609,6 +636,36 @@ class SynapseStore:
                     item.knowledge_id,
                 ),
             )[:bounded]
+        )
+
+    def _compiled_knowledge(self) -> tuple[SynapseKnowledge, ...]:
+        grouped: dict[tuple[str, str, str], list[SynapseContribution]] = {}
+        for item in self._load():
+            grouped.setdefault(
+                (item.fingerprint_id, item.solution_id, item.scope.scope_digest), []
+            ).append(item)
+        compiled = tuple(_compile_knowledge(tuple(items)) for items in grouped.values())
+        active_superseder_sets: dict[str, set[str]] = {}
+        for item in compiled:
+            if item.supersedes_knowledge_id and item.state not in UNUSABLE_KNOWLEDGE_STATES:
+                active_superseder_sets.setdefault(item.supersedes_knowledge_id, set()).add(
+                    item.knowledge_id
+                )
+        active_superseders = {
+            target: min(replacements) for target, replacements in active_superseder_sets.items()
+        }
+        return tuple(
+            replace(
+                item,
+                state=SynapseKnowledgeState.SUPERSEDED,
+                confidence=0,
+                lifecycle_explanation=(
+                    f"Superseded by guidance record {active_superseders[item.knowledge_id]}."
+                ),
+            )
+            if item.knowledge_id in active_superseders
+            else item
+            for item in compiled
         )
 
     def _load(self) -> tuple[SynapseContribution, ...]:
@@ -715,8 +772,29 @@ def _compile_knowledge(
         "solution_id": first.solution_id,
         "scope_digest": first.scope.scope_digest,
     }
+    knowledge_id = hashlib.sha256(_canonical(knowledge_key)).hexdigest()
+    quarantine = any(item.quarantined for item in ordered)
+    supersession_targets = {
+        item.supersedes_knowledge_id for item in ordered if item.supersedes_knowledge_id
+    }
+    if len(supersession_targets) > 1:
+        quarantine = True
+    supersedes = next(iter(supersession_targets), "")
+    if supersedes == knowledge_id:
+        quarantine = True
+    expiries = tuple(item.expires_at for item in ordered if item.expires_at)
+    expiry = min(expiries, default="")
+    lifecycle_explanation = "Active guidance-only evidence."
+    if quarantine:
+        state = SynapseKnowledgeState.QUARANTINED
+        lifecycle_explanation = "Quarantined evidence is retained for Archives review."
+    elif expiry and expiry <= datetime.now(UTC).isoformat():
+        state = SynapseKnowledgeState.EXPIRED
+        lifecycle_explanation = "Expired evidence is retained for Archives review."
+    if state in UNUSABLE_KNOWLEDGE_STATES:
+        confidence = 0
     return SynapseKnowledge(
-        knowledge_id=hashlib.sha256(_canonical(knowledge_key)).hexdigest(),
+        knowledge_id=knowledge_id,
         fingerprint_id=first.fingerprint_id,
         solution_id=first.solution_id,
         scope=first.scope,
@@ -729,6 +807,9 @@ def _compile_knowledge(
         last_verified_at=last_verified,
         summary=summary_source.summary,
         contribution_digests=digests,
+        supersedes_knowledge_id=supersedes,
+        expires_at=expiry,
+        lifecycle_explanation=lifecycle_explanation,
     )
 
 
@@ -755,10 +836,22 @@ def _validated_contribution(contribution: SynapseContribution) -> SynapseContrib
         raise ValueError("Synapse contribution violates the privacy/safety boundary")
     if contribution.successful and not contribution.locally_verified:
         raise ValueError("Unverified outcomes cannot be successful Synapse evidence")
+    if not isinstance(contribution.quarantined, bool):
+        raise ValueError("Synapse quarantine state is invalid")
+    recorded_at = _timestamp(contribution.recorded_at)
+    expires_at = _timestamp(contribution.expires_at) if contribution.expires_at else ""
+    if expires_at and expires_at < recorded_at:
+        raise ValueError("Synapse expiry cannot precede its contribution")
     return replace(
         contribution,
         contribution_id=_identifier(contribution.contribution_id, "contribution id"),
-        recorded_at=_timestamp(contribution.recorded_at),
+        recorded_at=recorded_at,
+        supersedes_knowledge_id=(
+            _digest(contribution.supersedes_knowledge_id, "superseded knowledge id")
+            if contribution.supersedes_knowledge_id
+            else ""
+        ),
+        expires_at=expires_at,
         fingerprint_id=_digest(contribution.fingerprint_id, "fingerprint id"),
         solution_id=_identifier(contribution.solution_id, "solution id"),
         scope=_validated_scope(contribution.scope),
@@ -841,7 +934,7 @@ def _timestamp(value: object) -> str:
     parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
     if parsed.tzinfo is None:
         raise ValueError("Synapse timestamp needs a timezone")
-    return text
+    return parsed.astimezone(UTC).isoformat()
 
 
 def _canonical(value: object) -> bytes:

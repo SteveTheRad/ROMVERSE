@@ -1,5 +1,35 @@
 # ROMVERSE Build Status
 
+## Device Intelligence Synapse lifecycle — Checkpoint 2 — 10 September 2026
+
+- Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`.
+- Product Assurance authorization: `1cbda8c9bc1f600f0a81429476b8b0aa47645522`.
+- Branch: `device-intelligence/foundation-schema-contracts`.
+- Scope: only `src/romverse/intelligence/synapse.py`, `tests/test_synapse.py`,
+  `docs/DEVICE-INTELLIGENCE-FOUNDATION.md` and this handoff.
+- Result: explicit quarantine, supersession and expiry lifecycle contracts extend the existing
+  Candidate → Verified Success → Strong → Trusted state machine without changing its downgrade or
+  retirement semantics.
+- Query safety: quarantined, superseded, expired and retired knowledge is unusable and hidden from
+  query results. `list_knowledge()` retains every state with a deterministic lifecycle explanation
+  so Archives can explain why guidance must not be reused.
+- Supersession: only a usable active record can suppress one exact content-addressed predecessor.
+  Self-supersession or conflicting supersession targets quarantine the exact record.
+- Expiry: normalized UTC expiry cannot precede its contribution. Expired records are retained and
+  fail closed with zero confidence.
+- Backward compatibility: schema-one caches lacking the additive fields continue to load with
+  active lifecycle defaults. Existing promotion, downgrade, retirement, privacy and tamper checks
+  remain intact.
+- Authority: guidance-only; compatibility `UNCONFIRMED`; execution authority `none`; phone action,
+  Guardian approval and bootloader relocking remain false.
+- Network service, persistence backend, runtime wiring, Matrix/Nexus/First Light, Guardian/Recovery,
+  UI/platform/Companion, acquisition, phone/emulator, firmware/build/flash/root/debloat, hosted CI,
+  signing, publication and release: none.
+- Verification: **146/146 passed** across the new Synapse lifecycle tests and the authorized
+  Checkpoint 1 baseline. Focused Ruff check/format and Git whitespace verification passed.
+- Next: stop for independent Product Assurance. Broader Device Intelligence work remains
+  unauthorized.
+
 ## Device Intelligence foundation schema contracts — Checkpoint 1 — 10 September 2026
 
 - Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`.

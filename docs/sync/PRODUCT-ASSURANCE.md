@@ -1,5 +1,74 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: f9136f7 — Windows single-instance and clean-reopen boundary
+
+- Reviewed checkpoint: `f9136f7fac713c08f77e50e1b949c218fc55cb02`
+- Authorizing verdict: `b5e9a6e506b5d40b481d2287c1948e74996dc448`
+- Retained package source: `b1dc54e0c6390fb3d789930dda0696c712e40e64`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — SINGLE-INSTANCE REJECTION AND CLEAN REOPEN ARE VERIFIED**
+
+### Decision and independent evidence
+
+The retained package correctly rejected an exact second invocation while preserving the live first
+instance. The second process exited with the existing single-instance result, code `2`, in 1,070
+ms—well within the approved five-second bound—with empty stdout and stderr. The live ledger stayed
+byte-identical at 36 bytes throughout the collision, so the rejected invocation never became an
+accepted ROMVERSE runtime. Process and UI inventories retained exactly the original process and
+one responsive top-level window on the same fail-closed `LOCAL` Command Deck.
+
+The original process then closed normally, reaching zero processes and one accepted start/clean
+close. A subsequent exact invocation opened normally and closed normally, proving the live lock
+was released without manual cleanup. Product Assurance independently verified zero remaining
+ROMVERSE processes, zero ROMVERSE windows and no `%TEMP%\romverse-studio.lock`. The final ledger is
+154 bytes, SHA-256 `50d779cf4f44836bb0f2fc6bb9cd0f21763e9de1dcb388fb854e57e5b18f4587`, and contains exactly two
+accepted starts and two clean closes.
+
+The private schema-five settings file remains byte-identical at 633 bytes and SHA-256
+`f176ae0ba370b775481956507a3233c45c6b10f58dab6d7c76000804b343f12d`, with all four local-mode
+controls false and the same protected owner/SYSTEM ACL. The disposable root contains eight regular
+files, no reparse entries and no catalog, receipt, download, toolchain, install-plan or update path.
+The executable remains 6,324,534 bytes, SHA-256
+`d2df2c9a667520e9ebe88d4c2eb4dfa26020b1e2d8f852dddb33ab24a013b431`, and `NotSigned`.
+
+The checkpoint changes only Build Status and passes Git whitespace validation. The Windows
+checkout contains only the protected untracked patch and existing `build-work/` intermediates;
+the patch remains 8,272 bytes with SHA-256
+`2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`. Forgejo and GitHub expose
+the same exact checkpoint. No network, install, dependency/tool change, phone/emulator,
+ADB/Fastboot, firmware/APK, Guardian/Recovery execution, source/package change, signing,
+publication, release, hosted CI, wipe, unlock/root, lock or relock occurred.
+
+### Approved next bounded task
+
+Verify one retained-package stale-instance-lock recovery on Windows. This is an exact local test
+process interruption and recovery boundary, not a feature journey or general fault campaign.
+
+1. Create one new disposable root with the same private pre-launch Local-mode settings. Launch the
+   exact retained unsigned package once in the interactive user session and verify one responsive,
+   fail-closed `LOCAL` Command Deck.
+2. Immediately before interruption, freshly bind the candidate PID to the exact executable path,
+   complete arguments, user session and unique disposable root. Terminate only that exact test PID
+   to model an abrupt process loss. Do not close any unrelated process or claim a clean close.
+3. Record zero remaining ROMVERSE processes, the unmatched runtime-start evidence and the exact
+   lock-file state. Treat the interrupted launch as incomplete/unknown, never as success.
+4. Invoke the exact package once against the same root/workspace. It must recover only the stale
+   lock whose recorded owner is no longer alive, open normally, and retain the same local/no-device
+   state. Close normally and verify zero processes and no remaining lock file.
+5. The final ledger must distinguish one unmatched interrupted start from one later accepted
+   start/clean close. Commit only a bounded sanitized handoff and stop for Product Assurance. If
+   stale-lock recovery fails, report the deterministic blocker without changing source or package.
+
+No other feature surface, broad crash testing, network, download, install, dependency/tool change,
+phone/emulator/ADB/Fastboot, firmware/APK, Guardian/Recovery execution, source/package change,
+signing, publication, release, hosted CI, wipe, unlock/root, lock or relock is authorized.
+
+### Gate status
+
+- Windows single-instance and clean-reopen boundary: **APPROVED**
+- Exact retained-package stale-lock recovery: **AUTHORIZED**
+- Physical-device work, production trust/signing, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 50dd0b0 — Corrected Windows local-mode journey
 
 - Reviewed checkpoint: `50dd0b041caee47dcba4d331c32c761bf83624a3`

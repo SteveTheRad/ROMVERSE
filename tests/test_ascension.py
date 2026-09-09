@@ -45,6 +45,7 @@ from romverse.device_packs.registry import DevicePackRegistry
 from romverse.infrastructure.process import CommandResult
 from romverse.infrastructure.tools import ToolStatus
 from romverse.rom.guided import GuidedMissionState, GuidedMissionStore
+from romverse.rom.inspection import RomInspectionService
 from romverse.rom.models import ProjectError
 from romverse.rom.projects import RomProjectStore
 from romverse.rom.recovery_evidence import RecoveryEvidenceService
@@ -99,6 +100,7 @@ def _project(tmp_path: Path) -> tuple[RomProjectStore, str, str]:
     source = tmp_path / "popsicle_images_OS3.0.318.0.WPBCNXM_20260804.0000.00_16.0_cn_test.tgz"
     source.write_bytes(b"exact firmware")
     project = store.import_original(project.project_id, source)
+    RomInspectionService(store).inspect_project(project.project_id)
     return store, project.project_id, project.original.sha256
 
 

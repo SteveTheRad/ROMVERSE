@@ -27,6 +27,7 @@ from romverse.ascension.preparation import RootPatchPreparationService
 from romverse.backup.handoff import BackupHandoffService, CloudBackupProvider
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device_packs.registry import DevicePackRegistry
+from romverse.rom.inspection import RomInspectionService
 from romverse.rom.models import ProjectError
 from romverse.rom.projects import RomProjectStore
 from romverse.rom.recovery_evidence import RecoveryEvidenceService
@@ -66,6 +67,7 @@ def _prepared(tmp_path: Path, *, cloud_backup: bool = False):
     source = tmp_path / "popsicle_images_OS3.0.318.0.WPBCNXM_test.tgz"
     source.write_bytes(b"protected exact firmware")
     project = store.import_original(project.project_id, source)
+    RomInspectionService(store).inspect_project(project.project_id)
 
     images = store.working_root / project.project_id / "tree" / "images"
     images.mkdir(parents=True)

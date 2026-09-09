@@ -25,6 +25,7 @@ from romverse.rom.base_image_compatibility import (
     _parse_manifest,
     _wire_fields,
 )
+from romverse.rom.inspection import RomInspectionService
 from romverse.rom.models import ProjectError
 from romverse.rom.projects import RomProjectStore
 from romverse.rom.source_installation import SourceInstallationService
@@ -112,6 +113,7 @@ def _fixture(
     pack = next(item for item in registry.packs if item.build_contract is not None)
     store = RomProjectStore(tmp_path / "workspace")
     project = store.import_original(store.create("Tiny OTA build", pack.pack_id).project_id, ota)
+    RomInspectionService(store).inspect_project(project.project_id)
     procedure = store.import_original(store.create("Tiny source procedure").project_id, package)
     recipe = SourceInstallationService(store).prepare(procedure.project_id)
     contract = replace(

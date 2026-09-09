@@ -13,6 +13,7 @@ from romverse.ascension.evidence import AscensionEvidenceService
 from romverse.ascension.integration import RootRomIntegrationService
 from romverse.ascension.models import AscensionMethod, OfficialRootAsset, OfficialRootRelease
 from romverse.ascension.preparation import RootPatchPreparationService
+from romverse.rom.inspection import RomInspectionService
 from romverse.rom.models import ProjectError
 from romverse.rom.projects import RomProjectStore
 from tests._ascension_trust import ExplicitTestRootReleaseService
@@ -42,6 +43,7 @@ def _prepared(
     store = RomProjectStore(tmp_path / "workspace")
     project = store.create(f"Root ROM {method.value}")
     store.import_original(project.project_id, source)
+    RomInspectionService(store).inspect_project(project.project_id)
     if payload_partition:
         root = store.working_root / project.project_id
         relative = Path("partitions/init_boot.img")

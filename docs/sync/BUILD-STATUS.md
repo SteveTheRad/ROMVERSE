@@ -1,5 +1,81 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows corrected Command Deck package launch — host-control blocker review requested
+
+### Exact authority and immutable preflight
+
+- Product Assurance verdict `84ad39d1556cf3de05cd4dd7fcb4d0d991562539` exactly approves
+  checkpoint `52c0e2ad0720a9a9ef1ceb4205049d46a135fcbe` and authorizes one display-only launch of the
+  exact corrected package against the retained private profile. The checkout safely fast-forwarded
+  to that exact verdict on `windows-launcher-authorized-work`; the only committed change was
+  `docs/sync/PRODUCT-ASSURANCE.md`. The protected untracked 8,272-byte patch remained SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`, existing untracked
+  `build-work\` remained untouched, and all protected Companion files remained unchanged.
+- The authorized executable remained exactly 6,324,645 bytes at SHA-256
+  `86925e2ac7b3d836f8aa35cb9e2ee4f07cd4e579d1be4ee42d40fbdad8cdf446`, Authenticode
+  `NotSigned`. The retained profile excluding its permitted runtime ledger comprised 37 files,
+  982,573 bytes, with deterministic sorted path/size/member-hash manifest
+  `15bbdfec06cbb51dac9cfa3a46515c23e21888f73be86cca8b853d48bed0b5f8`.
+- Activity remained six events/3,392 bytes at
+  `b432f3acbe63c146dfed87e2ded46b8a8aed2cdf59e16ccdf9de8f03e870e46f`; Live Console remained
+  30 events/31,179 bytes at
+  `a1a829373deb1bf5be45793bd0b290075fa1639502a0626d7622ca6163f8bf93`; the Guided mission
+  remained 436 bytes at
+  `ba96a6b7557ce9590b120cd52090a363d5fb2277729aba04b9316928d78ec0db`, selected stage `device`,
+  root undecided, with no build plan, install request or error. Exactly one branch existed,
+  `windows-vault-experiment-7d0cf6a-5eea7b18`, whose sealed record remained
+  `c3a8c18e181b09af416d54422ffaa209120aace799d6f2f21681eaeb8d1bba7e`. The profile had zero
+  reparse entries, ROMVERSE/ADB/Fastboot process counts were zero and both ledger locks accepted
+  exclusive no-sharing opens.
+
+### Exact one launch and genuine host-control blocker
+
+- The exact package launched once as PID `115036` at
+  `2026-09-10T08:29:46.4066373+10:00`, responding from
+  `C:\Work\ROMVERSE-Windows\build\windows-vault-attention-final-1fd8662\ROMVERSE\ROMVERSE.exe`.
+  It received only `C:\Work\ROMVERSE-No-Tools-392b82fb` as `PATH` and exactly `--workspace`,
+  `C:\Work\ROMVERSE-Private-Original-392b82fb\workspace`, `--skip-onboarding`,
+  `--development-device-simulation`.
+- The ChatGPT update left the bundled legacy Windows-control helper unavailable: its first native
+  application inventory call returned exactly `Trusted RPC service is not configured: sky`.
+  After the skill's one permitted clean reset/reinitialization, the current computer-use inventory
+  exposed no native Windows apps at all (only the Codex in-app browser). The running ROMVERSE
+  window therefore could not be observed or controlled through the approved Windows UI channel.
+- Build did not substitute process metadata, source tests, screenshots from another session,
+  guessed coordinates or an unauthorized automation mechanism for visible evidence. It did not
+  enter Time Machine, Genesis or the experiment branch and invoked no ROMVERSE control. The
+  required `DEVICE: NOT CONNECTED`, `MISSION: ATTENTION`, `GUARDIAN: VERIFY REQUIRED`, stage 5/15
+  and `Connect Device` banner evidence is consequently **UNKNOWN**, not passed or inferred.
+- A normal `CloseMainWindow` request was accepted once by PID `115036`; the process exited cleanly
+  without force termination. No second launch or retry occurred.
+
+### Exact preservation, validation and stop
+
+- Postflight reproduced the exact 37-file/982,573-byte profile manifest excluding the runtime
+  ledger at
+  `15bbdfec06cbb51dac9cfa3a46515c23e21888f73be86cca8b853d48bed0b5f8`. Activity, Live Console,
+  mission, project, protected original, working tree, snapshot, both Vault entries, all five Vault
+  objects and the one sealed experiment branch therefore remained byte-identical. There is still
+  exactly one branch and zero reparse entries.
+- Only the permitted runtime ledger changed: it is now 616 bytes at SHA-256
+  `c978becaee1ed37dd2ee6e5ffe936292eed1e9c638e9d0e98242706ed6486795`, containing exactly eight
+  starts and eight clean closes with no fault line. Final ROMVERSE, ADB and Fastboot process counts
+  are zero, and both audit locks again accept exclusive no-sharing opens.
+- No source, test, package or protected Companion file changed, so no test run or package rebuild
+  was warranted. `git diff --check` is the proportionate repository validation for this docs-only
+  blocker checkpoint.
+- No experiment-branch use, comparison, verification, capture, restore, export, cleanup, external
+  evidence, network/download, device scan, phone/emulator, ADB/Fastboot command, APK/firmware
+  mutation, Recipe/Forge, Guardian/Recovery execution, signing, publication, release, hosted CI,
+  wipe, unlock/root, bootloader lock or relock occurred. Exact-device evidence, consent separation,
+  Guardian-only authority, durable UNKNOWN, no blind retry, independent verification, feature
+  freeze and permanent bootloader no-relock remain intact.
+- Precise proposed next task: independent Product Assurance review of this exact host-control
+  blocker and preserved one-launch evidence. Restore or separately authorize a working native
+  Windows observation channel before any new package launch; do not retry this launch, change
+  source, use the experiment branch or begin another consequential action without a matching
+  repository verdict.
+
 ## Windows isolated Project Vault experiment branch — Product Assurance review requested
 
 ### Exact authority and one-shot preflight

@@ -154,9 +154,16 @@ def test_archives_searches_and_explains_structured_offline_evidence(tmp_path) ->
     center = KnowledgeCenter(offline_service=OfflineKnowledgeService(tmp_path / "workspace"))
     center.show()
 
+    assert center.offline_archive is not None
     assert "OFFLINE BRAIN READY" in center.offline_archive_status.text()
-    assert "281 STRUCTURED RECORDS" in center.offline_archive_status.text()
-    assert "181 ATTRIBUTED SOURCES" in center.offline_archive_status.text()
+    assert (
+        f"{len(center.offline_archive.records)} STRUCTURED RECORDS"
+        in center.offline_archive_status.text()
+    )
+    assert (
+        f"{len(center.offline_archive.sources)} ATTRIBUTED SOURCES"
+        in center.offline_archive_status.text()
+    )
     center.search.setText("HASH_MISMATCH(3)")
     app.processEvents()
     offline_items = [
@@ -188,8 +195,9 @@ def test_synapse_constellation_reports_real_local_metrics_and_honours_reduced_mo
     )
 
     description = center.synapse_constellation.accessibleDescription()
-    assert "281 offline records" in description
-    assert "181 attributed sources" in description
+    assert center.offline_archive is not None
+    assert f"{len(center.offline_archive.records)} offline records" in description
+    assert f"{len(center.offline_archive.sources)} attributed sources" in description
     assert "0 private learned outcomes" in description
     assert not center.synapse_constellation._timer.isActive()
     center.close()

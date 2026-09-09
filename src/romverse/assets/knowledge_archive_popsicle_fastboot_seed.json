@@ -1,0 +1,266 @@
+{
+  "format": "romverse.offline-knowledge-archive",
+  "schema_version": 1,
+  "bundle_id": "romverse-popsicle-os303190-fastboot-field-2026-09-09",
+  "updated_at": "2026-09-09T00:00:00+10:00",
+  "sources": [
+    {
+      "source_id": "romverse.field.popsicle-os303190-fastboot-20260909",
+      "label": "ROMVERSE popsicle OS3 downgrade and Fastboot transport field case",
+      "publisher": "ROMVERSE Product Assurance",
+      "url": "",
+      "tier": "romverse_verified",
+      "scope": "One user-confirmed Xiaomi popsicle slot-A OS4.0.0.32-to-OS3.0.319.0 outcome. Evidence SHA-256: report edaca784c521b5cc2ba01ce9428501a820f4491322184c48225480f056727594; transcript 8ed2712d5df930cd5fff1794f4725b2bc743fa23411062e7f68239723d997e64; helper source 0f19f4193a76943de9ac3cc40de58aef6e628a670a3e3962a03e73ea7b42dfa1; helper binary a7e8849449bfe75b063fd0a509276af59cec6127554eb604e18967cb2b983a2c; image manifest dfa1cfe2b9500fb0edf706e05c5bd35ad7258c9d7a4903af830aae501a6fa335.",
+      "reviewed_on": "2026-09-09"
+    }
+  ],
+  "records": [
+    {
+      "record_id": "romverse.popsicle-os303190-fragmented-data-response",
+      "revision": 1,
+      "title": "popsicle Fastboot DATA response can be fragmented across USB reads",
+      "kind": "fix",
+      "summary": "In one verified Xiaomi popsicle OS3 downgrade, the bootloader split the fixed 12-byte Fastboot DATA00052000 reply for a 335872-byte abl image into DATA000520 and 00. A one-read parser interpreted only six hex digits and stopped before transfer. The successful bounded parser reassembled all 12 bytes, parsed exactly eight hexadecimal digits, and required the accepted length to equal the verified image size.",
+      "symptoms": [
+        "Fastboot download length appears much smaller than the selected image",
+        "A DATA response ends after six visible hexadecimal digits in one USB read",
+        "The host stops before sending image bytes even though the bootloader accepted download"
+      ],
+      "error_codes": [
+        "DATA000520",
+        "fragmented DATA response",
+        "accepted length does not match verified image size"
+      ],
+      "finding_ids": [
+        "fastboot.protocol.fragmented_fixed_data_response"
+      ],
+      "diagnostic_steps": [
+        "Preserve the raw response read boundaries and verify whether the complete Fastboot DATA response totals exactly 12 bytes.",
+        "Compare the eight-digit hexadecimal length with the exact verified image byte count before sending any payload.",
+        "Confirm the failure occurred before image bytes and before flash:<partition>; do not infer a partition write from a download-request response."
+      ],
+      "fix_steps": [
+        "Prefer a current standard Fastboot client when it behaves correctly for the exact target.",
+        "For the verified fallback only, accumulate the fixed 12-byte DATA%08x response across bounded USB reads, reject malformed or extra content, parse exactly eight hexadecimal digits, and require an exact byte-count match.",
+        "Keep protocol parsing separate from write authorization; successful response parsing grants no permission to transfer or flash an image."
+      ],
+      "prerequisites": [
+        "Exact Xiaomi 17 Pro Max product/codename popsicle",
+        "Exact source and target build evidence",
+        "Integrity-verified image byte count",
+        "Raw stage-aware Fastboot transport evidence",
+        "Standard Fastboot path attempted or independently shown unsuitable"
+      ],
+      "expected_outcomes": [
+        "The host reconstructs DATA00052000 as 335872 bytes and does not confuse one USB packet with one protocol message.",
+        "Malformed, incomplete, oversized, or mismatched DATA responses stop before image transfer."
+      ],
+      "compatibility": [
+        "Verified once on Xiaomi 17 Pro Max popsicle during the OS3.0.319.0.WPBCNXM slot-A field installation"
+      ],
+      "known_incompatibility": [
+        "Not evidence that every popsicle, Fastboot implementation, host controller, cable, or firmware package needs a custom parser",
+        "Not an execution recipe or permission to bypass Guardian"
+      ],
+      "recovery_routes": [
+        "Stop before transfer when the accepted byte count cannot be proven",
+        "Return to current official Platform-Tools when the standard client works normally"
+      ],
+      "tags": [
+        "popsicle fastboot fragmented DATA response",
+        "DATA00052000",
+        "12-byte fastboot reply",
+        "USB packet fragmentation",
+        "335872 abl",
+        "exact byte count"
+      ],
+      "scope": {
+        "manufacturers": ["xiaomi"],
+        "brands": ["xiaomi"],
+        "models": ["Xiaomi 17 Pro Max", "2509FPN0BC"],
+        "codenames": ["popsicle"],
+        "build_ids": ["OS4.0.0.32.XPBCNXM", "OS3.0.319.0.WPBCNXM"],
+        "android_versions": ["16", "17"],
+        "bootloader_states": ["unlocked", "critical-unlocked"],
+        "partitions": ["abl", "aop"],
+        "scope_note": "One-device field evidence for the exact observed transition and active slot A. The transport lesson is reusable only after a new target reproduces the same bounded protocol evidence."
+      },
+      "source_ids": ["romverse.field.popsicle-os303190-fastboot-20260909"],
+      "confidence": "verified",
+      "corroboration_count": 1,
+      "operations": []
+    },
+    {
+      "record_id": "romverse.popsicle-os303190-bounded-fastboot-fallback",
+      "revision": 1,
+      "title": "popsicle OS3 field case required a bounded staged Fastboot fallback",
+      "kind": "guide",
+      "summary": "For one exact Xiaomi popsicle downgrade, standard Fastboot produced unsupported-slot, zero-size, and invalid-argument behavior. A bounded helper succeeded with one exact in-memory serial binding, VID:PID 18d1:d00d, unsuffixed partitions after selecting and verifying slot A, 64 KiB transfers, 120-second completion timeouts, and explicit separation of download staging from flash dispatch and final result. The helper exposed only getvar, set-active a, and one-partition flash; it had no erase, format, slot-B, unlock, relock, script, or arbitrary-command path.",
+      "symptoms": [
+        "The package's _ab partition target is rejected as not supporting slots",
+        "Fastboot reports a partition size of zero",
+        "Standard Fastboot fails or hangs on a slot or partition-size query",
+        "USB transport reports kernel error -71 or -110"
+      ],
+      "error_codes": [
+        "Device does not support slots",
+        "Invalid argument size",
+        "partition size: 0",
+        "USB error -71",
+        "USB error -110"
+      ],
+      "finding_ids": [
+        "fastboot.popsicle.standard_client_slot_path_unreliable",
+        "fastboot.popsicle.stage_aware_fallback_observed",
+        "usb.popsicle.physical_transport_recovery_observed"
+      ],
+      "diagnostic_steps": [
+        "Verify one unambiguous exact popsicle target and retain its serial only in memory for transport binding.",
+        "Record the current slot, product, unlock state, exact tool version, host controller, cable, package digest, and the stage where failure occurred.",
+        "Distinguish download request, byte transfer, download-complete OKAY, flash command dispatch, and final flash result.",
+        "For USB -71 or -110, isolate the physical path with a known-good cable and a different direct motherboard port before attributing the fault to firmware."
+      ],
+      "fix_steps": [
+        "Prefer current official or package-bundled Fastboot when it completes the exact operation reliably.",
+        "If the exact verified failure recurs, use only a reviewed bounded adapter that enforces the complete DATA response, 64 KiB chunks, 120-second bounded timeouts, exact target binding, and one operation per invocation.",
+        "After selecting slot A, re-read and require current-slot a before using the exact package-prescribed unsuffixed target order.",
+        "For USB -71 or -110, disconnect USB, hold Power for about 20 seconds, immediately enter FASTBOOT with Volume Down, and reconnect through a different direct port with a known-good cable; then reacquire all authority from fresh evidence."
+      ],
+      "prerequisites": [
+        "Exact popsicle identity and active slot A",
+        "Exact package and per-image SHA-256 manifest",
+        "Fresh unlocked and critical-unlocked evidence",
+        "Reviewed package order and complete recovery material",
+        "Fresh Guardian decision and one-use consent for each consequential chain",
+        "No bootloader lock or relock action"
+      ],
+      "expected_outcomes": [
+        "Each invocation handles at most one exact read or write and reports its final stage without hiding partial progress.",
+        "A transport failure cannot advance to another partition, an erase, or reboot.",
+        "The raw serial is not persisted."
+      ],
+      "compatibility": [
+        "Verified once for popsicle OS4.0.0.32.XPBCNXM to Xiaomi.eu OS3.0.319.0.WPBCNXM on slot A"
+      ],
+      "known_incompatibility": [
+        "Slot B was not refreshed or validated and must not be selected from this evidence",
+        "The package shell script was not safely runnable as one opaque action because it was not fail-fast",
+        "The fallback is not a universal replacement for standard Fastboot"
+      ],
+      "recovery_routes": [
+        "Stop and investigate the exact current stage without advancing",
+        "Recover the USB path physically, then reacquire exact-device evidence",
+        "Use separately validated stock recovery material; never relock"
+      ],
+      "tags": [
+        "popsicle OS3 fastboot fallback",
+        "Device does not support slots",
+        "Invalid argument size",
+        "64 KiB USB chunks",
+        "120 second timeout",
+        "18d1:d00d",
+        "unsuffixed partition slot A",
+        "stage-aware fastboot"
+      ],
+      "scope": {
+        "manufacturers": ["xiaomi"],
+        "brands": ["xiaomi"],
+        "models": ["Xiaomi 17 Pro Max", "2509FPN0BC"],
+        "codenames": ["popsicle"],
+        "build_ids": ["OS4.0.0.32.XPBCNXM", "OS3.0.319.0.WPBCNXM"],
+        "android_versions": ["16", "17"],
+        "bootloader_states": ["unlocked", "critical-unlocked"],
+        "partitions": ["abl", "aop", "aop_config", "bluetooth", "boot", "cpucp", "cpucp_dtb", "dcp", "devcfg", "dsp", "dtbo", "featenabler", "hyp", "hyp_ac_config", "idmanager", "imagefv", "init_boot", "keymaster", "modem", "modemfirmware", "multiimgqti", "pdp", "pdp_cdb", "pvmfw", "qtvm_dtbo", "qupfw", "recovery", "secretkeeper", "shrm", "soccp", "soccp_dcd", "soccp_debug", "spuservice", "super", "tme_config", "tme_fw", "tme_seq_patch", "tz", "tz_ac_config", "tz_qti_config", "uefi", "uefisecapp", "vbmeta", "vbmeta_system", "vendor_boot", "vm-bootsys", "xbl", "xbl_ac_config", "xbl_config", "xbl_ramdump"],
+        "scope_note": "One-device, exact-transition, slot-A evidence. It supports diagnosis and adapter design only; every future target and package must be freshly revalidated."
+      },
+      "source_ids": ["romverse.field.popsicle-os303190-fastboot-20260909"],
+      "confidence": "verified",
+      "corroboration_count": 1,
+      "operations": []
+    },
+    {
+      "record_id": "romverse.popsicle-os303190-complete-write-before-wipe",
+      "revision": 1,
+      "title": "popsicle OS3 clean-install cleanup followed a complete 63-write audit",
+      "kind": "recovery",
+      "summary": "The verified slot-A clean installation completed 49 ordinary image writes and 14 numerically ordered sparse super writes. Only after every required write had an exact success result and product popsicle plus current slot a were revalidated did the user-authorized metadata erase, userdata erase, and reboot each return OKAY. The resulting full wipe means previous user data and app integrations cannot be presumed retained.",
+      "symptoms": [
+        "A downgrade package requires destructive cleanup after a complete image set",
+        "A script could reach metadata or userdata erase after an earlier failed write",
+        "One partition write lacks a trustworthy final result"
+      ],
+      "error_codes": [
+        "intent recorded but result unavailable",
+        "flash result unknown",
+        "incomplete 63-write audit"
+      ],
+      "finding_ids": [
+        "recovery.popsicle.complete_write_set_required_before_wipe",
+        "recovery.popsicle.slot_b_not_validated",
+        "recovery.popsicle.full_wipe_observed"
+      ],
+      "diagnostic_steps": [
+        "Count one exact durable success for each of the 49 ordinary targets and 14 ordered super pieces; duplicates, omissions, reordering, failed results, or unknown results fail the gate.",
+        "Freshly re-read product and current slot after the complete write set and before any destructive cleanup.",
+        "Treat a missing trustworthy result after flash:<partition> dispatch as UNKNOWN, not success or failure."
+      ],
+      "fix_steps": [
+        "Do not advance, erase, reboot, or automatically retry after FAILED or UNKNOWN; preserve the journal and investigate the exact physical state.",
+        "A later retry of an uncertain partition requires fresh exact-target observation, unchanged verified input, a recovery assessment, and a new governed decision for that exact step.",
+        "Perform metadata or userdata cleanup only when the exact installation contract requires it, the full write audit passes, the target remains exact, and the user has explicitly consented to the wipe."
+      ],
+      "prerequisites": [
+        "Exactly 63 expected write intents and exact success results",
+        "49 unique ordinary targets in package-prescribed order",
+        "14 sparse super pieces in numeric order",
+        "Fresh product popsicle and current-slot a evidence",
+        "Explicit full-wipe consent",
+        "Independent recovery material and no relock action"
+      ],
+      "expected_outcomes": [
+        "metadata and userdata remain untouched until the complete verified write set is present.",
+        "Successful cleanup and reboot are recorded separately from later successful Android boot.",
+        "Previous user data, Android Auto setup, Gboard setup, and app state are classified as erased or unverified rather than retained."
+      ],
+      "compatibility": [
+        "Observed for the exact Xiaomi.eu OS3.0.319.0.WPBCNXM clean-install package on popsicle slot A"
+      ],
+      "known_incompatibility": [
+        "Not evidence that a data-preserving update should erase metadata or userdata",
+        "Not evidence that slot B contains a bootable or matching installation",
+        "Not authority to retry an unknown write or to lock or relock the bootloader"
+      ],
+      "recovery_routes": [
+        "Preserve the durable intent/result journal and reassess the exact target",
+        "Use separately verified stock recovery material without relocking",
+        "Reacquire consent before any wipe or recovery write"
+      ],
+      "tags": [
+        "popsicle 63 successful writes",
+        "49 ordinary images",
+        "14 sparse super pieces",
+        "metadata userdata erase gate",
+        "unknown no blind retry",
+        "slot A only",
+        "slot B not validated",
+        "never relock"
+      ],
+      "scope": {
+        "manufacturers": ["xiaomi"],
+        "brands": ["xiaomi"],
+        "models": ["Xiaomi 17 Pro Max", "2509FPN0BC"],
+        "codenames": ["popsicle"],
+        "build_ids": ["OS4.0.0.32.XPBCNXM", "OS3.0.319.0.WPBCNXM"],
+        "android_versions": ["16", "17"],
+        "bootloader_states": ["unlocked", "critical-unlocked"],
+        "partitions": ["metadata", "userdata", "super"],
+        "scope_note": "One user-confirmed full-wipe slot-A field outcome. The gate is evidence for planning only and grants no wipe, flash, retry, reboot, slot, unlock, or relock authority."
+      },
+      "source_ids": ["romverse.field.popsicle-os303190-fastboot-20260909"],
+      "confidence": "verified",
+      "corroboration_count": 1,
+      "operations": []
+    }
+  ],
+  "bundle_digest": "744ff1ef13c4dffb570b9b8c8f3903ae1ffdbe5e19ea6ff727b886befe0bdc65"
+}

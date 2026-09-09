@@ -1171,6 +1171,7 @@ class BuildControlCenter(QDialog):
     ) -> None:
         super().__init__(parent or studio)
         self.studio = studio
+        self._closing = False
         self.project = studio.current_project
         if self.project is None:
             raise RuntimeError("Select a ROM project before opening Build Control")
@@ -1343,7 +1344,12 @@ class BuildControlCenter(QDialog):
         )
 
     def _refresh_if_evidence_changed(self) -> None:
-        if not self.isVisible() or self.autopilot_active or self._has_active_worker():
+        if (
+            self._closing
+            or not self.isVisible()
+            or self.autopilot_active
+            or self._has_active_worker()
+        ):
             return
         # A native file chooser, backup prompt, or nested Guardian dialog can return
         # focus to the parent window before Qt re-activates this modal surface.  The
@@ -1680,7 +1686,16 @@ class BuildControlCenter(QDialog):
                 "Local preparation/build inspection is running; wait for its receipt."
             )
             return
+        self._closing = True
+        self.autopilot_active = False
+        self.evidence_watch.stop()
         super().reject()
+
+    def accept(self) -> None:
+        self._closing = True
+        self.autopilot_active = False
+        self.evidence_watch.stop()
+        super().accept()
 
     def closeEvent(self, event) -> None:
         if any(
@@ -1700,9 +1715,14 @@ class BuildControlCenter(QDialog):
                 "Local preparation/build inspection is running; wait for its receipt."
             )
             return
+        self._closing = True
+        self.autopilot_active = False
+        self.evidence_watch.stop()
         super().closeEvent(event)
 
     def refresh(self, report: BuildReadinessReport | None = None) -> None:
+        if self._closing:
+            return
         self.service.tool_statuses = self.studio.tool_statuses
         self.report = report or self.service.assess(
             self.project.project_id,
@@ -2257,6 +2277,8 @@ class BuildControlCenter(QDialog):
         from romverse.ui.ascension_protocol import AscensionProtocolDialog
 
         AscensionProtocolDialog(self.studio, self).exec()
+        if self._closing:
+            return
         self.refresh()
 
     def start_guided_backup(self) -> None:
@@ -2336,6 +2358,8 @@ class BuildControlCenter(QDialog):
             )
             dialog.addButton("Not yet", QMessageBox.ButtonRole.RejectRole)
             dialog.exec()
+            if self._closing:
+                return
             if dialog.clickedButton() is choose_file:
                 selected, _filter = QFileDialog.getOpenFileName(
                     self,
@@ -2354,6 +2378,8 @@ class BuildControlCenter(QDialog):
                     )
                     return
                 provider = PhoneBackupGuideDialog(device.display_name, self).selected_provider()
+                if self._closing:
+                    return
                 if provider is None:
                     return
                 self._confirm_cloud_backup(device, provider)
@@ -2398,6 +2424,8 @@ class BuildControlCenter(QDialog):
             )
             dialog.addButton(QMessageBox.StandardButton.Close)
             dialog.exec()
+            if self._closing:
+                return
             if dialog.clickedButton() is continue_resolution:
                 QTimer.singleShot(0, self._start_autopilot)
             return
@@ -2420,6 +2448,8 @@ class BuildControlCenter(QDialog):
         )
         dialog.addButton(QMessageBox.StandardButton.Close)
         dialog.exec()
+        if self._closing:
+            return
         if dialog.clickedButton() is proceed:
             self.accept()
 
@@ -2439,6 +2469,8 @@ class BuildControlCenter(QDialog):
             )
             return
         mode = GuardianFlashModeDialog(device.display_name, self).value()
+        if self._closing:
+            return
         if mode is None:
             return
         try:
@@ -2516,6 +2548,8 @@ class BuildControlCenter(QDialog):
         )
         complete.addButton(QMessageBox.StandardButton.Close)
         complete.exec()
+        if self._closing:
+            return
         if complete.clickedButton() is return_to_genesis:
             self.guardian_manifest_requested = True
             self.accept()
@@ -2530,6 +2564,8 @@ class BuildControlCenter(QDialog):
             self,
             selected_provider,
         ).values()
+        if self._closing:
+            return
         if confirmation is None:
             return
         provider, last_backup = confirmation
@@ -2640,6 +2676,8 @@ class BuildControlCenter(QDialog):
         )
         review.addButton(QMessageBox.StandardButton.Cancel)
         review.exec()
+        if self._closing:
+            return
         if review.clickedButton() is not approve:
             return
         try:
@@ -2991,6 +3029,8 @@ class BuildControlCenter(QDialog):
                 auto_close=True,
             )
             dialog.exec()
+            if self._closing:
+                return
             if dialog.last_success is not True:
                 self._finish_autopilot(
                     "Forge Arsenal did not complete every automatic requirement. "
@@ -3305,6 +3345,8 @@ class BuildControlCenter(QDialog):
             knowledge_lookup=scan_failure,
         )
         dialog.exec()
+        if self._closing:
+            return
         failure = FirstLightService.knowledge_failure(dialog.report)
         if failure is not None and knowledge_report is None:
             knowledge_report = scan_failure(failure)
@@ -3582,6 +3624,8 @@ class BuildControlCenter(QDialog):
             reduced_motion=self.studio.app_settings.reduced_motion,
         )
         dialog.exec()
+        if self._closing:
+            return
         final_receipt = dialog.receipt
         blockers = sum(gate.severity.value == "blocked" for gate in final_receipt.findings)
         self.status.setText(
@@ -3608,6 +3652,8 @@ class BuildControlCenter(QDialog):
             reduced_motion=self.studio.app_settings.reduced_motion,
         )
         dialog.exec()
+        if self._closing:
+            return
         self.refresh()
         self.status.setText(
             "Release Forge closed  •  local release evidence refreshed  •  "
@@ -4285,6 +4331,8 @@ class BuildControlCenter(QDialog):
     @Slot(object)
     def _online_guidance_complete(self, result: object) -> None:
         self.online_worker = None
+        if self._closing:
+            return
         if not isinstance(result, OnlineFixReceipt):
             self._online_guidance_failed("Online remediation returned an invalid receipt")
             return
@@ -4365,6 +4413,8 @@ class BuildControlCenter(QDialog):
     @Slot(str)
     def _online_guidance_failed(self, message: str) -> None:
         self.online_worker = None
+        if self._closing:
+            return
         self.status.setText(
             "Online intelligence is temporarily unavailable; the local error evidence was preserved. "
             + message
@@ -4672,6 +4722,8 @@ class BuildControlCenter(QDialog):
         import_result = dialog.addButton("Import signed bundle", QMessageBox.ButtonRole.ActionRole)
         dialog.addButton(QMessageBox.StandardButton.Cancel)
         dialog.exec()
+        if self._closing:
+            return
         selected = dialog.clickedButton()
         if selected not in {export, import_result}:
             return

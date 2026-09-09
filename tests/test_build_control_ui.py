@@ -1369,6 +1369,28 @@ def test_source_blueprint_autopilot_stop_survives_refresh_without_false_continue
     studio.close()
 
 
+def test_forge_does_not_resume_deleted_ui_after_simulation_lab_closes_parent(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    QApplication.instance() or QApplication([])
+    studio = _studio(tmp_path)
+    control = BuildControlCenter(studio, auto_start=False)
+    status_updates: list[str] = []
+    control.status.setText = status_updates.append
+    monkeypatch.setattr(
+        "romverse.ui.build_control.DigitalTwinDialog.exec",
+        lambda dialog: dialog.parentWidget().close(),
+    )
+
+    control._simulate()
+
+    assert control._closing
+    assert not control.autopilot_active
+    assert status_updates == []
+    studio.close()
+
+
 def test_all_forge_preparation_missions_require_explicit_terminal_outcomes(tmp_path) -> None:
     QApplication.instance() or QApplication([])
     studio = _studio(tmp_path)

@@ -28,6 +28,7 @@ from romverse.rom.candidate_installation import (
     _composition_digest,
     candidate_composition_payload,
 )
+from romverse.rom.inspection import RomInspectionService
 from romverse.rom.models import ProjectError
 from romverse.rom.release_forge import SignedAssemblyInput, SignedAssemblyReceipt
 from romverse.rom.signing_ceremony import OfflineSigningReceipt, SignedArtifactEvidence
@@ -242,6 +243,7 @@ def _fixture(tmp_path):
             ),
         )
     )
+    RomInspectionService(store).inspect_project(project.project_id)
     RomBuildPlanner(store).plan(project.project_id)
     tools = _executable_tools(tmp_path / "tools")
     DeviceBuildContractService(store, context.registry, tools).create_plan(project.project_id)

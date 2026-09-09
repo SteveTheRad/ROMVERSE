@@ -1,5 +1,118 @@
 # ROMVERSE Product Assurance Sync
 
+## Bounded Windows setup geometry correction and package — Product Assurance review requested
+
+- Product Assurance verdict: `353460dd4e02f3a82df615f8aa8cb442b4a5051c` — `Require bounded
+  Windows setup geometry`, exactly reviewing checkpoint
+  `a8cd2353ec78498b8f89d9c9ca2bc6165b5d06e3`.
+- Production-source correction: `b8001ae000676dc49ecd26489352253b61b30973` — `Bound Windows
+  setup to available desktop`.
+- Status: **PASS — THE FIXED GUIDED FOOTER IS REACHABLE IN THE NATIVE 1,024 x 768 WINDISC
+  SESSION, BOTH FINAL FOCUSED CONTEXTS PASS 2/2, ONE NEW UNSIGNED PACKAGE WAS BUILT, ONE NORMAL
+  VISIBLE SETUP-TO-COMMAND-DECK ACCEPTANCE PASSED, AND ONE FRESH FROZEN NO-PHONE SMOKE PASSED.**
+
+### Minimum source correction and exact WinDisc evidence
+
+- Changed only `src/romverse/ui/setup_wizard.py`. On show, ROMVERSE now defers one screen-fit
+  operation until the next event-loop turn, after the Windows backend creates and sizes the native
+  dialog. It bounds width to available width minus 40 pixels, height to available height minus 80
+  pixels, preserves the existing **700 x 610** minimum, centers the frame, retains the fixed Guided
+  footer, and leaves the 18-row inventory in its existing scroll area.
+- The first immediate-show candidate exposed the underlying Windows ordering defect and was not
+  accepted: the 800 x 800 offscreen run passed **2/2**, but native `WinDisc` passed **1/2**. Qt had
+  recorded maximum size **984 x 688** and then performed a later native resize to **700 x 876**;
+  the Guided button was global `QRect(206, 840, 612, 39)` outside `QRect(0, 0, 1024, 768)`.
+- After deferring the fit, a geometry-only native diagnostic reported screen `WinDisc`, available
+  geometry **1,024 x 768**, device-pixel ratio **1.0**, dialog **700 x 688**, frame **700 x 724**,
+  180-pixel tool viewport with vertical maximum **420**, and Guided button global
+  `QRect(206, 711, 612, 36)`. Its bottom at 747 is inside the available desktop without movement
+  or a keyboard workaround. The service session also truthfully reported Qt's non-fatal
+  `SetProcessDpiAwarenessContext(): Access is denied` diagnostic.
+
+### Final focused verification
+
+- Native Windows `WinDisc` context (`QT_QPA_PLATFORM=windows`, **1,024 x 768**), exact command:
+  `.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider
+  tests\test_app_launch_settings.py::test_first_run_explicitly_enters_guided_and_reaches_truthful_host_prerequisite
+  tests\test_app_launch_settings.py::test_setup_wizard_bounds_tool_inventory_and_keeps_guided_action_visible
+  --basetemp C:\Work\rvsw-353460d-windisc-final` — **PASS, 2 passed / 0 failed / 0 skipped /
+  0 errors, exit 0**.
+- Non-interactive offscreen context (`QT_QPA_PLATFORM=offscreen`, **800 x 800**), the same exact
+  two nodes with fresh basetemp `C:\Work\rvsw-353460d-offscreen-final` — **PASS, 2 passed**.
+- `.venv\Scripts\python.exe -m ruff check src/romverse/ui/setup_wizard.py
+  tests/test_app_launch_settings.py` — **PASS**. The initial static check identified only import
+  ordering; that mechanical order was corrected before the recorded final result.
+- `.venv\Scripts\python.exe -m ruff format --check src/romverse/ui/setup_wizard.py
+  tests/test_app_launch_settings.py` — **PASS, 2 files already formatted**.
+  `git diff --check` — **PASS**.
+- No 974-node portability replay, broader regression, managed-tool install, prior Guided journey,
+  dependency install, or paid CI run occurred.
+
+### Exactly one replacement package
+
+- After the focused tests passed, exactly one build ran from committed source `b8001ae`:
+  `.venv\Scripts\python.exe scripts\build_desktop_executable.py --output-directory
+  C:\Work\ROMVERSE-Windows\build\windows-setup-geometry-b8001ae --work-directory
+  C:\Work\ROMVERSE-Windows\build\windows-setup-geometry-b8001ae-pyinstaller`.
+- Result: **PASS on the first and only attempt** using Windows 11 `10.0.26200`, Python `3.12.10`,
+  and PyInstaller `6.22.2`. No dependency or tool was installed.
+- One-folder package: `build\windows-setup-geometry-b8001ae\ROMVERSE` — **305 regular files /
+  164,647,103 bytes / 0 reparse points**.
+- Executable: `ROMVERSE.exe` — **6,324,339 bytes**, SHA-256
+  `d6d9d327b2270a32c5c460c725fc4ff12f85afd4b87a853d865b28f197b6b493`, Authenticode
+  `NotSigned`.
+- Sorted forward-slash relative-path/size/member-SHA-256 manifest, UTF-8 without BOM:
+  `b5469d9fedd71a4c13f7ec549c6c99294d91a8412f04b3a556736e0f62b1a947`.
+
+### One bounded native visible acceptance and one frozen smoke
+
+- The normal interactive acceptance used fresh isolated `ROMVERSE_HOME`
+  `C:\Work\ROMVERSE-Setup-Acceptance-b8001ae`; it did not alter the user's existing ROMVERSE
+  settings. The full setup wizard was visibly contained on the **1,920 x 1,032** available Legion
+  desktop with the scrollable inventory, workspace field, credit, and entire
+  `Continue in Guided Mode` action simultaneously reachable.
+- One Guided activation reached `ROMVERSE Studio 0.2.0-alpha.1` at **Command Deck** with the
+  `GUIDED • ARCANA` badge. The fresh workspace truthfully reported `Device Engine needs attention`
+  because it had no managed Platform Tools receipt, `DEVICE: NOT CONNECTED`, `Waiting for ADB`,
+  Device DNA `UNCONFIRMED`, and Guardian `VERIFY REQUIRED` / read-only. No project or journey was
+  created and no scan or other action was selected.
+- The accepted session closed normally. Its isolated settings record
+  `onboarding_complete=true`, `experience_mode=guided`, and the exact isolated workspace path; its
+  77-byte runtime log contains one `ROMVERSE runtime started` followed by one
+  `ROMVERSE runtime closed cleanly` and no exception/native-fault marker.
+- One preliminary exact-binary diagnostic launch encountered the pre-existing global onboarding
+  completion and therefore opened Command Deck directly; it was closed immediately and was not
+  counted as the setup acceptance. It changed no repository file and Build selected no scan or
+  other action. Because that global workspace already had a verified managed Platform Tools
+  receipt, ROMVERSE's normal automatic scanner appended exactly **10** allowlisted host-targeted
+  `adb devices -l` and **10** `fastboot devices -l` probes (audit sequences 39–58, UTC
+  07:13:42–07:15:04). Every probe was category `read_only`, risk `none`, return code `0`, and found
+  no target. The append-only audit and start/clean-close markers were preserved, not rewritten.
+- The existing bounded frozen smoke then ran exactly once with fresh workspace
+  `C:\Work\ROMVERSE-Setup-Geometry-Smoke-b8001ae`:
+  `.venv\Scripts\python.exe scripts\smoke_frozen_desktop.py
+  build\windows-setup-geometry-b8001ae\ROMVERSE\ROMVERSE.exe
+  C:\Work\ROMVERSE-Setup-Geometry-Smoke-b8001ae` — **PASS, exit 0**, `Frozen ROMVERSE Desktop
+  launch smoke passed`. Its runtime log likewise contains exactly one start and one clean close;
+  no checkpoint-package process remained.
+
+### Scope, preservation, and next review
+
+- The protected untracked patch remains exactly **8,272 bytes**, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it was not edited,
+  applied, staged, or deleted. Protected Companion files and all Linux, Knowledge, and UI Design
+  Lab work remain untouched. All earlier packages remain preserved.
+- No phone was connected, discovered, operated, or targeted. Apart from the disclosed automatic
+  no-target read-only discovery probes during the preliminary launch, no ADB/Fastboot command or
+  device operation occurred. No APK, firmware, Recovery/Guardian execution, production
+  adapter/trust/signing, publication, release, force-push, destructive action, unlock, root, lock,
+  or relock occurred.
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty, no
+  blind retry, independent verification, feature freeze, and permanent no-relock remain intact.
+- Precise next task: independent Product Assurance review of source correction `b8001ae`, the one
+  unsigned replacement package, final focused evidence, visible acceptance, and frozen smoke. Do
+  not begin another Windows source slice until a verdict matching this handoff is committed.
+
 ## Portable Windows setup regression correction — Product Assurance review requested
 
 - Product Assurance verdict: `fd3d34fc9c1129a9ea4b2b996270ffb4e92087de` — `Require portable

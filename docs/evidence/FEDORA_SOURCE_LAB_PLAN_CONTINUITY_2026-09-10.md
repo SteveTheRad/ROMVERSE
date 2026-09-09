@@ -1,8 +1,8 @@
 # Fedora Source Lab plan-verification continuity evidence
 
-Date: 2026-09-10 (Australia/Brisbane)  
-Branch: `linux/stage1-desktop-readiness`  
-Product Assurance authorization: `cd7ca570e5c909168c06af0664062c9e82699b69`  
+Date: 2026-09-10 (Australia/Brisbane)
+Branch: `linux/stage1-desktop-readiness`
+Product Assurance authorization: `cd7ca570e5c909168c06af0664062c9e82699b69`
 Scoped implementation: `8ac135f74ca1f3c691e18d0eee5da3d6574ef6b6`
 
 ## Correction implemented

@@ -1,5 +1,96 @@
 # ROMVERSE Product Assurance Sync
 
+## Fedora packaged Archives and nested-review stability checkpoint
+
+### Authoritative commits and working tree
+
+- Branch: `linux/stage1-desktop-readiness`.
+- Evidence integration: `950ed835c0b0187f8fe3549006780e2f6c3b1e25`, a clean cherry-pick of
+  reviewed field-evidence commit `ca97c1cf61c6266ddfa1e747a1beb664ea4eb147`.
+- Desktop lifecycle implementation: `3af0591dff39f1136cc5f78e64267cced24775a3`
+  (**Guard Forge nested-dialog shutdown**).
+- CI cost containment: `1bfab27fb851f5450bcb17ed7c148e11032aa591`, a clean cherry-pick of
+  workflow-only commit `2d0b23d`; hosted CI
+  now runs on `main`, pull requests to `main`, or explicit manual dispatch, while package/release
+  jobs do not run for pull requests. No hosted run was manually triggered.
+- The working tree was clean after all three scoped commits. Ignored local package outputs are not
+  tracked source. Protected Companion files and Windows launcher drafts were not touched.
+
+### Exact changes and runnable artifact
+
+- Added one redacted ROMVERSE-verified, one-device `popsicle` Fastboot field report and three
+  packaged offline records: fragmented fixed `DATA%08x` response diagnosis, bounded 64 KiB/120 s
+  fallback evidence, and complete-write-before-wipe recovery evidence. Each record has an empty
+  operation list and grants no execution authority. No raw serial or helper binary is included.
+- The evidence remains exact-transition/slot-A scoped. Slot B is unvalidated; standard Fastboot is
+  preferred; transport uncertainty remains `UNKNOWN`; no automatic retry, wipe, lock or relock is
+  authorized. A future action still needs fresh exact target/package/Guardian/Recovery/consent.
+- Forge Control now marks itself closing before accepting/rejecting or completing a normal close,
+  cancels automatic continuation, stops its evidence watcher, ignores late online results and
+  refuses to resume any nested Ascension, backup, Guardian, First Light, Simulation Lab, Release
+  Forge, toolchain or signing dialog after its parent UI has closed.
+- Reproduced the concrete failure by closing the four-window Main → Genesis → Forge → Simulation
+  chain. Before the correction, `_simulate` returned into a deleted Forge status label and raised a
+  `libshiboken` exception. The identical visible shutdown after `3af0591` exited without traceback.
+- Fedora one-folder package built once from app source at `3af0591` (the later `1bfab27` changes
+  workflow only): `build/fedora-3af0591/ROMVERSE`, **423 regular files / 243,097,715 regular-file
+  bytes / 38 contained internal links**.
+- Executable: `build/fedora-3af0591/ROMVERSE/ROMVERSE`, **6,332,312 bytes**, SHA-256
+  `3407983a8b27299143c4ad8c46f162271ee49a204b6c65d315f41a11c62eda82`.
+- Verified unsigned ZIP:
+  `dist/ROMVERSE-Desktop-0.2.0-alpha.1-linux-x86_64-3af0591.zip`, **151,034,576 bytes**, SHA-256
+  `10f1e0c67e0c87dde10abdb4f68fe14126cd1c62543c9a57b750905d9e1094ab`; full verification passed
+  for **461 members / 360,352,344 expanded bytes**.
+- Frozen no-phone startup/shutdown smoke passed. The frozen app then opened visibly with explicit
+  development simulation; Archives reported **284 offline records / 182 sources**, and the query
+  `DATA000520` returned exactly one offline evidence record, **popsicle Fastboot DATA response can
+  be fragmented across USB reads**, labelled evidence rather than an executable verified guide.
+
+### Verification, classification and gates
+
+- **Implemented:** packaged evidence/loader/tests at `950ed83`; Forge lifecycle guards/tests at
+  `3af0591`; hosted-CI trigger limits at `1bfab27`.
+- **Simulated/Tested:** **79/79** affected Knowledge/Archives tests passed after evidence
+  integration; **48/48** Forge Control UI tests passed after lifecycle correction. These suites do
+  not overlap, for **127 unique current-scope tests**. The earlier 3,009-test full Linux pass at
+  `8b812c3` is baseline evidence and is not added to that current-scope total. Ruff check,
+  format-check and diff check passed. One frozen smoke, one complete archive verification, one
+  visible packaged Archives lookup and one adversarial nested-dialog shutdown passed.
+- **Hardware Verified:** no. The packaged visible session used an explicit zero-authority
+  development fixture. The creator's separate firmware work remains external and ignored.
+- **Released:** no. The package/ZIP are unsigned local development artifacts.
+- Blockers/failures: both known nested-review shutdown traces are corrected. Production signing,
+  trusted execution, exact physical Recovery/flash certification, Windows verification and release
+  remain unresolved. The field record is evidence for diagnosis/architecture only.
+- Guided friction/dead ends: Forge safe-stop text is stable; closing nested review stacks no longer
+  resumes deleted Guided/Forge widgets. Archives makes the new bounded diagnosis discoverable.
+- Guardian/Recovery/safety: unchanged and preserved. Guardian-only authority, exact-device/source/
+  incident binding, UNKNOWN-on-uncertainty, no blind retry, independent verification, explicit wipe
+  consent and permanent no-relock remain authoritative.
+- Platform status: genuinely built, packaged, visibly exercised and regression-tested on Fedora
+  44/Linux. Windows was not run or simulated in this slice.
+- Feature freeze: compliant evidence and correctness work only; no new adapter, format, Device Pack,
+  autonomous route, physical execution or product capability.
+- Version gate: tangible Fedora build improved; v0.2 Golden Foundation, Windows secure launch,
+  production execution/signing, publication and release remain **CLOSED**.
+- External actions: fetched/cherry-picked two reviewed GitHub commits and built/tested one local
+  Fedora artifact. No phone query or operation, firmware/APK transfer or installation, mode change,
+  flash, wipe, unlock/root, lock/relock, publication, release, manual hosted-CI run or unrelated
+  change occurred. The branch push for this handoff is the only planned remote write.
+
+### Next proposed Build task
+
+Continue the frozen/source product-as-user pass across remaining no-device and simulation-safe
+Desktop surfaces. Prioritize reproducible dead ends and lifecycle faults, then exercise the inert
+Digital Twin/local-build/result/reassessment handoff without enabling physical execution.
+
+### Product Assurance Review Requested
+
+- Confirm the one-device field records remain sufficiently bounded and execution-inert.
+- Confirm the shared Forge closing boundary covers nested modal return paths without disrupting
+  normal saved handoffs.
+- Confirm the feature-branch CI restriction is appropriate cost containment before integration.
+
 ## Fedora Guided dead-end and shutdown-race correction
 
 ### Authoritative checkpoint and scope

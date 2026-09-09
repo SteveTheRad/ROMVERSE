@@ -739,6 +739,43 @@ def test_activity_handoff_reopens_the_exact_project_vault_checkpoint(tmp_path) -
         window.close()
 
 
+def test_time_machine_stacks_recovery_cards_without_narrow_window_side_scrolling(
+    tmp_path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = BackupCenter(tmp_path)
+    center.resize(937, 662)
+    center.show()
+    app.processEvents()
+    try:
+        assert center.columns.getItemPosition(center.columns.indexOf(center.readiness_card))[
+            :2
+        ] == (
+            0,
+            0,
+        )
+        assert center.columns.getItemPosition(center.columns.indexOf(center.recovery_card))[:2] == (
+            1,
+            0,
+        )
+        assert center.page_scroll.horizontalScrollBar().maximum() == 0
+
+        center.resize(1_177, 802)
+        app.processEvents()
+        assert center.columns.getItemPosition(center.columns.indexOf(center.readiness_card))[
+            :2
+        ] == (
+            0,
+            0,
+        )
+        assert center.columns.getItemPosition(center.columns.indexOf(center.recovery_card))[:2] == (
+            0,
+            1,
+        )
+    finally:
+        center.close()
+
+
 def test_project_vault_queues_automatic_history_after_real_rom_studio_completions(
     tmp_path,
     monkeypatch,

@@ -1817,6 +1817,21 @@ def test_genesis_does_not_resume_after_parent_closes_during_choice_dialogs(tmp_p
         studio.close()
 
 
+def test_rom_studio_detail_remains_fully_visible_at_compact_desktop_width(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    store = RomProjectStore(tmp_path / "workspace")
+    studio = RomStudio(store, DevicePackRegistry(()))
+    studio.resize(937, 662)
+    studio.show()
+    app.processEvents()
+    try:
+        assert studio.project_list.minimumWidth() == 240
+        assert studio.project_list.maximumWidth() == 250
+        assert studio.detail_scroll.widget().width() <= studio.detail_scroll.viewport().width()
+    finally:
+        studio.close()
+
+
 def test_genesis_presents_completed_local_build_as_100_percent_with_install_deferred(tmp_path):
     app = QApplication.instance() or QApplication([])
     store = RomProjectStore(tmp_path / "workspace")

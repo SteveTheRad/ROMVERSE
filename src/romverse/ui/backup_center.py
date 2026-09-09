@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
     QFrame,
+    QGridLayout,
     QHBoxLayout,
     QInputDialog,
     QLabel,
@@ -506,11 +507,12 @@ class BackupCenter(QWidget):
         handoff_layout.addWidget(self.device_atlas_project_button)
         self.device_atlas_handoff.setVisible(False)
         layout.addWidget(self.device_atlas_handoff)
-        columns = QHBoxLayout()
-        columns.setSpacing(14)
-        readiness = QFrame()
-        readiness.setObjectName("Card")
-        readiness_layout = QVBoxLayout(readiness)
+        self.columns = QGridLayout()
+        self.columns.setSpacing(14)
+        self._columns_stacked: bool | None = None
+        self.readiness_card = QFrame()
+        self.readiness_card.setObjectName("Card")
+        readiness_layout = QVBoxLayout(self.readiness_card)
         readiness_layout.setContentsMargins(18, 16, 18, 16)
         readiness_title = QLabel("DEVICE RECOVERY READINESS")
         readiness_title.setObjectName("SectionTitle")
@@ -576,11 +578,9 @@ class BackupCenter(QWidget):
         self.result.setWordWrap(True)
         readiness_layout.addWidget(self.result)
         readiness_layout.addStretch()
-        columns.addWidget(readiness, 1)
-
-        recovery = QFrame()
-        recovery.setObjectName("Card")
-        recovery_layout = QVBoxLayout(recovery)
+        self.recovery_card = QFrame()
+        self.recovery_card.setObjectName("Card")
+        recovery_layout = QVBoxLayout(self.recovery_card)
         recovery_layout.setContentsMargins(18, 16, 18, 16)
         recovery_title = QLabel("LOCAL ROM RECOVERY")
         recovery_title.setObjectName("SectionTitle")
@@ -770,8 +770,7 @@ class BackupCenter(QWidget):
         self.evidence_result.setObjectName("Muted")
         self.evidence_result.setWordWrap(True)
         recovery_layout.addWidget(self.evidence_result)
-        columns.addWidget(recovery, 1)
-        layout.addLayout(columns, 1)
+        layout.addLayout(self.columns, 1)
 
         boundary = QLabel(
             "Guardian boundary  •  Time Machine can restore local ROM workspace baselines only. "
@@ -782,6 +781,23 @@ class BackupCenter(QWidget):
         layout.addWidget(boundary)
         self._load_latest_plan()
         self.refresh_local_snapshots()
+        self._apply_responsive_columns()
+
+    def resizeEvent(self, event) -> None:  # noqa: N802
+        super().resizeEvent(event)
+        self._apply_responsive_columns()
+
+    def _apply_responsive_columns(self) -> None:
+        stacked = self.width() < 1_050
+        if stacked == self._columns_stacked:
+            return
+        self._columns_stacked = stacked
+        self.columns.removeWidget(self.readiness_card)
+        self.columns.removeWidget(self.recovery_card)
+        self.columns.addWidget(self.readiness_card, 0, 0)
+        self.columns.addWidget(self.recovery_card, 1 if stacked else 0, 0 if stacked else 1)
+        self.columns.setColumnStretch(0, 1)
+        self.columns.setColumnStretch(1, 0 if stacked else 1)
 
     def open_recovery_review(self, incident: RecoveryIncident, route: RecoveryRoute) -> bool:
         """Open one exact Recovery evidence prerequisite without starting work."""

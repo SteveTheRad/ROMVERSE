@@ -81,6 +81,61 @@ from tests.test_recovery_autopilot import _verified_boot as _recovery_verified_b
 from tests.test_source_intelligence import SourceRunner
 
 
+def test_command_deck_connect_uses_missing_runtime_handoff_instead_of_silent_scan(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
+    scans: list[bool] = []
+    requested: list[tuple[tuple[str, ...], str]] = []
+    window.device_center.refresh_requested.connect(lambda: scans.append(True))
+    window.rom_studio._resolve_required_tools = (  # type: ignore[method-assign]
+        lambda tools, **details: requested.append((tools, details["title"]))
+    )
+    try:
+        connect = window.device_center.primary_action_buttons["Connect Device"]
+        assert window.device_center._next_action_key == "Resolve Platform Tools"
+        assert "verify and repair" in connect.toolTip()
+
+        connect.click()
+        app.processEvents()
+
+        assert scans == []
+        assert requested == [(("ADB",), "ROMVERSE • Start Device Engine")]
+
+        window.device_center.set_devices([])
+        connect.click()
+        app.processEvents()
+        assert scans == [True]
+        assert requested == [(("ADB",), "ROMVERSE • Start Device Engine")]
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
+def test_quantum_optimizer_missing_runtime_opens_exact_platform_tools_handoff(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
+    requested: list[tuple[tuple[str, ...], str]] = []
+    window.rom_studio._resolve_required_tools = (  # type: ignore[method-assign]
+        lambda tools, **details: requested.append((tools, details["title"]))
+    )
+    try:
+        assert window.diagnostics_center.refresh.text() == "Resolve Platform Tools"
+        window.diagnostics_center.refresh.click()
+        app.processEvents()
+
+        assert requested == [(("ADB",), "ROMVERSE • Start Device Engine")]
+        assert "opening Forge Arsenal" in window.diagnostics_center.saved_label.text()
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
 def test_app_launchpad_routes_one_scan_and_retains_local_inspection(tmp_path: Path) -> None:
     app = QApplication.instance() or QApplication([])
     logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"

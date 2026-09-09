@@ -937,7 +937,11 @@ class DeviceCenter(QWidget):
             button.setEnabled(enabled)
             button.setProperty("recommended", action == active_alias)
             button.setProperty("available", enabled)
-            button.setToolTip(self._primary_action_tooltip(action, enabled))
+            button.setToolTip(
+                self._next_action_tooltip(active_action)
+                if action == "Connect Device" and active_action == "Resolve Platform Tools"
+                else self._primary_action_tooltip(action, enabled)
+            )
             self._repolish(button)
 
     @staticmethod
@@ -974,7 +978,10 @@ class DeviceCenter(QWidget):
 
     def _dispatch_primary_action(self, action: str) -> None:
         if action == "Connect Device":
-            self.refresh_requested.emit()
+            if self._next_action_key == "Resolve Platform Tools":
+                self.runtime_tools_requested.emit()
+            else:
+                self.refresh_requested.emit()
             return
         if action == "Resume Mission" and self._next_action_key == "Live Operations":
             self.action_requested.emit("Resume Live Operations")

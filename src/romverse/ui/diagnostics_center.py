@@ -92,6 +92,7 @@ class FindingCard(QFrame):
 
 class DiagnosticsCenter(QWidget):
     refresh_requested = Signal()
+    runtime_tools_requested = Signal()
     report_saved = Signal()
     repair_requested = Signal(str)
     knowledge_requested = Signal(str)
@@ -124,6 +125,7 @@ class DiagnosticsCenter(QWidget):
         self._pending_verification_score: int | None = None
         self._pending_verification_ids: frozenset[str] = frozenset()
         self._last_verification_state = ""
+        self._runtime_available = True
         self._details_user_open = False
         self.details_toggle: QPushButton | None = None
         self.details_container: QFrame | None = None
@@ -181,7 +183,7 @@ class DiagnosticsCenter(QWidget):
         actions.addWidget(self.tools_toggle)
         self.refresh = QPushButton("Scan device health")
         self.refresh.setObjectName("Primary")
-        self.refresh.clicked.connect(self.refresh_requested)
+        self.refresh.clicked.connect(self._request_refresh)
         actions.addWidget(self.refresh)
         page.addLayout(actions)
 
@@ -498,7 +500,13 @@ class DiagnosticsCenter(QWidget):
         self.refresh.setEnabled(not scanning)
         self.optimize.setEnabled(not scanning)
         self.clean_cache.setEnabled(not scanning)
-        self.refresh.setText("Reading health data…" if scanning else "Scan device health")
+        self.refresh.setText(
+            "Reading health data…"
+            if scanning
+            else "Scan device health"
+            if self._runtime_available
+            else "Resolve Platform Tools"
+        )
         active = scanning and show_progress
         self.scan_status_row.setVisible(active)
         if active:
@@ -508,10 +516,37 @@ class DiagnosticsCenter(QWidget):
         else:
             self.scan_progress.finish()
 
+    def set_runtime_available(self, available: bool) -> None:
+        self._runtime_available = bool(available)
+        self.refresh.setText(
+            "Scan device health" if self._runtime_available else "Resolve Platform Tools"
+        )
+        self.refresh.setToolTip(
+            "Collect a fresh read-only health snapshot from the connected phone."
+            if self._runtime_available
+            else "Open Forge Arsenal to restore verified Android Platform Tools, then scan automatically."
+        )
+        if not self._runtime_available and self.current_device is None:
+            self.device_name.setText("Device Engine needs Platform Tools")
+            self.summary.setText(
+                "Restore verified Android Platform Tools, then ROMVERSE will automatically retry "
+                "its read-only device and health scan."
+            )
+
+    def _request_refresh(self) -> None:
+        if self._runtime_available:
+            self.refresh_requested.emit()
+            return
+        self.saved_label.setText(
+            "Device Engine needs verified Android Platform Tools  •  opening Forge Arsenal"
+        )
+        self.runtime_tools_requested.emit()
+
     def _safe_optimization_review(self) -> None:
         """Request a fresh read-only snapshot for optimizer recommendations."""
-        self.saved_label.setText("Analyzing device health and recommendations…")
-        self.refresh_requested.emit()
+        if self._runtime_available:
+            self.saved_label.setText("Analyzing device health and recommendations…")
+        self._request_refresh()
 
     def _clean_romverse_cache(self) -> None:
         try:

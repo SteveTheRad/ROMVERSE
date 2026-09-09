@@ -15,6 +15,38 @@ from romverse.ui.diagnostics_center import DiagnosticsCenter
 from .test_diagnostics import device
 
 
+def test_optimizer_routes_missing_runtime_to_platform_tools_instead_of_silent_scan(
+    tmp_path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    center = DiagnosticsCenter(
+        DiagnosticAnalyzer(),
+        DiagnosticHistoryStore(tmp_path),
+    )
+    scans: list[bool] = []
+    runtime_requests: list[bool] = []
+    center.refresh_requested.connect(lambda: scans.append(True))
+    center.runtime_tools_requested.connect(lambda: runtime_requests.append(True))
+    center.set_runtime_available(False)
+
+    center.refresh.click()
+    app.processEvents()
+
+    assert center.refresh.text() == "Resolve Platform Tools"
+    assert center.device_name.text() == "Device Engine needs Platform Tools"
+    assert "automatically retry" in center.summary.text()
+    assert scans == []
+    assert runtime_requests == [True]
+    assert "opening Forge Arsenal" in center.saved_label.text()
+
+    center.set_runtime_available(True)
+    center.refresh.click()
+    app.processEvents()
+    assert scans == [True]
+    assert runtime_requests == [True]
+    center.close()
+
+
 def test_optimizer_routes_actionable_finding_to_guided_recovery(tmp_path) -> None:
     app = QApplication.instance() or QApplication([])
     center = DiagnosticsCenter(

@@ -4081,6 +4081,7 @@ class MainWindow(QMainWindow):
             history_store,
             knowledge_service=self.offline_knowledge_service,
         )
+        self.diagnostics_center.set_runtime_available(engine is not None)
         self.diagnostics_center.repair_requested.connect(self._open_repair_finding)
         self.diagnostics_center.knowledge_requested.connect(self._open_knowledge_query)
         self.diagnostics_center.knowledge_article_requested.connect(self._open_knowledge_article)
@@ -4633,6 +4634,7 @@ class MainWindow(QMainWindow):
         self.device_center.rom_studio_requested.connect(self._return_command_deck_rom_studio)
         self.device_center.action_requested.connect(self._handle_dashboard_action)
         self.diagnostics_center.refresh_requested.connect(self.scan)
+        self.diagnostics_center.runtime_tools_requested.connect(self._resolve_device_runtime)
         self.diagnostics_center.report_saved.connect(self.history_center.refresh)
         self.repair_center.verification_scan_requested.connect(self.scan)
         self.repair_center.runtime_tools_requested.connect(self._resolve_repair_runtime)
@@ -8013,6 +8015,7 @@ class MainWindow(QMainWindow):
                 adb_executable,
                 fastboot_executable,
             )
+            self.diagnostics_center.set_runtime_available(True)
             self.rom_studio.device_scan_available = True
             if adb_executable is not None:
                 self.apk_installer.set_install_service(
@@ -8090,6 +8093,7 @@ class MainWindow(QMainWindow):
         self.backup_center.set_media_backup_service(None)
         self.terminal_center.set_runtime(None, None)
         self.repair_center.set_host_repair_service(None)
+        self.diagnostics_center.set_runtime_available(False)
         if had_runtime:
             self._scan_failed(message)
             self.timer.stop()

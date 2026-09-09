@@ -1,5 +1,72 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 4751f3a — Windows information-surface journey
+
+- Reviewed checkpoint: `4751f3af971c5814fac8af711b24e30b5fc18df3`
+- Approved base: `bd2aa6049188c1eed8304b64ff4b10340ed80d3d`
+- Package source: `945928567ea188481eb0c19ca4419ae4132c22f5`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — DEVICE KNOWLEDGE REMAINS DISTINCT FROM LIVE EVIDENCE AND EXECUTION AUTHORITY**
+
+### Decision and independent evidence
+
+The Device Atlas → ROMVERSE Archives → Recovery Bay no-phone journey passed without a reproduced
+defect. The documentation-only checkpoint accurately preserves the distinction between packaged
+knowledge, synthetic local project context, live Device DNA and Guardian authority.
+
+- Product Assurance inspected the exact one-file commit and independently confirmed the source
+  presents `AWAITING DEVICE`, Recovery Bay `NO PLAN`, Archives `NAVIGATION ONLY`, and explicit
+  read-only/no-execution boundaries. Existing regressions cover these authority labels.
+- The retained Windows executable is 6,324,494 bytes with independently recomputed SHA-256
+  `aae8f97cebda115f34aa35dea95a32a78974a5e89a0f04b33af7eb3511f7327a`; Windows reports
+  `NotSigned`, so it remains an accepted development artifact rather than a release candidate.
+- The retained workspace contains no downloaded Google device catalog. Its synthetic local project
+  did not become a live target or device match. Packaged Device Packs and Archives content are
+  evidence inputs only and grant no compatibility, build, flash or execution authority.
+- Product Assurance independently found exactly nine runtime starts, nine clean closes and no fault
+  text. The Activity ledger remains 2,856 bytes with exactly five events and SHA-256
+  `fa348d1f7162f90cdff5b1711dfe90563480e7e0ca0ef3310303b6a806462ec4`; the information
+  round trip created no synthetic completed operation.
+- The checkout remains clean except for the protected 8,272-byte untracked patch, independently
+  reverified at SHA-256 `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123beff0bb`.
+- No application, test, package or workflow file changed; proportional reuse of existing tests and
+  the absence of a rebuild are correct. Forgejo and GitHub expose the same exact checkpoint.
+
+No catalog/network action, external source opening, dependency installation, phone/emulator query,
+ADB/Fastboot operation, firmware/APK action, Recovery transition, Guardian execution, flash, wipe,
+unlock/root, lock/relock, signing, publication or release occurred. Exact-device binding, fresh
+consent, Guardian-only authority, durable `UNKNOWN`, no blind retry, privacy and permanent
+bootloader no-relock remain unchanged.
+
+### Approved next bounded task
+
+Run one current-package, no-network, no-phone Windows boundary journey through the existing
+ROMVERSE Link → Members → Galaxy surfaces.
+
+1. Confirm ROMVERSE Link shows no paired phone or trusted session and cannot imply pairing merely
+   from local certificate/key bootstrap. Do not display, export or alter private key material.
+2. Confirm Members remains unconfigured/unverified without issuer or account credentials, and that
+   cancelling or closing its available setup/sign-in affordance returns safely without a session,
+   entitlement or permission claim.
+3. Confirm Galaxy remains in truthful offline/local state with publishing, contribution and remote
+   community actions unavailable. Navigate back to Command Deck without losing the active local
+   project or inventing activity.
+4. Do not enable online sources, contributions, pairing, sign-in or external links. Reopen only if
+   needed to verify an explicitly promised persisted setting. If a genuine Stage 1 defect appears,
+   fix only that reproduced defect, run focused checks and rebuild only if production bits change.
+
+Use the existing isolated synthetic workspace and retained package. Do not access network/community
+services, expose credentials or keys, pair a phone, use an emulator, invoke ADB/Fastboot, perform a
+firmware/APK action, enter Recovery, flash, wipe, unlock/root, lock/relock, sign, publish or release.
+Do not overlap Linux's cancellation-evidence correction or its following journey.
+
+### Gate status
+
+- Windows Device Atlas/Archives/Recovery Bay no-phone separation: **APPROVED**
+- Windows packaged knowledge execution-authority boundary: **APPROVED**
+- ROMVERSE Link → Members → Galaxy offline boundary journey: **AUTHORIZED — NO-NETWORK / NO-PHONE**
+- Physical Recovery/flash, production signing/trust, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 31dba7c — Windows local history journey
 
 - Reviewed checkpoint: `31dba7c01d6153efca822e5e75b6edd03668d660`

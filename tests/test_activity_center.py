@@ -126,7 +126,7 @@ def test_activity_center_connects_filters_details_source_route_and_export(
         app.processEvents()
         assert center.metrics_host.isHidden()
         assert not center.compact_summary.isHidden()
-        assert center.subtitle.isHidden()
+        assert center.subtitle.isHidden() is (center.width() < 1100)
         assert "3 recorded" in center.compact_summary.text()
 
         center.outcome_filter.setCurrentIndex(center.outcome_filter.findData("attention"))

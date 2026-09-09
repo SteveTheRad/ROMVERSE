@@ -1,5 +1,65 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 4358359 — bounded Windows setup geometry
+
+- Reviewed checkpoint: `4358359fe951933c0841c435b2707b3f8f41a0a5`
+- Implementation: `b8001ae000676dc49ecd26489352253b61b30973`
+- Build handoff: `10832ea8005c93bc19c148731ea15487f6196f97`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — SETUP REMAINS OPERABLE ON 1,024 x 768 AND THE REPLACEMENT WINDOWS PACKAGE IS VERIFIED**
+
+### Decision and independent evidence
+
+The source correction is the minimum responsive fix: it defers screen fitting until Windows has
+created the native dialog, then bounds and centers the existing setup surface while retaining its
+fixed Guided footer and scrollable tool inventory. No workflow, device or authority behavior
+changed.
+
+- Product Assurance drove the exact authenticated `WinDisc` 1,024 x 768 diagnostic used to find
+  the native post-show resize ordering. After the deferred correction, the dialog was **700 x 688**
+  and the full Guided button occupied y=711–747 inside the 768-pixel screen.
+- Product Assurance then independently ran the two authorized native `WinDisc` nodes against the
+  corrected source: **2 passed / 0 failed / exit 0**. The committed behavioral regression still
+  requires scrolling, visibility, local and screen containment, enablement and successful Guided
+  activation.
+- Product Assurance independently inspected the built artifact: **305 files / 164,647,103 bytes /
+  0 reparse points**. The 6,324,339-byte unsigned executable has exact SHA-256
+  `d6d9d327b2270a32c5c460c725fc4ff12f85afd4b87a853d865b28f197b6b493` and Authenticode
+  `NotSigned`, matching the handoff.
+- The protected patch remains independently verified at **8,272 bytes**, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- The preliminary launch's automatic no-target inventory is fully disclosed and remained
+  host-targeted/read-only. It created no device authority and found no target. No phone, firmware,
+  execution, signing, publication, release, force-push, lock or relock occurred.
+
+### Approved next Windows feature batch
+
+Integrate the already-approved cross-platform source-integrity wording commit
+`c5c67beff840e9b30f14f6ad6cb4c303dbeb68f1` without importing Linux-only history, then begin one
+continuous Windows real-user acceptance batch across the currently shipped Stage 1 setup,
+Command Deck, settings, navigation, persistence/resume, empty/error states and connected feature
+handoffs that do not require a physical phone.
+
+Repair multiple related non-consequential UI/host defects continuously with small recoverable
+commits and focused tests. Teach reusable fixes into product contracts/diagnostics/tests rather
+than preserving opaque AI notes. Do not stop for Product Assurance after each ordinary correction;
+publish one consolidated BUILD-STATUS handoff at the coherent feature-batch boundary. Do not build
+another package until that batch changes production bits and reaches its final boundary; then make
+exactly one replacement and one representative visible/frozen acceptance.
+
+Immediate review remains mandatory before device writes or mode transitions, Guardian/execution
+authority or safety-contract changes, signing/publication/release, scope expansion or contradictory
+evidence. No phone is attached to Windows: do not use ADB/Fastboot, fabricate hardware evidence,
+or duplicate the Linux `.35` firmware journey. Preserve UNKNOWN-on-uncertainty, no blind retry,
+fresh consent, no wipe and permanent no-relock.
+
+### Gate status
+
+- Windows setup at 1,024 x 768: **APPROVED**
+- Current Windows unsigned package/content/native launch: **APPROVED**
+- Continuous no-phone Stage 1 Windows feature batch: **AUTHORIZED**
+- Physical Android, production signing/trust, publication and release: **CLOSED**
+
 ## Verification update: 353460d — first WinDisc correction attempt still fails
 
 Windows Build requested one exact read-only Product Assurance replay against its current

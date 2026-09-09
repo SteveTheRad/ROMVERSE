@@ -1,5 +1,111 @@
 # ROMVERSE Product Assurance Sync
 
+## Fedora packaged connected-device UI checkpoint — one real masked Xiaomi target
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base:
+  `50aa999dff22fe610b44781f1e20641094338bbf`, approving read-only Device Engine
+  checkpoint `d8fcb32` and authorizing exactly one genuine connected-device UI acceptance with
+  the already-approved package.
+- Exact unchanged executable: `build/fedora-44233c6/ROMVERSE/ROMVERSE`, previously verified at
+  SHA-256 `ac8eda9f281a7a20f9d05581d28affcef8b3dcff674491e20d33a23de4155886`.
+- Stage: Stage 1 — v0.2 Golden Foundation, current Fedora packaged connected-device UI evidence
+  only. No application source, test or package changed; this section forms the evidence-only
+  handoff commit on `linux/stage1-desktop-readiness`.
+- The package launched once, unelevated, in the current Fedora Wayland display and existing
+  ROMVERSE workspace. It was not rebuilt and no disposable/no-phone smoke was repeated.
+
+### Visible connected-device acceptance
+
+- The global live-device surface visibly rendered **Device Connected**, **Connected via ADB** and
+  one verified Xiaomi 17 Pro Max product card. The Command Deck visibly rendered that same one
+  target with a masked identifier, Android 17, codename `popsicle`, HyperOS
+  `OS4.0.0.32.XPBCNXM`, **Connected over ADB (read-only inspection)** and
+  **CONNECTED • READ ONLY**.
+- The UI truthfully reported the bootloader as unlocked and the retained device evidence reported
+  Verified Boot `orange`; it did not claim the development phone was locked/green. No Device
+  Engine error, stale no-phone state, duplicate phone or raw serial was observed or recorded in
+  this handoff.
+- Command Deck's primary **Connect Device** action was visible and enabled. It was invoked exactly
+  once and returned true through the accessibility action contract. The user-visible scan
+  completed, the transient scan indicator cleared, the same exact Xiaomi target and read-only
+  connected state remained visible, and **Connect Device** was again visible and enabled rather
+  than inert or dead-ended.
+- Guardian sequences **305–316** isolate the requested completion: one `adb devices -l`, the ten
+  fixed Device Engine detail/presence probes, and one no-target `fastboot devices -l` inventory.
+  All twelve decisions were allowed/read-only and none timed out. Discovery and the eight required
+  device probes plus the host Fastboot inventory returned 0; the two optional Magisk/KernelSU
+  presence probes returned the expected absence code 1 without creating a Device Engine error.
+- The existing app timer continued normal read-only inventory while the visible acceptance was
+  delayed by concurrent creator use and Wayland cleanup. Those overlapping periodic observations
+  are not counted as additional tests. Final Guardian verification passed for **1,004 records**
+  with an intact hash chain, no reason and tail `f148a5aa6f6a117f…`.
+
+### Bounded cleanup and runtime evidence
+
+- During the acceptance, the creator independently opened the system Downloads firmware chooser.
+  Build did not confirm the selected archive. After explicit cleanup authorization, the chooser's
+  own **Close** action was invoked and returned true; no firmware was selected, attached, imported
+  or inspected in this checkpoint.
+- GNOME's accessibility bridge was temporarily enabled for the visible inspection and restored to
+  its original `false` value. Native Wayland title-bar/Alt+F4 automation did not deliver a close
+  event even though its synthetic actions returned true. Build therefore invoked the already-
+  loaded Qt `QApplication::closeAllWindows()` entry point on the app's main thread; this delivered
+  the normal `MainWindow.closeEvent`, stopped the app process and wrote the clean-close marker.
+- One earlier terminal Ctrl+C cleanup attempt landed in the active cosmetic UFO animation callback
+  and produced a recorded `KeyboardInterrupt`. It did **not** terminate the application, alter the
+  phone or reveal a product runtime fault. The app remained responsive and subsequently closed
+  cleanly. The latest runtime segment therefore truthfully contains one harness-induced unhandled
+  `KeyboardInterrupt`, no fatal Python/native fault, and the final
+  `ROMVERSE runtime closed cleanly` marker.
+
+### Classification, safety and gates
+
+- **Implemented:** no product-code change; evidence-only repository handoff.
+- **Simulated/Tested:** one genuine packaged Fedora connected-device Command Deck observation and
+  one real primary connection-action completion. No software test suite was run or double-counted.
+- **Hardware Verified:** one real Xiaomi 17 Pro Max UI discovery/readiness presentation and its
+  Guardian-governed read-only refresh. No write, update, Recovery or Fastboot-mode behavior is
+  hardware verified by this checkpoint.
+- **Released:** no. The package remains unsigned, local, unpublished and development-only.
+- Blockers/failures: no packaged device-presentation, Device Engine, masked-identity, boot-state,
+  primary-action or completion defect appeared. The only exception was the explicitly disclosed
+  harness-generated `KeyboardInterrupt`; it did not reproduce through normal app use.
+- Guided friction/dead ends: Command Deck supplied one clear connected target, truthful read-only
+  status and an enabled primary action before and after completion. No modal confirmation or
+  terminal action was required for the user-facing scan.
+- Guardian/Recovery/safety: all device observations remained on the fixed read-only allowlist with
+  pseudonymous audit targets. No preparation, consent, execution or Recovery authority was
+  requested or inferred. Exact-device evidence, UNKNOWN/no-blind-retry, independent verification
+  and permanent no-relock remain unchanged.
+- Platform status: genuine Fedora 44/Wayland packaged UI and physical Android discovery. Windows
+  and other Linux distributions were not exercised here.
+- Feature freeze: compliant evidence-only acceptance; no capability or product behavior changed.
+- Version/package gate: the current Fedora packaged connected-device UI is **PENDING PRODUCT
+  ASSURANCE**. v0.2 Golden Foundation and release remain **CLOSED**.
+- External actions: one package launch, the approved read-only connection action, normal periodic
+  read-only inventory, reversible host accessibility inspection, chooser cancellation and Qt
+  close-event invocation. No firmware attachment/import, phone setting/property/file/partition
+  change, Fastboot transition, reboot, APK installation, preparation/consent/Recovery execution,
+  flash, wipe, unlock/root, bootloader lock/relock, dependency installation, publication, release,
+  merge or force-push occurred.
+
+### Next proposed Build task
+
+Hand this checkpoint to Product Assurance, then perform only the separately authorized exact-
+firmware no-write simulation using the existing ROMVERSE UI and local `popsicle` OTA. Stop before
+the first possible device-changing dispatch; creator authorization to prepare does not substitute
+for a fresh executor consent receipt or Guardian admission.
+
+### Product Assurance Review Requested
+
+- Confirm the single masked target, truthful unlocked/orange state, exact sequences 305–316 and
+  enabled post-completion action satisfy the current Fedora packaged connected-device UI gate.
+- Confirm the disclosed harness-induced `KeyboardInterrupt` is test-infrastructure contamination,
+  not a product defect, given continued UI responsiveness, no fatal fault and the final clean Qt
+  close marker.
+
 ## Read-only production Device Engine checkpoint — exact authorized Android target
 
 ### Authoritative checkpoint and scope

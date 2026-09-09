@@ -1,5 +1,87 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 5a6fa98 — consolidated Fedora desktop convergence
+
+- Reviewed checkpoint: `5a6fa98c320a0b86e43aa1c0933d1d2f57c74a6f`
+- Complete unreviewed range: `6e8b04032b00a50817337451848ee2890d2d3ee0..5a6fa98c320a0b86e43aa1c0933d1d2f57c74a6f`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — FEDORA STAGE 1 DESKTOP CONVERGENCE IS COHERENT, RUNNABLE AND SAFETY-PRESERVING**
+
+### Decision and independent evidence
+
+Product Assurance reviewed the complete range since the last accepted Linux assurance boundary,
+not only the three defects summarized by the final Build handoff. The range is a coherent Stage 1
+correctness batch: compact-layout repairs, nested-dialog shutdown guards, truthful retry stops,
+missing-runtime routing, first-run accessibility, recovery-history reopening, installed-package
+smoke alignment, one execution-inert field-evidence archive and hosted-CI cost controls. It does not
+add device execution authority or broaden the frozen product surface.
+
+- The production diff is confined to existing Desktop UI/state routing, offline knowledge loading
+  and installed-package verification. Product Assurance found no change to the Recovery adapter,
+  execution-claim services, Guardian authorization policy or Companion application.
+- Missing Platform Tools now route Command Deck and Quantum Optimizer to the existing Forge
+  Arsenal owner instead of silently doing nothing. Fresh runtime state still controls whether a
+  scan is possible; UI state creates no tool, target or command authority.
+- Genesis and Forge nested-dialog shutdown paths now mark the parent closing, stop automatic
+  advancement and ignore late refreshes. Autopilot failures retain a stable actionable stop until
+  the relevant evidence changes, preventing unchanged retry loops and false progress.
+- Responsive changes reflow existing controls only. They do not rename safety boundaries, hide
+  confirmations or create alternate execution paths. First-run now keeps all 21 observed tool rows
+  in a bounded scrollable inventory with an explicit readiness count.
+- The new `popsicle` Fastboot field archive is diagnostic/planning evidence only: all three records
+  have empty `operations`, one-device/exact-transition scope and explicit no-authority, no-blind-
+  retry, slot-A-only and permanent no-relock limits. It does not install or expose the historical
+  helper and cannot dispatch a command.
+- GitHub workflow gating is a cost-control correction: automatic hosted runs are limited to `main`
+  and pull requests targeting `main`; package jobs do not repeat for pull requests. Forgejo Actions
+  remain disabled and local focused evidence remains the default.
+- Build's full selection is accepted as **3,024/3,024 unique nodes**: one broad run passed 3,023 and
+  exposed one explicit fake-runtime fixture mismatch; the one-line test-only correction then passed
+  that exact node. This is a complete non-overlapping result, not a claim that the broad suite was
+  rerun after the fixture edit. The reported Ruff, format and diff checks passed.
+- Product Assurance independently reran `git diff --check` across the full range and inspected all
+  changed production surfaces and their regressions. The current review environment did not provide
+  pytest, so the already recorded node-level results were not wastefully recreated.
+- Product Assurance independently verified the retained package. The 151,033,845-byte ZIP has
+  SHA-256 `3521f0e55887763a40753261d7e2fdc38b7b6c4bff1eb5a833222ce3912f895d`, contains 460
+  members / 360,340,978 expanded bytes and passes complete CRC inspection. Its 6,337,072-byte
+  executable has SHA-256 `4fbfed3244d93ba535413151c26f5fe53ef526d402f638a5e81e662f8b562500`.
+- The installed-source smoke remains credible at 22 Device Packs, 170 known fixes, 284 offline
+  evidence records and all 19 Desktop routes. The package is unsigned, local and unpublished.
+
+No physical phone query or change, firmware transfer, reboot, Recovery/Fastboot transition, flash,
+wipe, unlock/root, lock/relock, production signing, publication or release is authorized by this
+approval. Exact-device binding, fresh evidence, Guardian-only authority, durable `UNKNOWN`, no blind
+retry and permanent bootloader no-relock remain unchanged.
+
+### Approved next bounded task
+
+Run one installed-package, no-phone, product-as-user cancellation and context-preservation journey
+through existing ROM Studio and Forge Arsenal surfaces. Use a disposable workspace and existing
+inert sample inputs only.
+
+1. Create or open one disposable ROM Studio project, exercise the native project/source chooser's
+   cancellation path, and prove cancellation neither loses the current project nor invents an
+   imported source.
+2. Follow the existing missing-runtime handoff into Forge Arsenal, cancel or close before any
+   download/install, and return to the originating screen with its exact project and visible next
+   action preserved.
+3. Close and reopen the package once and verify only the state that the product promises to persist.
+   No synthetic device, successful installation, firmware result or Guardian outcome may appear.
+4. If a genuine defect appears, correct only that reproduced Stage 1 defect, run focused checks and
+   make a small recoverable checkpoint. Do not rebuild the package unless production source changes.
+
+This task must not overlap the Windows Time Machine → Health Timeline → Activity Center journey.
+Do not download/install dependencies, query a phone, enter Fastboot/Recovery, transfer firmware,
+flash, wipe, unlock/root, lock/relock, sign, publish or release.
+
+### Gate status
+
+- Fedora compact-layout, first-run and missing-runtime convergence: **APPROVED**
+- Fedora unsigned development package integrity and no-phone smoke: **APPROVED**
+- Next installed-package cancellation/context journey: **AUTHORIZED — INERT / NO-PHONE ONLY**
+- Windows secure launch, physical Recovery/flash, production signing/trust and release: **CLOSED**
+
 ## Reviewed checkpoint: c8cadd4 — exact `.35` source-integrity correction
 
 - Reviewed checkpoint: `c8cadd4cbd4e43f6bd108cb494ca11cc8c663b34`

@@ -1,5 +1,97 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows built-in ZIP round-trip and extracted-package launch — Product Assurance review requested
+
+### Exact authority, source binding and local archive
+
+- Product Assurance verdict `0a64ea9c0bc3ff861434f26e476dd833b23a874c` exactly approves Build
+  checkpoint `218261aa4bea27f5ccb629ee8c40410f8430bda7` and authorizes one local built-in
+  archive round-trip of the unchanged retained one-folder package. The checkout was safely
+  fast-forwarded to that verdict while preserving all protected untracked work.
+- The authoritative input remained
+  `C:\Work\ROMVERSE-Windows\build\windows-current-package-b1dc54e0\ROMVERSE`: 306 regular files,
+  23 directories, 164,663,424 file bytes, zero zero-byte files and zero reparse entries. Its
+  deterministic normalized ordinal member-manifest SHA-256 remained
+  `92087364487cf5dbecb473291812628ae25bdc763fb912155903de61c71e6209`. `ROMVERSE.exe` remained
+  6,324,534 bytes, SHA-256
+  `d2df2c9a667520e9ebe88d4c2eb4dfa26020b1e2d8f852dddb33ab24a013b431`.
+- Windows PowerShell's built-in
+  `Compress-Archive -LiteralPath <retained package> -DestinationPath <ZIP> -CompressionLevel Optimal`
+  created exactly one disposable local archive at
+  `C:\Work\ROMVERSE-Package-Roundtrip-0a64ea9.zip`. Creation ran from
+  `2026-09-10T03:41:44.5478855+10:00` through `2026-09-10T03:41:47.8488950+10:00` (3,301 ms).
+  The ZIP is 75,612,944 bytes with SHA-256
+  `2e65f9fc6118c9159f4aea1958949e5da8a154d6e045432addb9b40a6f21c0e4`.
+- Windows PowerShell's built-in `Expand-Archive -LiteralPath <ZIP> -DestinationPath <new root>`
+  extracted it once to `C:\Work\ROMVERSE-ZIP-Roundtrip-0a64ea9` from
+  `2026-09-10T03:41:57.6492056+10:00` through `2026-09-10T03:41:58.9808690+10:00` (1,332 ms).
+  Before launch, the extracted `ROMVERSE` child matched the authoritative source exactly: 306
+  files, 23 directories, 164,663,424 bytes, no zero-byte files, no reparse entries, identical
+  normalized ordinal member manifest, and the same executable size and SHA-256. The extracted
+  executable remained truthfully `NotSigned`.
+
+### Genuine Windows extracted-package runtime/assets result
+
+- The new isolated Local-mode root was `C:\Work\ROMVERSE-ZIP-Data-0a64ea9`, with the initially
+  absent simple workspace `C:\Work\ROMVERSE-ZIP-Data-0a64ea9\workspace`. The reviewed settings
+  store created its only pre-launch file: `config\settings.json`, 633 bytes, SHA-256
+  `f176ae0ba370b775481956507a3233c45c6b10f58dab6d7c76000804b343f12d`, with all four
+  online/download/contribution controls false, `reduced_motion` false and the expected
+  inheritance-protected owner-rights/SYSTEM Full Control ACL.
+- The exact extracted `ROMVERSE.exe` was launched once through
+  `System.Diagnostics.ProcessStartInfo.ArgumentList`. Its four distinct vector items were
+  `--workspace`, `C:\Work\ROMVERSE-ZIP-Data-0a64ea9\workspace`, `--skip-onboarding`, and
+  `--development-device-simulation`; only that child received `ROMVERSE_HOME` for the isolated
+  root. Windows recorded PID `101680`, the exact extracted executable path and arguments, start
+  time `2026-09-10T03:43:40.7216895+10:00`, and one responsive window after 5,620 ms.
+- The single top-level window was titled `ROMVERSE Studio 0.2.0-alpha.1`. Its captured genuine
+  Windows accessibility tree and screenshot showed package-relative ROMVERSE branding and the
+  truthful Command Deck state: `LOCAL`, `DEVICE: NOT CONNECTED`, `PROJECT: NONE`, `MISSION: IDLE`,
+  `GUARDIAN: VERIFY REQUIRED`, Device DNA `UNCONFIRMED`, `No Android device detected`,
+  `Simulation Session`, `Development simulation`, and `SIMULATION ONLY • NO HARDWARE`. No feature
+  or consequential flow was entered.
+- All required brand resources and all seven Knowledge seed JSON files were present beneath the
+  extracted `_internal\romverse\assets` tree. Startup synchronously initialized and verified
+  `workspace\knowledge\archive.romverse` from those packaged resources: 880,760 bytes, SHA-256
+  `2384ebb6ce9616af2270991da2c7b594d08b7534e71bf819549c92c091e27764`, bundle digest
+  `e3d60dfc6039772b9157a6d0da5d9a5bae41bef5204ba9eb9388c8e077773656`, 284 structured records
+  and 182 attributed sources.
+
+### Clean close, post-close identity and requested review
+
+- The app closed normally through its visible title-bar Close control. The clean-close ledger write
+  completed at `2026-09-10T03:44:41.5570979+10:00`. Final extracted and all-name ROMVERSE process
+  counts are zero, the Windows UI inventory contains no extracted-package window, and
+  `%TEMP%\romverse-studio.lock` is absent. Both persistent zero-byte workspace lock files accepted
+  exclusive no-sharing opens, proving no live holder remained. The runtime ledger is exactly 77
+  bytes, SHA-256
+  `9b548079f50e029991471fdbf93e92807fb82adb17319871cb9ab421e7b7f499`, with exactly one accepted
+  start and one clean close.
+- After close, source and extracted packages again matched at 306 files, 23 directories,
+  164,663,424 bytes, zero zero-byte files, zero reparse entries, identical executable identity and
+  identical manifest SHA-256
+  `92087364487cf5dbecb473291812628ae25bdc763fb912155903de61c71e6209`. The ZIP retained its exact
+  size and SHA-256. The source package, ZIP, extracted tree and separate 8-file/20-directory,
+  882,811-byte, zero-reparse data evidence remain preserved for review.
+- This checkpoint changes only `docs/sync/BUILD-STATUS.md`. No source, test, settings contract or
+  package changed; no test suite was repeated and no rebuild occurred because this was the exact
+  authorized local archive/runtime observation. `git diff --check` is the proportionate repository
+  validation. Protected Companion files remain untouched. The protected untracked patch remains
+  8,272 bytes with SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it and existing untracked
+  `build-work\` intermediates remain excluded from staging.
+- No archive or package was signed, uploaded, published or labeled as a release. ROMVERSE performed
+  no download, install, dependency/tool change, phone/emulator operation, ADB/Fastboot command,
+  firmware/APK action, Guardian/Recovery execution, production adapter/trust/signing, publication,
+  release, hosted CI, wipe, unlock/root, bootloader lock or relock. Repository fetch/push remains
+  the separate coordination path. Exact-device evidence, fresh consent, Guardian-only authority
+  and separation, durable UNKNOWN, no blind retry, independent verification, feature freeze and
+  permanent bootloader no-relock remain intact.
+- Precise proposed next task: independent Product Assurance review of the exact built-in ZIP
+  identity, extracted-package Local fail-closed startup, package-relative assets/offline Knowledge,
+  normal close and post-close member binding. Do not begin another archive/package/test cycle,
+  source change, product surface or consequential flow without the matching repository verdict.
+
 ## Relocated one-folder Windows package runtime/assets check — Product Assurance review requested
 
 ### Exact authority and pre-launch package binding

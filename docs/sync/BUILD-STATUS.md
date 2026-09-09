@@ -1,5 +1,96 @@
 # ROMVERSE Product Assurance Sync
 
+## Fedora first-run setup to Guided Command Deck boundary
+
+### Authoritative commit and exact changes
+
+- Branch: `linux/stage1-desktop-readiness`.
+- Journey evidence: `cd79aea3a5b1285f405ddec6915a0bf4f4b97b46`
+  (**Record Fedora first-run Guided boundary**).
+- Product Assurance-approved base:
+  `9f2bf11eca9b5f13859d66b43c1a79c8e9f928a8`.
+- Corrected unsigned package: `build/fedora-asset-boundary-v2/ROMVERSE`; executable
+  **6,337,072 bytes**, SHA-256
+  `4fbfed3244d93ba535413151c26f5fe53ef526d402f638a5e81e662f8b562500`.
+- The complete runtime observation is recorded in
+  `docs/evidence/FEDORA_FIRST_RUN_GUIDED_BOUNDARY_2026-09-10.md`.
+- No production, test, package, Companion, Windows, Device Intelligence, Guardian, Recovery or
+  adapter source changed. No rebuild was required because the genuine first-run transition
+  reproduced no shipped Stage 1 defect.
+
+### Verification and gates
+
+- **Implemented:** evidence-only checkpoint. Application, test and package bits are unchanged.
+- **Simulated/Tested:** one genuine corrected-package Fedora journey passed with a fresh mode-`0700`
+  disposable profile, no phone/emulator or Android simulation, an empty process-local Android-tool
+  path and a Bubblewrap network namespace containing only zero-byte loopback. The prelaunch safety
+  profile kept onboarding incomplete while disabling online/community intelligence and automatic
+  verified-tool acquisition.
+- First-run truthfully reported **1 of 21** host tools ready and exposed all 21 bounded tool rows
+  with their individual readiness explanations. **Browse…** and **Continue in Guided Mode**
+  remained showing and enabled. No browse, manual-source, acquisition or installation action was
+  invoked.
+- Continuing once selected the exact fresh workspace and opened Command Deck with **DEVICE: NOT
+  CONNECTED • PROJECT: NONE • MISSION: IDLE • GUARDIAN: VERIFY REQUIRED**. No project, device,
+  mission result, Guardian readiness or successful Activity was invented.
+- Acceptance persisted only the promised local state: a mode-`0600`, 664-byte settings file,
+  SHA-256 `a309b915233ee9db53f175beb611041683fb7d63c024cebfe0c9dc6bc2d525e2`, with onboarding
+  complete, Guided retained, the exact disposable workspace path and all network/acquisition
+  preferences still disabled. The 431-byte workspace marker is SHA-256
+  `a3b88e6c6c23d9d3e232b936394fbba856c2adc962f65abb063c8bd2e0262838`.
+- The corrected package created its packaged **880,760-byte** offline archive, SHA-256
+  `2384ebb6ce9616af2270991da2c7b594d08b7534e71bf819549c92c091e27764`. No external device
+  catalog was fetched. Workspace initialization separately created its local ROMVERSE Link
+  certificate/private-key pair; it was not opened, transmitted or used as authority.
+- The earlier **56/56** focused package/knowledge regression remains the source baseline and was
+  not rerun or double-counted because no source changed. This checkpoint adds one packaged Fedora
+  first-run runtime acceptance journey.
+- **Hardware Verified:** no. No physical or simulated Android target, ADB or Fastboot operation was
+  used.
+- **Released:** no. The package remains unsigned, local and unpublished.
+- Blockers/failures: no setup-transition defect or Guided dead end was reproduced. Fedora
+  accessibility still exposes no compositor-owned close action. After final evidence inspection,
+  Build terminated only the exact disposable process with `SIGTERM`; it exited 143 and its runtime
+  guard contains no clean-close marker. **No clean-shutdown or restart-persistence claim is made.**
+  Windows secure launch, production trust/signing, physical Recovery/flash verification and release
+  remain blocked or independently gated.
+- Guided friction/dead ends: first-run keeps the full tool inventory in a bounded surface while
+  leaving the workspace chooser and one clear Guided continuation available. The resulting Command
+  Deck owns missing-tools guidance without claiming readiness or forcing a second setup decision.
+- Guardian/Recovery/safety: no project, Activity JSONL record, tool plan, managed tool, Guardian
+  ledger, Recovery incident/result, device evidence or command was created. Guardian-only
+  authority, exact-device/source/incident binding, durable `UNKNOWN`, no blind retry, independent
+  verification and permanent bootloader no-relock remain unchanged.
+- Platform status: genuinely exercised on Fedora/Linux. Windows was not run or modified; Android
+  hardware was not used or represented as verified.
+- Feature freeze: compliant Stage 1 acceptance evidence for the existing first-run route; no
+  product capability, behavior or surface was added.
+- Version gate: fresh-profile Fedora setup-to-Guided now passes, but v0.2 Golden Foundation and all
+  production/release gates remain **CLOSED**.
+- External actions: one local network-isolated package launch, private disposable profile/workspace
+  writes, accessibility-driven UI interaction, Build-set process-local empty `PATH`, exact process
+  termination after the inaccessible compositor-close boundary, read-only Git inspection and
+  scoped documentation commits. GNOME toolkit accessibility was restored to its original disabled
+  state. No app network request, tool/catalog/dependency download, installation, phone/emulator
+  operation, ADB/Fastboot invocation, APK/firmware operation, Guardian/Recovery execution, flash,
+  wipe, unlock/root, lock/relock, signing, publication, release, hosted CI or Forgejo Action
+  occurred. Forgejo-first and identical GitHub branch pushes containing this handoff are the only
+  planned remote writes.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance. Do not begin another Linux slice until Product Assurance
+records its verdict and selects or approves the next exact non-overlapping Stage 1 task.
+
+### Product Assurance Review Requested
+
+- Confirm the fresh private profile, complete 21-row setup inventory, always-available Browse/
+  Continue controls and truthful one-step Guided transition satisfy the authorized journey.
+- Confirm the persisted settings/workspace evidence contains no invented project, device,
+  Guardian/Recovery result or acquisition state.
+- Confirm the disclosed status-143 accessibility limitation remains excluded from clean-shutdown
+  and restart-persistence acceptance.
+
 ## Fedora Forge Arsenal missing-tools cancellation boundary
 
 ### Authoritative commit and exact changes

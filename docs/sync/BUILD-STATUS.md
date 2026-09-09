@@ -1,5 +1,77 @@
 # ROMVERSE Product Assurance Sync
 
+## Fedora Source Lab incomplete-readiness wording checkpoint
+
+### Authoritative commits and exact changes
+
+- Branch: `linux/stage1-desktop-readiness`.
+- Product Assurance authorization: `f0696102f002e9caec5b36b4963b192a992464bb`.
+- Scoped implementation: `a40fa52c92dac2630caa526132217fa384512b87`
+  (**Clarify missing Source Lab prerequisites**).
+- Runtime evidence: `d1f676560203c1568a80b51eb9eac63616705dcd`.
+- `src/romverse/ui/rom_studio.py` changes only the incomplete Source Lab presentation: every absent
+  local prerequisite now begins with **Missing:**, and the tree/plan items name their required next
+  action. Existing readiness booleans and the exact `LOCAL INPUTS READY` condition are unchanged.
+- `tests/test_rom_studio_ui.py` adds one focused three-state test covering working-copy with absent
+  tree/plan, present tree with absent plan, and all local prerequisites present. No other production
+  or test file changed. Complete evidence:
+  `docs/evidence/FEDORA_SOURCE_LAB_READINESS_WORDING_2026-09-10.md`.
+
+### Classification, verification and gates
+
+- **Implemented:** minimum presentation-only truthfulness correction. No button, navigation,
+  sequencing, readiness decision, evidence schema or authority changed.
+- **Simulated/Tested:** **1/1 unique focused test node passed**, containing assertions for all three
+  authorized states. Focused Ruff 0.16.6 lint/format and Git diff/whitespace checks passed. No
+  overlapping/broad suite or hosted CI is counted.
+- Exactly one cached/offline Fedora rebuild succeeded. The unsigned development package is
+  `build/fedora-readiness-wording-f069610/ROMVERSE`: executable mode `0755`, 6,337,408 bytes,
+  SHA-256 `d110771c730b45695413c0606de072f9c560550c88ae223913ca1fd1e5e670e4`; 423 regular files,
+  243,102,811 regular-file bytes and 38 internal links. No dependency or network acquisition ran.
+- One actual read-only Fedora package observation used a mode-`0700` disposable copy of the retained
+  synthetic profile/project, Bubblewrap `--unshare-net`, empty Android-tool `PATH`, private minimal
+  `/dev` and no phone/emulator. After only **Open ROM Studio**, Source Lab truthfully exposed:
+  **Missing: contained working tree (extract and verify it); Missing: Guardian-assessed build plan
+  (create and verify it)**. It retained the existing working copy/snapshot and the real next action
+  **Extract and verify working tree**.
+- A first sandbox command lacked a writable `TMPDIR` and stopped before application initialization
+  with `FileNotFoundError`; it opened no window and touched no project state. Build corrected only
+  the disposable harness, without rebuilding or repeating any product action, then performed the
+  single actual observation above.
+- The disposable workspace differed from retained state only by a normal runtime-start marker.
+  Project, working-copy, inspection, snapshot and Vault evidence remained byte-identical; tree file
+  count stayed zero; tree index/build plan remained absent; tools stayed empty.
+- **Hardware Verified:** no. Fedora/Linux packaging and UI were genuinely exercised, but no Android
+  hardware or simulation was used. Windows was not run or modified.
+- **Released:** no. Package is local, unsigned, uninstalled and unpublished.
+- Blockers/failures: the misleading incomplete wording is corrected. Fedora accessibility again
+  offered no compositor-owned close action; exact process termination returned 143, so no clean
+  shutdown or restart-persistence claim is made. The disclosed pre-initialization harness failure
+  is not a product defect.
+- Guided friction/dead ends: absent local prerequisites are now unambiguous to visual,
+  accessibility and extracted-text users. No new prompt, modal, confirmation or route was added.
+- Guardian/Recovery/safety: unchanged. Local readiness grants no execution authority. Exact
+  evidence, Guardian-only authority, durable `UNKNOWN`, no blind retry, independent verification
+  and permanent bootloader no-relock remain authoritative.
+- Feature freeze: compliant minimum Stage 1 correctness work; no new feature or scope expansion.
+- Version gate: Source Lab incomplete-readiness truthfulness is ready for Product Assurance review.
+  Extraction and every later build/device/consequence/v0.2/release gate remain **CLOSED**.
+- External actions: focused local checks; exactly one offline build; private retained-state copy;
+  one failed pre-initialization sandbox attempt; one successful no-network read-only package
+  observation; exact termination; scoped commits; and Forgejo-first/GitHub branch synchronization
+  only. No import/working-copy/extraction/planning operation, phone/emulator, real firmware,
+  ADB/Fastboot, APK/package installation, Guardian/Recovery execution, flash, wipe, unlock/root,
+  lock/relock, signing, publication, release or hosted CI occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance. Do not begin extraction or another consequential slice.
+
+### Product Assurance Review Requested
+
+Approve the presentation-only correction and keep extraction and every later Stage 1/release gate
+closed.
+
 ## Fedora Source Lab durable-history refresh checkpoint
 
 ### Authoritative commits and exact changes

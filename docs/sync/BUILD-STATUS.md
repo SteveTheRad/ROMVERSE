@@ -1,5 +1,82 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows Time Machine → Health Timeline → Activity Center journey — Product Assurance review requested
+
+### Exact authority and bounded acceptance
+
+- Product Assurance verdict `d1955a79cff85c5459217f900a63b3066c50d4a2` — `Approve Windows
+  Settings and About journey [skip ci]` exactly approves checkpoint
+  `a3d0170cb5ae101b8d4ec4ad0723d15a14d34a82` and authorizes one local-only no-phone Windows
+  product-as-user batch through the existing Time Machine, Health Timeline and Activity Center
+  surfaces.
+- The checkout was at that exact verdict and matched `origin/windows-launcher-authorized-work`
+  before use. The only pre-existing working-tree item remained the protected untracked patch.
+- Empty-state evidence used fresh disposable `ROMVERSE_HOME`
+  `C:\Work\ROMVERSE-Windows-History-Empty-d1955a79`. Populated-state evidence used the separate
+  disposable `C:\Work\ROMVERSE-Windows-History-Populated-d1955a79`, whose `workspace` was a
+  byte-copy of the previously completed local-only Windows product workspace
+  `C:\Work\ROMVERSE-Windows-Adaptive-Discovery-3fe32432-20260909`; the source workspace was not
+  modified. Both launches used current source with `--skip-onboarding
+  --development-device-simulation`, so no hardware discovery or device command was possible.
+
+### Visible Windows product evidence
+
+- In the fresh empty workspace, Time Machine showed no project checkpoints or ROM Studio projects,
+  disabled every unavailable backup/recovery action, and stated that its local workspace boundary
+  never reads, writes, flashes, wipes or restores phone partitions. Health Timeline reported
+  **0 accepted privacy-safe snapshots / 0 rejected**, kept export disabled and directed the user to
+  collect reviewed live evidence instead of fabricating history. Activity Center reported
+  `READY • No completed activity recorded yet`, with **0 recorded / 0 completed safely / 0
+  attention / 0 information**, and explained that entries appear only after genuine completion or
+  a safe-failure boundary.
+- The isolated populated clone reopened the durable project `Windows Synthetic Discovery
+  20260909` while Command Deck still said `No Android device detected`, `Simulation Session` and
+  `No physical device selected`. Time Machine truthfully displayed **1 current baseline snapshot**
+  and **2 Project Vault timeline records**, labelled `LOCAL PROJECT • NOT PHONE BACKUP`. The chosen
+  checkpoint described a sealed local extracted tree with its evidence sources and required a
+  separate fresh verification before any approval-bound local restore.
+- Health Timeline remained honestly empty in the populated clone: **0 accepted / 0 rejected**, no
+  trend and no export. ROMVERSE did not turn the development simulation or the word `Synthetic` in
+  the local project name into a phone-derived health snapshot or real-device result.
+- Activity Center loaded exactly **5 privacy-safe local events**, all `COMPLETED SAFELY`: two
+  Time Machine Project Vault checkpoints plus protected-firmware import, isolated-working-tree
+  creation and firmware extraction from ROM Studio. Its banner said the ledger is not an approval
+  record, raw console log or execution authority. The selected newest event explicitly said
+  `local project only • phone untouched` and identified itself as a redacted local outcome summary.
+- Following `Open exact Time Machine evidence` preserved the same project and sealed Vault entry.
+  Time Machine showed `EXACT ACTIVITY EVIDENCE`, the exact entry identifier, `sealed record
+  selected`, and `no restore or phone action started`; returning to Activity Center restored the
+  same five-record local context. No backup, restore, export, cleanup, registration or external
+  opening control was invoked.
+- One normal close/restart of the populated workspace returned to Command Deck rather than
+  persisting the transient History route or exact-evidence handoff. The durable active project,
+  **5 Activity events**, **2 Vault records** and **1 baseline snapshot** reopened unchanged, while
+  Health Timeline remained at **0 accepted / 0 rejected**. The Activity ledger SHA-256 remained
+  `fa348d1f7162f90cdff5b1711dfe90563480e7e0ca0ef3310303b6a806462ec4`; all **8** Time
+  Machine files retained manifest SHA-256
+  `36b76f65d092286e2e12df44d95dd60a6b03c3f8cd25baafac11db61c568a891` before and after
+  restart. The cloned runtime log inherited six earlier clean launch pairs and this batch appended
+  exactly **2 starts / 2 clean closes / 0 faults**, ending at **8 / 8 / 0**. The empty workspace
+  separately recorded **1 start / 1 clean close / 0 faults**.
+
+### Verification, scope and next review
+
+- No production defect was reproduced, so no source, test or package file changed and no package
+  was rebuilt. Per the approved boundary, unchanged tests and linters were not rerun.
+- This checkpoint changes only `docs/sync/BUILD-STATUS.md`. Protected Companion files remain
+  untouched. The protected untracked patch remains byte-identical at **8,272 bytes**, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it was not edited,
+  applied, staged or deleted.
+- No phone, emulator, firmware/APK action, ADB/Fastboot command, device discovery/query/write or
+  mode transition, Guardian/Recovery execution, production adapter, signing, publication, release,
+  hosted CI, force-push, wipe, unlock/root, lock or relock occurred. Exact-device evidence, fresh
+  consent, Guardian-only authority and separation, UNKNOWN-on-uncertainty, no blind retry,
+  independent verification, no wipe and permanent no-relock remain intact.
+- Precise next task: independent Product Assurance review of this bounded visible Windows pass.
+  Do not start another product-as-user batch, source correction or package build until a matching
+  verdict is committed. Publish this exact documentation-only checkpoint to Forgejo first, then
+  the identical commit to GitHub.
+
 ## Windows Settings → About persistence journey — Product Assurance review requested
 
 ### Exact authority and bounded acceptance

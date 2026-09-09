@@ -1266,6 +1266,43 @@ def test_guided_build_mission_is_full_size_and_evidence_driven(tmp_path):
     studio.close()
 
 
+def test_genesis_evidence_rows_never_mark_mixed_tool_results_as_verified(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    store = RomProjectStore(tmp_path / "workspace")
+    studio = RomStudio(store, DevicePackRegistry(()))
+    mission = GuidedBuildMission(studio)
+    context = GuidedContext(
+        project_exists=True,
+        original_imported=True,
+        inspection_saved=True,
+        working_copy_ready=True,
+        working_tree_ready=True,
+        device=AndroidDevice("serial", DeviceState.DEVICE),
+        device_pack_id="test.pack",
+        device_dna_ready=True,
+        capability_map_ready=True,
+        customization_skipped=True,
+        root_choice="skip",
+        tool_statuses=(
+            ToolStatus("Python", True, version="3.14"),
+            ToolStatus("ADB", False, ""),
+        ),
+        required_tools=("python", "adb"),
+    )
+    mission.assessments = GuidedMissionEngine().assess(context)
+    mission.selected_index = 9
+
+    mission._render_stage()
+
+    assert mission.assessments[9].status is GuidedStageStatus.ATTENTION
+    assert "•  Python: ready" in mission.evidence.text()
+    assert "•  ADB: missing" in mission.evidence.text()
+    assert "✓" not in mission.evidence.text()
+    assert mission.supporting_summary.text().startswith("2 evidence items")
+    mission.close()
+    studio.close()
+
+
 def test_genesis_uses_task_evidence_action_hierarchy_and_responsive_layout(tmp_path):
     app = QApplication.instance() or QApplication([])
     store = RomProjectStore(tmp_path / "workspace")

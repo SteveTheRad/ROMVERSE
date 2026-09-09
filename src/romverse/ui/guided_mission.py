@@ -1165,7 +1165,7 @@ class GuidedBuildMission(QDialog):
         self.stage_title.setText(stage.title)
         self.stage_detail.setText(stage.explanation)
         self.evidence.setText(
-            "\n".join(f"✓  {item}" for item in assessment.evidence)
+            "\n".join(f"•  {item}" for item in assessment.evidence)
             if assessment.evidence
             else "No verified evidence has been recorded for this stage yet."
         )
@@ -1181,7 +1181,7 @@ class GuidedBuildMission(QDialog):
         evidence_count = len(assessment.evidence)
         blocker_count = len(assessment.blockers)
         self.supporting_summary.setText(
-            f"{evidence_count} verified item{'s' if evidence_count != 1 else ''}"
+            f"{evidence_count} evidence item{'s' if evidence_count != 1 else ''}"
             + (
                 f"  •  {blocker_count} item{'s' if blocker_count != 1 else ''} need attention"
                 if blocker_count

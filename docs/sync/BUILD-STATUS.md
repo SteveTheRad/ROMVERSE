@@ -1,5 +1,72 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows Settings → About persistence journey — Product Assurance review requested
+
+### Exact authority and bounded acceptance
+
+- Product Assurance verdict `b244f0c0fde6114fb844d629665ce29109231f76` — `Approve Windows
+  Device Atlas journey [skip ci]` exactly approves checkpoint
+  `3cf7d3d2a90189cb5196a7a7d914cdaf64e0b2ea` and authorizes one local-only no-phone Windows
+  product-as-user batch through the existing Command Deck Settings and About surfaces.
+- The checkout was at that exact verdict before use and matched
+  `origin/windows-launcher-authorized-work`. The only pre-existing working-tree item remained the
+  protected untracked patch.
+- Used the fresh disposable no-phone `ROMVERSE_HOME`
+  `C:\Work\ROMVERSE-Windows-Settings-About-b244f0c0` and launched current source with
+  `--skip-onboarding --development-device-simulation`. No hardware discovery or device command was
+  possible.
+
+### Visible Windows product evidence
+
+- Initial Command Deck state was Guided Arcana with the Nebula Flow theme and remained truthful at
+  `No Android device detected / NOT CONNECTED`, `DEVICE: NOT CONNECTED • PROJECT: NONE • MISSION:
+  IDLE • GUARDIAN: VERIFY REQUIRED`, `Simulation Session`, and `No physical device selected`.
+- The Focus control collapsed the sidebar into `FOCUS WORKSPACE • HOME` while preserving the exact
+  Command Deck route and safe context. `Exit Focus` restored the standard navigation. Focus state
+  was not written to the validated settings record and the normal restart returned to the standard
+  navigation rather than silently persisting this transient presentation state.
+- Command Deck Settings displayed its Guardian-safe boundary, active read-only Guardian policy,
+  masked-device privacy, server-side-only AI credentials, locked client-side AI policy, disabled
+  unsigned update check and explicit `bootloader relock forbidden` invariant. No update, network,
+  tool acquisition, project, build or device action was started.
+- Selected the shipped Quantum Mint theme and deliberately entered Expert Architect through its
+  separate visible risk-acceptance dialog. The sidebar then exposed the existing Command Console,
+  ROMVERSE Nexus and Forge Arsenal destinations while exact device/project/mission/Guardian state
+  remained unchanged and no destination was activated. Returning to Guided Arcana folded those
+  Expert-only destinations again without changing evidence or project state.
+- About ROMVERSE declared `ABOUT AUTHORITY: NAVIGATION ONLY`. Its workspace panel said the facts
+  were recalculated local evidence, never demo counters, cloud estimates or execution approvals;
+  Guardian evidence remained not yet verified in this session and explicitly stated that About
+  only observes while Guardian Core owns verification, approvals and every execution lock. Device
+  knowledge remained evidence-only, identity evidence granted no build/flash/execution authority,
+  and the panel ended with `READ-ONLY OBSERVATION • Feature pages own their evidence • Guardian
+  owns approvals`. External website, social, legal-draft and owning-feature controls were not
+  activated.
+- Completed one normal close/restart. The validated schema-five settings record persisted exactly
+  `desktop_theme: quantum-mint` and `experience_mode: guided` with the documented preferences;
+  restart restored Guided Arcana and Quantum Mint on the default Command Deck, did not retain the
+  transient Focus or About route, and again reported the exact truthful no-device, no-project,
+  idle-mission and Guardian-verification-required state. The workspace runtime log contains exactly
+  **2 starts / 2 clean closes / 0 fault entries**.
+
+### Verification, scope and next review
+
+- No production defect was reproduced, so no source, test or package file changed and no package
+  was rebuilt. Per the approved boundary, unchanged tests and linters were not rerun.
+- This checkpoint changes only `docs/sync/BUILD-STATUS.md`. Protected Companion files remain
+  untouched. The protected untracked patch remains byte-identical at **8,272 bytes**, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it was not edited,
+  applied, staged or deleted.
+- No phone, emulator, firmware/APK selection, ADB/Fastboot command, device query/write or mode
+  transition, Guardian/Recovery execution, production adapter, signing, publication, release,
+  hosted CI, force-push, wipe, unlock/root, lock or relock occurred. Exact-device evidence, fresh
+  consent, Guardian-only authority and separation, UNKNOWN-on-uncertainty, no blind retry,
+  independent verification, no wipe and permanent no-relock remain intact.
+- Precise next task: independent Product Assurance review of this bounded visible Windows pass.
+  Do not start another product-as-user batch, source correction or package build until a matching
+  verdict is committed. Publish this exact documentation-only checkpoint to Forgejo first, then
+  the identical commit to GitHub.
+
 ## Windows Device Atlas → Device Packs → Guardian no-phone journey — Product Assurance review requested
 
 ### Exact authority and bounded acceptance

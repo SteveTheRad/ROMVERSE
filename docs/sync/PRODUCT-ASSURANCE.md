@@ -1,5 +1,90 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: cfbb375 — Fedora Forge Arsenal missing-tools cancellation boundary
+
+- Reviewed checkpoint: `cfbb37557880e17782ac67cdb84c5a06aee04602`
+- Journey evidence: `d5d4a9750a0bc934a9ffc4bda54b6b206d0e96c8`
+- Independently dispositioned starting checkpoint: `2039a1f66841a31272f56178efa45214d497eec5`
+- Starting implementation: `68c4c1a4cd3a8fac2e30f28d68a6dadef3d0c16d`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — CORRECTED PACKAGE AND FORGE ARSENAL CANCELLATION BOUNDARY VERIFIED**
+
+### Decision and independent evidence
+
+Product Assurance accepts the previously coordinator-relayed approval of `2039a1f` and records its
+repository-authored disposition here. The minimum packaging correction at `68c4c1a` binds every
+non-Python ROMVERSE asset to the authoritative checkout instead of allowing PyInstaller to resolve
+data through a different editable checkout. Its regression requires the exact popsicle Fastboot
+seed and excludes generic package-data collection, generated cache files, and symbolic links. The
+rebuilt package contains 48 authoritative assets; Product Assurance independently confirmed the
+packaged popsicle seed is byte-identical to source at SHA-256
+`54928d451043588fd19e84b48a815d3a002b5e2d6148b50135d77dde0cb24481`. This is the appropriate
+minimum correction for the reproduced cross-worktree asset leak.
+
+The retained corrected Fedora package is still 423 regular files / 243,102,475 regular-file bytes /
+38 contained links. Product Assurance independently recomputed its 6,337,072-byte executable
+SHA-256 as `4fbfed3244d93ba535413151c26f5fe53ef526d402f638a5e81e662f8b562500`.
+It also inspected the retained disposable Forge Arsenal profile and independently recomputed the
+exact project, settings, workspace-marker, and offline-archive hashes recorded in the handoff.
+The project remains source-less with `original: null` and no Device Pack; no tool plan exists, no
+tools were installed, the Activity/Live Console files remain empty locks, and no Guardian,
+Recovery, device, installation, or execution record exists.
+
+The genuine packaged Fedora journey therefore establishes the approved user boundary: About hands
+off to Forge Arsenal; the incomplete ADB/Fastboot state is truthful; the Platform Tools action
+opens an explicit managed-acquisition modal; **Close** cancels before plan, download, installation,
+or environment mutation; and normal navigation returns to Command Deck with the exact project and
+truthful no-device / Guardian-verification-required state preserved. The Bubblewrap-isolated run
+retained no external catalog or tool acquisition. Workspace creation generated only its local
+ROMVERSE Link key pair; the evidence shows no opening, transmission, device use, or authority use.
+
+No application/test/package source changed after `2039a1f`, so the current two commits are correctly
+classified as evidence and handoff only. Product Assurance independently reran the affected
+package/offline-knowledge/Archives selection: **56/56 passed**. Focused Ruff check and format check
+on the packaging correction passed, and the complete `4a1ed80..cfbb375` whitespace check passed.
+The full suite and packaged UI journey were not repeated.
+
+The process exit is also classified honestly. Fedora accessibility did not expose the compositor
+close action; after the completed inert journey and final hashes, only the exact disposable process
+received `SIGTERM` and exited 143. Its guard has a start marker and no clean-close marker. This is
+an automation/accessibility limitation, not evidence of a product crash and not a clean-shutdown
+acceptance claim.
+
+No phone/emulator, ADB/Fastboot invocation, APK/firmware operation, device transition, flash, wipe,
+unlock/root, lock/relock, signing, publication, release, hosted CI, Forgejo Action, or Windows/
+Companion/Device Intelligence work occurred. Guardian-only authority, exact evidence, durable
+`UNKNOWN`, no blind retry, independent verification, and the permanent no-relock rule remain
+unchanged.
+
+### Approved next bounded Linux task
+
+Run one fresh-profile, no-phone, network-isolated Fedora package journey through the existing
+first-run setup boundary. Use the corrected package and a new disposable configuration/workspace;
+keep automatic verified-tool acquisition and online intelligence disabled and expose no Android
+tools on the process-local path.
+
+1. Verify the first-run window truthfully presents the complete current tool-readiness count and
+   all 21 bounded, readable tool rows without hiding **Browse** or **Continue in Guided Mode**.
+2. Choose only the new disposable workspace and continue once into Guided Mode. Confirm Command
+   Deck opens with that exact workspace, no selected project or device, mission idle, and no
+   invented Guardian readiness or successful activity.
+3. Inspect only the promised local settings/workspace state after acceptance. Do not claim clean
+   shutdown or restart persistence unless an accessible product-owned close path is actually used.
+4. Correct only the first reproduced Stage 1 setup/transition defect, if any, with focused tests;
+   do not rebuild unless production or packaged assets change.
+
+Do not select a download/install action, open a manual source, use network access, query or simulate
+a phone, invoke ADB/Fastboot, import an APK/firmware image, enter Guardian/Recovery execution, flash,
+wipe, unlock/root, lock/relock, sign, publish, release, or overlap the active Windows stream.
+
+### Gate status
+
+- Fedora active-checkout package asset integrity: **APPROVED**
+- Forge Arsenal missing-tools cancellation and exact Command Deck return: **APPROVED**
+- Fedora compositor-close / clean-shutdown claim: **NOT VERIFIED — HONESTLY EXCLUDED**
+- Fresh first-run setup-to-Guided journey: **AUTHORIZED — INERT / NO-PHONE / NO-NETWORK**
+- v0.2 Golden Foundation and production/release gates: **CLOSED**
+
 ## Reviewed correction: 5bbac32 — complete Fedora external-action accounting
 
 - Reviewed correction: `5bbac32c13b5ec8655758aa6828d9e2491c4b698`

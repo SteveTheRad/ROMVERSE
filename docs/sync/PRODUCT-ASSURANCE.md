@@ -1,5 +1,79 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: e260bb8 — current-source cloud regression
+
+- Reviewed checkpoint: `e260bb8ec6ca8b5298d3c3af83bc6cd2c11ee035`
+- Test-fixture commit: `d5680894cc00aeb01d88d0a75fa535fd53ea32eb`
+- Approved base: `77c2f12`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — FIRST WINDOWS FAILURE CORRECTED; BROAD MATRICES REMAIN CLOSED**
+
+### Decision
+
+Product Assurance independently inspected the one-line fixture change, the production responsive
+rule and the completed GitHub run. The correction is exact: the application decides subtitle
+visibility from the widget's actual rendered width, while the old fixture incorrectly assumed that
+Windows would honor its requested width despite native font/layout minimums. The new assertion
+checks the production rule without changing product behavior or weakening an expectation.
+
+The GitHub run is valid failure evidence, not a release pass. Linux and Windows package/smoke jobs,
+Companion and unsigned release-candidate assembly passed, while both Linux quality and both Windows
+portability matrices failed. Those failures group around common setup/portability seams and must not
+be counted or repaired as hundreds of independent product defects.
+
+### Independent evidence
+
+- `d568089` changes only `tests/test_activity_center.py`: subtitle visibility must equal whether the
+  actual rendered width is below the existing 1100-pixel compact threshold.
+- `src/romverse/ui/activity_center.py` applies that same exact threshold in
+  `_apply_responsive_layout`; no production source changed.
+- Product Assurance reran the exact affected offscreen Fedora test: **1/1 passed**. Ruff, format and
+  whitespace checks passed independently.
+- GitHub run `34295617304` at exact head `9aa0051` genuinely ran all configured jobs. Companion,
+  Linux package, Windows package and unsigned release-candidate assembly passed. Linux quality was
+  **2,893 passed / 84 failed / 16 errors / 3 skipped** on both interpreters. Windows portability was
+  **619 passed / 272 failed / 91 errors / 6 skipped** on Python 3.12 and **615 passed / 276 failed /
+  91 errors / 6 skipped** on Python 3.14.
+- The Windows cascade repeatedly reports unchanged protected sources and AVB inputs as
+  changed/replaced when open-handle and path metadata are compared. The Linux cascade is dominated
+  by stale fixtures missing current structure-inspection evidence, with a smaller isolated UI group.
+- No product behavior, durable evidence, accepted package, Stage-11 plan, execution authority or
+  physical-device state changed. Feature freeze, Guardian separation, UNKNOWN-on-uncertainty,
+  no-blind-retry and permanent no-relock remain intact.
+
+### Approved next bounded task
+
+Correct only the **Windows stable-file identity / anti-TOCTOU portability seam** before addressing
+the Linux fixture cascade:
+
+1. Reproduce one `SourceInstallationService` failure and one `candidate_avb` failure on genuine
+   Windows, recording which exact metadata component differs between the open handle and pathname.
+2. Introduce the smallest shared, platform-correct stable-file identity check needed by those two
+   paths. It must retain an already-open regular-file handle, bounded hashing, before/after handle
+   stability, pathname containment/no-link checks and proof that the pathname still resolves to the
+   same file. Do not merely discard inode/device/timestamp checks or accept digest equality alone.
+3. Add focused positive Windows coverage plus mutation, replacement, restored-size/mtime and
+   symlink/reparse rejection coverage. Existing Linux behavior must remain fail closed.
+4. Run only the directly affected Fedora tests and the focused Windows portability selection. Do
+   not trigger another full matrix until this shared root passes.
+5. Commit the minimum correction and `docs/sync/BUILD-STATUS.md`, push the same branch and stop for
+   independent Product Assurance review.
+
+Do not operate Stage 12, repair the separate structure-evidence/UI fixture groups in parallel,
+rebuild an unchanged package, use a phone/emulator, or perform any signing, flashing, Recovery,
+release, merge, force-push, lock or relock action.
+
+### Acceptance and gate status
+
+- The responsive fixture checkpoint is **APPROVED**.
+- Windows stable-file checks accept an unchanged file on genuine Windows while still rejecting
+  in-read mutation and pathname replacement deterministically.
+- Focused Source Installation and AVB selections pass on Windows and remain green on Fedora.
+- Linux quality and Windows portability broad gates remain **CLOSED** until later current-source
+  evidence passes; package success does not override them.
+- v0.2 Golden Foundation, hardware, secure Windows Recovery launch, signing, publication and release
+  gates remain **CLOSED**.
+
 ## Reviewed checkpoint: 9aa0051 — deterministic Linux UI fixtures
 
 - Reviewed checkpoint: `9aa0051094c6901ffd354a169c2f7d82bc42b34b`

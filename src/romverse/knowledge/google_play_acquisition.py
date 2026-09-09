@@ -25,6 +25,11 @@ from romverse.infrastructure.local_store import (
     ensure_private_directory,
     read_json_object,
 )
+from romverse.knowledge.coverage_contract import (
+    KnowledgeField,
+    coverage_rule,
+    require_claim_coverage,
+)
 from romverse.knowledge.online_evidence import (
     EvidenceConsumer,
     EvidenceFreshness,
@@ -580,34 +585,38 @@ class GooglePlayEvidenceAcquirer:
             scope_note="Exact Google Play manufacturer/model/device-codename lookup.",
         )
         values = (
-            ("device.identity.manufacturer", entry.manufacturer),
-            ("device.identity.marketing-name", entry.marketing_name),
-            ("device.identity.codename", entry.codename),
-            ("device.identity.model", entry.model),
+            (KnowledgeField.IDENTITY_MANUFACTURER, entry.manufacturer),
+            (KnowledgeField.IDENTITY_MARKETING_NAME, entry.marketing_name),
+            (KnowledgeField.IDENTITY_CODENAME, entry.codename),
+            (KnowledgeField.IDENTITY_MODEL, entry.model),
         )
-        return tuple(
-            create_claim(
-                claim_key=key,
-                scope=scope,
-                source_id=self.adapter.adapter_id,
-                url=GOOGLE_PLAY_CATALOG_URL,
-                publisher=self.adapter.publisher,
-                category=SourceCategory.OFFICIAL_ANDROID,
-                retrieved_at=retrieved,
-                published_at=published,
-                freshness=freshness,
-                content_digest=digest,
-                parser_id=PARSER_ID,
-                parser_version=PARSER_VERSION,
-                structured_value=value,
-                state=EvidenceState.OFFICIALLY_DOCUMENTED,
-                confidence=90,
-                status_reason=(
-                    "Exact public retail identity only; no firmware, compatibility, or execution authority."
-                ),
+        claims = []
+        for field, value in values:
+            rule = coverage_rule(field)
+            require_claim_coverage(field, rule.claim_key, rule.consumers)
+            claims.append(
+                create_claim(
+                    claim_key=rule.claim_key,
+                    scope=scope,
+                    source_id=self.adapter.adapter_id,
+                    url=GOOGLE_PLAY_CATALOG_URL,
+                    publisher=self.adapter.publisher,
+                    category=SourceCategory.OFFICIAL_ANDROID,
+                    retrieved_at=retrieved,
+                    published_at=published,
+                    freshness=freshness,
+                    content_digest=digest,
+                    parser_id=PARSER_ID,
+                    parser_version=PARSER_VERSION,
+                    structured_value=value,
+                    state=EvidenceState.OFFICIALLY_DOCUMENTED,
+                    confidence=90,
+                    status_reason=(
+                        "Exact public retail identity only; no firmware, compatibility, or execution authority."
+                    ),
+                )
             )
-            for key, value in values
-        )
+        return tuple(claims)
 
     def _record(
         self,

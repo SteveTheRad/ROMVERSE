@@ -1,0 +1,44 @@
+{
+  "bootloader_relock_allowed": false,
+  "compatibility_hint": "UNCONFIRMED",
+  "content_bytes": 4759404,
+  "content_digest": "24a97f5dca51a62ab44d418219d668674c6e08359618d42322bf50ca15cfd5c3",
+  "etag": "\"96500fb67fceb6bd5d375a3cd292c43a\"",
+  "evidence_archive_digest": "9b98671827cf67340877b132e83266732eae8f9bbfbcd963d1e96e1056e77ed4",
+  "execution_authority": "none",
+  "format": "romverse.google-play-evidence-acquisition",
+  "guardian_approval": false,
+  "http_status": 200,
+  "last_modified": "Wed, 09 Sep 2026 12:06:09 GMT",
+  "lookup": {
+    "codename": "popsicle",
+    "lookup_digest": "d22bbb1f6493b79c57f73efd3f595adad396759f8fe348826bf45a349253e093",
+    "manufacturer": "xiaomi",
+    "model": "2509fpn0bc"
+  },
+  "matched_claim_ids": [
+    "250af443345dc8331088b8a32ec67ec26e57ea7584565ec67a6e7cbe110e44ed",
+    "544ded34176c7cbf4b9457dd1738a047000ff1897f27b0fd06bc62f2458f08d9",
+    "e5021e0bdb1f6170326c271aea4bfe6adb48d1b061e0adac5cf801149ac25081",
+    "fa4bece6a3d105c1b03b2c4892404315410efd12855111f0c9a1fecb2a842469"
+  ],
+  "outcome": "success",
+  "parsed_row_count": 53761,
+  "parser_id": "romverse.google-play-supported-devices",
+  "parser_version": "1",
+  "phone_action_allowed": false,
+  "previous_receipt_digest": "",
+  "raw_response_retained": false,
+  "reason": "One exact official retail identity matched; compatibility remains unconfirmed.",
+  "receipt_digest": "9c942463404461b86cbdfb32f8dc3c2bd5ff877be31ff294e26c321d62af06b9",
+  "receipt_id": "cdf9dc8cbafbdae5a7dd1922310741a72c2add49524aa11e45fdf7bd7cf88cf8",
+  "retained_claim_ids": [
+    "250af443345dc8331088b8a32ec67ec26e57ea7584565ec67a6e7cbe110e44ed",
+    "544ded34176c7cbf4b9457dd1738a047000ff1897f27b0fd06bc62f2458f08d9",
+    "e5021e0bdb1f6170326c271aea4bfe6adb48d1b061e0adac5cf801149ac25081",
+    "fa4bece6a3d105c1b03b2c4892404315410efd12855111f0c9a1fecb2a842469"
+  ],
+  "retrieved_at": "2026-09-09T12:53:30.533698+00:00",
+  "schema_version": 1,
+  "source_url": "https://storage.googleapis.com/play_public/supported_devices.csv"
+}

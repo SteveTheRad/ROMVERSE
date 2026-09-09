@@ -114,6 +114,41 @@ def test_exact_lookup_retains_only_identity_claims_receipt_and_digest(tmp_path) 
         )
 
 
+def test_authorized_xiaomi_popsicle_lookup_retains_only_exact_identity_evidence(tmp_path) -> None:
+    acquirer, _transport = _acquirer(
+        tmp_path,
+        _response(
+            _payload(
+                ("Xiaomi", "Xiaomi 17 Pro Max", "popsicle", "2509FPN0BC"),
+                ("Xiaomi", "Adjacent device", "pudding", "2509FPN0CC"),
+            )
+        ),
+    )
+
+    receipt = acquirer.acquire("Xiaomi", "2509FPN0BC", "popsicle", now=NOW)
+
+    assert receipt.outcome is AcquisitionOutcome.SUCCESS
+    archive = acquirer.evidence.load()
+    assert {claim.claim_key for claim in archive.claims} == {
+        "device.identity.manufacturer",
+        "device.identity.marketing-name",
+        "device.identity.model",
+        "device.identity.codename",
+    }
+    assert {claim.structured_value for claim in archive.claims} == {
+        "Xiaomi",
+        "Xiaomi 17 Pro Max",
+        "2509FPN0BC",
+        "popsicle",
+    }
+    assert receipt.compatibility_hint == "UNCONFIRMED"
+    assert receipt.execution_authority == "none"
+    assert not receipt.phone_action_allowed
+    assert not receipt.guardian_approval
+    assert not receipt.bootloader_relock_allowed
+    assert not receipt.raw_response_retained
+
+
 def test_request_contract_rejects_cookie_auth_alternate_url_and_unbounded_timeouts() -> None:
     base = {
         "url": GOOGLE_PLAY_CATALOG_URL,

@@ -1,5 +1,31 @@
 # ROMVERSE Build Status
 
+## Feature-bound Knowledge coverage and Xiaomi identity — 9 September 2026
+
+- Authorization/base: Product Assurance verdict
+  `59ee3ea546092c4b5e9d20f05aec60d43c51f6c1` on `adaptive-online-device-dna`.
+- Implementation/evidence checkpoint: the commit containing this handoff.
+- Result: one strict typed allowlist binds every currently approved Knowledge field to an exact
+  claim key, named ROMVERSE consumers, and a concrete decision it improves. Unknown fields,
+  mismatched claim keys, and consumer drift fail closed.
+- Single live request: the existing fixed Google Play catalog adapter queried only
+  `Xiaomi / 2509FPN0BC / popsicle` at `2026-09-09T12:53:30.533698+00:00`. One exact row matched:
+  `Xiaomi / Xiaomi 17 Pro Max / 2509FPN0BC / popsicle`.
+- Retention: four officially documented identity claims only; source SHA-256
+  `24a97f5dca51a62ab44d418219d668674c6e08359618d42322bf50ca15cfd5c3`; archive digest
+  `9b98671827cf67340877b132e83266732eae8f9bbfbcd963d1e96e1056e77ed4`; receipt digest
+  `9c942463404461b86cbdfb32f8dc3c2bd5ff877be31ff294e26c321d62af06b9`.
+- Raw catalog retained: no. No other device, source, page, binary, command, phone, emulator,
+  ADB/Fastboot, firmware, build, flash, root, debloat, Guardian, Recovery, publication, signing,
+  release, or relock action was used.
+- Authority: compatibility remains `UNCONFIRMED`; execution authority is `none`; phone action,
+  Guardian approval, and bootloader relocking remain false.
+- Verification: **185/185** focused deterministic acquisition/evidence/store/remediation and
+  coverage-contract tests passed; focused Ruff format/check and Git whitespace check passed. The
+  full suite was not run.
+- Next: stop for Product Assurance. Do not begin broader Device Intelligence foundation work,
+  acquire another source, or repeat this live request without a new explicit authorization.
+
 ## AOSP Pixel 6 build-reference metadata — 8 September 2026
 
 - Authorization/base: Product Assurance verdict

@@ -1,5 +1,54 @@
 # ROMVERSE Knowledge Research Status
 
+## Feature-bound coverage and Xiaomi/popsicle identity — 9 September 2026
+
+### Authorization and bounded result
+
+- Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`.
+- Product Assurance authorization/base:
+  `59ee3ea546092c4b5e9d20f05aec60d43c51f6c1` on `adaptive-online-device-dna`.
+- This checkpoint completes only the already authorized feature-to-data allowlist and one exact
+  Google Play catalog request. It does not begin the broader Device Intelligence foundation.
+- `KnowledgeField` and immutable `CoverageRule` records now map every approved retained field to
+  one exact claim key, its current ROMVERSE consumers, and the concrete product decision it
+  improves. Unknown fields and key/consumer drift are rejected.
+- Google Play identity claim formation now resolves through that strict contract rather than
+  retaining free-form field names.
+
+### Single exact live evidence
+
+- Source: `https://storage.googleapis.com/play_public/supported_devices.csv`.
+- Lookup: `Xiaomi / 2509FPN0BC / popsicle` only.
+- Retrieval time: `2026-09-09T12:53:30.533698+00:00`.
+- Result: one exact row matched — manufacturer `Xiaomi`, marketing name `Xiaomi 17 Pro Max`, model
+  `2509FPN0BC`, codename `popsicle`.
+- HTTP status: `200`; validated bytes: `4,759,404`; unique validated rows: `53,761`.
+- Source-content SHA-256:
+  `24a97f5dca51a62ab44d418219d668674c6e08359618d42322bf50ca15cfd5c3`.
+- Evidence archive digest:
+  `9b98671827cf67340877b132e83266732eae8f9bbfbcd963d1e96e1056e77ed4`.
+- Acquisition receipt digest:
+  `9c942463404461b86cbdfb32f8dc3c2bd5ff877be31ff294e26c321d62af06b9`.
+- Retention: four exact officially documented identity claims and one sanitized receipt. The raw
+  catalog and non-matching rows were not retained.
+- Focused verification: **185/185 passed** across the coverage contract, fixed Google Play
+  acquisition, online evidence, local store, online remediation, Android guide, Pixel factory
+  index, and AOSP build-reference regressions. Focused Ruff check/format and Git whitespace checks
+  passed; the full suite was not run.
+
+### Authority and stop condition
+
+- Identity evidence is available to Device DNA, Compatibility Matrix, and Knowledge Archives, but
+  compatibility remains `UNCONFIRMED`.
+- Research evidence grants no command, phone, Guardian, Recovery, execution, installation,
+  publication, or bootloader-relock authority.
+- No crawl, alternate source, retry, Pixel query, device/emulator access, ADB/Fastboot operation,
+  firmware modification/build/flash/root/debloat, hosted CI, Forgejo Action, signing, or release
+  occurred.
+- Stop for Product Assurance after the implementation/evidence checkpoint. A dedicated Device
+  Intelligence branch remains prohibited unless Product Assurance explicitly authorizes it and
+  names its exact base commit.
+
 ## AOSP Pixel 6 build-reference checkpoint — 8 September 2026
 
 ### Value-gate decision

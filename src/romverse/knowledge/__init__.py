@@ -15,6 +15,14 @@ from romverse.knowledge.aosp_build_numbers import (
     AOSPBuildReceipt,
     FixedAOSPBuildNumbersHTTPS,
 )
+from romverse.knowledge.coverage_contract import (
+    CoverageRule,
+    KnowledgeCoverageError,
+    KnowledgeField,
+    coverage_rule,
+    coverage_rules,
+    require_claim_coverage,
+)
 from romverse.knowledge.google_play_acquisition import (
     GOOGLE_PLAY_CATALOG_URL,
     AcquisitionOutcome,
@@ -69,6 +77,7 @@ __all__ = [
     "CatalogAcquisitionReceipt",
     "CatalogLookup",
     "ClaimKind",
+    "CoverageRule",
     "EvidenceConsumer",
     "EvidenceFreshness",
     "EvidenceProjection",
@@ -81,6 +90,8 @@ __all__ = [
     "GooglePlayEvidenceAcquirer",
     "GuideAcquisitionReceipt",
     "GuideOutcome",
+    "KnowledgeCoverageError",
+    "KnowledgeField",
     "MergedEvidenceClaim",
     "OnlineEvidenceArchive",
     "OnlineEvidenceClaim",
@@ -95,9 +106,12 @@ __all__ = [
     "SourceCategory",
     "claim_from_registered_content",
     "compare_with_later_evidence",
+    "coverage_rule",
+    "coverage_rules",
     "create_claim",
     "default_source_adapters",
     "merge_claims",
     "project_evidence",
+    "require_claim_coverage",
     "scrub_private_text",
 ]

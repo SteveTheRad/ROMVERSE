@@ -1,0 +1,223 @@
+{
+  "archive_digest": "9b98671827cf67340877b132e83266732eae8f9bbfbcd963d1e96e1056e77ed4",
+  "bootloader_relock_allowed": false,
+  "claims": [
+    {
+      "affected_builds": [],
+      "claim_id": "250af443345dc8331088b8a32ec67ec26e57ea7584565ec67a6e7cbe110e44ed",
+      "claim_key": "device.identity.marketing-name",
+      "confidence": 90,
+      "conflicting_claim_ids": [],
+      "corroborating_claim_ids": [],
+      "diagnostic_description": "",
+      "error_identifiers": [],
+      "execution_authority": "none",
+      "expected_result": "",
+      "guardian_approval": false,
+      "knowledge_kind": "identity",
+      "outcome_provenance": "",
+      "phone_action_allowed": false,
+      "prerequisites": [],
+      "remedy_description": "",
+      "rollback_recovery_route": "",
+      "scope": {
+        "android_versions": [],
+        "brands": [],
+        "build_ids": [],
+        "codenames": [
+          "popsicle"
+        ],
+        "firmware_versions": [],
+        "manufacturers": [
+          "xiaomi"
+        ],
+        "models": [
+          "2509fpn0bc"
+        ],
+        "regions": [],
+        "scope_note": "Exact Google Play manufacturer/model/device-codename lookup."
+      },
+      "source": {
+        "category": "official-android",
+        "content_digest": "24a97f5dca51a62ab44d418219d668674c6e08359618d42322bf50ca15cfd5c3",
+        "freshness": "current",
+        "parser_id": "romverse.google-play-supported-devices",
+        "parser_version": "1",
+        "published_at": "2026-09-09T12:06:09+00:00",
+        "publisher": "Google Play",
+        "retrieved_at": "2026-09-09T12:53:30.533698+00:00",
+        "source_id": "android.google-play-device-catalog",
+        "url": "https://storage.googleapis.com/play_public/supported_devices.csv"
+      },
+      "state": "officially-documented",
+      "status_reason": "Exact public retail identity only; no firmware, compatibility, or execution authority.",
+      "structured_value": "Xiaomi 17 Pro Max",
+      "supporting_excerpt": "",
+      "symptoms": []
+    },
+    {
+      "affected_builds": [],
+      "claim_id": "544ded34176c7cbf4b9457dd1738a047000ff1897f27b0fd06bc62f2458f08d9",
+      "claim_key": "device.identity.model",
+      "confidence": 90,
+      "conflicting_claim_ids": [],
+      "corroborating_claim_ids": [],
+      "diagnostic_description": "",
+      "error_identifiers": [],
+      "execution_authority": "none",
+      "expected_result": "",
+      "guardian_approval": false,
+      "knowledge_kind": "identity",
+      "outcome_provenance": "",
+      "phone_action_allowed": false,
+      "prerequisites": [],
+      "remedy_description": "",
+      "rollback_recovery_route": "",
+      "scope": {
+        "android_versions": [],
+        "brands": [],
+        "build_ids": [],
+        "codenames": [
+          "popsicle"
+        ],
+        "firmware_versions": [],
+        "manufacturers": [
+          "xiaomi"
+        ],
+        "models": [
+          "2509fpn0bc"
+        ],
+        "regions": [],
+        "scope_note": "Exact Google Play manufacturer/model/device-codename lookup."
+      },
+      "source": {
+        "category": "official-android",
+        "content_digest": "24a97f5dca51a62ab44d418219d668674c6e08359618d42322bf50ca15cfd5c3",
+        "freshness": "current",
+        "parser_id": "romverse.google-play-supported-devices",
+        "parser_version": "1",
+        "published_at": "2026-09-09T12:06:09+00:00",
+        "publisher": "Google Play",
+        "retrieved_at": "2026-09-09T12:53:30.533698+00:00",
+        "source_id": "android.google-play-device-catalog",
+        "url": "https://storage.googleapis.com/play_public/supported_devices.csv"
+      },
+      "state": "officially-documented",
+      "status_reason": "Exact public retail identity only; no firmware, compatibility, or execution authority.",
+      "structured_value": "2509FPN0BC",
+      "supporting_excerpt": "",
+      "symptoms": []
+    },
+    {
+      "affected_builds": [],
+      "claim_id": "e5021e0bdb1f6170326c271aea4bfe6adb48d1b061e0adac5cf801149ac25081",
+      "claim_key": "device.identity.codename",
+      "confidence": 90,
+      "conflicting_claim_ids": [],
+      "corroborating_claim_ids": [],
+      "diagnostic_description": "",
+      "error_identifiers": [],
+      "execution_authority": "none",
+      "expected_result": "",
+      "guardian_approval": false,
+      "knowledge_kind": "identity",
+      "outcome_provenance": "",
+      "phone_action_allowed": false,
+      "prerequisites": [],
+      "remedy_description": "",
+      "rollback_recovery_route": "",
+      "scope": {
+        "android_versions": [],
+        "brands": [],
+        "build_ids": [],
+        "codenames": [
+          "popsicle"
+        ],
+        "firmware_versions": [],
+        "manufacturers": [
+          "xiaomi"
+        ],
+        "models": [
+          "2509fpn0bc"
+        ],
+        "regions": [],
+        "scope_note": "Exact Google Play manufacturer/model/device-codename lookup."
+      },
+      "source": {
+        "category": "official-android",
+        "content_digest": "24a97f5dca51a62ab44d418219d668674c6e08359618d42322bf50ca15cfd5c3",
+        "freshness": "current",
+        "parser_id": "romverse.google-play-supported-devices",
+        "parser_version": "1",
+        "published_at": "2026-09-09T12:06:09+00:00",
+        "publisher": "Google Play",
+        "retrieved_at": "2026-09-09T12:53:30.533698+00:00",
+        "source_id": "android.google-play-device-catalog",
+        "url": "https://storage.googleapis.com/play_public/supported_devices.csv"
+      },
+      "state": "officially-documented",
+      "status_reason": "Exact public retail identity only; no firmware, compatibility, or execution authority.",
+      "structured_value": "popsicle",
+      "supporting_excerpt": "",
+      "symptoms": []
+    },
+    {
+      "affected_builds": [],
+      "claim_id": "fa4bece6a3d105c1b03b2c4892404315410efd12855111f0c9a1fecb2a842469",
+      "claim_key": "device.identity.manufacturer",
+      "confidence": 90,
+      "conflicting_claim_ids": [],
+      "corroborating_claim_ids": [],
+      "diagnostic_description": "",
+      "error_identifiers": [],
+      "execution_authority": "none",
+      "expected_result": "",
+      "guardian_approval": false,
+      "knowledge_kind": "identity",
+      "outcome_provenance": "",
+      "phone_action_allowed": false,
+      "prerequisites": [],
+      "remedy_description": "",
+      "rollback_recovery_route": "",
+      "scope": {
+        "android_versions": [],
+        "brands": [],
+        "build_ids": [],
+        "codenames": [
+          "popsicle"
+        ],
+        "firmware_versions": [],
+        "manufacturers": [
+          "xiaomi"
+        ],
+        "models": [
+          "2509fpn0bc"
+        ],
+        "regions": [],
+        "scope_note": "Exact Google Play manufacturer/model/device-codename lookup."
+      },
+      "source": {
+        "category": "official-android",
+        "content_digest": "24a97f5dca51a62ab44d418219d668674c6e08359618d42322bf50ca15cfd5c3",
+        "freshness": "current",
+        "parser_id": "romverse.google-play-supported-devices",
+        "parser_version": "1",
+        "published_at": "2026-09-09T12:06:09+00:00",
+        "publisher": "Google Play",
+        "retrieved_at": "2026-09-09T12:53:30.533698+00:00",
+        "source_id": "android.google-play-device-catalog",
+        "url": "https://storage.googleapis.com/play_public/supported_devices.csv"
+      },
+      "state": "officially-documented",
+      "status_reason": "Exact public retail identity only; no firmware, compatibility, or execution authority.",
+      "structured_value": "Xiaomi",
+      "supporting_excerpt": "",
+      "symptoms": []
+    }
+  ],
+  "execution_authority": "none",
+  "format": "romverse.online-device-evidence",
+  "phone_action_allowed": false,
+  "schema_version": 1,
+  "updated_at": "2026-09-09T12:53:30.533698+00:00"
+}

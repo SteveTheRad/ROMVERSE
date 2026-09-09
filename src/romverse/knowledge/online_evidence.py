@@ -64,6 +64,9 @@ class EvidenceFreshness(StrEnum):
 class EvidenceConsumer(StrEnum):
     DEVICE_DNA = "device-dna"
     COMPATIBILITY_MATRIX = "compatibility-matrix"
+    GUARDIAN = "guardian"
+    RECOVERY = "recovery"
+    FIRST_LIGHT = "first-light"
     NEXUS = "nexus"
     PATHFINDER = "pathfinder"
     FORESIGHT = "foresight"

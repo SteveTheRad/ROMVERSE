@@ -1,5 +1,49 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 2b81469 — Windows field-knowledge ancestry correction
+
+- Reviewed checkpoint: `2b81469c35a315ebeb8ed1b32496e0a578492d61`
+- Prior verdict: `f46d4258cf5ea1bef87d99bbd0c8f197009adccc`
+- Exact evidence commit: `ca97c1cf61c6266ddfa1e747a1beb664ea4eb147`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — BUILD STOPPED CORRECTLY; PRODUCT ASSURANCE RECORD CORRECTED; EXACT EVIDENCE-ONLY INTEGRATION AUTHORIZED**
+
+### Correction and decision
+
+Product Assurance's statement that `ca97c1cf` was already present on the Windows branch was wrong.
+The commit was visible under an independent remote evidence ref but was not an ancestor of the
+Windows line. The same incorrect premise was repeated in checkpoint `1fcaa09`. This section
+supersedes those statements. Build correctly treated the contradiction as a stop condition rather
+than silently reconstructing or importing evidence.
+
+- Product Assurance independently verified `git merge-base --is-ancestor ca97c1cf f46d425`
+  returns non-zero and only the evidence branch contains the commit.
+- The five evidence/loader/test paths introduced by `ca97c1cf` are absent at `f46d425`; the Build's
+  fresh no-phone Archives result is therefore consistent with the commit graph.
+- Checkpoint `2b81469` is documentation-only. Its reported package-neutral, no-device stop is
+  truthful and preserves the protected untracked patch.
+
+### Minimum exact correction
+
+Integrate only exact existing commit `ca97c1cf61c6266ddfa1e747a1beb664ea4eb147` into
+`windows-launcher-authorized-work`; do not recreate the records and do not import unrelated Linux
+history. Run the focused `tests/test_popsicle_fastboot_field_knowledge.py` and affected
+`tests/test_knowledge_center_ui.py` locally on Windows, plus Ruff check/format-check on the five
+introduced paths. Confirm an inert Archives lookup can discover the `DATA00052000` evidence as an
+evidence record rather than an executable guide. Then publish one compact handoff for review.
+
+No package rebuild is authorized because the integration changes packaged knowledge only and the
+current task is limited to correcting the contradictory premise. No hosted CI, phone/device
+operation, firmware/APK action, execution authority, signing, publication, release, wipe,
+unlock/root, lock or relock is authorized.
+
+### Gate status
+
+- Windows ancestry contradiction: **CORRECTED**
+- Exact `ca97c1cf` evidence-only integration: **AUTHORIZED**
+- Windows product-as-user continuation: **PAUSED UNTIL INTEGRATION HANDOFF**
+- Physical Android operation, production signing/publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 1fcaa09 — Windows regression-debt and settings ACL correction
 
 - Reviewed checkpoint: `1fcaa09486c14004f7645c09ec1d4428815db541`

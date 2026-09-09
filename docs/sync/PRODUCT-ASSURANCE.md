@@ -1,5 +1,95 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 3edbed4 — Windows workshop safety acceptance
+
+- Reviewed checkpoint: `3edbed490ab1edda5ca690288cde99292e767c76`
+- Production correction: `945928567ea188481eb0c19ca4419ae4132c22f5`
+- CI cost-containment follow-up: `2d0b23d`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — WINDOWS SIMULATION PRESENTATION IS TRUTHFUL, WORKSHOP HANDOFFS REMAIN EXECUTION-INERT, AND THE REPLACEMENT DEVELOPMENT PACKAGE IS VERIFIED**
+
+### Decision and independent evidence
+
+The correction is the minimum response to a real presentation defect. Development simulation had
+correctly disabled the physical scan timer and kept its deterministic fixture inside ROM Studio,
+but Command Deck retained Device Center's construction-time `SCANNING` text. The correction clears
+that presentation to an empty `NOT CONNECTED` state during simulation initialization and each inert
+simulated scan. It does not promote the simulated target into observed hardware, select a hardware
+serial, invoke Device Engine, or create evidence or authority.
+
+- Product Assurance inspected the complete `af85b89..3edbed4` diff. Production changes are seven
+  lines in `MainWindow`; the companion regression adds six exact assertions to the existing
+  transport-rejecting development-simulation test. The handoff is documentation-only.
+- Product Assurance independently reran the exact changed simulation test and affected Command
+  Deck routing node on the Windows checkout over authenticated SSH: **2/2 passed**. Ruff check and
+  format verification passed for both changed files.
+- The interrupted 65-node navigation selection is fully disclosed and correctly excluded from the
+  completed test count. It produced no reported failure or traceback. Reproducing only the one
+  affected Command Deck node was proportionate and is not a blind retry of a device action.
+- Product Assurance independently verified the replacement package: **305 regular files /
+  164,647,258 bytes / 0 reparse points**. `ROMVERSE.exe` is **6,324,494 bytes**, SHA-256
+  `aae8f97cebda115f34aa35dea95a32a78974a5e89a0f04b33af7eb3511f7327a`, and Authenticode
+  `NotSigned`, exactly matching the handoff.
+- The validated workspace runtime log contains **6 starts / 6 clean closes / 0 fault lines**. The
+  fresh frozen-smoke log contains **1 start / 1 clean close / 0 fault lines**, and no ROMVERSE
+  package process remains.
+- ROMVERSE's production Guardian verifier independently reports the retained audit as **valid / 39
+  entries / last hash `0ef9804f30d19b13679d3ffac36dc595bda219dc6af2fd2bb4e7018951803028`**.
+  No approval or denied operation was added by this journey.
+- The protected untracked patch remains **8,272 bytes**, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+  The managed Platform Tools receipt remains schema 1 and retains the approved 37.0.1 archive and
+  executable digests.
+
+No phone, emulator, APK, firmware, Recovery/Guardian execution, device write or mode transition,
+production adapter, signing, publication, release, unlock, root, lock or relock occurred. Exact
+device binding, fresh consent, UNKNOWN-on-uncertainty, no blind retry, independent verification,
+no wipe and permanent bootloader no-relock remain intact.
+
+### CI cost correction
+
+The previous workflow launched the complete hosted matrix on every application-file push to either
+active feature branch. After the creator reported approximately $15 of Actions spend in one day,
+Product Assurance cancelled the three active duplicate/non-integration runs and committed the
+minimum workflow boundary in `2d0b23d`:
+
+- ordinary feature-branch pushes run no hosted CI;
+- CI runs automatically only for `main`, pull requests targeting `main`, or explicit manual
+  dispatch;
+- desktop package and release-candidate jobs skip pull requests and run only at main/manual
+  integration boundaries;
+- local focused verification remains the normal Build feedback loop.
+
+This changes no application, device, Guardian, Recovery, evidence, signing or release authority.
+Build must not manually dispatch hosted CI for routine checkpoints.
+
+### Approved next bounded task
+
+Continue with one local-only Windows synchronization and regression-debt batch. First fast-forward
+the idle Windows checkout to the current branch tip containing `2d0b23d`. Integrate only already
+approved platform-neutral commits that affect currently shipped Stage 1 behavior, including the
+verified execution-inert popsicle field-knowledge intake when it is cleanly applicable. Correct the
+two already-classified Windows assertion debts: validate private persistence with the Windows ACL
+contract rather than POSIX mode bits, and align the stale Genesis Stage 12 assertion with the
+approved Forge Control execution and byte-verification wording.
+
+Use only focused local tests and lint for changed areas. Do not rebuild a package unless production
+Windows bits change and a coherent new acceptance boundary genuinely requires one. Do not start or
+manually dispatch GitHub Actions. Publish one compact handoff after the synchronization/debt batch,
+then continue with the next repository-authorized non-overlapping Stage 1 correction.
+
+No physical device is authorized on the Windows track. Stop before any device write or mode
+transition, Guardian/execution-authority or safety-contract change, contradictory/UNKNOWN evidence,
+signing/publication/release, destructive action or material scope expansion.
+
+### Gate status
+
+- Windows simulation presentation and no-phone workshop journey: **APPROVED**
+- Replacement unsigned Windows development package: **APPROVED**
+- Hosted Actions cost containment: **ACTIVE**
+- Local Windows synchronization and regression-debt batch: **AUTHORIZED**
+- Physical Android operation, production signing/publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 2f359f4 — Windows managed Platform Tools host repair
 
 - Reviewed checkpoint: `2f359f451441a4ceb13cf8386d4ad03cb848f4b2`

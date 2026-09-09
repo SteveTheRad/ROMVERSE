@@ -1,5 +1,73 @@
 # ROMVERSE Product Assurance Sync
 
+## Deterministic Ruff formatting convergence — Product Assurance review requested
+
+- Product Assurance verdict: `9ffcdefe87473feb141fe0126834b3c15d8150e4` —
+  `Approve complete Windows portability evidence`, matching Build checkpoint
+  `9a8fcc6c6058b617a54b224623578ecaf47c15dc` exactly.
+- Formatting checkpoint: `a4273477e328c86cdf798122c3d20c0f67bf701c` —
+  `Pin Ruff and normalize format baseline`.
+- Branch: `windows-launcher-authorized-work`.
+- Status: **RUFF IS PINNED TO 0.16.6; THE EXACT 46 REPORTED PYTHON FILES WERE FORMATTED ONCE;
+  ALL NORMALIZED AST IDENTITIES MATCH; RUFF CHECK, FORMAT CHECK AND DIFF CHECK PASS.**
+
+### Deterministic formatter pin and exact input set
+
+- Safely fast-forwarded from `9a8fcc6c` to approval `9ffcdefe`; all 23 Device Pack JSON files
+  remained LF-only. No dependency or tool was installed or acquired.
+- Existing environment already reports `ruff 0.16.6`. Changed the development dependency from
+  unconstrained `ruff>=0.9,<1` to exact `ruff==0.16.6` in `pyproject.toml`.
+- A pre-format `ruff format --check .` confirmed the approved baseline exactly: **46 files would be
+  reformatted / 506 already formatted**. The set contains no `companion/app` path and none of the
+  three protected Companion files.
+- Captured SHA-256 identities of normalized
+  `ast.dump(ast.parse(...), include_attributes=False)` values for all 46 files. Ran
+  `.venv\Scripts\python.exe -m ruff format <exact 46 paths>` exactly once: **46 files reformatted**.
+- Aggregate sorted AST identity before and after is exactly
+  `f42d961ba96619a3f169870b2dee15cecbb62ba65a6de5b97750235c1230245c`; **46/46 ASTs are
+  identical**. No functional refactor was mixed into the formatter slice.
+
+### Tracked-set reconciliation
+
+- Ruff rewrote the working-tree bytes of all 46 reported files. `tests/test_apk_install.py` differed
+  only by checkout CRLF/LF materialization; after Git's required text normalization its blob already
+  matched `HEAD`, so it correctly produced no index delta. It was staged only to refresh the clean
+  stat record and is not artificially changed.
+- The deterministic commit therefore contains exactly **46 tracked paths**:
+  `pyproject.toml` plus the **45 Python files with actual formatter content deltas**. Commit summary:
+  251 insertions / 420 deletions, entirely mechanical formatting and the one dependency pin.
+- This is the only faithful committable representation of the approved 46-file formatter output;
+  inventing a content change for the normalization-only file would violate the AST-preserving
+  mechanical boundary.
+
+### Exact post-format gates
+
+- `.venv\Scripts\python.exe -m ruff check .`: **PASS**, exit `0`, `All checks passed!`.
+- `.venv\Scripts\python.exe -m ruff format --check .`: **PASS**, exit `0`, **552 files already
+  formatted**.
+- `git diff --check`: **PASS**, exit `0` before the formatter commit.
+- The completed segmented Windows portability tests were not rerun, as required. Their accepted
+  evidence remains **968 passed / 6 skipped across all 974 collected nodes**.
+
+### Preserved scope and next review
+
+- The accepted Windows package was not rebuilt or relaunched and GitHub Actions was not launched.
+  No dependency was installed. No Linux, Knowledge or UI Design Lab work was mixed into the slice.
+- The protected Companion files remain clean and unstaged. The protected untracked patch remains
+  exactly **8,272 bytes**, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it was not altered,
+  applied, staged or deleted. LF Device Pack materialization remains intact.
+- No phone/emulator, device discovery, ADB/Fastboot command, APK installation, firmware action,
+  Guardian/Recovery operation, production signing/trust, publication, release, merge, force-push,
+  destructive change, lock or relock occurred. Exact-device evidence, consent separation,
+  UNKNOWN-on-uncertainty, no blind retry, Guardian-only authority, independent verification and
+  permanent no-relock remain intact.
+- Precise proposed next task: Product Assurance independently verifies `a4273477`, the exact pin,
+  46-input/45-content-delta reconciliation, AST identity and post-format gates. After approval,
+  Linux converges the same formatter baseline on its own branch; only then may Product Assurance
+  authorize exactly one current-source unsigned Windows replacement development package for the
+  production change in `abe183f`.
+
 ## Complete segmented Windows portability evidence — Product Assurance review requested
 
 - Product Assurance verdict: `877f73b69f853369263ebdef105f4b882b456930` —

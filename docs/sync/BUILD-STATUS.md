@@ -1,5 +1,85 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows Device Atlas → Archives → Recovery Bay information journey — Product Assurance review requested
+
+### Exact authority and bounded acceptance
+
+- Product Assurance verdict `bd2aa6049188c1eed8304b64ff4b10340ed80d3d` — `Approve Windows
+  local history journey [skip ci]` exactly approves checkpoint
+  `31dba7c01d6153efca822e5e75b6edd03668d660` and authorizes one current-package, local-only,
+  no-phone Windows journey through the existing Device Atlas → ROMVERSE Archives → Recovery Bay
+  information surfaces.
+- The checkout was at that exact verdict and matched `origin/windows-launcher-authorized-work`
+  before use. The only pre-existing working-tree item remained the protected untracked patch.
+- Used the existing disposable synthetic workspace
+  `C:\Work\ROMVERSE-Windows-History-Populated-d1955a79\workspace` with the accepted unsigned
+  package `C:\Work\ROMVERSE-Windows\build\windows-workshop-safety-94592856\ROMVERSE\ROMVERSE.exe`
+  (6,324,494 bytes; SHA-256
+  `aae8f97cebda115f34aa35dea95a32a78974a5e89a0f04b33af7eb3511f7327a`; Authenticode
+  `NotSigned`). The package was built from `945928567ea188481eb0c19ca4419ae4132c22f5` and was
+  launched with `--skip-onboarding --development-device-simulation`; no hardware discovery or
+  device command was possible.
+
+### Visible Windows product evidence
+
+- Device Atlas remained `AWAITING DEVICE` and `Waiting for Device Engine… / NO DEVICE`; identity,
+  chipset, Android/firmware, boot, partitions, health, upgrade verdict, matched knowledge and local
+  timeline all remained `Unconfirmed`. The synthetic project name did not become live Device DNA,
+  an exact-device match or compatibility approval. Official Android identifiers remained
+  `NOT SYNCED • ZERO AUTHORITY`.
+- Device Atlas separately displayed **22 integrity-checked built-in packs**. A local `popsicle`
+  search returned exactly the packaged `Xiaomi 17 Pro Max / HyperOS 4.0.0.23` pack
+  (`xiaomi.popsicle.hyperos4.os4.0.0.23`, version `0.1.1`, SHA-256 prefix
+  `1dd9535dda8cf859`). Its review surface distinguished declared Xiaomi / `2509fpn0bc` /
+  `popsicle` identity and exact `OS4.0.0.23.XPBCNXM` local-build scope from absent live-device
+  evidence, stated `READ-ONLY KNOWLEDGE • EXECUTION AUTHORITY: NONE`, and prohibited inference to
+  another digest, region, model or partition layout.
+- Recovery Bay opened in an honest no-device state: `Waiting for an authorized device…`, `NO
+  PLAN`, and a requirement for a Device Engine snapshot before preconditions could be evaluated.
+  Safety-plan creation, guided repair, fresh diagnostics and report export were disabled. No
+  incident, recovery success, compatibility approval or execution authority was invented.
+- The existing `Search local Archives` handoff opened ROMVERSE Archives with `SOURCE WORKFLOW •
+  NAVIGATION ONLY`, explicitly stating that Archives navigation starts no worker, repair, build or
+  phone action. The local query `Battery drain or overheating` returned **1 verified guide, 18
+  offline evidence records and 0 explicit conflicts**, within the packaged **220 verified guides,
+  170 known fixes, 11 categories, 95 official guides, 7 community guides, 284 offline records and
+  182 sources**.
+- The selected built-in guide and matching offline Recovery record kept the source tier
+  `OFFICIAL GOOGLE • PIXEL-SCOPED`, verified confidence/corroboration, match reason, device/build
+  scope, prerequisites, expected outcomes, provenance and limitations visible. The guidance
+  explained that temperature can reflect load, charging, environment, battery condition or
+  inaccurate telemetry; exact thresholds and service remain model/OEM scoped, and verification
+  requires several fresh idle samples without missing evidence. Its boundary remained `ALERT AND
+  READ-ONLY TREND ONLY • NO AUTOMATIC THERMAL OR CHARGING CHANGE` and `EXECUTION AUTHORITY: NONE`.
+- The explicit `Return to Recovery Bay` control restored the unchanged query and the exact
+  `Waiting for an authorized device… / NO PLAN` state. `Open official source`, Platform Tools
+  resolution/scan and every consequential, external or device-facing control remained unused.
+  No restart was needed because this bounded in-session navigation promised no durable route or
+  selection persistence; the package was closed normally after the round trip.
+
+### Verification, scope and next review
+
+- The workspace runtime log now contains exactly **9 starts / 9 clean closes / 0 fault entries**.
+  The privacy-safe Activity ledger remained exactly **5 events**, 2,856 bytes, SHA-256
+  `fa348d1f7162f90cdff5b1711dfe90563480e7e0ca0ef3310303b6a806462ec4`; the information-only
+  journey did not fabricate a completed operation.
+- No production defect was reproduced, so no source, test or package file changed and no package
+  was rebuilt. Per the approved boundary, unchanged tests and linters were not rerun.
+- This checkpoint changes only `docs/sync/BUILD-STATUS.md`. Protected Companion files remain
+  untouched. The protected untracked patch remains byte-identical at **8,272 bytes**, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it was not edited,
+  applied, staged or deleted.
+- No phone, emulator, firmware/APK action, ADB/Fastboot command, device discovery/query/write or
+  mode transition, Guardian/Recovery execution, production adapter, signing, publication, release,
+  hosted CI, dependency or catalog download, force-push, wipe, unlock/root, lock or relock
+  occurred. Exact-device evidence, fresh consent, Guardian-only authority and separation,
+  UNKNOWN-on-uncertainty, no blind retry, independent verification, no wipe and permanent
+  no-relock remain intact.
+- Precise next task: independent Product Assurance review of this bounded visible Windows pass.
+  Do not start another product-as-user batch, source correction or package build until a matching
+  verdict is committed. Publish this exact documentation-only checkpoint to Forgejo first, then
+  the identical commit to GitHub.
+
 ## Windows Time Machine → Health Timeline → Activity Center journey — Product Assurance review requested
 
 ### Exact authority and bounded acceptance

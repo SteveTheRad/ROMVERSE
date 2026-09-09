@@ -84,6 +84,26 @@ class ClaimKind(StrEnum):
     OUTCOME = "outcome"
 
 
+class ClaimAuthorityDomain(StrEnum):
+    DEVICE_IDENTITY = "device-identity"
+    MODEL_IDENTITY = "model-identity"
+    CODENAME = "codename"
+    FIRMWARE_IDENTITY = "firmware-identity"
+    ANDROID_PLATFORM = "android-platform"
+    PARTITION_LAYOUT = "partition-layout"
+    BOOT_ARCHITECTURE = "boot-architecture"
+    OEM_TECHNICAL = "oem-technical"
+    OBSERVED_BEHAVIOR = "observed-behavior"
+    COMPATIBILITY_OUTCOME = "compatibility-outcome"
+
+
+class EvidenceLifecycleStatus(StrEnum):
+    ACTIVE = "active"
+    SUPERSEDED = "superseded"
+    QUARANTINED = "quarantined"
+    EXPIRED = "expired"
+
+
 @dataclass(frozen=True, slots=True)
 class EvidenceScope:
     manufacturers: tuple[str, ...] = ()
@@ -109,6 +129,76 @@ class EvidenceSource:
     content_digest: str
     parser_id: str
     parser_version: str
+
+
+@dataclass(frozen=True, slots=True)
+class ClaimSourceAuthority:
+    """Exact claim-domain applicability; never a universal source trust score."""
+
+    schema_version: int
+    source_id: str
+    domains: tuple[ClaimAuthorityDomain, ...]
+    applicable_claim_keys: tuple[str, ...]
+    evidence_claim_ids: tuple[str, ...]
+    execution_authority: str = "none"
+    phone_action_allowed: bool = False
+    guardian_approval: bool = False
+    bootloader_relock_allowed: bool = False
+
+    def __post_init__(self) -> None:
+        if type(self.schema_version) is not int or self.schema_version != 1:
+            raise OnlineEvidenceError("Claim-specific source authority schema is invalid")
+        if (
+            self.execution_authority != "none"
+            or self.phone_action_allowed
+            or self.guardian_approval
+            or self.bootloader_relock_allowed
+        ):
+            raise OnlineEvidenceError("Source authority cannot grant execution authority")
+
+    def applies_to(self, domain: ClaimAuthorityDomain, claim_key: str) -> bool:
+        return domain in self.domains and claim_key in self.applicable_claim_keys
+
+
+@dataclass(frozen=True, slots=True)
+class EvidenceHistoryEntry:
+    recorded_at: str
+    status: EvidenceLifecycleStatus
+    reason: str
+
+
+@dataclass(frozen=True, slots=True)
+class EvidenceLifecycle:
+    """Immutable evidence history and revalidation metadata."""
+
+    schema_version: int
+    evidence_id: str
+    claim_id: str
+    observed_at: str
+    retrieved_at: str
+    revalidated_at: str
+    freshness: EvidenceFreshness
+    artifact_digest: str
+    scope: EvidenceScope
+    supporting_claim_ids: tuple[str, ...]
+    contradicting_claim_ids: tuple[str, ...]
+    status: EvidenceLifecycleStatus
+    history: tuple[EvidenceHistoryEntry, ...]
+    execution_authority: str = "none"
+    phone_action_allowed: bool = False
+    guardian_approval: bool = False
+    bootloader_relock_allowed: bool = False
+
+    def __post_init__(self) -> None:
+        if type(self.schema_version) is not int or self.schema_version != 1:
+            raise OnlineEvidenceError("Evidence lifecycle schema is invalid")
+        if (
+            self.execution_authority != "none"
+            or self.phone_action_allowed
+            or self.guardian_approval
+            or self.bootloader_relock_allowed
+        ):
+            raise OnlineEvidenceError("Evidence lifecycle cannot grant execution authority")
 
 
 @dataclass(frozen=True, slots=True)
@@ -374,6 +464,210 @@ def default_source_adapters() -> tuple[EvidenceSourceAdapter, ...]:
             **common,
         ),
     )
+
+
+_CLAIM_AUTHORITY_FIELDS = {field.name for field in fields(ClaimSourceAuthority)}
+_EVIDENCE_LIFECYCLE_FIELDS = {field.name for field in fields(EvidenceLifecycle)}
+_EVIDENCE_HISTORY_FIELDS = {field.name for field in fields(EvidenceHistoryEntry)}
+
+
+def create_claim_source_authority(
+    *,
+    source_id: str,
+    domains: tuple[ClaimAuthorityDomain, ...],
+    applicable_claim_keys: tuple[str, ...],
+    evidence_claim_ids: tuple[str, ...],
+) -> ClaimSourceAuthority:
+    """Bind one source only to reviewed domains and exact claim keys."""
+
+    source = _token(source_id, 100)
+    domain_values = tuple(sorted({ClaimAuthorityDomain(item) for item in domains}, key=str))
+    keys = tuple(sorted({_token(item, 100) for item in applicable_claim_keys}))
+    evidence = tuple(sorted({_digest(item) for item in evidence_claim_ids}))
+    if not domain_values or not keys or not evidence:
+        raise OnlineEvidenceError("Claim-specific source authority requires exact evidence")
+    return ClaimSourceAuthority(1, source, domain_values, keys, evidence)
+
+
+def claim_source_authority_mapping(authority: ClaimSourceAuthority) -> dict[str, object]:
+    mapping = json.loads(json.dumps(asdict(authority)))
+    mapping["domains"] = [item.value for item in authority.domains]
+    return mapping
+
+
+def parse_claim_source_authority(raw: dict[str, object]) -> ClaimSourceAuthority:
+    _exact_fields(raw, _CLAIM_AUTHORITY_FIELDS, "source authority")
+    _zero_authority(raw, "source authority")
+    if type(raw.get("schema_version")) is not int or raw.get("schema_version") != 1:
+        raise OnlineEvidenceError("Claim-specific source authority schema is invalid")
+    domains = raw.get("domains")
+    keys = raw.get("applicable_claim_keys")
+    evidence = raw.get("evidence_claim_ids")
+    if not isinstance(domains, list):
+        raise OnlineEvidenceError("Claim authority domains are invalid")
+    authority = create_claim_source_authority(
+        source_id=raw.get("source_id", ""),
+        domains=tuple(ClaimAuthorityDomain(item) for item in domains),
+        applicable_claim_keys=_stored_tokens(keys, "claim authority keys"),
+        evidence_claim_ids=_stored_tokens(evidence, "claim authority evidence"),
+    )
+    if raw != json.loads(json.dumps(claim_source_authority_mapping(authority))):
+        raise OnlineEvidenceError("Claim-specific source authority is not deterministic")
+    return authority
+
+
+def evidence_lifecycle_for_claim(
+    claim: OnlineEvidenceClaim,
+    *,
+    observed_at: datetime,
+    revalidated_at: datetime | None = None,
+    status: EvidenceLifecycleStatus = EvidenceLifecycleStatus.ACTIVE,
+    history: tuple[EvidenceHistoryEntry, ...] = (),
+) -> EvidenceLifecycle:
+    """Create deterministic lifecycle metadata without changing the claim's authority."""
+
+    observed = _time(observed_at)
+    revalidated = _time(revalidated_at) if revalidated_at else ""
+    entries = _validated_history(history)
+    lifecycle_status = EvidenceLifecycleStatus(status)
+    basis = {
+        "schema": "romverse.evidence-lifecycle.v1",
+        "claim_id": claim.claim_id,
+        "observed_at": observed,
+        "retrieved_at": claim.source.retrieved_at,
+        "revalidated_at": revalidated,
+        "freshness": claim.source.freshness.value,
+        "artifact_digest": claim.source.content_digest,
+        "scope": asdict(claim.scope),
+        "supporting_claim_ids": claim.corroborating_claim_ids,
+        "contradicting_claim_ids": claim.conflicting_claim_ids,
+        "status": lifecycle_status.value,
+        "history": tuple(asdict(item) for item in entries),
+    }
+    evidence_id = hashlib.sha256(_canonical(basis)).hexdigest()
+    return EvidenceLifecycle(
+        1,
+        evidence_id,
+        claim.claim_id,
+        observed,
+        claim.source.retrieved_at,
+        revalidated,
+        claim.source.freshness,
+        claim.source.content_digest,
+        claim.scope,
+        claim.corroborating_claim_ids,
+        claim.conflicting_claim_ids,
+        lifecycle_status,
+        entries,
+    )
+
+
+def evidence_lifecycle_mapping(lifecycle: EvidenceLifecycle) -> dict[str, object]:
+    mapping = json.loads(json.dumps(asdict(lifecycle)))
+    mapping["freshness"] = lifecycle.freshness.value
+    mapping["status"] = lifecycle.status.value
+    mapping["history"] = [
+        {**asdict(entry), "status": entry.status.value} for entry in lifecycle.history
+    ]
+    return mapping
+
+
+def parse_evidence_lifecycle(raw: dict[str, object]) -> EvidenceLifecycle:
+    _exact_fields(raw, _EVIDENCE_LIFECYCLE_FIELDS, "lifecycle")
+    _zero_authority(raw, "lifecycle")
+    if type(raw.get("schema_version")) is not int or raw.get("schema_version") != 1:
+        raise OnlineEvidenceError("Evidence lifecycle schema is invalid")
+    scope = _parse_scope(raw.get("scope"))
+    history_raw = raw.get("history")
+    if not isinstance(history_raw, list) or len(history_raw) > 64:
+        raise OnlineEvidenceError("Evidence lifecycle history is invalid")
+    history: list[EvidenceHistoryEntry] = []
+    for item in history_raw:
+        if not isinstance(item, dict):
+            raise OnlineEvidenceError("Evidence lifecycle history is invalid")
+        _exact_fields(item, _EVIDENCE_HISTORY_FIELDS, "history")
+        history.append(
+            EvidenceHistoryEntry(
+                _timestamp(item.get("recorded_at")),
+                EvidenceLifecycleStatus(item.get("status")),
+                _private_text(item.get("reason"), 300),
+            )
+        )
+    lifecycle = EvidenceLifecycle(
+        1,
+        _digest(raw.get("evidence_id")),
+        _digest(raw.get("claim_id")),
+        _timestamp(raw.get("observed_at")),
+        _timestamp(raw.get("retrieved_at")),
+        _timestamp(raw.get("revalidated_at")) if raw.get("revalidated_at") else "",
+        EvidenceFreshness(raw.get("freshness")),
+        _digest(raw.get("artifact_digest")),
+        scope,
+        _tokens(raw.get("supporting_claim_ids"), maximum=511, digest=True),
+        _tokens(raw.get("contradicting_claim_ids"), maximum=511, digest=True),
+        EvidenceLifecycleStatus(raw.get("status")),
+        _validated_history(tuple(history)),
+    )
+    expected_payload = {
+        "schema": "romverse.evidence-lifecycle.v1",
+        "claim_id": lifecycle.claim_id,
+        "observed_at": lifecycle.observed_at,
+        "retrieved_at": lifecycle.retrieved_at,
+        "revalidated_at": lifecycle.revalidated_at,
+        "freshness": lifecycle.freshness.value,
+        "artifact_digest": lifecycle.artifact_digest,
+        "scope": asdict(lifecycle.scope),
+        "supporting_claim_ids": lifecycle.supporting_claim_ids,
+        "contradicting_claim_ids": lifecycle.contradicting_claim_ids,
+        "status": lifecycle.status.value,
+        "history": tuple(asdict(item) for item in lifecycle.history),
+    }
+    if lifecycle.evidence_id != hashlib.sha256(_canonical(expected_payload)).hexdigest():
+        raise OnlineEvidenceError("Evidence lifecycle identity is invalid")
+    if raw != json.loads(json.dumps(evidence_lifecycle_mapping(lifecycle))):
+        raise OnlineEvidenceError("Evidence lifecycle is not deterministic")
+    return lifecycle
+
+
+def _validated_history(
+    history: tuple[EvidenceHistoryEntry, ...],
+) -> tuple[EvidenceHistoryEntry, ...]:
+    if len(history) > 64:
+        raise OnlineEvidenceError("Evidence lifecycle history exceeds its boundary")
+    result = tuple(
+        EvidenceHistoryEntry(
+            _timestamp(entry.recorded_at),
+            EvidenceLifecycleStatus(entry.status),
+            _private_text(entry.reason, 300),
+        )
+        for entry in history
+    )
+    if (
+        tuple(sorted(result, key=lambda item: (item.recorded_at, item.status.value, item.reason)))
+        != result
+    ):
+        raise OnlineEvidenceError("Evidence lifecycle history must be deterministic")
+    return result
+
+
+def _stored_tokens(value: object, label: str) -> tuple[str, ...]:
+    if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
+        raise OnlineEvidenceError(f"Stored {label} are invalid")
+    return tuple(value)
+
+
+def _zero_authority(raw: dict[str, object], label: str) -> None:
+    required = {
+        "execution_authority": "none",
+        "phone_action_allowed": False,
+        "guardian_approval": False,
+        "bootloader_relock_allowed": False,
+    }
+    if any(
+        raw.get(name) != value or type(raw.get(name)) is not type(value)
+        for name, value in required.items()
+    ):
+        raise OnlineEvidenceError(f"Evidence {label} cannot grant execution authority")
 
 
 class OnlineEvidenceStore:
@@ -713,13 +1007,18 @@ def freshness_at(retrieved_at: datetime, now: datetime, freshness_days: int) -> 
 
 _PRIVATE_PATTERNS = (
     re.compile(r"(?i)\b[\w.+-]+@[\w.-]+\.[a-z]{2,}\b"),
-    re.compile(r"(?i)\b(?:imei|serial(?:\s+number)?|account(?:\s+id)?)\s*[:=]\s*[^\s,;]+"),
     re.compile(
-        r"(?i)\b(?:api[_ -]?key|access[_ -]?token|refresh[_ -]?token|password|secret)\s*[:=]\s*[^\s,;]+"
+        r"(?i)\b(?:imei|serial(?:\s+number)?|account(?:\s+id)?|user(?:name|\s+id)?)"
+        r"\s*[:=]\s*[^\s,;]+"
+    ),
+    re.compile(
+        r"(?i)\b(?:api[_ -]?key|access[_ -]?token|refresh[_ -]?token|auth(?:entication)?"
+        r"|password|secret|cookie|session)\s*[:=]\s*[^\s,;]+"
     ),
     re.compile(r"(?i)\bbearer\s+[a-z0-9._~+/-]+=*"),
     re.compile(r"(?<!\d)\d{15}(?!\d)"),
     re.compile(r"(?i)(?:/home/[^/\s]+|/Users/[^/\s]+|[A-Z]:\\Users\\[^\\\s]+)(?:[/\\][^\s,;]+)*"),
+    re.compile(r"(?is)-----begin [^-]+private key-----.*?-----end [^-]+private key-----"),
 )
 
 
@@ -1044,8 +1343,11 @@ def _safe_url(value: object):
     parsed = urlsplit(value)
     if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
         raise OnlineEvidenceError("Evidence URL must be public HTTPS without credentials")
-    sensitive = {"token", "key", "secret", "password", "account", "serial", "imei"}
-    if any(key.casefold() in sensitive for key, _value in parse_qsl(parsed.query)):
+    sensitive = ("token", "key", "secret", "password", "account", "serial", "imei", "auth")
+    if any(
+        any(fragment in key.casefold() for fragment in sensitive)
+        for key, _value in parse_qsl(parsed.query)
+    ):
         raise OnlineEvidenceError("Evidence URL contains a private query field")
     return parsed
 

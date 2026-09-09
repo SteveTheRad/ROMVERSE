@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "source_id": "xiaomi.official-specification",
+  "domains": [
+    "codename",
+    "model-identity"
+  ],
+  "applicable_claim_keys": [
+    "device.codename",
+    "device.model"
+  ],
+  "evidence_claim_ids": [
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  ],
+  "execution_authority": "none",
+  "phone_action_allowed": false,
+  "guardian_approval": false,
+  "bootloader_relock_allowed": false
+}

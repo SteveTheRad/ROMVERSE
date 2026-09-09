@@ -1,5 +1,43 @@
 # ROMVERSE Build Status
 
+## Device Intelligence foundation schema contracts — Checkpoint 1 — 10 September 2026
+
+- Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`.
+- Product Assurance authorization: `d335bcf5c7308b5bcbebf3b8a7e3560e4c757f0e`.
+- Exact approved base: `eac08f4d5c142380aa67588aee2be7faa5b64051`.
+- Branch: `device-intelligence/foundation-schema-contracts`.
+- Implementation checkpoint: the commit containing this handoff.
+- Result: additive schema-one contracts now represent deterministic canonical device identity,
+  firmware identity beneath one exact device, claim-specific source authority, evidence lifecycle
+  and future persistence interfaces without creating a parallel Device DNA, Matrix, Knowledge,
+  Synapse or execution system.
+- Identity: exact manufacturer/model/codename and evidence digests are required; model, region,
+  build or artifact changes remain distinct. Retail names, aliases and families cannot establish
+  exact equivalence. Missing consequential identity fails closed as `UNCONFIRMED`.
+- Evidence: applicability is bound to reviewed claim domains and exact claim keys rather than a
+  universal trust score. Observation/retrieval/revalidation times, freshness, artifact digest,
+  exact scope, supporting/contradicting relationships and immutable active/superseded/quarantined/
+  expired history are represented without discarding contradictions.
+- Privacy: serial, IMEI, account/user identifiers, credentials/tokens/cookies/sessions, private-key
+  material and personal paths are rejected or sanitized at the new boundaries.
+- Persistence: `evidence_persistence.py` contains protocols only. No local-store modification,
+  database, PostgreSQL, filesystem backend, object storage, network service or upload was added.
+- Backward compatibility: the existing device-name receipt and Online Evidence schema-one paths
+  retain their prior meaning. Existing Device DNA schema one/two, Compatibility Matrix and Nexus
+  records remain unchanged and pass their baseline suites. Malformed, non-canonical, tampered or
+  authority-promoted new records fail closed.
+- Authority: compatibility remains `UNCONFIRMED`; execution authority is `none`; phone action,
+  Guardian approval and bootloader relocking remain false.
+- Verification: **140/140 passed** across the new contract tests plus the authorized device
+  identity, firmware source identity, Online Evidence, Knowledge coverage, Device DNA,
+  Compatibility Matrix, Nexus planning, First Light, Synapse and Guardian policy baselines.
+  Focused Ruff check/format and Git whitespace verification passed.
+- Physical device, emulator, source acquisition, ADB/Fastboot, firmware operation, ROM build,
+  flash/root/debloat, runtime wiring, UI/platform/Companion, hosted CI, signing, publication and
+  release: none.
+- Next: stop for independent Product Assurance. Checkpoint 2 and broader Device Intelligence work
+  remain unauthorized.
+
 ## Feature-bound Knowledge coverage and Xiaomi identity — 9 September 2026
 
 - Authorization/base: Product Assurance verdict

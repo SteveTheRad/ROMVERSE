@@ -4,11 +4,17 @@ import json
 import os
 from dataclasses import replace
 
+import pytest
+
 import romverse.device.identity as identity_module
 from romverse.device.identity import (
+    CanonicalIdentityError,
     DeviceIdentityResolver,
     DeviceNameCandidate,
     IdentityAuthority,
+    canonical_device_identity_mapping,
+    create_canonical_device_identity,
+    parse_canonical_device_identity,
 )
 from romverse.device.models import AndroidDevice, DeviceState
 from romverse.device_packs.models import DevicePack
@@ -273,3 +279,92 @@ def test_identity_cache_rejects_linked_evidence_file(tmp_path):
     path.symlink_to(outside)
 
     assert resolver.load(resolved) is None
+
+
+def test_canonical_device_identity_is_exact_deterministic_and_alias_inert() -> None:
+    values = {
+        "manufacturer": "Xiaomi",
+        "brand": "Xiaomi",
+        "model": "2509FPN0BC",
+        "codename": "popsicle",
+        "region": "China",
+        "oem_identifiers": {"product": "popsicle", "sku": "2509FPN0BC-CN"},
+        "soc": "sm8850",
+        "platform": "qcom",
+        "evidence_claim_ids": ("a" * 64,),
+    }
+    first = create_canonical_device_identity(
+        **values,
+        marketing_names=("Xiaomi 17 Pro Max",),
+        aliases=("17 Pro Max",),
+        family_ids=("popsicle-family",),
+    )
+    renamed = create_canonical_device_identity(
+        **values,
+        marketing_names=("Different retail name",),
+        aliases=("A marketing alias",),
+        family_ids=("different-family",),
+    )
+    loaded = parse_canonical_device_identity(canonical_device_identity_mapping(first))
+
+    assert loaded == first
+    assert first.device_id == renamed.device_id
+    assert first.exactly_matches(renamed)
+    assert first.compatibility_status == "UNCONFIRMED"
+    assert first.execution_authority == "none"
+    assert not first.guardian_approval
+    assert not first.bootloader_relock_allowed
+
+
+def test_canonical_device_identity_keeps_model_and_region_distinct() -> None:
+    common = {
+        "manufacturer": "Samsung",
+        "brand": "Samsung",
+        "codename": "e3qxxx",
+        "evidence_claim_ids": ("b" * 64,),
+    }
+    european = create_canonical_device_identity(**common, model="SM-S928B", region="EEA")
+    north_american = create_canonical_device_identity(
+        **common, model="SM-S928U", region="United States"
+    )
+    other_region = create_canonical_device_identity(**common, model="SM-S928B", region="Australia")
+
+    assert not european.exactly_matches(north_american)
+    assert not european.exactly_matches(other_region)
+
+
+def test_canonical_device_identity_fails_closed_on_missing_private_or_corrupt_data() -> None:
+    with pytest.raises(CanonicalIdentityError, match="UNCONFIRMED"):
+        create_canonical_device_identity(
+            manufacturer="Samsung",
+            brand="Samsung",
+            model="",
+            codename="e3qxxx",
+            marketing_names=("Galaxy S24 Ultra",),
+            evidence_claim_ids=("c" * 64,),
+        )
+    with pytest.raises(CanonicalIdentityError, match="private"):
+        create_canonical_device_identity(
+            manufacturer="Samsung",
+            brand="Samsung",
+            model="SM-S928B",
+            codename="e3qxxx",
+            aliases=("username=steve",),
+            evidence_claim_ids=("c" * 64,),
+        )
+
+    identity = create_canonical_device_identity(
+        manufacturer="Samsung",
+        brand="Samsung",
+        model="SM-S928B",
+        codename="e3qxxx",
+        evidence_claim_ids=("c" * 64,),
+    )
+    raw = json.loads(json.dumps(canonical_device_identity_mapping(identity)))
+    raw["device_id"] = "d" * 64
+    with pytest.raises(CanonicalIdentityError, match="digest"):
+        parse_canonical_device_identity(raw)
+    raw = json.loads(json.dumps(canonical_device_identity_mapping(identity)))
+    raw["guardian_approval"] = True
+    with pytest.raises(CanonicalIdentityError, match="execution authority"):
+        parse_canonical_device_identity(raw)

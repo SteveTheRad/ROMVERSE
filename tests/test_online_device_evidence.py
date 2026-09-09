@@ -10,9 +10,12 @@ from pathlib import Path
 import pytest
 
 from romverse.knowledge.online_evidence import (
+    ClaimAuthorityDomain,
     ClaimKind,
     EvidenceConsumer,
     EvidenceFreshness,
+    EvidenceHistoryEntry,
+    EvidenceLifecycleStatus,
     EvidenceScope,
     EvidenceSourceRegistry,
     EvidenceState,
@@ -20,11 +23,17 @@ from romverse.knowledge.online_evidence import (
     OnlineEvidenceStore,
     SourceCategory,
     claim_from_registered_content,
+    claim_source_authority_mapping,
     compare_with_later_evidence,
     create_claim,
+    create_claim_source_authority,
     default_source_adapters,
+    evidence_lifecycle_for_claim,
+    evidence_lifecycle_mapping,
     freshness_at,
     merge_claims,
+    parse_claim_source_authority,
+    parse_evidence_lifecycle,
     project_evidence,
     scrub_private_text,
 )
@@ -108,6 +117,13 @@ def test_store_rejects_symlink_target(tmp_path) -> None:
 
     with pytest.raises(OnlineEvidenceError):
         store.merge((_claim("a-only"),), now=NOW)
+
+
+def test_duplicate_evidence_is_deterministically_deduplicated(tmp_path) -> None:
+    claim = _claim("a/b")
+    saved = OnlineEvidenceStore(tmp_path).merge((claim, claim), now=NOW)
+
+    assert saved.claims == (claim,)
 
 
 def test_registry_is_deterministic_closed_by_default_and_has_small_public_set() -> None:
@@ -487,3 +503,135 @@ def test_typed_guidance_rejects_executable_instructions(instruction) -> None:
             knowledge_kind=ClaimKind.GUIDE,
             remedy_description=instruction,
         )
+
+
+def test_source_authority_is_claim_specific_and_never_execution_authority() -> None:
+    authority = create_claim_source_authority(
+        source_id="xiaomi.official-specification",
+        domains=(ClaimAuthorityDomain.MODEL_IDENTITY, ClaimAuthorityDomain.CODENAME),
+        applicable_claim_keys=("device.codename", "device.model"),
+        evidence_claim_ids=("a" * 64,),
+    )
+    fixture = (
+        Path(__file__).resolve().parent
+        / "fixtures/device_intelligence/claim-source-authority-v1.json"
+    )
+    loaded = parse_claim_source_authority(json.loads(fixture.read_text(encoding="utf-8")))
+
+    assert loaded == authority
+    assert parse_claim_source_authority(claim_source_authority_mapping(authority)) == authority
+    assert authority.applies_to(ClaimAuthorityDomain.CODENAME, "device.codename")
+    assert not authority.applies_to(
+        ClaimAuthorityDomain.PARTITION_LAYOUT, "device.partition-layout"
+    )
+    assert authority.execution_authority == "none"
+    assert not authority.guardian_approval
+    assert not authority.bootloader_relock_allowed
+
+
+def test_source_authority_rejects_empty_malformed_or_promoted_contracts() -> None:
+    with pytest.raises(OnlineEvidenceError, match="exact evidence"):
+        create_claim_source_authority(
+            source_id="source.empty",
+            domains=(),
+            applicable_claim_keys=("device.model",),
+            evidence_claim_ids=("a" * 64,),
+        )
+    authority = create_claim_source_authority(
+        source_id="source.exact",
+        domains=(ClaimAuthorityDomain.MODEL_IDENTITY,),
+        applicable_claim_keys=("device.model",),
+        evidence_claim_ids=("a" * 64,),
+    )
+    raw = json.loads(json.dumps(claim_source_authority_mapping(authority)))
+    raw["guardian_approval"] = True
+    with pytest.raises(OnlineEvidenceError, match="execution authority"):
+        parse_claim_source_authority(raw)
+
+
+def test_evidence_lifecycle_retains_scope_conflicts_freshness_and_history(tmp_path) -> None:
+    first = _claim("a/b", source_id="source.one")
+    second = _claim("a-only", source_id="source.two")
+    linked = OnlineEvidenceStore(tmp_path).merge((first, second), now=NOW).claims[0]
+    history = (
+        EvidenceHistoryEntry(
+            NOW.isoformat(), EvidenceLifecycleStatus.ACTIVE, "Initial retained evidence."
+        ),
+        EvidenceHistoryEntry(
+            (NOW + timedelta(days=1)).isoformat(),
+            EvidenceLifecycleStatus.SUPERSEDED,
+            "A newer exact claim exists; the original remains retained.",
+        ),
+    )
+    lifecycle = evidence_lifecycle_for_claim(
+        linked,
+        observed_at=NOW - timedelta(hours=1),
+        revalidated_at=NOW + timedelta(days=1),
+        status=EvidenceLifecycleStatus.SUPERSEDED,
+        history=history,
+    )
+    loaded = parse_evidence_lifecycle(evidence_lifecycle_mapping(lifecycle))
+
+    assert loaded == lifecycle
+    assert loaded.artifact_digest == DIGEST
+    assert loaded.scope.codenames == ("nebula",)
+    assert loaded.contradicting_claim_ids
+    assert loaded.status is EvidenceLifecycleStatus.SUPERSEDED
+    assert loaded.history == history
+    assert loaded.execution_authority == "none"
+    assert not loaded.phone_action_allowed
+    assert not loaded.guardian_approval
+    assert not loaded.bootloader_relock_allowed
+
+
+def test_evidence_lifecycle_represents_stale_quarantine_and_expiry_without_deletion() -> None:
+    stale_claim = replace(
+        _claim("a/b"),
+        source=replace(_claim("a/b").source, freshness=EvidenceFreshness.STALE),
+    )
+    quarantined = evidence_lifecycle_for_claim(
+        stale_claim,
+        observed_at=NOW,
+        status=EvidenceLifecycleStatus.QUARANTINED,
+        history=(
+            EvidenceHistoryEntry(
+                NOW.isoformat(),
+                EvidenceLifecycleStatus.QUARANTINED,
+                "Conflicting applicability requires review.",
+            ),
+        ),
+    )
+    expired = evidence_lifecycle_for_claim(
+        stale_claim,
+        observed_at=NOW,
+        status=EvidenceLifecycleStatus.EXPIRED,
+        history=(
+            EvidenceHistoryEntry(
+                NOW.isoformat(), EvidenceLifecycleStatus.EXPIRED, "Freshness window elapsed."
+            ),
+        ),
+    )
+
+    assert quarantined.freshness is EvidenceFreshness.STALE
+    assert quarantined.claim_id == stale_claim.claim_id
+    assert expired.claim_id == stale_claim.claim_id
+    assert quarantined.evidence_id != expired.evidence_id
+
+
+def test_lifecycle_tampering_and_additional_private_identifiers_fail_closed() -> None:
+    lifecycle = evidence_lifecycle_for_claim(_claim("a/b"), observed_at=NOW)
+    raw = json.loads(json.dumps(evidence_lifecycle_mapping(lifecycle)))
+    raw["evidence_id"] = "f" * 64
+    with pytest.raises(OnlineEvidenceError, match="identity"):
+        parse_evidence_lifecycle(raw)
+
+    unsafe = (
+        "username=alice user id=person-7 auth=credential cookie=session-cookie "
+        "C:\\Users\\alice\\Documents\\personal.txt"
+    )
+    scrubbed = scrub_private_text(unsafe)
+    assert "alice" not in scrubbed
+    assert "person-7" not in scrubbed
+    assert "credential" not in scrubbed
+    assert "session-cookie" not in scrubbed
+    assert "personal.txt" not in scrubbed

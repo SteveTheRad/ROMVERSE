@@ -6,8 +6,8 @@ import json
 import re
 import socket
 from collections import defaultdict
-from collections.abc import Sequence
-from dataclasses import asdict, dataclass, replace
+from collections.abc import Mapping, Sequence
+from dataclasses import asdict, dataclass, fields, replace
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
@@ -32,6 +32,247 @@ class IdentityAuthority(StrEnum):
     GOOGLE_PLAY_CATALOG = "google-play-catalog"
     CORROBORATED_PUBLIC = "corroborated-public"
     DISCOVERY = "discovery"
+
+
+class CanonicalIdentityError(ValueError):
+    """A canonical identity could not be established without guessing."""
+
+
+@dataclass(frozen=True, slots=True)
+class CanonicalDeviceIdentity:
+    """Immutable evidence-backed identity, separate from retail naming.
+
+    Marketing names, aliases and family relationships are retained for discovery but are
+    deliberately excluded from ``device_id``.  They can never make two devices exact matches.
+    """
+
+    schema_version: int
+    device_id: str
+    manufacturer: str
+    brand: str
+    model: str
+    codename: str
+    region: str
+    oem_identifiers: tuple[tuple[str, str], ...]
+    soc: str
+    platform: str
+    marketing_names: tuple[str, ...]
+    aliases: tuple[str, ...]
+    family_ids: tuple[str, ...]
+    evidence_claim_ids: tuple[str, ...]
+    compatibility_status: str = "UNCONFIRMED"
+    execution_authority: str = "none"
+    phone_action_allowed: bool = False
+    guardian_approval: bool = False
+    bootloader_relock_allowed: bool = False
+
+    def __post_init__(self) -> None:
+        if type(self.schema_version) is not int or self.schema_version != 1:
+            raise CanonicalIdentityError("Canonical device identity schema is unsupported")
+        if (
+            self.compatibility_status != "UNCONFIRMED"
+            or self.execution_authority != "none"
+            or self.phone_action_allowed
+            or self.guardian_approval
+            or self.bootloader_relock_allowed
+        ):
+            raise CanonicalIdentityError(
+                "Canonical identity cannot promote compatibility or execution authority"
+            )
+
+    def exactly_matches(self, other: CanonicalDeviceIdentity) -> bool:
+        return self.device_id == other.device_id
+
+
+_CANONICAL_DEVICE_FIELDS = {field.name for field in fields(CanonicalDeviceIdentity)}
+_PRIVATE_IDENTITY_TEXT = re.compile(
+    r"(?i)(?:\b(?:imei|serial|account|username|password|secret|token)\b|"
+    r"/home/|/users/|[a-z]:\\users\\|-----begin [^-]+private key-----)"
+)
+
+
+def create_canonical_device_identity(
+    *,
+    manufacturer: str,
+    brand: str,
+    model: str,
+    codename: str,
+    evidence_claim_ids: Sequence[str],
+    region: str = "",
+    oem_identifiers: Mapping[str, str] | Sequence[tuple[str, str]] = (),
+    soc: str = "",
+    platform: str = "",
+    marketing_names: Sequence[str] = (),
+    aliases: Sequence[str] = (),
+    family_ids: Sequence[str] = (),
+) -> CanonicalDeviceIdentity:
+    """Create one deterministic exact-device identity or fail closed as UNCONFIRMED."""
+
+    manufacturer_value = _canonical_identity_text(manufacturer, 80, required=True)
+    brand_value = _canonical_identity_text(brand, 80)
+    model_value = _canonical_identity_text(model, 120, required=True)
+    codename_value = _canonical_identity_text(codename, 80, required=True)
+    region_value = _canonical_identity_text(region, 80)
+    soc_value = _canonical_identity_text(soc, 120)
+    platform_value = _canonical_identity_text(platform, 120)
+    claims = _canonical_digests(evidence_claim_ids, required=True)
+    identifiers = _canonical_oem_identifiers(oem_identifiers)
+    names = _canonical_texts(marketing_names, 120)
+    alias_values = _canonical_texts(aliases, 120)
+    families = _canonical_texts(family_ids, 120)
+    identity_basis = {
+        "schema": "romverse.canonical-device-identity.v1",
+        "manufacturer": manufacturer_value.casefold(),
+        "brand": brand_value.casefold(),
+        "model": model_value.casefold(),
+        "codename": codename_value.casefold(),
+        "region": region_value.casefold(),
+        "oem_identifiers": tuple(
+            (name.casefold(), value.casefold()) for name, value in identifiers
+        ),
+        "soc": soc_value.casefold(),
+        "platform": platform_value.casefold(),
+    }
+    device_id = hashlib.sha256(
+        json.dumps(identity_basis, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    return CanonicalDeviceIdentity(
+        1,
+        device_id,
+        manufacturer_value,
+        brand_value,
+        model_value,
+        codename_value,
+        region_value,
+        identifiers,
+        soc_value,
+        platform_value,
+        names,
+        alias_values,
+        families,
+        claims,
+    )
+
+
+def canonical_device_identity_mapping(identity: CanonicalDeviceIdentity) -> dict[str, object]:
+    return json.loads(json.dumps(asdict(identity)))
+
+
+def parse_canonical_device_identity(raw: Mapping[str, object]) -> CanonicalDeviceIdentity:
+    """Strictly load the additive schema without changing legacy identity receipts."""
+
+    if (
+        set(raw) != _CANONICAL_DEVICE_FIELDS
+        or type(raw.get("schema_version")) is not int
+        or raw.get("schema_version") != 1
+    ):
+        raise CanonicalIdentityError("Canonical device identity schema is unsupported")
+    _canonical_zero_authority(raw)
+    identifiers_raw = raw.get("oem_identifiers")
+    if not isinstance(identifiers_raw, list):
+        raise CanonicalIdentityError("Canonical OEM identifiers are malformed")
+    identifiers: list[tuple[str, str]] = []
+    for item in identifiers_raw:
+        if not isinstance(item, list) or len(item) != 2:
+            raise CanonicalIdentityError("Canonical OEM identifiers are malformed")
+        identifiers.append((str(item[0]), str(item[1])))
+    created = create_canonical_device_identity(
+        manufacturer=_canonical_mapping_text(raw, "manufacturer"),
+        brand=_canonical_mapping_text(raw, "brand"),
+        model=_canonical_mapping_text(raw, "model"),
+        codename=_canonical_mapping_text(raw, "codename"),
+        region=_canonical_mapping_text(raw, "region"),
+        oem_identifiers=identifiers,
+        soc=_canonical_mapping_text(raw, "soc"),
+        platform=_canonical_mapping_text(raw, "platform"),
+        marketing_names=_canonical_raw_texts(raw.get("marketing_names")),
+        aliases=_canonical_raw_texts(raw.get("aliases")),
+        family_ids=_canonical_raw_texts(raw.get("family_ids")),
+        evidence_claim_ids=_canonical_raw_texts(raw.get("evidence_claim_ids")),
+    )
+    if raw.get("device_id") != created.device_id:
+        raise CanonicalIdentityError("Canonical device identity digest is invalid")
+    if raw.get("compatibility_status") != "UNCONFIRMED":
+        raise CanonicalIdentityError("Canonical identity cannot promote compatibility")
+    expected = json.loads(json.dumps(canonical_device_identity_mapping(created)))
+    if dict(raw) != expected:
+        raise CanonicalIdentityError("Canonical device identity is not deterministic")
+    return created
+
+
+def _canonical_identity_text(value: object, limit: int, *, required: bool = False) -> str:
+    if not isinstance(value, str) or "\0" in value:
+        raise CanonicalIdentityError("Canonical identity text is malformed")
+    cleaned = " ".join(value.split())
+    if len(cleaned) > limit or (required and not cleaned):
+        raise CanonicalIdentityError("Canonical identity remains UNCONFIRMED")
+    if _PRIVATE_IDENTITY_TEXT.search(cleaned):
+        raise CanonicalIdentityError("Canonical identity contains private data")
+    return cleaned
+
+
+def _canonical_texts(values: Sequence[str], limit: int) -> tuple[str, ...]:
+    if isinstance(values, (str, bytes)) or len(values) > 32:
+        raise CanonicalIdentityError("Canonical identity collection is malformed")
+    return tuple(
+        sorted({_canonical_identity_text(value, limit, required=True) for value in values})
+    )
+
+
+def _canonical_digests(values: Sequence[str], *, required: bool) -> tuple[str, ...]:
+    result = _canonical_texts(values, 64)
+    if (required and not result) or any(
+        re.fullmatch(r"[0-9a-f]{64}", value) is None for value in result
+    ):
+        raise CanonicalIdentityError("Canonical identity requires exact evidence digests")
+    return result
+
+
+def _canonical_oem_identifiers(
+    values: Mapping[str, str] | Sequence[tuple[str, str]],
+) -> tuple[tuple[str, str], ...]:
+    items = values.items() if isinstance(values, Mapping) else values
+    result = tuple(
+        sorted(
+            {
+                (
+                    _canonical_identity_text(name, 80, required=True),
+                    _canonical_identity_text(value, 120, required=True),
+                )
+                for name, value in items
+            }
+        )
+    )
+    if len(result) > 32:
+        raise CanonicalIdentityError("Canonical OEM identifiers exceed their boundary")
+    return result
+
+
+def _canonical_raw_texts(value: object) -> tuple[str, ...]:
+    if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
+        raise CanonicalIdentityError("Canonical identity collection is malformed")
+    return tuple(value)
+
+
+def _canonical_mapping_text(raw: Mapping[str, object], name: str) -> str:
+    value = raw.get(name)
+    if not isinstance(value, str):
+        raise CanonicalIdentityError("Canonical identity text is malformed")
+    return value
+
+
+def _canonical_zero_authority(raw: Mapping[str, object]) -> None:
+    required = {
+        "execution_authority": "none",
+        "phone_action_allowed": False,
+        "guardian_approval": False,
+        "bootloader_relock_allowed": False,
+    }
+    if any(
+        raw.get(name) != value or type(raw.get(name)) is not type(value)
+        for name, value in required.items()
+    ):
+        raise CanonicalIdentityError("Canonical identity cannot grant execution authority")
 
 
 @dataclass(frozen=True, slots=True)

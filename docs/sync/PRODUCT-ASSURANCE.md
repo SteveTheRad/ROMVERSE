@@ -1,5 +1,160 @@
 # ROMVERSE Product Assurance
 
+## Authorization verdict — Device Intelligence foundation schema-contract slice
+
+- Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`
+- Reviewed request anchor: `de263d2c3638690711369e15e309361c0552e7b3`
+- Review status: **AUTHORIZED — DEVICE INTELLIGENCE FOUNDATION SCHEMA-CONTRACT SLICE**
+- Approved implementation branch: `device-intelligence/foundation-schema-contracts`
+- Approved implementation base: this Product Assurance authorization commit; its exact SHA must
+  be recorded and verified on Forgejo and GitHub before the branch is created.
+
+### Decision
+
+The minimum additive foundation is safe to begin as a deterministic, local, fixture-driven
+contract correction. Existing Device DNA, device identity, firmware source identity, online
+evidence, Compatibility Matrix, Nexus/Pathfinder/Foresight, First Light, Synapse and Guardian
+contracts already establish the right separation between evidence, planning and execution. The
+requested work must extend those contracts; it must not introduce a parallel Device Intelligence
+store, identity system, compatibility system or execution path.
+
+The repository currently has a universal `IdentityAuthority` for retail-name resolution, a
+claim-level online-evidence model with provenance, freshness and preserved conflict links, a
+filename-derived `FirmwareSourceIdentity`, and a Synapse maturity sequence with downgrade and
+retirement. It does not yet have a complete claim-domain authority contract, canonical device and
+firmware identity records, explicit artifact/lifecycle history fields, or a storage abstraction for
+future evidence persistence. Those are foundation correctness gaps, not new product features.
+
+This authorization is deliberately split into two Product Assurance-gated checkpoints. Only
+Checkpoint 1 below is authorized to start. Checkpoint 2 is bounded in advance so ownership is
+clear, but implementation of it requires an explicit Product Assurance approval of Checkpoint 1.
+This prevents simultaneous schema migration and Synapse state-machine changes from obscuring a
+regression or silently strengthening evidence.
+
+### Checkpoint 1 — authorized now
+
+Implement only additive, backward-compatible contracts for:
+
+- claim-specific source authority domains, with explicit applicability to a claim type and no
+  universal trust inheritance;
+- immutable, privacy-safe canonical device identity covering manufacturer, brand, exact model,
+  codename, explicit regional/OEM identifiers, SoC/platform, aliases and family relationships only
+  when supported by evidence;
+- canonical firmware identity bound beneath one canonical device identity, covering exact
+  model/variant, region, build, version, Android version, security patch, artifact SHA-256 and a
+  bounded partition/layout identity;
+- evidence observation and retrieval time, freshness/revalidation state, exact artifact digest,
+  device/model/firmware/region scope, supporting and contradicting relationships, and immutable
+  lifecycle/history status;
+- deterministic privacy sanitization for serials, IMEI, account identifiers, usernames, personal
+  paths, credentials/authentication material, unrelated logs and personal files;
+- storage interfaces only, without a database/filesystem/object-store implementation; and
+- explicit backward-compatible loading/migration or fail-closed conservative rejection. Migration
+  must preserve every prior confidence/state/authority value and may never strengthen it.
+
+Retail name or similarity may not establish identity. Aliases and family membership do not establish
+exact-device equivalence. Two firmware versions, models or regions may not inherit compatibility
+from one another. Missing or conflicting consequential facts remain `UNCONFIRMED`.
+
+### Exact Checkpoint 1 ownership
+
+The implementation task may modify only:
+
+- `src/romverse/device/identity.py`
+- `src/romverse/rom/source_identity.py`
+- `src/romverse/knowledge/online_evidence.py`
+- `src/romverse/knowledge/__init__.py`, only for exports of the authorized contracts
+- `src/romverse/knowledge/evidence_persistence.py`, new interface-only module
+- `tests/test_device_identity.py`
+- `tests/test_source_identity.py`
+- `tests/test_online_device_evidence.py`
+- `tests/test_knowledge_evidence_persistence.py`, new
+- `tests/fixtures/device_intelligence/`, new deterministic fixtures only
+- `docs/DEVICE-INTELLIGENCE-FOUNDATION.md`, new bounded contract documentation
+- `docs/sync/BUILD-STATUS.md`, only for the implementation handoff
+
+No other production, test, fixture, documentation or configuration file is owned by this task.
+If an implementation need appears outside this exact list, stop for Product Assurance rather than
+expanding ownership.
+
+### Protected and conflicting ownership
+
+`src/romverse/infrastructure/local_store.py` is explicitly protected. The active Windows lines have
+independent changes to that shared module. The approved storage abstraction must therefore be a new
+protocol/interface in `src/romverse/knowledge/evidence_persistence.py`; it may not modify, wrap,
+replace or migrate `local_store.py` in this slice.
+
+Also protected are:
+
+- `src/romverse/device/dna.py`
+- `src/romverse/nexus/`
+- `src/romverse/rom/first_light.py`
+- `src/romverse/intelligence/synapse.py` during Checkpoint 1
+- `src/romverse/guardian/` and every Guardian/Recovery execution contract
+- all source acquisition/adapters and the completed Knowledge coverage contract
+- `src/romverse/infrastructure/`, `pyproject.toml`, packaging, signing and release configuration
+- all UI, Windows, Linux and Companion files
+- every existing evidence receipt/archive and Device Pack
+
+The primary checkout's pre-existing Companion, Recovery and Windows changes and every other
+worktree remain unrelated and must be preserved byte-for-byte.
+
+### Checkpoint 1 verification and acceptance
+
+Add focused deterministic coverage for exact canonical identity, aliases, wrong model, wrong
+firmware, wrong region, similar-but-non-identical devices, missing fields, claim-domain authority,
+conflicts, stale and duplicate evidence, supersession representation, privacy sanitization,
+malformed/corrupt records, legacy loading/migration, `UNCONFIRMED` preservation, zero Guardian or
+execution authority, and permanent bootloader no-relock preservation.
+
+Rerun the existing baseline suites for device identity, firmware source identity, online evidence,
+Knowledge coverage, Device DNA, Compatibility Matrix, Nexus planning, First Light, Synapse and
+Guardian policy. Run focused Ruff check/format and `git diff --check`. No full-suite requirement,
+physical-device verification or hosted CI is added by this authorization.
+
+Acceptance requires that legacy schema-one identity/evidence and schema-one/two Device DNA, Matrix
+and Nexus records retain their prior meaning; malformed or unsupported schema data fails closed;
+all new IDs and digests are deterministic; contradictions remain visible; and every new research
+record retains execution authority `none`, phone action `false`, Guardian approval `false` and
+bootloader relocking `false`.
+
+Documentation and Checkpoint 1 production-contract changes may ship in one implementation
+checkpoint because the work is inert and fixture-driven. Commit and push Forgejo first, verify the
+exact remote SHA, mirror that identical SHA to GitHub, update Build Status and stop for independent
+Product Assurance review.
+
+### Checkpoint 2 — not yet authorized
+
+After Checkpoint 1 is independently approved, Product Assurance may authorize an additive Synapse
+lifecycle checkpoint limited to explicit quarantine, supersession and expiry contracts in
+`src/romverse/intelligence/synapse.py`, `tests/test_synapse.py`, the same bounded foundation document
+and Build Status. It must preserve Candidate → Verified Success → Strong → Trusted, downgrade and
+retirement, hide unusable states from query results, retain them for Archives explanation, and
+remain guidance-only. Do not implement Checkpoint 2 under this verdict.
+
+### Absolute exclusions and invariants
+
+This authorization excludes live acquisition, crawling, new external sources, Google Play or Pixel
+requests, OEM retrieval, phone/emulator/ADB/Fastboot activity, device writes or transitions,
+firmware modification/download/redistribution, ROM build, flash, root, debloat, unlock, any lock or
+relock, runtime consumer wiring, compatibility promotion, Guardian/Recovery changes, UI, platform
+or Companion work, PostgreSQL/database deployment, object upload, server infrastructure, new
+dependencies, hosted CI/Actions, signing, publication and release.
+
+External and firmware-derived information remains evidence, not physical-device verification and
+not execution authority. `SUPPORTED`, `CAUTION`, `UNSUPPORTED` and `UNCONFIRMED` remain distinct.
+Nexus/Pathfinder/Foresight may reason over evidence, but Guardian remains the only consequential
+authorization gate. No source, AI response, Knowledge/Synapse record, adapter or evidence claim may
+authorize execution. Bootloader relocking remains permanently prohibited.
+
+### Hard stop
+
+No implementation branch existed at review time. After this authorization is published and both
+remotes are verified identical, engineering may create only the named branch from the exact
+authorization commit and implement Checkpoint 1. Stop after its one committed, dual-remote handoff
+for independent Product Assurance. Do not begin Checkpoint 2 or any broader Device Intelligence
+work without a new explicit verdict.
+
 ## Reviewed checkpoint: 34584a6 — feature-bound Knowledge coverage and Xiaomi identity
 
 - Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`

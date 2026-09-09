@@ -118,3 +118,19 @@ This checkpoint performs no live acquisition, crawling, phone or emulator access
 firmware operation, ROM build, flashing, rooting, debloating, device transition, runtime consumer
 wiring, database deployment, object upload, UI/platform/Companion change, hosted CI, signing,
 publication or release. ROMVERSE never locks or relocks a bootloader.
+
+## Evidence-correlation contract
+
+The separately authorized evidence-correlation checkpoint adds one pure, deterministic boundary
+over the existing `OnlineEvidenceClaim`, `ClaimSourceAuthority` and `EvidenceLifecycle` contracts.
+It binds claims to exact source, claim-key, domain, artifact-digest, scope and relationship evidence;
+separates active evidence from retained superseded, quarantined and expired evidence; and preserves
+explicit supporting and two-sided contradicting relationships. Missing lifecycle or applicable
+authority, stale or unconfirmed evidence, ambiguous applicability and conflicting values or scopes
+remain `UNCONFIRMED` and require investigation.
+
+The resulting report is immutable, bounded, canonical and content-digested. Input ordering cannot
+change its digest. Its parser rejects extra fields, unsupported schemas, malformed records, private
+identifiers, changed digests and any attempt to grant compatibility, execution, phone, Guardian or
+bootloader-relock authority. The contract performs no acquisition, storage, filesystem write,
+network access, device query, planning, runtime wiring or compatibility promotion.

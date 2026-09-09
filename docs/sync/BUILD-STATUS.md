@@ -1,5 +1,27 @@
 # ROMVERSE Build Status
 
+## Device Intelligence evidence correlation — 10 September 2026
+
+- Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`.
+- Product Assurance authorization/base: `a010d4a923558e101c5ba520eaa0a8c9fbee9b77` from
+  `bf8091c5d40ad0d1007d757aaa61db8eebc4c50b`.
+- Branch: `device-intelligence/evidence-correlation-contracts`.
+- Scope: one pure correlation contract, its focused tests, Knowledge exports, foundation
+  documentation and this handoff only.
+- Result: exact existing claims, claim-specific authority and lifecycle records are correlated
+  deterministically. Active evidence is separated from retained unusable evidence; explicit
+  support and contradictions remain preserved; missing, stale, ambiguous or conflicting evidence
+  remains `UNCONFIRMED` and requires investigation.
+- Authority: compatibility is fixed to `UNCONFIRMED`; execution authority is `none`; phone action,
+  Guardian approval and bootloader relocking are false.
+- Verification: **162/162 passed**: the established 146-test Device Intelligence baseline plus 16
+  focused evidence-correlation tests. Focused Ruff check/format and Git whitespace verification
+  passed.
+- Network, storage implementation, runtime wiring, device/emulator, ADB/Fastboot, firmware/build/
+  flash/root/debloat, UI/platform/Companion, hosted CI, signing, publication and release: none.
+- Next: publish one coherent checkpoint Forgejo first, mirror the identical commit to GitHub and
+  stop for independent Product Assurance. No later Device Intelligence slice is authorized.
+
 ## Device Intelligence Synapse lifecycle — Checkpoint 2 — 10 September 2026
 
 - Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`.

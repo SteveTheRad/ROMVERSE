@@ -1,5 +1,106 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows Time Machine baseline integrity verification — Product Assurance review requested
+
+### Exact authority and unchanged preflight
+
+- Product Assurance verdict `df1f23c4dc947bc3d0c86c63d9640d2166f04b3e` exactly approves
+  checkpoint `ddb7ba8fc77a6eddd5c1ca9321e09b6818021b25` and authorizes one
+  content-read-only verification of existing snapshot `20260909T201410-bafcbd` for project
+  `windows-private-original-392b82fb-d5d46af7`. The checkout safely fast-forwarded to that exact
+  verdict. The protected untracked patch remained 8,272 bytes at SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`, existing untracked
+  `build-work\` remained untouched, and all protected Companion files remained unchanged.
+- Before launch, the protected original, working baseline and snapshot artifact were each exactly
+  497 bytes at SHA-256
+  `1d9c78df6f42c63864a76bdf91a50cb2da1cd2e133cc44cba5f1c298302f0725`. The 561-byte schema-two
+  snapshot record remained SHA-256
+  `77357c630346a276d45d1ebf06ce2f98fab69111d45d75a0a3c7c2fd7f3997a3` and bound the exact project,
+  snapshot ID, artifact path, 497-byte size, content digest and record digest
+  `f19d43a79f323ef5d2a37fdc3ce7203edc819ba4b1668ea5087dc0cf90c2d78b`.
+- The preflight also confirmed exactly one snapshot binary, one snapshot metadata record, two Vault
+  entries and five Vault objects. The protected original remained read-only with inheritance
+  disabled and exactly OWNER RIGHTS and SYSTEM non-inherited Full Control. Settings remained 687
+  bytes at SHA-256
+  `90958eafb57e6166b3a41a9ad5795c79d9774acb266003ee340601c624a5f2da`, with the exact workspace,
+  Guided mode and all four online-intelligence, community-research, automatic-download and
+  Synapse-contribution controls disabled. ROMVERSE, ADB and Fastboot process counts were zero.
+
+### One exact content-read-only verification
+
+- PID `107664` started at `2026-09-10T07:00:51.2817282+10:00` from the retained unsigned package
+  executable, 6,324,563 bytes at SHA-256
+  `2c94f329fa33c96e0b9aca92b6c495b2c55d87e25d14af089afd1c19d652881f`. The child inherited only
+  `C:\Work\ROMVERSE-No-Tools-392b82fb` as `PATH` and exactly `--workspace`,
+  `C:\Work\ROMVERSE-Private-Original-392b82fb\workspace`, `--skip-onboarding`,
+  `--development-device-simulation`. Command Deck showed the exact project, no physical or Android
+  device, mission attention, Guardian verify required and no operation running.
+- Normal navigation opened Time Machine. It showed only the exact current/ready snapshot
+  `20260909T201410-bafcbd`, 497 bytes, with the protected-source digest under `Windows Private
+  Original 392b82fb • 1 snapshot(s)`. The surrounding surface retained `LOCAL PROJECT • NOT PHONE
+  BACKUP`, the explicit separation between project checkpoints and phone backups, and the Guardian
+  boundary that Time Machine never reads, writes, flashes, wipes or restores phone partitions.
+- Build invoked `Verify snapshot` exactly once. No verification retry occurred. The visible result
+  was exactly `Snapshot integrity verified.` The producing service re-read the 497-byte local
+  artifact and matched its recorded SHA-256; no restore, copy or replacement was performed.
+- Live Console displayed the exact `Time Machine Verify` mission `4910d2c7527d4a608584dc5094f33c3a`
+  as `SUCCEEDED`, 100%, `VERIFIED`, Guardian protected, for project
+  `windows-private-original-392b82fb-d5d46af7`. Its terminal event says the producing service
+  committed the evidence and that success was not inferred from elapsed time or progress. The
+  companion Activity event is `Time Machine snapshot verified`, outcome `success`, context type
+  `time-machine-snapshot`, exact context ID
+  `windows-private-original-392b82fb-d5d46af7.20260909T201410-bafcbd`, and detail `Local ROM
+  baseline integrity matched its recorded SHA-256.` These records do not claim restore, phone
+  backup, compatibility, Guardian approval or execution authority.
+- No other Time Machine or Project Vault action was invoked: no restore, capture, checkpoint
+  verification, compare, branch, export, cleanup, external-backup registration, stock-recovery
+  registration or reverify action occurred.
+
+### Exact Genesis return, postflight and stop
+
+- Normal navigation returned through Command Deck `Resume Mission` to the same Genesis project at
+  `CURRENT PHASE • MATCH / TASK 05 OF 15`, `Confirm device identity and capabilities`, status
+  `Needs attention`. Genesis retained the exact protected source, `PACKAGE METADATA REJECTED`, no
+  connected or authorized device, no matching Device Pack, Device DNA identity unconfirmed,
+  Guardian core checks active, disabled `Next`, and bootloader relocking `UNSUPPORTED • permanent
+  Guardian rule`. `Save & exit` returned to the same ROM Studio project with `NO BUILD OR PHONE
+  ACTION STARTED`.
+- Audit mutation was bounded and append-only. Activity grew from five to six events with only the
+  exact snapshot-success event; its file is now 3,392 bytes at SHA-256
+  `b432f3acbe63c146dfed87e2ded46b8a8aed2cdf59e16ccdf9de8f03e870e46f`. Live Console grew from 20
+  to 24 events: exactly the running/succeeded pair for the one Time Machine verification plus the
+  running/attention pair for normal Genesis return and pause. Its file is now 24,921 bytes at
+  SHA-256 `3caded76927f624622c0b55ff0277cc29b59a2fe4f0a92a845455e752c52bbd1`.
+- Postflight byte/hash validation reproduced the exact protected original, working baseline,
+  599-byte working-copy record, 532-byte working-tree index, two extracted files, snapshot content
+  and record, two Vault entries and five content-addressed Vault objects. Counts remain one snapshot
+  binary, one snapshot record, two Vault entries and five Vault objects. No snapshot, Vault,
+  working-copy, extracted-tree or protected-source content changed, and the profile retains zero
+  reparse entries.
+- The expected normal Genesis navigation metadata alone advanced. The 436-byte mission is now
+  SHA-256 `b110ce827cb6749020430c6fb5e4ba67c2d9c51fe443abb8a52c6f6a939396b4`, with
+  `selected_stage: device`, root undecided, no install request, no build plan and no error. The
+  308-byte runtime ledger is SHA-256
+  `ca9bd51d66c5abab7574d1c649527847435581fcc864c4b1d1d12d86ac226def` and records exactly four
+  starts and four clean closes across the four authorized sessions.
+- ROMVERSE closed normally. Final ROMVERSE, ADB and Fastboot process counts are zero; both ledger
+  locks accept exclusive no-sharing opens. Workspace `apks`, `backups`, `builds`, `device_packs`,
+  `diagnostics`, `temp` and `tools` remain empty. No Windows display, binding, integrity-result or
+  return-context defect reproduced, so no source correction, package rebuild or test run was
+  justified. This checkpoint changes only `docs/sync/BUILD-STATUS.md`; `git diff --check` is the
+  proportionate repository validation.
+- No Working Lab/extraction repeat, device scan or simulation, tool resolution, network/download,
+  phone/emulator/ADB/Fastboot operation, firmware/APK mutation, Recipe/Forge, Guardian/Recovery
+  execution, production trust/signing, publication, release, hosted CI, wipe, unlock/root,
+  bootloader lock or relock occurred. Exact evidence, consent separation, Guardian-only authority,
+  durable UNKNOWN, no blind retry, independent verification, feature freeze and permanent
+  bootloader no-relock remain intact.
+- Precise proposed next task: independent Product Assurance review of this exact one-shot local
+  snapshot content verification, producing-service success, exact project/snapshot audit binding,
+  unchanged retained evidence and exact Genesis return. Do not begin another verification, launch,
+  correction, build/test/package cycle or consequential action without a matching repository
+  verdict.
+
 ## Windows Time Machine / Project Vault read-only inspection — Product Assurance review requested
 
 ### Exact authority and preflight evidence

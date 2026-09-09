@@ -1,5 +1,86 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: a3a3ca2 — Private Windows protected-original ACL
+
+- Reviewed checkpoint: `a3a3ca29cb941bce50a3414023ff37a6fcb709fa`
+- Authorizing verdict: `a58a256cbd79a219a696f82a50faa17702fccff0`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — PROTECTED-ORIGINAL IMPORT NOW FAILS CLOSED ON PRIVATE ACL**
+
+### Decision and independent evidence
+
+The minimum correction is approved. Ownership is exact: only
+`src/romverse/rom/projects.py`, `tests/test_rom_projects.py`, and Build Status changed.
+`src/romverse/infrastructure/local_store.py` is unchanged; the import path reuses its established
+`ensure_private_file` contract.
+
+For a new original, ROMVERSE now applies the private-file contract to the fully written, flushed
+and validated temporary file before atomic promotion. If enforcement fails, the existing exception
+path removes the temporary file, leaves no promoted artifact and cannot update the project. For a
+deduplicated content-addressed original, hash and size are checked first and private-file
+enforcement must succeed before reuse; failure leaves the pre-existing artifact intact and the new
+project unattached. Both successful paths retain the final read-only state.
+
+The focused coverage proves a successful Windows import has exactly two non-inherited Full Control
+allow ACEs—OWNER RIGHTS and LOCAL SYSTEM—while the selected source stays unchanged and the
+protected hash verifies. Separate failure tests prove private enforcement failure neither attaches
+an original nor leaves a newly promoted artifact, and cannot attach a second project to an
+unenforceable deduplicated target.
+
+Windows Build's decisive native run passed 32/32 focused tests with exit code zero, using an
+isolated base-temp path after separately reporting the host pytest cleanup issue from its first
+non-acceptance invocation. The real Windows artifact was read-only and exposed exactly
+`(('S-1-3-4', 2032127, False), ('S-1-5-18', 2032127, False))`; independent `icacls` agreed.
+Focused Windows Ruff check and format check passed.
+
+Product Assurance independently ran the exact correction on Fedora: `tests/test_rom_projects.py`
+passed 32/32, focused Ruff check passed, both changed source/test files were already formatted, and
+Git whitespace validation passed. No broader suite was required.
+
+Forgejo and GitHub expose the identical checkpoint. The Windows checkout contains only the
+protected untracked patch and existing `build-work/`; the patch remains 8,272 bytes with SHA-256
+`2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+The earlier synthetic protected copy deliberately remains read-only but broad-ACL evidence and was
+not repaired after the fact. Windows has zero ROMVERSE processes. No UI launch, package rebuild,
+Genesis advance, new import, phone/network/tool action, Guardian/Recovery execution, signing,
+publication, release, hosted CI, wipe, unlock/root, bootloader lock or relock occurred.
+
+### Approved next bounded task
+
+Integrate the approved ACL fix into exactly one current-source unsigned Windows development package
+and verify it through one fresh protected-import journey. This is a required correction
+convergence, not renewed distribution testing.
+
+1. Build one new one-folder package from this exact approved branch head using only already cached,
+   verified dependencies. No network, install, signing, archive, relocation or copy matrix. Run only
+   the focused package smoke plus ROM-project/Guided tests required to establish the changed import
+   path and launchability.
+2. Record the package file inventory, executable SHA-256 and truthful `NotSigned` state. Do not
+   publish or call it a release.
+3. Create one fresh private Local-mode data root and workspace. Launch the new package with
+   `--skip-onboarding` and development-device simulation through an exact argument vector, an empty
+   process-local tool path, and all four network/download/contribution controls false.
+4. Create one disposable Guided project and import only the retained deterministic 497-byte
+   synthetic OTA fixture. Verify source preservation, exact protected-copy hash/manifest binding,
+   final read-only attribute and exactly the two non-inherited OWNER RIGHTS/SYSTEM Full Control
+   ACEs. The old broad-ACL evidence root must remain untouched.
+5. Confirm the bounded Provenance result remains metadata-rejected/UNCONFIRMED with zero Guardian
+   authority and no working-tree preparation. Close normally; prove zero processes/windows, no lock,
+   one accepted start/clean close and no network/tool/device artifacts. Commit the source-package
+   identity and sanitized runtime handoff, request review and stop.
+
+No archive/copy/relocation loop, real firmware, Working Lab preparation/extraction, package
+installation, network/download/tool repair, phone/emulator/ADB/Fastboot, firmware/APK mutation,
+Guardian/Recovery execution, signing, publication, release, hosted CI, wipe, unlock/root,
+bootloader lock or relock is authorized.
+
+### Gate status
+
+- Protected-original source/test ACL correction: **APPROVED**
+- One corrected current-source package and fresh synthetic protected import: **AUTHORIZED**
+- Working Lab and device/consequential stages: **CLOSED**
+- Installer/signing, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 5e3645a — Windows synthetic OTA intake and Provenance
 
 - Reviewed checkpoint: `5e3645a275742aff6a4519434daabb9f86d9468a`

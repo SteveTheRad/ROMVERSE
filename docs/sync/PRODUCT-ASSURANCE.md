@@ -1,5 +1,76 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 7c01cb9 — Fedora Source Lab verification continuity
+
+- Reviewed checkpoint: `7c01cb9db804cf4947110c666d70fd8dac939318`
+- Scoped implementation: `8ac135f74ca1f3c691e18d0eee5da3d6574ef6b6`
+- Runtime evidence: `780c52be5f6fe901fc3ce6e1abfc807740cd43dd`
+- Authorizing verdict: `cd7ca570e5c909168c06af0664062c9e82699b69`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **CORRECTION REQUIRED — FUNCTIONAL CONTINUITY PASSES; COMMITTED DIFF CHECK DOES NOT**
+
+### Decision and independent evidence
+
+The authorized production correction is confined to `src/romverse/ui/rom_studio.py`, with focused
+coverage confined to `tests/test_rom_studio_ui.py`. It now requires a successful exact-current
+`ArtifactVerification` before persisting shared `build_plan_verified` state, persists before the
+success refresh/completion signal, invalidates prior state before a new plan, clears it on failed or
+mismatched plan verification, and fails closed in the current session if state persistence fails.
+The Source Lab 8/8 result, Plan-input wording and Forge-button availability consume that same shared
+state. No schema, planner/verifier, Forge producer, Genesis, Main Window, Guardian, Recovery or
+authority contract changed.
+
+Product Assurance independently reran the exact seven affected test nodes: **7/7 passed**. They
+cover plan-only incompleteness, exact verification convergence and reopen, new-plan/failed-result
+invalidation, persistence failure, same-project handoff, forged cross-tree result rejection,
+Genesis continuity and the existing verified non-flashable Forge path. Focused Ruff 0.16.6 lint and
+format checks passed for both changed files.
+
+The retained package evidence also matches the handoff: 423 regular files / 243,103,947 bytes and
+38 links; the mode-`0755`, 6,338,544-byte executable is SHA-256
+`e42d66cf95bcd66170f8500faf7c51bcbbc10c99c8895f26fb1b411b06e703e5`. In the private retained
+runtime result, the exact plan remains SHA-256
+`1bd66952a0fae926160d095694e3a1f813e10ee145b0b9839e7093d10034ecf4`, the strict tree index
+remains `2822bd269479def4b22ee3655a0971ec5d8310641b7141bebbc10fffe8bf4a66`, the two inert
+members remain exact, and Guided state is durably `build_plan_verified: true` with no install
+request or error. No Forge/receipt, Guardian, Recovery or device-execution artifact exists. The
+settings remain Guided/local with online intelligence, community research, contribution and tool
+downloads disabled. Exit 143 remains honestly excluded from clean-close evidence.
+
+Forgejo and GitHub expose the identical checkpoint at zero divergence and the Linux worktree was
+clean. No re-plan, Forge invocation, network/tool acquisition, phone/emulator/ADB/Fastboot, real
+firmware, ROM build, Guardian/Recovery execution, flash, wipe, unlock/root, bootloader lock/relock,
+signing, installation, publication, release, hosted CI or Forgejo Action occurred.
+
+The checkpoint cannot yet be approved because its explicit Git whitespace claim is not reproducible:
+`git diff --check cd7ca570..7c01cb9` reports trailing whitespace on lines 3–5 of
+`docs/evidence/FEDORA_SOURCE_LAB_PLAN_CONTINUITY_2026-09-10.md`. Those three Markdown hard-break
+suffixes are non-functional, but the repository evidence must not say the diff check passed while
+the committed range fails it. No product or runtime correction is justified.
+
+### Minimum exact correction authorized — documentation whitespace only
+
+1. Remove only the trailing spaces from lines 3–5 of
+   `docs/evidence/FEDORA_SOURCE_LAB_PLAN_CONTINUITY_2026-09-10.md`. The date, branch,
+   authorization SHA and all substantive evidence must remain unchanged.
+2. Run `git diff --check` across the full authorization-to-correction range and against the new
+   commit. If it passes, record the documentation-only correction in `docs/sync/BUILD-STATUS.md`.
+3. Do not change production, tests, package or retained runtime state. Do not rerun pytest, Ruff,
+   the package build or the UI journey; their independently reproduced results are accepted and
+   must not be double-counted.
+4. Commit only the evidence whitespace correction and scoped Build Status handoff, push Forgejo
+   first, mirror the identical commit to GitHub and stop for independent Product Assurance review.
+
+No Forge, new Linux journey, feature, source/test/package change, network/tool acquisition,
+phone/emulator/ADB/Fastboot, real firmware, build, Guardian/Recovery operation, consequence,
+signing, publication, release, hosted CI, Forgejo Action or bootloader lock/relock is authorized.
+
+### Gate status
+
+- Source Lab shared verification implementation and retained-package behavior: **FUNCTIONALLY PASSING**
+- Evidence/diff integrity: **CORRECTION REQUIRED — THREE TRAILING-WHITESPACE LINES**
+- Forge Bundle, ROM build and every device/consequential/signing/publication/release gate: **CLOSED**
+
 ## Reviewed checkpoint: b344edf — Fedora Source Lab inert plan verification
 
 - Reviewed checkpoint: `b344edf499427a240610ee7a643a99d7059737b4`

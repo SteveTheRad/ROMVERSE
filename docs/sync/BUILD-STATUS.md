@@ -1,5 +1,87 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows launcher/setup-repair boundary journey — Product Assurance review requested
+
+### Exact authority and retained package
+
+- Product Assurance verdict `3ddeb925a80beb0c6773be245e1e8acac379df23` — `Approve Windows
+  offline connection surfaces [skip ci]` exactly approves checkpoint
+  `c10a38c910eb43e67f2efb22988df05ceb166a06` and authorizes one retained-current-package,
+  no-network, no-phone Windows launcher/setup-repair boundary journey.
+- The checkout was at that exact verdict and matched both remote tracking refs before use. The only
+  working-tree item was the protected untracked patch.
+- Used the existing disposable synthetic workspace
+  `C:\Work\ROMVERSE-Windows-History-Populated-d1955a79\workspace` with the retained unsigned
+  package `C:\Work\ROMVERSE-Windows\build\windows-workshop-safety-94592856\ROMVERSE\ROMVERSE.exe`
+  (6,324,494 bytes; SHA-256
+  `aae8f97cebda115f34aa35dea95a32a78974a5e89a0f04b33af7eb3511f7327a`; Authenticode
+  `NotSigned`). The package was built from `945928567ea188481eb0c19ca4419ae4132c22f5`
+  and launched once with `--workspace` pointing only to that disposable workspace plus
+  `--skip-onboarding --development-device-simulation`.
+
+### Visible Windows setup and repair evidence
+
+- Command Deck opened normally in Guided / Arcana mode with project `Windows Synthetic Discovery
+  20260909`, device `NOT CONNECTED`, Device DNA `UNCONFIRMED`, mission `ATTENTION`, Guardian
+  `VERIFY REQUIRED`, and no operation running. The simulation banner continued to say `No
+  physical device selected` and `SIMULATION ONLY • NO HARDWARE`.
+- The Settings dialog exposed session preferences and the current workspace/Guardian boundaries,
+  but no launcher/setup-readiness route; it was cancelled without edits. Searching the
+  navigation-only palette for `Forge Arsenal` and `Platform Tools` likewise produced no direct
+  match. No route was invented.
+- The existing supported route was visible under About ROMVERSE's read-only `BUILD WORKSPACE`
+  evidence card. It reported **1 local project / 2 of 22 host tools ready / 20 need attention** and
+  provided the existing `Forge Arsenal` navigation action. About retained `NAVIGATION ONLY` and
+  stated that feature pages own their evidence while Guardian owns approvals.
+- Forge Arsenal performed its existing local inventory and displayed `No Android transport
+  currently visible`. Its Host Connection Doctor reported `READ-ONLY ASSESSMENT`, `Android
+  Platform Tools are incomplete`, `MISSING`, and specifically named absent ADB and Fastboot.
+  Python 3.12.10 and Git 2.53.0.windows.3 were initially ready; Java and the other uninstalled
+  specialist tools remained truthful missing prerequisites. The page stated `HOST CHECK ONLY`,
+  `DRIVER INSTALLATION REMAINS OPERATING-SYSTEM CONTROLLED`, and `PHONE AUTHORITY: NONE`.
+- The existing `Install one verified Platform Tools pair` repair entry opened the bounded
+  `ROMVERSE • Repair Android Platform Tools pair` dialog. It selected only ADB and Fastboot as one
+  ROMVERSE-managed pair, described the official managed-download boundary, and required the
+  separate `Install and verify requirements` action before replacement or verification. The
+  dialog was closed without invoking that action or `Open manual sources`.
+- Closing the dialog triggered its normal inventory refresh. Git's externally supplied Codex
+  runtime path then changed from ready to the fail-closed `Found, but could not start correctly`
+  state; one explicit read-only `Re-scan toolchain` reproduced that session-local result while
+  Python stayed ready and ADB/Fastboot stayed missing. ROMVERSE did not promote the uncertain Git
+  result to ready. No source change or rebuild was made for this environment-specific observation;
+  Product Assurance should decide whether a separately bounded repeated-tool-verification
+  investigation is warranted.
+- Normal palette navigation returned to Command Deck. The exact project, `NOT CONNECTED`,
+  `UNCONFIRMED`, `ATTENTION`, `VERIFY REQUIRED`, no-operation-running state and simulation-only
+  boundary were unchanged. ROMVERSE then closed normally.
+
+### Verification, scope and next review
+
+- The workspace runtime log now contains exactly **11 starts / 11 clean closes / 0 fault
+  entries**. The Activity ledger remains exactly **5 events**, 2,856 bytes, SHA-256
+  `fa348d1f7162f90cdff5b1711dfe90563480e7e0ca0ef3310303b6a806462ec4`; the Live Console ledger
+  also remained unchanged. No setup activity or success was fabricated.
+- `workspace\logs\toolchain-install-plan.json` remains absent and
+  `workspace\tools\downloads` remains empty. No dependency, archive, driver, PATH/environment,
+  account, device, system, signing or workspace configuration change occurred.
+- This checkpoint changes only `docs/sync/BUILD-STATUS.md`. No source, test or package file changed,
+  so the accepted package was not rebuilt and unchanged tests/linters were not rerun. Protected
+  Companion files remain untouched. The protected untracked patch remains byte-identical at
+  **8,272 bytes**, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it was not edited,
+  applied, staged or deleted.
+- No network/download, external source, phone, emulator, device discovery/query, ADB/Fastboot
+  command, OEM driver action, firmware/APK action, Recovery/Guardian execution, production
+  adapter, signing, publication, release, hosted CI, force-push, destructive action, wipe,
+  unlock/root, lock or relock occurred. Exact-device evidence, fresh consent, Guardian-only
+  authority and separation, durable UNKNOWN, no blind retry, independent verification, feature
+  freeze and permanent no-relock remain intact.
+- Precise next task: independent Product Assurance review of this documentation-only Windows
+  checkpoint. If desired, authorize a separate minimal investigation of the repeat-verification
+  Git status drift; otherwise continue with the next product-as-user boundary selected by Product
+  Assurance. Do not start either path until a matching verdict is committed. Publish this exact
+  checkpoint to Forgejo first, then the identical commit to GitHub.
+
 ## Windows Link → Members → Galaxy offline-boundary journey — Product Assurance review requested
 
 ### Exact authority and bounded acceptance

@@ -1,5 +1,81 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 50dd0b0 — Corrected Windows local-mode journey
+
+- Reviewed checkpoint: `50dd0b041caee47dcba4d331c32c761bf83624a3`
+- Authorizing correction: `d80326ddf305c20ea8a13f4bc1715380310cbe1f`
+- Retained package source: `b1dc54e0c6390fb3d789930dda0696c712e40e64`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — LOCAL-MODE SETTINGS AND KNOWLEDGE JOURNEY IS COMPLETE**
+
+### Decision and independent evidence
+
+The corrected journey is approved. Build used a new disposable root and the existing reviewed
+`SettingsStore` contract to establish Local mode before the first package process. Product
+Assurance reconstructed and matched the initial 633-byte settings payload and SHA-256
+`f176ae0ba370b775481956507a3233c45c6b10f58dab6d7c76000804b343f12d`: Online Intelligence,
+community research, automatic verified-tool acquisition and Synapse contribution were all false,
+while reduced motion remained false. The workspace child was absent until package initialization.
+
+After the exact two launches, the private schema-five settings file is 632 bytes with SHA-256
+`3f96e544a96fce8a54f0f4bd0d74324cb37a6b64ff995f706d0495d4ef63d4cf`; reduced motion alone is
+true and all four local-mode controls remain false. Its inheritance-protected ACL still grants
+Full Control only through owner rights and SYSTEM. The corrected workspace contains seven regular
+files plus that settings file, has no reparse entries, and contains no path matching catalog,
+receipt, download, toolchain, install-plan or update. The failed predecessor workspace remains
+unchanged at the previously reviewed settings and runtime-ledger hashes.
+
+The corrected runtime ledger is exactly 154 bytes, SHA-256
+`50d779cf4f44836bb0f2fc6bb9cd0f21763e9de1dcb388fb854e57e5b18f4587`, and contains exactly two
+runtime starts and two clean closes. A fresh process inventory found zero ROMVERSE processes. The
+retained executable remains 6,324,534 bytes, SHA-256
+`d2df2c9a667520e9ebe88d4c2eb4dfa26020b1e2d8f852dddb33ab24a013b431`, and `NotSigned`.
+
+The genuine packaged UI remained `LOCAL` across both launches and retained the fail-closed
+no-device state. Its popsicle / `2509FPN0BC` Archives result kept exact identity/build/topology and
+digest qualifications, described one-device evidence rather than a universal guarantee, and
+displayed no upload or execution authority. It did not become a connected device, physical
+verification, promoted compatibility or Guardian authority.
+
+The checkpoint changes only Build Status and passes Git whitespace validation; rerunning unchanged
+suites or rebuilding unchanged bits is unnecessary. The Windows checkout contains only the
+protected untracked patch and existing `build-work/` intermediates. The patch remains 8,272 bytes
+with SHA-256 `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`. Forgejo and GitHub
+expose the same checkpoint. No network request, download, dependency/tool change, phone/emulator,
+ADB/Fastboot, firmware/APK, Guardian/Recovery execution, signing, publication, release, hosted CI,
+wipe, unlock/root, lock or relock occurred.
+
+### Approved next bounded task
+
+Verify the retained current Windows package's untested single-instance and clean-reopen boundary.
+This is one local-mode, no-network/no-phone launcher task, not a product tour.
+
+1. Create one new disposable root using the same private pre-launch Local-mode settings contract;
+   its workspace must be new. Use the exact retained unsigned executable and unchanged package.
+2. Launch the first instance interactively and confirm the truthful idle Command Deck and `LOCAL`
+   badge. While it remains open, invoke the exact executable once more in the same interactive user
+   session with the same root/workspace and arguments.
+3. The second invocation must exit within a bounded wait with the existing single-instance result,
+   create no second top-level ROMVERSE window, append no runtime-start marker, and leave the first
+   instance responsive and unchanged. Do not terminate the first process to manufacture success.
+4. Close the first instance normally, prove zero ROMVERSE processes, then launch once more against
+   the same disposable root to prove the lock was released. Verify normal entry, close normally,
+   and expect exactly two accepted starts and two clean closes in the final ledger.
+5. Record only bounded process identity, exit, window-count, ledger and workspace evidence. Stop for
+   Product Assurance. If the existing package behaves differently, report the exact deterministic
+   blocker without changing source or rebuilding.
+
+Do not enter another feature surface, setup repair, Forge Arsenal or a consequential flow. No
+network, download, dependency/tool change, phone/emulator/ADB/Fastboot, firmware/APK,
+Guardian/Recovery execution, source/package change, signing, publication, release, hosted CI,
+wipe, unlock/root, lock or relock is authorized.
+
+### Gate status
+
+- Corrected local-mode Settings/privacy and popsicle Knowledge journey: **APPROVED**
+- Retained-package Windows single-instance and clean-reopen boundary: **AUTHORIZED**
+- Physical-device work, production trust/signing, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: f40907d — Windows no-network convergence blocker
 
 - Reviewed checkpoint: `f40907d50e35b3dcdde8b732d066753db1438be9`

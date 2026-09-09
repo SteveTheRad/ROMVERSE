@@ -1,5 +1,99 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: da56068 — Fedora Source Lab copy-only with automatic baseline protection
+
+- Reviewed checkpoint: `da560685ca4943204589cdf6f0e2282826db02ba`
+- Runtime evidence: `4a4ca5274294f731c5616190cd9a8d1a3dd78f3d`
+- Authorizing correction: `30305406f9d1573fac1e843cdb26007890e3b0f8`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **CORRECTION REQUIRED — AUTOMATIC PROTECTION IS VALID; SOURCE LAB HISTORY STATUS IS STALE**
+
+### Decision and independent evidence
+
+The exact Source Lab **Create working copy** action satisfied the intended copy-only product
+boundary. Product Assurance independently verified the fresh private, no-network/no-phone run and
+the retained artifacts. The source, protected original, working baseline and automatic Time
+Machine snapshot are each exactly 551 bytes and byte-identical at SHA-256
+`c3f5c1711d648a0f6c8f2ba2e3c910048c4e81e6f3ee39bb82e9e85888ac89c8`. The strict
+working-copy record binds the contained relative path, project, size, source digest and current
+digest. The working tree contains zero files, its index is absent, tools contain zero files and the
+Guided mission remains at `workspace` with no build plan, install request or error.
+
+The prior requirement that this successful action leave Time Machine and Project Vault empty was
+architecturally incorrect and is withdrawn. Current source intentionally sends every completed ROM
+Studio operation through shared recoverable-history capture, explicitly maps `working-copy` to
+**Protected working baseline**, and existing tests require the resulting Time Machine snapshot and
+Vault entry. That safety evidence is local and reversible, grants no device or Recovery execution
+authority, and must not be removed, suppressed or weakened to satisfy a test criterion.
+
+The checkpoint nevertheless exposes one bounded Stage 1 truthfulness defect. ROM Studio renders
+its Source Lab history immediately before the asynchronous automatic capture begins. Backup Center
+then completes the snapshot/Vault capture and refreshes only its own surface; it publishes no
+completion signal back to ROM Studio. The retained UI can therefore continue to say **No snapshots
+yet** after the automatic snapshot and Vault checkpoint exist. That statement is stale and
+materially understates available recovery evidence. The acceptance cannot be approved with that
+contradiction, and Build correctly stopped without retry, cleanup, reset or an unauthorized change.
+
+The evidence and Build Status are otherwise truthful and are the only changed files after the
+prior verdict. The automatic snapshot receipt and zero-tree-byte Vault entry are internally
+consistent, including their producing-service reason and content-addressed context objects.
+Forgejo and GitHub exposed the identical checkpoint with zero divergence; the Linux worktree was
+clean and Git whitespace validation passed. The separate advanced disposable project and all
+other worktrees remain untouched.
+
+No network request, real firmware, extraction, retry, tool/download/install, phone/emulator,
+ADB/Fastboot, firmware/APK mutation, build plan/build, Guardian/Recovery execution, flash, wipe,
+unlock/root, bootloader lock/relock, signing, publication, release, hosted CI or Forgejo Action
+occurred. Exit 143 remains honestly excluded from clean-shutdown and restart-persistence evidence.
+
+### Minimum exact correction authorized — completed-history refresh only
+
+Build may make one bounded correction on `linux/stage1-desktop-readiness`, based on the Product
+Assurance commit publishing this verdict:
+
+1. Preserve the existing automatic `working-copy` Time Machine snapshot and **Protected working
+   baseline** Vault capture exactly. Do not make it optional and do not move it outside the shared
+   successful-operation path.
+2. Publish a narrowly scoped successful local-history completion notification from Backup Center
+   and make Main Window refresh ROM Studio only when that notification belongs to the currently
+   displayed project. After capture completes, Source Lab must show the real snapshot evidence and
+   must not retain the unqualified **No snapshots yet** state. Failed/incomplete capture must never
+   be represented as completed history.
+3. Ownership is limited to `src/romverse/ui/backup_center.py`,
+   `src/romverse/ui/main_window.py`, `tests/test_time_machine_ui.py`, the minimum exact
+   Main-Window/ROM-Studio UI regression in `tests/test_navigation_vocabulary.py` or
+   `tests/test_rom_studio_ui.py`, and the scoped Build Status/evidence documents. Do not modify
+   `src/romverse/ui/rom_studio.py` unless the signal-and-refresh contract cannot truthfully resolve
+   the reproduced defect; stop for Product Assurance before broadening instead.
+4. Add deterministic tests proving successful automatic capture emits/refetches the exact current
+   project history, a different project cannot replace the visible project, and failure or an
+   incomplete worker cannot create a false success. Preserve the existing automatic-history tests.
+5. Run the focused Time Machine/Project Vault and exact new Main Window/ROM Studio tests, focused
+   Ruff check/format and Git diff check. Do not run broad unrelated suites or hosted CI.
+6. Because application bits change, build exactly one corrected unsigned Fedora package with the
+   established cached/offline packaging path. Then perform one fresh private Bubblewrap
+   no-network/no-phone journey using only the same deterministic harmless fixture: protected
+   intake, Provenance, Genesis **Save & exit**, and exactly one Source Lab **Create working copy**.
+   Verify the copy, automatic snapshot/Vault evidence and truthful refreshed Source Lab history,
+   then stop before extraction. Do not rerun the unchanged package first.
+
+Application correction, focused regression, one package build and the single acceptance journey
+may form one coherent checkpoint because they address one reproduced truthfulness defect. Commit
+the scoped result, push Forgejo first, mirror the identical commit to GitHub and stop for independent
+Product Assurance review.
+
+No Genesis change, UI redesign, setup/packaging repetition, working-tree extraction, broader Linux
+journey, Windows/UI-Lab/Companion/Device-Intelligence work, network/tool acquisition, real firmware,
+phone/emulator/ADB/Fastboot, firmware/APK mutation, Guardian/Recovery authority or execution,
+signing, publication, release, hosted CI, wipe, unlock/root, bootloader lock or relock is authorized.
+
+### Gate status
+
+- Fedora synthetic protected intake and Provenance: **APPROVED / UNAFFECTED**
+- Source Lab copy-only behavior and automatic rollback evidence: **VALIDATED**
+- Source Lab completed-history truthfulness: **CORRECTION REQUIRED / AUTHORIZED ABOVE**
+- Extraction and every later build/device/release gate: **CLOSED**
+
 ## Reviewed checkpoint: 6a11f65 — Fedora Working Lab copy-only scope divergence
 
 - Reviewed checkpoint: `6a11f654f346fecdc51059ee7ea35395122b8e9c`

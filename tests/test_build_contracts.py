@@ -375,7 +375,7 @@ def _schema3_executable_tools(tmp_path):
     return tuple(bound)
 
 
-def test_local_execution_revalidates_exact_schema3_plan_tool_bindings(tmp_path):
+def test_local_execution_revalidates_exact_current_plan_tool_bindings(tmp_path):
     store, project, registry, _tools, _metadata, partitions = _fixture(tmp_path)
     tools = _schema3_executable_tools(tmp_path / "bound-tools")
     GuidedMissionStore(store.projects_root / project.project_id).save(
@@ -396,7 +396,7 @@ def test_local_execution_revalidates_exact_schema3_plan_tool_bindings(tmp_path):
     service.create_plan(project.project_id)
     runner = _BuildRunner(partitions / "system.img")
 
-    assert workspace_plan.schema_version == 3
+    assert workspace_plan.schema_version == 4
     Path(tools[0].path).write_bytes(b"changed after exact planning")
     assessment = service.assess(project.project_id)
     workspace_check = next(

@@ -163,7 +163,7 @@ def test_exact_input_worker_refreezes_the_final_source_derived_tree(tmp_path) ->
     assert failed == []
     assert planner.verify_tree(project.project_id).valid
     rebound = planner.load(project.project_id)
-    assert rebound is not None and rebound.schema_version == 3
+    assert rebound is not None and rebound.schema_version == 4
     assert rebound.required_tools == ("Python",)
     assert "partition_files/source-derived.input" in rebound.input_files
 
@@ -225,7 +225,7 @@ def test_verified_intermediate_opens_inspection_only_then_explicitly_builds_once
         tools,
         tuple(status.name for status in tools),
     ).plan(project.project_id)
-    assert workspace_plan.schema_version == 3
+    assert workspace_plan.schema_version == 4
     device_plan = DeviceBuildContractService(store, registry, tools).create_plan(
         project.project_id
     )
@@ -333,7 +333,7 @@ def test_verified_intermediate_opens_inspection_only_then_explicitly_builds_once
     studio.close()
 
 
-def test_same_tree_schema3_plan_replacement_rejects_old_forge_and_build_admission(
+def test_same_tree_current_plan_replacement_rejects_old_forge_and_build_admission(
     tmp_path,
     monkeypatch,
 ) -> None:
@@ -362,9 +362,9 @@ def test_same_tree_schema3_plan_replacement_rejects_old_forge_and_build_admissio
     mission_store.save(
         GuidedMissionState(
             selected_stage="build_sign",
-            customization_skipped=False,
+            customization_skipped=True,
             recipe_skipped=True,
-            root_choice="skip",
+            root_choice="undecided",
             build_plan_verified=True,
         )
     )

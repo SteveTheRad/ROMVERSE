@@ -22,10 +22,11 @@ from romverse.infrastructure.toolchain_evidence import (
 )
 from romverse.infrastructure.tools import ToolStatus
 from romverse.platform.host import current_host
+from romverse.rom.debloat import DebloatService
 from romverse.rom.inspection import RomInspectionService
 from romverse.rom.models import ArtifactVerification, ProjectError
 from romverse.rom.projects import RomProjectStore
-from romverse.rom.recipes import RecipeStore
+from romverse.rom.recipes import RecipeStore, RomRecipe, load_run_receipt
 
 
 @dataclass(frozen=True, slots=True)
@@ -49,6 +50,8 @@ class BuildPlan:
     required_tools: tuple[str, ...] = ()
     toolchain_manifest_digest: str = ""
     guided_choice_digest: str = ""
+    recipe_receipt_digest: str = ""
+    debloat_receipt_digest: str = ""
     local_only: bool = True
     flashable: bool = False
     execution_authority: str = "none"
@@ -139,7 +142,37 @@ class RomBuildPlanner:
         ):
             raise ProjectError("Project, source, or inspection evidence changed during dry run")
         toolchain_manifest = self._capture_toolchain_manifest()
-        schema_version = 3 if toolchain_manifest is not None else 2
+        schema_version = 4 if toolchain_manifest is not None else 2
+        recipe_receipt_digest = ""
+        debloat_receipt_digest = ""
+        if toolchain_manifest is not None:
+            recipe_required, debloat_required, requirement_error = _guided_receipt_requirements(
+                self.store,
+                project_id,
+                recipe,
+            )
+            if requirement_error:
+                raise ProjectError(requirement_error)
+            if recipe_required:
+                assert recipe is not None
+                receipt = load_run_receipt(
+                    self.store.projects_root / project_id,
+                    recipe=recipe,
+                    tree_root=root,
+                    snapshot_root=self.store.snapshots_root / project_id / "recipes",
+                )
+                if receipt is None:
+                    raise ProjectError(
+                        "The current Recipe needs a verified execution receipt before Stage 11"
+                    )
+                recipe_receipt_digest = receipt.receipt_digest
+            if debloat_required:
+                receipt = DebloatService(self.store).load_receipt(project_id)
+                if receipt is None:
+                    raise ProjectError(
+                        "The current system-app review needs a verified Debloat receipt before Stage 11"
+                    )
+                debloat_receipt_digest = receipt.receipt_digest
         plan = BuildPlan(
             schema_version,
             project_id,
@@ -160,6 +193,8 @@ class RomBuildPlanner:
             toolchain_manifest.required_tools if toolchain_manifest is not None else (),
             toolchain_manifest.manifest_digest if toolchain_manifest is not None else "",
             _guided_choice_digest(self.store, project_id) if toolchain_manifest is not None else "",
+            recipe_receipt_digest,
+            debloat_receipt_digest,
             True,
             False,
             "none",
@@ -207,6 +242,8 @@ class RomBuildPlanner:
                 tuple(map(str, data.get("required_tools", ()))),
                 str(data.get("toolchain_manifest_digest", "")),
                 str(data.get("guided_choice_digest", "")),
+                str(data.get("recipe_receipt_digest", "")),
+                str(data.get("debloat_receipt_digest", "")),
                 data.get("local_only", True),
                 data.get("flashable", False),
                 str(data.get("execution_authority", "none")),
@@ -313,6 +350,36 @@ class RomBuildPlanner:
             return "Protected source changed since build plan"
         if _guided_choice_digest(self.store, plan.project_id) != plan.guided_choice_digest:
             return "Guided build choices changed since build plan"
+        recipe = RecipeStore().load(self.store.projects_root / plan.project_id)
+        recipe_required, debloat_required, requirement_error = _guided_receipt_requirements(
+            self.store,
+            plan.project_id,
+            recipe,
+        )
+        if requirement_error:
+            return requirement_error
+        if recipe_required:
+            if plan.schema_version < 4 or not plan.recipe_receipt_digest:
+                return "Bound Recipe execution receipt is missing from the build plan"
+            assert recipe is not None
+            receipt = load_run_receipt(
+                self.store.projects_root / plan.project_id,
+                recipe=recipe,
+                tree_root=self.store.working_root / plan.project_id / "tree",
+                snapshot_root=self.store.snapshots_root / plan.project_id / "recipes",
+            )
+            if receipt is None or receipt.receipt_digest != plan.recipe_receipt_digest:
+                return "Bound Recipe execution receipt is unavailable, changed, or invalid"
+        elif plan.recipe_receipt_digest:
+            return "Build plan unexpectedly binds a Recipe receipt for the current Guided route"
+        if debloat_required:
+            if plan.schema_version < 4 or not plan.debloat_receipt_digest:
+                return "Bound Debloat receipt is missing from the build plan"
+            receipt = DebloatService(self.store).load_receipt(plan.project_id)
+            if receipt is None or receipt.receipt_digest != plan.debloat_receipt_digest:
+                return "Bound Debloat receipt is unavailable, changed, or invalid"
+        elif plan.debloat_receipt_digest:
+            return "Build plan unexpectedly binds a Debloat receipt for the current Guided route"
         host = current_host()
         service = ToolchainEvidenceService(
             self.store.workspace,
@@ -429,20 +496,54 @@ def _guided_choice_digest(store: RomProjectStore, project_id: str) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
+def _guided_receipt_requirements(
+    store: RomProjectStore,
+    project_id: str,
+    recipe: RomRecipe | None,
+) -> tuple[bool, bool, str]:
+    """Derive exact Stage 11 receipt requirements from the persisted Guided route."""
+
+    from romverse.rom.guided import GuidedMissionStore
+
+    state = GuidedMissionStore(store.projects_root / project_id).load()
+    if state.customization_skipped:
+        return False, False, ""
+    if state.recipe_skipped:
+        recipe_required = False
+    elif not state.recipe_validated:
+        return False, False, "Guided Recipe validation is incomplete"
+    elif recipe is None:
+        return False, False, "The validated Guided Recipe is missing or invalid"
+    else:
+        recipe_required = any(step.operation != "inspect" for step in recipe.steps)
+    return recipe_required, True, ""
+
+
 def _plan_digest(plan: BuildPlan) -> str:
     payload = asdict(plan)
     payload.pop("plan_digest", None)
+    if plan.schema_version < 4:
+        payload.pop("recipe_receipt_digest", None)
+        payload.pop("debloat_receipt_digest", None)
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def _valid_bound_plan(plan: BuildPlan) -> bool:
     return (
-        plan.schema_version == 3
+        plan.schema_version in {3, 4}
         and _is_sha256(plan.source_sha256)
         and _is_sha256(plan.tree_sha256)
         and _is_sha256(plan.toolchain_manifest_digest)
         and _is_sha256(plan.guided_choice_digest)
+        and (
+            plan.schema_version == 3
+            and not plan.recipe_receipt_digest
+            and not plan.debloat_receipt_digest
+            or plan.schema_version == 4
+            and (not plan.recipe_receipt_digest or _is_sha256(plan.recipe_receipt_digest))
+            and (not plan.debloat_receipt_digest or _is_sha256(plan.debloat_receipt_digest))
+        )
         and bool(plan.required_tools)
         and len(plan.required_tools) == len(set(plan.required_tools))
         and plan.local_only is True

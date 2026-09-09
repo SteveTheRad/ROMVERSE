@@ -2089,7 +2089,7 @@ def test_genesis_simulated_device_continues_visibly_without_hardware_authority(
 
     plan = RomBuildPlanner(store).load(project.project_id)
     assert plan is not None
-    assert plan.schema_version == 3
+    assert plan.schema_version == 4
     assert plan.source_sha256 == project.original.sha256
     assert plan.required_tools == ("Python", "Payload Dumper", "AVBTool")
     assert plan.local_only and not plan.flashable and plan.execution_locked

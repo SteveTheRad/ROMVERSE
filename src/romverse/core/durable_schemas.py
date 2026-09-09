@@ -291,8 +291,8 @@ DURABLE_SCHEMA_INVENTORY: tuple[DurableSchemaSpec, ...] = (
     _spec(
         "romverse.build-plan",
         P,
-        3,
-        (1, 2, 3),
+        4,
+        (1, 2, 3, 4),
         "src/romverse/rom/builds.py",
         '"romverse.build-plan"',
         "tests/test_rom_builds.py",

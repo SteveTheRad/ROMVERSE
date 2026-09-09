@@ -1,5 +1,99 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 7d0cf6a — Windows Project Vault parent-to-child comparison
+
+- Reviewed checkpoint: `7d0cf6a76ff89eb419412a63ebbaae047da88f4e`
+- Authorizing verdict: `7e578ad58c1a841db05567b2fb9dc3aee879e2ed`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — EXACT IN-MEMORY VAULT COMPARISON PRESERVED ALL PROJECT AND AUDIT STATE**
+
+### Decision and independent evidence
+
+The checkpoint satisfies the exact one-shot comparison authorized by `7e578ad`. Its parent is that
+assurance verdict, and it changes only Build Status. Forgejo and GitHub expose the identical
+checkpoint; the Windows checkout is at that exact head with no tracked or staged change. The
+protected untracked patch remains 8,272 bytes at SHA-256
+`2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`, and existing
+`build-work/` remains untracked and untouched. Git whitespace validation passes. No application,
+test, package or workflow file changed, so no test rerun or package rebuild is warranted.
+
+Product Assurance independently rehashed the retained Windows profile. Child
+`20260909T201412-ea0f44c8` and parent `20260909T201410-0822394f` remain respectively 3,331 and
+2,651 bytes at
+`eaa7f76cc78402fee5236c93521c5bbe0a69c7af5a813cbd89fe951c80fd31fd` and
+`29e1536b18cdadac594858281a38c20270785ed411da5bd6ddc425c21c4c496a`. Their relationship and
+project binding remain exact. The parent has no tree files; the child has only
+`META-INF/com/android/metadata` and `payload.bin`; both retain identical project, inspection and
+Device DNA context fingerprints. The visible comparison therefore correctly reports two added
+paths, zero changed, zero removed, zero unchanged tree files and no context-fingerprint changes.
+
+The comparison was display-only. Activity remains six events, 3,392 bytes and SHA-256
+`b432f3acbe63c146dfed87e2ded46b8a8aed2cdf59e16ccdf9de8f03e870e46f`.
+Live Console remains 28 events, 29,306 bytes and SHA-256
+`572d700546113dd38d6f13f03255effc2d025da9296b5d956974b997a1030c62`.
+No inferred operation or success record was appended.
+
+The protected original, working baseline, working-copy record, working-tree index, two extracted
+members, baseline snapshot and record, both Vault entries and all five content-addressed objects
+remain byte-identical. There is still exactly one snapshot binary, one snapshot record, two Vault
+entries and five Vault objects. The 436-byte mission remains byte-identical at
+`ba96a6b7557ce9590b120cd52090a363d5fb2277729aba04b9316928d78ec0db`, with
+`selected_stage: device`, root undecided, no build plan, no install request and no error. Direct
+Command Deck return therefore preserved the exact stage-five attention context without reopening
+Genesis.
+
+The runtime ledger is 462 bytes at
+`00db3144b046799d2e0dee6d2ca8fe9211a6c93093ad4d6e963b1674a24f82f2`, representing six starts
+and six clean closes. ROMVERSE, ADB and Fastboot process counts are zero; both ledger locks accept
+exclusive opens; the profile has no reparse entries; and all operational directories remain empty.
+Settings remain 687 bytes at
+`90958eafb57e6166b3a41a9ad5795c79d9774acb266003ee340601c624a5f2da`, with all online,
+download and contribution controls false.
+
+No comparison retry, verification, capture, branch, restore, export, cleanup, external evidence,
+device scan/simulation, tool resolution, network/download, phone/emulator, ADB/Fastboot,
+firmware/APK mutation, Recipe/Forge, Guardian/Recovery execution, signing, publication, release,
+hosted CI, wipe, unlock/root, bootloader lock or relock occurred. Exact evidence, consent
+separation, Guardian-only authority, durable `UNKNOWN`, no blind retry, feature freeze and
+permanent no-relock remain intact.
+
+### Approved next bounded Windows task
+
+Use the same closed package/profile for one **isolated Project Vault experiment-branch creation**
+from the already verified child checkpoint. This is contained local project history only and does
+not authorize use of the branch for firmware work or any phone action.
+
+1. Revalidate entry `20260909T201412-ea0f44c8`, its exact six-file/14,855-byte verified content,
+   and the absence of an existing experiment branch. Open Time Machine through normal navigation,
+   keep `Extracted project tree` selected and invoke `Branch experiment` exactly once.
+2. Enter the exact bounded label `Windows Vault Experiment 7d0cf6a`. Require the service to freshly
+   verify the selected entry before creating one new private, contained branch root with a
+   byte-identical 497-byte baseline, the two exact tree files, the three exact context files and one
+   sealed branch record bound to the selected entry. Require the visible terminal result to state
+   `ISOLATED EXPERIMENT READY` and that the known-working baseline was not overwritten and the
+   phone was untouched.
+3. Activity must remain byte-identical. Live Console may append only the exact
+   `project-vault-branch` running/succeeded pair. Do not open, edit, build from, verify or otherwise
+   use the new branch, and do not create a second branch.
+4. Revalidate every pre-existing project/snapshot/Vault byte plus the exact new contained branch,
+   return directly to Command Deck with the same project and attention state, and close normally.
+   Prove zero ROMVERSE/ADB/Fastboot processes and released locks. If one branch-creation,
+   containment, ACL, display or return-context defect appears, correct only that first defect with
+   focused tests and rebuild only if shipped source changes; otherwise commit evidence only and
+   stop for review.
+
+Do not invoke comparison again, capture, restore, export, cleanup, external evidence, Genesis,
+device scan/simulation, network, downloads, tool resolution, phone/emulator, ADB/Fastboot,
+APK/firmware mutation, Recipe/Forge, Guardian/Recovery execution, signing, publication, release,
+hosted CI, wipe, unlock/root, lock or relock.
+
+### Gate status
+
+- Windows exact Project Vault parent-to-child comparison: **APPROVED**
+- One isolated Project Vault experiment branch from the verified checkpoint: **AUTHORIZED**
+- Branch use, project mutation, restore/export/cleanup and further Vault actions: **CLOSED**
+- Device, build, consequential, signing/publication and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 901bfd0 — Windows Project Vault full-checkpoint verification
 
 - Reviewed checkpoint: `901bfd006fe1bb1c3ca1ef647f6e3c57be76e27d`

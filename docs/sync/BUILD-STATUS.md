@@ -1,5 +1,107 @@
 # ROMVERSE Product Assurance Sync
 
+## Native visible Windows readiness correction and acceptance — Product Assurance review requested
+
+- Authorization: `372bf1cc893efd1cdc2efcc1f6263bcfdde45b3a` — `Authorize current Windows
+  package visible readiness`, matching approved package checkpoint `a66ea2d`.
+- Minimum correction: `4e4211c5deee55e8e89eba64c146fc8d1d4772c3` — `Keep Windows setup action
+  visible`.
+- Status: **PASS AFTER ONE PROVEN WINDOWS LAYOUT CORRECTION — THE REPLACEMENT UNSIGNED PACKAGE
+  REACHES COMMAND DECK, ACTIVATES THE VERIFIED MANAGED PLATFORM TOOLS RECEIPT, REPORTS THE
+  TRUTHFUL NO-PHONE STATE, NAVIGATES ONCE TO ROM STUDIO, AND CLOSES CLEANLY.**
+
+### First visible evidence and bounded correction
+
+- The already-approved package
+  `build\windows-ruff-converged-fc89e13\ROMVERSE\ROMVERSE.exe` was launched once through the
+  native Windows desktop with existing workspace `C:\Work\ROMVERSE-Link-Lazy-Frozen-20260907`.
+- The session exposed one genuine host/application defect before Command Deck: the unbounded
+  18-row setup tool inventory drove the dialog below the 1080p usable desktop. The visible capture
+  was clipped at **1,110 x 1,080** and the sole `Continue in Guided Mode` action remained behind
+  the taskbar; normal mouse activation and keyboard focus could not reach it. The session was
+  closed normally without creating a project or entering a journey.
+- The minimum correction places only the setup tool inventory inside a vertically scrollable,
+  horizontally fixed viewport capped at 240 logical pixels. Workspace selection, Guided mode,
+  tool truth, and all device/execution behavior are unchanged.
+- The corrected setup window was visibly captured at **774 x 833** with the workspace field,
+  credit, and full `Continue in Guided Mode` button simultaneously reachable above the taskbar.
+
+### Focused verification and development evidence
+
+- Final focused command used `QT_QPA_PLATFORM=offscreen`, fresh short basetemp
+  `C:\Work\rvsw-372bf1c-3`, and exactly these two nodes:
+  `test_setup_wizard_bounds_tool_inventory_and_keeps_guided_action_visible` and
+  `test_first_run_explicitly_enters_guided_and_reaches_truthful_host_prerequisite`.
+- Final result: **2 passed**. The new regression proves the 18-row inventory scrolls, the dialog
+  size hint remains at or below 800 logical pixels, and the Guided action remains inside the
+  visible dialog content rectangle.
+- Two bounded development iterations with 360- and 320-pixel inventory caps each reported
+  **1 passed / 1 failed** because the dialog size hint remained 830 pixels; the cap was then reduced
+  to the passing 240-pixel boundary. An initial default-temp attempt also exposed the already-known
+  inherited `pytest-current` ACL cleanup error and was not counted as acceptance evidence.
+- `.venv\Scripts\python.exe -m ruff check` on the two changed files: **PASS**.
+- `.venv\Scripts\python.exe -m ruff format --check` on the two changed files: **PASS, 2 files
+  already formatted**. `git diff --check`: **PASS**.
+- The 974 portability nodes, broader regression, earlier package/smoke evidence, and prior Guided
+  journeys were not repeated.
+
+### One replacement package
+
+- Because the confirmed setup source defect required changed bits, exactly one replacement build
+  ran from committed source `4e4211c5deee55e8e89eba64c146fc8d1d4772c3`:
+  `.venv\Scripts\python.exe scripts\build_desktop_executable.py --output-directory
+  C:\Work\ROMVERSE-Windows\build\windows-visible-readiness-4e4211c5 --work-directory
+  C:\Work\ROMVERSE-Windows\build\windows-visible-readiness-4e4211c5-pyinstaller`.
+- Environment: Windows 11 `10.0.26200`, Python `3.12.10`, PyInstaller `6.22.2`; build result:
+  **PASS on the first attempt**. No dependency or tool was installed.
+- Package: `build\windows-visible-readiness-4e4211c5\ROMVERSE` — **305 regular files /
+  164,646,472 bytes / 0 reparse points**.
+- Executable: `ROMVERSE.exe` — **6,323,708 bytes**, SHA-256
+  `1fa6ac824abe939cfceaaff0f5e0755b19367971b72886afad1518e643678f41`, Authenticode
+  `NotSigned`.
+- Sorted forward-slash relative-path/size/member-SHA-256 manifest, UTF-8 without BOM:
+  `65790d8ef4b85268fd8b67126501e588f14cd3ad90b45a25732b25053343fd22`.
+
+### Single corrected native visible acceptance
+
+- The replacement package was launched once normally. The corrected setup selected the exact
+  existing workspace and entered Guided mode; persisted settings now record
+  `workspace_path=C:\Work\ROMVERSE-Link-Lazy-Frozen-20260907`, `onboarding_complete=true`, and
+  `experience_mode=guided`.
+- Managed receipt `tools\downloads\platform-tools\managed-package.romverse` is **520 bytes** with
+  SHA-256 `d4650bbcf867db6d68a75756fe02bab836f3321678b420964d90fc5055e4d948`.
+  It binds archive SHA-256
+  `45f4d63113e895ebde0c90f194099a4676b6ac653bd28d54314a9e022bbc1a99`; the present managed
+  `adb.exe` and `fastboot.exe` hashes exactly match its recorded
+  `b4a6b455702684652cccf7b46258b29e653538904359a58fd4931cf3ef286b3f` and
+  `b2d9cbff4ce9ae7eb448cfc831bafc867935f50f5be38f8f81057fd7eb3b8d86` values.
+- Command Deck visibly reported `No Android device detected`, `NOT CONNECTED`, `Waiting for
+  device`, and `No Android transport is visible`; `Device Engine needs attention` was absent.
+  Guardian remained `VERIFY REQUIRED` / read-only and Device DNA remained `UNCONFIRMED`.
+- During the bounded visible session, ROMVERSE itself recorded six periodic allowlisted
+  host-targeted `adb devices -l` and six `fastboot devices -l` discovery probes. Every probe was
+  category `read_only`, risk `none`, return code `0`, and found no device. Build issued no direct
+  device command and no physical target existed.
+- Exactly one primary sidebar navigation action opened **ROM Studio / ROM Projects**. No project
+  was created and no other journey or action was started.
+- The application then closed normally. The workspace runtime-fault log grew from **344 to 421
+  bytes** and its exact 77-byte suffix is one `ROMVERSE runtime started` marker followed by one
+  `ROMVERSE runtime closed cleanly` marker, with no intervening exception or native fault.
+
+### Scope, preservation, and next review
+
+- The protected untracked patch remains exactly **8,272 bytes**, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it was not applied,
+  edited, staged, or deleted. Protected Companion files and all Linux, Knowledge, and UI Design Lab
+  work remain untouched.
+- No phone was connected, discovered, or operated; no APK, firmware, Recovery/Guardian execution,
+  production trust/signing, publication, release, paid CI, force-push, destructive action, lock, or
+  relock occurred. UNKNOWN-on-uncertainty, consent separation, no blind retry, Guardian-only
+  authority, exact evidence, and permanent no-relock remain intact.
+- Precise next task: independent Product Assurance review of correction `4e4211c5`, the single
+  replacement package and this native visible evidence. Do not begin another Windows source slice
+  until a verdict matching this checkpoint is committed.
+
 ## Converged current-source Windows development package — Product Assurance review requested
 
 - Approved Windows source/checkpoint: `fc89e13b42e0447acc34333434f267bf6728ba99` on

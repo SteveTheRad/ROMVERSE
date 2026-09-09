@@ -1,5 +1,79 @@
 # ROMVERSE Product Assurance Sync
 
+## Project Flash restored-mtime tamper checkpoint — durable fresh-evidence semantics
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `b14fa5e`, approving checkpoint `c3db243` and authorizing only
+  classification of the Project Flash restored-mtime tamper fixture. Test-fixture commit:
+  `ce141c8` (`Assert Project Flash tamper semantics`). This section forms the following handoff
+  commit on `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation regression reliability only. No production source,
+  receipt loader, preparation behavior, fallback route, Guardian/Recovery rule or execution
+  boundary changed.
+- Exact changed test file is `tests/test_project_flash.py`, plus this handoff. Desktop UI,
+  packaging, Windows, Companion and all other test clusters remained unchanged.
+
+### Classification and correction
+
+- The exact historical node passed **1/1 before any change**. On this filesystem the restored
+  modification time satisfies the bounded local-build receipt metadata check, after which Project
+  Flash independently streams and hashes the selected build output. The fresh digest differs from
+  the source-bound receipt and preparation fails closed before returning an image inventory.
+- This is a safe two-boundary design for the tested path: cached receipt metadata is not treated as
+  final byte authority, and Project Flash earns current evidence with a fresh SHA-256 calculation.
+  No protected-source fallback is inferred because the caller explicitly selected `built`.
+- The fixture now asserts durable consequences rather than the incidental `bytes differ` prose:
+  the rejection identifies the exact selected source/build receipt and requires fresh verified
+  evidence. It continues to restore the original modification time, so metadata-only acceptance
+  cannot satisfy Project Flash preparation.
+
+### Verification evidence
+
+- Exact restored-mtime tamper node: **1/1 passed** before correction and **1/1 passed** afterward.
+- Final smallest directly connected Project Flash service selection: **14/14 passed**. The exact
+  rerun is contained in the final selection and is not added to its total.
+- Ruff lint, Ruff formatting and `git diff --check` passed for the changed fixture.
+- No desktop/UI journey, full repository suite, package build, Windows suite, paid GitHub Actions
+  workflow or Stage-12 operation was run.
+
+### Classification, safety and gates
+
+- **Implemented:** one test assertion now preserves the restored-mtime tamper, exact receipt
+  binding and fresh-evidence recovery semantics without coupling to obsolete downstream prose.
+  Application behavior and copy are unchanged.
+- **Simulated/Tested:** **14/14** pure Project Flash service tests passed on Fedora. The tamper
+  fixture proves same-size bytes with restored mtime cannot enter a built-image preparation.
+- **Hardware Verified:** no. No phone, emulator or Windows host was used.
+- **Released:** no. No package was built, installed, signed, published or released.
+- Guided friction/dead ends: a tampered built selection stops with an actionable instruction to
+  prepare fresh verified evidence. ROMVERSE does not silently substitute protected-source images;
+  that remains a separate explicit user choice.
+- Guardian/Recovery/safety: unchanged. Current bytes remain independently hashed at preparation;
+  stale metadata, historical evidence and receipts grant no write authority. Guardian-only
+  authority, exact evidence, UNKNOWN-on-uncertainty, no blind retry, independent verification and
+  permanent bootloader no-relock remain intact.
+- Platform status: bounded service verification passed on Fedora. Windows and physical Android
+  were not relevant or run. Broad regression and all release gates remain closed.
+- Feature freeze: compliant test-only correctness work. v0.2 Golden Foundation and all release
+  gates remain **CLOSED**.
+- External actions: local tests and scoped commit/push preparation only. No paid workflow,
+  dependency/tool/APK installation, phone/emulator operation, device-addressed ADB/Fastboot,
+  firmware build/sign/flash, Guardian/Recovery execution, publication, release, merge, force-push,
+  lock or relock occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another error-copy/UI cluster,
+package task, Stage 12 operation or consequential slice until this exact checkpoint is reviewed.
+
+### Product Assurance Review Requested
+
+- Confirm the current two-boundary behavior is correct for this scope: bounded receipt metadata
+  loading followed by an independent fresh Project Flash hash before preparation can succeed.
+- Confirm receipt-bound, fresh-evidence semantic assertions are preferable to retaining the
+  incidental `bytes differ` phrase, and that the 14-node service selection is sufficient.
+
 ## Stage-12 wording checkpoint — Forge Control semantic contract replaces stale prose
 
 ### Authoritative checkpoint and scope

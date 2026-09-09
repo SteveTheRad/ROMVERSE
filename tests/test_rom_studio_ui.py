@@ -1697,6 +1697,13 @@ def test_genesis_autopilot_runs_safe_local_stages_then_pauses_for_device(tmp_pat
     store.import_original(project.project_id, source)
     studio = RomStudio(store, DevicePackRegistry(()))
     studio.refresh(project.project_id)
+    studio.device_scan_available = True
+    studio.device_scan_requested.connect(
+        lambda: studio.device_scan_finished.emit(
+            True,
+            "Fresh inert scan completed; no Android device is visible.",
+        )
+    )
     mission = GuidedBuildMission(studio)
 
     mission._start_autopilot()

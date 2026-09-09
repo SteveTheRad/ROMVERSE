@@ -1,5 +1,73 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux convergence suffix checkpoint — all remaining normal-order nodes pass
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `13701ec`, approving checkpoint `100e98d` and authorizing one
+  cost-free suffix-only Linux convergence run after the corrected victim. No implementation commit
+  was required; this section forms the evidence-only handoff commit on
+  `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation regression convergence only. Normal current collection
+  order was captured once with this worktree's `src` forced first and offscreen Qt. The already-
+  observed 2,854-node prefix was not rerun.
+- The selection excluded the previously proven fixture owner and victim, began with
+  `test_hidden_preparation_failure_is_actionable_and_reopens_exact_choice`, and ended with
+  `test_workspace_shell_state_preserves_navigation_choice_through_focus`.
+- No application, test, package, Windows or Companion file changed. This handoff is the only
+  repository modification at the checkpoint.
+
+### Verification evidence
+
+- Normal current collection contained **3,005 nodes**. Exactly **150 nodes** followed
+  `tests/test_source_installation_integration.py::test_main_window_continues_hidden_preparation_in_the_same_mission`.
+- The one authorized suffix run passed **150/150** in **8.78 seconds**, with first-failure enabled.
+  No test failure or 15-minute no-progress Qt interval occurred.
+- Unique normal-order evidence now covers **3,005/3,005 nodes**, assembled without double counting:
+  the earlier preflight supplied 2,854 prefix passes; the independently approved corrected
+  owner→victim run supplies the victim's current pass while its already-counted owner is not added;
+  and this suffix supplies 150 new passes. This is segmented convergence evidence, **not** one
+  uninterrupted full-suite run.
+- The suffix was not repeated and no cloud matrix was launched. No speculative source or fixture
+  edit was made because no new failure appeared.
+
+### Classification, safety and gates
+
+- **Implemented:** no product or test change; evidence-only handoff.
+- **Simulated/Tested:** suffix **150/150 passed** on Fedora. Across the approved segmented runs,
+  every one of the **3,005 unique normal-order nodes** has current passing evidence. A single
+  uninterrupted Linux suite is not claimed.
+- **Hardware Verified:** no new hardware evidence. No phone, emulator or Windows host was used.
+- **Released:** no. No package was built, installed, signed, published or released.
+- Guided friction/dead ends: no additional Guided stall or modal ownership failure appeared in the
+  suffix. The earlier test-owned modal leak remains corrected and independently approved.
+- Guardian/Recovery/safety: unchanged. Guardian-only authority, exact evidence, UNKNOWN-on-
+  uncertainty, no blind retry, independent verification and permanent bootloader no-relock remain
+  intact. The convergence run executed tests only and granted no device authority.
+- Platform status: Fedora has complete **segmented 3,005/3,005** normal-order evidence. Previously
+  approved Windows/package evidence was reused, not rerun. This checkpoint alone does not satisfy
+  physical hardware, production trust, package or release gates.
+- Feature freeze: compliant evidence-only convergence. v0.2 Golden Foundation and release gates
+  remain **CLOSED** pending Product Assurance's gate assessment and all other mandatory evidence.
+- External actions: local test collection/run and scoped handoff commit/push preparation only. No
+  GitHub Actions, paid CI, dependency/tool/APK installation, package rebuild, phone/emulator
+  operation, device-addressed ADB/Fastboot, Windows work, Stage-12 operation, firmware
+  build/sign/flash, Guardian/Recovery execution, publication, release, merge, force-push, lock or
+  relock occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not repeat Linux convergence, launch cloud CI,
+rebuild a package or begin another consequential slice until this evidence is reviewed.
+
+### Product Assurance Review Requested
+
+- Confirm the segmented, non-overlapping arithmetic: 2,854 prefix passes + one corrected victim +
+  150 suffix passes = **3,005 unique normal-order nodes**, with the owner in the approved 2/2 run
+  treated as overlapping verification rather than an additional node.
+- Determine the next remaining v0.2 gate from repository evidence; no new Build task is inferred by
+  this handoff.
+
 ## Linux convergence first-failure checkpoint — simulated Genesis modal cleanup
 
 ### Authoritative checkpoint and scope

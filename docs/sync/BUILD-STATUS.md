@@ -1,5 +1,99 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux package checkpoint — converged current-HEAD Fedora development artifact
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/source commit: `44233c60d50dcfc5ba6ae56db36c4738448d34cc`,
+  approving deterministic Ruff checkpoint `50abc17` and authorizing exactly one current-HEAD
+  unsigned Linux development package with three one-time no-phone checks.
+- No implementation commit was required; this section forms the evidence-only handoff commit on
+  `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation runnable Fedora development artifact only. The branch was
+  clean before assembly, the existing package toolchain was reused, and nothing was installed.
+- New `44233c6` output/work/smoke/archive paths were confirmed absent before the build. All earlier
+  accepted artifacts remain preserved and unchanged.
+
+### Exact current-HEAD artifact
+
+- PyInstaller one-folder application:
+  `build/fedora-44233c6/ROMVERSE` — **422 regular files**, **243,079,637 regular-file bytes** and
+  **38 contained internal links**.
+- Native executable: `build/fedora-44233c6/ROMVERSE/ROMVERSE` — **6,330,360 bytes**, SHA-256
+  `ac8eda9f281a7a20f9d05581d28affcef8b3dcff674491e20d33a23de4155886`.
+- Executable identity: executable/stripped Linux x86-64 ELF, dynamically linked through
+  `/lib64/ld-linux-x86-64.so.2`, GNU/Linux 3.2.0 ABI, Build ID
+  `59f7026dd9fa459f25f0b2ee08ddc2bc94d444af`.
+- Verified unsigned archive:
+  `dist/ROMVERSE-Desktop-0.2.0-alpha.1-linux-x86_64-44233c6.zip` — **151,026,989 bytes**, SHA-256
+  `594aa3c24874b71c82fc9a7110614bbd1a6f542f258e87e2d8fe560f99ca84c9`.
+- Package-content verification passed for **460 archive members** and **360,334,266 expanded
+  bytes**, including the required Linux executable, with the existing safe-path/link/duplicate/
+  count/size and archive CRC checks.
+- Build identity: Fedora 44 x86-64, kernel 7.1.13, Python 3.14.7 and PyInstaller 6.22.2. The module
+  graph contains 259 references to this Linux readiness checkout and zero ROMVERSE source references
+  to the older reusable-environment checkout. PyInstaller reported only its standard optional
+  `xxsubtype` warning.
+
+### Exactly-once package and no-phone verification
+
+- Exactly one PyInstaller build completed successfully. No failure, source correction or
+  replacement build occurred.
+- Package-content verification ran once and passed with the exact archive evidence above.
+- Installed-desktop smoke ran once against current source in fresh isolated
+  `build/installed-smoke-44233c6`, with `PATH=/nonexistent`. It passed with **22 Device Packs**,
+  **170 known fixes**, **281 offline evidence records**, **19 covered desktop routes**, the dark
+  Time Machine empty-state handoff and byte-exact populated-workspace reopening.
+- Frozen-launch smoke ran once against the new ELF in fresh isolated
+  `build/frozen-smoke-44233c6`, with `PATH=/nonexistent` and offscreen Qt. The executable exited 0;
+  its runtime log records one start and one clean close without an exception or native fault.
+- The frozen workspace contains no device, Guardian, Recovery or operation evidence. ADB and
+  Fastboot were unavailable by construction, so no phone identity or readiness was invented. This
+  is truthful display-free no-phone startup/shutdown evidence; no screenshot or separate
+  interactive visual review is claimed.
+
+### Classification, safety and gates
+
+- **Implemented:** no source change in this checkpoint; the exact approved current HEAD was
+  assembled into a new isolated Fedora development artifact.
+- **Simulated/Tested:** one real Fedora one-folder build, one archive/content verification, one
+  installed-desktop smoke and one frozen no-phone launch/clean shutdown.
+- **Hardware Verified:** Fedora host construction and native ELF execution only. The connected
+  Android phone was not queried or operated; Windows was not run by Linux Build.
+- **Released:** no. The archive is unsigned, local, untrusted, unpublished and development-only.
+- Regression evidence: the approved segmented **3,005/3,005** Linux result and deterministic Ruff
+  convergence were not repeated. Package construction/content and the two smoke paths are this
+  checkpoint's distinct acceptance evidence.
+- Guided friction/dead ends: no packaged import, asset, initialization, no-phone startup,
+  persistence or shutdown defect appeared. No completed Guided project or user journey was replayed.
+- Guardian/Recovery/safety: unchanged. No device engine or execution authority was created.
+  Guardian-only authority, exact evidence, UNKNOWN-on-uncertainty, no blind retry, independent
+  verification and permanent bootloader no-relock remain intact.
+- Platform status: genuinely built, content-verified and natively launched on Fedora from current
+  HEAD. Windows convergence evidence remains separate. Cross-distro clean-machine, physical
+  Android, production signing/trust, update and release remain unverified.
+- Feature freeze: compliant packaging/readiness evidence only; no product capability changed.
+- Version/package gate: current-HEAD Fedora development package/content/native launch is now
+  **PENDING PRODUCT ASSURANCE**. v0.2 Golden Foundation and release remain **CLOSED** pending this
+  review and all other mandatory gates.
+- External actions: one local package build and local smoke verification only. No GitHub Actions,
+  paid CI, dependency/tool/APK installation, phone/emulator/ADB/Fastboot, Windows/Companion build,
+  user journey, firmware build/sign/flash, Guardian/Recovery execution, system-wide desktop install,
+  publication, release, merge, force-push, lock or relock occurred.
+
+### Next proposed Build task
+
+Stop for repository-based Product Assurance review. Do not rebuild this artifact, repeat smoke or
+regression, query the connected phone or begin another consequential slice until this exact package
+checkpoint is reviewed.
+
+### Product Assurance Review Requested
+
+- Independently verify the source identity, one-build rule, exact file/link/member counts, sizes,
+  hashes, executable identity and archive CRC for the `44233c6` artifact.
+- Confirm the exactly-once installed and frozen tool-less smoke results satisfy the current-HEAD
+  Fedora development-package gate without a duplicate launch or interactive visual replay.
+
 ## Deterministic Ruff convergence checkpoint — Linux AST-preserving format baseline
 
 ### Authoritative checkpoint and scope

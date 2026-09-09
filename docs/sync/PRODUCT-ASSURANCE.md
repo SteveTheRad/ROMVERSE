@@ -1,5 +1,72 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 63928f7 — Device Intelligence foundation schema contracts
+
+- Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`
+- Corrected implementation checkpoint: `63928f7aeb6588189b6f9b53a16b13f9a695f70e`
+- Original implementation checkpoint: `ffaa5c6af25b24ec884daa4a828f1b5093c2042c`
+- Product Assurance authorization record: `d335bcf5c7308b5bcbebf3b8a7e3560e4c757f0e`
+- Approved implementation base: `eac08f4d5c142380aa67588aee2be7faa5b64051`
+- Branch: `device-intelligence/foundation-schema-contracts`
+- Review status: **APPROVED — CHECKPOINT 1 COMPLETE; CHECKPOINT 2 EXPLICITLY AUTHORIZED**
+
+### Decision and independent evidence
+
+Checkpoint 1 is approved. Product Assurance independently inspected the authorization, full
+authorization-base-to-checkpoint diff, corrected source, tests, contract documentation and Build
+handoff. The complete implementation changes only the twelve paths authorized for Checkpoint 1.
+The correction from `ffaa5c6` changes eight paths within that same set. No protected local-store,
+Device DNA, Matrix, Nexus, First Light, Synapse, Guardian/Recovery, acquisition, platform, UI,
+Companion, packaging, signing or release path changed.
+
+The corrected privacy boundaries reject or sanitize a standalone 15-digit IMEI-like numeric value
+without accepting a surrounding label as a prerequisite. The same fail-closed pattern is applied to
+canonical device identity, canonical firmware identity and retained Online Evidence text. Product
+Assurance also exercised exact, embedded, 14-digit and 16-digit boundary cases independently.
+
+Lifecycle construction and strict parsing now normalize observation, retrieval, revalidation and
+history times to timezone-aware UTC. They reject `observed_at > retrieved_at`, reject
+`revalidated_at < retrieved_at`, reject every history timestamp earlier than `observed_at`, and
+reject a non-empty history whose final status differs from the current lifecycle status. Exact
+boundary equality remains valid. Lifecycle content addressing includes the normalized chronology,
+current status and complete ordered history, so accepted tampering changes the expected digest and
+non-canonical stored representations fail closed.
+
+Product Assurance independently collected and ran the exact authorized baseline: **141/141
+passed** across device identity, firmware source identity, Online Evidence, evidence persistence,
+Knowledge coverage, Device DNA, Compatibility Matrix, Nexus planning, First Light, Synapse and
+Guardian policy. Focused Ruff check passed, all 16 reviewed Python files passed Ruff format check,
+and the authorization-base-to-checkpoint Git whitespace check passed. Sixteen additional direct
+edge assertions for the corrected privacy and chronology boundaries passed.
+
+The worktree was clean before review and remained clean after verification. Live `ls-remote`
+inspection confirmed that local, Forgejo and GitHub branch heads were identical at
+`63928f7aeb6588189b6f9b53a16b13f9a695f70e`. Compatibility remains `UNCONFIRMED`; execution
+authority remains `none`; phone action, Guardian approval and bootloader relocking remain `false`.
+No physical device, emulator, network acquisition, hosted CI or application execution was used.
+
+### Checkpoint 2 — explicitly authorized now
+
+The prior Product Assurance authorization explicitly permits this gate to open after independent
+Checkpoint 1 approval. Product Assurance therefore authorizes only the already-bounded additive
+Synapse lifecycle checkpoint:
+
+- modify only `src/romverse/intelligence/synapse.py`, `tests/test_synapse.py`,
+  `docs/DEVICE-INTELLIGENCE-FOUNDATION.md` and `docs/sync/BUILD-STATUS.md`;
+- add explicit quarantine, supersession and expiry contracts while preserving Candidate → Verified
+  Success → Strong → Trusted, existing downgrade and retirement semantics;
+- hide unusable lifecycle states from query results while retaining them for Archives explanation;
+  and
+- remain guidance-only with compatibility `UNCONFIRMED`, execution authority `none`, phone action
+  and Guardian approval `false`, and bootloader relocking permanently `false`.
+
+No other Device Intelligence, persistence backend, acquisition, runtime wiring, Matrix, Nexus,
+First Light, Guardian/Recovery, UI/platform/Companion, phone/emulator, firmware, build, flash, root,
+debloat, signing, publication or release work is authorized. Engineering must begin from the final
+dual-remote Product Assurance head containing this verdict, implement one bounded checkpoint,
+update Build Status, commit and push Forgejo first, mirror the identical commit to GitHub, and stop
+for independent Product Assurance review.
+
 ## Authorization verdict — Device Intelligence foundation schema-contract slice
 
 - Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`

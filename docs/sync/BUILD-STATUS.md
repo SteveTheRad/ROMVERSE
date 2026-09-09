@@ -1,5 +1,134 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux packaged checkpoint — Stage 11 binds exact Recipe and Debloat results
+
+### Authoritative checkpoint and scope
+
+- Implementation commit: `d18da9d` (`Bind Stage 11 result receipts`), based on Product Assurance
+  correction `eaeb2f2` for the prior `c4c7d27` checkpoint. This section forms the following
+  documentation/handoff commit on `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation, existing Guided task 11 **Freeze a deterministic build
+  plan** only. Stages 1–10 were not recreated or replayed. Task 12 was displayed and durably saved
+  after the corrected task-11 result, but it was not operated.
+- Feature-freeze classification: minimum foundation/correctness correction to the existing Stage-11
+  evidence contract. No new capability, product surface, adapter, Device Pack, build action,
+  Guardian action or Recovery action was added.
+
+### Exact implementation changes
+
+- `romverse.build-plan` advances from schema 3 to schema 4 and adds immutable
+  `recipe_receipt_digest` and `debloat_receipt_digest` fields. Both fields participate in the
+  existing `plan_digest`.
+- Current Guided plan creation derives receipt requirements from the exact persisted route:
+  unchanged-base routes bind neither receipt; a skipped Recipe binds no Recipe execution receipt;
+  an inspect-only Recipe needs no mutation receipt; every non-skipped system-app review requires a
+  strict Debloat receipt; and a validated mutating Recipe requires its strict current Recipe receipt.
+- Planning fails before replacing the saved plan when required evidence is missing or invalid.
+  Current-plan verification strictly reloads each required receipt and rejects deletion, tampering,
+  valid replacement with another receipt, Recipe/tree/snapshot mismatch, or Debloat scan/tree/
+  snapshot mismatch.
+- Schema-3 plans remain bounded/readable for diagnosis and keep their original digest semantics,
+  but cannot satisfy a Guided route that currently requires result-receipt bindings. The durable
+  schema inventory now declares build-plan version 4 with read support for versions 1–4.
+- The plan remains `local_only: true`, `flashable: false`, `execution_locked: true`, and
+  `execution_authority: none`. Receipt evidence grants no build, device, Guardian, Recovery,
+  consent or execution authority.
+
+### Verification evidence
+
+- Final directly affected regression selection: **86/86 passed**. This is one non-double-counted
+  total across the complete build-plan suite, durable-schema inventory, build contracts, Build
+  Control UI, and the exact Guided simulated-device Stage-11 UI journey. Two renamed affected tests
+  were rerun after a test-only naming/fixture refinement; those overlapping passes are not added.
+- Ruff static checks: all changed source/test files passed. `git diff --check` passed.
+- A full Linux collection contains **2,996 tests**. The one full run was not successful: it reached
+  the displayed 86% mark, had already accumulated failures in broad pre-existing UI groups, and
+  then made no further visible progress in a memory-heavy Qt phase for more than 25 minutes, so it
+  was terminated. There is no valid full-suite passed/failed total. A bounded `-x` diagnosis found
+  the first failure in
+  `test_main_window_projects_real_operation_progress_into_command_deck_and_nebula`: the expected
+  `Live Operations` action was replaced by the host-derived `Resolve Platform Tools` action. That
+  test and the incomplete broad run are not counted in the 86 passing affected tests.
+
+### One replacement package and one forward-only journey
+
+- Exactly one replacement package was built; no build retry occurred:
+  `build/linux-pa-stage11-receipts/frozen/ROMVERSE/ROMVERSE`, 6,329,328 bytes, SHA-256
+  `5bae4e420a8c67d9ee89674017b4a4756f8a4c386907d9467e7e0cffd59f1347`. It is an ignored,
+  unsigned, local Fedora development artifact.
+- The package was launched once with the already-approved
+  `--development-device-simulation` boundary, existing private workspace/configuration and the same
+  saved project `linux-simulated-recipe-validation-307f7af6`. The UI visibly reported
+  **SIMULATION ONLY • NO HARDWARE**.
+- **Scan for device** was activated exactly once. The deterministic fixture restored Stage 11; no
+  physical target was selected and no device authority was created.
+- **Create and verify plan** was activated exactly once. The resulting schema-4 plan independently
+  reloaded and verified the exact tree, then Genesis displayed and saved Stage 12 with 12/15 stages
+  verified. No task-12 button or operation was used.
+- Corrected plan file SHA-256 is
+  `42faa6cde536cf0865144fc5e8558853a295e066fb7d0b4cc8908b297e8c67b4`; plan digest is
+  `b9ea4d189dd6c8054dfcfa90ff988195ba824f5ac8b5a5c04bf72bc305a07b40`. It binds:
+  - protected source `680f56c3c6741fb7ae8690a787d2b9ace87d22cbcfa18ea10b040b343b15bf7c`;
+  - current tree `502f9c800dede56f7514e0123f5347f5e762594065a8abd2b7f494cc41188ea3`;
+  - Recipe definition `eb068402fe625bc9928bf30ecee04d13eeff567c21196152825a2e939fb0d88e`;
+  - exact Recipe receipt `f5dbadad88d42490b1e36d5dfea54cfff8a6c32bf084f61b863242a0d11fac5a`;
+  - exact zero-change Debloat receipt
+    `d314ea9de2fa736efd09ae5bf9451b57310d5c21e12fd26880c21728f3bf4d62`;
+  - current source-scoped toolchain manifest
+    `04b0af55dec0a4bd13c3bedbea0a154b15ab7b58fcbccef31bf880982912490a`;
+  - Guided choices `558129c94a9abbfb0e9da3bb5086a473b9665d4612a91f9883f4f860f4894ca5`.
+- Independent source-level reload accepted schema 4 and independently returned **Working tree
+  matches build plan** at the exact expected/current tree digest. The saved schema-6 Guided mission
+  is `selected_stage: build_sign`, `build_plan_verified: true`, has no saved error, and record digest
+  `d9d5b63a58a0c5daa9eef8ec10425d51188c10c751bde04bb256116c3669738b`.
+- Shutdown limitation: after **Save & exit** closed Genesis and persisted Stage 12, the external
+  AT-SPI harness could not close the main native Wayland window. An attempted terminal Ctrl+C landed
+  in a UI timer and was recorded as an unhandled `KeyboardInterrupt`; the already-saved process was
+  then terminated. This occurred after the accepted Stage-11 result and does not alter its plan or
+  mission records, but this run is not claimed as a clean application shutdown.
+
+### Classification, safety and gates
+
+- **Implemented:** schema-4 exact Recipe/Debloat receipt binding, strict current revalidation,
+  backward diagnostic reading, and required downstream schema/test updates.
+- **Simulated/Tested:** 86/86 affected tests plus one genuine packaged Fedora simulation-only
+  Stage-11 journey. The broad 2,996-test run is incomplete/failed and is not represented as passing.
+- **Hardware Verified:** no. No physical Android or emulator operation occurred.
+- **Released:** no. The package and private project evidence are local development artifacts only.
+- Guided friction/dead ends: the prior false Stage-12 transition on an under-bound plan is corrected.
+  One existing action now accepts the two exact receipts and advances once; missing or changed
+  receipt evidence leaves an actionable task-11 failure rather than silently continuing. The
+  external Wayland automation shutdown limitation remains separate follow-up evidence.
+- Guardian/Recovery/safety: unchanged. The plan has zero execution authority; simulation has zero
+  live-target authority. Guardian-only execution, exact-device attribution, durable UNKNOWN,
+  no-blind-retry, independent verification and permanent bootloader no-relock remain intact.
+- Platform status: package creation and the bounded journey genuinely ran on Fedora 44/XWayland.
+  Windows was not run. Physical Android was not run. The full Linux suite remains a release-quality
+  regression blocker until its host-state/UI failures and non-terminating Qt phase are resolved.
+- Version gate: the specific Stage-11 Product Assurance correction is implemented and demonstrably
+  passes its bounded acceptance journey. v0.2 Golden Foundation remains **CLOSED** pending Product
+  Assurance review and the remaining Stage-1/release gates.
+- External actions: one local package build and one explicit local simulation launch occurred. The
+  handoff commits are pushed normally. No physical phone command, ADB/Fastboot target operation,
+  APK installation, firmware build/sign/flash, production Recovery execution, publication, release,
+  merge, force-push, lock or relock occurred. Companion, Knowledge/UI Design Lab, Windows and
+  unrelated application work were not touched.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin task 12 or another consequential slice.
+After approval, first resolve the accepted next bounded Stage-1 direction and separately classify
+the broad Linux UI-suite host-state/non-termination evidence without weakening Stage-11 bindings.
+
+### Product Assurance Review Requested
+
+- Confirm schema-4 dual result-receipt binding and strict current reload satisfy correction
+  `eaeb2f2`, including legacy diagnostic readability and unchanged-base empty bindings.
+- Confirm the post-save external Wayland automation shutdown limitation does not invalidate the
+  already persisted/independently reloaded Stage-11 result, while remaining explicit test evidence.
+- Decide whether the incomplete broad Linux UI regression must be corrected before the next
+  consequential Stage-1 slice or may proceed as a parallel non-consequential test-harness defect.
+
 ## Linux packaged checkpoint — Stage 11 retained on missing receipt bindings
 
 ### Authoritative checkpoint and scope

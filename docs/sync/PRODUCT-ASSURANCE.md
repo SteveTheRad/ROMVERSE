@@ -1,5 +1,69 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 0aa4cfa — Windows OTA literal-backslash rejection
+
+- Reviewed checkpoint: `0aa4cfa8733c7f99f3bd6887a6e1cd804ebedab3`
+- Implementation commit: `abe183f1dae965fe9228477a462d4604dbbf3697`
+- Approved base: `5dc8762`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — ORIGINAL ZIP MEMBER SPELLING NOW FAILS CLOSED ON WINDOWS**
+
+### Decision and independent evidence
+
+The suffix stopped at a genuine platform-dependent archive-validation defect. Python normalizes a
+literal backslash in `ZipInfo.filename` on Windows, so validating that normalized property allowed
+an unsafe original member spelling to cross the OTA inventory boundary. Validating
+`ZipInfo.orig_filename` is the minimum correct production fix and matches the already-approved
+Source Installation boundary. The fixture change preserves the adversarial spelling in the archive
+instead of accidentally normalizing it before product code sees it.
+
+- The implementation changes one production expression and the existing fixture construction only;
+  no product behavior outside the bounded OTA inventory changed.
+- Product Assurance independently ran the exact corrected parameterized node natively on the Legion:
+  **1/1 passed** with a fresh isolated temporary directory.
+- Product Assurance also ran all six ambiguity/unsafe-member parameters against the reviewed source
+  on Fedora: **6/6 passed**. This confirms the fixture remains meaningful cross-platform.
+- `git diff --check 5dc8762..0aa4cfa` passes. The original suffix evidence is accurately bounded at
+  **663 passed / 3 skipped / 1 failed** and does not claim unexecuted later nodes.
+- No package rebuild is warranted yet: accepted package bits predate this source correction, but a
+  replacement should occur only after the remaining portability evidence converges so the source
+  does not trigger repeated packages.
+- No device, paid CI, dependency installation or execution authority occurred. Feature freeze,
+  exact evidence, Guardian separation, UNKNOWN-on-uncertainty, no blind retry and permanent
+  bootloader no-relock remain intact.
+
+### Approved next bounded Windows task
+
+Continue the same Windows portability evidence from **after**
+`tests/test_base_image_compatibility.py::test_ota_archive_ambiguity_and_unsafe_members_are_rejected[extras5]`
+without repeating the already-observed prefix or the independently verified victim.
+
+1. Collect the exact workflow-ordered Windows portability selection once, select only node IDs after
+   the corrected parameter, and run that suffix once with `-x`, offscreen Qt and a fresh explicit
+   `--basetemp`.
+2. If another deterministic failure appears, capture and correct only that first proven boundary
+   when the minimum in-scope change is clear; otherwise record the blocker. Do not fan out.
+3. If the continuation completes, combine only the non-overlapping evidence: the earlier 25-node
+   prefix, the independently verified line-ending victim, this checkpoint's 663-node suffix prefix,
+   the independently verified backslash victim and the new continuation. Describe it as segmented
+   current Windows evidence, not an uninterrupted suite. Then run Ruff check/format once.
+4. Do not rebuild or relaunch the Windows package yet. If convergence completes and Product
+   Assurance approves the corrected source, exactly one replacement Windows development package may
+   then be authorized because `abe183f` changes production bits.
+5. Preserve the protected patch and LF checkout materialization. Commit only a proven correction,
+   if needed, plus `docs/sync/BUILD-STATUS.md`; otherwise commit the evidence-only handoff. Push and
+   stop for independent review.
+
+Do not touch Linux, Companion, Knowledge/UI Design Lab, devices, ADB/Fastboot, firmware,
+Guardian/Recovery, publication, release, force-push, lock or relock.
+
+### Gate status
+
+- Windows portability evidence through corrected backslash victim: **SEGMENTED 690 PASSED / 3 SKIPPED**
+- Remaining Windows portability suffix and Ruff: **NEXT BOUNDED CONVERGENCE CHECK**
+- Replacement Windows package after final convergence: **PENDING; NOT YET AUTHORIZED**
+- Production signing/trust, physical Android, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 6243eec — Windows checkout line-ending normalization
 
 - Reviewed checkpoint: `6243eec2c9a578781bda2e7aefbc846491d112fc`

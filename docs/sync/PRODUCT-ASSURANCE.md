@@ -1,5 +1,55 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: d8fcb32 — read-only Device Engine hardware evidence
+
+- Reviewed checkpoint: `d8fcb3200c6dabfbc5f8a196a59be91384349daf`
+- Approved base: `3e8443042b295ee805348513ae961b95868b4a5a`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — EXACT-TARGET READ-ONLY HARDWARE DISCOVERY IS VERIFIED**
+
+### Decision and independent evidence
+
+Product Assurance verified the committed diff contains only the Build handoff and contains no raw
+serial or USB transport token. The production Device Engine returned one exact authorized USB
+target with zero probe errors and recorded only its workspace-local 20-character pseudonym.
+
+- The final Guardian ledger contains exactly **12 records**, in the expected order: two ADB
+  discoveries plus ten fixed detail/presence probes.
+- Product Assurance independently inspected every record: all categories are `read_only`, every
+  decision is allowed, every target is either `host` or the valid `device:<20 hex>` pseudonymous
+  form, and no command timed out.
+- The ten required operations returned `0`. The two optional package-presence probes returned `1`,
+  correctly representing Magisk/KernelSU absence rather than a transport or Device Engine failure.
+- `GuardianAuditStore.verify()` independently reports **valid / 12 entries / no reason**, with tail
+  prefix `6da5c2384b1c9735`.
+- No source, package, test or phone state changed. No Fastboot client was configured and no
+  preparation, consent, Guardian execution admission or Recovery authority was requested.
+
+### Approved next bounded task
+
+Perform exactly one genuine **current Fedora package connected-device UI acceptance** while the
+same phone remains available.
+
+1. Launch the already-approved `build/fedora-44233c6/ROMVERSE/ROMVERSE` once with the existing
+   workspace and current display session; do not rebuild or use a disposable no-phone workspace.
+2. Observe only the Command Deck/Device Center connected state. Confirm the packaged UI renders
+   one pseudonymized Xiaomi target, truthful readiness/bootloader state and no Device Engine error
+   or inert primary connection action. Do not expose the raw serial in screenshots or handoff.
+3. Close the app normally after this bounded observation. Do not enter Fastboot, reboot, install,
+   modify settings/files/partitions, prepare/execute Recovery, flash, wipe, unlock, root, lock or
+   relock.
+4. If it passes, make no source change and record evidence only. If a genuine packaged UI/runtime
+   defect appears, preserve the first exact evidence and correct only that bounded defect with
+   focused checks; do not rebuild until changed source genuinely requires new bits.
+
+### Gate status
+
+- Production Device Engine read-only Android discovery: **HARDWARE VERIFIED**
+- Current Fedora package/content/native no-phone launch: **APPROVED**
+- Current Fedora packaged connected-device UI: **NEXT BOUNDED MILESTONE**
+- Fastboot transition, device writes, Recovery execution, production signing/publication/release:
+  **CLOSED**
+
 ## Reviewed checkpoint: ea9ecc4 — converged Fedora development package
 
 - Reviewed checkpoint: `ea9ecc40830a26b1801d958813a6945ec865bead`

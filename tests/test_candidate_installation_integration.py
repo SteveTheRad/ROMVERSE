@@ -37,6 +37,7 @@ from romverse.rom.build_execution import LocalDeviceBuildExecutor
 from romverse.rom.builds import RomBuildPlanner
 from romverse.rom.candidate_avb import CandidateAvbService
 from romverse.rom.candidate_installation import CandidateInstallationService
+from romverse.rom.inspection import RomInspectionService
 from romverse.rom.models import ProjectError
 from romverse.rom.release_forge import (
     ReleaseForgeService,
@@ -347,6 +348,7 @@ def _fixture(tmp_path, key, *, fault=""):
     context.runner = InertBuildTools(
         raw, (product_desc, desc["system"], desc["system_ext"]), fault=fault
     )
+    RomInspectionService(store).inspect_project(project.project_id)
     RomBuildPlanner(store).plan(project.project_id)
     DeviceBuildContractService(store, context.registry, context.tools).create_plan(
         project.project_id

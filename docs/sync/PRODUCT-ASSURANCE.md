@@ -1,5 +1,90 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 2a91ae5 — Fedora Source Lab contained synthetic extraction
+
+- Reviewed checkpoint: `2a91ae56fd69b2bdfcd8d17dd0820880bbeef5df`
+- Runtime evidence: `540c1fcb2448a756f3f5d21bfd1ddf666b5c862d`
+- Authorizing verdict: `3bddd502bb9a4057d0c6e0426c58012f85963aa5`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — EXACT SYNTHETIC TREE EXTRACTED AND INDEXED INSIDE THE PROJECT BOUNDARY**
+
+### Decision and independent evidence
+
+The deliberately authorized contained extraction is approved. Only runtime evidence and Build
+Status changed after the Product Assurance verdict; application, tests and package bits are
+unchanged. The existing unsigned 6,337,408-byte executable remains SHA-256
+`d110771c730b45695413c0606de072f9c560550c88ae223913ca1fd1e5e670e4`.
+
+Product Assurance independently rehashed the retained result and the source archive members. The
+protected original, working baseline and automatic snapshot remain exactly 551 bytes at SHA-256
+`c3f5c1711d648a0f6c8f2ba2e3c910048c4e81e6f3ee39bb82e9e85888ac89c8`. The contained tree
+has no symlinks and exactly two mode-`0600` files: 257-byte `META-INF/com/android/metadata` at
+`7b21d60b939893071ad4895c3270860ef87cd710eda6c2c203f51d256453d9de`, and 40-byte
+`payload.bin` at `5db7a969a06334c08958a02c13722f11a343126f781fdcbdbdf9cf05754b4237`.
+Those sizes and hashes exactly match the independently read ZIP members.
+
+The strict 518-byte tree index at SHA-256
+`8aab1ce6c83ba64774086b289e03c55ada45d138f12e8e1883cb0f7d1480b557` binds the exact project,
+contained relative tree path, protected-source digest, two files and 297 bytes. The automatic
+**Extracted project tree** Vault entry at
+`aeeeaf773237e8ed118f5a961810feaa7abd19d4dcdc60d7687b0c600263465b` is parented to the exact
+baseline entry and references only those two content-addressed tree objects.
+
+Source Lab truthfully reports safe extraction, a 2-file/297-byte inventory, 7/8 local steps and
+only the Guardian-assessed build plan missing. Guided state remains `workspace`; build-plan and
+install-request state remain absent/false; tools contain zero files. No result was inferred from
+progress and the automatic history remains local evidence with zero execution authority.
+
+Forgejo and GitHub exposed the identical checkpoint with zero divergence, the Linux worktree was
+clean and no unrelated worktree changed. No repeated import/working-copy, test/rebuild, network or
+tool acquisition, phone/emulator/ADB/Fastboot, real firmware, firmware/APK mutation, build plan or
+ROM build, Guardian/Recovery execution, flash, wipe, unlock/root, bootloader lock/relock, signing,
+installation, publication, release, hosted CI or Forgejo Action occurred. Exit 143 remains
+honestly excluded from clean-shutdown and restart-persistence evidence.
+
+### Approved next bounded Linux task — create and independently verify one inert local plan
+
+Advance only the last Source Lab local-readiness step; this is a dry-run evidence plan, not a ROM
+build or permission to execute anything.
+
+1. Begin from this Product Assurance commit on `linux/stage1-desktop-readiness`. Make a fresh
+   private disposable copy of the approved contained-extraction profile/project. Preserve Guided
+   mode and all offline/community/download/contribution controls, use Bubblewrap no-network
+   isolation, an empty Android-tool path and no phone, emulator or development-device simulation.
+2. Revalidate before launch the exact source/baseline/snapshot digest, the two non-symlink tree
+   members and strict tree index above, and the absence of a plan, install request and tools.
+3. Reuse the approved package without rebuilding or repeating setup, import, working-copy or
+   extraction. From Source Lab invoke **Plan build (dry-run)** exactly once, then invoke **Verify
+   plan** exactly once only after the durable plan is visible.
+4. Accept only a local, non-flashable, execution-locked plan bound to this exact project, protected
+   source, complete two-file input inventory, tree digest, zero unverified tool requirement and the
+   existing Guardian preflight result. Independently reload the saved plan and rehash/re-enumerate
+   the tree before accepting the verification result. Compatibility and execution authority must
+   remain `UNCONFIRMED`/`none`; phone action and bootloader relocking remain false.
+5. Verify the Source Lab text distinguishes local-input readiness from verified plan evidence and
+   does not claim a ROM build, install, device readiness or Guardian execution approval. Record the
+   exact resulting Guided resume state and any automatic local history.
+6. Stop immediately after successful plan verification. Do not invoke Forge Bundle, Recipe,
+   Partition Atlas, Build Control, Guardian, Recovery or any device stage. If planning requests a
+   tool, produces a flashable/authorizing result, cannot verify the exact tree, or the UI crosses
+   this boundary, preserve the state and return for Product Assurance without retry or source
+   change.
+7. If application bits remain unchanged, run no automated tests and perform no package build.
+   Commit only sanitized evidence and Build Status, push Forgejo first, mirror the identical commit
+   to GitHub and stop for independent review. Any deterministic product defect requires a new
+   Product Assurance correction verdict.
+
+No new fixture, real firmware, network/tool acquisition, phone/emulator/ADB/Fastboot,
+firmware/APK mutation, ROM build/bundle/recipe, Guardian/Recovery authority or execution, flash,
+wipe, unlock/root, bootloader lock/relock, Windows/UI-Lab/Companion/Device-Intelligence work,
+signing, installation, publication, release, hosted CI or Forgejo Action is authorized.
+
+### Gate status
+
+- Source Lab contained synthetic extraction and automatic evidence: **APPROVED**
+- One local execution-locked plan plus exact tree verification: **AUTHORIZED**
+- ROM build/bundle and every device/consequential/signing/publication/release gate: **CLOSED**
+
 ## Reviewed checkpoint: e25fdeb — Fedora Source Lab incomplete-readiness wording
 
 - Reviewed checkpoint: `e25fdebb84c2643420553c9f67180d1b1c3fb964`

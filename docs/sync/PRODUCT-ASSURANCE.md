@@ -1,5 +1,64 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 79da6bd — Candidate Installation fixture refresh
+
+- Reviewed checkpoint: `79da6bd1bc3b85c9ded562be217b036153959c6d`
+- Test correction: `70379f7b59711b7fe12e34b0d33c314692e7e526`
+- Approved base: `94e1372`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — STALE INERT FIXTURE NOW SUPPLIES REQUIRED INSPECTION EVIDENCE**
+
+### Decision and independent evidence
+
+The first continuation failure is correctly classified as a stale test setup, not a product or
+Windows-platform defect. `RomBuildPlanner` correctly refuses to plan without current structure
+inspection evidence. Supplying that evidence through the production `RomInspectionService` in the
+fixture preserves and exercises the fail-closed product boundary rather than bypassing it.
+
+- The correction is exactly one import and one fixture setup call in
+  `tests/test_candidate_installation.py`; no production source changed.
+- Product Assurance independently ran the exact corrected native Windows node with a fresh isolated
+  temporary directory: **1/1 passed**.
+- `git diff --check 94e1372..79da6bd` passes. The continuation accurately reports **91 passed / 3
+  skipped / 1 failed** and stops without claiming later nodes.
+- Segmented evidence through the corrected victim is correctly counted as **782 passed / 6 skipped**
+  across 788 unique workflow-ordered nodes. Exactly **186** of the 974 collected portability nodes
+  remain after this victim.
+- The existing Windows package was correctly preserved. A test-only correction does not warrant a
+  rebuild, and the earlier production change should not be packaged until convergence completes.
+- No device, paid CI, dependency installation or execution authority occurred. Feature freeze,
+  Guardian separation, exact evidence, UNKNOWN-on-uncertainty, no blind retry and permanent
+  bootloader no-relock remain intact.
+
+### Approved next bounded Windows task
+
+Continue the same Windows portability evidence using only the **186 collected node IDs after**
+`tests/test_candidate_installation.py::test_complete_candidate_replaces_exactly_two_roles_and_preserves_all_source_steps`.
+
+1. Run that exact remainder once with `-x`, offscreen Qt and a fresh explicit `--basetemp`; do not
+   repeat any of the 788 already evidenced nodes.
+2. If another deterministic failure appears, capture and correct only that first proven boundary
+   when the minimum in-scope change is clear; otherwise report it without speculative edits.
+3. If all 186 nodes complete, combine the non-overlapping segmented counts and run Ruff check/format
+   once. Do not represent segmented evidence as one uninterrupted suite.
+4. Do not rebuild or relaunch the package in this continuation. After convergence is independently
+   approved, one replacement Windows development package may be considered because `abe183f`
+   changed production bits.
+5. Preserve the protected patch and LF checkout materialization. Commit only a proven correction,
+   if needed, plus `docs/sync/BUILD-STATUS.md`; otherwise commit the evidence-only handoff. Push and
+   stop for independent review.
+
+Do not touch Linux, Companion, Knowledge/UI Design Lab, devices, ADB/Fastboot, firmware,
+Guardian/Recovery, publication, release, force-push, lock or relock.
+
+### Gate status
+
+- Windows portability evidence through refreshed Candidate Installation fixture:
+  **SEGMENTED 782 PASSED / 6 SKIPPED**
+- Remaining workflow-ordered portability nodes: **186**
+- Ruff and final Windows portability convergence: **NEXT BOUNDED CHECK**
+- Production signing/trust, physical Android, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 0aa4cfa — Windows OTA literal-backslash rejection
 
 - Reviewed checkpoint: `0aa4cfa8733c7f99f3bd6887a6e1cd804ebedab3`

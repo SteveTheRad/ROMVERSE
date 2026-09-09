@@ -4352,9 +4352,7 @@ class RomStudio(QWidget):
         required_names = tuple(dict.fromkeys(required_names))
         host = current_host()
         should_auto_start = (
-            self.app_settings.auto_download_verified_tools
-            if auto_start is None
-            else auto_start
+            self.app_settings.auto_download_verified_tools if auto_start is None else auto_start
         )
         dialog = ToolchainSetupDialog(
             host,

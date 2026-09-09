@@ -82,9 +82,9 @@ def test_project_vault_creates_isolated_branch_and_verified_recovery_capsule(tmp
     assert branch.base_entry_id == entry.entry_id
     assert len(vault.list_branches(project.project_id)) == 1
     assert vault.verify_branch(branch).valid
-    assert (
-        branch_path.parent / "tree" / "system" / "build.prop"
-    ).read_text(encoding="utf-8") == "ro.product=test\n"
+    assert (branch_path.parent / "tree" / "system" / "build.prop").read_text(
+        encoding="utf-8"
+    ) == "ro.product=test\n"
 
     capsule_path = tmp_path / "exports" / "project-recovery.romverse.zip"
     receipt = vault.export_capsule(entry, capsule_path)

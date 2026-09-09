@@ -178,16 +178,18 @@ def test_foundry_illuminates_sealed_device_dna_without_treating_region_as_matche
     assert revision.evidenced_lane_count == 3
     assert revision.execution_authority == "none"
 
-    simulation_path = (
-        store.projects_root / project.project_id / RomSimulationService.RECEIPT_NAME
-    )
+    simulation_path = store.projects_root / project.project_id / RomSimulationService.RECEIPT_NAME
     changed_simulation = json.loads(simulation_path.read_text(encoding="utf-8"))
     changed_simulation["confidence_percent"] = 92
     simulation_path.write_text(json.dumps(changed_simulation), encoding="utf-8")
-    without_simulation = DevicePackFoundryService().inspect(
-        drafts,
-        boundary=store.workspace,
-    ).revisions[0]
+    without_simulation = (
+        DevicePackFoundryService()
+        .inspect(
+            drafts,
+            boundary=store.workspace,
+        )
+        .revisions[0]
+    )
     assert without_simulation.simulation is None
     assert without_simulation.lanes[5].state is FoundryEvidenceState.PENDING
 
@@ -222,10 +224,12 @@ def test_foundry_detects_distinct_pack_lineages_claiming_the_same_identity(
         "product",
     }
     assert all(
-        conflict.pack_ids == ("example.first", "example.second")
-        for conflict in inventory.conflicts
+        conflict.pack_ids == ("example.first", "example.second") for conflict in inventory.conflicts
     )
-    assert all("Keep every matching draft experimental" in item.safest_action for item in inventory.conflicts)
+    assert all(
+        "Keep every matching draft experimental" in item.safest_action
+        for item in inventory.conflicts
+    )
 
 
 def test_foundry_keeps_multiple_revisions_of_one_pack_as_version_history(

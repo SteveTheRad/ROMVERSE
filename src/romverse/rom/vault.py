@@ -254,10 +254,7 @@ class ProjectVaultService:
         if len(entries) > self.MAX_FILES:
             return ("entry ledger exceeds its file-count boundary",)
         for item in entries:
-            if (
-                not item.name.endswith(".romverse")
-                or not item.is_file(follow_symlinks=False)
-            ):
+            if not item.name.endswith(".romverse") or not item.is_file(follow_symlinks=False):
                 issues.append(f"unsafe entry path: {item.name[:100]}")
                 continue
             try:
@@ -338,7 +335,11 @@ class ProjectVaultService:
         right_fingerprints = dict(right.source_fingerprints)
         roles = left_fingerprints.keys() | right_fingerprints.keys()
         fingerprint_changes = tuple(
-            sorted(role for role in roles if left_fingerprints.get(role) != right_fingerprints.get(role))
+            sorted(
+                role
+                for role in roles
+                if left_fingerprints.get(role) != right_fingerprints.get(role)
+            )
         )
         return VaultComparison(
             left.entry_id,
@@ -732,9 +733,7 @@ class ProjectVaultService:
         entries = self.list_entries(project_id)
         ledger_issues = self.entry_issues(project_id)
         referenced = {
-            item.sha256
-            for entry in entries
-            for item in (*entry.files, *entry.context_files)
+            item.sha256 for entry in entries for item in (*entry.files, *entry.context_files)
         }
         root = self._vault_root(project_id)
         objects = root / "objects"
@@ -792,9 +791,7 @@ class ProjectVaultService:
             raise ProjectError(f"Project Vault cleanup is blocked: {issues[0]}")
         entries = self.list_entries(project_id)
         referenced = {
-            item.sha256
-            for entry in entries
-            for item in (*entry.files, *entry.context_files)
+            item.sha256 for entry in entries for item in (*entry.files, *entry.context_files)
         }
         objects = root / "objects"
         removed_files = 0
@@ -803,8 +800,10 @@ class ProjectVaultService:
             if objects.is_symlink() or not objects.is_dir():
                 raise ProjectError("Project Vault object storage is unsafe")
             for path in sorted(objects.iterdir()):
-                if path.is_symlink() or not path.is_file() or not re.fullmatch(
-                    r"[0-9a-f]{64}\.bin", path.name
+                if (
+                    path.is_symlink()
+                    or not path.is_file()
+                    or not re.fullmatch(r"[0-9a-f]{64}\.bin", path.name)
                 ):
                     raise ProjectError("Project Vault cleanup found an unsafe object entry")
                 if path.stem in referenced:
@@ -868,7 +867,9 @@ class ProjectVaultService:
                 if target.exists():
                     existing, existing_size = _hash_stable_file(target, vault_root)
                     if existing != digest or existing_size != size:
-                        raise ProjectError("Existing Project Vault object failed integrity validation")
+                        raise ProjectError(
+                            "Existing Project Vault object failed integrity validation"
+                        )
                 else:
                     _copy_verified(path, target, digest, boundary=vault_root)
                 records.append(
@@ -974,7 +975,9 @@ class ProjectVaultService:
             expected_file = expected_context.get(name)
             if expected_file is None:
                 if path.exists():
-                    return VaultVerification(False, f"Unexpected restored context file: {name}", 0, 0)
+                    return VaultVerification(
+                        False, f"Unexpected restored context file: {name}", 0, 0
+                    )
                 continue
             digest, size = _hash_stable_file(path, project_root)
             if digest != expected_file.sha256 or size != expected_file.size_bytes:
@@ -1189,7 +1192,9 @@ class ProjectVaultService:
         unsigned = asdict(branch)
         stored = unsigned.pop("record_digest")
         unsigned["record_digest"] = ""
-        expected_path = f"time_machine/{project_id}/vault/branches/{branch.branch_id}/working-baseline.bin"
+        expected_path = (
+            f"time_machine/{project_id}/vault/branches/{branch.branch_id}/working-baseline.bin"
+        )
         if not (
             branch.schema_version == self.SCHEMA_VERSION
             and branch.project_id == project_id
@@ -1384,15 +1389,11 @@ def _valid_role(value: str) -> bool:
 
 
 def _entry_id(value: object) -> bool:
-    return isinstance(value, str) and bool(
-        re.fullmatch(r"[0-9]{8}T[0-9]{6}-[0-9a-f]{8}", value)
-    )
+    return isinstance(value, str) and bool(re.fullmatch(r"[0-9]{8}T[0-9]{6}-[0-9a-f]{8}", value))
 
 
 def _snapshot_id(value: object) -> bool:
-    return isinstance(value, str) and bool(
-        re.fullmatch(r"[0-9]{8}T[0-9]{6}-[0-9a-f]{6}", value)
-    )
+    return isinstance(value, str) and bool(re.fullmatch(r"[0-9]{8}T[0-9]{6}-[0-9a-f]{6}", value))
 
 
 def _sha256_value(value: object) -> bool:

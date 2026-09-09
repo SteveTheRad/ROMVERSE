@@ -144,11 +144,7 @@ def _final_evidence(context, build):
         "b" * 64,
     )
     assembly_root = (
-        workspace
-        / "working_roms"
-        / project_id
-        / "signed-assembly"
-        / (("b" * 16) + "-" + ("a" * 8))
+        workspace / "working_roms" / project_id / "signed-assembly" / (("b" * 16) + "-" + ("a" * 8))
     )
     assembly_root.mkdir(parents=True)
     super_source = workspace / build_outputs["super.img"].path
@@ -161,11 +157,7 @@ def _final_evidence(context, build):
         datetime.now(UTC).isoformat(),
         build.receipt_digest,
         signing.receipt_digest,
-        (
-            SignedAssemblyInput(
-                "product", product.path, product.size_bytes, product.sha256, True
-            ),
-        ),
+        (SignedAssemblyInput("product", product.path, product.size_bytes, product.sha256, True),),
         super_path.relative_to(workspace).as_posix(),
         super_path.stat().st_size,
         _sha(super_path.read_bytes()),
@@ -176,9 +168,7 @@ def _final_evidence(context, build):
     )
     return (
         SimpleNamespace(load_receipt=lambda _project_id: signing),
-        SimpleNamespace(
-            load_signed_assembly=lambda _project_id, **_kwargs: assembly
-        ),
+        SimpleNamespace(load_signed_assembly=lambda _project_id, **_kwargs: assembly),
         signing,
         assembly,
     )

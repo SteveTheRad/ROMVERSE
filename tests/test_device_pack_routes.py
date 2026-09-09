@@ -51,10 +51,14 @@ def _sealed_revision(tmp_path: Path):
     )
     drafts = store.workspace / "device_pack_drafts"
     draft_service.export(request, drafts, boundary=store.workspace)
-    revision = DevicePackFoundryService().inspect(
-        drafts,
-        boundary=store.workspace,
-    ).revisions[0]
+    revision = (
+        DevicePackFoundryService()
+        .inspect(
+            drafts,
+            boundary=store.workspace,
+        )
+        .revisions[0]
+    )
     return store, revision
 
 
@@ -84,7 +88,10 @@ def test_route_blueprint_records_measured_operational_facts_without_inventing_ro
     assert not blueprint.bootloader_relock_allowed
     assert not blueprint.automatic_device_actions
     assert blueprint.execution_authority == "none"
-    assert any("target and recovery slots cannot be inferred" in item for item in blueprint.operational_characteristics)
+    assert any(
+        "target and recovery slots cannot be inferred" in item
+        for item in blueprint.operational_characteristics
+    )
 
 
 def test_route_blueprint_export_is_private_content_addressed_and_contains_no_command(
@@ -117,9 +124,7 @@ def test_route_blueprint_export_is_private_content_addressed_and_contains_no_com
 def test_route_blueprint_rejects_identity_only_or_changed_draft_bytes(tmp_path: Path) -> None:
     store, revision = _sealed_revision(tmp_path)
     service = DevicePackRouteBlueprintService()
-    revision.path.write_bytes(
-        revision.path.read_bytes().replace(b"DRAFT ONLY", b"DRAFT FAKE")
-    )
+    revision.path.write_bytes(revision.path.read_bytes().replace(b"DRAFT ONLY", b"DRAFT FAKE"))
 
     with pytest.raises(ValueError, match="exact draft revision"):
         service.derive(revision, boundary=store.workspace)
@@ -152,9 +157,13 @@ def test_route_blueprint_rejects_identity_only_or_changed_draft_bytes(tmp_path: 
     }
     drafts = model_workspace / "device_pack_drafts"
     DevicePackDraftService().export(request, drafts, boundary=model_workspace)
-    identity_revision = DevicePackFoundryService().inspect(
-        drafts,
-        boundary=model_workspace,
-    ).revisions[0]
+    identity_revision = (
+        DevicePackFoundryService()
+        .inspect(
+            drafts,
+            boundary=model_workspace,
+        )
+        .revisions[0]
+    )
     with pytest.raises(ValueError, match="exact-source draft"):
         service.derive(identity_revision, boundary=model_workspace)

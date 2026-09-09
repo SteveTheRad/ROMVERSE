@@ -362,9 +362,7 @@ class CandidateInstallationService:
         )
         assembly_path = PurePosixPath(assembly.super_path)
         if any(
-            len(path.parts) != 5
-            or path.parts[:4] != signed_root
-            or path.name != name
+            len(path.parts) != 5 or path.parts[:4] != signed_root or path.name != name
             for name, path in signed_paths.items()
         ) or (
             len(assembly_path.parts) != 5

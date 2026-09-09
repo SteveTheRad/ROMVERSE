@@ -39,8 +39,7 @@ def _platform_tools(workspace: Path, payload: bytes = b"source tool") -> Path:
                 "schema_version": 1,
                 "name": "platform-tools",
                 "source": (
-                    "https://dl.google.com/android/repository/"
-                    "platform-tools-latest-linux.zip"
+                    "https://dl.google.com/android/repository/platform-tools-latest-linux.zip"
                 ),
                 "archive_sha256": "a" * 64,
                 "archive_bytes": 2_048,
@@ -55,10 +54,7 @@ def _platform_tools(workspace: Path, payload: bytes = b"source tool") -> Path:
 def _validated(root: Path, packages: tuple[str, ...]) -> bool:
     verified = verified_managed_directories(root, boundary=root)
     try:
-        found = {
-            path.resolve().relative_to(root.resolve()).parts[0]
-            for path in verified
-        }
+        found = {path.resolve().relative_to(root.resolve()).parts[0] for path in verified}
     except (OSError, ValueError, IndexError):
         return False
     return found == set(packages)

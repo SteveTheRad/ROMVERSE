@@ -103,8 +103,7 @@ class DevicePackRouteBlueprintService:
             not isinstance(document, dict)
             or payload != _canonical(document) + b"\n"
             or hashlib.sha256(payload).hexdigest() != revision.sha256
-            or revision.path.name
-            != f"{revision.pack_id}-{revision.sha256[:12]}.draft.json"
+            or revision.path.name != f"{revision.pack_id}-{revision.sha256[:12]}.draft.json"
         ):
             raise ValueError("Foundry route source no longer matches the exact draft revision")
         draft_service = DevicePackDraftService()
@@ -129,9 +128,7 @@ class DevicePackRouteBlueprintService:
         if not isinstance(dna, dict) or not isinstance(dna.get("facts"), list):
             raise ValueError("Foundry route source has no measured route facts")
         fact_map = {
-            str(item.get("fact_id")): item
-            for item in dna["facts"]
-            if isinstance(item, dict)
+            str(item.get("fact_id")): item for item in dna["facts"] if isinstance(item, dict)
         }
         observations: list[FoundryRouteObservation] = []
         for fact_id in self.ROUTE_FACT_IDS:

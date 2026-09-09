@@ -256,11 +256,7 @@ class CompanionTransport:
                 descriptor = -1
                 try:
                     offer, content = service.verified_content_path(transfer_id)
-                    flags = (
-                        os.O_RDONLY
-                        | getattr(os, "O_BINARY", 0)
-                        | getattr(os, "O_NOFOLLOW", 0)
-                    )
+                    flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
                     descriptor = os.open(content, flags)
                     opened = os.fstat(descriptor)
                     current = content.lstat()

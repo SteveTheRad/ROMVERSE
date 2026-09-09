@@ -231,7 +231,9 @@ class ProjectVaultTimeline(QWidget):
         painter.drawText(14, 19, f"MAIN TIMELINE  •  {len(self.entries)} SHOWN")
         if self.branches:
             painter.setPen(QColor("#C594FF"))
-            painter.drawText(14, self.height() - 10, f"{len(self.branches)} ISOLATED EXPERIMENT BRANCH(ES)")
+            painter.drawText(
+                14, self.height() - 10, f"{len(self.branches)} ISOLATED EXPERIMENT BRANCH(ES)"
+            )
 
 
 class ProjectVaultWorker(ManagedRunnable):
@@ -815,9 +817,7 @@ class BackupCenter(QWidget):
         self.dashboard_handoff.setVisible(False)
         self.device_atlas_handoff.setVisible(False)
         self.plan_context.setVisible(False)
-        self._render_recovery_review(
-            self.recovery_evidence.assess(project.project_id, self.device)
-        )
+        self._render_recovery_review(self.recovery_evidence.assess(project.project_id, self.device))
         self.recovery_review.setVisible(True)
         self.page_scroll.ensureWidgetVisible(self.recovery_review)
         self.recovery_stock_button.setFocus(Qt.FocusReason.OtherFocusReason)
@@ -1814,9 +1814,7 @@ class BackupCenter(QWidget):
             return shown + (f" +{len(values) - 5} more" if len(values) > 5 else "")
 
         self.vault_result.setObjectName(
-            "Warning"
-            if comparison.added or comparison.removed or comparison.changed
-            else "Good"
+            "Warning" if comparison.added or comparison.removed or comparison.changed else "Good"
         )
         self.vault_result.setText(
             f"VISUAL COMPARISON  •  {left.label} → {right.label}\n"

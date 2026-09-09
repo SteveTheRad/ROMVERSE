@@ -242,8 +242,7 @@ class DebloatService:
                 "Nebula Debloat found no reviewable Android packages. The stage was not "
                 "completed because APK files exist but none are inside a recognized system, "
                 "product, vendor, odm, oem, or device partition. Verify the extracted Android "
-                "filesystem layout and rescan. "
-                + self._discovery_summary(discovery)
+                "filesystem layout and rescan. " + self._discovery_summary(discovery)
             )
 
         ordered_groups = tuple(sorted(groups, key=str.casefold))

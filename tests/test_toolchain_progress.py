@@ -168,9 +168,7 @@ def test_forge_arsenal_host_doctor_exposes_outdated_pair_and_exact_linux_guide(
         "romverse.ui.toolchain_center.ToolVerifier.verify_extended",
         lambda _verifier: (
             ToolStatus("ADB", True, str(adb), "35.0.2", "Ready"),
-            ToolStatus(
-                "Fastboot", True, str(fastboot), "fastboot version 35.0.2", "Ready"
-            ),
+            ToolStatus("Fastboot", True, str(fastboot), "fastboot version 35.0.2", "Ready"),
         ),
     )
     center = ToolchainCenter(

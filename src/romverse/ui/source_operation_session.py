@@ -159,9 +159,7 @@ class SourceOperationSession(QObject):
         self.recipe = recipe
         self.preparation = recipe
         self.project_id = recipe.project_id if recipe is not None else project_id
-        self.source_sha256 = (
-            recipe.source_sha256 if recipe is not None else source_sha256
-        )
+        self.source_sha256 = recipe.source_sha256 if recipe is not None else source_sha256
         self.preparation_service = preparation_service
         self.source_service = source_service
         self.candidate_service = candidate_service
@@ -176,9 +174,7 @@ class SourceOperationSession(QObject):
         self.selected_serial = self._discovered_serial(self.devices, "")
         self.revision = 0
         self.phase = (
-            SourceOperationPhase.READY
-            if recipe is not None
-            else SourceOperationPhase.CHOOSING
+            SourceOperationPhase.READY if recipe is not None else SourceOperationPhase.CHOOSING
         )
         self.status = self._ready_status()
         self.details = ""
@@ -293,15 +289,10 @@ class SourceOperationSession(QObject):
                 and selected is not None
                 and self.recipe is not None
                 and self.plan is None
-                and (
-                    self.phase is SourceOperationPhase.READY
-                    or can_retry_read_only_review
-                )
+                and (self.phase is SourceOperationPhase.READY or can_retry_read_only_review)
             ),
             can_install=not self.busy and self.plan is not None,
-            can_refresh=(
-                not self.busy and self.discover is not None and preparation_open
-            ),
+            can_refresh=(not self.busy and self.discover is not None and preparation_open),
             can_change_mode=(
                 not self.busy
                 and selected is not None
@@ -344,20 +335,14 @@ class SourceOperationSession(QObject):
         if self.recipe is None:
             return False
         known = {
-            value.strip().casefold()
-            for value in (device.product, device.codename)
-            if value.strip()
+            value.strip().casefold() for value in (device.product, device.codename) if value.strip()
         }
         expected_product = self.recipe.expected_product.strip().casefold()
         expected_manufacturer = self.recipe.expected_manufacturer.strip().casefold()
         manufacturer = device.manufacturer.strip().casefold()
         return bool(
             (known and expected_product not in known)
-            or (
-                manufacturer
-                and expected_manufacturer
-                and manufacturer != expected_manufacturer
-            )
+            or (manufacturer and expected_manufacturer and manufacturer != expected_manufacturer)
         )
 
     def select_device(self, serial: str) -> bool:
@@ -419,21 +404,14 @@ class SourceOperationSession(QObject):
 
     def review_transition(self, target: LocalTransitionTarget) -> bool:
         device = self.selected_device()
-        if (
-            self.busy
-            or device is None
-            or self.recipe is None
-            or self.transition_service is None
-        ):
+        if self.busy or device is None or self.recipe is None or self.transition_service is None:
             return False
         identity = device.codename or device.product
         if identity.casefold() != self.recipe.expected_product.casefold():
             self.status = "Identify the exact intended device before preparing a mode change."
             self._emit_changed()
             return False
-        self._invalidate_review(
-            "Checking the selected phone before preparing a mode change…"
-        )
+        self._invalidate_review("Checking the selected phone before preparing a mode change…")
         self.phase = SourceOperationPhase.TRANSITION_REVIEWING
         self.progress_indeterminate = True
         return self._start(LocalTransitionWorker(self.transition_service, device, target))
@@ -651,8 +629,7 @@ class SourceOperationSession(QObject):
         if finished is None:
             return
         stop_requested = bool(
-            hasattr(finished, "cancel_requested")
-            and finished.cancel_requested.is_set()
+            hasattr(finished, "cancel_requested") and finished.cancel_requested.is_set()
         )
         self.worker = None
         if finished is self._preparation_worker:
@@ -719,9 +696,7 @@ class SourceOperationSession(QObject):
                 self.recovery_required.emit()
             self._finish_quiescent()
             return
-        if isinstance(value, LocalTransitionPlan) and isinstance(
-            finished, LocalTransitionWorker
-        ):
+        if isinstance(value, LocalTransitionPlan) and isinstance(finished, LocalTransitionWorker):
             self.phase = SourceOperationPhase.TRANSITION_READY
             self.progress_indeterminate = False
             self.progress_value = 0
@@ -735,9 +710,7 @@ class SourceOperationSession(QObject):
             self._emit_changed()
             self.transition_review_ready.emit(self.transition_review)
             return
-        if isinstance(value, LocalTransitionResult) and isinstance(
-            finished, LocalTransitionWorker
-        ):
+        if isinstance(value, LocalTransitionResult) and isinstance(finished, LocalTransitionWorker):
             self.transition_result = value
             self.transition_finished.emit(value)
             self.status = value.summary
@@ -865,8 +838,7 @@ class SourceOperationSession(QObject):
             request is not None
             and getattr(finished, "project_id", None) == request.project_id
             and getattr(finished, "candidate_choice", None) == request.candidate_choice
-            and getattr(finished, "procedure_project_id", None)
-            == request.procedure_project_id
+            and getattr(finished, "procedure_project_id", None) == request.procedure_project_id
             and getattr(finished, "procedure_path", None) == request.procedure_path
             and getattr(finished, "wipe", None) is request.wipe
             and getattr(finished, "reboot", None) is request.reboot
@@ -925,9 +897,7 @@ class SourceOperationSession(QObject):
                     self._failed(str(exc))
                     return
             self.recipe = value
-            self.selected_serial = self._discovered_serial(
-                self.devices, self.selected_serial
-            )
+            self.selected_serial = self._discovered_serial(self.devices, self.selected_serial)
             self.phase = SourceOperationPhase.READY
             self.status = self._ready_status()
         else:
@@ -937,13 +907,9 @@ class SourceOperationSession(QObject):
         self.preparation_finished.emit(value)
         self._advance_guided_preparation(deferred=True)
 
-    def _discovered_serial(
-        self, devices: tuple[AndroidDevice, ...], previous: str
-    ) -> str:
+    def _discovered_serial(self, devices: tuple[AndroidDevice, ...], previous: str) -> str:
         expected = self.recipe.expected_product.casefold() if self.recipe is not None else ""
-        previous_device = next(
-            (item for item in devices if item.serial == previous), None
-        )
+        previous_device = next((item for item in devices if item.serial == previous), None)
         if previous_device is not None and not self._identity_conflicts(previous_device):
             return previous
         exact = [
@@ -982,7 +948,8 @@ class SourceOperationSession(QObject):
             self._connection_watch_failures
             or device is None
             or self.selected_identity_conflicts()
-            or device.state in {
+            or device.state
+            in {
                 DeviceState.UNAUTHORIZED,
                 DeviceState.OFFLINE,
                 DeviceState.UNKNOWN,
@@ -1013,7 +980,8 @@ class SourceOperationSession(QObject):
             self._connection_watch_failures
             or device is None
             or self.selected_identity_conflicts()
-            or device.state in {
+            or device.state
+            in {
                 DeviceState.UNAUTHORIZED,
                 DeviceState.OFFLINE,
                 DeviceState.UNKNOWN,
@@ -1082,9 +1050,7 @@ class SourceOperationSession(QObject):
             and self.boot_device is not None
             and report.latest_device.serial != self.boot_device.serial
         ):
-            self.boot_error = (
-                "The boot check returned another phone's observations. No boot success was accepted."
-            )
+            self.boot_error = "The boot check returned another phone's observations. No boot success was accepted."
             self.monitoring = False
             self.boot_timer.stop()
             self._failed(self.boot_error)
@@ -1160,11 +1126,7 @@ class SourceOperationSession(QObject):
                 else "No data erase requested · data preservation and compatibility unproven"
             ),
             "FINISH  "
-            + (
-                "Restart Android and measure boot"
-                if value.recipe.reboot
-                else "Stay in bootloader"
-            ),
+            + ("Restart Android and measure boot" if value.recipe.reboot else "Stay in bootloader"),
             "",
         ]
         if isinstance(value.recipe, CandidateInstallationRecipe):

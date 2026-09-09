@@ -164,9 +164,7 @@ class SourceInstallationDialog(LocalFlashDialog):
         if serial is None:
             index = self.target.currentIndex()
             serial = (
-                self.session.devices[index].serial
-                if 0 <= index < len(self.session.devices)
-                else ""
+                self.session.devices[index].serial if 0 <= index < len(self.session.devices) else ""
             )
         self.session.select_device(serial)
 
@@ -182,10 +180,7 @@ class SourceInstallationDialog(LocalFlashDialog):
     def _confirm_flash(self):
         plan = self.session.plan
         snapshot = self.session.snapshot()
-        if (
-            not isinstance(plan, SourceInstallationPlan)
-            or snapshot.busy
-        ):
+        if not isinstance(plan, SourceInstallationPlan) or snapshot.busy:
             return
         question = QMessageBox(self)
         question.setIcon(QMessageBox.Icon.Warning)
@@ -242,9 +237,7 @@ class SourceInstallationDialog(LocalFlashDialog):
             snapshot.can_change_mode or self.session.transition_review is not None
         )
         self.mode_button.setText(
-            "Confirm mode change…"
-            if self.session.transition_review is not None
-            else "Change mode…"
+            "Confirm mode change…" if self.session.transition_review is not None else "Change mode…"
         )
         self.boot_button.setEnabled(snapshot.can_check_boot)
         transitioning = (
@@ -260,9 +253,7 @@ class SourceInstallationDialog(LocalFlashDialog):
             else "Stop after current action"
         )
         self.cancel_button.setVisible(snapshot.busy and cancellable)
-        self.cancel_button.setEnabled(
-            snapshot.busy and cancellable and not snapshot.stop_requested
-        )
+        self.cancel_button.setEnabled(snapshot.busy and cancellable and not snapshot.stop_requested)
         self.recovery_button.setVisible(snapshot.recovery_available)
         self.recovery_button.setEnabled(snapshot.recovery_available)
 
@@ -412,10 +403,9 @@ class SourceInstallationDialog(LocalFlashDialog):
         required_transition = self.session.required_transition()
         if device is None:
             text, enabled = (
-                "Choose the intended phone"
-                if self.session.devices
-                else "Connect phone by USB"
-            ), False
+                ("Choose the intended phone" if self.session.devices else "Connect phone by USB"),
+                False,
+            )
         elif device.state is DeviceState.UNAUTHORIZED:
             text, enabled = "Approve USB debugging on phone", False
         elif device.state in {DeviceState.OFFLINE, DeviceState.UNKNOWN}:
@@ -423,8 +413,9 @@ class SourceInstallationDialog(LocalFlashDialog):
         elif identity_conflict:
             text, enabled = "Connect the matching phone", False
         elif required_transition is LocalTransitionTarget.BOOTLOADER:
-            text, enabled = "Restart phone to bootloader…", (
-                snapshot.can_change_mode or self.session.transition_review is not None
+            text, enabled = (
+                "Restart phone to bootloader…",
+                (snapshot.can_change_mode or self.session.transition_review is not None),
             )
         elif snapshot.phase is SourceOperationPhase.REVIEW_READY:
             text, enabled = "Install ROM…", snapshot.can_install
@@ -491,9 +482,7 @@ class SourceInstallationDialog(LocalFlashDialog):
         self.boot_button.setVisible(not guided)
         self.review_button.setVisible(not guided)
         self.flash_button.setVisible(not guided)
-        self.recovery_button.setVisible(
-            not guided and self.session.snapshot().recovery_available
-        )
+        self.recovery_button.setVisible(not guided and self.session.snapshot().recovery_available)
         choose_target = (
             not guided
             or len(self.session.devices) != 1

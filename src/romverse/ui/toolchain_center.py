@@ -1103,9 +1103,7 @@ class ToolchainCenter(QWidget):
             "Warning" if self._manifest_error else "ToolchainManifestStatus"
         )
         self.manifest_status.setWordWrap(True)
-        self.manifest_status.setTextInteractionFlags(
-            Qt.TextInteractionFlag.TextSelectableByMouse
-        )
+        self.manifest_status.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self.manifest_button = QPushButton("Export reproducible manifest")
         self.manifest_button.setObjectName("Primary")
         self.manifest_button.setMinimumHeight(38)
@@ -1125,9 +1123,7 @@ class ToolchainCenter(QWidget):
         )
         self.offline_status.setObjectName("ToolchainManifestStatus")
         self.offline_status.setWordWrap(True)
-        self.offline_status.setTextInteractionFlags(
-            Qt.TextInteractionFlag.TextSelectableByMouse
-        )
+        self.offline_status.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self.offline_progress = ProcessProgressBar()
         offline_actions = QHBoxLayout()
         self.offline_export_button = QPushButton("Export verified offline kit")
@@ -2148,9 +2144,7 @@ class ToolchainCenter(QWidget):
         communication_layout.setSpacing(5)
         communication_eyebrow = QLabel("DEVICE COMMUNICATION  •  GUARDIAN-ROUTED EVIDENCE")
         communication_eyebrow.setObjectName("Eyebrow")
-        communication_title, communication_detail, communication_state = (
-            self._communication_copy()
-        )
+        communication_title, communication_detail, communication_state = self._communication_copy()
         communication_heading = QLabel(communication_title)
         communication_heading.setObjectName("SectionTitle")
         communication_body = QLabel(communication_detail)
@@ -2180,8 +2174,7 @@ class ToolchainCenter(QWidget):
             "Good"
             if self.host_health.overall_state is ToolHealthState.VERIFIED
             else "Danger"
-            if self.host_health.overall_state
-            in {ToolHealthState.MISSING, ToolHealthState.CONFLICT}
+            if self.host_health.overall_state in {ToolHealthState.MISSING, ToolHealthState.CONFLICT}
             else "Warning"
         )
         doctor_top.addWidget(doctor_badge)
@@ -2214,9 +2207,7 @@ class ToolchainCenter(QWidget):
         doctor_actions = QHBoxLayout()
         self.platform_tools_repair_button = QPushButton("Install one verified Platform Tools pair")
         self.platform_tools_repair_button.setObjectName("Primary")
-        self.platform_tools_repair_button.setVisible(
-            self.host_health.needs_platform_tools_repair
-        )
+        self.platform_tools_repair_button.setVisible(self.host_health.needs_platform_tools_repair)
         self.platform_tools_repair_button.setEnabled(
             self.host_health.needs_platform_tools_repair and self.workspace is not None
         )
@@ -2306,8 +2297,7 @@ class ToolchainCenter(QWidget):
         selected = self._communication_devices
         observed = self._observed_communication_devices
         communication_verified = any(
-            device.state
-            in {DeviceState.DEVICE, DeviceState.RECOVERY, DeviceState.SIDELOAD}
+            device.state in {DeviceState.DEVICE, DeviceState.RECOVERY, DeviceState.SIDELOAD}
             or device.is_fastboot
             for device in selected
         )
@@ -2387,7 +2377,9 @@ class ToolchainCenter(QWidget):
             detail = "The latest scan did not provide enough evidence to name a working mode."
             state = "Warning"
         if device.errors:
-            detail += f" {len(device.errors)} bounded probe warning(s) remain visible in Device Portal."
+            detail += (
+                f" {len(device.errors)} bounded probe warning(s) remain visible in Device Portal."
+            )
         return label, detail + " Phone-change authority: none.", state
 
     @staticmethod

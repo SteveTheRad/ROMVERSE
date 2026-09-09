@@ -288,9 +288,7 @@ class NebulaDebloatDialog(QDialog):
                 "Scan verified • 0 APK files examined • 0 reviewable app groups • "
                 f"partitions: {partitions} • no app evidence invented"
             )
-            self.status.setText(
-                self._scan_summary + " • continue with no app changes"
-            )
+            self.status.setText(self._scan_summary + " • continue with no app changes")
             self.search.setEnabled(False)
             self.risk_filter.setEnabled(False)
             self._set_controls(False)

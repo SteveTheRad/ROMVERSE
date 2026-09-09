@@ -1299,8 +1299,7 @@ class GuidedBuildMission(QDialog):
             and not busy
         )
         source_recovery_available = bool(
-            source_result_available
-            and self._source_installation_needs_diagnosis(local_outcome)
+            source_result_available and self._source_installation_needs_diagnosis(local_outcome)
         )
         if source_result_available:
             self.action_button.setText(
@@ -2075,9 +2074,7 @@ class GuidedBuildMission(QDialog):
             state == "cancelled" and context.source_installation_completed_count > 0
         )
 
-    def _source_recovery_key(
-        self, context: GuidedContext
-    ) -> tuple[str, str, str, int, int] | None:
+    def _source_recovery_key(self, context: GuidedContext) -> tuple[str, str, str, int, int] | None:
         project = self.studio.current_project
         if (
             project is None
@@ -2114,13 +2111,9 @@ class GuidedBuildMission(QDialog):
             "ROMVERSE found an interrupted installation. Checking what happened… "
             "No write or retry will run."
         )
-        QTimer.singleShot(
-            0, lambda expected=key: self._start_automatic_source_recovery(expected)
-        )
+        QTimer.singleShot(0, lambda expected=key: self._start_automatic_source_recovery(expected))
 
-    def _start_automatic_source_recovery(
-        self, expected: tuple[str, str, str, int, int]
-    ) -> None:
+    def _start_automatic_source_recovery(self, expected: tuple[str, str, str, int, int]) -> None:
         if expected != self._automatic_source_recovery_key:
             return
         self._automatic_source_recovery_key = None
@@ -2161,9 +2154,7 @@ class GuidedBuildMission(QDialog):
         super().accept()
         QTimer.singleShot(
             0,
-            lambda: self.studio._request_source_installation_recovery(
-                project_id, source_sha256
-            ),
+            lambda: self.studio._request_source_installation_recovery(project_id, source_sha256),
         )
 
     def _run_first_boot_check(self) -> None:

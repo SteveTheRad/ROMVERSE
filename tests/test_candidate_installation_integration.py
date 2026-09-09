@@ -378,9 +378,7 @@ def _fixture(tmp_path, key, *, fault=""):
     assembly_root.mkdir(parents=True)
     signed_super = assembly_root / "super.img"
     shutil.copyfile(store.workspace / build_outputs["super.img"].path, signed_super)
-    signed_product = next(
-        item for item in context.signing.artifacts if item.name == "product.img"
-    )
+    signed_product = next(item for item in context.signing.artifacts if item.name == "product.img")
     assembly_inputs = [
         SignedAssemblyInput(
             "product",
@@ -496,18 +494,14 @@ def test_real_build_base_avb_and_candidate_boundaries_compose_two_plus_48(tmp_pa
     )
 
 
-def test_exact_preparation_survives_service_reconstruction_without_resealing(
-    tmp_path, signing_key
-):
+def test_exact_preparation_survives_service_reconstruction_without_resealing(tmp_path, signing_key):
     context = _fixture(tmp_path, signing_key)
     first = _prepare(context)
     records = (
         context.store.projects_root
         / context.project.project_id
         / context.service.base.RECEIPT_NAME,
-        context.store.projects_root
-        / context.project.project_id
-        / context.service.avb.RECEIPT_NAME,
+        context.store.projects_root / context.project.project_id / context.service.avb.RECEIPT_NAME,
     )
     saved = tuple((path.read_bytes(), path.stat().st_mtime_ns) for path in records)
 

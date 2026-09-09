@@ -126,11 +126,14 @@ class VersionedToolchainStore:
             try:
                 output_descriptor = os.open(target, output_flags, 0o500)
                 try:
-                    with os.fdopen(input_descriptor, "rb", closefd=True) as reader, os.fdopen(
-                        output_descriptor,
-                        "wb",
-                        closefd=True,
-                    ) as writer:
+                    with (
+                        os.fdopen(input_descriptor, "rb", closefd=True) as reader,
+                        os.fdopen(
+                            output_descriptor,
+                            "wb",
+                            closefd=True,
+                        ) as writer,
+                    ):
                         while chunk := reader.read(self.CHUNK_SIZE):
                             copied += len(chunk)
                             if copied > item.size_bytes:
@@ -208,8 +211,14 @@ class VersionedToolchainStore:
                 boundary=self.workspace,
                 maximum_bytes=self.MAX_RECEIPT_BYTES,
             )
-            expected_fields = {"format", *(field.name for field in VersionedToolReceipt.__dataclass_fields__.values())}
-            if set(payload) != expected_fields or payload.pop("format") != "romverse.versioned-tool":
+            expected_fields = {
+                "format",
+                *(field.name for field in VersionedToolReceipt.__dataclass_fields__.values()),
+            }
+            if (
+                set(payload) != expected_fields
+                or payload.pop("format") != "romverse.versioned-tool"
+            ):
                 raise VersionedToolchainError("A versioned tool receipt has an invalid shape")
             receipt = VersionedToolReceipt(**payload)
             self._validate_receipt(receipt, item)

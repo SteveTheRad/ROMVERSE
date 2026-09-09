@@ -1809,9 +1809,7 @@ class BuildControlCenter(QDialog):
             banner_layout = QHBoxLayout(banner)
             banner_layout.setContentsMargins(18, 14, 18, 14)
             copy = QVBoxLayout()
-            heading = QLabel(
-                "✓  SIGNING READY  •  INSTALLATION AND FLASH ARE SEPARATE CHOICES"
-            )
+            heading = QLabel("✓  SIGNING READY  •  INSTALLATION AND FLASH ARE SEPARATE CHOICES")
             heading.setObjectName("ReadyHeading")
             guidance = QLabel(
                 "ROMVERSE verified the protected source, workspace, toolchain, reproducible "

@@ -2104,11 +2104,15 @@ def test_genesis_simulated_device_continues_visibly_without_hardware_authority(
     assert plan.required_tools == ("Python", "Payload Dumper", "AVBTool")
     assert plan.local_only and not plan.flashable and plan.execution_locked
     assert plan.execution_authority == "none"
-    assert RomBuildPlanner(
-        store,
-        studio.tool_statuses,
-        plan.required_tools,
-    ).verify_tree(project.project_id).valid
+    assert (
+        RomBuildPlanner(
+            store,
+            studio.tool_statuses,
+            plan.required_tools,
+        )
+        .verify_tree(project.project_id)
+        .valid
+    )
     assert store.verify_original(project.project_id) == source_before
     assert mission.assessments[10].status is GuidedStageStatus.COMPLETE
     assert mission.assessments[mission.selected_index].stage.stage_id == "build_sign"

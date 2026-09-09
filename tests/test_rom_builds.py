@@ -281,8 +281,8 @@ def test_guided_build_plan_invalidates_tampered_bound_receipt(tmp_path, receipt_
 
 
 def test_guided_build_plan_invalidates_replaced_recipe_receipt(tmp_path):
-    store, project, planner, recipe, original, _debloat_receipt = (
-        _guided_project_with_receipts(tmp_path)
+    store, project, planner, recipe, original, _debloat_receipt = _guided_project_with_receipts(
+        tmp_path
     )
     planner.plan(project.project_id)
     tree = store.working_root / project.project_id / "tree"
@@ -307,8 +307,8 @@ def test_guided_build_plan_invalidates_replaced_recipe_receipt(tmp_path):
 
 
 def test_guided_build_plan_invalidates_replaced_debloat_receipt(tmp_path):
-    store, project, planner, _recipe, _recipe_receipt, original = (
-        _guided_project_with_receipts(tmp_path)
+    store, project, planner, _recipe, _recipe_receipt, original = _guided_project_with_receipts(
+        tmp_path
     )
     planner.plan(project.project_id)
     debloat = DebloatService(store)

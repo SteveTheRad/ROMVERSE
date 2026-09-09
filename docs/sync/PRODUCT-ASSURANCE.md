@@ -1,5 +1,89 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 0cea741 — Windows Working Lab composite-action blocker
+
+- Reviewed blocker checkpoint: `0cea7412a6736d03e83b5164fd5992c00f9d9a17`
+- Authorizing verdict: `9d76c77af8dd94f8a52fed4d227bc99f9cbaf972`
+- Starting checkpoint: `8a1be7edaa32730e36f29429bfc8d76393753135`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — SAFE BLOCKER ACCURATELY PRESERVED; BASELINE-ONLY AUTHORIZATION CLOSED UNSATISFIED**
+
+### Decision and independent evidence
+
+Build correctly stopped after discovering that the authorized procedure could not be performed
+through the named Guided control. Product Assurance's prior instruction authorized only one
+contained working-copy baseline and expressly excluded extraction and later preparation, but the
+existing **Prepare working lab** action is a documented composite Guided operation. The production
+stage copy says it creates the verified working copy and contained tree and automatically extracts
+supported archives; `GenesisSequence._run_stage` deliberately queues `working-copy` followed by
+`extract` when both are missing. MainWindow also records a local Project Vault checkpoint after a
+successful ROM Studio operation. The observed sequence therefore matches the existing product
+contract; the error was Product Assurance selecting a composite control for a baseline-only task.
+
+This review does not retroactively claim that extraction or snapshot capture was authorized when
+the click occurred. The baseline-only acceptance criterion was not satisfied and is closed rather
+than replayed or silently widened. The blocker checkpoint itself is approved because it reports the
+scope mismatch completely, stops without retry, preserves all evidence, and makes no false claim
+that the original bounded task passed. No production correction is authorized from this evidence:
+splitting the Guided action or suppressing automatic Project Vault safety checkpoints would change
+the documented Guided automatic-routine-work contract and is not justified merely to conform the
+application to an incorrectly selected assurance procedure.
+
+The retained baseline is independently credible: it is a contained writable 497-byte byte-for-byte
+copy of the protected original at SHA-256
+`1d9c78df6f42c63864a76bdf91a50cb2da1cd2e133cc44cba5f1c298302f0725`, with a strict schema-two
+working-copy record and private project boundary. The two extracted regular members match the
+previously bounded ZIP inventory and exact digests; the working-tree index records 243 bytes. The
+Time Machine/Project Vault objects remain local project evidence. They must remain preserved and
+must not be deleted, rewritten, or represented as pre-authorized merely to make the earlier task
+appear compliant.
+
+Product Assurance inspected the actual Windows profile over the authenticated host connection.
+The Activity ledger records only protected import, working-copy success, its local Vault checkpoint,
+contained extraction success, and its local Vault checkpoint. The runtime ledger contains two starts
+and two clean closes. The protected untracked patch remains 8,272 bytes at SHA-256
+`2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; existing `build-work/`
+remains present. The Windows checkout and both remotes identify the exact blocker commit. The
+checkpoint changes only Build Status and passes Git whitespace validation; no source or test rerun
+is required for an evidence-only stop.
+
+No plan, package, tool/download, network, phone/emulator, ADB/Fastboot, firmware/APK mutation,
+Recipe/Forge, Guardian/Recovery execution, signing, publication, release, hosted CI, wipe,
+unlock/root, bootloader lock or relock occurred. Stage 5 remains attention-only with no authorized
+device and unconfirmed Device DNA. Exact evidence, Guardian-only authority, durable `UNKNOWN`, no
+blind retry, feature freeze and permanent no-relock remain intact.
+
+### Approved next bounded Windows task
+
+Use the same closed package/profile once for a **read-only Time Machine and Project Vault evidence
+inspection** of the artifacts already created by the composite Working Lab action. This is evidence
+review only; do not repeat Working Lab and do not perform or authorize a restore.
+
+1. Revalidate the protected original, working-copy record, working-tree index, two extracted files,
+   snapshot metadata, Vault entries/objects, and their exact project/digest containment before UI
+   inspection.
+2. Open the existing Time Machine surface through normal navigation. It must show the exact project,
+   baseline snapshot and two operation checkpoints without implying a phone backup, recovery
+   execution, compatibility decision, or new authorization.
+3. Return normally to Genesis and verify the exact project remains at Device DNA attention with no
+   selected/authorized device, no build/install request, and no invented Guardian readiness.
+4. Preserve the profile and all blocker evidence unchanged. If the existing read-only journey
+   reproduces a Stage 1 display, binding, or return-context defect, correct only that first defect
+   with focused tests; otherwise commit sanitized evidence only and stop for review.
+
+Do not create, restore, export, delete, deduplicate or recapture a snapshot/Vault object; do not
+repeat extraction; do not start a device scan or tool resolver; and do not use network, downloads,
+phone/emulator, ADB/Fastboot, APK/firmware mutation, Recipe/Forge, Guardian/Recovery execution,
+signing, publication, release, hosted CI, wipe, unlock/root, lock or relock.
+
+### Gate status
+
+- Exact Working Lab blocker disclosure and preserved evidence: **APPROVED**
+- Prior baseline-only/no-extraction task: **CLOSED UNSATISFIED — DO NOT REPLAY**
+- Composite Guided behavior as an authorized acceptance journey: **NOT RETROACTIVELY CLAIMED**
+- Read-only Time Machine/Project Vault inspection and exact return: **AUTHORIZED**
+- Device, build, consequential, signing/publication and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 8a1be7e — Corrected Windows package and private protected import
 
 - Reviewed checkpoint: `8a1be7edaa32730e36f29429bfc8d76393753135`

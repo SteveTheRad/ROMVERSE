@@ -1,5 +1,66 @@
 # ROMVERSE Product Assurance
 
+## Reviewed correction: 5bbac32 — complete Fedora external-action accounting
+
+- Reviewed correction: `5bbac32c13b5ec8655758aa6828d9e2491c4b698`
+- Corrected checkpoint: `0b2cf6ecae58b00286d36d4b301c67f801287f50`
+- Required-by verdict: `fc82aa1f4919a8953b71ddce435674801799bce4`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — CANCELLATION BEHAVIOR AND ALL OBSERVED EXTERNAL ACTIONS ARE NOW ACCOUNTED FOR**
+
+### Decision and independent evidence
+
+The documentation-only correction satisfies every acceptance criterion from `fc82aa1`. The journey
+evidence and Build handoff now distinguish three facts without overclaiming: Forge Arsenal created
+no Platform Tools/dependency plan or download in the accepted manual path; no system installation
+occurred; and the same accepted workspace separately retained one official Google device-catalog
+fetch.
+
+- Both corrected documents record the exact 4,758,014-byte catalog, SHA-256
+  `eebdc5895a2b38326470a3e475a09a2baab9d4f69f69b0f084664ef57a1decd4`, 53,746 entries,
+  fetch timestamp, receipt digest and read-only/no-build/no-flash/no-execution authority.
+- They correctly avoid claiming whether the fetch was automatic or user-triggered because retained
+  evidence does not establish the trigger.
+- The preliminary Platform Tools acquisition and all 14 host-only discovery probes remain fully
+  disclosed. The accepted project hash, `original: null`, empty Device Pack ID, empty tools
+  directory, package identity and process-restart limitation are unchanged.
+- The correction touches only the two requested documentation files. `git diff --check` passes and
+  the evidence file no longer has an extra blank line at EOF. Forgejo and GitHub expose the exact
+  same corrected commit.
+
+No source/test/package change or rerun was needed. No physical phone, firmware/APK operation,
+device-targeted command, mode transition, flash, wipe, unlock/root, lock/relock, signing,
+publication or release occurred. Guardian-only authority, exact evidence, durable `UNKNOWN`, no
+blind retry and permanent bootloader no-relock remain intact.
+
+### Approved next bounded task
+
+Run one retained-package, no-phone Linux safety/usability journey through the existing Expert-mode
+Command Console boundary, then return to Guided mode and the saved source-less ROM Studio project.
+
+1. Enter Expert mode only through its existing explicit consequential-risk acknowledgement and
+   verify Command Console becomes visible without changing the project, device or evidence state.
+2. With no device and the accepted workspace's empty tools directory, confirm Command Console does
+   not enable or imply a device command. Exercise only the existing missing-runtime/no-target
+   informational handoff, then cancel Forge Arsenal before any plan, download or installation.
+3. Return to Guided mode and verify expert-only navigation is hidden again while the exact project
+   ID, `original: null` state and ROM Studio next action remain intact.
+4. Confirm no Activity/Guardian/Recovery success or device evidence was created. Reopen only if an
+   explicitly promised persisted setting requires verification. If a genuine Stage 1 defect is
+   reproduced, fix only that defect, run focused checks and rebuild only if production bits change.
+
+Disable online intelligence before launch and use the existing accepted disposable workspace. Do
+not execute a console command, download/install tools or catalogs, use a phone/emulator, invoke
+ADB/Fastboot, perform firmware/APK operations, enter Recovery, flash, wipe, unlock/root,
+lock/relock, sign, publish or release. Do not overlap Windows's ROMVERSE Link/Members/Galaxy task.
+
+### Gate status
+
+- Fedora ROM Studio/Forge Arsenal cancellation and persistence: **APPROVED**
+- External-action/download accounting: **APPROVED**
+- Expert Command Console no-target boundary journey: **AUTHORIZED — NO COMMAND / NO-PHONE**
+- Physical operations, production signing/trust, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 0b2cf6e — installed Fedora cancellation journey
 
 - Reviewed checkpoint: `0b2cf6ecae58b00286d36d4b301c67f801287f50`

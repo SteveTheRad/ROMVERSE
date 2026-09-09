@@ -2,11 +2,16 @@ name: test
 
 on:
   push:
+    branches:
+      - main
     paths-ignore:
       - "docs/sync/**"
   pull_request:
+    branches:
+      - main
     paths-ignore:
       - "docs/sync/**"
+  workflow_dispatch:
 
 concurrency:
   group: test-${{ github.workflow }}-${{ github.ref }}
@@ -122,6 +127,7 @@ jobs:
           if-no-files-found: error
 
   desktop-package:
+    if: github.event_name != 'pull_request'
     strategy:
       fail-fast: false
       matrix:
@@ -186,6 +192,7 @@ jobs:
           if-no-files-found: error
 
   desktop-release-candidate:
+    if: github.event_name != 'pull_request'
     needs: desktop-package
     runs-on: ubuntu-latest
     steps:

@@ -1486,7 +1486,7 @@ class DeviceCenter(QWidget):
                 "#6A6DFF",
                 "#35DFF2",
                 "Pre-Build Simulation",
-                "READY"
+                "RUN CHECK"
                 if self._prebuild_simulation_ready
                 else "PREPARE INPUTS"
                 if project_ready

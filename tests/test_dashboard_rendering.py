@@ -127,7 +127,7 @@ def test_connected_dashboard_builds_all_approved_contextual_mission_cards(tmp_pa
     }
     assert status_by_label["Health Review"] == "DEVICE READY"
     assert status_by_label["Repair Phone"] == "DEVICE READY"
-    assert status_by_label["Pre-Build Simulation"] == "READY"
+    assert status_by_label["Pre-Build Simulation"] == "RUN CHECK"
     assert status_by_label["Guardian"] == "VERIFY REQUIRED"
     guardian = center.quick_action_buttons["Guardian"]
     assert guardian.property("guardianState") == "unverified"

@@ -1728,6 +1728,11 @@ def test_command_deck_simulation_stops_on_tree_drift_and_never_retries_verificat
         assert ForgeBundleService(store).load_receipt(project.project_id) is None
         assert window.rom_studio.devices == []
         assert not QApplication.activeModalWidget()
+
+        window._navigate_route("command_deck")
+        simulation = window.device_center.quick_action_buttons["Pre-Build Simulation"]
+        assert "RUN CHECK" in simulation.text()
+        assert "\nREADY" not in simulation.text()
     finally:
         window.companion_center.transport.close()
         window.close()

@@ -1,5 +1,104 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: ddd9fc2 — Fedora Source Lab durable-history refresh
+
+- Reviewed checkpoint: `ddd9fc221412a91e9ed059c9ba4da12b079d8d21`
+- Scoped implementation: `da50987f85a21fdae1b7f02268c642a3acbe9cfe`
+- Runtime evidence: `1d3852a`
+- Authorizing verdict: `777981cdc30a7d9f0987945148cdca7ac5f4dbd0`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — DURABLE AUTOMATIC HISTORY NOW REFRESHES THE EXACT SOURCE LAB PROJECT**
+
+### Decision and independent evidence
+
+The authorized correction is approved. Its production ownership is exactly the two permitted
+files: Backup Center publishes an exact project ID only after a matching durable `VaultEntry`
+completion, and Main Window refreshes ROM Studio only when that ID still belongs to the displayed
+project. A failed or incomplete worker emits no success notification, and a different project's
+notification cannot replace or refresh the current Source Lab project. Automatic Time Machine and
+Project Vault protection remains mandatory and unchanged.
+
+Product Assurance independently reran the exact focused selection: all **22/22 unique tests
+passed**. The tests cover two queued successful captures, failure/incomplete silence, exact-current
+project refresh and cross-project rejection. Focused Ruff 0.16.6 check and format verification
+passed on all four changed implementation/test files, and Git diff/whitespace validation passed.
+No broad suite or hosted CI was required or run by this review.
+
+The retained rebuilt package evidence is internally consistent: exactly 423 regular files,
+243,102,803 regular-file bytes and 38 internal links; the unsigned mode-`0755` executable is
+6,337,400 bytes at SHA-256
+`25f8b1c6e5eec861d0a29f21b3717b555058f5c86757abe9ed8e072505a4457d`. The fresh profile
+and settings remain private, network/tool acquisition controls remain off, and the process-local
+Android-tool path was empty.
+
+The fresh package journey establishes the corrected user-visible result. The harmless source,
+protected original, working baseline and automatic snapshot are each exactly 551 bytes at SHA-256
+`c3f5c1711d648a0f6c8f2ba2e3c910048c4e81e6f3ee39bb82e9e85888ac89c8`. After one exact
+Source Lab **Create working copy** action, the page changed without reopen from **No snapshots yet**
+to **Snapshots • 1 (newest first)** and displayed the exact durable snapshot. The zero-tree-byte
+**Protected working baseline** Vault entry binds the same project and source evidence.
+
+The working tree contains zero files, its index is absent, tools contain zero files and the Guided
+mission remains at `workspace` with no error, build plan or install request. There is no device
+evidence, Guardian ledger, Recovery incident/result, consent or execution record. Forgejo and
+GitHub exposed the identical checkpoint with zero divergence, the Linux worktree was clean, and
+other worktrees were not modified.
+
+No network request, real firmware, extraction, retry, tool/download/install, phone/emulator,
+ADB/Fastboot, firmware/APK mutation, build plan/ROM build, Guardian/Recovery execution, flash,
+wipe, unlock/root, bootloader lock/relock, signing, publication, release, hosted CI or Forgejo
+Action occurred. Exit 143 remains honestly excluded from clean-shutdown and restart-persistence
+evidence.
+
+### Separate bounded truthfulness correction authorized
+
+The completed-history fix is approved and must not be reopened. A separate existing Source Lab
+readiness sentence is, however, misleading: when the tree and plan are absent, its `INCOMPLETE`
+list uses completed-action phrases **Contained working tree extracted** and **Guardian-assessed
+build plan saved**. The surrounding prefix implies missing prerequisites to a careful visual
+reader, but the individual phrases falsely announce completed state to accessibility and extracted
+text consumers. The filesystem and the page's real next action correctly prove neither artifact
+exists.
+
+Build is authorized to make one minimum presentation-only correction:
+
+1. On `linux/stage1-desktop-readiness`, change only the Source Lab `Project readiness • INCOMPLETE`
+   rendering so every absent prerequisite is unambiguously identified as missing or as a required
+   next action. Preserve the existing `LOCAL INPUTS READY` condition and all underlying readiness,
+   extraction and build-plan logic.
+2. Production ownership is limited to `src/romverse/ui/rom_studio.py`; test ownership is limited
+   to the exact focused assertions in `tests/test_rom_studio_ui.py`; documentation ownership is
+   limited to the scoped evidence and `docs/sync/BUILD-STATUS.md`. Do not alter buttons, navigation,
+   operation sequencing, Genesis, Backup Center, Main Window, Guardian, Recovery or any evidence
+   schema.
+3. Add deterministic assertions for at least: working copy present with tree and plan absent;
+   tree present with plan absent; and all local prerequisites present. The first two states must
+   explicitly identify what is missing and must never read as if extraction or plan creation
+   already succeeded; the ready state must remain evidence-derived.
+4. Run only the focused ROM Studio readiness tests, focused Ruff check/format and Git diff check.
+   Because application text changes, create exactly one offline/cached unsigned Fedora package.
+5. Exercise that package once under the same no-network/no-phone/empty-tool boundary using a fresh
+   disposable copy of the retained synthetic project state. Inspect the Source Lab status only:
+   prove the missing-tree/missing-plan text is truthful, then stop without invoking import,
+   working-copy, extraction, planning or any later action. Do not repeat the completed journey.
+
+The correction, focused verification, one package rebuild and this single read-only UI observation
+may form one coherent checkpoint. Commit the scoped result, push Forgejo first, mirror the identical
+commit to GitHub and stop for independent Product Assurance review.
+
+No UI redesign, new feature, setup or packaging loop, new fixture/project journey, extraction,
+build-plan creation, network/tool acquisition, real firmware, phone/emulator/ADB/Fastboot,
+firmware/APK mutation, Guardian/Recovery authority or execution, Windows/UI-Lab/Companion/Device
+Intelligence work, signing, publication, release, hosted CI, wipe, unlock/root, bootloader lock or
+relock is authorized.
+
+### Gate status
+
+- Source Lab copy-only action and automatic rollback evidence: **APPROVED**
+- Exact-project completed-history refresh: **APPROVED**
+- Source Lab incomplete-readiness wording: **CORRECTION AUTHORIZED ABOVE**
+- Extraction and every later build/device/release gate: **CLOSED**
+
 ## Reviewed checkpoint: da56068 — Fedora Source Lab copy-only with automatic baseline protection
 
 - Reviewed checkpoint: `da560685ca4943204589cdf6f0e2282826db02ba`

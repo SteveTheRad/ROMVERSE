@@ -1,5 +1,70 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 7367154 — Windows exact popsicle field-knowledge integration
+
+- Reviewed checkpoint: `73671541a90a6ae9c965c3275b902af2d87d1888`
+- Integrated commit: `6204644743b65e162fe5b450cb18e1f1cdaec0bc`
+- Exact authorized evidence commit: `ca97c1cf61c6266ddfa1e747a1beb664ea4eb147`
+- Authorizing verdict: `97e6aad2ec320c040aef1eeae2a47c317bcc23cb`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — THE EXACT AUTHORIZED EVIDENCE-ONLY PATCH IS PRESENT, DISCOVERABLE ON WINDOWS, AND REMAINS EXECUTION-INERT**
+
+### Decision and independent evidence
+
+The Windows integration is the minimum correction authorized by `97e6aad2`. Product Assurance
+independently verified that the stable patch ID of `6204644` exactly matches `ca97c1c`; no unrelated
+Linux history or reconstructed record was imported. The only integration changes are the redacted
+field-evidence document, its three-record packaged knowledge seed, one loader registration and the
+two focused regression files. Checkpoint `7367154` changes only the Build handoff.
+
+- The records are constrained to one user-confirmed `popsicle` slot-A field outcome, retain exact
+  build and artifact-digest context, state that slot B is unvalidated and distinguish a successful
+  boot from universal compatibility.
+- Every packaged record has an empty `operations` collection. Lookup remains
+  `execution_authority: none`; the fallback is diagnostic/adapter-design evidence, not an
+  executable recipe, Device Pack, consent, Guardian decision or Recovery admission.
+- The evidence explicitly preserves UNKNOWN after dispatch without a trustworthy result, forbids
+  blind retry and bootloader relocking, and requires fresh exact-target, exact-package, slot,
+  unlock, recovery and consent evidence before future consequential authority can be considered.
+- Product Assurance independently reran the focused suite from the exact checkpoint on Windows:
+  **23/23 passed**. Ruff check and format-check passed. An isolated Linux parity rerun also passed
+  **23/23**, and the integration diff passed `git diff --check`.
+- The Windows checkout is at the reviewed remote tip and contains only the protected untracked
+  patch. Its size remains **8,272 bytes** and SHA-256 remains
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- The reported inert Archives result is consistent with the implementation: the packaged archive
+  gains three records and one source, and exact `DATA00052000` discovery is classified as offline
+  experimental evidence rather than a verified executable guide.
+
+No package, hosted CI, phone/emulator operation, firmware or APK action, ADB/Fastboot command,
+device query/write or transition, Guardian/Recovery execution, signing, publication, release,
+wipe, unlock/root, lock or relock was performed. Guided friction and the existing safety and
+evidence contracts are unchanged. The checkpoint is feature-freeze compliant.
+
+### Approved next bounded task
+
+Resume exactly one local-only, no-phone Windows product-as-user batch from `7367154`. Begin with the
+new `DATA00052000` Archives result and follow only existing visible handoffs into the related
+diagnostic, Repair and Guardian surfaces. Verify that evidence classification, back/forward
+navigation and restart persistence contain no crash, inert action, dead end, misleading device
+state or accidental authority. Correct only a directly reproduced bounded defect and run focused
+local tests/lint for changed areas. If no defect is reproduced, record the bounded pass without a
+source change. Publish one compact Build handoff and stop for review.
+
+Do not rebuild a package unless a production Windows defect is corrected and the resulting source
+forms a coherent acceptance boundary. Do not run hosted CI or operate a physical device. Stop
+before firmware/APK selection or execution, device write/mode transition, Guardian authority or
+safety-contract change, contradictory/UNKNOWN evidence, signing/publication/release, destructive
+action or material scope expansion. The protected patch remains untouched.
+
+### Gate status
+
+- Windows popsicle evidence ancestry and integration: **APPROVED**
+- Windows no-phone product-as-user continuation: **AUTHORIZED — ONE BOUNDED BATCH**
+- Replacement Windows development package: **DEFER UNTIL A COHERENT PRODUCTION CHANGE EXISTS**
+- v0.2 Golden Foundation: **CLOSED pending remaining release gates**
+- Physical Android operation, production signing/publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 2b81469 — Windows field-knowledge ancestry correction
 
 - Reviewed checkpoint: `2b81469c35a315ebeb8ed1b32496e0a578492d61`

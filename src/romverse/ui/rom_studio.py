@@ -5955,10 +5955,16 @@ class RomStudio(QWidget):
         missing = tuple(
             label
             for passed, label in (
-                (self.store.get(project_id).original is not None, "Protected original imported"),
-                (report is not None, "Structure inspection saved"),
-                (tree_ready, "Contained working tree extracted"),
-                (plan is not None, "Guardian-assessed build plan saved"),
+                (
+                    self.store.get(project_id).original is not None,
+                    "Missing: protected original import",
+                ),
+                (report is not None, "Missing: saved structure inspection"),
+                (tree_ready, "Missing: contained working tree (extract and verify it)"),
+                (
+                    plan is not None,
+                    "Missing: Guardian-assessed build plan (create and verify it)",
+                ),
             )
             if not passed
         )

@@ -342,6 +342,43 @@ def test_rom_studio_refresh_never_recursively_rescans_an_extracted_tree(tmp_path
     studio.close()
 
 
+def test_source_lab_readiness_names_only_missing_local_prerequisites(tmp_path):
+    QApplication.instance() or QApplication([])
+    source = tmp_path / "firmware.zip"
+    with zipfile.ZipFile(source, "w") as output:
+        output.writestr("IMAGES/system.img", b"system")
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.import_original(store.create("Readiness truth").project_id, source)
+    inspection = RomInspectionService(store)
+    inspection.inspect_project(project.project_id)
+    store.create_working_copy(project.project_id)
+    studio = RomStudio(store, DevicePackRegistry(()))
+
+    studio.refresh(project.project_id)
+    detail = studio.time_machine_detail.text()
+    assert "Project readiness  •  INCOMPLETE" in detail
+    assert "Missing: contained working tree (extract and verify it)" in detail
+    assert "Missing: Guardian-assessed build plan (create and verify it)" in detail
+    assert "Contained working tree extracted" not in detail
+    assert "Guardian-assessed build plan saved" not in detail
+
+    inspection.extract_project_tree(project.project_id)
+    studio.refresh(project.project_id)
+    detail = studio.time_machine_detail.text()
+    assert "Project readiness  •  INCOMPLETE" in detail
+    assert "Missing: contained working tree" not in detail
+    assert "Missing: Guardian-assessed build plan (create and verify it)" in detail
+    assert "Guardian-assessed build plan saved" not in detail
+
+    RomBuildPlanner(store).plan(project.project_id)
+    studio.refresh(project.project_id)
+    assert (
+        "Project readiness  •  LOCAL INPUTS READY (run Verify plan before execution)"
+        in studio.time_machine_detail.text()
+    )
+    studio.close()
+
+
 def test_rom_studio_command_deck_handoffs_report_exact_ready_workflows(
     tmp_path,
     monkeypatch,

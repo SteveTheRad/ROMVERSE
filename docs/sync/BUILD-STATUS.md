@@ -1,5 +1,77 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows long-basetemp harness boundary — Product Assurance review requested
+
+- Product Assurance verdict: `f1ff51ee163df8af641c6c8f3d1602908d6afdd5` —
+  `Approve Candidate integration fixture refresh`, matching Build checkpoint
+  `b4d75a3ea839ffd227674da4d791e1f9b3e59aef` and correction `b019bc98` exactly.
+- Branch: `windows-launcher-authorized-work`.
+- Status: **THE FINAL REMAINDER STOPPED AT ONE WINDOWS LONG-PATH HARNESS BOUNDARY. THE EXACT NODE
+  PASSES WITH A SHORT FRESH EXPLICIT BASETEMP; NO SOURCE OR TEST CORRECTION WAS REQUIRED.**
+
+### Exact continuation and first boundary
+
+- Safely fast-forwarded from `b4d75a3e` to approval `f1ff51ee`; all 23 Device Pack JSON files
+  remained LF-only. No dependency or tool was installed or acquired.
+- Ran `.venv\Scripts\python.exe -m pytest -x --basetemp
+  C:\Work\ROMVERSE-Windows-TestTemp-f1ff51ee-final-remainder-01 --deselect
+  tests/test_candidate_installation_integration.py::test_real_build_base_avb_and_candidate_boundaries_compose_two_plus_48
+  tests/test_candidate_installation_integration.py tests/test_candidate_installation_ui.py
+  tests/test_candidate_installation_desktop.py tests/test_optimizer.py
+  tests/test_navigation_vocabulary.py` with `QT_QPA_PLATFORM=offscreen`.
+- Result: **98 passed, 1 failed, 1 previously evidenced node deselected in 332.64 seconds (5:32)**.
+  There was no skip, error, timeout or stall. No node after the failure ran.
+- First failure:
+  `tests/test_navigation_vocabulary.py::test_smart_solution_routes_to_exact_platform_tools_review_without_running_it`.
+  The typed host-tool receipt was written and independently revalidated, but saving the nested
+  verified-outcome receipt failed closed with `LocalStoreError` / Windows `WinError 3` at
+  `os.replace`; the UI truthfully retained `SMART SOLUTION OUTCOME NOT SAVED` and granted no phone
+  or execution authority.
+
+### Harness classification and verification
+
+- Classification: **explicit basetemp path-length incompatibility in this host harness, not a
+  product correctness failure**. The approved basetemp root was 61 characters and produced a
+  279-character nested outcome target. The same deterministic test passed **1/1** unchanged with
+  the fresh short explicit basetemp `C:\Work\rvt-f1` (14-character root; equivalent outcome target
+  232 characters). No repository source, test or application behavior changed.
+- The failed workspace preserved the exact toolchain-verification receipt, and direct read-only
+  revalidation returned true. No verified-outcome file was accepted from the failed long-path
+  attempt. The short-path verification proved the intended no-phone typed handoff end to end.
+- Current non-overlapping segmented evidence through this verified node is **961 passed / 6 skipped**
+  across 967 unique workflow-ordered nodes. This is not an uninterrupted or complete suite. Ruff
+  remains pending because the continuation stopped before the workflow remainder completed.
+
+### Count reconciliation required
+
+- The approval describes 105 nodes after the previously corrected integration victim, but the
+  authoritative 974-node collection and 868 already-evidenced nodes imply **106**. A targeted
+  collection of the exact deselected five-file command confirms **106 selected nodes**:
+  integration 19, UI 13, desktop 4, optimizer 5 and navigation vocabulary 65.
+- Only the first 99 of those nodes ran before this failure, so **7 collected nodes remain**, not 6;
+  no disputed final node was executed. Product Assurance should use the repository collection to
+  reconcile this off-by-one before authorizing the last continuation.
+
+### Preserved scope and next review
+
+- This evidence-only handoff changes only `docs/sync/BUILD-STATUS.md`. The accepted Windows package
+  was not rebuilt or relaunched, GitHub Actions was not launched, and no product/test correction or
+  unrelated failure was pursued.
+- The protected Companion files remain clean and unstaged. The protected untracked patch remains
+  exactly **8,272 bytes**, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it was not altered,
+  applied, staged or deleted. LF Device Pack materialization remains intact.
+- No phone/emulator, device discovery, ADB/Fastboot command, APK installation, firmware action,
+  Guardian/Recovery operation, production signing/trust, publication, release, merge, force-push,
+  destructive change, lock or relock occurred. Exact-device evidence, consent separation,
+  UNKNOWN-on-uncertainty, no blind retry, Guardian-only authority, independent verification and
+  permanent no-relock remain intact.
+- Precise proposed next task: Product Assurance independently verifies the unchanged exact node on
+  a short explicit basetemp and reconciles the 105/106 count. If approved, authorize only the exact
+  seven collected nodes after the verified Smart Solution victim using a short fresh explicit
+  basetemp, followed by Ruff check/format once if those seven complete. No package rebuild is
+  authorized or warranted at this checkpoint.
+
 ## Candidate Installation integration-fixture correction — Product Assurance review requested
 
 - Product Assurance verdict: `ca04cbf478bf221b9e3a6f1fea82a73f3ba2f6f4` —

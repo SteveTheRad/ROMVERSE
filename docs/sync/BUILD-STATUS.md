@@ -1,5 +1,72 @@
 # ROMVERSE Product Assurance Sync
 
+## Candidate Installation inspection-fixture correction — Product Assurance review requested
+
+- Product Assurance verdict: `94e13722fec5c6a9af561e53e638e238ae5909a9` —
+  `Approve Windows OTA portability correction`, matching Build checkpoint
+  `0aa4cfa8733c7f99f3bd6887a6e1cd804ebedab3` and implementation `abe183f1` exactly.
+- Windows test correction: `70379f7b59711b7fe12e34b0d33c314692e7e526` —
+  `Refresh Candidate Installation inspection fixture`.
+- Branch: `windows-launcher-authorized-work`.
+- Status: **THE EXACT NON-OVERLAPPING CONTINUATION STOPPED AT ONE STALE INERT FIXTURE; THE
+  MINIMUM TEST-ONLY CORRECTION IS COMMITTED AND ITS EXACT NODE PASSES.**
+
+### Exact collection and continuation
+
+- Safely fast-forwarded from `0aa4cfa8` to approval `94e13722`; all 23 Device Pack JSON files
+  remained LF-only. No dependency or tool was installed or acquired.
+- Collected the complete `.github/workflows/test.yml` Windows portability selection once in normal
+  order: **974 nodes**. The approved backslash victim was zero-based index 692, leaving exactly
+  **281** nodes: 32 later nodes in `tests/test_base_image_compatibility.py` followed by every node
+  in the nine workflow-ordered files from `tests/test_candidate_avb.py` through
+  `tests/test_navigation_vocabulary.py`.
+- Ran that exact compact equivalent suffix once with `.venv\Scripts\python.exe -m pytest -x
+  --basetemp C:\Work\ROMVERSE-Windows-TestTemp-94e13722-continuation-01 <32 exact node IDs>
+  <9 complete later files>` and `QT_QPA_PLATFORM=offscreen`.
+- Result: **91 passed, 3 skipped, 1 failed in 9.50 seconds**. There was no error, timeout or stall.
+  The default terminal report did not emit individual conditional-skip reasons, so no unsupported
+  skip-node attribution is claimed.
+- First failure:
+  `tests/test_candidate_installation.py::test_complete_candidate_replaces_exactly_two_roles_and_preserves_all_source_steps`.
+  Fixture setup called `RomBuildPlanner.plan` without first saving the required current structure
+  inspection evidence, so the planner correctly raised `ProjectError: Current structure inspection
+  evidence is required`. No later node ran.
+
+### First-failure classification and correction
+
+- Classification: **unrelated pre-existing stale inert fixture, not a Windows platform defect and
+  not a Stage 1 product correctness failure**. Other build fixtures already call
+  `RomInspectionService.inspect_project` before planning; this Candidate Installation fixture did
+  not. The product fail-closed evidence requirement remains unchanged.
+- Added only that missing inert local inspection setup call and its import to the existing fixture.
+  No production source or application behavior changed.
+- Exact focused verification passed **1/1** with fresh basetemp
+  `C:\Work\ROMVERSE-Windows-TestTemp-94e13722-candidate-install-after`.
+  `git diff --check` passed before the test-only correction commit.
+- Current non-overlapping segmented evidence through the corrected fixture node is **782 passed / 6
+  skipped**: the Product Assurance-accepted 690/3 through the backslash victim, this continuation's
+  91/3 prefix, and the corrected fixture victim 1/0. This is not an uninterrupted or complete
+  suite. Ruff remains pending because the continuation did not complete.
+
+### Preserved scope and next review
+
+- Correction is limited to `tests/test_candidate_installation.py`; this handoff changes only
+  `docs/sync/BUILD-STATUS.md`. The accepted Windows package was not rebuilt or relaunched, GitHub
+  Actions was not launched, and no unrelated failure was pursued.
+- The protected Companion files remain clean and unstaged. The protected untracked patch remains
+  exactly **8,272 bytes**, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it was not altered,
+  applied, staged or deleted. LF Device Pack materialization remains intact.
+- No phone/emulator, device discovery, ADB/Fastboot command, APK installation, firmware action,
+  Guardian/Recovery operation, production signing/trust, publication, release, merge, force-push,
+  destructive change, lock or relock occurred. Exact-device evidence, consent separation,
+  UNKNOWN-on-uncertainty, no blind retry, Guardian-only authority, independent verification and
+  permanent no-relock remain intact.
+- Precise proposed next task: Product Assurance independently verifies `70379f7b` and the exact
+  corrected node. If approved, authorize one continuation containing only the collected nodes after
+  the corrected Candidate Installation victim, then Ruff check/format once only if that remainder
+  completes. No package rebuild is authorized or warranted at this checkpoint.
+
 ## Windows OTA literal-backslash correction — Product Assurance review requested
 
 - Product Assurance verdict: `5dc8762715390f8d36bbbed5e5a7909f742c9e11` —

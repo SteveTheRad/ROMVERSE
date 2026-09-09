@@ -1,5 +1,86 @@
 # ROMVERSE Product Assurance Sync
 
+## Fedora Source Lab plan-verification continuity correction
+
+### Authoritative commits and exact changes
+
+- Branch: `linux/stage1-desktop-readiness`.
+- Product Assurance authorization: `cd7ca570e5c909168c06af0664062c9e82699b69`.
+- Scoped implementation: `8ac135f74ca1f3c691e18d0eee5da3d6574ef6b6`
+  (**Persist Source Lab plan verification**).
+- Runtime evidence: `780c52be5f6fe901fc3ce6e1abfc807740cd43dd`
+  (**Record Fedora plan continuity evidence**).
+- `src/romverse/ui/rom_studio.py` now persists a successful exact current-plan verification into
+  shared Guided mission state before emitting success or refreshing successful UI. New plan starts
+  and failed/mismatched verification invalidate prior success. Persistence failure fails closed and
+  leaves Forge disabled.
+- The Source Lab 8/8 counter, Plan inputs wording and Forge availability now use the same persisted
+  state. `tests/test_rom_studio_ui.py` adds focused success/reopen, invalidation, persistence-failure
+  and mismatched-evidence assertions and updates the existing verified Forge workflow expectation.
+- Complete evidence: `docs/evidence/FEDORA_SOURCE_LAB_PLAN_CONTINUITY_2026-09-10.md`.
+
+### Classification, verification and gates
+
+- **Implemented:** the minimum authorized Source Lab/Guided continuity correction only. No
+  readiness policy, plan format, Forge behavior, device operation or execution authority was added.
+- **Simulated/Tested:** **7/7 unique affected test nodes passed** after the final formatting pass.
+  Coverage includes persisted convergence/reopen, new-plan and failed-verification invalidation,
+  fail-closed state persistence, Command Deck handoff, mismatched-tree evidence rejection, Genesis
+  simulated-device continuity, and the existing verified non-flashable Forge workflow. Ruff 0.16.5
+  lint/format and Git whitespace checks passed. An earlier 6-pass/1-fail development run exposed an
+  incomplete new test fixture; after adding its required working-copy evidence the final seven
+  unique nodes passed. It is not double-counted. No broad/full suite or hosted CI is claimed.
+- Exactly one cached/offline Fedora build succeeded using PyInstaller 6.22.2/Python 3.14.7. The
+  unsigned development package is `build/fedora-plan-continuity-cd7ca57/ROMVERSE`: executable mode
+  `0755`, 6,338,544 bytes, SHA-256
+  `e42d66cf95bcd66170f8500faf7c51bcbbc10c99c8895f26fb1b411b06e703e5`; 423 regular files,
+  243,103,947 regular-file bytes and 38 links. Existing non-fatal limitations are the ignored
+  Windows/macOS icon input on Linux and absent optional `xxsubtype` hidden import.
+- One genuine Fedora package run used a fresh private retained-plan copy, a distinct loopback-only
+  network namespace, private runtime directories and an empty Android-tool path. Before acceptance,
+  Source Lab truthfully showed 7/8, verification required and disabled Forge. Build selected
+  **Build & Proof** and invoked **Verify plan exactly once**. It did not re-plan or invoke Forge.
+- The durable result set `build_plan_verified: true` before the UI converged to **8/8 • Workflow
+  complete**, **Plan inputs • last background verification passed**, and enabled-but-uninvoked Forge
+  Bundle. Activity gained one exact verification success; Live Console gained one running/succeeded
+  pair. The plan hash/creation time, tree-index hash, extracted tree hashes and two Vault entries
+  remained unchanged. No Forge or receipt file appeared.
+- **Hardware Verified:** no Android hardware claim. Fedora/Linux build and UI behavior were genuinely
+  exercised. No phone or emulator was connected or operated. Windows was not run or modified.
+- **Released:** no. The package is local, unsigned, uninstalled, unpublished and unreleased.
+- Blockers/failures: none inside this correction. The compositor exposed no close action, so the
+  exact sandboxed process was terminated after evidence capture and exited 143; no runtime clean-
+  shutdown or runtime reopen claim is made. Focused automated coverage proves reopen continuity.
+- Guided friction/dead ends: the stale contradictory state is removed. Guided no longer reports an
+  accepted Verify result while also saying verification is required. The user makes no additional
+  decision and is not routed into a loop.
+- Guardian/Recovery/safety: unchanged and not entered. Forge becoming visible is UI availability,
+  not execution authority. Guardian-only authority, exact-device evidence, independent
+  verification, durable UNKNOWN, no blind retry and permanent bootloader no-relock remain binding.
+- Platform status: Fedora 44/Linux kernel `7.1.13-200.fc44.x86_64` is genuinely verified for this
+  focused build and retained-plan UI path. Windows and physical Android remain unverified here.
+- Feature freeze: compliant. This is the explicitly approved minimum foundation/correctness fix;
+  no feature or stage expansion occurred.
+- Version gate: this Source Lab continuity boundary is ready for independent Product Assurance.
+  Forge execution, ROM build, device/consequence/signing/publication and v0.2/release gates remain
+  **CLOSED**.
+- External actions: local read-only inspection; focused tests/lint/diff; exactly one cached build;
+  one no-network/no-phone retained-plan Verify-only package run; scoped local commits; and the
+  pending Forgejo-first/GitHub branch synchronization. No dependency or tool acquisition, phone/
+  emulator operation, ADB/Fastboot, real firmware, Forge/build execution, Guardian/Recovery action,
+  APK/package installation, signing, publication, release or unrelated source change occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin Forge, ROM build or another
+consequential slice.
+
+### Product Assurance Review Requested
+
+- Confirm that persisted exact-plan success, fail-closed invalidation and the unified 8/8/Plan
+  inputs/Forge presentation fully resolve the authorized Source Lab continuity defect.
+- Keep every later Stage 1 and release boundary closed pending separate authorization.
+
 ## Fedora Source Lab inert plan-verification blocker
 
 ### Authoritative commits and exact changes

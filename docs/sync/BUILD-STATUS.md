@@ -1,5 +1,120 @@
 # ROMVERSE Product Assurance Sync
 
+## Exact `.35` OTA no-write Guided simulation — first bounded UI truth correction
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base:
+  `45ee98f846a64d4508c8f7a993d71e0742c4a464`, approving packaged connected-device checkpoint
+  `073413c` and authorizing one visible, no-write simulation with the connected `popsicle` phone
+  and the exact local `.35` OTA.
+- Implementation commit: `c5c67beff840e9b30f14f6ad6cb4c303dbeb68f1` on
+  `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation exact-firmware simulation. The simulation stopped after
+  the first proven product defect, as required; it did not continue into another correction or
+  consequential slice.
+
+### Exact firmware evidence established read-only
+
+- Exact local archive:
+  `/home/stevetherad/Downloads/popsicle-ota_full-OS4.0.0.35.XPBCNXM-user-17.0-3eaa750eae.zip` —
+  **9,110,437,829 bytes**, SHA-256
+  `29a4f4fe3c1e87872d8a423a227c3cdfcb0632bfd66994abb5ac55f607b0f08e`, MD5
+  `3eaa750eaeb1dacd6335935e1003d769`.
+- The archive contains seven unique, non-encrypted, path-safe regular entries and passed full ZIP
+  container/CRC inspection. Android OTA metadata identifies an A/B full payload for exact target
+  `popsicle`, Android 17/API 37, post timestamp `1788541071`, security patch `2026-08-01` and
+  internal post-build `17OS4.0.260904.231743192.QCPECN.S`; no incremental pre-build constraint is
+  declared.
+- `payload.bin` is exactly **9,110,428,894 bytes**. Its complete SHA-256 and the first **333,126**
+  metadata bytes both match the signed values in `payload_properties.txt`.
+- The Android whole-file OTA signature was streamed and verified using the AOSP recovery footer/
+  digest procedure. Its signed SHA-1 is `40b4e5f0d39325c5c07c1f375b543b9f178d5ee9` and matches the
+  digest recovered from the package signature. The embedded self-signed certificate identifies
+  Xiaomi/MIUI and has SHA-256 fingerprint
+  `D4:5F:07:6F:E2:3A:1A:5B:7F:48:6E:3F:F4:15:47:A2:02:3D:BF:E1:FE:73:35:3B:1E:48:EB:DF:ED:72:CC:6F`.
+  This proves internal package integrity against the embedded certificate; it does **not** by
+  itself prove that the exact phone/update channel trusts that key.
+- The public Alibaba-hosted OTA object exposed by the catalogue has the exact same content length,
+  and read-only range checks matched the local first and last 1 MiB byte-for-byte. A separate
+  unofficial catalogue's claimed full MD5 conflicts after the ten-character filename prefix, so
+  that catalogue is not accepted as digest authority. No full remote object was downloaded.
+- Creator and currently available release reporting identify `.35` as a **Beta / Mi Pilot** China
+  recovery OTA. The package's bounded internal metadata does not declare that rollout class, and
+  the upstream object host plus embedded certificate do not yet constitute enrolled publisher/
+  channel trust in ROMVERSE. Stable-release provenance must not be inferred.
+
+### Visible Guided evidence and first defect
+
+- The unchanged approved Fedora package visibly reopened the existing `hyperos update` project,
+  displayed one masked Xiaomi 17 Pro Max target on `OS4.0.0.32.XPBCNXM`, and classified the
+  protected `.35` source as a newer exact-device candidate with **zero install/flash authority**.
+  Its passport truthfully kept trusted provenance, package signature, exact update path, Recovery
+  evidence, consent and installation authority separate.
+- Genesis opened at Stage 4 and supplied one clear **Prepare working lab** action. The local-only
+  preparation completed and Genesis advanced to Stage 6 with five of fifteen stages complete;
+  the phone was not modified.
+- First proven defect: Genesis labelled Stage 3 **Provenance** as verified solely from protected-
+  copy SHA-256 and bounded structure inspection. That contradicted the passport's correct warning
+  and could falsely imply publisher, signer or release-channel provenance.
+- Bounded correction: the stable internal stage ID remains unchanged for persisted-schema
+  compatibility, while user-facing Stage 3 is now **Source integrity / Verify source integrity and
+  structure**. Its explanation, recommendation and outcome explicitly state that publisher
+  identity, signing-key trust, release channel and installation authority remain separate.
+
+### Verification, classification and gates
+
+- **Implemented:** two production/test files changed — `src/romverse/rom/guided.py` and
+  `tests/test_guided_mission.py`. No Device Engine, Guardian, Recovery, executor, adapter, firmware
+  parser, package, Companion or Windows launcher source changed.
+- **Simulated/Tested:** **168 unique tests passed** across `test_guided_mission.py` (24) and the
+  non-overlapping `test_rom_studio_ui.py` plus `test_navigation_vocabulary.py` selection (144).
+  Ruff check and format-check passed for both changed files; `git diff --check` passed.
+- **Hardware Verified:** no new write/update claim. The visible package displayed the same genuine
+  connected phone and its previously approved read-only facts. Periodic/read-only discovery is not
+  counted as a new hardware test and no raw serial is recorded here.
+- **Released:** no. The source correction is not present in the previously built Fedora package;
+  that artifact remains the evidence source for the discovered wording defect.
+- Remaining blockers/limitations: the package still needs a newly isolated development rebuild
+  before the corrected wording can be visibly rechecked. ROMVERSE has not yet enrolled an exact
+  trusted signer/channel receipt, proved the phone's accepted OTA key, or established an exact
+  no-wipe installation interface/Device Pack execution contract for this beta. Guardian therefore
+  remains locked and no exact consent preview was reached.
+- Guided friction/dead ends: working-lab preparation itself completed without a dead end. The
+  overclaimed Stage 3 label was the first defect and intentionally stopped the simulation before
+  later Guided stages were exercised.
+- Guardian/Recovery/safety: source-integrity completion still grants zero authority. Exact-device
+  evidence, current prerequisite validation, consent separation, UNKNOWN-on-uncertainty, no blind
+  retry, independent post-operation verification and permanent no-relock are unchanged.
+- Platform status: visible genuine Fedora 44/Wayland package journey plus Linux-hosted tests.
+  Windows and other Linux distributions were not exercised in this checkpoint.
+- Feature freeze: compliant foundation/correctness wording repair; no capability, adapter, Device
+  Pack, execution route or product feature was added.
+- Version gate: v0.2 Golden Foundation and all physical firmware/release gates remain **CLOSED**.
+- External actions: one visible Fedora package launch, local project working-lab preparation,
+  read-only firmware hashing/inspection, bounded public-source/HTTP metadata and range checks, and
+  normal app close. No reboot, Recovery/Fastboot transition, firmware transfer, APK installation,
+  phone setting/file/partition change, consent grant, Guardian execution, flash, wipe, unlock/root,
+  bootloader lock/relock, publication, release, remote push or full remote firmware download
+  occurred.
+
+### Next proposed Build task
+
+Stop for Product Assurance review. If approved, build one new isolated Fedora development package
+because production source genuinely changed, visibly verify the corrected Stage 3 language, then
+resume the exact `.35` no-write Guided simulation from saved project evidence. Continue only to a
+truthful pre-dispatch stop; missing signer/channel trust or execution-contract evidence remains
+`UNKNOWN` and cannot be bypassed.
+
+### Product Assurance Review Requested
+
+- Confirm that renaming only the user-facing Stage 3 contract while preserving internal ID
+  `provenance` is the correct durable-schema-safe repair.
+- Confirm the firmware evidence is correctly classified as internally signed/intact and exact-
+  device/newer, while Beta/Mi Pilot rollout, publisher/channel trust, no-wipe route and execution
+  authority remain separate and unresolved.
+- Confirm a new isolated package plus continued no-write simulation is the next bounded task.
+
 ## Fedora packaged connected-device UI checkpoint — one real masked Xiaomi target
 
 ### Authoritative checkpoint and scope

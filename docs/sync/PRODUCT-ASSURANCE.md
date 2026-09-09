@@ -1,5 +1,61 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 100e98d — simulated Genesis modal cleanup
+
+- Reviewed checkpoint: `100e98d7b278d2dfefc69d5835169e86f529dff1`
+- Test-fixture correction: `821859bf7c375621cba8f4f5089020a1b5b4af45`
+- Approved base: `6198690`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — TEST-OWNED SIMULATION MODAL NOW CLOSES DETERMINISTICALLY**
+
+### Decision and independent evidence
+
+The first convergence failure was fixture leakage, not a production dead end. The owning ROM Studio
+test deliberately opened a retained application-modal `GuidedBuildMission`, then closed only its
+parent studio. Explicitly closing that test-owned mission, processing the close event and proving
+there is no active modal is the minimum correct teardown.
+
+- Product Assurance independently ran the exact owner→victim sequence against the current source:
+  **2/2 passed**. Ruff and whitespace checks passed.
+- The three-line change is confined to `tests/test_rom_studio_ui.py`. It does not change product
+  lifecycle behavior, auto-accept a user decision or weaken the simulation/no-hardware boundary.
+- The cost-free convergence preflight truthfully stopped at its first failure after **2,854 passed / 1
+  failed**; no complete Linux pass is claimed and the full prefix will not be repeated now.
+- No cloud CI, package rebuild, Windows change or physical-device action occurred. Feature freeze,
+  Guardian separation, exact evidence, UNKNOWN-on-uncertainty, no blind retry and permanent
+  bootloader no-relock remain intact.
+
+### Approved next bounded task
+
+Continue the same cost-free convergence evidence from **after** the corrected victim without
+retesting the already-observed 2,854-node prefix.
+
+1. Collect the normal current Linux test order once and select only nodes following
+   `tests/test_source_installation_integration.py::test_main_window_continues_hidden_preparation_in_the_same_mission`.
+   Exclude the already-corrected owner/victim evidence. Run that suffix once with first-failure
+   enabled, current `src` forced first and offscreen Qt.
+2. If the suffix fails, capture the first complete deterministic failure and correct only that
+   failure when the minimum in-scope change is clear. Otherwise record the blocker without
+   speculative edits. Do not fan out across multiple clusters.
+3. If the suffix completes, combine its non-overlapping count only with the earlier 2,854 passes and
+   the separately approved owner→victim proof; do not represent this as one uninterrupted full-suite
+   run. Do not immediately repeat it or launch cloud CI.
+4. If a Qt phase makes no observable progress for 15 minutes, capture the current node/process once,
+   stop only that test process and report a harness blocker.
+5. Commit only a proven minimum correction, if any, plus `docs/sync/BUILD-STATUS.md`; otherwise
+   commit the evidence-only handoff. Push and stop for independent review.
+
+Do not rebuild packages, operate Stage 12, use a phone/emulator, install dependencies, change
+Windows/Companion work, build/sign/flash firmware, invoke Guardian/Recovery execution, publish,
+release, merge, force-push, lock or relock.
+
+### Gate status
+
+- First convergence failure/fixture owner: **VERIFIED — PA 2/2**
+- Earlier convergence prefix: **2,854 PASSED; NOT REPEATED**
+- Remaining Linux suffix: **NEXT BOUNDED CONVERGENCE CHECK**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 3b860a9 — portable Project Flash tamper rejection
 
 - Reviewed checkpoint: `3b860a9b7bcb60e9f3f0a4d5025b2bfb2aa4cd76`

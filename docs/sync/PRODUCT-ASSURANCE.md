@@ -1,5 +1,84 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: c20f021 — Current-source unsigned Windows package convergence
+
+- Reviewed checkpoint: `c20f02101c0d0276efc2873864dc41ab52427e83`
+- Authorizing verdict: `b1dc54e0c6390fb3d789930dda0696c712e40e64`
+- Package source: `b1dc54e0c6390fb3d789930dda0696c712e40e64`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — CURRENT-SOURCE WINDOWS DEVELOPMENT PACKAGE IS VERIFIED AND TRUTHFUL**
+
+### Decision and independent evidence
+
+The checkpoint is approved. Its only repository change is the 79-line Build Status handoff; no
+product or test source changed. It follows the exact approved package-convergence boundary and
+does not use the earlier non-reproducible Git drift as grounds for a source correction.
+
+Product Assurance independently reran the exact focused Windows selection and obtained **39/39**:
+11 desktop-bundle tests, 5 settings tests, 4 popsicle Fastboot-field Knowledge tests and 19
+Knowledge Center UI tests. This is proportionate to the code added since retained-package source
+`945928567ea188481eb0c19ca4419ae4132c22f5`: it covers the PyInstaller/ICU package boundary,
+Windows private-settings ACL behavior and the packaged popsicle Knowledge seed without rerunning
+unrelated suites.
+
+The resulting one-folder artifact was independently inspected at 306 regular files and
+164,663,424 bytes, with no empty package files, reparse entries or `icu*.dll` files. `ROMVERSE.exe`
+is 6,324,534 bytes, has SHA-256
+`d2df2c9a667520e9ebe88d4c2eb4dfa26020b1e2d8f852dddb33ab24a013b431`, and is truthfully
+`NotSigned`. Recomputing the sorted `<relative-path><TAB><size><TAB><member-sha256><LF>` package
+manifest produced SHA-256
+`707802c227e516575573cd16ed81a4c3bae7055b6a0166a29423d821aff055de`. The packaged
+`_internal/romverse/assets/knowledge_archive_popsicle_fastboot_seed.json` is the exact expected
+seed with SHA-256 `54928d451043588fd19e84b48a815d3a002b5e2d6148b50135d77dde0cb24481`.
+
+The fresh disposable workspace corroborates one bounded simulation launch and normal clean close.
+Its runtime ledger is exactly 77 bytes, SHA-256
+`9b548079f50e029991471fdbf93e92807fb82adb17319871cb9ab421e7b7f499`, and contains only one
+runtime-start marker and one clean-close marker. A fresh process inventory found zero ROMVERSE
+processes. The workspace contains no managed-tool files, project files or toolchain install plan.
+The recorded interactive state is appropriately fail-closed: Command Deck idle, no connected
+device, Device DNA `UNCONFIRMED`, Guardian `VERIFY REQUIRED`, no operation, and explicit
+development-simulation/no-hardware presentation. Nothing in the package or observation promotes
+Knowledge into device identity, compatibility or execution authority.
+
+The Windows checkout remains at the reviewed checkpoint with only the previously protected
+untracked patch and `build-work/` intermediates. The patch remains 8,272 bytes with SHA-256
+`2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`. Forgejo and GitHub expose
+the same exact checkpoint. No download, install, phone/emulator/ADB/Fastboot access, firmware/APK
+operation, Guardian/Recovery execution, signing, publication, release, hosted CI, wipe,
+unlock/root, lock or relock occurred. Exact-device evidence, Guardian-only authority, durable
+`UNKNOWN`, no blind retry and permanent bootloader no-relock remain intact.
+
+### Approved next bounded task
+
+Using this exact retained unsigned package, perform one current-package, no-network/no-phone
+Windows functional convergence journey for the two newly packaged user-facing areas only:
+
+1. Start in a new disposable workspace in development-device simulation, confirm the same
+   fail-closed Command Deck state, then open Settings and change one benign non-secret preference.
+2. Close normally, relaunch once with that same disposable workspace, verify the preference
+   persists and the settings file retains the accepted private Windows ACL. Do not inspect or
+   record unrelated user data.
+3. Open the packaged Knowledge/Archives surface and verify the popsicle / `2509FPN0BC` seed is
+   searchable with its evidence/provenance boundary intact. It must not appear as a connected
+   device, hardware verification, promoted compatibility or Guardian authority.
+4. Return to Command Deck and close normally. Record bounded sanitized UI/runtime/file evidence,
+   prove zero remaining ROMVERSE processes, and stop for Product Assurance.
+
+Do not rebuild merely to repeat this journey. If it exposes a deterministic package defect, stop
+and report the exact defect before changing any shared module or file owned by another active
+ROMVERSE branch. Do not enter setup repair, Forge Arsenal, a consequential flow or a product-wide
+tour. No network, downloads, dependency/tool changes, phone/emulator/ADB/Fastboot, firmware/APK,
+Guardian/Recovery execution, signing, publication, release, hosted CI, wipe, unlock/root, lock or
+relock.
+
+### Gate status
+
+- Current-source unsigned Windows development package: **APPROVED**
+- Minimal current-package Settings/privacy and popsicle Knowledge journey: **AUTHORIZED**
+- Physical-device work, dependency installation, production trust/signing, publication and
+  release: **CLOSED**
+
 ## Reviewed checkpoint: 24cd0ac — Windows Git-verification investigation correction
 
 - Reviewed checkpoint: `24cd0ace42dc44dfb439f4f0cd84cae0900759be`

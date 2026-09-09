@@ -1,5 +1,85 @@
 # ROMVERSE Product Assurance Sync
 
+## Current Windows preserved-tool development package — Product Assurance review requested
+
+- Product Assurance verdict: `d5a3dcb0d7806fccc3fbdb6c907d54515a63fec2` —
+  `Approve Windows preserved tool convergence`, matching Build checkpoint
+  `187be201e6843b003b11a4797d45dd99d6b86972` and implementation
+  `cad374eaafbae482ee0a8d15cb8b02d2d36fe233` exactly.
+- Branch: `windows-launcher-authorized-work`.
+- Status: **PASS — EXACTLY ONE NEW LOCAL UNSIGNED WINDOWS ONE-FOLDER PACKAGE BUILT AND ONE FRESH
+  NO-PHONE FROZEN START/CLEAN-CLOSE SMOKE COMPLETED. NO SOURCE OR TEST CORRECTION WAS REQUIRED.**
+
+### Exact one package build
+
+- Reused the existing Windows environment: Windows 11 `10.0.26200`, Python `3.12.10` and
+  PyInstaller `6.22.2`; no dependency or tool was installed or acquired.
+- The existing build pipeline ran exactly once into new checkpoint-specific directories:
+  `.venv\Scripts\python.exe scripts\build_desktop_executable.py --output-directory
+  C:\Work\ROMVERSE-Windows\build\windows-preserved-tool-187be201 --work-directory
+  C:\Work\ROMVERSE-Windows\build\windows-preserved-tool-187be201-pyinstaller`.
+- Build result: **PASS**. No earlier package, PyInstaller work directory or saved Guided project was
+  deleted, overwritten, reopened, migrated or replayed. No replacement build was attempted.
+- Runnable local development executable:
+  `C:\Work\ROMVERSE-Windows\build\windows-preserved-tool-187be201\ROMVERSE\ROMVERSE.exe`.
+- Executable: **6,323,398 bytes**, SHA-256
+  `eb1f4bd05e12d117b359c74d87d3d21b8b4b5edb6170d1f0e9f79ebfb8d77861`, Authenticode
+  **NotSigned**. This is an unsigned, local, untrusted development artifact; it is not a release or
+  production-ready package.
+
+### Complete one-folder content verification
+
+- Read and SHA-256-hashed every member in sorted bundle-relative order. The package contains
+  **305 regular files / 164,647,733 expanded bytes**, with **0 reparse/link entries**, **0 empty
+  files** and **0 `icu*.dll` files**.
+- The SHA-256 of the UTF-8 sorted manifest rows
+  `<relative-path><TAB><size><TAB><member-sha256><LF>` is
+  `f959fab3136d5e36135ad85e992eb74a22a511b81e079adfd81b183ee704c7b4`.
+- PyInstaller's warning inventory contains only the existing expected optional or
+  opposite-platform imports (`pwd`, `grp`, `posix`, `resource`, `_posixsubprocess`, `fcntl`,
+  `termios`, Java/VMS helpers, optional `bcrypt` and conditional platform helpers). The frozen
+  smoke proved none is a required Windows startup dependency.
+
+### Exact one fresh no-phone frozen smoke
+
+- Ran the existing bounded smoke exactly once:
+  `.venv\Scripts\python.exe scripts\smoke_frozen_desktop.py
+  build\windows-preserved-tool-187be201\ROMVERSE\ROMVERSE.exe
+  C:\Work\ROMVERSE-Preserved-Tool-Smoke-187be201`.
+- Result: **PASS**, exit `0`, in approximately 5.4 seconds. The existing smoke used only
+  `--workspace`, `--skip-onboarding` and its bounded `--release-smoke` flag; development simulation
+  was not enabled and no retained project was opened.
+- The fresh runtime log contains exactly `ROMVERSE runtime started` followed by
+  `ROMVERSE runtime closed cleanly`; no exception or native fault was recorded and no
+  `ROMVERSE.exe` process remained.
+- The workspace has **0 managed-tool files, 0 project files, 0 Device Pack files, 0 build files,
+  0 backup files and 0 reparse entries**. Normal fresh initialization created only the workspace
+  structure, workspace metadata, empty activity/live-console locks, the clean runtime log, local
+  Archives storage and the workspace-local Companion Link identity; it enrolled no production
+  adapter or trust and granted no operation authority.
+- A pre-existing unrelated `adb.exe` remained PID `49872`, created 2026-09-08 05:39:58, at
+  `C:\Work\ROMVERSE-Link-Lazy-Frozen-20260907\tools\downloads\platform-tools\platform-tools\adb.EXE`
+  before and after the smoke. It was not queried, targeted, signalled or stopped. No Fastboot
+  process existed and no new ADB/Fastboot process appeared.
+
+### Preserved scope and next review
+
+- No repository source or test file changed after approved implementation `cad374ea`; this handoff
+  changes only `docs/sync/BUILD-STATUS.md`. No broad tests, GitHub Actions, Companion/Linux package,
+  simulation or unchanged artifact rebuild ran.
+- The protected Companion files remain clean and unstaged. The protected untracked patch remains
+  exactly **8,272 bytes**, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it was not altered,
+  applied, staged or deleted.
+- No phone/emulator, device discovery, ADB/Fastboot command, APK installation, firmware action,
+  Guardian/Recovery operation, production signing/trust, publication, release, merge, force-push,
+  destructive change, lock or relock occurred. Exact-device evidence, consent separation,
+  UNKNOWN-on-uncertainty, no blind retry, Guardian-only authority, independent verification and
+  permanent no-relock remain intact.
+- Precise next task: independent Product Assurance review of this exact package identity, complete
+  tree evidence and single fresh frozen smoke. Windows Build stops after pushing this evidence-only
+  handoff and assumes no package, device, execution, publication or release authority from it.
+
 ## Windows stable-file convergence correction — Product Assurance review requested
 
 - Product Assurance authorization: `3dc8f26519b6cdeadcf8351be538d2870450d0cf` —

@@ -1,5 +1,93 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows Project Vault parent-to-child visual comparison — Product Assurance review requested
+
+### Exact authority and comparison preflight
+
+- Product Assurance verdict `7e578ad58c1a841db05567b2fb9dc3aee879e2ed` exactly approves
+  checkpoint `901bfd006fe1bb1c3ca1ef647f6e3c57be76e27d` and authorizes one
+  read-only in-memory comparison of the two already verified Project Vault entries. The checkout
+  safely fast-forwarded to that exact verdict. The protected untracked patch remained 8,272 bytes
+  at SHA-256 `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`, existing untracked
+  `build-work\` remained untouched, and all protected Companion files remained unchanged.
+- Before launch, child entry `20260909T201412-ea0f44c8` remained 3,331 bytes at SHA-256
+  `eaa7f76cc78402fee5236c93521c5bbe0a69c7af5a813cbd89fe951c80fd31fd`; parent entry
+  `20260909T201410-0822394f` remained 2,651 bytes at SHA-256
+  `29e1536b18cdadac594858281a38c20270785ed411da5bd6ddc425c21c4c496a`. Both records bound exact
+  project `windows-private-original-392b82fb-d5d46af7`, and the child's parent field exactly named
+  the parent entry. The parent tree was empty; the child tree contained exactly
+  `META-INF/com/android/metadata` and `payload.bin`. Both entries bound the same exact
+  `device-dna.romverse`, `inspection.romverse` and `project.romverse` context objects.
+- Activity was 3,392 bytes at SHA-256
+  `b432f3acbe63c146dfed87e2ded46b8a8aed2cdf59e16ccdf9de8f03e870e46f` with six events; Live
+  Console was 29,306 bytes at SHA-256
+  `572d700546113dd38d6f13f03255effc2d025da9296b5d956974b997a1030c62` with 28 events. ROMVERSE,
+  ADB and Fastboot process counts were zero. Preflight found no entry, relationship or context
+  mismatch.
+
+### One exact in-memory comparison
+
+- PID `107768` started at `2026-09-10T07:37:32.5345120+10:00` from the retained unsigned package
+  executable, 6,324,563 bytes at SHA-256
+  `2c94f329fa33c96e0b9aca92b6c495b2c55d87e25d14af089afd1c19d652881f`. The child inherited only
+  `C:\Work\ROMVERSE-No-Tools-392b82fb` as `PATH` and exactly `--workspace`,
+  `C:\Work\ROMVERSE-Private-Original-392b82fb\workspace`, `--skip-onboarding`,
+  `--development-device-simulation`. Command Deck showed the exact project, no physical or Android
+  device, mission attention, Guardian verify required and no operation running.
+- Normal navigation opened Time Machine with `Extracted project tree • MAIN • CHECKPOINT` selected.
+  Its visible detail retained parent `20260909T201410-0822394f`, baseline
+  `20260909T201410-bafcbd`, two files/243 bytes and unchanged project/device-DNA/inspection/
+  protected-firmware fingerprints. The surface retained `LOCAL PROJECT • NOT PHONE BACKUP` and stated that
+  project checkpoints never grant flash authority.
+- Build invoked `Compare previous` exactly once. The visible in-memory result was exactly
+  `VISUAL COMPARISON • Protected working baseline → Extracted project tree`; `Added (2) •
+  META-INF/com/android/metadata, payload.bin`; `Changed (0) • none`; `Removed (0) • none`;
+  `Unchanged • 0 file(s) | Context changes • none`; and `Comparison only; no project file or phone
+  was changed.` The path ordering, entry binding and zero-difference classifications all matched
+  the approved acceptance.
+- No other Time Machine or Vault control was invoked: no snapshot/checkpoint verification, capture,
+  comparison retry, branch, restore, export, cleanup, storage mutation, external-backup or
+  stock-recovery registration, or external-evidence reverification occurred.
+
+### Byte-identical audit, exact Command Deck return and stop
+
+- Normal navigation returned directly to Command Deck without opening Genesis. It showed
+  `DEVICE: NOT CONNECTED • PROJECT: Windows Private Original 392b82fb • MISSION: ATTENTION •
+  GUARDIAN: VERIFY REQUIRED`, no physical or Android device, no operation running, and the same
+  `CURRENT ROUTE • STAGE 05 OF 15` / `Confirm device identity and capabilities` attention state.
+  ROMVERSE then closed normally from Command Deck.
+- Activity remained byte-identical at 3,392 bytes, SHA-256
+  `b432f3acbe63c146dfed87e2ded46b8a8aed2cdf59e16ccdf9de8f03e870e46f` and six events. Live Console
+  remained byte-identical at 29,306 bytes, SHA-256
+  `572d700546113dd38d6f13f03255effc2d025da9296b5d956974b997a1030c62` and 28 events. The
+  comparison therefore appended no Activity or Live Console record and created no inferred success
+  claim.
+- Postflight hash validation reproduced byte-for-byte the protected original, 599-byte working-copy
+  record, 532-byte working-tree index, 497-byte baseline and snapshot, 561-byte snapshot record,
+  both Vault entries, both extracted members and all five content-addressed Vault objects. Counts
+  remain one snapshot binary, one snapshot record, two Vault entries and five Vault objects. The
+  profile retains zero reparse entries.
+- Because Genesis was not entered, the 436-byte mission remained byte-identical at SHA-256
+  `ba96a6b7557ce9590b120cd52090a363d5fb2277729aba04b9316928d78ec0db`, with
+  `selected_stage: device`, root undecided, no install request, no build plan and no error. The
+  462-byte runtime ledger is now SHA-256
+  `00db3144b046799d2e0dee6d2ca8fe9211a6c93093ad4d6e963b1674a24f82f2` and records exactly six
+  starts and six clean closes across the six authorized sessions.
+- Final ROMVERSE, ADB and Fastboot process counts are zero; both ledger locks accept exclusive
+  no-sharing opens. No Windows ordering, binding, display or return-context defect reproduced, so
+  no source correction, package rebuild or test run was justified. This checkpoint changes only
+  `docs/sync/BUILD-STATUS.md`; `git diff --check` is the proportionate repository validation.
+- No device scan or simulation, tool resolution, network/download, phone/emulator/ADB/Fastboot
+  operation, firmware/APK mutation, Recipe/Forge, Guardian/Recovery execution, production
+  trust/signing, publication, release, hosted CI, wipe, unlock/root, bootloader lock or relock
+  occurred. Exact evidence, consent separation, Guardian-only authority, durable UNKNOWN, no blind
+  retry, independent verification, feature freeze and permanent bootloader no-relock remain intact.
+- Precise proposed next task: independent Product Assurance review of this exact one-shot
+  parent-to-child in-memory comparison, exact two-added-path ordering, zero other tree/context
+  differences, byte-identical audit ledgers and exact Command Deck return. Do not begin another
+  comparison, verification, launch, correction, build/test/package cycle or consequential action
+  without a matching repository verdict.
+
 ## Windows Project Vault full-checkpoint verification — Product Assurance review requested
 
 ### Exact authority and sealed preflight

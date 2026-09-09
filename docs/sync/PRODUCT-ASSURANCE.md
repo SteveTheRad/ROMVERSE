@@ -1,5 +1,24 @@
 # ROMVERSE Product Assurance
 
+## Active Windows feature-batch continuation — do not stop after shared integration
+
+The Windows checkout has completed the authorized exact integration of approved shared commit
+`c5c67be` as local commit `f77da095`. That ordinary cross-platform wording checkpoint does not
+require a separate Product Assurance stop. Push it normally, then continue the already-authorized
+Windows feature batch from current state.
+
+Exercise the development app as a real user through every currently shipped Stage 1 no-phone
+screen, setting, layout, button, navigation handoff, persistence/resume path and safe empty/error
+state. Repair multiple related non-consequential defects continuously with small recoverable commits
+and focused tests, teaching each reusable solution into product contracts/diagnostics/tests. Do not
+rebuild after each fix; produce one consolidated BUILD-STATUS handoff and, only if production bits
+changed, one replacement package at the coherent feature-batch boundary.
+
+Do not stop merely to request review of routine UI/host corrections. Stop immediately only before a
+device write/mode transition, Guardian/execution-authority or safety-contract change, release/signing
+action, material scope expansion, or contradictory/UNKNOWN evidence. No phone is authorized on the
+Windows track; preserve the protected patch and all permanent safety rules.
+
 ## Reviewed checkpoint: 4358359 — bounded Windows setup geometry
 
 - Reviewed checkpoint: `4358359fe951933c0841c435b2707b3f8f41a0a5`

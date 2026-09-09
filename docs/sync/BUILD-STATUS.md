@@ -1,6 +1,6 @@
 # ROMVERSE Product Assurance Sync
 
-## Minimum-width desktop workspace checkpoint
+## Minimum-width desktop and rebuilt Fedora checkpoint
 
 ### Authoritative commit and exact changes
 
@@ -17,6 +17,13 @@
   horizontal width beyond the viewport.
 - These are presentation-only changes. No route, action, decision, evidence state, authority rule,
   adapter or device behavior changed.
+- Fresh Fedora one-folder build: `build/fedora-a84e9ef/ROMVERSE`, **422 regular files /
+  243,084,373 regular-file bytes / 38 contained internal links**. Executable: **6,335,096 bytes**,
+  SHA-256 `7252dd7108fbe270042df69940c0cfced6091bcb0cfeef8b8a1e0b2eafd7ff6a`.
+- Verified unsigned ZIP:
+  `dist/ROMVERSE-Desktop-0.2.0-alpha.1-linux-x86_64-a84e9ef.zip`, **151,032,962 bytes**, SHA-256
+  `b755154a4fcdeeab011b3893da811b1236835908a17354db2726264e86dc5b56`; full archive
+  verification passed for **460 members / 360,339,002 expanded bytes**.
 
 ### Verification and gates
 
@@ -25,11 +32,14 @@
 - **Simulated/Tested:** **110/110 unique affected Device Atlas, ROM Studio and Dashboard/About tests
   passed**. A fresh application instance exercised all **19 top-level routes** at each of
   **1080×700, 1200×760 and 1440×900** with no visible scroll area wider than its viewport. Ruff and
-  diff checks passed. The earlier **3,016/3,016** full Linux result at `76e3e2f` remains baseline
-  evidence and is not double-counted as current-layout coverage.
+  diff checks passed. A separate interaction sweep activated **71 enabled controls** across all 19
+  routes and safely opened/closed **17 modal or file-dialog paths** without an application
+  exception. The installed-source smoke passed once with 22 Packs, 170 fixes, 284 offline evidence
+  records, all 19 routes and byte-exact populated-workspace reopening. One frozen no-phone
+  startup/shutdown smoke passed. The earlier **3,016/3,016** full Linux result at `76e3e2f` remains
+  baseline evidence and is not double-counted as current-layout coverage.
 - **Hardware Verified:** no. Tests used offscreen Qt and disposable local workspaces only.
-- **Released:** no. The latest verified artifact remains the unsigned, unpublished `fe5dab0`
-  Fedora development package; this responsive checkpoint has not yet been packaged.
+- **Released:** no. The `a84e9ef` Fedora artifact is unsigned, local and unpublished.
 - Blockers/failures: the reproduced minimum-width clipping is fixed. Windows secure launch,
   production signing/trust, physical Recovery/flash validation and release remain
   blocked/unverified.

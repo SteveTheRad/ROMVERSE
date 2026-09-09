@@ -1,5 +1,75 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 9aa0051 — deterministic Linux UI fixtures
+
+- Reviewed checkpoint: `9aa0051094c6901ffd354a169c2f7d82bc42b34b`
+- Test-fixture commit: `5cbe675` (`Isolate Linux UI host fixtures`)
+- Approved base: `9132d15`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — HOST-DEPENDENT UI FIXTURES ARE NOW BOUNDED**
+
+### Decision
+
+Product Assurance independently inspected both exact test changes and the repository handoff. The
+observed product behavior was correct and did not require production modification. A project-scoped
+live operation must not be surfaced without an active project, and a standalone Guided test that
+requests a device scan must explicitly own a deterministic scan completion instead of falling into
+the real host's Platform Tools repair modal. The corrected fixtures now establish those two missing
+preconditions without mocking success, fabricating a device or weakening the production repair
+route.
+
+The checkpoint is test-only, feature-freeze compliant and forward-only. Production bytes, the
+accepted Fedora package, the schema-4 Stage-11 plan and its saved Stage-12 mission state remain
+unchanged. No replacement package was warranted.
+
+### Independent evidence and acceptance
+
+- `tests/test_ambient_rendering.py` now creates/selects a real project and synchronizes Command Deck
+  context before emitting the fixture operation. The assertion therefore exercises a legitimately
+  scoped live operation rather than accidentally observing unrelated host-tool state.
+- `tests/test_rom_studio_ui.py` now marks only that standalone fixture's scan channel available and
+  synchronously returns an empty in-memory device list. The test still pauses at the intended
+  device boundary and gains no device, Guardian, Recovery or execution authority.
+- Build's bounded selection identified one exact non-terminating node: 46 preceding tests passed,
+  its 13-test tail passed, and the node blocked alone before the fixture correction. The final
+  non-overlapping affected selection passed **68/68**: all 5 Ambient Rendering tests and all 63 ROM
+  Studio UI tests. Ruff and whitespace checks passed.
+- No production source changed, so preserving package SHA-256
+  `5bae4e420a8c67d9ee89674017b4a4756f8a4c386907d9467e7e0cffd59f1347` and plan file SHA-256
+  `42faa6cde536cf0865144fc5e8558853a295e066fb7d0b4cc8908b297e8c67b4` was correct.
+- Stage 12 was not operated. No phone/emulator, device-addressed ADB/Fastboot, install, firmware
+  build/sign/flash, Guardian/Recovery execution, publication, release, merge, force-push, lock or
+  relock occurred.
+
+### Approved next bounded Linux task
+
+Do not operate Stage 12 and do not start another local full-suite run. Use the first naturally
+triggered GitHub Actions run whose head includes `5cbe675` as the one current-source broad
+regression. Monitor it without manual rerun or duplication. If it passes, record the exact Linux,
+Windows-portability, Companion and package/release-candidate results in one repository handoff. If
+it fails, inspect the first genuine failing step, make only the minimum source or fixture correction
+supported by that evidence, and run only its focused local selection; do not chase unrelated later
+failures in parallel.
+
+If no current-source workflow appears because the test commit did not trigger one, record that fact
+and stop rather than manufacturing repeated runs. A test-only correction requires no package. If
+and only if a confirmed production source defect changes executable bytes, produce one incremental
+replacement package and one platform smoke launch. Commit/push one bounded handoff and stop for
+review.
+
+The Linux task must not replay Guided stages, regenerate the accepted Stage-11 plan, use physical
+hardware, issue a target command, install an APK/tool, build or sign firmware, grant execution
+authority, publish, release, merge, force-push, lock or relock. Windows may continue the separately
+authorized schema-4 integration through its normal repository flow without duplicating Linux work.
+
+### Gate status
+
+- Stage-11 exact result-receipt binding: **VERIFIED**
+- Deterministic Linux UI fixture reliability: **VERIFIED**
+- One current-source broad cloud regression: **NEXT BOUNDED EVIDENCE TASK**
+- Stage 12, physical hardware, firmware build/sign/install, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 2e1f2c5 — Stage-11 exact result-receipt binding
 
 - Reviewed checkpoint: `2e1f2c5ff4ac97b35387fe3f1cbd275b0c0dd632`

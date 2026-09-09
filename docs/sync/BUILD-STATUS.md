@@ -1,5 +1,77 @@
 # ROMVERSE Product Assurance Sync
 
+## Fedora Expert Command Console no-target boundary checkpoint
+
+### Authoritative commit and exact changes
+
+- Branch: `linux/stage1-desktop-readiness`.
+- Journey evidence: `f0d5d0257e7c24a26e35a4e0321b0f15efe72fa3`
+  (**Record Fedora Expert console boundary**).
+- Reviewed starting point: `d41369097f98f449b944b56408f902de2735d5a1`.
+- Authoritative source/package bits remain unchanged. The retained executable is
+  `build/fedora-f1da4b9/ROMVERSE/ROMVERSE`, SHA-256
+  `4fbfed3244d93ba535413151c26f5fe53ef526d402f638a5e81e662f8b562500`.
+- The complete observation is recorded in
+  `docs/evidence/FEDORA_EXPERT_COMMAND_CONSOLE_BOUNDARY_2026-09-09.md`.
+
+### Verification and gates
+
+- **Implemented:** evidence-only checkpoint. No application, test, Companion, Windows launcher,
+  Guardian, Recovery, adapter or package source changed.
+- **Simulated/Tested:** one genuine retained-package Fedora UI journey passed with online
+  intelligence and automatic tool acquisition disabled, no Android tools on `PATH`, an empty
+  workspace tools directory and no target. ROM Studio presented the existing Expert risk warning;
+  only explicit acceptance revealed Command Console, ROMVERSE Nexus and Forge Arsenal. Command
+  Console showed **Waiting for ADB**, `Device: —`, the allowlisted **ADB devices** preset and
+  **Resolve Platform Tools**, with no enabled Run/free-form/device-changing command. Its Forge
+  Arsenal handoff remained idle and closed before creating a plan, download or installation.
+  Returning to Guided hid every expert-only route and retained the exact project ID, `original:
+  null`, empty Device Pack ID, next action and byte-identical manifest SHA-256
+  `48e9eb3c9868695bf4f4a4abf0708282b0ba6770ebcb0422f24dd5090fe47210`. The earlier
+  **3,024/3,024** unique Linux convergence remains the source baseline and was not rerun or
+  double-counted because no source changed.
+- **Hardware Verified:** no. No physical or simulated Android target, ADB or Fastboot operation was
+  used.
+- **Released:** no. The package remains unsigned, local and unpublished.
+- Blockers/failures: no Stage 1 defect or dead end was reproduced. The automation host again used a
+  normal process termination signal after completing the journey because the packaged window does
+  not expose a compositor close action through Fedora accessibility; no new clean-shutdown claim is
+  made. Windows secure launch, production signing/trust, physical Recovery/flash verification and
+  release remain blocked/unverified.
+- Guided friction/dead ends: specialist routes appeared only after the existing explicit warning;
+  the missing-runtime action led to one truthful cancellable Forge Arsenal handoff; returning to
+  Guided removed the specialist navigation without losing the selected project or its next action.
+- Guardian/Recovery/safety: no console command, device discovery, Activity success, Guardian record,
+  Recovery result or device evidence was created. Expert visibility created no command or execution
+  authority. Guardian-only authority, exact target/source/incident binding, durable `UNKNOWN`, no
+  blind retry, independent verification and permanent no-relock remain authoritative.
+- Platform status: genuinely exercised on Fedora/Linux using the retained installed package.
+  Windows and Android hardware were not run or represented as verified.
+- Feature freeze: compliant Stage 1 product-assurance evidence; no feature or behavior changed.
+- Version gate: Expert no-target safety and Guided return continuity are evidenced, but v0.2 Golden
+  Foundation and every production/release gate remain **CLOSED**.
+- External actions: local packaged UI interaction, isolated settings changes and disposable
+  workspace inspection only. The previously accepted Google catalog remained byte-identical at
+  **4,758,014 bytes**, SHA-256
+  `eebdc5895a2b38326470a3e475a09a2baab9d4f69f69b0f084664ef57a1decd4`, with unchanged content and
+  receipt timestamps; no new catalog fetch was observed. No console command, tool/catalog download,
+  dependency/package installation, phone/emulator operation, ADB/Fastboot invocation, APK/firmware
+  operation, mode transition on a device, Recovery action, flash, wipe, unlock/root, lock/relock,
+  signing, publication or release occurred. The scoped feature-branch pushes containing this
+  handoff are the only remote writes.
+
+### Next proposed Build task
+
+Continue one inert existing Stage 1 product-as-user journey outside the Windows-owned
+ROMVERSE Link/Members/Galaxy surfaces. Prioritize cancellation, truthful empty states and exact
+cross-page context preservation; correct only the first reproduced bounded Desktop defect.
+
+### Product Assurance Review Requested
+
+- Confirm Expert entry acknowledgement, no-runtime Command Console behavior, cancellable Forge
+  handoff and Guided return satisfy the approved boundary journey.
+- Select the next non-overlapping inert Stage 1 Desktop journey; no new behavior is proposed.
+
 ## Installed Fedora cancellation and context-preservation checkpoint
 
 ### Authoritative commit and exact changes

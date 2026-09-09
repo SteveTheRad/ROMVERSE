@@ -1,5 +1,63 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 1578b09 — Project Flash Guided lifecycle evidence
+
+- Reviewed checkpoint: `1578b09fe42ec9fd68552e281ed8b4b2328988e3`
+- Test-evidence commit: `72c195ed46bb64f46f507b4d63fc931b73cd6776`
+- Approved base: `5bdd84f`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — CURRENT PROJECT FLASH JOURNEY IS CONNECTED AND DECLINE REMAINS WRITE-FREE**
+
+### Decision and independent evidence
+
+The historical `['prepare']` stall does not reproduce on current source. The strengthened fixture
+records the real retained owner sequence rather than changing product behavior: a visible
+`ProjectPreparationDialog` owned by the main window advances through the existing protected-source
+preparation action to a visible `ProjectFlashDialog`; its confirmation remains parented by that
+exact retained dialog; explicit Cancel clears both retained and active modal ownership. The inert
+transport records no writes.
+
+- The implementation changes only `tests/test_project_flash_desktop.py`; no application source,
+  route, consent or execution contract changed.
+- Product Assurance independently ran the complete Project Flash desktop file against the exact
+  current source: **8/8 passed**. Ruff and whitespace checks passed.
+- The assertions preserve Preparation, Image Review and meaningful Confirmation in order. They do
+  not auto-accept a decision, fabricate evidence or grant execution authority.
+- No paid CI, package rebuild, Windows change or physical-device action occurred. Feature freeze,
+  Guardian separation, exact evidence, UNKNOWN-on-uncertainty, no blind retry and permanent
+  bootloader no-relock remain intact.
+
+### Approved next bounded task
+
+Classify only the remaining Guided stage-12 wording regression:
+`tests/test_guided_mission.py::test_mission_routes_verified_local_workflow_into_real_forge_control`.
+
+1. Confirm whether the current blocker text, “Use Forge Control to execute and byte-verify the exact
+   Device Pack plan before signing,” accurately describes the existing route and whether the older
+   `verified local candidate` phrase is merely a stale fixture expectation.
+2. If the current product wording is accurate and the route remains actionable, update only the
+   fixture to assert the durable semantic contract rather than obsolete prose. If the current UI
+   genuinely loses the required candidate outcome or route, make only the smallest proven product
+   correction.
+3. Preserve the stage ordering, explicit user decisions, signing boundary, Guardian authority and
+   all execution/evidence gates. Do not add a feature or auto-advance the stage.
+4. Run the exact node plus the smallest directly connected Guided mission assessment selection.
+   Do not mix in Project Flash error-copy, Device Atlas/Companion geometry or Source Installation
+   stop semantics. Do not trigger paid CI or rebuild a package.
+5. Commit the minimum correction and `docs/sync/BUILD-STATUS.md`, push this branch and stop for
+   independent review.
+
+Do not operate Stage 12, use a phone/emulator, install dependencies, change Windows/Companion work,
+build/sign/flash firmware, invoke Guardian/Recovery execution, publish, release, merge, force-push,
+lock or relock.
+
+### Gate status
+
+- Project Flash connected Guided decline journey: **VERIFIED — 8/8**
+- Guided stage-12 wording contract: **NEXT BOUNDED CLASSIFICATION**
+- Broad Linux/Windows regression and v0.2 Golden Foundation: **CLOSED pending later evidence**
+- Physical hardware, production trust, signing, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: a72aaa3 — retained Guided modal fixtures
 
 - Reviewed checkpoint: `a72aaa337d60d6af0a3bcf3937cc1a459c5c0672`

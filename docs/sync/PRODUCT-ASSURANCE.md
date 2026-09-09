@@ -1,5 +1,87 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: f220bc7 — Windows first-run Guided onboarding persistence
+
+- Reviewed checkpoint: `f220bc7f05bc1212a3475aad00e4fdee3d20a08b`
+- Authorizing verdict: `435949e776dc36ff08e1e3117eb634eafd05da49`
+- Package source: `b1dc54e0c6390fb3d789930dda0696c712e40e64`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — GUIDED FIRST RUN AND RESTART PERSIST TRUTHFULLY**
+
+### Decision and independent evidence
+
+The exact authorized first-run journey is approved. The extracted package opened the real
+`Welcome to ROMVERSE` wizard without a preselected workspace or onboarding bypass, truthfully
+reported unavailable ADB/Fastboot under the empty process-local tool path, and accepted only the
+default Guided path. It created the default workspace and reached one responsive Command Deck with
+`LOCAL`, `DEVICE: NOT CONNECTED`, `PROJECT: NONE`, `MISSION: IDLE`, `GUARDIAN: VERIFY REQUIRED`,
+Device DNA `UNCONFIRMED`, and explicit simulation-only/no-hardware truth. The first process closed
+normally. One restart with the same data root suppressed the completed wizard and restored the
+same truthful fail-closed Command Deck, then also closed normally.
+
+Product Assurance independently verified the final schema-five settings file at 680 bytes and
+SHA-256 `9edc2a91206ef4225caa90491270ad2ae88c3a0c3f4719c0cc773fa8e7b0e126`.
+It preserves `onboarding_complete: true`, the exact default workspace, Guided experience, masked
+serials, and all four network/download/contribution controls false. Its inheritance-protected ACL
+grants Full Control only through owner rights and SYSTEM. The 456-byte workspace manifest is
+SHA-256 `0073e1df5d54160da16e13f4c2780ecca81c9b732e4f805f2b7668e52b36e693`,
+declares the expected versioned directory set and protected-original policy, and no project was
+silently invented. The final 154-byte ledger is SHA-256
+`50d779cf4f44836bb0f2fc6bb9cd0f21763e9de1dcb388fb854e57e5b18f4587` and contains exactly two
+starts and two clean closes.
+
+The authoritative and extracted package trees independently compare with zero member identity
+mismatches: each has 306 regular files, 23 directories and 164,663,424 bytes, with no empty files
+or reparse entries. Both executables remain 6,324,534 bytes, SHA-256
+`d2df2c9a667520e9ebe88d4c2eb4dfa26020b1e2d8f852dddb33ab24a013b431`, and `NotSigned`.
+Windows now has zero ROMVERSE processes/windows and no instance lock. The data root contains eight
+regular files, 20 directories and 882,935 bytes; no ADB/Fastboot executable exists within it.
+
+The checkpoint changes only Build Status and passes Git whitespace validation. Forgejo and GitHub
+expose the identical checkpoint. The Windows checkout contains only the protected untracked patch
+and existing `build-work/` intermediates; the patch remains 8,272 bytes with SHA-256
+`2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+No network, download, install, dependency/tool change, phone/emulator, ADB/Fastboot, firmware/APK,
+Guardian/Recovery execution, source/package mutation, signing, publication, release, hosted CI,
+wipe, unlock/root, bootloader lock or relock occurred.
+
+### Approved next bounded task
+
+Advance one real Guided user flow using the same extracted package and persisted Local-mode
+onboarding root. Distribution/archive/copy testing remains closed.
+
+1. Launch the unchanged extracted executable once with the same empty process-local tool path and
+   development-device simulation. Keep all four Local-mode controls false; do not access a phone,
+   network, installer, tool repair or package build.
+2. From Command Deck, select the visible Build ROM/Genesis entry and verify the intent is preserved
+   into Genesis rather than ending at an inert surface. Create exactly one clearly named disposable
+   ROMVERSE project through the stage-one Guided control.
+3. Verify ROMVERSE writes one contained versioned project manifest, selects that exact project, and
+   advances Genesis truthfully to stage 2, Firmware. `PROJECT: NONE` must change only because the
+   user created that exact project; Guardian must remain `VERIFY REQUIRED` and no compatibility or
+   execution authority may be inferred.
+4. Invoke the stage-two firmware chooser once and cancel it without selecting a file. Require the
+   project to remain selected, the protected-source state to remain absent/unconfirmed, and Genesis
+   to remain resumable at Firmware with a clear next action and no false success or error dead end.
+5. Save/pause Genesis normally, close the application normally, and reopen it once with the same
+   root only to verify the project and first unverified Firmware resume point persist. Close normally
+   and prove zero processes/windows, no live lock and an exact clean-close ledger.
+6. Record sanitized manifest/state/ledger/ACL evidence, commit only the handoff and stop. A
+   deterministic failure is a blocker to report; do not conceal it by editing source or rebuilding
+   the package within this task.
+
+No further onboarding, packaging/archive/copy matrix, actual firmware selection/import, network,
+download, installation/tool repair, phone/emulator/ADB/Fastboot, firmware/APK mutation,
+Guardian/Recovery execution, source/package correction, signing, publication, release, hosted CI,
+wipe, unlock/root, bootloader lock or relock is authorized.
+
+### Gate status
+
+- Windows genuine first-run Guided onboarding and single restart persistence: **APPROVED**
+- Command Deck → Genesis project creation → Firmware-stage resume: **AUTHORIZED**
+- Distribution/archive/copy testing: **CLOSED**
+- Phone, execution, installer/signing, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: f91fe31 — Windows ZIP round-trip and extracted launch
 
 - Reviewed checkpoint: `f91fe31d10e9b0120fcb2bed6bdbf3b0224a4cd0`

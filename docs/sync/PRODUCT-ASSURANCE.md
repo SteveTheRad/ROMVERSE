@@ -1,5 +1,84 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 9ec7238 — Fedora first-run setup to Guided Command Deck
+
+- Reviewed checkpoint: `9ec72380b700e15491141d124e553fdcfc87c3f2`
+- Journey evidence: `cd79aea3a5b1285f405ddec6915a0bf4f4b97b46`
+- Authorizing verdict: `9f2bf11eca9b5f13859d66b43c1a79c8e9f928a8`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — FRESH FEDORA FIRST-RUN REACHES A TRUTHFUL GUIDED COMMAND DECK**
+
+### Decision and independent evidence
+
+The exact authorized first-run journey is approved. The implementation package is unchanged; the
+journey evidence and Build Status are the only committed changes after the approved base. Forgejo
+and GitHub exposed the identical review checkpoint with zero divergence, and the Linux worktree
+was clean.
+
+Product Assurance independently rehashed the retained corrected package executable: 6,337,072
+bytes, SHA-256 `4fbfed3244d93ba535413151c26f5fe53ef526d402f638a5e81e662f8b562500`.
+The retained disposable profile root remains mode `0700`. Its accepted settings are mode `0600`,
+664 bytes and SHA-256 `a309b915233ee9db53f175beb611041683fb7d63c024cebfe0c9dc6bc2d525e2`;
+they bind the exact disposable workspace, Guided mode and completed onboarding while keeping
+online intelligence, community research, automatic verified-tool download and Synapse
+contribution disabled. The workspace marker and packaged offline Archive independently match the
+recorded hashes, including the 880,760-byte Archive SHA-256
+`2384ebb6ce9616af2270991da2c7b594d08b7534e71bf819549c92c091e27764`.
+
+The genuine first-run surface truthfully showed one of 21 host tools ready and retained all 21
+bounded readiness rows without hiding the non-destructive **Browse** or **Continue in Guided
+Mode** paths. Continuing exactly once opened Command Deck with no project, no device, an idle
+mission and Guardian verification still required. The retained workspace contains no project,
+Activity result, managed tool, Device Pack, device evidence, Guardian/Recovery record or
+installation plan. The process-local Android-tool path was empty, no phone/emulator/simulation was
+used, and the Bubblewrap run exposed only isolated loopback networking.
+
+The exit limitation is recorded correctly. Fedora accessibility could not invoke the
+compositor-owned close action, so only the exact disposable process was terminated after evidence
+collection. Exit 143 and the lone runtime-start marker are not a product crash finding, but they
+also establish neither clean shutdown nor restart persistence. This approval makes no such claim.
+
+No source/package correction or test rerun was necessary because no application bits changed and
+no setup/transition defect was reproduced. Git whitespace validation passed. No network request,
+catalog/tool download, installation, phone/emulator, ADB/Fastboot, firmware/APK action,
+Guardian/Recovery execution, flash, wipe, unlock/root, bootloader lock/relock, signing,
+publication, release, hosted CI or Forgejo Action occurred. Feature freeze, Guided friction,
+truthful UNKNOWN/no-device state, Guardian separation and permanent no-relock remain intact.
+
+### Approved next bounded Linux task
+
+Advance the existing Fedora package through one fresh, network-isolated **Guided synthetic
+firmware intake and Provenance journey**. This should validate real user flow rather than repeat
+setup or packaging.
+
+1. Use one new private disposable profile, Guided mode, Bubblewrap network isolation, an empty
+   process-local Android-tool path and all online/community/download/contribution controls false.
+   Use no phone, emulator or development-device simulation.
+2. Create one disposable project from Command Deck through the normal Genesis route. Generate or
+   select only one small deterministic harmless ZIP fixture containing bounded Android OTA
+   structural metadata and inert `payload.bin` bytes. Record its exact members, sizes and SHA-256;
+   do not use real firmware.
+3. Complete only protected import, exact hash/manifest binding and the existing bounded structure
+   inspection. Verify the source stays unchanged, the protected original is contained and
+   read-only, Device DNA keeps exact identity/firmware uncertainty explicit, Compatibility Matrix
+   grants no proven compatibility, and Guardian execution authority remains none.
+4. Stop at Provenance before Working Lab creation or extraction. Confirm `working_roms`, tools,
+   device and consequence records remain empty. Use a product-owned close only if genuinely
+   accessible; otherwise preserve and report the exact exit-143 limitation without claiming clean
+   close or restart persistence. Correct only the first deterministic Stage 1 defect if one is
+   reproduced, with focused tests and a package rebuild only if application/package bits change.
+
+No real firmware, Working Lab action, extraction, tool/network acquisition, phone/emulator,
+ADB/Fastboot, firmware/APK mutation, Guardian/Recovery execution, signing, publication, release,
+hosted CI, wipe, unlock/root, bootloader lock or relock is authorized.
+
+### Gate status
+
+- Fedora corrected-package asset integrity and first-run setup-to-Guided transition: **APPROVED**
+- Fedora clean shutdown/restart persistence: **NOT VERIFIED — HONESTLY EXCLUDED**
+- One fresh synthetic Guided firmware intake through Provenance: **AUTHORIZED**
+- Real firmware, physical/consequential, signing, publication and release gates: **CLOSED**
+
 ## Reviewed checkpoint: cfbb375 — Fedora Forge Arsenal missing-tools cancellation boundary
 
 - Reviewed checkpoint: `cfbb37557880e17782ac67cdb84c5a06aee04602`

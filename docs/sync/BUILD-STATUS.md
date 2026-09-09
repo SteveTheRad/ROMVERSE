@@ -1,5 +1,65 @@
 # ROMVERSE Product Assurance Sync
 
+## Durable verified-Recovery reopen checkpoint
+
+### Authoritative checkpoint and exact change
+
+- Implementation commit: `a90b60cb3a1e0023e311b726cd2cdd050759eaee` on
+  `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation Recovery continuity/UI truth.
+- A fresh production-service inert journey completed the full synthetic
+  **Scan → Match → Prepare → Consent → Result → Reassessment → Verification** chain with three
+  exact test-trust adapter actions. It started no external process, connected no physical phone,
+  permitted no automatic retry or bootloader relock, and ended with the same sealed incident in
+  `RECOVERED` after fresh simulated boot/reconnect proof.
+- Reopening that exact workspace exposed a real dead end: Recovery Bay deliberately loaded only
+  unfinished incidents. The recovered incident and durable reboot proof remained on disk but the UI
+  fell back to “Waiting for recovery evidence,” making completed Recovery history undiscoverable.
+- Recovery Bay now loads the newest unfinished incident when one exists; otherwise it reopens the
+  latest durable completed incident. Active Recovery therefore retains priority, while verified
+  history survives restart without creating or refreshing an incident.
+- Visible Fedora source verification reopened the synthetic workspace and rendered **RECOVERED**,
+  **VERIFIED RECOVERY • FRESH BOOT + RECONNECT**, and **INCIDENT HISTORY SEALED**. The fresh-scan
+  action was hidden for the completed incident.
+
+### Verification and gates
+
+- **Implemented:** `src/romverse/ui/repair_center.py` plus focused persisted-history regression in
+  `tests/test_repair_ui.py`.
+- **Simulated/Tested:** **49/49 unique affected Recovery Autopilot and Recovery Bay tests passed**;
+  Ruff check, Ruff format-check and diff check passed. One fresh inert Guided Recovery chain and one
+  visible close/reopen verification passed.
+- **Hardware Verified:** no. All device/adapter evidence was explicit test-only simulation.
+- **Released:** no. The latest packaged artifact remains the verified `3af0591` Fedora development
+  package; `a90b60c` is not yet packaged.
+- Blockers/failures: the history-reopen defect is fixed. Physical Recovery execution, Windows
+  secure launch, production trust/signing and release remain blocked/unverified.
+- Guided friction/dead ends: completed Recovery no longer disappears from its owning page after an
+  application restart. No new prompt or confirmation was added.
+- Guardian/Recovery/safety: display-only selection of an already sealed incident grants no
+  authority. Exact-device binding, current evidence, consent separation, UNKNOWN/no-blind-retry,
+  independent verification and permanent no-relock remain unchanged.
+- Platform status: genuine Fedora/Linux source UI plus deterministic simulated service evidence.
+  Windows and physical hardware were not run or simulated as verified.
+- Feature freeze: compliant continuity/correctness repair; no adapter, route, Device Pack, command
+  or product capability added.
+- Version gate: Recovery continuity improved; v0.2 Golden Foundation and all physical/release gates
+  remain **CLOSED**.
+- External actions: local temporary workspace, local simulation, UI launch/close, tests and commit
+  only. No phone query/action, firmware/APK operation, mode transition, flash, wipe, root/unlock,
+  lock/relock, publication, release or manual hosted-CI run occurred.
+
+### Next proposed Build task
+
+Continue the product-as-user pass through the remaining no-device/simulation-safe Desktop pages,
+prioritizing persistence, nested handoffs and truthful empty/blocked states. Rebuild packaging only
+after the next coherent production-source batch.
+
+### Product Assurance Review Requested
+
+- Confirm active-first/latest-completed fallback is the correct Recovery history selection rule and
+  cannot be confused with new recovery execution or fresh evidence.
+
 ## Fedora packaged Archives and nested-review stability checkpoint
 
 ### Authoritative commits and working tree

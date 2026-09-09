@@ -1,5 +1,132 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows no-phone workshop and safety-surface acceptance batch — Product Assurance review requested
+
+- Product Assurance authorization: `af85b8978b5acd5dbb25d698332968efffe87acf` — `Approve
+  Windows Platform Tools host repair`, exactly reviewing checkpoint
+  `2f359f451441a4ceb13cf8386d4ad03cb848f4b2` and authorizing one no-phone Windows workshop and
+  safety-surface acceptance batch from the approved source and validated workspace-local Platform
+  Tools state.
+- Minimum correction commit: `945928567ea188481eb0c19ca4419ae4132c22f5` — `Fix simulated Windows
+  device scan presentation`.
+- Status: **PASS — ONE REAL COMMAND DECK PRESENTATION DEFECT WAS REPRODUCED AND CORRECTED; THE
+  NO-PHONE WORKSHOP SURFACES, GENESIS SAVE/RESUME, BLOCKED SIMULATION-LAB HANDOFF, NORMAL RESTART,
+  SINGLE REPLACEMENT UNSIGNED PACKAGE, VISIBLE PACKAGE ACCEPTANCE AND FROZEN SMOKE ALL PRESERVED
+  ZERO DEVICE OR EXECUTION AUTHORITY.**
+
+### Confirmed defect and minimum correction
+
+- Current source was launched against validated `ROMVERSE_HOME`
+  `C:\Work\ROMVERSE-Host-Repair-729e9a0` with the explicit development-only
+  `--development-device-simulation` flag. The sidebar correctly said `Simulation Session`, `No
+  physical device selected` and that every device-command surface was empty, but Command Deck
+  retained its construction-time `Looking for an Android device... / SCANNING` state indefinitely
+  because development simulation stops the hardware timer without clearing Device Center's initial
+  presentation. One inert `Scan for device` action reproduced the same stale state; the physical
+  device engine was never called.
+- `MainWindow` now explicitly gives Device Center an empty device list and clears its scanning
+  presentation both during development-simulation initialization and during the inert simulated
+  scan. The fixture remains ROM Studio-only: `_observed_devices` and the selected hardware serial
+  remain empty, while only ROM Studio receives the deterministic target labelled `SIMULATION ONLY
+  • NO HARDWARE`.
+- `tests/test_development_device_simulation.py` now proves before and after the simulated scan that
+  Device Center says `No Android device detected`, `NOT CONNECTED`, and `Scan now`, while the
+  existing transport spy still fails the test if any physical Device Engine method is invoked.
+
+### Proportional focused verification
+
+- `.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider
+  tests\test_development_device_simulation.py --basetemp
+  C:\Work\rvsw-af85b897-simulation-boundary` — **PASS, 1/1**.
+- `.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider
+  tests\test_navigation_vocabulary.py::test_command_deck_cards_are_context_aware_and_route_to_canonical_pages
+  --basetemp C:\Work\rvsw-af85b897-command-deck` — **PASS, 1/1 in 3.7 seconds**.
+- An initially selected two-file invocation (`test_development_device_simulation.py` plus all 65
+  `test_navigation_vocabulary.py` nodes) was deliberately interrupted after about 150 seconds and
+  33 progress dots when it exceeded this batch's bounded focused window; it emitted no failure or
+  traceback and is not represented as a completed suite. The one affected Command Deck node was
+  then reproduced individually once and passed as recorded above. No unchanged broad regression
+  was started.
+- `.venv\Scripts\python.exe -m ruff check src\romverse\ui\main_window.py
+  tests\test_development_device_simulation.py` — **PASS**.
+  `.venv\Scripts\python.exe -m ruff format --check` on the same two files — **PASS, 2 files already
+  formatted**. `git diff --check` — **PASS**.
+- Accepted completed focused total: **2 passed / 0 failed / 0 errors / 0 skipped**. The separately
+  disclosed bounded interruption is not counted as a completed test run or silently retried.
+
+### Real-user no-phone workshop, handoffs and persistence
+
+- Corrected Command Deck immediately showed `No Android device detected`, `NOT CONNECTED`, `Scan
+  for device`, `DEVICE: NOT CONNECTED`, and no available device command. One inert scan after the
+  normal restart returned to the same truthful state; the development footer continued to say
+  `SIMULATION ONLY • NO HARDWARE`.
+- Device Atlas stayed `AWAITING DEVICE`, with identity, firmware and other device facts
+  `Unconfirmed`, `NOT SYNCED • ZERO AUTHORITY`, `NO DEVICE`, and 22 integrity-checked built-in packs
+  with 0 load issues. Quantum Optimizer said `Waiting for Device Engine...` and offered no analysis
+  or history. Recovery Bay said `Waiting for an authorized device... / NO PLAN`; build-plan,
+  guided-repair, diagnostics and export actions remained disabled. App Launchpad said `No
+  authorized device selected`; review/install remained disabled and no APK was selected.
+- Guardian Core remained read-only and reported `INTEGRITY VERIFIED`, a valid SHA-256 chain across
+  39 operation records, 0 approvals and 0 denied operations. Its runtime inspector explicitly said
+  it never launches the file, enrolls trust, opens a phone or unlocks final consent.
+- ROM Studio created only the disposable local project `Windows Workshop Acceptance`
+  (`windows-workshop-acceptance-355520ca`). Genesis opened at `SCAN / TASK 02 OF 15`, `Load the
+  untouched firmware`, with `Awaiting firmware`, `No device connected`, and compatibility
+  `AWAITING PROTECTED FIRMWARE`. `Save & exit` returned to ROM Studio without selecting a firmware
+  file. The Command Deck `Pre-Build Simulation` handoff opened exact `Build & Proof` context with
+  `PREREQUISITE`: the project needs a protected original; `Plan build (dry-run)` stayed disabled and
+  the handoff said `NO BUILD OR PHONE ACTION STARTED`.
+- One normal source restart restored Command Deck, the exact project and Genesis stage 2/15. The
+  validated workspace's runtime log now contains **6 starts / 6 clean closes / 0 fault lines**
+  across the approved host-repair sessions and this batch's source/package sessions.
+
+### Exactly one replacement unsigned Windows package
+
+- From committed source `945928567ea188481eb0c19ca4419ae4132c22f5`, exactly one build ran:
+  `.venv\Scripts\python.exe scripts\build_desktop_executable.py --output-directory
+  C:\Work\ROMVERSE-Windows\build\windows-workshop-safety-94592856 --work-directory
+  C:\Work\ROMVERSE-Windows\build\windows-workshop-safety-94592856-pyinstaller`.
+- The first and only attempt passed on Windows 11 `10.0.26200` with Python `3.12.10` and
+  PyInstaller `6.22.2`; no dependency or tool was installed. The one-folder package contains **305
+  regular files / 164,647,258 bytes / 0 reparse points**.
+- Executable: `build\windows-workshop-safety-94592856\ROMVERSE\ROMVERSE.exe` — **6,324,494
+  bytes**, SHA-256 `aae8f97cebda115f34aa35dea95a32a78974a5e89a0f04b33af7eb3511f7327a`, Authenticode
+  `NotSigned`. Sorted forward-slash relative-path/size/member-SHA-256 manifest digest:
+  `3b8cb1a08d8a4d0eb97592a523852e9e662f7eb3f7784c33130e1f70c654a94b`.
+- The replacement package was launched visibly exactly once against the validated workspace with
+  explicit development simulation. It restored `Windows Workshop Acceptance` at Genesis stage
+  2/15, immediately showed `No Android device detected / NOT CONNECTED`, completed one inert scan
+  without entering `SCANNING`, and showed Guardian `INTEGRITY VERIFIED` with 0 approvals before a
+  normal close.
+- Exactly one fresh frozen no-phone smoke used
+  `C:\Work\ROMVERSE-Workshop-Safety-Smoke-94592856`:
+  `.venv\Scripts\python.exe scripts\smoke_frozen_desktop.py
+  build\windows-workshop-safety-94592856\ROMVERSE\ROMVERSE.exe
+  C:\Work\ROMVERSE-Workshop-Safety-Smoke-94592856` — **PASS, exit 0**. Its 77-byte runtime log has
+  one start / one clean close / 0 fault lines. No package process remains.
+
+### Scope, preservation and next review
+
+- This checkpoint changes only `src/romverse/ui/main_window.py`,
+  `tests/test_development_device_simulation.py`, the single new unsigned package and this Build
+  handoff. Protected Companion files remain untouched.
+- The protected untracked patch remains byte-identical at **8,272 bytes**, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it was not edited,
+  applied, staged or deleted.
+- The managed Platform Tools receipt remains exact approved version `37.0.1` with archive SHA-256
+  `45f4d63113e895ebde0c90f194099a4676b6ac653bd28d54314a9e022bbc1a99`; no tool was acquired or
+  changed in this batch.
+- No physical phone, emulator or device target was present or requested. No APK or firmware was
+  selected or installed; no Recovery/Guardian execution, device write or mode transition,
+  production adapter, signing, publication, release, force-push, destructive action, unlock, root,
+  lock or relock occurred. Guardian-only authority, exact-device evidence, fresh consent,
+  UNKNOWN-on-uncertainty, no blind retry, independent verification, no wipe and permanent
+  bootloader no-relock remain intact.
+- Precise next task: independent Product Assurance review of correction
+  `945928567ea188481eb0c19ca4419ae4132c22f5`, the two completed focused regressions, bounded
+  interruption disclosure, real-user workshop evidence, exact replacement package and one frozen
+  smoke. Do not replay, rebuild or begin another source slice before a matching verdict.
+
 ## Windows no-phone managed Platform Tools host-repair journey — Product Assurance review requested
 
 - Product Assurance authorization: `729e9a0a65cc210ed8cb1639938fe9902107bd3f` — `Approve

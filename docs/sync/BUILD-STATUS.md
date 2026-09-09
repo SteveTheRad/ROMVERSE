@@ -1,5 +1,101 @@
 # ROMVERSE Product Assurance Sync
 
+## Read-only production Device Engine checkpoint — exact authorized Android target
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/source commit:
+  `3e8443042b295ee805348513ae961b95868b4a5a`, approving the converged Fedora
+  development package and authorizing exactly one read-only production Device Engine
+  discovery/evidence pass against the presently connected single authorized ADB target.
+- No application-source implementation was required. This section forms the evidence-only
+  handoff commit on `linux/stage1-desktop-readiness`; its only repository change is
+  `docs/sync/BUILD-STATUS.md`.
+- Stage: Stage 1 — v0.2 Golden Foundation physical discovery evidence only. The pass imported the
+  current approved Linux source directly and reused an existing Python 3.14 development
+  dependency environment; no dependency, package, APK or system component was installed.
+- The exact precondition was established through ROMVERSE's production `AdbClient` and
+  Guardian gateway: **1 observed ADB target, 1 authorized target, USB transport**. ROMVERSE then
+  invoked `DeviceEngine.scan()` exactly once with ADB only; no Fastboot client was configured.
+
+### Privacy-safe hardware observation
+
+- **Hardware Verified — read-only ADB discovery only:** Xiaomi 17 Pro Max, model `2509FPN0BC`,
+  product/codename `popsicle`, Qualcomm `SM8850`, Android 17 / API 37, HyperOS
+  `OS4.0.0.32.XPBCNXM`, build `CP2A.260605.016`, security patch `2026-08-01`, arm64-v8a.
+- Observed state: Android boot complete, battery 100%, slot `_a`, encrypted/file-based,
+  A/B and Virtual A/B enabled, dynamic partitions enabled, Verified Boot `orange`, bootloader
+  reported unlocked, no root shell and no Magisk or KernelSU package detected. The ROMVERSE
+  Companion package was detected.
+- Exact-target binding was checked in memory between the initial authorized discovery and the
+  fresh production scan. Only workspace-local pseudonym `41ef3565a0eee9246bea` is recorded here;
+  the raw device serial was neither emitted by the verification harness nor persisted in this
+  repository handoff.
+- The production snapshot completed with **0 probe errors**. No state-changing command was
+  requested or admitted.
+
+### Guardian evidence and verification
+
+- The new append-only Guardian ledger contains exactly **12/12 allowed, read-only records**:
+  two exact ADB discovery records followed by the fixed production allowlist of `getprop`,
+  battery, storage, memory, uptime, shell identity, kernel, Companion presence, Magisk presence
+  and KernelSU presence probes.
+- Both discovery records and the eight required detail probes returned success without timeout.
+  The two optional root-manager presence probes returned the expected non-zero absence result;
+  these are informational absence observations and did not create a Device Engine error.
+- Every device-scoped audit record contains the 20-character pseudonymous target form. Guardian
+  ledger verification passed: **12 records, valid hash chain, no integrity reason**, tail
+  `6da5c2384b1c9735…`.
+- No pytest selection, segmented/full regression, package build or smoke suite was repeated. The
+  previously approved non-overlapping Linux regression remains **3,005/3,005**; this checkpoint's
+  acceptance evidence is the single physical read-only discovery pass and its 12-record Guardian
+  chain.
+
+### Classification, safety and gates
+
+- **Implemented:** no product-code change; evidence-only repository handoff.
+- **Simulated/Tested:** exact-target precondition, production Device Engine completion, output
+  redaction and Guardian audit-integrity verification on Fedora.
+- **Hardware Verified:** one real Xiaomi 17 Pro Max observed over authorized ADB, limited strictly
+  to the facts above. No Fastboot, write, repair, build, flash or Recovery behavior is hardware
+  verified by this checkpoint.
+- **Released:** no. The existing Fedora artifact remains unsigned, unpublished and
+  development-only.
+- Guided friction/dead ends: none appeared in the production discovery boundary. This was a
+  direct bounded engine verification, not an interactive Guided UI journey, so no new Guided UX
+  claim is made.
+- Guardian/Recovery/safety: Guardian admitted only its existing fixed read-only allowlist and
+  retained pseudonymous audit targets. No preparation, consent, execution or Recovery authority
+  was requested or inferred. UNKNOWN/no-blind-retry, exact-device evidence, independent
+  verification and permanent bootloader no-relock remain unchanged.
+- Platform status: genuine Fedora-hosted Android hardware discovery. The existing approved Fedora
+  package/native-launch evidence remains valid. Windows and other Linux distributions were not
+  exercised in this checkpoint.
+- Feature freeze: compliant evidence-only physical verification; no capability or product scope
+  was added.
+- Version/package gate: this closes only the bounded read-only production discovery evidence gap.
+  v0.2 Golden Foundation and release remain **CLOSED** pending Product Assurance review and all
+  remaining mandatory gates.
+- External actions: authorized read-only ADB discovery/probes and local Guardian audit persistence
+  only. No phone setting/property/file/partition change, reboot, Fastboot transition, APK install,
+  firmware operation, unlock/root/flash/wipe, Guardian/Recovery execution, bootloader lock/relock,
+  dependency installation, publication, release, merge or force-push occurred.
+
+### Next proposed Build task
+
+Stop for repository-based Product Assurance review. Do not operate the phone again or begin
+another consequential slice until this exact hardware-evidence checkpoint is independently
+reviewed.
+
+### Product Assurance Review Requested
+
+- Confirm the exact-target precondition, one production `DeviceEngine.scan()` call, privacy-safe
+  handoff and verified 12-record Guardian chain satisfy the approved read-only hardware-discovery
+  gate.
+- Confirm the optional root-manager absence return codes are correctly treated as informational
+  absence rather than discovery failure, and that no additional hardware action is required at
+  this checkpoint.
+
 ## Linux package checkpoint — converged current-HEAD Fedora development artifact
 
 ### Authoritative checkpoint and scope

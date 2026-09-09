@@ -1,5 +1,74 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows OTA literal-backslash correction — Product Assurance review requested
+
+- Product Assurance verdict: `5dc8762715390f8d36bbbed5e5a7909f742c9e11` —
+  `Approve Windows line ending normalization`, matching Build checkpoint
+  `6243eec2c9a578781bda2e7aefbc846491d112fc` exactly.
+- Windows implementation: `abe183f1dae965fe9228477a462d4604dbbf3697` —
+  `Reject literal backslashes in Windows OTA members`.
+- Branch: `windows-launcher-authorized-work`.
+- Status: **THE NON-OVERLAPPING PORTABILITY SUFFIX STOPPED AT ITS FIRST DETERMINISTIC FAILURE;
+  THE MINIMUM WINDOWS ZIP-SPELLING CORRECTION IS COMMITTED AND THE EXACT NODE PASSES.**
+
+### Exact one suffix pass
+
+- Safely fast-forwarded from `6243eec2` to approval `5dc87627`; all 23 Device Pack JSON files
+  remained LF-only. No dependency or tool was installed or acquired.
+- Confirmed the corrected line-ending victim is the final node in `tests/test_release_scripts.py`.
+  Ran only the normal workflow suffix in `.github/workflows/test.yml` lines 57–99: the 43 ordered
+  files from `tests/test_desktop_release.py` through `tests/test_navigation_vocabulary.py`.
+- Exact invocation was `.venv\Scripts\python.exe -m pytest -x --basetemp
+  C:\Work\ROMVERSE-Windows-TestTemp-5dc87627-suffix-01 <43 ordered suffix files>` with
+  `QT_QPA_PLATFORM=offscreen`.
+- Result: **663 passed, 3 skipped, 1 failed in 790.58 seconds (13:10)**. The run produced
+  continuous progress and had no timeout or stall. The terminal's default report did not emit the
+  three individual conditional-skip reasons, so no unsupported skip-node attribution is claimed.
+- First failure at 68%:
+  `tests/test_base_image_compatibility.py::test_ota_archive_ambiguity_and_unsafe_members_are_rejected[extras5]`.
+  Windows accepted the inert ZIP extra member spelled `back\slash` instead of raising
+  `ProjectError`; the pass stopped immediately and no later suffix node ran.
+- Current non-overlapping segmented evidence is **689 passed / 3 skipped** before the corrected
+  failure: Build prefix 25, Product Assurance line-ending victim 1, and this suffix prefix 663. It
+  is not represented as an uninterrupted or complete suite.
+
+### First-failure boundary and minimum correction
+
+- Classification: **genuine Windows archive-validation correctness defect plus a Windows fixture
+  materialization gap**. On Windows, `ZipInfo.filename` changes a literal backslash to `/`; the OTA
+  reader validated that normalized value. The fixture's string-form `writestr` also normalized the
+  adversarial spelling before placing it in the archive, masking the product boundary on Windows.
+- Production now validates `ZipInfo.orig_filename` before accepting the member, matching the
+  already-approved fail-closed Source Installation boundary. The existing inert fixture now writes
+  a `ZipInfo` whose stored filename retains the supplied spelling, so the same deterministic case
+  is meaningful on Windows and Linux. No other behavior or test cluster changed.
+- The first focused verification attempt after the production-only change still failed, proving the
+  fixture side of the boundary. After the minimum fixture correction, the exact failed node passed
+  **1/1** with fresh basetemp
+  `C:\Work\ROMVERSE-Windows-TestTemp-5dc87627-base-image-backslash-after-02`.
+- `git diff --check` passed before the implementation commit. Ruff check/format were not run because
+  the authorized suffix did not complete; the workflow's Ruff gate remains pending.
+
+### Preserved scope and next review
+
+- Implementation is limited to `src/romverse/rom/base_image_compatibility.py` and the existing
+  deterministic fixture in `tests/test_base_image_compatibility.py`; this handoff changes only
+  `docs/sync/BUILD-STATUS.md`. The accepted package was not rebuilt or relaunched, GitHub Actions
+  was not launched, and no unrelated failure was pursued.
+- The protected Companion files remain clean and unstaged. The protected untracked patch remains
+  exactly **8,272 bytes**, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it was not altered,
+  applied, staged or deleted.
+- No phone/emulator, device discovery, ADB/Fastboot command, APK installation, firmware action,
+  Guardian/Recovery operation, production signing/trust, publication, release, merge, force-push,
+  destructive change, lock or relock occurred. Exact-device evidence, consent separation,
+  UNKNOWN-on-uncertainty, no blind retry, Guardian-only authority, independent verification and
+  permanent no-relock remain intact.
+- Precise proposed next task: Product Assurance independently verifies `abe183f1` and the exact
+  corrected node. If approved, authorize one continuation run containing only nodes after
+  `[extras5]` in the workflow-ordered suffix, then Ruff check/format once only if that continuation
+  completes. No package rebuild is authorized or warranted at this checkpoint.
+
 ## Windows portability convergence preflight — Product Assurance review requested
 
 - Product Assurance verdict: `2edd59d52843880caed75cae2b7602431054b10d` —

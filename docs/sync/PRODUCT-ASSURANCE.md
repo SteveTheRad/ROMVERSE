@@ -1,5 +1,87 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 5e3645a — Windows synthetic OTA intake and Provenance
+
+- Reviewed checkpoint: `5e3645a275742aff6a4519434daabb9f86d9468a`
+- Authorizing verdict: `6c62311fe698c09798ca6e0641c12d0cdff9b945`
+- Package source: `b1dc54e0c6390fb3d789930dda0696c712e40e64`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **CORRECTION REQUIRED — PROTECTED ORIGINAL INHERITS A WRITABLE WINDOWS ACL**
+
+### Decision and independent evidence
+
+The Guided intake, exact copy/hash binding and bounded Provenance result are truthful, but this
+checkpoint cannot be approved as a protected-original contract on Windows. Product Assurance
+independently inspected the imported copy and confirmed that its DACL remains inheriting and grants
+`Authenticated Users` Modify access, alongside Administrators/SYSTEM and Users read access. The
+read-only attribute and mandatory SHA-256 revalidation detect later mutation, but they do not make
+the protected source private and do not meet the owner/SYSTEM-only contract already used by the
+project and evidence records.
+
+The remaining evidence is accepted as accurate. The deterministic 497-byte source and protected
+copy both hash to `1d9c78df6f42c63864a76bdf91a50cb2da1cd2e133cc44cba5f1c298302f0725`.
+Each ZIP has exactly the two authorized regular members with zero external attributes:
+`payload.bin` (24 bytes, SHA-256
+`27d85415cd81bc6332271f9501791c3a89efabeb3f93dc66fbedb9c039d965eb`) and Android metadata
+(219 bytes, SHA-256
+`5d38fcf1440c5c88f0e4f13ade3998cf1dd4f43d4057446a7f8cd6fb3dc0b5e3`). The project manifest
+binds the exact protected relative path, size, name and source digest. The 830-byte inspection
+record is source-bound and reports ZIP, two entries, 243 uncompressed bytes, the expected structural
+signals and no extraction.
+
+The generated Device DNA keeps exact device/firmware identity unconfirmed, preserves metadata
+rejection, gives Guardian flash no authority and permanently prohibits relocking. The Compatibility
+Matrix remains advisory, has zero proven-compatible decisions and keeps execution locked. The
+mission stops at Provenance; `working_roms` is empty. The runtime ledger has exactly six starts and
+six clean closes, and Windows has zero ROMVERSE processes/windows and no instance lock.
+
+The checkpoint changes only Build Status and passes Git whitespace validation. Forgejo and GitHub
+expose the identical checkpoint. The Windows checkout retains only the protected untracked patch
+and existing `build-work/`; the patch remains 8,272 bytes with SHA-256
+`2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+No working-tree preparation/extraction, network, tool installation/repair, phone/emulator,
+ADB/Fastboot, Guardian/Recovery execution, package mutation, signing, publication, release, hosted
+CI, wipe, unlock/root, bootloader lock or relock occurred.
+
+### Minimum exact correction
+
+Correct only the existing protected-original import contract and its focused tests. Do not advance
+Genesis, rebuild/package the application or alter the retained runtime evidence in this correction.
+
+1. Ownership is limited to `src/romverse/rom/projects.py`, `tests/test_rom_projects.py`, and the
+   Build Status handoff. Do not modify `src/romverse/infrastructure/local_store.py`; reuse its
+   existing `ensure_private_file` and Windows ACL inspection contract. All UI, Guardian, Recovery,
+   platform, Companion, packaging and unrelated files remain protected.
+2. Before a newly copied temporary original is promoted, require `ensure_private_file` to succeed.
+   For an already existing content-addressed destination, require the same private-file enforcement
+   before it is reused. Then retain the protected original's final read-only contract. ACL failure
+   must fail closed without updating the project manifest or leaving a newly promoted broad-access
+   artifact.
+3. Extend the focused import test to require exactly non-inherited OWNER RIGHTS and SYSTEM Full
+   Control ACEs on Windows while retaining the existing POSIX read-only assertion. Add a bounded
+   failure-path test proving private-ACL application failure cannot attach an original or leave a
+   newly promoted destination.
+4. Run the focused ROM-project test module on Fedora and on Windows using current source. On
+   Windows, include a real temporary-filesystem assertion that the imported protected original is
+   read-only, has inheritance disabled, exposes only the two permitted allow ACEs, still verifies
+   by hash, and leaves the selected external source unchanged. Run focused Ruff/check-format and
+   Git whitespace checks only.
+5. Commit the correction and sanitized evidence, push Forgejo first, mirror the identical commit to
+   GitHub, request Product Assurance review and stop. Preserve the current broad-ACL synthetic copy
+   as review evidence; do not manually repair it to make this checkpoint appear compliant.
+
+No Working Lab advance, new UI journey, package rebuild, new fixture/firmware import, network,
+download, installation/tool repair, phone/emulator/ADB/Fastboot, firmware/APK mutation,
+Guardian/Recovery execution, signing, publication, release, hosted CI, wipe, unlock/root,
+bootloader lock or relock is authorized.
+
+### Acceptance criteria and gate status
+
+- Synthetic OTA copy/hash binding and bounded Provenance classification: **PASS**
+- Windows protected-original privacy ACL: **CORRECTION REQUIRED**
+- Genesis Working Lab and later stages: **CLOSED**
+- Device/consequential, installer/signing, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 635b7a2 — Windows Firmware guidance and offline Archives return
 
 - Reviewed checkpoint: `635b7a247ad7faea086e36d0bd6186eb6c68aed8`

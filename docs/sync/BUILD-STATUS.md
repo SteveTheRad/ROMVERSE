@@ -1,5 +1,43 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows native observation-channel readiness preflight — Product Assurance review requested
+
+### Exact authority and bounded preflight
+
+- Product Assurance verdict `c70d73bad7e15b9a5a3d4cd793fb61cfcf99b3b3` exactly approves
+  blocker checkpoint `9a19ee17722d9dee70eb223446ccd624ac94b6ac` and authorizes only one
+  native Windows observation-channel readiness preflight without launching ROMVERSE or changing
+  repository/application state. The checkout safely fast-forwarded to that exact verdict on
+  `windows-launcher-authorized-work`; the protected untracked patch remained 8,272 bytes at
+  SHA-256 `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`, existing untracked
+  `build-work\` remained untouched, and all protected Companion files remained unchanged.
+- Before the preflight, ROMVERSE, ADB and Fastboot process counts were zero. No package, retained
+  profile, experiment branch, project, snapshot, Vault or audit file was opened for mutation.
+
+### Exact observation result and fail-closed stop
+
+- Build invoked the current approved computer-use surface inventory exactly once through
+  `cua.getState()`. Its exact result exposed `apps: []`: there was no identifiable or readable
+  native Windows application surface. It exposed only one Codex in-app browser provider with no
+  tabs. A browser-only surface cannot satisfy the authorized native-window readiness requirement.
+- Because no native app binding was independently observable, Build did not select, activate,
+  capture, click, type into or otherwise operate any native window. It did not launch ROMVERSE,
+  open another application, install or configure host software, enter data, rely on a process
+  listing or remembered screenshot, or substitute source/process evidence for visible evidence.
+  Native observation-channel readiness therefore remains **UNKNOWN** exactly as required.
+- No source, test, package, retained-profile or application file changed, so no test run or package
+  rebuild was warranted. `git diff --check` is the proportionate repository validation for this
+  docs-only readiness checkpoint.
+- No ROMVERSE control, experiment-branch/Vault action, external evidence, network/download, device
+  scan, phone/emulator, ADB/Fastboot command, APK/firmware mutation, Recipe/Forge,
+  Guardian/Recovery execution, signing, publication, release, hosted CI, wipe, unlock/root,
+  bootloader lock or relock occurred. Exact-device evidence, consent separation, Guardian-only
+  authority, durable UNKNOWN, no blind retry, independent verification, feature freeze and
+  permanent bootloader no-relock remain intact.
+- Precise proposed next task: independent Product Assurance review of this fail-closed readiness
+  preflight. Do not launch ROMVERSE again unless a native Windows observation surface is first
+  proven and a new repository verdict authorizes one fresh package launch.
+
 ## Windows corrected Command Deck package launch — host-control blocker review requested
 
 ### Exact authority and immutable preflight

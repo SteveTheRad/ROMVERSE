@@ -1,5 +1,62 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 64af85a — genuine structure-inspection fixtures
+
+- Reviewed checkpoint: `64af85a4fe5bcc305b2bce6c304f6b3702c7e274`
+- Test-fixture commit: `c76ccd1f5f3412bb4a816dd31165e3a7642d2df9`
+- Approved base: `2b88aec`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — SHARED ASCENSION/CANDIDATE SETUP NOW EARNS REAL INSPECTION EVIDENCE**
+
+### Decision and independent evidence
+
+The four fixture owners were stale: each imported a protected source and later requested a build
+plan without crossing the production structure-inspection boundary that current ROMVERSE correctly
+requires. Calling `RomInspectionService.inspect_project()` immediately after import is the minimum
+truthful correction. It produces and persists the real current report; it does not construct a
+receipt, bypass Build verification or change product behavior.
+
+- The implementation is exactly four imports and four production-service calls across four test
+  files. No application source or safety contract changed.
+- Product Assurance independently ran the same eight-file affected selection against the exact
+  current source: **269/269 passed**. Ruff, formatting and whitespace checks passed.
+- Dependent Candidate composition, integration, UI and desktop paths now reach their stated tests
+  while current inspection remains mandatory and fail closed.
+- No package, paid CI, Windows change or physical-device action was required. Feature freeze,
+  Guardian separation, exact evidence, UNKNOWN-on-uncertainty, no blind retry and permanent
+  no-relock remain intact.
+
+### Approved next bounded task
+
+Classify and correct only the remaining **Guided modal lifecycle / test-isolation cluster** visible
+in run `34295617304`:
+
+1. Reproduce the first failing `tests/test_navigation_vocabulary.py` Guided-resume node alone and
+   in its original local file order, then inspect the active modal before/after each boundary.
+2. Determine whether a prior fixture leaves a `GuidedBuildMission` open or whether production fails
+   to close a modal after an existing affirmative/decline route. Preserve the evidence before
+   changing anything.
+3. If this is fixture leakage, make the narrowest test-only cleanup/ownership correction. If it is
+   a genuine product modal lifecycle defect, make only that proven lifecycle correction and retain
+   every existing consent/safety decision; do not close or auto-accept a meaningful dialog merely
+   to satisfy a test.
+4. Run only the directly affected navigation/Guided modal files and one representative connected
+   journey. Keep Device Atlas geometry, wording assertions, project-flash error text and
+   source-installation-stop semantics out of this slice.
+5. Commit the minimum correction and `docs/sync/BUILD-STATUS.md`, push this branch and stop for
+   independent review. Do not run a full GitHub matrix or rebuild packages.
+
+Do not operate Stage 12, use a phone/emulator, install dependencies, change Windows/Companion work,
+build/sign/flash firmware, invoke Guardian/Recovery execution, publish, release, merge, force-push,
+lock or relock.
+
+### Gate status
+
+- Structure-inspection fixture seam: **VERIFIED — 269/269**
+- Guided modal lifecycle/test isolation: **NEXT BOUNDED CORRECTION**
+- Broad Linux/Windows regression and v0.2 Golden Foundation: **CLOSED pending later evidence**
+- Physical hardware, secure Windows Recovery launch, signing, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 8affb41 — platform-stable file identity
 
 - Reviewed checkpoint: `8affb41c27546672df36a34fc368933a812a2aba`

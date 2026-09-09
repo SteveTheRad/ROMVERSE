@@ -1,5 +1,108 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows Time Machine / Project Vault read-only inspection — Product Assurance review requested
+
+### Exact authority and preflight evidence
+
+- Product Assurance verdict `295cd19cd89fc066be911df28b82396410f5598b` exactly reviews
+  blocker checkpoint `0cea7412a6736d03e83b5164fd5992c00f9d9a17`, approves the preserved
+  composite-action blocker, closes the earlier baseline-only authorization unsatisfied, and
+  authorizes only one read-only Time Machine / Project Vault inspection followed by an exact
+  return to Genesis. The checkout safely fast-forwarded to that verdict. The protected untracked
+  patch remained 8,272 bytes at SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`, existing untracked
+  `build-work\` remained untouched, and all protected Companion files remained unchanged.
+- Before UI inspection, project `windows-private-original-392b82fb-d5d46af7` and every retained
+  blocker artifact were revalidated with zero issues. The protected original and writable
+  baseline remain 497 bytes at SHA-256
+  `1d9c78df6f42c63864a76bdf91a50cb2da1cd2e133cc44cba5f1c298302f0725`; the original remains
+  read-only with inheritance disabled and only OWNER RIGHTS and SYSTEM non-inherited Full Control.
+  The 599-byte working-copy record remains SHA-256
+  `c32db93290316bab94981c1aa3c089cac68c0e850ab0977186e063cd1cd18553`; the 532-byte tree index
+  remains SHA-256 `76ca043c4663bea068d508ca30c76b6c3205b2969bd1ef4a1e8205c023417769`.
+- The extracted tree still contains exactly `payload.bin`, 24 bytes at SHA-256
+  `27d85415cd81bc6332271f9501791c3a89efabeb3f93dc66fbedb9c039d965eb`, and
+  `META-INF/com/android/metadata`, 219 bytes at SHA-256
+  `5d38fcf1440c5c88f0e4f13ade3998cf1dd4f43d4057446a7f8cd6fb3dc0b5e3`. Snapshot
+  `20260909T201410-bafcbd` remains one 497-byte baseline with the protected-source digest and
+  record digest `f19d43a79f323ef5d2a37fdc3ce7203edc819ba4b1668ea5087dc0cf90c2d78b`.
+  Project Vault still contains exactly two entries and five objects. `Protected working baseline`
+  (`20260909T201410-0822394f`, record digest
+  `088a6122f2d88d0deb166724cca8b1c8ac48ae3f75c2e9c2329f6b07b71235d0`) has no parent, no tree
+  files and three bound context files. `Extracted project tree`
+  (`20260909T201412-ea0f44c8`, record digest
+  `ba657da6b82559e40382f31d73068d9c391ba2af065095134f77e76a58a386d3`) has the first entry as
+  parent and binds exactly the two files and 243 bytes. Every path is contained beneath the exact
+  project-specific workspace roots.
+- Settings remain 687 bytes at SHA-256
+  `90958eafb57e6166b3a41a9ad5795c79d9774acb266003ee340601c624a5f2da`, with the exact workspace,
+  Guided mode, onboarding complete, serial masking enabled, and online intelligence, community
+  research, automatic verified-tool download and Synapse contribution all disabled.
+
+### One read-only visible inspection and exact return
+
+- PID `104704` started at `2026-09-10T06:34:05.8012702+10:00` from the already approved unsigned
+  package executable, 6,324,563 bytes at SHA-256
+  `2c94f329fa33c96e0b9aca92b6c495b2c55d87e25d14af089afd1c19d652881f`. The child received only
+  `C:\Work\ROMVERSE-No-Tools-392b82fb` as `PATH` and exactly `--workspace`,
+  `C:\Work\ROMVERSE-Private-Original-392b82fb\workspace`, `--skip-onboarding`,
+  `--development-device-simulation`. Command Deck showed Local, simulation only, no physical or
+  Android device, the exact project, mission attention, Guardian verify required and Device DNA as
+  the first incomplete stage.
+- Normal sidebar navigation opened Time Machine once. Device Recovery Readiness truthfully waited
+  for an authorized device scan; Guardian backup-plan, review and phone-backup controls were
+  disabled. Local ROM Recovery showed `Windows Private Original 392b82fb • 1 snapshot(s)` and
+  `PROJECT VAULT • RECOVERABLE PROJECT HISTORY` with the explicit `LOCAL PROJECT • NOT PHONE
+  BACKUP` qualifier. The main timeline showed exactly two entries. Its selected `Extracted project
+  tree • MAIN • CHECKPOINT` detail showed the exact parent, baseline, two files, 243 bytes, bound
+  project/device-DNA/inspection/protected-firmware fingerprints and sealed-metadata state. Opening
+  the entry selector exposed exactly `Extracted project tree` and `Protected working baseline`;
+  Escape closed it without selecting or changing either entry.
+- The baseline list showed exactly `20260909T201410-bafcbd • CURRENT • READY`, 497 bytes and the
+  source digest. The visible boundary stated that Project checkpoints are separate from phone
+  backups and never grant flash authority, and that Time Machine can restore local workspace
+  baselines only and never reads, writes, flashes, wipes or restores phone partitions. Build did
+  not invoke capture, verify, compare, branch, restore, export, cleanup, backup or any other action.
+- Normal navigation returned through Command Deck's `Resume Mission` and opened Genesis on the
+  exact project/source at `CURRENT PHASE • MATCH / TASK 05 OF 15`, `Confirm device identity and
+  capabilities`, status `Needs attention`. It showed `PACKAGE METADATA REJECTED`, no connected or
+  authorized Android device, no matching Device Pack, Device DNA identity unconfirmed, Guardian
+  core checks active and bootloader relocking `UNSUPPORTED • permanent Guardian rule`. `Next` was
+  disabled. No scan, auto-resolve, build, install, tool-resolution or other action was invoked.
+  `Save & exit` returned to the exact ROM Studio project with the explicit result `NO BUILD OR
+  PHONE ACTION STARTED`.
+
+### Postflight preservation, validation and stop
+
+- Postflight byte/hash validation reproduced the exact original, baseline, working-copy record,
+  tree index, two extracted files, snapshot metadata/content, two Vault entry records and five Vault
+  object files listed above. Counts remain one snapshot binary, one snapshot metadata record, two
+  Vault entries and five Vault objects; the profile has zero reparse entries. No snapshot or Vault
+  object was created, restored, exported, deleted, deduplicated, recaptured or rewritten.
+- The expected normal-navigation records alone advanced. The 436-byte saved mission is now
+  SHA-256 `d493aaf0708a6913831555428790414561bdbe16db03f2933649cff3187a0f3c`, with
+  `selected_stage: device`, root undecided, no install request, no build plan, no Recipe or
+  customization completion and no error. The 231-byte runtime ledger is SHA-256
+  `30feaa6b43ac81c3e426cd89b1366323359c203a3e4d399727d797fd3674f8b7` and records exactly three
+  starts and three clean closes across the three authorized sessions. These navigation/activity
+  updates do not alter the preserved blocker evidence.
+- ROMVERSE closed normally. Final ROMVERSE, ADB and Fastboot process counts are zero; both
+  persistent ledger lock files accept exclusive no-sharing opens. The workspace `apks`, `backups`,
+  `builds`, `device_packs`, `diagnostics`, `temp` and `tools` directories remain empty, and no build
+  plan or install artifact exists. No Stage 1 display, binding or return-context defect reproduced,
+  so no source correction, package rebuild or test run was justified. This checkpoint changes only
+  `docs/sync/BUILD-STATUS.md`; `git diff --check` is the proportionate repository validation.
+- No Working Lab repeat, extraction retry, device scan, tool resolver, network/download action,
+  phone/emulator/ADB/Fastboot operation, APK/firmware mutation, Recipe/Forge, Guardian/Recovery
+  execution, production trust/signing, publication, release, hosted CI, wipe, unlock/root,
+  bootloader lock or relock occurred. Exact evidence, consent separation, Guardian-only authority,
+  durable UNKNOWN, no blind retry, independent verification, feature freeze and permanent
+  bootloader no-relock remain intact.
+- Precise proposed next task: independent Product Assurance review of this exact read-only Time
+  Machine / Project Vault display, project/digest binding, explicit local-not-phone boundary, exact
+  Genesis return and unchanged retained evidence. Do not begin another launch, package/test cycle,
+  restore, project action, correction or consequential step without a matching repository verdict.
+
 ## Working Lab single-action scope blocker — Product Assurance review requested
 
 ### Exact authority and preserved pre-action state

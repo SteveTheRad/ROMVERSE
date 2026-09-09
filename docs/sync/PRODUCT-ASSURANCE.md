@@ -1,5 +1,97 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 635b7a2 — Windows Firmware guidance and offline Archives return
+
+- Reviewed checkpoint: `635b7a247ad7faea086e36d0bd6186eb6c68aed8`
+- Authorizing verdict: `60dbd1ac2a313e2bcf88a46a2c847ee33c8c90a2`
+- Package source: `b1dc54e0c6390fb3d789930dda0696c712e40e64`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — FIRMWARE GUIDANCE CONNECTS TO OFFLINE ARCHIVES AND BACK**
+
+### Decision and independent evidence
+
+The authorized non-consequential Guided journey is approved. The exact saved project resumed from
+Command Deck at Firmware, with Project as the sole verified stage, no protected source, no device,
+and Guardian/Recovery not ready. The expanded evidence panel truthfully reported zero evidence;
+the guidance required exact model, region and bootloader-generation matching and preserved the
+original-source copy/hash boundary. The detailed task rail did not promote Firmware or any later
+stage.
+
+`Learn this stage` saved the same Firmware resume point and reached the packaged offline ROMVERSE
+Archives with navigation-only truth. The Archives surface reported its 284 structured records and
+182 attributed sources, `EXECUTION AUTHORITY: NONE`, no public trust enrollment or local outcomes,
+and no upload authority. Its exact offline `firmware source` query produced relevant source-format,
+fingerprinting and protected-original guidance. No catalog sync, signed update, download, tool
+plan or import was invoked. Visible return navigation restored the exact project and stage 2 with
+`original: null`; reopening Genesis retained Firmware as the first unverified stage and `Choose
+firmware…` as the next action.
+
+Product Assurance independently verified the one-project tree. The 410-byte schema-two project
+record remains SHA-256 `07748e635d70af7f88934a40f6282188002370e8546c5fdca402a39504b58536`,
+with the same ID, empty Device Pack and no original. The 438-byte schema-six mission record changed
+only through the expected integrity-bound save and is now SHA-256
+`5e8c055860547b6aee5d2e1a034687235adcac0d391f0b24d02c7248d7407649`; it retains Firmware,
+undecided root, no install request, no build/recipe/customization completion and no error. The
+8,666-byte redacted live-console record is SHA-256
+`35de0dfadd7e29bb58a667b5c1c2087f56cff1f780a28d031fff0b7eae88ab5c`; its eight records remain
+Guardian-protected and the four current-flow entries are only Firmware-ready and save/pause states.
+
+The private settings, workspace manifest and offline archive remain byte-identical at SHA-256
+`9edc2a91206ef4225caa90491270ad2ae88c3a0c3f4719c0cc773fa8e7b0e126`,
+`0073e1df5d54160da16e13f4c2780ecca81c9b732e4f805f2b7668e52b36e693`, and
+`2384ebb6ce9616af2270991da2c7b594d08b7534e71bf819549c92c091e27764`. Empty operational
+directories remain empty. The final 385-byte runtime ledger is SHA-256
+`970f2eee34b6d2ef6b732c87f27f0ffd7e183e8a0d77e28a79eaf946e857f2d6` and contains exactly five
+starts and five clean closes. Windows has zero ROMVERSE processes/windows and no instance lock.
+
+The authoritative and extracted package trees remain identical at 306 files, 23 directories and
+164,663,424 bytes with no empty files or reparse entries. The checkpoint changes only Build Status
+and passes Git whitespace validation. Forgejo and GitHub expose the identical checkpoint. The
+Windows checkout retains only the protected untracked patch and existing `build-work/`; the patch
+remains 8,272 bytes with SHA-256
+`2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+No firmware import, network, download, installation/tool repair, phone/emulator, ADB/Fastboot,
+firmware/APK mutation, Guardian/Recovery execution, source/package correction, signing,
+publication, release, hosted CI, wipe, unlock/root, bootloader lock or relock occurred.
+
+### Approved next bounded task
+
+Advance the real local Genesis data path through one deterministic, harmless synthetic OTA intake
+and bounded integrity/structure inspection. This is protected-source workflow verification, not a
+claim that the fixture is usable firmware and not authorization to extract, build or flash it.
+
+1. Create one small deterministic local ZIP outside the repository, package tree and ROMVERSE data
+   root. It may contain only a minimal `payload.bin` beginning with the Android payload marker and
+   one bounded metadata text entry; no executable/script, personal data, symlink or path traversal.
+   Record its exact member list, bytes and SHA-256 before launch.
+2. Launch the unchanged extracted package once with the same private Local-mode root, empty
+   process-local tool path and development-device simulation. Keep all four controls false.
+3. Resume the exact project at Firmware and select only that fixture. Require ROMVERSE to copy it
+   into the project's protected original area, bind its original name/size/SHA-256 in the project
+   manifest, preserve the external fixture, and advance only to Provenance. The synthetic input
+   must remain explicitly simulation evidence with no device compatibility or execution authority.
+4. Run the stage-3 bounded integrity and container inspection only. Verify the protected copy hash
+   matches, the structure is reported from bytes/members rather than filename alone, and any
+   incomplete payload semantics remain unconfirmed or blocked rather than promoted. Do not prepare
+   or extract a working tree and do not advance beyond the Provenance result.
+5. Save/pause, close normally and prove zero processes/windows, no live lock, one accepted start and
+   clean close, private contained records, unchanged package/settings, no network/tool/device
+   artifacts and no action outside the isolated workspace. Commit only the sanitized handoff and
+   stop. A deterministic import, integrity, inspection or UI blocker must be reported without source
+   correction or package rebuild in this task.
+
+No real firmware, working-tree preparation/extraction, further onboarding/restart/package/archive/
+copy matrix, network, download, installation/tool repair, phone/emulator/ADB/Fastboot,
+firmware/APK mutation, Guardian/Recovery execution, source/package correction, signing,
+publication, release, hosted CI, wipe, unlock/root, bootloader lock or relock is authorized.
+
+### Gate status
+
+- Windows Firmware guidance → offline Archives → exact-project return: **APPROVED**
+- Synthetic OTA protected intake and bounded Provenance inspection: **AUTHORIZED**
+- Real firmware and device/consequential operations: **CLOSED**
+- Installer/signing, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 71b7c30 — Windows Genesis project and Firmware resume
 
 - Reviewed checkpoint: `71b7c30d85c0346e1d4361f7b270b6553f025630`

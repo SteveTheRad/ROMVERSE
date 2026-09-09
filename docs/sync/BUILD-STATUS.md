@@ -1,5 +1,86 @@
 # ROMVERSE Product Assurance Sync
 
+## Fedora Source Lab inert plan-verification blocker
+
+### Authoritative commits and exact changes
+
+- Branch: `linux/stage1-desktop-readiness`.
+- Product Assurance authorization: `bfbf359b3b493f119543bccbd1a37ae9beab6a43`.
+- Runtime evidence: `502f7deeebfa48bfdd4fd20f52e6a06831843137`.
+- Application, tests and package bits are unchanged. Build reused the approved unsigned package at
+  `build/fedora-readiness-wording-f069610/ROMVERSE`; executable SHA-256 remains
+  `d110771c730b45695413c0606de072f9c560550c88ae223913ca1fd1e5e670e4`.
+- Repository changes are evidence/handoff only. Complete evidence:
+  `docs/evidence/FEDORA_SOURCE_LAB_PLAN_VERIFICATION_BLOCKER_2026-09-10.md`.
+
+### Classification, verification and gates
+
+- **Checkpoint result: BLOCKED / PRODUCT ASSURANCE CORRECTION REQUIRED.** The plan artifact and
+  independent verification are valid, but Source Lab retained contradictory post-verification UI.
+- **Implemented:** no new product behavior.
+- **Simulated/Tested:** one genuine Fedora no-network/no-phone package run used a fresh private copy
+  of the approved extracted synthetic state. Build invoked **Plan build (dry-run)** exactly once and
+  **Verify plan** exactly once only after the durable plan was present. Both producing-service
+  results are recorded as success. Per authorization, no unchanged test or rebuild ran.
+- The 1,106-byte plan is SHA-256 `1bd66952…34ecf4`, schema 2, exact-project/source/tree bound, with
+  the complete ordered two-file inventory, no symlinks/partitions/Device Pack/recipe/toolchain, zero
+  required or unverified tools, `local_only: true`, `execution_locked: true`, `flashable: false`,
+  and `execution_authority: none`.
+- Guardian `ready/none` is explicitly the plan's read-only preflight result—not an approval or
+  execution grant. No Guardian ledger/approval, device evidence, phone action, installation/flash
+  record or relock path exists. Guardian flash remains UNCONFIRMED/Unknown and relocking remains
+  UNSUPPORTED/Known Incompatible.
+- Independent re-enumeration retained only the 257-byte metadata and 40-byte inert marker. The
+  recomputed tree SHA-256 `84c7699a…259de8` exactly matched the plan, and independent product
+  `verify_tree` returned valid with identical expected/actual digests.
+- Planning truthfully refreshed only the tree-index timestamp/integrity digest while preserving its
+  exact two-file/297-byte/project/source/path bindings. Source/baseline/snapshot/project/
+  working-copy/inspection evidence stayed byte-identical. A normal derived ROM-DNA record binds the
+  same project/source/tree with no Device Pack or recipe. Vault entry count stayed two; Plan/Verify
+  created no new Vault checkpoint.
+- Activity grew from five to seven entries and Live Console from 16 to 20: exact Plan and Verify
+  Plan running/succeeded events. Guided remains `workspace`, with `install_requested: false`,
+  `build_plan_verified: false` and no error.
+- Post-verification UI contradiction: Activity says **Build plan inputs verified** and Live Console
+  says Verify Plan succeeded, while Source Lab simultaneously says **8/8 steps complete • Next:
+  Workflow complete**, enables **Forge Bundle**, and still renders **Plan inputs • verification
+  required**. Build did not invoke Forge or any next action and does not claim this UX boundary
+  passed.
+- **Hardware Verified:** no. Fedora/Linux UI and plan evidence were genuinely exercised; no phone,
+  emulator or Android simulation was used. Windows was not run or modified.
+- **Released:** no. Package remains local, unsigned, uninstalled and unpublished.
+- Guided friction/dead end: the user receives a successful verification and workflow-complete
+  signal, yet the same evidence panel says verification is still required. This can create a loop
+  or pressure the user toward enabled Forge without durable Guided continuity.
+- Guardian/Recovery/safety: no consequential boundary was entered. Execution authority remains
+  none. Guardian-only authority, durable `UNKNOWN`, no blind retry, independent verification and
+  permanent bootloader no-relock remain unchanged.
+- Feature freeze: no product change. A minimum correctness fix requires Product Assurance approval.
+- Version gate: plan artifact/tree verification evidence is valid, but Source Lab verification UX
+  is **BLOCKED**. Forge/ROM build and every device/consequence/signing/publication/v0.2/release gate
+  remain **CLOSED**.
+- External actions: read-only preflight; fresh private retained-state copy; one Bubblewrap
+  no-network package launch with empty tool path/minimal device view; ROM Studio/Build & Proof
+  navigation; exactly one Plan and one Verify Plan; deterministic local plan/index/ROM-DNA/activity
+  writes; independent read-only reload/rehash; exact process termination; scoped documentation
+  commits; and Forgejo-first/GitHub synchronization only. No test/rebuild, import/copy/extraction
+  repeat, ROM build/bundle/Forge, network/tool acquisition, phone/emulator, real firmware,
+  ADB/Fastboot, firmware/APK mutation, Guardian/Recovery execution, flash, wipe, unlock/root,
+  lock/relock, signing, installation, publication, release or hosted CI occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance. If authorized, make only the minimum shared-state fix that
+persists/reflects successful exact Source Lab plan verification without changing readiness policy or
+enabling any new operation. Do not begin Forge or ROM build.
+
+### Product Assurance Review Requested
+
+- Approve the safe plan artifact and independent tree verification.
+- Classify the stale verification wording plus simultaneous 8/8/enabled-Forge state and authorize
+  the minimum correction if appropriate.
+- Keep Forge, ROM build and all later Stage 1/release gates closed.
+
 ## Fedora Source Lab contained synthetic extraction checkpoint
 
 ### Authoritative commits and exact changes

@@ -1,5 +1,111 @@
 # ROMVERSE Product Assurance Sync
 
+## Working Lab single-action scope blocker — Product Assurance review requested
+
+### Exact authority and preserved pre-action state
+
+- Product Assurance commit `9d76c77af8dd94f8a52fed4d227bc99f9cbaf972` exactly approves
+  checkpoint `8a1be7edaa32730e36f29429bfc8d76393753135` and authorizes one Working Lab
+  working-copy action in the existing disposable project while explicitly prohibiting ZIP-member
+  extraction, snapshot expansion and later preparation. The checkout safely fast-forwarded to that
+  exact verdict. The protected untracked patch remained 8,272 bytes at SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`, existing untracked
+  `build-work\` remained untouched, and all protected Companion files remained unchanged.
+- Before launch, project `windows-private-original-392b82fb-d5d46af7` retained the 440-byte
+  mission record with `selected_stage: provenance`; `working_roms` was empty. The external source
+  and protected original were each 497 bytes at SHA-256
+  `1d9c78df6f42c63864a76bdf91a50cb2da1cd2e133cc44cba5f1c298302f0725`. The protected original
+  remained read-only with inheritance disabled and exactly OWNER RIGHTS and SYSTEM non-inherited
+  Full Control entries. The package executable remained SHA-256
+  `2c94f329fa33c96e0b9aca92b6c495b2c55d87e25d14af089afd1c19d652881f`; settings remained
+  687 bytes at SHA-256
+  `90958eafb57e6166b3a41a9ad5795c79d9774acb266003ee340601c624a5f2da`, with the exact Local-mode
+  workspace and all four network/download/contribution controls false.
+- PID `109548` started at `2026-09-10T06:13:17.6825218+10:00` from the retained corrected package.
+  The child received only `C:\Work\ROMVERSE-No-Tools-392b82fb` as `PATH` and exactly this argument
+  vector: `--workspace`, `C:\Work\ROMVERSE-Private-Original-392b82fb\workspace`,
+  `--skip-onboarding`, `--development-device-simulation`. Command Deck showed Local, simulation
+  only, no physical device, no Android device, the exact project, Guardian verify required and
+  stage 4 as the first incomplete task. Reopening Genesis showed the protected source, `PACKAGE
+  METADATA REJECTED`, no connected device, and `Prepare an isolated working tree`.
+
+### Single Guided action and deterministic overrun
+
+- Build invoked the visible Guided `Prepare working lab` control exactly once. This was the only
+  Working Lab action and no retry occurred. The control successfully created the authorized
+  contained baseline at
+  `working_roms/windows-private-original-392b82fb-d5d46af7/original-baseline.bin`: 497 writable
+  bytes, SHA-256
+  `1d9c78df6f42c63864a76bdf91a50cb2da1cd2e133cc44cba5f1c298302f0725`, byte-identical to the
+  protected source. The 599-byte schema-two `working-copy.romverse`, SHA-256
+  `c32db93290316bab94981c1aa3c089cac68c0e850ab0977186e063cd1cd18553`, binds the exact project,
+  contained path, source/current digest, 497-byte size and file timestamp.
+- The working-copy project directory is a protected Windows ACL boundary with exactly three
+  explicit inheritable Full Control allow entries: OWNER RIGHTS, SYSTEM and built-in
+  Administrators. The baseline inherits only those entries. There are no reparse entries and the
+  baseline is contained beneath the exact project-specific `working_roms` directory.
+- The same single Guided control then exceeded the authorized boundary without a second user
+  action. The redacted operation ledger records `working-copy` running/succeeded and a local
+  Project Vault capture, followed immediately by `extract` running/succeeded and a second Project
+  Vault capture. It extracted the two ZIP members into
+  `working_roms/windows-private-original-392b82fb-d5d46af7/tree`: `payload.bin`, 24 bytes at
+  SHA-256 `27d85415cd81bc6332271f9501791c3a89efabeb3f93dc66fbedb9c039d965eb`, and
+  `META-INF/com/android/metadata`, 219 bytes at SHA-256
+  `5d38fcf1440c5c88f0e4f13ade3998cf1dd4f43d4057446a7f8cd6fb3dc0b5e3`. The 532-byte
+  `working-tree-index.romverse`, SHA-256
+  `76ca043c4663bea068d508ca30c76b6c3205b2969bd1ef4a1e8205c023417769`, records those two files
+  and 243 bytes.
+- It also created a Time Machine snapshot and Project Vault evidence beneath
+  `time_machine/windows-private-original-392b82fb-d5d46af7`: one 497-byte baseline snapshot with
+  the same source digest, its 561-byte metadata record, two Vault entry records and five Vault
+  objects. The visible result stated `Safe extraction complete in the isolated working tree`,
+  reported one snapshot and two tree files, marked Working Lab complete, and advanced the saved
+  journey to stage 5. This extraction and snapshot activity was expressly outside the approved
+  bounded task even though all artifacts remained local and contained.
+- This is a deterministic Guided-action scope blocker, not an ambiguous test result: the normal
+  Guided control couples working-copy creation to extraction and Project Vault/Time Machine
+  capture, so the approved baseline-only journey cannot be performed through that surface. Build
+  stopped immediately, did not retry, did not delete or rewrite the evidence, and did not invoke
+  the separate ROM Studio `Create working copy` or `Prepare safe tree` controls.
+
+### Preserved failure evidence, clean close and next review
+
+- `Save & exit` preserved the exact overrun state. The 436-byte mission record is now SHA-256
+  `28a6bbad96230b3b8f78aa7b5e81e3b8ded9e2dae110fbb7c11d2c1e549a1bec`, with
+  `selected_stage: device`, undecided root, no install request, no build plan, no recipe or
+  customization completion and no error. Stage 5 remained attention-only with no authorized
+  device, no matching Device Pack and Device DNA identity unconfirmed. No device scan or later
+  action was invoked.
+- The external source, protected original, project manifest and inspection record remain
+  byte-identical. The protected original retains its exact private read-only ACL. Settings remain
+  byte-identical. The empty child tool path and workspace `apks`, `backups`, `builds`,
+  `device_packs`, `diagnostics`, `temp` and `tools` directories remain empty. No build-plan file,
+  package, APK, downloaded tool or device artifact was created.
+- The package closed normally. The 154-byte runtime ledger is SHA-256
+  `50d779cf4f44836bb0f2fc6bb9cd0f21763e9de1dcb388fb854e57e5b18f4587` and contains exactly two
+  starts and two clean closes across the fresh profile's two authorized sessions. Final ROMVERSE,
+  ADB and Fastboot process counts and ROMVERSE window count are zero. Both persistent ledger lock
+  files accept exclusive no-sharing opens and are not held. The profile now contains 31 files, 33
+  directories, 953,516 bytes and zero reparse entries; the increase is preserved as review
+  evidence rather than hidden or removed.
+- No new test or build was run: Product Assurance had already independently accepted the exact
+  package and 46/46 focused regression, and this checkpoint is the one authorized runtime action
+  plus deterministic blocker evidence. This checkpoint changes only
+  `docs/sync/BUILD-STATUS.md`; generated data remains outside Git. `git diff --check` is the
+  proportionate repository validation. The protected untracked patch and `build-work\` remain
+  excluded from staging.
+- No second Working Lab action, source/package rebuild, new fixture/import, network/download/tool
+  action, phone/emulator/ADB/Fastboot operation, firmware/APK mutation, Recipe/Forge/Guardian or
+  Recovery execution, build plan, production trust/signing, publication, release, hosted CI,
+  wipe, unlock/root, bootloader lock or relock occurred. Exact evidence, consent separation,
+  Guardian-only authority, durable UNKNOWN, no blind retry, independent verification, feature
+  freeze and permanent bootloader no-relock remain intact.
+- Precise proposed next task: independent Product Assurance review of the deterministic scope
+  overrun. The minimum correction candidate is to make the Guided Working Lab action stop after
+  the successful `create_working_copy` result, leaving extraction and Project Vault/Time Machine
+  capture behind separate explicit authorization. Do not implement that correction, replay the
+  project, or remove the retained evidence without a matching repository verdict.
+
 ## Corrected current-source Windows package and private protected import — Product Assurance review requested
 
 ### Exact authority, package and focused acceptance

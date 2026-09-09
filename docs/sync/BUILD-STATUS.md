@@ -1,5 +1,102 @@
 # ROMVERSE Product Assurance Sync
 
+## Corrected local-mode Settings/privacy and popsicle Knowledge journey — Product Assurance review requested
+
+### Exact correction authority and pre-launch state
+
+- Product Assurance verdict `d80326ddf305c20ea8a13f4bc1715380310cbe1f` exactly reviews Build
+  checkpoint `f40907d50e35b3dcdde8b732d066753db1438be9` as **CORRECTION REQUIRED**
+  and authorizes one replacement local-mode journey using the existing persisted controls. The
+  Windows checkout was safely fast-forwarded to that verdict with the protected untracked work
+  intact before any corrected observation.
+- The prior failed evidence root `C:\Work\ROMVERSE-Settings-Knowledge-441209f-20260910` was
+  preserved unchanged. Its settings file remains 629 bytes with SHA-256
+  `c5376540c74b6f886815e2896f0c169540aa04bab4ec7711f821602bceb21f86`; its 154-byte runtime
+  ledger remains SHA-256 `50d779cf4f44836bb0f2fc6bb9cd0f21763e9de1dcb388fb854e57e5b18f4587`.
+- A new unique disposable root was created at
+  `C:\Work\ROMVERSE-Settings-Knowledge-Local-d80326d-20260910-001`. Before the first package
+  process, the reviewed `SettingsStore` wrote its only file, private schema-five
+  `config\settings.json`. The initial file was 633 bytes with SHA-256
+  `f176ae0ba370b775481956507a3233c45c6b10f58dab6d7c76000804b343f12d` and retained all validated
+  defaults except the four exact persisted controls required by the correction:
+  `online_intelligence_enabled: false`, `community_research_enabled: false`,
+  `auto_download_verified_tools: false` and `synapse_contributions_enabled: false`.
+  `reduced_motion` remained false. The `workspace` child did not exist at this point.
+- The initial settings ACL was inheritance-protected and private to owner rights plus SYSTEM, both
+  with Full Control:
+  `O:S-1-5-21-3586961997-248884936-1384359232-1001G:S-1-5-21-3586961997-248884936-1384359232-1001D:PAI(A;;FA;;;OW)(A;;FA;;;SY)`.
+
+### Exact two-launch genuine Windows correction
+
+- Both launches reused the unchanged retained unsigned development executable at
+  `C:\Work\ROMVERSE-Windows\build\windows-current-package-b1dc54e0\ROMVERSE\ROMVERSE.exe`,
+  6,324,534 bytes, SHA-256
+  `d2df2c9a667520e9ebe88d4c2eb4dfa26020b1e2d8f852dddb33ab24a013b431`, package source
+  `b1dc54e0c6390fb3d789930dda0696c712e40e64`. Each child received only the new disposable
+  `ROMVERSE_HOME`, its explicit `workspace`, `--skip-onboarding` and
+  `--development-device-simulation`.
+- Before navigation on both launches, the workspace badge was `LOCAL`, never `CHECKING`, `ONLINE`
+  or `OFFLINE`; its accessibility identity was `ROMVERSE online access disabled; local mode`. The
+  existing disabled-state explanation in the exact packaged source states that online diagnostics
+  and sources are disabled and no internet reachability request is running. The reviewed runtime
+  binds `OnlineStatusBadge.monitoring_enabled` and automatic catalog-worker creation to the false
+  persisted Online Intelligence value, so neither timer/request path nor automatic catalog refresh
+  was enabled for this corrected journey.
+- Command Deck remained fail-closed on both launches: `DEVICE: NOT CONNECTED`, `PROJECT: NONE`,
+  `MISSION: IDLE`, `GUARDIAN: VERIFY REQUIRED`, Device DNA `UNCONFIRMED`, no Android device and no
+  build, flash, backup, Recovery or other operation. The UI continued to state development
+  simulation, no physical device selected and `SIMULATION ONLY • NO HARDWARE`.
+- On launch one, Settings visibly showed all four local-mode controls unchecked and
+  `Reduced motion` unchecked. Reduced motion alone was enabled and saved; the process then closed
+  normally with zero ROMVERSE processes. On launch two, Settings visibly showed reduced motion
+  still enabled while all four local-mode controls remained unchecked. Settings was cancelled
+  without another write.
+- The final settings file is 632 bytes, SHA-256
+  `3f96e544a96fce8a54f0f4bd0d74324cb37a6b64ff995f706d0495d4ef63d4cf`, schema five, with
+  `reduced_motion: true` and the same four controls false. Its private owner-rights/SYSTEM ACL and
+  protected inheritance are unchanged.
+
+### Packaged Knowledge boundary and final evidence
+
+- On launch two, navigation-only command palette routing opened ROMVERSE Archives. It remained the
+  offline Knowledge brain with 284 structured records, 182 attributed sources, signed update
+  import locked, official device IDs unavailable while online sources were disabled, local learning
+  at zero outcomes and `NO UPLOAD OR EXECUTION AUTHORITY`. The page stated `EXECUTION AUTHORITY:
+  NONE` and retained the simulation/no-hardware footer.
+- Searching `2509FPN0BC` returned exactly two verified guides and two offline evidence records with
+  zero explicit conflicts. The selected `OS4.0.0.25 popsicle field result and same-device
+  compatibility boundary` said its successful one-device result cannot guarantee every unit and
+  required exact retail identity/codename, OS/build contract, topology and verified package
+  digests. It did not appear as a connected device, hardware verification, promoted compatibility
+  or Guardian authority.
+- Navigation returned to the same fail-closed Command Deck and launch two closed normally. The
+  154-byte runtime ledger has SHA-256
+  `50d779cf4f44836bb0f2fc6bb9cd0f21763e9de1dcb388fb854e57e5b18f4587` and contains exactly two
+  start markers plus two clean-close markers with no other nonblank entry. Zero ROMVERSE processes
+  remain.
+- The corrected disposable root has 8 regular files and zero reparse entries. No path containing
+  `catalog`, `receipt`, `download`, `toolchain`, `install-plan` or `update` exists. `downloads` was
+  never created; `projects`, `tools`, `builds`, `apks`, `backups`, `diagnostics`, `snapshots`,
+  `working_roms` and `original_roms` each contain zero files. No connectivity/catalog worker,
+  downloaded catalog/update receipt or tool-install plan was enabled or produced.
+
+### Scope and next review
+
+- This correction changes only `docs/sync/BUILD-STATUS.md`; no source, test or package changed, no
+  suite was repeated and no rebuild occurred. Git whitespace validation is the proportionate check.
+  Protected Companion files remain untouched. The protected untracked patch remains 8,272 bytes
+  with SHA-256 `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`;
+  it and existing `build-work\` intermediates remain excluded from staging.
+- No network feature or request, download, dependency/tool change, setup repair, Forge Arsenal,
+  phone, emulator, device query, ADB/Fastboot command, firmware/APK action, Guardian/Recovery
+  execution, production adapter/trust/signing, publication, release, hosted CI, force-push,
+  destructive action, wipe, unlock/root, lock or relock occurred. Exact-device evidence, fresh
+  consent, Guardian-only authority and separation, durable UNKNOWN, no blind retry, independent
+  verification, feature freeze and permanent bootloader no-relock remain intact.
+- Precise next task: independent Product Assurance review of this exact corrected local-mode
+  Settings persistence/private-ACL and popsicle Archives boundary checkpoint. Do not begin another
+  product area, package, test cycle or consequential flow without the matching repository verdict.
+
 ## Current-package Settings/privacy and popsicle Knowledge convergence — blocked for Product Assurance review
 
 ### Exact authority and retained package

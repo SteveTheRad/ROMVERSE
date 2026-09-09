@@ -1,5 +1,102 @@
 # ROMVERSE Product Assurance Sync
 
+## Fedora packaged Archives asset-boundary correction
+
+### Authoritative commit and exact changes
+
+- Branch: `linux/stage1-desktop-readiness`.
+- Reviewed starting checkpoint: `4a1ed80b959be37129f4c2029f6d84ed9b3eb49e`.
+- Implementation: `68c4c1a4cd3a8fac2e30f28d68a6dadef3d0c16d`
+  (**Bind desktop assets to active checkout**).
+- Product-as-user testing found one concrete retained-package defect. The executable code loaded the
+  current seven-part offline archive, but PyInstaller's generic `--collect-data=romverse` resolved
+  data through another editable checkout and omitted the current
+  `knowledge_archive_popsicle_fastboot_seed.json`. A fresh workspace therefore could not create
+  `knowledge/archive.romverse`; Archives remained in its truthful warning state instead of exposing
+  its packaged offline brain.
+- The build recipe now enumerates only regular non-Python assets under the authoritative checkout's
+  own `src/romverse/assets` and supplies each file to PyInstaller explicitly. It no longer asks
+  PyInstaller to rediscover data through the ambient import environment. Generated `__pycache__`
+  files and symbolic links are excluded from package data.
+- The focused build-contract regression now requires the exact current popsicle Fastboot seed,
+  rejects a return to generic package-data collection and proves generated cache files cannot enter
+  the asset arguments. No application workflow, Companion, Windows launcher, Device Intelligence,
+  Guardian, Recovery, adapter or execution policy changed.
+
+### Rebuilt Fedora package and verification
+
+- Fresh one-folder development build:
+  `build/fedora-asset-boundary-v2/ROMVERSE`, **423 regular files / 243,102,475 regular-file bytes /
+  38 contained internal links**.
+- Executable: **6,337,072 bytes**, SHA-256
+  `4fbfed3244d93ba535413151c26f5fe53ef526d402f638a5e81e662f8b562500`. The launcher code is
+  unchanged; the correction is in the packaged data tree.
+- All **48/48** authoritative non-Python asset paths were present and byte-identical in the rebuilt
+  package. The previously omitted seed matched source SHA-256
+  `54928d451043588fd19e84b48a815d3a002b5e2d6148b50135d77dde0cb24481`. PyInstaller's analysis
+  records that exact seed from this Linux checkout, not the ambient editable checkout.
+- Focused affected tests: **56/56 unique tests passed** — desktop build/package contract **10/10**,
+  offline knowledge integrity/matching **27/27**, and Archives UI **19/19**. Ruff, format and diff
+  checks passed. One frozen-package startup/shutdown smoke passed.
+- A genuine rebuilt-package Fedora journey used a disposable profile, an empty Android-tool path,
+  automatic verified-tool acquisition disabled and a Bubblewrap network namespace with no network.
+  Opening Archives created a verified **880,760-byte** local archive, file SHA-256
+  `2384ebb6ce9616af2270991da2c7b594d08b7534e71bf819549c92c091e27764`, containing **284 records /
+  182 attributed sources**, bundle digest
+  `e3d60dfc6039772b9157a6d0da5d9a5bae41bef5204ba9eb9388c8e077773656` and five popsicle field
+  records. Searching `adb unauthorized` returned one verified guide plus five compatible offline
+  records and zero conflicts. Its existing **Open Command Deck** owner handoff reached the truthful
+  missing-runtime/no-device page; returning through normal navigation preserved the exact Archives
+  query and result.
+
+### Classification and gates
+
+- **Implemented:** deterministic active-checkout asset collection and its focused packaging
+  regression.
+- **Simulated/Tested:** genuine Fedora rebuilt-package startup and no-phone/no-network Archives
+  journey plus the 56-node focused regression. No synthetic or physical Android target was used.
+- **Hardware Verified:** no.
+- **Released:** no. The development folder is unsigned, local and unpublished; no ZIP/release
+  artifact was produced by this checkpoint.
+- Blockers/failures: the retained-package offline-brain dead end is fixed in the rebuilt folder.
+  The packaged window still exposes no compositor close action through Fedora accessibility, so the
+  interactive process was stopped only after the inert journey; this is not an additional clean-
+  shutdown claim. Windows secure launch, production signing/trust, physical Recovery/flash
+  verification and release remain blocked or independently gated.
+- Guided friction/dead ends: the fresh-workspace Archives dead end is removed. Local search, exact
+  owner navigation and ordinary return preserve the user's evidence context without a modal or new
+  decision.
+- Guardian/Recovery/safety: Archives remains evidence-only with execution authority `none`. No
+  Guardian record, Recovery incident/result, device evidence or command was created. Exact-device
+  binding, Guardian-only authority, durable `UNKNOWN`, no blind retry, independent verification and
+  permanent no-relock remain unchanged.
+- Platform status: genuinely built and exercised on Fedora/Linux. Windows was not run or modified;
+  Android hardware was not used or represented as verified.
+- Feature freeze: compliant Stage 1 packaging/correctness repair for an existing shipped offline
+  route; no capability or surface was added.
+- Version gate: the Fedora offline Archives package boundary now passes, but v0.2 Golden Foundation
+  and every production/release gate remain **CLOSED**.
+- External actions: local focused tests, deterministic package assembly, asset comparisons, one
+  network-isolated packaged UI journey, disposable settings/workspace writes and scoped repository
+  commits only. No network request, tool/dependency/system installation, phone/emulator operation,
+  ADB/Fastboot invocation, APK/firmware operation, Recovery action, flash, wipe, unlock/root,
+  lock/relock, signing, publication or release occurred. Forgejo-first and identical GitHub branch
+  pushes containing this handoff are the only planned remote writes.
+
+### Next proposed Build task
+
+Stop for Product Assurance review of this exact Linux correction. The coordinator has separately
+prioritized the existing Windows checkout after this safe checkpoint; that stream remains at
+`c10a38c910eb43e67f2efb22988df05ceb166a06` and is itself awaiting independent Product Assurance.
+Do not begin another Linux or Windows journey until the applicable verdict is available.
+
+### Product Assurance Review Requested
+
+- Confirm explicit per-file collection from the authoritative checkout is the minimum correct fix
+  for the cross-worktree PyInstaller data leak.
+- Confirm 48/48 byte-identical assets, the successful 284-record fresh-workspace Archives journey,
+  focused 56/56 regression and frozen smoke close this packaged offline-brain dead end.
+
 ## Fedora Expert Command Console no-target boundary checkpoint
 
 ### Authoritative commit and exact changes

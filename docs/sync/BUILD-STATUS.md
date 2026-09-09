@@ -1,5 +1,83 @@
 # ROMVERSE Product Assurance Sync
 
+## Retained-package Windows single-instance and clean-reopen boundary — Product Assurance review requested
+
+### Exact authority and disposable local-mode root
+
+- Product Assurance verdict `b5e9a6e506b5d40b481d2287c1948e74996dc448` exactly approves Build
+  checkpoint `50dd0b041caee47dcba4d331c32c761bf83624a3` and authorizes one local-mode,
+  no-network/no-phone retained-package single-instance and clean-reopen observation. The checkout
+  was safely fast-forwarded to that verdict with protected untracked work intact.
+- The new disposable root was
+  `C:\Work\ROMVERSE-Single-Instance-b5e9a6e-20260910-001`. Before the first package process, the
+  reviewed `SettingsStore` created its only file and the `workspace` child did not exist.
+  `config\settings.json` is 633 bytes, SHA-256
+  `f176ae0ba370b775481956507a3233c45c6b10f58dab6d7c76000804b343f12d`, schema five, and retains
+  all validated defaults with `online_intelligence_enabled`, `community_research_enabled`,
+  `auto_download_verified_tools` and `synapse_contributions_enabled` false. `reduced_motion`
+  remains false. Its inheritance-protected private ACL grants Full Control only through owner
+  rights and SYSTEM:
+  `O:S-1-5-21-3586961997-248884936-1384359232-1001G:S-1-5-21-3586961997-248884936-1384359232-1001D:PAI(A;;FA;;;OW)(A;;FA;;;SY)`.
+- Every invocation used the exact unchanged retained unsigned development executable
+  `C:\Work\ROMVERSE-Windows\build\windows-current-package-b1dc54e0\ROMVERSE\ROMVERSE.exe`,
+  6,324,534 bytes, SHA-256
+  `d2df2c9a667520e9ebe88d4c2eb4dfa26020b1e2d8f852dddb33ab24a013b431`, package source
+  `b1dc54e0c6390fb3d789930dda0696c712e40e64`, with the same child-only `ROMVERSE_HOME`, explicit
+  workspace, `--skip-onboarding` and `--development-device-simulation` arguments.
+
+### Bounded live-instance collision result
+
+- The first accepted process was PID `104532` at the exact executable/arguments. It exposed exactly
+  one top-level window titled `ROMVERSE Studio 0.2.0-alpha.1`, entered Command Deck with the `LOCAL`
+  badge, and truthfully reported `DEVICE: NOT CONNECTED`, `PROJECT: NONE`, `MISSION: IDLE`,
+  `GUARDIAN: VERIFY REQUIRED`, Device DNA `UNCONFIRMED`, no Android device, no operation,
+  development simulation and `SIMULATION ONLY • NO HARDWARE`.
+- While PID `104532` remained open, the exact invocation was repeated once as PID `106136` in the
+  same interactive user session. A 5,000 ms bound was applied. It exited after 1,070 ms with the
+  existing single-instance result, exit code `2`, and empty stdout/stderr.
+- Immediately before and after that rejected invocation, the live runtime ledger was exactly 36
+  bytes with SHA-256 `9ea4bad89989159d1feafd1c8508dd33cca7e9faac4b174e8657284c16fceed3`.
+  Its bytes were unchanged, so no second runtime-start marker appeared. Process inventory retained
+  only first PID `104532`; Windows UI inventory retained exactly one ROMVERSE top-level window.
+  A fresh accessibility capture proved that window remained responsive on the same `LOCAL`,
+  fail-closed idle Command Deck. The first process was not terminated to manufacture this result.
+
+### Clean close, lock release and final evidence
+
+- The first instance closed normally. Process inventory reached zero and the ledger became exactly
+  one accepted start plus one clean close: 77 bytes, SHA-256
+  `9b548079f50e029991471fdbf93e92807fb82adb17319871cb9ab421e7b7f499`.
+- The same exact invocation then opened normally as PID `103760`, proving the single-instance lock
+  was released. It again exposed exactly one responsive top-level window and the same `LOCAL`,
+  fail-closed Command Deck. It closed normally; final process and window counts are both zero and
+  `%TEMP%\romverse-studio.lock` is absent.
+- The final runtime ledger is 154 bytes, SHA-256
+  `50d779cf4f44836bb0f2fc6bb9cd0f21763e9de1dcb388fb854e57e5b18f4587`, with exactly two accepted
+  starts, two clean closes and zero other nonblank entries. The rejected invocation added neither a
+  start nor close marker.
+- The disposable root contains 8 regular files and zero reparse entries. No path matching
+  `catalog`, `receipt`, `download`, `toolchain`, `install-plan` or `update` exists. The private
+  settings file is byte-identical to its pre-launch state, all four local-mode controls remain false,
+  and no network or feature surface was entered.
+
+### Scope and next review
+
+- This checkpoint changes only `docs/sync/BUILD-STATUS.md`. No source, test, settings contract or
+  package changed; no test suite was repeated and no rebuild occurred. Git whitespace validation is
+  the proportionate repository check. Protected Companion files remain untouched. The protected
+  untracked patch remains 8,272 bytes with SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it and the existing
+  untracked `build-work\` intermediates remain excluded from staging.
+- No network request, download, dependency/tool change, phone, emulator, device query,
+  ADB/Fastboot command, firmware/APK action, Guardian/Recovery execution, production
+  adapter/trust/signing, publication, release, hosted CI, force-push, destructive action, wipe,
+  unlock/root, lock or relock occurred. Exact-device evidence, fresh consent, Guardian-only
+  authority and separation, durable UNKNOWN, no blind retry, independent verification, feature
+  freeze and permanent bootloader no-relock remain intact.
+- Precise next task: independent Product Assurance review of this exact retained-package
+  single-instance collision, clean-close and lock-release checkpoint. Do not begin another product
+  surface, package, test cycle or consequential flow without the matching repository verdict.
+
 ## Corrected local-mode Settings/privacy and popsicle Knowledge journey — Product Assurance review requested
 
 ### Exact correction authority and pre-launch state

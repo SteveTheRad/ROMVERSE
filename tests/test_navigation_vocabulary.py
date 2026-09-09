@@ -114,6 +114,35 @@ def test_command_deck_connect_uses_missing_runtime_handoff_instead_of_silent_sca
         window.close()
 
 
+def test_completed_local_history_refreshes_only_the_current_rom_project(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    window = MainWindow(None, logo, tmp_path, app_icon_path=logo)
+    current = window.rom_studio.store.create("Current history project")
+    other = window.rom_studio.store.create("Other history project")
+    window.rom_studio.refresh(current.project_id)
+    refreshed_projects: list[str] = []
+    monkeypatch.setattr(window.rom_studio, "refresh", refreshed_projects.append)
+    try:
+        window.backup_center.local_history_completed.emit(other.project_id)
+        app.processEvents()
+
+        assert refreshed_projects == []
+        assert window.rom_studio.current_project is not None
+        assert window.rom_studio.current_project.project_id == current.project_id
+
+        window.backup_center.local_history_completed.emit(current.project_id)
+        app.processEvents()
+
+        assert refreshed_projects == [current.project_id]
+    finally:
+        window.companion_center.transport.close()
+        window.close()
+
+
 def test_quantum_optimizer_missing_runtime_opens_exact_platform_tools_handoff(
     tmp_path: Path,
 ) -> None:

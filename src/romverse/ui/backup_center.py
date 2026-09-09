@@ -313,6 +313,7 @@ class BackupCenter(QWidget):
     """Prepare a recovery-aware backup plan without running device-changing commands."""
 
     live_console_changed = Signal()
+    local_history_completed = Signal(str)
     runtime_tools_requested = Signal()
     guardian_requested = Signal(str, str)
     rom_studio_requested = Signal(str, str)
@@ -2023,6 +2024,11 @@ class BackupCenter(QWidget):
         worker = self.vault_worker
         operation = worker.operation if worker is not None else "operation"
         project_id = worker.project_id if worker is not None else ""
+        completed_history_project_id = (
+            result.project_id
+            if isinstance(result, VaultEntry) and result.project_id == project_id
+            else ""
+        )
         self.vault_worker = None
         self.vault_progress.finish()
         self.vault_result.setObjectName("Good")
@@ -2091,6 +2097,8 @@ class BackupCenter(QWidget):
                 )
                 if selected_index >= 0:
                     self.vault_selector.setCurrentIndex(selected_index)
+        if completed_history_project_id:
+            self.local_history_completed.emit(completed_history_project_id)
         self._run_next_vault_capture()
 
     @Slot(str)

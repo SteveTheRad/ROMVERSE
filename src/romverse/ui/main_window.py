@@ -4209,6 +4209,7 @@ class MainWindow(QMainWindow):
             self._open_time_machine_rom_studio_setup
         )
         self.backup_center.recovery_requested.connect(self._return_time_machine_recovery)
+        self.backup_center.local_history_completed.connect(self._refresh_current_rom_studio_history)
         self.guardian_center.time_machine_requested.connect(self._return_guardian_time_machine)
         self.guardian_center.rom_studio_requested.connect(self._return_guardian_rom_studio)
         self.stack.addWidget(self.backup_center)
@@ -6580,6 +6581,15 @@ class MainWindow(QMainWindow):
             self.backup_center.capture_operation_checkpoint(project_id, operation)
         self._update_companion_ascension_status()
         self._sync_command_deck_context()
+
+    @Slot(str)
+    def _refresh_current_rom_studio_history(self, project_id: str) -> None:
+        """Refresh Source Lab only after its exact project's local history is durable."""
+
+        project = self.rom_studio.current_project
+        if project is None or project.project_id != project_id:
+            return
+        self.rom_studio.refresh(project_id)
 
     def _sync_command_deck_context(self) -> None:
         """Project real ROM Studio state into the status-aware home Command Deck."""

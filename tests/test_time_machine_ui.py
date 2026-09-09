@@ -789,6 +789,8 @@ def test_project_vault_queues_automatic_history_after_real_rom_studio_completion
     store.create_working_copy(project.project_id)
     center = BackupCenter(workspace)
     queued = []
+    completed_projects: list[str] = []
+    center.local_history_completed.connect(completed_projects.append)
     monkeypatch.setattr("romverse.ui.backup_center.start_background", queued.append)
 
     assert center.capture_operation_checkpoint(project.project_id, "working-copy")
@@ -798,6 +800,7 @@ def test_project_vault_queues_automatic_history_after_real_rom_studio_completion
 
     queued.pop(0).run()
     app.processEvents()
+    assert completed_projects == [project.project_id]
     assert len(queued) == 1
     queued.pop(0).run()
     app.processEvents()
@@ -811,4 +814,35 @@ def test_project_vault_queues_automatic_history_after_real_rom_studio_completion
     }
     assert center.vault_worker is None
     assert center._vault_capture_queue == []
+    assert completed_projects == [project.project_id, project.project_id]
+    center.close()
+
+
+def test_project_vault_history_notification_requires_successful_completion(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    source = tmp_path / "incomplete-history.img"
+    source.write_bytes(b"incomplete history")
+    workspace = tmp_path / "workspace"
+    store = RomProjectStore(workspace)
+    project = store.import_original(store.create("Incomplete history").project_id, source)
+    store.create_working_copy(project.project_id)
+    center = BackupCenter(workspace)
+    queued = []
+    completed_projects: list[str] = []
+    center.local_history_completed.connect(completed_projects.append)
+    monkeypatch.setattr("romverse.ui.backup_center.start_background", queued.append)
+
+    assert center.capture_operation_checkpoint(project.project_id, "working-copy")
+    assert len(queued) == 1
+    assert center.vault_worker is not None
+    assert completed_projects == []
+
+    center._vault_failed("deterministic test failure")
+    app.processEvents()
+
+    assert center.vault_worker is None
+    assert completed_projects == []
     center.close()

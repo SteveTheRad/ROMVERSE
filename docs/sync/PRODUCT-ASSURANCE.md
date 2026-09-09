@@ -1,5 +1,56 @@
 # ROMVERSE Product Assurance
 
+## Cross-platform convergence authorization — inspect approved stable-file protections only
+
+- Windows base: `4e2c3e2059eb06b7cf4030a231c17baae20a69dc`
+- Approved Linux reference: `b99128d19f5317d286bc87db42c13c4f09738c3f`
+- Linux implementation commits in scope: `73abd401ace88ff7e50908364702f8b47eb2e2c5`
+  and `8070895a3d6724c534010324de9494775ef105fe`
+- Branch: `windows-launcher-authorized-work`
+- Status: **AUTHORIZED — BOUNDED WINDOWS CONVERGENCE AUDIT AND MINIMUM MISSING PROTECTION**
+
+### Why Windows may resume
+
+Linux has complete current segmented regression evidence (**3,005/3,005**) and an independently
+verified current-source Fedora development package. Its approved stable-file checkpoint contains a
+shared platform-aware identity helper and an explicit preserved-AVBTool regular-file/reparse guard.
+The Windows branch evolved independently and already contains Windows-specific file-identity and ZIP
+member protections. This is the genuine cross-platform integration need anticipated by the prior
+standby verdict; it is not authority for a branch merge or package rebuild.
+
+### Approved bounded Windows task
+
+1. Fetch both exact refs above. Inspect only the production/test changes introduced by `73abd40` and
+   `8070895` against the current Windows equivalents in Source Installation and Candidate AVB.
+2. Preserve every Windows-only safety correction, especially literal-backslash ZIP rejection through
+   `ZipInfo.orig_filename`, descriptor/path identity semantics and existing Windows regression tests.
+   Do not replace Windows files wholesale, merge branches or cherry-pick either Linux commit.
+3. Classify equivalent behavior as already converged. Integrate only a genuinely missing protection.
+   The expected likely gap is the preserved AVBTool `lstat` regular-file/symlink/reparse/non-regular
+   rejection; prove it from the actual Windows source before editing. A shared helper may be adopted
+   only if it reduces duplication without changing the already-approved Windows identity contract.
+4. Run only the exact Windows stable-file/Source Installation/Candidate AVB focused selection needed
+   for unchanged-file acceptance, mutation, pathname replacement, restored-mtime hashing, direct
+   link/reparse rejection and preserved-tool safety. Reuse the existing Windows environment. Do not
+   run a broad suite or GitHub Actions.
+5. Do not build a package yet. Commit/push the minimum source/test correction, if any, plus
+   `docs/sync/BUILD-STATUS.md`; if Windows is already semantically complete, commit an evidence-only
+   handoff. Stop for Product Assurance review.
+
+Before any work, confirm the checkout is clean except for the known protected untracked patch and
+verify that patch remains 8,272 bytes with SHA-256
+`2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`. Do not alter, apply, delete or
+stage it. Do not touch Linux, Companion, Knowledge or UI Design Lab work. Do not install dependencies,
+use a phone/emulator, invoke ADB/Fastboot, build/sign/flash firmware, operate Guardian/Recovery,
+publish, release, force-push, lock or relock.
+
+### Gate status
+
+- Fedora current-source development package: **VERIFIED on Linux branch**
+- Windows stable-file convergence: **NEXT BOUNDED TASK**
+- New Windows executable/package: **NOT YET AUTHORIZED**
+- Physical Android, production signing/trust, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 931d094 — corrected Windows package and retained pre-correction state
 
 - Reviewed checkpoint: `931d0946cf09fc9babf42f30726144988089683a`

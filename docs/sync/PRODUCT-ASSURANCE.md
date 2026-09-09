@@ -1,5 +1,63 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: b6c0bac — Windows long-basetemp harness boundary
+
+- Reviewed checkpoint: `b6c0bacb8f65241fd3d69ac1eb790233546910cd`
+- Approved base: `f1ff51e`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — PRODUCT HANDOFF PASSES UNCHANGED WITH A SHORT WINDOWS BASETEMP**
+
+### Decision and independent evidence
+
+The failure is correctly classified as a Windows harness-path boundary, not a ROMVERSE product
+failure. The long temporary root produced a 279-character nested outcome path; persistence failed
+closed and no outcome authority was accepted. The unchanged node completes when the same isolated
+test uses a short explicit Windows temporary root.
+
+- Product Assurance independently ran the exact unchanged Smart Solution node natively on the
+  Legion with fresh short basetemp `C:\Work\rvt-pa-b6`: **1/1 passed**.
+- Product Assurance independently recollected the exact five-file remainder with the previously
+  approved integration victim deselected: **106 selected nodes**, not 105. The Smart Solution
+  victim is zero-based index 98 and exactly **7** node IDs follow it. The Build handoff's
+  reconciliation is correct and this verdict corrects the prior off-by-one authorization.
+- The original bounded run accurately reports **98 passed / 1 failed** before stopping. Combining
+  those passes with the independently verified victim yields **961 passed / 6 skipped** across 967
+  unique workflow-ordered nodes, leaving seven unexecuted nodes.
+- This handoff changes documentation only. No product or test correction is needed, and no package
+  rebuild is warranted at this boundary.
+- No device, paid CI, dependency installation or execution authority occurred. Feature freeze,
+  Guardian separation, exact evidence, UNKNOWN-on-uncertainty, no blind retry and permanent
+  bootloader no-relock remain intact.
+
+### Approved next bounded Windows task
+
+Run exactly these seven remaining collected nodes once using a **short fresh explicit basetemp**:
+
+1. `test_fastboot_only_tool_refresh_keeps_read_only_identity_scanning_available`
+2. `test_fastboot_scan_connects_command_deck_to_exact_device_atlas_pack`
+3. `test_device_scan_failure_copy_names_the_real_subsystem`
+4. `test_sidebar_navigation_tooltip_is_compact_wrapped_and_escaped`
+5. `test_sidebar_reserves_navigation_space_and_folds_optional_connection_fields`
+6. `test_workspace_chrome_collapses_focuses_and_restores_without_changing_page_state`
+7. `test_sidebar_product_art_never_mislabels_another_android_device`
+
+All are in `tests/test_navigation_vocabulary.py`. If they pass, record segmented Windows
+portability as **968 passed / 6 skipped across all 974 collected nodes**, then run the workflow's
+Ruff check and format check once. Do not repeat any earlier node or call this an uninterrupted
+suite. If a node fails, stop at that first failure and record its exact boundary.
+
+Do not rebuild or relaunch the package yet. Preserve the protected patch and LF materialization;
+commit the evidence-only handoff, push and stop for review. Do not touch Linux, Companion,
+Knowledge/UI Design Lab, devices, ADB/Fastboot, firmware, Guardian/Recovery, publication, release,
+force-push, lock or relock.
+
+### Gate status
+
+- Windows portability evidence through Smart Solution victim: **SEGMENTED 961 PASSED / 6 SKIPPED**
+- Remaining workflow-ordered portability nodes: **7 EXACT NODES**
+- Ruff and complete Windows portability convergence: **NEXT BOUNDED CHECK**
+- Production signing/trust, physical Android, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: b4d75a3 — Candidate integration fixture refresh
 
 - Reviewed checkpoint: `b4d75a3ea839ffd227674da4d791e1f9b3e59aef`

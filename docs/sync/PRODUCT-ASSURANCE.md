@@ -1,5 +1,95 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 052814e — Fedora synthetic firmware intake through Provenance
+
+- Reviewed checkpoint: `052814e3fc5bbe0a75ec39bb4a618437f2077568`
+- Journey evidence: `696dab8ab058acf7acdcfc723ccde6ec76fad5eb`
+- Authorizing verdict: `bdcf0fa7479a8f7888ee79ab11bef6d1bb8216ab`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — SYNTHETIC PROTECTED INTAKE AND PROVENANCE BOUNDARY VERIFIED ON FEDORA**
+
+### Decision and independent evidence
+
+The authorized no-phone synthetic firmware journey is approved. Only the runtime evidence and
+Build Status were committed after the approved base; application, test and package bits are
+unchanged. Forgejo and GitHub expose the identical checkpoint with zero divergence, the Linux
+worktree is clean and Git whitespace validation passes.
+
+Product Assurance independently rehashed the unchanged 6,337,072-byte package executable as
+`4fbfed3244d93ba535413151c26f5fe53ef526d402f638a5e81e662f8b562500`. The retained
+disposable profile is private and keeps Guided mode plus all online/community/download/
+contribution controls disabled. The Bubblewrap run had an isolated no-network namespace, empty
+Android-tool path and no phone, emulator or development-device simulation.
+
+The source is a deterministic harmless 551-byte ZIP with exactly two inert members: a 40-byte
+non-flashable payload marker and 257 bytes of synthetic Android OTA metadata. Independent
+inspection confirms the member hashes, fixed timestamps and 297-byte total recorded in the
+evidence. The mode-`0400` source and mode-`0444` protected original remain byte-identical at
+SHA-256 `c3f5c1711d648a0f6c8f2ba2e3c910048c4e81e6f3ee39bb82e9e85888ac89c8`.
+
+The project manifest binds the exact source name, size, digest and contained protected path. The
+bounded inspection binds the same digest, reports exactly the two expected entries and OTA
+structural signals, and extracts nothing. The saved Guided mission stops at `workspace`: the first
+three tasks are complete and Working Lab is selected but unstarted. Both `working_roms` and `tools`
+remain empty.
+
+Device DNA truthfully distinguishes source-derived structure from live identity. Firmware
+detection/source-adapter evidence is supported, device identity is only CAUTION, ROM build and
+Guardian flash remain UNCONFIRMED, and relocking remains UNSUPPORTED. The Compatibility Matrix has
+zero proven-compatible decisions, remains advisory-only, reports Guardian flash Unknown and
+relocking Known Incompatible. The Ascension route is blocked, has execution authority `none`, an
+empty command manifest, phone unchanged and local preparation not ready.
+
+The single Activity success and eight Live Console events describe only the local import and
+evidence derivation; they confer no execution authority. There is no install plan, device evidence,
+Guardian ledger, Recovery incident/result, consent or execution record. No deterministic defect
+was reproduced, so zero new automated tests and no rebuild are correctly reported.
+
+Fedora still offered no accessibility-owned compositor close action. The exact disposable process
+was terminated only after evidence collection and left one runtime-start marker. Exit 143 remains
+honestly excluded from clean-shutdown and restart-persistence acceptance and is not represented as
+a product crash.
+
+No real firmware, network request, download/install, Working Lab/extraction, phone/emulator,
+ADB/Fastboot, firmware/APK mutation, build, Guardian/Recovery execution, flash, wipe, unlock/root,
+bootloader lock/relock, signing, publication, release, hosted CI or Forgejo Action occurred.
+Feature freeze, exact-source evidence, UNKNOWN-on-uncertainty, no blind retry, Guardian separation
+and permanent no-relock remain intact.
+
+### Approved next bounded Linux task
+
+Advance this exact disposable project through **one contained Working Lab working-copy action**
+using the retained package and protected synthetic original. Do not repeat setup, packaging or
+firmware import.
+
+1. Reopen the same private Local-mode profile under Bubblewrap no-network isolation with the empty
+   Android-tool path and all online/community/download/contribution controls false. Verify the
+   project resumes at the saved task-4 `workspace` handoff and revalidate the protected original's
+   exact digest and read-only state.
+2. Invoke `Create working copy` exactly once through the normal Guided action. Permit only the
+   contained byte-for-byte writable baseline and deterministic working-copy record beneath this
+   project's `working_roms` directory. Verify exact path containment, source/current digest and
+   size binding, private workspace boundary and truthful task advancement.
+3. Do not extract ZIP members, invoke Payload Dumper, prepare partitions, create a build plan,
+   install/download a tool, mutate firmware or enter Recipe/Forge/Guardian execution. If baseline
+   creation fails, preserve the exact failed/UNKNOWN evidence and report the deterministic blocker
+   without retry or source correction.
+4. Confirm source/protected original remain unchanged, no device/consequence record appears and
+   tools remain empty. Use a product-owned close only if genuinely accessible; otherwise report the
+   same exact exit limitation without claiming clean shutdown or persistence. Correct only a
+   deterministic Stage 1 working-copy defect if reproduced, with focused tests and rebuild only if
+   application/package bits change.
+
+No new fixture/import, real firmware, extraction, network/tool acquisition, phone/emulator,
+ADB/Fastboot, firmware/APK mutation, Guardian/Recovery execution, signing, publication, release,
+hosted CI, wipe, unlock/root, bootloader lock or relock is authorized.
+
+### Gate status
+
+- Fedora synthetic protected intake and Provenance: **APPROVED**
+- One contained Working Lab working-copy action: **AUTHORIZED**
+- Extraction, build, physical/consequential, signing, publication and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 9ec7238 — Fedora first-run setup to Guided Command Deck
 
 - Reviewed checkpoint: `9ec72380b700e15491141d124e553fdcfc87c3f2`

@@ -1,8 +1,10 @@
 import json
+import os
 import stat
 from pathlib import Path
 
 from romverse.core.settings import AppSettings, DesktopTheme, ExperienceMode, SettingsStore
+from romverse.infrastructure.local_store import windows_private_file_acl
 
 
 class FakeHost:
@@ -22,6 +24,19 @@ class FakeHost:
 
     def find_tool(self, _name: str) -> Path | None:
         return None
+
+
+def _assert_private_file(path: Path) -> None:
+    if os.name == "nt":
+        entries = windows_private_file_acl(path)
+        assert len(entries) == 2
+        assert {sid for sid, _mask, _inherited in entries} == {
+            "S-1-3-4",  # OWNER RIGHTS
+            "S-1-5-18",  # LOCAL SYSTEM
+        }
+        assert all(mask == 0x1F01FF and not inherited for _sid, mask, inherited in entries)
+        return
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
 
 
 def test_settings_store_round_trips_bounded_private_preferences(tmp_path) -> None:
@@ -50,7 +65,7 @@ def test_settings_store_round_trips_bounded_private_preferences(tmp_path) -> Non
     store.save(expected)
 
     assert store.load() == expected
-    assert stat.S_IMODE(store.path.stat().st_mode) == 0o600
+    _assert_private_file(store.path)
     assert not list(store.path.parent.glob(".*.tmp"))
 
 

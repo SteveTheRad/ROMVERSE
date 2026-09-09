@@ -1,5 +1,89 @@
 # ROMVERSE Product Assurance Sync
 
+## Fedora Guided dead-end and shutdown-race correction
+
+### Authoritative checkpoint and scope
+
+- Implementation checkpoint: `8b812c313c847f28e222c7a1fd0069a59a713586` on
+  `linux/stage1-desktop-readiness`, including the preceding bounded wording correction
+  `d45669e` (**Pre-Build Simulation: Run Check** rather than a false pre-execution Ready claim).
+- Stage: Stage 1 — v0.2 Golden Foundation Fedora desktop user-journey correctness. This is an
+  ordinary Guided/Forge usability and Qt lifecycle correction; no authority, adapter, Device Pack,
+  firmware parser, execution, release, Companion or Windows scope changed.
+- The three protected Companion files and Windows launcher drafts remain untouched and outside
+  these commits. The working tree was clean after the implementation checkpoint.
+
+### Exact changes and demonstrated journey
+
+- Reproduced the creator-reported circular Guided behavior in an isolated development-simulation
+  workspace. Genesis Stage 12 opened Forge Control, whose source-bound Device Pack resolver
+  correctly rejected a deliberately synthetic non-firmware source, but the footer continued to
+  advertise **Auto-resolve & continue** after the failure and optional intelligence text displaced
+  the local stop reason.
+- Forge now binds a stopped automatic-resolution message to the semantic readiness signature. The
+  exact failure survives normal evidence refresh and optional online-guidance completion until the
+  underlying evidence changes or the user deliberately starts a new check. The footer changes to
+  **Re-check firmware source**, explains that repeating unchanged evidence cannot advance, and
+  never claims a phone or build change.
+- Exercised the correction in the running Fedora source app: the exact unsupported-source reason,
+  safe-stop explanation and **Re-check firmware source** action remained visible before and after
+  **Refresh evidence**. No false continuation or success state remained.
+- Reproduced a second genuine lifecycle defect by closing all ROMVERSE windows while Genesis was
+  waiting inside the modal Forge handoff. The nested call returned into a deleted Qt progress bar/
+  label and raised a `libshiboken` runtime exception. Genesis now marks itself closing, cancels
+  automatic continuation, ignores late refreshes, handles reject/close consistently, and checks
+  lifecycle state immediately after the nested Forge handoff. The same three-window shutdown then
+  exited without a Python traceback.
+
+### Verification, classification and gates
+
+- **Implemented:** `src/romverse/ui/build_control.py`, `src/romverse/ui/guided_mission.py`,
+  `tests/test_build_control_ui.py`, and `tests/test_rom_studio_ui.py` at `8b812c3`; the earlier
+  `d45669e` changed `src/romverse/ui/device_center.py`, `tests/test_dashboard_rendering.py`, and
+  `tests/test_navigation_vocabulary.py`.
+- **Simulated/Tested:** all **3,009 unique Linux tests passed** from the authoritative checkout.
+  The 112 affected Forge/Genesis UI tests are a subset of that total and are not double-counted.
+  Focused regression, Ruff check, Ruff format-check and `git diff --check` also passed. Visible
+  Fedora development simulation verified the stopped-state refresh and multi-window shutdown.
+- **Hardware Verified:** no. Development simulation used an explicit zero-authority synthetic
+  device and temporary workspace. The creator's independent firmware flash was ignored and is not
+  ROMVERSE evidence.
+- **Released:** no. No package was rebuilt in this correction; the latest runnable unsigned Fedora
+  development artifact remains the `acc8a76` package documented below.
+- Blockers/failures: the two reproduced UI defects are corrected. The synthetic source remains
+  intentionally unsupported and cannot produce a Device Pack/build contract. Exact flash/recovery
+  certification, production signing/trust, Windows verification and physical-device execution
+  remain release blockers.
+- Guided friction/dead ends: failed automatic evidence work now terminates at a truthful, stable,
+  actionable stop instead of silently presenting the same continue loop. Closing Genesis during a
+  child review no longer resumes deleted UI state.
+- Guardian/Recovery/safety: unchanged. Evidence changes clear the remembered stop and trigger fresh
+  reassessment; unchanged evidence grants no progress. Guardian-only authority, exact-device
+  binding, UNKNOWN-on-uncertainty, no blind retry, independent verification, no wipe in the planned
+  OTA route and permanent no-relock remain intact.
+- Platform status: genuinely implemented, interactively reproduced and regression-tested on Fedora
+  44/Linux. Windows was not run in this slice. No hardware claim is simulated as genuine.
+- Feature freeze: compliant foundation/correctness work only; no new capability or product scope.
+- Version gate: Fedora Guided usability improved, but v0.2 Golden Foundation, production execution,
+  Windows secure-launch verification, signing, publication and release remain **CLOSED**.
+- External actions: local source/test execution, isolated development-simulation UI sessions and
+  normal local Git commits only. No physical-phone query or operation, reboot/mode transition,
+  firmware/APK transfer or installation, flash, wipe, unlock/root, bootloader lock/relock,
+  publication, release or remote push occurred during this correction.
+
+### Next proposed Build task
+
+Continue the existing product-as-user pass in development simulation/no-device mode across the
+remaining Fedora Desktop surfaces and the inert Digital Twin/local-build handoff. Correct only
+reproducible Stage 1 defects; preserve the physical execution and release boundaries.
+
+### Product Assurance Review Requested
+
+- Confirm the readiness-signature-bound stopped state is an appropriate zero-friction replacement
+  for the circular Forge action without weakening evidence refresh.
+- Confirm the Genesis close/reject lifecycle guard is sufficiently narrow and preserves deliberate
+  save/handoff behavior.
+
 ## Fedora `.35` beta local-build journey and neutral mixed-evidence checkpoint
 
 ### Authoritative checkpoint and runnable package

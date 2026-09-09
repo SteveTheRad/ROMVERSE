@@ -1,5 +1,126 @@
 # ROMVERSE Product Assurance Sync
 
+## Corrected current-source Windows package and private protected import — Product Assurance review requested
+
+### Exact authority, package and focused acceptance
+
+- Product Assurance commit `392b82fb30086e3ea3d4d5c90a0b7548990a7fdd` exactly approves
+  checkpoint `a3a3ca29cb941bce50a3414023ff37a6fcb709fa` and authorizes one current-source
+  unsigned Windows package plus one fresh synthetic protected-import journey. The checkout was
+  safely fast-forwarded to that exact head with the 8,272-byte protected untracked patch unchanged
+  at SHA-256 `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`,
+  existing untracked `build-work\` preserved, and all protected Companion files untouched.
+- The one focused native Windows acceptance command was
+  `$env:PYTHONPATH='src'; $env:QT_QPA_PLATFORM='offscreen';
+  .venv\Scripts\python.exe -m pytest -p no:cacheprovider --basetemp C:\rvpkg-392b82fb
+  tests\test_desktop_bundle.py tests\test_rom_projects.py
+  tests\test_guided_mission.py::test_source_integrity_stage_does_not_claim_publisher_provenance
+  tests\test_rom_studio_ui.py::test_firmware_import_worker_automatically_inspects_before_device_dna
+  tests\test_rom_studio_ui.py::test_genesis_routes_new_project_directly_to_protected_firmware_intake
+  -q`. It passed **46/46**, with zero failures, errors, skips, timeouts or stalls and exit code 0.
+- Exactly one build command ran:
+  `.venv\Scripts\python.exe scripts\build_desktop_executable.py --output-directory
+  C:\Work\ROMVERSE-Windows\build\windows-private-original-392b82fb --work-directory
+  C:\Work\ROMVERSE-Windows\build\windows-private-original-392b82fb-pyinstaller`. It used only
+  the existing Windows 11 Home x64 build 26200 environment, Python 3.12.10, PyInstaller 6.22.2 and
+  cached dependencies; no install, download or network action occurred. The one-folder package is
+  `C:\Work\ROMVERSE-Windows\build\windows-private-original-392b82fb\ROMVERSE`: 306 files, 23
+  directories, 164,663,453 bytes, zero empty files and zero reparse entries. Its sorted
+  path/size/SHA-256 inventory digest is
+  `a731ebc052a0c0975dbbbb7d3bee527d1c382614d15e6ecf63e06d9aa58e46c3`.
+- `ROMVERSE.exe` is 6,324,563 bytes, SHA-256
+  `2c94f329fa33c96e0b9aca92b6c495b2c55d87e25d14af089afd1c19d652881f`, and Windows
+  Authenticode truthfully reports `NotSigned`. The 2,576-byte PyInstaller warning record is SHA-256
+  `a3b60f3f6d27a83592032ab958a26f9c7ded76b3db2127d62e424fdbbb07ff00` and contains only the
+  expected optional or opposite-platform modules. The one focused frozen smoke command,
+  `.venv\Scripts\python.exe scripts\smoke_frozen_desktop.py
+  C:\Work\ROMVERSE-Windows\build\windows-private-original-392b82fb\ROMVERSE\ROMVERSE.exe
+  C:\Work\ROMVERSE-Frozen-Smoke-392b82fb`, passed with exit code 0. No second build, package copy,
+  relocation, archive or smoke run occurred.
+
+### Fresh Local-mode launch and genuine Windows protected import
+
+- One fresh data root, `C:\Work\ROMVERSE-Private-Original-392b82fb`, and workspace beneath it were
+  initialized before launch. The 687-byte settings file remains SHA-256
+  `90958eafb57e6166b3a41a9ad5795c79d9774acb266003ee340601c624a5f2da`, with the exact workspace,
+  Guided mode, onboarding complete, serial masking on, and all four online-intelligence,
+  community-research, automatic-tool-download and Synapse-contribution controls false. Its private
+  ACL permits only OWNER RIGHTS and SYSTEM Full Control. The child process received only the empty
+  `C:\Work\ROMVERSE-No-Tools-392b82fb` as `PATH` and this exact argument vector:
+  `--workspace`, `C:\Work\ROMVERSE-Private-Original-392b82fb\workspace`, `--skip-onboarding`,
+  `--development-device-simulation`.
+- The visible package opened as `ROMVERSE Studio 0.2.0-alpha.1`, Guided / Arcana and Local. Command
+  Deck truthfully showed `DEVICE: NOT CONNECTED`, `PROJECT: NONE`, `MISSION: IDLE`, `GUARDIAN:
+  VERIFY REQUIRED`, `No Android device detected`, `Simulation Session`, `No physical device
+  selected`, and `SIMULATION ONLY • NO HARDWARE`. No phone, emulator, tool or live target was
+  discovered or selected.
+- Exactly one disposable project was created:
+  `windows-private-original-392b82fb-d5d46af7`, named `Windows Private Original 392b82fb`.
+  Genesis advanced only through the automatically completed source-integrity stage. The native
+  chooser received only retained fixture `C:\Work\ROMVERSE-Synthetic-OTA-6c62311.zip`; visible
+  consent named the exact file and 497-byte size, promised copy/hash/private protection and bounded
+  inspection, stated the source would not change or be extracted in place, and explicitly denied
+  install or flash authority.
+- The external source remains 497 bytes, normal Archive and SHA-256
+  `1d9c78df6f42c63864a76bdf91a50cb2da1cd2e133cc44cba5f1c298302f0725`. The protected copy at
+  `workspace/original_roms/1d9c78df6f42c638-ROMVERSE-Synthetic-OTA-6c62311.zip` is byte-identical,
+  has the final ReadOnly attribute and a protected DACL with exactly two non-inherited allow ACEs:
+  OWNER RIGHTS (`S-1-3-4`) and LOCAL SYSTEM (`S-1-5-18`), each Full Control mask `2032127`
+  (`0x1F01FF`). `icacls` independently reports only `OWNER RIGHTS:(F)` and
+  `NT AUTHORITY\SYSTEM:(F)`.
+- The 714-byte schema-two project manifest is SHA-256
+  `23914dbb188d473a659a0caf352719bd544b8f4666a873d2c6280871ea9e341c` and binds the exact project
+  ID, original name, 497-byte size, full source digest and protected relative path. The 830-byte
+  source-bound inspection record is SHA-256
+  `e2d6f7d0797262251d028914f87cd62872fbe3523bea3a1997d19c3c670756a4`; it records ZIP, exactly
+  two entries, 243 expanded metadata bytes, OTA-payload and Android-metadata signals, and no unsafe
+  path, link, encryption or extreme-compression finding. No member was extracted.
+
+### Truthful bounded result, containment and stop
+
+- The visible bounded result was `PACKAGE METADATA REJECTED`; `UPGRADE STATUS UNCONFIRMED` remained
+  durable because the synthetic Android OTA metadata has no positive post-SDK level. Device name,
+  model, codename, SoC, build, A/B scheme and Verified Boot remained unconfirmed. The Compatibility
+  Matrix retained zero proven-compatible decisions, `EXECUTION AUTHORITY: NONE`, Guardian flash
+  unavailable, install/flash `NO`, phone changed `NO` and bootloader relock `NEVER`.
+- Genesis task 3, `Verify source integrity and structure`, was visibly verified from project
+  evidence; its `Run integrity checks` action was already disabled because the import's single
+  bounded inspection had completed. Build did not retry it. `Save & exit` retained the 440-byte
+  mission record at SHA-256
+  `4b6b9400fe20db2c38e720fe142cb86ea678ccca6fd0e1acbcc4f86020db07ea`, with
+  `selected_stage: provenance`, undecided root, no install request, no build plan, no recipe or
+  customization completion and no error. Task 4 appeared only as the next unstarted step;
+  `working_roms` remains empty.
+- The old review-evidence copy at
+  `C:\Work\ROMVERSE-Onboarding-435949e\workspace\original_roms\1d9c78df6f42c638-ROMVERSE-Synthetic-OTA-6c62311.zip`
+  remains untouched: 497 bytes, read-only, the same SHA-256, and the same broad inherited
+  Administrators/SYSTEM/Users/Authenticated Users ACL. It was not repaired after the fact.
+- The package closed normally. The fresh 77-byte runtime ledger is SHA-256
+  `9b548079f50e029991471fdbf93e92807fb82adb17319871cb9ab421e7b7f499` and contains exactly one
+  `runtime started` and one `runtime closed cleanly` record. Final ROMVERSE, ADB and Fastboot
+  process counts and ROMVERSE window count are zero. The two persistent zero-byte ledger lock files
+  accept exclusive no-sharing opens and are not held. The empty child tool path and the workspace
+  `apks`, `backups`, `builds`, `device_packs`, `diagnostics`, `temp`, `tools` and `working_roms`
+  directories remain empty. The fresh data root contains 17 files, 23 directories, 918,138 bytes
+  and zero reparse entries.
+- This checkpoint changes only `docs/sync/BUILD-STATUS.md`; the approved source/test correction is
+  already committed in branch history and generated package/data roots remain outside Git. No
+  application, test, Companion, settings-contract or package source file changed. The protected
+  untracked patch and `build-work\` remain excluded from staging. `git diff --check` is the final
+  repository validation.
+- No archive/copy/relocation matrix, real firmware, Working Lab preparation or extraction, package
+  installation, network/download/tool repair, phone/emulator/ADB/Fastboot operation,
+  firmware/APK mutation, Guardian/Recovery execution, production adapter/trust/signing,
+  publication, release, hosted CI, wipe, unlock/root, bootloader lock or relock occurred. Exact
+  source/device evidence, fresh consent, Guardian-only authority and separation, durable UNKNOWN,
+  no blind retry, independent verification, feature freeze and permanent bootloader no-relock
+  remain intact.
+- Precise proposed next task: independent Product Assurance review of this exact current-source
+  package identity, one fresh protected import, private Windows ACL, source/manifest/inspection
+  binding, metadata-rejected/UNCONFIRMED result, empty working area and single clean close. Do not
+  begin another build, package cycle, launch, import, Working Lab action, source correction or
+  device/consequential step without a matching repository verdict.
+
 ## Protected-original Windows ACL correction — Product Assurance review requested
 
 ### Exact correction authority and scope

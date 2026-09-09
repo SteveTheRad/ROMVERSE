@@ -2133,6 +2133,9 @@ def test_genesis_simulated_device_continues_visibly_without_hardware_authority(
     assert studio.current_project.original.sha256 == project.original.sha256
     assert "SIMULATION ONLY • NOT HARDWARE VERIFIED" in studio.device_dna_detail.text()
     assert not (project_root / "recipe.romverse").exists()
+    mission.close()
+    app.processEvents()
+    assert app.activeModalWidget() is None
     studio.close()
 
 

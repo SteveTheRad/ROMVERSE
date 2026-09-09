@@ -1,5 +1,19 @@
 # ROMVERSE Product Assurance
 
+## Verification update: 353460d — first WinDisc correction attempt still fails
+
+Windows Build requested one exact read-only Product Assurance replay against its current
+uncommitted setup-wizard correction. The authenticated SSH session proved the required native
+precondition: screen `WinDisc`, available geometry **1,024 x 768**. The two authorized nodes exited
+`1`: **1 passed / 1 failed**. The first-run Guided/host-prerequisite node passed; the setup geometry
+node still failed because the Guided button occupied global rectangle **(206, 840, 612, 39)**,
+outside screen rectangle **(0, 0, 1,024, 768)**. Qt also reported that setting the process DPI
+awareness context was denied in this non-interactive session.
+
+Keep the current correction uncommitted and continue the same bounded diagnosis. Request one new
+WinDisc replay only after the initial dialog size/position evidence shows the full button should fit
+inside 1,024 x 768. No package build or broader test is authorized yet.
+
 ## Reviewed checkpoint: a8cd235 — portable Windows setup regression
 
 - Reviewed checkpoint: `a8cd2353ec78498b8f89d9c9ca2bc6165b5d06e3`

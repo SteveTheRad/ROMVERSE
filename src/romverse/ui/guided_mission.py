@@ -1658,6 +1658,8 @@ class GuidedBuildMission(QDialog):
         dialog.addButton("Pause and review", QMessageBox.ButtonRole.RejectRole)
         dialog.setDefaultButton(keep_base)
         dialog.exec()
+        if self._closing:
+            return
         if dialog.clickedButton() is keep_base:
             self.autopilot_active = True
             self._skip_customization()
@@ -1665,6 +1667,8 @@ class GuidedBuildMission(QDialog):
         if dialog.clickedButton() is recipe_forge:
             self.autopilot_active = True
             self._run_stage()
+            if self._closing:
+                return
             self._refresh(select_current=True)
             current = self.assessments[self.selected_index].stage.stage_id
             if current == "customize":
@@ -1713,6 +1717,8 @@ class GuidedBuildMission(QDialog):
         else:
             dialog.setDefaultButton(unrooted)
         dialog.exec()
+        if self._closing:
+            return
         if dialog.clickedButton() is unrooted:
             if not self._select_unrooted_route():
                 return
@@ -1722,6 +1728,8 @@ class GuidedBuildMission(QDialog):
             self.state = replace(self.state, root_choice="ascension", last_error="")
             self._save_state()
             self.studio._open_ascension_protocol(self)
+            if self._closing:
+                return
             self._refresh(select_current=True)
             if self._context().ascension_complete:
                 self._resume_after_root_choice(resume_automatic)
@@ -1774,6 +1782,8 @@ class GuidedBuildMission(QDialog):
             QTimer.singleShot(0, self._advance_autopilot)
 
     def _run_stage(self) -> None:
+        if self._closing:
+            return
         assessment = self.assessments[self.selected_index]
         action = assessment.stage.action
         saved_toolchain_review = self._saved_toolchain_review_available(assessment)
@@ -1795,6 +1805,8 @@ class GuidedBuildMission(QDialog):
                 else ""
             )
             self.studio._new_project()
+            if self._closing:
+                return
             if self.studio.current_project is not None and (
                 not self._start_new_project
                 or self.studio.current_project.project_id != previous_project_id
@@ -1804,6 +1816,8 @@ class GuidedBuildMission(QDialog):
             self._refresh(select_current=True)
         elif action == "import":
             self.studio._import_original()
+            if self._closing:
+                return
             self._refresh_if_idle()
         elif action == "verify-inspect":
             self._run_operations(["verify", "inspect"])
@@ -1874,6 +1888,8 @@ class GuidedBuildMission(QDialog):
             return
         elif action == "create-recipe":
             self.studio._guided_recipe(self)
+            if self._closing:
+                return
             self.state = replace(
                 self.state,
                 customization_skipped=False,
@@ -1924,6 +1940,8 @@ class GuidedBuildMission(QDialog):
                 self,
             )
             dialog.exec()
+            if self._closing:
+                return
             self._refresh(select_current=dialog.completed)
         elif action == "choose-root":
             self._prompt_root_choice()
@@ -2027,6 +2045,8 @@ class GuidedBuildMission(QDialog):
             project.original.sha256 if project is not None and project.original is not None else ""
         )
         dialog.exec()
+        if self._closing:
+            return
         if dialog.clickedButton() is finish:
             self._finish_local_build()
             return
@@ -2339,6 +2359,8 @@ class GuidedBuildMission(QDialog):
             parent=self,
             auto_start=False,
         )
+        if self._closing:
+            return False
         refreshed = {item.name: item for item in self.studio.tool_statuses}
         remaining = tuple(
             name for name in required if name not in refreshed or not refreshed[name].available

@@ -1786,6 +1786,37 @@ def test_genesis_does_not_refresh_after_parent_closes_during_forge_handoff(tmp_p
     studio.close()
 
 
+def test_genesis_does_not_resume_after_parent_closes_during_choice_dialogs(tmp_path, monkeypatch):
+    QApplication.instance() or QApplication([])
+    prompt_names = (
+        "_prompt_customization_choice",
+        "_prompt_root_choice",
+        "_prompt_flash_choice",
+    )
+
+    for prompt_name in prompt_names:
+        store = RomProjectStore(tmp_path / prompt_name)
+        studio = RomStudio(store, DevicePackRegistry(()))
+        mission = GuidedBuildMission(studio)
+        resumed: list[str] = []
+        mission._refresh = lambda select_current=False, events=resumed: events.append("refresh")
+        mission._run_stage = lambda events=resumed: events.append("stage")
+        mission._skip_customization = lambda events=resumed: events.append("skip")
+        mission._select_unrooted_route = lambda events=resumed: events.append("unrooted") or True
+        mission._finish_local_build = lambda events=resumed: events.append("finish")
+        mission._handoff_project_images = lambda *_args, events=resumed: (
+            events.append("flash") or True
+        )
+
+        monkeypatch.setattr(QMessageBox, "exec", lambda _dialog, dialog=mission: dialog.close())
+        getattr(mission, prompt_name)()
+
+        assert mission._closing
+        assert not mission.autopilot_active
+        assert resumed == []
+        studio.close()
+
+
 def test_genesis_presents_completed_local_build_as_100_percent_with_install_deferred(tmp_path):
     app = QApplication.instance() or QApplication([])
     store = RomProjectStore(tmp_path / "workspace")

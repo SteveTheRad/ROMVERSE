@@ -1,5 +1,83 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux convergence first-failure checkpoint — simulated Genesis modal cleanup
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `6198690`, approving checkpoint `3b860a9` and authorizing one
+  cost-free local Linux convergence preflight with first-failure enabled. Minimum correction commit:
+  `821859b` (`Close simulated Genesis mission fixture`). This section forms the following handoff
+  commit on `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation regression convergence only. The normal Linux pytest
+  selection ran once from this exact worktree with `src` forced first, offscreen Qt and the existing
+  reusable environment. No cloud workflow or package job was launched.
+- Exact changed test file is `tests/test_rom_studio_ui.py`, plus this handoff. Application source,
+  production UI behavior, Windows, Companion, package and every other failure cluster are unchanged.
+
+### First failure, ownership and correction
+
+- The authorized `pytest -x` run stopped at the first failure after **2,854 passed / 1 failed** in
+  **752.68 seconds (12:32)**. The failed node was
+  `tests/test_source_installation_integration.py::test_main_window_continues_hidden_preparation_in_the_same_mission`.
+- The node passed alone, and its complete 68-test owning integration file passed. A two-node
+  owner→victim sequence then reproduced the exact failure: the preceding
+  `test_genesis_simulated_device_continues_visibly_without_hardware_authority` closed its parent
+  `RomStudio` without closing its still-visible application-modal `GuidedBuildMission`; the next
+  integration test therefore saw that stale mission as `QApplication.activeModalWidget()`.
+- The correction is test-fixture cleanup only: explicitly close the simulated Genesis mission,
+  process the close event and prove no active modal remains before closing its studio. No user
+  decision is auto-accepted and no production lifecycle is changed.
+
+### Verification evidence
+
+- Pre-correction deterministic owner→victim sequence: **1 passed / 1 failed** with the same stale
+  `GuidedBuildMission` modal-owner assertion as the convergence run.
+- Post-correction owner→victim sequence: **2/2 passed**. This targeted evidence is reported
+  separately and is not added to the incomplete convergence total.
+- Ruff lint and `git diff --check` passed. Whole-file Ruff formatting remains non-green solely at
+  one pre-existing unrelated multiline `RomBuildPlanner(...).verify_tree(...).valid` assertion near
+  line 2107; the formatter reported no change for this checkpoint's cleanup hunk.
+- In accordance with the approved single-pass limit, the full Linux selection was not repeated
+  after the minimum correction. No 15-minute no-progress Qt blocker occurred; the slow phases
+  continued emitting completed-test evidence.
+
+### Classification, safety and gates
+
+- **Implemented:** one simulated-journey fixture now retires its retained modal deterministically.
+  Product behavior is unchanged.
+- **Simulated/Tested:** convergence reached **2,854 passed** before its first failure; the isolated
+  deterministic sequence passed **2/2** after correction. A complete current-source Linux pass is
+  not claimed.
+- **Hardware Verified:** no. No phone, emulator or Windows host was used.
+- **Released:** no. No package was built, installed, signed, published or released.
+- Guided friction/dead ends: the observed obstruction was stale test-owned modal state between
+  tests, not a production Guided dead end. Fixture teardown now proves the simulated Genesis modal
+  releases application-modal ownership.
+- Guardian/Recovery/safety: unchanged. The test still verifies simulation carries no hardware
+  authority. Guardian-only authority, exact evidence, UNKNOWN-on-uncertainty, no blind retry,
+  independent verification and permanent bootloader no-relock remain intact.
+- Platform status: Fedora local pytest convergence is incomplete at its intentionally stopped first
+  failure, with the owning regression corrected and targeted evidence green. Previously approved
+  Windows/package evidence was reused, not rerun. Broad Linux and release gates remain closed.
+- Feature freeze: compliant test-only deterministic cleanup. v0.2 Golden Foundation and all
+  release gates remain **CLOSED** pending later authorized convergence evidence.
+- External actions: local tests and scoped commit/push preparation only. No GitHub Actions,
+  dependency/tool/APK installation, package rebuild, phone/emulator operation, device-addressed
+  ADB/Fastboot, Windows work, Stage-12 operation, firmware build/sign/flash, Guardian/Recovery
+  execution, publication, release, merge, force-push, lock or relock occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not repeat the full Linux selection, launch cloud
+CI or begin another failure cluster unless Product Assurance authorizes the next convergence step.
+
+### Product Assurance Review Requested
+
+- Confirm the deterministic owner→victim reproduction and **2/2** corrected sequence are sufficient
+  evidence for the test-only modal teardown fix without repeating the bounded convergence pass.
+- Confirm whether the next approved task should resume convergence once from current HEAD with
+  first-failure enabled or use a narrower continuation strategy that avoids retesting this prefix.
+
 ## Project Flash restored-mtime portability correction — both fail-closed boundaries
 
 ### Authoritative checkpoint and scope

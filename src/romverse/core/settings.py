@@ -7,6 +7,7 @@ from enum import StrEnum
 from pathlib import Path
 from uuid import uuid4
 
+from romverse.infrastructure.local_store import ensure_private_file
 from romverse.platform.host import HostPlatform
 
 
@@ -83,12 +84,12 @@ class SettingsStore:
         try:
             content = json.dumps(asdict(normalized), indent=2, sort_keys=True) + "\n"
             with temporary.open("w", encoding="utf-8") as stream:
-                os.chmod(temporary, 0o600)
+                ensure_private_file(temporary)
                 stream.write(content)
                 stream.flush()
                 os.fsync(stream.fileno())
             os.replace(temporary, self._path)
-            os.chmod(self._path, 0o600)
+            ensure_private_file(self._path)
         finally:
             temporary.unlink(missing_ok=True)
 

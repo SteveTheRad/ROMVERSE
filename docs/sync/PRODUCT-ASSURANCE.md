@@ -1,5 +1,62 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 3b860a9 — portable Project Flash tamper rejection
+
+- Reviewed checkpoint: `3b860a9b7bcb60e9f3f0a4d5025b2bfb2aa4cd76`
+- Fixture correction: `60e4095e156036f5ee03b6007bfdf480c868f1f4`
+- Correction base: `07f95d6`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — BOTH VALID FAIL-CLOSED TAMPER BOUNDARIES ARE PROTECTED**
+
+### Decision and independent evidence
+
+The correction exactly addresses Product Assurance's finding. The same-size/restored-mtime mutation
+remains, and the fixture accepts only either the complete early current-receipt rejection or the
+complete later per-image fresh-hash rejection. Both require fresh evidence, preserve protected
+source as an explicit rather than silent alternative, and return no preparation.
+
+- Product Assurance independently ran the complete Project Flash service file against the exact
+  corrected source: **14/14 passed**. Ruff lint, Ruff formatting and whitespace checks passed.
+- The corrected assertion does not accept an arbitrary exception. It requires every semantic phrase
+  belonging to one of the two approved outcomes and separately proves the preparation variable was
+  never populated.
+- Product source, copy, receipt loading and hash checks are unchanged. No fallback, image inventory,
+  execution request or authority is created.
+- No paid CI, package rebuild, Windows change or physical-device action occurred. Feature freeze,
+  Guardian separation, exact evidence, UNKNOWN-on-uncertainty, no blind retry and permanent
+  bootloader no-relock remain intact.
+
+### Approved next bounded task
+
+Run one **cost-free local Linux convergence preflight** now that every known root cluster from cloud
+run `34295617304` has a focused correction and independent evidence.
+
+1. Use the reusable current local environment with the exact branch source forced first. Run the
+   normal Linux quality test selection once with first-failure enabled. Do not trigger GitHub
+   Actions, package jobs or Windows work.
+2. If a test fails, capture the first complete failure and its owning fixture/product boundary.
+   Correct only that first failure if it is deterministic, in-scope and the minimum change is clear;
+   otherwise record the blocker without speculative edits. Do not fan out across multiple clusters.
+3. If the first-failure pass reaches completion, record the exact non-overlapping totals and stop;
+   do not immediately repeat it or launch a cloud matrix. Reuse the already-approved focused
+   Windows/package evidence.
+4. Keep the run bounded: if a Qt phase makes no observable progress for 15 minutes, capture the
+   current node/process once, stop only that test process and report it as a harness blocker rather
+   than looping.
+5. Commit only a proven minimum correction, if one is needed, plus `docs/sync/BUILD-STATUS.md`.
+   Otherwise commit the evidence-only handoff. Push and stop for independent review.
+
+Do not rebuild packages, operate Stage 12, use a phone/emulator, install dependencies, change
+Windows/Companion work, build/sign/flash firmware, invoke Guardian/Recovery execution, publish,
+release, merge, force-push, lock or relock.
+
+### Gate status
+
+- Project Flash restored-mtime tamper contract: **VERIFIED — 14/14**
+- Current-source Linux convergence: **NEXT COST-FREE PREFLIGHT**
+- Paid cloud matrix: **DEFERRED pending preflight evidence**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 8395385 — Project Flash restored-mtime tamper semantics
 
 - Reviewed checkpoint: `83953852765b1868e18c4f4bd712999aa773d5cc`

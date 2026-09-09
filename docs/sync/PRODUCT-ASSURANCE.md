@@ -1,5 +1,66 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: c8cadd4 — exact `.35` source-integrity correction
+
+- Reviewed checkpoint: `c8cadd4cbd4e43f6bd108cb494ca11cc8c663b34`
+- Implementation: `c5c67beff840e9b30f14f6ad6cb4c303dbeb68f1`
+- Approved base: `45ee98f846a64d4508c8f7a993d71e0742c4a464`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — INTEGRITY NO LONGER OVERCLAIMS PUBLISHER, SIGNER OR RELEASE-CHANNEL PROVENANCE**
+
+### Decision and independent evidence
+
+The first visible no-write simulation correctly stopped on a genuine safety-language defect.
+Protected-copy hashing and bounded container inspection establish source integrity; they do not by
+themselves prove publisher identity, trusted signing keys, enrolled rollout channel or installation
+authority. Keeping the internal stage ID `provenance` preserves the signed persisted schema while
+the user-facing title, explanation, recommendation and outcome now state the narrower truth.
+
+- Product Assurance independently reviewed the complete two-file implementation diff. It changes
+  only Guided wording plus a regression that requires the separated trust claims; no parser,
+  Device Engine, Guardian, Recovery, adapter or execution behavior changed.
+- Product Assurance independently reran all **24/24** `test_guided_mission.py` tests, Ruff
+  check/format-check on both changed files, and `git diff --check`: **PASS**. The handoff's distinct
+  168-node affected evidence remains proportional and was not repeated in full.
+- Product Assurance independently recomputed the exact 9,110,437,829-byte OTA SHA-256 as
+  `29a4f4fe3c1e87872d8a423a227c3cdfcb0632bfd66994abb5ac55f607b0f08e`.
+  Direct bounded archive reads confirm `ota-type=AB`, `pre-device=popsicle`, Android 17/API 37,
+  security patch `2026-08-01`, the reported post-build identity, and the exact payload file and
+  metadata sizes/hashes recorded in `payload_properties.txt`.
+- Product Assurance independently extracted only the embedded OTA certificate and confirmed the
+  Xiaomi/MIUI self-signed subject/issuer plus SHA-256 fingerprint
+  `D4:5F:07:6F:E2:3A:1A:5B:7F:48:6E:3F:F4:15:47:A2:02:3D:BF:E1:FE:73:35:3B:1E:48:EB:DF:ED:72:CC:6F`.
+  This supports the handoff's internal-signature classification but does not elevate the package to
+  trusted stable-channel or phone-accepted authority.
+- The simulation advanced only through local working-lab preparation. No phone write, reboot,
+  mode transition, transfer, consent grant, execution admission, flash, wipe, unlock/root,
+  lock/relock, signing, publication or release occurred.
+
+### Approved next bounded task
+
+Build exactly one new isolated unsigned Fedora development package because `c5c67be` changed
+production wording. Verify package content and run one frozen no-phone smoke, then perform one
+visible check that Stage 3 now presents `Source integrity` and the separated trust warning.
+
+If that passes, resume the same saved `.35` no-write Guided simulation without recreating the
+project, reimporting or rehashing unchanged evidence. Continue from Stage 6 toward a truthful final
+pre-dispatch readiness/stop. Correct only the next proven bounded app defect, if one appears, and
+commit a small handoff. Missing enrolled signer/channel trust, exact no-wipe interface, Recovery
+evidence or execution contract remains `UNKNOWN` and must stop advancement.
+
+Do not repeat the 3,005-node regression, the 168 affected selection, the earlier package journey,
+or broad discovery. Do not enter Recovery/Fastboot, reboot, sideload, install, transfer firmware,
+flash, wipe, unlock, root, lock or relock. The creator's intent to eventually offer this exact
+update still requires a fresh exact-plan consent receipt and current Guardian admission after the
+no-write evidence is independently accepted.
+
+### Gate status
+
+- Source-integrity/provenance language: **APPROVED**
+- Exact `.35` archive identity and internal metadata/signature classification: **VERIFIED READ-ONLY**
+- Corrected Fedora package and continued no-write journey: **NEXT BOUNDED TASK**
+- Physical firmware execution, production signing/trust, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 073413c — packaged connected-device UI acceptance
 
 - Reviewed checkpoint: `073413cc28a15beb034db0cdb25ef9e8e8b0f3e3`

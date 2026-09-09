@@ -31,6 +31,41 @@ class ConfigHost:
         return self.root / "config"
 
 
+def test_first_run_tool_inventory_remains_readable_at_supported_dialog_size(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    tools = tuple(
+        ToolStatus(
+            f"Tool {index:02d}",
+            index < 18,
+            detail="A deliberately detailed bounded host status that must remain readable",
+        )
+        for index in range(21)
+    )
+    wizard = SetupWizard(logo, tmp_path / "workspace", tools)
+    wizard.resize(760, 680)
+    wizard.show()
+    app.processEvents()
+    try:
+        guided = next(
+            button
+            for button in wizard.findChildren(QPushButton)
+            if button.text() == "Continue in Guided Mode"
+        )
+        assert wizard.size().width() >= 760
+        assert wizard.size().height() >= 680
+        assert wizard.tool_summary.text() == "18 / 21 READY"
+        assert len(wizard.tool_status_rows) == 21
+        assert all(row.height() > 0 for row in wizard.tool_status_rows)
+        assert wizard.tool_scroll.widget().height() > wizard.tool_scroll.viewport().height()
+        assert wizard.tool_scroll.widget().width() <= wizard.tool_scroll.viewport().width()
+        assert guided.isVisibleTo(wizard)
+    finally:
+        wizard.close()
+
+
 def test_first_run_explicitly_enters_guided_and_reaches_truthful_host_prerequisite(
     tmp_path: Path,
     monkeypatch,

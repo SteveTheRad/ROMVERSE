@@ -12,7 +12,9 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
+    QScrollArea,
     QVBoxLayout,
+    QWidget,
 )
 
 from romverse import DISPLAY_VERSION
@@ -24,21 +26,22 @@ class SetupWizard(QDialog):
     def __init__(self, logo_path: Path, workspace: Path, tools: tuple[ToolStatus, ...]) -> None:
         super().__init__()
         self.setWindowTitle("Welcome to ROMVERSE")
-        self.setMinimumSize(700, 610)
+        self.setMinimumSize(760, 680)
+        self.resize(820, 700)
         self.setModal(True)
         self.selected_workspace = workspace
         self.selected_experience_mode = ExperienceMode.GUIDED
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(44, 38, 44, 38)
-        root.setSpacing(18)
+        root.setContentsMargins(36, 24, 36, 24)
+        root.setSpacing(12)
 
         logo = QLabel()
         logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
         logo.setPixmap(
             QPixmap(str(logo_path)).scaled(
-                104,
-                104,
+                80,
+                80,
                 Qt.AspectRatioMode.KeepAspectRatio,
                 Qt.TransformationMode.SmoothTransformation,
             )
@@ -71,20 +74,53 @@ class SetupWizard(QDialog):
         card = QFrame()
         card.setObjectName("Card")
         card_layout = QVBoxLayout(card)
-        card_layout.setContentsMargins(20, 18, 20, 18)
+        card_layout.setContentsMargins(20, 14, 20, 14)
+        card_layout.setSpacing(8)
+        card_header = QHBoxLayout()
         title = QLabel("Tool verification")
         title.setObjectName("SectionTitle")
-        card_layout.addWidget(title)
+        card_header.addWidget(title)
+        card_header.addStretch(1)
+        ready_count = sum(status.available for status in tools)
+        self.tool_summary = QLabel(f"{ready_count} / {len(tools)} READY")
+        self.tool_summary.setObjectName("Good" if ready_count == len(tools) else "Warning")
+        self.tool_summary.setAccessibleName(f"Host tools ready: {ready_count} of {len(tools)}")
+        card_header.addWidget(self.tool_summary)
+        card_layout.addLayout(card_header)
+
+        self.tool_scroll = QScrollArea()
+        self.tool_scroll.setObjectName("SetupToolScroll")
+        self.tool_scroll.setAccessibleName("Verified host tool inventory")
+        self.tool_scroll.setWidgetResizable(True)
+        self.tool_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.tool_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.tool_scroll.setFixedHeight(150)
+        tool_canvas = QWidget()
+        tool_canvas.setObjectName("ScrollContent")
+        tool_list = QVBoxLayout(tool_canvas)
+        tool_list.setContentsMargins(0, 0, 6, 0)
+        tool_list.setSpacing(5)
+        self.tool_status_rows: list[QFrame] = []
         for status in tools:
-            row = QHBoxLayout()
-            row.addWidget(QLabel(status.name))
-            row.addStretch()
+            row_frame = QFrame()
+            row_frame.setObjectName("SetupToolRow")
+            row = QHBoxLayout(row_frame)
+            row.setContentsMargins(8, 5, 8, 5)
+            row.setSpacing(10)
+            name = QLabel(status.name)
+            name.setMinimumWidth(110)
+            row.addWidget(name)
             value = QLabel(
                 f"✓ {status.version or status.detail}" if status.available else f"! {status.detail}"
             )
             value.setObjectName("Good" if status.available else "Warning")
-            row.addWidget(value)
-            card_layout.addLayout(row)
+            value.setWordWrap(True)
+            row.addWidget(value, 1)
+            tool_list.addWidget(row_frame)
+            self.tool_status_rows.append(row_frame)
+        tool_list.addStretch(1)
+        self.tool_scroll.setWidget(tool_canvas)
+        card_layout.addWidget(self.tool_scroll)
         root.addWidget(card)
 
         workspace_label = QLabel("Workspace")

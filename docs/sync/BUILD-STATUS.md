@@ -1,5 +1,72 @@
 # ROMVERSE Product Assurance Sync
 
+## Genesis lifecycle and Fedora package-smoke correctness checkpoint
+
+### Authoritative commits and exact changes
+
+- Branch: `linux/stage1-desktop-readiness`.
+- Genesis lifecycle implementation: `59a9bbf8c61a2b06ded5bf3294d99cd340adcb48`
+  (**Guard every Genesis nested-dialog shutdown**).
+- Fedora smoke implementation: `76e3e2fbb62ff0e447b707c8f367e60f9bc7d2c9`
+  (**Keep Fedora smoke aligned with packaged Archives**).
+- Persisted runtime evidence showed that closing Genesis while a nested customization, root,
+  import, Recipe, Debloat or final-installation dialog was open could return into deleted Qt
+  controls. The earlier Forge-specific correction did not cover every nested Genesis path.
+- Genesis now treats its closing state as a boundary before dispatch and immediately after every
+  nested modal/handoff return. It stops without refreshing, advancing or reading a destroyed child
+  dialog. The user workflow, decisions and execution authority are unchanged.
+- The installed Fedora smoke still required the pre-evidence-import hardcoded archive totals and
+  digest. A current package would therefore fail acceptance after the valid `popsicle` field
+  knowledge update. The smoke now compares the freshly persisted archive exactly with the archive
+  assembled from the installed package resources, while retaining its concrete Device Pack,
+  knowledge-ranking, route-coverage, legal, dark-theme and byte-preservation checks.
+
+### Verification and gates
+
+- **Implemented:** two Desktop lifecycle files (`guided_mission.py` and its UI regression) plus the
+  installed Fedora smoke script. No Companion or Windows launcher file changed.
+- **Simulated/Tested:** the complete current Linux suite passed **3,016/3,016** once at `76e3e2f`.
+  This total includes, and therefore does not double-count, the earlier affected runs. The installed
+  smoke separately passed from source with **22 Device Packs, 170 known fixes, 284 offline evidence
+  records and all 19 Desktop routes**, plus dark Time Machine and byte-exact workspace-reopen
+  checks. Ruff check, Ruff format-check and diff check passed.
+- **Hardware Verified:** no. All work used local source, disposable workspaces and explicit inert or
+  release-smoke modes. No physical target was queried or operated.
+- **Released:** no. The latest existing package remains the unsigned `3af0591` Fedora development
+  artifact; the two corrections in this checkpoint have not yet been rebuilt into a package.
+- Blockers/failures: the reproduced Genesis nested-return class and stale package-smoke gate are
+  corrected. Windows secure launch, production signing/trust, physical Recovery/flash validation
+  and release remain blocked/unverified.
+- Guided friction/dead ends: cancelling or closing a containing Guided journey during nested review
+  can no longer resume hidden automation or crash against deleted controls. No new confirmation was
+  added.
+- Guardian/Recovery/safety: unchanged. Guardian-only authority, exact device/source/incident
+  binding, durable UNKNOWN, no blind retry, independent verification and permanent no-relock remain
+  authoritative.
+- Platform status: genuinely regression-tested on Fedora/Linux. Windows and physical hardware were
+  neither run nor represented as verified.
+- Feature freeze: compliant correctness/readiness work only; no new action, route, adapter, Device
+  Pack, format or execution capability.
+- Version gate: Linux desktop reliability and package acceptance improved; v0.2 Golden Foundation,
+  production execution, Windows, signing, publication and release gates remain **CLOSED**.
+- External actions: local tests, disposable smoke workspaces and local commits only. No phone,
+  firmware/APK, installation, mode transition, flash, wipe, unlock/root, lock/relock, publication,
+  release or hosted-CI action occurred. The scoped branch push containing this handoff is the only
+  remote write.
+
+### Next proposed Build task
+
+Continue the same product-as-user pass through Activity Center, Live Console, Guardian audit and
+offline Link states. Correct only reproduced Stage 1 desktop dead ends. Rebuild the Fedora package
+after the next coherent production-source batch rather than after every small UI correction.
+
+### Product Assurance Review Requested
+
+- Confirm that treating the parent Guided close as an unconditional stop after every nested modal
+  return is the expected lifecycle invariant and introduces no missing user decision.
+- Confirm exact comparison with the installed package's assembled archive is the correct durable
+  smoke gate while the separate semantic lookup/route tests continue to protect required content.
+
 ## Durable verified-Recovery reopen checkpoint
 
 ### Authoritative checkpoint and exact change

@@ -1,5 +1,71 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 3cf7d3d — Windows Device Atlas no-phone journey
+
+- Reviewed checkpoint: `3cf7d3d2a90189cb5196a7a7d914cdaf64e0b2ea`
+- Authorizing verdict: `bd02e1e1cf90d1812397f58183d2e541e39c8078`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — DEVICE ATLAS, DEVICE PACKS AND GUARDIAN PRESERVE TRUTHFUL NO-DEVICE STATE, CONTEXT CONTINUITY AND ZERO EXECUTION AUTHORITY ON WINDOWS**
+
+### Decision and independent evidence
+
+The checkpoint is the exact local-only no-phone batch authorized by `bd02e1e`. Product Assurance
+inspected the complete commit: it adds only this Build handoff and changes no application, test,
+package, workflow, Companion or execution file. The diff passes `git diff --check`.
+
+- Device Atlas kept every live identity, firmware, partition, health and verdict field unconfirmed
+  while the Device Engine was unavailable; it did not substitute packaged knowledge for observed
+  device evidence.
+- The built-in Device Pack catalog remained integrity-checked and read-only. The selected exact
+  popsicle Pack displayed its declared model, codename and firmware boundary while explicitly
+  carrying `EXECUTION AUTHORITY: NONE`; it could not authorize a phone action or be generalized to
+  another device, firmware, region or partition layout.
+- The Guardian handoff remained read-only, with a valid SHA-256 audit chain, zero operation records,
+  zero approvals and no runtime package inspection. Returning to Device Atlas restored the exact
+  in-session Pack context without granting authority.
+- Product Assurance inspected the retained Windows runtime log directly. It contains exactly two
+  starts and two clean closes with no exception, traceback or fault entry. Restart truthfully
+  returned to the no-device catalog state; transient Pack-detail selection was not misrepresented
+  as durable state.
+- The Windows checkout is at the reviewed commit and contains only the protected untracked patch.
+  Its independently rechecked size is **8,272 bytes** and SHA-256 is
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+
+No unchanged test suite or package rebuild was necessary for this documentation-only checkpoint.
+No hosted CI, phone/emulator operation, firmware or APK selection, ADB/Fastboot command, device
+query/write or transition, Guardian/Recovery execution, signing, publication, release, wipe,
+unlock/root, lock or relock occurred. Guided friction, exact-device evidence, consent separation,
+Guardian-only authority, UNKNOWN-on-uncertainty, no blind retry, privacy, no wipe and permanent
+bootloader no-relock remain intact. The checkpoint is feature-freeze compliant.
+
+### Approved next bounded task
+
+Continue one local-only, no-phone Windows product-as-user batch through the existing Command Deck
+Settings and About surfaces. Exercise the currently shipped theme, focus/navigation presentation
+and Guided/Expert visibility controls, then perform one normal close/restart and verify that only
+documented durable preferences persist. Confirm the UI remains truthful about simulation, device,
+project, mission and Guardian state and that About remains observational/navigation-only. Do not
+redesign the UI or import the local-only UI Design Lab.
+
+Correct only a directly reproduced bounded production defect and run focused local tests and lint
+for changed areas. If no defect is reproduced, record the bounded pass without rebuilding unchanged
+bits. Push the exact checkpoint to Forgejo first, verify it, then fast-forward the identical commit
+to GitHub. Do not enable Forgejo Actions or manually dispatch hosted CI. Do not rebuild a package
+unless a production Windows defect changes shipped bits and forms a coherent acceptance boundary.
+Stop before physical-device operation, firmware/APK action, device write/mode transition,
+Guardian/execution-authority or safety-contract change, contradictory/UNKNOWN evidence,
+signing/publication/release, destructive action or material scope expansion. Preserve the protected
+patch byte-for-byte.
+
+### Gate status
+
+- Windows Device Atlas → Device Packs → Guardian journey: **APPROVED**
+- Windows Settings → About persistence journey: **AUTHORIZED — ONE BOUNDED BATCH**
+- Forgejo-first dual-remote checkpointing: **REQUIRED**
+- Replacement development package: **DEFER UNTIL A COHERENT PRODUCTION CHANGE EXISTS**
+- v0.2 Golden Foundation: **CLOSED pending remaining release gates**
+- Physical Android operation, production signing/publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 3498ed0 — Windows popsicle no-phone journey
 
 - Reviewed checkpoint: `3498ed08a5a0a7449f9d6fe26718f774a9aa6b0f`

@@ -1,5 +1,63 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: b4d75a3 — Candidate integration fixture refresh
+
+- Reviewed checkpoint: `b4d75a3ea839ffd227674da4d791e1f9b3e59aef`
+- Test correction: `b019bc9808c2502c1f3d665af48fe74915a2dbcb`
+- Approved base: `ca04cbf`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — INTEGRATION FIXTURE NOW SUPPLIES CURRENT INSPECTION EVIDENCE**
+
+### Decision and independent evidence
+
+This is the same stale setup class as the previously approved Candidate Installation fixture. The
+production planner correctly requires current structure-inspection evidence. Calling
+`RomInspectionService.inspect_project` in the inert integration fixture supplies that prerequisite
+through the real production service and preserves the fail-closed product behavior.
+
+- The correction is one import and one fixture setup call in
+  `tests/test_candidate_installation_integration.py`; no production source changed.
+- Product Assurance independently ran the exact corrected node natively on the Legion with a fresh
+  isolated temporary directory: **1/1 passed**.
+- `git diff --check ca04cbf..b4d75a3` passes. The bounded remainder truthfully reports **79 passed /
+  1 failed**, with the previously evidenced node deselected and no later-node claim.
+- The segmented count is correct: **862 passed / 6 skipped** across 868 unique workflow-ordered
+  nodes through the corrected victim, leaving exactly **105** of the 974 collected nodes.
+- This test-only correction does not warrant a package rebuild. The accepted package remains
+  preserved pending final source convergence.
+- No device, paid CI, dependency installation or execution authority occurred. Feature freeze,
+  Guardian separation, exact evidence, UNKNOWN-on-uncertainty, no blind retry and permanent
+  bootloader no-relock remain intact.
+
+### Approved next bounded Windows task
+
+Run only the **105 collected node IDs after**
+`tests/test_candidate_installation_integration.py::test_real_build_base_avb_and_candidate_boundaries_compose_two_plus_48`.
+
+1. Execute that exact continuation once with `-x`, offscreen Qt and a fresh explicit
+   `--basetemp`; do not repeat the 868 already evidenced nodes.
+2. If another deterministic failure appears, capture and correct only that first proven boundary
+   when the minimum in-scope change is clear; otherwise report it without speculative edits.
+3. If all 105 complete, combine only the non-overlapping segmented counts and run Ruff check/format
+   once. Do not describe segmented evidence as an uninterrupted suite.
+4. Do not rebuild or relaunch the package in this continuation. After convergence is independently
+   approved, exactly one current-source Windows replacement package may be authorized because
+   `abe183f` changed production bits.
+5. Preserve the protected patch and LF checkout materialization. Commit only a proven correction,
+   if needed, plus `docs/sync/BUILD-STATUS.md`; otherwise commit the evidence-only handoff. Push and
+   stop for independent review.
+
+Do not touch Linux, Companion, Knowledge/UI Design Lab, devices, ADB/Fastboot, firmware,
+Guardian/Recovery, publication, release, force-push, lock or relock.
+
+### Gate status
+
+- Windows portability evidence through refreshed integration fixture:
+  **SEGMENTED 862 PASSED / 6 SKIPPED**
+- Remaining workflow-ordered portability nodes: **105**
+- Ruff and final Windows portability convergence: **NEXT BOUNDED CHECK**
+- Production signing/trust, physical Android, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 79da6bd — Candidate Installation fixture refresh
 
 - Reviewed checkpoint: `79da6bd1bc3b85c9ded562be217b036153959c6d`

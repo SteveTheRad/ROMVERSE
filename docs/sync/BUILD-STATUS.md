@@ -1,5 +1,101 @@
 # ROMVERSE Product Assurance Sync
 
+## Extracted-package first-run onboarding and restart persistence — Product Assurance review requested
+
+### Exact authority and fail-closed pre-launch state
+
+- Product Assurance verdict `435949e776dc36ff08e1e3117eb634eafd05da49` exactly approves Build
+  checkpoint `f91fe31d10e9b0120fcb2bed6bdbf3b0224a4cd0` and authorizes one genuine
+  first-run Guided onboarding plus one restart of the already extracted package. The checkout was
+  safely fast-forwarded to that verdict with all protected untracked work preserved.
+- No new archive or package copy was created. Both launches reused exactly
+  `C:\Work\ROMVERSE-ZIP-Roundtrip-0a64ea9\ROMVERSE\ROMVERSE.exe`, 6,324,534 bytes, SHA-256
+  `d2df2c9a667520e9ebe88d4c2eb4dfa26020b1e2d8f852dddb33ab24a013b431`. The prior disposable ZIP
+  remained 75,612,944 bytes with SHA-256
+  `2e65f9fc6118c9159f4aea1958949e5da8a154d6e045432addb9b40a6f21c0e4`.
+- The reviewed `SettingsStore` created the only pre-launch file under the fresh
+  `ROMVERSE_HOME`, `C:\Work\ROMVERSE-Onboarding-435949e`. Its private schema-five
+  `config\settings.json` was 633 bytes, SHA-256
+  `f176ae0ba370b775481956507a3233c45c6b10f58dab6d7c76000804b343f12d`, with
+  `onboarding_complete: false`, an empty `workspace_path`, Guided experience, masked serials true,
+  and all four online/download/contribution controls false. The default
+  `C:\Work\ROMVERSE-Onboarding-435949e\workspace` did not exist.
+- Both child processes received a process-local `PATH` containing only the new empty directory
+  `C:\Work\ROMVERSE-No-Tools-435949e`. It contained zero entries and no ADB/Fastboot candidate;
+  the first-run wizard truthfully displayed both ADB and Fastboot as unavailable. No tool was
+  installed, repaired, invoked or discovered from another path.
+
+### Genuine Guided first run
+
+- The extracted executable was launched interactively at
+  `2026-09-10T03:55:46.7379520+10:00` with child-only `ROMVERSE_HOME` and `PATH`, and exactly one
+  argument: `--development-device-simulation`. It received PID `108332`; after 1,642 ms Windows
+  exposed one responsive `Welcome to ROMVERSE` wizard. No `--workspace` or `--skip-onboarding`
+  argument was used.
+- The wizard presented the exact default workspace
+  `C:\Work\ROMVERSE-Onboarding-435949e\workspace`, identified the build as internal development,
+  stated that setup cannot scan or modify a phone, and offered `Continue in Guided Mode`. Only that
+  default Guided control was selected; the workspace field, Browse control and every tool status
+  were left untouched.
+- The wizard created the default workspace and reached exactly one responsive
+  `ROMVERSE Studio 0.2.0-alpha.1` Command Deck. Its genuine Windows accessibility tree and
+  screenshot confirmed Guided Arcana, `LOCAL`, `DEVICE: NOT CONNECTED`, `PROJECT: NONE`,
+  `MISSION: IDLE`, `GUARDIAN: VERIFY REQUIRED`, Device DNA `UNCONFIRMED`, `No Android device
+  detected`, `Simulation Session`, `Development simulation`, and
+  `SIMULATION ONLY • NO HARDWARE`. No feature or consequential flow was entered.
+- The persisted settings became 680 bytes, SHA-256
+  `9edc2a91206ef4225caa90491270ad2ae88c3a0c3f4719c0cc773fa8e7b0e126`, with schema five,
+  `onboarding_complete: true`, exact default `workspace_path`, Guided experience, masked serials
+  true, and all four Local-mode controls still false. The inheritance-protected ACL continued to
+  grant Full Control only through owner rights and SYSTEM. The first process closed normally
+  through the title-bar Close control; process count became zero, the instance lock disappeared,
+  and the 77-byte ledger exactly contained one start and one clean close at SHA-256
+  `9b548079f50e029991471fdbf93e92807fb82adb17319871cb9ab421e7b7f499`.
+
+### Genuine restart persistence and final evidence
+
+- The same extracted executable was launched again at
+  `2026-09-10T03:58:01.6358097+10:00` with the same child-only data root, same empty tool path and
+  sole development-simulation argument. PID `105712` exposed one responsive
+  `ROMVERSE Studio 0.2.0-alpha.1` window after 3,004 ms; `Welcome to ROMVERSE` did not recur. The
+  same default workspace already existed and opened directly to the visually verified Guided,
+  `LOCAL`, no-device, Guardian-required Command Deck. No feature surface was entered.
+- The second process also closed normally through the visible Close control. Final extracted and
+  all-name ROMVERSE process counts are zero, the Windows UI inventory contains no extracted-package
+  window, and `%TEMP%\romverse-studio.lock` is absent. Both persistent zero-byte workspace lock
+  files accepted exclusive no-sharing opens, proving no live holder remained. The final runtime
+  ledger is exactly 154 bytes, SHA-256
+  `50d779cf4f44836bb0f2fc6bb9cd0f21763e9de1dcb388fb854e57e5b18f4587`, with exactly two starts
+  and two clean closes; its final write was `2026-09-10T03:59:09.5116778+10:00`.
+- The settings bytes, SHA-256, private ACL, onboarding completion, exact workspace, Guided mode,
+  masked serials and four false Local-mode controls remained unchanged across the restart. The
+  evidence root contains 8 regular files, 20 directories, 882,935 bytes and zero reparse entries;
+  neither the empty process-tool path nor the workspace contains an ADB/Fastboot executable.
+- After both launches, source and extracted packages still match at 306 files, 23 directories,
+  164,663,424 bytes, zero zero-byte files, zero reparse entries, identical executable identity and
+  normalized ordinal member-manifest SHA-256
+  `92087364487cf5dbecb473291812628ae25bdc763fb912155903de61c71e6209`. The source package,
+  existing ZIP, extracted tree, onboarding evidence root and empty process-tool path remain
+  preserved for review.
+- This checkpoint changes only `docs/sync/BUILD-STATUS.md`. No source, test, settings contract,
+  package or archive changed; no test suite was repeated and no rebuild occurred because this was
+  the exact authorized onboarding/runtime observation. `git diff --check` is the proportionate
+  repository validation. Protected Companion files remain untouched. The protected untracked patch
+  remains 8,272 bytes with SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it and existing untracked
+  `build-work\` intermediates remain excluded from staging.
+- No network, download, install, dependency/tool change or repair, phone/emulator operation,
+  ADB/Fastboot command, firmware/APK action, Guardian/Recovery execution, production
+  adapter/trust/signing, publication, release, hosted CI, wipe, unlock/root, bootloader lock or
+  relock occurred. Repository fetch/push remains the separate coordination path. Exact-device
+  evidence, fresh consent, Guardian-only authority and separation, durable UNKNOWN, no blind
+  retry, independent verification, feature freeze and permanent bootloader no-relock remain intact.
+- Precise proposed next task: independent Product Assurance review of this exact first-run Guided
+  onboarding, private persisted settings/default workspace, wizard suppression on the single normal
+  restart, and unchanged extracted package. Do not begin another onboarding/restart, package/archive
+  cycle, source change, product surface or consequential flow without the matching repository
+  verdict.
+
 ## Windows built-in ZIP round-trip and extracted-package launch — Product Assurance review requested
 
 ### Exact authority, source binding and local archive

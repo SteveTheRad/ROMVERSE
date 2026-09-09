@@ -1,5 +1,75 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 31dba7c — Windows local history journey
+
+- Reviewed checkpoint: `31dba7c01d6153efca822e5e75b6edd03668d660`
+- Approved base: `d1955a79cff85c5459217f900a63b3066c50d4a2`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — LOCAL HISTORY REMAINS DURABLE, PRIVATE AND NON-AUTHORITATIVE ON WINDOWS**
+
+### Decision and independent evidence
+
+The bounded Windows Time Machine → Health Timeline → Activity Center journey passed without a
+product defect. The checkpoint is documentation-only, does not change package bits and correctly
+avoids rerunning unchanged tests or rebuilding an identical package.
+
+- Product Assurance inspected the exact one-file commit and independently checked the retained
+  Windows evidence over the authenticated host connection. The populated activity ledger contains
+  exactly five successful local-project events: protected import, isolated tree creation, firmware
+  extraction and two Project Vault checkpoints. The entries identify their source routes and
+  project/Vault context; none claims a phone health sample, Guardian approval or execution result.
+- The activity ledger's independently recomputed SHA-256 is
+  `fa348d1f7162f90cdff5b1711dfe90563480e7e0ca0ef3310303b6a806462ec4`, matching the
+  handoff. Its details explicitly say `local project only` / `phone untouched` for Vault outcomes.
+- The persisted project remains the 356-byte inert synthetic firmware project with SHA-256
+  `85e734ea89c706d344987794acf5ebc9fb617e67a1a5a09f8516bf4c755937b0`. This is local test
+  context and cannot be represented as connected-device evidence.
+- Product Assurance found exactly eight retained Time Machine files. The populated runtime ledger
+  independently contains eight start/clean-close pairs and no additional text or fault marker; the
+  empty workspace contains one start/clean-close pair and no fault marker. This supports the
+  reported clean reopen without manufacturing Health Timeline records.
+- The current checkout is clean except for the standing protected untracked patch. Product
+  Assurance independently reconfirmed it is 8,272 bytes with SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123beff0bb`; it remains untouched.
+- Forgejo and GitHub expose the same exact checkpoint. No hosted CI, package rebuild, phone query,
+  device command or other external product action occurred.
+
+No restore, backup, export, cleanup, device discovery, ADB/Fastboot operation, firmware/APK action,
+mode transition, Guardian/Recovery authority, flash, wipe, unlock/root, lock/relock, signing,
+publication or release is authorized by this approval. Exact evidence, Guardian-only authority,
+durable `UNKNOWN`, no blind retry, no wipe and permanent bootloader no-relock remain unchanged.
+
+### Approved next bounded task
+
+Run one current-package, no-phone Windows journey through the existing Device Atlas → Codex
+Archives → Recovery Bay information surfaces, using only the existing isolated synthetic workspace
+and packaged offline content.
+
+1. Verify Device Atlas distinguishes installed/catalog knowledge from live Device DNA and does not
+   infer a connected device, exact-device match or compatibility approval from the synthetic
+   project name or packaged Device Packs.
+2. Follow one existing knowledge handoff into Codex Archives and back. Confirm source tier,
+   applicability, confidence and limitations remain visible and that no knowledge article becomes
+   an automatic command, Guardian approval or verified hardware outcome.
+3. Open Recovery Bay from the relevant existing informational handoff and confirm its no-device
+   state is truthful and actionable without inventing an incident, recovery success or execution
+   authority. Cancel/close every consequential or external control before action.
+4. Close and reopen once only if needed to verify promised persistence. If a genuine Stage 1 defect
+   appears, fix only that reproduced defect, run focused checks and make a small checkpoint. Do not
+   rebuild unless production source changes.
+
+Do not perform catalog/network research, download or install dependencies, use an emulator or
+phone, invoke ADB/Fastboot, import/transfer firmware or APKs, enter Recovery, flash, wipe,
+unlock/root, lock/relock, sign, publish or release. This task must not overlap Linux's ROM Studio →
+Forge Arsenal cancellation/context journey.
+
+### Gate status
+
+- Windows Time Machine, Health Timeline and Activity Center no-phone journey: **APPROVED**
+- Windows local-history integrity and restart persistence: **APPROVED**
+- Device Atlas → Codex Archives → Recovery Bay journey: **AUTHORIZED — READ-ONLY / NO-PHONE**
+- Physical Recovery/flash, production signing/trust, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: a3d0170 — Windows Settings and About journey
 
 - Reviewed checkpoint: `a3d0170cb5ae101b8d4ec4ad0723d15a14d34a82`

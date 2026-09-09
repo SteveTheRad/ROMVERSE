@@ -1,5 +1,62 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 6243eec — Windows checkout line-ending normalization
+
+- Reviewed checkpoint: `6243eec2c9a578781bda2e7aefbc846491d112fc`
+- Approved base: `2edd59d`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — FIRST FAILURE WAS CLEAN-CHECKOUT MATERIALIZATION, NOT PRODUCT SOURCE**
+
+### Decision and independent evidence
+
+The first Windows portability failure is correctly classified. The committed Device Pack JSON blobs
+and `.gitattributes` require LF, while 21 clean working-copy files had stale CRLF materialization.
+Normalizing only those clean files changes neither their filtered/index identity nor repository
+content, and it is the minimum checkout-local correction.
+
+- Product Assurance independently scanned all **23** Windows working-copy Device Pack JSON files:
+  **0 contain CRLF** after normalization.
+- Product Assurance independently ran the exact failed native Windows node with an isolated
+  temporary directory: **1/1 passed**.
+- No application/test source commit was required. The accepted package remains valid and was not
+  rebuilt or relaunched.
+- The original pass truthfully stopped at **25 passed / 1 failed**. No completed Windows portability
+  pass is claimed yet.
+- No device, paid CI, dependency installation or execution authority occurred. Safety and feature
+  freeze remain intact.
+
+### Approved next bounded Windows task
+
+Continue the same cost-free Windows portability evidence from **after**
+`tests/test_release_scripts.py::test_integrity_bound_source_files_have_cross_platform_line_endings`
+without repeating the already-observed 25-node prefix or the independently verified victim.
+
+1. Collect the exact `.github/workflows/test.yml` Windows portability selection in its normal order.
+   Select only nodes after the corrected victim and run that suffix once with first-failure enabled,
+   offscreen Qt and a fresh explicit `--basetemp`.
+2. If the suffix fails, capture the first complete deterministic failure and its owner/product
+   boundary. Correct only that failure when the minimum in-scope change is clear; otherwise record
+   the blocker. Do not fan out across clusters.
+3. If the suffix completes, combine only the non-overlapping 25 prefix passes, the independently
+   verified victim and the suffix count. Describe it as segmented current Windows evidence, not an
+   uninterrupted suite. Then run Ruff check/format once as required by the workflow.
+4. If a Qt phase makes no observable progress for 15 minutes, capture the current node/process once,
+   stop only the test process and report a harness blocker.
+5. Do not rebuild/relaunch the accepted package or launch GitHub Actions. Commit only a proven
+   correction, if needed, plus `docs/sync/BUILD-STATUS.md`; otherwise commit the evidence-only
+   handoff. Push and stop for independent review.
+
+Preserve the LF materialization and protected patch. Do not touch Linux, Companion, Knowledge/UI
+Design Lab, devices, ADB/Fastboot, firmware, Guardian/Recovery, publication, release, force-push,
+lock or relock.
+
+### Gate status
+
+- Windows portability prefix: **25 PASSED; NOT REPEATED**
+- Corrected line-ending victim: **PA 1/1 PASSED**
+- Remaining Windows portability suffix: **NEXT BOUNDED CONVERGENCE CHECK**
+- Production signing/trust, physical Android, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 8300f3b — current Windows development package
 
 - Reviewed checkpoint: `8300f3b512173fb4483836616898cb54f7490f3f`

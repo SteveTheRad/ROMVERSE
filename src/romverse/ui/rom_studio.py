@@ -868,8 +868,9 @@ class RomStudio(QWidget):
         self.project_filter.textChanged.connect(self._filter_projects)
         page.addWidget(self.project_filter)
 
-        content = QHBoxLayout()
-        content.setSpacing(16)
+        self.workspace_grid = QGridLayout()
+        self.workspace_grid.setSpacing(16)
+        self._workspace_stacked: bool | None = None
         self.project_list = QListWidget()
         self.project_list.setObjectName("HistoryList")
         self.project_list.setMinimumWidth(240)
@@ -877,11 +878,11 @@ class RomStudio(QWidget):
         self.project_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.project_list.setWordWrap(True)
         self.project_list.currentRowChanged.connect(self._select)
-        content.addWidget(self.project_list)
+        self.workspace_grid.addWidget(self.project_list, 0, 0)
 
-        detail = QFrame()
-        detail.setObjectName("Card")
-        detail_layout = QVBoxLayout(detail)
+        self.project_detail = QFrame()
+        self.project_detail.setObjectName("Card")
+        detail_layout = QVBoxLayout(self.project_detail)
         detail_layout.setContentsMargins(24, 22, 24, 22)
         detail_layout.setSpacing(14)
         self.project_name = QLabel("No project selected")
@@ -1259,9 +1260,9 @@ class RomStudio(QWidget):
         self.detail_scroll.setObjectName("StudioDetailScroll")
         self.detail_scroll.setWidgetResizable(True)
         self.detail_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.detail_scroll.setWidget(detail)
-        content.addWidget(self.detail_scroll, 1)
-        page.addLayout(content, 1)
+        self.detail_scroll.setWidget(self.project_detail)
+        self.workspace_grid.addWidget(self.detail_scroll, 0, 1)
+        page.addLayout(self.workspace_grid, 1)
 
         footer = QLabel(
             "ROM Studio preserves firmware originals and builds local candidates. Forge Bundles "
@@ -1273,6 +1274,27 @@ class RomStudio(QWidget):
         page.addWidget(footer)
         self.refresh()
         self.set_experience_mode(self.app_settings.experience_mode)
+        self._apply_responsive_workspace()
+
+    def resizeEvent(self, event) -> None:  # noqa: N802
+        super().resizeEvent(event)
+        self._apply_responsive_workspace()
+
+    def _apply_responsive_workspace(self) -> None:
+        stacked = self.width() < 1_050
+        if stacked == self._workspace_stacked:
+            return
+        self._workspace_stacked = stacked
+        self.workspace_grid.removeWidget(self.project_list)
+        self.workspace_grid.removeWidget(self.detail_scroll)
+        self.workspace_grid.addWidget(self.project_list, 0, 0)
+        self.workspace_grid.addWidget(self.detail_scroll, 1 if stacked else 0, 0 if stacked else 1)
+        self.project_list.setMaximumWidth(16_777_215 if stacked else 250)
+        self.project_list.setMaximumHeight(180 if stacked else 16_777_215)
+        self.workspace_grid.setColumnStretch(0, 1 if stacked else 0)
+        self.workspace_grid.setColumnStretch(1, 0 if stacked else 1)
+        self.workspace_grid.setRowStretch(0, 0 if stacked else 1)
+        self.workspace_grid.setRowStretch(1, 1 if stacked else 0)
 
     def _configure_tools(self, tool_statuses: tuple[ToolStatus, ...]) -> None:
         self.tool_statuses = tuple(tool_statuses)

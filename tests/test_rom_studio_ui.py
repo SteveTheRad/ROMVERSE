@@ -1826,8 +1826,21 @@ def test_rom_studio_detail_remains_fully_visible_at_compact_desktop_width(tmp_pa
     app.processEvents()
     try:
         assert studio.project_list.minimumWidth() == 240
-        assert studio.project_list.maximumWidth() == 250
+        assert studio.project_list.maximumHeight() == 180
+        assert studio.workspace_grid.getItemPosition(
+            studio.workspace_grid.indexOf(studio.project_list)
+        )[:2] == (0, 0)
+        assert studio.workspace_grid.getItemPosition(
+            studio.workspace_grid.indexOf(studio.detail_scroll)
+        )[:2] == (1, 0)
         assert studio.detail_scroll.widget().width() <= studio.detail_scroll.viewport().width()
+
+        studio.resize(1_177, 802)
+        app.processEvents()
+        assert studio.project_list.maximumWidth() == 250
+        assert studio.workspace_grid.getItemPosition(
+            studio.workspace_grid.indexOf(studio.detail_scroll)
+        )[:2] == (0, 1)
     finally:
         studio.close()
 

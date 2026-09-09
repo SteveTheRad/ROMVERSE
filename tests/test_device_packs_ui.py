@@ -2,7 +2,7 @@ import json
 import zipfile
 from importlib.resources import files
 
-from PySide6.QtWidgets import QApplication, QFrame, QLabel
+from PySide6.QtWidgets import QApplication, QFrame, QLabel, QScrollArea
 
 from romverse.device.catalog import GooglePlayDeviceCatalog
 from romverse.device.dna import DeviceDnaService
@@ -18,6 +18,29 @@ from tests.test_device_catalog import _payload, _sync
 from tests.test_device_dna import _device as _dna_device
 from tests.test_device_dna import _project as _dna_project
 from tests.test_source_intelligence import SourceRunner
+
+
+def test_device_atlas_stacks_official_identity_controls_at_compact_width(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
+    center = DevicePacksCenter(registry, tmp_path, online_catalog_enabled=False)
+    center.resize(817, 700)
+    center.show()
+    app.processEvents()
+    try:
+        layout = center.identity_catalog_layout
+        assert layout.getItemPosition(layout.indexOf(center.identity_catalog_badge))[:2] == (1, 0)
+        assert layout.getItemPosition(layout.indexOf(center.identity_catalog_button))[:2] == (1, 1)
+        scroll = center.findChild(QScrollArea, "DeviceAtlasScroll")
+        assert scroll is not None
+        assert scroll.widget().width() <= scroll.viewport().width()
+
+        center.resize(980, 700)
+        app.processEvents()
+        assert layout.getItemPosition(layout.indexOf(center.identity_catalog_badge))[:2] == (0, 1)
+        assert layout.getItemPosition(layout.indexOf(center.identity_catalog_button))[:2] == (0, 2)
+    finally:
+        center.close()
 
 
 def test_device_atlas_distinguishes_local_build_readiness_from_flash_lock(tmp_path) -> None:

@@ -785,6 +785,7 @@ def test_about_page_uses_wide_responsive_grid_and_crisp_social_actions() -> None
     assert reddit_card is not None and reddit_card.minimumHeight() == 78
     assert github_card is not None and github_card.minimumHeight() == 78
     assert founder_spotlight is page.founder_spotlight
+    assert page.founder_title.wordWrap()
     assert romverse_website_card is not None and romverse_website_card.minimumHeight() == 118
     assert radforge_website_card is not None and radforge_website_card.minimumHeight() == 118
     assert page.logo.width() == page.logo.height() == 310

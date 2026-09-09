@@ -149,6 +149,7 @@ class DevicePacksCenter(QWidget):
         self.active_knowledge_report: KnowledgeLookupReport | None = None
         self.active_knowledge_device_serial = ""
         self.knowledge_lookup_error = ""
+        self._identity_catalog_compact: bool | None = None
         self.intelligence_history = (
             DeviceIntelligenceHistoryStore(workspace) if workspace is not None else None
         )
@@ -260,19 +261,22 @@ class DevicePacksCenter(QWidget):
 
         self.identity_catalog = QFrame()
         self.identity_catalog.setObjectName("DiagnosticHandoffBar")
-        identity_layout = QHBoxLayout(self.identity_catalog)
-        identity_layout.setContentsMargins(20, 14, 20, 14)
-        identity_copy = QVBoxLayout()
+        self.identity_catalog_layout = QGridLayout(self.identity_catalog)
+        self.identity_catalog_layout.setContentsMargins(20, 14, 20, 14)
+        self.identity_catalog_layout.setHorizontalSpacing(12)
+        self.identity_catalog_layout.setVerticalSpacing(10)
+        self.identity_catalog_copy = QVBoxLayout()
         self.identity_catalog_title = QLabel("Official Android device IDs")
         self.identity_catalog_title.setObjectName("SectionTitle")
+        self.identity_catalog_title.setWordWrap(True)
         self.identity_catalog_detail = QLabel()
         self.identity_catalog_detail.setObjectName("Muted")
         self.identity_catalog_detail.setWordWrap(True)
-        identity_copy.addWidget(self.identity_catalog_title)
-        identity_copy.addWidget(self.identity_catalog_detail)
-        identity_layout.addLayout(identity_copy, 1)
+        self.identity_catalog_copy.addWidget(self.identity_catalog_title)
+        self.identity_catalog_copy.addWidget(self.identity_catalog_detail)
+        self.identity_catalog_layout.addLayout(self.identity_catalog_copy, 0, 0)
         self.identity_catalog_badge = QLabel()
-        identity_layout.addWidget(self.identity_catalog_badge)
+        self.identity_catalog_layout.addWidget(self.identity_catalog_badge, 0, 1)
         self.identity_catalog_button = QPushButton("Sync official IDs")
         self.identity_catalog_button.setToolTip(
             "Downloads Google's public supported-device catalog in the background. It can label "
@@ -280,7 +284,7 @@ class DevicePacksCenter(QWidget):
             "any phone action."
         )
         self.identity_catalog_button.clicked.connect(self.catalog_refresh_requested)
-        identity_layout.addWidget(self.identity_catalog_button)
+        self.identity_catalog_layout.addWidget(self.identity_catalog_button, 0, 2)
         page.addWidget(self.identity_catalog)
 
         self.hero = QFrame()
@@ -372,25 +376,75 @@ class DevicePacksCenter(QWidget):
             else DeviceCatalogStatus(False, False, "Official device catalog is unavailable")
         )
         self._show_installed()
+        self._apply_responsive_identity_catalog()
+
+    def resizeEvent(self, event) -> None:  # noqa: N802
+        super().resizeEvent(event)
+        self._apply_responsive_identity_catalog()
+
+    def _apply_responsive_identity_catalog(self) -> None:
+        compact = self.width() < 900
+        if compact == self._identity_catalog_compact:
+            return
+        self._identity_catalog_compact = compact
+        self.passport_layout.removeWidget(self.passport_hologram)
+        self.passport_layout.removeItem(self.passport_content)
+        self.passport_layout.removeItem(self.passport_actions)
+        self.identity_catalog_layout.removeItem(self.identity_catalog_copy)
+        self.identity_catalog_layout.removeWidget(self.identity_catalog_badge)
+        self.identity_catalog_layout.removeWidget(self.identity_catalog_button)
+        if compact:
+            self.passport_layout.addWidget(
+                self.passport_hologram, 0, 0, Qt.AlignmentFlag.AlignTop
+            )
+            self.passport_layout.addLayout(self.passport_content, 0, 1)
+            self.passport_layout.addLayout(self.passport_actions, 1, 0, 1, 2)
+            self.passport_layout.setColumnStretch(0, 0)
+            self.passport_layout.setColumnStretch(1, 1)
+            self.passport_layout.setColumnStretch(2, 0)
+            self.identity_catalog_layout.addLayout(self.identity_catalog_copy, 0, 0, 1, 2)
+            self.identity_catalog_layout.addWidget(self.identity_catalog_badge, 1, 0)
+            self.identity_catalog_layout.addWidget(self.identity_catalog_button, 1, 1)
+            self.identity_catalog_layout.setColumnStretch(0, 1)
+            self.identity_catalog_layout.setColumnStretch(1, 0)
+            self.identity_catalog_layout.setColumnStretch(2, 0)
+        else:
+            self.passport_layout.addWidget(
+                self.passport_hologram, 0, 0, Qt.AlignmentFlag.AlignTop
+            )
+            self.passport_layout.addLayout(self.passport_content, 0, 1)
+            self.passport_layout.addLayout(self.passport_actions, 0, 2)
+            self.passport_layout.setColumnStretch(0, 0)
+            self.passport_layout.setColumnStretch(1, 1)
+            self.passport_layout.setColumnStretch(2, 0)
+            self.identity_catalog_layout.addLayout(self.identity_catalog_copy, 0, 0)
+            self.identity_catalog_layout.addWidget(self.identity_catalog_badge, 0, 1)
+            self.identity_catalog_layout.addWidget(self.identity_catalog_button, 0, 2)
+            self.identity_catalog_layout.setColumnStretch(0, 1)
+            self.identity_catalog_layout.setColumnStretch(1, 0)
+            self.identity_catalog_layout.setColumnStretch(2, 0)
 
     def _device_passport(self) -> QFrame:
         passport = QFrame()
         passport.setObjectName("DevicePassport")
         passport.setAccessibleName("Live Device Intelligence passport")
         passport.setMinimumHeight(310)
-        outer = QHBoxLayout(passport)
-        outer.setContentsMargins(22, 18, 22, 18)
-        outer.setSpacing(18)
+        self.passport_layout = QGridLayout(passport)
+        self.passport_layout.setContentsMargins(22, 18, 22, 18)
+        self.passport_layout.setHorizontalSpacing(18)
+        self.passport_layout.setVerticalSpacing(12)
 
-        hologram = QLabel("◇\nDNA")
-        hologram.setObjectName("DevicePassportHologram")
-        hologram.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        hologram.setFixedSize(88, 118)
-        hologram.setAccessibleName("Holographic device DNA emblem")
-        outer.addWidget(hologram, 0, Qt.AlignmentFlag.AlignTop)
+        self.passport_hologram = QLabel("◇\nDNA")
+        self.passport_hologram.setObjectName("DevicePassportHologram")
+        self.passport_hologram.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.passport_hologram.setFixedSize(88, 118)
+        self.passport_hologram.setAccessibleName("Holographic device DNA emblem")
+        self.passport_layout.addWidget(
+            self.passport_hologram, 0, 0, Qt.AlignmentFlag.AlignTop
+        )
 
-        content = QVBoxLayout()
-        content.setSpacing(7)
+        self.passport_content = QVBoxLayout()
+        self.passport_content.setSpacing(7)
         title_row = QHBoxLayout()
         heading = QLabel("DEVICE INTELLIGENCE HUB  •  LIVE PASSPORT")
         heading.setObjectName("DevicePassportEyebrow")
@@ -399,14 +453,14 @@ class DevicePacksCenter(QWidget):
         self.passport_state = QLabel("AWAITING DEVICE")
         self.passport_state.setObjectName("Warning")
         title_row.addWidget(self.passport_state)
-        content.addLayout(title_row)
+        self.passport_content.addLayout(title_row)
         self.passport_name = QLabel("Connect an Android phone to unfold its Device DNA")
         self.passport_name.setObjectName("DevicePassportTitle")
         self.passport_name.setWordWrap(True)
-        content.addWidget(self.passport_name)
+        self.passport_content.addWidget(self.passport_name)
         self.passport_scan_progress = ProcessProgressBar()
         self.passport_scan_progress.setAccessibleName("Animated Device DNA scan progress")
-        content.addWidget(self.passport_scan_progress)
+        self.passport_content.addWidget(self.passport_scan_progress)
 
         facts = QGridLayout()
         facts.setHorizontalSpacing(16)
@@ -420,15 +474,15 @@ class DevicePacksCenter(QWidget):
         self.passport_upgrade = self._passport_fact(facts, 2, 0, "UPGRADE VERDICT")
         self.passport_knowledge = self._passport_fact(facts, 2, 1, "MATCHED KNOWLEDGE")
         self.passport_history = self._passport_fact(facts, 2, 2, "LOCAL TIMELINE")
-        content.addLayout(facts)
-        outer.addLayout(content, 1)
+        self.passport_content.addLayout(facts)
+        self.passport_layout.addLayout(self.passport_content, 0, 1)
 
-        actions = QVBoxLayout()
-        actions.setSpacing(8)
+        self.passport_actions = QVBoxLayout()
+        self.passport_actions.setSpacing(8)
         self.passport_refresh_note = QLabel("READ-ONLY • PRIVATE • OFFLINE-FIRST")
         self.passport_refresh_note.setObjectName("DevicePassportBoundary")
         self.passport_refresh_note.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        actions.addWidget(self.passport_refresh_note)
+        self.passport_actions.addWidget(self.passport_refresh_note)
         self.passport_knowledge_button = QPushButton("Review best knowledge match")
         self.passport_knowledge_button.setObjectName("KnowledgeBrainAction")
         self.passport_knowledge_button.setVisible(False)
@@ -436,7 +490,7 @@ class DevicePacksCenter(QWidget):
             "Open the best current offline Archives match. No command or phone action is started."
         )
         self.passport_knowledge_button.clicked.connect(self._request_passport_knowledge)
-        actions.addWidget(self.passport_knowledge_button)
+        self.passport_actions.addWidget(self.passport_knowledge_button)
         self.passport_timeline_button = QPushButton("Open private timeline")
         self.passport_timeline_button.setObjectName("KnowledgeBrainAction")
         self.passport_timeline_button.setVisible(False)
@@ -445,9 +499,9 @@ class DevicePacksCenter(QWidget):
             "for this pseudonymous device. Nothing is uploaded or executed."
         )
         self.passport_timeline_button.clicked.connect(self._open_private_timeline)
-        actions.addWidget(self.passport_timeline_button)
-        actions.addStretch()
-        outer.addLayout(actions)
+        self.passport_actions.addWidget(self.passport_timeline_button)
+        self.passport_actions.addStretch()
+        self.passport_layout.addLayout(self.passport_actions, 0, 2)
         return passport
 
     @staticmethod
@@ -3007,7 +3061,7 @@ class DevicePacksCenter(QWidget):
             for entry in official_matches:
                 card = QFrame()
                 card.setObjectName("OfficialIdentityCard")
-                layout = QHBoxLayout(card)
+                layout = QGridLayout(card)
                 copy = QVBoxLayout()
                 name = QLabel(entry.marketing_name or entry.device or entry.model)
                 name.setObjectName("SectionTitle")
@@ -3030,9 +3084,10 @@ class DevicePacksCenter(QWidget):
                 review.clicked.connect(
                     lambda _checked=False, item=entry: self._show_official_identity(item)
                 )
-                layout.addLayout(copy, 1)
-                layout.addWidget(badge)
-                layout.addWidget(review)
+                layout.addLayout(copy, 0, 0, 1, 2)
+                layout.addWidget(badge, 1, 0)
+                layout.addWidget(review, 1, 1, Qt.AlignmentFlag.AlignRight)
+                layout.setColumnStretch(0, 1)
                 self.body_layout.addWidget(card)
                 self.official_result_buttons.append(review)
         title = QLabel(
@@ -3058,13 +3113,15 @@ class DevicePacksCenter(QWidget):
         for pack in packs:
             card = QFrame()
             card.setObjectName("Card")
-            layout = QHBoxLayout(card)
+            layout = QGridLayout(card)
             name = QLabel(pack.display_name)
             name.setObjectName("SectionTitle")
+            name.setWordWrap(True)
             detail = QLabel(
                 f"{pack.pack_id}  •  v{pack.version}  •  {len(pack.knowledge_sources)} source(s)"
             )
             detail.setObjectName("Muted")
+            detail.setWordWrap(True)
             valid = QLabel("INTEGRITY VERIFIED")
             valid.setObjectName("Good")
             review = QPushButton("Review Pack evidence")
@@ -3075,10 +3132,11 @@ class DevicePacksCenter(QWidget):
             review.clicked.connect(
                 lambda _checked=False, item=pack: self._show_pack_knowledge(item)
             )
-            layout.addWidget(name)
-            layout.addWidget(detail, 1)
-            layout.addWidget(valid)
-            layout.addWidget(review)
+            layout.addWidget(name, 0, 0)
+            layout.addWidget(detail, 0, 1)
+            layout.addWidget(valid, 1, 0)
+            layout.addWidget(review, 1, 1, Qt.AlignmentFlag.AlignRight)
+            layout.setColumnStretch(1, 1)
             self.body_layout.addWidget(card)
         for issue in self.registry.issues:
             card = QFrame()
@@ -3087,6 +3145,7 @@ class DevicePacksCenter(QWidget):
             name = QLabel(issue.filename)
             detail = QLabel(issue.reason)
             detail.setObjectName("Danger")
+            detail.setWordWrap(True)
             layout.addWidget(name)
             layout.addWidget(detail, 1)
             self.body_layout.addWidget(card)

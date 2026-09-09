@@ -1,5 +1,65 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 9a8fcc6 — complete Windows portability evidence
+
+- Reviewed checkpoint: `9a8fcc6c6058b617a54b224623578ecaf47c15dc`
+- Approved base: `877f73b`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — ALL 974 WINDOWS PORTABILITY NODES HAVE CURRENT SEGMENTED EVIDENCE**
+
+### Decision and independent evidence
+
+The final seven workflow-ordered nodes completed, closing the non-overlapping native Windows
+portability selection at **968 passed / 6 skipped across all 974 collected nodes**. This remains
+truthfully classified as segmented evidence rather than one uninterrupted suite.
+
+- Product Assurance independently reran the exact seven final node IDs natively on the Legion with
+  fresh short basetemp `C:\Work\rvt-pa-final`: **7/7 passed**.
+- Product Assurance independently reran `ruff check .`: **PASS**.
+- Product Assurance independently confirmed `ruff format --check .` reports the same committed
+  baseline: **46 Python files would be reformatted / 506 already formatted**. This is a real static
+  quality/reproducibility gate, but not a portability-test or runtime failure.
+- No product/test source changed in this evidence handoff. The accepted Windows package was
+  correctly preserved and should not be rebuilt until the formatting baseline is corrected, so
+  only one converged replacement package is produced.
+- No device, paid CI, dependency installation or execution authority occurred. Feature freeze,
+  Guardian separation, exact evidence, UNKNOWN-on-uncertainty, no blind retry and permanent
+  bootloader no-relock remain intact.
+
+### Approved next bounded Windows task
+
+Correct the single repository-wide Ruff formatting baseline once, as a mechanical cross-platform
+quality slice before any replacement package.
+
+1. Pin the development formatter in `pyproject.toml` to exact current workflow behavior
+   `ruff==0.16.6`, preventing a future unconstrained `<1` formatter upgrade from silently changing
+   the required source layout.
+2. Capture normalized `ast.dump(..., include_attributes=False)` identities for the exact 46 reported
+   Python files, run Ruff formatting once on only those files, then prove every post-format AST is
+   identical and that the tracked changed set is exactly `pyproject.toml` plus those 46 files.
+3. Run `ruff check .` and `ruff format --check .` once after correction, plus `git diff --check`.
+   Do not rerun the 974 portability nodes: AST identity and the already-complete test evidence are
+   the proportional acceptance boundary for formatter-only changes.
+4. Do not rebuild or relaunch the package in this slice. Commit the deterministic-tool pin,
+   mechanical formatting and `docs/sync/BUILD-STATUS.md`, push and stop for review.
+5. Preserve the protected patch and LF checkout materialization. Do not edit Companion files or
+   mix any functional refactor into the formatter commit.
+
+After independent approval, Linux must converge the same formatter version and formatting from its
+own branch, preserving branch-specific behavior. Only then should each platform produce its one
+current-source replacement development package.
+
+Do not use paid CI; touch devices, ADB/Fastboot, firmware, Guardian/Recovery execution, Knowledge or
+UI Design Lab; publish; release; force-push; lock or relock.
+
+### Gate status
+
+- Native Windows portability selection: **COMPLETE — SEGMENTED 968 PASSED / 6 SKIPPED**
+- Ruff lint: **PASS**
+- Deterministic Ruff formatting baseline: **NEXT BOUNDED CORRECTION — 46 FILES**
+- Current-source Windows replacement package: **AFTER FORMATTING CONVERGENCE**
+- Production signing/trust, physical Android, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: b6c0bac — Windows long-basetemp harness boundary
 
 - Reviewed checkpoint: `b6c0bacb8f65241fd3d69ac1eb790233546910cd`

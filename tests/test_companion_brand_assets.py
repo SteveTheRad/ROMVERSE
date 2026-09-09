@@ -28,9 +28,10 @@ def test_companion_uses_exact_approved_desktop_brand_masters() -> None:
     app_icon = COMPANION_RES / "drawable-nodpi" / "romverse_app_icon.png"
     company_logo = COMPANION_RES / "drawable-nodpi" / "radforge_labs_official_logo.png"
     assert app_icon.read_bytes() == (DESKTOP_ASSETS / "romverse-app-icon.png").read_bytes()
-    assert company_logo.read_bytes() == (
-        DESKTOP_ASSETS / "radforge-labs-official-logo-transparent.png"
-    ).read_bytes()
+    assert (
+        company_logo.read_bytes()
+        == (DESKTOP_ASSETS / "radforge-labs-official-logo-transparent.png").read_bytes()
+    )
     assert sha256(app_icon.read_bytes()).hexdigest() == (
         "ab9286ce69e77abd82fe88105df70680186a4eb992289580c23f5d362c132a18"
     )

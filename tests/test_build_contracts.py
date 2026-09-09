@@ -384,9 +384,7 @@ def _schema3_executable_tools(tmp_path):
         source = Path(status.path)
         destination = source.with_name(f"romverse-bound-{source.name}")
         source.replace(destination)
-        bound.append(
-            ToolStatus(status.name, True, str(destination), status.version, status.detail)
-        )
+        bound.append(ToolStatus(status.name, True, str(destination), status.version, status.detail))
     return tuple(bound)
 
 

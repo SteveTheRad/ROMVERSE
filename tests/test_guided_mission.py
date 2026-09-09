@@ -190,9 +190,7 @@ def test_unchanged_unrooted_choice_skips_all_optional_modification_stages():
 
     assessments = GuidedMissionEngine().assess(context)
 
-    assert all(
-        assessments[index].status is GuidedStageStatus.COMPLETE for index in range(5, 9)
-    )
+    assert all(assessments[index].status is GuidedStageStatus.COMPLETE for index in range(5, 9))
     assert assessments[7].evidence == (
         "Verified base kept unchanged; optional app removal was not requested",
     )

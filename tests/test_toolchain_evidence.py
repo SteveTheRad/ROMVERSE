@@ -174,8 +174,7 @@ def test_managed_platform_tools_package_binds_nested_executable_to_receipt(
                 "schema_version": 1,
                 "name": "platform-tools",
                 "source": (
-                    "https://dl.google.com/android/repository/"
-                    "platform-tools-latest-linux.zip"
+                    "https://dl.google.com/android/repository/platform-tools-latest-linux.zip"
                 ),
                 "archive_sha256": "a" * 64,
                 "archive_bytes": 1_024,

@@ -226,9 +226,7 @@ def test_verified_intermediate_opens_inspection_only_then_explicitly_builds_once
         tuple(status.name for status in tools),
     ).plan(project.project_id)
     assert workspace_plan.schema_version == 3
-    device_plan = DeviceBuildContractService(store, registry, tools).create_plan(
-        project.project_id
-    )
+    device_plan = DeviceBuildContractService(store, registry, tools).create_plan(project.project_id)
     assert device_plan.schema_version == 2
     assert device_plan.workspace_plan_digest == workspace_plan.plan_digest
     forge = ForgeBundleService(store, tools)
@@ -307,9 +305,11 @@ def test_verified_intermediate_opens_inspection_only_then_explicitly_builds_once
     )
     assert durable == receipt
     assert all((reopened.workspace / output.path).is_file() for output in receipt.outputs)
-    assert RomBuildPlanner(reopened, tools, workspace_plan.required_tools).verify_tree(
-        project.project_id
-    ).valid
+    assert (
+        RomBuildPlanner(reopened, tools, workspace_plan.required_tools)
+        .verify_tree(project.project_id)
+        .valid
+    )
     assert ForgeBundleService(reopened).load_receipt(project.project_id) == forge_receipt
     assert not any("adb" in call[0] or "fastboot" in call[0] for call in runner.calls)
     assert len(studio.devices) == 1 and studio.devices[0].is_simulated
@@ -930,9 +930,7 @@ def test_reopened_signing_ready_candidate_stays_distinct_from_install_and_flash(
         == "✓  SIGNING READY / INSTALL NOT STARTED / FLASH NOT AUTHORIZED"
     )
     assert "SIGNING READY" in labels
-    assert (
-        "✓  SIGNING READY  •  INSTALLATION AND FLASH ARE SEPARATE CHOICES" in labels
-    )
+    assert "✓  SIGNING READY  •  INSTALLATION AND FLASH ARE SEPARATE CHOICES" in labels
     assert "installation: NOT STARTED" in control.status.text()
     assert "flash: NOT AUTHORIZED" in control.status.text()
     assert control.autopilot_button.text() == "Prepare verified ROM installation…"

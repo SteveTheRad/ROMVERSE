@@ -135,10 +135,7 @@ class DevicePackFoundryInventory:
                 in {_normalized_identity(value) for value in revision.model_patterns}
                 or bool(
                     {_normalized_identity(value) for value in (product, codename) if value}
-                    & {
-                        _normalized_identity(value)
-                        for value in revision.product_patterns
-                    }
+                    & {_normalized_identity(value) for value in revision.product_patterns}
                 )
             )
         )
@@ -292,9 +289,7 @@ class DevicePackFoundryService:
             and review.device_dna_attached
             and not draft_service.verify_device_dna_attachment(document, workspace=boundary)
         ):
-            raise ValueError(
-                "Device DNA attachment no longer matches the sealed workspace profile"
-            )
+            raise ValueError("Device DNA attachment no longer matches the sealed workspace profile")
         simulation = self._simulation_evidence(review, boundary)
         lanes = self._lanes(pack, review, simulation)
         return FoundryDraftRevision(
@@ -343,11 +338,7 @@ class DevicePackFoundryService:
             FoundryEvidenceLane(
                 "variants",
                 "Observed variant",
-                (
-                    FoundryEvidenceState.EVIDENCED
-                    if dna_bound
-                    else FoundryEvidenceState.PARTIAL
-                ),
+                (FoundryEvidenceState.EVIDENCED if dna_bound else FoundryEvidenceState.PARTIAL),
                 (
                     f"Sealed DNA {review.device_dna_profile_digest[:12]}… contributes "
                     f"{review.device_dna_fact_count} privacy-safe fact(s); "
@@ -452,10 +443,7 @@ class DevicePackFoundryService:
             finding.severity is SimulationSeverity.ATTENTION for finding in receipt.findings
         )
         expected_successful = bool(receipt.operations) and blocker_count == 0
-        if (
-            receipt.successful != expected_successful
-            or receipt.mission_ready != receipt.successful
-        ):
+        if receipt.successful != expected_successful or receipt.mission_ready != receipt.successful:
             return None
         successful = bool(
             receipt.successful

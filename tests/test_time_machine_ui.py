@@ -62,9 +62,7 @@ def _recovery_time_machine_context(tmp_path: Path):
         )
     )
     route = next(
-        item
-        for item in incident.routes
-        if item.kind is RecoveryRouteKind.EXACT_STOCK_RESTORE
+        item for item in incident.routes if item.kind is RecoveryRouteKind.EXACT_STOCK_RESTORE
     )
     assert route.owner_route == "time_machine"
     return source, workspace, project, incident, route
@@ -658,7 +656,9 @@ def test_project_vault_ui_captures_compares_branches_and_exports_without_phone_a
     assert capsule.is_file()
     assert "EXPORTED AND REVERIFIED" in center.vault_result.text()
     assert "nothing published" in center.vault_result.text()
-    assert any("LOCAL PROJECT • NOT PHONE BACKUP" in label.text() for label in center.findChildren(QLabel))
+    assert any(
+        "LOCAL PROJECT • NOT PHONE BACKUP" in label.text() for label in center.findChildren(QLabel)
+    )
     center.close()
 
 

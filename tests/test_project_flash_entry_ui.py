@@ -390,9 +390,7 @@ def test_genesis_automatically_enters_read_only_diagnosis_for_interrupted_instal
     app.processEvents()
     app.processEvents()
 
-    assert recovery == [
-        (studio.current_project.project_id, studio.current_project.original.sha256)
-    ]
+    assert recovery == [(studio.current_project.project_id, studio.current_project.original.sha256)]
     assert installation == history == []
     assert not mission.isVisible()
     studio.close()

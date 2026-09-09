@@ -402,8 +402,7 @@ class ProjectPreparationDialog(QDialog):
         return bool(
             not self._owns_session
             and request is not None
-            and request.candidate_choice
-            in {"candidate-installation", "source-installation"}
+            and request.candidate_choice in {"candidate-installation", "source-installation"}
         )
 
     def _prepare(self) -> None:

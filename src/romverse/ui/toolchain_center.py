@@ -252,10 +252,7 @@ def install_official_archive(
         if progress is not None:
             progress(0, 0)
         archive_sha256 = digest.hexdigest()
-        if (
-            expected_archive_sha256 is not None
-            and archive_sha256 != expected_archive_sha256
-        ):
+        if expected_archive_sha256 is not None and archive_sha256 != expected_archive_sha256:
             approved_label = (
                 f"Windows Platform Tools {WINDOWS_PLATFORM_TOOLS_VERSION}"
                 if source == WINDOWS_PLATFORM_TOOLS_SOURCE
@@ -776,9 +773,7 @@ def _validate_managed_package_receipt(
     ):
         raise ValueError("managed package receipt is invalid")
     legacy_windows_source = bool(
-        package == "platform-tools"
-        and receipt.get("source")
-        == WINDOWS_PLATFORM_TOOLS_SOURCE
+        package == "platform-tools" and receipt.get("source") == WINDOWS_PLATFORM_TOOLS_SOURCE
     )
     if any(
         not isinstance(relative, str) or not _is_sha256(expected)
@@ -1185,9 +1180,7 @@ class ToolchainCenter(QWidget):
             "Warning" if self._manifest_error else "ToolchainManifestStatus"
         )
         self.manifest_status.setWordWrap(True)
-        self.manifest_status.setTextInteractionFlags(
-            Qt.TextInteractionFlag.TextSelectableByMouse
-        )
+        self.manifest_status.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self.manifest_button = QPushButton("Export reproducible manifest")
         self.manifest_button.setObjectName("Primary")
         self.manifest_button.setMinimumHeight(38)
@@ -1207,9 +1200,7 @@ class ToolchainCenter(QWidget):
         )
         self.offline_status.setObjectName("ToolchainManifestStatus")
         self.offline_status.setWordWrap(True)
-        self.offline_status.setTextInteractionFlags(
-            Qt.TextInteractionFlag.TextSelectableByMouse
-        )
+        self.offline_status.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self.offline_progress = ProcessProgressBar()
         offline_actions = QHBoxLayout()
         self.offline_export_button = QPushButton("Export verified offline kit")
@@ -2234,9 +2225,7 @@ class ToolchainCenter(QWidget):
         communication_layout.setSpacing(5)
         communication_eyebrow = QLabel("DEVICE COMMUNICATION  •  GUARDIAN-ROUTED EVIDENCE")
         communication_eyebrow.setObjectName("Eyebrow")
-        communication_title, communication_detail, communication_state = (
-            self._communication_copy()
-        )
+        communication_title, communication_detail, communication_state = self._communication_copy()
         communication_heading = QLabel(communication_title)
         communication_heading.setObjectName("SectionTitle")
         communication_body = QLabel(communication_detail)
@@ -2266,8 +2255,7 @@ class ToolchainCenter(QWidget):
             "Good"
             if self.host_health.overall_state is ToolHealthState.VERIFIED
             else "Danger"
-            if self.host_health.overall_state
-            in {ToolHealthState.MISSING, ToolHealthState.CONFLICT}
+            if self.host_health.overall_state in {ToolHealthState.MISSING, ToolHealthState.CONFLICT}
             else "Warning"
         )
         doctor_top.addWidget(doctor_badge)
@@ -2300,9 +2288,7 @@ class ToolchainCenter(QWidget):
         doctor_actions = QHBoxLayout()
         self.platform_tools_repair_button = QPushButton("Install one verified Platform Tools pair")
         self.platform_tools_repair_button.setObjectName("Primary")
-        self.platform_tools_repair_button.setVisible(
-            self.host_health.needs_platform_tools_repair
-        )
+        self.platform_tools_repair_button.setVisible(self.host_health.needs_platform_tools_repair)
         self.platform_tools_repair_button.setEnabled(
             self.host_health.needs_platform_tools_repair and self.workspace is not None
         )
@@ -2392,8 +2378,7 @@ class ToolchainCenter(QWidget):
         selected = self._communication_devices
         observed = self._observed_communication_devices
         communication_verified = any(
-            device.state
-            in {DeviceState.DEVICE, DeviceState.RECOVERY, DeviceState.SIDELOAD}
+            device.state in {DeviceState.DEVICE, DeviceState.RECOVERY, DeviceState.SIDELOAD}
             or device.is_fastboot
             for device in selected
         )
@@ -2473,7 +2458,9 @@ class ToolchainCenter(QWidget):
             detail = "The latest scan did not provide enough evidence to name a working mode."
             state = "Warning"
         if device.errors:
-            detail += f" {len(device.errors)} bounded probe warning(s) remain visible in Device Portal."
+            detail += (
+                f" {len(device.errors)} bounded probe warning(s) remain visible in Device Portal."
+            )
         return label, detail + " Phone-change authority: none.", state
 
     @staticmethod
@@ -2543,9 +2530,7 @@ class ToolchainDownloadWorker(ManagedRunnable):
                 else "https://dl.google.com/android/repository/platform-tools-latest-linux.zip"
             )
             approved_sha256 = (
-                WINDOWS_PLATFORM_TOOLS_ARCHIVE_SHA256
-                if platform_name == "windows"
-                else None
+                WINDOWS_PLATFORM_TOOLS_ARCHIVE_SHA256 if platform_name == "windows" else None
             )
             packages["platform-tools"] = (source, executables, approved_sha256)
         managed: list[str] = []

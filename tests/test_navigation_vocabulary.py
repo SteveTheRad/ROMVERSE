@@ -2688,9 +2688,7 @@ def test_recovery_bay_archives_handoff_and_canonical_fix_route_are_connected(
 
         assert window.stack.currentWidget() is window.knowledge_center
         assert window.knowledge_center.search.text() == "adb unauthorized"
-        assert (
-            window.knowledge_center.source_context.property("source_route") == "recovery_bay"
-        )
+        assert window.knowledge_center.source_context.property("source_route") == "recovery_bay"
         assert "EXECUTION AUTHORITY: NONE" in window.knowledge_center.offline_archive_status.text()
         assert window.knowledge_center.open_route.property("route") == "command_deck"
         window.knowledge_center.open_route.click()
@@ -2701,9 +2699,7 @@ def test_recovery_bay_archives_handoff_and_canonical_fix_route_are_connected(
             "Recovery Bay Archives  •  adb unauthorized"
         )
         assert "no repair worker" in window.device_center.feature_handoff_detail.text()
-        assert window.device_center.feature_handoff_badge.text() == (
-            "LOCAL GUIDE • AUTHORITY NONE"
-        )
+        assert window.device_center.feature_handoff_badge.text() == ("LOCAL GUIDE • AUTHORITY NONE")
         assert window.device_center.next_button.isEnabled()
         assert window.device_center.primary_action_buttons["Connect Device"].isEnabled()
         assert window.device_center.devices == []

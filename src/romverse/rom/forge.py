@@ -216,9 +216,7 @@ class ForgeBundleService:
             "toolchain_manifest_digest": (
                 plan.toolchain_manifest_digest if plan.schema_version >= 3 else ""
             ),
-            "guided_choice_digest": (
-                plan.guided_choice_digest if plan.schema_version >= 3 else ""
-            ),
+            "guided_choice_digest": (plan.guided_choice_digest if plan.schema_version >= 3 else ""),
             "recipe_digest": plan.recipe_digest,
             "device_pack_id": plan.device_pack_id,
             "entries": [asdict(entry) for entry in entries],
@@ -636,7 +634,9 @@ class ForgeBundleService:
             raise ProjectError(f"Forge history could not be preserved safely: {exc}") from exc
         return digest
 
-    def load_history_receipt(self, project_id: str, receipt_digest: str) -> ForgeBundleReceipt | None:
+    def load_history_receipt(
+        self, project_id: str, receipt_digest: str
+    ) -> ForgeBundleReceipt | None:
         if not _is_sha256(receipt_digest):
             return None
         try:
@@ -818,10 +818,7 @@ class ForgeBundleService:
         )
         if (
             receipt.schema_version not in {1, 2, 3}
-            or (
-                receipt.schema_version == 3
-                and not all(_is_sha256(item) for item in exact_fields)
-            )
+            or (receipt.schema_version == 3 and not all(_is_sha256(item) for item in exact_fields))
             or (receipt.schema_version < 3 and any(exact_fields))
         ):
             return None

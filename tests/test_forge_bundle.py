@@ -208,9 +208,7 @@ def test_forge_history_collision_never_overwrites_existing_evidence(tmp_path: Pa
     service = ForgeBundleService(store)
     receipt = service.create(project_id)
     history_digest = service.preserve_history(project_id, receipt)
-    history_path = (
-        store.projects_root / project_id / "forge-history" / f"{history_digest}.romverse"
-    )
+    history_path = store.projects_root / project_id / "forge-history" / f"{history_digest}.romverse"
     history_path.write_text("{}\n", encoding="utf-8")
 
     with pytest.raises(ProjectError, match="content-address collision"):

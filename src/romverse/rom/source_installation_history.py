@@ -252,9 +252,7 @@ def load_latest_source_installation(
                     ),
                     receipt_path=path,
                     source_sha256=source,
-                    completed_count=sum(
-                        item.status == "completed" for item in action_evidence
-                    ),
+                    completed_count=sum(item.status == "completed" for item in action_evidence),
                     expected_count=len(action_evidence),
                     boot_status="No validated linked boot result",
                     # An interrupted ledger identifies the operation, not a fresh phone.
@@ -598,9 +596,7 @@ def _action_evidence(document) -> tuple[SourceInstallationActionEvidence, ...]:
         raise ValueError("Command evidence contradicts the phone-state boundary")
 
     start = _time(document["started_at"])
-    terminal_end = (
-        _time(document["completed_at"]) if "completed_at" in document else None
-    )
+    terminal_end = _time(document["completed_at"]) if "completed_at" in document else None
     previous_end = start
     result_status: dict[int, str] = {}
     for index, entry in enumerate(raw_results):
@@ -653,9 +649,7 @@ def _action_evidence(document) -> tuple[SourceInstallationActionEvidence, ...]:
         if status is None:
             status = "uncertain" if index == inflight else "unattempted"
         target = step["partition"] or step["slot"] or "Android"
-        evidence.append(
-            SourceInstallationActionEvidence(index, step["action"], target, status)
-        )
+        evidence.append(SourceInstallationActionEvidence(index, step["action"], target, status))
     return tuple(evidence)
 
 

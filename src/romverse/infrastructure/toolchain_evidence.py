@@ -80,9 +80,7 @@ class ToolchainEvidenceService:
     SHA256_PATTERN = re.compile(r"[0-9a-f]{64}")
     NAME_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9 ._+()-]{0,79}")
     SCOPE_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,119}")
-    ABSOLUTE_PATH_TOKEN_PATTERN = re.compile(
-        r"(^|[\s(=])((?:[A-Za-z]:[\\/]|/|\\\\)[^\s),;]*)"
-    )
+    ABSOLUTE_PATH_TOKEN_PATTERN = re.compile(r"(^|[\s(=])((?:[A-Za-z]:[\\/]|/|\\\\)[^\s),;]*)")
     TRUSTED_MANAGED_SOURCE_PREFIXES = (
         "https://android.googlesource.com/platform/external/avb/",
         "https://dl.google.com/android/repository/",
@@ -509,9 +507,12 @@ class ToolchainEvidenceService:
                 or item.integrity_scope == "none"
             ):
                 raise ToolchainEvidenceError("Verified tool evidence is incomplete")
-        elif any(
-            (item.executable_name, item.sha256, item.size_bytes, item.path_candidate_count)
-        ) or item.path_conflict or item.origin != "unavailable" or item.integrity_scope != "none":
+        elif (
+            any((item.executable_name, item.sha256, item.size_bytes, item.path_candidate_count))
+            or item.path_conflict
+            or item.origin != "unavailable"
+            or item.integrity_scope != "none"
+        ):
             raise ToolchainEvidenceError("Missing tool evidence claims executable proof")
 
     @classmethod

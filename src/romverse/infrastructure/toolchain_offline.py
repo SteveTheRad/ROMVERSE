@@ -150,9 +150,12 @@ class OfflineToolchainBundleService:
                     digest = hashlib.sha256()
                     written = 0
                     before = source.stat()
-                    with source.open("rb") as reader, archive.open(
-                        self._zip_info(member, item.executable), "w", force_zip64=True
-                    ) as output:
+                    with (
+                        source.open("rb") as reader,
+                        archive.open(
+                            self._zip_info(member, item.executable), "w", force_zip64=True
+                        ) as output,
+                    ):
                         while chunk := reader.read(self.CHUNK_SIZE):
                             written += len(chunk)
                             if written > item.size_bytes:
@@ -283,9 +286,10 @@ class OfflineToolchainBundleService:
                         flags |= getattr(os, "O_NOFOLLOW", 0)
                     descriptor = os.open(target, flags, 0o600)
                     try:
-                        with archive.open(info) as reader, os.fdopen(
-                            descriptor, "wb", closefd=True
-                        ) as output:
+                        with (
+                            archive.open(info) as reader,
+                            os.fdopen(descriptor, "wb", closefd=True) as output,
+                        ):
                             while chunk := reader.read(self.CHUNK_SIZE):
                                 written += len(chunk)
                                 if written > item.size_bytes:
@@ -315,9 +319,7 @@ class OfflineToolchainBundleService:
                 maximum_bytes=self.MAX_ARCHIVE_BYTES,
             )
             if current_bundle_sha256 != accepted_bundle_sha256:
-                raise OfflineToolchainError(
-                    "The offline toolchain kit changed after confirmation"
-                )
+                raise OfflineToolchainError("The offline toolchain kit changed after confirmation")
             if validate_staging(staging, inspection.packages) is not True:
                 raise OfflineToolchainError(
                     "The imported managed-source receipts did not pass Forge Arsenal validation"

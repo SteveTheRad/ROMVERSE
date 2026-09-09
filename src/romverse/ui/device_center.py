@@ -825,7 +825,10 @@ class DeviceCenter(QWidget):
                     "inspection or build preparation."
                 )
                 visual_state = "device"
-            elif self._flight_plan is not None and self._flight_plan.status is not GuidedStageStatus.COMPLETE:
+            elif (
+                self._flight_plan is not None
+                and self._flight_plan.status is not GuidedStageStatus.COMPLETE
+            ):
                 action_key = "Continue Genesis"
                 action_label = "Resume mission"
                 title = self._flight_plan.stage_title
@@ -836,7 +839,8 @@ class DeviceCenter(QWidget):
                 )
                 visual_state = (
                     "attention"
-                    if self._flight_plan.status in {GuidedStageStatus.ATTENTION, GuidedStageStatus.LOCKED}
+                    if self._flight_plan.status
+                    in {GuidedStageStatus.ATTENTION, GuidedStageStatus.LOCKED}
                     else "running"
                 )
             elif self._guardian_state in {"failed", "unavailable", "review_due"}:
@@ -859,9 +863,7 @@ class DeviceCenter(QWidget):
             note = f"{note}  Live mission history needs attention: {ledger_error}"
             visual_state = "attention"
         elif latest_attention is not None and active is None and not self._repair_finding_id:
-            note += (
-                f"  Recent warning: {latest_attention.title} — {latest_attention.next_action}"
-            )
+            note += f"  Recent warning: {latest_attention.title} — {latest_attention.next_action}"
             visual_state = "attention"
 
         self._next_action_key = action_key
@@ -902,12 +904,8 @@ class DeviceCenter(QWidget):
         available = {
             "Connect Device": True,
             "Start ROM Project": True,
-            "Resume Mission": bool(
-                self._project_name or active_action == "Live Operations"
-            ),
-            "Diagnose Problem": bool(
-                selected is not None and selected.state is DeviceState.DEVICE
-            ),
+            "Resume Mission": bool(self._project_name or active_action == "Live Operations"),
+            "Diagnose Problem": bool(selected is not None and selected.state is DeviceState.DEVICE),
             "Recover Device": bool(selected is not None or self._repair_finding_id),
         }
         active_alias = {
@@ -1007,9 +1005,7 @@ class DeviceCenter(QWidget):
             for button in self.quick_action_buttons.values():
                 grid.removeWidget(button)
             for index, button in enumerate(
-                button
-                for label, button in self.quick_action_buttons.items()
-                if label in visible
+                button for label, button in self.quick_action_buttons.items() if label in visible
             ):
                 grid.addWidget(button, index // 3, index % 3)
 
@@ -1602,9 +1598,7 @@ class DeviceCenter(QWidget):
             if warnings
             else "IDLE • READY"
         )
-        state.setObjectName(
-            "Warning" if ledger_error or active is not None or warnings else "Good"
-        )
+        state.setObjectName("Warning" if ledger_error or active is not None or warnings else "Good")
         header.addWidget(state)
         root.addLayout(header)
 

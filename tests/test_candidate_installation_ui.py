@@ -67,9 +67,7 @@ def test_complete_source_route_is_preferred_when_no_rebuilt_candidate_service(pr
     app.processEvents()
 
     assert dialog.choice.currentData() == "source-installation"
-    assert dialog.choice.currentText() == (
-        "Complete protected firmware · verify package procedure"
-    )
+    assert dialog.choice.currentText() == ("Complete protected firmware · verify package procedure")
     assert dialog.prepare_button.text() == "Verify complete firmware route"
     assert dialog.source_controls.isVisible() and not dialog.base_controls.isVisible()
     assert "Preferred complete route" in dialog.limits.text()

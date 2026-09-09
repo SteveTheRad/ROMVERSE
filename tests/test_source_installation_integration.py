@@ -1491,9 +1491,7 @@ def test_guided_main_window_runs_source_route_and_records_exact_outcome(
         assert "known failed step 49 flash super" in incidents[0][1]["message"]
         assert incidents[0][1]["failure"].phase == "source-installation"
         assert incidents[0][1]["failure"].partition == "super"
-        assert incidents[0][1]["failure"].finding_ids == (
-            "source.installation.command_failed",
-        )
+        assert incidents[0][1]["failure"].finding_ids == ("source.installation.command_failed",)
 
 
 def test_main_window_retains_hidden_installation_across_experience_switch(

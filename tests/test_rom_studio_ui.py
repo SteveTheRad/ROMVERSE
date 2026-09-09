@@ -859,9 +859,7 @@ def test_firmware_import_worker_rejects_malformed_zip_without_retaining_state(tm
     worker.run()
 
     assert completed == []
-    assert failures == [
-        "Selected .zip file is not a valid ZIP archive or Android firmware package"
-    ]
+    assert failures == ["Selected .zip file is not a valid ZIP archive or Android firmware package"]
     assert store.get(project.project_id).original is None
     assert tuple(store.originals_root.iterdir()) == ()
     assert RomInspectionService(store).load_report(project.project_id) is None
@@ -2006,11 +2004,15 @@ def test_genesis_simulated_device_continues_visibly_without_hardware_authority(
     assert plan.required_tools == ("Python", "Payload Dumper", "AVBTool")
     assert plan.local_only and not plan.flashable and plan.execution_locked
     assert plan.execution_authority == "none"
-    assert RomBuildPlanner(
-        store,
-        studio.tool_statuses,
-        plan.required_tools,
-    ).verify_tree(project.project_id).valid
+    assert (
+        RomBuildPlanner(
+            store,
+            studio.tool_statuses,
+            plan.required_tools,
+        )
+        .verify_tree(project.project_id)
+        .valid
+    )
     assert store.verify_original(project.project_id) == source_before
     assert mission.assessments[10].status is GuidedStageStatus.COMPLETE
     assert mission.assessments[mission.selected_index].stage.stage_id == "build_sign"

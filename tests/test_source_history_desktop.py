@@ -150,9 +150,10 @@ def test_matching_phone_boot_check_links_saved_installation_without_reinstalling
     assert tuple(context.phone.changes) == changes
     assert outcome.receipt_path.read_bytes() == original
     document = json.loads(reports[0].receipt_path.read_text())
-    assert document["flash_binding"]["relative_path"] == outcome.receipt_path.relative_to(
-        context.source.store.workspace
-    ).as_posix()
+    assert (
+        document["flash_binding"]["relative_path"]
+        == outcome.receipt_path.relative_to(context.source.store.workspace).as_posix()
+    )
     assert document["flash_binding"]["device_key"] == outcome.device_key
     assert document["readback_verified"] is False
     updated = load_latest_source_installation(context.source.store, context.project_id)
@@ -315,9 +316,7 @@ def test_restart_interruption_goes_directly_to_exact_phone_diagnosis_without_ret
     _app, window, context = installation_desktop
     executor = SourceInstallationExecutor(context.source, context.flash, context.adb)
     plan = executor.inspect(context.phone.device(), context.recipe())
-    completed = executor.execute(
-        plan, accepted_digest=plan.plan_digest, risk_accepted=True
-    )
+    completed = executor.execute(plan, accepted_digest=plan.plan_digest, risk_accepted=True)
     _seal_interrupted_command(completed.receipt_path)
     window._observed_devices = [context.phone.device()]
     window.rom_studio.set_devices([context.phone.device()])
@@ -345,9 +344,7 @@ def test_restart_interruption_goes_directly_to_exact_phone_diagnosis_without_ret
     outcome = load_latest_source_installation(context.source.store, context.project_id)
     assert incident["expected_device_key"] == outcome.operation_device_key
     assert incident["failure"].phase == "source-installation"
-    assert incident["failure"].finding_ids == (
-        "source.installation.command_outcome_unknown",
-    )
+    assert incident["failure"].finding_ids == ("source.installation.command_outcome_unknown",)
     assert "uncertain in-flight step 6" in incident["message"]
     assert "exact operation target is attached" in incident["message"]
     assert routes == ["recovery_bay"]
@@ -361,9 +358,7 @@ def test_opening_genesis_automatically_diagnoses_sealed_interruption_without_ret
     app, window, context = installation_desktop
     executor = SourceInstallationExecutor(context.source, context.flash, context.adb)
     plan = executor.inspect(context.phone.device(), context.recipe())
-    completed = executor.execute(
-        plan, accepted_digest=plan.plan_digest, risk_accepted=True
-    )
+    completed = executor.execute(plan, accepted_digest=plan.plan_digest, risk_accepted=True)
     _seal_interrupted_command(completed.receipt_path)
     outcome = load_latest_source_installation(context.source.store, context.project_id)
     window._observed_devices = [context.phone.device()]
@@ -402,9 +397,7 @@ def test_restart_interruption_never_borrows_another_phone_for_diagnosis(
     _app, window, context = installation_desktop
     executor = SourceInstallationExecutor(context.source, context.flash, context.adb)
     plan = executor.inspect(context.phone.device(), context.recipe())
-    completed = executor.execute(
-        plan, accepted_digest=plan.plan_digest, risk_accepted=True
-    )
+    completed = executor.execute(plan, accepted_digest=plan.plan_digest, risk_accepted=True)
     _seal_interrupted_command(completed.receipt_path)
     outcome = load_latest_source_installation(context.source.store, context.project_id)
     other = replace(context.phone.device(), serial="UNRELATED-RESTART-PHONE")
@@ -439,9 +432,7 @@ def test_same_model_phone_cannot_capture_targetless_incident_before_original_ret
     _app, window, context = installation_desktop
     executor = SourceInstallationExecutor(context.source, context.flash, context.adb)
     plan = executor.inspect(context.phone.device(), context.recipe())
-    completed = executor.execute(
-        plan, accepted_digest=plan.plan_digest, risk_accepted=True
-    )
+    completed = executor.execute(plan, accepted_digest=plan.plan_digest, risk_accepted=True)
     _seal_interrupted_command(completed.receipt_path)
     outcome = load_latest_source_installation(context.source.store, context.project_id)
     source_sha256 = context.source.store.get(context.project_id).original.sha256
@@ -480,9 +471,7 @@ def test_history_recovery_for_interruption_uses_the_direct_diagnosis_handoff(
     _app, window, context = installation_desktop
     executor = SourceInstallationExecutor(context.source, context.flash, context.adb)
     plan = executor.inspect(context.phone.device(), context.recipe())
-    completed = executor.execute(
-        plan, accepted_digest=plan.plan_digest, risk_accepted=True
-    )
+    completed = executor.execute(plan, accepted_digest=plan.plan_digest, risk_accepted=True)
     _seal_interrupted_command(completed.receipt_path)
     outcome = load_latest_source_installation(context.source.store, context.project_id)
     source_sha256 = context.source.store.get(context.project_id).original.sha256
@@ -511,15 +500,11 @@ def test_history_recovery_for_interruption_uses_the_direct_diagnosis_handoff(
     assert window._pending_local_flash_recovery is None
 
 
-def test_restart_diagnosis_waits_for_active_scan_then_opens_once(
-    installation_desktop, monkeypatch
-):
+def test_restart_diagnosis_waits_for_active_scan_then_opens_once(installation_desktop, monkeypatch):
     _app, window, context = installation_desktop
     executor = SourceInstallationExecutor(context.source, context.flash, context.adb)
     plan = executor.inspect(context.phone.device(), context.recipe())
-    completed = executor.execute(
-        plan, accepted_digest=plan.plan_digest, risk_accepted=True
-    )
+    completed = executor.execute(plan, accepted_digest=plan.plan_digest, risk_accepted=True)
     _seal_interrupted_command(completed.receipt_path)
     source_sha256 = context.source.store.get(context.project_id).original.sha256
     window._observed_devices = [context.phone.device()]
@@ -552,9 +537,7 @@ def test_direct_restart_diagnosis_rejects_a_stale_loaded_source_binding(
     _app, window, context = installation_desktop
     executor = SourceInstallationExecutor(context.source, context.flash, context.adb)
     plan = executor.inspect(context.phone.device(), context.recipe())
-    completed = executor.execute(
-        plan, accepted_digest=plan.plan_digest, risk_accepted=True
-    )
+    completed = executor.execute(plan, accepted_digest=plan.plan_digest, risk_accepted=True)
     _seal_interrupted_command(completed.receipt_path)
     outcome = load_latest_source_installation(context.source.store, context.project_id)
     source_sha256 = context.source.store.get(context.project_id).original.sha256

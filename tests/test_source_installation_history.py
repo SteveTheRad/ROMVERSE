@@ -64,9 +64,7 @@ def test_valid_terminal_result_rehydrates_for_separate_exact_phone_boot_validati
     assert outcome.product == "popsicle"
     assert outcome.operation_device_key == outcome.device_key
     assert outcome.operation_product == outcome.product
-    assert outcome.matches_operation_device(
-        installation.flash.privacy, installation.phone.device()
-    )
+    assert outcome.matches_operation_device(installation.flash.privacy, installation.phone.device())
     assert outcome.boot_status == "No linked boot-check record"
     assert isinstance(outcome.result, SourceInstallationResult)
     assert outcome.result == result
@@ -124,9 +122,7 @@ def test_later_valid_failed_installation_replaces_old_success(installation):
 def test_runner_exception_preserves_unknown_inflight_action_without_calling_it_failed(
     installation, monkeypatch
 ):
-    executor = SourceInstallationExecutor(
-        installation.source, installation.flash, installation.adb
-    )
+    executor = SourceInstallationExecutor(installation.source, installation.flash, installation.adb)
     plan = executor.inspect(installation.phone.device(), installation.recipe(reboot=False))
     original_run = executor._run
 
@@ -170,9 +166,7 @@ def test_restart_rehydrates_sealed_inflight_ledger_instead_of_zero_of_zero(insta
         installation.phone.serial
     )
     assert outcome.operation_product == "popsicle"
-    assert outcome.matches_operation_device(
-        installation.flash.privacy, installation.phone.device()
-    )
+    assert outcome.matches_operation_device(installation.flash.privacy, installation.phone.device())
     assert outcome.completed_count == 5
     assert outcome.expected_count == 52
     assert tuple(item.index for item in outcome.actions("completed")) == tuple(range(5))

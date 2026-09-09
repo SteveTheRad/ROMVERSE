@@ -282,7 +282,9 @@ class RomBuildPlanner:
             return None
         by_name = {item.name: item for item in self.tool_statuses}
         selected = tuple(by_name[name] for name in self.required_tools if name in by_name)
-        if len(selected) != len(self.required_tools) or any(not item.available for item in selected):
+        if len(selected) != len(self.required_tools) or any(
+            not item.available for item in selected
+        ):
             raise ProjectError("Every source-scoped build tool needs fresh verified evidence")
         host = current_host()
         service = ToolchainEvidenceService(

@@ -959,9 +959,7 @@ def validate_source_installation_provenance(document) -> bool:
                         role == "super"
                         and relative.parts[:3]
                         == ("working_roms", payload["project_id"], "signed-assembly")
-                        and relative.parts[3].startswith(
-                            payload["signing_receipt_digest"][:16]
-                        )
+                        and relative.parts[3].startswith(payload["signing_receipt_digest"][:16])
                     )
                     or (
                         role == "vbmeta_system"
@@ -972,9 +970,7 @@ def validate_source_installation_provenance(document) -> bool:
                 and bool(re.fullmatch(r"[a-f0-9-]{8,64}", relative.parts[3]))
             )
             if not valid_final:
-                raise SourceInstallationError(
-                    "A rebuilt image is not its exact final signed role."
-                )
+                raise SourceInstallationError("A rebuilt image is not its exact final signed role.")
         elif origin["source_kind"] != "base-package" or origin["relative_path"] != "":
             raise SourceInstallationError("An unchanged base image has an unexpected source.")
     expected = [

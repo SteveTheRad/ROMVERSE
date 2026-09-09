@@ -352,14 +352,8 @@ class DeviceBuildContractService:
             or plan.expected_outputs != pack.build_contract.allowed_outputs
             or plan.phone_changed
             or any(step.phone_changed for step in plan.steps)
-            or (
-                plan.schema_version == 1
-                and bool(plan.workspace_plan_digest)
-            )
-            or (
-                plan.schema_version == 2
-                and not _is_sha256(plan.workspace_plan_digest)
-            )
+            or (plan.schema_version == 1 and bool(plan.workspace_plan_digest))
+            or (plan.schema_version == 2 and not _is_sha256(plan.workspace_plan_digest))
             or _json_digest(payload) != digest
         ):
             return None

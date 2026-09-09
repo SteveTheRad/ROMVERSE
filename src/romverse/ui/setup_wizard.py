@@ -50,9 +50,7 @@ class SetupWizard(QDialog):
         root.addWidget(brand)
         build_identity = QLabel(f"{DISPLAY_VERSION}  •  INTERNAL DEVELOPMENT")
         build_identity.setObjectName("Warning")
-        build_identity.setAccessibleName(
-            f"ROMVERSE {DISPLAY_VERSION} internal development build"
-        )
+        build_identity.setAccessibleName(f"ROMVERSE {DISPLAY_VERSION} internal development build")
         build_identity.setAlignment(Qt.AlignmentFlag.AlignCenter)
         root.addWidget(build_identity)
         tagline = QLabel("BUILD. OPTIMIZE. PERFECT.")

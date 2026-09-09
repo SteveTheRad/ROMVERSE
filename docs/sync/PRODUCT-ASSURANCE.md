@@ -1,5 +1,90 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: e25fdeb — Fedora Source Lab incomplete-readiness wording
+
+- Reviewed checkpoint: `e25fdebb84c2643420553c9f67180d1b1c3fb964`
+- Scoped implementation: `a40fa52c92dac2630caa526132217fa384512b87`
+- Runtime evidence: `d1f676560203c1568a80b51eb9eac63616705dcd`
+- Authorizing verdict: `f0696102f002e9caec5b36b4963b192a992464bb`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — SOURCE LAB NOW NAMES ABSENT LOCAL PREREQUISITES TRUTHFULLY**
+
+### Decision and independent evidence
+
+The presentation-only correction is approved. The complete authorization-to-checkpoint diff owns
+only `src/romverse/ui/rom_studio.py`, one exact test in `tests/test_rom_studio_ui.py`, scoped
+evidence and Build Status. Every absent Source Lab readiness prerequisite is now explicitly
+prefixed **Missing:**; the contained-tree and build-plan entries describe their next actions rather
+than announcing completed work. The underlying booleans and exact `LOCAL INPUTS READY (run Verify
+plan before execution)` condition are unchanged.
+
+Product Assurance independently reran the exact focused three-state test: **1/1 passed**. It proves
+working-copy with tree/plan absent, tree present with plan absent, and all local prerequisites
+present. Focused Ruff 0.16.6 check and format verification passed on both changed files, and Git
+diff/whitespace validation passed.
+
+The rebuilt package evidence is consistent: 423 regular files, 243,102,811 regular-file bytes and
+38 internal links. Its unsigned mode-`0755` executable is 6,337,408 bytes at SHA-256
+`d110771c730b45695413c0606de072f9c560550c88ae223913ca1fd1e5e670e4`. The one actual
+read-only observation used a private disposable retained-state copy under Bubblewrap no-network
+isolation, an empty Android-tool path and no phone or emulator. Source Lab reported exactly that
+the contained tree and Guardian-assessed plan were missing, while retaining the correct next action
+**Extract and verify working tree**.
+
+The independently rechecked project, working-copy, inspection, snapshot and Vault-entry hashes
+match the handoff. The tree contains zero files; tree index and build plan are absent; tools contain
+zero files. The disclosed first sandbox attempt failed before application initialization because
+its disposable harness lacked a writable temporary directory. Correcting only that harness before
+the single actual observation is not a product retry or hidden failure.
+
+Forgejo and GitHub exposed the identical checkpoint with zero divergence, the Linux worktree was
+clean and no unrelated worktree was modified. No import, working-copy, extraction, planning,
+network request, real firmware, tool/download/install, phone/emulator/ADB/Fastboot, firmware/APK
+mutation, Guardian/Recovery execution, flash, wipe, unlock/root, bootloader lock/relock, signing,
+publication, release, hosted CI or Forgejo Action occurred. Exit 143 remains honestly excluded
+from clean-shutdown and restart-persistence evidence.
+
+### Approved next bounded Linux task — one contained synthetic extraction
+
+Advance the validated local Guided flow by exactly one deliberately authorized, harmless Source
+Lab extraction acceptance. This authorization does not approve real firmware or any device action.
+
+1. Begin from this Product Assurance commit on `linux/stage1-desktop-readiness`. Make one fresh
+   private disposable copy of the approved `History Refresh Acceptance` profile/project, retain
+   Guided/offline/community/download/contribution settings, use Bubblewrap no-network isolation,
+   an empty Android-tool path and no phone, emulator or development-device simulation.
+2. Revalidate before launch that the 551-byte source, protected original, working baseline and
+   automatic snapshot remain byte-identical at SHA-256
+   `c3f5c1711d648a0f6c8f2ba2e3c910048c4e81e6f3ee39bb82e9e85888ac89c8`, the tree and tree
+   index are absent, and no build plan or install request exists.
+3. Use the already-built approved package; do not rebuild or repeat setup/import/working-copy.
+   Open Source Lab and invoke exactly one existing **Extract and verify working tree** action. The
+   only permitted output is the two known inert fixture members—257-byte synthetic OTA metadata
+   and a 40-byte non-flashable payload marker, 297 bytes total—inside the exact disposable project
+   tree, plus their strict tree index and normal automatic local Time Machine/Vault evidence.
+4. Verify path containment, exact member names/sizes/digests, source and baseline immutability,
+   deterministic tree-index binding, truthful Source Lab state and the resulting saved Guided
+   resume point. Automatic local history is expected and must remain evidence-only.
+5. Stop immediately after verified extraction. Do not create or verify a build plan, enter Recipe,
+   Partition Atlas, Forge, Guardian, Recovery or device stages, install/download a tool, retry,
+   clean or reset. If output differs or the UI advances beyond this boundary, preserve the exact
+   result and return for Product Assurance without changing source.
+6. No automated test rerun or package build is needed when application bits remain unchanged.
+   Commit only sanitized runtime evidence and Build Status, push Forgejo first, mirror the exact
+   commit to GitHub and stop for independent review. Correcting any reproduced product defect
+   requires a new Product Assurance verdict.
+
+No new fixture, real firmware, network/tool acquisition, phone/emulator/ADB/Fastboot,
+firmware/APK mutation, build plan/build, Guardian/Recovery authority or execution, flash, wipe,
+unlock/root, bootloader lock/relock, Windows/UI-Lab/Companion/Device-Intelligence work, signing,
+publication, release, hosted CI or Forgejo Action is authorized.
+
+### Gate status
+
+- Source Lab copy-only, automatic history and incomplete-readiness truthfulness: **APPROVED**
+- One contained extraction of the exact harmless synthetic fixture: **AUTHORIZED**
+- Build planning and every device/consequential/signing/publication/release gate: **CLOSED**
+
 ## Reviewed checkpoint: ddd9fc2 — Fedora Source Lab durable-history refresh
 
 - Reviewed checkpoint: `ddd9fc221412a91e9ed059c9ba4da12b079d8d21`

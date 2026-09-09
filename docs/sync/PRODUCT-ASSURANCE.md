@@ -1,5 +1,47 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: a8cd235 — portable Windows setup regression
+
+- Reviewed checkpoint: `a8cd2353ec78498b8f89d9c9ca2bc6165b5d06e3`
+- Test correction: `69fea192f954014a55d19a8ba35b2d9c9c2feed0`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **CORRECTION REQUIRED — THE TEST IS IMPROVED, BUT A REAL 1024 x 768 WINDOWS SESSION STILL PLACES THE GUIDED ACTION OFF-SCREEN**
+
+### Independent review
+
+The test-only change correctly removes the unstable absolute `sizeHint()` ceiling and strengthens
+local behavior by requiring a scroll range, dialog containment, enablement, and successful Guided
+activation. Product Assurance independently confirmed the offscreen Windows context passes.
+
+The required independent native Windows replay does not pass, however. Through the authenticated
+non-interactive Legion session, Qt exposes the `WinDisc` screen at **1,024 x 768**. The Guided
+button occupied global rectangle **(196, 818, 612, 39)**, outside available geometry
+**(0, 0, 1,024, 768)**, so the exact new screen-containment assertion failed. Result: **1 passed /
+1 failed**. This is no longer only a nondeterministic assertion: it demonstrates that the setup
+dialog can still choose an initial height that makes its only completion action unreachable on a
+valid smaller Windows desktop. The earlier 1,920 x 1,032 interactive acceptance remains valid but
+does not cover this host geometry.
+
+### Minimum exact correction and acceptance criteria
+
+1. Make the smallest setup-wizard source correction that bounds its initial shown geometry to the
+   available Windows desktop while retaining the fixed footer action and scrollable 18-row tool
+   inventory. The existing 700 x 610 minimum may remain; the 1,024 x 768 context must show the full
+   Guided button without manual window movement or keyboard workaround.
+2. Preserve the corrected behavioral regression. Run exactly its two setup-wizard nodes in the
+   native 1,024 x 768 `WinDisc` session and the 800 x 800 offscreen context; both must pass, followed
+   by focused Ruff check/format-check and `git diff --check`.
+3. Because this is now a production-source correction, build exactly one new checkpoint-specific
+   unsigned replacement package after the focused tests pass. Perform one bounded native visible
+   setup-to-Command-Deck acceptance at the Legion's normal interactive desktop and one frozen
+   no-phone smoke only; preserve all earlier artifacts.
+4. Record the new source/package identities and exact focused results in BUILD-STATUS, commit and
+   push, then stop for review. Do not repeat the 974 portability nodes, broader regression, managed
+   tool installation, prior journey, phone/device operations, signing or publication.
+
+No new functional feature is authorized. Guardian-only authority, exact evidence,
+UNKNOWN-on-uncertainty, no blind retry, consent separation and permanent no-relock remain intact.
+
 ## Reviewed checkpoint: ec4d088 — native Windows readiness acceptance
 
 - Reviewed checkpoint: `ec4d088695755cdf77489cc73cad76f83f765a6c`

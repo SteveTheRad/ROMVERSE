@@ -1,5 +1,63 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: a72aaa3 — retained Guided modal fixtures
+
+- Reviewed checkpoint: `a72aaa337d60d6af0a3bcf3937cc1a459c5c0672`
+- Test-fixture commit: `9f93cf7b04783ff108f87efb221273849e1ead61`
+- Approved base: `42cb4fc`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — FIXTURES NOW FOLLOW THE REAL NONBLOCKING GUIDED DIALOG**
+
+### Decision and evidence
+
+The captured owner identity is decisive: the active Qt modal and
+`RomStudio._guided_mission_dialog` were the same visible, correctly parented mission. The historical
+fixture patched `exec()`, but production now intentionally owns the dialog through retained
+nonblocking `open()`, so the driver never ran. This was stale fixture interaction, not a leaked or
+dead production modal.
+
+The correction obtains the actual retained mission, proves its parent and active-modal identity,
+drives the existing meaningful choices, then explicitly rejects/closes and proves both references
+clear. It does not auto-accept production decisions or bypass consent. Product source is unchanged.
+
+- Product Assurance independently ran the four historical cluster nodes and both retained-dialog
+  owner/refresh journeys: **6/6 passed** in 8.26 seconds. Ruff and whitespace checks passed.
+- Build's larger directly affected selection passed **83/83**. The unrelated pre-existing format
+  lines remain outside this checkpoint and do not invalidate its changed hunks.
+- No paid CI, package, Windows work or physical-device action occurred. Feature freeze and all
+  Guardian/Recovery safety rules remain intact.
+
+### Approved next bounded task
+
+Investigate one user-visible connected journey: the remaining
+`tests/test_project_flash_desktop.py::test_guided_rom_studio_opens_real_source_bound_workflow_and_decline_sends_no_write`
+failure (`actual Guided modal journey did not finish: ['prepare']`).
+
+1. Reproduce that exact node alone on current source and capture the visible mission stage, retained
+   dialog owner, requested action and blocker at the `prepare` boundary.
+2. Determine whether its driver still assumes the retired blocking-dialog lifecycle or whether the
+   production Guided route genuinely stops without an actionable continuation.
+3. If stale, correct only the fixture to use the real retained nonblocking dialog and preserve the
+   decline/no-write proof. If production genuinely dead-ends, make the smallest lifecycle/route
+   correction so ROMVERSE retains context and presents the existing next action; do not bypass
+   preparation, evidence, confirmation, consent or Guardian.
+4. Run only the exact node and the smallest directly connected Project Flash/ROM Studio Guided
+   selection. Do not mix in Device Atlas geometry, wording assertions, project-flash error-copy or
+   source-installation-stop semantics.
+5. Commit the minimum correction and `docs/sync/BUILD-STATUS.md`, push this branch and stop for
+   independent review. Do not run a full GitHub matrix or rebuild packages.
+
+Do not operate Stage 12, use a phone/emulator, install dependencies, change Windows/Companion work,
+build/sign/flash firmware, invoke Guardian/Recovery execution, publish, release, merge, force-push,
+lock or relock.
+
+### Gate status
+
+- Retained Guided modal fixture lifecycle: **VERIFIED — 83/83; PA sample 6/6**
+- Project Flash connected Guided journey: **NEXT BOUNDED INVESTIGATION**
+- Broad Linux/Windows regression and v0.2 Golden Foundation: **CLOSED pending later evidence**
+- Physical hardware, secure Windows Recovery launch, signing, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 64af85a — genuine structure-inspection fixtures
 
 - Reviewed checkpoint: `64af85a4fe5bcc305b2bce6c304f6b3702c7e274`

@@ -1,5 +1,51 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows synchronization and regression-debt checkpoint — Product Assurance review requested
+
+### Authority, commits and exact scope
+
+- Product Assurance authorization: `db1217c3132621540e6e807bf8e074d563545f85` — `Approve Windows workshop safety acceptance`.
+- Branch: `windows-launcher-authorized-work`.
+- Stage 12 assertion alignment: `1a7733acf6cde3982c15301410cad92b66c3cf3d` — exact clean application of the already-approved `8317f2f4` semantics.
+- Windows settings privacy assertion: `80587c33fd8395c4851a31361552fe03a6a3b3ea`.
+- Minimum production correction: `4c3ef0114af7222d2f3bf274bb5a1cb58972108d` — `Enforce private settings ACL on Windows`.
+- The execution-inert popsicle field-knowledge intake was already present as `ca97c1cf`; it was not duplicated.
+- The protected untracked patch `0001-Preserve-local-build-completion-across-restart.patch` remains untouched.
+
+### Correction and independent Windows evidence
+
+- The stale Genesis Stage 12 test now checks the shipped Forge Control contract: exact Device Pack
+  plan, byte verification before signing, signed/validated artifact outcome and Guardian review.
+- The settings test now checks ROMVERSE's Windows owner-private ACL contract instead of applying a
+  POSIX `0600` interpretation to NTFS.
+- That test exposed a real bounded production defect: `SettingsStore` used `chmod(0600)`, leaving
+  inherited SYSTEM, Administrators and OWNER RIGHTS entries. The minimum correction routes both
+  temporary and final settings files through the existing cross-platform `ensure_private_file`
+  primitive. On Windows this applies the protected owner-private DACL; on Linux it retains `0600`.
+- Final native Windows focused verification: `tests/test_settings.py` plus
+  `tests/test_guided_mission.py` — **29/29 passed**.
+- Ruff check and format-check passed for the three changed files; Linux parity for the same 29
+  focused tests and lint also passed.
+- No package was rebuilt. No hosted GitHub Actions run was started; all verification was local.
+
+### Safety and gates
+
+- No phone, emulator, firmware/APK operation, device query/write or mode transition, Guardian or
+  Recovery execution, signing, publication, release, wipe, unlock/root, lock or relock occurred.
+- Exact-device binding, fresh consent, UNKNOWN-on-uncertainty, no blind retry, independent
+  verification and permanent no-relock remain unchanged.
+- This is feature-freeze-compliant platform correctness and test-debt removal. The only production
+  change enforces the already-defined private-file contract on Windows.
+- Windows source regression debt: **CLEARED**.
+- Physical Android operation, production signing/publication and release: **CLOSED**.
+
+### Next proposed bounded task
+
+Product Assurance should independently review the three-commit Windows debt batch. If approved,
+continue the no-phone Windows product-as-user pass from this source. Rebuild one replacement
+development package only when the next coherent production-source acceptance boundary is ready;
+do not rebuild solely to repeat already-accepted surfaces and do not manually dispatch hosted CI.
+
 ## Windows no-phone workshop and safety-surface acceptance batch — Product Assurance review requested
 
 - Product Assurance authorization: `af85b8978b5acd5dbb25d698332968efffe87acf` — `Approve

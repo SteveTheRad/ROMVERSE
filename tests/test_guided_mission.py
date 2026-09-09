@@ -181,9 +181,18 @@ def test_mission_routes_verified_local_workflow_into_real_forge_control():
     assessments = GuidedMissionEngine().assess(context)
 
     assert all(assessment.status is GuidedStageStatus.COMPLETE for assessment in assessments[:11])
-    assert assessments[11].status is GuidedStageStatus.ATTENTION
-    assert "verified local candidate" in " ".join(assessments[11].blockers).casefold()
-    assert assessments[11].stage.action_label == "Resolve build automatically"
+    build = assessments[11]
+    assert build.stage.stage_id == "build_sign"
+    assert build.status is GuidedStageStatus.ATTENTION
+    blocker = " ".join(build.blockers).casefold()
+    assert all(
+        meaning in blocker
+        for meaning in ("forge control", "exact device pack plan", "byte-verify", "before signing")
+    )
+    assert build.stage.action == "build-sign"
+    assert build.stage.action_label == "Resolve build automatically"
+    assert "signed, validated rom artifact" in build.next_outcome.casefold()
+    assert "guardian review" in build.next_outcome.casefold()
 
 
 def test_unchanged_unrooted_choice_skips_all_optional_modification_stages():

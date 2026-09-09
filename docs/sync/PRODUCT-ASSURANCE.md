@@ -1,5 +1,78 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: ef69568 — continuous Windows Stage 1 feature batch
+
+- Reviewed checkpoint: `ef695682b1e7b4e360ba5eca3de635f60470fceb`
+- Source integration: `f77da0951d75f71987aed471eaf36342cbfc4cfd`
+- Windows test correction: `1e8bfde1c7601ee4a3812d4d1f74569029f93699`
+- Build handoff: `00884bbb`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — WINDOWS STAGE 1 NO-PHONE JOURNEY IS COHERENT, PERSISTENT AND PACKAGED**
+
+### Decision and independent evidence
+
+The batch is aligned with the approved Stage 1 product and freeze. The production change is the
+already-approved platform-neutral correction that distinguishes protected-copy integrity and
+bounded container inspection from publisher provenance, signing trust, release channel and
+installation authority. The only Windows-specific change is test-only: the Genesis autopilot
+fixture now answers its existing scan request with an inert empty-device result, preventing a
+real Platform Tools repair dialog from stalling a deterministic no-device test. It creates no
+device evidence or execution authority.
+
+- Product Assurance inspected the complete `72d30031..ef69568` diff and found only the source
+  wording, its focused regression, the inert test fixture and sync documentation. `git diff
+  --check` passed.
+- Product Assurance independently ran the two changed behavioral nodes on the Legion checkout:
+  **2/2 passed**. The reported selected regression is accepted as **132/134 passed**, with the two
+  remaining failures correctly classified as assertions rather than product failures: one expects
+  POSIX mode `0600` on Windows, where privacy is ACL-backed, and one retains stale Stage 12 wording
+  while current source truthfully requires Forge Control execution and byte verification.
+- The real-user source journey reached setup, Guided Command Deck, Genesis Stage 2/15, settings
+  Guided/Expert round-trip, navigation destinations, save/close/restart and exact mission resume.
+  The isolated runtime log independently contains two starts and two clean closes.
+- Product Assurance independently verified the replacement package at
+  `build/windows-feature-batch-1e8bfde/ROMVERSE`: **305 files / 164,647,192 bytes / 0 reparse
+  points**. Its 6,324,428-byte executable has SHA-256
+  `0ac34a65e4acd205e3f8002c0aa787cb1b898d368b143fcecb5205c39ac15e58` and is `NotSigned`.
+  The visible-acceptance log has one clean start/close and the frozen-smoke log has one clean
+  start/close.
+- The protected patch remains **8,272 bytes**, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+  No phone, ADB/Fastboot operation, APK, firmware, Guardian/Recovery execution, signing,
+  publication, force-push, unlock, root, lock or relock occurred.
+
+### Non-blocking acceptance debt
+
+Correct the two platform/stale-wording assertions when their focused areas are next touched: test
+Windows privacy using the platform's ACL contract rather than POSIX mode bits, and align the Stage
+12 assertion with the already-approved Forge Control execution/byte-verification wording. These
+are not grounds to stop the functioning-app batch or replay the 134-node selection.
+
+### Approved next bounded task
+
+Continue without an idle Product Assurance pause into one Windows **no-phone host-repair journey**
+from the accepted package/source state. Exercise the user-facing `Resolve Platform Tools` path in
+a fresh isolated workspace through managed official acquisition, receipt validation, activation,
+restart and truthful no-device readiness. Fix any actual inert button, launcher, download,
+receipt, PATH/activation, persistence or actionable-error defect with focused tests and small
+recoverable commits. Do not rebuild after each correction; create one replacement package only if
+production bits changed and only at the coherent host-repair boundary. Then publish one
+consolidated handoff covering encountered defects, root causes, reusable encoded solutions and
+focused evidence.
+
+No physical phone is authorized on this Windows task. Stop before any device write or mode
+transition, Guardian/execution-authority or safety-contract change, contradictory/UNKNOWN
+evidence, signing/publication/release or material scope expansion. Guardian-only authority,
+exact-device evidence, fresh consent, UNKNOWN-on-uncertainty, no blind retry, no wipe and permanent
+bootloader no-relock remain mandatory.
+
+### Gate status
+
+- Windows Stage 1 no-phone feature journey: **APPROVED**
+- Replacement unsigned development package: **APPROVED**
+- Managed Windows host-repair journey: **AUTHORIZED**
+- Windows physical-device operation, production signing/publication and release: **CLOSED**
+
 ## Active Windows feature-batch continuation — do not stop after shared integration
 
 The Windows checkout has completed the authorized exact integration of approved shared commit

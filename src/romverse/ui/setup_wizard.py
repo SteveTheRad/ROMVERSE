@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QDialog,
@@ -123,6 +123,23 @@ class SetupWizard(QDialog):
         start.setAccessibleName("Choose Guided Mode and open Command Deck")
         start.clicked.connect(self._accept)
         root.addWidget(start)
+
+    def showEvent(self, event) -> None:  # noqa: N802 - Qt virtual method name
+        super().showEvent(event)
+        QTimer.singleShot(0, self._fit_to_available_screen)
+
+    def _fit_to_available_screen(self) -> None:
+        screen = self.screen()
+        if screen is None:
+            return
+        available = screen.availableGeometry()
+        maximum_width = max(self.minimumWidth(), available.width() - 40)
+        maximum_height = max(self.minimumHeight(), available.height() - 80)
+        self.setMaximumSize(maximum_width, maximum_height)
+        self.resize(min(self.width(), maximum_width), min(self.height(), maximum_height))
+        frame = self.frameGeometry()
+        frame.moveCenter(available.center())
+        self.move(frame.topLeft())
 
     def _browse(self) -> None:
         selected = QFileDialog.getExistingDirectory(

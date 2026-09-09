@@ -1,5 +1,59 @@
 # ROMVERSE Product Assurance Sync
 
+## Portable Windows setup regression correction — Product Assurance review requested
+
+- Product Assurance verdict: `fd3d34fc9c1129a9ea4b2b996270ffb4e92087de` — `Require portable
+  Windows setup regression`, explicitly reviewing checkpoint
+  `ec4d088695755cdf77489cc73cad76f83f765a6c`.
+- Test-only correction: `69fea192f954014a55d19a8ba35b2d9c9c2feed0` — `Make Windows setup
+  regression portable`.
+- Status: **PASS — THE SETUP INVENTORY SCROLLS AND THE GUIDED ACTION IS VISIBLE, ON-SCREEN,
+  CONTAINED BY THE DIALOG, ENABLED, AND OPERABLE IN BOTH REQUESTED WINDOWS QT CONTEXTS.**
+
+### Minimum correction
+
+- Changed only `tests/test_app_launch_settings.py`. The environment-dependent
+  `wizard.sizeHint().height() <= 800` assertion was removed; no product assertion was weakened.
+- The 18-row tool inventory must still expose a non-zero vertical scroll range. The shown Guided
+  action must be visible to the wizard, enabled, contained by the dialog content rectangle, and
+  contained by the current screen's available geometry.
+- The regression clicks the action and requires the wizard to accept with
+  `ExperienceMode.GUIDED`, proving that the visible action remains operable.
+- Native diagnostic geometry was a **700 x 736** dialog on **1920 x 1032** available geometry,
+  with the Guided action wholly inside both. Offscreen diagnostic geometry was a **700 x 610**
+  dialog on **800 x 800** available geometry, also with the Guided action wholly inside both.
+  The differing size hints (**812** versus **782** logical pixels high) no longer affect the gate.
+
+### Exact focused verification
+
+- Native Windows Qt context (`QT_QPA_PLATFORM=windows`), fresh basetemp
+  `C:\Work\rvsw-fd3d34f-native`:
+  `.venv\Scripts\python.exe -m pytest -q
+  tests/test_app_launch_settings.py::test_first_run_explicitly_enters_guided_and_reaches_truthful_host_prerequisite
+  tests/test_app_launch_settings.py::test_setup_wizard_bounds_tool_inventory_and_keeps_guided_action_visible
+  --basetemp C:\Work\rvsw-fd3d34f-native` — **PASS, 2 passed**.
+- Non-interactive context (`QT_QPA_PLATFORM=offscreen`), fresh basetemp
+  `C:\Work\rvsw-fd3d34f-offscreen`: the same two exact nodes — **PASS, 2 passed**.
+- `.venv\Scripts\python.exe -m ruff check tests/test_app_launch_settings.py` — **PASS**.
+- `.venv\Scripts\python.exe -m ruff format --check tests/test_app_launch_settings.py` — **PASS,
+  1 file already formatted**. `git diff --check` — **PASS**.
+- Ruff initially identified only the new expressions' line wrapping; `ruff format` applied that
+  mechanical test-only formatting before the recorded final static gates.
+
+### Preserved scope and next review
+
+- The protected untracked patch remains exactly **8,272 bytes**, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it was not edited,
+  applied, staged, or deleted. Protected Companion files remain untouched.
+- The accepted `4e4211c5` executable bits are unchanged. No package was rebuilt or relaunched; no
+  portability suite, smoke, journey, dependency install, phone/device command, APK, firmware,
+  Recovery/Guardian execution, production trust/signing, publication, release, paid CI,
+  force-push, destructive action, lock, or relock occurred.
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty, no
+  blind retry, independent verification, feature freeze, and permanent no-relock remain intact.
+- Precise next task: independent Product Assurance review of test-only correction `69fea192` and
+  this handoff. Do not begin another Windows product slice until a matching verdict is committed.
+
 ## Native visible Windows readiness correction and acceptance — Product Assurance review requested
 
 - Authorization: `372bf1cc893efd1cdc2efcc1f6263bcfdde45b3a` — `Authorize current Windows

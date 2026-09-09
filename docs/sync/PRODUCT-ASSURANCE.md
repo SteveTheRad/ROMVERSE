@@ -1,5 +1,79 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 218261a — Relocated Windows one-folder package
+
+- Reviewed checkpoint: `218261aa4bea27f5ccb629ee8c40410f8430bda7`
+- Authorizing verdict: `4d29bb432189210be0e105838cfba600ae2e5e71`
+- Package source: `b1dc54e0c6390fb3d789930dda0696c712e40e64`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — RELOCATED PACKAGE RETAINS EXACT RUNTIME AND ASSET IDENTITY**
+
+### Decision and independent evidence
+
+The relocated one-folder package is approved. Product Assurance independently recomputed the
+source and relocated inventories after the launch: each contains 306 regular files, 23 directories,
+164,663,424 file bytes, no empty files and no reparse entries. The two normalized ordinal member
+manifests independently match at SHA-256
+`92087364487cf5dbecb473291812628ae25bdc763fb912155903de61c71e6209`. Both executables remain
+6,324,534 bytes with SHA-256
+`d2df2c9a667520e9ebe88d4c2eb4dfa26020b1e2d8f852dddb33ab24a013b431`; the relocated executable
+is truthfully `NotSigned`. The authoritative package was preserved rather than moved or replaced.
+
+The relocated executable opened one responsive window from the space/non-ASCII package path using
+an exact argument vector and a separate Local-mode data root. It reached the fail-closed no-device
+Command Deck with the packaged visual assets present. Its package-relative Knowledge resources
+initialized the expected local archive: 880,760 bytes, SHA-256
+`2384ebb6ce9616af2270991da2c7b594d08b7534e71bf819549c92c091e27764`, preserving the recorded
+284 structured records, 182 attributed sources and popsicle evidence as offline guidance with no
+execution authority.
+
+The package closed normally. Product Assurance independently verified the test PID is dead, final
+ROMVERSE process/window counts are zero and no instance lock remains. The runtime ledger is exactly
+77 bytes, SHA-256 `9b548079f50e029991471fdbf93e92807fb82adb17319871cb9ab421e7b7f499`, with one accepted start and
+one clean close. The separate data root contains eight regular files, 20 directories, 882,811
+bytes, no reparse entries, and the unchanged private Local-mode settings ACL. Both package trees
+remain available for review.
+
+The checkpoint changes only Build Status and passes Git whitespace validation. The Windows
+checkout contains only the protected untracked patch and existing `build-work/` intermediates;
+the patch remains 8,272 bytes with SHA-256
+`2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`. Forgejo and GitHub expose
+the same checkpoint. No network, download, install, dependency/tool change, phone/emulator,
+ADB/Fastboot, firmware/APK, Guardian/Recovery execution, source/package mutation, signing,
+publication, release, hosted CI, wipe, unlock/root, bootloader lock or relock occurred.
+
+### Approved next bounded task
+
+Perform one local archive round-trip of the exact unchanged Windows one-folder package and verify
+the extracted copy remains runnable. This is a development-distribution integrity check only; it
+does not create or publish a release.
+
+1. Using only a Windows built-in local archive facility, create one disposable ZIP from the exact
+   retained package. Record the input manifest, archive size and SHA-256. Do not sign, upload,
+   publish or label it as a release artifact.
+2. Extract it once to a new short disposable path. Before launch, require the extracted package's
+   file/directory counts, byte total, zero-file/reparse inventory, executable hash and deterministic
+   member manifest to match the source package exactly. A mismatch stops the task.
+3. Create a separate fresh Local-mode data root. Launch the extracted executable once by direct
+   argument-vector invocation with a simple workspace, `--skip-onboarding` and
+   `--development-device-simulation`.
+4. Verify one responsive `LOCAL`, fail-closed no-device Command Deck, package-relative branding and
+   offline Knowledge initialization, then close normally. Prove zero processes/windows, no instance
+   lock and one accepted start/clean close. Recheck the extracted package manifest after close.
+5. Preserve the source package, disposable ZIP, extracted tree and evidence until Product
+   Assurance review. Commit only the sanitized handoff and stop. If archive or extraction changes
+   package identity, report the exact deterministic blocker without modifying source or rebuilding.
+
+No alternative archive matrix, network, download, install, dependency/tool change, phone/emulator,
+ADB/Fastboot, firmware/APK, Guardian/Recovery execution, source/package correction, signing,
+publication, release, hosted CI, wipe, unlock/root, bootloader lock or relock is authorized.
+
+### Gate status
+
+- Relocated one-folder Windows package runtime/assets: **APPROVED**
+- Local ZIP round-trip and extracted development-package launch: **AUTHORIZED**
+- Production installer/signing/trust, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 018b64b — Windows space/non-ASCII workspace path
 
 - Reviewed checkpoint: `018b64b07d59cf0b822897a992b3c95000ebc975`

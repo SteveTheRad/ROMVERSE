@@ -1,5 +1,142 @@
 # ROMVERSE Product Assurance Sync
 
+## Continuous Windows Stage 1 feature batch and replacement package — Product Assurance review requested
+
+- Product Assurance authorization: `72d30031608381eee2311c29deec2d85d955151f` — `Approve
+  bounded Windows setup geometry`, exactly reviewing checkpoint
+  `4358359fe951933c0841c435b2707b3f8f41a0a5` and authorizing the continuous no-phone Stage 1
+  Windows feature batch.
+- Approved source-wording integration: `f77da0951d75f71987aed471eaf36342cbfc4cfd` —
+  `Distinguish source integrity from provenance`, the Windows cherry-pick of exact approved
+  platform-neutral commit `c5c67beff840e9b30f14f6ad6cb4c303dbeb68f1` without Linux-only history.
+- Deterministic Windows test correction: `1e8bfde1c7601ee4a3812d4d1f74569029f93699` — `Keep
+  Genesis autopilot test inert on Windows`.
+- Status: **PASS WITH TWO CLASSIFIED PRE-EXISTING/OUT-OF-SCOPE ASSERTION FAILURES — ONE
+  CONTINUOUS REAL-USER SOURCE SESSION PASSED SETUP, COMMAND DECK, SETTINGS, NAVIGATION,
+  PERSISTENCE/RESUME, EMPTY/ERROR STATES, GUIDED/EXPERT SHARED STATE AND CONNECTED NO-PHONE
+  HANDOFFS; THE ONLY BATCH-BLOCKING TEST STALL WAS CORRECTED WITH AN INERT LOCAL SCAN; EXACTLY ONE
+  REPLACEMENT UNSIGNED PACKAGE, ONE VISIBLE ACCEPTANCE AND ONE FROZEN SMOKE PASSED.**
+
+### Continuous source acceptance
+
+- The normal Windows desktop session used current committed source and fresh isolated
+  `ROMVERSE_HOME` `C:\Work\ROMVERSE-Windows-Feature-Batch-72d30031`. The 774 x 833 first-run
+  setup surface was fully visible on the Legion's 1,920 x 1,032 available desktop. It truthfully
+  showed ADB and Fastboot unavailable and entered Guided Command Deck without installing or
+  acquiring anything.
+- Command Deck showed `Device Engine needs attention`, `DEVICE: NOT CONNECTED`, `PROJECT: NONE`,
+  `MISSION: IDLE`, `GUARDIAN: VERIFY REQUIRED`, and `Waiting for device`. The exact Command Deck
+  handoff opened Genesis and ROM Studio at the empty-project state.
+- Genesis created only the disposable local project `Windows No-Phone Acceptance`
+  (`windows-no-phone-acceptance-f55ae75f`), advanced from task 1 to task 2, then stopped at `Load
+  the untouched firmware`. `Save & exit` returned ROM Studio with the exact Stage 2/15 state and
+  no build or phone action.
+- Settings changed the isolated session from Guided to Expert only after the existing explicit
+  warning/acceptance, while the same project and Stage 2/15 evidence remained selected. Returning
+  to Guided preserved the project, evidence, capability and Guardian boundary and reported `NO
+  WORKER, BUILD, FLASH, OR PHONE ACTION STARTED`.
+- Command-palette navigation opened About ROMVERSE, ROMVERSE Archives, ROMVERSE Link, ROMVERSE
+  Members and ROMVERSE Galaxy. Their observed states remained truthful: Guardian evidence was not
+  yet verified; 281 offline Archives records were available; Link was not paired and its phone
+  approval/actions were disabled; Members was not configured and access remained unverified; and
+  Galaxy showed offline local mode with zero local topics and online publishing locked.
+- Command Deck then showed the selected project, `MISSION: ATTENTION`, enabled `Resume Mission`,
+  and retained the exact Stage 2/15 handoff. The app closed normally, restarted once with the same
+  isolated home without reopening setup, restored Guided Command Deck/project/resume state, opened
+  Genesis at exact task 2, saved, and closed normally again.
+- The isolated source workspace contains no managed-tool files. Its 154-byte runtime log contains
+  exactly two start markers and two clean-close markers with no exception or native-fault marker.
+  No ADB/Fastboot command or device target was recorded.
+
+### Bounded regression and one inert test correction
+
+- Initial selected regression (`QT_QPA_PLATFORM=offscreen`): `.venv\Scripts\python.exe -m pytest
+  -q -p no:cacheprovider tests\test_guided_mission.py tests\test_app_launch_settings.py
+  tests\test_command_palette.py tests\test_settings.py tests\test_settings_ui.py
+  tests\test_rom_studio_ui.py tests\test_dashboard_rendering.py tests\test_galaxy_network.py
+  --basetemp C:\Work\rvsw-72d30031-feature-regression`. It completed **88 outcomes: 86 passed / 2
+  failed**, then was interrupted after the next ROM Studio node stalled with no output. Exact
+  verbose reproduction proved the stall was
+  `test_genesis_autopilot_runs_safe_local_stages_then_pauses_for_device`: the legacy test opened
+  the newer interactive Platform Tools repair while no verified tools were available.
+- The minimum test-only correction marks Platform Tools available in that fixture and connects the
+  existing scan request to one immediate successful **inert empty-device result**. It neither runs
+  ADB/Fastboot nor creates device evidence or authority. Exact corrected node: **1 passed** in
+  5.80 seconds. The 14 downstream ROM Studio nodes then passed **14/14**, and Galaxy passed
+  **6/6**. The unchanged 44 ROM Studio nodes before the repaired node had already passed in the
+  verbose bounded reproduction, giving segmented proof of **59/59 ROM Studio nodes** after the
+  correction without needlessly replaying the unchanged prefix.
+- `tests/test_dashboard_rendering.py`: **25/25 passed**. The initial bounded run also completed
+  `test_app_launch_settings.py`, `test_command_palette.py`, and `test_settings_ui.py` at **15/15
+  passed**.
+- `tests/test_guided_mission.py`: **23 passed / 1 failed**. The sole failure is an out-of-scope
+  stale Stage 12 wording assertion expecting `verified local candidate`; current approved source
+  correctly says Forge Control must execute and byte-verify the exact Device Pack plan before
+  signing. Approved Linux-only test commit `8317f2f4` already asserts those exact semantics, but it
+  was not imported because this authorization named only `c5c67bef`.
+- `tests/test_settings.py`: **4 passed / 1 failed**. The sole failure is the already-audited Windows
+  POSIX-mode fixture incompatibility: `stat.S_IMODE(...)` observes `0666` rather than Linux-only
+  `0600`; Windows privacy is ACL-based. No settings persistence failure occurred in either the
+  deterministic store checks or the real-user restart.
+- Across the selected **134 nodes**, the accepted evidence is therefore **132 passed / 2 classified
+  pre-existing or out-of-scope assertion failures / 0 new functional failures**. The original
+  stalled node is included as passed after its scoped correction; it was not silently retried.
+- `.venv\Scripts\python.exe -m ruff check src\romverse\rom\guided.py
+  tests\test_guided_mission.py tests\test_rom_studio_ui.py` — **PASS**.
+  `.venv\Scripts\python.exe -m ruff format --check` on the same three files — **PASS, 3 files
+  already formatted**. `git diff --check` — **PASS**.
+
+### Exactly one replacement unsigned Windows package
+
+- From committed tip `1e8bfde1c7601ee4a3812d4d1f74569029f93699`, exactly one build ran:
+  `.venv\Scripts\python.exe scripts\build_desktop_executable.py --output-directory
+  C:\Work\ROMVERSE-Windows\build\windows-feature-batch-1e8bfde --work-directory
+  C:\Work\ROMVERSE-Windows\build\windows-feature-batch-1e8bfde-pyinstaller`.
+- Result: **PASS on the first and only attempt** on Windows 11 `10.0.26200`, Python `3.12.10`,
+  PyInstaller `6.22.2`. No dependency or tool was installed.
+- One-folder package: `build\windows-feature-batch-1e8bfde\ROMVERSE` — **305 regular files /
+  164,647,192 bytes / 0 reparse points**.
+- Executable: `ROMVERSE.exe` — **6,324,428 bytes**, SHA-256
+  `0ac34a65e4acd205e3f8002c0aa787cb1b898d368b143fcecb5205c39ac15e58`, Authenticode
+  `NotSigned`.
+- Independently calculated sorted forward-slash relative-path/size/member-SHA-256 manifest, UTF-8
+  without BOM and with one final LF: SHA-256
+  `a5f825962087afd85c4fa56a480672d19a2964fc3334de8f88518bfd5c1fe9cd`.
+
+### One visible package acceptance and one frozen smoke
+
+- The only visible package launch used fresh isolated `ROMVERSE_HOME`
+  `C:\Work\ROMVERSE-Feature-Batch-Acceptance-1e8bfde`. The full 774 x 833 setup remained visible,
+  showed the truthful missing ADB/Fastboot inventory, and entered Guided Command Deck. Command Deck
+  reported `Device Engine needs attention`, `DEVICE: NOT CONNECTED`, `PROJECT: NONE`, `MISSION:
+  IDLE`, `GUARDIAN: VERIFY REQUIRED`, and `Waiting for device`; no setup or primary action installed
+  tools or searched for a phone. Normal close produced one start and one clean-close marker in the
+  77-byte runtime log.
+- Exactly one frozen smoke used fresh
+  `C:\Work\ROMVERSE-Feature-Batch-Smoke-1e8bfde`: `.venv\Scripts\python.exe
+  scripts\smoke_frozen_desktop.py build\windows-feature-batch-1e8bfde\ROMVERSE\ROMVERSE.exe
+  C:\Work\ROMVERSE-Feature-Batch-Smoke-1e8bfde` — **PASS, exit 0**, `Frozen ROMVERSE Desktop
+  launch smoke passed`. Its 77-byte runtime log likewise contains one start and one clean close.
+  Both package workspaces contain zero managed-tool files, and no checkpoint process remains.
+
+### Scope, preservation, and next review
+
+- The protected untracked patch remains byte-identical at **8,272 bytes**, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it was not edited,
+  applied, staged or deleted. Protected Companion files remain untouched. The checkpoint changes
+  only `src/romverse/rom/guided.py`, `tests/test_guided_mission.py`,
+  `tests/test_rom_studio_ui.py`, and this handoff. All earlier packages remain preserved.
+- No phone was connected, requested, discovered, operated or targeted. No ADB/Fastboot command,
+  Platform Tools acquisition, APK, firmware, Recovery/Guardian execution, production adapter,
+  trust/signing, publication, release, force-push, destructive action, unlock, root, lock or relock
+  occurred.
+- Guardian-only authority, exact-device evidence, consent separation, UNKNOWN-on-uncertainty, no
+  blind retry, independent verification, feature freeze and permanent no-relock remain intact.
+- Precise next task: independent Product Assurance review of source integration `f77da095`, inert
+  test correction `1e8bfde1`, the selected regression classifications, and the one replacement
+  unsigned package/visible/frozen evidence. Do not begin another Windows source slice until a
+  matching verdict is committed.
+
 ## Bounded Windows setup geometry correction and package — Product Assurance review requested
 
 - Product Assurance verdict: `353460dd4e02f3a82df615f8aa8cb442b4a5051c` — `Require bounded

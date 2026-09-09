@@ -1,5 +1,66 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 3498ed0 — Windows popsicle no-phone journey
+
+- Reviewed checkpoint: `3498ed08a5a0a7449f9d6fe26718f774a9aa6b0f`
+- Authorizing verdict: `40b52112f1ff5b162112d9f4fcb538dc90510109`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — THE BOUNDED WINDOWS JOURNEY PRESERVES TRUTHFUL NO-DEVICE STATE, EXECUTION-INERT EVIDENCE, NAVIGATION CONTINUITY AND ZERO GUARDIAN AUTHORITY**
+
+### Decision and independent evidence
+
+The checkpoint is the exact no-phone continuation authorized by `40b5211`. Product Assurance
+inspected the complete commit: it adds only the Build handoff and changes no application, test,
+package, workflow, Companion or execution file. The diff passes `git diff --check`.
+
+- The visible result remains evidence, not authority: exact `DATA00052000` lookup reports one
+  experimental offline evidence record and zero verified guides, while ROMVERSE Archives states
+  `EXECUTION AUTHORITY: NONE`.
+- Recovery Bay's handoff is navigation-only, preserves the exact symptom on return and keeps all
+  plan, diagnostic and repair controls unavailable without an authorized Device Engine snapshot.
+- Guardian Core remains read-only with a valid SHA-256 chain, zero operation records and zero
+  approvals. A local audit verification does not mutate those counts.
+- Close/restart preserved the Archives inventory and exact lookup while startup continued to state
+  `No Android device detected / NOT CONNECTED` and `SIMULATION ONLY • NO HARDWARE`. The retained
+  runtime evidence records four starts, four clean closes and no fault entries.
+- The Windows checkout is at the reviewed commit and contains only the protected untracked patch,
+  still reported as **8,272 bytes** with SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+
+No unchanged test suite or package rebuild was necessary for this documentation-only checkpoint.
+No hosted CI, phone/emulator operation, firmware or APK selection, ADB/Fastboot command, device
+query/write or transition, Guardian/Recovery execution, signing, publication, release, wipe,
+unlock/root, lock or relock occurred. The checkpoint is feature-freeze compliant and preserves
+Guided friction, exact-device binding, fresh consent, UNKNOWN-on-uncertainty, no blind retry,
+independent verification, no wipe and permanent bootloader no-relock.
+
+### Approved next bounded task
+
+Continue one non-overlapping local-only, no-phone Windows product-as-user batch across the existing
+Device Atlas to Device Packs to Guardian handoffs. Verify truthful empty/simulation state,
+back/forward navigation, retained context and restart persistence, with no accidental execution
+authority or inert/dead-end control. Correct only a directly reproduced bounded production defect
+and run focused local tests and lint for changed areas. If no defect is reproduced, record the
+bounded pass without rebuilding unchanged bits.
+
+Forgejo is now the primary LAN coordination remote and GitHub remains the off-site copy. Push the
+exact checkpoint to Forgejo first, verify it, then fast-forward the identical commit to GitHub.
+Do not enable Forgejo Actions or manually dispatch hosted CI. Do not rebuild a package unless a
+production Windows defect changes the shipped bits and creates a coherent acceptance boundary.
+Stop before physical-device operation, firmware/APK action, device write/mode transition,
+Guardian/execution-authority or safety-contract change, contradictory/UNKNOWN evidence,
+signing/publication/release, destructive action or material scope expansion. Preserve the
+protected patch byte-for-byte.
+
+### Gate status
+
+- Windows popsicle no-phone journey: **APPROVED**
+- Next Windows no-phone product-as-user batch: **AUTHORIZED**
+- Forgejo-first dual-remote checkpointing: **REQUIRED**
+- Replacement development package: **DEFER UNTIL A COHERENT PRODUCTION CHANGE EXISTS**
+- v0.2 Golden Foundation: **CLOSED pending remaining release gates**
+- Physical Android operation, production signing/publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 7367154 — Windows exact popsicle field-knowledge integration
 
 - Reviewed checkpoint: `73671541a90a6ae9c965c3275b902af2d87d1888`

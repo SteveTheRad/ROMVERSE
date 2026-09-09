@@ -70,6 +70,7 @@ def test_guided_rom_studio_opens_real_source_bound_workflow_and_decline_sends_no
 ):
     app, window, context = project_desktop
     phases = []
+    owners = []
     errors = []
     timer = QTimer()
     timeout = QTimer()
@@ -79,6 +80,13 @@ def test_guided_rom_studio_opens_real_source_bound_workflow_and_decline_sends_no
         question = app.activeModalWidget()
         if isinstance(question, QMessageBox):
             phases.append("declined")
+            owners.append(
+                (
+                    "confirmation",
+                    question.isVisible(),
+                    question.parent() is window._local_flash_dialog,
+                )
+            )
             question.button(QMessageBox.StandardButton.Cancel).click()
 
     def interact():
@@ -87,11 +95,28 @@ def test_guided_rom_studio_opens_real_source_bound_workflow_and_decline_sends_no
             if isinstance(modal, ProjectPreparationDialog) and "prepare" not in phases:
                 phases.append("prepare")
                 assert window._local_flash_dialog is modal
+                owners.append(
+                    (
+                        "prepare",
+                        modal.isVisible(),
+                        modal.parent() is window,
+                        modal.choice.currentData(),
+                        modal.worker is None and modal.preparation is None,
+                    )
+                )
                 assert context.runner.calls == []
                 modal.choice.setCurrentIndex(modal.choice.findData("protected"))
                 modal.prepare_button.click()
             elif isinstance(modal, ProjectFlashDialog) and "images" not in phases:
                 phases.append("images")
+                owners.append(
+                    (
+                        "images",
+                        modal.isVisible(),
+                        modal.parent() is window,
+                        window._local_flash_dialog is modal,
+                    )
+                )
                 assert isinstance(modal.service, BoundProjectFlashService)
                 assert window._experience_mode is ExperienceMode.GUIDED
                 assert modal.images.rowCount() == 0
@@ -131,7 +156,13 @@ def test_guided_rom_studio_opens_real_source_bound_workflow_and_decline_sends_no
     if errors:
         raise errors[0]
     assert phases == ["prepare", "images", "declined"]
+    assert owners == [
+        ("prepare", True, True, "candidate-installation", True),
+        ("images", True, True, True),
+        ("confirmation", True, True),
+    ]
     assert window._local_flash_dialog is None
+    assert app.activeModalWidget() is None
     assert context.runner.writes == []
     assert window._experience_mode is ExperienceMode.GUIDED
 

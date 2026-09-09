@@ -1,5 +1,105 @@
 # ROMVERSE Product Assurance Sync
 
+## Fedora Guided synthetic firmware intake through Provenance
+
+### Authoritative commit and exact changes
+
+- Branch: `linux/stage1-desktop-readiness`.
+- Journey evidence: `696dab8ab058acf7acdcfc723ccde6ec76fad5eb`
+  (**Record Fedora synthetic Provenance boundary**).
+- Product Assurance-approved base:
+  `bdcf0fa7479a8f7888ee79ab11bef6d1bb8216ab`.
+- Corrected unsigned package: `build/fedora-asset-boundary-v2/ROMVERSE`; executable
+  **6,337,072 bytes**, SHA-256
+  `4fbfed3244d93ba535413151c26f5fe53ef526d402f638a5e81e662f8b562500`.
+- The complete runtime observation is recorded in
+  `docs/evidence/FEDORA_GUIDED_SYNTHETIC_PROVENANCE_BOUNDARY_2026-09-10.md`.
+- No production, test, package, Companion, Windows, Device Intelligence, Guardian, Recovery or
+  adapter source changed. No rebuild was required because the genuine intake journey reproduced no
+  deterministic shipped Stage 1 defect.
+
+### Verification and gates
+
+- **Implemented:** evidence-only checkpoint. Application, test and package bits are unchanged.
+- **Simulated/Tested:** one genuine corrected-package Fedora Guided journey passed using a fresh
+  mode-`0700` disposable profile, no phone/emulator or Android simulation, an empty process-local
+  Android-tool `PATH`, and a Bubblewrap network namespace with only zero-byte loopback. All online,
+  community, automatic verified-tool acquisition and Synapse contribution settings remained false.
+- Command Deck truthfully began with no project/device and Guardian verification required. Its
+  normal Genesis route created **Synthetic Provenance Boundary**, imported only a deterministic
+  harmless 551-byte synthetic OTA ZIP, accepted the existing protected-import disclosure, bound
+  the exact source digest and completed bounded structure inspection. Genesis advanced to
+  **Prepare an isolated working tree** with 3 of 15 tasks verified; Build did not invoke it and used
+  the product-owned **Save & exit** control to return to the exact task-4 ROM Studio handoff.
+- The mode-`0400` source and mode-`0444` protected original remained byte-identical at SHA-256
+  `c3f5c1711d648a0f6c8f2ba2e3c910048c4e81e6f3ee39bb82e9e85888ac89c8`. The protected project
+  manifest and 2-entry / 297-byte bounded inspection record bind that digest. `working_roms` and
+  `tools` contain zero files; no install plan, device evidence, Guardian ledger, Recovery result,
+  consent or execution record exists.
+- Device DNA truthfully has no live identity: firmware detection and Payload Atlas evidence parsing
+  are supported only from bounded structure; ROM build and Guardian flash are `UNCONFIRMED`;
+  relocking is `UNSUPPORTED`. Compatibility Matrix grants no proven compatibility, marks Guardian
+  flash **Unknown**, remains advisory-only and permanently marks relocking **Known Incompatible**.
+  Its derived Ascension route is blocked with authority `none` and an empty command manifest.
+- Normal logging is disclosed: one Activity success records the local protected import and eight
+  Live Console status/evidence events record the existing Genesis/import/DNA/matrix flow. None is
+  device or execution authority. The packaged offline Archive and locally generated ROMVERSE Link
+  key pair were created by workspace initialization; neither network refresh nor Link use occurred.
+- Non-double-counted regression evidence: **0 new automated test nodes** because no source/package
+  bit changed; one new packaged Fedora runtime acceptance journey passed. The earlier **56/56**
+  focused package/knowledge baseline remains the unchanged source baseline and was not rerun or
+  counted as new evidence.
+- **Hardware Verified:** no. No physical or simulated Android target, ADB or Fastboot operation was
+  used.
+- **Released:** no. The package remains unsigned, local and unpublished.
+- Blockers/failures: no protected-intake, Provenance or exact-handoff dead end was reproduced.
+  Fedora accessibility still exposes no compositor-owned main-window close action. After final
+  inspection, Build terminated only the exact disposable process with `SIGTERM`; signal 15 maps to
+  status 143, both package and wrapper stopped, and the runtime guard contains only its start marker.
+  **No clean-shutdown or restart-persistence claim is made.** Repetitive Qt AT-SPI and GTK icon-theme
+  diagnostics did not interrupt the route. Windows secure launch, production trust/signing,
+  physical Recovery/flash verification and release remain blocked or independently gated.
+- Guided friction/dead ends: the existing single import disclosure clearly described local copy,
+  hashing, protection, bounded inspection and non-extraction. Import advanced directly to the next
+  exact task, and **Save & exit** returned to the same project without beginning Working Lab. No
+  additional decision, circular handoff or false readiness appeared.
+- Guardian/Recovery/safety: source/device uncertainty remained explicit, all compatibility remained
+  unproven and execution authority remained `none`. Guardian-only authority, exact-device/source/
+  incident binding, durable `UNKNOWN`, no blind retry, independent verification and permanent
+  bootloader no-relock remain unchanged.
+- Platform status: genuinely exercised on Fedora/Linux. Windows was not run or modified; Android
+  hardware was not used or represented as verified.
+- Feature freeze: compliant Stage 1 acceptance evidence for the existing protected intake and
+  Provenance route; no capability, behavior, architecture or UI surface was added.
+- Version gate: Fedora synthetic intake through Provenance passes, but Working Lab/extraction,
+  Android/consequential work, v0.2 Golden Foundation and all production/release gates remain
+  **CLOSED**.
+- External actions: one local network-isolated package launch, deterministic inert fixture creation,
+  private disposable profile/workspace writes, accessibility-driven UI interaction, Build-set empty
+  process `PATH`, exact process termination after the inaccessible compositor-close boundary,
+  read-only Git inspection and scoped documentation commits. GNOME toolkit accessibility was
+  restored to false. No app network request, download, installation, real firmware, phone/emulator,
+  ADB/Fastboot, APK/firmware mutation, Working Lab/extraction, build, Guardian/Recovery execution,
+  flash, wipe, unlock/root, lock/relock, signing, publication, release, hosted CI or Forgejo Action
+  occurred. Forgejo-first and identical GitHub branch pushes containing this handoff are the only
+  planned remote writes.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance. Do not begin another Linux slice until Product Assurance
+records its verdict and selects or approves the next exact non-overlapping Stage 1 task.
+
+### Product Assurance Review Requested
+
+- Confirm the deterministic harmless fixture, exact protected-copy binding and bounded inspection
+  satisfy the authorized synthetic intake/Provenance journey.
+- Confirm Device DNA, Compatibility Matrix and derived route retain truthful uncertainty and no
+  execution authority despite recognizing OTA structure.
+- Confirm task 4 was selected but never invoked, so Working Lab/extraction and every consequential
+  boundary remain unentered.
+- Confirm the disclosed status-143 accessibility limitation remains excluded from clean-shutdown
+  and restart-persistence acceptance.
+
 ## Fedora first-run setup to Guided Command Deck boundary
 
 ### Authoritative commit and exact changes

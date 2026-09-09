@@ -1,5 +1,84 @@
 # ROMVERSE Product Assurance Sync
 
+## Linux test checkpoint — deterministic host fixtures restore bounded UI regression
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `9132d15`, approving Stage-11 checkpoint `2e1f2c5` and
+  authorizing only bounded classification/correction of the first Linux host-state failure and the
+  non-terminating Qt group. Test-fixture commit: `5cbe675` (`Isolate Linux UI host fixtures`). This
+  section forms the following documentation/handoff commit on `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation regression reliability only. Stage 12 was not operated.
+  No production source byte, feature, capability, runtime behavior or durable project evidence was
+  changed.
+- The accepted Fedora package remains byte-identical at SHA-256
+  `5bae4e420a8c67d9ee89674017b4a4756f8a4c386907d9467e7e0cffd59f1347`. The accepted schema-4
+  Stage-11 plan remains byte-identical at file SHA-256
+  `42faa6cde536cf0865144fc5e8558853a295e066fb7d0b4cc8908b297e8c67b4`; its saved mission remains
+  `selected_stage: build_sign`, `build_plan_verified: true`, with no saved error.
+
+### Deterministic failure classification and corrections
+
+- The exact Ambient Rendering failure reproduced independently. Its fixture constructed a
+  `MainWindow` without an active ROM project, then directly injected a ROM Studio operation and
+  expected a project-scoped **Live Operations** Command Deck action. Current product logic correctly
+  excludes unscoped events from a project mission and therefore exposed the real no-engine host
+  action **Resolve Platform Tools**. The fixture now creates and selects an actual project before
+  starting the operation. No product navigation change was warranted.
+- Bounded Qt selection identified the non-terminating test exactly as
+  `test_genesis_autopilot_runs_safe_local_stages_then_pauses_for_device`. In file order, the first
+  46 ROM Studio UI tests passed before this test stopped progressing; the 13-test tail after it
+  passed independently; and the exact test reproduced the block alone.
+- That fixture constructed a standalone Studio with no verified Platform Tools and no owner for its
+  requested device scan. Current Guided behavior correctly opened the visible prerequisite repair
+  surface; its modal event loop prevented the test's outer `processEvents()` deadline from
+  advancing. The fixture now marks its intentionally simulated scan channel available and responds
+  to the scan request with one deterministic in-memory empty-device result. This exercises the
+  test's stated autopilot-to-device boundary without Forge, hardware, ADB or Fastboot.
+
+### Verification, classification and gates
+
+- Final directly affected selection: **68/68 passed** — all 5 Ambient Rendering tests plus the
+  complete 63-test ROM Studio UI file. Earlier exact reproductions and the 13-test bisection tail
+  overlap this final selection and are not added to the total.
+- Ruff passed for both changed test files. `git diff --check` passed.
+- **Implemented:** two deterministic test-fixture isolation corrections; no product implementation
+  changed.
+- **Simulated/Tested:** 68/68 offscreen Qt tests. The empty-device result is test-only, in-memory and
+  carries no hardware or execution authority.
+- **Hardware Verified:** no. No physical device or emulator was queried or operated.
+- **Released:** no. No application package was rebuilt, installed, published or released because
+  production bytes did not change.
+- Guided friction/dead ends: the bounded regression no longer opens an ownerless modal Forge repair
+  surface and no longer hangs. Real product behavior remains unchanged: missing Platform Tools
+  still produce the visible repair route, while a real active project owns its live operation.
+- Guardian/Recovery/safety: unchanged. Guardian-only authority, exact-device attribution,
+  UNKNOWN-on-uncertainty, no-blind-retry, independent verification and permanent bootloader
+  no-relock remain intact.
+- Platform status: these checks genuinely ran on Fedora 44 using the Qt offscreen test platform.
+  Windows and physical Android were not run. The prior broad run remains not-a-pass; this checkpoint
+  resolves its first deterministic host-state defect and the specifically identified non-
+  terminating Qt test without repeating the 2,996-test suite.
+- Feature freeze: compliant test-only correctness work. v0.2 Golden Foundation remains **CLOSED**.
+- External actions: normal fetch/commit/push and local tests only. No package rebuild or launch,
+  phone/emulator operation, device-addressed ADB/Fastboot, APK/tool installation, firmware build/
+  sign/flash, Guardian/Recovery execution, publication, release, merge, force-push, lock or relock
+  occurred. Companion, Windows, Knowledge/UI Design Lab and unrelated work were not touched.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not operate Stage 12 or begin another
+consequential slice. Product Assurance should decide whether this bounded classification is
+sufficient to continue or whether another specifically selected Linux regression group must be
+stabilized first.
+
+### Product Assurance Review Requested
+
+- Confirm that both observed failures were stale/under-specified fixtures and that preserving the
+  production host-state/navigation behavior was correct.
+- Confirm 68/68 is the appropriate non-double-counted affected regression for this test-only
+  checkpoint and that no replacement package was required.
+
 ## Linux packaged checkpoint — Stage 11 binds exact Recipe and Debloat results
 
 ### Authoritative checkpoint and scope

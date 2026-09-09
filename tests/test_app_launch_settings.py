@@ -174,8 +174,21 @@ def test_setup_wizard_bounds_tool_inventory_and_keeps_guided_action_visible(
     assert tool_scroll is not None
     assert tool_scroll.widgetResizable()
     assert tool_scroll.verticalScrollBar().maximum() > 0
-    assert wizard.sizeHint().height() <= 800
-    assert guided.geometry().bottom() < wizard.contentsRect().bottom()
+    guided_in_dialog = guided.rect().translated(guided.mapTo(wizard, guided.rect().topLeft()))
+    guided_on_screen = guided.rect().translated(guided.mapToGlobal(guided.rect().topLeft()))
+    screen = wizard.screen()
+
+    assert guided.isVisibleTo(wizard)
+    assert guided.isEnabled()
+    assert wizard.contentsRect().contains(guided_in_dialog)
+    assert screen is not None
+    assert screen.availableGeometry().contains(guided_on_screen)
+
+    guided.click()
+    app.processEvents()
+
+    assert wizard.result() == QDialog.DialogCode.Accepted
+    assert wizard.selected_experience_mode is ExperienceMode.GUIDED
 
     wizard.close()
 

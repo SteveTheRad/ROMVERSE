@@ -1,5 +1,67 @@
 # ROMVERSE Product Assurance Sync
 
+## Missing-runtime scan dead-end checkpoint
+
+### Authoritative commit and exact changes
+
+- Branch: `linux/stage1-desktop-readiness`.
+- Implementation: `b9685e518f5824a01fd274e171eb7cf004117b6a`
+  (**Route missing health runtime to Forge Arsenal**).
+- Product-as-user testing reproduced two silent no-tools paths. Quantum Optimizer kept an enabled
+  **Scan device health** action when Device Engine did not exist, while Command Deck's fixed
+  **Connect Device** shortcut bypassed its own recommended **Resolve Platform Tools** state. Both
+  calls reached `MainWindow.scan()` and returned without visible progress or a recovery handoff.
+- Quantum Optimizer now renders the missing-runtime state directly, changes the primary action to
+  **Resolve Platform Tools**, explains that a read-only scan will resume after verification and
+  routes both Scan and Analyze through the existing bounded Forge Arsenal resolver.
+- Command Deck's Connect shortcut now respects the current mission action: when Platform Tools are
+  missing it opens the same exact resolver; when runtime evidence is current it retains the normal
+  read-only scan signal. Its tooltip describes the actual next action.
+- Tool inventory changes update Quantum Optimizer atomically when Android runtime is activated or
+  revoked. No runtime, device or command authority is inferred from the UI state.
+
+### Verification and gates
+
+- **Implemented:** one existing missing-runtime handoff shared by Command Deck and Quantum
+  Optimizer, with no new route or capability.
+- **Simulated/Tested:** **17/17 unique affected diagnostics and runtime-transition tests passed**,
+  including missing-runtime routing, restored normal scan behavior and Fastboot-only runtime
+  refresh. Ruff, format and diff checks passed. Earlier broad suites and package checks are
+  retained as baseline evidence and are not double-counted.
+- **Hardware Verified:** no. Tests used offscreen Qt, fake signal observations and disposable local
+  workspaces only.
+- **Released:** no. The latest runnable package remains the unsigned, unpublished `a84e9ef`
+  Fedora development artifact; this correctness change is source-only.
+- Blockers/failures: both reproduced silent actions are fixed. Windows secure launch, production
+  signing/trust, physical Recovery/flash validation and release remain blocked/unverified.
+- Guided friction/dead ends: users can choose either prominent Connect/Scan entry without entering
+  a no-feedback loop when Platform Tools are absent. The existing resolver remains the single
+  recovery path and adds no new decision chain.
+- Guardian/Recovery/safety: unchanged. Tool resolution grants no device execution authority;
+  Guardian-only authority, exact target/source/incident binding, durable `UNKNOWN`, no blind retry,
+  independent verification and permanent no-relock remain authoritative.
+- Platform status: genuinely tested on Fedora/Linux; Windows and physical hardware were not run or
+  represented as verified.
+- Feature freeze: compliant Stage 1 correctness repair; no new product capability.
+- Version gate: no-tools first-use continuity improved; v0.2 Golden Foundation and every
+  production/release gate remain **CLOSED**.
+- External actions: local tests, disposable workspaces and scoped commits only. No physical phone
+  query/action, APK/firmware operation, installation, mode transition, flash, wipe, unlock/root,
+  lock/relock, publication, release or hosted-CI run occurred. The scoped branch push containing
+  this handoff is the only remote write.
+
+### Next proposed Build task
+
+Continue the inert product-as-user pass through remaining first-use, empty-state, dialog,
+persistence and cross-page handoff paths. Correct only the next reproduced Stage 1 desktop dead
+end; do not expand execution or Recovery scope.
+
+### Product Assurance Review Requested
+
+- Confirm resolving verified Platform Tools from either Connect or Scan is the intended
+  zero-friction behavior while the actual read-only scan still starts only after the refreshed
+  runtime inventory is accepted.
+
 ## Minimum-width desktop and rebuilt Fedora checkpoint
 
 ### Authoritative commit and exact changes

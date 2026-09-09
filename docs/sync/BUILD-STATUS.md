@@ -1,5 +1,112 @@
 # ROMVERSE Product Assurance Sync
 
+## Firmware guidance → offline Archives → saved-project return — Product Assurance review requested
+
+### Exact authority and bounded launch
+
+- Product Assurance verdict `60dbd1ac2a313e2bcf88a46a2c847ee33c8c90a2` exactly approves Build
+  checkpoint `71b7c30d85c0346e1d4361f7b270b6553f025630` and authorizes one connected,
+  non-consequential Guided Firmware evidence/guidance → offline Archives → saved-project return.
+  The checkout was safely fast-forwarded to that verdict with the protected untracked work
+  preserved byte-for-byte.
+- The single launch reused the unchanged extracted executable
+  `C:\Work\ROMVERSE-ZIP-Roundtrip-0a64ea9\ROMVERSE\ROMVERSE.exe`, 6,324,534 bytes, SHA-256
+  `d2df2c9a667520e9ebe88d4c2eb4dfa26020b1e2d8f852dddb33ab24a013b431`, the same private Local-mode
+  root `C:\Work\ROMVERSE-Onboarding-435949e`, and a child-only `PATH` containing only the empty
+  `C:\Work\ROMVERSE-No-Tools-435949e`. PID `106524` started at
+  `2026-09-10T04:34:58.7448971+10:00` with exactly one argument,
+  `--development-device-simulation`. No ADB/Fastboot candidate was available in the tool path or
+  data root.
+- The genuine Windows Command Deck opened Guided and `LOCAL`, named the exact active project
+  `Windows Guided Firmware Resume df05c`, and retained `CURRENT ROUTE • STAGE 02 OF 15`, `Load the
+  untouched firmware`, `NEXT • Choose firmware…`, `DEVICE: NOT CONNECTED`, `GUARDIAN: VERIFY
+  REQUIRED`, `RECOVERY CHECKPOINT: NOT YET VERIFIED`, and `GUARDIAN HANDOFF: NOT YET READY`.
+
+### Genuine evidence/guidance and offline learning round trip
+
+- The visible `Resume Mission` control preserved the exact project intent into Genesis task 2 of
+  15. Before any learning navigation, the overlay showed `Awaiting firmware`, `AWAITING PROTECTED
+  FIRMWARE`, `No device connected`, `CORE CHECKS ACTIVE`, one of 15 stages verified, `Stage status
+  READY`, and `Choose firmware…` as the next safe action.
+- `Show evidence & guidance` was expanded once. `WHAT ROMVERSE FOUND` truthfully said that no
+  verified evidence had been recorded for the stage. `ROMVERSE GUIDANCE` advised choosing firmware
+  for the exact model, region and bootloader generation and stated that ROMVERSE copies and hashes
+  the source without editing it. The panel retained zero verified items and no reported blocker.
+- `Show detailed tasks` was expanded once. The visible stage rail kept Project as the only verified
+  stage, Firmware as the active task, and Source integrity, Working lab, Device DNA and later stages
+  unverified. No firmware identity, compatibility, Guardian or execution authority was inferred.
+- `Learn this stage` was invoked exactly once. Genesis saved/paused the same Firmware resume and
+  routed to the packaged `ROMVERSE Archives` page with `SOURCE WORKFLOW • NAVIGATION ONLY`. The
+  handoff explicitly stated that Archives navigation starts no worker, repair, build or phone
+  action. The page remained `LOCAL`, reported `OFFLINE BRAIN READY`, 284 structured records and 182
+  attributed sources, `EXECUTION AUTHORITY: NONE`, locked signed-update import, no enrolled public
+  trust keys, zero local outcomes, and `NO UPLOAD OR EXECUTION AUTHORITY`.
+- The prefilled offline search was exactly `firmware source`, with five verified guides, 62 offline
+  evidence records and zero explicit conflicts. The selected entry, `Which firmware source do I
+  have?`, visibly directed the user to choose the exact downloaded file, fingerprint the protected
+  source before extraction, route payload/OTA, factory-image and raw-image formats by their bytes
+  and structure rather than an extension, and never modify the original source in place. No
+  catalog sync, signed update, download, tool plan or import control was invoked.
+- The visible `Return to ROM Studio` control restored the same selected project. ROM Studio showed
+  `Stage 2/15: Load the untouched firmware`, `Awaiting original`, `GENESIS • 2/15 • FIRMWARE`, `No
+  original imported`, and `NO BUILD OR PHONE ACTION STARTED`. Reopening Genesis once confirmed the
+  same Firmware task, zero verified supporting items, no reported blocker, absent firmware/device,
+  unconfirmed compatibility and unchanged `Choose firmware…` next action. `Save & exit` then
+  paused it normally; no chooser or source intake occurred.
+
+### Final persistence, clean close and scope
+
+- The project count remains exactly one and its tree still contains exactly two files. The
+  410-byte schema-two `project.romverse` is byte-identical at SHA-256
+  `07748e635d70af7f88934a40f6282188002370e8546c5fdca402a39504b58536`, with the same exact project
+  ID, empty Device Pack and `original: null`. The 438-byte schema-six `guided-mission.json` retains
+  the same substantive state: `selected_stage: firmware`, `root_choice: undecided`,
+  `install_requested: false`, no build/recipe/customization completion and an empty `last_error`.
+  As required by the visible Learn/save route, only its integrity-bound save timestamp and digest
+  advanced; its final SHA-256 is
+  `5e8c055860547b6aee5d2e1a034687235adcac0d391f0b24d02c7248d7407649`.
+- The redacted live-console ledger grew only with the four expected truthful current-flow records:
+  Firmware ready, Learn-stage save/pause, returned Firmware ready, and final save/pause. Its eight
+  total records remain Guardian-protected, preserve unconfirmed/running or attention state, and
+  explicitly report no phone write, wipe, unlock, root, flash or bootloader relock. The file is
+  8,666 bytes, SHA-256
+  `35de0dfadd7e29bb58a667b5c1c2087f56cff1f780a28d031fff0b7eae88ab5c`.
+- The application closed normally. Final extracted and all-name ROMVERSE process/window counts are
+  zero, `%TEMP%\romverse-studio.lock` is absent, and both persistent zero-byte workspace lock files
+  accepted exclusive no-sharing opens. The runtime ledger is now exactly 385 bytes, SHA-256
+  `970f2eee34b6d2ef6b732c87f27f0ffd7e183e8a0d77e28a79eaf946e857f2d6`, with exactly five starts
+  and five clean closes and final write `2026-09-10T04:40:12.8157101+10:00`.
+- The private settings, workspace manifest and offline archive remain byte-identical at SHA-256
+  `9edc2a91206ef4225caa90491270ad2ae88c3a0c3f4719c0cc773fa8e7b0e126`,
+  `0073e1df5d54160da16e13f4c2780ecca81c9b732e4f805f2b7668e52b36e693`, and
+  `2384ebb6ce9616af2270991da2c7b594d08b7534e71bf819549c92c091e27764` respectively. The evidence
+  root contains the same 11 files and 21 directories, now 892,680 bytes due only to the expected
+  ledgers, with zero reparse entries. `apks`, `backups`, `builds`, `cache`, `device_packs`,
+  `diagnostics`, `original_roms`, `recipes`, `snapshots`, `temp`, `tools`, and `working_roms` each
+  contain zero files.
+- The authoritative and extracted package trees still have zero member-identity mismatches: each
+  has 306 files, 23 directories, 164,663,424 bytes, no empty files and no reparse entries. The
+  retained ZIP remains 75,612,944 bytes with SHA-256
+  `2e65f9fc6118c9159f4aea1958949e5da8a154d6e045432addb9b40a6f21c0e4`.
+- This checkpoint changes only `docs/sync/BUILD-STATUS.md`. No source, test, settings contract,
+  package or archive changed; no test suite or rebuild was repeated because this was the exact
+  authorized host-only runtime observation. `git diff --check` is the proportionate repository
+  validation. Protected Companion files remain untouched. The protected untracked patch remains
+  8,272 bytes with SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it and the existing untracked
+  `build-work\` intermediates remain excluded from staging.
+- No firmware selection/import, further restart/onboarding/package/archive/copy cycle, network,
+  download, installation/tool repair, phone/emulator operation, ADB/Fastboot command, firmware/APK
+  mutation, Guardian/Recovery execution, source/package correction, production adapter/trust/
+  signing, publication, release, hosted CI, wipe, unlock/root, bootloader lock or relock occurred.
+  Exact-device evidence, fresh consent, Guardian-only authority and separation, durable UNKNOWN,
+  no blind retry, independent verification, feature freeze and permanent bootloader no-relock
+  remain intact.
+- Precise proposed next task: independent Product Assurance review of this exact Firmware-stage
+  evidence/guidance, packaged offline Archives learning route, visible return to the exact saved
+  project, unchanged source state and clean close. Do not begin firmware intake, another launch,
+  source change, test/package cycle or consequential flow without a matching repository verdict.
+
 ## Command Deck → Genesis project creation → Firmware resume — Product Assurance review requested
 
 ### Exact authority and bounded launch state

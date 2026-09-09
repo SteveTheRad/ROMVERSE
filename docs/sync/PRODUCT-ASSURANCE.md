@@ -6,8 +6,7 @@
 - Reviewed request anchor: `de263d2c3638690711369e15e309361c0552e7b3`
 - Review status: **AUTHORIZED — DEVICE INTELLIGENCE FOUNDATION SCHEMA-CONTRACT SLICE**
 - Approved implementation branch: `device-intelligence/foundation-schema-contracts`
-- Approved implementation base: this Product Assurance authorization commit; its exact SHA must
-  be recorded and verified on Forgejo and GitHub before the branch is created.
+- Approved implementation base: `eac08f4d5c142380aa67588aee2be7faa5b64051`
 
 ### Decision
 

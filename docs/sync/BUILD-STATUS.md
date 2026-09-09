@@ -1,5 +1,96 @@
 # ROMVERSE Product Assurance Sync
 
+## Fedora Source Lab copy-only automatic-history blocker
+
+### Authoritative commit and exact changes
+
+- Branch: `linux/stage1-desktop-readiness`.
+- Blocker evidence: `4a4ca5274294f731c5616190cd9a8d1a3dd78f3d`
+  (**Record Fedora Source Lab copy-only blocker**).
+- Product Assurance correction:
+  `30305406f9d1573fac1e843cdb26007890e3b0f8`.
+- Complete evidence: `docs/evidence/FEDORA_SOURCE_LAB_COPY_ONLY_BLOCKER_2026-09-10.md`.
+- Application, tests and retained package are unchanged. The 6,337,072-byte package executable
+  remains SHA-256
+  `4fbfed3244d93ba535413151c26f5fe53ef526d402f638a5e81e662f8b562500`.
+
+### Result and gates
+
+- **Checkpoint result: BLOCKED / PRODUCT ASSURANCE DECISION REQUIRED.** The exact Source Lab
+  **Create working copy** action created the correct baseline and no extracted tree, but also
+  automatically created a Time Machine snapshot and Project Vault checkpoint. The correction
+  explicitly required no Time Machine/Project Vault artifacts, so Build preserved the state,
+  performed no retry/cleanup/reset/source change, and does not claim the acceptance passed.
+- **Implemented:** no product implementation; evidence and handoff only.
+- **Simulated/Tested:** one genuine package run used a fresh private profile and fresh **Synthetic
+  Source Lab Copy** project. The same deterministic harmless 551-byte fixture passed protected
+  import and Provenance. Genesis was closed at task 4 using **Save & exit**. From ROM Studio Source
+  Lab, Build invoked exactly one **Create working copy** action and did not use **Resume Mission** or
+  **Prepare working lab**.
+- The contained baseline is 551 bytes and byte-identical to the source/protected original at
+  SHA-256 `c3f5c171…89c8`. Its strict 583-byte working-copy record binds exact project/path/size and
+  matching source/current digests. The working tree contains zero files; no tree index exists;
+  tools remain empty; the Guided mission remains at task 4 with no build plan/install request/error.
+- The unexpected deterministic side effect is six local Time Machine/Vault files: one 551-byte
+  baseline snapshot and receipt, one **Protected working baseline** Vault entry with zero tree
+  bytes, and three content-addressed context objects. Current source confirms completed ROM Studio
+  operations call shared automatic checkpoint capture and explicitly map `working-copy` to this
+  baseline record.
+- Source Lab simultaneously displayed **No snapshots yet** while the snapshot/Vault evidence
+  existed. It correctly showed **Next: Extract and verify working tree**, and no extraction action
+  occurred. This retained-evidence/UI mismatch is referred to Product Assurance without source
+  change.
+- Normal logging is disclosed: Activity has three events—protected import, working-copy success and
+  automatic Project Vault success. Live Console has 12 import/Provenance/Genesis/working-copy/Vault
+  status events. They are evidence only and grant no device, Guardian or execution authority.
+- The prior advanced scope-divergence profile/project was not opened, reset, cleaned, deleted or
+  reused. Its eight project-record and three working-file hashes remained byte-identical before and
+  after the fresh run.
+- Non-double-counted regression evidence: **0 new automated test nodes**, no rebuild and one
+  blocked packaged Fedora copy-only acceptance. The earlier **56/56** package/knowledge baseline
+  remains unchanged prior evidence and is not counted again.
+- **Hardware Verified:** no. No phone, emulator, simulated Android target or Android tool was used.
+- **Released:** no. The package remains unsigned, local and unpublished.
+- Guided friction/dead end: the correct narrow Source Lab control is independently reachable after
+  leaving Genesis at task 4 and correctly avoids extraction. Its automatic history side effects,
+  however, violate the exact acceptance contract, while its visible “No snapshots yet” status does
+  not reflect retained evidence.
+- Guardian/Recovery/safety: no device scan/evidence, build plan, Guardian ledger, Recovery
+  incident/result, consent or execution record exists. The Project Vault entry is reversible local
+  project history, not device Recovery authority. Exact-source evidence, Guardian-only authority,
+  durable `UNKNOWN`, no blind retry, independent verification and permanent no-relock are unchanged.
+- Platform status: genuinely exercised on Fedora/Linux. Windows was not run or modified; Android
+  hardware was not used or represented as verified.
+- Feature freeze: no feature/source change. Any behavior or acceptance correction requires a new
+  minimum Product Assurance verdict.
+- Version gate: protected intake/Provenance remains approved; copy-only Source Lab acceptance is
+  **BLOCKED**; extraction and all later build/device/v0.2/release gates remain **CLOSED**.
+- External actions: fresh private profile/project and byte-identical harmless fixture copy; one
+  Bubblewrap no-network package launch with empty Android-tool `PATH`; normal import/Provenance and
+  Genesis **Save & exit**; exactly one Source Lab **Create working copy**; contained baseline and
+  automatic local history/evidence writes; exact process termination; read-only source/Git
+  inspection; and scoped documentation commits. Exit was exact status 143; no clean-close or
+  restart-persistence claim is made. GNOME toolkit accessibility was restored to false. No network
+  request, real firmware, extraction, retry, tool/download/install, phone/emulator, ADB/Fastboot,
+  APK/firmware mutation, build plan/build, Guardian/Recovery execution, flash, wipe, unlock/root,
+  lock/relock, signing, publication, release, hosted CI or Forgejo Action occurred. Forgejo-first
+  and identical GitHub branch pushes containing this handoff are the only planned remote writes.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance. Do not delete/reset/reuse either retained disposable
+project, change automatic history behavior, or rerun the boundary until Product Assurance decides
+whether automatic baseline protection is intended acceptance evidence or requires a minimum
+correction.
+
+### Product Assurance Review Requested
+
+- Reconcile the explicit “no Time Machine artifacts” criterion with the deterministic shared
+  automatic baseline-capture contract.
+- Review the visible **No snapshots yet** statement against the retained automatic snapshot/Vault
+  artifacts.
+- Keep extraction and every later build/device/release boundary closed.
+
 ## Fedora Guided Working Lab copy-only scope divergence
 
 ### Authoritative commit and exact changes

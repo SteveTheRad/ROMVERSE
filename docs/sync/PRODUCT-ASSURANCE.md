@@ -1,5 +1,67 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: aba1dcd — Windows native observation readiness preflight
+
+- Reviewed checkpoint: `aba1dcd47f2c2ad4c5c84c08a93f6e78716f3b5a`
+- Authorizing verdict: `c70d73bad7e15b9a5a3d4cd793fb61cfcf99b3b3`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — READINESS REMAINS UNKNOWN; NO ROMVERSE LAUNCH OR RETRY OCCURRED**
+
+### Decision and independent evidence
+
+The checkpoint is the direct child of `c70d73b`, changes only
+`docs/sync/BUILD-STATUS.md`, and Forgejo and GitHub exposed the identical commit before this
+review. It satisfies the exact readiness-only authority: the approved surface inventory was
+invoked once, exposed no native Windows applications and could not identify or read a harmless
+native window. A browser-only provider is not native-window evidence. Readiness is therefore
+correctly **UNKNOWN** rather than passed, failed or inferred.
+
+No app was selected, activated, captured or operated. ROMVERSE was not launched, so the previous
+one-launch authority was not reused and the corrected banner remains `UNKNOWN`. No alternative
+automation, process state, repository text or remembered screenshot was substituted for direct
+observation.
+
+Product Assurance independently revalidated the retained Windows host state. Activity remains
+3,392 bytes at `b432f3acbe63c146dfed87e2ded46b8a8aed2cdf59e16ccdf9de8f03e870e46f`;
+Live Console remains 31,179 bytes at
+`a1a829373deb1bf5be45793bd0b290075fa1639502a0626d7622ca6163f8bf93`; the Guided mission remains
+436 bytes at `ba96a6b7557ce9590b120cd52090a363d5fb2277729aba04b9316928d78ec0db`;
+and the runtime ledger remains 616 bytes at
+`c978becaee1ed37dd2ee6e5ffe936292eed1e9c638e9d0e98242706ed6486795`. The profile has zero
+reparse entries and current ROMVERSE, ADB and Fastboot process counts are zero.
+
+The Windows checkout is clean for tracked and staged files. The protected untracked patch remains
+8,272 bytes at `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`,
+and existing untracked `build-work/` remains untouched. `git diff --check` passes. No source,
+test, package or retained-profile file changed, so tests and rebuilds would provide no relevant
+evidence.
+
+No experiment-branch/Vault action, external evidence, network/download, device scan,
+phone/emulator, ADB/Fastboot command, APK/firmware mutation, Recipe/Forge, Guardian/Recovery,
+signing, publication, release, hosted CI, wipe, unlock/root, bootloader lock or relock occurred.
+Exact evidence, Guardian authority separation, durable `UNKNOWN`, no blind retry, feature freeze
+and permanent no-relock remain intact.
+
+### Exact next bounded Windows condition
+
+Windows package UI verification is now **paused on an external host-control capability**, not on
+ROMVERSE engineering. Do not create repeated readiness commits or poll the empty surface in a
+loop. Take no further repository, package or profile action while the inventory remains unchanged.
+
+Only after an external signal indicates that native Windows app surfaces are available may Build
+perform one new readiness inventory, without launching ROMVERSE. If that single inventory exposes
+an identifiable/readable harmless native window, record the observation and stop for Product
+Assurance authorization of a fresh package launch. If it remains empty, retain `UNKNOWN` and stop
+without a repository checkpoint.
+
+### Gate status
+
+- One native observation-channel readiness preflight: **APPROVED**
+- Native Windows observation readiness: **UNKNOWN — NO NATIVE APP SURFACE**
+- Condition-gated single readiness recheck after an external capability change: **AUTHORIZED**
+- Polling/repeated blocker checkpoints, ROMVERSE launch, branch/Vault use, device/build/
+  consequential action, signing/publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 9a19ee1 — Windows corrected-package observation blocker
 
 - Reviewed checkpoint: `9a19ee17722d9dee70eb223446ccd624ac94b6ac`

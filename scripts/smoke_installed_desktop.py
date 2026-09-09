@@ -18,6 +18,7 @@ from romverse.guardian.runtime_execution_claim import GuardianRuntimeExecutionCl
 from romverse.knowledge.archives import CANONICAL_ROUTES, KNOWN_FIXES
 from romverse.knowledge.lookup import OfflineKnowledgeService
 from romverse.knowledge.models import KnowledgeQuery
+from romverse.knowledge.store import load_packaged_archive
 from romverse.legal import (
     PRIVACY_STATUS,
     TERMS_STATUS,
@@ -135,12 +136,8 @@ def main() -> int:
     app.setStyleSheet(STYLESHEET)
     offline = OfflineKnowledgeService(workspace)
     archive = offline.store.ensure_seeded()
-    if (
-        len(archive.records) != 281
-        or len(archive.sources) != 181
-        or archive.bundle_digest
-        != "e198fe3773f62052db37048f97fae4fc4ab4261a8c7167ce7ff738dc382b3787"
-    ):
+    packaged_archive = load_packaged_archive()
+    if archive != packaged_archive:
         raise RuntimeError("Installed offline Archives corpus is missing packaged evidence")
     failure_lookup = offline.lookup(
         KnowledgeQuery(

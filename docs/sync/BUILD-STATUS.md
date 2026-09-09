@@ -1,5 +1,90 @@
 # ROMVERSE Product Assurance Sync
 
+## Relocated one-folder Windows package runtime/assets check — Product Assurance review requested
+
+### Exact authority and pre-launch package binding
+
+- Product Assurance verdict `4d29bb432189210be0e105838cfba600ae2e5e71` exactly approves Build
+  checkpoint `018b64b07d59cf0b822897a992b3c95000ebc975` and authorizes one unchanged
+  one-folder-package relocation and Local-mode launch. The checkout was safely fast-forwarded to
+  that verdict with all protected untracked work preserved.
+- The retained authoritative package remained
+  `C:\Work\ROMVERSE-Windows\build\windows-current-package-b1dc54e0\ROMVERSE`. It was copied once,
+  without moving or changing the source, to the new short disposable path
+  `C:\Work\ROMVERSE Package Café 4d29b`. The copy began at
+  `2026-09-10T03:24:47.1491789+10:00`, ended at
+  `2026-09-10T03:24:47.5261108+10:00` and took 377 ms.
+- Before launch, source and relocation each contained exactly 306 regular files, 23 directories,
+  164,663,424 file bytes, zero zero-byte files and zero reparse entries. A deterministic member
+  manifest used normalized `/` paths, `D`/`F` records, file byte lengths and lowercase SHA-256
+  digests, ordinal sorting, UTF-8 without BOM, LF endings and one final newline. Both manifests
+  were byte-identical at SHA-256
+  `92087364487cf5dbecb473291812628ae25bdc763fb912155903de61c71e6209`.
+- Both `ROMVERSE.exe` files remained 6,324,534 bytes with SHA-256
+  `d2df2c9a667520e9ebe88d4c2eb4dfa26020b1e2d8f852dddb33ab24a013b431`; the relocated executable
+  was `NotSigned`, as expected for this development package. The retained and relocated trees were
+  measured again after close with the same counts and byte totals and an equal deterministic
+  manifest digest. Both package trees remain present and preserved for review.
+
+### Genuine Windows relocated launch and runtime/assets evidence
+
+- The separate data root was `C:\Work\ROMVERSE-Relocated-Data-4d29b`, with the initially absent
+  simple workspace `C:\Work\ROMVERSE-Relocated-Data-4d29b\workspace`. The reviewed settings store
+  created only `config\settings.json` before launch: 633 bytes, SHA-256
+  `f176ae0ba370b775481956507a3233c45c6b10f58dab6d7c76000804b343f12d`, schema five, with all four
+  online/download/contribution controls false and `reduced_motion` false. Its inheritance-protected
+  owner-rights/SYSTEM Full Control ACL was unchanged after close.
+- The exact relocated executable was launched once through
+  `System.Diagnostics.ProcessStartInfo.ArgumentList`, with these four distinct vector items:
+  `--workspace`, `C:\Work\ROMVERSE-Relocated-Data-4d29b\workspace`, `--skip-onboarding`, and
+  `--development-device-simulation`. Only that child received `ROMVERSE_HOME` for the separate data
+  root. Windows recorded PID `105324` and the exact relocated executable path and arguments.
+- The launch produced exactly one responsive top-level window titled
+  `ROMVERSE Studio 0.2.0-alpha.1`. Its accessibility tree showed the rendered ROMVERSE packaged
+  branding and confirmed `LOCAL`, `DEVICE: NOT CONNECTED`, `PROJECT: NONE`, `MISSION: IDLE`,
+  `GUARDIAN: VERIFY REQUIRED`, Device DNA `UNCONFIRMED`, no Android device, `Simulation Session`,
+  `Development simulation`, and `SIMULATION ONLY • NO HARDWARE`. No feature or consequential flow
+  was entered.
+- Relocated `_internal\romverse\assets` contained the rendered brand assets and all seven packaged
+  Knowledge seed JSON files. The retained source constructs `KnowledgeCenter` during
+  `MainWindow` initialization; its constructor synchronously calls `ensure_seeded()`, which reads
+  those seeds through `importlib.resources.files("romverse.assets")`, parses and integrity-checks
+  them, and saves then reloads the workspace archive before the main window is available. The
+  relocated run created `workspace\knowledge\archive.romverse`, 880,760 bytes, SHA-256
+  `2384ebb6ce9616af2270991da2c7b594d08b7534e71bf819549c92c091e27764`, with bundle digest
+  `e3d60dfc6039772b9157a6d0da5d9a5bae41bef5204ba9eb9388c8e077773656`, 284 structured records
+  and 182 attributed sources. This is direct source/runtime evidence that offline Knowledge
+  initialized from the relocated packaged tree without opening that feature surface.
+
+### Clean close, validation and requested review
+
+- A single normal main-window close was requested at `2026-09-10T03:29:47.7978411+10:00`; the
+  process exited by `2026-09-10T03:29:48.1049170+10:00`, well inside the 10-second bound. Final
+  relocated and all-name ROMVERSE process counts are zero, and `%TEMP%\romverse-studio.lock` is
+  absent. Both persistent zero-byte workspace lock files accepted an exclusive no-sharing open
+  after exit, proving no live holder remained.
+  The runtime ledger is exactly 77 bytes, SHA-256
+  `9b548079f50e029991471fdbf93e92807fb82adb17319871cb9ab421e7b7f499`, with exactly one start and
+  one clean close. The separate data root remains preserved with 8 regular files, 20 directories,
+  882,811 bytes and zero reparse entries.
+- This checkpoint changes only `docs/sync/BUILD-STATUS.md`. No source, test, settings contract or
+  package changed; no suite was repeated and no rebuild occurred because the authorized action was
+  one genuine retained-package relocation observation. `git diff --check` is the proportionate
+  repository validation. Protected Companion files remain untouched. The protected untracked patch
+  remains 8,272 bytes with SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it and existing untracked
+  `build-work\` intermediates remain excluded from staging.
+- ROMVERSE performed no download, install, dependency/tool change, phone/emulator operation,
+  ADB/Fastboot command, firmware/APK action, Guardian/Recovery execution, production
+  adapter/trust/signing, publication, release, hosted CI, wipe, unlock/root, bootloader lock or
+  relock. Repository fetch/push remains the separate coordination path. Exact-device evidence,
+  fresh consent, Guardian-only authority and separation, durable UNKNOWN, no blind retry,
+  independent verification, feature freeze and permanent bootloader no-relock remain intact.
+- Precise proposed next task: independent Product Assurance review of this exact relocated-package
+  member binding, Local fail-closed no-device startup, relocated packaged-assets/offline-Knowledge
+  initialization and single normal close. Do not begin another package, test cycle, product surface
+  or consequential flow without the matching repository verdict.
+
 ## Windows spaces/non-ASCII retained-package path check — deterministic About evidence blocker
 
 ### Exact authority and direct argument-vector launch

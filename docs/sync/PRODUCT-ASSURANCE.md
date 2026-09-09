@@ -1,5 +1,65 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 187be20 — Windows preserved AVBTool convergence
+
+- Reviewed checkpoint: `187be201e6843b003b11a4797d45dd99d6b86972`
+- Implementation commit: `cad374eaafbae482ee0a8d15cb8b02d2d36fe233`
+- Approved base: `3dc8f26`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — MISSING PRESERVED-TOOL FILE-TYPE GUARD IS NOW CONVERGED**
+
+### Decision and independent evidence
+
+Windows correctly preserved its independently developed identity semantics and
+`ZipInfo.orig_filename` backslash protection instead of replacing files from Linux. The only
+genuine missing protection was the final preserved AVBTool file-type check. The eight-line `lstat`
+guard now rejects a symbolic link, Windows reparse point or non-regular path before hashing or
+fallback while leaving the existing receipt and byte checks intact.
+
+- The implementation is limited to `src/romverse/rom/candidate_avb.py` and one deterministic
+  parameterized test in `tests/test_candidate_avb.py`.
+- Product Assurance independently matched both exact Windows working-copy files byte-for-byte to
+  the reviewed commit and ran the new native Windows reparse/non-regular cases: **2/2 passed** on
+  the Legion checkout using an isolated temporary directory.
+- Build's final focused Windows selection passed **17/17**. The first post-test global-temp cleanup
+  error was correctly isolated with `--basetemp` and was not represented as a product failure.
+- The protected untracked patch independently remains byte-identical at 8,272 bytes and SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No package, paid CI, dependency installation or physical-device action occurred. Exact evidence,
+  Guardian separation, UNKNOWN-on-uncertainty, no blind retry and permanent no-relock remain intact.
+
+### Approved next bounded Windows task
+
+Produce exactly one **local unsigned Windows development package** from current approved commit
+`187be20` and perform the normal fresh no-phone frozen-launch verification. The package is warranted
+because application source changed in `cad374e`; it is not a rebuild of unchanged bits.
+
+1. Preserve the current checkout and protected patch. Build into a new checkpoint-specific output
+   and work directory; do not delete, overwrite or replay any earlier package or saved Guided
+   project.
+2. Reuse the existing Windows environment and dependencies. Build one PyInstaller one-folder
+   development package, then run existing package-content verification and one frozen launch smoke
+   in a fresh no-phone workspace. Do not install or acquire anything.
+3. Record exact file/member count, expanded bytes, executable size/SHA-256 and Authenticode state.
+   The artifact must remain unsigned, local, untrusted and not a release.
+4. The smoke must prove clean start/close with no device, ADB/Fastboot, Guardian/Recovery or
+   operation authority. Do not run development simulation or reopen the retained synthetic project.
+5. If the package/smoke fails, preserve the output and correct only the first proven defect. A
+   replacement package is allowed only after a source correction genuinely changes executable
+   bits. Otherwise do not rebuild.
+6. Do not launch GitHub Actions, broad tests or Companion/Linux packaging. Commit only a proven
+   correction, if any, plus `docs/sync/BUILD-STATUS.md`; otherwise commit the evidence-only handoff.
+   Push and stop for independent review.
+
+Do not apply/delete/stage the protected patch, use a phone/emulator, invoke ADB/Fastboot, build/sign/
+flash firmware, operate Guardian/Recovery, publish, release, merge, force-push, lock or relock.
+
+### Gate status
+
+- Windows stable-file convergence: **VERIFIED — BUILD 17/17; PA 2/2**
+- Current Windows development package/native no-phone launch: **NEXT BOUNDED MILESTONE**
+- Physical Android, production signing/trust, publication and release: **CLOSED**
+
 ## Cross-platform convergence authorization — inspect approved stable-file protections only
 
 - Windows base: `4e2c3e2059eb06b7cf4030a231c17baae20a69dc`

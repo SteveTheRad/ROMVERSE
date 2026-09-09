@@ -1,5 +1,89 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 6a11f65 — Fedora Working Lab copy-only scope divergence
+
+- Reviewed checkpoint: `6a11f654f346fecdc51059ee7ea35395122b8e9c`
+- Divergence evidence: `42bfb8f488fda7158ec54beb91bbe48376dc5937`
+- Authorizing verdict: `94b88af69beeb37b9a0f3bce9baaf72d0a45111a`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **CORRECTION REQUIRED — COPY-ONLY ACCEPTANCE CROSSED INTO EXTRACTION**
+
+### Decision and independent evidence
+
+The checkpoint is truthfully recorded but is not approved as the authorized copy-only acceptance.
+Build invoked Genesis task 4 **Prepare working lab**, whose current repository contract explicitly
+chains a missing working copy and missing extracted tree. It did not invoke ROM Studio Source Lab's
+narrower **Create working copy** action named by the authorization. The resulting extraction was
+deterministic current behavior, not an UNKNOWN result, but it crossed the explicit no-extraction
+stop boundary and cannot be retroactively authorized.
+
+This does not establish a Genesis product defect. The task-level label and description state that
+supported archives are extracted or single images staged automatically, while the separate Source
+Lab control exists specifically for baseline creation. The minimum correction is therefore a fresh
+acceptance using that exact narrower control, not a Genesis behavior or UI change.
+
+Product Assurance independently inspected the retained scope-divergence evidence. The mode-`0400`
+source, mode-`0444` protected original and 551-byte working baseline remain byte-identical at
+SHA-256 `c3f5c1711d648a0f6c8f2ba2e3c910048c4e81e6f3ee39bb82e9e85888ac89c8`. The strict
+working-copy record binds the contained baseline path, size and source/current digest.
+
+The out-of-scope result is also fully disclosed: the contained tree has exactly the two inert
+fixture members—257-byte metadata and 40-byte payload marker, 297 bytes total—with the expected
+member hashes. Its strict tree index binds the same project and protected-source digest. The local
+Time Machine baseline and two Project Vault entries are contained reversible project evidence;
+they do not confer device Recovery or execution authority.
+
+The saved mission truthfully advanced to task 5 `device`, with no build plan, install request or
+error. The original project/inspection/Device DNA/Matrix/Ascension evidence remains unchanged;
+tools are empty, no device scan began, and there is no device evidence, Guardian ledger, Recovery
+incident/result, consent or execution record. Activity and Live Console disclose the baseline,
+extraction and checkpoint results rather than hiding them.
+
+Only evidence and Build Status changed after the prior Product Assurance verdict. Forgejo and
+GitHub expose the identical checkpoint with zero divergence, the Linux worktree is clean and Git
+whitespace validation passes. No network request, real firmware, tool invocation/download/install,
+phone/emulator/ADB/Fastboot, firmware/APK mutation, build, Guardian/Recovery execution, flash,
+wipe, unlock/root, bootloader lock/relock, signing, publication, release, hosted CI or Forgejo
+Action occurred. Exit 143 remains honestly excluded from clean-shutdown/restart acceptance.
+
+### Minimum exact correction — fresh Source Lab copy-only acceptance
+
+Do not modify Genesis. Do not reset, delete, clean or reuse the advanced disposable project as
+acceptance evidence; retain it unchanged as the scope-divergence record.
+
+1. Create one new private disposable Local-mode profile and project under Bubblewrap no-network
+   isolation, with an empty Android-tool path, all online/community/download/contribution controls
+   false and no phone, emulator or development-device simulation.
+2. Use only a byte-identical copy of the same deterministic harmless 551-byte fixture at SHA-256
+   `c3f5c1711d648a0f6c8f2ba2e3c910048c4e81e6f3ee39bb82e9e85888ac89c8`. Complete the
+   already-approved protected intake and Provenance steps, then leave Genesis via **Save & exit**
+   before invoking task 4.
+3. From ROM Studio **Source Lab**, invoke exactly **Create working copy** once. Do not use
+   **Resume Mission** or **Prepare working lab**. Verify only one contained 551-byte writable
+   baseline and its strict working-copy record appear with exact source/current digest, size, path
+   containment and private workspace boundary.
+4. Require the working tree, tree index and Time Machine/Project Vault entries to remain absent for
+   the new project; tools must remain empty. Do not extract, retry, advance Genesis, create a build
+   plan or enter any device/consequential stage. If the exact Source Lab action performs more than
+   copy-only or fails deterministically, preserve the evidence and return for Product Assurance
+   rather than changing source.
+5. Use a product-owned close only if accessible; otherwise retain the exact exit-143 disclosure
+   without claiming clean shutdown or persistence. Commit sanitized evidence and Build Status,
+   push Forgejo first, mirror the identical commit to GitHub and stop for review.
+
+No source/test/package change or rebuild is authorized for the rerun. Any deterministic product
+defect requires a new minimum correction verdict. No real firmware, extraction, network/tool
+acquisition, phone/emulator, ADB/Fastboot, firmware/APK mutation, Guardian/Recovery execution,
+signing, publication, release, hosted CI, wipe, unlock/root, bootloader lock or relock is authorized.
+
+### Gate status
+
+- Prior Fedora synthetic protected intake and Provenance: **APPROVED / UNAFFECTED**
+- This copy-only acceptance: **NOT APPROVED — OUT-OF-SCOPE EXTRACTION OCCURRED**
+- Fresh exact Source Lab copy-only rerun: **AUTHORIZED**
+- Genesis behavior correction: **NOT AUTHORIZED / NOT JUSTIFIED BY CURRENT EVIDENCE**
+- Extraction and every later build/device/release gate: **CLOSED**
+
 ## Reviewed checkpoint: 052814e — Fedora synthetic firmware intake through Provenance
 
 - Reviewed checkpoint: `052814e3fc5bbe0a75ec39bb4a618437f2077568`

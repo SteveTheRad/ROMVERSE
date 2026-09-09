@@ -1,5 +1,67 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: c10a38c — Windows offline connection surfaces
+
+- Reviewed checkpoint: `c10a38c910eb43e67f2efb22988df05ceb166a06`
+- Approved base: `25ff1212424f575b91394c659a3d0fd2bf10cb46`
+- Package source: `945928567ea188481eb0c19ca4419ae4132c22f5`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — LINK, MEMBERS AND GALAXY REMAIN TRUTHFUL WITHOUT NETWORK OR PHONE AUTHORITY**
+
+### Decision and independent evidence
+
+The bounded ROMVERSE Link → Members → Galaxy Windows journey is approved. The documentation-only
+checkpoint accurately records the shipped package's no-network/no-phone behavior and adds no
+capability, authority or feature scope.
+
+- Link remained unpaired with no trusted session, imported phone summary or device-changing
+  authority. Local certificate bootstrap did not become a phone identity or pairing claim, and no
+  private key material was exposed or changed.
+- Members remained unconfigured and unverified. Cancelling its Settings handoff left both issuer
+  and client ID blank and created no browser session, account, entitlement, token or permission.
+- Galaxy remained explicitly local/offline with zero topics and publishing locked. No public or
+  synchronized community state was invented.
+- Returning to Command Deck preserved the exact synthetic local project while device remained
+  `NOT CONNECTED`, Device DNA `UNCONFIRMED`, mission `ATTENTION` and Guardian `VERIFY REQUIRED`.
+  Navigation created no activity or execution evidence.
+- The retained unsigned executable remains 6,324,494 bytes with SHA-256
+  `aae8f97cebda115f34aa35dea95a32a78974a5e89a0f04b33af7eb3511f7327a`. The workspace
+  evidence records 10 starts / 10 clean closes / zero faults; its five-event Activity ledger
+  remains 2,856 bytes with SHA-256
+  `fa348d1f7162f90cdff5b1711dfe90563480e7e0ca0ef3310303b6a806462ec4`.
+- The exact checkpoint changes only `docs/sync/BUILD-STATUS.md`. No source, test, package,
+  Companion, Guardian or Recovery file changed, so no test replay or rebuild was required.
+- The protected untracked patch remains 8,272 bytes with SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+
+No network/community access, external link, phone/emulator query, ADB/Fastboot operation,
+firmware/APK action, dependency installation, Recovery/Guardian execution, signing, publication,
+release, wipe, unlock/root, lock or relock occurred. Exact-device evidence, fresh consent,
+Guardian-only authority, durable `UNKNOWN`, no blind retry, privacy and permanent bootloader
+no-relock remain unchanged.
+
+### Approved next bounded task
+
+Run one retained-current-package, no-network, no-phone Windows launcher/setup-repair boundary
+journey. Inspect only the existing prerequisite, repair and readiness path; permit read-only
+setup-state detection, then cancel before any dependency installation, driver change, PATH or
+environment mutation, network access, download, account/device action, signing or system
+modification. Return to normal ROMVERSE entry/Command Deck and verify the same project, device and
+Guardian state remains intact. If the shipped product has no launcher/setup-readiness route, record
+that fact and stop without inventing UI. Rebuild or change source only for one reproducible shipped
+defect.
+
+Preserve the separately owned `setup_wizard.py` change and the protected untracked patch exactly.
+Do not touch Windows `local_store` ownership, Device Intelligence, Companion, Guardian/Recovery
+authority, hosted CI or release surfaces.
+
+### Gate status
+
+- Windows Link → Members → Galaxy offline boundary: **APPROVED**
+- Windows launcher/setup-repair observation: **AUTHORIZED — READ-ONLY / NO-NETWORK / NO-PHONE**
+- Dependency installation, driver/PATH mutation, physical Recovery/flash, production signing,
+  publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 4751f3a — Windows information-surface journey
 
 - Reviewed checkpoint: `4751f3af971c5814fac8af711b24e30b5fc18df3`

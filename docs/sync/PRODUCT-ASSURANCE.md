@@ -1,5 +1,74 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 073413c — packaged connected-device UI acceptance
+
+- Reviewed checkpoint: `073413cc28a15beb034db0cdb25ef9e8e8b0f3e3`
+- Approved base: `50aa999dff22fe610b44781f1e20641094338bbf`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — CURRENT FEDORA PACKAGE TRUTHFULLY COMPLETES ONE MASKED CONNECTED-DEVICE UI REFRESH**
+
+### Decision and independent evidence
+
+The checkpoint is documentation-only and reuses the exact previously approved Fedora executable.
+The visible journey preserved one masked Xiaomi target, its Android 17 / HyperOS
+`OS4.0.0.32.XPBCNXM` identity, unlocked/orange boot state, and an enabled `Connect Device` action
+before and after the bounded refresh. It neither created execution authority nor changed the phone.
+
+- Product Assurance independently inspected the live privacy-redacted Guardian ledger. Exact
+  sequences **305–316** are the claimed `adb.devices`, eight successful fixed detail probes, two
+  expected absent root-manager probes, and final no-target `fastboot.devices`. All twelve are
+  allowed/read-only, risk `none`, untimed-out, and target only `host` or
+  `device:41ef3565a0eee9246bea`; all device arguments contain `<redacted-device>`.
+- Product Assurance independently invoked the production ledger verifier against the retained
+  workspace: **valid / 1,004 entries / no reason**, with exact tail
+  `f148a5aa6f6a117fa87ee38ac78d31385c8fb477561269d1c72632e5e1f85b34`.
+- The runtime record contains the disclosed harness-generated `KeyboardInterrupt` in the cosmetic
+  UFO callback followed by `ROMVERSE runtime closed cleanly`. Because the interrupt followed the
+  external Ctrl+C cleanup attempt, the UI remained responsive afterward, and the normal Qt close
+  path completed, it is test-harness contamination rather than a reproduced application defect.
+  Future visible harnesses must avoid terminal interrupts as an app-close mechanism.
+- No source/test/package change, repeated suite, device write, firmware import, Fastboot transition,
+  reboot, install, wipe, unlock/root, lock/relock, signing, publication or release occurred.
+
+### Approved next bounded task — exact-firmware no-write Guided simulation
+
+Perform one visible, representative, start-to-finish **no-write simulation** with the same exact
+connected `popsicle` device and the local Downloads archive named
+`popsicle-ota_full-OS4.0.0.35.XPBCNXM-user-17.0-3eaa750eae.zip`.
+
+1. Locate the exact archive read-only, hash it, parse it through ROMVERSE's bounded firmware path,
+   and establish its structure, payload/update metadata, product/build/region/version relationship,
+   signing or official provenance actually available, rollback/downgrade properties, required
+   Recovery/update interface, no-wipe claim and expected post-state. Never treat the filename alone
+   or an AI answer as authority.
+2. Drive the existing visible Guided journey from device/project/firmware selection through Device
+   DNA, Pathfinder, preparation, Guardian assessment and exact consent preview. Preserve the same
+   exact device, firmware, project, mission and incident context. Record every genuine dead end,
+   inert action, inaccurate state, Device Engine error, context loss or missing safe handoff.
+3. AI may assist diagnosis and route derivation, but every accepted resolution must become the
+   smallest reusable evidence/capability rule, governed knowledge claim, deterministic repair path
+   or actionable UI handoff with focused tests and explicit UNKNOWN limits. An opaque AI transcript
+   cannot authorize Guardian, and avoid a device-name-only special case where evidence-derived
+   Android primitives can express the rule.
+4. If a product defect appears, correct only the first proven bounded defect, run proportional
+   focused evidence and commit a small checkpoint. Do not rebuild the existing package unless a
+   committed production-source correction genuinely requires different bits.
+5. This task must stop at a durable handoff immediately before the first possible device-changing
+   dispatch. Do not reboot, sideload, install, enter Recovery/Fastboot, flash, wipe, unlock, root,
+   lock or relock. Creator authorization to prepare an eventual exact update does not replace a
+   fresh executor consent receipt or current Guardian admission.
+
+Acceptance requires either an evidence-backed exact no-wipe route ready for fresh consent, or a
+truthful actionable stop explaining what cannot yet be proved. `UNKNOWN` stops advancement; no
+blind retry and permanent bootloader no-relock remain absolute.
+
+### Gate status
+
+- Fedora package/content/native launch: **APPROVED**
+- Fedora packaged physical-device discovery and refresh: **APPROVED — READ-ONLY**
+- Exact OS4.0.0.35 firmware simulation: **AUTHORIZED — NO-WRITE ONLY**
+- Physical firmware execution, production signing/trust, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: d8fcb32 — read-only Device Engine hardware evidence
 
 - Reviewed checkpoint: `d8fcb3200c6dabfbc5f8a196a59be91384349daf`

@@ -1,5 +1,72 @@
 # ROMVERSE Product Assurance Sync
 
+## Responsive Desktop and rebuilt Fedora checkpoint
+
+### Authoritative commits and exact changes
+
+- Branch: `linux/stage1-desktop-readiness`.
+- Forge Arsenal layout: `603e8c1563b0f710e9b7a1d01f7f4ace2c993296`
+  (**Wrap Forge Arsenal tool evidence responsively**).
+- Time Machine/ROM Studio layout: `fe5dab0b6f3eff725a5823ac54e6eb5862af1be1`
+  (**Keep recovery workspaces readable at compact widths**).
+- A complete 19-route desktop layout audit at 1440×900 and a compact 1200×760 pass found three
+  real overflow defects. Forge Arsenal's long AAPT2/tool evidence widened its equipment bay;
+  Time Machine forced its device and local-recovery cards into one wide row; ROM Studio reserved
+  unnecessary project-list width and clipped the right edge of its detail workspace.
+- Tool evidence and executable paths now wrap. Time Machine uses a responsive two-column layout at
+  normal width and stacks both cards at compact width. ROM Studio's project rail remains readable
+  while reserving the width required by the full project detail panel.
+- The resulting compact audit found no unnamed visible buttons or visible horizontal-scroll dead
+  ends across all 19 top-level Desktop routes. No action, route or user decision changed.
+- Fresh Fedora one-folder build: `build/fedora-fe5dab0/ROMVERSE`, **423 regular files /
+  243,098,491 regular-file bytes / 38 contained internal links**. Executable: **6,333,088 bytes**,
+  SHA-256 `963d844a1f763914ddeda5fd115bf9579112db33f5a41c5152098d487dbb79a8`.
+- Verified unsigned ZIP:
+  `dist/ROMVERSE-Desktop-0.2.0-alpha.1-linux-x86_64-fe5dab0.zip`, **151,035,405 bytes**, SHA-256
+  `bbe02f06fff9d7015a7bba438b1535967db48c7604747b5facc949dbb61fbbeb`; full archive
+  verification passed for **461 members / 360,353,120 expanded bytes**.
+
+### Verification and gates
+
+- **Implemented:** three responsive Desktop surfaces and three focused UI regressions. No
+  Companion, Windows launcher, Recovery executor, adapter, Guardian policy or device code changed.
+- **Simulated/Tested:** **101/101 unique affected Forge Arsenal, Time Machine and ROM Studio tests
+  passed** after the complete responsive batch. Ruff check, format-check and diff check passed.
+  The earlier **3,016/3,016** full Linux result at `76e3e2f` remains baseline evidence and is not
+  double-counted as current-layout coverage. One 19-route normal/compact layout audit and one frozen
+  no-phone startup/shutdown smoke passed.
+- **Hardware Verified:** no. UI checks used offscreen Qt and disposable local workspaces only.
+- **Released:** no. The `fe5dab0` Fedora artifact is unsigned, local and unpublished.
+- Blockers/failures: the three reproduced width defects are fixed. Minimum-size 1080-wide layout
+  remains a later responsive-polish target; the verified 1200×760 compact viewport and normal
+  1440×900 viewport have no visible horizontal-scroll dead end. Windows secure launch, physical
+  Recovery/flash validation, production signing/trust and release remain blocked/unverified.
+- Guided friction/dead ends: long tool explanations, local Recovery controls and ROM project detail
+  remain fully readable at the compact verified width, with no added prompt or interruption.
+- Guardian/Recovery/safety: presentation only. Guardian-only authority, exact target/source/incident
+  binding, durable UNKNOWN, no blind retry, independent verification and permanent no-relock are
+  unchanged.
+- Platform status: genuinely built, packaged and smoke-tested on Fedora/Linux. Windows and physical
+  hardware were not run or represented as verified.
+- Feature freeze: compliant UI correctness/polish only; no new product capability.
+- Version gate: Fedora usability improved; v0.2 Golden Foundation and every production/release gate
+  remain **CLOSED**.
+- External actions: local build, package, tests, disposable UI workspaces and scoped commits only.
+  No phone query/action, APK/firmware operation, installation, mode transition, flash, wipe,
+  unlock/root, lock/relock, publication, release or hosted-CI run occurred. The scoped branch push
+  containing this handoff is the only remote write.
+
+### Next proposed Build task
+
+Continue the non-hardware product-as-user pass at supported normal/compact sizes, prioritizing
+dialogs, empty states, persistence and exact source handoffs. Do not broaden Stage 1 or begin a new
+consequential execution slice without Product Assurance review.
+
+### Product Assurance Review Requested
+
+- Confirm the 1,050-pixel Time Machine stacking threshold and 240–250-pixel ROM Studio project rail
+  are acceptable pre-v1.0 responsive boundaries.
+
 ## Genesis lifecycle and Fedora package-smoke correctness checkpoint
 
 ### Authoritative commits and exact changes

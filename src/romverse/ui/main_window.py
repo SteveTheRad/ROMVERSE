@@ -4664,6 +4664,11 @@ class MainWindow(QMainWindow):
         self._reconnect_timer.setSingleShot(True)
         self._reconnect_timer.timeout.connect(self.scan)
         if self._development_simulated_device is not None:
+            # The development fixture is deliberately ROM Studio-only. Command Deck must
+            # never retain its construction-time SCANNING presentation when no hardware
+            # transport will run in this mode.
+            self.device_center.set_scanning(False)
+            self.device_center.set_devices([], "")
             self.connection_state.setText("◇  Development simulation")
             self.connection_state.setObjectName("Warning")
             self.connection_device.setText("Device: deterministic ROM Studio fixture")
@@ -4922,6 +4927,8 @@ class MainWindow(QMainWindow):
         simulated = self._development_simulated_device
         if simulated is None:
             return
+        self.device_center.set_scanning(False)
+        self.device_center.set_devices([], "")
         self._observed_devices = []
         self._selected_device_serial = ""
         self.rom_studio.set_devices([simulated], observed_devices=[])

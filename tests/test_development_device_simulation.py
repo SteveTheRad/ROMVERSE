@@ -44,11 +44,17 @@ def test_development_simulation_scan_is_visible_and_rom_studio_only(tmp_path: Pa
         assert not window.timer.isActive()
         assert "Development simulation" in window.connection_state.text()
         assert "SIMULATION ONLY" in window.connection_android.text()
+        assert window.device_center.device_name.text() == "No Android device detected"
+        assert window.device_center.status_badge.text() == "NOT CONNECTED"
+        assert window.device_center.refresh.text() == "Scan now"
 
         window.scan()
         app.processEvents()
 
         assert engine.calls == 0
+        assert window.device_center.device_name.text() == "No Android device detected"
+        assert window.device_center.status_badge.text() == "NOT CONNECTED"
+        assert window.device_center.refresh.text() == "Scan now"
         assert window._observed_devices == []
         assert window.rom_studio.devices == [simulated]
         assert window.rom_studio.observed_devices == []

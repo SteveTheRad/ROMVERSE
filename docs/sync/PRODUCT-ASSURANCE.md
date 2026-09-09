@@ -1,5 +1,86 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: f91fe31 — Windows ZIP round-trip and extracted launch
+
+- Reviewed checkpoint: `f91fe31d10e9b0120fcb2bed6bdbf3b0224a4cd0`
+- Authorizing verdict: `0a64ea9c0bc3ff861434f26e476dd833b23a874c`
+- Package source: `b1dc54e0c6390fb3d789930dda0696c712e40e64`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — LOCAL ZIP ROUND-TRIP PRESERVES EXACT PACKAGE IDENTITY**
+
+### Decision and independent evidence
+
+The local archive round-trip and extracted-package launch are approved. Product Assurance
+independently rehashed the 75,612,944-byte ZIP as
+`2e65f9fc6118c9159f4aea1958949e5da8a154d6e045432addb9b40a6f21c0e4` and inspected 310 archive
+entries with no duplicate or unsafe absolute/parent-traversal names. The built-in extraction result
+matches the authoritative package at 306 regular files, 23 directories, 164,663,424 bytes, zero
+empty files and zero reparse entries.
+
+Source and extracted normalized ordinal member manifests independently match at SHA-256
+`92087364487cf5dbecb473291812628ae25bdc763fb912155903de61c71e6209`. Both executables remain
+6,324,534 bytes, SHA-256
+`d2df2c9a667520e9ebe88d4c2eb4dfa26020b1e2d8f852dddb33ab24a013b431`, and `NotSigned`. Rechecking
+after the application close produced the same package identity, so the extracted runtime did not
+self-modify its distribution tree.
+
+The exact extracted executable opened one responsive window using a separate private Local-mode
+data root. It presented the fail-closed no-device Command Deck with packaged branding and loaded
+the expected package-relative offline Knowledge archive: 880,760 bytes, SHA-256
+`2384ebb6ce9616af2270991da2c7b594d08b7534e71bf819549c92c091e27764`, retaining the recorded
+popsicle evidence as non-authoritative guidance. The package closed normally. Product Assurance
+independently verified its PID is dead, process/window counts are zero, no instance lock remains,
+and the 77-byte runtime ledger has exactly one start and one clean close.
+
+The separate data root contains eight regular files, 20 directories and 882,811 bytes, with no
+reparse entries. Its 633-byte Local-mode settings file remains SHA-256
+`f176ae0ba370b775481956507a3233c45c6b10f58dab6d7c76000804b343f12d` with the protected
+owner/SYSTEM ACL. The source package, ZIP, extracted tree and evidence remain preserved.
+
+The checkpoint changes only Build Status and passes Git whitespace validation. The Windows
+checkout contains only the protected untracked patch and existing `build-work/` intermediates;
+the patch remains 8,272 bytes with SHA-256
+`2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`. Forgejo and GitHub expose
+the same checkpoint. No archive/package was signed, installed, uploaded, published or called a
+release. No network, download, dependency/tool change, phone/emulator, ADB/Fastboot, firmware/APK,
+Guardian/Recovery execution, source/package correction, hosted CI, wipe, unlock/root, bootloader
+lock or relock occurred.
+
+### Approved next bounded task
+
+Use the already extracted package for one genuine first-run onboarding and restart-persistence
+journey. Archive, relocation and copy testing is now complete; do not create another package copy
+or archive.
+
+1. Create one new disposable `ROMVERSE_HOME` with a private schema-five settings file that keeps
+   the four Local-mode controls false, `onboarding_complete: false`, and an empty workspace path.
+   Do not pre-create the default workspace.
+2. Launch the exact extracted executable interactively without `--workspace` or
+   `--skip-onboarding`. Use only the existing development-device-simulation control and a
+   process-local tool path that contains no ADB/Fastboot candidate, so the test cannot query a
+   phone. Do not install or repair tools.
+3. Complete only the first-run wizard's Guided path using its default workspace. Verify it reaches
+   a truthful `LOCAL`, no-device Command Deck and persists onboarding completion, Guided mode,
+   masked serials and the exact default workspace through the normal SettingsStore contract.
+4. Close normally, prove zero processes/windows and one clean start/close, then launch the same
+   extracted executable once more with the same data root. Verify the wizard does not recur and the
+   same local workspace opens directly to the fail-closed Command Deck. Close normally.
+5. Record bounded sanitized settings/ACL, workspace, runtime-ledger and zero-process evidence.
+   Recheck the extracted package manifest unchanged, commit only the handoff and stop. If the
+   first-run or restart contract fails, report the exact deterministic blocker without changing
+   source, package or settings to conceal it.
+
+No further archive/package copy, feature tour, network, download, install, dependency/tool change,
+phone/emulator/ADB/Fastboot, firmware/APK, Guardian/Recovery execution, source/package correction,
+signing, publication, release, hosted CI, wipe, unlock/root, bootloader lock or relock is authorized.
+
+### Gate status
+
+- Windows built-in ZIP round-trip and extracted-package runtime/assets: **APPROVED**
+- Extracted-package genuine first-run onboarding and restart persistence: **AUTHORIZED**
+- Additional archive/copy checks: **CLOSED**
+- Production installer/signing/trust, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 218261a — Relocated Windows one-folder package
 
 - Reviewed checkpoint: `218261aa4bea27f5ccb629ee8c40410f8430bda7`

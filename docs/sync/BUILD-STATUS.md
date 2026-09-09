@@ -1,5 +1,82 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows Link → Members → Galaxy offline-boundary journey — Product Assurance review requested
+
+### Exact authority and bounded acceptance
+
+- Product Assurance verdict `25ff1212424f575b91394c659a3d0fd2bf10cb46` — `Approve Windows
+  information-surface journey [skip ci]` exactly approves checkpoint
+  `4751f3af971c5814fac8af711b24e30b5fc18df3` and authorizes one current-package,
+  no-network, no-phone Windows boundary journey through the existing ROMVERSE Link → Members →
+  Galaxy surfaces.
+- The checkout was at that exact verdict and matched `origin/windows-launcher-authorized-work`
+  before use. The only pre-existing working-tree item remained the protected untracked patch.
+- Used the existing disposable synthetic workspace
+  `C:\Work\ROMVERSE-Windows-History-Populated-d1955a79\workspace` with the retained unsigned
+  package `C:\Work\ROMVERSE-Windows\build\windows-workshop-safety-94592856\ROMVERSE\ROMVERSE.exe`
+  (6,324,494 bytes; SHA-256
+  `aae8f97cebda115f34aa35dea95a32a78974a5e89a0f04b33af7eb3511f7327a`; Authenticode
+  `NotSigned`). The package was built from `945928567ea188481eb0c19ca4419ae4132c22f5` and was
+  launched with `--skip-onboarding --development-device-simulation`; no hardware discovery,
+  network/community request or device command was used.
+
+### Visible Windows product evidence
+
+- ROMVERSE Link displayed `Desktop device link: waiting for a read-only scan`, `Link endpoint
+  idle`, and `Not paired`. Its one-time pairing code remained `------`, no phone summary had been
+  imported, and live Companion health remained `Waiting for an authenticated phone snapshot`.
+  The locally bootstrapped certificate was represented only by its public safety code/fingerprint;
+  it did not create a paired phone, trusted session or imported health evidence. No private key
+  material was displayed, read, copied, exported or altered.
+- USB pairing assist, safety-code confirmation, device approval, code copy, pairing reset and file
+  handoff were unavailable until their separate prerequisites. Wireless-code generation and phone
+  summary import were deliberately not invoked. The visible Guardian boundary stated that even a
+  future pairing grants only telemetry and download-only handoff access and cannot approve or
+  execute device-changing operations.
+- ROMVERSE Members reported `Members service is not configured in this build`, with access
+  remaining unverified until an official service issues a signed profile. It explicitly refused to
+  invent an account, trial or subscription while unavailable and stated that a local checkbox
+  cannot create a subscription or bypass server entitlement. The existing setup affordance opened
+  Settings with blank Members issuer/client fields and was cancelled without edits; the persisted
+  configuration still has neither field configured. No browser, issuer, account, password, token,
+  session, entitlement or permission claim was created.
+- ROMVERSE Galaxy displayed `OFFLINE LOCAL MODE`, stated that nothing was public or synchronized,
+  and reported that the production endpoint and public trust keys were not enrolled. The surface
+  contained exactly **0 local topics**, no local community file, and `Online publishing locked`;
+  topic export, voting, replies and deletion were disabled with no selected topic. No topic,
+  contribution, publication, community request, external link or manual export was started.
+- Returning through the existing navigation-only palette restored Command Deck with the active
+  project `Windows Synthetic Discovery 20260909` intact, while device state remained `NOT
+  CONNECTED`, Device DNA `UNCONFIRMED`, mission `ATTENTION`, and Guardian `VERIFY REQUIRED`.
+  Command Deck still reported no build, flash, backup, recovery or other operation running. No
+  restart was needed because this bounded navigation promised no durable transient route or
+  selection setting; the package was closed normally.
+
+### Verification, scope and next review
+
+- The workspace runtime log now contains exactly **10 starts / 10 clean closes / 0 fault
+  entries**. The Activity ledger remained exactly **5 events**, 2,856 bytes, SHA-256
+  `fa348d1f7162f90cdff5b1711dfe90563480e7e0ca0ef3310303b6a806462ec4`; Link, Members and
+  Galaxy navigation did not invent activity. `workspace\galaxy\community-v1.json` remains absent.
+- No production defect was reproduced, so no source, test or package file changed and no package
+  was rebuilt. The normal launch appended only its clean runtime pair to the disposable workspace;
+  Members settings, Galaxy storage and the Activity ledger remained unchanged. Per the approved
+  boundary, unchanged tests and linters were not rerun.
+- This checkpoint changes only `docs/sync/BUILD-STATUS.md`. Protected Companion files remain
+  untouched. The protected untracked patch remains byte-identical at **8,272 bytes**, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it was not edited,
+  applied, staged or deleted.
+- No network/community service, external link, credential/key transmission, phone, emulator,
+  firmware/APK action, ADB/Fastboot command, device discovery/query/write or mode transition,
+  Guardian/Recovery execution, production adapter, signing, publication, release, hosted CI,
+  dependency/catalog download, force-push, wipe, unlock/root, lock or relock occurred. Exact-device
+  evidence, fresh consent, Guardian-only authority and separation, UNKNOWN-on-uncertainty, no
+  blind retry, independent verification, no wipe and permanent no-relock remain intact.
+- Precise next task: independent Product Assurance review of this bounded visible Windows pass.
+  Do not start another product-as-user batch, source correction or package build until a matching
+  verdict is committed. Publish this exact documentation-only checkpoint to Forgejo first, then
+  the identical commit to GitHub.
+
 ## Windows Device Atlas → Archives → Recovery Bay information journey — Product Assurance review requested
 
 ### Exact authority and bounded acceptance

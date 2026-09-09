@@ -1,5 +1,67 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows Device Atlas → Device Packs → Guardian no-phone journey — Product Assurance review requested
+
+### Exact authority and bounded acceptance
+
+- Product Assurance verdict `bd02e1e1cf90d1812397f58183d2e541e39c8078` — `Approve Windows
+  popsicle no-phone journey [skip ci]` exactly approves checkpoint
+  `3498ed08a5a0a7449f9d6fe26718f774a9aa6b0f` and authorizes one local-only no-phone Windows
+  product-as-user batch across the existing Device Atlas → Device Packs → Guardian handoffs.
+- The checkout was at that exact verdict before use. The only pre-existing working-tree item was
+  the protected untracked patch.
+- Used the fresh disposable no-phone `ROMVERSE_HOME`
+  `C:\Work\ROMVERSE-Windows-Atlas-Packs-bd02e1e1` and launched current source with
+  `--skip-onboarding --development-device-simulation`. No hardware discovery or device command was
+  possible.
+
+### Visible Windows product evidence
+
+- Command Deck started truthfully at `No Android device detected / NOT CONNECTED`, with a
+  simulation-only session, no physical device, no selected project, an idle mission and Guardian
+  verification still required.
+- Device Atlas showed `AWAITING DEVICE`, `Waiting for Device Engine… / NO DEVICE`, and every live
+  device, identity, chipset, firmware, boot, partition, health, verdict, knowledge and timeline
+  value remained unconfirmed. Its official identifier source remained `NOT SYNCED • ZERO
+  AUTHORITY` and the surface remained `READ-ONLY • PRIVATE • OFFLINE-FIRST`.
+- The local Device Pack catalog loaded **22/22 integrity-verified built-in packs with 0 load
+  issues**. The exact `Xiaomi 17 Pro Max / HyperOS 4.0.0.23` pack
+  (`xiaomi.popsicle.hyperos4.os4.0.0.23`, version `0.1.1`, SHA-256 beginning
+  `1dd9535dda8cf859`) displayed its declared Xiaomi / `2509fpn0bc` / `popsicle` identity scope and
+  exact `OS4.0.0.23.XPBCNXM` local-build boundary. It remained explicitly `READ-ONLY KNOWLEDGE •
+  EXECUTION AUTHORITY: NONE`; its recovery evidence was limited, evidence-only, and unable to
+  authorize flashing, unlocking, EDL, signing, phone action or use for another firmware, region,
+  model or layout.
+- The visible handoff to Guardian Core showed `Read-only enforcement active / INTEGRITY VERIFIED`,
+  a valid SHA-256 chain across **0 operation records**, **0 active / 0 recorded / 0 legacy
+  audit-only approvals**, no runtime package inspected and no Guardian-controlled operations.
+  Returning to Device Atlas restored the exact popsicle Pack detail, demonstrating the navigation
+  round trip and retained in-session context without creating authority or a dead-end control.
+- Completed one normal close/restart in the same disposable workspace. Startup again showed the
+  truthful no-device simulation state. Device Atlas reopened safely at the catalog view with
+  `Waiting for Device Engine… / NO DEVICE`; all **22** packs, including the exact integrity-verified
+  popsicle pack, remained available. Transient detail selection was not presented as durable
+  state. The workspace runtime log contains exactly **2 starts / 2 clean closes / 0 fault
+  entries**.
+
+### Verification, scope and next review
+
+- No production defect was reproduced, so no source, test or package file changed and no package
+  was rebuilt. Per the approved boundary, unchanged tests and linters were not rerun.
+- This checkpoint changes only `docs/sync/BUILD-STATUS.md`. Protected Companion files remain
+  untouched. The protected untracked patch remains byte-identical at **8,272 bytes**, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it was not edited,
+  applied, staged or deleted.
+- No phone, emulator, firmware/APK selection, ADB/Fastboot command, device query/write or mode
+  transition, Guardian/Recovery execution, production adapter, signing, publication, release,
+  hosted CI, force-push, wipe, unlock/root, lock or relock occurred. Exact-device evidence, fresh
+  consent, Guardian-only authority and separation, UNKNOWN-on-uncertainty, no blind retry,
+  independent verification, no wipe and permanent no-relock remain intact.
+- Precise next task: independent Product Assurance review of this bounded visible Windows pass.
+  Do not start another product-as-user batch, source correction or package build until a matching
+  verdict is committed. Publish this exact documentation-only checkpoint to Forgejo first, then
+  the identical commit to GitHub.
+
 ## Windows popsicle no-phone product-as-user continuation — Product Assurance review requested
 
 ### Exact authority and bounded acceptance

@@ -1,5 +1,63 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 8300f3b — current Windows development package
+
+- Reviewed checkpoint: `8300f3b512173fb4483836616898cb54f7490f3f`
+- Approved source: `187be20` / implementation `cad374e`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — CURRENT WINDOWS SOURCE BUILDS AND LAUNCHES WITHOUT DEVICE AUTHORITY**
+
+### Decision and independent evidence
+
+The one-build rule is satisfied and the new executable contains the approved preserved-AVBTool
+guard. Product Assurance independently inspected the exact Legion package in place:
+
+- **305 regular files / 164,647,733 bytes**, with zero reparse entries, empty files or `icu*.dll`
+  files;
+- `ROMVERSE.exe`: **6,323,398 bytes**, SHA-256
+  `eb1f4bd05e12d117b359c74d87d3d21b8b4b5edb6170d1f0e9f79ebfb8d77861`, Authenticode
+  **NotSigned**;
+- fresh frozen-smoke runtime log contains exactly one start and one clean close.
+
+Build's sorted member-manifest hash and one no-phone frozen smoke are accepted. No second launch is
+needed: package identity, complete tree counts and the clean runtime record independently match the
+handoff. The artifact remains unsigned, local, untrusted and not released. The protected patch
+remains outside the package and unchanged.
+
+No source/test correction followed packaging. No paid CI, dependency installation, simulation,
+saved-project replay or physical-device action occurred. Feature freeze, exact evidence, Guardian
+separation, UNKNOWN-on-uncertainty, no blind retry and permanent no-relock remain intact.
+
+### Approved next bounded Windows task
+
+Run one **cost-free native Windows portability convergence preflight** from current source using the
+exact Windows selection listed in `.github/workflows/test.yml`, with first-failure enabled and an
+isolated explicit `--basetemp`.
+
+1. Use the existing Windows Python environment and current checkout. Do not install dependencies,
+   launch GitHub Actions, rerun package smoke or rebuild the accepted package.
+2. Execute the workflow's Windows portability test-file selection once with `-x`, preserving its
+   listed order. If the first-failure pass completes, run Ruff check/format once and record exact
+   results; do not immediately repeat the suite.
+3. If a test fails, capture the first complete deterministic failure and its owner→victim context
+   where relevant. Correct only that first failure if the minimum in-scope change is clear;
+   otherwise record the blocker without speculative edits. Do not fan out across failures.
+4. If a test phase makes no observable progress for 15 minutes, capture the current node/process
+   once, stop only that test process and report a harness blocker.
+5. A source correction does not automatically authorize another package. Commit the minimum
+   correction, if any, plus `docs/sync/BUILD-STATUS.md`; otherwise commit the evidence-only handoff.
+   Push and stop for independent review.
+
+Preserve the untracked patch byte-for-byte. Do not touch Linux, Companion, Knowledge or UI Design
+Lab work; use a phone/emulator; invoke ADB/Fastboot; build/sign/flash firmware; operate Guardian/
+Recovery; publish; release; merge; force-push; lock or relock.
+
+### Gate status
+
+- Current Windows development package/native no-phone launch: **VERIFIED**
+- Native Windows portability convergence: **NEXT COST-FREE PREFLIGHT**
+- Physical Android, production signing/trust, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 187be20 — Windows preserved AVBTool convergence
 
 - Reviewed checkpoint: `187be201e6843b003b11a4797d45dd99d6b86972`

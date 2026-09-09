@@ -111,8 +111,11 @@ def test_built_image_tamper_with_restored_mtime_fails_fresh_hash_check(built):
     before = path.stat()
     path.write_bytes(b"x" * before.st_size)
     os.utime(path, ns=(before.st_atime_ns, before.st_mtime_ns))
-    with pytest.raises(ProjectError, match="bytes differ"):
+    with pytest.raises(ProjectError) as captured:
         preparer.prepare(project.project_id, candidate_choice="built")
+    failure = str(captured.value).casefold()
+    assert "selected source/build receipt" in failure
+    assert "prepare fresh verified evidence" in failure
 
 
 def test_changed_build_tree_cannot_select_old_successful_build(built):

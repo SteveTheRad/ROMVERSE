@@ -1,5 +1,61 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows portability convergence preflight — Product Assurance review requested
+
+- Product Assurance verdict: `2edd59d52843880caed75cae2b7602431054b10d` —
+  `Approve current Windows development package`, matching Build checkpoint
+  `8300f3b512173fb4483836616898cb54f7490f3f` exactly.
+- Branch: `windows-launcher-authorized-work`.
+- Status: **FIRST DETERMINISTIC FAILURE CAPTURED AND MINIMUM CHECKOUT-LOCAL LINE-ENDING
+  CORRECTION VERIFIED. THE REMAINDER OF THE PREFLIGHT AND RUFF WERE NOT RUN.**
+
+### Exact one first-failure pass
+
+- Reused the existing Windows environment and current checkout; no dependency or tool was installed
+  or acquired. The checkout was safely fast-forwarded from `8300f3b5` to the exact approval commit
+  `2edd59d5` before testing.
+- Ran the `.github/workflows/test.yml` Windows portability selection once, in its listed order, with
+  `QT_QPA_PLATFORM=offscreen`, `-x`, and isolated explicit basetemp
+  `C:\Work\ROMVERSE-Windows-TestTemp-2edd59d5-20260909-01`.
+- Result: **25 passed, 1 failed in 4.81 seconds**. First failure:
+  `tests/test_release_scripts.py::test_integrity_bound_source_files_have_cross_platform_line_endings`.
+  It found CRLF bytes in
+  `src/romverse/assets/device_packs/android-generic.json` and stopped the selection as required.
+- The exact failing node reproduced alone before correction with the same assertion. This excludes
+  an owner→victim ordering mutation by an earlier selected test.
+
+### Classification and minimum correction
+
+- Classification: **Windows checkout materialization incompatibility, not a committed Stage 1
+  correctness defect**. `.gitattributes` already declares `*.json text eol=lf`; the index blobs are
+  LF-only and match their committed hashes, while `git ls-files --eol` showed 21 clean tracked Device
+  Pack JSON files as `i/lf w/crlf`. The other two Device Pack JSON files were already `w/lf`.
+- Normalized only those 21 clean working-tree files from CRLF to LF without a BOM, then refreshed
+  their index stat records. Their filtered hashes remain identical to `HEAD`; there is **no tracked
+  source, test or index diff** to commit.
+- Verification: the exact failing node passed **1/1** using isolated basetemp
+  `C:\Work\ROMVERSE-Windows-TestTemp-2edd59d5-repro-after`. No broader rerun was performed because
+  the authorized first-failure pass did not complete. Ruff check/format were not run because the
+  approval permits them only after a completed first-failure pass.
+
+### Preserved scope and next review
+
+- No application, test, Companion, Knowledge or UI Design Lab file was changed. This handoff changes
+  only `docs/sync/BUILD-STATUS.md`. The accepted package and frozen smoke were not rerun or rebuilt.
+- The protected Companion files remain clean and unstaged. The protected untracked patch remains
+  exactly **8,272 bytes**, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it was not altered,
+  applied, staged or deleted.
+- No phone/emulator, device discovery, ADB/Fastboot command, APK installation, firmware action,
+  Guardian/Recovery operation, production signing/trust, publication, release, merge, force-push,
+  destructive change, lock or relock occurred. Exact-device evidence, consent separation,
+  UNKNOWN-on-uncertainty, no blind retry, Guardian-only authority, independent verification and
+  permanent no-relock remain intact.
+- Precise proposed next task: Product Assurance reviews this first-failure evidence and checkout-local
+  correction. If approved, authorize exactly one continuation pass of the same ordered Windows
+  portability selection from the now LF-materialized checkout, followed by Ruff check/format only
+  if that pass completes; no package rebuild is warranted by this evidence-only checkpoint.
+
 ## Current Windows preserved-tool development package — Product Assurance review requested
 
 - Product Assurance verdict: `d5a3dcb0d7806fccc3fbdb6c907d54515a63fec2` —

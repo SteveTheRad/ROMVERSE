@@ -1,5 +1,57 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 1fcaa09 — Windows regression-debt and settings ACL correction
+
+- Reviewed checkpoint: `1fcaa09486c14004f7645c09ec1d4428815db541`
+- Production correction: `4c3ef0114af7222d2f3bf274bb5a1cb58972108d`
+- Test corrections: `1a7733acf6cde3982c15301410cad92b66c3cf3d`, `80587c33fd8395c4851a31361552fe03a6a3b3ea`
+- Approved base: `db1217c3132621540e6e807bf8e074d563545f85`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — WINDOWS REGRESSION DEBT IS CLEARED AND SETTINGS NOW ENFORCE THE EXISTING OWNER-PRIVATE ACL CONTRACT**
+
+### Decision and evidence
+
+The batch is the minimum authorized correction. The Stage 12 assertion now matches the shipped
+Forge Control and byte-verification semantics. Replacing the stale POSIX-mode settings assertion
+with the established Windows ACL oracle exposed a genuine privacy defect rather than hiding it:
+`SettingsStore` had left inherited Administrators access on NTFS. The production correction reuses
+the existing cross-platform private-file primitive for both the temporary and final settings file.
+
+- Product Assurance inspected the complete `db1217c..1fcaa09` diff: one three-line/two-line
+  production substitution, two focused test updates and the Build handoff. No device, Guardian,
+  Recovery, firmware, adapter, network-intelligence or release behavior changed.
+- Native Windows verification completed **29/29** settings and Guided mission tests after the first
+  focused run truthfully exposed the inherited-ACL defect. Ruff check and format-check passed for
+  all three changed source/test files.
+- Linux parity independently completed the same **29/29** tests plus Ruff check, format-check and
+  diff check.
+- The execution-inert popsicle evidence was already present at `ca97c1cf`; it was not duplicated.
+  The protected untracked local-build patch remains untouched.
+- No package rebuild or hosted GitHub Actions run occurred. No phone, firmware/APK operation,
+  device query/write or transition, execution authority, signing, publication, release, wipe,
+  unlock/root, lock or relock occurred.
+
+### Approved next bounded task
+
+Continue one local-only no-phone Windows product-as-user batch from `1fcaa09`, prioritizing the next
+reproducible crash, inert action, dead end, misleading state or persistence failure on currently
+shipped Stage 1 pages. Correct only proven bounded defects, use focused local tests and consolidate
+production fixes before one replacement development package. Do not manually dispatch hosted CI.
+
+The protected untracked patch must remain untouched unless a later explicit repository handoff
+identifies it as the authorized source for a non-overlapping task. Stop before physical-device
+operation, device write or mode transition, Guardian/execution-authority or safety-contract change,
+contradictory/UNKNOWN evidence, signing/publication/release or material scope expansion. Exact-device
+binding, fresh consent, UNKNOWN-on-uncertainty, no blind retry, independent verification, no wipe
+and permanent bootloader no-relock remain absolute.
+
+### Gate status
+
+- Windows regression debt and settings privacy: **APPROVED**
+- Local no-phone Windows product-as-user continuation: **AUTHORIZED**
+- Replacement development package: **DEFER UNTIL NEXT COHERENT PRODUCTION BOUNDARY**
+- Physical Android operation, production signing/publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 3edbed4 — Windows workshop safety acceptance
 
 - Reviewed checkpoint: `3edbed490ab1edda5ca690288cde99292e767c76`

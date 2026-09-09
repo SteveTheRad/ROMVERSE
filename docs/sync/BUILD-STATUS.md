@@ -1,5 +1,92 @@
 # ROMVERSE Product Assurance Sync
 
+## Guided modal fixture checkpoint — retained nonblocking ownership is exercised cleanly
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `42cb4fc`, approving checkpoint `64af85a` and authorizing only
+  classification/correction of the navigation Guided modal lifecycle cluster. Test-fixture commit:
+  `9f93cf7` (`Follow retained Guided dialog lifecycle`). This section forms the following handoff
+  commit on `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation regression reliability only. Stage 12 was not operated.
+  No production source, user-visible dialog, consent route, capability, Guardian/Recovery behavior
+  or execution boundary changed.
+- Exact changed test file is `tests/test_navigation_vocabulary.py`, plus this repository handoff.
+  Windows, Companion, package and unrelated application/test files were not changed.
+
+### Reproduction, ownership evidence and correction
+
+- Historical cloud failure `test_fresh_command_deck_guided_project_resumes_through_simulation_readiness`
+  reproduced alone: the project remained absent because the fixture patched
+  `GuidedBuildMission.exec()`, while production commit `41aabea` deliberately changed the accessible
+  mission to a retained nonblocking `open()` lifecycle.
+- At the exact failure boundary, debugger inspection proved
+  `QApplication.activeModalWidget()` and `RomStudio._guided_mission_dialog` were the same visible
+  `GuidedBuildMission`, parented by the exact `RomStudio`; its stale `exec()` driver had never run
+  (`guided_stages == []`). This is fixture staleness, not leaked ownership or a production close
+  failure.
+- Original file-order reproduction passed the preceding **20** navigation tests, then failed at the
+  same node with the same absent-project assertion. No earlier fixture owned the modal.
+- The two stale navigation fixtures now drive the actual retained mission returned through
+  `RomStudio._guided_mission_dialog`. They assert the mission is the active modal with exact parent
+  ownership before/between actions, then explicitly reject/close it and assert both retained owner
+  and active modal are cleared afterward. Existing Project Name, firmware selection and meaningful
+  confirmation behavior is preserved and exercised; nothing is auto-accepted by production.
+
+### Verification evidence
+
+- The exact first node passed **1/1** after correction. The four historical cluster nodes passed
+  **4/4** together, including the Device Atlas cancel route and both later mission-resume tests that
+  had observed the unclosed stale fixture dialog. These runs overlap the final selection and are not
+  added to its total.
+- Final bounded Fedora selection passed **83/83** in 207.28 seconds: the complete navigation
+  vocabulary file plus the existing retained-nonblocking Guided refresh and one-dialog ownership
+  journeys from ROM Studio UI.
+- Ruff lint and `git diff --check` passed. Whole-file Ruff formatting remains non-green solely at
+  two pre-existing unrelated style-only assertions around lines 3950 and 3961; the formatter's diff
+  reported no change in this checkpoint's modal hunks. Those unrelated lines were deliberately not
+  modified.
+- No full Linux suite, Windows suite or GitHub Actions workflow was run. Device Atlas geometry,
+  wording, project-flash text and source-installation-stop semantics were not changed or folded into
+  this checkpoint.
+
+### Classification, safety and gates
+
+- **Implemented:** two navigation fixtures now follow and verify the approved retained nonblocking
+  Guided dialog lifecycle; production behavior is unchanged.
+- **Simulated/Tested:** 83/83 bounded Fedora Qt/navigation tests passed. All device/build activity
+  remains test-fixture/inert and grants no authority.
+- **Hardware Verified:** no. No phone, emulator or Windows host was used.
+- **Released:** no. No package was built, installed, signed, published or released.
+- Guided friction/dead ends: the fixture now proves exactly one visible mission remains owned while
+  active and is released after affirmative progress or cancel. No duplicate dialog, stale active
+  modal or confirmation bypass remains in the tested routes.
+- Guardian/Recovery/safety: unchanged. Meaningful dialogs and consent remain intact; Guardian-only
+  authority, exact-device/incident evidence, UNKNOWN-on-uncertainty, no blind retry, independent
+  verification and permanent bootloader no-relock remain authoritative. No execution authority was
+  created.
+- Platform status: bounded UI lifecycle verification passed on Fedora offscreen Qt. Windows and
+  physical Android were not relevant or run. Broad platform regressions and hardware/release gates
+  remain closed.
+- Feature freeze: compliant test-only correctness work. v0.2 Golden Foundation and all release
+  gates remain **CLOSED**.
+- External actions: historical GitHub log inspection, local tests and scoped commit/push
+  preparation only. No paid workflow, dependency/tool/APK installation, phone/emulator operation,
+  device-addressed ADB/Fastboot, firmware build/sign/flash, Guardian/Recovery execution,
+  publication, release, merge, force-push, lock or relock occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin geometry, wording, project-flash,
+source-installation-stop, Stage 12, packaging or any consequential slice until this checkpoint is
+reviewed.
+
+### Product Assurance Review Requested
+
+- Confirm the captured owner identity proves fixture staleness rather than production modal leakage.
+- Confirm the two lifecycle-aware fixture corrections and 83-node bounded selection close this
+  cluster without changing or bypassing meaningful Guided decisions.
+
 ## Structure-inspection fixture checkpoint — shared Ascension/Candidate cascade removed
 
 ### Authoritative checkpoint and scope

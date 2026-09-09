@@ -1,5 +1,80 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows stable-file convergence correction — Product Assurance review requested
+
+- Product Assurance authorization: `3dc8f26519b6cdeadcf8351be538d2870450d0cf` —
+  `Authorize bounded Windows file convergence`, based on Windows checkpoint
+  `4e2c3e2059eb06b7cf4030a231c17baae20a69dc`.
+- Linux comparison line: approved reference
+  `b99128d19f5317d286bc87db42c13c4f09738c3f`, containing implementation commits
+  `73abd401ace88ff7e50908364702f8b47eb2e2c5` and
+  `8070895a3d6724c534010324de9494775ef105fe` in that ancestry order.
+- Windows implementation checkpoint: `cad374eaafbae482ee0a8d15cb8b02d2d36fe233` —
+  `Reject unsafe preserved AVB tools on Windows`.
+- Branch: `windows-launcher-authorized-work`.
+- Status: **MINIMUM MISSING WINDOWS PROTECTION COMMITTED — PRESERVED AVBTOOL NOW FAILS CLOSED
+  BEFORE HASHING WHEN ITS FINAL PATH IS A SYMLINK, WINDOWS REPARSE POINT OR NON-REGULAR FILE.**
+
+### Bounded convergence classification
+
+- Fetched and inspected the three exact authorized Linux commits without merging, rebasing,
+  cherry-picking or replacing Windows files. `73abd401` is an ancestor of `8070895`, and
+  `8070895` is an ancestor of approved Linux reference `b99128d1`.
+- `73abd401` is already semantically converged on Windows. Candidate AVB and Source Installation
+  already omit only Windows descriptor/path `ctime` variance while retaining device, file index,
+  size and `mtime` identity; the native Windows identity regression already covers unchanged-file
+  acceptance, pathname replacement and restored-`mtime` byte drift. The existing Source
+  Installation ZIP path guard continues to inspect `ZipInfo.orig_filename`, so the approved
+  literal-backslash rejection was preserved. No shared helper or Linux file was copied.
+- `8070895` exposed one genuine gap: after verifying the preserved slot and receipt, Windows passed
+  the final preserved AVBTool path directly to the bounded hash without an explicit `lstat`
+  regular-file/reparse guard. The minimum correction adds that guard in
+  `src/romverse/rom/candidate_avb.py` and rejects symlink, Windows reparse and non-regular file
+  identities before any hash or fallback.
+- Added one deterministic local fake test, parameterized for reparse and non-regular identities,
+  proving the unsafe final path is rejected before `_hash`. Existing direct-link, parent redirect,
+  receipt, byte mutation, unexpected-member and read-only preserved-tool cases remain unchanged.
+
+### Exact native Windows verification
+
+- Environment: Windows native Python `3.12.10` from `.venv`; no dependency installation occurred.
+- Focused command selected only `tests/test_windows_same_file_identity.py`, the restored-`mtime`
+  and literal-backslash Source Installation cases, and the preserved-tool acceptance/tamper/
+  link/reparse/non-regular/parent-redirect Candidate AVB cases.
+- First invocation completed all **17 test bodies successfully**, then pytest itself exited during
+  cleanup with `PermissionError: [WinError 5]` while inspecting the pre-existing global
+  `%TEMP%\pytest-of-steve\pytest-current` link. This was classified as a pytest environment-cleanup
+  failure after test completion, not a product failure.
+- Reproduced the exact same selection once with an isolated explicit `--basetemp`; result:
+  **17/17 passed, 0 failed, 0 errors, 0 skipped**. The dedicated temporary directory was removed.
+  No broad suite, GitHub Actions run or unchanged package journey was performed.
+- `.venv\Scripts\python.exe -m ruff check src/romverse/rom/candidate_avb.py
+  tests/test_candidate_avb.py`: **passed**. `git diff --check`: **passed**.
+
+### Preserved scope and safety evidence
+
+- No executable/package was built or launched. No dependency, Platform Tools, production adapter
+  or trust material was acquired or installed.
+- The only application change is the Candidate AVB preserved-file guard; the only test change is
+  its deterministic inert fake. Source Installation, Windows identity behavior, launcher code,
+  protected Companion files, Knowledge/UI Design Lab and Linux work remain untouched.
+- The protected untracked patch remains exactly 8,272 bytes with SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it was not altered,
+  applied, staged or deleted.
+- No phone/emulator, device discovery, ADB/Fastboot command, APK installation, firmware action,
+  Guardian/Recovery execution, production signing/trust, publication, release, force-push,
+  destructive action, lock or relock occurred. Exact-device evidence, consent separation,
+  UNKNOWN-on-uncertainty, no blind retry, Guardian-only authority, independent verification and
+  permanent no-relock remain intact.
+
+### Proposed next bounded task
+
+Product Assurance should independently inspect the exact two-file implementation commit, confirm
+the existing Windows identity and `ZipInfo.orig_filename` protections were preserved, and rerun
+only the new deterministic unsafe-preserved-tool case plus any minimum directly affected check it
+needs. If approved, authorize at most the next explicit Windows integration or package checkpoint;
+do not infer package-build, device, execution, publication or release authority from this handoff.
+
 ## Corrected Windows Guided package exposes retained-state route blocker — Product Assurance review requested
 
 - Product Assurance verdict: `f99704f9897bebfbf1290fe782debc97f13e9fb6` — `Approve Windows

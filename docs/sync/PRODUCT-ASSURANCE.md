@@ -1,5 +1,46 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: ec4d088 — native Windows readiness acceptance
+
+- Reviewed checkpoint: `ec4d088695755cdf77489cc73cad76f83f765a6c`
+- Correction commit: `4e4211c5deee55e8e89eba64c146fc8d1d4772c3`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **CORRECTION REQUIRED — VISIBLE PRODUCT BEHAVIOR PASSED, BUT THE COMMITTED REGRESSION IS NOT REPRODUCIBLE ACROSS WINDOWS SESSIONS**
+
+### Independent review
+
+The source correction is narrowly aligned with the approved task: only the setup wizard's tool
+inventory was bounded in a vertical scroll area, with one focused regression added. The recorded
+native session credibly demonstrates that the replacement package kept `Continue in Guided Mode`
+reachable, entered Command Deck, reused the verified managed Platform Tools receipt, showed the
+truthful no-phone state, navigated once to ROM Studio, and closed cleanly. The package/evidence
+scope preserves Guardian separation, UNKNOWN-on-uncertainty, no blind retry and permanent
+bootloader no-relock.
+
+However, Product Assurance independently reran the committed `tests/test_app_launch_settings.py`
+on the same Windows checkout. Result: **5 passed / 1 failed**. The new regression failed at
+`assert wizard.sizeHint().height() <= 800`: the independent Windows session returned **840 logical
+pixels**. This contradicts the handoff's claimed deterministic two-node pass and shows that the
+absolute size-hint ceiling varies with the Windows Qt/DPI/session environment. The visible product
+acceptance remains useful; the nondeterministic regression cannot be accepted as a release gate.
+
+### Minimum exact correction and acceptance criteria
+
+1. Change only the new regression so it validates the actual safety property without a fixed
+   cross-session logical-pixel size hint: the 18-row inventory must scroll, the shown Guided action
+   must be visible and contained within the dialog's usable content/available screen geometry, and
+   the action must remain operable. Do not weaken or remove those behavioral assertions.
+2. Run exactly the two setup-wizard nodes once in the normal Windows test context and once in the
+   same non-interactive/offscreen context that produced the 840-pixel size hint. Both must pass.
+3. Run Ruff check/format-check on the test file and `git diff --check`. Record both environments and
+   results in BUILD-STATUS, commit and push the test-only correction, then stop for review.
+4. Do **not** rebuild or relaunch the package: this is a test-only correction and the accepted
+   `4e4211c5` executable bits are unchanged. Do not repeat package, portability, smoke or journey
+   evidence.
+
+The approved next bounded task remains closure of this regression portability defect only. No new
+Windows product slice is authorized until the corrected checkpoint is independently approved.
+
 ## Authorized next task — current Windows package visible readiness acceptance
 
 - Authorization base: `a66ea2d`

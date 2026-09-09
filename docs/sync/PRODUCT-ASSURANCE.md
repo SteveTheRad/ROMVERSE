@@ -1,5 +1,70 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: a3d0170 — Windows Settings and About journey
+
+- Reviewed checkpoint: `a3d0170cb5ae101b8d4ec4ad0723d15a14d34a82`
+- Authorizing verdict: `b244f0c0fde6114fb844d629665ce29109231f76`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — WINDOWS PREFERENCES PERSIST ONLY THEIR DOCUMENTED STATE, EXPERT VISIBILITY RETAINS EXPLICIT FRICTION, AND ABOUT REMAINS OBSERVATIONAL**
+
+### Decision and independent evidence
+
+The checkpoint is the exact local-only no-phone batch authorized by `b244f0c`. Product Assurance
+inspected the complete commit: it adds only this Build handoff and changes no application, test,
+package, workflow, Companion or execution file. The diff passes `git diff --check`.
+
+- Focus mode round-tripped without changing the active Command Deck route or safe context, and the
+  normal restart correctly discarded that transient presentation state.
+- Expert Architect visibility required the shipped separate risk-acceptance decision. Returning to
+  Guided folded the expert-only destinations again without starting one or changing device,
+  project, mission, evidence or Guardian state.
+- Product Assurance independently inspected the retained schema-five Windows settings file. It
+  records exactly `desktop_theme: quantum-mint` and `experience_mode: guided` with the documented
+  preferences; it contains no Focus or About route persistence.
+- About remained navigation-only and observational. Its evidence and authority wording leaves
+  verification, approvals and execution locks with their owning feature and Guardian.
+- Product Assurance independently inspected the retained runtime log. It contains exactly two
+  starts and two clean closes with no exception, traceback or fault entry.
+- The Windows checkout is at the reviewed commit and contains only the protected untracked patch.
+  Its independently rechecked size is **8,272 bytes** and SHA-256 is
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+
+No unchanged test suite or package rebuild was necessary for this documentation-only checkpoint.
+No hosted CI, external-site control, network intelligence action, phone/emulator operation,
+firmware or APK selection, ADB/Fastboot command, device query/write or transition,
+Guardian/Recovery execution, signing, publication, release, wipe, unlock/root, lock or relock
+occurred. Guided friction, exact-device evidence, consent separation, Guardian-only authority,
+UNKNOWN-on-uncertainty, no blind retry, privacy, no wipe and permanent bootloader no-relock remain
+intact. The checkpoint is feature-freeze compliant.
+
+### Approved next bounded task
+
+Continue one local-only, no-phone Windows product-as-user batch through the existing Time Machine,
+Health Timeline and Activity Center surfaces. Verify that empty and populated local history is
+truthful, navigation preserves the current read-only context, no synthetic event is presented as a
+real phone outcome, and one normal close/restart retains only the records defined as durable. Any
+backup, restore, export, cleanup or external-opening control must remain uninvoked unless it has an
+explicitly inert cancellation path within this batch.
+
+Correct only a directly reproduced bounded production defect and run focused local tests and lint
+for changed areas. If no defect is reproduced, record the bounded pass without rebuilding unchanged
+bits. Push the exact checkpoint to Forgejo first, verify it, then fast-forward the identical commit
+to GitHub. Do not enable Forgejo Actions or manually dispatch hosted CI. Do not rebuild a package
+unless a production Windows defect changes shipped bits and forms a coherent acceptance boundary.
+Stop before physical-device operation, firmware/APK action, device write/mode transition,
+Guardian/execution-authority or safety-contract change, contradictory/UNKNOWN evidence,
+signing/publication/release, destructive action or material scope expansion. Preserve the protected
+patch byte-for-byte.
+
+### Gate status
+
+- Windows Settings → About persistence journey: **APPROVED**
+- Windows Time Machine → Health Timeline → Activity Center journey: **AUTHORIZED — ONE BOUNDED BATCH**
+- Forgejo-first dual-remote checkpointing: **REQUIRED**
+- Replacement development package: **DEFER UNTIL A COHERENT PRODUCTION CHANGE EXISTS**
+- v0.2 Golden Foundation: **CLOSED pending remaining release gates**
+- Physical Android operation, production signing/publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 3cf7d3d — Windows Device Atlas no-phone journey
 
 - Reviewed checkpoint: `3cf7d3d2a90189cb5196a7a7d914cdaf64e0b2ea`

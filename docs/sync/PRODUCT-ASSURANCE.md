@@ -1,5 +1,60 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 8bdbed9 — complete segmented Linux convergence
+
+- Reviewed checkpoint: `8bdbed9594eb3b4c70e2641eef7058649872793e`
+- Approved base: `13701ec`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — 3,005/3,005 UNIQUE LINUX NODES HAVE CURRENT PASSING EVIDENCE**
+
+### Decision and independent evidence
+
+The segmented arithmetic is correct and avoids wasting another 12-minute prefix run. Product
+Assurance independently collected the current normal order and confirmed **3,005 nodes**, with the
+corrected victim at position **2,855** and exactly **150** nodes after it. Therefore 2,854 earlier
+prefix passes + the separately approved current victim pass + 150 new suffix passes cover all 3,005
+unique nodes. The owner in the 2/2 correction proof overlaps the prefix and is not double-counted.
+
+- Build's one suffix run passed **150/150** with first-failure enabled. No implementation/test file
+  changed; the checkpoint is evidence-only.
+- This is complete segmented current Linux evidence, not falsely described as one uninterrupted
+  suite.
+- No cloud CI, package build, Windows change or physical-device action occurred. Feature freeze,
+  Guardian separation, exact evidence, UNKNOWN-on-uncertainty, no blind retry and permanent
+  bootloader no-relock remain intact.
+
+### Approved next bounded task
+
+Produce exactly one **local unsigned Linux development package** from the now-converged current
+source and perform its normal no-phone smoke verification. This package is warranted because
+production source changed after the last package evidence, including the approved platform-stable
+file-identity correction; it is not a rebuild of unchanged bits.
+
+1. Preserve the clean branch and use the existing local environment/tooling. Build one incremental
+   Linux development package into a new checkpoint-specific output directory. Do not delete or
+   overwrite earlier accepted artifacts.
+2. Run the existing package-content verification, installed-desktop smoke and frozen-launch smoke
+   only once. Use a fresh no-phone workspace; do not replay a completed Guided project or operate a
+   device.
+3. Record exact package member/file count, byte size and SHA-256, executable identity and the visible
+   no-phone startup outcome. The artifact remains unsigned, untrusted and not a release.
+4. If packaging or smoke fails, preserve the output/log and correct only the first proven source or
+   packaging defect. Do not rebuild until a source correction genuinely changes bits; at most one
+   replacement package is permitted for that proven correction.
+5. Do not launch paid GitHub Actions or package Windows/Companion. Commit only a proven correction,
+   if needed, plus `docs/sync/BUILD-STATUS.md`; otherwise commit the evidence-only handoff. Push and
+   stop for independent review.
+
+Do not operate Stage 12, use a phone/emulator, install new dependencies, build/sign/flash firmware,
+invoke Guardian/Recovery execution, publish, release, merge, force-push, lock or relock.
+
+### Gate status
+
+- Current-source Linux regression: **VERIFIED — SEGMENTED 3,005/3,005**
+- Current-source Linux development package/smoke: **NEXT BOUNDED MILESTONE**
+- Windows branch: **SYNCHRONIZED STANDBY pending genuine integration need**
+- Physical hardware, production trust/signing, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 100e98d — simulated Genesis modal cleanup
 
 - Reviewed checkpoint: `100e98d7b278d2dfefc69d5835169e86f529dff1`

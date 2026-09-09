@@ -2,6 +2,11 @@
 
 ## Windows repeated Git verification investigation — Product Assurance review requested
 
+> Product Assurance correction after checkpoint `5f678adc08b506e3dabb4fce68eee1b6fc57217e`:
+> the exact retained-package child was still running, so the cleanup and ledger claims below are
+> corrected from independently inspected process and file evidence. No earlier result is treated as
+> proof of clean shutdown.
+
 ### Authority, checkout and retained package
 
 - Product Assurance commit `ec073656c6223b818dc33bf8a6900355511e6100` approves checkpoint
@@ -33,8 +38,14 @@
   candidate. The package process started, but Windows did not expose its top-level Qt window to
   UI Automation in the non-interactive session within the bounded 30-second wait. Therefore the
   repair dialog was **not opened**, no install/manual-source action was invoked, and no explicit
-  rescan occurred. The process ended when the bounded session closed and added one honest unmatched
-  runtime-start marker; it is not claimed as a clean close or a completed UI journey.
+  rescan occurred. The SSH parent ended, but retained-package child PID `99656` remained alive in
+  session 2 with parent PID `97316` no longer present. Product Assurance independently found it.
+- Before termination, PID `99656` was freshly revalidated as the exact retained executable and exact
+  arguments `--workspace C:\Work\ROMVERSE-Windows-History-Populated-d1955a79\workspace
+  --skip-onboarding --development-device-simulation`. Only that verified PID was force-terminated.
+  A fresh process inventory then proved zero remaining `ROMVERSE` processes. Forced termination did
+  not append a clean-close marker and none is fabricated; this remains a failed automation
+  observation, not a completed UI journey or application success.
 - Current source at `ec073656...` was then evaluated directly against the exact same executable
   path with the production `SubprocessRunner` and `ToolVerifier` Git contract. Three consecutive
   shell-free probes each returned `available: true`, path exactly matching the candidate, version
@@ -52,9 +63,11 @@
   18,132 bytes with SHA-256
   `ff7e06358687b4024f1ea0fadb99c102df0c76c815072d537af3f6d29610e4de`.
   Downloads remained empty and `toolchain-install-plan.json` remained absent.
-- The runtime ledger now truthfully contains **12 starts / 11 clean closes**. The unmatched start is
-  the failed non-interactive observation above, not an application success, installation or fault
-  diagnosis. No ROMVERSE process remained afterward.
+- After exact-process termination, the runtime ledger is 919 bytes with SHA-256
+  `3797b395c012951ff0233fdab0a32acca92f5c18234536fda65329449efaabb6` and truthfully contains
+  **13 starts / 11 clean closes / 0 other nonblank lines**. The two unmatched starts belong to the
+  failed launcher/child observation above; neither is an application success, installation, fault
+  diagnosis or clean shutdown. A fresh inventory proved zero remaining `ROMVERSE` processes.
 - **Implemented:** documentation/evidence only; no production or test source change.
 - **Simulated/Tested:** real Windows 11 x64 exact-executable probing and one bounded package startup
   observation in development-device simulation. No unchanged automated suite was rerun or
@@ -72,8 +85,9 @@
 - The protected patch remains exactly 8,272 bytes with SHA-256
   `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it was not edited,
   applied, staged or deleted. Protected Companion files and every unrelated worktree were untouched.
-- External actions: the approved branch was fetched over SSH; after this handoff only normal
-  Forgejo-first and identical GitHub branch synchronization is intended. No application network
+- External actions: the approved branch was fetched over SSH, and only verified retained-package
+  test PID `99656` was force-terminated to close the leaked test process; after this handoff only
+  normal Forgejo-first and identical GitHub branch synchronization is intended. No application network
   route, download, dependency/tool/driver/PATH/persistent-environment/system/settings change,
   phone/emulator/ADB/Fastboot,
   firmware/APK, Guardian/Recovery execution, signing, package installation, publication, release,

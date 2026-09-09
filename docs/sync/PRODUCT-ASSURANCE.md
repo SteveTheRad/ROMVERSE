@@ -1,5 +1,86 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 8a1be7e — Corrected Windows package and private protected import
+
+- Reviewed checkpoint: `8a1be7edaa32730e36f29429bfc8d76393753135`
+- Authorizing verdict: `392b82fb30086e3ea3d4d5c90a0b7548990a7fdd`
+- Package source: `a3a3ca29cb941bce50a3414023ff37a6fcb709fa`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — PRIVATE PROTECTED-ORIGINAL CONTRACT CONVERGED IN THE WINDOWS PACKAGE**
+
+### Decision and independent evidence
+
+The exact authorized correction-convergence task is approved. The checkpoint changes only Build
+Status. Forgejo and GitHub expose the identical checkpoint with zero divergence, while the Windows
+checkout is at that exact head and retains only the protected untracked patch and existing
+`build-work/`. The patch remains 8,272 bytes with SHA-256
+`2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+
+The one current-source one-folder package is internally consistent: 306 files, 23 directories and
+164,663,453 bytes, with no empty files or reparse entries. `ROMVERSE.exe` is 6,324,563 bytes,
+SHA-256 `2c94f329fa33c96e0b9aca92b6c495b2c55d87e25d14af089afd1c19d652881f`, and truthfully
+`NotSigned`. Build's focused frozen smoke passed. Product Assurance independently reran the exact
+focused current-source acceptance set on Windows and confirmed 46/46 tests pass.
+
+The fresh Local-mode profile keeps Guided mode, serial masking and all four online-intelligence,
+community-research, automatic-tool-download and Synapse-contribution controls disabled. The
+settings file is protected by exactly OWNER RIGHTS and SYSTEM Full Control. The fresh package
+journey used no discoverable tools or physical device and truthfully remained simulation-only,
+not connected, Guardian verify-required and without execution authority.
+
+The selected 497-byte synthetic source and protected original are byte-identical at SHA-256
+`1d9c78df6f42c63864a76bdf91a50cb2da1cd2e133cc44cba5f1c298302f0725`; the external source
+remains a normal Archive. Independent Windows ACL inspection confirms the protected copy is
+read-only, has inheritance disabled, and has exactly two non-inherited Full Control allow entries:
+OWNER RIGHTS and LOCAL SYSTEM. The schema-two project manifest binds its exact name, size, digest
+and contained path. The bounded inspection record binds the same digest, records exactly two ZIP
+members and the OTA structural signals, and extracted no member.
+
+The resulting Device DNA preserves the metadata rejection, exact identity and firmware fields as
+UNCONFIRMED, and keeps Guardian flash UNCONFIRMED. The Compatibility Matrix has no
+proven-compatible decision, remains advisory-only and retains permanent no-relock. The mission
+stops at Provenance; `working_roms` and every other operational directory remain empty. The runtime
+record has exactly one accepted start and one clean close; ROMVERSE, ADB and Fastboot process
+counts are zero and both ledger locks accept exclusive access.
+
+No archive/relocation loop, real firmware, Working Lab action, network, tool install, phone,
+emulator, ADB/Fastboot, device consequence, Guardian/Recovery execution, signing, publication,
+release, hosted CI, wipe, unlock/root, bootloader lock or relock occurred. Guided friction,
+exact-source evidence, UNKNOWN-on-uncertainty, no blind retry and Guardian authority separation are
+preserved.
+
+### Approved next bounded task
+
+Advance this exact disposable Guided project through **one Working Lab working-copy action** using
+the retained corrected package and protected synthetic original. This is an end-to-end usability
+check, not another packaging exercise.
+
+1. Reopen the same private Local-mode profile with the empty process-local tool path and all four
+   network/download/contribution controls false. Verify the saved project resumes at Provenance and
+   revalidate the protected original's digest, read-only state and exact private ACL before action.
+2. Invoke `Create working copy` exactly once through the normal Guided surface. Permit only the
+   contained byte-for-byte writable baseline and its deterministic metadata beneath this project's
+   `working_roms` directory. Verify its path containment, digest/size binding, private directory
+   boundary and truthful Working Lab state.
+3. Do not extract ZIP members, invoke Payload Dumper, prepare partitions, install or download a
+   tool, create a build plan, mutate firmware, or advance into Recipe/Forge/Guardian execution. If
+   the current fixture or package cannot create the baseline, preserve the exact failed/UNKNOWN
+   state and report the deterministic blocker without retry or source correction.
+4. Close normally and prove Local/no-device/no-authority truth, zero ROMVERSE/ADB/Fastboot
+   processes, no held locks and no network/tool/device artifacts. Commit only sanitized Build
+   Status evidence, request Product Assurance review and stop.
+
+No source or package rebuild, new fixture/import, network/download/install, phone/emulator,
+ADB/Fastboot, extraction, firmware/APK mutation, Guardian/Recovery execution, signing,
+publication, release, hosted CI, wipe, unlock/root, bootloader lock or relock is authorized.
+
+### Gate status
+
+- Current-source corrected Windows package and private protected import: **APPROVED**
+- One contained Working Lab working-copy action: **AUTHORIZED**
+- Extraction, partition preparation, build and device/consequential stages: **CLOSED**
+- Installer/signing, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: a3a3ca2 — Private Windows protected-original ACL
 
 - Reviewed checkpoint: `a3a3ca29cb941bce50a3414023ff37a6fcb709fa`

@@ -1,5 +1,90 @@
 # ROMVERSE Product Assurance Sync
 
+## Retained-package Windows stale-instance-lock recovery — Product Assurance review requested
+
+### Exact authority, package and isolated root
+
+- Product Assurance verdict `dcbc6ce93310c1a8725e96b4d090375345de0090` exactly approves Build
+  checkpoint `f9136f7fac713c08f77e50e1b949c218fc55cb02` and authorizes one retained-package
+  stale-instance-lock interruption and recovery observation. The checkout was safely fast-forwarded
+  to that verdict while preserving all protected untracked work.
+- The new disposable root was `C:\Work\ROMVERSE-Stale-Lock-dcbc6ce-20260910-001`; its `workspace`
+  child did not exist before launch. The reviewed `SettingsStore` created the only pre-launch file,
+  `config\settings.json`: 633 bytes, SHA-256
+  `f176ae0ba370b775481956507a3233c45c6b10f58dab6d7c76000804b343f12d`, schema five, with
+  `online_intelligence_enabled`, `community_research_enabled`,
+  `auto_download_verified_tools` and `synapse_contributions_enabled` false and `reduced_motion`
+  false. Its inheritance-protected private owner-rights/SYSTEM Full Control ACL is
+  `O:S-1-5-21-3586961997-248884936-1384359232-1001G:S-1-5-21-3586961997-248884936-1384359232-1001D:PAI(A;;FA;;;OW)(A;;FA;;;SY)`.
+- Both invocations used the exact unchanged retained unsigned development executable
+  `C:\Work\ROMVERSE-Windows\build\windows-current-package-b1dc54e0\ROMVERSE\ROMVERSE.exe`,
+  6,324,534 bytes, SHA-256
+  `d2df2c9a667520e9ebe88d4c2eb4dfa26020b1e2d8f852dddb33ab24a013b431`, package source
+  `b1dc54e0c6390fb3d789930dda0696c712e40e64`, with the same child-only `ROMVERSE_HOME`, explicit
+  workspace, `--skip-onboarding` and `--development-device-simulation` arguments.
+
+### Exact interruption and durable UNKNOWN evidence
+
+- The first process was PID `106288` in interactive session `2`. It exposed exactly one responsive
+  top-level window titled `ROMVERSE Studio 0.2.0-alpha.1` and the accessibility tree confirmed the
+  `LOCAL` badge, `DEVICE: NOT CONNECTED`, `PROJECT: NONE`, `MISSION: IDLE`,
+  `GUARDIAN: VERIFY REQUIRED`, Device DNA `UNCONFIRMED`, no physical device, development simulation
+  and `SIMULATION ONLY • NO HARDWARE`.
+- Immediately before interruption at `2026-09-10T02:56:42.8730161+10:00`, a fresh Windows process
+  binding matched PID `106288` to owner `STEVESLEGION\steve`, session `2`, the exact executable path,
+  the complete expected argument string and the unique disposable root. It was the sole ROMVERSE
+  process. Only that exact PID was force-terminated to model abrupt process loss; no unrelated
+  process was selected or closed.
+- The bound PID was dead immediately after termination. One transient ROMVERSE process entry was
+  still draining in the immediate sample, then the next bounded requery returned zero processes.
+  The interrupted ledger remained exactly 36 bytes, SHA-256
+  `9ea4bad89989159d1feafd1c8508dd33cca7e9faac4b174e8657284c16fceed3`, containing one start and no
+  clean close. This launch is recorded as **incomplete / UNKNOWN**, never success.
+- The stale `%TEMP%\romverse-studio.lock` remained present at 67 bytes, SHA-256
+  `1153e6dbe611bd4ca8670a1146095e1bfe37c1574768a2278df85e766ef9fe81`. Its sanitized fields bound
+  the recorded owner to dead PID `106288`, application `ROMVERSE`, host `STEVESLEGION` and Qt
+  machine identifier `d35ea74c-c8fc-43ce-a895-052af0aed6c0`.
+
+### Owner-dead recovery and final evidence
+
+- Immediately before recovery at `2026-09-10T02:57:38.3236673+10:00`, ROMVERSE process count was
+  zero, PID `106288` was confirmed dead, the exact stale lock and unmatched ledger were unchanged,
+  and the same exact package invocation was issued once. It opened normally as PID `106848` after
+  5,135 ms, replaced the stale lock with a live lock recording only PID `106848`, and exposed
+  exactly one responsive top-level window.
+- The recovered UI retained the same fail-closed `LOCAL` Command Deck, `DEVICE: NOT CONNECTED`,
+  `PROJECT: NONE`, `MISSION: IDLE`, `GUARDIAN: VERIFY REQUIRED`, Device DNA `UNCONFIRMED`, no
+  physical device and simulation-only labeling. No feature surface was entered. The recovered
+  process then closed normally through the visible title-bar Close control.
+- Final process and ROMVERSE window counts are both zero and `%TEMP%\romverse-studio.lock` is
+  absent. The final ledger is exactly 113 bytes, SHA-256
+  `8c9bfac993c066e32f53d0fa854d5716eadf85b35c9367bd7c44aa84bf36e3f0`, with exactly two starts,
+  one clean close and three nonblank markers: one unmatched interrupted start plus one later
+  accepted start/clean close.
+- The settings file is byte-identical to its pre-launch state with the same private ACL. The
+  disposable root contains 8 regular files, zero reparse entries and no path matching `catalog`,
+  `receipt`, `download`, `toolchain`, `install-plan` or `update`.
+
+### Scope, validation and next review
+
+- This checkpoint changes only `docs/sync/BUILD-STATUS.md`. No source, test, settings contract or
+  package changed; no suite was repeated and no rebuild occurred. Git whitespace validation is the
+  proportionate repository check. Protected Companion files remain untouched. The protected
+  untracked patch remains 8,272 bytes with SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it and existing untracked
+  `build-work\` intermediates remain excluded from staging.
+- ROMVERSE made no network request and performed no download, install, dependency/tool change,
+  phone/emulator discovery or operation, ADB/Fastboot command, firmware/APK action,
+  Guardian/Recovery execution, production adapter/trust/signing, publication, release, hosted CI,
+  wipe, unlock/root, lock or relock. Repository fetch/push remains the separate coordination path.
+  Exact-device evidence, fresh consent, Guardian-only authority and separation, durable UNKNOWN,
+  no blind retry, independent verification, feature freeze and permanent bootloader no-relock
+  remain intact.
+- Precise next task: independent Product Assurance review of this exact retained-package
+  stale-owner interruption, durable unmatched-start evidence and successful owner-dead lock
+  recovery. Do not begin another product surface, package, test cycle or consequential flow without
+  the matching repository verdict.
+
 ## Retained-package Windows single-instance and clean-reopen boundary — Product Assurance review requested
 
 ### Exact authority and disposable local-mode root

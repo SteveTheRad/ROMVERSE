@@ -1,5 +1,60 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: ea9ecc4 — converged Fedora development package
+
+- Reviewed checkpoint: `ea9ecc40830a26b1801d958813a6945ec865bead`
+- Approved source: `44233c60d50dcfc5ba6ae56db36c4738448d34cc`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — CURRENT CONVERGED SOURCE BUILDS, VERIFIES AND LAUNCHES ON FEDORA**
+
+### Decision and independent evidence
+
+The one-build rule is satisfied. Product Assurance independently inspected the preserved output and
+verified the recorded artifact identities rather than relying on Build's summary.
+
+- One-folder package: **422 regular files / 243,079,637 bytes / 38 contained internal links**.
+  Every link resolves within the package tree.
+- Executable: **6,330,360 bytes**, SHA-256
+  `ac8eda9f281a7a20f9d05581d28affcef8b3dcff674491e20d33a23de4155886`; stripped Linux x86-64
+  ELF with interpreter `/lib64/ld-linux-x86-64.so.2` and the recorded Build ID.
+- Archive: **151,026,989 bytes**, SHA-256
+  `594aa3c24874b71c82fc9a7110614bbd1a6f542f258e87e2d8fe560f99ca84c9`.
+- Product Assurance independently opened the complete archive, confirmed **460 members / 360,334,266
+  expanded bytes**, found the required executable and completed CRC verification with no failure.
+- Build's one installed-desktop smoke and one frozen no-phone smoke are proportional package
+  evidence. The already-approved segmented **3,005/3,005** regression remains applicable and was
+  correctly not repeated.
+- The package is unsigned, local and development-only. No execution authority or release claim is
+  created; Guardian separation, exact evidence, UNKNOWN-on-uncertainty, no blind retry and permanent
+  bootloader no-relock remain intact.
+
+### Approved next bounded task
+
+Use the presently connected Android device for exactly one **read-only production Device Engine
+discovery/evidence pass** from current approved Linux source.
+
+1. Confirm exactly one authorized ADB target before invoking ROMVERSE's existing production
+   discovery path. Collect only the allowlisted identity/capability evidence ROMVERSE already uses;
+   do not add a feature or broaden probes.
+2. Demonstrate that the app/service binds the observation to one exact target and reports a
+   truthful connected/readiness state. Record the resulting non-secret, pseudonymous evidence and
+   any actionable UI/service outcome without persisting or publishing the raw serial.
+3. This is observation only: do not enter Fastboot, reboot, install an APK, change settings, write a
+   partition/file/property, unlock, root, flash, wipe, lock or relock. Do not request Guardian or
+   Recovery execution authority.
+4. Run only focused checks required by a proven discovery defect. If the production path succeeds,
+   make no source change; record an evidence-only `BUILD-STATUS.md` handoff, commit, push and stop.
+   If it fails, capture the first exact failure and correct only a clearly bounded host/application
+   defect—never compensate by changing the phone.
+
+### Acceptance and gate status
+
+- Current converged Fedora package/content/native launch: **APPROVED**
+- Current Linux behavioral regression: **VERIFIED — SEGMENTED 3,005/3,005**
+- One exact-device read-only ADB discovery: **NEXT BOUNDED MILESTONE**
+- Fastboot transition, physical device writes, Guardian/Recovery execution, production signing,
+  publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 50abc17 — deterministic Linux Ruff baseline
 
 - Reviewed checkpoint: `50abc177e4bdde217d59360d4dd635b135616539`

@@ -1,5 +1,59 @@
 # ROMVERSE Product Assurance Sync
 
+## Complete segmented Windows portability evidence — Product Assurance review requested
+
+- Product Assurance verdict: `877f73b69f853369263ebdef105f4b882b456930` —
+  `Approve Windows long-basetemp boundary`, matching Build checkpoint
+  `b6c0bacb8f65241fd3d69ac1eb790233546910cd` exactly and correcting the prior
+  105/106-node count ambiguity.
+- Branch: `windows-launcher-authorized-work`.
+- Status: **ALL 974 WORKFLOW-ORDERED WINDOWS PORTABILITY NODES NOW HAVE NON-OVERLAPPING SEGMENTED
+  EVIDENCE: 968 PASSED / 6 SKIPPED. RUFF CHECK PASSES; THE ONE RUFF FORMAT CHECK REPORTS A
+  46-FILE REPOSITORY-WIDE FORMAT BASELINE BLOCKER.**
+
+### Exact seven-node completion
+
+- Safely fast-forwarded from `b6c0bacb` to approval `877f73b6`; all 23 Device Pack JSON files
+  remained LF-only. No dependency or tool was installed or acquired.
+- Ran exactly the seven approved node IDs in `tests/test_navigation_vocabulary.py`, in the listed
+  order, with `.venv\Scripts\python.exe -m pytest -x --basetemp C:\Work\rvt-f2 <seven exact
+  node IDs>` and `QT_QPA_PLATFORM=offscreen`.
+- Result: **7 passed in 7.30 seconds** with no failure, error, skip, timeout or stall.
+- Combined only with the Product Assurance-accepted prior evidence, the current Windows portability
+  selection is **segmented 968 passed / 6 skipped across all 974 collected nodes**. No node was
+  repeated for this completion and this is not described as one uninterrupted suite.
+
+### Exact workflow static checks
+
+- Ran `.venv\Scripts\python.exe -m ruff check .` exactly once: **PASS**, exit `0`, `All checks
+  passed!`.
+- Ran `.venv\Scripts\python.exe -m ruff format --check .` exactly once: **FAIL**, exit `1`;
+  **46 files would be reformatted / 506 files already formatted**.
+- Classification: **broad repository-wide committed formatting baseline mismatch, not a failure in
+  the seven-node Windows continuation and not a new working-tree change**. The report spans shared
+  production and test areas outside this bounded Windows task. No formatter was run, no file was
+  rewritten and the check was not repeated.
+
+### Preserved scope and next review
+
+- This evidence-only handoff changes only `docs/sync/BUILD-STATUS.md`. The accepted Windows package
+  was not rebuilt or relaunched, GitHub Actions was not launched, and no formatting or unrelated
+  correction was attempted.
+- The protected Companion files remain clean and unstaged. The protected untracked patch remains
+  exactly **8,272 bytes**, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it was not altered,
+  applied, staged or deleted. LF Device Pack materialization remains intact.
+- No phone/emulator, device discovery, ADB/Fastboot command, APK installation, firmware action,
+  Guardian/Recovery operation, production signing/trust, publication, release, merge, force-push,
+  destructive change, lock or relock occurred. Exact-device evidence, consent separation,
+  UNKNOWN-on-uncertainty, no blind retry, Guardian-only authority, independent verification and
+  permanent no-relock remain intact.
+- Precise proposed next task: Product Assurance independently verifies the seven exact node IDs,
+  segmented 968/6 total, Ruff-check pass and the repository-wide 46-file format-check failure. It
+  should decide a separately bounded, cross-platform formatting-baseline correction before Windows
+  changes shared files. A replacement Windows package remains unbuilt and unauthorized until the
+  corrected production source and portability checkpoint are independently approved.
+
 ## Windows long-basetemp harness boundary — Product Assurance review requested
 
 - Product Assurance verdict: `f1ff51ee163df8af641c6c8f3d1602908d6afdd5` —

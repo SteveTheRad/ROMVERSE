@@ -1,5 +1,100 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 2e1f2c5 — Stage-11 exact result-receipt binding
+
+- Reviewed checkpoint: `2e1f2c5ff4ac97b35387fe3f1cbd275b0c0dd632`
+- Implementation commit: `d18da9d` (`Bind Stage 11 result receipts`)
+- Approved base/correction: `eaeb2f2`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — EXACT RECIPE AND DEBLOAT RESULTS ARE NOW BOUND**
+
+### Decision
+
+Product Assurance independently inspected the exact source/test diff, schema inventory, persisted
+plan and current receipts. The minimum correction satisfies `eaeb2f2`. Current source-scoped plans
+are schema 4 and include immutable `recipe_receipt_digest` and `debloat_receipt_digest` fields in
+the canonical plan digest. Planning uses the existing strict Recipe and Debloat receipt loaders;
+current verification repeats those strict loads and compares their verified internal receipt
+digests. Missing, deleted, tampered, replaced or route-inappropriate receipts therefore fail
+closed. Schema-3 plans retain their original digest semantics for diagnosis but cannot satisfy a
+current Guided route that requires result receipts.
+
+The corrected plan remains local-only, non-flashable, execution-locked and authority `none`.
+Nothing in this change creates a build, device, consent, Guardian or Recovery authority. The
+feature freeze, exact-device rules, UNKNOWN-on-uncertainty, no-blind-retry and permanent no-relock
+remain intact.
+
+### Independent evidence and acceptance
+
+- The implementation changes only the build-plan schema/current-binding logic and directly
+  affected tests. The durable inventory declares schema 4 with read support for versions 1–4.
+- Focused coverage proves successful dual binding; missing, deleted, tampered and validly replaced
+  Recipe/Debloat receipts; receipt-field plan-digest tampering; schema-3 diagnostic readability;
+  and legitimate unchanged/customization-skipped empty bindings. Build reports one final affected
+  selection of **86/86 passed**, with Ruff and whitespace checks passing.
+- Product Assurance independently recomputed the packaged plan digest and obtained the recorded
+  `b9ea4d189dd6c8054dfcfa90ff988195ba824f5ac8b5a5c04bf72bc305a07b40`.
+  The schema-4 plan binds Recipe receipt
+  `f5dbadad88d42490b1e36d5dfea54cfff8a6c32bf084f61b863242a0d11fac5a` and Debloat receipt
+  `d314ea9de2fa736efd09ae5bf9451b57310d5c21e12fd26880c21728f3bf4d62`, and independently
+  retains `local_only: true`, `flashable: false`, `execution_locked: true` and
+  `execution_authority: none`.
+- The one replacement Fedora executable independently matches SHA-256
+  `5bae4e420a8c67d9ee89674017b4a4756f8a4c386907d9467e7e0cffd59f1347`.
+  The same saved project advanced once to Stage 12 under the explicit simulation-only boundary;
+  Stage 12 was not operated and no physical target was addressed.
+- Evidence clarification: the current final `guided-mission.json` loads as schema 6 at
+  `selected_stage: build_sign`, `build_plan_verified: true`, with no error. Its independently
+  observed internal record digest is
+  `ce06c24f56c03722f23b2a1d05e50cff62fe7ada0cd7290ee48486185c02aad8` and file SHA-256 is
+  `f4ae63318940db3dcba69a5ede175df5f37cc22854b26c21a81d5efb315e157c`. These supersede the
+  earlier pre-final-save mission digest quoted in Build Status; the substantive state and accepted
+  plan are unchanged, so no backward replay or documentation-only Build correction is required.
+- The post-save Wayland/AT-SPI close limitation occurred after the mission and plan were durably
+  saved and independently reloaded. It does not invalidate Stage 11, but clean shutdown is not
+  claimed from that run.
+
+### Broad Linux regression classification
+
+The incomplete 2,996-test run is not accepted as a pass and remains a release-quality blocker.
+Its first reproducible failure is outside the Stage-11 receipt change: a main-window test expected
+`Live Operations` while real host state correctly exposed `Resolve Platform Tools`. The later
+memory-heavy Qt phase also stopped making visible progress. This does not reopen the accepted
+Stage-11 correction, but it must be boundedly classified before another consequential Guided
+slice so a host-dependent test harness cannot conceal a real navigation defect.
+
+### Approved next bounded Linux task
+
+Do not operate Stage 12 yet. Preserve the clean branch, accepted package, saved project and all
+Stage-11 evidence. Reproduce only the first deterministic main-window failure with its exact test
+and inspect whether the product action is correct for the injected/real host state. If the product
+is correct, make the minimum test-fixture isolation correction; if the product is wrong, make the
+minimum existing-navigation correction. Then identify the specific Qt test/group responsible for
+the non-terminating phase using bounded selection/bisection, without another broad-suite loop.
+
+Run only the directly affected test selection plus Ruff/whitespace checks. Do not rebuild or
+repackage for a test-only correction. If and only if source bytes genuinely change, produce one
+incremental replacement package and one platform smoke launch. Commit/push one scoped checkpoint
+and handoff, then stop for review. Do not replay Guided stages, regenerate the accepted Stage-11
+plan, use a physical device/emulator, issue device-addressed ADB/Fastboot, install an APK, build or
+sign firmware, grant execution authority, publish, release, merge, force-push, lock or relock.
+
+### Coordinated Windows handoff
+
+`d18da9d` is an approved cross-platform source-contract change. The synchronized Windows track may
+consume that exact approved change through its normal repository flow and perform only focused
+schema/load portability checks. It must preserve its existing patch and saved Windows evidence,
+must not replay prior journeys, and may create one replacement Windows package only because the
+approved source bytes changed. No physical-device operation or release is authorized.
+
+### Gate status
+
+- Stage-11 exact Recipe/Debloat result binding: **VERIFIED**
+- Broad Linux host-state/UI regression reliability: **NEXT BOUNDED CORRECTION**
+- Windows schema-4 current-source integration: **AUTHORIZED THROUGH NORMAL REPOSITORY FLOW**
+- Stage 12, physical hardware, firmware build/sign/install, publication and release: **NOT AUTHORIZED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: c4c7d27 — Stage-11 receipt-binding deficiency
 
 - Reviewed checkpoint: `c4c7d277989da54518b38129943e386969d293ad`

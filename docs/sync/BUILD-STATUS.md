@@ -1,5 +1,70 @@
 # ROMVERSE Product Assurance Sync
 
+## Candidate Installation integration-fixture correction — Product Assurance review requested
+
+- Product Assurance verdict: `ca04cbf478bf221b9e3a6f1fea82a73f3ba2f6f4` —
+  `Approve Candidate Installation fixture refresh`, matching Build checkpoint
+  `79da6bd1bc3b85c9ded562be217b036153959c6d` and correction `70379f7b` exactly.
+- Windows test correction: `b019bc9808c2502c1f3d665af48fe74915a2dbcb` —
+  `Refresh Candidate integration inspection fixture`.
+- Branch: `windows-launcher-authorized-work`.
+- Status: **THE EXACT 186-NODE REMAINDER STOPPED AT ONE EQUIVALENT STALE INERT INTEGRATION
+  FIXTURE; THE MINIMUM TEST-ONLY CORRECTION IS COMMITTED AND ITS EXACT NODE PASSES.**
+
+### Exact remainder pass
+
+- Safely fast-forwarded from `79da6bd1` to approval `ca04cbf4`; all 23 Device Pack JSON files
+  remained LF-only. No dependency or tool was installed or acquired.
+- Ran only the approved remainder with `.venv\Scripts\python.exe -m pytest -x --basetemp
+  C:\Work\ROMVERSE-Windows-TestTemp-ca04cbf4-remainder-01 --deselect
+  tests/test_candidate_installation.py::test_complete_candidate_replaces_exactly_two_roles_and_preserves_all_source_steps
+  tests/test_candidate_installation.py` followed by the seven workflow-ordered files from
+  `tests/test_guardian_candidate_installation.py` through `tests/test_navigation_vocabulary.py`,
+  with `QT_QPA_PLATFORM=offscreen`. The deselected node is the already-reviewed first node in the
+  first file, making this exactly the approved 186 collected nodes.
+- Result: **79 passed, 1 failed, 1 previously evidenced node deselected in 315.96 seconds (5:15)**.
+  There was no skip, error, timeout or stall. No node after the failure ran.
+- First failure:
+  `tests/test_candidate_installation_integration.py::test_real_build_base_avb_and_candidate_boundaries_compose_two_plus_48`.
+  Its fixture called `RomBuildPlanner.plan` without first saving current structure-inspection
+  evidence, so the planner correctly raised `ProjectError: Current structure inspection evidence
+  is required`.
+
+### First-failure classification and correction
+
+- Classification: **unrelated pre-existing stale inert integration fixture, not a Windows platform
+  defect and not a Stage 1 product correctness failure**. It is the same setup omission independently
+  approved in `70379f7b`; the production planner's fail-closed evidence requirement is correct.
+- Added only the missing `RomInspectionService.inspect_project` setup call and import to the
+  integration fixture. No production source or application behavior changed.
+- Exact focused verification passed **1/1** with fresh basetemp
+  `C:\Work\ROMVERSE-Windows-TestTemp-ca04cbf4-candidate-integration-after`.
+  `git diff --check` passed before the test-only correction commit.
+- Current non-overlapping segmented evidence through the corrected integration victim is **862
+  passed / 6 skipped**: the Product Assurance-accepted 782/6 through the earlier corrected fixture,
+  this remainder's 79/0 prefix and the corrected integration victim 1/0. Exactly **105** of the 974
+  collected workflow nodes remain. This is not an uninterrupted or complete suite. Ruff remains
+  pending because the remainder did not complete.
+
+### Preserved scope and next review
+
+- Correction is limited to `tests/test_candidate_installation_integration.py`; this handoff changes
+  only `docs/sync/BUILD-STATUS.md`. The accepted Windows package was not rebuilt or relaunched,
+  GitHub Actions was not launched, and no unrelated failure was pursued.
+- The protected Companion files remain clean and unstaged. The protected untracked patch remains
+  exactly **8,272 bytes**, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it was not altered,
+  applied, staged or deleted. LF Device Pack materialization remains intact.
+- No phone/emulator, device discovery, ADB/Fastboot command, APK installation, firmware action,
+  Guardian/Recovery operation, production signing/trust, publication, release, merge, force-push,
+  destructive change, lock or relock occurred. Exact-device evidence, consent separation,
+  UNKNOWN-on-uncertainty, no blind retry, Guardian-only authority, independent verification and
+  permanent no-relock remain intact.
+- Precise proposed next task: Product Assurance independently verifies `b019bc98` and the exact
+  corrected integration node. If approved, authorize one continuation containing only the 105
+  collected nodes after that victim, then Ruff check/format once only if those nodes complete. No
+  package rebuild is authorized or warranted at this checkpoint.
+
 ## Candidate Installation inspection-fixture correction — Product Assurance review requested
 
 - Product Assurance verdict: `94e13722fec5c6a9af561e53e638e238ae5909a9` —

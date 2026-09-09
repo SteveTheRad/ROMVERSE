@@ -20,6 +20,14 @@
   knowledge update. The smoke now compares the freshly persisted archive exactly with the archive
   assembled from the installed package resources, while retaining its concrete Device Pack,
   knowledge-ranking, route-coverage, legal, dark-theme and byte-preservation checks.
+- A fresh one-folder Fedora development build was assembled from this checkpoint at
+  `build/fedora-dc8e823/ROMVERSE`: **423 regular files / 243,097,811 regular-file bytes / 38
+  contained internal links**. Its executable is **6,332,408 bytes**, SHA-256
+  `ddd51f93380931ff0ef7c5dc15c3fbb61e8ae46cb59f717391f41fd09abe3b4a`.
+- Verified unsigned ZIP:
+  `dist/ROMVERSE-Desktop-0.2.0-alpha.1-linux-x86_64-dc8e823.zip`, **151,034,859 bytes**, SHA-256
+  `453b9f0c7fa9fdca735aff1088beaf41e2db986c748db0f8505b238e956205bb`; archive verification
+  passed for **461 members / 360,352,440 expanded bytes**.
 
 ### Verification and gates
 
@@ -32,8 +40,9 @@
   checks. Ruff check, Ruff format-check and diff check passed.
 - **Hardware Verified:** no. All work used local source, disposable workspaces and explicit inert or
   release-smoke modes. No physical target was queried or operated.
-- **Released:** no. The latest existing package remains the unsigned `3af0591` Fedora development
-  artifact; the two corrections in this checkpoint have not yet been rebuilt into a package.
+- **Released:** no. The `dc8e823` artifact is an unsigned local development build, not a published
+  or production-signed release. Its bounded frozen startup/shutdown smoke passed with no device
+  discovery or operation.
 - Blockers/failures: the reproduced Genesis nested-return class and stale package-smoke gate are
   corrected. Windows secure launch, production signing/trust, physical Recovery/flash validation
   and release remain blocked/unverified.

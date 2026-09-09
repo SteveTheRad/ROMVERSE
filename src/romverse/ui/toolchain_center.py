@@ -1152,6 +1152,7 @@ class ToolchainCenter(QWidget):
         manifest_layout.addLayout(offline_actions)
         self.body = QScrollArea()
         self.body.setWidgetResizable(True)
+        self.body.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.content = QWidget()
         content_layout = QVBoxLayout(self.content)
         content_layout.setContentsMargins(0, 0, 8, 0)
@@ -2276,11 +2277,13 @@ class ToolchainCenter(QWidget):
                 else f"! Not ready  •  {status.detail}"
             )
             state.setObjectName("Good" if status.available else "Warning")
+            state.setWordWrap(True)
             top.addLayout(name_row)
             top.addWidget(state)
             if status.path:
                 path = QLabel(status.path)
                 path.setObjectName("Muted")
+                path.setWordWrap(True)
                 path.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
                 top.addWidget(path)
             row.addLayout(top)

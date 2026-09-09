@@ -154,6 +154,42 @@ def test_forge_arsenal_requires_explicit_target_when_multiple_transports_are_vis
         center.close()
 
 
+def test_forge_arsenal_wraps_long_tool_evidence_without_horizontal_scrolling(
+    tmp_path, monkeypatch
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    monkeypatch.setattr(
+        "romverse.ui.toolchain_center.ToolVerifier.verify_extended",
+        lambda _verifier: (
+            ToolStatus(
+                "AAPT2",
+                False,
+                detail=(
+                    "Use Forge Arsenal's pinned official AAPT2 or install Android SDK Build "
+                    "Tools 26.0.2+; ROMVERSE checks Android Studio SDK folders automatically"
+                ),
+            ),
+        ),
+    )
+    center = ToolchainCenter(
+        LinuxHost(distribution_id="fedora"),
+        _NoCommandRunner(),
+        workspace=tmp_path,
+    )
+    center.resize(1_177, 802)
+    center.show()
+    app.processEvents()
+    try:
+        states = [
+            label for label in center.findChildren(QLabel) if label.text().startswith("! Not ready")
+        ]
+        assert len(states) == 1
+        assert states[0].wordWrap()
+        assert center.body.horizontalScrollBar().maximum() == 0
+    finally:
+        center.close()
+
+
 def test_forge_arsenal_host_doctor_exposes_outdated_pair_and_exact_linux_guide(
     tmp_path, monkeypatch
 ) -> None:

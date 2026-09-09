@@ -1,5 +1,118 @@
 # ROMVERSE Product Assurance Sync
 
+## Synthetic OTA protected intake and bounded Provenance inspection — Product Assurance review requested
+
+### Exact authority, fixture and bounded launch
+
+- Product Assurance verdict `6c62311fe698c09798ca6e0641c12d0cdff9b945` exactly approves Build
+  checkpoint `635b7a247ad7faea086e36d0bd6186eb6c68aed8` and authorizes one deterministic
+  synthetic OTA intake followed only by bounded source-integrity and container inspection. The
+  checkout was safely fast-forwarded to that verdict with the protected untracked work preserved
+  byte-for-byte.
+- Exactly one fixture was created directly as
+  `C:\Work\ROMVERSE-Synthetic-OTA-6c62311.zip` outside the repository, package and data roots. It
+  is 497 bytes, SHA-256
+  `1d9c78df6f42c63864a76bdf91a50cb2da1cd2e133cc44cba5f1c298302f0725`, and has a fixed
+  2000-01-01 ZIP timestamp, no compression and zero external attributes. Its complete member set
+  is: `payload.bin`, 24 bytes, SHA-256
+  `27d85415cd81bc6332271f9501791c3a89efabeb3f93dc66fbedb9c039d965eb`, beginning `CrAU` and
+  containing only a version-two header with zero manifest/signature lengths; and
+  `META-INF/com/android/metadata`, 219 bytes, SHA-256
+  `5d38fcf1440c5c88f0e4f13ade3998cf1dd4f43d4057446a7f8cd6fb3dc0b5e3`, containing only
+  bounded deterministic synthetic/no-device metadata. There are no executables, scripts,
+  personal data, links, traversal paths or additional members.
+- The single launch reused the unchanged extracted executable
+  `C:\Work\ROMVERSE-ZIP-Roundtrip-0a64ea9\ROMVERSE\ROMVERSE.exe`, 6,324,534 bytes, SHA-256
+  `d2df2c9a667520e9ebe88d4c2eb4dfa26020b1e2d8f852dddb33ab24a013b431`, the same Local-mode root
+  `C:\Work\ROMVERSE-Onboarding-435949e`, and a child-only `PATH` containing only the empty
+  `C:\Work\ROMVERSE-No-Tools-435949e`. PID `105088` started at
+  `2026-09-10T04:53:06.2808481+10:00` with exactly `--development-device-simulation`. The tool
+  path stayed empty and final ADB/Fastboot process count is zero.
+
+### Genuine Windows intake and Provenance result
+
+- The genuine Windows Command Deck resumed exact project
+  `windows-guided-firmware-resume-df05c-343454a0` at Firmware task 2 of 15. Genesis showed
+  `Awaiting firmware`, `AWAITING PROTECTED FIRMWARE`, `No device connected`, `CORE CHECKS ACTIVE`
+  and `Choose firmware…`. The native chooser received only the exact fixture. The visible consent
+  named that file and 497-byte size, promised a copied/hashed protected original and bounded
+  structure inspection, stated that the source would not be changed or extracted in place, and
+  explicitly denied installation or flash authority.
+- After consent, ROMVERSE copied the archive to
+  `workspace/original_roms/1d9c78df6f42c638-ROMVERSE-Synthetic-OTA-6c62311.zip`, set its
+  read-only attribute, and recorded exact name, 497-byte size, full SHA-256 and relative path in
+  the schema-two project manifest. The source and protected copy remain byte-identical at SHA-256
+  `1d9c78df6f42c63864a76bdf91a50cb2da1cd2e133cc44cba5f1c298302f0725`; independent ZIP reads
+  found the same two member names, sizes and hashes in both. The external fixture was preserved.
+- The import automatically completed the bounded structural read and displayed task 4 only as
+  the next unstarted step. Build navigated back to task 3, `Verify source integrity and structure`,
+  and invoked its one `Run integrity checks` control. The stage remained `Verified` with one
+  verified supporting item and no reported blocker. The 830-byte schema-two
+  `inspection.romverse`, SHA-256
+  `cd2b9c05a82c75858e0b721daeb38a845ab26b604ab330536f56599a2eb32118`, is bound to the exact
+  source hash and records ZIP, two entries, 243 uncompressed bytes, OTA-payload and Android-metadata
+  signals, and no unsafe path, link, encryption or extreme-compression finding. No member was
+  extracted.
+- The intentionally incomplete semantics were not promoted. The visible result is `PACKAGE
+  METADATA REJECTED`; the relationship remains `UPGRADE STATUS UNCONFIRMED` because the synthetic
+  Android OTA metadata has no positive post-SDK level. Device name, model, codename, SoC, build,
+  A/B scheme and Verified Boot remain unconfirmed. The Compatibility Matrix reports zero verified
+  decisions, Guardian flash unavailable, no exact source-bound Device Pack, install/flash `NO`,
+  `EXECUTION AUTHORITY: NONE`, phone changed `NO`, and bootloader relock `NEVER`.
+- `Save & exit` paused the journey after the Provenance result. The final 440-byte
+  `guided-mission.json`, SHA-256
+  `9781fc167ac2dcb1872ca475d5db8c59dc3be4909a0a3e686a218d57f509baef`, retains
+  `selected_stage: provenance`, `root_choice: undecided`, `install_requested: false`, no build-plan,
+  recipe or customization completion and no error. ROM Studio truthfully presents stage 4 only as
+  the next safe action; no working-copy or working-tree action was invoked, and `working_roms`
+  remains empty.
+
+### Final containment, close and limitation
+
+- The application closed normally. Final exact-path process and window counts are zero. The
+  external fixture, protected copy, project manifest, inspection record and mission record all
+  accepted exclusive no-sharing opens, and the persistent zero-byte live-console lock is not held
+  by the OS. The runtime ledger is now exactly 462 bytes, SHA-256
+  `00db3144b046799d2e0dee6d2ca8fe9211a6c93093ad4d6e963b1674a24f82f2`, with exactly six starts
+  and six clean closes.
+- Expected contained records are the protected original, project manifest, inspection, Device DNA,
+  Compatibility Matrix, route record, activity record, mission save and redacted console events.
+  The data root now has 17 files, 23 directories, 925,269 bytes and zero reparse entries. Settings
+  remain byte-identical at 680 bytes and SHA-256
+  `9edc2a91206ef4225caa90491270ad2ae88c3a0c3f4719c0cc773fa8e7b0e126`. Private settings and
+  project records retain owner-rights/SYSTEM-only file ACLs.
+- Windows-specific limitation for independent review: the imported original is hash-bound and has
+  the read-only attribute, but its file ACL inherits `Administrators: Full`, `SYSTEM: Full`,
+  `Users: Read/Execute` and `Authenticated Users: Modify` from the workspace rather than receiving
+  the owner-rights/SYSTEM-only ACL used by the private manifests. Build did not alter this runtime
+  data ACL because the authorized checkpoint is observational and permits no source or behavior
+  correction. Product Assurance should determine whether read-only plus hash re-verification meets
+  the protected-original contract on Windows or whether a narrowly scoped ACL correction is
+  required.
+- The extracted package remains 306 files, 23 directories and 164,663,424 bytes, with no empty
+  files or reparse entries. A fresh member-by-member comparison against the retained 75,612,944-byte
+  ZIP found 306 entries and zero name/size/content mismatches; the ZIP remains SHA-256
+  `2e65f9fc6118c9159f4aea1958949e5da8a154d6e045432addb9b40a6f21c0e4`.
+- This checkpoint changes only `docs/sync/BUILD-STATUS.md`. No source, test, settings contract,
+  package or archive changed, and no test suite or rebuild was repeated because this was the exact
+  authorized host-only runtime observation. `git diff --check` is the proportionate repository
+  validation. Protected Companion files remain untouched. The protected untracked patch remains
+  8,272 bytes with SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it and existing untracked
+  `build-work\` remain excluded from staging.
+- No preparation/extraction or advance beyond the Provenance result, real firmware, further
+  restart/onboarding/package/archive/copy cycle, network, download, installation/tool repair,
+  phone/emulator operation, ADB/Fastboot command, firmware/APK mutation, Guardian/Recovery
+  execution, source/package correction, production adapter/trust/signing, publication, release,
+  hosted CI, wipe, unlock/root, bootloader lock or relock occurred. Exact-device evidence, fresh
+  consent, Guardian-only authority and separation, durable UNKNOWN, no blind retry, independent
+  verification, feature freeze and permanent bootloader no-relock remain intact.
+- Precise proposed next task: independent Product Assurance review of this exact synthetic ZIP,
+  protected import, hash/manifest binding, bounded stage-3 result, durable metadata rejection,
+  empty working area, inherited protected-original ACL limitation and clean close. Do not begin an
+  ACL/source correction, another launch, real firmware intake, working-tree preparation, test or
+  package cycle without a matching repository verdict.
+
 ## Firmware guidance → offline Archives → saved-project return — Product Assurance review requested
 
 ### Exact authority and bounded launch

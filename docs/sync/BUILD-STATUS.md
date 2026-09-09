@@ -1,5 +1,83 @@
 # ROMVERSE Product Assurance Sync
 
+## Protected-original Windows ACL correction — Product Assurance review requested
+
+### Exact correction authority and scope
+
+- Product Assurance verdict `a58a256cbd79a219a696f82a50faa17702fccff0` exactly reviews Windows
+  checkpoint `5e3645a275742aff6a4519434daabb9f86d9468a` and requires only the
+  protected-original private-ACL correction. The checkout safely fast-forwarded to that verdict;
+  the protected untracked patch remained 8,272 bytes at SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`, `build-work\` remained
+  untracked, and all protected Companion files remained untouched.
+- Ownership is limited exactly to `src/romverse/rom/projects.py`, `tests/test_rom_projects.py`, and
+  this handoff. `src/romverse/infrastructure/local_store.py` is unchanged; the correction reuses
+  its existing `ensure_private_file` and Windows ACL inspection contract.
+- For a new content-addressed original, `import_original` now requires private-file enforcement on
+  the fully written, flushed, validated temporary copy before atomic promotion. An enforcement
+  failure is caught by the existing cleanup path, leaves no temporary or promoted artifact, and
+  cannot attach an original to the project manifest.
+- For an existing content-addressed original, import still requires the regular-file, hash and size
+  checks first, then requires private-file enforcement before reuse. Failure leaves the existing
+  artifact unchanged and prevents the new project manifest from referencing it. Both paths retain
+  the final read-only contract after enforcement.
+
+### Focused deterministic coverage
+
+- The existing successful import test now checks the genuine Windows DACL through
+  `windows_private_file_acl`: exactly two non-inherited allow ACEs, OWNER RIGHTS
+  (`S-1-3-4`) and LOCAL SYSTEM (`S-1-5-18`), each with Full Control mask `0x1F01FF`. It retains the
+  cross-platform assertion that the protected original has no owner-write bit, verifies the hash,
+  and proves the selected external source bytes and mode are unchanged.
+- New failure coverage forces `ensure_private_file` to reject a newly written temporary original
+  and proves the source is unchanged, the project retains `original: null`, and `original_roms`
+  remains empty. A second bounded case forces enforcement failure while deduplicating an existing
+  content-addressed original and proves the second project remains unattached while the one
+  pre-existing artifact remains byte-identical and is not deleted.
+- Initial native Windows command
+  `.venv\Scripts\python.exe -m pytest tests\test_rom_projects.py -q` completed all **32/32 test
+  bodies successfully**, then pytest itself exited during global temporary cleanup with the
+  previously documented host-only `PermissionError: [WinError 5]` on
+  `C:\Users\steve\AppData\Local\Temp\pytest-of-steve\pytest-current`. This is not counted as the
+  acceptance run.
+- Decisive native Windows command
+  `.venv\Scripts\python.exe -m pytest -p no:cacheprovider --basetemp C:\rvpa-a58a256c
+  tests\test_rom_projects.py -q` passed **32/32**, with zero failures, errors, skips, timeouts or
+  stalls and exit code 0 on Windows 11 Home x64 build 26200 / Python 3.12.10.
+- The decisive real-temporary-filesystem artifact was 23,000 bytes, read-only and SHA-256
+  `9c185704ef0154fb12d9cb7745119829b6b61ea8eb78e519a30e60381d46bf6b`. Direct ACL inspection
+  returned exactly `(('S-1-3-4', 2032127, False), ('S-1-5-18', 2032127, False))`; `icacls`
+  independently reported only `OWNER RIGHTS:(F)` and `SYSTEM:(F)`. The selected external source
+  retained the same size/hash and normal Archive attribute.
+- `.venv\Scripts\python.exe -m ruff check src\romverse\rom\projects.py
+  tests\test_rom_projects.py` passed; `.venv\Scripts\python.exe -m ruff format --check` on the same
+  two files passed with both already formatted; `git diff --check` passed.
+
+### Fedora limitation, preserved evidence and stop
+
+- A current-source Fedora run could not be performed from this Windows host without acquiring new
+  host capability or credentials: WSL is not installed, and a non-interactive SSH attempt to the
+  already-known `steves-beast` host key failed public-key authentication before any remote command
+  ran. No WSL component, dependency, key, network tool or credential was installed or changed.
+  Product Assurance or the existing Linux track must run exactly
+  `python -m pytest tests/test_rom_projects.py -q` at this correction commit before cross-platform
+  approval; Windows Build does not claim Fedora verification.
+- The retained synthetic runtime evidence was deliberately not repaired. Its 497-byte protected
+  copy remains read-only, SHA-256
+  `1d9c78df6f42c63864a76bdf91a50cb2da1cd2e133cc44cba5f1c298302f0725`, and retains the reviewed
+  broad inherited ACL. This preserves Product Assurance's evidence and avoids making the prior
+  checkpoint appear compliant after the fact.
+- No Genesis advance, UI launch, rebuild/package, new fixture/import, broad test, application-data
+  repair, phone/emulator discovery or operation, ADB/Fastboot command, firmware/APK mutation,
+  Guardian/Recovery execution, production trust/signing, publication, release, hosted CI, wipe,
+  unlock/root, bootloader lock or relock occurred. Exact-device evidence, consent separation,
+  Guardian-only authority, durable UNKNOWN, no blind retry, independent verification, feature
+  freeze and permanent bootloader no-relock remain intact.
+- Precise proposed next task: independent Product Assurance review of this minimum two-file source/
+  test correction, including the outstanding focused Fedora module run at the exact pushed commit.
+  Do not rebuild the package, replay the synthetic import, advance Genesis or begin any further
+  correction without a matching repository verdict.
+
 ## Synthetic OTA protected intake and bounded Provenance inspection — Product Assurance review requested
 
 ### Exact authority, fixture and bounded launch

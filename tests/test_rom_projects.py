@@ -183,9 +183,33 @@ def test_import_copies_hashes_and_protects_original_without_touching_source(tmp_
     assert updated.original.sha256 == hashlib.sha256(content).hexdigest()
     protected = workspace / updated.original.workspace_path
     assert protected.read_bytes() == content
+    if os.name == "nt":
+        _assert_private_file(protected)
     assert not protected.stat().st_mode & stat.S_IWUSR
     assert progress[-1] == (len(content), len(content))
     assert store.verify_original(project.project_id).valid
+
+
+def test_original_import_fails_closed_when_private_file_enforcement_fails(tmp_path):
+    workspace = tmp_path / "workspace"
+    source = tmp_path / "firmware.zip"
+    content = b"private original required"
+    source.write_bytes(content)
+    store = RomProjectStore(workspace)
+    project = store.create("Private original failure")
+
+    with (
+        patch(
+            "romverse.rom.projects.ensure_private_file",
+            side_effect=LocalStoreError("private ACL unavailable"),
+        ),
+        pytest.raises(LocalStoreError, match="private ACL unavailable"),
+    ):
+        store.import_original(project.project_id, source)
+
+    assert source.read_bytes() == content
+    assert store.get(project.project_id).original is None
+    assert tuple(store.originals_root.iterdir()) == ()
 
 
 def test_original_import_rejects_source_and_preplanted_target_symlinks(tmp_path):
@@ -256,6 +280,29 @@ def test_identical_original_is_deduplicated_between_projects(tmp_path):
     first = store.import_original(store.create("First").project_id, source)
     second = store.import_original(store.create("Second").project_id, source)
     assert first.original.workspace_path == second.original.workspace_path
+    assert len(list(store.originals_root.glob("*same.bin"))) == 1
+
+
+def test_existing_original_is_not_reused_when_private_file_enforcement_fails(tmp_path):
+    source = tmp_path / "same.bin"
+    content = b"same content"
+    source.write_bytes(content)
+    store = RomProjectStore(tmp_path / "workspace")
+    first = store.import_original(store.create("First private").project_id, source)
+    second_project = store.create("Second private")
+    protected = store.workspace / first.original.workspace_path
+
+    with (
+        patch(
+            "romverse.rom.projects.ensure_private_file",
+            side_effect=LocalStoreError("existing ACL unavailable"),
+        ),
+        pytest.raises(LocalStoreError, match="existing ACL unavailable"),
+    ):
+        store.import_original(second_project.project_id, source)
+
+    assert protected.read_bytes() == content
+    assert store.get(second_project.project_id).original is None
     assert len(list(store.originals_root.glob("*same.bin"))) == 1
 
 

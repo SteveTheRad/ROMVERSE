@@ -212,8 +212,10 @@ class RomProjectStore:
                 existing = _sha256(destination)
                 if existing != sha256 or destination.stat().st_size != size:
                     raise ProjectError("Existing content-addressed original failed integrity check")
+                ensure_private_file(destination)
                 temporary.unlink()
             else:
+                ensure_private_file(temporary)
                 os.replace(temporary, destination)
             with suppress(OSError):
                 destination.chmod(0o444)

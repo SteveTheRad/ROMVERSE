@@ -1,5 +1,114 @@
 # ROMVERSE Product Assurance Sync
 
+## Fedora `.35` beta local-build journey and neutral mixed-evidence checkpoint
+
+### Authoritative checkpoint and runnable package
+
+- Implementation commit: `acc8a76eb0bd03f981fc5910d240237f8c2c11e5` on
+  `linux/stage1-desktop-readiness`, based on Product Assurance approval
+  `6e8b0406efba4d79296c2108ef877c669b49eceb`.
+- Fedora 44/Python 3.14.7 package built from `acc8a76` with PyInstaller 6.22.2 into
+  `build/fedora-acc8a76/ROMVERSE`: **422 regular files / 243,079,733 regular-file bytes / 38
+  contained internal links**.
+- Runnable executable `build/fedora-acc8a76/ROMVERSE/ROMVERSE`: **6,330,456 bytes**, SHA-256
+  `a810e6b18dfe06fad526f94810a52545acc29a9bee51d94aa2d82f15cf3a57c7`.
+- Verified unsigned archive
+  `dist/ROMVERSE-Desktop-0.2.0-alpha.1-linux-x86_64-acc8a76.zip`: **151,026,935 bytes**, SHA-256
+  `6c934e5b3a59d4f8af264eab8bebde482d76f2f4004b94ef84eaa0b723ff9e50`; archive inspection and
+  CRC verification passed for **460 members / 360,334,362 expanded bytes**. One frozen no-phone
+  startup/shutdown smoke passed with Android tools deliberately absent.
+
+### Exact visible journey and changes
+
+- The existing `hyperos update` project retained the exact protected 9,110,437,829-byte `.35` OTA
+  (`29a4f4fe3c1e87872d8a423a227c3cdfcb0632bfd66994abb5ac55f607b0f08e`). Creator information
+  classifies `.35` as **Beta / Mi Pilot**; internal OTA metadata does not independently assert that
+  rollout class, so ROMVERSE did not promote the creator statement into signer/channel or install
+  authority.
+- The saved Genesis journey resumed without recreating or reimporting the project. Stage 3 visibly
+  presented **Source integrity**, with publisher, signer, channel and installation authority kept
+  separate. The unchanged-base Recipe route, validation, Debloat deferral and unrooted route all
+  completed.
+- First corrected defect: Stage 10 correctly reported mixed ready/missing Toolchain evidence but
+  previously placed a false green check beside missing tools. Generic supporting-evidence rows now
+  use neutral bullets and the summary counts `evidence items`; the typed stage banner/rail remains
+  the sole completion/attention authority.
+- Forge Arsenal selected only the one exact required missing dependency, Payload Dumper. The user-
+  approved managed download installed Payload Dumper Go 2.0.2 only in ROMVERSE's private workspace,
+  verified archive SHA-256 `8d81854caeacd9223a6882340959869b0a210d44a1e597329830713abd2b4dcc`
+  and executable SHA-256 `6e87cedaf0a5fb821a0721a071e942ae6e9957233b28346b35d87f02cb85321d`,
+  and recorded a complete, zero-authority three-tool manifest for Python, Payload Dumper and
+  AVBTool. Nothing was installed system-wide.
+- Toolchain advanced to 11/15; Genesis then created and verified the deterministic build plan,
+  advancing to 12/15. Forge Autopilot used the existing bounded OTA adapter to parse `payload.bin`
+  and record a source-bound 58-partition blueprint and plan. Because the user selected an unchanged
+  base, the exact protected OEM-signed payload became the byte-identical local candidate; no local
+  mutation or re-signing was claimed or performed.
+- Forge reached **SIGNING READY / INSTALL NOT STARTED / FLASH NOT AUTHORIZED**. All eight Workspace
+  and Build gates plus both local-candidate/signing gates passed. Five physical/release gates remain
+  blocked and three remain attention: exact flash/recovery contract, current Android target,
+  battery/boot state, external backup/stock recovery evidence, exact local operation scope and
+  physical/release certification.
+- Before the source blueprint existed, ROM Simulation Lab truthfully showed zero rehearsed
+  operations and two blockers instead of inventing a command sequence. The later blueprint remains
+  project-local build evidence only and grants no device, Guardian, Recovery or execution authority.
+
+### Verification, classification and gates
+
+- **Implemented:** `src/romverse/ui/guided_mission.py` and `tests/test_rom_studio_ui.py` only through
+  `acc8a76`. No Device Engine, firmware parser, Device Pack registry, Guardian, Recovery, adapter,
+  executor, Companion or Windows implementation changed.
+- **Simulated/Tested:** **3/3 unique focused Qt tests passed** against this checkout, covering mixed
+  Toolchain evidence, full-size evidence-driven Genesis, and the responsive task/evidence/action
+  hierarchy. Ruff check, Ruff format-check and `git diff --check` passed. One current package build,
+  one complete archive verification and one frozen no-phone smoke passed. Earlier broad suites are
+  not repeated or double-counted.
+- **Hardware Verified:** no new build, install, flash or recovery claim. Before the creator asked
+  Build to ignore the phone, one authorized read-only refresh observed the phone in Fastboot and
+  correctly invalidated stale Android Device DNA; it granted no authority. The creator then stated
+  they were independently flashing new firmware, so Build closed ROMVERSE and accepted none of that
+  external operation as ROMVERSE evidence.
+- **Released:** no. The Fedora package and archive are unsigned local development artifacts.
+- Guided friction/dead ends: mixed evidence is now truthful. Tool setup and deterministic planning
+  completed without a loop. Forge's first blocked report was actionable; its existing Auto-resolve
+  source-blueprint path then completed the local build. Physical installation remains deliberately
+  separate rather than a forced continuation.
+- Guardian/Recovery/safety: project-local blueprint and OEM-byte-identity evidence create zero phone
+  authority. Fresh exact-device evidence, exact operation binding, consent separation,
+  UNKNOWN-on-uncertainty, no blind retry, independent verification, no wipe for this planned OTA,
+  and permanent no-relock remain unchanged.
+- Platform status: genuine Fedora 44/Wayland visible source journey plus current Fedora package,
+  archive and no-phone smoke. Windows and other Linux distributions were not run in this slice.
+- Feature freeze: compliant correction and exercise of existing Stage 1 paths; no new product
+  capability, adapter, firmware format, Device Pack, physical route or feature was added.
+- Version gate: local Fedora build milestone is complete for this exact unchanged beta source;
+  v0.2 Golden Foundation, physical firmware execution, production trust/signing, publication and
+  release gates remain **CLOSED**.
+- External actions by Build: one managed workspace-local tool download/install, one fresh local
+  Fedora package, one archive, one no-phone smoke, visible local app sessions, persisted project
+  plans/blueprints, and bounded read-only device enumeration before the creator's instruction to
+  ignore the phone. Build performed no phone reboot/mode transition, file/setting/partition change,
+  transfer, sideload, APK operation, consent grant, Guardian execution, flash, wipe, unlock/root,
+  bootloader lock/relock, publication or release. The creator's independent firmware flash is not a
+  Build action or Hardware Verified evidence.
+
+### Next proposed Build task
+
+Continue the same product-as-user pass with physical transports excluded: exercise the source-bound
+Digital Twin, local-build completion/resume, navigation, persistence and optional-install handoff in
+an explicitly simulated or no-device session. Correct only reproducible ordinary product defects;
+stop before any physical phone action, new safety/authority contract, signing/release action or
+material feature expansion.
+
+### Product Assurance Review Requested
+
+- Confirm that neutral supporting rows plus typed stage status are the minimum truthful mixed-
+  evidence presentation.
+- Independently verify that the source-derived 58-partition blueprint and byte-identical OEM-source
+  candidate are correctly scoped to local build evidence and cannot become flash authority.
+- Confirm the creator-operated external flash remains excluded from ROMVERSE verification and that
+  the next no-device/simulated UI sweep can continue under the ordinary-defect cadence.
+
 ## Exact `.35` OTA no-write Guided simulation — first bounded UI truth correction
 
 ### Authoritative checkpoint and scope

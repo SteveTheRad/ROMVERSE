@@ -26,8 +26,8 @@ disabled before the journey so Forge Arsenal remained an explicit user decision.
    **ROMVERSE • Start Device Engine**. Forge Arsenal showed an enabled
    **Install and verify requirements** action and an enabled **Close** action. No installation had
    begun.
-5. Closing Forge Arsenal created no install plan and no managed download. The workspace's `tools`
-   directory remained empty.
+5. Closing Forge Arsenal created no install plan and no Platform Tools/dependency managed download.
+   The workspace's `tools` directory remained empty.
 6. Returning to ROM Studio preserved the exact project, project ID and source-less next action.
 7. The package process was closed and reopened once against the same profile and workspace. The
    reopened application restored exactly one project with the same ID, name, `original: null`,
@@ -39,6 +39,17 @@ the packaged window does not expose a window-close action through its Fedora acc
 This demonstrates durable context preservation across a process restart; it is not represented as
 a separate clean-shutdown verification. Desktop accessibility was enabled only for this interaction
 and restored to its original disabled state afterward.
+
+The accepted workspace also fetched and retained Google's public
+`google-play-supported-devices.csv` identity catalog. The fetched content is **4,758,014 bytes**
+with SHA-256 `eebdc5895a2b38326470a3e475a09a2baab9d4f69f69b0f084664ef57a1decd4`.
+Its receipt records **53,746 entries**, source
+`https://storage.googleapis.com/play_public/supported_devices.csv`, fetch time
+`2026-09-09T11:58:00.433731+00:00` and receipt digest
+`d604880292b0252806d6749b92abf9a1ca150f21fda1ad1dcde8a0405e0f53e9`. This is read-only
+identity evidence; build, flash and execution authority are all `none`. The retained evidence does
+not establish whether the fetch was automatic or user-triggered. No Platform Tools/dependency
+download or system installation occurred in this accepted manual-acquisition journey.
 
 ## Preliminary preference-enabled observation
 
@@ -64,8 +75,9 @@ confined to the disposable `/tmp` workspace as evidence of the observation.
 - **Hardware Verified:** no. Host-only discovery returned no target and issued no device-targeted
   probe.
 - **Released:** no. The package remains unsigned, local and unpublished.
-- No firmware/APK operation, device write, reboot, Recovery/Fastboot transition, flash, wipe,
-  unlock/root, lock/relock, signing, publication or release occurred.
+- The accepted journey fetched the official read-only Google identity catalog disclosed above but
+  performed no Platform Tools/dependency download, system installation, firmware/APK operation,
+  device write, reboot, Recovery/Fastboot transition, flash, wipe, unlock/root, lock/relock,
+  signing, publication or release.
 - Guardian-only authority, exact-device/source/incident binding, durable `UNKNOWN`, no blind retry,
   independent verification and permanent no-relock remain unchanged.
-

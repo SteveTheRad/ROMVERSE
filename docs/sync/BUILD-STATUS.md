@@ -24,11 +24,11 @@
   and isolated manual-acquisition profile passed. The native packaged source chooser cancelled
   without changing the project manifest; its SHA-256 remained
   `48e9eb3c9868695bf4f4a4abf0708282b0ba6770ebcb0422f24dd5090fe47210`. Forge Arsenal opened idle,
-  closed before creating an install plan or managed download, and returned to the exact source-less
-  project and visible next action. One process close/reopen restored exactly one matching project
-  with `original: null`, an empty Device Pack ID and no invented device, Guardian or Recovery
-  result. The earlier **3,024/3,024** unique Linux convergence remains the source baseline and was
-  not rerun or double-counted because no source changed.
+  closed before creating an install plan or Platform Tools/dependency download, and returned to the
+  exact source-less project and visible next action. One process close/reopen restored exactly one
+  matching project with `original: null`, an empty Device Pack ID and no invented device, Guardian
+  or Recovery result. The earlier **3,024/3,024** unique Linux convergence remains the source
+  baseline and was not rerun or double-counted because no source changed.
 - **Hardware Verified:** no. The accepted journey contained no simulated or physical target. An
   earlier preference-enabled setup observation issued host discovery only and is explicitly not
   represented as physical-device verification.
@@ -57,10 +57,16 @@
 - External actions: one preliminary click inherited the creator profile's enabled automatic-tool
   preference and downloaded the pinned Platform Tools package into a disposable `/tmp` workspace.
   This created no system-wide installation. It also caused 14 automatic host-only discovery probes;
-  none targeted or identified a phone. The accepted manual-profile journey performed no download,
-  dependency/package installation, phone operation, APK/firmware operation, device mode change,
-  flash, wipe, unlock/root, lock/relock, signing, publication or release. The scoped branch pushes
-  containing this handoff are the only remote writes.
+  none targeted or identified a phone. The accepted manual-profile journey performed no Platform
+  Tools/dependency download or system installation, but it fetched and retained Google's official
+  read-only supported-device catalog: **4,758,014 bytes**, SHA-256
+  `eebdc5895a2b38326470a3e475a09a2baab9d4f69f69b0f084664ef57a1decd4`, **53,746 entries**, fetched
+  at `2026-09-09T11:58:00.433731+00:00`, receipt digest
+  `d604880292b0252806d6749b92abf9a1ca150f21fda1ad1dcde8a0405e0f53e9`. The catalog grants
+  read-only identity evidence and no build, flash or execution authority; retained evidence does
+  not prove what triggered the fetch. No phone operation, APK/firmware operation, device mode
+  change, flash, wipe, unlock/root, lock/relock, signing, publication or release occurred. The
+  scoped branch pushes containing this handoff are the only remote writes.
 
 ### Next proposed Build task
 

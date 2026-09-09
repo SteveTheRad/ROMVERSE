@@ -1,5 +1,71 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 2f359f4 — Windows managed Platform Tools host repair
+
+- Reviewed checkpoint: `2f359f451441a4ceb13cf8386d4ad03cb848f4b2`
+- Approved package/source verdict: `729e9a0a65cc210ed8cb1639938fe9902107bd3f`
+- Action-time app-restart authorization: `514655953c65aa73be528a1a1133754705552e5c`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — MANAGED WINDOWS PLATFORM TOOLS ACTIVATE AND PERSIST WITHOUT CREATING DEVICE AUTHORITY**
+
+### Decision and independent evidence
+
+The accepted unsigned Windows package completed the intended user-facing repair in a fresh
+isolated workspace. It acquired the pinned official Platform Tools archive through the existing
+managed path, validated the receipt and executables, activated them locally, remained truthfully
+`NOT CONNECTED`, and preserved the activation across the one authorized normal app restart. No
+source correction or package rebuild was needed.
+
+- Product Assurance independently read the managed-package receipt: schema
+  `romverse.managed-package` v1, official Google source, **8,044,989 bytes**, SHA-256
+  `45f4d63113e895ebde0c90f194099a4676b6ac653bd28d54314a9e022bbc1a99`.
+  `source.properties` reports `Pkg.Revision=37.0.1`.
+- Independent hashes match the receipt: `adb.exe`
+  `b4a6b455702684652cccf7b46258b29e653538904359a58fd4931cf3ef286b3f` and `fastboot.exe`
+  `b2d9cbff4ce9ae7eb448cfc831bafc867935f50f5be38f8f81057fd7eb3b8d86`.
+  The managed tree contains zero reparse points.
+- Product Assurance independently verified the complete Guardian audit using ROMVERSE's
+  production verifier: **valid / 39 entries / last hash
+  `0ef9804f30d19b13679d3ffac36dc595bda219dc6af2fd2bb4e7018951803028`**. All entries are
+  host-targeted, `read_only`, risk `none`: 4 ADB discovery and 35 Fastboot discovery probes.
+  Sequence 31 alone timed out at 4,000 ms during the first close; it yielded no target, evidence,
+  retry or authority. The post-restart probes succeeded normally.
+- The retained runtime log independently contains **2 starts / 2 clean closes / 0 fault markers**.
+  The accepted executable remains byte-identical at SHA-256
+  `0ac34a65e4acd205e3f8002c0aa787cb1b898d368b143fcecb5205c39ac15e58` and `NotSigned`.
+- The protected patch remains **8,272 bytes**, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+  No physical device, APK, firmware, device transition/write, Guardian/Recovery execution,
+  signing, publication, unlock, root, lock or relock occurred.
+
+### Approved next bounded task
+
+Continue immediately with one no-phone Windows **workshop and safety-surface acceptance batch**
+from the current approved source and validated workspace-local Platform Tools state. Exercise as a
+real user the currently shipped Device Atlas, Quantum Optimizer, ROM Simulation Lab, Recovery Bay,
+Guardian Core, App Launchpad and their Command Deck/Genesis handoffs, including truthful empty,
+blocked, repair, save/close/restart and persistence states. A clearly labelled development-only
+simulated target may be used where an existing screen requires device context; it must never be
+presented as hardware evidence or execution authority.
+
+Repair real crashes, inert actions, dead ends, state loss and misleading readiness continuously
+with focused tests and small recoverable commits. Encode reusable solutions in product contracts,
+diagnostics and regressions; do not preserve opaque AI notes. Do not rebuild after each fix. At the
+coherent boundary, create one replacement package only if production bits changed, run one
+representative visible/frozen acceptance, and publish one consolidated handoff.
+
+Do not stop for ordinary UI/host corrections. Stop before any physical-device command beyond
+host-only no-target discovery, device write/mode transition, Guardian/execution-authority or
+safety-contract change, contradictory/UNKNOWN evidence, signing/publication/release or material
+scope expansion. Preserve exact-device binding, fresh consent, UNKNOWN-on-uncertainty, no blind
+retry, no wipe and permanent bootloader no-relock.
+
+### Gate status
+
+- Windows managed Platform Tools repair/persistence: **APPROVED**
+- Windows no-phone workshop and safety-surface batch: **AUTHORIZED**
+- Physical-device operation, production signing/publication and release: **CLOSED**
+
 ## Action-time confirmation: one isolated Windows app restart
 
 The approved no-phone host-repair journey may perform exactly one normal restart of the ROMVERSE

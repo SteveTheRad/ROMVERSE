@@ -1,5 +1,86 @@
 # ROMVERSE Product Assurance Sync
 
+## Cross-platform convergence checkpoint — original OTA member spelling is authoritative
+
+### Authoritative checkpoint and scope
+
+- Linux base: `b99128d`, which placed the accepted Fedora package in synchronized standby.
+  Independently approved Windows implementation: `abe183f1dae965fe9228477a462d4604dbbf3697`;
+  Windows Product Assurance verdict: `94e13722fec5c6a9af561e53e638e238ae5909a9`.
+- Linux integration commit: `9b09603` (`Reject literal backslashes in OTA members`). This section
+  forms the following handoff commit on `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation cross-platform archive-boundary convergence only. Exact
+  changed files are `src/romverse/rom/base_image_compatibility.py` and
+  `tests/test_base_image_compatibility.py`, plus this handoff.
+- The Windows files were not copied wholesale. Linux-specific source-inspection setup and every
+  unrelated difference remain intact. Companion, Knowledge, UI Design Lab, Guardian/Recovery,
+  package and release files were untouched.
+
+### Exact correction
+
+- Python may normalize a literal backslash in `ZipInfo.filename` on Windows. OTA inventory
+  validation now passes `ZipInfo.orig_filename` into the existing `_safe_member` boundary so the
+  archive's original spelling is checked before a backslash can appear to be a safe slash.
+- The adversarial fixture now constructs `ZipInfo` explicitly and restores the exact supplied
+  `filename`, preserving the literal backslash for product validation on every host rather than
+  letting fixture creation normalize away the unsafe spelling.
+- Existing ambiguity, absolute/traversal path, duplicate, link, special-member, encryption,
+  inventory-bound and payload-evidence checks are unchanged. This adds no parser capability or
+  execution authority.
+
+### Verification evidence
+
+- Focused Base Image compatibility selection: **9/9 passed** in 0.15 seconds on Fedora. This is one
+  non-overlapping run containing all **6/6** ambiguity/unsafe-member parameters, the valid exact-
+  base comparison and both safe member-prefix normalization parameters.
+- Ruff lint and Ruff formatting passed for both changed files; `git diff --check` passed.
+- Windows Product Assurance previously verified the corrected backslash parameter natively and all
+  six adversarial parameters on Fedora. This checkpoint does not reclassify that external evidence
+  as Linux hardware verification.
+- The accepted segmented 3,005-node Linux regression was not rerun. No package or smoke was rebuilt
+  or repeated, and no GitHub Actions workflow was launched.
+
+### Classification, safety and gates
+
+- **Implemented:** exact original-spelling validation at the shared OTA ZIP member boundary and a
+  host-stable adversarial fixture.
+- **Simulated/Tested:** focused **9/9** Base Image compatibility cases passed on Fedora. Windows
+  behavior carries the separately approved native evidence attached to `abe183f`/`94e1372`.
+- **Hardware Verified:** no new hardware evidence in this Linux checkpoint. No phone, emulator or
+  Windows host was operated by Linux Build.
+- **Released:** no. No artifact was signed, published or released.
+- Guided friction/dead ends: unchanged. Safe OTA sources retain the same preparation route; unsafe
+  or ambiguous member spellings fail closed at evidence inspection without creating an execution
+  path.
+- Guardian/Recovery/safety: strengthened input validation only. Source evidence remains
+  non-authorizing; Guardian-only authority, exact evidence, UNKNOWN-on-uncertainty, no blind retry,
+  independent verification and permanent bootloader no-relock remain intact.
+- Platform status: shared behavior is integrated on Linux and has prior independently approved
+  Windows evidence. Cross-distro clean-machine and physical Android status are unchanged.
+- Feature freeze: compliant correctness/security convergence; no new product capability.
+- Version/package gate: v0.2 Golden Foundation and release remain **CLOSED**. The accepted
+  `4fcf156` Fedora artifact is preserved and remains valid evidence for its source, but `9b09603`
+  changes production bytes, so it is not represented as a current-HEAD package. No rebuild was
+  authorized in this slice.
+- External actions: focused local tests, scoped commits and normal branch-push preparation only.
+  No package rebuild, repeated smoke/convergence, GitHub Actions, paid CI, dependency/tool/APK
+  installation, phone/emulator/ADB/Fastboot, Windows/Companion build, Stage-12 operation, firmware
+  build/sign/flash, Guardian/Recovery execution, publication, release, merge, force-push, lock or
+  relock occurred.
+
+### Next proposed Build task
+
+Stop for repository-based Product Assurance review. Do not rebuild the accepted Fedora package,
+expand cross-platform convergence or begin another consequential slice until this exact checkpoint
+is reviewed.
+
+### Product Assurance Review Requested
+
+- Confirm Linux integrated only the shared `orig_filename` boundary and host-stable fixture while
+  preserving its additional source-inspection behavior.
+- Confirm the focused **9/9** selection is sufficient and determine whether a later single
+  current-HEAD Fedora replacement package is warranted after cross-platform convergence completes.
+
 ## Linux package checkpoint — current unsigned Fedora development artifact
 
 ### Authoritative checkpoint and scope

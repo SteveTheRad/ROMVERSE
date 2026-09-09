@@ -1,5 +1,103 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 8c3362a — Windows Time Machine baseline integrity verification
+
+- Reviewed checkpoint: `8c3362a89c8dc8d4eec1e4a5a4a13f3ec78fbb3d`
+- Authorizing verdict: `df1f23c4dc947bc3d0c86c63d9640d2166f04b3e`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — EXACT LOCAL SNAPSHOT VERIFICATION SUCCEEDED WITHOUT STATE OR AUTHORITY EXPANSION**
+
+### Decision and independent evidence
+
+The checkpoint is the exact one-shot content verification authorized by `df1f23c`. Its parent is
+that assurance verdict, and its only repository change is Build Status. Forgejo and GitHub expose
+the same exact checkpoint, while the Windows checkout is at that head with no tracked or staged
+change. The protected untracked patch remains 8,272 bytes at SHA-256
+`2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`, and existing
+`build-work/` remains untracked and untouched. Git whitespace validation passes. No application,
+test, package or workflow file changed, so no test rerun or package rebuild is warranted.
+
+Product Assurance independently inspected the retained Windows profile. The protected original,
+working baseline and exact snapshot binary each remain 497 bytes at SHA-256
+`1d9c78df6f42c63864a76bdf91a50cb2da1cd2e133cc44cba5f1c298302f0725`.
+The 561-byte schema-two snapshot record remains byte-identical at
+`77357c630346a276d45d1ebf06ce2f98fab69111d45d75a0a3c7c2fd7f3997a3` and binds project
+`windows-private-original-392b82fb-d5d46af7`, snapshot `20260909T201410-bafcbd`, the exact
+artifact path, size, content digest and sealed record digest. The working-copy record, working-tree
+index and two extracted members retain their previous exact sizes and hashes.
+
+The verification appended exactly one Activity event: `Time Machine snapshot verified`, success,
+source route `time_machine`, context type `time-machine-snapshot`, and context ID
+`windows-private-original-392b82fb-d5d46af7.20260909T201410-bafcbd`. Its detail says only that
+the local ROM baseline matched its recorded SHA-256. The Activity ledger now has six events and
+independently matches 3,392 bytes at
+`b432f3acbe63c146dfed87e2ded46b8a8aed2cdf59e16ccdf9de8f03e870e46f`.
+Live Console has exactly the expected running/succeeded pair for one `time-machine-verify` mission,
+with verified terminal state from the producing service, followed only by the normal Genesis
+return/pause pair. It now has 24 events and independently matches 24,921 bytes at
+`3caded76927f624622c0b55ff0277cc29b59a2fe4f0a92a845455e752c52bbd1`.
+
+Postflight evidence remains coherent: there is exactly one snapshot binary, one snapshot record,
+two Vault entries and five Vault objects, all byte-identical to the previous approved checkpoint.
+The latest Project Vault entry still binds exactly two tree files totalling 243 bytes plus the
+three exact context objects; no Vault or snapshot object was created, replaced or rewritten. The
+protected original remains read-only with inheritance disabled and only non-inherited OWNER RIGHTS
+and SYSTEM Full Control. The profile has no reparse entries, and Local-mode settings remain 687
+bytes at `90958eafb57e6166b3a41a9ad5795c79d9774acb266003ee340601c624a5f2da` with all four
+online/download/contribution controls false.
+
+The 436-byte mission record truthfully remains at `selected_stage: device`, root undecided, no
+build plan, no install request, no Recipe decision and no error. The runtime record independently
+matches 308 bytes at
+`ca9bd51d66c5abab7574d1c649527847435581fcc864c4b1d1d12d86ac226def`, representing four starts
+and four clean closes. ROMVERSE, ADB and Fastboot process counts are zero; both ledger lock files
+accept exclusive opens; and `apks`, `backups`, `builds`, `device_packs`, `diagnostics`, `temp` and
+`tools` remain empty.
+
+No retry, restore, capture, Vault mutation, Working Lab/extraction repeat, external evidence,
+device scan/simulation, tool resolution, network/download, phone/emulator, ADB/Fastboot,
+firmware/APK mutation, Recipe/Forge, Guardian/Recovery execution, signing, publication, release,
+hosted CI, wipe, unlock/root, bootloader lock or relock occurred. Exact evidence, consent
+separation, Guardian-only authority, durable `UNKNOWN`, no blind retry, feature freeze and
+permanent no-relock remain intact.
+
+### Approved next bounded Windows task
+
+Use the same closed package/profile once for one **content-read-only verification of the latest
+Project Vault checkpoint**. This closes the visible full-checkpoint integrity control without
+authorizing comparison, branching, restore or any new evidence capture.
+
+1. Revalidate Vault entry `20260909T201412-ea0f44c8`, its parent
+   `20260909T201410-0822394f`, baseline snapshot `20260909T201410-bafcbd`, two tree objects and
+   three context objects before launch. Open Time Machine through normal navigation and select only
+   `Extracted project tree` for the exact project.
+2. Invoke `Verify checkpoint` exactly once. Require the producing service to validate the sealed
+   entry, rehash the baseline plus all five bound objects, and report
+   `CHECKPOINT VERIFIED` with exactly six verified files and 14,855 bytes. For the Vault action,
+   Live Console may append only the exact running/succeeded verification pair; the normal Genesis
+   return/pause pair may follow. The Activity ledger must remain unchanged because this read-only UI
+   path does not record a new Activity outcome.
+3. Do not invoke snapshot verification again, capture, compare, branch, restore, export, cleanup,
+   external-backup/stock registration or any other Time Machine/Vault action. Revalidate that the
+   snapshot, both Vault entries, all five objects, protected original, working copy and extracted
+   tree remain byte-identical.
+4. Return normally to the same Genesis Device DNA attention point and close normally. Prove no
+   plan/build/install/authority state, zero ROMVERSE/ADB/Fastboot processes and released ledger
+   locks. If this exact checkpoint verification reproduces one Windows display, binding,
+   integrity-result or return-context defect, correct only that first defect with focused tests and
+   rebuild only if shipped source changes; otherwise commit evidence only and stop for review.
+
+Do not scan or simulate a device, and do not use network, downloads, tool resolution,
+phone/emulator, ADB/Fastboot, APK/firmware mutation, Recipe/Forge, Guardian/Recovery execution,
+signing, publication, release, hosted CI, wipe, unlock/root, lock or relock.
+
+### Gate status
+
+- Windows exact Time Machine baseline verification and audit binding: **APPROVED**
+- One exact Project Vault full-checkpoint verification: **AUTHORIZED — READ CONTENT / LIVE AUDIT ONLY**
+- Snapshot/Vault creation, comparison, branch, export, cleanup and restore: **CLOSED**
+- Device, build, consequential, signing/publication and release gates: **CLOSED**
+
 ## Reviewed checkpoint: ddb7ba8 — Windows Time Machine / Project Vault read-only inspection
 
 - Reviewed checkpoint: `ddb7ba8fc77a6eddd5c1ca9321e09b6818021b25`

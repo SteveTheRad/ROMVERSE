@@ -167,10 +167,10 @@ STAGES = (
     GuidedStage(
         "provenance",
         3,
-        "Provenance",
-        "Verify and understand the source",
-        "ROMVERSE recomputes SHA-256, checks the protected copy, and performs bounded structure inspection without extracting content.",
-        "Stop if the hash changes or the container reports critical findings. A trustworthy build begins with trustworthy evidence.",
+        "Source integrity",
+        "Verify source integrity and structure",
+        "ROMVERSE recomputes SHA-256, checks the protected copy, and performs bounded structure inspection without extracting content. This does not establish publisher identity, signing-key trust, release channel, or installation authority.",
+        "Stop if the hash changes or the container reports critical findings. Confirm publisher provenance, package signing trust, and the exact release channel separately before any installation review.",
         "verify-inspect",
         "Run integrity checks",
     ),
@@ -830,7 +830,10 @@ class GuidedMissionEngine:
         outcomes = {
             "project": "A versioned mission workspace becomes the source of truth.",
             "firmware": "The source is copied, hashed, and protected from modification.",
-            "provenance": "ROMVERSE records trustworthy source evidence and container findings.",
+            "provenance": (
+                "ROMVERSE records protected-copy integrity and container findings; publisher "
+                "provenance, signing trust, and release channel remain separate evidence."
+            ),
             "workspace": "All future changes occur only inside a contained working tree.",
             "device": "Device-specific recommendations can be checked against the real target.",
             "customize": "Your intended changes become an auditable, reusable Recipe.",

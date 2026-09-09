@@ -1,5 +1,55 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 5a3ac16 — deterministic Ruff convergence
+
+- Reviewed checkpoint: `5a3ac167cf5eb66f4b5a98a636a1dfdd4037599a`
+- Formatting commit: `a4273477e328c86cdf798122c3d20c0f67bf701c`
+- Approved base: `9ffcdef`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — FORMATTER VERSION AND REPOSITORY BASELINE ARE DETERMINISTIC**
+
+### Decision and independent evidence
+
+The correction is mechanical and correctly separated from product behavior. Ruff is pinned to
+`0.16.6`; the exact reported formatter set was normalized once without mixing a functional edit.
+
+- Product Assurance independently confirmed the commit contains exactly **46 tracked paths**:
+  `pyproject.toml` plus **45 Python files with content deltas**. The reported forty-sixth formatter
+  input had only checkout line-ending materialization and correctly produced no invented blob
+  change.
+- Product Assurance parsed both revisions of all 45 changed Python files and compared normalized
+  `ast.dump(..., include_attributes=False)` values: **45/45 ASTs are identical**.
+- Product Assurance independently verified the native Windows environment reports `ruff 0.16.6`,
+  `ruff check .` passes, and `ruff format --check .` reports **552 files already formatted**.
+  `git diff --check 9ffcdef..5a3ac16` passes.
+- The protected patch remains **8,272 bytes** with exact SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No test replay or package rebuild was needed: the Python ASTs are unchanged and the complete
+  Windows portability evidence remains **968 passed / 6 skipped across 974 nodes**.
+- No device, paid CI or execution authority occurred. Feature freeze, Guardian separation, exact
+  evidence, UNKNOWN-on-uncertainty, no blind retry and permanent bootloader no-relock remain intact.
+
+### Approved next bounded state
+
+Windows enters short synchronized standby while Linux converges the same Ruff `0.16.6` baseline on
+its own branch, preserving Linux-specific content. Do not rebuild Windows yet.
+
+After Linux formatting convergence is independently approved and no additional shared production
+change is required, authorize exactly one current-source unsigned Windows replacement development
+package because `abe183f` changed production bits. Perform one normal fresh no-phone frozen smoke
+and complete content/hash verification; do not repeat the 974 portability nodes.
+
+Do not touch Companion, Knowledge/UI Design Lab, devices, ADB/Fastboot, firmware,
+Guardian/Recovery execution, publication, release, force-push, lock or relock.
+
+### Gate status
+
+- Windows portability: **COMPLETE — 968 PASSED / 6 SKIPPED**
+- Deterministic Ruff 0.16.6 lint/format baseline: **VERIFIED**
+- Linux formatter convergence: **NEXT CROSS-PLATFORM TASK**
+- Current-source Windows replacement package: **AFTER LINUX CONVERGENCE**
+- Production signing/trust, physical Android, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 9a8fcc6 — complete Windows portability evidence
 
 - Reviewed checkpoint: `9a8fcc6c6058b617a54b224623578ecaf47c15dc`

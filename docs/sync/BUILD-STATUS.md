@@ -1,5 +1,91 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows repeated Git verification investigation — Product Assurance review requested
+
+### Authority, checkout and retained package
+
+- Product Assurance commit `ec073656c6223b818dc33bf8a6900355511e6100` approves checkpoint
+  `38165dc304c76e83495d4b7d0f91ddd324c9ce78` and authorizes exactly one read-only-first,
+  no-network/no-phone investigation of Git verification around cancelling Platform Tools repair.
+- `C:\Work\ROMVERSE-Windows` was fetched and fast-forwarded to that exact verdict on
+  `windows-launcher-authorized-work` before investigation. The only working-tree item remained the
+  protected untracked patch.
+- The retained unsigned package was unchanged:
+  `build\windows-workshop-safety-94592856\ROMVERSE\ROMVERSE.exe`, 6,324,494 bytes, SHA-256
+  `aae8f97cebda115f34aa35dea95a32a78974a5e89a0f04b33af7eb3511f7327a`, Authenticode
+  `NotSigned`, built from `945928567ea188481eb0c19ca4419ae4132c22f5`.
+- The existing disposable profile remained explicitly offline: online intelligence, community
+  research and automatic verified-tool acquisition were disabled. Its settings SHA-256 remained
+  `0bb74e0b73c2c208bab831d57fc5206fc87ea0a171a9f6ddde13db99f8ad7823`. The package child was
+  pointed to that pre-existing profile with process-local `ROMVERSE_HOME`; PATH and persistent
+  environment were not changed.
+
+### Bounded observation and exact Git evidence
+
+- The exact candidate previously observed as the host-PATH candidate was
+  `C:\Users\steve\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\git\cmd\git.exe`.
+  It remained a 46,464-byte regular file with SHA-256
+  `c53279919fdea03474bb23b465b3a82287157491f1bd69a5eb82dd9831582333`.
+- Before the package attempt, an exact-path, shell-free `--version` probe returned exit code `0`,
+  stdout `git version 2.53.0.windows.3`, empty stderr, no timeout and no launch error.
+- The one retained-package attempt ran in the isolated SSH session with the approved disposable
+  workspace and development-device simulation. That session's unchanged PATH contained no Git
+  candidate. The package process started, but Windows did not expose its top-level Qt window to
+  UI Automation in the non-interactive session within the bounded 30-second wait. Therefore the
+  repair dialog was **not opened**, no install/manual-source action was invoked, and no explicit
+  rescan occurred. The process ended when the bounded session closed and added one honest unmatched
+  runtime-start marker; it is not claimed as a clean close or a completed UI journey.
+- Current source at `ec073656...` was then evaluated directly against the exact same executable
+  path with the production `SubprocessRunner` and `ToolVerifier` Git contract. Three consecutive
+  shell-free probes each returned `available: true`, path exactly matching the candidate, version
+  `git version 2.53.0.windows.3`, detail `Ready`, exit code `0`, identical stdout, empty stderr, no
+  timeout and no launch error.
+- The current verifier therefore does **not** deterministically reproduce the earlier
+  ready-to-`Found, but could not start correctly` transition. The earlier drift remains confined to
+  the prior interactive package/runtime environment and cannot safely justify a production source
+  change. `src/romverse/infrastructure/tools.py` and `tests/test_tools.py` were left unchanged.
+
+### State preservation and verification classification
+
+- The disposable workspace Activity ledger remained 2,856 bytes with SHA-256
+  `fa348d1f7162f90cdff5b1711dfe90563480e7e0ca0ef3310303b6a806462ec4`; Live Console remained
+  18,132 bytes with SHA-256
+  `ff7e06358687b4024f1ea0fadb99c102df0c76c815072d537af3f6d29610e4de`.
+  Downloads remained empty and `toolchain-install-plan.json` remained absent.
+- The runtime ledger now truthfully contains **12 starts / 11 clean closes**. The unmatched start is
+  the failed non-interactive observation above, not an application success, installation or fault
+  diagnosis. No ROMVERSE process remained afterward.
+- **Implemented:** documentation/evidence only; no production or test source change.
+- **Simulated/Tested:** real Windows 11 x64 exact-executable probing and one bounded package startup
+  observation in development-device simulation. No unchanged automated suite was rerun or
+  double-counted, and the package was not rebuilt because shipped bits did not change.
+- **Hardware Verified:** no. **Released:** no.
+- Blocker: exact cancellation-time drift cannot be reproduced from the SSH service environment
+  because it does not share the earlier interactive Codex-provisioned PATH/window surface. A future
+  same-environment observation needs separate Product Assurance direction; source must remain
+  unchanged unless that environment deterministically reproduces a verifier defect.
+- Guided/Guardian/Recovery impact: no product behavior changed. The earlier uncertain Git result
+  continued to fail closed; no false ready state, execution authority, retry, device attribution or
+  new Guided dead end was introduced. Exact-device evidence, Guardian-only authority, durable
+  `UNKNOWN`, no blind retry, independent verification and permanent bootloader no-relock remain
+  intact. Feature freeze is preserved and the v0.2 Golden Foundation gate remains closed.
+- The protected patch remains exactly 8,272 bytes with SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it was not edited,
+  applied, staged or deleted. Protected Companion files and every unrelated worktree were untouched.
+- External actions: the approved branch was fetched over SSH; after this handoff only normal
+  Forgejo-first and identical GitHub branch synchronization is intended. No application network
+  route, download, dependency/tool/driver/PATH/persistent-environment/system/settings change,
+  phone/emulator/ADB/Fastboot,
+  firmware/APK, Guardian/Recovery execution, signing, package installation, publication, release,
+  hosted CI, force-push, wipe, unlock/root, lock or relock occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review of the documentation checkpoint containing this
+handoff. Product Assurance should decide whether the unresolved prior interactive-only Git drift
+warrants a same-environment observation or should remain a recorded non-reproducible runtime
+anomaly. Do not change the verifier or begin another consequential slice without a matching verdict.
+
 ## Windows launcher/setup-repair boundary journey — Product Assurance review requested
 
 ### Exact authority and retained package

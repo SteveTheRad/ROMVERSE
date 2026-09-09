@@ -1,5 +1,98 @@
 # ROMVERSE Product Assurance Sync
 
+## Fedora Forge Arsenal missing-tools cancellation boundary
+
+### Authoritative commit and exact changes
+
+- Branch: `linux/stage1-desktop-readiness`.
+- Journey evidence: `d5d4a9750a0bc934a9ffc4bda54b6b206d0e96c8`
+  (**Record Fedora Forge Arsenal boundary**).
+- Reviewed starting checkpoint: `2039a1f66841a31272f56178efa45214d497eec5`.
+- Corrected unsigned package: `build/fedora-asset-boundary-v2/ROMVERSE`; executable
+  **6,337,072 bytes**, SHA-256
+  `4fbfed3244d93ba535413151c26f5fe53ef526d402f638a5e81e662f8b562500`.
+- The complete runtime observation is recorded in
+  `docs/evidence/FEDORA_FORGE_ARSENAL_MISSING_TOOLS_BOUNDARY_2026-09-10.md`.
+- No production, test, package, Companion, Windows, Device Intelligence, Guardian, Recovery or
+  adapter source changed. No package rebuild was required because the genuine packaged journey
+  reproduced no shipped Stage 1 defect.
+- Creator/coordinator relayed Product Assurance approval of `2039a1f` before this journey. The
+  Linux branch did not contain a repository-authored Product Assurance commit for that checkpoint,
+  so Build has not fabricated or edited a verdict and requests that Product Assurance record the
+  authoritative disposition while reviewing this handoff.
+
+### Verification and gates
+
+- **Implemented:** evidence-only checkpoint. Application and test bits are unchanged.
+- **Simulated/Tested:** one genuine corrected-package Fedora journey passed with a disposable
+  profile, no phone/emulator or Android simulation, an empty Android-tool path, automatic verified-
+  tool acquisition disabled and a Bubblewrap network namespace exposing only zero-byte loopback.
+  ROM Studio created **Forge Arsenal Offline Boundary**; About handed off to Forge Arsenal; the
+  existing Platform Tools pair action exposed its explicit managed-acquisition modal; **Close**
+  cancelled before plan/download/install; and normal navigation returned to Command Deck with the
+  exact project and truthful no-device/Guardian state preserved.
+- Exact durable state passed post-journey inspection: the 398-byte manifest remained SHA-256
+  `0d16d9fd661dd3cc821600a8fc2963bc440ec613cb8f709f8b857014464a604f`,
+  `original: null` and Device Pack ID empty; the 665-byte settings remained SHA-256
+  `3185dd3a482ac6d6cdad4e92da2266697957268cd92f7ad0fc4104b6f6f5d0b8`; and the 431-byte
+  workspace marker remained SHA-256
+  `1cfe6f4fd8dd6c9556297da4eabe753e91bb449066791587c8f21d368f0d1bee`.
+- The corrected package created its packaged **880,760-byte** archive, file SHA-256
+  `2384ebb6ce9616af2270991da2c7b594d08b7534e71bf819549c92c091e27764`, containing **284
+  records / 182 sources**, bundle digest
+  `e3d60dfc6039772b9157a6d0da5d9a5bae41bef5204ba9eb9388c8e077773656`. No external device
+  catalog was fetched. Workspace initialization separately created its local ROMVERSE Link key pair;
+  it was not opened, transmitted or used as authority.
+- The earlier **56/56** focused package/knowledge regression remains the source baseline and was
+  not rerun or double-counted because no source changed. This checkpoint adds one packaged runtime
+  acceptance journey.
+- **Hardware Verified:** no. No physical or simulated Android target, ADB or Fastboot operation was
+  used.
+- **Released:** no. The development package remains unsigned, local and unpublished.
+- Blockers/failures: no Forge Arsenal cancellation or return dead end was reproduced. The packaged
+  window still exposes no compositor close action through Fedora accessibility. After the inert
+  journey and final state hashes, Build terminated only the exact disposable process with `SIGTERM`;
+  it exited 143 and its runtime guard contains no clean-close marker. **No clean-shutdown claim is
+  made.** Windows secure launch, production trust/signing, physical Recovery/flash verification and
+  release remain blocked or independently gated.
+- Guided friction/dead ends: the missing-tools explanation is truthful and the managed-acquisition
+  modal provides a visible non-destructive **Close** path. Returning to Command Deck preserved the
+  project and showed **DEVICE: NOT CONNECTED • PROJECT: Forge Arsenal Offline Boundary • MISSION:
+  IDLE • GUARDIAN: VERIFY REQUIRED**. No circular navigation or invented readiness appeared.
+- Guardian/Recovery/safety: no tool plan, download, environment mutation, Activity success,
+  Guardian ledger, Recovery incident/result, device evidence or command was created. Guardian-only
+  authority, exact-device/source/incident binding, durable `UNKNOWN`, no blind retry, independent
+  verification and permanent bootloader no-relock remain unchanged.
+- Platform status: genuinely exercised on Fedora/Linux. Windows was not run, modified or
+  represented by this checkpoint; Android hardware was not used or represented as verified.
+- Feature freeze: compliant Stage 1 acceptance evidence for an existing packaged workflow; no
+  product capability, behavior or surface was added.
+- Version gate: the corrected Fedora package's Forge Arsenal missing-tools cancellation/return
+  boundary passes, but v0.2 Golden Foundation and all production/release gates remain **CLOSED**.
+- External actions: local network-isolated package launch, disposable profile/workspace writes,
+  accessibility-driven UI interaction, exact process termination after failed accessible
+  compositor-close attempts, read-only Git fetches and scoped documentation commits. GNOME toolkit
+  accessibility was restored to its original disabled state. No app network request, tool/catalog/
+  dependency download, installation, phone/emulator operation, ADB/Fastboot invocation, APK/
+  firmware operation, Guardian/Recovery execution, flash, wipe, unlock/root, lock/relock, signing,
+  publication or release occurred. Forgejo-first and identical GitHub branch pushes containing this
+  handoff are the only planned remote writes.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance. Do not begin another Linux slice until Product Assurance
+records its verdict and selects or approves the next exact non-overlapping Stage 1 task.
+
+### Product Assurance Review Requested
+
+- Record the authoritative disposition of starting checkpoint `2039a1f` in the repository if the
+  coordinator-relayed approval is correct; Build intentionally did not author a Product Assurance
+  verdict.
+- Confirm the no-network/no-phone missing-tools modal cancellation, empty tools/plan state and exact
+  Command Deck return satisfy the approved journey.
+- Confirm the disclosed status-143 accessibility limitation remains a platform automation
+  limitation rather than a product-shutdown acceptance claim.
+
 ## Fedora packaged Archives asset-boundary correction
 
 ### Authoritative commit and exact changes

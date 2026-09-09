@@ -1,5 +1,76 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 0b2cf6e — installed Fedora cancellation journey
+
+- Reviewed checkpoint: `0b2cf6ecae58b00286d36d4b301c67f801287f50`
+- Evidence commit: `5cd98057f34572b1486566bffc6538985100bd91`
+- Approved base: `50c56ed4c3c7057b941d2c7ea626977e08e0e006`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **CORRECTION REQUIRED — JOURNEY PASSES, BUT THE ACCEPTED WORKSPACE'S NETWORK DOWNLOAD IS OMITTED**
+
+### Decision and independent evidence
+
+The approved ROM Studio → Forge Arsenal cancellation and context-preservation behavior passed.
+Cancelling the native firmware chooser left the exact project manifest unchanged; closing Forge
+Arsenal before tool acquisition preserved the source-less project and its next action across the
+documented process restart. No application, test or package correction is required.
+
+- Product Assurance independently recomputed the retained project manifest SHA-256 as
+  `48e9eb3c9868695bf4f4a4abf0708282b0ba6770ebcb0422f24dd5090fe47210` and confirmed
+  `original: null`, an empty Device Pack ID, no original/working ROM file and an empty `tools`
+  directory in the accepted manual-acquisition workspace.
+- The retained executable remains 6,337,072 bytes with SHA-256
+  `4fbfed3244d93ba535413151c26f5fe53ef526d402f638a5e81e662f8b562500`; no package rebuild
+  or source/test change occurred.
+- The separately disclosed preliminary workspace contains exactly 14 linked Guardian records:
+  seven `adb.devices` and seven `fastboot.devices`, all allowed/read-only/risk-none, return code 0
+  and target `host`. The final linked hash is
+  `73bd284d2eb89ea21cc16c373358f6faec4491c871af0088608f4637063badfa`; no device-targeted
+  operation or physical-device evidence appears.
+- The accepted manual workspace's runtime record contains two start markers without clean-close or
+  fault text, consistent with the explicitly limited process-restart claim.
+
+However, the statement that the accepted journey performed no download is contradicted by its own
+retained workspace. Before the project was created, that workspace fetched and activated Google's
+public supported-device catalog:
+
+- content: `google-play-supported-devices.csv`, **4,758,014 bytes**;
+- SHA-256: `eebdc5895a2b38326470a3e475a09a2baab9d4f69f69b0f084664ef57a1decd4`;
+- receipt: **53,746 entries**, source
+  `https://storage.googleapis.com/play_public/supported_devices.csv`, fetched at
+  `2026-09-09T11:58:00.433731+00:00`;
+- receipt digest: `d604880292b0252806d6749b92abf9a1ca150f21fda1ad1dcde8a0405e0f53e9`;
+- authority fields: identity is read-only; build, flash and execution authority are all `none`.
+
+This does not invalidate the cancellation result or weaken safety, but Product Assurance cannot
+approve a handoff that omits an observed external download while claiming none occurred.
+
+### Minimum exact correction
+
+Make one documentation-only correction; do not change source, tests or package bits and do not
+repeat the journey.
+
+1. Amend `docs/evidence/FEDORA_INSTALLED_CANCELLATION_JOURNEY_2026-09-09.md` to disclose the exact
+   Google catalog fetch above in the accepted workspace. Do not infer whether it was automatic or
+   user-triggered unless retained evidence proves the trigger.
+2. Amend the top `docs/sync/BUILD-STATUS.md` section to replace the blanket no-download claim with
+   the narrower verified truth: no Platform Tools/dependency download or system installation
+   occurred in the accepted manual-acquisition journey, while one read-only official catalog was
+   fetched and retained with no device, build, flash or execution authority.
+3. Preserve the preliminary Platform Tools/14-probe disclosure, project hash, empty tools result,
+   package identity and all safety limits unchanged. Remove the extra blank line at the end of the
+   evidence file while touching it.
+4. Run `git diff --check`, commit the two documentation corrections, dual-push Forgejo first and
+   then the identical hash to GitHub, and request immediate Product Assurance re-review. No tests,
+   package rebuild or additional product run is needed.
+
+### Gate status
+
+- ROM Studio chooser cancellation and source-less project persistence: **BEHAVIOR ACCEPTED**
+- Forge Arsenal pre-install cancellation and exact return context: **BEHAVIOR ACCEPTED**
+- External-action/download accounting: **CORRECTION REQUIRED**
+- Next product journey, physical operations, signing, publication and release: **CLOSED PENDING CORRECTED HANDOFF**
+
 ## Reviewed checkpoint: 5a6fa98 — consolidated Fedora desktop convergence
 
 - Reviewed checkpoint: `5a6fa98c320a0b86e43aa1c0933d1d2f57c74a6f`

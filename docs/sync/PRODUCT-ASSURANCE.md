@@ -1,5 +1,77 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 5400561 — Windows stale-instance-lock recovery
+
+- Reviewed checkpoint: `5400561ac82acf71b2c1986fb5f0c8be3df169c8`
+- Authorizing verdict: `dcbc6ce93310c1a8725e96b4d090375345de0090`
+- Retained package source: `b1dc54e0c6390fb3d789930dda0696c712e40e64`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — DEAD-OWNER LOCK RECOVERY PRESERVES INCOMPLETE STATE**
+
+### Decision and independent evidence
+
+The checkpoint is approved. Immediately before interruption, Build freshly bound PID `106288` to
+the exact retained executable, complete disposable-root arguments, user and interactive session,
+and confirmed it was the sole ROMVERSE process. Only that PID was terminated. Recovery was not
+attempted until a bounded requery proved zero ROMVERSE processes and the recorded lock owner was
+dead. The interrupted 36-byte ledger contained one start and no clean close, so the first launch is
+correctly retained as incomplete / `UNKNOWN`, never success.
+
+The exact stale lock remained available before recovery and bound the dead PID, application, host
+and machine identity. The subsequent exact invocation opened only after owner death, replaced the
+stale record with its own live PID and reached one responsive, fail-closed `LOCAL` Command Deck. It
+then closed normally. Product Assurance independently verified both recorded PIDs are dead, final
+ROMVERSE process and window counts are zero, and `%TEMP%\romverse-studio.lock` is absent.
+
+The final runtime ledger is exactly 113 bytes, SHA-256
+`8c9bfac993c066e32f53d0fa854d5716eadf85b35c9367bd7c44aa84bf36e3f0`, with three nonblank
+markers: the interrupted unmatched start, then the recovered start and its clean close. The private
+Local-mode settings file remains byte-identical at 633 bytes, SHA-256
+`f176ae0ba370b775481956507a3233c45c6b10f58dab6d7c76000804b343f12d`, with the protected
+owner/SYSTEM ACL. The disposable root has eight regular files, no reparse entries and no catalog,
+receipt, download, toolchain, install-plan or update path.
+
+The retained executable remains 6,324,534 bytes, SHA-256
+`d2df2c9a667520e9ebe88d4c2eb4dfa26020b1e2d8f852dddb33ab24a013b431`, and `NotSigned`. The
+checkpoint changes only Build Status and passes Git whitespace validation. The Windows checkout
+contains only the protected untracked patch and existing `build-work/` intermediates; the patch
+remains 8,272 bytes with SHA-256
+`2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`. Forgejo and GitHub expose
+the same checkpoint. No network, install, dependency/tool change, phone/emulator, ADB/Fastboot,
+firmware/APK, Guardian/Recovery execution, source/package change, signing, publication, release,
+hosted CI, wipe, unlock/root, bootloader lock or relock occurred.
+
+### Approved next bounded task
+
+Verify one retained-package Windows path-compatibility launch using an isolated disposable root and
+workspace whose controlled test names contain both spaces and non-ASCII characters. This closes a
+Windows command-line/filesystem boundary without repeating a feature tour.
+
+1. Create one new test-only root under `C:\Work` with a short, explicitly recorded name containing
+   spaces and non-ASCII characters. Pre-create only its private Local-mode settings through the
+   reviewed `SettingsStore`; the workspace child must not yet exist.
+2. Launch the exact unchanged retained unsigned executable once in the interactive user session by
+   direct argument-vector invocation—never shell-concatenated text—with `ROMVERSE_HOME`, the exact
+   workspace, `--skip-onboarding` and `--development-device-simulation`.
+3. Verify one responsive window reaches the truthful `LOCAL`, no-device Command Deck. Open only the
+   existing About / Build Workspace information surface and confirm it presents the exact intended
+   workspace rather than a truncated, escaped or sibling path.
+4. Close normally. Verify zero ROMVERSE processes/windows, no remaining instance lock, exactly one
+   accepted start/clean close, private settings ACL, and that all generated files remain beneath the
+   exact intended root with no accidentally created path fragments or sibling directories.
+5. Commit only bounded sanitized evidence and stop for Product Assurance. If path handling fails,
+   report the exact deterministic boundary without modifying source or rebuilding.
+
+No other feature surface, broad path matrix, network, download, install, dependency/tool change,
+phone/emulator/ADB/Fastboot, firmware/APK, Guardian/Recovery execution, source/package change,
+signing, publication, release, hosted CI, wipe, unlock/root, bootloader lock or relock is authorized.
+
+### Gate status
+
+- Windows stale-instance-lock recovery and incomplete-state preservation: **APPROVED**
+- Retained-package Windows space/non-ASCII path compatibility: **AUTHORIZED**
+- Physical-device work, production trust/signing, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: f9136f7 — Windows single-instance and clean-reopen boundary
 
 - Reviewed checkpoint: `f9136f7fac713c08f77e50e1b949c218fc55cb02`

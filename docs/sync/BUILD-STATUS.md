@@ -1,5 +1,104 @@
 # ROMVERSE Product Assurance Sync
 
+## Cloud regression checkpoint — first failure corrected, broad gates remain closed
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `77c2f12`, approving checkpoint `9aa0051` and authorizing one
+  naturally triggered current-source cloud regression followed, on failure, by correction of only
+  its first genuine failure. The monitored run was GitHub Actions run `34295617304` at exact head
+  `9aa0051094c6901ffd354a169c2f7d82bc42b34b`. Test-fixture correction commit: `d568089`
+  (`Make activity responsive test geometry-aware`). This section forms the following handoff commit
+  on `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation regression reliability only. Stage 12 was not operated.
+  No production source byte, feature, runtime behavior, durable project evidence, accepted package
+  or accepted Stage-11 plan changed.
+- Exact changed files in this bounded checkpoint are `tests/test_activity_center.py` and this
+  repository handoff. Companion, Windows launcher and application source files were not changed.
+
+### Authoritative cloud result
+
+- The single authorized run completed **failure**. Matrix totals below are separate platform/
+  interpreter observations and are not added together because the suites overlap:
+  - Linux quality, Python 3.12: **2,893 passed, 84 failed, 16 errors, 3 skipped** in 41:01.
+  - Linux quality, Python 3.14: **2,893 passed, 84 failed, 16 errors, 3 skipped** in 42:00.
+  - Windows portability, Python 3.12: **619 passed, 272 failed, 91 errors, 6 skipped** in 20:06.
+  - Windows portability, Python 3.14: **615 passed, 276 failed, 91 errors, 6 skipped** in 18:34.
+- The first genuine failing assertion in both Windows jobs was the Activity Center responsive test.
+  It requested an 800-pixel window and assumed that the rendered width must remain below the
+  product's 1100-pixel compact-width threshold. Windows native font/layout minimums may legitimately
+  produce a wider actual widget. Product code already applies the rule to the actual rendered width,
+  so the fixture now asserts that exact rule instead of assuming the requested geometry was honored.
+- Focused local verification after the one-line correction: the exact Activity Center test passed
+  **1/1** on Fedora; Ruff check, Ruff format check and `git diff --check` passed. This focused test is
+  not added to any cloud matrix total.
+- Later failures were inspected only far enough to preserve truthful blocker classification, not
+  corrected in parallel. Both Windows matrices contain a broad common stable-file identity symptom:
+  open-handle/path metadata comparisons report protected sources or AVB inputs as changed/replaced.
+  Both Linux quality matrices contain common stale setup evidence (including missing current
+  structure-inspection evidence) plus remaining isolated UI/cleanup expectations. These are not
+  hundreds of independently diagnosed defects and remain unapproved follow-up work.
+
+### Successful build/package jobs from the same failed run
+
+- Companion: Gradle `testDebugUnitTest` and `:app:assembleDebug` completed successfully. The log does
+  not emit an individual test-case count, so none is invented. Uploaded debug artifact SHA-256:
+  `4f212dea1b85791368f2aa2dd0e465e60d126ff8eb933b71bbfbe0436d7872d9`.
+- Linux desktop package: the 309-member wheel with 22 Device Packs verified; installed desktop smoke
+  passed; frozen launch smoke passed; and the 453-file, 390,398,418-byte expanded bundle verified.
+  Bundle-content SHA-256: `f31b7193e9821346374732ca8b13ba9b4058b657923ed2f4cf568d6d22408cee`.
+  Uploaded artifact SHA-256: `ce82afeffa59b33826408c0277274202b7422078ddfd156f18abb97cf2dc9ea8`.
+- Windows desktop package: the same wheel contract, installed desktop smoke and frozen launch smoke
+  passed; the 308-file, 175,342,768-byte expanded bundle verified. Bundle-content SHA-256:
+  `6e7952ea8bf6dd388fa28d646cc07dcb080ff94a5425f84417173d7aa825a038`.
+  Uploaded artifact SHA-256: `d1a5cdb6325446e29ff840182734ca40d56827e97a39d487ce20bb8bbf85a702`.
+- Desktop release-candidate assembly passed structural verification only. The unsigned candidate
+  `romverse-desktop-0.2.0a1-9aa0051094c6901ffd354a169c2f7d82bc42b34b` binds two artifacts and
+  238,227,005 bytes; uploaded artifact SHA-256:
+  `963a18bcf8efc1f29c76e9171a3047ae030d3321d5890cd48ffe2566d6259afd`.
+  It is explicitly unsigned, untrusted and not a release.
+
+### Classification, safety and gates
+
+- **Implemented:** one deterministic responsive-layout test correction; no product implementation.
+- **Simulated/Tested:** one focused Fedora offscreen Qt test passed; the exact cloud results above
+  are genuine GitHub-hosted Linux/Windows/Android-build observations. Passing package smokes do not
+  override the failing regression matrices.
+- **Hardware Verified:** no. GitHub-hosted Windows is genuine Windows platform verification, but no
+  Legion Go 2 or physical Android hardware was used.
+- **Released:** no. CI created only unsigned workflow artifacts; nothing was published or released.
+- Guided friction/dead ends: no Guided flow was operated in this checkpoint. Existing later broad
+  fixture/setup and UI failures remain regression blockers; no new user-facing confirmation or dead
+  end was introduced.
+- Guardian/Recovery/safety: unchanged. Guardian-only authority, exact-device evidence,
+  UNKNOWN-on-uncertainty, no blind retry, independent verification and permanent bootloader
+  no-relock remain intact. No execution authority was created.
+- Platform status: Linux and Windows package/smoke jobs passed; both Linux quality and both Windows
+  portability matrices failed. Companion unit/build tasks passed. Physical hardware remains
+  unverified. Windows secure Recovery launch and controlled hardware verification remain release
+  blockers.
+- Feature freeze: compliant test-only correctness work. v0.2 Golden Foundation and all release gates
+  remain **CLOSED**.
+- External actions: one normal GitHub read/monitor, one focused local test and normal scoped commits/
+  push only. No physical phone/emulator operation, device-addressed ADB/Fastboot, APK/tool install,
+  firmware build/sign/flash, Guardian/Recovery execution, publication, release, merge, force-push,
+  lock or relock occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not operate Stage 12 or begin another
+consequential slice. The next bounded correction should be selected explicitly from the two common
+root groups: Windows stable-file identity/TOCTOU portability or current structure-evidence test
+fixtures. Do not attack individual cascade failures or trigger another full-suite run before a
+focused representative correction passes.
+
+### Product Assurance Review Requested
+
+- Confirm that the geometry-aware assertion is the minimum correct response to the first Windows
+  failure and that production responsive behavior should remain unchanged.
+- Select and bound the next common-root correction, preserving fail-closed TOCTOU semantics if the
+  Windows stable-file identity path is chosen.
+
 ## Linux test checkpoint — deterministic host fixtures restore bounded UI regression
 
 ### Authoritative checkpoint and scope

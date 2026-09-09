@@ -1,5 +1,30 @@
 # ROMVERSE Product Assurance
 
+## Authorized next task — current Windows package visible readiness acceptance
+
+- Authorization base: `a66ea2d`
+- Branch: `windows-launcher-authorized-work`
+- Status: **APPROVED TO PROCEED — ONE NATIVE INTERACTIVE CURRENT-PACKAGE SESSION**
+
+The converged Windows package is already built and approved. Perform one bounded native visible
+acceptance using `build\windows-ruff-converged-fc89e13\ROMVERSE\ROMVERSE.exe` and the existing
+verified workspace `C:\Work\ROMVERSE-Link-Lazy-Frozen-20260907`.
+
+1. Launch the package once through the normal interactive Windows desktop, without rebuilding.
+2. Confirm the current package reaches Command Deck, activates the existing verified managed
+   Platform Tools receipt after restart, shows the truthful no-phone state without `Device Engine
+   needs attention`, and responds to one primary navigation action. Do not replay a completed
+   Guided journey or create a new project.
+3. Close normally. Record exact visible state and start/clean-close evidence in BUILD-STATUS.
+4. If a genuine defect appears, preserve the first exact evidence and correct only that bounded
+   Windows host/application defect with focused checks. A replacement package is permitted only
+   if changed source genuinely requires different bits.
+
+Preserve the protected patch byte-for-byte. Do not run the 974 nodes, repeat Ruff/package/smoke
+evidence, install dependencies, use paid CI, operate ADB/Fastboot or a phone, touch Companion,
+Knowledge or UI Lab, invoke Guardian/Recovery execution, sign, publish, release, force-push, lock
+or relock. Commit/push the evidence or minimum correction and stop for review.
+
 ## Reviewed checkpoint: b9c4488 — converged Windows development package
 
 - Reviewed checkpoint: `b9c4488`

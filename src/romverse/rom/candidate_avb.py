@@ -26,6 +26,7 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
+from romverse.infrastructure.file_identity import stable_file_identity
 from romverse.infrastructure.local_store import atomic_write_json, read_json_object
 from romverse.infrastructure.process import CommandResult
 from romverse.infrastructure.toolchain_evidence import ToolchainEvidenceService
@@ -548,7 +549,7 @@ def _contained(store, relative):
 
 
 def _fingerprint(info):
-    return info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns
+    return stable_file_identity(info)
 
 
 def _hash(path, maximum=_MAX_IMAGE):

@@ -18,6 +18,7 @@ import zipfile
 from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path, PurePosixPath
 
+from romverse.infrastructure.file_identity import stable_file_identity
 from romverse.rom.models import ProjectError
 from romverse.rom.projects import RomProjectStore
 
@@ -400,7 +401,7 @@ class SourceInstallationService:
 
     @staticmethod
     def _fingerprint(info):
-        return info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns
+        return stable_file_identity(info)
 
 
 def _safe_member(name: str) -> str:

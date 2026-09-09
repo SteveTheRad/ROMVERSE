@@ -1,5 +1,70 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows exact popsicle field-knowledge integration — Product Assurance review requested
+
+### Authority and exact integration
+
+- Product Assurance correction: `97e6aad2ec320c040aef1eeae2a47c317bcc23cb` — `Correct Windows
+  field-knowledge ancestry [skip ci]`, exactly reviewing contradiction checkpoint
+  `2b81469c35a315ebeb8ed1b32496e0a578492d61` and superseding the incorrect premise that the
+  evidence commit was already present.
+- Integrated only exact existing commit `ca97c1cf61c6266ddfa1e747a1beb664ea4eb147` from
+  `origin/evidence/popsicle-os3-fastboot-2026-09-09`; Windows integration commit:
+  `6204644743b65e162fe5b450cb18e1f1cdaec0bc` — `Archive verified popsicle Fastboot field case`.
+- The clean application introduced only the original five paths: the redacted field-evidence
+  document, execution-inert packaged knowledge seed, one loader registration, the focused evidence
+  regression and the affected Archives UI regression. No unrelated Linux history was imported and
+  no record was recreated.
+
+### Focused native Windows verification
+
+- `.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider
+  tests\test_popsicle_fastboot_field_knowledge.py tests\test_knowledge_center_ui.py --basetemp
+  C:\Work\rvsw-97e6aad-field-knowledge` — **PASS, 23/23**.
+- `.venv\Scripts\python.exe -m ruff check src\romverse\knowledge\store.py
+  tests\test_popsicle_fastboot_field_knowledge.py tests\test_knowledge_center_ui.py` — **PASS**.
+- `.venv\Scripts\python.exe -m ruff format --check src\romverse\knowledge\store.py
+  tests\test_popsicle_fastboot_field_knowledge.py tests\test_knowledge_center_ui.py` — **PASS, 3
+  files already formatted**. `git diff --check 97e6aad2..620464474` validates all five integrated
+  paths — **PASS**.
+- Completed focused total: **23 passed / 0 failed / 0 errors / 0 skipped**. No broad regression or
+  hosted GitHub Actions run was started.
+
+### One inert current-source Archives lookup
+
+- Reused disposable no-phone `ROMVERSE_HOME`
+  `C:\Work\ROMVERSE-Windows-Product-User-f46d4258` and launched current source once with
+  `--skip-onboarding --development-device-simulation`. Command Deck remained `No Android device
+  detected / NOT CONNECTED`; the sidebar and footer remained explicitly `Simulation Session` and
+  `SIMULATION ONLY • NO HARDWARE`.
+- ROMVERSE Archives upgraded the same workspace-local inventory from the pre-integration **281
+  records / 181 sources** to **284 records / 182 sources**. Its global status continued to state
+  `EXECUTION AUTHORITY: NONE`.
+- Searching exact signature `DATA00052000` returned **0 verified guides / 1 offline evidence record
+  / 0 explicit conflicts**. The sole selectable result was `popsicle Fastboot DATA response can be
+  fragmented across USB reads`, labelled `OFFLINE EVIDENCE • FIX • EXPERIMENTAL`; it was not
+  presented as an executable guide or authority.
+- The app closed normally. The retained workspace log now contains exactly **2 starts / 2 clean
+  closes / 0 fault lines**, covering the pre-integration contradiction reproduction and this
+  post-integration lookup.
+
+### Scope, preservation and next review
+
+- No package was rebuilt or launched. The correction authorization explicitly kept package work
+  closed because this integration changes packaged knowledge only.
+- The protected untracked patch remains byte-identical at **8,272 bytes**, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it was not edited,
+  applied, staged or deleted. Protected Companion files remain untouched.
+- No phone, emulator, firmware/APK action, ADB/Fastboot command, device query/write or mode
+  transition, Guardian/Recovery execution, production adapter, signing, publication, release,
+  hosted CI, force-push, wipe, unlock/root, lock or relock occurred. Exact-device binding, fresh
+  consent, UNKNOWN-on-uncertainty, no blind retry, independent verification, no wipe and permanent
+  no-relock remain intact.
+- Precise next task: independent Product Assurance review of exact evidence integration
+  `6204644743b65e162fe5b450cb18e1f1cdaec0bc`, the 23/23 native Windows focused result, lint and the
+  one inert Archives lookup. Do not resume the paused product-as-user batch or rebuild a package
+  until a matching verdict is committed.
+
 ## Windows product-as-user field-knowledge contradiction — Product Assurance clarification requested
 
 ### Exact authority and stop boundary

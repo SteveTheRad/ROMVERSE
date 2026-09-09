@@ -1,5 +1,97 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: b344edf — Fedora Source Lab inert plan verification
+
+- Reviewed checkpoint: `b344edf499427a240610ee7a643a99d7059737b4`
+- Runtime evidence: `502f7deeebfa48bfdd4fd20f52e6a06831843137`
+- Authorizing verdict: `bfbf359b3b493f119543bccbd1a37ae9beab6a43`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **CORRECTION REQUIRED — PLAN EVIDENCE IS VALID; SOURCE LAB VERIFICATION CONTINUITY IS NOT**
+
+### Decision and independent evidence
+
+The exact bounded Plan/Verify exercise stayed within authorization and its durable plan evidence is
+accepted. Only runtime evidence and Build Status changed. Product Assurance independently loaded
+the retained 1,106-byte schema-2 plan at SHA-256
+`1bd66952a0fae926160d095694e3a1f813e10ee145b0b9839e7093d10034ecf4` and reran the product
+tree verifier. It returned valid with identical expected and actual SHA-256
+`84c7699a74b49f5d940c7d307adad07fab6207edd7cd61ee1d8361bbfb259de8`.
+
+The plan is bound to the exact project, protected-source SHA-256
+`c3f5c1711d648a0f6c8f2ba2e3c910048c4e81e6f3ee39bb82e9e85888ac89c8`, contained tree and
+ordered two-file inventory. It has no partitions, Device Pack, recipe, toolchain or required tools;
+`local_only` is true, `execution_locked` is true, `flashable` is false and execution authority is
+`none`. Independent file rehashes matched the recorded 257-byte metadata and 40-byte inert marker,
+and the source and working baseline remain byte-identical. Guardian `ready/none` is only the plan's
+read-only preflight result and grants no approval or execution authority.
+
+The runtime handoff is truthful about the failed acceptance boundary. Source Lab's producing-service
+result and activity evidence say that verification succeeded, but `guided-mission.json` still has
+`build_plan_verified: false`. The same refreshed page consequently says both **8/8 steps complete /
+Workflow complete** and **Plan inputs • verification required**, while enabling **Forge Bundle**.
+Repository source confirms the cause: standalone Source Lab completion validates the exact
+`ArtifactVerification` but does not persist the shared Guided state; its checklist and Forge-button
+availability are derived from plan existence rather than the shared verification result. The
+separate Genesis surface updates the flag, so the two supported paths do not converge.
+
+This is a bounded correctness and Guided-friction defect, not a creator decision. It must not be
+treated as a failed plan or as permission to enter Forge. Forgejo and GitHub expose the identical
+checkpoint with zero divergence, the Linux worktree is clean, and Git whitespace validation passed.
+No test/rebuild, repeated import/copy/extraction, network/tool acquisition, phone/emulator,
+ADB/Fastboot, real firmware, ROM build/bundle, Guardian/Recovery execution, flash, wipe,
+unlock/root, bootloader lock/relock, signing, installation, publication, release, hosted CI or
+Forgejo Action occurred. Exit 143 remains honestly excluded from clean-shutdown evidence.
+
+### Minimum exact correction authorized — converge Source Lab verification state and gating
+
+Build may correct only the reproduced shared-state boundary on `linux/stage1-desktop-readiness`:
+
+1. A standalone Source Lab **Verify plan** success may persist
+   `GuidedMissionState.build_plan_verified = true` only after ROM Studio has accepted a valid
+   `ArtifactVerification` for the exact currently loaded project and plan. Persist that state before
+   the UI, completion signal or another surface can report success. If persistence fails, fail
+   closed and do not report completion or enable Forge.
+2. Starting or completing a replacement dry-run plan must invalidate the earlier verification
+   state. A failed, invalid, changed-project, changed-plan or mismatched verification must remain
+   false and must not be inferred from progress, plan presence or earlier success.
+3. Make the Source Lab 8/8 / **Workflow complete** result, **Plan inputs** wording and **Forge
+   Bundle** availability consume the same current shared verification state. A saved plan without
+   accepted verification must remain incomplete, say verification is required and keep Forge
+   disabled. An exact accepted verification may make those three surfaces consistently verified.
+   Preserve Forge's existing independent producer-side revalidation; this correction grants no
+   Forge, build, Guardian or device authority.
+4. Production ownership is limited to `src/romverse/ui/rom_studio.py`. Test ownership is limited to
+   focused assertions in `tests/test_rom_studio_ui.py`. Evidence and handoff ownership is limited to
+   one scoped file under `docs/evidence/` and `docs/sync/BUILD-STATUS.md`. Do not change Guided
+   schemas, build-plan schemas, the planner/verifier, Forge production, Main Window, Genesis,
+   Guardian, Recovery or any execution/evidence authority contract.
+5. Add deterministic focused coverage proving: plan presence alone leaves 7/8, verification-required
+   wording and Forge disabled; exact valid Source Lab verification durably sets the shared flag and
+   converges all three surfaces; a new plan invalidates prior success; invalid/mismatched evidence
+   cannot set success or enable Forge; and refresh/reopen retains the truthful state. Preserve the
+   existing Genesis verified path.
+6. Run only the affected ROM Studio tests plus focused Ruff check/format and Git diff check. Build
+   exactly one cached/offline unsigned Fedora package. In one fresh private no-network/no-phone
+   disposable copy of this retained plan state, prove pre-verification incompleteness/disabled Forge,
+   invoke **Verify plan** exactly once, prove the persisted converged verified state, close/reopen if
+   the compositor exposes a genuine normal close, and stop. Do not recreate the plan or invoke
+   Forge. If normal close is unavailable, report process termination honestly without claiming
+   restart persistence.
+7. Commit the implementation, focused tests, sanitized evidence and Build Status; push Forgejo
+   first, mirror the identical commit to GitHub and stop for independent Product Assurance review.
+
+No new feature, schema, fixture, planning repeat, extraction, Forge Bundle, ROM build, Recipe,
+Partition Atlas, Build Control, Guardian/Recovery change or execution, network/tool acquisition,
+phone/emulator/ADB/Fastboot, real firmware, firmware/APK mutation, flash, wipe, unlock/root,
+bootloader lock/relock, Windows/UI-Lab/Companion/Device-Intelligence work, signing, installation,
+publication, release, hosted CI or Forgejo Action is authorized.
+
+### Gate status
+
+- Exact local plan artifact and tree-verification evidence: **APPROVED**
+- Source Lab shared verification continuity and truthful Forge gating: **CORRECTION REQUIRED / AUTHORIZED**
+- Forge Bundle, ROM build and every device/consequential/signing/publication/release gate: **CLOSED**
+
 ## Reviewed checkpoint: 2a91ae5 — Fedora Source Lab contained synthetic extraction
 
 - Reviewed checkpoint: `2a91ae56fd69b2bdfcd8d17dd0820880bbeef5df`

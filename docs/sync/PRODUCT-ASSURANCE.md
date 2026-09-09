@@ -1,5 +1,59 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 88c01ef — Linux OTA member convergence
+
+- Reviewed checkpoint: `88c01ef3f350bbd6a88ac71c65b7d0c4cfbf75c2`
+- Linux implementation: `9b09603ad2412fcd9a6679740769a2a5f0a23aea`
+- Approved Windows source: `abe183f1dae965fe9228477a462d4604dbbf3697` / verdict `94e1372`
+- Approved Linux base: `b99128d`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — SHARED ORIGINAL-SPELLING OTA BOUNDARY IS CONVERGED**
+
+### Decision and independent evidence
+
+Linux integrated exactly the approved shared production expression and host-stable adversarial
+fixture. The additional Linux source-inspection setup and all unrelated branch behavior remain
+unchanged; this is not a wholesale Windows file replacement. Validating `ZipInfo.orig_filename`
+before `_safe_member` prevents a platform normalizer from converting an unsafe original backslash
+into an apparently safe slash.
+
+- Product Assurance independently reran the exact focused Fedora selection: the valid exact-base
+  comparison, both safe-prefix parameters and all six ambiguity/unsafe-member parameters passed
+  **9/9**.
+- The diff is limited to `src/romverse/rom/base_image_compatibility.py`, its existing test fixture
+  and the Build handoff. `git diff --check b99128d..88c01ef` passes.
+- Source evidence remains non-authorizing and every existing inventory, duplicate, link, special,
+  encryption, containment and size boundary remains intact.
+- The accepted `4fcf156` Fedora artifact remains valid evidence for that source, but it is not a
+  current-HEAD artifact after this production correction. It was correctly preserved rather than
+  rebuilt prematurely.
+- No device, paid CI, dependency installation or execution authority occurred. Feature freeze,
+  Guardian separation, exact evidence, UNKNOWN-on-uncertainty, no blind retry and permanent
+  bootloader no-relock remain intact.
+
+### Approved next bounded state
+
+Keep Linux in short synchronized standby while the already-running Windows portability continuation
+finishes. Do not repeat the 3,005-node regression or rebuild the Fedora package now.
+
+1. If Windows exposes another approved shared-source correction, integrate only that missing
+   behavior and run its smallest affected Fedora evidence.
+2. If Windows portability converges without another shared correction, Product Assurance may then
+   authorize exactly one replacement current-HEAD Fedora development package and its single normal
+   no-phone smoke, because `9b09603` changed production bits.
+3. Do not package each intermediate correction. Preserve the accepted artifact and wait for one
+   converged replacement source so Linux and Windows avoid duplicate builds.
+
+Do not touch Companion, Knowledge/UI Design Lab, devices, ADB/Fastboot, firmware,
+Guardian/Recovery execution, publication, release, force-push, lock or relock.
+
+### Gate status
+
+- Shared OTA archive boundary on Fedora: **PA 9/9 PASSED**
+- Linux cross-platform source convergence through `9b09603`: **APPROVED**
+- Current-HEAD Fedora replacement package: **DEFERRED UNTIL WINDOWS CONVERGENCE COMPLETES**
+- Production signing/trust, physical Android, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 1c1758f — current Fedora development package
 
 - Reviewed checkpoint: `1c1758f0269b28d4a209518d8586c85619d25c53`

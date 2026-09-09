@@ -1,5 +1,67 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: f1f0606 — Device Intelligence evidence-correlation contracts
+
+- Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`
+- Reviewed checkpoint: `f1f0606419664e94f1cbaf43d1c47defc25838b6`
+- Authorizing verdict: `a010d4a923558e101c5ba520eaa0a8c9fbee9b77`
+- Approved implementation base: `bf8091c5d40ad0d1007d757aaa61db8eebc4c50b`
+- Branch: `device-intelligence/evidence-correlation-contracts`
+- Review status: **APPROVED — DETERMINISTIC EVIDENCE-CORRELATION CONTRACT COMPLETE; SAFE STOP**
+
+### Decision and independent evidence
+
+The checkpoint is approved. The implementation changes only the five paths authorized for this
+slice: one new pure correlation module, its focused test module, bounded Knowledge exports, the
+foundation contract document and Build Status. No existing Online Evidence, persistence, Device
+DNA, identity, firmware, Synapse, Matrix, Nexus, First Light, Guardian/Recovery, acquisition,
+platform, UI, Companion, packaging or release implementation changed.
+
+The pure contract accepts the existing typed claim, claim-specific authority and lifecycle
+records and binds them by exact claim/source identity, claim key/domain, artifact digest, scope and
+support/contradiction relationships. It rejects duplicate, dangling, self-invalid, one-sided
+contradiction and mismatched lifecycle bindings. Its canonical ordering makes the immutable report
+and SHA-256 digest independent of input ordering.
+
+Active applicable evidence is separated from retained superseded, quarantined and expired
+evidence without deletion. Missing lifecycle or applicable domain authority, stale or unconfirmed
+freshness and unusable claim states remain retained as `UNCONFIRMED`. Explicit contradictions are
+preserved on both claims, and conflicting active values or scopes require investigation. Source
+authority only establishes applicability; the report does not carry or raise source confidence,
+claim confidence or compatibility.
+
+Stored parsing requires an exact schema and field set, canonical record/reason/relationship order,
+strict bounded identifiers and digests, and the exact recomputed report digest. It rejects private
+serial, IMEI, account/user, credential/token and personal-path material. Compatibility is fixed to
+`UNCONFIRMED`, execution authority to `none`, and phone action, Guardian approval and bootloader
+relocking to `false` in both construction and parsing.
+
+Product Assurance independently reran the exact authorized selection: **162/162 passed**, formed
+from the established 146-test Device Intelligence baseline plus the 16 focused correlation tests.
+Focused Ruff 0.16.6 check and format verification passed on all three owned Python files, and Git
+diff/whitespace validation passed. The worktree remained clean. Forgejo and GitHub exposed the
+identical implementation checkpoint with zero divergence before this verdict was published.
+
+No filesystem write or persistence backend is present in the new module. No network acquisition,
+live source, device/emulator/ADB/Fastboot, firmware/build/flash/root/debloat action, runtime or UI
+wiring, Guardian/Recovery change, database/object storage, hosted CI, signing, publication,
+release, bootloader lock or relock occurred.
+
+### Authorization boundary and stop
+
+No next Device Intelligence checkpoint is explicitly authorized. Engineering must stop this
+branch after recording this verdict. Runtime consumer wiring, canonical identity/compatibility
+promotion, persistence implementation, acquisition and broader Device Intelligence remain
+**NOT AUTHORIZED**. Any next slice requires a new repository-based Product Assurance request that
+names its exact purpose, approved base, branch, owned files, tests, exclusions and stop condition.
+
+### Gate status
+
+- Device Intelligence foundation Checkpoints 1 and 2: **APPROVED**
+- Pure evidence-correlation contract checkpoint: **APPROVED**
+- Any subsequent Device Intelligence implementation/integration: **CLOSED / NOT AUTHORIZED**
+- Acquisition/backend/device/consequential/signing/publication/release work: **CLOSED**
+
 ## Authorization verdict — Device Intelligence evidence-correlation contract slice
 
 - Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`

@@ -1,5 +1,73 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 24cd0ac — Windows Git-verification investigation correction
+
+- Reviewed checkpoint: `24cd0ace42dc44dfb439f4f0cd84cae0900759be`
+- Original investigation checkpoint: `5f678adc08b506e3dabb4fce68eee1b6fc57217e`
+- Authorizing verdict: `ec073656c6223b818dc33bf8a6900355511e6100`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — NON-REPRODUCIBLE GIT DRIFT RETAINED WITHOUT SOURCE CHANGE**
+
+### Decision and independent evidence
+
+The corrected documentation checkpoint is approved. It accurately records that the non-interactive
+retained-package attempt could not expose its Qt surface, did not reach the repair dialog, left one
+child process alive after its SSH parent ended, and therefore did not complete the intended UI
+observation. Before cleanup, the child was freshly matched to PID `99656`, the exact retained
+executable and the exact disposable-workspace/simulation arguments. Product Assurance had already
+observed that this was the only ROMVERSE process. Terminating only that verified test process was
+the minimum safe cleanup.
+
+Product Assurance independently rechecked Windows after correction: zero ROMVERSE processes remain.
+The runtime ledger is exactly 919 bytes with SHA-256
+`3797b395c012951ff0233fdab0a32acca92f5c18234536fda65329449efaabb6`, containing thirteen starts,
+eleven clean closes and zero other nonblank lines. No clean close was invented for either unmatched
+start. The protected untracked patch remains 8,272 bytes with SHA-256
+`2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+
+Three direct current-source `SubprocessRunner` plus `ToolVerifier` probes consistently found the
+exact Git executable ready with exit code zero and no stderr, timeout or launch error. The earlier
+interactive-only drift is therefore a retained non-reproducible runtime anomaly, not evidence for
+a production change. Leaving `tools.py`, its tests and the package unchanged was correct. The exact
+correction changes only Build Status and passes Git whitespace validation. Forgejo and GitHub expose
+the same exact checkpoint.
+
+No network, installation, PATH/environment mutation, phone/emulator/ADB/Fastboot, firmware/APK,
+Guardian/Recovery execution, signing, publication, release, lock or relock occurred. Feature freeze,
+exact-device evidence, Guardian-only authority, durable `UNKNOWN`, no blind retry and permanent
+bootloader no-relock remain intact.
+
+### Approved next bounded task
+
+Produce one current-source unsigned Windows development-package convergence checkpoint from this
+Product Assurance commit and verify one no-network/no-phone launch using a new disposable workspace.
+The current retained package predates accepted Windows privacy and popsicle Knowledge changes, so
+this task advances shipped development bits without inventing a feature.
+
+1. Preserve the protected patch and all other worktrees. Use only the already installed local build
+   toolchain and cached dependencies; do not download, install or update anything.
+2. Run the focused Windows packaging, settings/privacy and popsicle Knowledge tests that cover code
+   changed since package source `945928567ea188481eb0c19ca4419ae4132c22f5`.
+3. Build one unsigned development package from the exact reviewed branch source. Record its source
+   commit, size, SHA-256, manifest/runtime identity and truthful `NotSigned` status.
+4. Launch it once interactively in development-device simulation with a new disposable workspace.
+   Verify normal Command Deck entry, no connected device, Device DNA `UNCONFIRMED`, Guardian
+   `VERIFY REQUIRED`, no operation running, and clean close. Do not enter any consequential flow.
+5. If packaging or this minimal launch exposes a deterministic blocker, correct only that blocker,
+   rerun its focused tests and rebuild once. Otherwise make no source change.
+
+Do not perform another Git-drift investigation, product-wide UI tour or unrelated feature work. No
+network, dependency installation, phone/emulator, ADB/Fastboot, firmware operation, Recovery,
+Guardian authority change, signing, publication, release, wipe, unlock/root, lock or relock. Commit
+the exact package/evidence handoff, push Forgejo first, mirror the identical commit to GitHub and stop
+for Product Assurance.
+
+### Gate status
+
+- Windows Git-verification investigation and cleanup: **APPROVED — SAFE STOP**
+- Current-source unsigned development-package convergence: **AUTHORIZED**
+- Physical-device work, production signing/trust, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 38165dc — Windows launcher/setup-repair boundary
 
 - Reviewed checkpoint: `38165dc304c76e83495d4b7d0f91ddd324c9ce78`

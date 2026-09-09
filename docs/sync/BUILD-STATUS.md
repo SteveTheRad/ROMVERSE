@@ -1,5 +1,88 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows spaces/non-ASCII retained-package path check — deterministic About evidence blocker
+
+### Exact authority and direct argument-vector launch
+
+- Product Assurance verdict `bc324eca6140a1ca779ee9f9b1f4e98c20275290` exactly approves Build
+  checkpoint `5400561ac82acf71b2c1986fb5f0c8be3df169c8` and authorizes one retained-package
+  Windows path-compatibility launch. The checkout was safely fast-forwarded to that verdict while
+  preserving all protected untracked work.
+- The new disposable root was `C:\Work\RV Café Path bc324`; its exact workspace was
+  `C:\Work\RV Café Path bc324\Workspace Démo`. Both controlled names contain spaces and non-ASCII
+  characters. No matching sibling existed before setup and the workspace child did not exist.
+- The reviewed `SettingsStore` created the only pre-launch file, private
+  `config\settings.json`: 633 bytes, SHA-256
+  `f176ae0ba370b775481956507a3233c45c6b10f58dab6d7c76000804b343f12d`, schema five, with
+  `online_intelligence_enabled`, `community_research_enabled`,
+  `auto_download_verified_tools` and `synapse_contributions_enabled` false and `reduced_motion`
+  false. Its inheritance-protected owner-rights/SYSTEM Full Control ACL is
+  `O:S-1-5-21-3586961997-248884936-1384359232-1001G:S-1-5-21-3586961997-248884936-1384359232-1001D:PAI(A;;FA;;;OW)(A;;FA;;;SY)`.
+- The exact unchanged retained unsigned development executable was
+  `C:\Work\ROMVERSE-Windows\build\windows-current-package-b1dc54e0\ROMVERSE\ROMVERSE.exe`,
+  6,324,534 bytes, SHA-256
+  `d2df2c9a667520e9ebe88d4c2eb4dfa26020b1e2d8f852dddb33ab24a013b431`, package source
+  `b1dc54e0c6390fb3d789930dda0696c712e40e64`. It was launched through
+  `System.Diagnostics.ProcessStartInfo.ArgumentList`, adding each of these four arguments as a
+  distinct vector item rather than shell-concatenated text:
+  `--workspace`, `C:\Work\RV Café Path bc324\Workspace Démo`, `--skip-onboarding`, and
+  `--development-device-simulation`. Only the child received `ROMVERSE_HOME` for the exact root.
+- Windows recorded PID `106360`, interactive session `2`, the exact executable and a command line
+  whose workspace item remained one correctly quoted Unicode argument. The one window became ready
+  after 5,127 ms; the exact intended workspace was created and the runtime ledger gained one start.
+
+### Genuine Windows results and deterministic presentation blocker
+
+- The retained package reached exactly one responsive top-level window titled
+  `ROMVERSE Studio 0.2.0-alpha.1`. Its accessibility tree confirmed the `LOCAL` badge,
+  `DEVICE: NOT CONNECTED`, `PROJECT: NONE`, `MISSION: IDLE`, `GUARDIAN: VERIFY REQUIRED`, Device DNA
+  `UNCONFIRMED`, no physical device, development simulation and `SIMULATION ONLY • NO HARDWARE`.
+- Navigation-only page search opened only `About ROMVERSE`, as authorized. The existing
+  `BUILD WORKSPACE` information card exposed `Projects plus the current host tool inventory`, its
+  project/tool value and status, the static selected-Device-Pack qualification, and navigation
+  buttons for ROM Studio and Forge Arsenal.
+- **Deterministic blocker:** neither the exact path
+  `C:\Work\RV Café Path bc324\Workspace Démo`, the root path nor the workspace leaf `Workspace Démo`
+  appeared anywhere in the genuine packaged About accessibility tree. The reviewed retained source
+  corroborates that the Build Workspace card renders project/tool counts and a static detail, not
+  the workspace path. Therefore the authorized About / Build Workspace surface cannot prove that
+  the intended space/non-ASCII workspace was selected. The path is absent rather than truncated,
+  escaped or replaced. No other information or feature surface was entered to manufacture success.
+- Command-line and filesystem handling themselves passed this one case: the exact root and exact
+  workspace were created, all 8 generated regular files remain beneath that root, zero reparse
+  entries exist, and no accidental sibling or fragment path exists at `C:\Work\RV`,
+  `C:\Work\RV Café`, `C:\Work\RV Café Path` or `C:\Work\Workspace Démo`. The only matching
+  immediate `C:\Work` entry after the run is the exact intended root.
+
+### Clean close, validation and requested review
+
+- The package closed normally through the visible title-bar Close control. Final ROMVERSE process
+  and window counts are zero and `%TEMP%\romverse-studio.lock` is absent. The runtime ledger is
+  exactly 77 bytes, SHA-256
+  `9b548079f50e029991471fdbf93e92807fb82adb17319871cb9ab421e7b7f499`, with exactly one accepted
+  start and one clean close. The settings file remains byte-identical with the same private ACL.
+  No path matching `catalog`, `receipt`, `download`, `toolchain`, `install-plan` or `update` exists
+  beneath the disposable root.
+- This checkpoint changes only `docs/sync/BUILD-STATUS.md`. No source, test, settings contract or
+  package changed; no suite was run and no rebuild occurred because the authorized action was one
+  genuine retained-package Windows observation. Git whitespace validation is the proportionate
+  repository check. Protected Companion files remain untouched. The protected untracked patch
+  remains 8,272 bytes with SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it and existing untracked
+  `build-work\` intermediates remain excluded from staging.
+- ROMVERSE made no network request and performed no download, install, dependency/tool change,
+  phone/emulator discovery or operation, ADB/Fastboot command, firmware/APK action,
+  Guardian/Recovery execution, production adapter/trust/signing, publication, release, hosted CI,
+  wipe, unlock/root, bootloader lock or relock. Repository fetch/push remains the separate
+  coordination path. Exact-device evidence, fresh consent, Guardian-only authority and separation,
+  durable UNKNOWN, no blind retry, independent verification, feature freeze and permanent
+  bootloader no-relock remain intact.
+- Precise proposed next task: Product Assurance should review this exact blocker. If a correction is
+  authorized, make only the About `BUILD WORKSPACE` card present the exact current workspace as
+  read-only/selectable text, add a focused rendering assertion for spaces and non-ASCII characters,
+  rebuild once, and repeat this single retained-package observation. Do not begin that source change
+  or any other feature/package/test cycle without the matching repository verdict.
+
 ## Retained-package Windows stale-instance-lock recovery — Product Assurance review requested
 
 ### Exact authority, package and isolated root

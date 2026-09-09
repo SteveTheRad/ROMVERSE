@@ -1,5 +1,49 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 8395385 — Project Flash restored-mtime tamper semantics
+
+- Reviewed checkpoint: `83953852765b1868e18c4f4bd712999aa773d5cc`
+- Test-fixture commit: `ce141c8b11fc55cb24e7583bdf10320c97988832`
+- Approved base: `b14fa5e`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **CORRECTION REQUIRED — ASSERT BOTH VALID FAIL-CLOSED REJECTION BOUNDARIES**
+
+### Finding
+
+The product behavior remains safe, but the revised fixture is not yet stable across the two valid
+rejection boundaries. Product Assurance independently ran the complete Project Flash service file.
+The tamper node failed its new assertion because the current build-receipt loader detected the
+same-size/restored-mtime mutation first and returned:
+`No current verified local build outputs exist. Complete the build, or explicitly choose
+protected-source images.` The later Project Flash per-image hash therefore did not run. This is an
+equally valid, earlier fail-closed outcome; no preparation, fallback or authority was produced.
+
+Result: **13/14 passed; 1 assertion failed**. This contradicts the handoff's claim that the fresh
+per-image hash is always the observed rejection boundary on current source. Filesystem metadata
+resolution/state may decide which boundary detects the mutation first. The test must protect the
+shared safety contract without requiring either incidental detection order.
+
+### Minimum exact correction
+
+Change only the affected fixture so the captured `ProjectError` must prove one of these complete,
+actionable outcomes:
+
+1. the current build receipt is no longer valid/current, the user must complete/build fresh
+   outputs, and protected-source images remain an explicit alternative; or
+2. the selected source/build receipt bytes differ and fresh verified evidence is required.
+
+Do not accept an arbitrary `ProjectError`, weaken either production check, change product copy, or
+remove the restored-size/mtime mutation. Assert that no preparation is returned and that no silent
+protected-source fallback or execution authority exists. Rerun only the exact node and
+`tests/test_project_flash.py`; then update the handoff with the independently observed dual-boundary
+semantics, commit/push, and stop for review. Do not trigger paid CI or rebuild a package.
+
+### Gate status
+
+- Product tamper rejection: **SAFE / FAIL CLOSED**
+- Fixture portability and handoff accuracy: **CORRECTION REQUIRED**
+- v0.2 Golden Foundation and release gates: **CLOSED**
+
 ## Reviewed checkpoint: c3db243 — Guided Stage-12 Forge semantics
 
 - Reviewed checkpoint: `c3db243bde2040c0426c4de3e9e7df478a4c2ba2`

@@ -1,5 +1,110 @@
 # ROMVERSE Product Assurance Sync
 
+## Deterministic Ruff convergence checkpoint — Linux AST-preserving format baseline
+
+### Authoritative checkpoint and scope
+
+- Linux base: `e0bba7d`, approving the shared OTA member convergence. Independently approved
+  Windows formatter checkpoint: `5a3ac167cf5eb66f4b5a98a636a1dfdd4037599a`; implementation:
+  `a4273477e328c86cdf798122c3d20c0f67bf701c`; Windows Product Assurance verdict: `fc89e13`.
+- Linux implementation commit: `2c937b0` (`Pin Ruff and normalize Linux format baseline`). This
+  section forms the following handoff commit on `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation deterministic tooling/format convergence only.
+  `pyproject.toml` now pins `ruff==0.16.6`; 48 Python files received mechanical formatting with
+  no AST change. No product logic, copy, authority or workflow was intentionally changed.
+- Ruff 0.16.6 was installed only into ignored checkpoint-local
+  `build/ruff-0.16.6-env`; the existing shared environment and system Python were not modified.
+
+### Exact Linux formatter set
+
+- Production/source inputs (**26**):
+  `src/romverse/companion/transport.py`, `src/romverse/device_packs/foundry.py`,
+  `src/romverse/device_packs/routes.py`, `src/romverse/guardian/source_installation.py`,
+  `src/romverse/infrastructure/toolchain_evidence.py`,
+  `src/romverse/infrastructure/toolchain_offline.py`,
+  `src/romverse/infrastructure/toolchain_versions.py`,
+  `src/romverse/rom/build_contracts.py`, `src/romverse/rom/builds.py`,
+  `src/romverse/rom/candidate_installation.py`, `src/romverse/rom/debloat.py`,
+  `src/romverse/rom/forge.py`, `src/romverse/rom/source_installation_history.py`,
+  `src/romverse/rom/vault.py`, `src/romverse/ui/backup_center.py`,
+  `src/romverse/ui/build_control.py`, `src/romverse/ui/debloat_sequence.py`,
+  `src/romverse/ui/device_center.py`, `src/romverse/ui/guided_mission.py`,
+  `src/romverse/ui/main_window.py`, `src/romverse/ui/project_flash.py`,
+  `src/romverse/ui/rom_studio.py`, `src/romverse/ui/setup_wizard.py`,
+  `src/romverse/ui/source_installation.py`, `src/romverse/ui/source_operation_session.py`,
+  `src/romverse/ui/toolchain_center.py`.
+- Test inputs (**22**):
+  `tests/test_build_contracts.py`, `tests/test_build_control_ui.py`,
+  `tests/test_candidate_installation.py`, `tests/test_candidate_installation_integration.py`,
+  `tests/test_candidate_installation_ui.py`, `tests/test_companion_brand_assets.py`,
+  `tests/test_device_pack_foundry.py`, `tests/test_device_pack_routes.py`,
+  `tests/test_forge_bundle.py`, `tests/test_guided_mission.py`,
+  `tests/test_navigation_vocabulary.py`, `tests/test_project_flash_entry_ui.py`,
+  `tests/test_project_vault.py`, `tests/test_rom_builds.py`, `tests/test_rom_studio_ui.py`,
+  `tests/test_source_history_desktop.py`, `tests/test_source_installation_history.py`,
+  `tests/test_source_installation_integration.py`, `tests/test_time_machine_ui.py`,
+  `tests/test_toolchain_evidence.py`, `tests/test_toolchain_offline.py`,
+  `tests/test_toolchain_progress.py`.
+- Linux's authoritative set is not a wholesale copy of the Windows commit. It includes the Linux-
+  specific `rom/debloat.py`, `ui/debloat_sequence.py` and `tests/test_rom_builds.py` inputs reported
+  by Ruff locally, while preserving all branch-specific content.
+
+### Determinism and verification evidence
+
+- The pre-format Ruff 0.16.6 check reported exactly **48 files would be reformatted / 501 already
+  formatted**. Normalized `ast.dump(..., include_attributes=False)` SHA-256 identities were captured
+  independently for all 48 inputs before mutation.
+- Ruff 0.16.6 formatted that exact set **once**. Post-format normalized identities matched every
+  saved input: **48/48 AST-identical; 0 mismatches**.
+- All **48/48** formatter inputs produced actual Git Python blob deltas on Linux. There were **0**
+  line-ending-only/no-blob-delta inputs to reconcile.
+- One accidental untracked file named `--help` appeared after the initially clean status during this
+  turn. It was **80,047,478 bytes**, was not user work, and was removed before staging. No other
+  untracked or unrelated file was removed.
+- The one approved post-correction check sequence passed: `ruff check .`; `ruff format --check .`
+  reported **549 files already formatted**; and `git diff --check` passed.
+- No pytest node, 3,005-test regression, user journey, smoke or package build was run in this slice.
+
+### Classification, safety and gates
+
+- **Implemented:** exact Ruff 0.16.6 development pin and AST-preserving mechanical formatting
+  baseline across the complete Linux-reported set.
+- **Simulated/Tested:** formatter/lint/diff verification only; **48/48** normalized AST identities
+  are unchanged. No behavioral test result is claimed in this checkpoint.
+- **Hardware Verified:** no. The newly connected phone was not queried or operated; no Android or
+  Windows hardware check occurred.
+- **Released:** no. No package was built, signed, published or released.
+- Guided friction/dead ends: unchanged; mechanical layout only. No confirmation, navigation,
+  modal, action or copy behavior changed.
+- Guardian/Recovery/safety: unchanged. Guardian-only authority, exact evidence, UNKNOWN-on-
+  uncertainty, no blind retry, independent verification and permanent bootloader no-relock remain
+  intact. Formatting creates no execution path.
+- Platform status: Linux and Windows now share the approved Ruff 0.16.6 deterministic baseline
+  policy while retaining branch-specific content. The 3,005-node Linux evidence was deliberately
+  not repeated.
+- Feature freeze: compliant correctness/tooling convergence; no new product capability.
+- Version/package gate: v0.2 Golden Foundation and release remain **CLOSED**. The accepted Fedora
+  package was preserved and not rebuilt; current-HEAD replacement packaging remains outside this
+  slice.
+- External actions: one scoped installation of Ruff 0.16.6 into ignored local `build/`, local
+  formatting/checks, scoped commits and normal branch-push preparation. No system-wide or shared-
+  environment install, package rebuild, GitHub Actions, paid CI, phone/emulator/ADB/Fastboot,
+  Windows/Companion build, user journey, firmware build/sign/flash, Guardian/Recovery execution,
+  publication, release, merge, force-push, lock or relock occurred.
+
+### Next proposed Build task
+
+Stop for repository-based Product Assurance review. Do not rerun regression, rebuild packages,
+operate the connected phone or begin another consequential slice until this exact formatting
+checkpoint is reviewed.
+
+### Product Assurance Review Requested
+
+- Confirm the exact 48-file Linux set, Ruff 0.16.6 pin and **48/48 AST identity** proof establish a
+  deterministic mechanical baseline without importing Windows-specific content.
+- Confirm the post-correction Ruff/diff checks are sufficient without behavioral-test or package
+  repetition for this AST-identical formatting-only checkpoint.
+
 ## Cross-platform convergence checkpoint — original OTA member spelling is authoritative
 
 ### Authoritative checkpoint and scope

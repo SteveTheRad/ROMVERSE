@@ -9,12 +9,31 @@ from romverse.device.models import AndroidDevice, DeviceState
 from romverse.infrastructure.provisioning import GENESIS_REQUIRED_TOOLS
 from romverse.infrastructure.tools import ToolStatus
 from romverse.rom.guided import (
+    STAGES,
     GuidedContext,
     GuidedMissionEngine,
     GuidedMissionState,
     GuidedMissionStore,
     GuidedStageStatus,
 )
+
+
+def test_source_integrity_stage_does_not_claim_publisher_provenance() -> None:
+    stage = next(item for item in STAGES if item.stage_id == "provenance")
+
+    assert stage.number == 3
+    assert stage.short_title == "Source integrity"
+    assert "publisher identity" in stage.explanation
+    assert "signing-key trust" in stage.explanation
+    assert "release channel" in stage.explanation
+    assert "separately" in stage.recommendation
+
+    assessment = GuidedMissionEngine().assess(
+        GuidedContext(project_exists=True, original_imported=True, inspection_saved=True)
+    )[2]
+    assert assessment.status is GuidedStageStatus.COMPLETE
+    assert "publisher provenance" in assessment.next_outcome
+    assert "remain separate evidence" in assessment.next_outcome
 
 
 def test_mission_starts_with_one_focused_action_and_locks_dependencies():

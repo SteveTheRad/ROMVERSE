@@ -1,5 +1,67 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: b46099d — Device Intelligence Synapse lifecycle contracts
+
+- Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`
+- Reviewed checkpoint: `b46099d59f24c612fcda856d81acd72ec433a1a5`
+- Authorizing verdict: `1cbda8c9bc1f600f0a81429476b8b0aa47645522`
+- Branch: `device-intelligence/foundation-schema-contracts`
+- Review status: **APPROVED — CHECKPOINT 2 COMPLETE; SAFE STOP**
+
+### Decision and independent evidence
+
+Checkpoint 2 is approved. The complete authorization-to-checkpoint diff changes only
+`src/romverse/intelligence/synapse.py`, `tests/test_synapse.py`,
+`docs/DEVICE-INTELLIGENCE-FOUNDATION.md` and Build Status, exactly matching the authorized
+ownership. No persistence backend, acquisition, runtime consumer, Matrix/Nexus/First Light,
+Guardian/Recovery, UI/platform/Companion, packaging or release path changed.
+
+The additive lifecycle states preserve the existing Candidate → Verified Success → Strong →
+Trusted progression, evidence-driven downgrades and retirement. Quarantined, superseded, expired
+and retired records compile with zero confidence and are excluded from query results, while
+`list_knowledge()` retains them with deterministic lifecycle explanations for Archives review.
+
+Supersession is bound to one exact content-addressed knowledge identifier. Only a currently usable
+replacement can suppress that exact predecessor; an unusable replacement cannot do so. A record
+that targets itself, or whose contributions contain conflicting replacement targets, is
+quarantined rather than reused. Expiry timestamps are normalized to timezone-aware UTC, cannot
+precede contribution time and expire conservatively without deleting the underlying evidence.
+
+Legacy schema-one caches that lack the three additive contribution fields continue to validate
+against their original ledger digest and load with active defaults. Existing cache tamper,
+privacy, exact-scope and independently verified-outcome checks remain in force. All resulting
+knowledge remains `guidance-only`; no record gains compatibility, execution, phone, Guardian or
+bootloader authority, and permanent no-relock is unchanged.
+
+Product Assurance independently collected and ran the exact authorized baseline: **146/146
+passed** across device identity, firmware source identity, Online Evidence, evidence persistence,
+Knowledge coverage, Device DNA, Compatibility Matrix, Nexus planning, First Light, Synapse and
+Guardian policy. Focused Ruff check passed, both changed Python files were already formatted, and
+Git whitespace validation passed. The worktree was clean after review. Forgejo and GitHub exposed
+the identical implementation checkpoint with zero divergence before this verdict was published.
+
+No physical device, emulator, network acquisition, database/object-store deployment, hosted CI,
+application execution, firmware/build/flash/root/debloat action, signing, publication, release,
+bootloader lock or relock occurred.
+
+### Authorization boundary and stop
+
+Checkpoint 2 completes the two-part Device Intelligence foundation schema-contract authorization.
+There is no explicit subsequent Device Intelligence implementation checkpoint in the existing
+authorization. Broader Device Intelligence, live acquisition, persistence implementation,
+runtime wiring and consumer/UI integration therefore remain **NOT AUTHORIZED**.
+
+Engineering must stop this branch after recording this verdict. Any next slice requires a new
+repository-based Product Assurance request naming its exact purpose, base, ownership, tests and
+exclusions. This approval does not infer that authorization.
+
+### Gate status
+
+- Device Intelligence Checkpoint 1 schema contracts: **APPROVED**
+- Device Intelligence Checkpoint 2 Synapse lifecycle: **APPROVED**
+- Broader Device Intelligence implementation or integration: **CLOSED**
+- Device/network/backend/consequential/signing/publication/release work: **CLOSED**
+
 ## Reviewed checkpoint: 63928f7 — Device Intelligence foundation schema contracts
 
 - Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`

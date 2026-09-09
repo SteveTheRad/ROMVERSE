@@ -1,5 +1,47 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: b9c4488 — converged Windows development package
+
+- Reviewed checkpoint: `b9c4488`
+- Approved source: `fc89e13b42e0447acc34333434f267bf6728ba99`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — CURRENT WINDOWS SOURCE BUILDS, HASHES AND LAUNCHES AS AN UNSIGNED DEVELOPMENT PACKAGE**
+
+### Decision and independent evidence
+
+Product Assurance independently observed the single native Windows build and then inspected the
+complete output through the authenticated Legion SSH connection.
+
+- One-folder package: **262 regular files / 162,294,001 bytes / 0 reparse points**.
+- Executable: **6,323,437 bytes**, Authenticode `NotSigned`, SHA-256
+  `6afd5da5e808b20112dd15cb5fa6d8e20f571b26d0f8233e3d3f6074ccf752f0`.
+- The independently calculated sorted file/size/member-hash manifest is
+  `4a0d7761f9d84c05ff351abf1a1d2fc67af07e619437145dd9ae3c85453c0297`.
+- One fresh frozen no-phone smoke passed with exit `0`. Its runtime record contains one start and
+  one clean close and no exception/native-fault entry.
+- The protected patch remains byte-identical at **8,272 bytes** with SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`.
+- No portability or formatter evidence was repeated. No dependency install, paid CI, physical
+  device access, execution authority, signing, publication or release occurred.
+
+### Approved next bounded state
+
+Windows enters synchronized standby with a verified current-source development package. Do not
+rebuild, replay the 974 portability nodes or invent another no-phone simulation. Resume Windows
+only for a new proven Windows defect, an approved shared-source integration, or a genuine
+interactive/physical-device Windows acceptance session when that device is attached to the Legion.
+
+The currently connected phone belongs to the Linux read-only discovery task. Do not attempt to
+reach it from Windows, transfer its identifiers, enter Fastboot, install, reboot, flash, wipe,
+unlock, root, lock or relock.
+
+### Gate status
+
+- Windows portability: **VERIFIED — SEGMENTED 968 PASSED / 6 SKIPPED**
+- Current-source Windows package/content/frozen launch: **APPROVED**
+- Linux current-source package: **APPROVED**
+- Physical Windows Android acceptance, production signing/trust, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 5a3ac16 — deterministic Ruff convergence
 
 - Reviewed checkpoint: `5a3ac167cf5eb66f4b5a98a636a1dfdd4037599a`

@@ -1,5 +1,105 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 52c0e2a — Windows isolated Project Vault experiment branch
+
+- Reviewed checkpoint: `52c0e2ad0720a9a9ef1ceb4205049d46a135fcbe`
+- Authorizing verdict: `1fd8662e342b003f0ea9020ba9ca70d1f616ccdc`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — EXACT CONTAINED BRANCH SUCCEEDED; THE FIRST RETURN-CONTEXT DEFECT RECEIVED ONLY ITS AUTHORIZED MINIMUM CORRECTION**
+
+### Decision and independent evidence
+
+The checkpoint is the direct child of `1fd8662`, and Forgejo and GitHub exposed the identical
+checkpoint before this review. Contrary to the initial concern, its changes to
+`src/romverse/ui/device_center.py` and `tests/test_dashboard_rendering.py` are neither pre-existing
+nor independently owned residue: the previous approved Windows checkout had no tracked or staged
+change, both files are committed in `52c0e2a`, and they implement the exact escape clause in
+`1fd8662` permitting correction of the first branch-creation, containment, ACL, display or
+return-context defect with focused tests and a rebuild when shipped source changes.
+
+The retained native evidence proves exactly one branch from entry
+`20260909T201412-ea0f44c8`, named `Windows Vault Experiment 7d0cf6a`, with identifier
+`windows-vault-experiment-7d0cf6a-5eea7b18`. Its sealed 683-byte record is
+`c3a8c18e181b09af416d54422ffaa209120aace799d6f2f21681eaeb8d1bba7e`, binds the exact project,
+entry, label, baseline and contained workspace, and has record digest
+`7eb15fa5f58e781dead6f1ee51a0086ccd59d092c789578b636ccb067d7f3c42`. The branch contains the
+authorized six data files/14,855 bytes — the exact 497-byte baseline, two tree files and three
+context files — or seven files/15,538 bytes including its record. Every retained member matched
+its recorded size and SHA-256, there is exactly one branch, no reparse entry, and the branch root
+has inheritance disabled with only OWNER RIGHTS, SYSTEM and Administrators Full Control.
+
+Activity remains byte-identical at six events, 3,392 bytes and
+`b432f3acbe63c146dfed87e2ded46b8a8aed2cdf59e16ccdf9de8f03e870e46f`. Live Console contains
+exactly one new `project-vault-branch` running/succeeded pair, now 30 events, 31,179 bytes and
+`a1a829373deb1bf5be45793bd0b290075fa1639502a0626d7622ca6163f8bf93`. The branch was not opened,
+edited, built from, verified or otherwise used. The mission remains 436 bytes at
+`ba96a6b7557ce9590b120cd52090a363d5fb2277729aba04b9316928d78ec0db`, stage five attention,
+root undecided, with no install request, build plan or error. The runtime ledger is 539 bytes at
+`d4890d973571a05d5cd3dc2a19803fbe65f9a284e98294675889bb7795c88e33` and records seven starts
+and seven clean closes. ROMVERSE, ADB and Fastboot process counts are zero; locks accept exclusive
+opens; all operational directories remain empty.
+
+The one reproduced defect was bounded and truthful: after successful local branch creation, the
+persisted Guided flight plan still showed stage-five `ATTENTION`, but the Command Deck top context
+showed `MISSION: IDLE` because the newer successful Vault event obscured that incomplete plan. The
+six-line production correction makes top-level attention also reflect an `ATTENTION` or `LOCKED`
+flight plan. It changes no route, persistence, project content or authority. The focused regression
+proves that a successful local Vault event cannot hide Guided attention and that no-device routing
+remains `Connect Device`.
+
+Product Assurance independently reran the complete affected Windows rendering module with an
+isolated temporary base: **26/26 passed**. Ruff check and format check passed both changed files,
+and `git diff --check` passed. The accepted source-matched unsigned package independently contains
+306 files, 23 directories and 164,663,535 bytes, with zero empty files, reparse entries or
+`icu*.dll` files. Its executable is 6,324,645 bytes at
+`86925e2ac7b3d836f8aa35cb9e2ee4f07cd4e579d1be4ee42d40fbdad8cdf446` and remains `NotSigned`.
+The replacement package was not launched, so this review approves the source/test correction and
+sealed branch evidence but does not claim packaged runtime confirmation of the corrected banner.
+
+The Windows checkout is clean for tracked and staged files. The protected untracked 8,272-byte
+patch remains byte-identical at
+`2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`, and existing untracked
+`build-work/` remains untouched. The disclosed exploratory pytest option/temporary-directory and
+test-development failures are not acceptance results and do not invalidate the final isolated
+verification. The redundant first unlaunched build was inefficient but introduced no safety or
+scope breach.
+
+No phone/emulator, device scan, tool resolution, network/download, ADB/Fastboot command,
+firmware/APK mutation, Recipe/Forge, Guardian/Recovery execution, branch use, signing,
+publication, release, hosted CI, wipe, unlock/root, bootloader lock or relock occurred. Exact-device
+evidence, Guardian authority separation, durable `UNKNOWN`, no blind retry, feature freeze and the
+permanent no-relock rule remain intact.
+
+### Approved next bounded Windows task
+
+Launch the exact source-matched package
+`build/windows-vault-attention-final-1fd8662/ROMVERSE/ROMVERSE.exe` once against the same retained
+private profile solely to confirm the corrected Command Deck return context. Do not enter Time
+Machine, Genesis or the experiment branch and do not invoke any control beyond normal close.
+
+1. Before launch, revalidate the executable hash, exact project/mission state, the one sealed
+   branch, byte-identical Activity and Live Console, zero ROMVERSE/ADB/Fastboot processes and
+   released locks.
+2. Require Command Deck to show the exact project, `DEVICE: NOT CONNECTED`,
+   `MISSION: ATTENTION`, `GUARDIAN: VERIFY REQUIRED`, stage 5/15 `Confirm device identity and
+   capabilities`, and `Connect Device` as the next action. This is display verification only.
+3. Close normally, then prove Activity, Live Console, mission, project, snapshot, Vault and branch
+   bytes remain unchanged; only the normal runtime start/clean-close ledger may change. Prove zero
+   relevant processes and released locks. If the exact package still shows the wrong top context,
+   stop with evidence and do not change source in this task.
+
+Do not use the experiment branch; do not compare, verify, capture, branch, restore, export or
+clean up; and do not perform external evidence, network/download, device, build, consequential,
+signing, publication, release, wipe, unlock/root, lock or relock activity.
+
+### Gate status
+
+- Exact one-shot isolated Project Vault experiment branch: **APPROVED**
+- Minimum source/test correction for the first return-context display defect: **APPROVED**
+- One launch of the exact replacement package for banner confirmation only: **AUTHORIZED**
+- Experiment-branch use and all further Project Vault actions: **CLOSED**
+- Device, firmware/build, consequential, signing/publication and release gates: **CLOSED**
+
 ## Reviewed checkpoint: 7d0cf6a — Windows Project Vault parent-to-child comparison
 
 - Reviewed checkpoint: `7d0cf6a76ff89eb419412a63ebbaae047da88f4e`

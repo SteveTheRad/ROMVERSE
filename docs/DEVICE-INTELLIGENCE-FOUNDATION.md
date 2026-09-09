@@ -62,6 +62,8 @@ evidence-backed and has no execution authority.
 The lifecycle is content-addressed and strictly parsed. Contradictory and superseded records remain
 visible rather than being overwritten. Duplicate existing online claims remain deterministically
 deduplicated by claim ID, and stale or conflicting evidence continues to require investigation.
+Observation cannot follow retrieval, revalidation cannot precede retrieval, history cannot predate
+observation, and the final history status must equal the record's current lifecycle status.
 Checkpoint 1 does not change the Synapse state machine; its separately authorized lifecycle work is
 still gated behind independent Product Assurance.
 

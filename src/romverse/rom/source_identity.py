@@ -54,7 +54,8 @@ class CanonicalFirmwareIdentity:
 _CANONICAL_FIRMWARE_FIELDS = {field.name for field in fields(CanonicalFirmwareIdentity)}
 _PRIVATE_FIRMWARE_TEXT = re.compile(
     r"(?i)(?:\b(?:imei|serial|account|username|password|secret|token)\b|"
-    r"/home/|/users/|[a-z]:\\users\\|-----begin [^-]+private key-----)"
+    r"(?<!\d)\d{15}(?!\d)|/home/|/users/|[a-z]:\\users\\|"
+    r"-----begin [^-]+private key-----)"
 )
 
 

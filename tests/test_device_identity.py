@@ -352,6 +352,15 @@ def test_canonical_device_identity_fails_closed_on_missing_private_or_corrupt_da
             aliases=("username=steve",),
             evidence_claim_ids=("c" * 64,),
         )
+    with pytest.raises(CanonicalIdentityError, match="private"):
+        create_canonical_device_identity(
+            manufacturer="Samsung",
+            brand="Samsung",
+            model="SM-S928B",
+            codename="e3qxxx",
+            aliases=("123456789012345",),
+            evidence_claim_ids=("c" * 64,),
+        )
 
     identity = create_canonical_device_identity(
         manufacturer="Samsung",

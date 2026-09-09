@@ -17,7 +17,8 @@
 - Evidence: applicability is bound to reviewed claim domains and exact claim keys rather than a
   universal trust score. Observation/retrieval/revalidation times, freshness, artifact digest,
   exact scope, supporting/contradicting relationships and immutable active/superseded/quarantined/
-  expired history are represented without discarding contradictions.
+  expired history are represented without discarding contradictions. Impossible chronology and a
+  current status inconsistent with the final history entry fail closed.
 - Privacy: serial, IMEI, account/user identifiers, credentials/tokens/cookies/sessions, private-key
   material and personal paths are rejected or sanitized at the new boundaries.
 - Persistence: `evidence_persistence.py` contains protocols only. No local-store modification,
@@ -28,7 +29,7 @@
   authority-promoted new records fail closed.
 - Authority: compatibility remains `UNCONFIRMED`; execution authority is `none`; phone action,
   Guardian approval and bootloader relocking remain false.
-- Verification: **140/140 passed** across the new contract tests plus the authorized device
+- Verification: **141/141 passed** across the new contract tests plus the authorized device
   identity, firmware source identity, Online Evidence, Knowledge coverage, Device DNA,
   Compatibility Matrix, Nexus planning, First Light, Synapse and Guardian policy baselines.
   Focused Ruff check/format and Git whitespace verification passed.

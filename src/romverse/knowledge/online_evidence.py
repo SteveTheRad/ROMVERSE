@@ -527,14 +527,20 @@ def evidence_lifecycle_for_claim(
     """Create deterministic lifecycle metadata without changing the claim's authority."""
 
     observed = _time(observed_at)
+    retrieved = _timestamp(claim.source.retrieved_at)
     revalidated = _time(revalidated_at) if revalidated_at else ""
-    entries = _validated_history(history)
     lifecycle_status = EvidenceLifecycleStatus(status)
+    _validate_lifecycle_chronology(observed, retrieved, revalidated)
+    entries = _validated_history(
+        history,
+        observed_at=observed,
+        final_status=lifecycle_status,
+    )
     basis = {
         "schema": "romverse.evidence-lifecycle.v1",
         "claim_id": claim.claim_id,
         "observed_at": observed,
-        "retrieved_at": claim.source.retrieved_at,
+        "retrieved_at": retrieved,
         "revalidated_at": revalidated,
         "freshness": claim.source.freshness.value,
         "artifact_digest": claim.source.content_digest,
@@ -550,7 +556,7 @@ def evidence_lifecycle_for_claim(
         evidence_id,
         claim.claim_id,
         observed,
-        claim.source.retrieved_at,
+        retrieved,
         revalidated,
         claim.source.freshness,
         claim.source.content_digest,
@@ -581,6 +587,11 @@ def parse_evidence_lifecycle(raw: dict[str, object]) -> EvidenceLifecycle:
     history_raw = raw.get("history")
     if not isinstance(history_raw, list) or len(history_raw) > 64:
         raise OnlineEvidenceError("Evidence lifecycle history is invalid")
+    observed = _timestamp(raw.get("observed_at"))
+    retrieved = _timestamp(raw.get("retrieved_at"))
+    revalidated = _timestamp(raw.get("revalidated_at")) if raw.get("revalidated_at") else ""
+    lifecycle_status = EvidenceLifecycleStatus(raw.get("status"))
+    _validate_lifecycle_chronology(observed, retrieved, revalidated)
     history: list[EvidenceHistoryEntry] = []
     for item in history_raw:
         if not isinstance(item, dict):
@@ -597,16 +608,20 @@ def parse_evidence_lifecycle(raw: dict[str, object]) -> EvidenceLifecycle:
         1,
         _digest(raw.get("evidence_id")),
         _digest(raw.get("claim_id")),
-        _timestamp(raw.get("observed_at")),
-        _timestamp(raw.get("retrieved_at")),
-        _timestamp(raw.get("revalidated_at")) if raw.get("revalidated_at") else "",
+        observed,
+        retrieved,
+        revalidated,
         EvidenceFreshness(raw.get("freshness")),
         _digest(raw.get("artifact_digest")),
         scope,
         _tokens(raw.get("supporting_claim_ids"), maximum=511, digest=True),
         _tokens(raw.get("contradicting_claim_ids"), maximum=511, digest=True),
-        EvidenceLifecycleStatus(raw.get("status")),
-        _validated_history(tuple(history)),
+        lifecycle_status,
+        _validated_history(
+            tuple(history),
+            observed_at=observed,
+            final_status=lifecycle_status,
+        ),
     )
     expected_payload = {
         "schema": "romverse.evidence-lifecycle.v1",
@@ -631,6 +646,9 @@ def parse_evidence_lifecycle(raw: dict[str, object]) -> EvidenceLifecycle:
 
 def _validated_history(
     history: tuple[EvidenceHistoryEntry, ...],
+    *,
+    observed_at: str,
+    final_status: EvidenceLifecycleStatus,
 ) -> tuple[EvidenceHistoryEntry, ...]:
     if len(history) > 64:
         raise OnlineEvidenceError("Evidence lifecycle history exceeds its boundary")
@@ -647,7 +665,28 @@ def _validated_history(
         != result
     ):
         raise OnlineEvidenceError("Evidence lifecycle history must be deterministic")
+    if any(_instant(entry.recorded_at) < _instant(observed_at) for entry in result):
+        raise OnlineEvidenceError("Evidence lifecycle history predates observation")
+    if result and result[-1].status is not final_status:
+        raise OnlineEvidenceError("Evidence lifecycle status does not match its history")
     return result
+
+
+def _validate_lifecycle_chronology(
+    observed_at: str,
+    retrieved_at: str,
+    revalidated_at: str,
+) -> None:
+    observed = _instant(observed_at)
+    retrieved = _instant(retrieved_at)
+    if observed > retrieved:
+        raise OnlineEvidenceError("Evidence observation cannot follow retrieval")
+    if revalidated_at and _instant(revalidated_at) < retrieved:
+        raise OnlineEvidenceError("Evidence revalidation cannot precede retrieval")
+
+
+def _instant(value: str) -> datetime:
+    return datetime.fromisoformat(value).astimezone(UTC)
 
 
 def _stored_tokens(value: object, label: str) -> tuple[str, ...]:

@@ -618,6 +618,72 @@ def test_evidence_lifecycle_represents_stale_quarantine_and_expiry_without_delet
     assert quarantined.evidence_id != expired.evidence_id
 
 
+def test_evidence_lifecycle_rejects_impossible_chronology_and_status_history() -> None:
+    claim = _claim("a/b")
+    with pytest.raises(OnlineEvidenceError, match="observation"):
+        evidence_lifecycle_for_claim(claim, observed_at=NOW + timedelta(seconds=1))
+    with pytest.raises(OnlineEvidenceError, match="revalidation"):
+        evidence_lifecycle_for_claim(
+            claim,
+            observed_at=NOW - timedelta(hours=1),
+            revalidated_at=NOW - timedelta(seconds=1),
+        )
+    with pytest.raises(OnlineEvidenceError, match="predates"):
+        evidence_lifecycle_for_claim(
+            claim,
+            observed_at=NOW,
+            history=(
+                EvidenceHistoryEntry(
+                    (NOW - timedelta(seconds=1)).isoformat(),
+                    EvidenceLifecycleStatus.ACTIVE,
+                    "Impossible early history.",
+                ),
+            ),
+        )
+    with pytest.raises(OnlineEvidenceError, match="does not match"):
+        evidence_lifecycle_for_claim(
+            claim,
+            observed_at=NOW,
+            status=EvidenceLifecycleStatus.ACTIVE,
+            history=(
+                EvidenceHistoryEntry(
+                    NOW.isoformat(),
+                    EvidenceLifecycleStatus.SUPERSEDED,
+                    "Mismatched final state.",
+                ),
+            ),
+        )
+
+    valid = evidence_lifecycle_for_claim(
+        claim,
+        observed_at=NOW - timedelta(hours=1),
+        revalidated_at=NOW + timedelta(hours=1),
+        status=EvidenceLifecycleStatus.ACTIVE,
+        history=(
+            EvidenceHistoryEntry(
+                NOW.isoformat(), EvidenceLifecycleStatus.ACTIVE, "Evidence retained."
+            ),
+        ),
+    )
+    mapping = evidence_lifecycle_mapping(valid)
+    impossible_observation = dict(mapping)
+    impossible_observation["observed_at"] = (NOW + timedelta(seconds=1)).isoformat()
+    with pytest.raises(OnlineEvidenceError, match="observation"):
+        parse_evidence_lifecycle(impossible_observation)
+    impossible_revalidation = dict(mapping)
+    impossible_revalidation["revalidated_at"] = (NOW - timedelta(seconds=1)).isoformat()
+    with pytest.raises(OnlineEvidenceError, match="revalidation"):
+        parse_evidence_lifecycle(impossible_revalidation)
+    early_history = json.loads(json.dumps(mapping))
+    early_history["history"][0]["recorded_at"] = (NOW - timedelta(hours=2)).isoformat()
+    with pytest.raises(OnlineEvidenceError, match="predates"):
+        parse_evidence_lifecycle(early_history)
+    mismatched_status = json.loads(json.dumps(mapping))
+    mismatched_status["status"] = EvidenceLifecycleStatus.EXPIRED.value
+    with pytest.raises(OnlineEvidenceError, match="does not match"):
+        parse_evidence_lifecycle(mismatched_status)
+
+
 def test_lifecycle_tampering_and_additional_private_identifiers_fail_closed() -> None:
     lifecycle = evidence_lifecycle_for_claim(_claim("a/b"), observed_at=NOW)
     raw = json.loads(json.dumps(evidence_lifecycle_mapping(lifecycle)))

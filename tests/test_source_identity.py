@@ -121,6 +121,14 @@ def test_canonical_firmware_rejects_missing_digest_private_and_promoted_records(
             artifact_sha256="b" * 64,
             evidence_claim_ids=("c" * 64,),
         )
+    with pytest.raises(CanonicalFirmwareIdentityError, match="private"):
+        create_canonical_firmware_identity(
+            canonical_device_id="a" * 64,
+            model_variant="SM-S928B",
+            build_id="123456789012345",
+            artifact_sha256="b" * 64,
+            evidence_claim_ids=("c" * 64,),
+        )
 
     identity = create_canonical_firmware_identity(
         canonical_device_id="a" * 64,

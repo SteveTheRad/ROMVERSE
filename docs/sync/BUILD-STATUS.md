@@ -1,5 +1,82 @@
 # ROMVERSE Product Assurance Sync
 
+## Fedora desktop convergence and rebuilt package checkpoint
+
+### Authoritative commits and exact changes
+
+- Branch: `linux/stage1-desktop-readiness`.
+- Missing-runtime implementation: `b9685e518f5824a01fd274e171eb7cf004117b6a`
+  (**Route missing health runtime to Forge Arsenal**).
+- First-run implementation: `69b7c72c5833b7f0e92bedadc385900779077440`
+  (**Keep first-run tool verification readable**).
+- Explicit injected-runtime fixture correction: `f1da4b92786363565ba54cf4331696b37aa05bdb`
+  (**Keep injected runtime test state explicit**). This one-line test-only commit makes the existing
+  fake-engine integration test set the same explicit runtime state production now owns.
+- The bounded batch fixes three reproduced first-use dead ends: silent Command Deck Connect and
+  Quantum Optimizer Scan actions when Platform Tools are absent, plus a first-launch tool inventory
+  whose 21 rows all collapsed to zero height. The exact changes and safety boundaries remain
+  detailed in the two checkpoint sections immediately below.
+- Fresh Fedora one-folder build: `build/fedora-f1da4b9/ROMVERSE`, **422 regular files /
+  243,086,349 regular-file bytes / 38 contained internal links**. Executable: **6,337,072 bytes**,
+  SHA-256 `4fbfed3244d93ba535413151c26f5fe53ef526d402f638a5e81e662f8b562500`.
+- Verified unsigned ZIP:
+  `dist/ROMVERSE-Desktop-0.2.0-alpha.1-linux-x86_64-f1da4b9.zip`, **151,033,845 bytes**, SHA-256
+  `3521f0e55887763a40753261d7e2fdc38b7b6c4bff1eb5a833222ce3912f895d`; full archive
+  verification passed for **460 members / 360,340,978 expanded bytes**.
+
+### Verification and gates
+
+- **Implemented:** minimum-width workspace reflow, no-tools Connect/Scan recovery handoffs and the
+  readable first-run tool inventory. No Companion, Windows launcher, Recovery executor, adapter,
+  Guardian policy or physical-device behavior changed.
+- **Simulated/Tested:** the full **3,024-test Linux selection is covered without overlap**. The
+  single broad run passed **3,023** and exposed one test-fixture mismatch: that test manually
+  injected a fake `window.engine` but did not activate the new matching UI runtime state. After the
+  one-line fixture correction, that exact node passed independently; combined unique evidence is
+  therefore **3,024/3,024**, without rerunning or double-counting the other 3,023 nodes. Ruff,
+  format and diff checks passed. One current-source installed smoke separately passed with **22
+  Device Packs, 170 known fixes, 284 offline evidence records, all 19 Desktop routes**, dark Time
+  Machine and byte-exact populated-workspace reopening. One frozen no-phone launch/clean shutdown
+  and one complete archive verification passed.
+- **Hardware Verified:** no. The suite used fakes, offscreen Qt and disposable workspaces. Current
+  host tool versions were read only for the first-run render; no Android target was queried.
+- **Released:** no. The `f1da4b9` Fedora package is unsigned, local and unpublished.
+- Blockers/failures: the three reproduced user dead ends are fixed and the one suite failure was a
+  corrected explicit-state test fixture, not a production failure. Windows secure launch,
+  production signing/trust, physical Recovery/flash verification and release remain
+  blocked/unverified.
+- Guided friction/dead ends: the supported minimum-width workspaces remain readable; first launch
+  now shows real tool evidence; both prominent no-tools Connect/Scan choices reach the single
+  resolver rather than silently stopping. No new confirmation chain was added.
+- Guardian/Recovery/safety: unchanged. Host-tool verification grants no phone or execution
+  authority. Guardian-only authority, exact target/source/incident binding, durable `UNKNOWN`, no
+  blind retry, independent verification and permanent no-relock remain authoritative.
+- Platform status: genuinely built, tested, packaged and smoke-tested on Fedora/Linux. Windows and
+  physical hardware were not run or represented as verified.
+- Feature freeze: compliant Stage 1 correctness, responsiveness and accessibility work only; no
+  new product capability.
+- Version gate: Fedora desktop readiness materially improved; v0.2 Golden Foundation and every
+  production/release gate remain **CLOSED**.
+- External actions: local tests, host-tool inventory, disposable workspaces, package construction,
+  smoke checks and scoped commits only. No physical phone query/action, APK/firmware operation,
+  dependency or system installation, mode transition, flash, wipe, unlock/root, lock/relock,
+  publication, release or hosted-CI run occurred. Forgejo-first and identical GitHub feature-branch
+  pushes containing this handoff are the only remote writes.
+
+### Next proposed Build task
+
+Resume the inert product-as-user pass from this runnable Fedora package, prioritizing remaining
+dialogs, cancellation, persistence and exact cross-page handoffs. Correct only reproduced Stage 1
+Desktop defects; do not broaden execution, Recovery or feature scope.
+
+### Product Assurance Review Requested
+
+- Review the no-tools single-resolver behavior and first-run scrollable inventory as one coherent
+  zero-friction first-use correction.
+- Accept the non-overlapping 3,023 broad-pass plus one corrected-node pass as complete 3,024-node
+  convergence evidence; the complete suite was not wastefully rerun after a test-only fixture
+  alignment.
+
 ## Readable first-run tool inventory checkpoint
 
 ### Authoritative commit and exact changes

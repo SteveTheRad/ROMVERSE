@@ -1,5 +1,100 @@
 # ROMVERSE Product Assurance Sync
 
+## Stable-file identity checkpoint — genuine Legion Windows verification passes
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `7b76e2d`, approving the preceding cloud-regression
+  classification and authorizing only the shared Windows stable-file identity/anti-TOCTOU
+  correction. Implementation commits are `73abd40` (`Normalize stable file identity`) and
+  `8070895` (`Reject preserved AVB tool links`). This section forms the following handoff commit on
+  `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation portability/correctness only. Stage 12 was not operated.
+  No workflow, capability, package, Recovery adapter, physical executor or user-facing behavior was
+  added.
+- Exact implementation files changed are
+  `src/romverse/infrastructure/file_identity.py`,
+  `src/romverse/rom/source_installation.py`,
+  `src/romverse/rom/candidate_avb.py`, and
+  `tests/test_stable_file_identity.py`, plus this handoff.
+- The three protected Companion files and the Windows task's active checkout/drafts were not
+  edited, staged, discarded or committed.
+
+### Exact correction
+
+- Source-installation and candidate-AVB handle/path checks now share one platform-correct stable
+  identity helper. Windows compares device/file index, size and modification time while POSIX keeps
+  its stricter creation/change-time comparison. This removes only the CPython/NTFS handle-vs-path
+  `st_ctime_ns` rounding mismatch already captured by the genuine Windows launcher checkpoint;
+  identity, size and modification-time drift remain fail-closed.
+- The existing open regular handle, bounded streaming hash, before/after descriptor stability,
+  path containment and exact digest checks remain in force. Digest alone is not accepted as file
+  identity.
+- The first fresh Legion selection at `73abd40` passed 15 checks and exposed one real remaining
+  seam: a preserved AVB executable replaced by a Windows symbolic-link reparse point was followed.
+  `8070895` adds an explicit pre-hash `lstat` check that rejects symbolic links, Windows reparse
+  points and non-regular preserved executables. No arbitrary-path or fallback authority was added.
+
+### Verification evidence
+
+- Fedora 44, Python 3.14.7: the directly affected stable-identity, source-installation and
+  candidate-AVB suites passed **100/100** in one final selection. Ruff check, Ruff format check and
+  `git diff --check` passed for the four implementation/test files.
+- Genuine Windows verification ran over SSH on the Legion Go 2 with Windows Python 3.12.10,
+  pytest 9.1.1 and Ruff 0.16.6. Because Git is not installed or exposed to that SSH account, Linux
+  streamed an exact `git archive` of committed `8070895` into the isolated directory
+  `C:\\Work\\ROMVERSE-Stable-Identity-8070895`; the active
+  `C:\\Work\\ROMVERSE-Windows` checkout was not changed. The final focused selection passed
+  **16/16**, including ctime-only tolerance, identity/size/mtime drift rejection, same-size content
+  mutation with restored mtime, source replacement, direct AVB-tool symlink substitution and
+  parent-directory link redirection. Ruff check and Ruff format check passed on Windows.
+- The earlier 15-pass/1-fail Windows reproduction overlaps the final 16-test selection and is not
+  added to its total. No full regression matrix was rerun. The already-running superseded GitHub
+  Actions run `34298905729` at old head `e260bb8` was cancelled under the approved cost-control
+  rule; no replacement Actions run was launched.
+
+### Classification, safety and gates
+
+- **Implemented:** shared platform-stable identity comparison plus explicit preserved-tool
+  link/reparse rejection.
+- **Simulated/Tested:** 100/100 affected Fedora tests and 16/16 focused tests on genuine Windows.
+  The Windows claim is genuine Legion execution, not simulation; the test data and devices are
+  fixtures and grant no authority.
+- **Hardware Verified:** Windows host behavior only. No physical Android hardware, boot state,
+  firmware or Recovery execution was verified.
+- **Released:** no. No desktop/Companion package was rebuilt, signed, installed, published or
+  released. Previously generated cloud artifacts predate this correction and are not release
+  candidates for the current source.
+- Guided friction/dead ends: no Guided UI was operated or changed. This removes a false Windows
+  protected-source rejection without weakening any user-visible or execution gate.
+- Guardian/Recovery/safety: Guardian-only authority, exact-device/incident evidence,
+  UNKNOWN-on-uncertainty, no blind retry, independent verification and permanent bootloader
+  no-relock remain unchanged. Stable file replacement, mutation and link redirection continue to
+  fail closed. No execution authority was created.
+- Platform status: the bounded correction is verified on Fedora and genuine Windows. Secure Windows
+  Recovery launch, full Windows regression and controlled physical-hardware verification remain
+  release blockers and are not claimed here.
+- Feature freeze: compliant minimum foundation/correctness work. v0.2 Golden Foundation and all
+  release gates remain **CLOSED**.
+- External actions: local tests, two scoped commits, normal branch push preparation, SSH to the
+  creator-authorized Legion, and creation of isolated source/test directories only. No dependency
+  or package installation, active Windows checkout edit, phone/emulator operation, device-addressed
+  ADB/Fastboot, APK operation, firmware build/sign/flash, Guardian/Recovery execution, publication,
+  release, merge, force-push, lock or relock occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin the separate Linux fixture group,
+Stage 12, package rebuild or another consequential slice. Continue only after Product Assurance
+reviews this exact handoff.
+
+### Product Assurance Review Requested
+
+- Confirm that platform-specific ctime normalization retains sufficient same-file identity because
+  device/file index, size, mtime, bounded hashing and before/after handle checks remain required.
+- Confirm that the newly proven direct symlink/reparse rejection closes the remaining focused
+  Windows AVB-tool seam without broadening this checkpoint.
+
 ## Cloud regression checkpoint — first failure corrected, broad gates remain closed
 
 ### Authoritative checkpoint and scope

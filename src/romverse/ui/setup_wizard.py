@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
+    QScrollArea,
     QVBoxLayout,
 )
 
@@ -85,7 +86,15 @@ class SetupWizard(QDialog):
             value.setObjectName("Good" if status.available else "Warning")
             row.addWidget(value)
             card_layout.addLayout(row)
-        root.addWidget(card)
+        tool_scroll = QScrollArea()
+        tool_scroll.setObjectName("ToolVerificationScroll")
+        tool_scroll.setWidgetResizable(True)
+        tool_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        tool_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        tool_scroll.setMinimumHeight(180)
+        tool_scroll.setMaximumHeight(240)
+        tool_scroll.setWidget(card)
+        root.addWidget(tool_scroll, 1)
 
         workspace_label = QLabel("Workspace")
         workspace_label.setObjectName("SectionTitle")

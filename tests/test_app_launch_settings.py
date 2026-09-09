@@ -4,7 +4,7 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QDialog, QLabel, QPushButton
+from PySide6.QtWidgets import QApplication, QDialog, QLabel, QPushButton, QScrollArea
 
 from romverse import DISPLAY_VERSION
 from romverse import app as app_module
@@ -145,6 +145,39 @@ def test_first_run_explicitly_enters_guided_and_reaches_truthful_host_prerequisi
     finally:
         window.companion_center.transport.close()
         window.close()
+
+
+def test_setup_wizard_bounds_tool_inventory_and_keeps_guided_action_visible(
+    tmp_path: Path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    logo = Path(__file__).parents[1] / "src/romverse/assets/romverse-app-icon.png"
+    missing = tuple(
+        ToolStatus(
+            f"Windows tool {index}",
+            False,
+            detail="Install the required bounded Windows host dependency",
+        )
+        for index in range(18)
+    )
+    wizard = SetupWizard(logo, tmp_path / "workspace", missing)
+    wizard.show()
+    app.processEvents()
+
+    tool_scroll = wizard.findChild(QScrollArea, "ToolVerificationScroll")
+    guided = next(
+        button
+        for button in wizard.findChildren(QPushButton)
+        if button.text() == "Continue in Guided Mode"
+    )
+
+    assert tool_scroll is not None
+    assert tool_scroll.widgetResizable()
+    assert tool_scroll.verticalScrollBar().maximum() > 0
+    assert wizard.sizeHint().height() <= 800
+    assert guided.geometry().bottom() < wizard.contentsRect().bottom()
+
+    wizard.close()
 
 
 def test_desktop_launch_opens_without_a_custom_splash_sequence() -> None:

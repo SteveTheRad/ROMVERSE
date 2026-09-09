@@ -1,5 +1,16 @@
 # ROMVERSE Product Assurance
 
+## Action-time confirmation: one isolated Windows app restart
+
+The approved no-phone host-repair journey may perform exactly one normal restart of the ROMVERSE
+desktop application in its fresh isolated workspace. Verify that the official pinned Platform
+Tools 37.0.1 receipt, workspace-local activation and truthful `NOT CONNECTED` state survive the
+restart, then close cleanly and include the result in the consolidated host-repair handoff.
+
+This is application lifecycle verification only. It does not authorize restarting Windows,
+operating a phone, targeting ADB/Fastboot, installing an APK, changing device state, or any
+Guardian/Recovery/execution action. Continue afterward under the approved ordinary-defect cadence.
+
 ## Reviewed checkpoint: ef69568 — continuous Windows Stage 1 feature batch
 
 - Reviewed checkpoint: `ef695682b1e7b4e360ba5eca3de635f60470fceb`

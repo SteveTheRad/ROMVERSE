@@ -1,5 +1,88 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows no-phone managed Platform Tools host-repair journey — Product Assurance review requested
+
+- Product Assurance authorization: `729e9a0a65cc210ed8cb1639938fe9902107bd3f` — `Approve
+  Windows Stage 1 feature batch`, exactly reviewing checkpoint
+  `ef695682b1e7b4e360ba5eca3de635f60470fceb` and authorizing one fresh managed Windows
+  host-repair journey.
+- Action-time restart authorization: `514655953c65aa73be528a1a1133754705552e5c` — `Authorize
+  isolated Windows app restart`.
+- Status: **PASS — THE ACCEPTED UNSIGNED PACKAGE COMPLETED THE VISIBLE MANAGED PLATFORM TOOLS
+  REPAIR IN ONE FRESH NO-PHONE WORKSPACE; THE APPROVED 37.0.1 RECEIPT AND WORKSPACE-LOCAL
+  ACTIVATION SURVIVED ONE NORMAL RESTART; BOTH SESSIONS REMAINED TRUTHFULLY NOT CONNECTED AND
+  CLOSED CLEANLY. NO SOURCE CORRECTION OR REPLACEMENT PACKAGE WAS NEEDED.**
+
+### Exact accepted package and isolated workspace
+
+- Existing accepted package only:
+  `build\windows-feature-batch-1e8bfde\ROMVERSE\ROMVERSE.exe` — **6,324,428 bytes**, SHA-256
+  `0ac34a65e4acd205e3f8002c0aa787cb1b898d368b143fcecb5205c39ac15e58`, Authenticode
+  `NotSigned`. No package was rebuilt.
+- Fresh disposable `ROMVERSE_HOME`: `C:\Work\ROMVERSE-Host-Repair-729e9a0`; workspace:
+  `C:\Work\ROMVERSE-Host-Repair-729e9a0\workspace`.
+- First run truthfully showed ADB and Fastboot unavailable. Guided Command Deck reported
+  `Device Engine needs attention`, `DEVICE: NOT CONNECTED`, `PROJECT: NONE`, `MISSION: IDLE`,
+  `GUARDIAN: VERIFY REQUIRED`, and `Waiting for device` before the user-facing
+  `Resolve Platform Tools` action.
+
+### Managed acquisition, receipt and activation evidence
+
+- The visible repair used ROMVERSE's existing managed official acquisition path. Its transient
+  setup surface reported `Downloading and verifying official platform-tools...`; after completion
+  Command Deck changed to `Scan for device`, `No Android device detected`, `NOT CONNECTED`, and
+  `No Android transport is visible` without a phone, emulator or device target.
+- Receipt:
+  `workspace\tools\downloads\platform-tools\managed-package.romverse`; schema
+  `romverse.managed-package` version 1; official source
+  `https://dl.google.com/android/repository/platform-tools-latest-windows.zip`; archive size
+  **8,044,989 bytes**; approved archive SHA-256
+  `45f4d63113e895ebde0c90f194099a4676b6ac653bd28d54314a9e022bbc1a99`.
+- `source.properties` reports exact `Pkg.Revision=37.0.1`. The managed tool tree contains **0
+  reparse points**.
+- `adb.exe`: **8,273,560 bytes**, receipt and independently calculated SHA-256 both
+  `b4a6b455702684652cccf7b46258b29e653538904359a58fd4931cf3ef286b3f`.
+- `fastboot.exe`: **2,429,080 bytes**, receipt and independently calculated SHA-256 both
+  `b2d9cbff4ce9ae7eb448cfc831bafc867935f50f5be38f8f81057fd7eb3b8d86`.
+
+### One normal restart and bounded command evidence
+
+- The first package session closed normally. The same exact package then launched once with the
+  same isolated home. Onboarding remained complete, no repair prompt returned, and the persisted
+  receipt activated directly into Guided Command Deck with `Scan for device`, `No Android device
+  detected`, `NOT CONNECTED`, `DEVICE: NOT CONNECTED`, `PROJECT: NONE`, `MISSION: IDLE`,
+  `GUARDIAN: VERIFY REQUIRED`, and `Waiting for device`.
+- The post-restart audit contains four successful `adb devices -l` and four successful
+  `fastboot devices -l` read-only host probes, all return code 0, bounded to 407–469 ms, with no
+  device target. No user-triggered scan or retry occurred.
+- Across the whole fresh workspace, the append-only audit contains **39** records: **4** successful
+  `adb.devices`, **34** successful `fastboot.devices`, and one final initial-session
+  `fastboot.devices` record that bounded at **4,000 ms** with return code 124 during the normal
+  close window. That timeout did not create device evidence, readiness, a retry or execution
+  authority; the UI remained truthfully not connected and the clean shutdown completed. The
+  restart then produced eight consecutive successful bounded probes. No correction was indicated.
+- `workspace\logs\crash\runtime-fault.log` is **154 bytes** and contains exactly **2 runtime
+  starts / 2 clean closes / 0 exception, traceback or native-fault markers**. No ROMVERSE process
+  remains.
+
+### Scope, preservation and next review
+
+- No production or test source changed, no dependency or tool was installed outside the fresh
+  workspace, and no test, lint, portability suite or unchanged package build was repeated.
+  `git diff --check` is the only proportional repository check for this documentation-only
+  handoff.
+- The protected untracked patch remains byte-identical at **8,272 bytes**, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it was not edited,
+  applied, staged or deleted. Protected Companion files remain untouched.
+- No physical phone, emulator or device target was present or requested. No APK, firmware,
+  Recovery/Guardian execution, device write or mode transition, production adapter, signing,
+  publication, release, force-push, destructive action, unlock, root, lock or relock occurred.
+  Guardian-only authority, exact-device evidence, fresh consent, UNKNOWN-on-uncertainty, no blind
+  retry, no wipe and permanent bootloader no-relock remain intact.
+- Precise next task: independent Product Assurance review of this consolidated Windows no-phone
+  host-repair and one-restart persistence checkpoint. Do not begin another source slice until a
+  matching verdict is committed.
+
 ## Continuous Windows Stage 1 feature batch and replacement package — Product Assurance review requested
 
 - Product Assurance authorization: `72d30031608381eee2311c29deec2d85d955151f` — `Approve

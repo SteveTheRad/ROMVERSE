@@ -1,5 +1,58 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 34584a6 — feature-bound Knowledge coverage and Xiaomi identity
+
+- Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`
+- Implementation/evidence checkpoint: `34584a6fe1d7a8fb72ce67c481d63af63ce05af0`
+- Product Assurance authorization/base: `59ee3ea546092c4b5e9d20f05aec60d43c51f6c1`
+- Branch: `adaptive-online-device-dna`
+- Review status: **APPROVED — AUTHORIZED ADAPTIVE WORK COMPLETE; SAFE STOP**
+
+### Decision and independent evidence
+
+The checkpoint implements the exact authorized feature-to-data allowlist and uses the existing
+fixed Google Play catalog adapter once for only `Xiaomi / 2509FPN0BC / popsicle`. The strict typed
+coverage contract maps every approved retained field to one exact claim key, named current ROMVERSE
+consumers, and a concrete decision it improves. Unknown fields, mismatched keys, and consumer drift
+fail closed. Google Play claim formation now resolves its four authorized identity fields through
+that contract.
+
+The single retained result is one exact catalog row: `Xiaomi / Xiaomi 17 Pro Max / 2509FPN0BC /
+popsicle`. Product Assurance inspected the sanitized archive and receipt. They retain four exact
+official identity claims, source/retrieval/parser provenance, source SHA-256
+`24a97f5dca51a62ab44d418219d668674c6e08359618d42322bf50ca15cfd5c3`, archive digest
+`9b98671827cf67340877b132e83266732eae8f9bbfbcd963d1e96e1056e77ed4`, and receipt digest
+`9c942463404461b86cbdfb32f8dc3c2bd5ff877be31ff294e26c321d62af06b9`.
+The raw catalog and nonmatching rows were not retained.
+
+Compatibility remains `UNCONFIRMED`. Every retained record preserves execution authority `none`,
+phone action `false`, Guardian approval `false`, and bootloader relocking `false`. No research text
+became a command, no compatibility or confirmed-outcome promotion occurred, and no second source,
+Pixel query/retry, crawl, phone/emulator, ADB/Fastboot, firmware, build, flash, root, debloat,
+Guardian/Recovery, platform, Companion, database/object-storage, hosted CI, signing, publication,
+release, or relock work entered the checkpoint.
+
+Product Assurance independently reran the exact focused Knowledge set: **185/185 passed** across
+the coverage contract, Google Play acquisition, online evidence, local store, online remediation,
+Android guide, Pixel factory-index, and AOSP build-reference regressions. Focused Ruff check and
+format check passed, and the authorization-to-checkpoint Git whitespace check passed. The full
+suite and live request were not repeated.
+
+### Authorization boundary and next step
+
+The currently authorized adaptive work is complete. Stop this branch at this reviewed checkpoint.
+Do not repeat the Google Play request, acquire another source, revise a Pixel adapter, or begin a
+broader Device Intelligence foundation slice.
+
+A dedicated Device Intelligence foundation branch is **NOT AUTHORIZED** by the current repository
+authority. No approved implementation base commit exists for that branch. This review approves
+`34584a6fe1d7a8fb72ce67c481d63af63ce05af0` only as the completed adaptive checkpoint; it must not
+be inferred to authorize a new branch or a broader production change. The originating Device
+Intelligence task may prepare a separate, exact Product Assurance authorization request identifying
+the minimum additive slice, file ownership, exclusions, tests, branch name, and proposed base.
+Implementation must wait for an explicit subsequent verdict that authorizes that slice and names
+its exact base commit.
+
 ## Reviewed checkpoint: fa97ad9 — AOSP build-reference safe stop
 
 - Handoff/receipt commit: `fa97ad987ce5f27f68705915345b9608740fcbc9`

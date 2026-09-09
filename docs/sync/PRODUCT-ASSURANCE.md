@@ -1,5 +1,77 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 9a19ee1 — Windows corrected-package observation blocker
+
+- Reviewed checkpoint: `9a19ee17722d9dee70eb223446ccd624ac94b6ac`
+- Authorizing verdict: `84ad39d1556cf3de05cd4dd7fcb4d0d991562539`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — ONE AUTHORIZED LAUNCH CLOSED CLEANLY; BANNER VERIFICATION REMAINS UNKNOWN**
+
+### Decision and independent evidence
+
+The checkpoint is the direct child of `84ad39d`, changes only
+`docs/sync/BUILD-STATUS.md`, and Forgejo and GitHub exposed the same exact commit before this
+review. It truthfully distinguishes process-level facts from unavailable visual evidence. The
+exact corrected executable launched once and accepted one normal close request; however, the
+authorized Windows observation surface was unavailable. The required Command Deck banner was
+therefore not observed and is correctly recorded as **UNKNOWN**, not inferred from a clean exit,
+source tests, prior screenshots or process metadata. This is the required fail-closed evidence
+semantics and is not an implementation failure or a basis for retry.
+
+Product Assurance independently revalidated the retained Windows state. The exact executable is
+still 6,324,645 bytes at
+`86925e2ac7b3d836f8aa35cb9e2ee4f07cd4e579d1be4ee42d40fbdad8cdf446` and `NotSigned`.
+Excluding the permitted runtime ledger, the retained private profile remains exactly 37 files and
+982,573 bytes. Activity remains 3,392 bytes at
+`b432f3acbe63c146dfed87e2ded46b8a8aed2cdf59e16ccdf9de8f03e870e46f`; Live Console remains
+31,179 bytes at `a1a829373deb1bf5be45793bd0b290075fa1639502a0626d7622ca6163f8bf93`;
+and the Guided mission remains 436 bytes at
+`ba96a6b7557ce9590b120cd52090a363d5fb2277729aba04b9316928d78ec0db`. The one sealed experiment
+branch and all project, snapshot and Vault state remain preserved according to the retained
+manifest. The profile has zero reparse entries.
+
+The runtime ledger alone advanced to 616 bytes at
+`c978becaee1ed37dd2ee6e5ffe936292eed1e9c638e9d0e98242706ed6486795`; its plain-text content
+contains exactly eight start markers and eight clean-close markers with no fault record. Current
+ROMVERSE, ADB and Fastboot process counts are zero. The Windows checkout is clean for tracked and
+staged files. The protected untracked 8,272-byte patch remains at
+`2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`, while existing untracked
+`build-work/` remains untouched. `git diff --check` passes. No source, test or package changed, so
+rerunning tests or rebuilding would add no relevant evidence.
+
+No ROMVERSE control was invoked after launch. No Time Machine, Genesis, experiment-branch,
+comparison, verification, capture, restore, export, cleanup, external-evidence, network/download,
+device, phone/emulator, ADB/Fastboot, firmware/APK, Recipe/Forge, Guardian/Recovery, signing,
+publication, release, hosted-CI, wipe, unlock/root, bootloader lock or relock action occurred.
+Exact evidence, Guardian authority separation, durable `UNKNOWN`, no blind retry, feature freeze
+and the permanent no-relock rule remain intact.
+
+### Approved next bounded Windows task
+
+Perform one **observation-channel readiness preflight only**, without launching ROMVERSE or
+changing repository/application state:
+
+1. Establish a native Windows observation surface capable of identifying and reading a visible
+   application window through the approved host-control path. A repository note, process listing,
+   browser-only surface or remembered screenshot is not sufficient.
+2. Prove readiness against a harmless already-open native Windows window, without entering data,
+   installing software or invoking any ROMVERSE control. Record only the exact observation method
+   and its successful availability.
+3. If readiness is not independently observable, keep it `UNKNOWN` and stop quietly. Do not launch
+   ROMVERSE again and do not change source, tests, packages or retained profile data.
+
+Once a working native observation surface is proven, return for a new repository authorization of
+one fresh corrected-package launch. The spent launch at this checkpoint must not be retried under
+the previous authorization.
+
+### Gate status
+
+- Exact one corrected-package launch and clean close: **APPROVED**
+- Corrected Command Deck banner: **UNKNOWN — NOT OBSERVED**
+- Observation-channel readiness preflight without ROMVERSE launch: **AUTHORIZED**
+- Another ROMVERSE launch, experiment-branch/Vault use, device/build/consequential action,
+  signing/publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 52c0e2a — Windows isolated Project Vault experiment branch
 
 - Reviewed checkpoint: `52c0e2ad0720a9a9ef1ceb4205049d46a135fcbe`

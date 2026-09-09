@@ -1,5 +1,65 @@
 # ROMVERSE Product Assurance Sync
 
+## Minimum-width desktop workspace checkpoint
+
+### Authoritative commit and exact changes
+
+- Branch: `linux/stage1-desktop-readiness`.
+- Implementation: `a84e9ef8e8fd67d95560268b5c3792f571db304f`
+  (**Keep core workspaces readable at minimum width**).
+- ROM Studio now stacks its project rail above the selected-project workspace when the available
+  page is narrower than 1,050 pixels, then restores the normal side-by-side workspace at wider
+  sizes. The project list remains fully readable and the detail panel no longer clips its edge.
+- Device Atlas now reflows the live Device Passport, official-identity controls and Device Pack
+  evidence rows instead of retaining desktop-wide horizontal minimums. Long Pack names, source
+  evidence and load issues wrap without creating a horizontal navigation dead end.
+- The About founder heading now wraps under the application theme instead of forcing its hidden
+  horizontal width beyond the viewport.
+- These are presentation-only changes. No route, action, decision, evidence state, authority rule,
+  adapter or device behavior changed.
+
+### Verification and gates
+
+- **Implemented:** three responsive Desktop workspaces plus focused regression coverage. No
+  Companion, Windows launcher, Guardian/Recovery policy or execution file changed.
+- **Simulated/Tested:** **110/110 unique affected Device Atlas, ROM Studio and Dashboard/About tests
+  passed**. A fresh application instance exercised all **19 top-level routes** at each of
+  **1080×700, 1200×760 and 1440×900** with no visible scroll area wider than its viewport. Ruff and
+  diff checks passed. The earlier **3,016/3,016** full Linux result at `76e3e2f` remains baseline
+  evidence and is not double-counted as current-layout coverage.
+- **Hardware Verified:** no. Tests used offscreen Qt and disposable local workspaces only.
+- **Released:** no. The latest verified artifact remains the unsigned, unpublished `fe5dab0`
+  Fedora development package; this responsive checkpoint has not yet been packaged.
+- Blockers/failures: the reproduced minimum-width clipping is fixed. Windows secure launch,
+  production signing/trust, physical Recovery/flash validation and release remain
+  blocked/unverified.
+- Guided friction/dead ends: core Device Atlas and ROM Studio workspaces and the complete About
+  route remain readable at the application's supported minimum width without another prompt or
+  interruption.
+- Guardian/Recovery/safety: unchanged. Guardian-only authority, exact target/source/incident
+  binding, durable `UNKNOWN`, no blind retry, independent verification and permanent no-relock
+  remain authoritative.
+- Platform status: genuinely tested on Fedora/Linux. Windows and physical hardware were neither
+  run nor represented as verified.
+- Feature freeze: compliant UI correctness/polish only; no new product capability.
+- Version gate: Fedora minimum-width usability improved; v0.2 Golden Foundation and every
+  production/release gate remain **CLOSED**.
+- External actions: local tests, disposable UI workspaces and scoped commits only. No phone query
+  or action, APK/firmware operation, installation, mode transition, flash, wipe, unlock/root,
+  lock/relock, publication, release or hosted-CI run occurred. The scoped feature-branch push
+  containing this handoff is the only remote write.
+
+### Next proposed Build task
+
+Continue the inert product-as-user pass through dialogs, empty states, persistence and exact
+source handoffs. Correct only reproduced Stage 1 desktop dead ends, then rebuild the Fedora package
+after the next coherent production-source batch.
+
+### Product Assurance Review Requested
+
+- Confirm the responsive workspace boundaries preserve the intended information hierarchy at the
+  supported 1080-pixel application minimum.
+
 ## Responsive Desktop and rebuilt Fedora checkpoint
 
 ### Authoritative commits and exact changes

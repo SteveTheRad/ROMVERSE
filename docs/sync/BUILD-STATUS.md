@@ -1,5 +1,87 @@
 # ROMVERSE Product Assurance Sync
 
+## Structure-inspection fixture checkpoint — shared Ascension/Candidate cascade removed
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `2b88aec`, approving checkpoint `8affb41` and authorizing only
+  correction of the shared current structure-inspection evidence fixture seam. Test-fixture commit:
+  `c76ccd1` (`Build real inspection evidence in fixtures`). This section forms the following handoff
+  commit on `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation regression reliability only. Stage 12 was not operated.
+  No production source, capability, UI, durable schema, Guardian/Recovery behavior or execution
+  boundary changed.
+- Exact changed test files are `tests/test_base_image_compatibility.py`,
+  `tests/test_ascension.py`, `tests/test_ascension_integration.py`, and
+  `tests/test_ascension_final_handoff.py`, plus this repository handoff.
+- The three protected Companion files, Windows launcher work and all unrelated source/user changes
+  were preserved and not edited, staged, discarded or committed.
+
+### Reproduction and correction
+
+- The exact cloud representatives reproduced locally before correction:
+  `test_root_patch_capsule_and_patched_image_are_source_bound_and_reloadable` and
+  `test_complete_candidate_replaces_exactly_two_roles_and_preserves_all_source_steps` both failed
+  inside `RomBuildPlanner.plan()` with `Current structure inspection evidence is required`, before
+  reaching their stated Ascension or Candidate behavior.
+- The common fixture owners imported an exact protected source and later requested a build plan but
+  had not advanced through the now-required production structure-inspection boundary. Each fixture
+  now calls the existing `RomInspectionService.inspect_project()` immediately after importing that
+  protected source.
+- No report, digest or receipt is fabricated. The production service freshly verifies original
+  integrity, inspects the exact source, seals the current report and persists it through the normal
+  private evidence path. `RomBuildPlanner` and `BuildService` checks are unchanged and remain
+  fail-closed.
+
+### Verification evidence
+
+- The two exact representative nodes passed **2/2** after correction.
+- Final directly affected Fedora selection passed **269/269** in 18.23 seconds: Base Image
+  Compatibility; Ascension core, integration and final handoff; Candidate Installation composition
+  and integration; and the dependent Candidate UI/Desktop consumers. The two representative nodes
+  are contained in this final selection and are not added to the total.
+- Ruff check and Ruff format check passed for all four changed files. `git diff --check` passed.
+  Collection-only confirmation reported exactly 269 nodes; it did not execute or add tests.
+- No full Linux suite, Windows suite or GitHub Actions workflow was run. No isolated wording,
+  geometry, modal-cleanup or source-installation-stop failure was mixed into this checkpoint.
+
+### Classification, safety and gates
+
+- **Implemented:** test fixtures now establish genuine current structure evidence through the
+  existing production contract; application behavior is unchanged.
+- **Simulated/Tested:** 269/269 affected Fedora tests passed. Candidate build/tool/device data in
+  those tests remain deliberately inert fixtures and grant no authority.
+- **Hardware Verified:** no. No phone, emulator or Windows host was used in this checkpoint.
+- **Released:** no. No package was built, installed, signed, published or released.
+- Guided friction/dead ends: dependent Candidate UI/Desktop fixtures now reach their intended
+  existing flows instead of failing in setup. No user-facing route, wording, dialog or confirmation
+  changed.
+- Guardian/Recovery/safety: unchanged. Current structure inspection is still mandatory;
+  Guardian-only authority, exact-device/incident evidence, UNKNOWN-on-uncertainty, no blind retry,
+  independent verification and permanent bootloader no-relock remain intact. No execution
+  authority was created.
+- Platform status: bounded affected verification passed on Fedora. Windows was not relevant or run
+  for this test-only fixture correction. Broad Linux/Windows regression, secure Windows Recovery
+  launch and controlled physical-hardware verification remain closed release gates.
+- Feature freeze: compliant test-only foundation/correctness work. v0.2 Golden Foundation and all
+  release gates remain **CLOSED**.
+- External actions: repository log inspection plus local tests and scoped commit/push preparation
+  only. No GitHub Actions run, dependency/tool/APK installation, phone/emulator operation,
+  device-addressed ADB/Fastboot, firmware build/sign/flash, Guardian/Recovery execution,
+  publication, release, merge, force-push, lock or relock occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin an isolated UI/wording/modal fixture,
+Stage 12, package build or another consequential slice until this exact checkpoint is reviewed.
+
+### Product Assurance Review Requested
+
+- Confirm that using the real production inspection service in the four shared fixture owners is
+  the minimum correct test-only repair and does not obscure a production defect.
+- Confirm that the 269-node affected selection closes the shared Ascension/Candidate setup cascade
+  without requiring a full paid regression matrix or replacement package.
+
 ## Stable-file identity checkpoint — genuine Legion Windows verification passes
 
 ### Authoritative checkpoint and scope

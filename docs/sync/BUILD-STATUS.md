@@ -1,5 +1,92 @@
 # ROMVERSE Product Assurance Sync
 
+## Fedora Guided Working Lab copy-only scope divergence
+
+### Authoritative commit and exact changes
+
+- Branch: `linux/stage1-desktop-readiness`.
+- Divergence evidence: `42bfb8f488fda7158ec54beb91bbe48376dc5937`
+  (**Record Fedora Working Lab scope divergence**).
+- Product Assurance authorization:
+  `94b88af69beeb37b9a0f3bce9baaf72d0a45111a`.
+- Complete evidence:
+  `docs/evidence/FEDORA_GUIDED_WORKING_LAB_SCOPE_DIVERGENCE_2026-09-10.md`.
+- Application, tests and retained package are unchanged. The 6,337,072-byte package executable
+  remains SHA-256
+  `4fbfed3244d93ba535413151c26f5fe53ef526d402f638a5e81e662f8b562500`.
+
+### Result and gates
+
+- **Checkpoint result: BLOCKED / CORRECTION OR RERUN DIRECTION REQUIRED.** The authorized copy-only
+  acceptance did not pass. Build selected Genesis **Prepare working lab** once instead of the
+  narrower ROM Studio Source Lab **Create working copy** action. Current Genesis deterministically
+  chained `working-copy` and `extract`, created two automatic local Project Vault entries and
+  advanced to task 5. Build immediately stopped, made no retry/reset/cleanup and does not represent
+  the result as approved extraction.
+- **Implemented:** no product implementation. This is evidence and handoff only.
+- **Simulated/Tested:** the copy portion produced a contained writable 551-byte baseline exactly
+  matching the protected source at SHA-256 `c3f5c171…89c8`, plus a strict working-copy record.
+  However, the same action also extracted the two inert fixture members (297 bytes total), created
+  a strict tree index and saved automatic Time Machine checkpoints. The requested copy-only
+  boundary therefore failed even though every observed local result was deterministic.
+- Preflight and containment: the same mode-`0700` disposable profile retained Guided mode, empty
+  Android-tool `PATH` and all online/community/download/contribution controls false. Bubblewrap
+  exposed only zero-byte loopback. The source remained mode `0400`; the protected original remained
+  mode `0444`; both are still 551 bytes and byte-identical at SHA-256 `c3f5c171…89c8`.
+- The final Guided mission is saved at task 5, **Confirm device identity and capabilities**, with
+  33% verified, no error, no build plan and no install request. `tools` is empty. No device scan,
+  device evidence, Guardian ledger, Recovery incident/result, consent or execution record exists.
+- Logging is fully disclosed: Activity now has five records—the prior import plus working copy,
+  extraction and two local Project Vault checkpoint successes. Live Console now has 18 records—the
+  prior eight plus ten running/success/save events. They preserve evidence but grant no authority.
+- Non-double-counted regression evidence: **0 new automated test nodes**, no rebuild and one failed
+  copy-only runtime acceptance. The earlier **56/56** package/knowledge baseline remains unchanged
+  prior evidence and is not counted again.
+- **Hardware Verified:** no. No physical/simulated Android target or Android tool was used.
+- **Released:** no. The package remains unsigned, local and unpublished.
+- Guided friction/dead end: Genesis exposes one task-level **Prepare working lab** CTA whose own
+  description includes automatic extraction; it does not provide the copy-only stop Product
+  Assurance requested. The narrower Source Lab action exists elsewhere, but Build did not invoke
+  it. This is now an explicit route/acceptance mismatch rather than hidden success.
+- Guardian/Recovery/safety: execution authority remains `none`; no device or consequence boundary
+  was entered. Exact evidence, Guardian-only authority, durable `UNKNOWN`, no blind retry,
+  independent verification and permanent bootloader no-relock remain unchanged. The automatically
+  created Time Machine records are local project checkpoints, not device Recovery authority.
+- Platform status: genuinely observed on Fedora/Linux. Windows was not run or modified; Android
+  hardware was not used or represented as verified.
+- Feature freeze: no feature or source change. Any correction must remain the minimum Stage 1
+  boundary fix or an explicitly authorized rerun using the existing narrower control.
+- Version gate: synthetic Provenance remains approved; copy-only Working Lab acceptance is
+  **NOT APPROVED**; extraction, build, device/consequential, v0.2 and release gates remain
+  **CLOSED**.
+- External actions: one isolated local package launch; one **Resume Mission** click; one incorrect
+  **Prepare working lab** click; contained baseline, two inert extracted members and automatic local
+  checkpoint/evidence writes; product-owned Genesis **Save & exit**; exact process termination;
+  read-only source/Git inspection; and scoped documentation commits. Exit was exact status 143 and
+  no clean-close/restart-persistence claim is made. GNOME toolkit accessibility was restored to
+  false. No network request, reimport, new fixture, tool/download/install, real firmware,
+  phone/emulator, ADB/Fastboot, build plan/build, Guardian/Recovery execution, flash, wipe,
+  unlock/root, lock/relock, signing, publication, release, hosted CI or Forgejo Action occurred.
+  Forgejo-first and identical GitHub branch pushes containing this handoff are the only planned
+  remote writes.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance. Do not reset/delete/reuse the advanced disposable project,
+modify Genesis, or attempt a fresh copy-only journey until Product Assurance chooses between:
+
+1. an explicitly authorized fresh disposable-project run using Source Lab **Create working copy**;
+   or
+2. a minimum Stage 1 Genesis copy-only boundary correction with focused regression and rebuild.
+
+### Product Assurance Review Requested
+
+- Classify the exact task-level CTA versus Source Lab action mismatch and choose the next bounded
+  path.
+- Confirm the automatically extracted inert members and local Time Machine checkpoints are fully
+  disclosed and grant no device/consequence authority.
+- Keep extraction acceptance and every later gate closed; this checkpoint makes no approval claim.
+
 ## Fedora Guided synthetic firmware intake through Provenance
 
 ### Authoritative commit and exact changes

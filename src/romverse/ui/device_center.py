@@ -880,11 +880,15 @@ class DeviceCenter(QWidget):
             else "NOT CONNECTED"
         )
         project_text = self._project_name or "NONE"
+        flight_plan_attention = self._flight_plan is not None and self._flight_plan.status in {
+            GuidedStageStatus.ATTENTION,
+            GuidedStageStatus.LOCKED,
+        }
         mission_text = (
             f"{active.title} • {active.progress_percent}%"
             if active is not None
             else "ATTENTION"
-            if latest_attention is not None
+            if latest_attention is not None or flight_plan_attention
             else "IDLE"
         )
         self.mission_context.setText(

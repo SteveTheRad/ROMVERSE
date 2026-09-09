@@ -1,5 +1,153 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows isolated Project Vault experiment branch — Product Assurance review requested
+
+### Exact authority and one-shot preflight
+
+- Product Assurance verdict `1fd8662e342b003f0ea9020ba9ca70d1f616ccdc` exactly approves
+  checkpoint `7d0cf6a76ff89eb419412a63ebbaae047da88f4e` and authorizes one isolated Project
+  Vault experiment branch from verified entry `20260909T201412-ea0f44c8`. The checkout safely
+  fast-forwarded to that exact verdict on `windows-launcher-authorized-work`. The protected
+  untracked patch remained 8,272 bytes at SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`, existing untracked
+  `build-work\` remained untouched, and all protected Companion files remained unchanged.
+- Preflight revalidated the selected 3,331-byte entry at SHA-256
+  `eaa7f76cc78402fee5236c93521c5bbe0a69c7af5a813cbd89fe951c80fd31fd`, sealed record digest
+  `ba657da6b82559e40382f31d73068d9c391ba2af065095134f77e76a58a386d3`, exact project
+  `windows-private-original-392b82fb-d5d46af7`, snapshot `20260909T201410-bafcbd`, parent
+  `20260909T201410-0822394f`, two tree objects/243 bytes and three exact context objects. Its
+  497-byte baseline plus five objects remained exactly six files/14,855 bytes. There was no
+  existing experiment branch and the profile contained no reparse entry.
+- Before launch, Activity was 3,392 bytes at SHA-256
+  `b432f3acbe63c146dfed87e2ded46b8a8aed2cdf59e16ccdf9de8f03e870e46f` with six events; Live
+  Console was 29,306 bytes at SHA-256
+  `572d700546113dd38d6f13f03255effc2d025da9296b5d956974b997a1030c62` with 28 events. The
+  436-byte Guided mission was SHA-256
+  `ba96a6b7557ce9590b120cd52090a363d5fb2277729aba04b9316928d78ec0db`, selected stage
+  `device`, root undecided, with no build plan, install request or error. ROMVERSE, ADB and Fastboot
+  process counts were zero.
+
+### One exact isolated experiment branch
+
+- PID `113044` started at `2026-09-10T07:55:20+10:00` from the retained unsigned package
+  `C:\Work\ROMVERSE-Windows\build\windows-private-original-392b82fb\ROMVERSE\ROMVERSE.exe`,
+  6,324,563 bytes at SHA-256
+  `2c94f329fa33c96e0b9aca92b6c495b2c55d87e25d14af089afd1c19d652881f`. The process inherited
+  only `C:\Work\ROMVERSE-No-Tools-392b82fb` as `PATH` and exactly `--workspace`,
+  `C:\Work\ROMVERSE-Private-Original-392b82fb\workspace`, `--skip-onboarding`,
+  `--development-device-simulation`. Command Deck showed the exact project, no physical or Android
+  device, Guided attention, Guardian verification required and no running operation.
+- Normal navigation opened Time Machine with `Extracted project tree` selected. Build invoked
+  `Branch experiment` exactly once and entered only the exact label
+  `Windows Vault Experiment 7d0cf6a`. The producing service freshly verified the selected entry
+  and created exactly one contained branch,
+  `windows-vault-experiment-7d0cf6a-5eea7b18`. The visible terminal result stated
+  `ISOLATED EXPERIMENT READY`, named the exact label and branch, and stated that the known-working
+  project baseline was not overwritten and the phone was untouched.
+- The protected branch root is
+  `time_machine/windows-private-original-392b82fb-d5d46af7/vault/branches/`
+  `windows-vault-experiment-7d0cf6a-5eea7b18`. Its 683-byte `branch.romverse` is SHA-256
+  `c3a8c18e181b09af416d54422ffaa209120aace799d6f2f21681eaeb8d1bba7e`, record digest
+  `7eb15fa5f58e781dead6f1ee51a0086ccd59d092c789578b636ccb067d7f3c42`, schema one, and binds
+  the exact project, selected entry, label, 497-byte baseline digest and contained workspace path.
+  Its creation time is `2026-09-10T07:57:08.914013+10:00`.
+- The branch contains exactly the authorized six data files/14,855 bytes: 497-byte
+  `working-baseline.bin` at
+  `1d9c78df6f42c63864a76bdf91a50cb2da1cd2e133cc44cba5f1c298302f0725`; 219-byte metadata at
+  `5d38fcf1440c5c88f0e4f13ade3998cf1dd4f43d4057446a7f8cd6fb3dc0b5e3`; 24-byte payload at
+  `27d85415cd81bc6332271f9501791c3a89efabeb3f93dc66fbedb9c039d965eb`; 12,571-byte Device
+  DNA at `c78a3b3cd3f3e1f641ac62196a8d12c2aa758fb587c373449d56f15abfb7b022`; 830-byte inspection
+  at `e2d6f7d0797262251d028914f87cd62872fbe3523bea3a1997d19c3c670756a4`; and 714-byte project
+  record at `23914dbb188d473a659a0caf352719bd544b8f4666a873d2c6280871ea9e341c`. Including its sealed
+  record, the branch contains seven regular files/15,538 bytes and zero reparse entries.
+- The branch root has inheritance disabled, owner `STEVESLEGION\steve`, and only inheritable Full
+  Control allows for OWNER RIGHTS, SYSTEM and built-in Administrators. Branch files retain the
+  corresponding private snapshot/object/entry ACL patterns. No containment, binding or ACL defect
+  appeared.
+- Activity remained byte-identical. Live Console appended only one exact
+  `project-vault-branch` running/succeeded pair under mission
+  `144f167cf6284d5fa8efbe4a1e684523`: running event
+  `8b4052800acf4813a8d51c5d07f6d530` at `07:57:08.820694+10:00`, then verified, Guardian-protected
+  success event `0adc7a15a63e4b8ca73d77036d7f486d` at `07:57:08.925561+10:00`. No retry or inferred
+  success occurred. The branch was not opened, edited, built from, verified or otherwise used, and
+  no second branch was created.
+
+### First return-context defect and minimum correction
+
+- Direct normal return to Command Deck preserved the exact project and the lower Genesis Flight
+  Plan at stage 5/15, `Confirm device identity and capabilities`, status `ATTENTION`. The top
+  context incorrectly showed `MISSION: IDLE`, however, because the newly succeeded local Vault
+  event was newer than the incomplete Guided plan. This was the first and only branch/display/
+  return-context defect; ROMVERSE was closed normally immediately afterward.
+- `src/romverse/ui/device_center.py` now derives top-level attention from an `ATTENTION` or
+  `LOCKED` Guided flight plan as well as a current attention ledger event. It does not alter next
+  action routing, mission state, persisted state or execution authority. A focused regression in
+  `tests/test_dashboard_rendering.py` proves that a succeeded local `project-vault-branch` mission
+  cannot hide a stage-five Guided attention state and that no-device routing remains
+  `Connect Device`.
+- One exploratory command included unavailable option `--timeout=30`; pytest returned usage exit
+  4 and collected no test. The next invocation without a unique base directory hit the existing
+  Windows `pytest-current` cleanup permission failure before a trustworthy test result. A first
+  isolated focused run then exposed an over-specific development assertion expecting
+  `Continue Genesis`; the assertion was corrected to preserve the existing truthful no-device
+  `Connect Device` behavior. These were setup/test-development results, not application failures,
+  and none was hidden or counted as acceptance.
+- Final focused command with `PYTHONPATH=src`, `QT_QPA_PLATFORM=offscreen` and unique base
+  `C:\Users\steve\AppData\Local\Temp\romverse-command-deck-2424108d43624d7fa80191e4264b58fe`
+  passed **1/1**. The affected regression
+  `.venv\Scripts\python.exe -m pytest tests\test_dashboard_rendering.py -q --basetemp
+  C:\Users\steve\AppData\Local\Temp\romverse-dashboard-1f803d9ccec741cba8a8242f9a485bf2`
+  passed **26/26**, with zero failures, errors, skips, timeouts or stalls.
+- `.venv\Scripts\python.exe -m ruff check src\romverse\ui\device_center.py
+  tests\test_dashboard_rendering.py` passed. The first format gate found only the new expression's
+  mechanical layout; `ruff format` normalized that one file, after which `ruff format --check`
+  passed both changed files. `git diff --check` passed.
+
+### Replacement unsigned package and final sealed state
+
+- The first build output, `build\windows-vault-attention-1fd8662`, completed but was not launched
+  or accepted because the subsequent format gate changed source layout. The final source-matched
+  build then ran once into distinct, previously absent directories:
+  `.venv\Scripts\python.exe scripts\build_desktop_executable.py --output-directory
+  C:\Work\ROMVERSE-Windows\build\windows-vault-attention-final-1fd8662 --work-directory
+  C:\Work\ROMVERSE-Windows\build\windows-vault-attention-final-1fd8662-pyinstaller`.
+  Both builds passed on Windows 11 Home x64 `10.0.26200`, Python `3.12.10` and PyInstaller `6.22.2`;
+  no dependency or tool was installed or downloaded.
+- Accepted unsigned local development package:
+  `C:\Work\ROMVERSE-Windows\build\windows-vault-attention-final-1fd8662\ROMVERSE` — 306 regular
+  files, 23 directories, 164,663,535 bytes, zero empty files, zero reparse entries and zero
+  `icu*.dll` files. Its sorted relative-path/size/member-SHA-256 manifest digest is
+  `bf9d4d4d1a5144da4bdd5ce9df95ff525238fa754b270ee721d6a541f6cbdfe6`.
+- `ROMVERSE.exe` is 6,324,645 bytes, SHA-256
+  `86925e2ac7b3d836f8aa35cb9e2ee4f07cd4e579d1be4ee42d40fbdad8cdf446`, Authenticode
+  `NotSigned`. The 2,576-byte PyInstaller warning record is SHA-256
+  `a3b60f3f6d27a83592032ab958a26f9c7ded76b3db2127d62e424fdbbb07ff00` and contains only the
+  existing expected optional/opposite-platform modules. The replacement package was not launched;
+  no second branch action or branch use occurred.
+- Postflight rehashed every pre-existing project, snapshot and Vault byte without mismatch. Counts
+  are still one snapshot binary, one snapshot record, two Vault entries, five Vault objects and
+  exactly one experiment branch. The protected original, working baseline and snapshot remain
+  497 bytes at `1d9c78df...`; the working-copy record, tree index, snapshot record, both entry
+  records, extracted files and every object retain their prior exact hashes. Activity remains six
+  events/3,392 bytes at `b432f3ac...`; Live Console is exactly 30 events/31,179 bytes at
+  `a1a829373deb1bf5be45793bd0b290075fa1639502a0626d7622ca6163f8bf93` with only the authorized
+  pair added. The mission remains 436 bytes at `ba96a6b7...`; settings remain 687 bytes at
+  `90958eaf...`; the runtime ledger is 539 bytes at
+  `d4890d973571a05d5cd3dc2a19803fbe65f9a284e98294675889bb7795c88e33`, representing seven starts
+  and seven clean closes.
+- Final ROMVERSE, ADB and Fastboot process counts are zero. Both audit locks accept exclusive
+  no-sharing opens, all ten operational directories remain empty, and the entire retained profile
+  has zero reparse entries. No phone/emulator, device scan, ADB/Fastboot command, network/download,
+  APK/firmware mutation, Recipe/Forge, Guardian/Recovery execution, branch use, signing,
+  publication, release, hosted CI, wipe, unlock/root, bootloader lock or relock occurred. Exact
+  evidence, consent separation, Guardian-only authority, durable UNKNOWN, no blind retry,
+  independent verification, feature freeze and permanent bootloader no-relock remain intact.
+- Precise proposed next task: independent Product Assurance review of the exact one-shot branch,
+  its contained sealed content/ACL/audit evidence, the minimum Command Deck attention correction,
+  1/1 focused and 26/26 affected regressions, and the source-matched unsigned package. Do not use
+  the branch or begin another Vault, launch, implementation, test/package or consequential action
+  without a matching repository verdict.
+
 ## Windows Project Vault parent-to-child visual comparison — Product Assurance review requested
 
 ### Exact authority and comparison preflight

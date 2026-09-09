@@ -247,6 +247,54 @@ def test_command_deck_projects_one_exact_action_and_five_primary_mission_routes(
     center.close()
 
 
+def test_command_deck_keeps_guided_attention_after_local_mission_success(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    missions = LiveConsoleEventStore(tmp_path)
+    completed = missions.start(
+        source="Time Machine",
+        stage="project-vault-branch",
+        title="Project Vault branch",
+        summary="A local Project Vault branch operation started.",
+        explanation="Only contained project history is changed.",
+        next_action="Wait for producer evidence.",
+        project_id="project-aurora",
+    )
+    missions.finish(
+        completed.mission_id,
+        MissionState.SUCCEEDED,
+        summary="Project Vault branch completed with producer evidence.",
+        explanation="The producing service committed its terminal result.",
+        next_action="Review the isolated branch.",
+        confidence=MissionConfidence.VERIFIED,
+    )
+    center = DeviceCenter(tmp_path, ActivityStore(tmp_path), missions)
+    center.show()
+    center.set_workspace_context(
+        "Project Aurora",
+        True,
+        GenesisFlightPlan(
+            project_name="Project Aurora",
+            stage_number=5,
+            stage_total=15,
+            stage_title="Confirm device identity and capabilities",
+            status=GuidedStageStatus.ATTENTION,
+            progress_percent=33,
+            verified_stages=5,
+            blockers=("No Android device is currently visible.",),
+            recommendation="Connect the exact target only after approval.",
+            action_label="Scan device & refresh DNA",
+            root_route="Decision pending",
+            recovery_ready=True,
+            guardian_ready=False,
+        ),
+    )
+    app.processEvents()
+
+    assert center._next_action_key == "Connect Device"
+    assert "MISSION: ATTENTION" in center.mission_context.text()
+    center.close()
+
+
 def test_command_deck_live_progress_warnings_and_accomplishments_need_real_ledgers(
     tmp_path,
 ) -> None:

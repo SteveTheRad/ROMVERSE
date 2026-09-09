@@ -1,5 +1,85 @@
 # ROMVERSE Product Assurance Sync
 
+## Project Flash restored-mtime portability correction — both fail-closed boundaries
+
+### Authoritative checkpoint and scope
+
+- Product Assurance correction/base: `07f95d6`, reviewing checkpoint `8395385`. Fixture correction
+  commit: `60e4095` (`Accept both safe tamper rejection boundaries`). This section forms the
+  following handoff commit on `linux/stage1-desktop-readiness`.
+- This section supersedes the platform-specific detection-order claim in the immediately following
+  `8395385` handoff. Product Assurance independently observed the earlier receipt-loader rejection;
+  Linux Build observed the later per-image fresh-hash rejection. Both are valid and fail closed.
+- Stage: Stage 1 — v0.2 Golden Foundation regression portability only. No production source, copy,
+  receipt loader, hash check, fallback route, Guardian/Recovery rule or authority boundary changed.
+- Exact changed test file is `tests/test_project_flash.py`, plus this handoff. Desktop UI,
+  packaging, Windows, Companion and every unrelated cluster remained unchanged.
+
+### Corrected dual-boundary contract
+
+- The fixture retains the same-size byte mutation and restores the original access/modification
+  timestamps. Depending on filesystem metadata behavior, preparation may reject at either approved
+  boundary:
+  - local-build receipt loading determines that no current verified build output remains, requires
+    completing a fresh build and names protected-source images only as an **explicit** alternative;
+    or
+  - receipt metadata remains current long enough for Project Flash to stream and freshly hash the
+    selected output, detect that its bytes differ from the exact source/build receipt and require
+    fresh verified evidence.
+- The fixture accepts only those complete semantic outcomes. It does not accept an arbitrary
+  `ProjectError`, require one incidental detection order or weaken either production check.
+- It explicitly proves no `ProjectFlashPreparation` is returned. Because the attempted selection
+  remains `candidate_choice="built"` and both paths raise, no protected-source fallback, image
+  inventory, execution request or authority is created.
+
+### Verification evidence
+
+- Corrected exact restored-mtime tamper node: **1/1 passed**.
+- Final smallest directly connected Project Flash service selection: **14/14 passed**. The exact
+  rerun is contained in the final selection and is not added to its total.
+- Product Assurance's pre-correction independent result was **13/14**, with the sole failure being
+  the fixture's over-specific downstream-message assertion; product rejection itself remained safe.
+- Ruff lint, Ruff formatting and `git diff --check` passed for the corrected fixture.
+- No desktop/UI journey, full repository suite, package build, Windows suite, paid GitHub Actions
+  workflow or Stage-12 operation was run.
+
+### Classification, safety and gates
+
+- **Implemented:** one portable test-only assertion now protects both current fail-closed tamper
+  boundaries and proves no preparation is returned. Application behavior and copy are unchanged.
+- **Simulated/Tested:** **14/14** pure Project Flash service tests passed on Fedora. Product
+  Assurance separately observed the alternate safe boundary; this is test evidence, not hardware
+  verification.
+- **Hardware Verified:** no. No phone, emulator or Windows host was used by Build.
+- **Released:** no. No package was built, installed, signed, published or released.
+- Guided friction/dead ends: both outcomes direct the user toward fresh evidence; the earlier path
+  additionally preserves protected-source images as an explicit alternative. Neither path silently
+  changes the user's selection or grants authority.
+- Guardian/Recovery/safety: unchanged. Same-size/restored-mtime tampering remains rejected before
+  preparation completes. Exact source/receipt binding, Guardian-only authority, UNKNOWN-on-
+  uncertainty, no blind retry, independent verification and permanent bootloader no-relock remain
+  intact.
+- Platform status: bounded service verification passed on Fedora; Product Assurance independently
+  exposed the alternate filesystem-sensitive boundary. Broad Windows/Linux regression and all
+  release gates remain closed.
+- Feature freeze: compliant test-only portability correction. v0.2 Golden Foundation and all
+  release gates remain **CLOSED**.
+- External actions: local tests and scoped commit/push preparation only. No paid workflow,
+  dependency/tool/APK installation, phone/emulator operation, device-addressed ADB/Fastboot,
+  firmware build/sign/flash, Guardian/Recovery execution, publication, release, merge, force-push,
+  lock or relock occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another error-copy/UI cluster,
+package task, Stage 12 operation or consequential slice until this exact correction is reviewed.
+
+### Product Assurance Review Requested
+
+- Confirm the corrected fixture accepts exactly the two approved complete fail-closed semantic
+  outcomes while proving no preparation, implicit fallback or authority is produced.
+- Confirm **14/14** is sufficient affected regression evidence for this test-only portability fix.
+
 ## Project Flash restored-mtime tamper checkpoint — durable fresh-evidence semantics
 
 ### Authoritative checkpoint and scope

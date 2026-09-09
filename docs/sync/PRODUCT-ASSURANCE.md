@@ -1,5 +1,83 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: f40907d — Windows no-network convergence blocker
+
+- Reviewed checkpoint: `f40907d50e35b3dcdde8b732d066753db1438be9`
+- Authorizing verdict: `441209f71152471d1880b7e5b2952d36f188ec95`
+- Retained package source: `b1dc54e0c6390fb3d789930dda0696c712e40e64`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **CORRECTION REQUIRED — NO-NETWORK PRECONDITION INVALIDATED THE JOURNEY**
+
+### Decision and independent evidence
+
+Build stopped at the correct boundary and the checkpoint truthfully records the failure. Product
+Assurance cannot accept the completed Settings/ACL/Archives observations as the authorized
+no-network journey because the fresh profile retained the production default
+`online_intelligence_enabled: true`. Reviewed source constructs `OnlineStatusBadge` with that
+value, immediately schedules a GET to Google's connectivity-check endpoint and permits automatic
+catalog refresh while the setting remains enabled. The observed `ONLINE` badge and the resulting
+Google Play catalog files are consistent with those code paths. This is not `no-network`, even
+though the user did not select a network-backed feature.
+
+The retained evidence is otherwise internally consistent. Product Assurance independently
+verified the two normal start/clean-close pairs in the 154-byte runtime ledger with SHA-256
+`50d779cf4f44836bb0f2fc6bb9cd0f21763e9de1dcb388fb854e57e5b18f4587`, zero remaining ROMVERSE
+processes, the 629-byte schema-five settings file with SHA-256
+`c5376540c74b6f886815e2896f0c169540aa04bab4ec7711f821602bceb21f86`, `reduced_motion: true`, and
+the exact private owner/SYSTEM Windows ACL. The workspace has nine regular files and no reparse
+entries. The Settings persistence and popsicle Knowledge zero-authority observations may remain
+recorded as bounded evidence, but they do not satisfy the no-network acceptance criterion.
+
+The checkpoint changes only Build Status and passes Git whitespace validation. The Windows
+checkout contains only the protected untracked patch and existing `build-work/` intermediates;
+the patch remains 8,272 bytes with SHA-256
+`2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`. Forgejo and GitHub expose
+the same checkpoint. No source/package change, rebuild, dependency/tool change, phone/emulator,
+ADB/Fastboot, firmware/APK, Guardian/Recovery execution, signing, publication, release, hosted CI,
+wipe, unlock/root, lock or relock occurred.
+
+### Minimum exact correction
+
+Do not change a production default and do not add a launch-only or hidden offline control for this
+correction. ROMVERSE already has the explicit user-reachable controls needed to make the journey
+local, and reviewed code gates both `OnlineStatusBadge` monitoring and automatic catalog refresh
+on the existing Online Intelligence preference. Changing the fresh-user default is a separate
+product/privacy decision; adding a test-only path would not validate normal persisted behavior.
+
+Repeat the same retained-package journey once with these exact corrections:
+
+1. Create a new uniquely named disposable `ROMVERSE_HOME` root. Before the first ROMVERSE process,
+   use the reviewed `SettingsStore` contract to create only its private schema-five settings file
+   with `online_intelligence_enabled`, `community_research_enabled`,
+   `auto_download_verified_tools` and `synapse_contributions_enabled` all false. Preserve all other
+   validated defaults, including `reduced_motion: false`. Record the file hash and private ACL.
+   The workspace child must still not exist until the package initializes it.
+2. Launch the exact retained unsigned package with the same explicit workspace,
+   `--skip-onboarding` and `--development-device-simulation`. Before navigating, verify the badge
+   says `LOCAL` rather than `CHECKING`, `ONLINE` or `OFFLINE`, and that its local-mode explanation
+   states no reachability request is running.
+3. Repeat only the previously authorized reduced-motion persistence and packaged popsicle /
+   `2509FPN0BC` Archives checks across exactly two launches. The evidence must remain local,
+   unconnected, non-hardware, non-compatibility and zero execution authority.
+4. Confirm no connectivity/catalog worker was enabled by the persisted settings, no downloaded
+   catalog/update receipt or tool-install plan appeared, both launches closed normally, and zero
+   ROMVERSE processes remain. Preserve the failed workspace unchanged as prior evidence and commit
+   only the corrected sanitized handoff.
+
+If a request still occurs with all four persisted controls false, stop and report that exact
+deterministic defect; do not silently add a new switch or alter shared source. No rebuild, network
+feature, setup repair, Forge Arsenal, product-wide tour, download, dependency/tool change,
+phone/emulator/ADB/Fastboot, firmware/APK, Guardian/Recovery execution, signing, publication,
+release, hosted CI, wipe, unlock/root, lock or relock is authorized.
+
+### Gate status
+
+- Current-package Settings/privacy and popsicle Knowledge no-network journey:
+  **CORRECTION REQUIRED**
+- Replacement local-mode journey using existing persisted controls: **AUTHORIZED**
+- Production network defaults or new launch controls: **NOT AUTHORIZED**
+- Physical-device work, production trust/signing, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: c20f021 — Current-source unsigned Windows package convergence
 
 - Reviewed checkpoint: `c20f02101c0d0276efc2873864dc41ab52427e83`

@@ -61,6 +61,7 @@ from romverse.rom.inspection import RomInspectionService
 from romverse.rom.projects import RomProjectStore
 from romverse.rom.recipes import RecipeStore
 from romverse.rom.source_intelligence import FirmwareSourceIntelligenceService
+from romverse.ui.guided_mission import GuidedBuildMission
 from romverse.ui.main_window import (
     MainWindow,
     _device_scan_failure_copy,
@@ -1803,14 +1804,21 @@ def test_fresh_command_deck_guided_project_resumes_through_simulation_readiness(
         "romverse.ui.rom_studio.QMessageBox.question",
         lambda *_args: QMessageBox.StandardButton.Yes,
     )
-    monkeypatch.setattr(
-        "romverse.ui.guided_mission.GuidedBuildMission.exec",
-        drive_guided_mission,
-    )
     try:
         window.device_center.primary_action_buttons["Start ROM Project"].click()
         app.processEvents()
 
+        mission = window.rom_studio._guided_mission_dialog
+        assert isinstance(mission, GuidedBuildMission)
+        assert mission.parent() is window.rom_studio
+        assert QApplication.activeModalWidget() is mission
+        assert drive_guided_mission(mission) is QDialog.DialogCode.Rejected
+        assert QApplication.activeModalWidget() is mission
+        mission.reject()
+        app.processEvents()
+
+        assert window.rom_studio._guided_mission_dialog is None
+        assert not QApplication.activeModalWidget()
         project = window.rom_studio.current_project
         assert project is not None and project.original is not None
         project_id = project.project_id
@@ -2324,16 +2332,6 @@ def test_device_atlas_zero_match_opens_transient_new_project_mission_and_cancels
         pack_registry=registry,
         app_settings=AppSettings(online_intelligence_enabled=False),
     )
-    missions = []
-
-    def capture_mission(mission):
-        missions.append(mission)
-        return QDialog.DialogCode.Rejected
-
-    monkeypatch.setattr(
-        "romverse.ui.guided_mission.GuidedBuildMission.exec",
-        capture_mission,
-    )
     phone = _device(serial="CURRENT-PHONE-8390")
     try:
         window.rom_studio.refresh(unrelated_project.project_id)
@@ -2349,8 +2347,10 @@ def test_device_atlas_zero_match_opens_transient_new_project_mission_and_cancels
         app.processEvents()
 
         assert window.stack.currentWidget() is window.rom_studio
-        assert len(missions) == 1
-        mission = missions[0]
+        mission = window.rom_studio._guided_mission_dialog
+        assert isinstance(mission, GuidedBuildMission)
+        assert mission.parent() is window.rom_studio
+        assert QApplication.activeModalWidget() is mission
         assert mission.assessments[0].stage.action == "new-project"
         assert mission.selected_index == 0
         context = mission._context()
@@ -2371,9 +2371,12 @@ def test_device_atlas_zero_match_opens_transient_new_project_mission_and_cancels
         )
         mission._run_stage()
         app.processEvents()
+        assert QApplication.activeModalWidget() is mission
         mission.close()
         app.processEvents()
 
+        assert window.rom_studio._guided_mission_dialog is None
+        assert not QApplication.activeModalWidget()
         assert window.rom_studio.current_project == unrelated_project
         assert store.list_projects() == original_projects
         assert not (

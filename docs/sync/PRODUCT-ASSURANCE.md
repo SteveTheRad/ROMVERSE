@@ -1,5 +1,77 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 38165dc — Windows launcher/setup-repair boundary
+
+- Reviewed checkpoint: `38165dc304c76e83495d4b7d0f91ddd324c9ce78`
+- Authorizing verdict: `3ddeb925a80beb0c6773be245e1e8acac379df23`
+- Retained package source: `945928567ea188481eb0c19ca4419ae4132c22f5`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — SETUP REPAIR REMAINS EXPLICIT, CANCELLABLE AND NON-AUTHORITATIVE**
+
+### Decision and independent evidence
+
+The exact one-file documentation checkpoint satisfies the authorized retained-package,
+no-network, no-phone Windows journey. ROMVERSE truthfully exposed the existing route from About's
+local Build Workspace evidence to Forge Arsenal and its read-only Host Connection Doctor. Missing
+ADB/Fastboot remained missing, driver ownership remained with Windows, and opening the bounded
+Platform Tools repair dialog did not itself download, install, replace or verify anything. Closing
+the dialog and returning to Command Deck preserved the same synthetic project, `NOT CONNECTED`,
+Device DNA `UNCONFIRMED`, Guardian `VERIFY REQUIRED`, no-operation and simulation-only state.
+
+Product Assurance independently verified the Windows checkout at the exact checkpoint. It is clean
+except for the protected untracked patch, which remains 8,272 bytes with SHA-256
+`2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`. The retained unsigned
+executable remains 6,324,494 bytes with SHA-256
+`aae8f97cebda115f34aa35dea95a32a78974a5e89a0f04b33af7eb3511f7327a` and Authenticode
+`NotSigned`. The disposable workspace Activity ledger remains 2,856 bytes with SHA-256
+`fa348d1f7162f90cdff5b1711dfe90563480e7e0ca0ef3310303b6a806462ec4`; downloads remain empty
+and no toolchain install plan exists. The runtime ledger contains exactly eleven starts, eleven
+clean closes and no fault entry. Forgejo and GitHub expose the same exact checkpoint.
+
+The observed Git transition from ready to `Found, but could not start correctly` after the repair
+dialog is not promoted into a defect or a ready state. One explicit rescan reproduced it within
+that session, so it warrants a separate diagnostic boundary; it does not invalidate this journey's
+truthful fail-closed behavior. Because the checkpoint changes no application, test or package bits,
+not rebuilding or rerunning unchanged suites is proportionate. The commit passes Git whitespace
+validation.
+
+No network, download, dependency/driver/PATH/environment mutation, account, phone, emulator,
+ADB/Fastboot command, firmware/APK action, Guardian/Recovery execution, signing, publication,
+release, wipe, unlock/root, lock or relock occurred. Exact-device evidence, fresh consent,
+Guardian-only authority, durable `UNKNOWN`, no blind retry and permanent bootloader no-relock
+remain intact.
+
+### Approved next bounded task
+
+Run one no-network, no-phone repeated-verification investigation of the retained Windows package's
+Git status drift. Use only the existing disposable workspace and retained unsigned package.
+
+1. Start one fresh process and record the exact Git candidate path, source tier and read-only probe
+   outcome before opening the repair dialog.
+2. Open and cancel the existing Platform Tools repair dialog without invoking install, manual
+   sources or any other action, then record the same Git evidence immediately after automatic
+   refresh and after at most one explicit rescan.
+3. Preserve exact stdout/stderr/exit/launch-error evidence in a bounded sanitized local receipt;
+   do not change PATH, environment, dependencies, files or settings to make the probe pass.
+4. Compare the packaged observation with the current `ToolVerifier` contract. If the same
+   transition is reproduced deterministically in current source, fix only that exact verifier or
+   refresh defect in `src/romverse/infrastructure/tools.py` and `tests/test_tools.py`, run their
+   focused tests and rebuild once. If it is package/runtime-environment-only or cannot be
+   reproduced, record the bounded result without a source change.
+
+Do not inspect or modify any other product area. Do not install/download tools, use network,
+phone/emulator/ADB/Fastboot, alter the protected patch, touch Device Intelligence, Linux,
+Companion, Guardian/Recovery authority, sign, publish, release, lock or relock. Commit/push the
+result Forgejo first, mirror the identical commit to GitHub and stop for Product Assurance.
+
+### Gate status
+
+- Windows launcher/setup-repair cancellation boundary: **APPROVED**
+- Missing Platform Tools truthfulness and zero-authority behavior: **APPROVED**
+- Repeated Git verification investigation: **AUTHORIZED — READ-ONLY FIRST**
+- Dependency installation, phone/device work, physical Recovery/flash, production signing,
+  publication and release: **CLOSED**
+
 ## Reviewed checkpoint: c10a38c — Windows offline connection surfaces
 
 - Reviewed checkpoint: `c10a38c910eb43e67f2efb22988df05ceb166a06`

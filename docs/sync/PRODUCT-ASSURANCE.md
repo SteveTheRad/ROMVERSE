@@ -1,5 +1,115 @@
 # ROMVERSE Product Assurance
 
+## Authorization verdict — Device Intelligence evidence-correlation contract slice
+
+- Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`
+- Reviewed authoritative checkpoint: `bf8091c5d40ad0d1007d757aaa61db8eebc4c50b`
+- Exact approved code/evidence base: `bf8091c5d40ad0d1007d757aaa61db8eebc4c50b`
+- Approved implementation branch: `device-intelligence/evidence-correlation-contracts`
+- Review status: **AUTHORIZED — DEVICE INTELLIGENCE EVIDENCE-CORRELATION CONTRACT SLICE**
+
+### Decision
+
+One additional foundation checkpoint is safe and high-value now. Checkpoints 1 and 2 can represent
+exact evidence claims, claim-specific source authority, lifecycle status, canonical identities and
+Synapse retention, but there is not yet one deterministic acquisition-inert boundary that
+correlates an existing claim with its exact authority and lifecycle records. Adding that pure
+contract closes the next architectural seam without wiring Device Intelligence into Device DNA,
+Compatibility Matrix, Nexus, First Light, Guardian, Recovery or any runtime consumer.
+
+This is not authorization for broader Device Intelligence, a new database, a source harvester, an
+identity resolver, a compatibility decision engine or a user-facing feature. It must extend and
+consume the existing Checkpoint 1 contracts and must not replace `merge_claims()`,
+`project_evidence()`, Knowledge lookup, Device DNA or Compatibility Matrix.
+
+Repository inspection found no active owner or uncommitted work on the new correlation paths.
+The main checkout's pre-existing Companion, Recovery-runtime and Windows-launch-contract changes,
+the active Linux/Windows branches and the uncommitted UI Design Lab remain unrelated and protected.
+
+### Exact authorized scope
+
+Implement one deterministic, local, side-effect-free evidence-correlation contract that:
+
+1. accepts only existing validated `OnlineEvidenceClaim`, `ClaimSourceAuthority` and
+   `EvidenceLifecycle` objects and binds each relationship by exact claim ID, source ID, claim key,
+   authority domain and source artifact digest;
+2. separates active applicable evidence from retained-but-unusable superseded, quarantined and
+   expired evidence without deleting or overwriting either side;
+3. preserves explicit supporting and contradicting relationships, rejects dangling/self-invalid
+   relationships and duplicates, and makes conflicting values or scopes require investigation;
+4. treats missing or non-applicable claim-domain authority, stale/unconfirmed freshness, absent
+   lifecycle data and any identity/firmware ambiguity as `UNCONFIRMED`; source authority metadata
+   may describe applicability but may not raise an evidence claim's state or confidence;
+5. produces one immutable, strictly validated, content-digested correlation report whose canonical
+   representation is independent of input ordering and contains only bounded IDs, states, reasons
+   and evidence references—not raw pages, logs, instructions, paths or device identifiers; and
+6. fixes compatibility to `UNCONFIRMED`, execution authority to `none`, phone action and Guardian
+   approval to `false`, and bootloader relocking to `false`.
+
+The checkpoint may add no storage implementation and perform no filesystem write, network call,
+device query, subprocess action, planning, compatibility promotion or execution. It may not create
+canonical device/firmware identities from the correlated result; that remains a later separately
+reviewed boundary.
+
+### Exact file ownership
+
+Engineering may modify only:
+
+- `src/romverse/knowledge/evidence_correlation.py`, new pure contract module;
+- `tests/test_device_intelligence_evidence_correlation.py`, new deterministic tests;
+- `src/romverse/knowledge/__init__.py`, only to export the new approved contract types/functions;
+- `docs/DEVICE-INTELLIGENCE-FOUNDATION.md`, only to document this checkpoint and its exclusions;
+- `docs/sync/BUILD-STATUS.md`, only for the implementation handoff.
+
+No other production, test, fixture, documentation or configuration file is owned. In particular,
+`src/romverse/knowledge/online_evidence.py`, `evidence_persistence.py`, Device DNA, canonical
+identity/source-identity modules, Synapse, Knowledge store/lookup/Archives, Matrix, Nexus, First
+Light, Guardian/Recovery, infrastructure/local-store, source adapters/acquisition, all UI/platform/
+Companion files, packaging, signing and release configuration are protected.
+
+### Required focused verification
+
+The new deterministic tests must cover:
+
+- exact active claim/source/authority/lifecycle binding and input-order-independent digest;
+- exact source ID, claim key/domain and artifact-digest mismatch;
+- missing, duplicate, dangling and malformed records;
+- similar-but-not-exact scope and authority non-applicability;
+- stale and unconfirmed evidence;
+- retained superseded, quarantined and expired evidence excluded from the active set;
+- supporting evidence and explicit two-sided contradiction preservation;
+- conflicting values/scopes and unresolved identity/firmware evidence remaining `UNCONFIRMED`;
+- privacy rejection for serial, IMEI, account/user, credential and personal-path material;
+- inability of any input or parsed output to promote confidence, compatibility, execution, phone,
+  Guardian or relock authority; and
+- strict parse rejection for extra fields, unsupported schema, changed digest and malformed types.
+
+Rerun the established **146-test** Device Intelligence baseline from Checkpoint 2 plus the new
+focused module. Run Ruff check/format on the owned Python files and `git diff --check` from the
+approved base. No full suite, live acquisition, hardware test or hosted CI is authorized or
+required.
+
+### Exclusions and stop condition
+
+No live/web acquisition, crawling, new source family, persistence/backend implementation,
+PostgreSQL/object storage, runtime/consumer/UI wiring, Device DNA or canonical identity promotion,
+Compatibility Matrix/Nexus/Pathfinder/Foresight/First Light change, Guardian/Recovery change,
+phone/emulator/ADB/Fastboot, firmware/build/flash/root/debloat, platform/Companion work, hosted CI,
+Forgejo Actions, signing, publication, release, bootloader lock or relock is authorized.
+
+Engineering must create the approved branch from the exact base only after this authorization is
+published, implement one coherent checkpoint within the owned paths, run the focused verification,
+commit, push Forgejo first, verify the exact Forgejo SHA, mirror the identical commit to GitHub,
+update Build Status and stop for independent Product Assurance. No later Device Intelligence slice
+is pre-authorized.
+
+### Gate status
+
+- Device Intelligence foundation Checkpoints 1 and 2: **APPROVED**
+- Pure evidence-correlation contract checkpoint: **AUTHORIZED**
+- Runtime wiring, identity/compatibility promotion and broader Device Intelligence: **CLOSED**
+- Acquisition/backend/device/consequential/signing/publication/release work: **CLOSED**
+
 ## Reviewed checkpoint: b46099d — Device Intelligence Synapse lifecycle contracts
 
 - Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`

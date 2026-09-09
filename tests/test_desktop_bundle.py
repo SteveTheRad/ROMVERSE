@@ -96,13 +96,19 @@ def test_desktop_bundle_rejects_unsafe_archive_member(tmp_path: Path) -> None:
         verify_bundle_archive(archive, "linux-x86_64")
 
 
-def test_pyinstaller_build_collects_package_data_and_submodules(tmp_path: Path) -> None:
+def test_pyinstaller_build_binds_package_data_and_submodules_to_checkout(tmp_path: Path) -> None:
     repository = Path(__file__).resolve().parents[1]
     arguments = pyinstaller_arguments(repository, tmp_path / "dist", tmp_path / "build")
+    assets = repository / "src" / "romverse" / "assets"
 
     assert "--windowed" in arguments
     assert "--onedir" in arguments
-    assert "--collect-data=romverse" in arguments
+    assert "--collect-data=romverse" not in arguments
+    assert (
+        f"--add-data={assets / 'knowledge_archive_popsicle_fastboot_seed.json'}:romverse/assets/."
+        in arguments
+    )
+    assert all("__pycache__" not in argument for argument in arguments)
     assert "--collect-submodules=romverse" in arguments
     assert str(repository / "src" / "romverse" / "__main__.py") == arguments[-1]
 

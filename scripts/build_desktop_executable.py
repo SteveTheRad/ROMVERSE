@@ -8,12 +8,15 @@ from pathlib import Path
 def pyinstaller_arguments(
     repository: Path, output_directory: Path, work_directory: Path
 ) -> list[str]:
-    icon = (
-        repository
-        / "src"
-        / "romverse"
-        / "assets"
-        / ("romverse-app-icon.ico" if sys.platform == "win32" else "romverse-app-icon.png")
+    package_root = repository / "src" / "romverse"
+    assets = package_root / "assets"
+    asset_arguments = [
+        f"--add-data={path}:romverse/assets/{path.relative_to(assets).parent.as_posix()}"
+        for path in sorted(assets.rglob("*"))
+        if path.is_file() and not path.is_symlink() and path.suffix not in {".py", ".pyc"}
+    ]
+    icon = assets / (
+        "romverse-app-icon.ico" if sys.platform == "win32" else "romverse-app-icon.png"
     )
     return [
         "--noconfirm",
@@ -23,7 +26,10 @@ def pyinstaller_arguments(
         "--name=ROMVERSE",
         f"--icon={icon}",
         f"--paths={repository / 'src'}",
-        "--collect-data=romverse",
+        # ``--collect-data=romverse`` resolves the importable package and can silently
+        # collect stale assets from a different editable checkout. Bind data explicitly
+        # to the same repository root as the entry point and source import path.
+        *asset_arguments,
         "--collect-submodules=romverse",
         f"--distpath={output_directory}",
         f"--workpath={work_directory / 'work'}",

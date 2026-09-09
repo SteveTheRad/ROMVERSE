@@ -1,5 +1,59 @@
 # ROMVERSE Product Assurance Sync
 
+## Windows product-as-user field-knowledge contradiction — Product Assurance clarification requested
+
+### Exact authority and stop boundary
+
+- Product Assurance verdict `f46d4258cf5ea1bef87d99bbd0c8f197009adccc` — `Approve Windows
+  regression-debt correction [skip ci]` exactly approves checkpoint
+  `1fcaa09486c14004f7645c09ec1d4428815db541` and authorizes one local-only no-phone Windows
+  product-as-user continuation.
+- That verdict and the reviewed Build checkpoint both state that the execution-inert popsicle
+  field-knowledge intake was already present as `ca97c1cf` and therefore was not duplicated. This
+  statement is contradicted by the authoritative Windows commit graph and current-source product
+  behavior. Per the verdict's explicit `Stop before ... contradictory/UNKNOWN evidence` boundary,
+  Windows Build stopped without integrating or reconstructing the missing intake.
+
+### Reproducible repository and product evidence
+
+- Windows branch tip at inspection: `f46d4258cf5ea1bef87d99bbd0c8f197009adccc`; working tree contained
+  only the protected untracked patch.
+- `git merge-base --is-ancestor ca97c1cf HEAD` returned exit 1: exact commit
+  `ca97c1cf61c6266ddfa1e747a1beb664ea4eb147` is **not** an ancestor of the Windows branch.
+- `git branch -r --contains ca97c1cf` identifies only
+  `origin/evidence/popsicle-os3-fastboot-2026-09-09`. The commit object is available and contains
+  the redacted evidence document, `knowledge_archive_popsicle_fastboot_seed.json`, its loader entry
+  and focused tests, but those files are absent from the Windows checkout.
+- Current source was launched once with `--skip-onboarding --development-device-simulation` in
+  fresh disposable `ROMVERSE_HOME` `C:\Work\ROMVERSE-Windows-Product-User-f46d4258`. No hardware
+  scan or device command was possible. ROMVERSE Archives loaded normally with 281 offline records.
+- Searching `popsicle` reported 6 verified guides and 2 offline evidence records, but the only
+  selectable results were the existing OS4.0.0.25 Android Auto field guide and same-device
+  boundary. Searching the exact new field signature `DATA00052000` truthfully returned `No
+  verified guide or offline record matched “DATA00052000”`.
+- The app closed normally. Its 77-byte runtime log contains exactly **1 start / 1 clean close / 0
+  fault lines**. No test, linter, package build or hosted CI run was started because the problem is
+  an authority/ancestry contradiction rather than an implementation defect in the checked-out
+  source.
+
+### Scope, preservation and precise requested clarification
+
+- This checkpoint changes only `docs/sync/BUILD-STATUS.md`. No application, test, workflow,
+  Companion, evidence, Knowledge Archive or package file changed.
+- The protected untracked patch remains byte-identical at **8,272 bytes**, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it was not edited,
+  applied, staged or deleted. Protected Companion files remain untouched.
+- No phone, emulator, firmware/APK selection, ADB/Fastboot command, device query/write or mode
+  transition, Guardian/Recovery execution, production adapter, signing, publication, release,
+  hosted CI, force-push, wipe, unlock/root, lock or relock occurred.
+- Precise next task requested: Product Assurance must correct the record and explicitly decide
+  whether exact already-published commit `ca97c1cf61c6266ddfa1e747a1beb664ea4eb147` should now be
+  integrated into `windows-launcher-authorized-work`, or document why the field intake is not part
+  of the Windows line. If integration is authorized, apply only that exact existing commit without
+  unrelated Linux history, run its focused knowledge/archive/UI tests and lint locally, update the
+  handoff, and return for review. Do not resume the product-as-user batch while the contradictory
+  premise remains unresolved.
+
 ## Windows synchronization and regression-debt checkpoint — Product Assurance review requested
 
 ### Authority, commits and exact scope

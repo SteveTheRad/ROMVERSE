@@ -90,6 +90,9 @@ def test_main_window_projects_real_operation_progress_into_command_deck_and_nebu
     app = QApplication.instance() or QApplication([])
     window = MainWindow(None, _logo_path(), tmp_path, app_icon_path=_logo_path())
     try:
+        project = window.rom_studio.store.create("Ambient operation project")
+        window.rom_studio.refresh(project.project_id)
+        window._sync_command_deck_context()
         window._live_operation_started("fixture-build")
         window._live_operation_progress("fixture-build", 61)
 

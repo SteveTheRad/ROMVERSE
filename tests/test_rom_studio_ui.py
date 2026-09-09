@@ -1818,6 +1818,16 @@ def test_genesis_autopilot_runs_safe_local_stages_then_pauses_for_device(tmp_pat
     store.import_original(project.project_id, source)
     studio = RomStudio(store, DevicePackRegistry(()))
     studio.refresh(project.project_id)
+    studio.device_scan_available = True
+
+    def complete_empty_fixture_scan() -> None:
+        studio.set_devices([])
+        studio.device_scan_finished.emit(
+            True,
+            "Deterministic fixture scan completed; no Android device is visible.",
+        )
+
+    studio.device_scan_requested.connect(complete_empty_fixture_scan)
     mission = GuidedBuildMission(studio)
 
     mission._start_autopilot()

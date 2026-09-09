@@ -1,5 +1,88 @@
 # ROMVERSE Product Assurance Sync
 
+## Project Flash modal checkpoint — connected Guided decline journey remains actionable
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `5bdd84f`, approving checkpoint `a72aaa3` and authorizing only
+  classification of the historical Project Flash Guided journey stall. Test-evidence commit:
+  `72c195e` (`Record Project Flash modal ownership`). This section forms the following handoff
+  commit on `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation regression reliability only. Stage 12 was not operated.
+  No production source, Guided route, confirmation, consent, Guardian/Recovery behavior or
+  execution boundary changed.
+- Exact changed test file is `tests/test_project_flash_desktop.py`, plus this handoff. Geometry,
+  wording, error-copy, source-installation-stop, Windows, Companion and package work remained out of
+  scope and unchanged.
+
+### Reproduction, classification and strengthened evidence
+
+- On current source, historical node
+  `test_guided_rom_studio_opens_real_source_bound_workflow_and_decline_sends_no_write` passed
+  **1/1** before any change. The complete Project Flash desktop file also passed **8/8** unchanged.
+  There is no current production preparation dead end.
+- The historical cloud state `actual Guided modal journey did not finish: ['prepare']` followed the
+  now-corrected navigation fixtures that retained an un-driven `GuidedBuildMission`. Current
+  isolation evidence shows the Project Flash journey itself transitions normally once that stale
+  earlier modal no longer regains application-modal ownership. This checkpoint therefore makes no
+  production lifecycle or route change.
+- The existing connected journey now durably asserts its normal live owner sequence. At
+  Preparation, the visible `ProjectPreparationDialog` is the exact retained
+  `MainWindow._local_flash_dialog`, parented by the window, has no worker/preparation yet, exposes
+  the existing `candidate-installation` route, and has issued no command. The test deliberately
+  chooses the protected-source route through the real preparation action.
+- At Image Review, the visible `ProjectFlashDialog` becomes the same retained owner and remains
+  backed by `BoundProjectFlashService`. The exact review is prepared before the existing
+  confirmation appears. The visible confirmation is parented by that retained dialog; the user
+  selects Cancel, after which both active-modal and retained-dialog ownership clear and the inert
+  transport records zero writes.
+- No preparation, evidence, confirmation, decline/no-write, consent or Guardian boundary is
+  bypassed or auto-accepted.
+
+### Verification evidence
+
+- Final directly affected Fedora selection: the complete Project Flash desktop file passed
+  **8/8** in 9.66 seconds. The earlier exact 1/1 and pre-change 8/8 runs overlap this selection and
+  are not added to the total.
+- Ruff lint, Ruff format check and `git diff --check` passed for the changed test file.
+- No full Linux/Windows suite or GitHub Actions workflow was run, and no package was rebuilt.
+
+### Classification, safety and gates
+
+- **Implemented:** one existing connected-journey fixture now records exact visible/retained modal
+  ownership and final cleanup. Application behavior is unchanged.
+- **Simulated/Tested:** 8/8 Fedora offscreen Qt Project Flash desktop tests passed. Tool/device data
+  is deliberately inert; the decline route proves no write occurred.
+- **Hardware Verified:** no. No phone, emulator or Windows host was used.
+- **Released:** no. No package was built, installed, signed, published or released.
+- Guided friction/dead ends: the current source-bound path presents Preparation, Image Review and
+  the existing meaningful Confirmation in order. Decline exits cleanly without a write. The
+  historical `prepare` stall does not reproduce after the preceding modal-isolation correction.
+- Guardian/Recovery/safety: unchanged. Exact source preparation, evidence review, explicit user
+  confirmation, Guardian-only authority, UNKNOWN-on-uncertainty, no blind retry, independent
+  verification and permanent bootloader no-relock remain intact. No execution authority was
+  created.
+- Platform status: bounded Project Flash lifecycle verification passed on Fedora. Windows and
+  physical Android were not relevant or run. Broad regression and release gates remain closed.
+- Feature freeze: compliant test-only correctness/evidence work. v0.2 Golden Foundation and all
+  release gates remain **CLOSED**.
+- External actions: local tests and scoped commit/push preparation only. No paid workflow,
+  dependency/tool/APK installation, phone/emulator operation, device-addressed ADB/Fastboot,
+  firmware build/sign/flash, Guardian/Recovery execution, publication, release, merge, force-push,
+  lock or relock occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin geometry, wording, error-copy,
+source-installation-stop, Stage 12, package work or another consequential slice until reviewed.
+
+### Product Assurance Review Requested
+
+- Confirm that the historical stall is fully explained by the previously corrected stale modal
+  owner and that no production route correction is warranted.
+- Confirm the 8-node bounded selection and explicit owner/decline/no-write assertions adequately
+  protect this connected Guided journey.
+
 ## Guided modal fixture checkpoint — retained nonblocking ownership is exercised cleanly
 
 ### Authoritative checkpoint and scope

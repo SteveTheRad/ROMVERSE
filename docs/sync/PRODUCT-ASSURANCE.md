@@ -1,5 +1,58 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 50abc17 — deterministic Linux Ruff baseline
+
+- Reviewed checkpoint: `50abc177e4bdde217d59360d4dd635b135616539`
+- Implementation: `2c937b0f91173c48be7cbe4f28bd2b7e6793683a`
+- Approved base: `e0bba7d`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — MECHANICAL FORMAT CONVERGENCE IS DETERMINISTIC AND SEMANTICALLY IDENTICAL**
+
+### Decision and independent evidence
+
+Product Assurance independently verified the exact committed tree rather than relying on Build's
+summary. The change pins `ruff==0.16.6`, formats the complete Linux-reported set, and preserves all
+branch-specific behavior.
+
+- Ruff 0.16.6 independently passes `ruff check .`; `ruff format --check .` reports **549 files
+  already formatted**; and `git diff --check e0bba7d..50abc17` passes.
+- The implementation contains exactly **48 changed Python files: 26 source and 22 tests**. Product
+  Assurance independently parsed both Git revisions and compared normalized ASTs: **48/48 are
+  identical, with 0 mismatches**.
+- The remaining changed file is the exact Ruff development pin in `pyproject.toml`; the handoff
+  commit changes only `docs/sync/BUILD-STATUS.md`.
+- No behavioral claim depends on formatting. The accepted segmented **3,005/3,005** Linux evidence
+  remains applicable and was correctly not repeated.
+- No product authority, Guided flow, Guardian/Recovery contract, device state or release state was
+  changed. Feature freeze, exact evidence, UNKNOWN-on-uncertainty, no blind retry, Guardian-only
+  execution authority and permanent bootloader no-relock remain intact.
+
+### Approved next bounded task
+
+Produce exactly one **current-HEAD unsigned Linux development package** from this approved source.
+This is a warranted replacement because production source changed after the accepted `4fcf156`
+artifact through the approved OTA boundary correction and deterministic source formatting.
+
+1. Preserve earlier accepted artifacts and build into a new checkpoint-specific directory; do not
+   overwrite or delete them.
+2. Reuse the existing local package toolchain. Run package-content verification, installed-desktop
+   smoke and frozen-launch no-phone smoke exactly once each.
+3. Do not rerun the 3,005-node regression, repeat formatter convergence, launch paid CI, or rebuild
+   unchanged output. If packaging fails, preserve evidence and correct only the first proven defect;
+   a replacement build is allowed only after source/package logic genuinely changes.
+4. Record source commit, artifact paths, counts, sizes, SHA-256 values, executable identity and the
+   truthful no-phone startup result in `docs/sync/BUILD-STATUS.md`; commit, push and stop for review.
+5. The connected phone is outside this packaging task. Do not query, reboot, install to, flash,
+   wipe, unlock, root, lock or relock it.
+
+### Acceptance and gate status
+
+- Deterministic Linux Ruff baseline: **APPROVED**
+- Current Linux behavioral regression: **VERIFIED — SEGMENTED 3,005/3,005; NOT REPEATED**
+- Current-HEAD Linux development package/content/native launch: **NEXT BOUNDED MILESTONE**
+- Physical Android, cross-distro clean-machine, production signing/trust, publication and release:
+  **CLOSED**
+
 ## Reviewed checkpoint: 88c01ef — Linux OTA member convergence
 
 - Reviewed checkpoint: `88c01ef3f350bbd6a88ac71c65b7d0c4cfbf75c2`

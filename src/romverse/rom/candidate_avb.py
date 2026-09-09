@@ -508,6 +508,14 @@ def _resolve_avbtool(workspace, statuses, manifest):
                 if _json(saved) != _json(expected):
                     raise ProjectError("The preserved AVBTool receipt changed from its build.")
                 path = slot / item.executable_name
+                details = path.lstat()
+                if (
+                    path.is_symlink()
+                    or getattr(details, "st_file_attributes", 0)
+                    & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+                    or not stat.S_ISREG(details.st_mode)
+                ):
+                    raise ProjectError("The preserved AVBTool is not a regular unlinked file.")
                 if _hash(path, maximum=1024**3) != (item.sha256, item.size_bytes):
                     raise ProjectError("The preserved AVBTool bytes changed from their build.")
                 return path, item

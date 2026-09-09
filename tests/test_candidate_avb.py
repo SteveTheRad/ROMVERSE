@@ -654,6 +654,36 @@ def test_corrupt_preserved_slot_never_falls_back_to_good_active_tool(tmp_path, t
     assert fixture.active.read_bytes() == b"exact managed test AVB tool"
 
 
+@pytest.mark.parametrize("unsafe_kind", ["reparse", "non_regular"])
+def test_preserved_tool_rejects_unsafe_file_type_without_hashing(
+    tmp_path, monkeypatch, unsafe_kind
+):
+    fixture = _pinned_tool(tmp_path)
+    path_type = type(fixture.pinned)
+    original_lstat = path_type.lstat
+    reparse_flag = getattr(module.stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+    monkeypatch.setattr(module.stat, "FILE_ATTRIBUTE_REPARSE_POINT", reparse_flag, raising=False)
+
+    def unsafe_lstat(path, *args, **kwargs):
+        details = original_lstat(path, *args, **kwargs)
+        if path != fixture.pinned:
+            return details
+        return SimpleNamespace(
+            st_mode=module.stat.S_IFDIR if unsafe_kind == "non_regular" else details.st_mode,
+            st_file_attributes=reparse_flag if unsafe_kind == "reparse" else 0,
+        )
+
+    monkeypatch.setattr(path_type, "lstat", unsafe_lstat)
+    monkeypatch.setattr(
+        module,
+        "_hash",
+        lambda *args, **kwargs: pytest.fail("unsafe preserved AVBTool must not be hashed"),
+    )
+
+    with pytest.raises(ProjectError, match="regular unlinked file"):
+        module._resolve_avbtool(fixture.workspace, fixture.statuses, fixture.manifest)
+
+
 def test_preserved_tool_parent_redirect_is_rejected_without_following_it(tmp_path):
     fixture = _pinned_tool(tmp_path)
     version_root = fixture.workspace / "tools" / "versioned"

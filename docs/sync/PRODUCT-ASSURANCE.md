@@ -1,5 +1,77 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 8affb41 — platform-stable file identity
+
+- Reviewed checkpoint: `8affb41c27546672df36a34fc368933a812a2aba`
+- Implementation commits: `73abd401ace88ff7e50908364702f8b47eb2e2c5`,
+  `8070895a3d6724c534010324de9494775ef105fe`
+- Approved base: `7b76e2d`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — WINDOWS FALSE REPLACEMENT FAILURES REMOVED WITHOUT WEAKENING TOCTOU SAFETY**
+
+### Decision
+
+Product Assurance independently inspected the common identity helper, both consuming paths, the
+preserved-AVBTool rejection and the exact Windows source copy. The correction removes only Windows
+`st_ctime_ns` from cross-API equality because genuine Windows evidence already established that an
+unchanged file can expose different creation-time rounding through descriptor and pathname stats.
+Device/file index, size and modification time remain mandatory on Windows; POSIX retains ctime.
+The open descriptor, regular-file requirement, bounded hashing, before/after handle comparison,
+pathname comparison and exact expected digest remain separate required checks.
+
+The fresh preserved-tool `lstat` guard is also correct and fail closed. A direct symbolic link,
+Windows reparse point or non-regular file cannot enter AVBTool hashing through the preserved slot.
+This is a safety correction revealed by the focused Windows run, not a feature expansion.
+
+### Independent evidence
+
+- The production diff is limited to one 18-line infrastructure helper, adoption by Source
+  Installation and Candidate AVB, and an eight-line preserved-tool type/reparse guard.
+- Product Assurance independently reran the complete three affected Fedora files with the exact
+  current source forced ahead of the reusable environment: **100/100 passed**. Ruff, formatting and
+  whitespace checks passed.
+- Product Assurance independently hashed the four exact files in the isolated Legion source copy;
+  all matched the reviewed commit byte-for-byte: `72c074b0...` (identity helper), `da942961...`
+  (Source Installation), `ddb09f35...` (Candidate AVB), and `55c722bf...` (focused tests). The active
+  Windows checkout remained at `4e2c3e2` and was not modified.
+- Build's final genuine-Legion selection passed **16/16** on Python 3.12.10, including unchanged
+  Windows identity, device/inode/size/mtime drift, same-size restored-mtime mutation, pathname
+  replacement, direct preserved-tool symlink and parent-directory redirection cases.
+- No replacement package or GitHub matrix was warranted. The current-source change has not been
+  represented as a release artifact.
+
+### Approved next bounded task
+
+Correct only the shared **current structure-inspection evidence test-fixture seam** responsible for
+the dominant Linux quality cascade:
+
+1. Reproduce one failing Ascension node and one failing Candidate Installation setup from run
+   `34295617304`; confirm both fail before their stated behavior because their shared setup lacks the
+   now-required current structure-inspection receipt.
+2. Update the narrowest common test fixture/helper so it obtains genuine current inspection
+   evidence through the existing production inspection contract. Do not forge a receipt, bypass
+   `BuildService._verify_source`, or weaken the product requirement.
+3. Keep the change test-only unless a separately proven production defect prevents a legitimate
+   fixture from obtaining that evidence. Do not mix in the isolated Guided wording, geometry,
+   modal-cleanup or source-installation-stop failures.
+4. Run the two representative nodes first, then only the affected Ascension/Candidate fixture group
+   needed to prove the common correction. Use the reusable local environment; do not launch a full
+   GitHub matrix or rebuild packages.
+5. Commit the minimum correction and `docs/sync/BUILD-STATUS.md`, push this branch and stop for
+   independent Product Assurance review.
+
+Do not operate Stage 12, use a phone/emulator, install dependencies, change the Windows checkout,
+build/sign/flash firmware, invoke Guardian/Recovery execution, publish, release, merge, force-push,
+lock or relock.
+
+### Gate status
+
+- Stable-file identity and preserved-tool link/reparse rejection: **VERIFIED ON FEDORA AND GENUINE WINDOWS**
+- Linux structure-evidence fixture seam: **NEXT BOUNDED CORRECTION**
+- Broad Linux/Windows regression: **CLOSED pending later current-source evidence**
+- v0.2 Golden Foundation, physical hardware, secure Windows Recovery launch, signing, publication
+  and release: **CLOSED**
+
 ## Reviewed checkpoint: e260bb8 — current-source cloud regression
 
 - Reviewed checkpoint: `e260bb8ec6ca8b5298d3c3af83bc6cd2c11ee035`

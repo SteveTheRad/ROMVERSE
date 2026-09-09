@@ -227,6 +227,7 @@ def load_packaged_archive() -> KnowledgeArchive:
         "knowledge_archive_oem_recovery_seed.json",
         "knowledge_archive_boot_errors_seed.json",
         "knowledge_archive_fastboot_transport_seed.json",
+        "knowledge_archive_popsicle_fastboot_seed.json",
         "knowledge_archive_device_aliases_seed.json",
         "knowledge_archive_boot_chain_seed.json",
     )

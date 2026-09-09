@@ -1,5 +1,64 @@
 # ROMVERSE Product Assurance Sync
 
+## Readable first-run tool inventory checkpoint
+
+### Authoritative commit and exact changes
+
+- Branch: `linux/stage1-desktop-readiness`.
+- Implementation: `69b7c72c5833b7f0e92bedadc385900779077440`
+  (**Keep first-run tool verification readable**).
+- A real Fedora first-launch render with the current 21-tool inventory reproduced a hidden setup
+  failure: every tool name and status row was compressed to zero pixels inside the 700×610 wizard.
+  Workspace selection and the Guided start button remained visible, making the collapsed evidence
+  easy to miss.
+- The wizard now opens at a deliberate 820×700 size with a supported 760×680 minimum, tighter
+  professional spacing, a readable `ready / total` summary and a bounded 150-pixel scrollable tool
+  inventory. Every row retains its verified status/detail, wraps long evidence and has non-zero
+  height. The workspace choice and **Continue in Guided Mode** remain visible without scrolling the
+  whole dialog.
+- The tool summary and inventory expose screen-reader names. The approved ROMVERSE logo, Guided
+  default, safety wording, workspace semantics and tool evidence are unchanged.
+
+### Verification and gates
+
+- **Implemented:** first-run layout/readability correction only; no installer, tool acquisition,
+  device, Guardian, Recovery or execution behavior changed.
+- **Simulated/Tested:** **8/8 unique app-launch/settings tests passed**. A separate real Fedora
+  ToolVerifier render exercised all **21 current tool rows**: row heights were 30–70 pixels, the
+  tool viewport was horizontally contained, the vertical inventory had a 700-pixel scroll range,
+  and Browse plus Continue remained visible. Ruff, format and diff checks passed.
+- **Hardware Verified:** no. The host tool inventory was read-only; no Android target was queried.
+- **Released:** no. The latest runnable package remains the unsigned, unpublished `a84e9ef`
+  Fedora artifact; this wizard correction is source-only.
+- Blockers/failures: the reproduced zero-height tool evidence is fixed. Windows secure launch,
+  production signing/trust, physical Recovery/flash validation and release remain
+  blocked/unverified.
+- Guided friction/dead ends: first-run users can now understand which tools are ready before
+  continuing, without losing the primary Guided action or being asked for another decision.
+- Guardian/Recovery/safety: unchanged. Setup verification remains host evidence only and grants no
+  device or execution authority. Permanent no-relock remains authoritative.
+- Platform status: genuinely rendered and tested on Fedora/Linux; Windows and physical hardware
+  were not run or represented as verified.
+- Feature freeze: compliant UI correctness/accessibility repair; no new product capability.
+- Version gate: first-run usability improved; v0.2 Golden Foundation and every production/release
+  gate remain **CLOSED**.
+- External actions: local host-tool verification, offscreen UI render, tests, disposable
+  workspaces and scoped commits only. No phone query/action, dependency/package installation,
+  APK/firmware operation, mode transition, flash, wipe, unlock/root, lock/relock, publication,
+  release or hosted-CI run occurred. The scoped branch push containing this handoff is the only
+  remote write.
+
+### Next proposed Build task
+
+Continue the inert first-use/product-as-user journey through setup acceptance, settings,
+persistence and cross-page handoffs. Correct only the next reproduced Stage 1 Desktop dead end and
+rebuild the Fedora package after the next coherent source batch.
+
+### Product Assurance Review Requested
+
+- Confirm the 150-pixel bounded inventory plus readiness summary is the preferred low-friction
+  first-run balance for a full toolchain that will continue to grow in detail, not capability.
+
 ## Missing-runtime scan dead-end checkpoint
 
 ### Authoritative commit and exact changes

@@ -1,5 +1,92 @@
 # ROMVERSE Product Assurance Sync
 
+## Fedora Source Lab durable-history refresh checkpoint
+
+### Authoritative commits and exact changes
+
+- Branch: `linux/stage1-desktop-readiness`.
+- Product Assurance-approved base: `777981cdc30a7d9f0987945148cdca7ac5f4dbd0`.
+- Scoped implementation: `da50987f85a21fdae1b7f02268c642a3acbe9cfe`
+  (**Refresh Source Lab after durable history**).
+- Runtime evidence: `1d3852a` (**Record Fedora Source Lab history refresh**).
+- `backup_center.py` now emits the exact project ID only after a matching local-history worker has
+  durably completed and Backup Center has refreshed its own history state. Incomplete, mismatched
+  and failed work emits no completion signal.
+- `main_window.py` consumes that notification and refreshes ROM Studio only when the notification
+  matches the currently open project. No unrelated project can replace or refresh the visible
+  Source Lab state.
+- Focused tests cover two successful queued captures, incomplete/failure silence, exact-project
+  refresh and cross-project rejection. No `rom_studio.py`, Companion, Windows launcher, Guardian,
+  Recovery or adapter implementation changed.
+- Complete evidence: `docs/evidence/FEDORA_SOURCE_LAB_HISTORY_REFRESH_2026-09-10.md`.
+
+### Classification, verification and gates
+
+- **Implemented:** the minimum asynchronous durable-history notification and exact-current-project
+  Source Lab refresh boundary.
+- **Simulated/Tested:** **22/22 unique automated test nodes passed** across the focused Time Machine
+  UI suite and exact navigation integration test. Ruff 0.16.6 lint and format checks passed for all
+  four changed implementation/test files; diff whitespace checks passed. No overlapping suite is
+  double-counted and no broad regression or hosted CI is claimed.
+- Exactly one offline cached Fedora rebuild succeeded. The runnable unsigned package is
+  `build/fedora-history-refresh-777981c/ROMVERSE`: 6,337,400-byte executable, mode `0755`, SHA-256
+  `25f8b1c6e5eec861d0a29f21b3717b555058f5c86757abe9ed8e072505a4457d`; 423 regular files,
+  243,102,803 regular-file bytes and 38 internal links. No dependency or network acquisition ran.
+- One fresh private Bubblewrap `--unshare-net` Fedora package journey passed with empty Android-tool
+  `PATH`, reduced motion, every online/community/download/contribution control false and a harmless
+  deterministic 551-byte synthetic fixture. Build used normal Guided project creation and protected
+  intake, stopped Genesis at task 4 with **Save & exit**, then invoked exactly one Source Lab
+  **Create working copy** action.
+- The working copy remained byte-identical to the source at SHA-256
+  `c3f5c1711d648a0f6c8f2ba2e3c910048c4e81e6f3ee39bb82e9e85888ac89c8`. Automatic Time Machine
+  and Vault capture completed. Without reopening the page, Source Lab changed from **No snapshots
+  yet** to **Snapshots • 1 (newest first)** and named snapshot `20260909T221648-eede3e`. The visible
+  next action remained **Extract and verify working tree**.
+- No extraction occurred: working-tree file count was zero, no tree index/build plan/install request
+  existed, tools remained empty and the Guided mission remained `workspace`. No device evidence,
+  Guardian ledger, Recovery incident/result, consent or execution record existed.
+- **Hardware Verified:** no. This was a genuine Fedora desktop run, but no phone, emulator, Android
+  simulation, ADB or Fastboot tool was present or used.
+- **Released:** no. The build is unsigned, local development evidence only.
+- Blockers/failures: the accepted history-refresh defect is fixed. A separate existing Source Lab
+  accessibility sentence still says **Contained working tree extracted; Guardian-assessed build
+  plan saved** while the actual project has neither artifact and the real next action is extraction.
+  This was not changed because it is outside the authorized two-file correction and appears to
+  require `rom_studio.py`. The app was stopped by exact `SIGTERM` and returned 143; therefore no
+  clean-shutdown or restart-persistence claim is made.
+- Guided friction/dead ends: automatic local protection now becomes visible immediately and the
+  user no longer has to leave/re-enter Source Lab. The false readiness sentence remains a misleading
+  status defect, but did not grant authority or advance the journey.
+- Guardian/Recovery/safety: local history remains reversible evidence only. Exact-source and
+  exact-device evidence, Guardian-only authority, durable `UNKNOWN`, no blind retry, independent
+  verification and permanent bootloader no-relock are unchanged. No consequential boundary was
+  entered.
+- Platform status: genuinely built and exercised on Fedora/Linux. Windows was not run or modified.
+  Android hardware was not used or represented as verified.
+- Feature freeze: compliant minimum Stage 1 correctness repair; no new feature, architecture,
+  Device Intelligence scope, Companion work or Windows launcher work.
+- Version gate: Source Lab copy-only automatic-history visibility is ready for Product Assurance
+  review. Extraction and all later build/device/consequence/v0.2/release gates remain **CLOSED**.
+- External actions: local focused tests/lint/diff checks, exactly one offline cached build, one fresh
+  private no-network synthetic copy-only package journey, automatic local history/evidence writes,
+  exact process termination, scoped commits and Forgejo-first/GitHub branch synchronization only.
+  No phone operation, APK/package installation, real firmware, extraction, ADB/Fastboot, flash,
+  wipe, unlock/root, lock/relock, signing, publication, release, hosted CI or unrelated Companion
+  change occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance. Do not begin extraction or another consequential slice.
+If authorized, make one separate minimum correction to the false Source Lab readiness sentence and
+prove it against absent/present tree-index and build-plan states without altering approved journey
+behavior.
+
+### Product Assurance Review Requested
+
+- Approve the exact-project durable-history refresh and genuine Fedora copy-only acceptance.
+- Decide whether to authorize the separate minimum Source Lab readiness-wording correction.
+- Keep extraction and every later Stage 1/release boundary closed.
+
 ## Fedora Source Lab copy-only automatic-history blocker
 
 ### Authoritative commit and exact changes

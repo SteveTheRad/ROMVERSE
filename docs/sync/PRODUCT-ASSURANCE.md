@@ -1,5 +1,63 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: c3db243 — Guided Stage-12 Forge semantics
+
+- Reviewed checkpoint: `c3db243bde2040c0426c4de3e9e7df478a4c2ba2`
+- Test-fixture commit: `8317f2f42c1afc026c80ce80e892d9914502d582`
+- Approved base: `92a2c17`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — CURRENT FORGE CONTROL WORDING IS ACCURATE AND ACTIONABLE**
+
+### Decision and independent evidence
+
+The removed `verified local candidate` phrase was a stale fixture expectation. At this assessment
+boundary no candidate exists yet, so current product wording correctly directs the user to execute
+and byte-verify the exact Device Pack plan in Forge Control before signing. The revised fixture
+protects that route, ordering and outcome without coupling correctness to obsolete prose.
+
+- Product Assurance inspected the production stage/action definitions and independently ran the
+  complete Guided mission assessment file against the exact current source: **23/23 passed**. Ruff
+  and whitespace checks passed.
+- The test continues to require `build_sign`, `ATTENTION`, the real `build-sign` action, Forge
+  Control, exact Device Pack binding, byte verification before signing, and a signed/validated
+  artifact before Guardian review.
+- Application source and copy are unchanged. Nothing auto-advances, signs, grants authority or
+  bypasses a decision.
+- No paid CI, package rebuild, Windows change or physical-device action occurred. Feature freeze,
+  Guardian separation, exact evidence, UNKNOWN-on-uncertainty, no blind retry and permanent
+  bootloader no-relock remain intact.
+
+### Approved next bounded task
+
+Classify only the remaining Project Flash tamper-message regression:
+`tests/test_project_flash.py::test_built_image_tamper_with_restored_mtime_fails_fresh_hash_check`.
+
+1. Reproduce the exact node and confirm whether current build-receipt loading deliberately rejects
+   the tampered output before Project Flash's later per-image hash check, producing the truthful
+   “No current verified local build outputs exist” stop.
+2. If the earlier rejection is correct and remains fail closed, update only the fixture to assert
+   durable tamper/rebuild semantics rather than the obsolete downstream `bytes differ` text. If
+   tamper evidence is genuinely lost or the user is routed unsafely, make only the smallest proven
+   product correction.
+3. Preserve fresh hashing, restored-mtime tamper rejection, exact receipt/source binding, explicit
+   protected-source fallback choice and zero execution authority.
+4. Run the exact node plus the smallest directly connected Project Flash service selection. Do not
+   mix geometry, Guided wording or Source Installation stop semantics. Do not trigger paid CI or
+   rebuild a package.
+5. Commit the minimum correction and `docs/sync/BUILD-STATUS.md`, push this branch and stop for
+   independent review.
+
+Do not operate Stage 12, use a phone/emulator, install dependencies, change Windows/Companion work,
+build/sign/flash firmware, invoke Guardian/Recovery execution, publish, release, merge, force-push,
+lock or relock.
+
+### Gate status
+
+- Guided Stage-12 Forge semantic contract: **VERIFIED — 23/23**
+- Project Flash restored-mtime tamper stop: **NEXT BOUNDED CLASSIFICATION**
+- Broad Linux/Windows regression and v0.2 Golden Foundation: **CLOSED pending later evidence**
+- Physical hardware, production trust, signing, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 1578b09 — Project Flash Guided lifecycle evidence
 
 - Reviewed checkpoint: `1578b09fe42ec9fd68552e281ed8b4b2328988e3`

@@ -614,13 +614,10 @@ class RepairCenter(QWidget):
         page.addLayout(footer)
         self._empty("Select a connected device and problem category to create a dry-run plan.")
         if self.autopilot_service is not None:
+            recent_incidents = self.autopilot_service.list_recent()
             self.autopilot_incident = next(
-                (
-                    incident
-                    for incident in self.autopilot_service.list_recent()
-                    if not incident.repaired
-                ),
-                None,
+                (incident for incident in recent_incidents if not incident.repaired),
+                recent_incidents[0] if recent_incidents else None,
             )
             self._render_autopilot()
 

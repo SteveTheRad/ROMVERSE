@@ -844,6 +844,52 @@ def test_recovery_commits_only_exact_matching_boot_observation(tmp_path) -> None
     center.close()
 
 
+def test_recovery_bay_reopens_latest_verified_incident_after_restart(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    phone = _recovery_device(DeviceState.DEVICE, boot_completed=False)
+    center = RepairCenter(
+        DiagnosticAnalyzer(),
+        RepairAssessmentTemplates(),
+        GuardianPreflight(),
+        tmp_path,
+        ActivityStore(tmp_path),
+        pack_registry=_recovery_registry(),
+    )
+    center.set_devices([phone])
+    assert center.open_recovery_incident(
+        RecoveryTrigger.BOOTLOOP,
+        project_id="project-one",
+        target_device=phone,
+    )
+    incident = center.autopilot_incident
+    assert incident is not None
+    recovered_phone = replace(phone, boot_completed=True, uptime_seconds=600)
+    center.set_devices([recovered_phone])
+    assert center.update_recovery_boot_observation(_verified_boot(tmp_path, recovered_phone))
+    recovered = center.autopilot_incident
+    assert recovered is not None and recovered.repaired
+    center.close()
+
+    reopened = RepairCenter(
+        DiagnosticAnalyzer(),
+        RepairAssessmentTemplates(),
+        GuardianPreflight(),
+        tmp_path,
+        ActivityStore(tmp_path),
+        pack_registry=_recovery_registry(),
+    )
+
+    assert reopened.autopilot_incident is not None
+    assert reopened.autopilot_incident.incident_id == recovered.incident_id
+    assert reopened.autopilot_incident.repaired
+    assert reopened.autopilot_incident.verified_reboot
+    assert not reopened.autopilot_card.isHidden()
+    assert reopened.autopilot_badge.text() == "RECOVERED"
+    assert "VERIFIED RECOVERED" in reopened.autopilot_boundary.text()
+    assert reopened.autopilot_scan_button.isHidden()
+    reopened.close()
+
+
 def test_recovery_local_guidance_is_inline_instead_of_a_modal_dead_end(
     tmp_path, monkeypatch
 ) -> None:

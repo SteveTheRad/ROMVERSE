@@ -1,5 +1,83 @@
 # ROMVERSE Product Assurance Sync
 
+## Current-package Settings/privacy and popsicle Knowledge convergence — blocked for Product Assurance review
+
+### Exact authority and retained package
+
+- Product Assurance verdict `441209f71152471d1880b7e5b2952d36f188ec95` exactly approves Build
+  checkpoint `c20f02101c0d0276efc2873864dc41ab52427e83` and authorizes one
+  current-package, no-network/no-phone Windows functional convergence journey for Settings/privacy
+  and the packaged popsicle Knowledge seed only.
+- The retained unsigned development executable was used without rebuild or alteration:
+  `C:\Work\ROMVERSE-Windows\build\windows-current-package-b1dc54e0\ROMVERSE\ROMVERSE.exe`,
+  6,324,534 bytes, SHA-256
+  `d2df2c9a667520e9ebe88d4c2eb4dfa26020b1e2d8f852dddb33ab24a013b431`, package source
+  `b1dc54e0c6390fb3d789930dda0696c712e40e64`.
+- The new disposable root was
+  `C:\Work\ROMVERSE-Settings-Knowledge-441209f-20260910`; its `workspace` child did not exist
+  before the first launch. Both launches used only `--skip-onboarding
+  --development-device-simulation` and that exact workspace. `ROMVERSE_HOME` was scoped to each
+  child process and pointed at the disposable root.
+
+### Completed bounded Windows observations
+
+- On initial Command Deck entry ROMVERSE reported `DEVICE: NOT CONNECTED`, `PROJECT: NONE`,
+  `MISSION: IDLE`, `GUARDIAN: VERIFY REQUIRED`, Device DNA `UNCONFIRMED`, no Android device and no
+  build, flash, backup, Recovery or other operation. The UI identified a development-simulation
+  session with no physical device selected and `SIMULATION ONLY • NO HARDWARE`.
+- In Settings, `Reduced motion` was changed from false to true and saved. The app closed normally,
+  left zero ROMVERSE processes, and was relaunched exactly once against the same workspace. The
+  checkbox remained selected after restart. `config\settings.json` is 629 bytes, schema 5,
+  SHA-256 `c5376540c74b6f886815e2896f0c169540aa04bab4ec7711f821602bceb21f86` and retains a
+  protected Windows ACL owned by the current user with Full Control only for owner rights and
+  SYSTEM: `O:S-1-5-21-3586961997-248884936-1384359232-1001G:S-1-5-21-3586961997-248884936-1384359232-1001D:PAI(A;;FA;;;OW)(A;;FA;;;SY)`.
+- Archives search for `2509FPN0BC` returned two verified guides and two offline evidence records,
+  including `OS4.0.0.25 popsicle field result and same-device compatibility boundary`. Its visible
+  detail retained the exact `2509FPN0BC` / `popsicle` and exact-build boundary, identified the
+  evidence as one real unlocked device rather than a universal guarantee, and required identity,
+  topology, digest and other safety checks. Archives simultaneously displayed `EXECUTION
+  AUTHORITY: NONE`, described official IDs as names/IDs rather than build or flash authority, and
+  kept local learning without upload or execution authority. Nothing appeared as a connected
+  device, hardware verification, promoted compatibility or Guardian authority.
+- Navigation returned to the same fail-closed Command Deck state and the second process closed
+  normally. `workspace\logs\crash\runtime-fault.log` is 154 bytes, SHA-256
+  `50d779cf4f44836bb0f2fc6bb9cd0f21763e9de1dcb388fb854e57e5b18f4587`, and contains exactly two
+  starts plus two clean closes with no other nonblank entry. Zero ROMVERSE processes remain. The
+  workspace has 9 regular files and zero reparse entries; `projects`, `tools`, `builds`, `apks`,
+  `backups`, `diagnostics`, `snapshots`, `working_roms` and `original_roms` contain zero files.
+
+### Deterministic no-network blocker and safe stop
+
+- This observation **cannot be certified as the authorized no-network journey**. A fresh profile
+  defaults `online_intelligence_enabled` to true. The packaged UI visibly reached `ONLINE`, and
+  the corresponding reviewed source constructs `OnlineStatusBadge` with that setting. With
+  monitoring enabled, `src/romverse/ui/connectivity.py` immediately issues a GET to
+  `https://connectivitycheck.gstatic.com/generate_204` and repeats it every 30 seconds. Therefore
+  at least the reachability request occurred even though no network-backed feature, external link,
+  download or install was selected.
+- Product Assurance explicitly required `no-network` and instructed Build to stop and report any
+  deterministic package defect before changing a shared module. No source, test, package or
+  setting was changed to conceal or repair this mismatch; no test suite was repeated and no rebuild
+  was performed. The useful Settings persistence, ACL, Knowledge-boundary and clean-lifecycle
+  observations above are retained as bounded evidence but are not promoted into a passing
+  no-network checkpoint.
+- Exact next proposed bounded task: Product Assurance should decide whether the intended contract
+  is (a) one replacement journey in a new disposable profile whose existing settings store is
+  initialized offline before first launch, with all online/community/automatic-tool access
+  disabled, or (b) a minimal product correction making a fresh no-network workspace local by
+  default. Build will not choose between those product-contract outcomes or begin either without a
+  matching verdict.
+- This checkpoint changes only `docs/sync/BUILD-STATUS.md`. Protected Companion files remain
+  untouched. The protected untracked patch remains 8,272 bytes with SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it and the existing
+  untracked `build-work\` remain excluded from staging.
+- No phone, emulator, device query, ADB/Fastboot command, dependency/tool change, download,
+  firmware/APK action, Guardian/Recovery execution, production adapter/trust/signing,
+  publication, release, hosted CI, force-push, destructive action, wipe, unlock/root, lock or
+  relock occurred. Exact-device evidence, fresh consent, Guardian-only authority and separation,
+  durable UNKNOWN, no blind retry, independent verification, feature freeze and permanent
+  bootloader no-relock remain intact.
+
 ## Current-source unsigned Windows package convergence — Product Assurance review requested
 
 ### Exact authority and focused verification

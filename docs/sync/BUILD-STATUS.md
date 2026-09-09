@@ -1,5 +1,83 @@
 # ROMVERSE Product Assurance Sync
 
+## Installed Fedora cancellation and context-preservation checkpoint
+
+### Authoritative commit and exact changes
+
+- Branch: `linux/stage1-desktop-readiness`.
+- Journey evidence: `5cd98057f34572b1486566bffc6538985100bd91`
+  (**Record Fedora cancellation journey**).
+- Authoritative source/package base remains
+  `50c56ed4c3c7057b941d2c7ea626977e08e0e006`; no production or test source changed and the package
+  was not rebuilt.
+- The exact retained executable remains
+  `build/fedora-f1da4b9/ROMVERSE/ROMVERSE`, SHA-256
+  `4fbfed3244d93ba535413151c26f5fe53ef526d402f638a5e81e662f8b562500`.
+- The complete observation is recorded in
+  `docs/evidence/FEDORA_INSTALLED_CANCELLATION_JOURNEY_2026-09-09.md`.
+
+### Verification and gates
+
+- **Implemented:** evidence-only checkpoint. No application, test, Companion, Windows launcher,
+  Guardian, Recovery or adapter code changed.
+- **Simulated/Tested:** one genuine installed-package Fedora UI journey with a disposable workspace
+  and isolated manual-acquisition profile passed. The native packaged source chooser cancelled
+  without changing the project manifest; its SHA-256 remained
+  `48e9eb3c9868695bf4f4a4abf0708282b0ba6770ebcb0422f24dd5090fe47210`. Forge Arsenal opened idle,
+  closed before creating an install plan or managed download, and returned to the exact source-less
+  project and visible next action. One process close/reopen restored exactly one matching project
+  with `original: null`, an empty Device Pack ID and no invented device, Guardian or Recovery
+  result. The earlier **3,024/3,024** unique Linux convergence remains the source baseline and was
+  not rerun or double-counted because no source changed.
+- **Hardware Verified:** no. The accepted journey contained no simulated or physical target. An
+  earlier preference-enabled setup observation issued host discovery only and is explicitly not
+  represented as physical-device verification.
+- **Released:** no. The package remains unsigned, local and unpublished.
+- Blockers/failures: no production defect was reproduced in the exact manual-acquisition journey.
+  The accessibility driver could not invoke the compositor's window-close control, so the restart
+  boundary used a normal process termination signal. This proves persisted state across restart,
+  not an additional clean-shutdown claim. Windows secure launch, production signing/trust,
+  physical Recovery/flash verification and release remain blocked/unverified.
+- Guided friction/dead ends: with automatic verified-tool acquisition disabled, the user can close
+  Forge Arsenal before installation and return without losing the active project or next action.
+  With the creator's existing automatic-acquisition preference enabled, pressing the explicit
+  **Resolve Platform Tools** action intentionally begins pinned acquisition and then automatic
+  read-only discovery; this distinction is now captured for review rather than mislabeled as a
+  source defect.
+- Guardian/Recovery/safety: unchanged. The accepted journey created no authority or result. The
+  preliminary disposable observation produced a valid 14-entry Guardian ledger containing seven
+  `adb.devices` and seven `fastboot.devices` probes, all read-only/risk-none/target-host, with zero
+  device-targeted probes and tail
+  `73bd284d2eb89ea21cc16c373358f6faec4491c871af0088608f4637063badfa`.
+- Platform status: genuinely exercised on Fedora/Linux using the retained installed package.
+  Windows and physical Android hardware were not run or represented as verified.
+- Feature freeze: compliant Stage 1 product-assurance evidence; no capability or behavior changed.
+- Version gate: cancellation/context preservation is evidenced, but v0.2 Golden Foundation and
+  every production/release gate remain **CLOSED**.
+- External actions: one preliminary click inherited the creator profile's enabled automatic-tool
+  preference and downloaded the pinned Platform Tools package into a disposable `/tmp` workspace.
+  This created no system-wide installation. It also caused 14 automatic host-only discovery probes;
+  none targeted or identified a phone. The accepted manual-profile journey performed no download,
+  dependency/package installation, phone operation, APK/firmware operation, device mode change,
+  flash, wipe, unlock/root, lock/relock, signing, publication or release. The scoped branch pushes
+  containing this handoff are the only remote writes.
+
+### Next proposed Build task
+
+Continue the inert product-as-user pass through one remaining existing Stage 1 cross-page journey,
+prioritizing user cancellation, state preservation and truthful empty-state recovery. Correct only
+the first reproduced bounded Desktop defect; do not overlap the Windows journey or broaden device,
+Recovery, execution or product scope.
+
+### Product Assurance Review Requested
+
+- Confirm the manual-acquisition journey satisfies the approved cancellation/context checkpoint.
+- Review whether the automatic-acquisition preference plus explicit **Resolve Platform Tools** click
+  is sufficiently clear, or whether a wording-only Stage 1 correction is required. No behavior
+  change is proposed without that review.
+- Assess the fully disclosed preliminary tool download and host-only discovery deviation. It
+  produced no device-targeted probe, system installation or execution authority.
+
 ## Fedora desktop convergence and rebuilt package checkpoint
 
 ### Authoritative commits and exact changes

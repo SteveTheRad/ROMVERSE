@@ -3145,6 +3145,7 @@ def test_command_deck_no_phone_diagnose_opens_truthful_owner_without_scan(
 
     engine = EmptyDeviceEngine()
     window.engine = engine
+    window.diagnostics_center.set_runtime_available(True)
     monkeypatch.setattr("romverse.ui.main_window.start_background", workers.append)
     try:
         diagnose = window.device_center.primary_action_buttons["Diagnose Problem"]

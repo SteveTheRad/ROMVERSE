@@ -379,6 +379,154 @@ def test_source_lab_readiness_names_only_missing_local_prerequisites(tmp_path):
     studio.close()
 
 
+def test_source_lab_plan_verification_converges_shared_state_and_survives_reopen(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    source = tmp_path / "firmware.zip"
+    with zipfile.ZipFile(source, "w") as output:
+        output.writestr("IMAGES/system.img", b"system")
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.import_original(store.create("Plan continuity").project_id, source)
+    inspection = RomInspectionService(store)
+    inspection.inspect_project(project.project_id)
+    store.create_working_copy(project.project_id)
+    inspection.extract_project_tree(project.project_id)
+    planner = RomBuildPlanner(store)
+    planner.plan(project.project_id)
+    state_store = GuidedMissionStore(store.projects_root / project.project_id)
+    state_store.save(GuidedMissionState(selected_stage="workspace"))
+    studio = RomStudio(store, DevicePackRegistry(()))
+    studio.refresh(project.project_id)
+
+    assert studio.guide_status.text().startswith("7/8 steps complete")
+    assert "Plan inputs  •  verification required" in studio.time_machine_detail.text()
+    assert not studio.forge_button.isEnabled()
+
+    verification = planner.verify_tree(project.project_id)
+    studio.worker = ProjectWorker(store, "verify-plan", project.project_id)
+    studio._active_operation = "verify-plan"
+    studio._active_project_id = project.project_id
+    studio._worker_complete(verification)
+    app.processEvents()
+
+    assert state_store.load().build_plan_verified
+    assert studio.guide_status.text() == "8/8 steps complete  •  Next: Workflow complete"
+    assert "Plan inputs  •  last background verification passed" in (
+        studio.time_machine_detail.text()
+    )
+    assert studio.forge_button.isEnabled()
+    studio.close()
+
+    reopened = RomStudio(store, DevicePackRegistry(()))
+    reopened.refresh(project.project_id)
+    assert reopened.guide_status.text() == "8/8 steps complete  •  Next: Workflow complete"
+    assert "Plan inputs  •  last background verification passed" in (
+        reopened.time_machine_detail.text()
+    )
+    assert reopened.forge_button.isEnabled()
+    reopened.close()
+
+
+def test_source_lab_new_plan_and_failed_verification_invalidate_shared_success(
+    tmp_path,
+    monkeypatch,
+):
+    app = QApplication.instance() or QApplication([])
+    source = tmp_path / "firmware.zip"
+    with zipfile.ZipFile(source, "w") as output:
+        output.writestr("IMAGES/system.img", b"system")
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.import_original(store.create("Plan invalidation").project_id, source)
+    inspection = RomInspectionService(store)
+    inspection.inspect_project(project.project_id)
+    store.create_working_copy(project.project_id)
+    inspection.extract_project_tree(project.project_id)
+    planner = RomBuildPlanner(store)
+    plan = planner.plan(project.project_id)
+    state_store = GuidedMissionStore(store.projects_root / project.project_id)
+    state_store.save(GuidedMissionState(selected_stage="workspace", build_plan_verified=True))
+    studio = RomStudio(store, DevicePackRegistry(()))
+    studio.refresh(project.project_id)
+    workers = []
+    monkeypatch.setattr("romverse.ui.rom_studio.start_background", workers.append)
+
+    assert studio.forge_button.isEnabled()
+    studio._start_worker("plan")
+    assert len(workers) == 1 and workers[0].operation == "plan"
+    assert not state_store.load().build_plan_verified
+    assert studio.guide_status.text().startswith("7/8 steps complete")
+    assert "Plan inputs  •  verification required" in studio.time_machine_detail.text()
+    assert not studio.forge_button.isEnabled()
+
+    studio.worker = ProjectWorker(store, "verify-plan", project.project_id)
+    studio._active_operation = "verify-plan"
+    studio._active_project_id = project.project_id
+    state_store.save(replace(state_store.load(), build_plan_verified=True))
+    studio._worker_complete(
+        ArtifactVerification(
+            False,
+            "Working tree changed since build plan",
+            plan.tree_sha256,
+            "0" * 64,
+        )
+    )
+    app.processEvents()
+
+    assert not state_store.load().build_plan_verified
+    assert studio.guide_status.text().startswith("7/8 steps complete")
+    assert "Plan inputs  •  verification required" in studio.time_machine_detail.text()
+    assert not studio.forge_button.isEnabled()
+    studio.close()
+
+
+def test_source_lab_verification_persistence_failure_reports_no_success(
+    tmp_path,
+    monkeypatch,
+):
+    app = QApplication.instance() or QApplication([])
+    source = tmp_path / "firmware.zip"
+    with zipfile.ZipFile(source, "w") as output:
+        output.writestr("IMAGES/system.img", b"system")
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.import_original(store.create("Plan persistence").project_id, source)
+    inspection = RomInspectionService(store)
+    inspection.inspect_project(project.project_id)
+    inspection.extract_project_tree(project.project_id)
+    planner = RomBuildPlanner(store)
+    planner.plan(project.project_id)
+    state_store = GuidedMissionStore(store.projects_root / project.project_id)
+    state_store.save(GuidedMissionState(selected_stage="workspace"))
+    studio = RomStudio(store, DevicePackRegistry(()))
+    studio.refresh(project.project_id)
+    completions = []
+    failures = []
+    studio.operation_completed.connect(lambda *_args: completions.append(True))
+    studio.operation_failed.connect(
+        lambda operation, message: failures.append((operation, message))
+    )
+    studio.worker = ProjectWorker(store, "verify-plan", project.project_id)
+    studio._active_operation = "verify-plan"
+    studio._active_project_id = project.project_id
+
+    def fail_save(_store, _state):
+        raise OSError("read-only guided state")
+
+    monkeypatch.setattr(GuidedMissionStore, "save", fail_save)
+    studio._worker_complete(planner.verify_tree(project.project_id))
+    app.processEvents()
+
+    assert completions == []
+    assert failures == [
+        (
+            "verify-plan",
+            "ROM Studio could not durably record the accepted plan verification",
+        )
+    ]
+    assert not state_store.load().build_plan_verified
+    assert not studio.forge_button.isEnabled()
+    assert "Forge remains disabled" in studio.operation_status.text()
+    studio.close()
+
+
 def test_rom_studio_command_deck_handoffs_report_exact_ready_workflows(
     tmp_path,
     monkeypatch,
@@ -1496,8 +1644,11 @@ def test_simulation_rejects_forged_success_evidence_bound_to_another_tree(tmp_pa
     store.create_working_copy(project.project_id)
     RomInspectionService(store).extract_project_tree(project.project_id)
     plan = RomBuildPlanner(store).plan(project.project_id)
+    state_store = GuidedMissionStore(store.projects_root / project.project_id)
+    state_store.save(GuidedMissionState(selected_stage="workspace", build_plan_verified=True))
     studio = RomStudio(store, DevicePackRegistry(()))
     studio.refresh(project.project_id)
+    assert studio.forge_button.isEnabled()
     failures: list[tuple[str, str]] = []
     studio.operation_failed.connect(
         lambda operation, message: failures.append((operation, message))
@@ -1522,6 +1673,8 @@ def test_simulation_rejects_forged_success_evidence_bound_to_another_tree(tmp_pa
     ]
     assert studio.worker is None
     assert studio._automatic_simulation_verification_plan is None
+    assert not state_store.load().build_plan_verified
+    assert not studio.forge_button.isEnabled()
     assert RomBuildPlanner(store).load(project.project_id) == plan
     assert studio.dashboard_handoff_title.text() == (
         "Pre-Build Simulation → Current tree needs attention"
@@ -2692,7 +2845,7 @@ def test_rom_studio_exposes_verified_non_flashable_forge_bundle_workflow(
     monkeypatch.setattr("romverse.ui.rom_studio.start_background", workers.append)
     app.processEvents()
 
-    assert studio.forge_button.isEnabled()
+    assert not studio.forge_button.isEnabled()
     assert "non-flashable" in studio.forge_button.toolTip()
     assert not studio.verify_forge_button.isEnabled()
 

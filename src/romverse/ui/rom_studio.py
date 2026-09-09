@@ -3811,7 +3811,9 @@ class RomStudio(QWidget):
                 and plan is not None
                 and forge.receipt_matches_plan(forge_receipt, plan)
             )
-            self.forge_button.setEnabled(self.worker is None and plan is not None)
+            self.forge_button.setEnabled(
+                self.worker is None and self._plan_verification_is_current(project.project_id, plan)
+            )
             self.verify_forge_button.setEnabled(self.worker is None and current_forge_receipt)
             self.recipe_button.setEnabled(
                 self.worker is None
@@ -3981,7 +3983,8 @@ class RomStudio(QWidget):
         dna = self.device_dna.profiles.load(project.project_id)
         matrix = self.compatibility.matrices.load(project.project_id)
         tree_ready = self.inspection.working_tree_exists(project.project_id)
-        plan_ready = RomBuildPlanner(self.store).load(project.project_id) is not None
+        plan = RomBuildPlanner(self.store).load(project.project_id)
+        plan_ready = self._plan_verification_is_current(project.project_id, plan)
         steps = (
             (project.original is not None, "Import protected original"),
             (dna is not None, "Create Device DNA"),
@@ -3995,6 +3998,29 @@ class RomStudio(QWidget):
         completed = sum(done for done, _label in steps)
         next_step = next((label for done, label in steps if not done), "Workflow complete")
         self.guide_status.setText(f"{completed}/{len(steps)} steps complete  •  Next: {next_step}")
+
+    def _persist_plan_verification(self, project_id: str, verified: bool) -> bool:
+        if not project_id:
+            return False
+        store = GuidedMissionStore(self.store.projects_root / project_id)
+        try:
+            saved = store.save(replace(store.load(), build_plan_verified=verified))
+        except (OSError, TypeError, ValueError):
+            return False
+        return saved.build_plan_verified is verified
+
+    def _plan_verification_is_current(
+        self,
+        project_id: str,
+        plan: BuildPlan | None = None,
+    ) -> bool:
+        current_plan = plan or RomBuildPlanner(self.store).load(project_id)
+        state = GuidedMissionStore(self.store.projects_root / project_id).load()
+        return bool(
+            current_plan is not None
+            and current_plan.project_id == project_id
+            and state.build_plan_verified
+        )
 
     def _refresh_device_dna(self, project: RomProject) -> DeviceDnaProfile | None:
         if project.original is None:
@@ -4873,9 +4899,26 @@ class RomStudio(QWidget):
         self._launch_worker(worker, operation)
 
     def _launch_worker(self, worker: ManagedRunnable, operation: str) -> None:
+        project_id = str(getattr(worker, "project_id", ""))
+        if operation == "plan" and not self._persist_plan_verification(project_id, False):
+            self.forge_button.setEnabled(False)
+            self.operation_status.setText(
+                "Build planning stopped safely because ROMVERSE could not invalidate the "
+                "earlier plan-verification state. No plan, build, Forge, or phone action started."
+            )
+            self.operation_status.setObjectName("Danger")
+            self._repolish(self.operation_status)
+            return
+        if (
+            operation == "plan"
+            and self.current_project is not None
+            and self.current_project.project_id == project_id
+        ):
+            self._update_guidance(self.current_project)
+            self._render_time_machine(project_id)
         self.worker = worker
         self._active_operation = operation
-        self._active_project_id = str(getattr(worker, "project_id", ""))
+        self._active_project_id = project_id
         self._last_validated_completion = None
         self._last_recovery_report = None
         self.operation_started.emit(operation)
@@ -5084,6 +5127,8 @@ class RomStudio(QWidget):
                 plan = RomBuildPlanner(self.store).load(project_id)
                 if (
                     plan is None
+                    or self.current_project is None
+                    or self.current_project.project_id != project_id
                     or (
                         self._automatic_simulation_verification_plan
                         and plan != self._automatic_simulation_verification_plan
@@ -5243,11 +5288,24 @@ class RomStudio(QWidget):
             return
         if (
             operation == "verify-plan"
-            and self._automatic_simulation_verification_plan is not None
             and isinstance(result, ArtifactVerification)
             and not result.valid
         ):
             self._worker_failed(result.status)
+            return
+        if operation == "plan" and not self._persist_plan_verification(project_id, False):
+            self._worker_failed(
+                "ROM Studio could not durably invalidate the earlier plan verification"
+            )
+            return
+        if (
+            operation == "verify-plan"
+            and isinstance(result, ArtifactVerification)
+            and not self._persist_plan_verification(project_id, True)
+        ):
+            self._worker_failed(
+                "ROM Studio could not durably record the accepted plan verification"
+            )
             return
         if (
             operation == "verify-forge"
@@ -5690,6 +5748,9 @@ class RomStudio(QWidget):
     def _worker_failed(self, message: str) -> None:
         operation = self._active_operation
         project_id = self._active_project_id
+        plan_verification_cleared = True
+        if operation in {"plan", "verify-plan"} and project_id:
+            plan_verification_cleared = self._persist_plan_verification(project_id, False)
         automatic_preparation_failure = bool(
             self._automatic_preparation_project_id
             and project_id == self._automatic_preparation_project_id
@@ -5729,6 +5790,11 @@ class RomStudio(QWidget):
         self.project_list.setEnabled(True)
         self.progress.stop()
         status = message + ("\n" + self._recovery_notice(recovery) if recovery is not None else "")
+        if not plan_verification_cleared:
+            status += (
+                "\nROMVERSE could not persist the required plan-verification invalidation; "
+                "Forge remains disabled in this session."
+            )
         if self.current_project is not None:
             self._select(self.project_list.currentRow())
             report = self.scan_operation_failure_knowledge(
@@ -5749,6 +5815,8 @@ class RomStudio(QWidget):
         self.operation_status.setText(status)
         self.operation_status.setObjectName("Danger")
         self._repolish(self.operation_status)
+        if not plan_verification_cleared:
+            self.forge_button.setEnabled(False)
         if automatic_preparation_failure:
             self._automatic_preparation_project_id = ""
             self._automatic_preparation_destination = ""
@@ -5917,10 +5985,9 @@ class RomStudio(QWidget):
         plan = RomBuildPlanner(self.store).load(project_id)
         if plan is not None:
             partitions = ", ".join(plan.partitions) or "none detected"
-            mission_state = GuidedMissionStore(self.store.projects_root / project_id).load()
             tree_state = (
                 "last background verification passed"
-                if mission_state.build_plan_verified
+                if self._plan_verification_is_current(project_id, plan)
                 else "verification required"
             )
             lines.append(

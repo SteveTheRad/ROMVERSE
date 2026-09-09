@@ -1,5 +1,81 @@
 # ROMVERSE Product Assurance Sync
 
+## Stage-12 wording checkpoint — Forge Control semantic contract replaces stale prose
+
+### Authoritative checkpoint and scope
+
+- Product Assurance approval/base: `92a2c17`, approving checkpoint `1578b09` and authorizing only
+  classification of the single Guided Stage-12 wording regression. Test-fixture commit: `8317f2f`
+  (`Assert Stage 12 Forge semantics`). This section forms the following handoff commit on
+  `linux/stage1-desktop-readiness`.
+- Stage: Stage 1 — v0.2 Golden Foundation regression reliability only. Stage 12 was assessed but
+  was not operated. No production source, copy, route, stage ordering, consent, signing behavior,
+  Guardian/Recovery rule or execution boundary changed.
+- Exact changed test file is `tests/test_guided_mission.py`, plus this handoff. All other test,
+  application, Windows, Companion and package work remained unchanged.
+
+### Classification and correction
+
+- The exact historical node reproduced **1/1 failed** before correction because it expected the
+  retired phrase `verified local candidate`. Current product evidence remained truthful and
+  actionable: the first eleven stages were complete; Stage 12 was `ATTENTION`; its blocker directed
+  the user to Forge Control to execute and byte-verify the exact Device Pack plan before signing;
+  and its existing action remained `Resolve build automatically`.
+- The current wording is more precise than the old phrase because no candidate exists yet in this
+  assessment state. It preserves the build-before-signing boundary and points to the real Forge
+  Control route rather than prematurely claiming a verified artifact.
+- The fixture now asserts durable semantics: exact `build_sign` stage identity, `ATTENTION` state,
+  Forge Control route, exact Device Pack plan, byte verification, before-signing ordering,
+  `build-sign` action, existing action label, and the signed/validated artifact outcome before
+  Guardian review. It no longer binds correctness to obsolete prose.
+
+### Verification evidence
+
+- The exact node passed **1/1** after correction. Final directly affected Guided mission assessment
+  selection passed **23/23**. The exact rerun is contained in the final selection and is not added
+  to its total.
+- Ruff lint and `git diff --check` passed. Whole-file Ruff formatting remains non-green solely at
+  one pre-existing unrelated assertion near line 202; the formatter reported no change in this
+  checkpoint's Stage-12 hunk, so the unrelated line was preserved.
+- No UI journey, Stage-12 operation, full suite, Windows suite, paid GitHub Actions workflow or
+  package build was run.
+
+### Classification, safety and gates
+
+- **Implemented:** one stale wording assertion now verifies the current Stage-12 semantic contract;
+  application behavior and text are unchanged.
+- **Simulated/Tested:** 23/23 pure Guided assessment tests passed on Fedora. No command, worker,
+  signing operation or device action ran.
+- **Hardware Verified:** no. No phone, emulator or Windows host was used.
+- **Released:** no. No package was built, installed, signed, published or released.
+- Guided friction/dead ends: Stage 12 still exposes one accurate actionable route to Forge Control
+  and does not claim a candidate before it has been executed and byte-verified. No stage auto-
+  advance or additional user decision was introduced.
+- Guardian/Recovery/safety: unchanged. Signing remains after exact plan execution/verification;
+  Guardian-only authority, exact evidence, UNKNOWN-on-uncertainty, no blind retry, independent
+  verification and permanent bootloader no-relock remain intact. No execution authority was
+  created.
+- Platform status: bounded logic verification passed on Fedora. Windows and physical Android were
+  not relevant or run. Broad regression and all release gates remain closed.
+- Feature freeze: compliant test-only correctness work. v0.2 Golden Foundation and all release
+  gates remain **CLOSED**.
+- External actions: local tests and scoped commit/push preparation only. No paid workflow,
+  dependency/tool/APK installation, phone/emulator operation, device-addressed ADB/Fastboot,
+  firmware build/sign/flash, Guardian/Recovery execution, publication, release, merge, force-push,
+  lock or relock occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance review. Do not begin another wording/UI cluster, Stage 12,
+package work or any consequential slice until this exact checkpoint is reviewed.
+
+### Product Assurance Review Requested
+
+- Confirm the current Forge Control copy is accurate and that semantic assertions are preferable to
+  restoring the premature `verified local candidate` phrase.
+- Confirm the 23-node Guided assessment selection is sufficient for this test-only wording
+  checkpoint without a UI/package/full-matrix replay.
+
 ## Project Flash modal checkpoint — connected Guided decline journey remains actionable
 
 ### Authoritative checkpoint and scope

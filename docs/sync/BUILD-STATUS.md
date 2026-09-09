@@ -1,5 +1,84 @@
 # ROMVERSE Product Assurance Sync
 
+## Current-source unsigned Windows package convergence — Product Assurance review requested
+
+### Exact authority and focused verification
+
+- Product Assurance verdict `b1dc54e0c6390fb3d789930dda0696c712e40e64` — `Approve Windows
+  Git investigation correction [skip ci]` exactly approves corrected Build checkpoint
+  `24cd0ace42dc44dfb439f4f0cd84cae0900759be` and authorizes one current-source unsigned Windows
+  development-package convergence checkpoint.
+- `C:\Work\ROMVERSE-Windows` was synchronized to the exact verdict on
+  `windows-launcher-authorized-work`; Forgejo, GitHub and local `HEAD` matched before the build.
+  The protected untracked patch and the already-present untracked `build-work\` intermediates were
+  preserved and excluded from staging.
+- Focused command
+  `.venv\Scripts\python.exe -m pytest -q tests\test_desktop_bundle.py tests\test_settings.py
+  tests\test_popsicle_fastboot_field_knowledge.py tests\test_knowledge_center_ui.py --basetemp
+  build\pytest-current-package-b1dc54e0` passed **39/39** tests. This covers the existing Windows
+  PyInstaller/ICU boundary, the accepted Windows private-settings ACL behavior, and the popsicle
+  Knowledge archive/UI data added since retained package source
+  `945928567ea188481eb0c19ca4419ae4132c22f5`.
+
+### Exactly one completed current-source development package
+
+- Used only the installed local environment: Windows 11 `10.0.26200`, Python `3.12.10` and
+  PyInstaller `6.22.2`. No dependency, package, tool or cache content was downloaded, installed or
+  updated.
+- The approved build ran once to completion:
+  `.venv\Scripts\python.exe scripts\build_desktop_executable.py --output-directory
+  build\windows-current-package-b1dc54e0 --work-directory
+  build\windows-current-package-b1dc54e0-pyinstaller`.
+- Source identity: `b1dc54e0c6390fb3d789930dda0696c712e40e64`. Runnable one-folder package:
+  `C:\Work\ROMVERSE-Windows\build\windows-current-package-b1dc54e0\ROMVERSE` — **306 regular
+  files / 164,663,424 bytes / 0 empty files / 0 reparse entries / 0 `icu*.dll` files**.
+- Executable: `ROMVERSE.exe` — **6,324,534 bytes**, SHA-256
+  `d2df2c9a667520e9ebe88d4c2eb4dfa26020b1e2d8f852dddb33ab24a013b431`, Authenticode
+  **NotSigned**. This is an unsigned local development artifact only; it is not trusted,
+  production-ready, published or released.
+- Deterministic sorted tree-manifest identity over
+  `<relative-path><TAB><size><TAB><member-sha256><LF>`: SHA-256
+  `707802c227e516575573cd16ed81a4c3bae7055b6a0166a29423d821aff055de`.
+  The frozen popsicle Knowledge seed is present source-identical at SHA-256
+  `54928d451043588fd19e84b48a815d3a002b5e2d6148b50135d77dde0cb24481`.
+
+### One interactive fresh-workspace no-phone launch
+
+- Launched the new executable exactly once with
+  `--workspace C:\Work\ROMVERSE-Current-Package-b1dc54e0-20260910 --skip-onboarding
+  --development-device-simulation`. The workspace did not exist before launch. No consequential
+  page or action was entered.
+- The genuine Windows window identity was `ROMVERSE Studio 0.2.0-alpha.1`. It opened directly to
+  Command Deck in Guided / Arcana mode and truthfully reported `DEVICE: NOT CONNECTED`,
+  `PROJECT: NONE`, `MISSION: IDLE`, `GUARDIAN: VERIFY REQUIRED`, Device DNA `UNCONFIRMED`, no
+  Android device detected, and no build, flash, backup, Recovery or other operation running. The
+  footer remained `Development simulation` and `SIMULATION ONLY • NO HARDWARE`.
+- The app accepted its normal title-bar close and exited. No `ROMVERSE.exe` process remained. The
+  fresh runtime log is exactly 77 bytes with one `ROMVERSE runtime started` and one
+  `ROMVERSE runtime closed cleanly` marker, no other text, SHA-256
+  `9b548079f50e029991471fdbf93e92807fb82adb17319871cb9ab421e7b7f499`.
+- Fresh-workspace inspection found 7 regular files, 0 reparse entries, 0 managed-tool files,
+  0 project files and no toolchain install plan. No setup success, device identity, project,
+  mission or operation evidence was fabricated. No ROMVERSE network-backed feature or external
+  destination was opened or invoked during the launch.
+
+### Scope and next review
+
+- No product or test source changed and no rebuild was required. This checkpoint changes only
+  `docs/sync/BUILD-STATUS.md`. Protected Companion files remain untouched. The protected untracked
+  patch remains exactly 8,272 bytes with SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it was not edited,
+  applied, staged or deleted.
+- No phone, emulator, device discovery/query, ADB/Fastboot command, dependency installation,
+  firmware/APK action, Recovery/Guardian execution, production adapter/trust/signing,
+  publication, release, hosted CI, force-push, destructive action, wipe, unlock/root, lock or
+  relock occurred. Exact-device evidence, fresh consent, Guardian-only authority and separation,
+  durable UNKNOWN, no blind retry, independent verification, feature freeze and permanent
+  bootloader no-relock remain intact.
+- Precise next task: independent Product Assurance review of this exact current-source package
+  identity, focused tests and one clean no-phone Windows launch. Do not begin another package,
+  product tour or consequential slice without a matching repository verdict.
+
 ## Windows repeated Git verification investigation — Product Assurance review requested
 
 > Product Assurance correction after checkpoint `5f678adc08b506e3dabb4fce68eee1b6fc57217e`:

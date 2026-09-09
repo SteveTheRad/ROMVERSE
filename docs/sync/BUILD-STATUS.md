@@ -1,5 +1,55 @@
 # ROMVERSE Product Assurance Sync
 
+## Converged current-source Windows development package — Product Assurance review requested
+
+- Approved Windows source/checkpoint: `fc89e13b42e0447acc34333434f267bf6728ba99` on
+  `windows-launcher-authorized-work`; formatting implementation `a4273477`.
+- Linux prerequisite: deterministic Linux Ruff convergence `50abc17`, independently approved at
+  `44233c6`; the converged Fedora package was subsequently approved at `3e84430`.
+- Status: **PASS — EXACTLY ONE NEW UNSIGNED WINDOWS ONE-FOLDER PACKAGE WAS BUILT FROM THE APPROVED
+  CURRENT WINDOWS SOURCE, ITS COMPLETE TREE WAS HASHED, AND ONE FRESH NO-PHONE FROZEN SMOKE PASSED.**
+
+### Exact build and artifact identity
+
+- The authorized build ran once on the Legion through the existing SSH-connected Windows host:
+  `.venv\Scripts\python.exe scripts\build_desktop_executable.py --output-directory
+  build\windows-ruff-converged-fc89e13 --work-directory
+  build\windows-ruff-converged-fc89e13-pyinstaller`.
+- Environment: Windows 11 `10.0.26200`, Python `3.12.10`, PyInstaller `6.22.2`. The build completed
+  successfully; no dependency or tool was installed and no replacement build was attempted.
+- One-folder package: `build\windows-ruff-converged-fc89e13\ROMVERSE` — **262 regular files /
+  162,294,001 bytes / 0 reparse points**.
+- Executable: `build\windows-ruff-converged-fc89e13\ROMVERSE\ROMVERSE.exe` — **6,323,437 bytes**,
+  SHA-256 `6afd5da5e808b20112dd15cb5fa6d8e20f571b26d0f8233e3d3f6074ccf752f0`, Authenticode
+  `NotSigned`.
+- Deterministic sorted tree manifest identity over
+  `<relative-path><TAB><size><TAB><member-sha256><LF>`: SHA-256
+  `4a0d7761f9d84c05ff351abf1a1d2fc67af07e619437145dd9ae3c85453c0297`.
+
+### One fresh frozen no-phone smoke
+
+- The existing bounded smoke ran exactly once against the new executable with fresh disposable
+  workspace `C:\Work\ROMVERSE-Ruff-Converged-Smoke-fc89e13`.
+- Result: **PASS**, exit `0`, `Frozen ROMVERSE Desktop launch smoke passed`.
+- The runtime fault log contains exactly one `ROMVERSE runtime started` and one
+  `ROMVERSE runtime closed cleanly` marker; no exception or native fault is recorded.
+- This is a no-phone startup/package check. It does not claim a visible interactive review,
+  physical Android verification or device authority.
+
+### Preserved scope and gates
+
+- The protected untracked patch remains exactly **8,272 bytes**, SHA-256
+  `2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`; it was not altered,
+  applied, staged or deleted. The Windows checkout otherwise remains clean at `fc89e13`.
+- Earlier accepted artifacts were preserved. No 974-node portability replay, Ruff convergence,
+  GitHub Actions/paid CI, Linux/Companion/Knowledge/UI Lab work, device/ADB/Fastboot operation,
+  APK installation, firmware work, Guardian/Recovery execution, signing, publication, release,
+  force-push, lock or relock occurred.
+- Guardian-only authority, exact evidence, UNKNOWN-on-uncertainty, no blind retry and permanent
+  bootloader no-relock remain intact. The package is local, unsigned, untrusted and development-only.
+- Proposed next task: independent Product Assurance review of this exact package tree, hashes and
+  one frozen smoke. Do not rebuild or begin another Windows slice before that verdict.
+
 ## Deterministic Ruff formatting convergence — Product Assurance review requested
 
 - Product Assurance verdict: `9ffcdefe87473feb141fe0126834b3c15d8150e4` —

@@ -1202,6 +1202,9 @@ class BuildControlCenter(QDialog):
         self.autopilot_active = False
         self.autopilot_completed: list[str] = []
         self.autopilot_waiting_for = ""
+        self.autopilot_stop_message = ""
+        self.autopilot_stop_signature: tuple[object, ...] | None = None
+        self.autopilot_retry_label = ""
         self.guardian_manifest_requested = False
         self.resolution_gate_id = ""
         self.resolution_action_id = ""
@@ -1705,6 +1708,11 @@ class BuildControlCenter(QDialog):
             self.project.project_id,
             tuple(self.studio.devices),
         )
+        if (
+            self.autopilot_stop_signature is not None
+            and self._report_view_signature(self.report) != self.autopilot_stop_signature
+        ):
+            self._clear_autopilot_stop()
         candidate_avb_verified = self._current_candidate_avb_receipt() is not None
         while self.content.count():
             item = self.content.takeAt(0)
@@ -2091,6 +2099,7 @@ class BuildControlCenter(QDialog):
             else "Resolve the first unfinished evidence gate, then reassess automatically."
         )
         self._apply_local_build_resume_state()
+        self._apply_autopilot_stop()
 
     @staticmethod
     def _resolution_button_label(remediation) -> str:
@@ -2781,6 +2790,7 @@ class BuildControlCenter(QDialog):
             )
         ):
             return
+        self._clear_autopilot_stop()
         self.autopilot_active = True
         self.autopilot_completed.clear()
         self.autopilot_waiting_for = ""
@@ -2851,7 +2861,8 @@ class BuildControlCenter(QDialog):
             self._autopilot_recovery()
         else:
             self._finish_autopilot(
-                f"ROMVERSE reached {step.title}, but no safe automatic resolver is available."
+                f"ROMVERSE reached {step.title}, but no safe automatic resolver is available.",
+                stopped=True,
             )
 
     def _autopilot_recovery(self) -> None:
@@ -2986,7 +2997,8 @@ class BuildControlCenter(QDialog):
                     + (
                         dialog.last_message
                         or "Review the visible installation requirement and retry."
-                    )
+                    ),
+                    stopped=True,
                 )
                 return
             activate_verified_managed_tools(self.studio.store.workspace)
@@ -3000,7 +3012,8 @@ class BuildControlCenter(QDialog):
             if remaining:
                 self._finish_autopilot(
                     "Forge Arsenal installed the selected requirements, but fresh verification "
-                    "still reports missing tools: " + ", ".join(remaining)
+                    "still reports missing tools: " + ", ".join(remaining),
+                    stopped=True,
                 )
                 return
         tool_digest = hashlib.sha256(
@@ -3050,14 +3063,49 @@ class BuildControlCenter(QDialog):
     def _autopilot_studio_failed(self, operation: str, message: str) -> None:
         if not self.autopilot_active or operation != self.autopilot_waiting_for:
             return
-        self._finish_autopilot(f"ROMVERSE stopped safely while resolving {operation}: {message}")
+        self._finish_autopilot(
+            f"ROMVERSE stopped safely while resolving {operation}: {message}",
+            stopped=True,
+        )
         self._source_online_guidance(
             message,
             operation,
             tool_name="AVBTool" if operation == "avb" else "",
         )
 
-    def _finish_autopilot(self, message: str, *, waiting_gate: str = "") -> None:
+    def _clear_autopilot_stop(self) -> None:
+        self.autopilot_stop_message = ""
+        self.autopilot_stop_signature = None
+        self.autopilot_retry_label = ""
+
+    def _apply_autopilot_stop(self) -> None:
+        if (
+            not self.autopilot_stop_message
+            or self.report is None
+            or self.autopilot_active
+            or self._report_view_signature(self.report) != self.autopilot_stop_signature
+        ):
+            return
+        self.status.setText(self.autopilot_stop_message)
+        self.autopilot_button.setText(self.autopilot_retry_label or "Re-check after correction")
+        self.autopilot_button.setToolTip(
+            "ROMVERSE stopped without changing the phone or claiming success. Correct the stated "
+            "evidence problem, then re-check. Repeating this action without changing the evidence "
+            "cannot advance the project."
+        )
+        self.footer_action_hint.setText(
+            "Automatic preparation stopped safely. Correct the reason shown above, then re-check; "
+            "ROMVERSE will continue only after the required evidence changes."
+        )
+
+    def _finish_autopilot(
+        self,
+        message: str,
+        *,
+        waiting_gate: str = "",
+        stopped: bool = False,
+        retry_label: str = "",
+    ) -> None:
         completed = len(self.autopilot_completed)
         self.autopilot_active = False
         self.autopilot_waiting_for = ""
@@ -3098,6 +3146,11 @@ class BuildControlCenter(QDialog):
             )
         prefix = f"{completed} safe step(s) completed automatically. " if completed else ""
         self.status.setText(prefix + message)
+        if stopped and self.report is not None:
+            self.autopilot_stop_message = prefix + message
+            self.autopilot_stop_signature = self._report_view_signature(self.report)
+            self.autopilot_retry_label = retry_label
+            self._apply_autopilot_stop()
         if waiting_gate and self.report is not None:
             gate = next((item for item in self.report.gates if item.gate_id == waiting_gate), None)
             if gate is not None:
@@ -3483,7 +3536,9 @@ class BuildControlCenter(QDialog):
         self._finish_preparation_console("forge-source-blueprint", MissionState.FAILED)
         if self.autopilot_active and self.autopilot_waiting_for == "source-blueprint":
             self._finish_autopilot(
-                f"ROMVERSE could not derive the source blueprint automatically: {message}"
+                f"ROMVERSE could not derive the source blueprint automatically: {message}",
+                stopped=True,
+                retry_label="Re-check firmware source",
             )
         else:
             self.status.setText(message)
@@ -3685,7 +3740,8 @@ class BuildControlCenter(QDialog):
         self._finish_preparation_console("forge-build-inputs", MissionState.FAILED)
         if self.autopilot_active and self.autopilot_waiting_for == "metadata":
             self._finish_autopilot(
-                f"ROMVERSE stopped safely while preparing exact build inputs: {message}"
+                f"ROMVERSE stopped safely while preparing exact build inputs: {message}",
+                stopped=True,
             )
         else:
             QMessageBox.warning(self, "Rebuild evidence remains locked", message)
@@ -3758,7 +3814,10 @@ class BuildControlCenter(QDialog):
         self._apply_local_build_resume_state()
         self._finish_preparation_console("forge-local-candidate", MissionState.FAILED)
         if self.autopilot_active and self.autopilot_waiting_for == "local-build":
-            self._finish_autopilot(f"Local build stopped safely: {message}")
+            self._finish_autopilot(
+                f"Local build stopped safely: {message}",
+                stopped=True,
+            )
         else:
             QMessageBox.warning(self, "Local build stopped safely", message)
         self._source_online_guidance(message, "local-build")
@@ -4030,7 +4089,10 @@ class BuildControlCenter(QDialog):
         self.status.setText(message)
         self._finish_preparation_console("forge-avb-topology", MissionState.FAILED)
         if self.autopilot_active and self.autopilot_waiting_for == "avb":
-            self._finish_autopilot(f"AVB inspection stopped safely: {message}")
+            self._finish_autopilot(
+                f"AVB inspection stopped safely: {message}",
+                stopped=True,
+            )
         else:
             QMessageBox.warning(self, "AVB inspection stopped safely", message)
         self._source_online_guidance(message, "avb", tool_name="AVBTool")
@@ -4240,6 +4302,7 @@ class BuildControlCenter(QDialog):
                 MissionConfidence.UNCONFIRMED,
                 result,
             )
+            self._apply_autopilot_stop()
             return
         top = result.candidates[0]
         verification = (
@@ -4297,6 +4360,7 @@ class BuildControlCenter(QDialog):
             MissionConfidence.VERIFIED if top.confirmed_working else MissionConfidence.MEDIUM,
             result,
         )
+        self._apply_autopilot_stop()
 
     @Slot(str)
     def _online_guidance_failed(self, message: str) -> None:
@@ -4312,6 +4376,7 @@ class BuildControlCenter(QDialog):
             "Retry when connectivity returns or continue with deterministic local evidence.",
             MissionConfidence.UNCONFIRMED,
         )
+        self._apply_autopilot_stop()
 
     def _live_console_store(self) -> LiveConsoleEventStore | None:
         store = getattr(self.studio, "live_console_store", None)

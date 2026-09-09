@@ -1339,6 +1339,36 @@ def test_source_blueprint_worker_routes_measured_failure_to_live_console(
     studio.close()
 
 
+def test_source_blueprint_autopilot_stop_survives_refresh_without_false_continue(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    QApplication.instance() or QApplication([])
+    studio = _studio(tmp_path)
+    control = BuildControlCenter(studio, auto_start=False)
+    monkeypatch.setattr(control, "_source_online_guidance", lambda *_args, **_kwargs: None)
+    control.autopilot_active = True
+    control.autopilot_waiting_for = "source-blueprint"
+
+    control._source_blueprint_failed("the protected source is not a supported firmware package")
+
+    assert "not a supported firmware package" in control.status.text()
+    assert control.autopilot_button.text() == "Re-check firmware source"
+    assert "Repeating this action without changing the evidence cannot advance" in (
+        control.autopilot_button.toolTip()
+    )
+    assert "Automatic preparation stopped safely" in control.footer_action_hint.text()
+
+    control.status.setText("Online guidance replaced the local stop reason")
+    control.refresh(control.report)
+
+    assert "not a supported firmware package" in control.status.text()
+    assert control.autopilot_button.text() == "Re-check firmware source"
+    assert "Auto-resolve" not in control.autopilot_button.text()
+    control.close()
+    studio.close()
+
+
 def test_all_forge_preparation_missions_require_explicit_terminal_outcomes(tmp_path) -> None:
     QApplication.instance() or QApplication([])
     studio = _studio(tmp_path)

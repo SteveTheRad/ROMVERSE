@@ -247,6 +247,7 @@ class GuidedBuildMission(QDialog):
     def __init__(self, studio: RomStudio, *, start_new_project: bool = False) -> None:
         super().__init__(studio)
         self.studio = studio
+        self._closing = False
         self._start_new_project = bool(start_new_project)
         self.engine = GuidedMissionEngine()
         self.state = self._load_state()
@@ -605,14 +606,26 @@ class GuidedBuildMission(QDialog):
         self._apply_responsive_layout()
 
     def closeEvent(self, event) -> None:
+        self._closing = True
+        self.autopilot_active = False
         self._save_state()
         self._pause_genesis_live("Genesis Sequence was closed and saved for later.")
         super().closeEvent(event)
+
+    def reject(self) -> None:
+        if not self._closing:
+            self._closing = True
+            self.autopilot_active = False
+            self._save_state()
+            self._pause_genesis_live("Genesis Sequence was closed and saved for later.")
+        super().reject()
 
     def accept(self) -> None:
         if not self._save_state():
             self._render_stage()
             return
+        self._closing = True
+        self.autopilot_active = False
         self._pause_genesis_live("Genesis Sequence was saved and paused.")
         super().accept()
 
@@ -896,6 +909,8 @@ class GuidedBuildMission(QDialog):
         return self.studio.guided_context(self.state)
 
     def _refresh(self, select_current: bool = False) -> None:
+        if self._closing:
+            return
         current_project_id = (
             self.studio.current_project.project_id
             if self.studio.current_project is not None
@@ -1526,7 +1541,7 @@ class GuidedBuildMission(QDialog):
         QTimer.singleShot(0, self._advance_autopilot)
 
     def _advance_autopilot(self) -> None:
-        if not self.autopilot_active:
+        if self._closing or not self.autopilot_active:
             return
         if self.studio.worker is not None or self.active_operation:
             return
@@ -1573,6 +1588,8 @@ class GuidedBuildMission(QDialog):
             self.autopilot_active = False
             self._render_stage()
             self._run_stage()
+            if self._closing:
+                return
             self._refresh(select_current=True)
             after_stage = self.assessments[self.selected_index].stage.stage_id
             if after_stage != before_stage:
@@ -1593,6 +1610,8 @@ class GuidedBuildMission(QDialog):
 
         before_stage = stage.stage_id
         self._run_stage()
+        if self._closing:
+            return
         if self.studio.worker is not None or self.active_operation:
             return
         self._refresh(select_current=True)
@@ -1946,6 +1965,8 @@ class GuidedBuildMission(QDialog):
             self._save_state()
         elif action == "build-sign":
             self.studio._open_build_control(self)
+            if self._closing:
+                return
             self._refresh()
         elif action == "flash":
             context = self._context()

@@ -1761,6 +1761,31 @@ def test_genesis_opens_forge_control_as_a_visible_child_and_releases_autopilot(
     studio.close()
 
 
+def test_genesis_does_not_refresh_after_parent_closes_during_forge_handoff(tmp_path):
+    QApplication.instance() or QApplication([])
+    store = RomProjectStore(tmp_path / "workspace")
+    project = store.create("Close during Forge handoff")
+    studio = RomStudio(store, DevicePackRegistry(()))
+    studio.refresh(project.project_id)
+    mission = GuidedBuildMission(studio)
+    mission.assessments = tuple(
+        replace(item, status=GuidedStageStatus.ATTENTION) if index == 11 else item
+        for index, item in enumerate(mission.assessments)
+    )
+    mission.selected_index = 11
+    mission.autopilot_active = True
+    refreshes: list[bool] = []
+    mission._refresh = lambda select_current=False: refreshes.append(select_current)
+    studio._open_build_control = lambda _parent=None: mission.close()
+
+    mission._advance_autopilot()
+
+    assert mission._closing
+    assert not mission.autopilot_active
+    assert refreshes == [True]
+    studio.close()
+
+
 def test_genesis_presents_completed_local_build_as_100_percent_with_install_deferred(tmp_path):
     app = QApplication.instance() or QApplication([])
     store = RomProjectStore(tmp_path / "workspace")

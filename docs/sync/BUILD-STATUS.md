@@ -1,5 +1,74 @@
 # ROMVERSE Product Assurance Sync
 
+## Fedora Source Lab contained synthetic extraction checkpoint
+
+### Authoritative commits and exact changes
+
+- Branch: `linux/stage1-desktop-readiness`.
+- Product Assurance authorization: `3bddd502bb9a4057d0c6e0426c58012f85963aa5`.
+- Runtime evidence: `540c1fcb2448a756f3f5d21bfd1ddf666b5c862d`.
+- Application, tests and package bits are unchanged. Build reused the approved unsigned package at
+  `build/fedora-readiness-wording-f069610/ROMVERSE`; its 6,337,408-byte mode-`0755` executable
+  remained SHA-256 `d110771c730b45695413c0606de072f9c560550c88ae223913ca1fd1e5e670e4`.
+- The only repository changes are this handoff and
+  `docs/evidence/FEDORA_SOURCE_LAB_CONTAINED_EXTRACTION_2026-09-10.md`.
+
+### Classification, verification and gates
+
+- **Implemented:** no new product behavior. This is a bounded runtime-evidence checkpoint.
+- **Simulated/Tested:** one genuine Fedora package acceptance used a fresh private copy of the
+  approved synthetic state, Bubblewrap `--unshare-net`, empty Android-tool `PATH`, private minimal
+  `/dev` and no phone/emulator. Per authorization, no unchanged test rerun or package rebuild ran.
+- Preflight reverified the 551-byte protected original, working baseline and snapshot at SHA-256
+  `c3f5c1711d648a0f6c8f2ba2e3c910048c4e81e6f3ee39bb82e9e85888ac89c8`; absent tree/index,
+  build plan and install request; Guided `workspace`; empty error; and zero tools.
+- Build invoked exactly one existing visible Source Lab `Prepare safe tree` control implementing
+  the displayed **Extract and verify working tree** action. No retry/repeat occurred.
+- The result is exactly two contained non-symlink files / 297 bytes: 257-byte
+  `META-INF/com/android/metadata` at SHA-256 `7b21d60b…53d9de`, and 40-byte inert `payload.bin` at
+  SHA-256 `5db7a969…4b4237`. Both are mode `0600` and match independently inspected source members.
+- The 518-byte strict tree index at SHA-256 `8aab1ce6…0b557` binds exact project, source digest,
+  contained relative path, two files and 297 bytes. Project/source/baseline/snapshot/inspection and
+  working-copy evidence remained byte-identical.
+- Automatic Vault entry `20260909T225219-25c1c708`, SHA-256 `aeeeaf77…3465b`, is labelled
+  **Extracted project tree**, parented to the exact baseline entry and contains only the two exact
+  content-addressed objects. Activity gained the extraction and Vault successes; Live Console gained
+  their running/succeeded events. This is evidence only and grants no authority.
+- Source Lab truthfully showed **Safe extraction complete**, working tree and 2-file/297-byte
+  inventory; readiness remains **INCOMPLETE** only for the missing Guardian-assessed build plan;
+  7/8 steps are complete and the next action is **Create and verify build plan**. Build did not
+  invoke it. Guided remains `workspace`; no build plan/install request/error exists; tools are empty.
+- **Hardware Verified:** no. Fedora/Linux UI and package were genuinely exercised; Android hardware
+  and simulation were not used. Windows was not run or modified.
+- **Released:** no. The package remains local, unsigned, uninstalled and unpublished.
+- Blockers/failures: none inside the authorized extraction boundary. Exact process termination
+  returned 143 because no compositor close action was exposed, so no clean-shutdown or
+  restart-persistence claim is made.
+- Guided friction/dead ends: no dead end reproduced. Source Lab automatically exposed the truthful
+  completed state and next missing prerequisite without a modal or confirmation loop.
+- Guardian/Recovery/safety: unchanged and not entered. Exact-source containment, local automatic
+  history, Guardian-only authority, durable `UNKNOWN`, no blind retry, independent verification and
+  permanent bootloader no-relock remain authoritative.
+- Feature freeze: compliant; no product source, test, feature or package change.
+- Version gate: contained synthetic extraction is ready for Product Assurance review. Build
+  planning and every device/consequence/signing/publication/v0.2/release gate remain **CLOSED**.
+- External actions: read-only preflight; fresh private retained-state copy; one no-network package
+  launch; ROM Studio navigation; exactly one inert extraction; expected strict index/activity/local
+  history writes; exact process termination; scoped documentation commits; and Forgejo-first/GitHub
+  synchronization only. No import/working-copy repeat, build planning/build, network/tool
+  acquisition, phone/emulator, real firmware, ADB/Fastboot, firmware/APK mutation,
+  Guardian/Recovery execution, flash, wipe, unlock/root, lock/relock, signing, installation,
+  publication, release or hosted CI occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance. Do not begin build planning or another consequential slice.
+
+### Product Assurance Review Requested
+
+Approve the exact contained extraction and automatic evidence. Keep build planning and every later
+Stage 1/release boundary closed until separately authorized.
+
 ## Fedora Source Lab incomplete-readiness wording checkpoint
 
 ### Authoritative commits and exact changes

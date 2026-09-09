@@ -108,7 +108,10 @@ def _fixture(
         archive.writestr("payload.bin", payload)
         archive.writestr("payload_properties.txt", prop_bytes)
         for name, data in ota_extras:
-            archive.writestr(name, data)
+            info = zipfile.ZipInfo(name)
+            info.filename = name
+            info.compress_type = zipfile.ZIP_DEFLATED
+            archive.writestr(info, data)
     registry = DevicePackRegistry.load(files("romverse.assets").joinpath("device_packs"))
     pack = next(item for item in registry.packs if item.build_contract is not None)
     store = RomProjectStore(tmp_path / "workspace")

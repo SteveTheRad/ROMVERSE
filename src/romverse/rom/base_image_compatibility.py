@@ -306,7 +306,9 @@ class BaseImageCompatibilityService:
         if not 0 < len(inventory) <= self.MAX_ZIP_MEMBERS:
             raise ProjectError("The OTA has an empty or oversized member inventory.")
         for item in inventory:
-            name = _safe_member(item.filename.rstrip("/"))
+            # ZipInfo.filename normalizes a literal Windows separator. Validate the
+            # original archive spelling so a backslash cannot become a safe slash.
+            name = _safe_member(item.orig_filename.rstrip("/"))
             mode = item.external_attr >> 16
             if (
                 name in members

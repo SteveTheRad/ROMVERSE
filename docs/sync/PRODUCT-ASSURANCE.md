@@ -1,5 +1,83 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 018b64b — Windows space/non-ASCII workspace path
+
+- Reviewed checkpoint: `018b64b07d59cf0b822897a992b3c95000ebc975`
+- Authorizing verdict: `bc324eca6140a1ca779ee9f9b1f4e98c20275290`
+- Retained package source: `b1dc54e0c6390fb3d789930dda0696c712e40e64`
+- Branch: `windows-launcher-authorized-work`
+- Review status: **APPROVED — PATH COMPATIBILITY PROVEN; ABOUT PATH DISPLAY NOT REQUIRED**
+
+### Decision and independent evidence
+
+The Windows path-compatibility objective is approved. `System.Diagnostics.ProcessStartInfo` passed
+the exact workspace as one argument-vector item, Windows bound the live process to that correctly
+quoted Unicode argument, and ROMVERSE created and used the intended
+`C:\Work\RV Café Path bc324\Workspace Démo` path. All eight generated files remain beneath the
+exact intended root, with no reparse entries, truncated/escaped sibling or fragment directory.
+Product Assurance independently verified that the exact root and workspace exist while the tested
+fragment paths do not.
+
+The package reached one responsive, fail-closed `LOCAL` Command Deck and closed normally. The
+runtime ledger is exactly 77 bytes, SHA-256
+`9b548079f50e029991471fdbf93e92807fb82adb17319871cb9ab421e7b7f499`, containing one accepted
+start and one clean close. Current process and window counts are zero, the test PID is dead, and no
+instance lock remains. The private Local-mode settings file remains 633 bytes, SHA-256
+`f176ae0ba370b775481956507a3233c45c6b10f58dab6d7c76000804b343f12d`, with the protected
+owner/SYSTEM ACL. No catalog, receipt, download, toolchain, install-plan or update path appeared.
+
+The About `BUILD WORKSPACE` card does not display any workspace path in the retained source; it is
+an evidence summary for project and host-tool counts. Its absence is not Unicode truncation and
+does not invalidate the stronger process/filesystem containment evidence. Adding a full local path
+to a broadly visible/accessibility surface would also increase personal-path disclosure risk and
+is not justified by this test. No About UI change or additional path-display feature is authorized.
+The earlier UI-specific acceptance assumption is therefore narrowed away rather than converted
+into freeze-exception work.
+
+The retained executable remains 6,324,534 bytes, SHA-256
+`d2df2c9a667520e9ebe88d4c2eb4dfa26020b1e2d8f852dddb33ab24a013b431`, and `NotSigned`. The
+checkpoint changes only Build Status and passes Git whitespace validation. The Windows checkout
+contains only the protected untracked patch and existing `build-work/` intermediates; the patch
+remains 8,272 bytes with SHA-256
+`2358e0e9e1db390d6c02c18688a5ceca62b075b8460f7d4e3a13123befeff0bb`. Forgejo and GitHub expose
+the same checkpoint. No network, install, dependency/tool change, phone/emulator, ADB/Fastboot,
+firmware/APK, Guardian/Recovery execution, source/package change, signing, publication, release,
+hosted CI, wipe, unlock/root, bootloader lock or relock occurred.
+
+### Approved next bounded task
+
+Verify that the unchanged unsigned one-folder Windows package remains runnable after an exact local
+relocation into a test directory whose name contains spaces and non-ASCII characters. This tests
+portable package-relative runtime/assets, not another application feature.
+
+1. Copy the complete retained package once to a new short disposable directory under `C:\Work`
+   containing spaces and non-ASCII characters. Do not move, alter or delete the authoritative
+   retained package.
+2. Before launch, compare file count, byte count, zero-file/reparse inventory, executable hash and
+   the deterministic sorted member manifest against the authoritative package. Any mismatch stops
+   the task.
+3. Create a separate new Local-mode disposable data root with a simple workspace path. Launch the
+   relocated executable once by direct argument-vector invocation with `ROMVERSE_HOME`, the exact
+   workspace, `--skip-onboarding` and `--development-device-simulation`.
+4. Verify one responsive `LOCAL`, fail-closed no-device Command Deck and confirm packaged assets and
+   offline Knowledge initialize from the relocated `_internal` tree. Enter no feature or
+   consequential flow. Close normally and prove zero processes/windows, no remaining instance lock
+   and one accepted start/clean close.
+5. Preserve both package trees and the disposable evidence until review. Commit only the sanitized
+   handoff and stop. If relocation fails, report the exact deterministic boundary without changing
+   source, rebuilding, installing or substituting files.
+
+No broad path matrix, network, download, install, dependency/tool change, phone/emulator,
+ADB/Fastboot, firmware/APK, Guardian/Recovery execution, source/package change, signing,
+publication, release, hosted CI, wipe, unlock/root, bootloader lock or relock is authorized.
+
+### Gate status
+
+- Windows workspace spaces/non-ASCII path compatibility: **APPROVED**
+- About full-path display change: **NOT REQUIRED / NOT AUTHORIZED**
+- Relocated one-folder package runtime/assets check: **AUTHORIZED**
+- Physical-device work, production trust/signing, publication and release: **CLOSED**
+
 ## Reviewed checkpoint: 5400561 — Windows stale-instance-lock recovery
 
 - Reviewed checkpoint: `5400561ac82acf71b2c1986fb5f0c8be3df169c8`

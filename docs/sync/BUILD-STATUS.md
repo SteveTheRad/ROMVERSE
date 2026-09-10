@@ -1,5 +1,26 @@
 # ROMVERSE Build Status
 
+## Device Intelligence firmware projection stored-record correction — 10 September 2026
+
+- Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`.
+- Product Assurance correction/base: `4c955d0777e30fc41453a0677e61e7264683d4e2`
+  reviewing `9d27b7227de372ccb3b23c81db67aec92d703f9d`.
+- Branch: `device-intelligence/evidence-correlation-contracts`.
+- Correction: bounded duplicate build/layout evidence now round-trips as immutable
+  `UNCONFIRMED`, including results with more than two exact claim bindings.
+- Stored integrity: build/layout binding cardinality now deterministically requires matching
+  metadata, digest and missing/duplicate reasons for both formed and `UNCONFIRMED` records;
+  re-digested role, field and reason substitutions fail closed.
+- Verification: **210/210 passed**: the established 181-test Device Intelligence selection plus
+  all 29 focused firmware-projection tests. Focused Ruff check/format on the two corrected Python
+  files and Git whitespace verification passed using existing local cached tooling only.
+- Authority remains unchanged: compatibility is `UNCONFIRMED`, execution authority is `none`,
+  and phone action, Guardian approval and bootloader relocking are false.
+- Acquisition, network, persistence, artifact reads, device/runtime wiring, firmware operations,
+  Guardian/Recovery, UI/platform/Companion, hosted CI, signing, publication and release: none.
+- Next: publish one correction checkpoint Forgejo first, mirror the identical commit to GitHub and
+  stop for independent Product Assurance. No later Device Intelligence slice is authorized.
+
 ## Device Intelligence canonical firmware projection — 10 September 2026
 
 - Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`.

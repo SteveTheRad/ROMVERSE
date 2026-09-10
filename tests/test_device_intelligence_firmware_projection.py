@@ -377,6 +377,38 @@ def test_partition_layout_requires_one_exact_same_scope_digest():
     assert "duplicate-evidence:firmware.partition.layout" in projection.reasons
 
 
+def test_duplicate_build_and_layout_results_with_three_bindings_round_trip():
+    second_metadata = dict(BUILD_METADATA)
+    second_metadata["build_id"] = "OS4.0.0.36.XPBCNXM"
+    second_scope = replace(FIRMWARE_SCOPE, build_ids=(second_metadata["build_id"],))
+    duplicate_build = _project(
+        (_build_item(), _build_item(second_metadata, scope=second_scope), _layout_item())
+    )
+    assert duplicate_build.identity is None
+    assert len(duplicate_build.claim_bindings) == 3
+    assert duplicate_build.model_variant == duplicate_build.build_id == ""
+    assert "duplicate-required-evidence:firmware.build-identity" in duplicate_build.reasons
+    assert (
+        parse_evidence_firmware_projection(evidence_firmware_projection_mapping(duplicate_build))
+        == duplicate_build
+    )
+
+    other_layout = _claim(
+        "firmware.partition.layout",
+        hashlib.sha256(b"other-layout").hexdigest(),
+        ClaimAuthorityDomain.PARTITION_LAYOUT,
+    )
+    duplicate_layout = _project((_build_item(), _layout_item(), other_layout))
+    assert duplicate_layout.identity is None
+    assert len(duplicate_layout.claim_bindings) == 3
+    assert duplicate_layout.partition_layout_digest == ""
+    assert "duplicate-evidence:firmware.partition.layout" in duplicate_layout.reasons
+    assert (
+        parse_evidence_firmware_projection(evidence_firmware_projection_mapping(duplicate_layout))
+        == duplicate_layout
+    )
+
+
 def test_claim_report_and_device_projection_substitution_are_rejected():
     report, claims = _report((_build_item(),))
     changed = replace(claims[0], structured_value=_json(BUILD_METADATA | {"region": "Global"}))
@@ -441,6 +473,73 @@ def test_stored_projection_rejects_schema_digest_order_authority_and_redigested_
     changed["source_content_digests"] = ["d" * 64]
     _reseal(changed)
     with pytest.raises(EvidenceFirmwareProjectionError, match="bindings"):
+        parse_evidence_firmware_projection(changed)
+
+
+def test_unconfirmed_stored_projection_rejects_redigested_role_field_and_reason_changes():
+    layout_only = evidence_firmware_projection_mapping(_project((_layout_item(),)))
+    build_only = evidence_firmware_projection_mapping(_project((_build_item(),)))
+
+    changed = json.loads(json.dumps(layout_only))
+    changed["model_variant"] = BUILD_METADATA["model_variant"]
+    changed["build_id"] = BUILD_METADATA["build_id"]
+    changed["firmware_artifact_sha256"] = FIRMWARE_DIGEST
+    _reseal(changed)
+    with pytest.raises(EvidenceFirmwareProjectionError, match="build binding"):
+        parse_evidence_firmware_projection(changed)
+
+    changed = json.loads(json.dumps(layout_only))
+    changed["claim_bindings"][0]["claim_key"] = "firmware.build-identity"
+    changed["claim_bindings"][0]["authority_domain"] = "firmware-identity"
+    _reseal(changed)
+    with pytest.raises(EvidenceFirmwareProjectionError, match="build binding"):
+        parse_evidence_firmware_projection(changed)
+
+    changed = json.loads(json.dumps(layout_only))
+    changed["reasons"] = []
+    _reseal(changed)
+    with pytest.raises(EvidenceFirmwareProjectionError, match="build binding"):
+        parse_evidence_firmware_projection(changed)
+
+    changed = json.loads(json.dumps(build_only))
+    changed["partition_layout_digest"] = LAYOUT_DIGEST
+    _reseal(changed)
+    with pytest.raises(EvidenceFirmwareProjectionError, match="layout binding"):
+        parse_evidence_firmware_projection(changed)
+
+    second_metadata = dict(BUILD_METADATA)
+    second_metadata["build_id"] = "OS4.0.0.36.XPBCNXM"
+    duplicate_build = _project(
+        (
+            _build_item(),
+            _build_item(
+                second_metadata,
+                scope=replace(FIRMWARE_SCOPE, build_ids=(second_metadata["build_id"],)),
+            ),
+        )
+    )
+    changed = evidence_firmware_projection_mapping(duplicate_build)
+    changed["reasons"].remove("duplicate-required-evidence:firmware.build-identity")
+    _reseal(changed)
+    with pytest.raises(EvidenceFirmwareProjectionError, match="build binding"):
+        parse_evidence_firmware_projection(changed)
+
+    duplicate = _project(
+        (
+            _build_item(),
+            _layout_item(),
+            _claim(
+                "firmware.partition.layout",
+                hashlib.sha256(b"other-layout").hexdigest(),
+                ClaimAuthorityDomain.PARTITION_LAYOUT,
+            ),
+        )
+    )
+    changed = evidence_firmware_projection_mapping(duplicate)
+    changed["partition_layout_digest"] = LAYOUT_DIGEST
+    changed["reasons"].remove("duplicate-evidence:firmware.partition.layout")
+    _reseal(changed)
+    with pytest.raises(EvidenceFirmwareProjectionError, match="layout binding"):
         parse_evidence_firmware_projection(changed)
 
 

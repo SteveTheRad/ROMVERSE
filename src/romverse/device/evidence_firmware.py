@@ -311,6 +311,7 @@ def parse_evidence_firmware_projection(raw: dict[str, object]) -> EvidenceFirmwa
         sorted({item.source_content_digest for item in bindings})
     ):
         raise EvidenceFirmwareProjectionError("Firmware claim bindings are inconsistent")
+    _validate_binding_role_semantics(bindings, values, layout, reasons)
     substituted_source_digest = (
         bool(values["artifact_sha256"]) and values["artifact_sha256"] in source_digests
     )
@@ -346,11 +347,8 @@ def parse_evidence_firmware_projection(raw: dict[str, object]) -> EvidenceFirmwa
         )
         if actual_values != expected_values:
             raise EvidenceFirmwareProjectionError("Projected firmware semantics are inconsistent")
-        if not source_digests or len(selected) not in {1, 2}:
+        if not source_digests:
             raise EvidenceFirmwareProjectionError("Projected firmware claim binding is invalid")
-        keys = tuple(item.claim_key for item in bindings)
-        if keys.count(_BUILD_KEY) != 1 or keys.count(_LAYOUT_KEY) != bool(layout):
-            raise EvidenceFirmwareProjectionError("Projected firmware claim roles are invalid")
 
     projection = EvidenceFirmwareProjection(
         1,
@@ -629,7 +627,7 @@ def _binding_mapping(binding: FirmwareEvidenceBinding) -> dict[str, object]:
 
 
 def _parse_bindings(value: object) -> tuple[FirmwareEvidenceBinding, ...]:
-    if not isinstance(value, list) or len(value) > 2:
+    if not isinstance(value, list) or len(value) > 512:
         raise EvidenceFirmwareProjectionError("Firmware evidence bindings are invalid")
     expected = {field.name for field in fields(FirmwareEvidenceBinding)}
     bindings: list[FirmwareEvidenceBinding] = []
@@ -662,6 +660,44 @@ def _parse_bindings(value: object) -> tuple[FirmwareEvidenceBinding, ...]:
     if tuple(bindings) != ordered or len({item.claim_id for item in bindings}) != len(bindings):
         raise EvidenceFirmwareProjectionError("Firmware evidence bindings are not canonical")
     return ordered
+
+
+def _validate_binding_role_semantics(
+    bindings: tuple[FirmwareEvidenceBinding, ...],
+    metadata: dict[str, str],
+    layout: str,
+    reasons: tuple[str, ...],
+) -> None:
+    build_count = sum(item.claim_key == _BUILD_KEY for item in bindings)
+    layout_count = sum(item.claim_key == _LAYOUT_KEY for item in bindings)
+    missing_build = "missing-required-evidence:firmware.build-identity" in reasons
+    duplicate_build = "duplicate-required-evidence:firmware.build-identity" in reasons
+    duplicate_layout = "duplicate-evidence:firmware.partition.layout" in reasons
+    build_metadata_present = any(metadata.values())
+
+    if build_count == 0:
+        valid_build = not build_metadata_present and missing_build and not duplicate_build
+    elif build_count == 1:
+        valid_build = (
+            bool(metadata["model_variant"])
+            and bool(metadata["build_id"])
+            and bool(metadata["artifact_sha256"])
+            and not missing_build
+            and not duplicate_build
+        )
+    else:
+        valid_build = not build_metadata_present and duplicate_build and not missing_build
+    if not valid_build:
+        raise EvidenceFirmwareProjectionError("Firmware build binding semantics are inconsistent")
+
+    if layout_count == 0:
+        valid_layout = not layout and not duplicate_layout
+    elif layout_count == 1:
+        valid_layout = bool(layout) and not duplicate_layout
+    else:
+        valid_layout = not layout and duplicate_layout
+    if not valid_layout:
+        raise EvidenceFirmwareProjectionError("Firmware layout binding semantics are inconsistent")
 
 
 def _stored_digests(value: object, *, allow_empty: bool) -> tuple[str, ...]:

@@ -1,5 +1,118 @@
 # ROMVERSE Product Assurance
 
+## Authorization: one Fedora Forge Control readiness handoff
+
+- Approved base: `81c1dd092128ed67ed4381a9496a73d85a2d69ad`
+- Branch: `linux/stage1-desktop-readiness`
+- Authorization status: **AUTHORIZED — ONE EVIDENCE-ONLY FORGE CONTROL READINESS HANDOFF**
+
+### Decision and repository basis
+
+The highest-value safe boundary after the approved non-flashable Forge Bundle is one passive
+handoff into Forge Control, not another Forge replay and not an actual ROM build. Source Lab opens
+`BuildControlCenter` with `auto_start=False`; opening the dialog therefore does not start Autopilot,
+resolve or install tools, prepare inputs, invoke a build, inspect AVB, simulate a phone, sign an
+artifact, enter Guardian or operate Recovery. Its initial `refresh()` calls the existing
+evidence-only `BuildReadinessService.assess()`, which reads the current project contracts and
+persists one schema-1 readiness report. Later visible refreshes reassess with `persist=False` and
+do not create repeated receipts when the evidence is unchanged.
+
+This is a real forward product boundary because it tests the existing Source Lab-to-Forge Control
+continuity and establishes the exact honest next blocker. The accepted Forge archive is a verified
+intermediate whose manifest is expressly unsigned, non-bootable and non-flashable; it must not be
+mistaken for a local build receipt, Device Pack build contract, signing result, Guardian handoff or
+device authority. The current retained project has no source blueprint, Device Pack build plan,
+local-build receipt, signing receipt or live target. Forge Control must therefore preserve workspace
+readiness while keeping build, local-candidate, signing, Guardian-handoff and flash readiness false.
+
+The current Build Status still describes the earlier acceptance as blocked because its invariant
+incorrectly prohibited the required automatic Project Vault captures. The authoritative review at
+the approved base corrected that classification and approved the exact artifact and both durable
+history entries. Build must use this authorization and must not repeat Forge or try to repair the
+intentional Vault behavior.
+
+Forgejo and GitHub are identical at the approved base with zero divergence. The Linux worktree is
+clean. Existing unrelated dirty Main/Companion/Recovery files, the UI Design Lab documents and all
+Windows/Device Intelligence work are protected and outside this documentation/runtime-only task.
+No shared production, test, package or retained-profile file is owned, so this handoff does not
+collide with another stream.
+
+### Exact authorized task
+
+1. Fast-forward the existing Linux branch to this authorization. Make one fresh mode-`0700`
+   disposable copy of the accepted profile at
+   `/tmp/romverse-linux-forge-acceptance-WjKG2m`. Do not alter or reuse the retained source profile
+   in place. Keep Guided mode, online intelligence, community research, contributions and automatic
+   tool download disabled. Use Bubblewrap no-network isolation, private runtime directories, an
+   empty Android-tool path and no phone, emulator or device simulation.
+2. Before launch, revalidate the unchanged package
+   `build/fedora-plan-continuity-cd7ca57/ROMVERSE/ROMVERSE` as mode `0755`, 6,338,544 bytes and
+   SHA-256 `e42d66cf95bcd66170f8500faf7c51bcbbc10c99c8895f26fb1b411b06e703e5`.
+   Revalidate exact project `history-refresh-acceptance-7b4eca34`, protected-source SHA-256
+   `c3f5c1711d648a0f6c8f2ba2e3c910048c4e81e6f3ee39bb82e9e85888ac89c8`, plan SHA-256
+   `1bd66952a0fae926160d095694e3a1f813e10ee145b0b9839e7093d10034ecf4`, tree SHA-256
+   `84c7699a74b49f5d940c7d307adad07fab6207edd7cd61ee1d8361bbfb259de8`, and the approved Forge
+   archive/manifest hashes `8b49a05b100b6a23eddc4fec8c43bec4f435b4122e2428fe18e8f5186210f302` /
+   `49237325086cd182cdb5202c456ab9c2a07e6d9bed8dc2a3035fff721f1a2e6f`. Require no pre-existing
+   `build-readiness.romverse`, Device Pack build plan, source blueprint, local-build receipt or
+   signing receipt in the disposable project.
+3. Launch the unchanged package once. Open the exact saved project and its **Build & Proof**
+   surface. Confirm the already-approved Forge state without invoking Forge or Verify again, then
+   open **Forge Control exactly once**. Do not click **Auto-resolve & continue**, any resolution
+   action, Refresh evidence, specialist build tools, simulation, signing, release, installation,
+   Guardian or any other control.
+4. Accept only a passive initial assessment that truthfully distinguishes the stages: the Workspace
+   phase may be ready from the protected source, inspection, contained tree and verified plan, but
+   `build_ready`, `local_candidate_ready`, `signing_ready`, `guardian_handoff_ready` and
+   `flash_ready` must all remain false. The Forge Bundle alone must not satisfy the Device Pack build
+   contract, deterministic source/build execution plan, local candidate, artifact-trust/AVB, target,
+   recovery or physical-validation gates. The surface must report **EVIDENCE INCOMPLETE** with
+   explicit unresolved/blocked evidence and must not imply a build, signature, installation or
+   phone action occurred.
+5. Independently load the one new `build-readiness.romverse` and validate its strict format,
+   project binding, report digest, gate set and false downstream readiness fields. Revalidate the
+   approved Forge receipt/archive and all protected inputs after closing. Require no source,
+   blueprint, Device Pack execution plan, local candidate, signing, simulation, release,
+   Guardian/Recovery, device or Forge-history artifact; no new Vault entry; no partial file; and no
+   network, tool or device process. Routine disposable-profile startup/close audit records are
+   permitted but must not claim an operation success.
+6. Close through the normal application path if the compositor exposes it. If it does not, verify
+   the exact package process identity immediately before terminating only that disposable process,
+   preserve the evidence and classify the exit honestly; do not claim a clean shutdown. Require no
+   ROMVERSE process after exit.
+7. Stop immediately after this one readiness handoff. Any automatic worker, tool prompt, network
+   attempt, unexpected write, stronger readiness, misleading UI state or changed artifact is a
+   blocker: preserve it and return to Product Assurance without retry, cleanup, source correction,
+   another launch or another operation. A defect found here is not pre-authorized for repair.
+8. No pytest, Ruff, package rebuild or broad suite is required because application bits remain
+   unchanged. Commit only one sanitized evidence document under `docs/evidence/` and the matching
+   `docs/sync/BUILD-STATUS.md` handoff, run Git diff/whitespace validation, push Forgejo first,
+   verify its exact commit, mirror the identical commit to GitHub where the established workflow
+   requires it and stop for independent Product Assurance review.
+
+### Ownership, exclusions and stop condition
+
+Repository ownership is limited to one new scoped Fedora Forge Control readiness evidence document
+and `docs/sync/BUILD-STATUS.md`. Runtime ownership is limited to the fresh disposable profile and its
+single derived readiness report. Production, tests, packages, the retained accepted profile, all
+other worktrees and every protected/unrelated change must remain byte-unchanged.
+
+No source/test fix, new fixture, repeated Forge/Verify operation, Autopilot, tool resolution or
+installation, source blueprint, Device Pack execution plan, exact build-input preparation, actual
+ROM build, AVB inspection, simulation, real firmware, network, phone/emulator/ADB/Fastboot,
+installation, flash, wipe, unlock/root, Guardian/Recovery authority or execution, signing,
+publication, release, hosted CI, Forgejo Action, Windows/UI-Lab/Companion/Device-Intelligence work
+or bootloader lock/relock is authorized. The permanent bootloader no-relock rule remains absolute.
+
+Stop after the documentation checkpoint. This verdict does not authorize Forge Control actions,
+source correction, actual building or any subsequent stage.
+
+### Gate status
+
+- One evidence-only Source Lab-to-Forge Control readiness handoff: **AUTHORIZED**
+- Forge Bundle repeat and Forge Control automatic/manual actions: **CLOSED**
+- Actual ROM build and every device/consequential/signing/publication/release gate: **CLOSED**
+
 ## Reviewed checkpoint: 9148f47 — exact inert Fedora Forge Bundle acceptance
 
 - Reviewed checkpoint: `9148f474a8b873708952ef37e2c3e2bc97e08dc8`

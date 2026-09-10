@@ -1,5 +1,95 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: d42ab06 — Device Intelligence canonical identity projection
+
+- Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`
+- Reviewed checkpoint: `d42ab0644a93c9f6b47077398d96807cd4026577`
+- Authorizing verdict: `a0d3b3050093227c0540061e80e4b4db64277919`
+- Exact approved base: `79446b7d44bc3e2149064fec323048cb25e296f5`
+- Branch: `device-intelligence/evidence-correlation-contracts`
+- Review status: **CORRECTION REQUIRED — STORED PROJECTION PARSING DOES NOT ENFORCE THE PROJECTION'S OWN NON-INFERENCE BOUNDARY**
+
+### Decision and verified scope
+
+The checkpoint is the direct child of its authorization, changes exactly the five owned paths and
+is identical on Forgejo and GitHub. The implementation is pure and acquisition-inert: it introduces
+no filesystem write, persistence, network call, device query, subprocess action, runtime wiring or
+compatibility/planning/execution path. It reuses the existing `create_canonical_device_identity()`
+algorithm rather than creating a competing device ID, exactly binds the input report to its complete
+claim set, validates claim identities, requires active exact manufacturer/model/codename evidence,
+preserves deterministic ordering and fixes compatibility, execution, phone, Guardian and relock
+authority to their safe values.
+
+Product Assurance independently ran the exact established 162-test selection plus all 16 new
+focused tests: **178/178 passed**. Ruff 0.16.6 check and format verification passed the three owned
+Python files, and `git diff --check` passed. The worktree remained clean. No firmware identity,
+Device DNA, Matrix, Nexus, First Light, Synapse, Guardian/Recovery, source acquisition,
+platform/UI/Companion, backend, hosted-CI, signing, publication or release file changed.
+
+The checkpoint is not approvable yet because its stored-record parser accepts internally
+inconsistent or projection-forbidden identities after a caller recomputes the ordinary content
+digest:
+
+1. `marketing_names` is stored both at projection level and inside the nested
+   `CanonicalDeviceIdentity`, but parsing checks only claim IDs. Product Assurance changed the
+   top-level marketing name, recomputed the projection digest and observed successful parsing while
+   the nested identity retained the original name.
+2. The parser accepts a correctly self-digested nested canonical identity containing non-empty
+   brand and region even though this projection is explicitly forbidden to infer those fields.
+   The same omission applies to OEM identifiers, aliases, family IDs, SoC and platform.
+3. Construction ignores correlation-level investigation when it involves the optional marketing
+   key. Product Assurance supplied two explicitly contradictory, active marketing-name claims.
+   The correlation report truthfully required investigation, but the projection formed an identity,
+   embedded both conflicting names and emitted no reason.
+
+These are deterministic integrity/boundary defects, not a claim that SHA-256 provides protection
+against a same-user rewrite. Strict parsing must nevertheless enforce the record's internal semantic
+invariants, and conflicting evidence must remain `UNCONFIRMED` rather than being copied into a
+formed identity.
+
+### Minimum exact correction authorized
+
+Correct only this projection contract and its focused evidence:
+
+1. When the validated correlation report requires investigation, return no canonical identity and
+   retain deterministic correlation investigation reasons in the `UNCONFIRMED` projection. At
+   minimum, explicitly contradictory or conflicting active marketing-name evidence must never enter
+   a formed identity.
+2. During strict parsing of a formed projection, require projection-level `marketing_names` to equal
+   the nested identity's marketing names exactly and require nested brand, region, OEM identifiers,
+   aliases, family IDs, SoC and platform to remain empty. Reject any mismatch even when every
+   ordinary content digest has been recomputed consistently.
+3. Add focused regressions reproducing both re-digested stored-record substitutions and the
+   correlation-investigation case above. Preserve the existing exact report/claim binding,
+   deterministic ordering, privacy checks, existing canonical identity constructor and all zero-
+   authority values.
+
+Correction ownership is limited to:
+
+- `src/romverse/device/evidence_identity.py`;
+- `tests/test_device_intelligence_identity_projection.py`;
+- `docs/DEVICE-INTELLIGENCE-FOUNDATION.md`, only if its description requires exact correction;
+- `docs/sync/BUILD-STATUS.md`, only for the corrected handoff.
+
+`src/romverse/device/__init__.py` and every other file are protected. Rerun the established
+**162-test** selection plus every focused identity-projection test, including the new correction
+regressions; run focused Ruff check/format on the two changed Python files and `git diff --check`
+from `a0d3b30`. Commit one coherent correction, push Forgejo first, mirror the identical commit to
+GitHub and stop for independent Product Assurance.
+
+No further Device Intelligence slice is authorized. No acquisition, crawling, persistence,
+canonical firmware projection, Device DNA/runtime integration, network, phone/emulator/ADB/
+Fastboot, firmware mutation/build/flash/root/debloat, Matrix/Nexus/First Light, Guardian/Recovery,
+platform/UI/Companion, backend, hosted CI, signing, publication, release, bootloader lock or relock
+may occur.
+
+### Gate status
+
+- Evidence-correlation contracts: **APPROVED**
+- Canonical device-identity projection checkpoint: **CORRECTION REQUIRED**
+- Minimum parser/investigation correction above: **AUTHORIZED**
+- Any subsequent Device Intelligence or consequential work: **CLOSED**
+
 ## Authorization verdict — Device Intelligence canonical device-identity projection slice
 
 - Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`

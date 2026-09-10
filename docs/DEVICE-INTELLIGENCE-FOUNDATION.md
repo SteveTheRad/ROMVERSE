@@ -15,6 +15,11 @@ evidence produces an immutable, content-digested `UNCONFIRMED` result with no ca
 Marketing names remain discovery metadata only. The projection never infers brand, region, OEM
 identifiers, aliases, family, SoC or platform.
 
+Any correlation-level investigation prevents identity formation and its exact deterministic reasons
+remain in the projection, including contradictions confined to optional marketing names. Strict
+stored parsing requires top-level marketing metadata to equal the nested identity exactly and
+rejects any re-digested nested identity containing projection-forbidden inferred fields.
+
 Both construction and strict parsing preserve compatibility as `UNCONFIRMED`, execution authority
 as `none`, and phone action, Guardian approval and bootloader relocking as false. A formed identity
 therefore remains research-derived identity evidence rather than a live-device match, Device DNA

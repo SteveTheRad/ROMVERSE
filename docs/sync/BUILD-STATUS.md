@@ -1,5 +1,26 @@
 # ROMVERSE Build Status
 
+## Device Intelligence identity projection integrity correction — 10 September 2026
+
+- Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`.
+- Product Assurance correction authorization: `700750e6704707631c6d22013e6b37948f732f72`
+  against reviewed checkpoint `d42ab0644a93c9f6b47077398d96807cd4026577`.
+- Branch: `device-intelligence/evidence-correlation-contracts`.
+- Result: every correlation-level investigation now prevents identity formation and retains its
+  deterministic reasons, including conflicting active marketing-name evidence. Strict parsing
+  rejects re-digested top-level/nested marketing disagreement and every re-digested nested identity
+  carrying brand, region, OEM identifiers, aliases, family IDs, SoC or platform.
+- Preserved: exact report/claim/source/key/domain/artifact binding, deterministic ordering, privacy,
+  the existing canonical identity constructor and all zero-authority/no-relock values.
+- Verification: **181/181 passed**: the established 162-test Device Intelligence selection plus all
+  19 focused identity-projection tests, including the three correction regressions. Focused Ruff
+  0.16.6 check/format on the two changed Python files and Git whitespace verification passed using
+  existing local cached tooling only.
+- Acquisition, persistence, runtime, network/device/firmware, Matrix/Nexus/First Light,
+  Guardian/Recovery, UI/platform/Companion, hosted CI, signing, publication and release: none.
+- Next: publish one correction checkpoint Forgejo first, mirror the identical commit to GitHub and
+  stop for independent Product Assurance. No later Device Intelligence slice is authorized.
+
 ## Device Intelligence canonical identity projection — 10 September 2026
 
 - Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`.

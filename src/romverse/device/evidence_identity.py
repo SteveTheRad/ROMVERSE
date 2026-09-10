@@ -98,7 +98,7 @@ def project_canonical_device_identity(
 
     active_by_key: dict[str, list[OnlineEvidenceClaim]] = {}
     active_records: dict[str, CorrelatedEvidence] = {}
-    reasons: set[str] = set()
+    reasons: set[str] = set(validated_report.investigation_reasons)
     for record in records:
         claim = claim_by_id[record.claim_id]
         _bind_record(record, claim)
@@ -231,8 +231,23 @@ def parse_evidence_identity_projection(raw: dict[str, object]) -> EvidenceIdenti
     selected = _stored_digests(raw.get("selected_claim_ids"))
     marketing = _stored_texts(raw.get("marketing_names"), 120)
     reasons = _stored_reasons(raw.get("reasons"))
-    if identity is not None and identity.evidence_claim_ids != selected:
-        raise EvidenceIdentityProjectionError("Projected identity claim binding is invalid")
+    if identity is not None:
+        if identity.evidence_claim_ids != selected:
+            raise EvidenceIdentityProjectionError("Projected identity claim binding is invalid")
+        if identity.marketing_names != marketing:
+            raise EvidenceIdentityProjectionError("Projected marketing metadata is inconsistent")
+        if (
+            identity.brand
+            or identity.region
+            or identity.oem_identifiers
+            or identity.aliases
+            or identity.family_ids
+            or identity.soc
+            or identity.platform
+        ):
+            raise EvidenceIdentityProjectionError(
+                "Projected canonical identity contains forbidden inferred fields"
+            )
     projection = EvidenceIdentityProjection(
         1,
         _digest(raw.get("correlation_report_digest")),

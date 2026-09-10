@@ -13,6 +13,10 @@ from romverse.device.evidence_identity import (
     parse_evidence_identity_projection,
     project_canonical_device_identity,
 )
+from romverse.device.identity import (
+    canonical_device_identity_mapping,
+    create_canonical_device_identity,
+)
 from romverse.knowledge.evidence_correlation import EvidenceCorrelationError, correlate_evidence
 from romverse.knowledge.online_evidence import (
     ClaimAuthorityDomain,
@@ -102,6 +106,20 @@ def _report(claims, *, statuses=None, domains=None):
         for claim in claims
     )
     return correlate_evidence(tuple(claims), authorities, lifecycles, domains)
+
+
+def _reseal_projection(raw):
+    unsigned = dict(raw)
+    unsigned.pop("projection_digest")
+    raw["projection_digest"] = hashlib.sha256(
+        json.dumps(
+            unsigned,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+            allow_nan=False,
+        ).encode("ascii")
+    ).hexdigest()
 
 
 def test_exact_projection_is_order_independent_discovery_only_and_strictly_parses():
@@ -290,3 +308,67 @@ def test_parser_rejects_extra_schema_digest_types_order_and_authority():
     for value in variants:
         with pytest.raises(EvidenceIdentityProjectionError):
             parse_evidence_identity_projection(value)
+
+
+def test_parser_rejects_redigested_top_level_marketing_substitution():
+    projection = project_canonical_device_identity(_report(_base_claims()), _base_claims())
+    raw = evidence_identity_projection_mapping(projection)
+    raw["marketing_names"] = ["Substituted retail name"]
+    _reseal_projection(raw)
+
+    with pytest.raises(EvidenceIdentityProjectionError, match="marketing metadata"):
+        parse_evidence_identity_projection(raw)
+
+
+def test_parser_rejects_every_redigested_projection_forbidden_identity_field():
+    projection = project_canonical_device_identity(_report(_base_claims()), _base_claims())
+    assert projection.identity is not None
+    base = {
+        "manufacturer": projection.identity.manufacturer,
+        "brand": "",
+        "model": projection.identity.model,
+        "codename": projection.identity.codename,
+        "region": "",
+        "oem_identifiers": (),
+        "soc": "",
+        "platform": "",
+        "marketing_names": projection.identity.marketing_names,
+        "aliases": (),
+        "family_ids": (),
+        "evidence_claim_ids": projection.identity.evidence_claim_ids,
+    }
+    forbidden = (
+        {"brand": "Xiaomi"},
+        {"region": "China"},
+        {"oem_identifiers": (("sku", "2509FPN0BC-CN"),)},
+        {"aliases": ("17 Pro Max",)},
+        {"family_ids": ("popsicle-family",)},
+        {"soc": "sm8850"},
+        {"platform": "qcom"},
+    )
+    for changed in forbidden:
+        raw = evidence_identity_projection_mapping(projection)
+        raw["identity"] = canonical_device_identity_mapping(
+            create_canonical_device_identity(**(base | changed))
+        )
+        _reseal_projection(raw)
+        with pytest.raises(EvidenceIdentityProjectionError, match="forbidden inferred"):
+            parse_evidence_identity_projection(raw)
+
+
+def test_conflicting_active_marketing_names_preserve_investigation_and_no_identity():
+    required = _base_claims(marketing=False)
+    first = _claim("device.identity.marketing-name", "Xiaomi 17 Pro Max")
+    second = _claim("device.identity.marketing-name", "Xiaomi Popsicle Pro")
+    first = replace(first, conflicting_claim_ids=(second.claim_id,))
+    second = replace(second, conflicting_claim_ids=(first.claim_id,))
+    claims = (*required, first, second)
+    report = _report(claims)
+
+    projected = project_canonical_device_identity(report, claims)
+
+    assert report.requires_investigation
+    assert projected.identity is None
+    assert "explicit-contradiction" in projected.reasons
+    assert "conflicting-active-values-or-scopes" in projected.reasons
+    assert projected.marketing_names == ("Xiaomi 17 Pro Max", "Xiaomi Popsicle Pro")

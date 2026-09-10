@@ -1,5 +1,81 @@
 # ROMVERSE Product Assurance Sync
 
+## Fedora exact non-flashable Forge acceptance blocker
+
+### Authoritative state and exact result
+
+- Branch: `linux/stage1-desktop-readiness`.
+- Product Assurance authorization: `624cd62296b5d8a37032b2bc819f42c04160fe94`.
+- Application/evidence base: `5cf5eaeb7ef323c689a60f5935a16d579aea337d`.
+- **Checkpoint result: BLOCKED.** The one authorized Forge Bundle invocation produced and verified
+  every exact deterministic artifact byte and safety field, but its automatic operation chain also
+  created two Project Vault entries. The acceptance expressly required Vault history to remain
+  unchanged. Build stopped without retry, repair, cleanup or another launch.
+- No production, test or package file changed. Repository ownership is only this handoff and
+  `docs/evidence/FEDORA_NON_FLASHABLE_FORGE_ACCEPTANCE_BLOCKER_2026-09-10.md`.
+
+### Classification, verification and gates
+
+- **Implemented:** no product change.
+- **Simulated/Tested:** one genuine Fedora package run used a fresh mode-`0700` private copy,
+  Bubblewrap loopback-only isolation, private runtime directories, an empty Android-tool path and no
+  phone/emulator. Package, source, plan, index, inputs, Guided state and zero-prior-Forge preconditions
+  matched the authorization exactly. No pytest, Ruff or rebuild ran or is counted.
+- Build opened **Build & Proof** and invoked **Forge Bundle exactly once**. Only the producer's
+  required internal verification and automatic single `verify-forge` continuation followed. There
+  was no separate Verify click, re-plan, retry, Forge Control operation or other action.
+- Passing artifact evidence: exact 1,594-byte archive SHA-256
+  `8b49a05b100b6a23eddc4fec8c43bec4f435b4122e2428fe18e8f5186210f302` at the authorized path;
+  exact three-member stored/fixed-timestamp inventory; exact 891-byte schema-3 manifest SHA-256
+  `49237325086cd182cdb5202c456ab9c2a07e6d9bed8dc2a3035fff721f1a2e6f`; schema-2 exact-plan
+  receipt; two inert entries / 297 bytes; no Ascension/rooted artifact; all protected-original,
+  signed, bootable, flashable and phone-changed safety flags false. Independent reload, rehash,
+  inventory inspection, plan binding and existing receipt verifier all passed.
+- Passing UI evidence: **Verified intermediate** and explicit unrooted, unsigned, non-bootable,
+  non-flashable and zero build/signing/Guardian/device/flash/execution authority wording. The Build
+  Control handoff was observed only.
+- Failing invariant: Project Vault increased from two to four entries. Automatic completion capture
+  recorded **Verified local build candidate** after Forge generation and **Reverified local build
+  candidate** after automatic verification, with two new context objects. Activity increased from
+  eight to 12 and Live Console from 22 to 30. Project `forge-history` remained absent, but Time
+  Machine Vault history was not unchanged.
+- All protected inputs and Guided state remained byte-identical. No protected original entered the
+  archive, no partial file remained, and no installation, signing, Guardian/device execution or
+  other artifact appeared.
+- **Hardware Verified:** no. Fedora behavior was genuinely exercised; no Android or Windows hardware
+  was used.
+- **Released:** no. The local intermediate is unsigned, non-bootable, non-flashable, uninstalled,
+  unpublished and unreleased.
+- Guided friction/dead ends: terminal Forge presentation is clear and reaches Verified intermediate;
+  the blocker is hidden duplicate automatic history capture, not a user decision or visible loop.
+- Guardian/Recovery/safety: execution authority remains none. The unexpected records are local Time
+  Machine evidence only; Guardian, Recovery execution, exact-device authority, UNKNOWN/no-blind-
+  retry and permanent bootloader no-relock remain unchanged.
+- Platform status: focused Fedora/Linux package behavior genuinely exercised. Windows and physical
+  Android unverified in this slice.
+- Feature freeze: compliant; no product change or repair attempted.
+- Version gate: deterministic non-flashable Forge artifact is byte-correct, but the authorized
+  acceptance is **BLOCKED** on unchanged Vault history. Forge Control, ROM build and every device/
+  consequential/signing/publication/v0.2/release gate remain **CLOSED**.
+- External actions: authoritative fast-forward; local read-only preflight; one private disposable
+  profile; one no-network/no-phone package launch; one Forge Bundle invocation with its mandatory
+  automatic verification; read-only evidence inspection; exact process termination; scoped
+  documentation; and pending Forgejo-first/GitHub synchronization only. No source/test/package
+  mutation, retry, cleanup, dependency/network acquisition, phone/emulator, ADB/Fastboot, real
+  firmware, ROM build, signing, Guardian/Recovery execution, install, publish or release occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance. Do not repair the automatic Project Vault behavior or begin
+another run unless a new exact authorization is issued.
+
+### Product Assurance Review Requested
+
+- Confirm that the exact artifact/verification chain passes but the two automatic Project Vault
+  captures violate this acceptance's unchanged-history condition.
+- Decide whether the next minimum correction should suppress duplicate Forge-stage Vault capture,
+  change the acceptance invariant, or take another evidence-backed approach. No choice is inferred.
+
 ## Fedora Source Lab evidence-whitespace correction
 
 ### Authoritative commits and exact changes

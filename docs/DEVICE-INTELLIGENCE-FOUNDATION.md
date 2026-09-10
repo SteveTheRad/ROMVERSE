@@ -1,5 +1,27 @@
 # ROMVERSE Device Intelligence Foundation
 
+## Canonical firmware-identity projection boundary
+
+The firmware-evidence projection is a pure bridge from one strictly formed canonical device
+projection and one exact correlation report into the existing `CanonicalFirmwareIdentity` contract.
+It requires exactly one active `firmware.build-identity` claim containing canonical structured JSON
+for an exact model, build and firmware-artifact SHA-256. Optional region, firmware version, Android
+version and security patch remain empty unless directly supplied and exactly scoped. One optional
+same-scope partition-layout digest may also be retained.
+
+The evidence source content digest remains distinct from the firmware artifact digest and can never
+substitute for it. Device manufacturer, model and codename plus every supplied firmware scope field
+must agree case-sensitively and field-for-field; adjacent models, aliases, omitted consequential
+scope, retained evidence, contradictions and every correlation investigation remain deterministic
+`UNCONFIRMED` results with no firmware identity.
+
+Strict stored parsing revalidates canonical ordering, content digests, selected claim IDs,
+device/report references and every duplicated firmware semantic field. A formed identity remains
+firmware-derived research evidence only: it does not establish a live-device match, installed build,
+compatibility, recoverability or permission to flash. Execution authority stays `none`, and phone
+action, Guardian approval and bootloader relocking remain false. No acquisition, artifact read,
+persistence, network, device operation, planning or runtime integration is introduced.
+
 ## Canonical device-identity projection boundary
 
 The evidence-identity projection is a pure, deterministic bridge from one already validated

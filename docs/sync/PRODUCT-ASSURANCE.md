@@ -1,5 +1,81 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 9148f47 — exact inert Fedora Forge Bundle acceptance
+
+- Reviewed checkpoint: `9148f474a8b873708952ef37e2c3e2bc97e08dc8`
+- Authorizing verdict: `624cd62296b5d8a37032b2bc819f42c04160fe94`
+- Branch: `linux/stage1-desktop-readiness`
+- Review status: **APPROVED — EXACT NON-FLASHABLE FORGE BUNDLE AND AUTOMATIC HISTORY VERIFIED**
+
+### Decision and independent evidence
+
+The existing Forge producer and verifier passed the authorized acceptance. Product Assurance
+independently loaded the preserved disposable result, revalidated the typed receipt against the
+saved plan, rehashed and inspected the archive and manifest, and ran the existing read-only receipt
+verifier. It returned valid with identical expected and actual archive hashes and the terminal
+status **unrooted bundle; unsigned, non-bootable, and non-flashable**.
+
+Every predetermined byte is exact:
+
+- archive path `builds/history-refresh-acceptance-7b4eca34/forge-8b49a05b100b6a23eddc.romverse.zip`;
+- 1,594-byte archive SHA-256
+  `8b49a05b100b6a23eddc4fec8c43bec4f435b4122e2428fe18e8f5186210f302`;
+- 891-byte schema-3 manifest SHA-256
+  `49237325086cd182cdb5202c456ab9c2a07e6d9bed8dc2a3035fff721f1a2e6f`;
+- fixed 2020 timestamps and exact ordered members `ROMVERSE-FORGE-MANIFEST.json`,
+  `tree/META-INF/com/android/metadata` and `tree/payload.bin`;
+- exact 257-byte and 40-byte member hashes; two entries / 297 content bytes; and
+- schema-2 receipt bound to the exact project, tree, archive and manifest, with no Ascension/rooted
+  artifact and signed, bootable and flashable all false.
+
+The protected source, plan, tree index, input files and Guided state stayed byte-identical. The
+archive excludes the protected original, no partial output or project `forge-history` exists, and
+the UI reached **Verified intermediate** with explicit zero build/signing/Guardian/device/flash/
+execution authority. Build Control was not opened.
+
+The reported Project Vault mismatch does not justify a product correction. The prior authorization's
+unchanged-Vault condition was architecturally incorrect. Repository source explicitly routes every
+genuine ROM Studio completion through Main Window into automatic Project Vault capture, and
+`BackupCenter.capture_operation_checkpoint` deliberately maps `forge-bundle` to **Verified local
+build candidate** and `verify-forge` to **Reverified local build candidate**, both as
+`verified-build` history. Activity and Live Console likewise record the producer completion and its
+durable automatic-history result. Suppressing either capture would weaken the established recovery
+and evidence contract rather than correct this acceptance.
+
+The two new Vault entries are therefore accepted expected output:
+
+- `20260910T012425-0f2b5bd5`, record SHA-256
+  `3d809b6ff7a2c2d230c0adddf6351b082b85b949fc32451ee20abeba72bdff55`, parented to the retained
+  extracted-tree entry; and
+- `20260910T012426-337fa66c`, record SHA-256
+  `dee82a554ce299cc31faa50118cf6d260973a4448a400973560c5a28f55804ba`, parented to the first
+  new entry.
+
+Product Assurance independently loaded all four entries, found no ledger issues and verified each
+baseline snapshot, exact two-file tree and content-addressed context objects. Both new entries bind
+the same approved plan and ROM-DNA without duplicating object bytes. The resulting Activity increase
+from 8 to 12 and Live Console increase from 22 to 30 truthfully represent Forge creation, its
+verification and the two durable Vault captures; they are not duplicate inferred successes.
+
+Only sanitized evidence and Build Status changed in the repository. Forgejo and GitHub expose the
+identical checkpoint with zero divergence and the Linux worktree is clean. No source/test/package
+change, retry, re-plan, cleanup, network/tool acquisition, phone/emulator/ADB/Fastboot, real
+firmware, actual ROM build, Guardian/Recovery execution, flash, wipe, unlock/root, bootloader
+lock/relock, signing, installation, publication, release, hosted CI or Forgejo Action occurred.
+
+### Next Linux state — safe stop
+
+The exact inert Forge Bundle acceptance is complete and must not be repeated. No correction is
+authorized. Keep Forge Control, actual ROM build and every device/consequential/signing/
+publication/release gate closed. A later forward task requires a new, separately explicit Product
+Assurance authorization; nothing further is inferred from this artifact approval.
+
+### Gate status
+
+- Exact local non-flashable Forge Bundle, receipt, verifier and automatic history: **APPROVED**
+- Forge Control and actual ROM build: **CLOSED**
+- Every device/consequential/signing/publication/release gate: **CLOSED**
+
 ## Authorization: one exact Fedora non-flashable Forge Bundle acceptance
 
 - Application/evidence base: `5cf5eaeb7ef323c689a60f5935a16d579aea337d`

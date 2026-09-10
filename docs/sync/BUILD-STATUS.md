@@ -1,5 +1,79 @@
 # ROMVERSE Product Assurance Sync
 
+## Fedora Forge Control readiness-handoff blocker
+
+### Authoritative state and exact result
+
+- Branch: `linux/stage1-desktop-readiness`.
+- Product Assurance authorization: `902d299f022ec0ac689375457525de85b347a479`.
+- Approved base: `81c1dd092128ed67ed4381a9496a73d85a2d69ad`.
+- **Checkpoint result: BLOCKED.** The one authorized passive Forge Control assessment produced a
+  strict, safely gated schema-1 readiness report, but displayed **WORKSPACE READY / BUILD LOCKED**
+  instead of the acceptance's required **EVIDENCE INCOMPLETE** badge. Build stopped without retry,
+  refresh, repair, another launch or any Forge Control action.
+- No production, test or package file changed. Repository ownership is only this handoff and
+  `docs/evidence/FEDORA_FORGE_CONTROL_READINESS_HANDOFF_BLOCKER_2026-09-10.md`.
+
+### Classification, verification and gates
+
+- **Implemented:** no product change.
+- **Simulated/Tested:** one genuine Fedora package run used a fresh mode-`0700` private copy,
+  Bubblewrap loopback-only isolation, private runtime directories, an empty Android-tool path and no
+  phone/emulator. The package, exact project/source/plan/tree, approved Forge archive/manifest,
+  verified Guided state and absence of every later-stage record matched authorization. No pytest,
+  Ruff or rebuild ran or is counted.
+- Build opened **Build & Proof**, observed the approved Forge state without replay, and opened
+  **Forge Control exactly once** with `auto_start=false`. It took no action inside Forge Control.
+- Passing report evidence: one 6,915-byte strict schema-1 report, SHA-256
+  `ce83ea443114338ccb16ca49ef11c2fd2b7e88d904caff2fd6ea53d6516acdbd`, exact-project binding,
+  recomputed/recorded digest `e86233316f7e5cc65a97fe909e426dcabeda1f3cf054feb53bd0825519d72e04`,
+  exact 18-gate order/field set, and 5 pass / 4 attention / 9 blocked.
+- Readiness truth remained bounded: workspace true; build, local candidate, signing, derived
+  Guardian handoff and flash all false. The nine blockers cover the Device Pack build contract,
+  deterministic source/build plan, local candidate, trust/AVB, flash/recovery contract, exact
+  target, battery, boot state and operation/release scope. Forge satisfies none of them.
+- Passing detailed UI evidence: 5 verified / 4 attention / 9 blocked, with explicit unresolved
+  Build, Signing, Recovery, Flash and Guardian evidence and no claim of build/signature/install/
+  phone action. Failing exact UI evidence: top badge was **WORKSPACE READY / BUILD LOCKED**, not the
+  mandated **EVIDENCE INCOMPLETE**. It remains safe but differs from the authorized acceptance.
+- Post-close data differences were only the permitted readiness report and one normal runtime-start
+  marker. Activity stayed 12, Live Console 30 and Vault four. No new Vault, source, blueprint,
+  Device Pack plan, local build, signing, simulation, release, Guardian/Recovery, device,
+  Forge-history or partial artifact appeared.
+- The approved Forge receipt still matched the plan; archive identity remained exact and the
+  read-only verifier returned valid. All protected inputs, Guided state, Forge evidence and Vault
+  evidence remained byte-identical.
+- **Hardware Verified:** no. Fedora behavior was genuinely exercised; Windows and physical Android
+  were not used.
+- **Released:** no. No output was installed, published, signed or released.
+- Guided friction/dead ends: unresolved evidence is visible and no loop/action occurred. The blocker
+  is the precise overall readiness label contract, not a hidden operation or authority escalation.
+- Guardian/Recovery/safety: execution authority remains none. Guardian-only authority, exact-device
+  evidence, UNKNOWN/no-blind-retry, independent verification and permanent no-relock are unchanged.
+- Platform status: focused Fedora/Linux package behavior genuinely exercised. Windows and physical
+  Android unverified in this slice.
+- Feature freeze: compliant; no product change or repair attempted.
+- Version gate: report integrity and downstream gating are correct, but the authorized handoff is
+  **BLOCKED** on the required overall badge. Forge Control actions, ROM build and every device/
+  consequential/signing/publication/v0.2/release gate remain **CLOSED**.
+- External actions: authoritative read-only synchronization; local preflight; one private profile;
+  one no-network/no-phone package launch; passive Source Lab/Forge Control navigation; read-only
+  report/Forge/input inspection; normal dialog close; exact main-process termination; scoped
+  documentation and pending Forgejo-first/GitHub synchronization only. No source/test/package
+  mutation, repeated operation, dependency/network acquisition, device/firmware operation,
+  Guardian/Recovery execution, installation, publication or release occurred.
+
+### Next proposed Build task
+
+Stop for independent Product Assurance. Do not change the badge, rerun the handoff or begin another
+slice unless a new exact authorization is issued.
+
+### Product Assurance Review Requested
+
+- Confirm the strict readiness report and all false downstream fields are correct.
+- Decide whether **WORKSPACE READY / BUILD LOCKED** is acceptable within the intended evidence-only
+  boundary or whether the top-level label requires a minimum correction. Build infers neither.
+
 ## Fedora exact non-flashable Forge acceptance blocker
 
 ### Authoritative state and exact result

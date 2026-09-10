@@ -1,5 +1,96 @@
 # ROMVERSE Product Assurance
 
+## Reviewed checkpoint: 9d27b72 — Device Intelligence canonical firmware projection
+
+- Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`
+- Reviewed checkpoint: `9d27b7227de372ccb3b23c81db67aec92d703f9d`
+- Authorizing verdict: `b5a9ecaab9385b9fe8e9e09d74da80275e0fe971`
+- Exact approved base: `7144fbb4325e4ea12f7c28e37d58c04302fe9ba0`
+- Branch: `device-intelligence/evidence-correlation-contracts`
+- Review status: **CORRECTION REQUIRED — UNCONFIRMED STORED RECORDS ARE NOT SELF-CONSISTENT**
+
+### Decision and verified scope
+
+The checkpoint is the direct child of its authorization, changes exactly the five owned paths and
+is identical on Forgejo and GitHub. The implementation is acquisition- and execution-inert and
+reuses the existing `CanonicalFirmwareIdentity`. It binds formed device identity, correlation,
+claim, source, key, authority domain, source-content digest, exact scope and firmware-artifact
+metadata; it preserves deterministic investigation, privacy and all zero-authority/no-relock
+values. No acquisition, persistence, artifact read, device/runtime/Device DNA/Matrix/Nexus,
+Guardian/Recovery, firmware operation, platform/UI/Companion, hosted CI, signing, publication or
+release file changed.
+
+Product Assurance independently reproduced the exact established 181-test selection plus all 27
+focused firmware-projection tests: **208/208 passed**. Ruff 0.16.6 check and format verification
+passed the three owned Python files, and `git diff --check` passed. The worktree remained clean.
+
+The checkpoint is not approvable yet because the stored parser validates binding cardinality only
+for a formed identity and imposes a two-binding maximum that construction does not share:
+
+1. Two active layout claims plus one active build claim correctly construct an immutable
+   `UNCONFIRMED` projection with `duplicate-evidence:firmware.partition.layout`, three exact
+   bindings and no identity. Serializing that projection with
+   `evidence_firmware_projection_mapping()` and immediately parsing it fails with `Firmware
+   evidence bindings are invalid`. The same class of failure exists for other bounded duplicate
+   sets above two bindings. Duplicate evidence was explicitly required to produce a durable,
+   strictly parsed `UNCONFIRMED` result, not an object that cannot round-trip through its own
+   storage contract.
+2. For an `UNCONFIRMED` record, parsing does not bind top-level firmware fields to the roles in
+   `claim_bindings`. Product Assurance took the genuine layout-only/missing-build result, inserted
+   a model, build ID and firmware-artifact digest, recomputed the ordinary projection digest and
+   observed successful parsing even though the only binding remained
+   `firmware.partition.layout`. This is an internally impossible projection and violates the
+   authorized strict semantic check for re-digested substitutions.
+
+These defects do not grant execution authority, but they break evidence integrity and durable
+explainability at the exact new boundary.
+
+### Minimum exact correction authorized
+
+Correct only the firmware projection and its focused evidence:
+
+1. Ensure every bounded result returned by `project_canonical_firmware_identity()` round-trips
+   exactly through its mapping and strict parser, including duplicate build claims, duplicate
+   layout claims and combinations producing more than two selected bindings.
+2. Apply binding-role semantic validation to both formed and `UNCONFIRMED` stored records. At
+   minimum, zero build bindings must require all build metadata and the firmware-artifact digest to
+   be empty; duplicate build bindings must retain no selected build metadata and the deterministic
+   duplicate-build reason; zero layout bindings must require an empty layout digest; duplicate
+   layout bindings must retain no selected layout digest and the deterministic duplicate-layout
+   reason. Reject re-digested role, field and reason mismatches.
+3. Preserve exact selected-claim/source-digest/binding equality, deterministic ordering, all
+   existing scope and privacy checks, the exact distinction between source-content and firmware-
+   artifact fields, reuse of `CanonicalFirmwareIdentity`, and every zero-authority/no-relock value.
+4. Add focused regressions for immediate round-trip of duplicate build/layout results with three or
+   more bindings and for re-digested metadata/layout/role/reason substitutions on `UNCONFIRMED`
+   records.
+
+Correction ownership is limited to:
+
+- `src/romverse/device/evidence_firmware.py`;
+- `tests/test_device_intelligence_firmware_projection.py`;
+- `docs/DEVICE-INTELLIGENCE-FOUNDATION.md`, only if its stored-integrity description needs exact
+  correction; and
+- `docs/sync/BUILD-STATUS.md`, only for the corrected handoff.
+
+`src/romverse/device/__init__.py` and every other file are protected. Rerun the established
+**181-test** selection plus every focused firmware-projection test, including the new correction
+regressions; run focused Ruff check/format on the two changed Python files and `git diff --check`
+from this correction verdict. Commit one coherent correction, push Forgejo first, mirror the
+identical commit to GitHub and stop for independent Product Assurance.
+
+No subsequent Device Intelligence slice is authorized. No acquisition, network, persistence,
+artifact read, phone/emulator/ADB/Fastboot, firmware extraction/mutation/build/flash/root/debloat,
+Device DNA/Matrix/Nexus/First Light/runtime/UI integration, Guardian/Recovery, platform/UI/
+Companion, hosted CI, signing, publication, release, bootloader lock or relock may occur.
+
+### Gate status
+
+- Evidence correlation and canonical device-identity projection: **APPROVED**
+- Canonical firmware-identity projection: **CORRECTION REQUIRED**
+- Minimum stored-record integrity correction above: **AUTHORIZED**
+- Any subsequent Device Intelligence or consequential work: **CLOSED**
+
 ## Authorization verdict — Device Intelligence canonical firmware-identity projection
 
 - Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`

@@ -1,5 +1,61 @@
 # ROMVERSE Product Assurance
 
+## Reviewed correction checkpoint: 59b9860 — Device Intelligence identity-projection integrity
+
+- Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`
+- Reviewed checkpoint: `59b986060d65cf8d6b7e54ae8dc73e1992a915d5`
+- Correcting verdict: `700750e6704707631c6d22013e6b37948f732f72`
+- Original authorization: `a0d3b3050093227c0540061e80e4b4db64277919`
+- Exact original approved base: `79446b7d44bc3e2149064fec323048cb25e296f5`
+- Branch: `device-intelligence/evidence-correlation-contracts`
+- Review status: **APPROVED — CORRECTION COMPLETE; SAFE STOP**
+
+### Decision and repository evidence
+
+The checkpoint is the direct child of the correction verdict, is identical on Forgejo and GitHub,
+and changes exactly the four correction-owned paths: the pure identity-projection contract, its
+focused tests, the foundation description and Build Status. The worktree was clean before and after
+review. No other production, test, evidence, platform, Device DNA, Matrix, Nexus, First Light,
+Synapse, Guardian/Recovery, source-acquisition, firmware, UI/Companion, backend, CI, signing,
+publication or release file changed.
+
+The minimum correction is complete:
+
+1. projection now begins with the validated correlation report's exact investigation reasons, so
+   any correlation investigation deterministically retains those reasons and prevents canonical
+   identity formation;
+2. strict parsing now requires projection-level and nested marketing names to agree exactly; and
+3. strict parsing rejects any nested brand, region, OEM identifier, alias, family ID, SoC or
+   platform inference, including a record whose nested identity and projection digests were both
+   recomputed consistently.
+
+Product Assurance independently replayed all three former failure classes and they now reject or
+remain `UNCONFIRMED` as required. The established 162-test selection plus all 19 focused
+identity-projection tests passed: **181/181**. The three explicit correction regressions passed
+again independently. Ruff 0.16.6 check and format verification passed the two owned Python files,
+and `git diff --check` passed from the correction verdict. Input-order independence, strict
+report/claim/source/key/domain/artifact binding, privacy rejection, reuse of the existing
+`CanonicalDeviceIdentity`, deterministic `UNCONFIRMED` results and all zero-authority fields remain
+covered and passing.
+
+A formed research-derived identity still confers no compatibility, live-device, Device DNA,
+Guardian, execution, phone-action or relock authority. External evidence remains evidence only;
+unknown, conflicting or investigated evidence remains `UNCONFIRMED`. The permanent bootloader
+lock/relock prohibition is unchanged.
+
+### Stop and gate status
+
+This verdict approves only the corrected canonical device-identity projection checkpoint. It does
+not authorize another Device Intelligence slice. A next foundation or integration checkpoint needs
+a separate repository-based Product Assurance authorization from this approved head.
+
+- Evidence-correlation contracts: **APPROVED**
+- Canonical device-identity projection and integrity correction: **APPROVED**
+- Any subsequent Device Intelligence implementation: **CLOSED — SAFE STOP**
+- Acquisition, persistence/backend, firmware identity, Device DNA/runtime integration,
+  Matrix/Nexus/First Light, Guardian/Recovery, platform/UI/Companion, hosted CI, consequential,
+  signing, publication and release work: **CLOSED**
+
 ## Reviewed checkpoint: d42ab06 — Device Intelligence canonical identity projection
 
 - Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`

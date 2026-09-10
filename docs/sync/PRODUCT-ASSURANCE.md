@@ -1,5 +1,134 @@
 # ROMVERSE Product Assurance
 
+## Authorization verdict — Device Intelligence canonical firmware-identity projection
+
+- Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`
+- Reviewed authoritative checkpoint: `7144fbb4325e4ea12f7c28e37d58c04302fe9ba0`
+- Exact approved code/evidence base: `7144fbb4325e4ea12f7c28e37d58c04302fe9ba0`
+- Approved implementation branch: `device-intelligence/evidence-correlation-contracts`
+- Review status: **AUTHORIZED — PURE CORRELATED-EVIDENCE-TO-CANONICAL-FIRMWARE-IDENTITY PROJECTION**
+
+### Decision
+
+One further foundation checkpoint is justified, useful and non-overlapping. ROMVERSE now has an
+approved strict evidence-correlation report, an approved research-evidence projection into its
+existing `CanonicalDeviceIdentity`, and an existing but otherwise unbridged
+`CanonicalFirmwareIdentity`. The smallest necessary continuation is a pure firmware projection
+that binds already-correlated firmware metadata to the approved canonical device projection and
+reuses the existing canonical firmware constructor. It creates the evidence contract needed before
+any later Device DNA or compatibility consumer can be considered; it does not wire such a consumer.
+
+The branch is clean at the exact approved head and Forgejo and GitHub are identical. Other Linux,
+Windows, UI, Recovery and Companion worktrees remain separate and protected. This authorization
+does not approve acquisition, a source adapter, runtime integration or a consequential action.
+
+### Exact authorized scope
+
+Implement one immutable, deterministic, side-effect-free projection that consumes only:
+
+- one strictly parsed `EvidenceIdentityProjection` containing a formed canonical device identity;
+- one strictly parsed `EvidenceCorrelationReport` and the exact `OnlineEvidenceClaim` records
+  bound by that report; and
+- no unbound caller metadata, inferred device relationship or external instruction.
+
+The projection must either return one existing `CanonicalFirmwareIdentity` or an immutable,
+content-digested `UNCONFIRMED` result with deterministic reasons. It must:
+
+1. revalidate the device projection, correlation report, claims, exact source/key/domain/artifact
+   bindings, active lifecycle use, canonical ordering and all zero-authority fields;
+2. accept exactly one required `firmware.build-identity` claim under
+   `ClaimAuthorityDomain.FIRMWARE_IDENTITY` and `ClaimKind.IDENTITY`; its structured value must be
+   strict canonical JSON containing only `model_variant`, `region`, `build_id`,
+   `firmware_version`, `android_version`, `security_patch` and `artifact_sha256`, with exact
+   model/build/artifact values mandatory and optional values remaining empty when unproved;
+3. distinguish the evidence source's content digest from the firmware artifact SHA-256. The former
+   proves which source artifact supplied the claim; it must never be substituted for the latter;
+4. require the build claim's exact manufacturer, model, codename, build, firmware-version,
+   Android-version and region scope to agree field-for-field with the structured metadata and the
+   projected canonical device identity where applicable. Similar names, families, aliases,
+   case-insensitive guesses, omitted consequential scope or adjacent models must remain
+   `UNCONFIRMED`;
+5. optionally accept exactly one `firmware.partition.layout` claim only under
+   `ClaimAuthorityDomain.PARTITION_LAYOUT`, with one exact SHA-256 value and the same exact device,
+   model, build, firmware, Android and region scope. Absence leaves the layout digest empty;
+   duplicate, differently scoped, contradictory or malformed layout evidence blocks identity;
+6. retain and block on every correlation investigation. Missing, duplicate, retained, stale,
+   unconfirmed, unsupported, contradictory, differently scoped or privacy-unsafe evidence must
+   produce no firmware identity, except malformed/tampered/private input may be rejected outright;
+7. call the existing `create_canonical_firmware_identity()` implementation without modifying or
+   duplicating its identity algorithm. The resulting evidence claim IDs must equal exactly the
+   selected active claims and the canonical device ID must equal the device projection's identity;
+8. strictly parse stored projections and reject extra fields, unsupported schema, malformed types,
+   non-canonical ordering, changed digests, inconsistent device/report/claim bindings and any
+   re-digested internal substitution; and
+9. preserve input-order independence, compatibility `UNCONFIRMED`, execution authority `none`, and
+   phone action, Guardian approval and bootloader relocking as false in construction and parsing.
+
+The projection is research/firmware-derived identity evidence only. It must not claim that an
+artifact fits a live phone, represents the phone's installed build, can be flashed, is recoverable,
+or is compatible.
+
+### Exact file ownership
+
+Engineering may modify only:
+
+- `src/romverse/device/evidence_firmware.py`, new pure projection contract;
+- `tests/test_device_intelligence_firmware_projection.py`, new focused deterministic tests;
+- `src/romverse/device/__init__.py`, only to export the approved projection API;
+- `docs/DEVICE-INTELLIGENCE-FOUNDATION.md`, only to describe this projection and exclusions; and
+- `docs/sync/BUILD-STATUS.md`, only for the implementation handoff.
+
+The existing canonical device/firmware identity constructors, evidence identity/correlation,
+Online Evidence, source adapters, coverage allowlist, persistence, Knowledge/Synapse, Device DNA,
+Compatibility Matrix, Nexus/Pathfinder/Foresight/Insight, First Light, Guardian/Recovery,
+firmware inspection/build/install, platform/UI/Companion, packaging, signing and release files are
+protected.
+
+### Required focused verification
+
+Tests must cover:
+
+- exact successful device/build/artifact binding and input-order independence;
+- strict build JSON shape and the required model, build and firmware-artifact digest;
+- exact distinction between source-content and firmware-artifact digests;
+- exact device manufacturer/model/codename and all supplied firmware scope matches;
+- absent optional metadata remaining empty with no inference;
+- an optional exact same-scope partition-layout digest;
+- missing, duplicate, retained, stale, unconfirmed, unsupported, wrong-kind, wrong-domain,
+  contradicted, investigated and differently scoped evidence returning deterministic
+  `UNCONFIRMED` with no identity;
+- rejection of claim/report/device-projection substitution, dangling or extra claims, private
+  values, extra JSON/stored fields, malformed types, unsupported schema and changed digests;
+- strict stored semantic checks after all ordinary nested and projection digests are recomputed;
+- reuse of `CanonicalFirmwareIdentity`, exact evidence-claim IDs and canonical-device binding; and
+- inability to promote compatibility, Device DNA/live-device state, execution, phone action,
+  Guardian approval or bootloader relocking.
+
+Rerun the established **181-test** Device Intelligence selection approved at `59b9860`, plus every
+new focused firmware-projection test. Run Ruff check and format verification only on the three
+owned Python files and run `git diff --check` from exact base `7144fbb`. No full suite, live
+acquisition, hardware test, application launch or hosted CI is authorized or required.
+
+### Exclusions and stop condition
+
+No source acquisition, crawling, network use, adapter change, persistence/backend, protected
+artifact read, phone/emulator/ADB/Fastboot, firmware extraction/mutation/build/flash/root/debloat,
+Device DNA/Matrix/Nexus/First Light/runtime/UI integration, Guardian/Recovery change,
+platform/UI/Companion work, hosted CI, Forgejo Actions, signing, publication, release, bootloader
+lock or relock is authorized.
+
+Engineering must implement one coherent checkpoint only in the owned paths, run the focused
+verification, commit, push Forgejo first, verify the exact Forgejo SHA, mirror the identical commit
+to GitHub and stop for independent Product Assurance. No consumer wiring, source adapter or later
+Device Intelligence slice may begin automatically.
+
+### Gate status
+
+- Evidence correlation and canonical device-identity projection: **APPROVED**
+- Pure canonical firmware-identity projection: **AUTHORIZED**
+- Device DNA/runtime/compatibility integration and later Device Intelligence: **CLOSED**
+- Acquisition, persistence/backend, device/consequential, signing/publication/release: **CLOSED**
+
 ## Reviewed correction checkpoint: 59b9860 — Device Intelligence identity-projection integrity
 
 - Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`

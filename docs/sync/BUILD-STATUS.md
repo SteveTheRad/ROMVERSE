@@ -1,5 +1,30 @@
 # ROMVERSE Build Status
 
+## Device Intelligence canonical identity projection — 10 September 2026
+
+- Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`.
+- Product Assurance authorization: `a0d3b3050093227c0540061e80e4b4db64277919` from exact base
+  `79446b7d44bc3e2149064fec323048cb25e296f5`.
+- Branch: `device-intelligence/evidence-correlation-contracts`.
+- Scope: one pure evidence-to-existing-canonical-device-identity projection, its focused tests,
+  device exports, bounded foundation documentation and this handoff only.
+- Result: an exact validated correlation report and its exact bound active manufacturer, model and
+  codename claims can form the existing `CanonicalDeviceIdentity`; every unresolved required
+  evidence condition returns a deterministic content-digested `UNCONFIRMED` result with no
+  identity. Optional marketing names remain discovery-only.
+- Non-inference: brand, region, OEM identifiers, aliases/family, SoC and platform remain empty; no
+  retail name, scope similarity or source category can establish exact identity.
+- Authority: compatibility remains `UNCONFIRMED`; execution authority is `none`; phone action,
+  Guardian approval and bootloader relocking are false in construction and strict parsing.
+- Verification: **178/178 passed**: the exact established 162-test Device Intelligence selection
+  plus 16 focused identity-projection tests. Focused Ruff 0.16.6 check/format and Git whitespace
+  verification passed using existing local cached tooling only.
+- Acquisition, persistence, filesystem write, network, phone/emulator, ADB/Fastboot, firmware,
+  Matrix/Nexus/First Light/runtime/UI, Guardian/Recovery, platform/Companion, hosted CI, signing,
+  publication and release: none.
+- Next: publish one coherent checkpoint Forgejo first, mirror the identical commit to GitHub and
+  stop for independent Product Assurance. No subsequent Device Intelligence slice is authorized.
+
 ## Device Intelligence evidence correlation — 10 September 2026
 
 - Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`.

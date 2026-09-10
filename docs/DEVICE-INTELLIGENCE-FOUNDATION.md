@@ -1,5 +1,26 @@
 # ROMVERSE Device Intelligence Foundation
 
+## Canonical device-identity projection boundary
+
+The evidence-identity projection is a pure, deterministic bridge from one already validated
+`EvidenceCorrelationReport` and its exact bound `OnlineEvidenceClaim` records to the existing
+`CanonicalDeviceIdentity` contract. It accepts only the allowlisted manufacturer, model, codename
+and optional marketing-name identity keys, their exact authority domains, active lifecycle use and
+one mutually consistent exact scope. Every selected claim remains bound by claim, source, key,
+domain and artifact digest.
+
+Manufacturer, model and codename are mandatory and unique. Missing, duplicate, retained, stale,
+unconfirmed, non-identity, contradicted, differently scoped, similar-but-not-exact or substituted
+evidence produces an immutable, content-digested `UNCONFIRMED` result with no canonical identity.
+Marketing names remain discovery metadata only. The projection never infers brand, region, OEM
+identifiers, aliases, family, SoC or platform.
+
+Both construction and strict parsing preserve compatibility as `UNCONFIRMED`, execution authority
+as `none`, and phone action, Guardian approval and bootloader relocking as false. A formed identity
+therefore remains research-derived identity evidence rather than a live-device match, Device DNA
+promotion, compatibility decision or authority to act. The boundary performs no acquisition,
+persistence, filesystem write, network access, device query, planning or runtime integration.
+
 ## Checkpoint 2 — Synapse lifecycle boundary
 
 The existing Synapse state machine now has explicit `quarantined`, `superseded` and `expired`

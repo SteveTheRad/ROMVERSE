@@ -1,5 +1,134 @@
 # ROMVERSE Product Assurance
 
+## Authorization verdict — Device Intelligence canonical device-identity projection slice
+
+- Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`
+- Reviewed authoritative checkpoint: `79446b7d44bc3e2149064fec323048cb25e296f5`
+- Exact approved code/evidence base: `79446b7d44bc3e2149064fec323048cb25e296f5`
+- Approved implementation branch: `device-intelligence/evidence-correlation-contracts`
+- Review status: **AUTHORIZED — PURE EVIDENCE-TO-CANONICAL-DEVICE-IDENTITY PROJECTION CONTRACT**
+
+### Decision
+
+One further foundation checkpoint is safe, high-value and non-overlapping. The repository now has
+strict canonical device/firmware identity records, claim-specific authority and lifecycle records,
+and an approved deterministic correlation report, but no code consumes that correlation report to
+form an existing `CanonicalDeviceIdentity`. The smallest useful next seam is therefore a pure
+device-identity projection. Firmware identity, Device DNA persistence and runtime consumers remain
+separate later boundaries.
+
+This authorization is consistent with the creator-approved unfamiliar-device direction in
+`docs/APPROVED_COMMITMENTS.md`, the identity-first Device Intelligence goal in
+`docs/ROMVERSE-20-STAGE-MASTER-GOAL.md`, and the evidence/Device DNA boundaries in
+`docs/MASTER_SPECIFICATION.md` and `docs/ARCHITECTURE.md`. There is no `docs/ROADMAP.md` at this
+checkpoint; the master specification and 20-stage goal are the applicable repository roadmap.
+The direction documents remain product intent rather than blanket implementation authority, so
+this verdict authorizes only the exact contract below.
+
+Forgejo and GitHub expose identical `79446b7` heads with zero divergence. The existing Device
+Intelligence worktree is clean and remains owned by this same handoff stream, although its local
+checkout is still at implementation commit `f1f0606` and must fast-forward through this published
+authorization before work begins. Other Linux, Windows, UI, Recovery and Companion worktrees are
+separate and protected. No relevant uncommitted file is owned by another task.
+
+### Exact authorized scope
+
+Implement one deterministic, local, side-effect-free projection contract that consumes only an
+existing validated `EvidenceCorrelationReport` and the exact `OnlineEvidenceClaim` objects bound
+by that report, and either returns one existing `CanonicalDeviceIdentity` candidate or a strictly
+bounded immutable `UNCONFIRMED` projection result explaining why no identity can be formed.
+
+The contract must:
+
+1. revalidate the exact correlation schema, digest, zero-authority fields and canonical ordering,
+   then bind every consumed claim by claim ID, source ID, claim key, authority domain and source
+   artifact digest to an `ACTIVE` correlation record;
+2. use only the already allowlisted structured identity keys
+   `device.identity.manufacturer`, `device.identity.model`, `device.identity.codename`, and the
+   optional discovery-only `device.identity.marketing-name`; require their existing exact authority
+   domains and `ClaimKind.IDENTITY`;
+3. require exactly one non-empty manufacturer, model and codename value with one exact mutually
+   consistent scope. Missing, duplicate, retained, stale, unconfirmed, contradictory,
+   similar-but-not-exact, substituted or differently scoped required evidence must produce
+   `UNCONFIRMED` with deterministic reasons and no canonical identity;
+4. invoke the existing `create_canonical_device_identity()` implementation for an exact result;
+   do not create a parallel identity algorithm, modify its digest rules or reinterpret the legacy
+   `DeviceIdentityResolver` receipt;
+5. bind the resulting identity to exactly the consumed claim IDs. Marketing names may remain
+   discovery metadata only. Do not infer brand, region, OEM identifiers, family, aliases, SoC or
+   platform from a source category, marketing name, scope, filename or similarity;
+6. return an immutable, strictly parsed and content-digested projection record that retains the
+   correlation report digest, selected claim IDs and deterministic missing/conflict/investigation
+   reasons; input ordering must not change the result; and
+7. fix compatibility to `UNCONFIRMED`, execution authority to `none`, and phone action, Guardian
+   approval and bootloader relocking to `false` in construction and parsing. A successfully formed
+   canonical identity is still research-derived identity evidence, not a live-device match,
+   compatibility decision, Device DNA promotion or permission to act.
+
+The projection must perform no filesystem write, persistence, acquisition, network call, device
+query, subprocess action, planning, compatibility assessment, confidence promotion or execution.
+
+### Exact file ownership
+
+Engineering may modify only:
+
+- `src/romverse/device/evidence_identity.py`, new pure projection contract;
+- `tests/test_device_intelligence_identity_projection.py`, new deterministic focused tests;
+- `src/romverse/device/__init__.py`, only to export the approved projection types/functions;
+- `docs/DEVICE-INTELLIGENCE-FOUNDATION.md`, only to document this checkpoint and its exclusions;
+- `docs/sync/BUILD-STATUS.md`, only for the implementation handoff.
+
+No other production, test, fixture, documentation or configuration file is owned. In particular,
+the existing canonical identity implementation, firmware source identity, Online Evidence,
+evidence correlation, evidence persistence, Synapse, Knowledge store/lookup/Archives, Device DNA,
+Compatibility Matrix, Nexus/Pathfinder/Foresight/Insight, First Light, Guardian/Recovery,
+source adapters/acquisition, local-store infrastructure, UI/platform/Companion, packaging,
+signing and release files are protected.
+
+### Required focused verification
+
+The new tests must cover:
+
+- exact manufacturer/model/codename projection and input-order independence;
+- exact report/claim/source/key/domain/artifact binding and rejection of claim substitution;
+- missing, duplicate, retained, stale, unconfirmed and non-identity required claims;
+- one-sided or two-sided contradiction, conflicting values and conflicting/similar scope;
+- strict required-key allowlisting and optional marketing-name discovery metadata;
+- no inference of brand, region, OEM identifiers, aliases/family, SoC or platform;
+- privacy rejection for serial, IMEI, account/user, credential/token and personal-path material;
+- deterministic `UNCONFIRMED` reasons with no identity on every unresolved case;
+- strict parse rejection for extra fields, unsupported schema, changed digest, malformed types and
+  reordered/non-canonical collections; and
+- inability of construction, parsing or a formed identity to promote confidence, compatibility,
+  execution, phone, Guardian or relock authority.
+
+Rerun the established **162-test** Device Intelligence selection approved at `79446b7` plus the
+new focused module. Run Ruff check and format verification only on the three owned Python files,
+and `git diff --check` from the exact approved base. No full suite, live acquisition, hardware test,
+application launch or hosted CI is authorized or required.
+
+### Exclusions and stop condition
+
+No canonical firmware projection, Device DNA/Matrix/Nexus/First Light/runtime/UI integration,
+persistence backend, source acquisition, crawling, network use, PostgreSQL/object storage,
+phone/emulator/ADB/Fastboot, firmware mutation/build/flash/root/debloat, Guardian/Recovery change,
+platform/Companion work, hosted CI, Forgejo Actions, signing, publication, release, bootloader lock
+or relock is authorized.
+
+Engineering must fast-forward the clean existing branch through this authorization, implement one
+coherent checkpoint only in the owned paths, run the focused verification, commit, push Forgejo
+first, verify the exact Forgejo SHA, mirror the identical commit to GitHub, update Build Status and
+stop for independent Product Assurance. Do not create a new branch, acquire evidence, wire the
+projection into a consumer or begin another Device Intelligence slice.
+
+### Gate status
+
+- Device Intelligence schema, Synapse lifecycle and evidence correlation: **APPROVED**
+- Pure evidence-to-canonical-device-identity projection: **AUTHORIZED**
+- Firmware identity projection, Device DNA/runtime integration and broader Device Intelligence:
+  **CLOSED**
+- Acquisition/backend/device/consequential/signing/publication/release work: **CLOSED**
+
 ## Reviewed checkpoint: f1f0606 — Device Intelligence evidence-correlation contracts
 
 - Ownership/reference: `ROMVERSE DEVICE INTELLIGENCE — FORGEJO-FIRST ENGINEERING HANDOFF`

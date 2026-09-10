@@ -1,5 +1,107 @@
 # ROMVERSE Product Assurance
 
+## Authorization: one exact Fedora non-flashable Forge Bundle acceptance
+
+- Application/evidence base: `5cf5eaeb7ef323c689a60f5935a16d579aea337d`
+- Branch: `linux/stage1-desktop-readiness`
+- Authorization status: **AUTHORIZED — ONE EXACT NON-FLASHABLE FORGE BUNDLE ACCEPTANCE**
+
+### Decision and repository basis
+
+The smallest existing Forge boundary can be exercised safely now. This is acceptance of an
+already-implemented local artifact contract, not authorization for a ROM build or a device action.
+The approved Source Lab state contains one independently verified schema-2 plan bound to exact
+project `history-refresh-acceptance-7b4eca34`, protected-source SHA-256
+`c3f5c1711d648a0f6c8f2ba2e3c910048c4e81e6f3ee39bb82e9e85888ac89c8`, tree SHA-256
+`84c7699a74b49f5d940c7d307adad07fab6207edd7cd61ee1d8361bbfb259de8` and exactly two inert
+files / 297 bytes. Shared Guided verification state is durably true and Forge is now available only
+after that accepted verification.
+
+Repository contracts require Forge Bundle to reverify the planned tree before writing, stream a
+ZIP with fixed timestamps and stable ordering, embed exact per-entry hashes and a safety manifest,
+content-address the output, write a typed receipt, verify the completed archive inside the producer
+worker, then run the UI's separate exact archive verifier. Receipt and manifest safety fields require
+`signed`, `bootable`, `flashable` and `phone_changed` to remain false. No ADB/Fastboot transport,
+Guardian approval or execution authority exists in this path.
+
+Product Assurance independently derived the exact expected output from the approved plan and
+unchanged Forge serialization contract without operating Forge:
+
+- input plan: 1,106 bytes, SHA-256
+  `1bd66952a0fae926160d095694e3a1f813e10ee145b0b9839e7093d10034ecf4`;
+- `tree/META-INF/com/android/metadata`: 257 bytes, SHA-256
+  `7b21d60b939893071ad4895c3270860ef87cd710eda6c2c203f51d256453d9de`;
+- `tree/payload.bin`: 40 bytes, SHA-256
+  `5db7a969a06334c08958a02c13722f11a343126f781fdcbdbdf9cf05754b4237`;
+- manifest: schema 3, 891 bytes, SHA-256
+  `49237325086cd182cdb5202c456ab9c2a07e6d9bed8dc2a3035fff721f1a2e6f`;
+- archive: exactly 1,594 bytes, SHA-256
+  `8b49a05b100b6a23eddc4fec8c43bec4f435b4122e2428fe18e8f5186210f302`;
+- output path: `builds/history-refresh-acceptance-7b4eca34/forge-8b49a05b100b6a23eddc.romverse.zip`;
+- receipt: schema 2, exact project/tree/archive/manifest binding, two entries / 297 content bytes,
+  no Ascension/rooted artifact, and signed/bootable/flashable all false.
+
+Forgejo and GitHub are identical at the base with zero divergence. The Linux, Device Intelligence
+and Windows review worktrees are clean. Existing unrelated dirty Main/Companion/Recovery files and
+uncommitted UI Design Lab documents are protected and outside this runtime-only slice. No source,
+test, package or shared runtime file is owned by this authorization, so it does not collide with
+Windows, Device Intelligence, Companion, UI, Guardian or Recovery work.
+
+### Exact authorized acceptance
+
+1. Begin from this authorization on `linux/stage1-desktop-readiness`. Make one fresh mode-`0700`
+   disposable copy of the accepted retained-plan profile. Preserve Guided mode and keep online
+   intelligence, community research, contributions and automatic tool download disabled. Use
+   Bubblewrap no-network isolation, private runtime directories, an empty Android-tool path and no
+   phone, emulator or device simulation.
+2. Revalidate before launch the package executable at
+   `build/fedora-plan-continuity-cd7ca57/ROMVERSE/ROMVERSE` as mode `0755`, 6,338,544 bytes and
+   SHA-256 `e42d66cf95bcd66170f8500faf7c51bcbbc10c99c8895f26fb1b411b06e703e5`. Revalidate the exact
+   source, plan, tree index, two members and shared `build_plan_verified: true` state above. Require
+   no prior Forge receipt, archive, partial output or history in the fresh copy.
+3. Launch that unchanged package once, open the existing Source Lab **Build & Proof** surface and
+   confirm 8/8, current verified-plan wording and enabled Forge. Invoke **Forge Bundle exactly
+   once**. Permit only the existing producer's mandatory internal verification and its automatic
+   single `verify-forge` continuation. Do not click Verify Forge separately, retry, re-plan or
+   invoke any other operation.
+4. Accept only the exact deterministic archive, manifest, members, path and receipt listed above.
+   Independently reload the receipt, verify it still matches the saved plan, rehash the archive,
+   inspect its exact three-member inventory and rerun the existing read-only receipt verifier.
+   Require the visible terminal state **Verified intermediate** and explicit unsigned,
+   non-bootable, non-flashable, unrooted and zero-authority wording.
+5. Verify the protected source, plan, tree index, two input files, Guided state and Vault history
+   remain unchanged; no protected original appears in the archive; no partial file remains; no
+   Forge history is created for this first generation; and no install, build, signing, Guardian,
+   Recovery or device evidence appears. Observe the focused Build Control handoff only; do not open
+   or operate it.
+6. Stop immediately after exact verified-intermediate evidence. If any byte, member, path, safety
+   field, UI state or operation count differs, preserve the result and return to Product Assurance
+   without retry, cleanup, source correction or another launch. A deterministic defect is not
+   authorized for repair under this acceptance.
+7. No pytest, Ruff, package rebuild or broad suite is required when application bits remain
+   unchanged. Commit only one sanitized evidence file under `docs/evidence/` and the matching
+   `docs/sync/BUILD-STATUS.md` handoff, run Git diff/whitespace validation, push Forgejo first,
+   mirror the identical commit to GitHub and stop for independent Product Assurance review.
+
+### Ownership, exclusions and stop condition
+
+Repository ownership is limited to one new scoped Forge-acceptance evidence document and
+`docs/sync/BUILD-STATUS.md`. Runtime ownership is limited to the fresh disposable profile and its
+content-addressed Forge output. Production, tests, the retained source profile, packages, all other
+worktrees and every protected/unrelated change must remain byte-unchanged.
+
+No source/test fix, new fixture, re-plan, extraction, Recipe, Partition Atlas, Forge Control,
+actual ROM build, real firmware, network/tool acquisition, phone/emulator/ADB/Fastboot, install,
+flash, wipe, unlock/root, Guardian/Recovery authority or execution, signing, publication, release,
+hosted CI, Forgejo Action, Windows/UI-Lab/Companion/Device-Intelligence work or bootloader
+lock/relock is authorized. Stop after the documentation checkpoint; this verdict authorizes no
+subsequent stage.
+
+### Gate status
+
+- One exact inert local non-flashable Forge Bundle plus existing verification chain: **AUTHORIZED**
+- Actual ROM build and every device/consequential/signing/publication/release gate: **CLOSED**
+
 ## Reviewed checkpoint: 077eaa0 — Source Lab continuity evidence correction
 
 - Reviewed checkpoint: `077eaa0feec5b2764f2048c303f531d3fb3e18aa`

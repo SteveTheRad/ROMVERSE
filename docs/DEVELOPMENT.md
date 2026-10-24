@@ -136,7 +136,7 @@ GitHub Settings > Emails. Set the identity only in the intended local repository
 Normal follow-up commits do not remove personal information from older commits. Historical
 identities and evidence remain intact; a history rewrite requires a separate explicit decision.
 
-Run `gitleaks git --redact --config .gitleaks.toml --log-opts="--all" .` before pushing. The
+Run `gitleaks git --redact --config .gitleaks.toml --log-opts="--all -m --full-history" .` before pushing. The
 configuration extends the default rules and excludes only exact, reviewed non-secret code lines.
 Do not add broad path exclusions or real secrets to an allowlist. See [SECURITY.md](../SECURITY.md)
 for vulnerability reporting and [asset provenance](ASSET_PROVENANCE.md) for bundled media.

@@ -1,3 +1,5 @@
+> Privacy maintenance (24 October 2026): personal user-path components are redacted in this branch-tip document. Original historical evidence and commits remain unchanged. Historical hashes describe their original artifacts.
+
 # ROMVERSE Product Assurance Sync
 
 ## Fedora `.35` beta local-build journey and neutral mixed-evidence checkpoint
@@ -126,7 +128,7 @@ material feature expansion.
 ### Exact firmware evidence established read-only
 
 - Exact local archive:
-  `/home/stevetherad/Downloads/popsicle-ota_full-OS4.0.0.35.XPBCNXM-user-17.0-3eaa750eae.zip` —
+  `/home/<user>/Downloads/popsicle-ota_full-OS4.0.0.35.XPBCNXM-user-17.0-3eaa750eae.zip` —
   **9,110,437,829 bytes**, SHA-256
   `29a4f4fe3c1e87872d8a423a227c3cdfcb0632bfd66994abb5ac55f607b0f08e`, MD5
   `3eaa750eaeb1dacd6335935e1003d769`.
@@ -4463,7 +4465,7 @@ verdict for this exact correction is recorded in `docs/sync/PRODUCT-ASSURANCE.md
   contained working lab → simulated Device DNA → **Keep verified base unchanged • Recommended** →
   source-scoped toolchain → deterministic Build Readiness plan → Forge Control local handoff.
 - The user-supplied source
-  `/home/stevetherad/Downloads/popsicle-ota_full-OS4.0.0.32.XPBCNXM-user-17.0-9c98b42553.zip`
+  `/home/<user>/Downloads/popsicle-ota_full-OS4.0.0.32.XPBCNXM-user-17.0-9c98b42553.zip`
   was copied into the isolated workspace as a protected original: 9,110,512,435 bytes, SHA-256
   `24bf9292a19b95c0b3d1db62853491d8bf0e967d6e4c24052cea6c5684e2960e`. The original Downloads
   file was not modified.

@@ -1,12 +1,12 @@
 # ROMVERSE
 
-> **Private proprietary software.** This repository is not open source and is intended only for authorized ROMVERSE development.
+> **Public open-source software.** ROMVERSE is licensed under GPL-3.0-only; see `LICENSE`.
 
 ROMVERSE is a software project focused on providing a polished, dependable platform for Android-focused tooling and workflows.
 
 ## Project status
 
-ROMVERSE is under active private development. Product internals, implementation details, security-sensitive design information, private roadmaps, credentials, signing material, and unpublished technical documentation must not be committed to public repositories or shared outside authorized project channels.
+ROMVERSE is under active open-source development. Credentials, signing material, personal device evidence, customer data, and third-party confidential information must remain outside Git.
 
 ## Repository policy
 
@@ -30,6 +30,15 @@ Detailed setup instructions will be added alongside the implementation as the pr
 
 ## Ownership
 
-Copyright © ROMVERSE. All rights reserved.
+Copyright (c) 2026 SteveTheRad / RadForge Labs.
 
-This codebase and its associated materials are proprietary and confidential. No permission is granted to copy, redistribute, sublicense, publish, reverse engineer, or reuse the software except where explicitly authorized in writing.
+ROMVERSE is licensed under GPL-3.0-only. See `LICENSE`; third-party components retain their own terms.
+
+## Public source maintenance
+
+The current branch tip is distributed under GPL-3.0-only; see [LICENSE](LICENSE).
+[Third-party notices](THIRD_PARTY_NOTICES.txt) retain separate media and trademark terms.
+The supported current development baseline is `main`; topic, evidence, and recovery branches
+retain their feature state and are not release-readiness claims. Original commits, historical
+identities, and evidence have not been rewritten. Use your own GitHub noreply commit email
+for new contributions. See [SECURITY.md](SECURITY.md) for reporting and privacy guidance.

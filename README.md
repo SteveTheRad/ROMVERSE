@@ -1616,3 +1616,12 @@ See [docs/MASTER_SPECIFICATION.md](docs/MASTER_SPECIFICATION.md) and
 [release-readiness gates](docs/RELEASE_READINESS.md) and the fail-closed
 [Desktop release process](docs/DESKTOP_RELEASE.md). CI candidates are deliberately unsigned;
 production Ed25519 keys remain outside the repository and application workspace.
+
+## Public source maintenance
+
+The current branch tip is distributed under GPL-3.0-only; see [LICENSE](LICENSE).
+[Third-party notices](THIRD_PARTY_NOTICES.txt) retain separate media and trademark terms.
+The supported current development baseline is `main`; topic, evidence, and recovery branches
+retain their feature state and are not release-readiness claims. Original commits, historical
+identities, and evidence have not been rewritten. Use your own GitHub noreply commit email
+for new contributions. See [SECURITY.md](SECURITY.md) for reporting and privacy guidance.

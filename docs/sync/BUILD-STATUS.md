@@ -1,3 +1,5 @@
+> Privacy maintenance (24 October 2026): personal user-path components are redacted in this branch-tip document. Original historical evidence and commits remain unchanged. Historical hashes describe their original artifacts.
+
 # ROMVERSE Product Assurance Sync
 
 ## Windows native observation-channel readiness preflight — Product Assurance review requested
@@ -207,10 +209,10 @@
   `Connect Device` behavior. These were setup/test-development results, not application failures,
   and none was hidden or counted as acceptance.
 - Final focused command with `PYTHONPATH=src`, `QT_QPA_PLATFORM=offscreen` and unique base
-  `C:\Users\steve\AppData\Local\Temp\romverse-command-deck-2424108d43624d7fa80191e4264b58fe`
+  `C:\Users\<user>\AppData\Local\Temp\romverse-command-deck-2424108d43624d7fa80191e4264b58fe`
   passed **1/1**. The affected regression
   `.venv\Scripts\python.exe -m pytest tests\test_dashboard_rendering.py -q --basetemp
-  C:\Users\steve\AppData\Local\Temp\romverse-dashboard-1f803d9ccec741cba8a8242f9a485bf2`
+  C:\Users\<user>\AppData\Local\Temp\romverse-dashboard-1f803d9ccec741cba8a8242f9a485bf2`
   passed **26/26**, with zero failures, errors, skips, timeouts or stalls.
 - `.venv\Scripts\python.exe -m ruff check src\romverse\ui\device_center.py
   tests\test_dashboard_rendering.py` passed. The first format gate found only the new expression's
@@ -925,7 +927,7 @@
   `.venv\Scripts\python.exe -m pytest tests\test_rom_projects.py -q` completed all **32/32 test
   bodies successfully**, then pytest itself exited during global temporary cleanup with the
   previously documented host-only `PermissionError: [WinError 5]` on
-  `C:\Users\steve\AppData\Local\Temp\pytest-of-steve\pytest-current`. This is not counted as the
+  `C:\Users\<user>\AppData\Local\Temp\pytest-of-steve\pytest-current`. This is not counted as the
   acceptance run.
 - Decisive native Windows command
   `.venv\Scripts\python.exe -m pytest -p no:cacheprovider --basetemp C:\rvpa-a58a256c
@@ -2079,7 +2081,7 @@
 ### Bounded observation and exact Git evidence
 
 - The exact candidate previously observed as the host-PATH candidate was
-  `C:\Users\steve\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\git\cmd\git.exe`.
+  `C:\Users\<user>\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\git\cmd\git.exe`.
   It remained a 46,464-byte regular file with SHA-256
   `c53279919fdea03474bb23b465b3a82287157491f1bd69a5eb82dd9831582333`.
 - Before the package attempt, an exact-path, shell-free `--version` probe returned exit code `0`,
@@ -4878,7 +4880,7 @@ review is pending.
   - `git diff --check` — **passed**.
 - One earlier invocation reached four passing assertions but exited during pytest's global temporary
   cleanup with `PermissionError: WinError 5` on the unrelated system path
-  `C:\Users\steve\AppData\Local\Temp\pytest-of-steve\pytest-current`. The exact four cases were
+  `C:\Users\<user>\AppData\Local\Temp\pytest-of-steve\pytest-current`. The exact four cases were
   rerun successfully with the bounded repository-local `--basetemp` above. `pytest-timeout` is not
   installed, so an attempted `--timeout=60` invocation collected no tests and is not counted.
 - No broader suite, unchanged artifact rebuild or corrected-package replay was performed.
@@ -5537,7 +5539,7 @@ Windows action is proposed until this checkpoint receives a matching repository 
   Git whitespace validation passed.
 - One earlier invocation reached the same passing assertion but pytest exited during session
   cleanup with a host-only `PermissionError` on the pre-existing global
-  `C:\Users\steve\AppData\Local\Temp\pytest-of-steve\pytest-current` link. The isolated explicit
+  `C:\Users\<user>\AppData\Local\Temp\pytest-of-steve\pytest-current` link. The isolated explicit
   `--basetemp` rerun above completed with exit code 0; this was an environment cleanup problem, not
   a product or test failure.
 
@@ -7338,7 +7340,7 @@ repository verdict.
   plugin, so that configuration value was ignored; the exact node nevertheless completed normally.
 - A preliminary three-node file run completed **3/3 test bodies successfully**, then exited during
   pytest housekeeping with Windows `PermissionError: [WinError 5]` while examining the unrelated
-  stale temporary link `C:\Users\steve\AppData\Local\Temp\pytest-of-steve\pytest-current`.
+  stale temporary link `C:\Users\<user>\AppData\Local\Temp\pytest-of-steve\pytest-current`.
   The focused rerun used a fresh explicit base-temp directory and passed; this was an environment
   teardown issue, not a ROMVERSE test failure.
 - Ruff passed for `src/romverse/ui/main_window.py` and

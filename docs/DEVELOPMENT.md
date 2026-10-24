@@ -2,7 +2,7 @@
 
 ## Repository role
 
-This private repository is the authoritative source for ROMVERSE code, tests, build instructions,
+This public repository is the authoritative source for ROMVERSE code, tests, build instructions,
 architecture, implementation status, and release evidence. Important decisions must not exist only
 in chat history or on one development computer.
 

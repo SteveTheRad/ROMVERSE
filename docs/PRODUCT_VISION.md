@@ -60,6 +60,6 @@ Current commercial direction:
 
 ## Repository continuity requirement
 
-This private repository is the authoritative technical source of truth for ROMVERSE. Documentation and source should eventually allow a developer to clone the project onto another correctly configured machine and continue development without depending on one particular PC or chat history.
+This public repository is the authoritative technical source of truth for ROMVERSE. Documentation and source should eventually allow a developer to clone the project onto another correctly configured machine and continue development without depending on one particular PC or chat history.
 
 Secrets, credentials, signing material, production keys, and other sensitive values must remain securely stored outside Git.

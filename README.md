@@ -88,3 +88,12 @@ ROMVERSE — Created by SteveTheRad — A RadForge Labs Project.
 Copyright (c) 2026 SteveTheRad / RadForge Labs.
 
 ROMVERSE is licensed under the GNU General Public License, version 3.0 only (GPL-3.0-only). See [`LICENSE`](LICENSE) for the complete terms. Third-party components retain their respective licenses and notices.
+
+## Public source maintenance
+
+The current branch tip is distributed under GPL-3.0-only; see [LICENSE](LICENSE).
+[Third-party notices](THIRD_PARTY_NOTICES.txt) retain separate media and trademark terms.
+The supported current development baseline is `main`; topic, evidence, and recovery branches
+retain their feature state and are not release-readiness claims. Original commits, historical
+identities, and evidence have not been rewritten. Use your own GitHub noreply commit email
+for new contributions. See [SECURITY.md](SECURITY.md) for reporting and privacy guidance.

@@ -1,6 +1,6 @@
 # ROMVERSE
 
-> **Private proprietary software.** This repository is not open source and is intended only for authorized ROMVERSE development.
+> **Open-source software.** ROMVERSE is licensed under the GNU General Public License, version 3.0 only (GPL-3.0-only). See [`LICENSE`](LICENSE).
 
 **Build. Optimize. Perfect.**
 
@@ -8,19 +8,19 @@ ROMVERSE is a software project focused on providing a polished, dependable platf
 
 ## Authoritative project source
 
-This private repository is the authoritative technical source of truth for ROMVERSE development. Alongside source code, it must maintain enough architecture, product, setup, workflow, roadmap, release, and implementation context that development can be resumed on another correctly configured computer without depending on one particular PC.
+This repository is the authoritative technical source of truth for ROMVERSE development. Alongside source code, it must maintain enough architecture, product, setup, workflow, roadmap, release, and implementation context that development can be resumed on another correctly configured computer without depending on one particular PC.
 
 A planned, approved, or designed feature is not automatically implemented. Work is only considered **Implemented and Verified** after repository inspection plus proportionate build, test, or runtime evidence.
 
 ## Project status
 
-ROMVERSE is under active private development. Product internals, implementation details, security-sensitive design information, private roadmaps, credentials, signing material, and unpublished technical documentation must not be committed to public repositories or shared outside authorized project channels.
+ROMVERSE is under active development. Public source availability does not establish production readiness. Credentials, signing material, customer data, sensitive device identifiers, and confidential third-party material must remain outside the repository.
 
 ## Current source baseline
 
 The repository now contains the Python/PySide6 desktop application, native Kotlin Android
 Companion, tests, build scripts, Device Packs, Guardian safety domains, ROM workspace domains, and
-the maintained private documentation.
+the maintained technical documentation.
 
 The isolated Ubuntu migration baseline passed 956 Python tests, Ruff lint/format checks, wheel
 build and installed-package smoke, Companion JVM tests, and debug APK assembly. This does not prove
@@ -49,11 +49,11 @@ tools, local configuration, and clean-machine migration.
 - Release preparation may use `release/<version>` branches when needed.
 - Emergency production fixes may use `hotfix/<name>` branches from `main`.
 - Merge work through pull requests where practical; avoid direct feature development on `main`.
-- Keep this repository private and do not expose proprietary ROMVERSE internals publicly.
+- Preserve license and copyright notices. Keep secrets, private user data, and confidential third-party material out of public commits.
 
 ## Documentation
 
-The maintained private technical documentation lives under [`docs/`](docs/):
+The maintained technical documentation lives under [`docs/`](docs/):
 
 - `PRODUCT_VISION.md` — product purpose, principles, scope, and commercial direction.
 - `ARCHITECTURE.md` — major subsystems, relationships, data flows, and architectural rules.
@@ -85,6 +85,6 @@ Machine-specific configuration must remain outside version control. `docs/BUILDI
 
 ROMVERSE — Created by SteveTheRad — A RadForge Labs Project.
 
-Copyright © ROMVERSE. All rights reserved.
+Copyright (c) 2026 SteveTheRad / RadForge Labs.
 
-This codebase and its associated materials are proprietary and confidential. No permission is granted to copy, redistribute, sublicense, publish, reverse engineer, or reuse the software except where explicitly authorized in writing.
+ROMVERSE is licensed under the GNU General Public License, version 3.0 only (GPL-3.0-only). See [`LICENSE`](LICENSE) for the complete terms. Third-party components retain their respective licenses and notices.

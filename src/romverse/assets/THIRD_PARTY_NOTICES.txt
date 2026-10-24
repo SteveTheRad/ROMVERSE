@@ -1,0 +1,11 @@
+ROMVERSE third-party notices
+
+ROMVERSE software: Copyright (c) 2026 SteveTheRad / RadForge Labs, GPL-3.0-only.
+Third-party components retain their own licenses. Bundled media provenance is recorded in docs/ASSET_PROVENANCE.md.
+
+The Android robot is reproduced or modified from work created and shared by Google and used according to terms described in the Creative Commons 3.0 Attribution License.
+https://creativecommons.org/licenses/by/3.0/
+Android is a trademark of Google LLC. Google retains its trademark rights in the Android robot.
+
+Phone concept artwork was created using ChatGPT for ROMVERSE. It is not an official manufacturer photograph. Xiaomi and Leica marks belong to their respective owners; no affiliation or endorsement is claimed.
+Product-family artwork and ambient audio were also created using ChatGPT, as confirmed by the maintainer on 24 October 2026. This does not claim exclusive rights in generated output or ownership of third-party marks.

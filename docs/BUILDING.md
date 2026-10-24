@@ -228,7 +228,7 @@ Recreate these from documented tools and source. Do not copy this PC's caches in
 
 ## Clean-machine continuation checklist
 
-1. Clone the private repository over SSH.
+1. Clone the public repository: `git clone https://github.com/SteveTheRad/ROMVERSE.git`.
 2. Install a supported Python and run the platform bootstrap.
 3. Run the Python test, lint, and format gates.
 4. Build and verify the wheel.

@@ -88,3 +88,8 @@ ROMVERSE — Created by SteveTheRad — A RadForge Labs Project.
 Copyright (c) 2026 SteveTheRad / RadForge Labs.
 
 ROMVERSE is licensed under the GNU General Public License, version 3.0 only (GPL-3.0-only). See [`LICENSE`](LICENSE) for the complete terms. Third-party components retain their respective licenses and notices.
+
+Bundled media provenance and trademark credits are recorded in
+[`docs/ASSET_PROVENANCE.md`](docs/ASSET_PROVENANCE.md) and the
+[packaged third-party notices](src/romverse/assets/THIRD_PARTY_NOTICES.txt).
+For vulnerability reporting, see [`SECURITY.md`](SECURITY.md).

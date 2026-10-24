@@ -3444,6 +3444,11 @@ class MainActivity : ComponentActivity() {
                     textAlignment = View.TEXT_ALIGNMENT_CENTER
                     setPadding(0, dp(12), 0, dp(4))
                 })
+                val thirdPartyNotices = resources.openRawResource(R.raw.third_party_notices)
+                    .bufferedReader(Charsets.UTF_8).use { it.readText() }
+                panel.addView(text(thirdPartyNotices, 11f, muted, false).apply {
+                    setPadding(0, dp(12), 0, dp(4))
+                })
             }
         }
         panel.addView(space(dp(18)))

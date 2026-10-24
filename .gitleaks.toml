@@ -1,0 +1,16 @@
+title = "ROMVERSE secret detection"
+
+[extend]
+useDefault = true
+
+# Exact non-secret declarations confirmed by the public-history audit. These do not
+# suppress paths, key assignments, credentials, certificates, or arbitrary values.
+[[allowlists]]
+description = "Cryptographic type checks and a public Android route-state key"
+regexTarget = "line"
+regexes = [
+  '''^\s*certificate_key\.curve,\s*ec\.SECP256R1\s*$''',
+  '''^\s*const val ACTIVITY_ROUTE_KEY = "romverse_visible_route_v1"\s*$''',
+  '''^\s*runtime_private_key: Ed25519PrivateKey \| None,\s*$''',
+  '''^\s*(?:runtime_)?private_key, Ed25519PrivateKey\s*$''',
+]

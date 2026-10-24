@@ -8,7 +8,7 @@ in chat history or on one development computer.
 
 ## Branches
 
-The remote repository currently contains `main` and `develop`.
+Use `git branch -r` for the current inventory; topic, evidence, and recovery branches are also retained.
 
 - `main`: stable project baseline and migration/release commits
 - `develop`: normal integration branch
